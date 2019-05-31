@@ -34,7 +34,7 @@ using namespace gpopt;
 void
 CSubqueryTestUtils::GenerateGetExpressions
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression **ppexprOuter,
 	CExpression **ppexprInner
 	)
@@ -68,7 +68,7 @@ CSubqueryTestUtils::GenerateGetExpressions
 CExpression *
 CSubqueryTestUtils::PexprJoinWithAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -105,7 +105,7 @@ CSubqueryTestUtils::PexprJoinWithAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated
@@ -140,7 +140,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAggSubqueryConstComparison
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated
@@ -172,7 +172,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubqueryConstComparison
 CExpression *
 CSubqueryTestUtils::PexprProjectWithAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated
@@ -212,7 +212,7 @@ CSubqueryTestUtils::PexprProjectWithAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	 BOOL fCorrelated
 	)
 {
@@ -237,7 +237,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAggSubqueryConstComparison
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -263,7 +263,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubqueryConstComparison
 CExpression *
 CSubqueryTestUtils::PexprProjectWithAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -288,7 +288,7 @@ CSubqueryTestUtils::PexprProjectWithAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAggSubqueryOverJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -344,7 +344,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubqueryOverJoin
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAnySubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -364,7 +364,7 @@ CSubqueryTestUtils::PexprSelectWithAnySubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAnySubqueryOverWindow
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -385,7 +385,7 @@ CSubqueryTestUtils::PexprSelectWithAnySubqueryOverWindow
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryQuantifiedOverWindow
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -412,7 +412,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryQuantifiedOverWindow
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAllSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -432,7 +432,7 @@ CSubqueryTestUtils::PexprSelectWithAllSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAllSubqueryOverWindow
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -452,7 +452,7 @@ CSubqueryTestUtils::PexprSelectWithAllSubqueryOverWindow
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAnyAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -472,7 +472,7 @@ CSubqueryTestUtils::PexprSelectWithAnyAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithAllAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -491,7 +491,7 @@ CSubqueryTestUtils::PexprSelectWithAllAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprProjectWithAnySubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -514,7 +514,7 @@ CSubqueryTestUtils::PexprProjectWithAnySubquery
 CExpression *
 CSubqueryTestUtils::PexprProjectWithAllSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -538,7 +538,7 @@ CSubqueryTestUtils::PexprProjectWithAllSubquery
 CExpression *
 CSubqueryTestUtils::PexprSubqueriesInDifferentContexts
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -564,7 +564,7 @@ CSubqueryTestUtils::PexprSubqueriesInDifferentContexts
 CExpression *
 CSubqueryTestUtils::PexprSubqueriesInNullTestContext
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -593,7 +593,7 @@ CSubqueryTestUtils::PexprSubqueriesInNullTestContext
 CExpression *
 CSubqueryTestUtils::PexprSelectWithExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -611,7 +611,7 @@ CSubqueryTestUtils::PexprSelectWithExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNotExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -631,7 +631,7 @@ CSubqueryTestUtils::PexprSelectWithNotExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryDisjuncts
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -657,7 +657,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryDisjuncts
 CExpression *
 CSubqueryTestUtils::PexprSelectWithTrimmableExists
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -676,7 +676,7 @@ CSubqueryTestUtils::PexprSelectWithTrimmableExists
 CExpression *
 CSubqueryTestUtils::PexprSelectWithTrimmableNotExists
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -695,7 +695,7 @@ CSubqueryTestUtils::PexprSelectWithTrimmableNotExists
 CExpression *
 CSubqueryTestUtils::PexprProjectWithExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -714,7 +714,7 @@ CSubqueryTestUtils::PexprProjectWithExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprProjectWithNotExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -734,7 +734,7 @@ CSubqueryTestUtils::PexprProjectWithNotExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNestedCmpSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -770,7 +770,7 @@ CSubqueryTestUtils::PexprSelectWithNestedCmpSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithCmpSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -810,7 +810,7 @@ CSubqueryTestUtils::PexprSelectWithCmpSubqueries
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNestedSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -839,7 +839,7 @@ CSubqueryTestUtils::PexprSelectWithNestedSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNestedQuantifiedSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -883,7 +883,7 @@ CSubqueryTestUtils::PexprSelectWithNestedQuantifiedSubqueries
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNestedAnySubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -902,7 +902,7 @@ CSubqueryTestUtils::PexprSelectWithNestedAnySubqueries
 CExpression *
 CSubqueryTestUtils::PexprSelectWithNestedAllSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -922,7 +922,7 @@ CSubqueryTestUtils::PexprSelectWithNestedAllSubqueries
 CExpression *
 CSubqueryTestUtils::PexprSelectWith2LevelsCorrSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -956,7 +956,7 @@ CSubqueryTestUtils::PexprSelectWith2LevelsCorrSubquery
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryConjuncts
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -981,7 +981,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryConjuncts
 CExpression *
 CSubqueryTestUtils::PexprProjectWithSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1011,7 +1011,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueries
 CExpression *
 CSubqueryTestUtils::PexprSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated // add a predicate to inner expression correlated with outer expression?
@@ -1063,7 +1063,7 @@ CSubqueryTestUtils::PexprSubquery
 CExpression *
 CSubqueryTestUtils::PexprSubqueryQuantified
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -1120,7 +1120,7 @@ CSubqueryTestUtils::PexprSubqueryQuantified
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -1178,7 +1178,7 @@ CSubqueryTestUtils::PexprUndecorrelatableSubquery
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableAnySubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1197,7 +1197,7 @@ CSubqueryTestUtils::PexprUndecorrelatableAnySubquery
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableAllSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1216,7 +1216,7 @@ CSubqueryTestUtils::PexprUndecorrelatableAllSubquery
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1234,7 +1234,7 @@ CSubqueryTestUtils::PexprUndecorrelatableExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableNotExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1253,7 +1253,7 @@ CSubqueryTestUtils::PexprUndecorrelatableNotExistsSubquery
 CExpression *
 CSubqueryTestUtils::PexprUndecorrelatableScalarSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCorrelated
 	)
 {
@@ -1285,7 +1285,7 @@ CSubqueryTestUtils::PexprUndecorrelatableScalarSubquery
 CExpression *
 CSubqueryTestUtils::PexprSubqueryExistential
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -1325,7 +1325,7 @@ CSubqueryTestUtils::PexprSubqueryExistential
 CExpression *
 CSubqueryTestUtils::PexprSubqueryAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated // add a predicate to inner expression correlated with outer expression?
@@ -1370,7 +1370,7 @@ CSubqueryTestUtils::PexprSubqueryAgg
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated,
@@ -1427,7 +1427,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryBoolOp
 CExpression *
 CSubqueryTestUtils::PexprProjectWithSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	BOOL fCorrelated
@@ -1488,7 +1488,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueries
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryQuantified
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -1518,7 +1518,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryQuantified
 CExpression *
 CSubqueryTestUtils::PexprSelectWithQuantifiedAggSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -1572,7 +1572,7 @@ CSubqueryTestUtils::PexprSelectWithQuantifiedAggSubquery
 CExpression *
 CSubqueryTestUtils::PexprProjectWithSubqueryQuantified
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	COperator::EOperatorId op_id,
@@ -1613,7 +1613,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueryQuantified
 CExpression *
 CSubqueryTestUtils::PexprSelectWithSubqueryExistential
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -1643,7 +1643,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryExistential
 CExpression *
 CSubqueryTestUtils::PexprSelectWithTrimmableExistentialSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL // fCorrelated
 	)
@@ -1698,7 +1698,7 @@ CSubqueryTestUtils::PexprSelectWithTrimmableExistentialSubquery
 CExpression *
 CSubqueryTestUtils::PexprProjectWithSubqueryExistential
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id,
 	BOOL fCorrelated
 	)
@@ -1739,7 +1739,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueryExistential
 CExpression *
 CSubqueryTestUtils::PexprSubqueryWithConstTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id
 	)
 {
@@ -1805,7 +1805,7 @@ CSubqueryTestUtils::PexprSubqueryWithConstTableGet
 CExpression *
 CSubqueryTestUtils::PexprSubqueryWithDisjunction
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CStatisticsConfig::CStatisticsConfig
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble damping_factor_filter,
 	CDouble damping_factor_join,
 	CDouble damping_factor_groupby

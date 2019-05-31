@@ -67,27 +67,27 @@ namespace gpdxl
 
 			// test parsing and serializing of plans 
 			static 
-			GPOS_RESULT EresParseAndSerializePlan(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializePlan(CMemoryPool *, const CHAR *, BOOL fValidate);
 			
 			// test parsing and serializing of queries
 			static 
-			GPOS_RESULT EresParseAndSerializeQuery(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializeQuery(CMemoryPool *, const CHAR *, BOOL fValidate);
 			
 			// test parsing and serializing of metadata
 			static 
-			GPOS_RESULT EresParseAndSerializeMetadata(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializeMetadata(CMemoryPool *, const CHAR *, BOOL fValidate);
 			
 			// test parsing and serializing of metadata requests
 			static 
-			GPOS_RESULT EresParseAndSerializeMDRequest(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializeMDRequest(CMemoryPool *, const CHAR *, BOOL fValidate);
 			
 			// test parsing and serializing of stats
 			static 
-			GPOS_RESULT EresParseAndSerializeStatistics(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializeStatistics(CMemoryPool *, const CHAR *, BOOL fValidate);
 
 			// test parsing and serializing of scalar expressions
 			static
-			GPOS_RESULT EresParseAndSerializeScalarExpr(IMemoryPool *, const CHAR *, BOOL fValidate);
+			GPOS_RESULT EresParseAndSerializeScalarExpr(CMemoryPool *, const CHAR *, BOOL fValidate);
 
 		public:
 
@@ -105,7 +105,7 @@ namespace gpdxl
 				(
 				const CHAR *rgszFileNames[],
 				ULONG ulFiles,
-				GPOS_RESULT (*testFunc)(IMemoryPool *,const CHAR *,BOOL),
+				GPOS_RESULT (*testFunc)(CMemoryPool *,const CHAR *,BOOL),
 				BOOL fValidate
 				);
 

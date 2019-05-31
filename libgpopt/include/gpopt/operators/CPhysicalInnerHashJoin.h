@@ -31,16 +31,16 @@ namespace gpopt
 		private:
 
 			// helper for computing a hashed distribution matching the given distribution
-			CDistributionSpecHashed *PdshashedCreateMatching(IMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
+			CDistributionSpecHashed *PdshashedCreateMatching(CMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
 
 			// helper for deriving hash join distribution from hashed children
-			CDistributionSpec *PdsDeriveFromHashedChildren(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromHashedChildren(CMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// helper for deriving hash join distribution from replicated outer child
-			CDistributionSpec *PdsDeriveFromReplicatedOuter(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromReplicatedOuter(CMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// helper for deriving hash join distribution from hashed outer child
-			CDistributionSpec *PdsDeriveFromHashedOuter(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromHashedOuter(CMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// private copy ctor
 			CPhysicalInnerHashJoin(const CPhysicalInnerHashJoin &);
@@ -50,7 +50,7 @@ namespace gpopt
 			// ctor
 			CPhysicalInnerHashJoin
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprOuterKeys,
 				CExpressionArray *pdrgpexprInnerKeys
 				);
@@ -88,13 +88,13 @@ namespace gpopt
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required partition propagation of the n-th child
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
 				ULONG child_index,

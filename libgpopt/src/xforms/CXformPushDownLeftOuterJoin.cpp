@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformPushDownLeftOuterJoin::CXformPushDownLeftOuterJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -117,7 +117,7 @@ CXformPushDownLeftOuterJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	CExpression *pexprNAryJoin = (*pexpr)[0];
 	CExpression *pexprLOJInnerChild = (*pexpr)[1];

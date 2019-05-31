@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumInt2::CDXLDatumInt2
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	BOOL is_null,
 	SINT val

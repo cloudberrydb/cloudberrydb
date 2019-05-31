@@ -128,7 +128,7 @@ namespace gpopt
 			virtual
 			IOstream &OsDiagramToGraphviz
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IOstream &os,
 				const WCHAR *wszTitle
 				)
@@ -142,7 +142,7 @@ namespace gpopt
 			// compute unreachable states
 			void Unreachable
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EState **ppestate,
 				ULONG *pulSize
 				)

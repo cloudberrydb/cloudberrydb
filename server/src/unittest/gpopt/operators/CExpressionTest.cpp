@@ -39,7 +39,7 @@ using namespace gpos;
 //
 //---------------------------------------------------------------------------
 CReqdPropPlan *
-CExpressionTest::PrppCreateRequiredProperties(IMemoryPool *mp, CColRefSet *pcrs)
+CExpressionTest::PrppCreateRequiredProperties(CMemoryPool *mp, CColRefSet *pcrs)
 {
 	COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
 	CDistributionSpec *pds = GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
@@ -62,7 +62,7 @@ CExpressionTest::PrppCreateRequiredProperties(IMemoryPool *mp, CColRefSet *pcrs)
 //
 //---------------------------------------------------------------------------
 CExpression *
-CExpressionTest::PexprCreateGbyWithColumnFormat(IMemoryPool *mp, const WCHAR *wszColNameFormat)
+CExpressionTest::PexprCreateGbyWithColumnFormat(CMemoryPool *mp, const WCHAR *wszColNameFormat)
 {
 	CWStringConst strRelName(GPOS_WSZ_LIT("Rel1"));
 	CMDIdGPDB *rel_mdid = GPOS_NEW(mp) CMDIdGPDB(GPOPT_TEST_REL_OID1, 1, 1);
@@ -123,14 +123,14 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_SimpleOps()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
 	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 
 	Pfpexpr rgpf[] =
 		{
@@ -249,7 +249,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_Union()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -307,7 +307,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_BitmapGet()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -492,7 +492,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_Const()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -567,7 +567,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_ComparisonTypes()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -612,7 +612,7 @@ CExpressionTest::EresUnittest_ComparisonTypes()
 //---------------------------------------------------------------------------
 void CExpressionTest::SetupPlanForFValidPlanTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression **ppexprGby,
 	CColRefSet **ppcrs,
 	CExpression **ppexprPlan,
@@ -654,7 +654,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlan()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -740,7 +740,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlan_InvalidOrder()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -816,7 +816,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlan_InvalidDistribution()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -875,7 +875,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlan_InvalidRewindability()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -935,7 +935,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlan_InvalidCTEs()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -1005,7 +1005,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_FValidPlanError()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -1080,7 +1080,7 @@ CExpressionTest::EresUnittest_FValidPlanError()
 GPOS_RESULT
 CExpressionTest::EresCheckCachedReqdCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CReqdPropPlan *prppInput
 	)
@@ -1169,7 +1169,7 @@ CExpressionTest::EresComputeReqdCols
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1272,7 +1272,7 @@ GPOS_RESULT
 CExpressionTest::EresUnittest_InvalidSetOp()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// Setup an MD cache with a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -1340,7 +1340,7 @@ CExpressionTest::EresUnittest_InvalidSetOp()
 //---------------------------------------------------------------------------
 CExpression *CExpressionTest::PexprComplexJoinTree
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// The plan will have this shape

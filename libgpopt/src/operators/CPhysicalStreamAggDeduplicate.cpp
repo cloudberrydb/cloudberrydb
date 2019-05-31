@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalStreamAggDeduplicate::CPhysicalStreamAggDeduplicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,

@@ -43,7 +43,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformJoinSwap(IMemoryPool *mp)
+			CXformJoinSwap(CMemoryPool *mp)
                 :
                 CXformExploration
                 (
@@ -98,7 +98,7 @@ namespace gpopt
                 GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
                 GPOS_ASSERT(FCheckPattern(pexpr));
 
-                IMemoryPool *mp = pxfctxt->Pmp();
+                CMemoryPool *mp = pxfctxt->Pmp();
 
                 CExpression *pexprResult = CXformUtils::PexprSwapJoins(mp, pexpr, (*pexpr)[0]);
                 if (NULL == pexprResult)

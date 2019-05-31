@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalIntersectAll::CLogicalIntersectAll
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalSetOp(mp)
@@ -49,7 +49,7 @@ CLogicalIntersectAll::CLogicalIntersectAll
 //---------------------------------------------------------------------------
 CLogicalIntersectAll::CLogicalIntersectAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -81,7 +81,7 @@ CLogicalIntersectAll::~CLogicalIntersectAll()
 CMaxCard
 CLogicalIntersectAll::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -114,7 +114,7 @@ CLogicalIntersectAll::Maxcard
 COperator *
 CLogicalIntersectAll::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -136,7 +136,7 @@ CLogicalIntersectAll::PopCopyWithRemappedColumns
 CKeyCollection *
 CLogicalIntersectAll::PkcDeriveKeys
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -156,7 +156,7 @@ CLogicalIntersectAll::PkcDeriveKeys
 CXformSet *
 CLogicalIntersectAll::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -177,7 +177,7 @@ CLogicalIntersectAll::PxfsCandidates
 IStatistics *
 CLogicalIntersectAll::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRef2dArray *pdrgpdrgpcrInput,
 	CColRefSetArray *output_colrefsets // output of relational children
@@ -222,7 +222,7 @@ CLogicalIntersectAll::PstatsDerive
 IStatistics *
 CLogicalIntersectAll::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

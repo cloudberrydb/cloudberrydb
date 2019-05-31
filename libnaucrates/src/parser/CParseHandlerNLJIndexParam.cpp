@@ -27,7 +27,7 @@ XERCES_CPP_NAMESPACE_USE
 // ctor
 CParseHandlerNLJIndexParam::CParseHandlerNLJIndexParam
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_manager,
 	CParseHandlerBase *parse_handler_root
 	)

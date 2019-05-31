@@ -48,10 +48,10 @@ namespace gpos
 			static CCacheFactory *m_factory;
 
 			// memory pool allocated to caches
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// private ctor
-			CCacheFactory(IMemoryPool *mp);
+			CCacheFactory(CMemoryPool *mp);
 
 			// no copy ctor
 			CCacheFactory(const CCacheFactory&);
@@ -95,7 +95,7 @@ namespace gpos
 				GPOS_ASSERT(NULL != GetFactory() &&
 						    "Cache factory has not been initialized");
 
-				IMemoryPool *mp = GetFactory()->Pmp();
+				CMemoryPool *mp = GetFactory()->Pmp();
 				CCache<T, K> *cache = GPOS_NEW(mp) CCache<T, K>
 							(
 							mp,
@@ -110,7 +110,7 @@ namespace gpos
 
 			}
 
-			IMemoryPool *Pmp() const;
+			CMemoryPool *Pmp() const;
 
 	}; // CCacheFactory
 } // namespace gpos

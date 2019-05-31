@@ -166,18 +166,18 @@ namespace gpopt
 
 			// generate all subsets of the given array of elements
 			static
-			void GenerateSubsets(IMemoryPool *mp, CBitSet *pbsCurrent, ULONG *pulElems, ULONG size, ULONG ulIndex, CBitSetArray *pdrgpbsSubsets);
+			void GenerateSubsets(CMemoryPool *mp, CBitSet *pbsCurrent, ULONG *pulElems, ULONG size, ULONG ulIndex, CBitSetArray *pdrgpbsSubsets);
 
 			// driver of subset generation
 			static
-			CBitSetArray *PdrgpbsSubsets(IMemoryPool *mp, CBitSet *pbs);
+			CBitSetArray *PdrgpbsSubsets(CMemoryPool *mp, CBitSet *pbs);
 
 		public:
 
 			// ctor
 			CJoinOrderDP
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprComponents,
 				CExpressionArray *pdrgpexprConjuncts
 				);

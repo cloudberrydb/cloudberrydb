@@ -33,7 +33,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CXformImplementDynamicBitmapTableGet::CXformImplementDynamicBitmapTableGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -70,7 +70,7 @@ CXformImplementDynamicBitmapTableGet::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CLogicalDynamicBitmapTableGet *popLogical = CLogicalDynamicBitmapTableGet::PopConvert(pexpr->Pop());
 
 	CTableDescriptor *ptabdesc = popLogical->Ptabdesc();

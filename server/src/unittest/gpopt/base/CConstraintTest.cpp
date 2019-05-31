@@ -118,7 +118,7 @@ CConstraintTest::EresUnittest_CInterval()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -210,7 +210,7 @@ CConstraintTest::EresUnittest_CConjunction()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -284,7 +284,7 @@ CConstraintTest::EresUnittest_CConjunction()
 CConstraintConjunction *
 CConstraintTest::Pcstconjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CColRef *colref
 	)
@@ -313,7 +313,7 @@ CConstraintTest::Pcstconjunction
 CConstraintDisjunction *
 CConstraintTest::Pcstdisjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CColRef *colref
 	)
@@ -344,7 +344,7 @@ CConstraintTest::EresUnittest_CDisjunction()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -419,7 +419,7 @@ CConstraintTest::EresUnittest_CNegation()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -485,7 +485,7 @@ CConstraintTest::EresUnittest_CIntervalFromScalarExpr()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -530,7 +530,7 @@ CConstraintTest::EresUnittest_CConstraintFromScalarExpr()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -612,7 +612,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -679,7 +679,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -808,7 +808,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -899,7 +899,7 @@ EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -957,7 +957,7 @@ EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
 GPOS_RESULT
 CConstraintTest::EresUnittest_CIntervalFromScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRef *colref
 	)
@@ -996,7 +996,7 @@ CConstraintTest::EresUnittest_CIntervalFromScalarCmp
 GPOS_RESULT
 CConstraintTest::EresUnittest_CIntervalFromScalarBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRef *colref
 	)
@@ -1056,7 +1056,7 @@ CConstraintTest::EresUnittest_CIntervalFromScalarBoolOp
 CExpression *
 CConstraintTest::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRef *colref,
 	IMDType::ECmpType cmp_type,
@@ -1089,7 +1089,7 @@ CConstraintTest::PexprScalarCmp
 CConstraintInterval *
 CConstraintTest::PciFirstInterval
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CColRef *colref
 	)
@@ -1119,7 +1119,7 @@ CConstraintTest::PciFirstInterval
 CConstraintInterval *
 CConstraintTest::PciSecondInterval
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CColRef *colref
 	)
@@ -1147,7 +1147,7 @@ CConstraintTest::PciSecondInterval
 CRangeArray *
 CConstraintTest::Pdrgprng
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	const SRangeInfo rgRangeInfo[],
 	ULONG ulRanges
@@ -1186,7 +1186,7 @@ CConstraintTest::Pdrgprng
 void
 CConstraintTest::PrintConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraint *pcnstr
 	)
 {
@@ -1209,7 +1209,7 @@ CConstraintTest::PrintConstraint
 void
 CConstraintTest::PrintEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSetArray *pdrgpcrs,
 	BOOL fExpected
 	)
@@ -1256,7 +1256,7 @@ CConstraintTest::EresUnittest_NegativeTests()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -1330,7 +1330,7 @@ CConstraintTest::EresUnittest_ConstraintsOnDates()
 
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

@@ -47,7 +47,7 @@ namespace gpopt
 
 			// cast the input column reference to the destination mdid
 			static
-			CExpression *PexprCast( IMemoryPool *mp, CMDAccessor *md_accessor, const CColRef *colref, IMDId *mdid_dest);
+			CExpression *PexprCast( CMemoryPool *mp, CMDAccessor *md_accessor, const CColRef *colref, IMDId *mdid_dest);
 
 			// check whether the given expression is a binary coercible cast of something
 			static
@@ -64,15 +64,15 @@ namespace gpopt
 
             // add explicit casting to equality operations between compatible types
             static
-            CExpressionArray *PdrgpexprCastEquality(IMemoryPool *mp, CExpression *pexpr);
+            CExpressionArray *PdrgpexprCastEquality(CMemoryPool *mp, CExpression *pexpr);
 
             // helper to add explicit casting to left child of given equality predicate
             static
-            CExpression *PexprAddCast(IMemoryPool *mp, CExpression *pexprPred);
+            CExpression *PexprAddCast(CMemoryPool *mp, CExpression *pexprPred);
 
             // add explicit casting on the input expression to the destination type
             static
-            CExpression *PexprCast(IMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexpr, IMDId *mdid_dest);
+            CExpression *PexprCast(CMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexpr, IMDId *mdid_dest);
 	}; // class CCastUtils
 
 } // namespace gpopt

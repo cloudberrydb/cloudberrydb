@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalHashAggDeduplicate::CPhysicalHashAggDeduplicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,

@@ -29,7 +29,7 @@
 IDatum *
 CRangeTest::CreateInt2Datum
 	(
-	gpos::IMemoryPool *mp,
+	gpos::CMemoryPool *mp,
 	INT i
 	)
 {
@@ -47,7 +47,7 @@ CRangeTest::CreateInt2Datum
 IDatum *
 CRangeTest::CreateInt4Datum
 	(
-	gpos::IMemoryPool *mp,
+	gpos::CMemoryPool *mp,
 	INT i
 	)
 {
@@ -65,7 +65,7 @@ CRangeTest::CreateInt4Datum
 IDatum *
 CRangeTest::CreateInt8Datum
 	(
-	gpos::IMemoryPool *mp,
+	gpos::CMemoryPool *mp,
 	INT li
 	)
 {
@@ -92,7 +92,7 @@ CRangeTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -124,7 +124,7 @@ CRangeTest::EresUnittest_CRangeInt2()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -150,7 +150,7 @@ CRangeTest::EresUnittest_CRangeInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -176,7 +176,7 @@ CRangeTest::EresUnittest_CRangeInt8()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -202,7 +202,7 @@ CRangeTest::EresUnittest_CRangeFromScalar()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
 	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
@@ -253,7 +253,7 @@ CRangeTest::EresUnittest_CRangeFromScalar()
 GPOS_RESULT
 CRangeTest::EresInitAndCheckRanges
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	PfPdatum pf
 	)
@@ -340,7 +340,7 @@ CRangeTest::EresInitAndCheckRanges
 void
 CRangeTest::TestRangeRelationship
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prange1,
 	CRange *prange2,
 	CRange *prange3,
@@ -387,7 +387,7 @@ CRangeTest::TestRangeRelationship
 void
 CRangeTest::PrintRange
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref,
 	CRange *prange
 	)

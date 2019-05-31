@@ -41,7 +41,7 @@ namespace gpopt
 			explicit
 			CLogicalLeftSemiApplyIn
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CLogicalLeftSemiApply(mp)
@@ -50,7 +50,7 @@ namespace gpopt
 			// ctor
 			CLogicalLeftSemiApplyIn
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *pdrgpcrInner,
 				EOperatorId eopidOriginSubq
 				)
@@ -83,7 +83,7 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			//-------------------------------------------------------------------------------------
 			//-------------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// conversion function
 			static

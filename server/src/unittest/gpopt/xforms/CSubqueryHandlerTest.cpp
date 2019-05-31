@@ -90,14 +90,14 @@ GPOS_RESULT
 CSubqueryHandlerTest::EresUnittest_Subquery2Apply()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
 	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 	
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*, BOOL);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*, BOOL);
 	Pfpexpr rgpf[] =
 		{
 		CSubqueryTestUtils::PexprSelectWithAggSubquery,
@@ -216,7 +216,7 @@ GPOS_RESULT
 CSubqueryHandlerTest::EresUnittest_SubqueryWithConstSubqueries()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -304,7 +304,7 @@ CSubqueryHandlerTest::EresUnittest_SubqueryWithDisjunction()
 {
 	// use own memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

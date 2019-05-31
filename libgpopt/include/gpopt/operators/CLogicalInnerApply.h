@@ -38,10 +38,10 @@ namespace gpopt
 
 			// ctor for patterns
 			explicit
-			CLogicalInnerApply(IMemoryPool *mp);
+			CLogicalInnerApply(CMemoryPool *mp);
 
 			// ctor
-			CLogicalInnerApply(IMemoryPool *mp, CColRefArray *pdrgpcrInner, EOperatorId eopidOriginSubq);
+			CLogicalInnerApply(CMemoryPool *mp, CColRefArray *pdrgpcrInner, EOperatorId eopidOriginSubq);
 
 			// dtor
 			virtual
@@ -63,7 +63,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -73,7 +73,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveOutput
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 			{
@@ -86,7 +86,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveNotNull
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -96,13 +96,13 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -116,7 +116,7 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *) const;
+			CXformSet *PxfsCandidates(CMemoryPool *) const;
 
 			//-------------------------------------------------------------------------------------
 			//-------------------------------------------------------------------------------------

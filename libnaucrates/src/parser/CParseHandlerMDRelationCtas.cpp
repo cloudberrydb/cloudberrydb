@@ -41,7 +41,7 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMDRelationCtas::CParseHandlerMDRelationCtas
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)

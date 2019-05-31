@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformLeftAntiSemiJoinNotIn2HashJoinNotIn::CXformLeftAntiSemiJoinNotIn2HashJoinNotIn
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern

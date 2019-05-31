@@ -42,7 +42,7 @@ namespace gpopt
 			explicit
 			CXformInnerApply2InnerJoin
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>(mp, true /*fDeepTree*/)

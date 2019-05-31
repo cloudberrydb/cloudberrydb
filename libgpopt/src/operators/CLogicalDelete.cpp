@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDelete::CLogicalDelete
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -53,7 +53,7 @@ CLogicalDelete::CLogicalDelete
 //---------------------------------------------------------------------------
 CLogicalDelete::CLogicalDelete
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *colref_array,
 	CColRef *pcrCtid,
@@ -149,7 +149,7 @@ CLogicalDelete::HashValue() const
 COperator *
 CLogicalDelete::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -173,7 +173,7 @@ CLogicalDelete::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalDelete::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -193,7 +193,7 @@ CLogicalDelete::PcrsDeriveOutput
 CKeyCollection *
 CLogicalDelete::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -212,7 +212,7 @@ CLogicalDelete::PkcDeriveKeys
 CMaxCard
 CLogicalDelete::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -232,7 +232,7 @@ CLogicalDelete::Maxcard
 CXformSet *
 CLogicalDelete::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -252,7 +252,7 @@ CLogicalDelete::PxfsCandidates
 IStatistics *
 CLogicalDelete::PstatsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

@@ -53,7 +53,7 @@ CAutoRefTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// assignment
 	CAutoRef<CElem> aelem;

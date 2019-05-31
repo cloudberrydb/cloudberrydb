@@ -28,7 +28,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname_schema,
 	CMDName *mdname,

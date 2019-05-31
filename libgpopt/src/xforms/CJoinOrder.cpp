@@ -60,7 +60,7 @@ INT ICmpEdgesByLength
 // ctor
 CJoinOrder::SComponent::SComponent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	INT parent_loj_id,
 	EPosition position
@@ -163,7 +163,7 @@ const
 //---------------------------------------------------------------------------
 CJoinOrder::SEdge::SEdge
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL is_loj
 	)
@@ -225,7 +225,7 @@ CJoinOrder::SEdge::OsPrint
 //---------------------------------------------------------------------------
 CJoinOrder::CJoinOrder
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *all_components,
 	CExpressionArray *inner_join_conjuncts,
 	BOOL include_loj_childs
@@ -733,7 +733,7 @@ CJoinOrder::MarkUsedEdges
 void
 CJoinOrder::AddComponent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *expr,
 	INT loj_id,
 	EPosition position,

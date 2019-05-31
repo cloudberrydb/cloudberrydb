@@ -40,7 +40,7 @@ const CDouble CDatumGenericGPDB::DefaultCdbRolloffSelectivity(0.14);
 //---------------------------------------------------------------------------
 CDatumGenericGPDB::CDatumGenericGPDB
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid,
 				INT type_modifier,
 				const void *src,
@@ -178,7 +178,7 @@ CDatumGenericGPDB::HashValue() const
 const CWStringConst *
 CDatumGenericGPDB::GetStrRepr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -261,7 +261,7 @@ CDatumGenericGPDB::Matches
 IDatum *
 CDatumGenericGPDB::MakeCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -393,7 +393,7 @@ CDatumGenericGPDB::StatsAreEqual
 BYTE *
 CDatumGenericGPDB::MakeCopyOfValue
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG *dest_length
 		)
 	const
@@ -438,7 +438,7 @@ CDatumGenericGPDB::NeedsPadding() const
 IDatum *
 CDatumGenericGPDB::MakePaddedDatum
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG col_len
 		)
 	const

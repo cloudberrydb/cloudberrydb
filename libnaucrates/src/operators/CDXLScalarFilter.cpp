@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarFilter::CDXLScalarFilter
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLScalar(mp)

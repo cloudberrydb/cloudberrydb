@@ -48,7 +48,7 @@ namespace gpdxl
 			// ctor/
 			CDXLScalarNullTest
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				BOOL is_null
 				);
 

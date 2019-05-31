@@ -143,7 +143,7 @@ namespace gpopt
 
 			// generate default search strategy
 			static
-			CSearchStageArray *PdrgpssDefault(IMemoryPool *mp);
+			CSearchStageArray *PdrgpssDefault(CMemoryPool *mp);
 
 	};
 

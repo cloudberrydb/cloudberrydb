@@ -36,7 +36,7 @@ namespace gpdxl
 		public:
 			// ctor/dtor
 			explicit
-			CDXLScalarSubqueryNotExists(IMemoryPool *mp);
+			CDXLScalarSubqueryNotExists(CMemoryPool *mp);
 			
 			virtual
 			~CDXLScalarSubqueryNotExists();

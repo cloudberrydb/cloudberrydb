@@ -243,7 +243,7 @@ CPoint::MaxPoint
 CDXLDatum *
 CPoint::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor
 	)
 	const

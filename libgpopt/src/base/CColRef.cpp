@@ -133,7 +133,7 @@ CColRef::OsPrint
 ULongPtrArray *
 CColRef::Pdrgpul
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -204,7 +204,7 @@ CColRef::Equals
 void
 CColRef::DbgPrint() const
 {
-	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(pmp);
 	(void) this->OsPrint(at.Os());
 }

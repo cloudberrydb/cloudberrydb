@@ -89,10 +89,10 @@ namespace gpopt
 			}
 
 			// is required partition propagation resolved by the given part index map
-			BOOL FResolved(IMemoryPool *mp, CPartIndexMap *ppim) const;
+			BOOL FResolved(CMemoryPool *mp, CPartIndexMap *ppim) const;
 
 			// are the dynamic scans required by the partition propagation in the scope defined by the given part index map
-			BOOL FInScope(IMemoryPool *mp, CPartIndexMap *ppim) const;
+			BOOL FInScope(CMemoryPool *mp, CPartIndexMap *ppim) const;
 			
 			// get distribution enforcing type for the given operator
 			EPropEnforcingType Epet

@@ -102,7 +102,7 @@ CTranslatorDXLToExprTest::EresUnittest()
 CExpression *
 CTranslatorDXLToExprTest::Pexpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename
 	)
 {
@@ -147,7 +147,7 @@ CTranslatorDXLToExprTest::Pexpr
 GPOS_RESULT
 CTranslatorDXLToExprTest::EresTranslateAndCheck
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	const CWStringDynamic *pstrExpected
 	)
@@ -215,7 +215,7 @@ CTranslatorDXLToExprTest::EresTranslateAndCheck
 CWStringDynamic *
 CTranslatorDXLToExprTest::Pstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -239,7 +239,7 @@ namespace
 {
 	class GetBuilder
 	{
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			CTableDescriptor *m_ptabdesc;
 			CWStringConst m_strTableName;
 			const IMDTypeInt4 *m_pmdtypeint4;
@@ -247,7 +247,7 @@ namespace
 		public:
 			GetBuilder
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CWStringConst strTableName,
 				OID oidTableOid
 				):
@@ -298,7 +298,7 @@ namespace
 CExpression *
 CTranslatorDXLToExprTest::PexprGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strTblName(GPOS_WSZ_LIT("r"));
@@ -324,7 +324,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SingleTableQuery()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -366,7 +366,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_TVF()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -408,7 +408,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SelectQuery()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -467,7 +467,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConst()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -515,7 +515,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConstInList()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -580,7 +580,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithBoolExpr()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -649,7 +649,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithScalarOp()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstrExpected = NULL;
 
@@ -714,7 +714,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_Limit()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -760,7 +760,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_LimitNoOffset()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -805,7 +805,7 @@ GPOS_RESULT
 CTranslatorDXLToExprTest::EresUnittest_ScalarSubquery()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -842,7 +842,7 @@ CTranslatorDXLToExprTest::EresUnittest_ScalarSubquery()
 GPOS_RESULT CTranslatorDXLToExprTest::EresUnittest_MetadataColumnMapping()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CAutoP<CDXLMinidump> apdxlmd(CMinidumperUtils::PdxlmdLoad(mp, szQueryDroppedColumn));
 

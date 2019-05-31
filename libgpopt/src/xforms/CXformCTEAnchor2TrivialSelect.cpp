@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformCTEAnchor2TrivialSelect::CXformCTEAnchor2TrivialSelect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -93,7 +93,7 @@ CXformCTEAnchor2TrivialSelect::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// child of CTE anchor
 	CExpression *pexprChild = (*pexpr)[0];

@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CAutoOptCtxt::CAutoOptCtxt
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
 	COptimizerConfig *optimizer_config
@@ -60,7 +60,7 @@ CAutoOptCtxt::CAutoOptCtxt
 //---------------------------------------------------------------------------
 CAutoOptCtxt::CAutoOptCtxt
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
 	ICostModel *pcm

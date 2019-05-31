@@ -34,7 +34,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLColStats::CDXLColStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDIdColStats *mdid_col_stats,
 	CMDName *mdname,
 	CDouble width,
@@ -236,7 +236,7 @@ CDXLColStats::DebugPrint
 CDXLColStats *
 CDXLColStats::CreateDXLDummyColStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	CDouble width

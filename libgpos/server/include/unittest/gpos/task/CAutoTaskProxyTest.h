@@ -53,8 +53,8 @@ namespace gpos
 				// Propagate Exception
 				BOOL fPropagateException;
 
-				// IMemoryPool
-				IMemoryPool *m_mp;
+				// CMemoryPool
+				CMemoryPool *m_mp;
 			};
 
 			// unittests

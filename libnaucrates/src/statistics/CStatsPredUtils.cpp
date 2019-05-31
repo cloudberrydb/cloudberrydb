@@ -125,7 +125,7 @@ CStatsPredUtils::StatsCmpType
 CStatsPred *
 CStatsPredUtils::CreateStatsPredUnsupported
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *, // predicate_expr,
 	CColRefSet * //outer_refs
 	)
@@ -144,7 +144,7 @@ CStatsPredUtils::CreateStatsPredUnsupported
 CStatsPred *
 CStatsPredUtils::GetStatsPredNullTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CColRefSet * //outer_refs
 	)
@@ -190,7 +190,7 @@ CStatsPredUtils::GetStatsPredNullTest
 CStatsPred *
 CStatsPredUtils::GetStatsPredPoint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CColRefSet *//outer_refs,
 	)
@@ -254,7 +254,7 @@ CStatsPredUtils::IsTextRelatedType(const IMDId *mdid)
 CStatsPred *
 CStatsPredUtils::GetPredStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *expr
 	)
 {
@@ -407,7 +407,7 @@ CStatsPredUtils::IsPredCmpColsOrIgnoreCast
 CStatsPred *
 CStatsPredUtils::ExtractPredStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *scalar_expr,
 	CColRefSet *outer_refs
 	)
@@ -445,7 +445,7 @@ CStatsPredUtils::ExtractPredStats
 CStatsPred *
 CStatsPredUtils::CreateStatsPredConj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *scalar_expr,
 	CColRefSet *outer_refs
 	)
@@ -503,7 +503,7 @@ CStatsPredUtils::CreateStatsPredConj
 CStatsPred *
 CStatsPredUtils::CreateStatsPredDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CColRefSet *outer_refs
 	)
@@ -556,7 +556,7 @@ CStatsPredUtils::CreateStatsPredDisj
 void
 CStatsPredUtils::AddSupportedStatsFilters
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredPtrArry *pred_stats_array,
 	CExpression *predicate_expr,
 	CColRefSet *outer_refs
@@ -633,7 +633,7 @@ CStatsPredUtils::AddSupportedStatsFilters
 CStatsPredUtils::EPredicateType
 CStatsPredUtils::GetPredTypeForExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr
 	)
 {
@@ -692,7 +692,7 @@ CStatsPredUtils::GetPredTypeForExpr
 BOOL
 CStatsPredUtils::IsConjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr
 	)
 {
@@ -843,7 +843,7 @@ CStatsPredUtils::IsPredScalarIdentIsNotNull
 CStatsPred *
 CStatsPredUtils::GetStatsPredLike
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CColRefSet *//outer_refs,
 	)
@@ -911,7 +911,7 @@ CStatsPredUtils::GetStatsPredLike
 void
 CStatsPredUtils::ProcessArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CStatsPredPtrArry *pred_stats_array
 	)
@@ -1010,7 +1010,7 @@ CStatsPredUtils::ProcessArrayCmp
 CStatsPred *
 CStatsPredUtils::GetStatsPredFromBoolExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *predicate_expr,
 	CColRefSet * //outer_refs
 	)
@@ -1064,7 +1064,7 @@ CStatsPredUtils::GetStatsPredFromBoolExpr
 CStatsPredJoin *
 CStatsPredUtils::ExtractJoinStatsFromJoinPred
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *join_pred_expr,
 	CColRefSetArray *output_col_refsets,  // array of output columns of join's relational inputs
 	CColRefSet *outer_refs,
@@ -1135,7 +1135,7 @@ CStatsPredUtils::ExtractJoinStatsFromJoinPred
 CStatsPredJoinArray *
 CStatsPredUtils::ExtractJoinStatsFromJoinPredArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *scalar_expr,
 	CColRefSetArray *output_col_refsets,  // array of output columns of join's relational inputs
 	CColRefSet *outer_refs,
@@ -1201,7 +1201,7 @@ CStatsPredUtils::ExtractJoinStatsFromJoinPredArray
 CStatsPredJoinArray *
 CStatsPredUtils::ExtractJoinStatsFromExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expr_handle,
 	CExpression *pexprScalarInput,
 	CColRefSetArray *output_col_refsets, // array of output columns of join's relational inputs
@@ -1244,7 +1244,7 @@ CStatsPredUtils::ExtractJoinStatsFromExpr
 CStatsPredJoinArray *
 CStatsPredUtils::ExtractJoinStatsFromExprHandle
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expr_handle
 	)
 {

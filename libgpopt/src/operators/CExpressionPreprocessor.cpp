@@ -45,7 +45,7 @@ using namespace gpopt;
 CExpression *
 CExpressionPreprocessor::PexprEliminateSelfComparison
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -78,7 +78,7 @@ CExpressionPreprocessor::PexprEliminateSelfComparison
 CExpression *
 CExpressionPreprocessor::PexprPruneSuperfluousEquality
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -116,7 +116,7 @@ CExpressionPreprocessor::PexprPruneSuperfluousEquality
 CExpression *
 CExpressionPreprocessor::PexprTrimExistentialSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -176,7 +176,7 @@ CExpressionPreprocessor::PexprTrimExistentialSubqueries
 CExpression *
 CExpressionPreprocessor::PexprSimplifyQuantifiedSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -249,7 +249,7 @@ CExpressionPreprocessor::PexprSimplifyQuantifiedSubqueries
 CExpression *
 CExpressionPreprocessor::PexprUnnestScalarSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -349,7 +349,7 @@ CExpressionPreprocessor::PexprUnnestScalarSubqueries
 CExpression *
 CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -394,7 +394,7 @@ CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 CExpression *
 CExpressionPreprocessor::PexprRemoveSuperfluousDistinctInDQA
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -469,7 +469,7 @@ CExpressionPreprocessor::PexprRemoveSuperfluousDistinctInDQA
 CExpression *
 CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -595,7 +595,7 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 CExpression *
 CExpressionPreprocessor::PexprScalarBoolOpConvert2In
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CScalarBoolOp::EBoolOperator eboolop,
 	CExpressionArray *pdrgpexpr
 	)
@@ -660,7 +660,7 @@ CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoo
 CExpression *
 CExpressionPreprocessor::PexprConvert2In
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr // does not take ownership
 	)
 {
@@ -736,7 +736,7 @@ CExpressionPreprocessor::PexprConvert2In
 CExpression *
 CExpressionPreprocessor::PexprCollapseInnerJoins
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -812,7 +812,7 @@ CExpressionPreprocessor::PexprCollapseInnerJoins
 CExpression *
 CExpressionPreprocessor::PexprCollapseProjects
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -852,7 +852,7 @@ CExpressionPreprocessor::PexprCollapseProjects
 CExpression *
 CExpressionPreprocessor::PexprProjBelowSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fUnderPrList
 	)
@@ -949,7 +949,7 @@ CExpressionPreprocessor::PexprProjBelowSubquery
 CExpression *
 CExpressionPreprocessor::PexprCollapseUnionUnionAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1041,7 +1041,7 @@ CExpressionPreprocessor::PexprCollapseUnionUnionAll
 CExpression *
 CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1112,7 +1112,7 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 CExpression *
 CExpressionPreprocessor::PexprConjEqualityPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -1186,7 +1186,7 @@ CExpressionPreprocessor::FEquivClassFromChild
 CExpression *
 CExpressionPreprocessor::PexprAddEqualityPreds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsProcessed
 	)
@@ -1268,7 +1268,7 @@ CExpressionPreprocessor::PexprAddEqualityPreds
 CExpression *
 CExpressionPreprocessor::PexprScalarPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPropConstraint *ppc,
 	CColRefSet *pcrsNotNull,
 	CColRefSet *pcrs,
@@ -1316,7 +1316,7 @@ CExpressionPreprocessor::PexprScalarPredicates
 CExpression *
 CExpressionPreprocessor::PexprFromConstraintsScalar
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1360,7 +1360,7 @@ CExpressionPreprocessor::PexprFromConstraintsScalar
 CExpression *
 CExpressionPreprocessor::PexprWithImpliedPredsOnLOJInnerChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLOJ,
 	BOOL *pfAddedPredicates // output: set to True if new predicates are added to inner child
 	)
@@ -1452,7 +1452,7 @@ CExpressionPreprocessor::PexprWithImpliedPredsOnLOJInnerChild
 CExpression *
 CExpressionPreprocessor::PexprOuterJoinInferPredsFromOuterChildToInnerChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL *pfAddedPredicates // output: set to True if new predicates are added to inner child
 	)
@@ -1487,7 +1487,7 @@ CExpressionPreprocessor::PexprOuterJoinInferPredsFromOuterChildToInnerChild
 CExpression *
 CExpressionPreprocessor::PexprFromConstraints
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsProcessed
 	)
@@ -1555,7 +1555,7 @@ CExpressionPreprocessor::PexprFromConstraints
 CExpression *
 CExpressionPreprocessor::PexprPruneEmptySubtrees
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1598,7 +1598,7 @@ CExpressionPreprocessor::PexprPruneEmptySubtrees
 CExpression *
 CExpressionPreprocessor::PexprRemoveUnusedCTEs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1634,7 +1634,7 @@ CExpressionPreprocessor::PexprRemoveUnusedCTEs
 void
 CExpressionPreprocessor::CollectCTEPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CTEPredsMap *phm
 	)
@@ -1687,7 +1687,7 @@ CExpressionPreprocessor::CollectCTEPredicates
 void
 CExpressionPreprocessor::AddPredsToCTEProducers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1742,7 +1742,7 @@ CExpressionPreprocessor::AddPredsToCTEProducers
 CExpression *
 CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1781,7 +1781,7 @@ CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 CExpression *
 CExpressionPreprocessor::PexprInferPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1832,7 +1832,7 @@ CExpressionPreprocessor::PexprInferPredicates
 CExpression *
 CExpressionPreprocessor::PexprPruneUnusedComputedCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsReqd
 	)
@@ -1856,7 +1856,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 CExpression *
 CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsReqd
 	)
@@ -1928,7 +1928,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
 CExpression *
 CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsUnused,
 	CColRefSet *pcrsDefined,
@@ -2023,7 +2023,7 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 CExpression *
 CExpressionPreprocessor::PexprReorderScalarCmpChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -2102,7 +2102,7 @@ CExpressionPreprocessor::PexprReorderScalarCmpChildren
 CExpression *
 CExpressionPreprocessor::ConvertInToSimpleExists
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -2174,7 +2174,7 @@ CExpressionPreprocessor::ConvertInToSimpleExists
 CExpression *
 CExpressionPreprocessor::PexprExistWithPredFromINSubq
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -2239,7 +2239,7 @@ CExpressionPreprocessor::PexprExistWithPredFromINSubq
 CExpression *
 CExpressionPreprocessor::PexprPreprocess
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsOutputAndOrderCols // query output cols and cols used in the order specs
 	)

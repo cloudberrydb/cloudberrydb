@@ -68,7 +68,7 @@ namespace gpdxl
 			// ctor
 			CParseHandlerScalarSwitch
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CParseHandlerManager *parse_handler_mgr,
 					CParseHandlerBase *parse_handler_root
 					);

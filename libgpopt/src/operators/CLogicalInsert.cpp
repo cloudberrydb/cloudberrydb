@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInsert::CLogicalInsert
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -51,7 +51,7 @@ CLogicalInsert::CLogicalInsert
 //---------------------------------------------------------------------------
 CLogicalInsert::CLogicalInsert
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrSource
 	)
@@ -135,7 +135,7 @@ CLogicalInsert::HashValue() const
 COperator *
 CLogicalInsert::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -157,7 +157,7 @@ CLogicalInsert::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalInsert::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -177,7 +177,7 @@ CLogicalInsert::PcrsDeriveOutput
 CKeyCollection *
 CLogicalInsert::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -196,7 +196,7 @@ CLogicalInsert::PkcDeriveKeys
 CMaxCard
 CLogicalInsert::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -216,7 +216,7 @@ CLogicalInsert::Maxcard
 CXformSet *
 CLogicalInsert::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -236,7 +236,7 @@ CLogicalInsert::PxfsCandidates
 IStatistics *
 CLogicalInsert::PstatsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

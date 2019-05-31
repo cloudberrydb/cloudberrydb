@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarProjElem::CDXLScalarProjElem
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	const CMDName *mdname
 	)

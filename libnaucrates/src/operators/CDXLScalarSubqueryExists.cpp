@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarSubqueryExists::CDXLScalarSubqueryExists
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLScalar(mp)

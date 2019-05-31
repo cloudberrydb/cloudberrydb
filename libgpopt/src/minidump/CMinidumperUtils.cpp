@@ -61,7 +61,7 @@ using namespace std;
 CDXLMinidump *
 CMinidumperUtils::PdxlmdLoad
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *file_name
 	)
 {
@@ -255,7 +255,7 @@ CMinidumperUtils::Finalize
 CDXLNode * 
 CMinidumperUtils::PdxlnExecuteMinidump
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *file_name,
 	ULONG ulSegments,
 	ULONG ulSessionId,
@@ -308,7 +308,7 @@ CMinidumperUtils::PdxlnExecuteMinidump
 CDXLNode * 
 CMinidumperUtils::PdxlnExecuteMinidump
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLMinidump *pdxlmd,
 	const CHAR *file_name,
 	ULONG ulSegments, 
@@ -342,7 +342,7 @@ CMinidumperUtils::PdxlnExecuteMinidump
 CDXLNode *
 CMinidumperUtils::PdxlnExecuteMinidump
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CDXLMinidump *pdxlmd,
 	const CHAR *file_name,

@@ -58,7 +58,7 @@ CLogicalMaxOneRow::Esp
 CColRefSet *
 CLogicalMaxOneRow::PcrsStat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index
@@ -87,7 +87,7 @@ CLogicalMaxOneRow::PcrsStat
 CXformSet *
 CLogicalMaxOneRow::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -108,7 +108,7 @@ CLogicalMaxOneRow::PxfsCandidates
 IStatistics *
 CLogicalMaxOneRow::PstatsDerive
 			(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CExpressionHandle &exprhdl,
 			IStatisticsArray * // stats_ctxt
 			)

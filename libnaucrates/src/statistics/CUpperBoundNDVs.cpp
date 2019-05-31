@@ -29,7 +29,7 @@ using namespace gpopt;
 CUpperBoundNDVs *
 CUpperBoundNDVs::CopyUpperBoundNDVWithRemap
         (
-        IMemoryPool *mp,
+        CMemoryPool *mp,
         UlongToColRefMap *colid_to_colref_map
         )
         const
@@ -74,7 +74,7 @@ CUpperBoundNDVs::CopyUpperBoundNDVWithRemap
 CUpperBoundNDVs *
 CUpperBoundNDVs::CopyUpperBoundNDVs
         (
-        IMemoryPool *mp,
+        CMemoryPool *mp,
         CDouble upper_bound_ndv
        )
         const
@@ -96,7 +96,7 @@ CUpperBoundNDVs::CopyUpperBoundNDVs
 CUpperBoundNDVs *
 CUpperBoundNDVs::CopyUpperBoundNDVs
         (
-        IMemoryPool *mp
+        CMemoryPool *mp
         )
         const
 {

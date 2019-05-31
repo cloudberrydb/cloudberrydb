@@ -33,7 +33,7 @@ namespace gpopt
 			// ctor
 			CPhysicalSerialUnionAll
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *pdrgpcrOutput,
 				CColRef2dArray *pdrgpdrgpcrInput,
 				ULONG ulScanIdPartialIndex
@@ -81,7 +81,7 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CDistributionSpec *pdsRequired,
 					ULONG child_index,

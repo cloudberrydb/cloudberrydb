@@ -61,7 +61,7 @@ namespace gpdxl
 			// ctor/dtor
 			CParseHandlerNLJIndexParam
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CParseHandlerManager *parse_handler_manager,
 					CParseHandlerBase *parse_handler_root
 					);

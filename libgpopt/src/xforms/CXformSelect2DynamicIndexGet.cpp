@@ -36,7 +36,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CXformSelect2DynamicIndexGet::CXformSelect2DynamicIndexGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -97,7 +97,7 @@ CXformSelect2DynamicIndexGet::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];

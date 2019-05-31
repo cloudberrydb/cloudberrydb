@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformJoinCommutativity(IMemoryPool *mp);
+			CXformJoinCommutativity(CMemoryPool *mp);
 
 			// dtor
 			virtual

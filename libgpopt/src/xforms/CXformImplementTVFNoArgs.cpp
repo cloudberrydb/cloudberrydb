@@ -26,7 +26,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementTVFNoArgs::CXformImplementTVFNoArgs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementTVF

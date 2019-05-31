@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExternalGet2ExternalScan::CXformExternalGet2ExternalScan
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -82,7 +82,7 @@ CXformExternalGet2ExternalScan::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalExternalGet *popGet = CLogicalExternalGet::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 	CName *pname = GPOS_NEW(mp) CName(mp, popGet->Name());

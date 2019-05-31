@@ -85,7 +85,7 @@ CDistributionSpecNonSingleton::FSatisfies
 void
 CDistributionSpecNonSingleton::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG

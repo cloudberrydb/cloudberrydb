@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementConstTableGet::CXformImplementConstTableGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -64,7 +64,7 @@ CXformImplementConstTableGet::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalConstTableGet *popConstTableGet = CLogicalConstTableGet::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
 	CColumnDescriptorArray *pdrgpcoldesc = popConstTableGet->Pdrgpcoldesc();

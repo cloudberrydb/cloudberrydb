@@ -44,7 +44,7 @@ GPOS_CPL_ASSERT(MAX_ALIGNED(GPOS_MEM_BLOCK_SIZE));
 //---------------------------------------------------------------------------
 CMemoryPoolStack::CMemoryPoolStack
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULLONG capacity,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool

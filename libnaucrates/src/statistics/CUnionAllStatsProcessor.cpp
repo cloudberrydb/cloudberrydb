@@ -18,7 +18,7 @@ using namespace gpopt;
 CStatistics *
 CUnionAllStatsProcessor::CreateStatsForUnionAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *stats_first_child,
 	const CStatistics *stats_second_child,
 	ULongPtrArray *output_colids,

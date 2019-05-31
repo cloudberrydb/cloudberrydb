@@ -71,7 +71,7 @@ CPartInfo::CPartInfoEntry::~CPartInfoEntry()
 CPartInfo::CPartInfoEntry *
 CPartInfo::CPartInfoEntry::PpartinfoentryAddRemappedKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs,
 	UlongToColRefMap *colref_mapping
 	)
@@ -123,7 +123,7 @@ CPartInfo::CPartInfoEntry::OsPrint
 void
 CPartInfo::CPartInfoEntry::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }
@@ -141,7 +141,7 @@ CPartInfo::CPartInfoEntry::DbgPrint() const
 CPartInfo::CPartInfoEntry *
 CPartInfo::CPartInfoEntry::PpartinfoentryCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	IMDId *mdid = MDId();
@@ -187,7 +187,7 @@ CPartInfo::CPartInfo
 //---------------------------------------------------------------------------
 CPartInfo::CPartInfo
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	m_pdrgppartentries = GPOS_NEW(mp) CPartInfoEntryArray(mp);
@@ -217,7 +217,7 @@ CPartInfo::~CPartInfo()
 void
 CPartInfo::AddPartConsumer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	IMDId *mdid,
 	CColRef2dArray *pdrgpdrgpcrPart,
@@ -371,7 +371,7 @@ CPartInfo::PdrgppartkeysByScanId
 CPartInfo *
 CPartInfo::PpartinfoWithRemappedKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrSrc,
 	CColRefArray *pdrgpcrDest
 	)
@@ -413,7 +413,7 @@ CPartInfo::PpartinfoWithRemappedKeys
 CPartInfo *
 CPartInfo::PpartinfoCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartInfo *ppartinfoFst,
 	CPartInfo *ppartinfoSnd
 	)
@@ -499,7 +499,7 @@ CPartInfo::OsPrint
 void
 CPartInfo::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalTVF::CLogicalTVF
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -58,7 +58,7 @@ CLogicalTVF::CLogicalTVF
 //---------------------------------------------------------------------------
 CLogicalTVF::CLogicalTVF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	CWStringConst *str,
@@ -98,7 +98,7 @@ CLogicalTVF::CLogicalTVF
 //---------------------------------------------------------------------------
 CLogicalTVF::CLogicalTVF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	CWStringConst *str,
@@ -205,7 +205,7 @@ CLogicalTVF::Matches
 COperator *
 CLogicalTVF::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -239,7 +239,7 @@ CLogicalTVF::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalTVF::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 {
@@ -260,7 +260,7 @@ CLogicalTVF::PcrsDeriveOutput
 CFunctionProp *
 CLogicalTVF::PfpDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -294,7 +294,7 @@ CLogicalTVF::FInputOrderSensitive() const
 CXformSet *
 CLogicalTVF::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -317,7 +317,7 @@ CLogicalTVF::PxfsCandidates
 CMaxCard
 CLogicalTVF::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -343,7 +343,7 @@ CLogicalTVF::Maxcard
 IStatistics *
 CLogicalTVF::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // stats_ctxt
 	)

@@ -64,7 +64,7 @@ CBitVectorTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG cSize = 129;
 
@@ -120,7 +120,7 @@ CBitVectorTest::EresUnittest_SetOps()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG cSize = 129;
 	CBitVector bvEmpty(mp, cSize);
@@ -170,7 +170,7 @@ CBitVectorTest::EresUnittest_Cursor()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CBitVector bv(mp, 129);
 	for(ULONG i = 1; i < 20; i ++)
@@ -202,7 +202,7 @@ CBitVectorTest::EresUnittest_Random()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// set up control vector
 	ULONG cTotal = 10000;
@@ -262,7 +262,7 @@ CBitVectorTest::EresUnittest_OutOfBounds()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CBitVector bv(mp, 129);
 

@@ -41,7 +41,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysical::CPhysical
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	COperator(mp),
@@ -174,7 +174,7 @@ CPhysical::LookupRequest
 DrvdPropArray *
 CPhysical::PdpCreate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -192,7 +192,7 @@ CPhysical::PdpCreate
 COperator *
 CPhysical::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	UlongToColRefMap *, //colref_mapping,
 	BOOL //must_exist
 	)
@@ -212,7 +212,7 @@ CPhysical::PopCopyWithRemappedColumns
 CReqdProp *
 CPhysical::PrpCreate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -277,7 +277,7 @@ CPhysical::CReqdColsRequest::Equals
 CDistributionSpec *
 CPhysical::PdsCompute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrOutput
 	)
@@ -340,7 +340,7 @@ CPhysical::PdsCompute
 COrderSpec *
 CPhysical::PosPassThru
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	COrderSpec *posRequired,
 	ULONG // child_index
@@ -363,7 +363,7 @@ CPhysical::PosPassThru
 CDistributionSpec *
 CPhysical::PdsPassThru
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	CDistributionSpec *pdsRequired,
 	ULONG // child_index
@@ -389,7 +389,7 @@ CPhysical::PdsPassThru
 CDistributionSpec *
 CPhysical::PdsRequireSingletonOrReplicated
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -431,7 +431,7 @@ CPhysical::PdsRequireSingletonOrReplicated
 CDistributionSpec *
 CPhysical::PdsUnary
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -465,7 +465,7 @@ CPhysical::PdsUnary
 CRewindabilitySpec *
 CPhysical::PrsPassThru
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	CRewindabilitySpec *prsRequired,
 	ULONG // child_index
@@ -553,7 +553,7 @@ CPhysical::PrsDerivePassThruOuter
 CColRefSet *
 CPhysical::PcrsChildReqd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -656,7 +656,7 @@ CPhysical::FUnaryProvidesReqdCols
 CDistributionSpecSingleton *
 CPhysical::PdssMatching
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecSingleton *pdss
 	)
 {
@@ -680,7 +680,7 @@ CPhysical::PdssMatching
 CPartitionPropagationSpec *
 CPhysical::PppsRequiredPushThru
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG // child_index
@@ -724,7 +724,7 @@ CPhysical::PcterPushThru
 CCTEMap *
 CPhysical::PcmCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDrvdProp2dArray *pdrgpdpCtxt
 	)
 {
@@ -757,7 +757,7 @@ CPhysical::PcmCombine
 CCTEReq *
 CPhysical::PcterNAry
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
@@ -810,7 +810,7 @@ CPhysical::PcterNAry
 CPartitionPropagationSpec *
 CPhysical::PppsRequiredPushThruNAry
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsReqd,
 	ULONG child_index
@@ -940,7 +940,7 @@ CPhysical::FCanPushPartReqToChild
 CPartitionPropagationSpec *
 CPhysical::PppsRequiredPushThruUnresolvedUnary
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	EPropogatePartConstraint eppcPropogate,
@@ -999,7 +999,7 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 CPartIndexMap *
 CPhysical::PpimDeriveCombineRelational
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -1078,7 +1078,7 @@ CPhysical::PpfmPassThruOuter
 CPartFilterMap *
 CPhysical::PpfmDeriveCombineRelational
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -1109,7 +1109,7 @@ CPhysical::PpfmDeriveCombineRelational
 CCTEMap *
 CPhysical::PcmDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -1229,7 +1229,7 @@ CPhysical::EpetPartitionPropagation
 CDistributionSpec *
 CPhysical::PdsRequireSingleton
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CExpressionHandle &exprhdl,
 		CDistributionSpec *pds,
 		ULONG child_index

@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarIdent::CDXLScalarIdent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLColRef *dxl_colref
 	)
 	:

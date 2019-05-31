@@ -112,7 +112,7 @@ namespace gpos
 			};	// class CHashSetElem
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// number of hash chains
 			ULONG m_num_chains;
@@ -172,7 +172,7 @@ namespace gpos
 		public:
 
 			// ctor
-			CHashSet<T, HashFn, EqFn, CleanupFn> (IMemoryPool *mp, ULONG size = 127)
+			CHashSet<T, HashFn, EqFn, CleanupFn> (CMemoryPool *mp, ULONG size = 127)
             :
             m_mp(mp),
             m_num_chains(size),

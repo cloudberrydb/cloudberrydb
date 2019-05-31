@@ -29,7 +29,7 @@ BOOL CDistributionSpecHashedNoOp::Matches(const CDistributionSpec *pds) const
 void
 CDistributionSpecHashedNoOp::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *,
 	CExpressionArray *pdrgpexpr,

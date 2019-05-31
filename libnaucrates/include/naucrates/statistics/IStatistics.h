@@ -127,7 +127,7 @@ namespace gpnaucrates
 
 			// what is the width in bytes of set of column references
 			virtual
-			CDouble Width(IMemoryPool *mp, CColRefSet *colrefs) const = 0;
+			CDouble Width(CMemoryPool *mp, CColRefSet *colrefs) const = 0;
 
 			// the risk of errors in cardinality estimation
 			virtual
@@ -148,7 +148,7 @@ namespace gpnaucrates
 			virtual
 			IStatistics *CalcInnerJoinStats
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						const IStatistics *other_stats,
 						CStatsPredJoinArray *join_preds_stats
 						)
@@ -158,7 +158,7 @@ namespace gpnaucrates
 			virtual
 			IStatistics *CalcLOJoinStats
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						const IStatistics *other_stats,
 						CStatsPredJoinArray *join_preds_stats
 						)
@@ -168,7 +168,7 @@ namespace gpnaucrates
 			virtual
 			IStatistics *CalcLSJoinStats
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						const IStatistics *inner_side_stats,
 						CStatsPredJoinArray *join_preds_stats
 						)
@@ -178,7 +178,7 @@ namespace gpnaucrates
 			virtual
 			IStatistics *CalcLASJoinStats
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						const IStatistics *other_stats,
 						CStatsPredJoinArray *join_preds_stats,
 						BOOL DoIgnoreLASJHistComputation
@@ -187,11 +187,11 @@ namespace gpnaucrates
 
 			// return required props associated with stats object
 			virtual
-			CReqdPropRelational *GetReqdRelationalProps(IMemoryPool *mp) const = 0;
+			CReqdPropRelational *GetReqdRelationalProps(CMemoryPool *mp) const = 0;
 
 			// append given stats to current object
 			virtual
-			void AppendStats(IMemoryPool *mp, IStatistics *stats) = 0;
+			void AppendStats(CMemoryPool *mp, IStatistics *stats) = 0;
 
 			// set number of rebinds
 			virtual
@@ -199,19 +199,19 @@ namespace gpnaucrates
 
 			// copy stats
 			virtual
-			IStatistics *CopyStats(IMemoryPool *mp) const = 0;
+			IStatistics *CopyStats(CMemoryPool *mp) const = 0;
 
 			// return a copy of this stats object scaled by a given factor
 			virtual
-			IStatistics *ScaleStats(IMemoryPool *mp, CDouble factor) const = 0;
+			IStatistics *ScaleStats(CMemoryPool *mp, CDouble factor) const = 0;
 
 			// copy stats with remapped column ids
 			virtual
-			IStatistics *CopyStatsWithRemap(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist = true) const = 0;
+			IStatistics *CopyStatsWithRemap(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist = true) const = 0;
 
 			// return a set of column references we have stats for
 			virtual
-			CColRefSet *GetColRefSet(IMemoryPool *mp) const = 0;
+			CColRefSet *GetColRefSet(CMemoryPool *mp) const = 0;
 
 			// print function
 			virtual
@@ -219,7 +219,7 @@ namespace gpnaucrates
 
 			// generate the DXL representation of the statistics object
 			virtual
-			CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation(IMemoryPool *mp, CMDAccessor *md_accessor) const = 0;
+			CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation(CMemoryPool *mp, CMDAccessor *md_accessor) const = 0;
 
 			// is the join type either a left semi join or left anti-semi join
 			static

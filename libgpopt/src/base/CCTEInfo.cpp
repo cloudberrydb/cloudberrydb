@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprCTEProducer
 	)
 	:
@@ -59,7 +59,7 @@ CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprCTEProducer,
 	BOOL fUsed
 	)
@@ -174,7 +174,7 @@ ULONG CCTEInfo::CCTEInfoEntry::UlCTEId() const
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfo
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -540,7 +540,7 @@ CCTEInfo::IncrementConsumers
 CCTEReq *
 CCTEInfo::PcterProducers
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -568,7 +568,7 @@ CCTEInfo::PcterProducers
 CExpressionArray *
 CCTEInfo::PdrgPexpr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -761,7 +761,7 @@ CCTEInfo::MarkUnusedCTEs()
 UlongToColRefMap *
 CCTEInfo::PhmulcrConsumerToProducer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulCTEId,
 	CColRefSet *pcrs, // set of columns to check
 	CColRefArray *pdrgpcrProducer // producer columns

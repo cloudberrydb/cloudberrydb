@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalJoin(IMemoryPool *mp);
+			CLogicalJoin(CMemoryPool *mp);
 		
 			// dtor
 			virtual 
@@ -62,7 +62,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)
@@ -78,7 +78,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveOutput
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 			{
@@ -89,7 +89,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				) 
 				const
@@ -101,7 +101,7 @@ namespace gpopt
 			// derive keys
 			CKeyCollection *PkcDeriveKeys
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -113,7 +113,7 @@ namespace gpopt
 			virtual
 			CFunctionProp *PfpDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -152,7 +152,7 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						IStatisticsArray *stats_ctxt
 						)
@@ -166,7 +166,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CColRefSet *pcrsInput,
 					ULONG child_index

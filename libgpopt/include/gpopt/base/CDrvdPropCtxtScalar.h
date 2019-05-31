@@ -45,7 +45,7 @@ namespace gpopt
 			virtual
 			CDrvdPropCtxt *PdpctxtCopy
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				const
 			{
@@ -67,7 +67,7 @@ namespace gpopt
 			// ctor
 			CDrvdPropCtxtScalar
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CDrvdPropCtxt(mp)

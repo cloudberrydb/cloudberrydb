@@ -82,7 +82,7 @@ COptimizerConfig::~COptimizerConfig()
 COptimizerConfig *
 COptimizerConfig::PoconfDefault
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return GPOS_NEW(mp) COptimizerConfig
@@ -107,7 +107,7 @@ COptimizerConfig::PoconfDefault
 COptimizerConfig *
 COptimizerConfig::PoconfDefault
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ICostModel *pcm
 	)
 {
@@ -133,7 +133,7 @@ COptimizerConfig::PoconfDefault
 //
 //---------------------------------------------------------------------------
 void
-COptimizerConfig::Serialize(IMemoryPool *mp, CXMLSerializer *xml_serializer, CBitSet *pbsTrace) const
+COptimizerConfig::Serialize(CMemoryPool *mp, CXMLSerializer *xml_serializer, CBitSet *pbsTrace) const
 {
 
 	GPOS_ASSERT(NULL != xml_serializer);

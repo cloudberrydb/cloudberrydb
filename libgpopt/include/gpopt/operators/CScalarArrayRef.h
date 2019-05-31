@@ -55,7 +55,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarArrayRef(IMemoryPool *mp, IMDId *elem_type_mdid, INT type_modifier, IMDId *array_type_mdid, IMDId *return_type_mdid);
+			CScalarArrayRef(CMemoryPool *mp, IMDId *elem_type_mdid, INT type_modifier, IMDId *array_type_mdid, IMDId *return_type_mdid);
 
 			// dtor
 			virtual
@@ -109,7 +109,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

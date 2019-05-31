@@ -29,7 +29,7 @@ namespace gpos
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// flag indicating if handler is initialized
 			BOOL m_initialized;
@@ -49,7 +49,7 @@ namespace gpos
 			// ctor
 			CMiniDumper
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				);
 
 			// dtor

@@ -52,7 +52,7 @@ namespace gpdxl
 		public:
 
 			//ctor
-			CDXLPhysicalWindow(IMemoryPool *mp, ULongPtrArray *part_by_colid_array, CDXLWindowKeyArray *window_key_array);
+			CDXLPhysicalWindow(CMemoryPool *mp, ULongPtrArray *part_by_colid_array, CDXLWindowKeyArray *window_key_array);
 
 			//dtor
 			virtual

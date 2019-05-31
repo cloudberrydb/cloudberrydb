@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLWindowKey::CDXLWindowKey
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),

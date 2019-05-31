@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSequence::CPhysicalSequence
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CPhysical(mp),
@@ -99,7 +99,7 @@ CPhysicalSequence::Matches
 CColRefSet *
 CPhysicalSequence::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -132,7 +132,7 @@ CPhysicalSequence::PcrsRequired
 CPartitionPropagationSpec *
 CPhysicalSequence::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -156,7 +156,7 @@ CPhysicalSequence::PppsRequired
 CCTEReq *
 CPhysicalSequence::PcteRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
@@ -220,7 +220,7 @@ CPhysicalSequence::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalSequence::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &
 #ifdef GPOS_DEBUG
 	exprhdl
@@ -291,7 +291,7 @@ CPhysicalSequence::PdsRequired
 COrderSpec *
 CPhysicalSequence::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	COrderSpec * ,// posRequired,
 	ULONG , // child_index,
@@ -315,7 +315,7 @@ CPhysicalSequence::PosRequired
 CRewindabilitySpec *
 CPhysicalSequence::PrsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG , // child_index,
@@ -342,7 +342,7 @@ CPhysicalSequence::PrsRequired
 COrderSpec *
 CPhysicalSequence::PosDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -369,7 +369,7 @@ CPhysicalSequence::PosDerive
 CDistributionSpec *
 CPhysicalSequence::PdsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -397,7 +397,7 @@ CPhysicalSequence::PdsDerive
 CRewindabilitySpec *
 CPhysicalSequence::PrsDerive
 	(
-	IMemoryPool *, //mp
+	CMemoryPool *, //mp
 	CExpressionHandle &exprhdl
 	)
 	const

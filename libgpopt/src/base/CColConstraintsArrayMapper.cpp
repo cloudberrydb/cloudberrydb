@@ -18,7 +18,7 @@ CColConstraintsArrayMapper::PdrgPcnstrLookup
 
 CColConstraintsArrayMapper::CColConstraintsArrayMapper
 	(
-		gpos::IMemoryPool *mp,
+		gpos::CMemoryPool *mp,
 		CConstraintArray *pdrgpcnstr
 	) :
 	m_mp(mp),

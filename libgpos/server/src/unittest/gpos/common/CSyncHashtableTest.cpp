@@ -86,7 +86,7 @@ CSyncHashtableTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, GPOS_SHT_ELEMENTS);
 	CSyncHashtable<SElem, ULONG, CSpinlockDummy> sht;
@@ -126,7 +126,7 @@ CSyncHashtableTest::EresUnittest_Accessor()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, GPOS_SHT_ELEMENTS);
 
@@ -227,7 +227,7 @@ CSyncHashtableTest::EresUnittest_ComplexEquality()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, GPOS_SHT_ELEMENTS);
 
@@ -285,7 +285,7 @@ CSyncHashtableTest::EresUnittest_SameKeyIteration()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const ULONG size = GPOS_SHT_ELEMENTS * GPOS_SHT_ELEMENT_DUPLICATES;
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, size);
@@ -349,7 +349,7 @@ CSyncHashtableTest::EresUnittest_NonConcurrentIteration()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, GPOS_SHT_ELEMENTS);
 
@@ -431,7 +431,7 @@ CSyncHashtableTest::EresUnittest_ConcurrentIteration()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, GPOS_SHT_ELEMENTS);
 
@@ -491,7 +491,7 @@ CSyncHashtableTest::EresUnittest_ConcurrentIteration()
 void *
 CSyncHashtableTest::PvUnittest_IteratorsRun
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SElemHashtable &sht,
 	SElem *rgelem,
 	ULONG ulStartIndex
@@ -613,7 +613,7 @@ CSyncHashtableTest::EresUnittest_Concurrency()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -910,7 +910,7 @@ CSyncHashtableTest::EresUnittest_AccessorDeadlock()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// scope for hashtable
 	{

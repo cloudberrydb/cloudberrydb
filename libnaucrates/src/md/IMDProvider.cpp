@@ -25,7 +25,7 @@ using namespace gpmd;
 IMDId *
 IMDProvider::GetGPDBTypeMdid
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CSystemId
 #ifdef GPOS_DEBUG
 	sysid

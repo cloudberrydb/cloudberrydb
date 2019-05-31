@@ -58,15 +58,15 @@ namespace gpos
 
 			// memory pool used to get memory from the underlying system
 			// all created pools use this as their underlying allocator
-			IMemoryPool *m_base_memory_pool;
+			CMemoryPool *m_base_memory_pool;
 
 			// memory pool in which all objects created by the manager itself
 			// are allocated - must be thread-safe
-			IMemoryPool *m_internal_memory_pool;
+			CMemoryPool *m_internal_memory_pool;
 
 			// memory pool in which all objects created using global new operator
 			// are allocated
-			IMemoryPool *m_global_memory_pool;
+			CMemoryPool *m_global_memory_pool;
 
 			// are allocations using global new operator allowed?
 			BOOL m_allow_global_new;
@@ -77,26 +77,18 @@ namespace gpos
 			// global instance
 			static CMemoryPoolManager *m_memory_pool_mgr;
 
-			// down-cast IMemoryPool to CMemoryPool
-			CMemoryPool *Convert(IMemoryPool *mp)
-			{
-				GPOS_ASSERT(NULL != mp);
-
-				return dynamic_cast<CMemoryPool*>(mp);
-			}
-
 			// private ctor
 			CMemoryPoolManager
 				(
-				IMemoryPool *internal,
-				IMemoryPool *base
+				CMemoryPool *internal,
+				CMemoryPool *base
 				);
 
 			// create new pool of given type
-			IMemoryPool *New
+			CMemoryPool *New
 				(
 				AllocType alloc_type,
-				IMemoryPool *underlying_memory_pool,
+				CMemoryPool *underlying_memory_pool,
 				ULLONG capacity,
 				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
@@ -104,7 +96,7 @@ namespace gpos
 
 #ifdef GPOS_DEBUG
 			// surround new pool with tracker pools
-			IMemoryPool *CreatePoolStack
+			CMemoryPool *CreatePoolStack
 				(
 				AllocType type,
 				ULLONG capacity,
@@ -125,7 +117,7 @@ namespace gpos
 		public:
 
 			// create new memory pool
-			IMemoryPool *Create
+			CMemoryPool *Create
 				(
 				CMemoryPoolManager::AllocType alloc_type,
 				BOOL thread_safe,
@@ -133,24 +125,24 @@ namespace gpos
 				);
 				
 			// release memory pool
-			void Destroy(IMemoryPool *);
+			void Destroy(CMemoryPool *);
 
 			// delete a pool that is not registered with the memory pool manager
-			void DeleteUnregistered(IMemoryPool *);
+			void DeleteUnregistered(CMemoryPool *);
 			
 #ifdef GPOS_DEBUG
 			// print internal contents of allocated memory pools
 			IOstream &OsPrint(IOstream &os);
 
 			// print memory pools whose allocated size above the given threshold
-			void PrintOverSizedPools(IMemoryPool *trace, ULLONG size_threshold);
+			void PrintOverSizedPools(CMemoryPool *trace, ULLONG size_threshold);
 #endif // GPOS_DEBUG
 
 			// delete memory pools and release manager
 			void Shutdown();
 
 			// accessor of memory pool used in global new allocations
-			IMemoryPool *GetGlobalMemoryPool()
+			CMemoryPool *GetGlobalMemoryPool()
 			{
 				return m_global_memory_pool;
 			}

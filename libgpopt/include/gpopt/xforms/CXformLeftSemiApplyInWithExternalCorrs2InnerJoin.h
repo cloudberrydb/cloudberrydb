@@ -45,7 +45,7 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApplyInWithExternalCorrs2InnerJoin
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformLeftSemiApplyWithExternalCorrs2InnerJoin

@@ -27,7 +27,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CWStringDynamic::CWStringDynamic
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CWString
@@ -50,7 +50,7 @@ CWStringDynamic::CWStringDynamic
 //---------------------------------------------------------------------------
 CWStringDynamic::CWStringDynamic
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const WCHAR *w_str_buffer
 	)
 	:

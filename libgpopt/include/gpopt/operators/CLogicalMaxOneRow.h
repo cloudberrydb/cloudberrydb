@@ -41,7 +41,7 @@ namespace gpopt
 			explicit
 			CLogicalMaxOneRow
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CLogical(mp)
@@ -88,7 +88,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)
@@ -114,7 +114,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveOutput
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				)
 			{
@@ -125,7 +125,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -137,7 +137,7 @@ namespace gpopt
 			virtual
 			CKeyCollection *PkcDeriveKeys
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -149,7 +149,7 @@ namespace gpopt
 			virtual
 			CMaxCard Maxcard
 				(
-				IMemoryPool *,  // mp,
+				CMemoryPool *,  // mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
@@ -161,7 +161,7 @@ namespace gpopt
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -181,7 +181,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
 				ULONG child_index
@@ -196,7 +196,7 @@ namespace gpopt
 			virtual
 			CXformSet *PxfsCandidates
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				const;
 
@@ -221,7 +221,7 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						IStatisticsArray * // stats_ctxt
 						)

@@ -37,7 +37,7 @@ namespace gpmd
 		private:
 		
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// DXL for object
 			const CWStringDynamic *m_dxl_str;
@@ -82,7 +82,7 @@ namespace gpmd
 			// ctor/dtor
 			CMDScalarOpGPDB
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid,
 				CMDName *mdname,
 				IMDId *mdid_type_left,

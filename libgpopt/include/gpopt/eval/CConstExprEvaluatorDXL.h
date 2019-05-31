@@ -32,7 +32,7 @@
 // forward declaration
 namespace gpos
 {
-	class IMemoryPool;
+	class CMemoryPool;
 }
 
 namespace gpopt
@@ -70,7 +70,7 @@ namespace gpopt
 
 		public:
 			// ctor
-			CConstExprEvaluatorDXL(IMemoryPool *mp, CMDAccessor *md_accessor, IConstDXLNodeEvaluator *pconstdxleval);
+			CConstExprEvaluatorDXL(CMemoryPool *mp, CMDAccessor *md_accessor, IConstDXLNodeEvaluator *pconstdxleval);
 
 			// dtor
 			virtual

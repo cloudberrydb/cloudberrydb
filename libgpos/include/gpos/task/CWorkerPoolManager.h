@@ -61,7 +61,7 @@ namespace gpos
 			};
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// mutex for task scheduling and changes to WLS
 			CMutexOS m_mutex;
@@ -162,7 +162,7 @@ namespace gpos
 			// private ctor
 			CWorkerPoolManager
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				);
 
 			// static singleton - global instance of worker pool manager

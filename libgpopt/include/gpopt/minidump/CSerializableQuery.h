@@ -34,7 +34,7 @@ namespace gpopt
 	{
 		private:
 
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// query DXL node;
 			const CDXLNode *m_query_dxl_root;
@@ -52,7 +52,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CSerializableQuery(IMemoryPool *mp, const CDXLNode *query, const CDXLNodeArray *query_output_dxlnode_array, const CDXLNodeArray *cte_producers);
+			CSerializableQuery(CMemoryPool *mp, const CDXLNode *query, const CDXLNodeArray *query_output_dxlnode_array, const CDXLNodeArray *cte_producers);
 
 			// dtor
 			virtual

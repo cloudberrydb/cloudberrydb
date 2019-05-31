@@ -32,7 +32,7 @@ CAtomicULONG COperator::m_aulOpIdCounter(0);
 //---------------------------------------------------------------------------
 COperator::COperator
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_ulOpId(m_aulOpIdCounter.Incr()),
@@ -150,7 +150,7 @@ COperator::EfsDeriveFromChildren
 CFunctionProp *
 COperator::PfpDeriveFromChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IMDFunction::EFuncStbl efsDefault,
 	IMDFunction::EFuncDataAcc efdaDefault,

@@ -63,7 +63,7 @@ CParseHandlerManagerTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 		
 	// create XML reader and a parse handler manager for it
 	CDXLMemoryManager *dxl_memory_manager = GPOS_NEW(mp) CDXLMemoryManager(mp);

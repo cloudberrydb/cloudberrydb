@@ -43,7 +43,7 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformLeftSemiApply2LeftSemiJoinNoCorrelations

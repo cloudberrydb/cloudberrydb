@@ -25,7 +25,7 @@ namespace gpos
 {
 	// forward declarations
 	class ILogger;
-	class IMemoryPool;
+	class CMemoryPool;
 	class CTaskContext;
 	class CTaskLocalStorage;
 	class IErrorContext;
@@ -60,7 +60,7 @@ namespace gpos
 			
 			// accessor for memory pool, e.g. used for allocating task parameters in
 			virtual 
-			IMemoryPool *Pmp() const = 0;
+			CMemoryPool *Pmp() const = 0;
 			
 			// TLS
 			virtual

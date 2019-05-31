@@ -59,7 +59,7 @@ namespace gpopt
 			
 			// helper for combining partition consumer arrays of scalar children
 			static
-			CPartInfo *PpartinfoDeriveCombineScalar(IMemoryPool *mp, CExpressionHandle &exprhdl);
+			CPartInfo *PpartinfoDeriveCombineScalar(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 		protected:
 
@@ -85,7 +85,7 @@ namespace gpopt
 			explicit
 			CScalar
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				: 
 				COperator(mp)
@@ -105,17 +105,17 @@ namespace gpopt
 
 			// create derived properties container
 			virtual
-			DrvdPropArray *PdpCreate(IMemoryPool *mp) const;
+			DrvdPropArray *PdpCreate(CMemoryPool *mp) const;
 
 			// create required properties container
 			virtual
-			CReqdProp *PrpCreate(IMemoryPool *mp) const;
+			CReqdProp *PrpCreate(CMemoryPool *mp) const;
 
 			// return locally defined columns
 			virtual
 			CColRefSet *PcrsDefined
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 			{
@@ -127,7 +127,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsSetReturningFunction
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 			{
@@ -139,7 +139,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsUsed
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 			{
@@ -151,7 +151,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp, 
+				CMemoryPool *mp, 
 				CExpressionHandle &exprhdl
 				) 
 				const
@@ -163,7 +163,7 @@ namespace gpopt
 			virtual
 			CFunctionProp *PfpDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -204,7 +204,7 @@ namespace gpopt
 
 			// perform boolean evaluation of the given expression tree
 			static
-			EBoolEvalResult EberEvaluate(IMemoryPool *mp, CExpression *pexprScalar);
+			EBoolEvalResult EberEvaluate(CMemoryPool *mp, CExpression *pexprScalar);
 
 			// conversion function
 			static

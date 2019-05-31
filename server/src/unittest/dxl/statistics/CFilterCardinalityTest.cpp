@@ -76,7 +76,7 @@ CFilterCardinalityTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -101,7 +101,7 @@ CFilterCardinalityTest::EresUnittest_CStatistics
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic str(mp);
 	COstreamString oss(&str);
@@ -177,7 +177,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsFilter()
 CStatsPred *
 CFilterCardinalityTest::PstatspredNullableCols
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspred = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -191,7 +191,7 @@ CFilterCardinalityTest::PstatspredNullableCols
 CStatsPred *
 CFilterCardinalityTest::PstatspredWithNullConstant
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspred = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -205,7 +205,7 @@ CFilterCardinalityTest::PstatspredWithNullConstant
 CStatsPred *
 CFilterCardinalityTest::PstatspredNotNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspred = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -242,7 +242,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsFilterDisj()
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// predicate col_1 in (13, 25, 47, 49);
@@ -257,7 +257,7 @@ CFilterCardinalityTest::PstatspredDisj1
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 
@@ -273,7 +273,7 @@ CFilterCardinalityTest::PstatspredDisj2
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj3
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// predicate col_1 in (13, 25, 47, 47, 47, 49, 13);
@@ -288,7 +288,7 @@ CFilterCardinalityTest::PstatspredDisj3
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj4
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// the predicate is (x <= 5 or x <= 10 or x <= 13) (domain [0 -- 20])
@@ -303,7 +303,7 @@ CFilterCardinalityTest::PstatspredDisj4
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj5
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// the predicate is (x >= 5 or x >= 13) (domain [0 -- 20])
@@ -318,7 +318,7 @@ CFilterCardinalityTest::PstatspredDisj5
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj6
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// the predicate is (x > 10 or x < 5) (domain [0 -- 20])
@@ -334,7 +334,7 @@ CFilterCardinalityTest::PstatspredDisj6
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj7
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// the predicate is (x <= 15 or x >= 5 or x > = 10) (domain [0 -- 20])
@@ -350,7 +350,7 @@ CFilterCardinalityTest::PstatspredDisj7
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisj8
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// predicate is b = 2001 OR b == 2002
@@ -381,7 +381,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsFilterConj()
 CStatsPred *
 CFilterCardinalityTest::PstatspredConj
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringDynamic *pstrW = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("AAAABXc="));
@@ -428,7 +428,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsNestedPred()
 CStatsPred *
 CFilterCardinalityTest::PstatspredNestedPredDiffCol1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -453,7 +453,7 @@ CFilterCardinalityTest::PstatspredNestedPredDiffCol1
 CStatsPred *
 CFilterCardinalityTest::PstatspredNestedPredDiffCol2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -477,7 +477,7 @@ CFilterCardinalityTest::PstatspredNestedPredDiffCol2
 CStatsPred *
 CFilterCardinalityTest::PstatspredNestedPredCommonCol1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// predicate is col_2 in (39, 31, 24, 22, 46, 20, 42, 15) AND col_2 == 2
@@ -502,7 +502,7 @@ CFilterCardinalityTest::PstatspredNestedPredCommonCol1
 CStatsPred *
 CFilterCardinalityTest::PstatspredNestedPredCommonCol2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// predicate is col_2 in (2, 39, 31, 24, 22, 46, 20, 42, 15) AND col_2 == 2
@@ -527,7 +527,7 @@ CFilterCardinalityTest::PstatspredNestedPredCommonCol2
 CStatsPred *
 CFilterCardinalityTest::PstatspredNestedSharedCol
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -553,7 +553,7 @@ CFilterCardinalityTest::PstatspredNestedSharedCol
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjSameCol1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -576,7 +576,7 @@ CFilterCardinalityTest::PstatspredDisjOverConjSameCol1
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjSameCol2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -599,7 +599,7 @@ CFilterCardinalityTest::PstatspredDisjOverConjSameCol2
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjSameCol3
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredDisj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -641,7 +641,7 @@ CFilterCardinalityTest::PstatspredDisjOverConjSameCol3
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjSameCol4
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredDisj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -685,7 +685,7 @@ CFilterCardinalityTest::PstatspredDisjOverConjSameCol4
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjDifferentCol1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -708,7 +708,7 @@ CFilterCardinalityTest::PstatspredDisjOverConjDifferentCol1
 CStatsPred *
 CFilterCardinalityTest::PstatspredDisjOverConjMultipleIdenticalCols
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspredConj1 = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -742,7 +742,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsBasicsFromDXLNumeric()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SStatsCmpValElem rgStatsCmpValElem[] =
 	{
@@ -822,7 +822,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsBasicsFromDXLNumeric()
 CStatsPredPtrArry *
 CFilterCardinalityTest::PdrgpstatspredInteger
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	INT *piVals,
@@ -844,7 +844,7 @@ CFilterCardinalityTest::PdrgpstatspredInteger
 CStatsPredPtrArry *
 CFilterCardinalityTest::PdrgppredfilterNumeric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	SStatsCmpValElem statsCmpValElem
 	)
@@ -872,7 +872,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsBasicsFromDXL()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic str(mp);
 	COstreamString oss(&str);
@@ -924,7 +924,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsBasicsFromDXL()
 GPOS_RESULT
 CFilterCardinalityTest::EresUnittest_CStatisticsCompare
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CStatisticsArray *pdrgpstatBefore,
 	CStatsPred *pred_stats,
@@ -1026,7 +1026,7 @@ CFilterCardinalityTest::EresUnittest_CStatisticsAccumulateCard()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// create hash map from colid -> histogram
 	UlongToHistogramMap *col_histogram_mapping = GPOS_NEW(mp) UlongToHistogramMap(mp);

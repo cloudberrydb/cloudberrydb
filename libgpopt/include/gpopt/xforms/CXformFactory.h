@@ -36,7 +36,7 @@ namespace gpopt
 						CleanupDeleteArray<CHAR>, CleanupNULL<CXform> > XformNameToXformMap;
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// range of all xforms
 			CXform *m_rgpxf[CXform::ExfSentinel];
@@ -55,7 +55,7 @@ namespace gpopt
 
 			// private ctor
 			explicit
-			CXformFactory(IMemoryPool *mp);
+			CXformFactory(CMemoryPool *mp);
 
 			// private copy ctor
 			CXformFactory(const CXformFactory &);

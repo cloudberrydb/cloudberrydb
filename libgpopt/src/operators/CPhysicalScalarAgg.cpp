@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalScalarAgg::CPhysicalScalarAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
@@ -82,7 +82,7 @@ CPhysicalScalarAgg::~CPhysicalScalarAgg()
 COrderSpec *
 CPhysicalScalarAgg::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
@@ -113,7 +113,7 @@ CPhysicalScalarAgg::PosRequired
 COrderSpec *
 CPhysicalScalarAgg::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

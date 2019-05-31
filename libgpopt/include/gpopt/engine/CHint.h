@@ -12,7 +12,7 @@
 #define GPOPT_CHint_H
 
 #include "gpos/base.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/common/CRefCount.h"
 
 #define JOIN_ORDER_DP_THRESHOLD ULONG(10)
@@ -124,7 +124,7 @@ namespace gpopt
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
-			CHint *PhintDefault(IMemoryPool *mp)
+			CHint *PhintDefault(CMemoryPool *mp)
 			{
 				return GPOS_NEW(mp) CHint(
 					gpos::int_max, /* min_num_of_parts_to_require_sort_on_insert */

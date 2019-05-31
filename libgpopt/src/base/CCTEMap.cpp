@@ -26,7 +26,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CCTEMap::CCTEMap
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -296,7 +296,7 @@ CCTEMap::Ect
 CCTEMap *
 CCTEMap::PcmCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CCTEMap &cmFirst,
 	const CCTEMap &cmSecond
 	)
@@ -370,7 +370,7 @@ CCTEMap::FSatisfies
 ULongPtrArray *
 CCTEMap::PdrgpulAdditionalProducers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CCTEReq *pcter
 	)
 	const

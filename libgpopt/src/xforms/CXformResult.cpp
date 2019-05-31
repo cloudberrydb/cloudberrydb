@@ -25,7 +25,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformResult::CXformResult
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_ulExpr(0)

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalUpdate::CLogicalUpdate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -55,7 +55,7 @@ CLogicalUpdate::CLogicalUpdate
 //---------------------------------------------------------------------------
 CLogicalUpdate::CLogicalUpdate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrDelete,
 	CColRefArray *pdrgpcrInsert,
@@ -167,7 +167,7 @@ CLogicalUpdate::HashValue() const
 COperator *
 CLogicalUpdate::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -197,7 +197,7 @@ CLogicalUpdate::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalUpdate::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -224,7 +224,7 @@ CLogicalUpdate::PcrsDeriveOutput
 CKeyCollection *
 CLogicalUpdate::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -243,7 +243,7 @@ CLogicalUpdate::PkcDeriveKeys
 CMaxCard
 CLogicalUpdate::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -263,7 +263,7 @@ CLogicalUpdate::Maxcard
 CXformSet *
 CLogicalUpdate::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -283,7 +283,7 @@ CLogicalUpdate::PxfsCandidates
 IStatistics *
 CLogicalUpdate::PstatsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

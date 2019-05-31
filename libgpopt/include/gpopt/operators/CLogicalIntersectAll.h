@@ -38,11 +38,11 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalIntersectAll(IMemoryPool *mp);
+			CLogicalIntersectAll(CMemoryPool *mp);
 
 			CLogicalIntersectAll
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *pdrgpcrOutput,
 				CColRef2dArray *pdrgpdrgpcrInput
 				);
@@ -73,7 +73,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -81,17 +81,17 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -104,7 +104,7 @@ namespace gpopt
 			//-------------------------------------------------------------------------------------
 
 			// candidate set of xforms
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			//-------------------------------------------------------------------------------------
 			// Derived Stats
@@ -121,7 +121,7 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				IStatisticsArray *stats_ctxt
 				)
@@ -148,7 +148,7 @@ namespace gpopt
 			static
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRef2dArray *pdrgpdrgpcrInput,
 				CColRefSetArray *output_colrefsets

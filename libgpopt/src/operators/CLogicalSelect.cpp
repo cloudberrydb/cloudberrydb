@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSelect::CLogicalSelect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnary(mp)
@@ -59,7 +59,7 @@ CLogicalSelect::~CLogicalSelect()
 CColRefSet *
 CLogicalSelect::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -78,7 +78,7 @@ CLogicalSelect::PcrsDeriveOutput
 CKeyCollection *
 CLogicalSelect::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -98,7 +98,7 @@ CLogicalSelect::PkcDeriveKeys
 CXformSet *
 CLogicalSelect::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -130,7 +130,7 @@ CLogicalSelect::PxfsCandidates
 CMaxCard
 CLogicalSelect::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -159,7 +159,7 @@ CLogicalSelect::Maxcard
 IStatistics *
 CLogicalSelect::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray *stats_ctxt
 	)
@@ -221,7 +221,7 @@ CLogicalSelect::PstatsDerive
 CExpression *
 CLogicalSelect::PexprPartPred
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CExpression *, //pexprInput
 	ULONG

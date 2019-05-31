@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScheduler::CScheduler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulJobs,
 	ULONG_PTR ulpTasks
 #ifdef GPOS_DEBUG

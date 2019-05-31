@@ -46,7 +46,7 @@ namespace gpdxl
 			// ctor
 			CDXLScalarNullIf
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_op,
 				IMDId *mdid_type
 				);

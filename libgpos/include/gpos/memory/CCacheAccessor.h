@@ -48,7 +48,7 @@ namespace gpos
 			CCache<T, K> *m_cache;
 
 			// memory pool of a cached object inserted by the accessor
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// cached object currently held by the accessor
 			typename CCache<T, K>::CCacheHashTableEntry *m_entry;
@@ -156,7 +156,7 @@ namespace gpos
 		public:
 
 			// creates a new memory pool for allocating a new object
-			IMemoryPool *Pmp()
+			CMemoryPool *Pmp()
 			{
 				GPOS_ASSERT(NULL == m_mp);
 

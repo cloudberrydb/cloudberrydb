@@ -55,7 +55,7 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarSortCol
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG colid,
 				IMDId *sort_op_id,
 				CWStringConst *pstrTypeName,

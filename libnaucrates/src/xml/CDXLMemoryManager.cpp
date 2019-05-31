@@ -25,7 +25,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLMemoryManager::CDXLMemoryManager
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:m_mp(mp)
 {

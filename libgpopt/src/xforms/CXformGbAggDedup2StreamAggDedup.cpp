@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAggDedup2StreamAggDedup::CXformGbAggDedup2StreamAggDedup
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformGbAgg2StreamAgg
@@ -61,7 +61,7 @@ CXformGbAggDedup2StreamAggDedup::Transform
 	GPOS_ASSERT(NULL != pxfctxt);
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRel = (*pexpr)[0];

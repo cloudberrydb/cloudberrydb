@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSplitGbAggDedup::CXformSplitGbAggDedup
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformSplitGbAgg
@@ -73,7 +73,7 @@ CXformSplitGbAggDedup::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CLogicalGbAggDeduplicate *popAggDedup = CLogicalGbAggDeduplicate::PopConvert(pexpr->Pop());
 
 	// extract components

@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSplit::CPhysicalSplit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrDelete,
 	CColRefArray *pdrgpcrInsert,
 	CColRef *pcrCtid,
@@ -92,7 +92,7 @@ CPhysicalSplit::~CPhysicalSplit()
 COrderSpec *
 CPhysicalSplit::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
@@ -122,7 +122,7 @@ CPhysicalSplit::PosRequired
 COrderSpec *
 CPhysicalSplit::PosDerive
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -168,7 +168,7 @@ CPhysicalSplit::EpetOrder
 CColRefSet *
 CPhysicalSplit::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG
@@ -200,7 +200,7 @@ CPhysicalSplit::PcrsRequired
 CDistributionSpec *
 CPhysicalSplit::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	CDistributionSpec *, // pdsInput,
 	ULONG
@@ -229,7 +229,7 @@ CPhysicalSplit::PdsRequired
 CRewindabilitySpec *
 CPhysicalSplit::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -254,7 +254,7 @@ CPhysicalSplit::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalSplit::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -279,7 +279,7 @@ CPhysicalSplit::PppsRequired
 CCTEReq *
 CPhysicalSplit::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -340,7 +340,7 @@ CPhysicalSplit::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalSplit::PdsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -453,7 +453,7 @@ CPhysicalSplit::PdsDerive
 CRewindabilitySpec *
 CPhysicalSplit::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const

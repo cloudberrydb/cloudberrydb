@@ -23,7 +23,7 @@ using namespace gpdxl;
 // ctor
 CMDArrayCoerceCastGPDB::CMDArrayCoerceCastGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	IMDId *mdid_src,

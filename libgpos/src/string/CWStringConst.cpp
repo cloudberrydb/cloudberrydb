@@ -52,7 +52,7 @@ CWStringConst::CWStringConst
 //---------------------------------------------------------------------------
 CWStringConst::CWStringConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const WCHAR *w_str_buffer
 	)
 	:

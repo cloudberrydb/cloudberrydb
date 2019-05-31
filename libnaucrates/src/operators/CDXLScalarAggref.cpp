@@ -32,7 +32,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarAggref::CDXLScalarAggref
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *agg_func_mdid,
 	IMDId *resolved_rettype_mdid,
 	BOOL is_distinct,

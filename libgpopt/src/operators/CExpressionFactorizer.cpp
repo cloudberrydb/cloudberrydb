@@ -47,7 +47,7 @@ using namespace gpopt;
 CExpression *
 CExpressionFactorizer::PexprProcessDisjDescendents
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprLowestLogicalAncestor,
 	PexprProcessDisj pfnpepdFunction
@@ -101,7 +101,7 @@ CExpressionFactorizer::PexprProcessDisjDescendents
 //---------------------------------------------------------------------------
 void CExpressionFactorizer::AddFactor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprFactors,
 	CExpressionArray *pdrgpexprResidual,
@@ -157,7 +157,7 @@ void CExpressionFactorizer::AddFactor
 CExpressionFactorizer::ExprMap *
 CExpressionFactorizer::PexprmapFactors
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -233,7 +233,7 @@ CExpressionFactorizer::PexprmapFactors
 CExpression *
 CExpressionFactorizer::PexprFactorizeDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression * //pexprLogical
 	)
@@ -305,7 +305,7 @@ CExpressionFactorizer::PexprFactorizeDisj
 CExpression *
 CExpressionFactorizer::PexprDiscoverFactors
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -325,7 +325,7 @@ CExpressionFactorizer::PexprDiscoverFactors
 CExpression *
 CExpressionFactorizer::PexprFactorize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -463,7 +463,7 @@ CExpressionFactorizer::FOpSourceIdOrComputedColumn
 CExpressionArrays *
 CExpressionFactorizer::PdrgPdrgpexprDisjunctArrayForSourceId
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SourceToArrayPosMap *psrc2array,
 	BOOL fAllowNewSources,
 	ULONG ulOpSourceId
@@ -507,7 +507,7 @@ CExpressionFactorizer::PdrgPdrgpexprDisjunctArrayForSourceId
 CExpressionArrays *
 CExpressionFactorizer::PdrgPdrgpexprDisjunctArrayForColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ColumnToArrayPosMap *pcol2array,
 	BOOL fAllowNewSources,
 	CColRef *colref
@@ -553,7 +553,7 @@ CExpressionFactorizer::PdrgPdrgpexprDisjunctArrayForColumn
 void
 CExpressionFactorizer::StoreBaseOpToColumnExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	SourceToArrayPosMap *psrc2array,
 	ColumnToArrayPosMap *pcol2array,
@@ -643,7 +643,7 @@ CExpressionFactorizer::StoreBaseOpToColumnExpr
 CExpression *
 CExpressionFactorizer::PexprAddInferredFilters
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	SourceToArrayPosMap *psrc2array,
 	ColumnToArrayPosMap *pcol2array
@@ -685,7 +685,7 @@ CExpressionFactorizer::PexprAddInferredFilters
 void
 CExpressionFactorizer::AddInferredFiltersFromArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CExpressionArrays *pdrgpdrgpexpr,
 	ULONG ulDisjChildrenLength,
 	CExpressionArray *pdrgpexprInferredFilters
@@ -722,7 +722,7 @@ CExpressionFactorizer::AddInferredFiltersFromArray
 CColRefSet *
 CExpressionFactorizer::PcrsColumnsProducedByChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -759,7 +759,7 @@ CExpressionFactorizer::PcrsColumnsProducedByChildren
 CExpression *
 CExpressionFactorizer::PexprExtractInferredFiltersFromDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprLowestLogicalAncestor
 	)
@@ -865,7 +865,7 @@ CExpressionFactorizer::PexprExtractInferredFiltersFromDisj
 CExpression *
 CExpressionFactorizer::PexprExtractInferredFilters
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {

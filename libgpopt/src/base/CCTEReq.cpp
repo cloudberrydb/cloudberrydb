@@ -148,7 +148,7 @@ CCTEReq::CCTEReqEntry::OsPrint
 //---------------------------------------------------------------------------
 CCTEReq::CCTEReq
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -371,7 +371,7 @@ CCTEReq::HashValue() const
 CCTEReq *
 CCTEReq::PcterUnresolved
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CCTEMap *pcm
 	)
 {
@@ -410,7 +410,7 @@ CCTEReq::PcterUnresolved
 CCTEReq *
 CCTEReq::PcterUnresolvedSequence
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CCTEMap *pcm,
 	CDrvdProp2dArray *pdrgpdpCtxt // context contains derived plan properties of producer tree
 	)
@@ -485,7 +485,7 @@ CCTEReq::PcterUnresolvedSequence
 CCTEReq *
 CCTEReq::PcterAllOptional
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CCTEReq *pcter = GPOS_NEW(mp) CCTEReq(mp);

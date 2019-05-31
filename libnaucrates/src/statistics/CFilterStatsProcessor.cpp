@@ -24,7 +24,7 @@ using namespace gpopt;
 IStatistics *
 CFilterStatsProcessor::MakeStatsFilterForScalarExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatistics *child_stats,
 	CExpression *local_scalar_expr, // filter expression on local columns only
@@ -73,7 +73,7 @@ CFilterStatsProcessor::MakeStatsFilterForScalarExpr
 CStatistics *
 CFilterStatsProcessor::MakeStatsFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	CStatsPred *base_pred_stats,
 	BOOL do_cap_NDVs
@@ -163,7 +163,7 @@ CFilterStatsProcessor::MakeStatsFilter
 UlongToHistogramMap *
 CFilterStatsProcessor::MakeHistHashMapConjOrDisjFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatisticsConfig *stats_config,
 	UlongToHistogramMap *input_histograms,
 	CDouble input_rows,
@@ -211,7 +211,7 @@ CFilterStatsProcessor::MakeHistHashMapConjOrDisjFilter
 UlongToHistogramMap *
 CFilterStatsProcessor::MakeHistHashMapConjFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatisticsConfig *stats_config,
 												 UlongToHistogramMap *input_histograms,
 	CDouble input_rows,
@@ -360,7 +360,7 @@ CFilterStatsProcessor::MakeHistHashMapConjFilter
 UlongToHistogramMap *
 CFilterStatsProcessor::MakeHistHashMapDisjFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatisticsConfig *stats_config,
 	UlongToHistogramMap *input_histograms,
 	CDouble input_rows,
@@ -552,7 +552,7 @@ CFilterStatsProcessor::MakeHistHashMapDisjFilter
 CHistogram *
 CFilterStatsProcessor::MakeHistSimpleFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred *pred_stats,
 	CBitSet *filter_colids,
 	CHistogram *hist_before,
@@ -582,7 +582,7 @@ CFilterStatsProcessor::MakeHistSimpleFilter
 CHistogram *
 CFilterStatsProcessor::MakeHistPointFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredPoint *pred_stats,
 	CBitSet *filter_colids,
 	CHistogram *hist_before,
@@ -618,7 +618,7 @@ CFilterStatsProcessor::MakeHistPointFilter
 CHistogram *
 CFilterStatsProcessor::MakeHistUnsupportedPred
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredUnsupported *pred_stats,
 	CBitSet *filter_colids,
 	CHistogram *hist_before,
@@ -649,7 +649,7 @@ CFilterStatsProcessor::MakeHistUnsupportedPred
 CHistogram *
 CFilterStatsProcessor::MakeHistLikeFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredLike *pred_stats,
 	CBitSet *filter_colids,
 	CHistogram *hist_before,

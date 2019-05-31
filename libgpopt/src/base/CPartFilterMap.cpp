@@ -119,7 +119,7 @@ CPartFilterMap::CPartFilter::OsPrint
 //---------------------------------------------------------------------------
 CPartFilterMap::CPartFilterMap
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	m_phmulpf = GPOS_NEW(mp) UlongToPartFilterMap(mp);
@@ -135,7 +135,7 @@ CPartFilterMap::CPartFilterMap
 //---------------------------------------------------------------------------
 CPartFilterMap::CPartFilterMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartFilterMap *ppfm
 	)
 {
@@ -240,7 +240,7 @@ CPartFilterMap::Pstats
 ULongPtrArray *
 CPartFilterMap::PdrgpulScanIds
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -267,7 +267,7 @@ CPartFilterMap::PdrgpulScanIds
 void
 CPartFilterMap::AddPartFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	CExpression *pexpr,
 	IStatistics *stats
@@ -303,7 +303,7 @@ CPartFilterMap::AddPartFilter
 BOOL
 CPartFilterMap::FCopyPartFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	CPartFilterMap *ppfmSource,
 	CColRefSet *filter_colrefs
@@ -374,7 +374,7 @@ CPartFilterMap::FCopyPartFilter
 void
 CPartFilterMap::CopyPartFilterMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartFilterMap *ppfmSource
 	)
 {
@@ -434,7 +434,7 @@ CPartFilterMap::OsPrint
 void
 CPartFilterMap::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }

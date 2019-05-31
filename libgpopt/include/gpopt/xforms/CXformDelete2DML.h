@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformDelete2DML(IMemoryPool *mp);
+			CXformDelete2DML(CMemoryPool *mp);
 
 			// dtor
 			virtual

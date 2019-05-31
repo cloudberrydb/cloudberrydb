@@ -46,7 +46,7 @@ namespace gpdxl
 
 		public:
 			// ctor/dtor
-			CDXLLogicalLimit(IMemoryPool *mp, BOOL fNonRemovableLimit);
+			CDXLLogicalLimit(CMemoryPool *mp, BOOL fNonRemovableLimit);
 
 			virtual
 			~CDXLLogicalLimit();

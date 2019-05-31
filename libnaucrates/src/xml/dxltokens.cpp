@@ -25,7 +25,7 @@ CDXLTokens::m_pstrmap = NULL;
 CDXLTokens::SXMLStrMapElem *
 CDXLTokens::m_pxmlszmap = NULL;
 
-IMemoryPool *
+CMemoryPool *
 CDXLTokens::m_mp =  NULL;
 
 CDXLMemoryManager *
@@ -43,7 +43,7 @@ CDXLTokens::m_dxl_memory_manager = NULL;
 void
 CDXLTokens::Init
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);

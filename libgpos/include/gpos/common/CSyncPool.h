@@ -46,7 +46,7 @@ namespace gpos
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// array of preallocated objects
 			T *m_objects;
@@ -125,7 +125,7 @@ namespace gpos
 			// ctor
 			CSyncPool
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG size
 				)
             :

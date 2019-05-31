@@ -26,7 +26,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarArrayRef::CScalarArrayRef
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *elem_type_mdid,
 	INT type_modifier,
 	IMDId *array_type_mdid,

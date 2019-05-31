@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalAssert::CLogicalAssert
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnary(mp),
@@ -52,7 +52,7 @@ CLogicalAssert::CLogicalAssert
 //---------------------------------------------------------------------------
 CLogicalAssert::CLogicalAssert
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CException *pexc
 	)
 	:
@@ -97,7 +97,7 @@ CLogicalAssert::Matches
 CColRefSet *
 CLogicalAssert::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -116,7 +116,7 @@ CLogicalAssert::PcrsDeriveOutput
 CKeyCollection *
 CLogicalAssert::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -136,7 +136,7 @@ CLogicalAssert::PkcDeriveKeys
 CXformSet *
 CLogicalAssert::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -156,7 +156,7 @@ CLogicalAssert::PxfsCandidates
 CMaxCard
 CLogicalAssert::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -195,7 +195,7 @@ CLogicalAssert::Maxcard
 IStatistics *
 CLogicalAssert::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

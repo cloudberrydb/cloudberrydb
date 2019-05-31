@@ -32,7 +32,7 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// id and version information for the table
 			IMDId *m_mdid;
@@ -45,7 +45,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLIndexDescr(IMemoryPool *mp, IMDId *mdid, CMDName *mdname);
+			CDXLIndexDescr(CMemoryPool *mp, IMDId *mdid, CMDName *mdname);
 
 			// dtor
 			virtual

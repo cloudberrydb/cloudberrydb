@@ -59,7 +59,7 @@ CHashSetTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test with ULONG array
 	ULONG_PTR rgul[] = {0,1,2,3,4,5,6,7,8,9};
@@ -103,7 +103,7 @@ CHashSetTest::EresUnittest_Ownership()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG ulCnt = 256;
 

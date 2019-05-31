@@ -77,7 +77,7 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalCTAS
 				(
-				IMemoryPool *mp, 
+				CMemoryPool *mp, 
 				CMDName *mdname_schema, 
 				CMDName *mdname_rel, 
 						 CDXLColDescrArray *dxl_col_descr_array,

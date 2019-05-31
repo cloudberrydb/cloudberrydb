@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDifferenceAll::CLogicalDifferenceAll
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalSetOp(mp)
@@ -48,7 +48,7 @@ CLogicalDifferenceAll::CLogicalDifferenceAll
 //---------------------------------------------------------------------------
 CLogicalDifferenceAll::CLogicalDifferenceAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -80,7 +80,7 @@ CLogicalDifferenceAll::~CLogicalDifferenceAll()
 CMaxCard
 CLogicalDifferenceAll::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -105,7 +105,7 @@ CLogicalDifferenceAll::Maxcard
 COperator *
 CLogicalDifferenceAll::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -127,7 +127,7 @@ CLogicalDifferenceAll::PopCopyWithRemappedColumns
 CKeyCollection *
 CLogicalDifferenceAll::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -147,7 +147,7 @@ CLogicalDifferenceAll::PkcDeriveKeys
 IStatistics *
 CLogicalDifferenceAll::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)
@@ -208,7 +208,7 @@ CLogicalDifferenceAll::PstatsDerive
 CXformSet *
 CLogicalDifferenceAll::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

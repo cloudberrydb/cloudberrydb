@@ -27,7 +27,7 @@ namespace gpdxl
 	XERCES_CPP_NAMESPACE_USE
 
 	// shorthand for functions creating operator parse handlers 
-	typedef CParseHandlerBase* (ParseHandlerOpCreatorFunc) (IMemoryPool *mp, CParseHandlerManager *, CParseHandlerBase *);
+	typedef CParseHandlerBase* (ParseHandlerOpCreatorFunc) (CMemoryPool *mp, CParseHandlerManager *, CParseHandlerBase *);
 	
 	// fwd decl
 	class CDXLTokens;
@@ -85,7 +85,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -94,7 +94,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePlanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -103,7 +103,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMetadataParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -112,7 +112,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDRequestParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *pph
 				);
@@ -121,7 +121,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateOptimizerCfgParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -130,7 +130,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateEnumeratorCfgParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -139,7 +139,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStatisticsCfgParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -148,7 +148,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCTECfgParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -157,7 +157,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCostModelCfgParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -166,7 +166,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateHintParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -175,7 +175,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowOidsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -184,7 +184,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateTraceFlagsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -193,7 +193,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateMDRelationParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -202,7 +202,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDRelationExtParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -211,7 +211,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDRelationCTASParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -220,7 +220,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateMDIndexParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -229,7 +229,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateRelStatsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -238,7 +238,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateColStatsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -247,7 +247,7 @@ namespace gpdxl
 			static 
 			CParseHandlerBase *CreateColStatsBucketParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -256,7 +256,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDTypeParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -265,7 +265,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDScalarOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -274,7 +274,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDFuncParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -283,7 +283,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDAggParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -292,7 +292,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDTriggerParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -301,7 +301,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDCastParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -310,7 +310,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDScCmpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -319,7 +319,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDChkConstraintParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -328,7 +328,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDIdListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -337,7 +337,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDColsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -345,7 +345,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase * CreateMDIndexInfoListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -354,7 +354,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDColParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -363,7 +363,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateColDefaultValExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -372,7 +372,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScalarOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -381,7 +381,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePropertiesParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -390,7 +390,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateFilterParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -399,7 +399,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateTableScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -408,7 +408,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateBitmapTableScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -417,7 +417,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateDynBitmapTableScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -426,7 +426,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateExternalScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -435,7 +435,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSubqueryScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -444,7 +444,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateResultParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -453,7 +453,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateHashJoinParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -462,7 +462,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateNLJoinParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -471,7 +471,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMergeJoinParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -480,7 +480,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSortParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -489,7 +489,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateAppendParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -498,7 +498,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMaterializeParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -507,7 +507,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateDTSParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -516,7 +516,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateDynamicIdxScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -525,7 +525,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePartitionSelectorParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -534,7 +534,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSequenceParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -543,7 +543,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLimitParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -552,7 +552,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLimitCountParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -561,7 +561,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLimitOffsetParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -570,7 +570,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSubqueryParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -579,7 +579,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScBitmapBoolOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -588,7 +588,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScArrayParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -597,7 +597,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScArrayRefParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -606,7 +606,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScArrayRefIdxListParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -615,7 +615,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScAssertConstraintListParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -625,7 +625,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScDMLActionParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -634,7 +634,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScOpListParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -643,7 +643,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartOidParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -652,7 +652,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartDefaultParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -661,7 +661,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartBoundParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -670,7 +670,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartBoundInclParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -679,7 +679,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartBoundOpenParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -688,7 +688,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartListValuesParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -697,7 +697,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScPartListNullTestParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -706,7 +706,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateDirectDispatchParseHandler
 				(
-				IMemoryPool* mp,
+				CMemoryPool* mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -715,7 +715,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateGatherMotionParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -724,7 +724,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateBroadcastMotionParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -733,7 +733,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateRedistributeMotionParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -742,7 +742,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateRoutedMotionParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -751,7 +751,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateRandomMotionParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -760,7 +760,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateAggParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -769,7 +769,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateAggRefParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -778,7 +778,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -787,7 +787,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowRefParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -796,7 +796,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowFrameParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -805,7 +805,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowKeyParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -814,7 +814,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowKeyListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -823,7 +823,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowSpecParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -832,7 +832,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateWindowSpecListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -841,7 +841,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateGroupingColListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -850,7 +850,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCmpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -859,7 +859,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateDistinctCmpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -868,7 +868,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScIdParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -877,7 +877,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScOpExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -886,7 +886,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScArrayCmpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -895,7 +895,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScBoolExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -904,7 +904,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScMinMaxParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -913,7 +913,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateBooleanTestParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -922,7 +922,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScNullTestParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -931,7 +931,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScNullIfParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -940,7 +940,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCastParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -949,7 +949,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCoerceToDomainParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -958,7 +958,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCoerceViaIOParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -967,7 +967,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScArrayCoerceExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -976,7 +976,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSubPlanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -985,7 +985,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSubPlanTestExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -994,7 +994,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSubPlanParamListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1003,7 +1003,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSubPlanParamParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1012,7 +1012,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalTVFParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1021,7 +1021,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalTVFParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1030,7 +1030,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCoalesceParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1039,7 +1039,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSwitchParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1048,7 +1048,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScSwitchCaseParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1057,7 +1057,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScCaseTestParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1066,7 +1066,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScConstValueParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1075,7 +1075,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateIfStmtParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1084,7 +1084,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScFuncExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1093,7 +1093,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateProjListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1102,7 +1102,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateProjElemParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1111,7 +1111,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateHashExprListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);		
@@ -1120,7 +1120,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateHashExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1129,7 +1129,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCondListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1138,7 +1138,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSortColListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1147,7 +1147,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSortColParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1156,7 +1156,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCostParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1165,7 +1165,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateTableDescParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1174,7 +1174,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateColDescParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1183,7 +1183,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateIdxScanListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1192,7 +1192,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateIdxOnlyScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1201,7 +1201,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateBitmapIdxProbeParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1210,7 +1210,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateIdxDescrParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1219,7 +1219,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateIdxCondListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1229,7 +1229,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateQueryParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1238,7 +1238,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalGetParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1247,7 +1247,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalExtGetParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1256,7 +1256,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1265,7 +1265,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalProjParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1274,7 +1274,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalCTEProdParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1283,7 +1283,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalCTEConsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1292,7 +1292,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalCTEAnchorParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1301,7 +1301,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCTEListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1310,7 +1310,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalWindowParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1319,7 +1319,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalInsertParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1328,7 +1328,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalDeleteParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1337,7 +1337,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalUpdateParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1346,7 +1346,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalCTASParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1355,7 +1355,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalCTASParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1364,7 +1364,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCTASOptionsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1373,7 +1373,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalCTEProdParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1382,7 +1382,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalCTEConsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1391,7 +1391,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalDMLParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1400,7 +1400,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalSplitParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1409,7 +1409,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalRowTriggerParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1418,7 +1418,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreatePhysicalAssertParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1427,7 +1427,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalSetOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1436,7 +1436,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalSelectParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1445,7 +1445,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalJoinParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1454,7 +1454,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalQueryOpParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1463,7 +1463,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalGrpByParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);	
@@ -1472,7 +1472,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalLimitParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1481,7 +1481,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateLogicalConstTableParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1490,7 +1490,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScScalarSubqueryQuantifiedParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1499,7 +1499,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScScalarSubqueryExistsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1508,7 +1508,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStackTraceParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1517,7 +1517,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStatsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1526,7 +1526,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStatsDrvdColParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1535,7 +1535,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStatsDrvdRelParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1544,7 +1544,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateStatsBucketBoundParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1553,7 +1553,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateFrameTrailingEdgeParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1562,7 +1562,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateFrameLeadingEdgeParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1571,7 +1571,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSearchStrategyParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1580,7 +1580,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateSearchStageParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1589,7 +1589,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateXformParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1598,7 +1598,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCostParamsParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1607,7 +1607,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateCostParamParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1616,7 +1616,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScExprParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1625,7 +1625,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateScValuesListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1634,7 +1634,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateValuesScanParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1643,7 +1643,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateMDArrayCoerceCastParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1652,7 +1652,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateNLJIndexParamListParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_manager,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1661,7 +1661,7 @@ namespace gpdxl
 			static
 			CParseHandlerBase *CreateNLJIndexParamParseHandler
 				(
-				IMemoryPool *pmp,
+				CMemoryPool *pmp,
 				CParseHandlerManager *parse_handler_manager,
 				CParseHandlerBase *parse_handler_root
 				);
@@ -1670,13 +1670,13 @@ namespace gpdxl
 			
 			// initialize mappings of tokens to parse handlers
 			static 
-			void Init(IMemoryPool *mp);
+			void Init(CMemoryPool *mp);
 			
 			// return the parse handler creator for operator with the given name
 			static 
 			CParseHandlerBase *GetParseHandler
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const XMLCh *xml_str,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
@@ -1686,7 +1686,7 @@ namespace gpdxl
 			static 
 			CParseHandlerDXL *GetParseHandlerDXL
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager*
 				);
 	};

@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSubqJoin2Apply::CXformSubqJoin2Apply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -86,7 +86,7 @@ CXformSubqJoin2Apply::Exfp
 void
 CXformSubqJoin2Apply::CollectSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSetArray *pdrgpcrs,
 	CExpressionArrays *pdrgpdrgpexprSubqs // array-of-arrays indexed on join child index.
@@ -151,7 +151,7 @@ CXformSubqJoin2Apply::CollectSubqueries
 CExpression *
 CXformSubqJoin2Apply::PexprReplaceSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	ExprToColRefMap *phmexprcr
 	)
@@ -194,7 +194,7 @@ CXformSubqJoin2Apply::PexprReplaceSubqueries
 CExpression *
 CXformSubqJoin2Apply::PexprSubqueryPushDown
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEnforceCorrelatedApply
 	)
@@ -311,7 +311,7 @@ CXformSubqJoin2Apply::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpression *pexprSelect = CXformUtils::PexprSeparateSubqueryPreds(mp, pexpr);
 
 	// attempt pushing subqueries to join children,

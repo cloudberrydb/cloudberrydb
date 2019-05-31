@@ -59,7 +59,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// array of parameters
 			// cost param enum is used as index in this array
@@ -116,7 +116,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CCostModelParamsGPDBLegacy(IMemoryPool *mp);
+			CCostModelParamsGPDBLegacy(CMemoryPool *mp);
 
 			// dtor
 			virtual

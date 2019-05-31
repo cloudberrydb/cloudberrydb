@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformIntersect2Join::CXformIntersect2Join
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -73,7 +73,7 @@ CXformIntersect2Join::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	GPOS_ASSERT(2 == pexpr->Arity());
 

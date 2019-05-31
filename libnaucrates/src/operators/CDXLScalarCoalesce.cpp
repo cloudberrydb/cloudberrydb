@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarCoalesce::CDXLScalarCoalesce
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type
 	)
 	:

@@ -120,11 +120,11 @@ namespace gpopt
 
 			// columns used by distribution expressions
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *mp) const;
+			CColRefSet *PcrsUsed(CMemoryPool *mp) const;
 
 			// return a copy of the distribution spec after excluding the given columns
 			virtual
-			CDistributionSpecHashed *PdshashedExcludeColumns(IMemoryPool *mp, CColRefSet *pcrs);
+			CDistributionSpecHashed *PdshashedExcludeColumns(CMemoryPool *mp, CColRefSet *pcrs);
 
 			// does this distribution match the given one
 			virtual 
@@ -143,11 +143,11 @@ namespace gpopt
 
 			// return a copy of the distribution spec with remapped columns
 			virtual
-			CDistributionSpec *PdsCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			CDistributionSpec *PdsCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function for hashed distribution spec
 			virtual
@@ -168,7 +168,7 @@ namespace gpopt
 			static
 			CDistributionSpecHashed *PdshashedMaximal
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array,
 				BOOL fNullsColocated
 				);
@@ -206,19 +206,19 @@ namespace gpopt
 				return m_equiv_hash_exprs;
 			}
 
-			void ComputeEquivHashExprs(IMemoryPool *mp, CExpressionHandle &expression_handle);
+			void ComputeEquivHashExprs(CMemoryPool *mp, CExpressionHandle &expression_handle);
 
 			// does the current spec or equivalent spec cover the input expression array
 			BOOL IsCoveredBy(const CExpressionArray *dist_cols_expr_array) const;
 
 			// create a copy of the distribution spec
-			CDistributionSpecHashed *Copy(IMemoryPool *mp);
+			CDistributionSpecHashed *Copy(CMemoryPool *mp);
 
 			// get distribution expr array from the current and its equivalent spec
-			CExpressionArrays *GetAllDistributionExprs(IMemoryPool *mp);
+			CExpressionArrays *GetAllDistributionExprs(CMemoryPool *mp);
 
 			// return a new spec created after merging the current spec with the input spec as equivalents
-			CDistributionSpecHashed *Combine(IMemoryPool *mp, CDistributionSpecHashed *other_spec);
+			CDistributionSpecHashed *Combine(CMemoryPool *mp, CDistributionSpecHashed *other_spec);
 	}; // class CDistributionSpecHashed
 
 }

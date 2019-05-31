@@ -41,7 +41,7 @@ namespace gpopt
 			// ctor
 			CScalarSubqueryNotExists
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CScalarSubqueryExistential(mp)

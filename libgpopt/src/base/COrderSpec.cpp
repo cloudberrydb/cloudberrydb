@@ -114,7 +114,7 @@ COrderSpec::COrderExpression::OsPrint
 void
 COrderSpec::COrderExpression::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }
@@ -130,7 +130,7 @@ COrderSpec::COrderExpression::DbgPrint() const
 //---------------------------------------------------------------------------
 COrderSpec::COrderSpec
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -238,7 +238,7 @@ COrderSpec::FSatisfies
 void
 COrderSpec::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
@@ -303,7 +303,7 @@ COrderSpec::HashValue() const
 COrderSpec *
 COrderSpec::PosCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -358,7 +358,7 @@ COrderSpec::PosCopyWithRemappedColumns
 COrderSpec *
 COrderSpec::PosExcludeColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -422,7 +422,7 @@ COrderSpec::ExtractCols
 CColRefSet *
 COrderSpec::PcrsUsed
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -444,7 +444,7 @@ COrderSpec::PcrsUsed
 CColRefSet *
 COrderSpec::GetColRefSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpecArray *pdrgpos
 	)
 {
@@ -473,7 +473,7 @@ COrderSpec::GetColRefSet
 COrderSpecArray *
 COrderSpec::PdrgposExclude
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpecArray *pdrgpos,
 	CColRefSet *pcrsToExclude
 	)

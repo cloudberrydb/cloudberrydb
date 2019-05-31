@@ -25,7 +25,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLOperator::CDXLOperator
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)

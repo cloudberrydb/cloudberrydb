@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalGatherMotion::CDXLPhysicalGatherMotion
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLPhysicalMotion(mp)

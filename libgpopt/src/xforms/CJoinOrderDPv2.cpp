@@ -43,7 +43,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CJoinOrderDPv2::CJoinOrderDPv2
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprComponents,
 	CExpressionArray *pdrgpexprConjuncts
 	)

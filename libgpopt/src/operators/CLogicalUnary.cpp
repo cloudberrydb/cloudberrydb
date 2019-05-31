@@ -76,7 +76,7 @@ CLogicalUnary::Esp
 IStatistics *
 CLogicalUnary::PstatsDeriveProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	UlongToIDatumMap *phmuldatum
 	)

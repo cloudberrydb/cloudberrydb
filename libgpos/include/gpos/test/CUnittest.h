@@ -34,7 +34,7 @@
 namespace gpos
 {
 
-	class IMemoryPool;
+	class CMemoryPool;
 	class CBitVector;
 	class CTask;
 

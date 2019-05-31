@@ -241,7 +241,7 @@ CMDAccessorUtils::GetScCmpMdIdConsiderCasts
 IMDId *
 CMDAccessorUtils::GetScCmpMdIdApplyCasts
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CExpression*& pexprLeft,
 	CExpression*& pexprRight,

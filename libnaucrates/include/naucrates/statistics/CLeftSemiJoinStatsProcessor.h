@@ -21,7 +21,7 @@ namespace gpnaucrates
 			static
 			CStatistics *CalcLSJoinStatsStatic
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					const IStatistics *outer_stats,
 					const IStatistics *inner_side_stats,
 					CStatsPredJoinArray *join_preds_stats

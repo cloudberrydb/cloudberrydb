@@ -55,10 +55,10 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CScalarArray(IMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional);
+			CScalarArray(CMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional);
 
 			// ctor
-			CScalarArray(IMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional, CScalarConstArray *pdrgPconst);
+			CScalarArray(CMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional, CScalarConstArray *pdrgPconst);
 
 			// dtor
 			virtual 
@@ -95,7 +95,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

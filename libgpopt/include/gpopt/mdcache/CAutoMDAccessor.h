@@ -61,7 +61,7 @@ namespace gpopt
 			// ctor
 			CAutoMDAccessor
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDProvider *pmdp,
 				CSystemId sysid
 				)
@@ -81,7 +81,7 @@ namespace gpopt
 			// ctor
 			CAutoMDAccessor
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDProvider *pmdp,
 				CSystemId sysid,
 				CMDAccessor::MDCache *pcache

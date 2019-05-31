@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalDML::CDXLPhysicalDML
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const EdxlDmlType dxl_dml_type,
 	CDXLTableDescr *table_descr,
 	ULongPtrArray *src_colids_array,

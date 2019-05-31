@@ -48,7 +48,7 @@ CMDTypeInt8GPDB::m_mdname(&m_str);
 //---------------------------------------------------------------------------
 CMDTypeInt8GPDB::CMDTypeInt8GPDB
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)
@@ -117,7 +117,7 @@ CMDTypeInt8GPDB::~CMDTypeInt8GPDB()
 IDatumInt8 *
 CMDTypeInt8GPDB::CreateInt8Datum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	LINT value,
 	BOOL is_null
 	)
@@ -272,7 +272,7 @@ CMDTypeInt8GPDB::GetDatumForDXLConstVal
 IDatum*
 CMDTypeInt8GPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLDatum *dxl_datum
 	)
 	const
@@ -297,7 +297,7 @@ CMDTypeInt8GPDB::GetDatumForDXLDatum
 CDXLDatum *
 CMDTypeInt8GPDB::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -319,7 +319,7 @@ CMDTypeInt8GPDB::GetDatumVal
 CDXLScalarConstValue *
 CMDTypeInt8GPDB::GetDXLOpScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -343,7 +343,7 @@ CMDTypeInt8GPDB::GetDXLOpScConst
 CDXLDatum *
 CMDTypeInt8GPDB::GetDXLDatumNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

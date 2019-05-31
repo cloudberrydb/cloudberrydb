@@ -169,7 +169,7 @@ GPOS_RESULT
 CTranslatorExprToDXLTest::EresUnittest_RunTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -215,7 +215,7 @@ GPOS_RESULT
 CTranslatorExprToDXLTest::EresUnittest_RunMinidumpTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszMinidumpFileNames);
 
 	return

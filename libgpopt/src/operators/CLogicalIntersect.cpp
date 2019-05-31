@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalIntersect::CLogicalIntersect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalSetOp(mp)
@@ -48,7 +48,7 @@ CLogicalIntersect::CLogicalIntersect
 //---------------------------------------------------------------------------
 CLogicalIntersect::CLogicalIntersect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -80,7 +80,7 @@ CLogicalIntersect::~CLogicalIntersect()
 CMaxCard
 CLogicalIntersect::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -113,7 +113,7 @@ CLogicalIntersect::Maxcard
 COperator *
 CLogicalIntersect::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -136,7 +136,7 @@ CLogicalIntersect::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalIntersect::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -156,7 +156,7 @@ CLogicalIntersect::PxfsCandidates
 IStatistics *
 CLogicalIntersect::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

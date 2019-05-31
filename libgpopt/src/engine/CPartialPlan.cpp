@@ -75,7 +75,7 @@ CPartialPlan::~CPartialPlan()
 void
 CPartialPlan::ExtractChildrenCostingInfo
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ICostModel *pcm,
 	CExpressionHandle &exprhdl,
 	ICostModel::SCostingInfo *pci
@@ -185,7 +185,7 @@ CPartialPlan::RaiseExceptionIfStatsNull
 CCost
 CPartialPlan::CostCompute
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpressionHandle exprhdl(mp);

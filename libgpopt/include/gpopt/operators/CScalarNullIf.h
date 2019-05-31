@@ -50,7 +50,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarNullIf(IMemoryPool *mp, IMDId *mdid_op, IMDId *mdid_type);
+			CScalarNullIf(CMemoryPool *mp, IMDId *mdid_op, IMDId *mdid_type);
 
 			// dtor
 			virtual
@@ -103,7 +103,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

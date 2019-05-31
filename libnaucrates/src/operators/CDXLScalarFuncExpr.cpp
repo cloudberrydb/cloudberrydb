@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarFuncExpr::CDXLScalarFuncExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	INT return_type_modifier,

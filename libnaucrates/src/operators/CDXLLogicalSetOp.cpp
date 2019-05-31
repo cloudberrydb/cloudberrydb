@@ -36,7 +36,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalSetOp::CDXLLogicalSetOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlSetOpType edxlsetoptype,
 								   CDXLColDescrArray *col_descr_array,
 	ULongPtr2dArray *input_colids_arrays,

@@ -94,7 +94,7 @@ CPartIndexMap::CPartTableInfo::~CPartTableInfo()
 void
 CPartIndexMap::CPartTableInfo::AddPartConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	CPartConstraint *ppartcnstr
 	)
@@ -119,7 +119,7 @@ CPartIndexMap::CPartTableInfo::AddPartConstraint
 void
 CPartIndexMap::CPartTableInfo::AddPartConstraints
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToPartConstraintMap *ppartcnstrmap
 	)
 {
@@ -216,7 +216,7 @@ void
 CPartIndexMap::CPartTableInfo::DbgPrint() const
 {
 
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }
@@ -232,7 +232,7 @@ CPartIndexMap::CPartTableInfo::DbgPrint() const
 //---------------------------------------------------------------------------
 CPartIndexMap::CPartIndexMap
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -531,7 +531,7 @@ BOOL CPartIndexMap::FPartialScans
 void
 CPartIndexMap::AddUnresolved
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CPartIndexMap &pimFst,
 	const CPartIndexMap &pimSnd,
 	CPartIndexMap* ppimResult
@@ -645,7 +645,7 @@ CPartIndexMap::ResolvePropagator
 CPartIndexMap *
 CPartIndexMap::PpimCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CPartIndexMap &pimFst,
 	const CPartIndexMap &pimSnd
 	)
@@ -700,7 +700,7 @@ CPartIndexMap::FContainsUnresolvedZeroPropagators() const
 ULongPtrArray *
 CPartIndexMap::PdrgpulScanIds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fConsumersOnly
 	)
 	const
@@ -959,7 +959,7 @@ CPartIndexMap::AddRequiredPartPropagation
 CPartIndexMap *
 CPartIndexMap::PpimPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	ULONG ulExpectedFromReq
 	)

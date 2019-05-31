@@ -164,7 +164,7 @@ CHistogram::IsEmpty
 CHistogram *
 CHistogram::MakeHistogramLessThanOrLessThanEqualFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CPoint *point
 	)
@@ -220,7 +220,7 @@ CHistogram::MakeHistogramLessThanOrLessThanEqualFilter
 CBucketArray *
 CHistogram::MakeBucketsWithInequalityFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -260,7 +260,7 @@ CHistogram::MakeBucketsWithInequalityFilter
 CHistogram *
 CHistogram::MakeHistogramInequalityFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -277,7 +277,7 @@ CHistogram::MakeHistogramInequalityFilter
 CHistogram *
 CHistogram::MakeHistogramIDFFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -299,7 +299,7 @@ CHistogram::MakeHistogramIDFFilter
 CBucketArray *
 CHistogram::MakeBucketsWithEqualityFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -344,7 +344,7 @@ CHistogram::MakeBucketsWithEqualityFilter
 CHistogram *
 CHistogram::MakeHistogramEqualFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -384,7 +384,7 @@ CHistogram::MakeHistogramEqualFilter
 CHistogram *
 CHistogram::MakeHistogramINDFFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -427,7 +427,7 @@ CHistogram::MakeHistogramINDFFilter
 CHistogram *
 CHistogram::MakeHistogramGreaterThanOrGreaterThanEqualFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CPoint *point
 	)
@@ -615,7 +615,7 @@ CHistogram::IsValid
 CHistogram *
 CHistogram::MakeHistogramFilterNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CPoint *point,
 	CDouble *scale_factor
@@ -643,7 +643,7 @@ CHistogram::MakeHistogramFilterNormalize
 CHistogram *
 CHistogram::MakeJoinHistogramNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CDouble rows,
 	const CHistogram *other_histogram,
@@ -719,7 +719,7 @@ CHistogram::MakeJoinHistogramNormalize
 CDouble
 CHistogram::GetInequalityJoinScaleFactor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble rows,
 	const CHistogram *other_histogram,
 	CDouble rows_other
@@ -763,7 +763,7 @@ CHistogram::GetInequalityJoinScaleFactor
 CHistogram *
 CHistogram::MakeLASJHistogramNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CDouble rows,
 	const CHistogram *other_histogram,
@@ -812,7 +812,7 @@ CHistogram::MakeLASJHistogramNormalize
 CHistogram *
 CHistogram::MakeHistogramFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	CPoint *point
 	)
@@ -868,7 +868,7 @@ CHistogram::MakeHistogramFilter
 CHistogram *
 CHistogram::MakeJoinHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	const CHistogram *histogram
 	)
@@ -894,7 +894,7 @@ CHistogram::MakeJoinHistogram
 CHistogram *
 CHistogram::MakeLASJHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	const CHistogram *histogram
 	)
@@ -1016,7 +1016,7 @@ CHistogram::NormalizeHistogram()
 CHistogram *
 CHistogram::CopyHistogram
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -1093,7 +1093,7 @@ CHistogram::JoinPredCmpTypeIsSupported
 CHistogram *
 CHistogram::MakeJoinHistogramEqualityFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHistogram *histogram
 	)
 	const
@@ -1182,7 +1182,7 @@ CHistogram::MakeJoinHistogramEqualityFilter
 CHistogram *
 CHistogram::MakeNDVBasedJoinHistogramEqualityFilter
 (
- IMemoryPool *mp,
+ CMemoryPool *mp,
  const CHistogram *histogram
  )
 const
@@ -1242,7 +1242,7 @@ const
 CHistogram *
 CHistogram::MakeJoinHistogramINDFFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHistogram *histogram
 	)
 	const
@@ -1379,7 +1379,7 @@ CHistogram::ComputeJoinNDVRemainInfo
 CHistogram *
 CHistogram::MakeGroupByHistogramNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble, // rows,
 	CDouble *result_distinct_values
 	)
@@ -1449,7 +1449,7 @@ CHistogram::MakeGroupByHistogramNormalize
 CHistogram *
 CHistogram::MakeUnionAllHistogramNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble rows,
 	const CHistogram *histogram,
 	CDouble rows_other
@@ -1535,7 +1535,7 @@ CHistogram::MakeUnionAllHistogramNormalize
 ULONG
 CHistogram::AddResidualUnionAllBucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucketArray *histogram_buckets,
 	CBucket *bucket,
 	CDouble rows_old,
@@ -1560,7 +1560,7 @@ CHistogram::AddResidualUnionAllBucket
 void
 CHistogram::AddBuckets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucketArray *src_buckets,
 	CBucketArray *dest_buckets,
 	CDouble rows_old,
@@ -1624,7 +1624,7 @@ CHistogram::GetNextBucket
 CHistogram *
 CHistogram::MakeUnionHistogramNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble rows,
 	const CHistogram *other_histogram,
 	CDouble rows_other,
@@ -1749,7 +1749,7 @@ CHistogram::MakeUnionHistogramNormalize
 CHistogram *
 CHistogram::MakeHistogramUpdateFreq
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucketArray *histogram_buckets,
 	CDoubleArray *dest_bucket_freqs,
 	CDouble *result_num_rows_output,
@@ -1817,7 +1817,7 @@ CHistogram::MakeHistogramUpdateFreq
 ULONG
 CHistogram::AddResidualUnionBucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucketArray *histogram_buckets,
 	CBucket *bucket,
 	CDouble rows,
@@ -1846,7 +1846,7 @@ CHistogram::AddResidualUnionBucket
 void
 CHistogram::AddBuckets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucketArray *src_buckets,
 	CBucketArray *dest_buckets,
 	CDouble rows,
@@ -1887,7 +1887,7 @@ CHistogram::operator []
 CDXLStatsDerivedColumn *
 CHistogram::TranslateToDXLDerivedColumnStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	ULONG colid,
 	CDouble width
@@ -2013,7 +2013,7 @@ CHistogram::ComputeSkew()
 CHistogram *
 CHistogram::MakeDefaultHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *col_ref,
 	BOOL is_empty
 	)
@@ -2033,7 +2033,7 @@ CHistogram::MakeDefaultHistogram
 CHistogram *
 CHistogram::MakeDefaultBoolHistogram
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
@@ -2101,7 +2101,7 @@ CHistogram::DoNDVBasedCardEstimation
 void
 CHistogram::AddHistograms
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToHistogramMap *src_histograms,
 	UlongToHistogramMap *dest_histograms
 	)
@@ -2119,7 +2119,7 @@ CHistogram::AddHistograms
 void
 CHistogram::AddDummyHistogramAndWidthInfo
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 										  UlongToHistogramMap *output_histograms,
 										  UlongToDoubleMap *output_col_widths,
@@ -2153,7 +2153,7 @@ CHistogram::AddDummyHistogramAndWidthInfo
 void
 CHistogram::AddEmptyHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToHistogramMap *output_histograms,
 	UlongToHistogramMap *input_histograms
 	)

@@ -39,7 +39,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableOptimizerConfig::CSerializableOptimizerConfig
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const COptimizerConfig *optimizer_config
 	)
 	:

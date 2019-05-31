@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalMergeJoin::CDXLPhysicalMergeJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlJoinType join_type,
 	BOOL is_unique_outer
 	)

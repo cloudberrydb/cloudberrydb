@@ -168,7 +168,7 @@ COptimizationContext::FEqualForStats
 BOOL
 COptimizationContext::FOptimize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexprParent,
 	CGroupExpression *pgexprChild,
 	COptimizationContext *pocChild,
@@ -248,7 +248,7 @@ COptimizationContext::FEqualContextIds
 BOOL
 COptimizationContext::FOptimizeMotion
 	(
-	IMemoryPool *,  // mp
+	CMemoryPool *,  // mp
 	CGroupExpression *, // pgexprParent
 	CGroupExpression *pgexprMotion,
 	COptimizationContext *poc,
@@ -276,7 +276,7 @@ COptimizationContext::FOptimizeMotion
 BOOL
 COptimizationContext::FOptimizeSort
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CGroupExpression *, // pgexprParent
 	CGroupExpression *pgexprSort,
 	COptimizationContext *poc,
@@ -304,7 +304,7 @@ COptimizationContext::FOptimizeSort
 BOOL
 COptimizationContext::FOptimizeAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *, // pgexprParent
 	CGroupExpression *pgexprAgg,
 	COptimizationContext *poc,
@@ -356,7 +356,7 @@ COptimizationContext::FOptimizeAgg
 BOOL
 COptimizationContext::FOptimizeNLJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *, // pgexprParent
 	CGroupExpression *pgexprJoin,
 	COptimizationContext *poc,
@@ -398,7 +398,7 @@ COptimizationContext::FOptimizeNLJoin
 CReqdPropPlan *
 COptimizationContext::PrppCTEProducer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc,
 	ULONG ulSearchStages
 	)

@@ -36,7 +36,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCmp::CScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op,
 	const CWStringConst *pstrOp,
 	IMDType::ECmpType cmp_type
@@ -199,7 +199,7 @@ CScalarCmp::PmdidCommuteOp
 CWStringConst *
 CScalarCmp::Pstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IMDId *mdid
 	)
@@ -212,7 +212,7 @@ CScalarCmp::Pstr
 CScalarCmp *
 CScalarCmp::PopCommutedOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator *pop
 	)
 {

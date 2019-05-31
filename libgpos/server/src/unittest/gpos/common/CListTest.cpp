@@ -53,7 +53,7 @@ CListTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> listFwd;
 	listFwd.Init(GPOS_OFFSET(SElem, m_linkFwd));
@@ -130,7 +130,7 @@ CListTest::EresUnittest_Navigate()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> listFwd;
 	listFwd.Init(GPOS_OFFSET(SElem, m_linkFwd));
@@ -192,7 +192,7 @@ CListTest::EresUnittest_Cursor()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> list;
 	list.Init(GPOS_OFFSET(SElem, m_linkFwd));

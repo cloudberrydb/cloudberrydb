@@ -78,7 +78,7 @@ CStatisticsTest::EresUnittest()
 	GPOS_RESULT eres = GPOS_FAILED;
 	{
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		// setup a file-based provider
 		CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -112,7 +112,7 @@ CStatisticsTest::EresUnittest_UnionAll()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	SStatsUnionAllSTestCase rgstatsunionalltc[] =
@@ -206,7 +206,7 @@ GPOS_RESULT
 CStatisticsTest::EresUnittest_GbAggWithRepeatedGbCols()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -284,7 +284,7 @@ CStatisticsTest::EresUnittest_GbAggWithRepeatedGbCols()
 CHistogram*
 CStatisticsTest::PhistExampleInt4Dim
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate histogram of the form [0, 10), [10, 20), [20, 30) ... [80, 90)
@@ -306,7 +306,7 @@ CStatisticsTest::PhistExampleInt4Dim
 CTableDescriptor *
 CStatisticsTest::PtabdescTwoColumnSource
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName &nameTable,
 	const IMDTypeInt4 *pmdtype,
 	const CWStringConst &strColA,
@@ -356,7 +356,7 @@ CStatisticsTest::EresUnittest_CStatisticsBucketTest()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CDouble frequency(0.1);
 	CDouble distinct(10.0);
@@ -382,7 +382,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
@@ -541,7 +541,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 CStatsPredPtrArry *
 CStatisticsTest::Pdrgpstatspred1
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredPtrArry *pdrgpstatspred = GPOS_NEW(mp) CStatsPredPtrArry(mp);
@@ -559,7 +559,7 @@ CStatisticsTest::Pdrgpstatspred1
 CStatsPredPtrArry *
 CStatisticsTest::Pdrgpstatspred2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// contain for filters
@@ -605,7 +605,7 @@ CStatisticsTest::Pdrgpstatspred2
 void
 CStatisticsTest::StatsFilterInt4
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	INT iLower,
 	INT iUpper,
@@ -634,7 +634,7 @@ CStatisticsTest::StatsFilterInt4
 void
 CStatisticsTest::StatsFilterBool
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	BOOL fValue,
 	CStatsPredPtrArry *pdrgpstatspred
@@ -654,7 +654,7 @@ CStatisticsTest::StatsFilterBool
 void
 CStatisticsTest::StatsFilterNumeric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	CWStringDynamic *pstrLowerEncoded,
 	CWStringDynamic *pstrUpperEncoded,
@@ -685,7 +685,7 @@ CStatisticsTest::StatsFilterNumeric
 void
 CStatisticsTest::StatsFilterGeneric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	OID oid,
 	CWStringDynamic *pstrLowerEncoded,
@@ -718,7 +718,7 @@ GPOS_RESULT
 CStatisticsTest::EresUnittest_CStatisticsSelectDerivation()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	return
 		CTestUtils::EresTranslate

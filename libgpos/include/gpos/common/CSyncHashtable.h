@@ -188,7 +188,7 @@ namespace gpos
 			// Initialization of hashtable
 			void Init
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG size,
 				ULONG link_offset,
 				ULONG key_offset,

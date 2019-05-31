@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformDynamicGet2DynamicTableScan::CXformDynamicGet2DynamicTableScan
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -65,7 +65,7 @@ CXformDynamicGet2DynamicTableScan::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDynamicGet *popGet = CLogicalDynamicGet::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
 	CName *pname = GPOS_NEW(mp) CName(mp, popGet->Name());

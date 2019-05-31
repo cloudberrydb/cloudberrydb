@@ -43,7 +43,7 @@ namespace gpos
              * Get the memory pool for this cache value.
              */
             virtual
-            IMemoryPool *Pmp() = 0;
+            CMemoryPool *Pmp() = 0;
     };
 
 	class ICache

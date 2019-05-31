@@ -266,7 +266,7 @@ CMDAccessor::SMDProviderElem::HashValue
 //---------------------------------------------------------------------------
 CMDAccessor::CMDAccessor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	MDCache *pcache
 	)
 	:
@@ -293,7 +293,7 @@ CMDAccessor::CMDAccessor
 //---------------------------------------------------------------------------
 CMDAccessor::CMDAccessor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	MDCache *pcache,
 	CSystemId sysid,
 	IMDProvider *pmdp
@@ -325,7 +325,7 @@ CMDAccessor::CMDAccessor
 //---------------------------------------------------------------------------
 CMDAccessor::CMDAccessor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	MDCache *pcache,
 	const CSystemIdArray *pdrgpsysid,
 	const CMDProviderArray *pdrgpmdp
@@ -398,7 +398,7 @@ CMDAccessor::DestroyProviderElement
 void
 CMDAccessor::InitHashtables
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// initialize Cache accessors hash table
@@ -601,7 +601,7 @@ CMDAccessor::GetImdObj
 			a_pstr = pmdp->GetMDObjDXLStr(m_mp, this, mdid);
 			
 			GPOS_ASSERT(NULL != a_pstr.Value());
-			IMemoryPool *mp = m_mp;
+			CMemoryPool *mp = m_mp;
 			
 			if (IMDId::EmdidGPDBCtas != mdid->MdidType())
 			{
@@ -1102,7 +1102,7 @@ CMDAccessor::Pmdsccmp
 void
 CMDAccessor::RecordColumnStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	ULONG colid,
 	ULONG ulPos,
@@ -1154,7 +1154,7 @@ CMDAccessor::RecordColumnStats
 const IMDColStats *
 CMDAccessor::Pmdcolstats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	ULONG ulPos
 	)
@@ -1178,7 +1178,7 @@ CMDAccessor::Pmdcolstats
 IStatistics *
 CMDAccessor::Pstats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	CColRefSet *pcrsHist,
 	CColRefSet *pcrsWidth,
@@ -1271,7 +1271,7 @@ CMDAccessor::Pstats
 CHistogram *
 CMDAccessor::GetHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	const IMDColStats *pmdcolstats
 	)
@@ -1326,7 +1326,7 @@ CMDAccessor::GetHistogram
 CBucket *
 CMDAccessor::Pbucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	const CDXLBucket *dxl_bucket
 	)
@@ -1359,7 +1359,7 @@ CMDAccessor::Pbucket
 IDatum *
 CMDAccessor::GetDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	const CDXLDatum *dxl_datum
 	)

@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalMotionBroadcast::CPhysicalMotionBroadcast
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CPhysicalMotion(mp),
@@ -81,7 +81,7 @@ CPhysicalMotionBroadcast::Matches
 CColRefSet *
 CPhysicalMotionBroadcast::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -152,7 +152,7 @@ CPhysicalMotionBroadcast::EpetOrder
 COrderSpec *
 CPhysicalMotionBroadcast::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *,//posInput
 	ULONG 
@@ -182,7 +182,7 @@ CPhysicalMotionBroadcast::PosRequired
 COrderSpec *
 CPhysicalMotionBroadcast::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

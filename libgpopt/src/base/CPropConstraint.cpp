@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPropConstraint::CPropConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSetArray *pdrgpcrs,
 	CConstraint *pcnstr
 	)
@@ -67,7 +67,7 @@ CPropConstraint::~CPropConstraint()
 void
 CPropConstraint::InitHashMap
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_phmcrcrs);
@@ -117,7 +117,7 @@ const
 CExpression *
 CPropConstraint::PexprScalarMappedFromEquivCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref
 	)
 	const
@@ -197,7 +197,7 @@ CPropConstraint::OsPrint
 void
 CPropConstraint::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }

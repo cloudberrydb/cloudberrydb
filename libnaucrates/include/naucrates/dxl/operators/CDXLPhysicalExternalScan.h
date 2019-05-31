@@ -36,9 +36,9 @@ namespace gpdxl
 		public:
 			// ctors
 			explicit
-			CDXLPhysicalExternalScan(IMemoryPool *mp);
+			CDXLPhysicalExternalScan(CMemoryPool *mp);
 
-			CDXLPhysicalExternalScan(IMemoryPool *mp, CDXLTableDescr *table_descr);
+			CDXLPhysicalExternalScan(CMemoryPool *mp, CDXLTableDescr *table_descr);
 
 			// operator type
 			virtual

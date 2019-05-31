@@ -33,7 +33,7 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerScalarNullTest::CParseHandlerScalarNullTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)

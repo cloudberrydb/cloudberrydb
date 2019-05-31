@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSort::CPhysicalSort
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpec *pos
 	)
 	:
@@ -95,7 +95,7 @@ CPhysicalSort::Matches
 CColRefSet *
 CPhysicalSort::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -126,7 +126,7 @@ CPhysicalSort::PcrsRequired
 COrderSpec *
 CPhysicalSort::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
@@ -158,7 +158,7 @@ CPhysicalSort::PosRequired
 CDistributionSpec *
 CPhysicalSort::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -184,7 +184,7 @@ CPhysicalSort::PdsRequired
 CRewindabilitySpec *
 CPhysicalSort::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *,//prsRequired,
 	ULONG
@@ -227,7 +227,7 @@ CPhysicalSort::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalSort::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG
@@ -256,7 +256,7 @@ CPhysicalSort::PppsRequired
 CCTEReq *
 CPhysicalSort::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -305,7 +305,7 @@ CPhysicalSort::FProvidesReqdCols
 COrderSpec *
 CPhysicalSort::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -326,7 +326,7 @@ CPhysicalSort::PosDerive
 CDistributionSpec *
 CPhysicalSort::PdsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -346,7 +346,7 @@ CPhysicalSort::PdsDerive
 CRewindabilitySpec *
 CPhysicalSort::PrsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

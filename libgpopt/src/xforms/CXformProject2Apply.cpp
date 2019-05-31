@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformProject2Apply::CXformProject2Apply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern

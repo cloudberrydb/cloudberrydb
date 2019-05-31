@@ -19,7 +19,7 @@ namespace gpos
 {
 
 	// fwd declarations
-	class IMemoryPool;
+	class CMemoryPool;
 
 	//---------------------------------------------------------------------------
 	//	@class:

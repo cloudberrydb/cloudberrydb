@@ -37,7 +37,7 @@ namespace gpdxl
 		public:
 			// ctor
 			explicit
-			CDXLScalarHashCondList(IMemoryPool *mp);
+			CDXLScalarHashCondList(CMemoryPool *mp);
 			
 			// ident accessors
 			Edxlopid GetDXLOperator() const;

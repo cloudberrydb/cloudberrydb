@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformMaxOneRow2Assert(IMemoryPool *mp);
+			CXformMaxOneRow2Assert(CMemoryPool *mp);
 
 			// dtor
 			virtual

@@ -43,7 +43,7 @@ namespace gpopt
 			explicit
 			CXformLeftAntiSemiJoinNotIn2CrossProduct
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				// pattern

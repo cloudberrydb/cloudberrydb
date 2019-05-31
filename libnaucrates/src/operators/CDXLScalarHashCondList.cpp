@@ -26,7 +26,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarHashCondList::CDXLScalarHashCondList
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLScalar(mp)

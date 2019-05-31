@@ -56,7 +56,7 @@ GPOS_RESULT
 CDecorrelatorTest::EresUnittest_Decorrelate()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -64,7 +64,7 @@ CDecorrelatorTest::EresUnittest_Decorrelate()
 	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 	
 	// test cases
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 	Pfpexpr rgpf[] =
 		{
 		CTestUtils::PexprLogicalGbAggCorrelated,

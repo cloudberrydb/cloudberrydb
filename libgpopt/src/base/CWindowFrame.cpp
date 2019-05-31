@@ -50,7 +50,7 @@ const CWindowFrame CWindowFrame::m_wfEmpty;
 //---------------------------------------------------------------------------
 CWindowFrame::CWindowFrame
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EFrameSpec efs,
 	EFrameBoundary efbLeading,
 	EFrameBoundary efbTrailing,
@@ -186,7 +186,7 @@ CWindowFrame::HashValue() const
 CWindowFrame *
 CWindowFrame::PwfCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

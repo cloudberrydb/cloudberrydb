@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalTVF::CPhysicalTVF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	CWStringConst *str,
@@ -130,7 +130,7 @@ CPhysicalTVF::FInputOrderSensitive() const
 CColRefSet *
 CPhysicalTVF::PcrsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *, // pcrsRequired,
 	ULONG , // child_index,
@@ -153,7 +153,7 @@ CPhysicalTVF::PcrsRequired
 COrderSpec *
 CPhysicalTVF::PosRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	COrderSpec *, // posRequired,
 	ULONG ,// child_index,
@@ -177,7 +177,7 @@ CPhysicalTVF::PosRequired
 CDistributionSpec *
 CPhysicalTVF::PdsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CDistributionSpec *, // pdsRequired,
 	ULONG , //child_index
@@ -201,7 +201,7 @@ CPhysicalTVF::PdsRequired
 CRewindabilitySpec *
 CPhysicalTVF::PrsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CRewindabilitySpec *, // prsRequired,
 	ULONG , // child_index,
@@ -225,7 +225,7 @@ CPhysicalTVF::PrsRequired
 CCTEReq *
 CPhysicalTVF::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *, //pcter,
 	ULONG , //child_index,
@@ -271,7 +271,7 @@ CPhysicalTVF::FProvidesReqdCols
 COrderSpec *
 CPhysicalTVF::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -290,7 +290,7 @@ CPhysicalTVF::PosDerive
 CDistributionSpec *
 CPhysicalTVF::PdsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -314,7 +314,7 @@ CPhysicalTVF::PdsDerive
 CRewindabilitySpec *
 CPhysicalTVF::PrsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -342,7 +342,7 @@ CPhysicalTVF::PrsDerive
 CCTEMap *
 CPhysicalTVF::PcmDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const

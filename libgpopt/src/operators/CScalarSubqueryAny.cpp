@@ -25,7 +25,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarSubqueryAny::CScalarSubqueryAny
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *scalar_op_mdid,
 	const CWStringConst *pstrScalarOp,
 	const CColRef *colref
@@ -45,7 +45,7 @@ CScalarSubqueryAny::CScalarSubqueryAny
 COperator *
 CScalarSubqueryAny::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

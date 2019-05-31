@@ -19,7 +19,7 @@ using namespace gpopt;
 CStatistics *
 CProjectStatsProcessor::CalcProjStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	ULongPtrArray *projection_colids,
 	UlongToIDatumMap *datum_map

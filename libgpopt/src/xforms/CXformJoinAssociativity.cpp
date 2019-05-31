@@ -32,7 +32,7 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CXformJoinAssociativity::CXformJoinAssociativity
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -72,7 +72,7 @@ CXformJoinAssociativity::CXformJoinAssociativity
 void
 CXformJoinAssociativity::CreatePredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprLower,
 	CExpressionArray *pdrgpexprUpper
@@ -228,7 +228,7 @@ CXformJoinAssociativity::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	
 	// create new predicates
 	CExpressionArray *pdrgpexprLower = GPOS_NEW(mp) CExpressionArray(mp);

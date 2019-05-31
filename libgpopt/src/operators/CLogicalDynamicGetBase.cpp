@@ -40,7 +40,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDynamicGetBase::CLogicalDynamicGetBase
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -69,7 +69,7 @@ CLogicalDynamicGetBase::CLogicalDynamicGetBase
 //---------------------------------------------------------------------------
 CLogicalDynamicGetBase::CLogicalDynamicGetBase
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	ULONG scan_id,
@@ -117,7 +117,7 @@ CLogicalDynamicGetBase::CLogicalDynamicGetBase
 //---------------------------------------------------------------------------
 CLogicalDynamicGetBase::CLogicalDynamicGetBase
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	ULONG scan_id
@@ -184,7 +184,7 @@ CLogicalDynamicGetBase::~CLogicalDynamicGetBase()
 CColRefSet *
 CLogicalDynamicGetBase::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 {
@@ -205,7 +205,7 @@ CLogicalDynamicGetBase::PcrsDeriveOutput
 CKeyCollection *
 CLogicalDynamicGetBase::PkcDeriveKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -227,7 +227,7 @@ CLogicalDynamicGetBase::PkcDeriveKeys
 CPropConstraint *
 CLogicalDynamicGetBase::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -246,7 +246,7 @@ CLogicalDynamicGetBase::PpcDeriveConstraint
 CPartInfo *
 CLogicalDynamicGetBase::PpartinfoDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -332,7 +332,7 @@ CLogicalDynamicGetBase::SetPartial()
 IStatistics *
 CLogicalDynamicGetBase::PstatsDeriveFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CExpression *pexprFilter
 	)

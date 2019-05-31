@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CConstraintConjunction::CConstraintConjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr
 	)
 	:
@@ -122,7 +122,7 @@ CConstraintConjunction::FConstraint
 CConstraint *
 CConstraintConjunction::PcnstrCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -149,7 +149,7 @@ CConstraintConjunction::PcnstrCopyWithRemappedColumns
 CConstraint *
 CConstraintConjunction::Pcnstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -189,7 +189,7 @@ CConstraintConjunction::Pcnstr
 CConstraint *
 CConstraintConjunction::Pcnstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -227,7 +227,7 @@ CConstraintConjunction::Pcnstr
 CConstraint *
 CConstraintConjunction::PcnstrRemapForColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref
 	)
 	const
@@ -246,7 +246,7 @@ CConstraintConjunction::PcnstrRemapForColumn
 CExpression *
 CConstraintConjunction::PexprScalar
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	if (NULL == m_pexprScalar)

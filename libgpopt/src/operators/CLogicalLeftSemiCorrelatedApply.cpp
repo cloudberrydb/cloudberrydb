@@ -25,7 +25,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLeftSemiCorrelatedApply::CLogicalLeftSemiCorrelatedApply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalLeftSemiApply(mp)
@@ -41,7 +41,7 @@ CLogicalLeftSemiCorrelatedApply::CLogicalLeftSemiCorrelatedApply
 //---------------------------------------------------------------------------
 CLogicalLeftSemiCorrelatedApply::CLogicalLeftSemiCorrelatedApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
@@ -60,7 +60,7 @@ CLogicalLeftSemiCorrelatedApply::CLogicalLeftSemiCorrelatedApply
 CXformSet *
 CLogicalLeftSemiCorrelatedApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -81,7 +81,7 @@ CLogicalLeftSemiCorrelatedApply::PxfsCandidates
 COperator *
 CLogicalLeftSemiCorrelatedApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

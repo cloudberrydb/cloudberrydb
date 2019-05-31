@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalConstTableGet::CPhysicalConstTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnDescriptorArray *pdrgpcoldesc,
 	IDatum2dArray *pdrgpdrgpdatum,
 	CColRefArray *pdrgpcrOutput
@@ -101,7 +101,7 @@ CPhysicalConstTableGet::Matches
 CColRefSet *
 CPhysicalConstTableGet::PcrsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *, // pcrsRequired,
 	ULONG , // child_index,
@@ -125,7 +125,7 @@ CPhysicalConstTableGet::PcrsRequired
 COrderSpec *
 CPhysicalConstTableGet::PosRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	COrderSpec *, // posRequired,
 	ULONG ,// child_index,
@@ -149,7 +149,7 @@ CPhysicalConstTableGet::PosRequired
 CDistributionSpec *
 CPhysicalConstTableGet::PdsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CDistributionSpec *, // pdsRequired,
 	ULONG , //child_index
@@ -174,7 +174,7 @@ CPhysicalConstTableGet::PdsRequired
 CRewindabilitySpec *
 CPhysicalConstTableGet::PrsRequired
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CRewindabilitySpec *, // prsRequired,
 	ULONG , // child_index,
@@ -198,7 +198,7 @@ CPhysicalConstTableGet::PrsRequired
 CCTEReq *
 CPhysicalConstTableGet::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *, //pcter,
 	ULONG , //child_index,
@@ -252,7 +252,7 @@ CPhysicalConstTableGet::FProvidesReqdCols
 COrderSpec *
 CPhysicalConstTableGet::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -272,7 +272,7 @@ CPhysicalConstTableGet::PosDerive
 CDistributionSpec *
 CPhysicalConstTableGet::PdsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -292,7 +292,7 @@ CPhysicalConstTableGet::PdsDerive
 CRewindabilitySpec *
 CPhysicalConstTableGet::PrsDerive
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -312,7 +312,7 @@ CPhysicalConstTableGet::PrsDerive
 CCTEMap *
 CPhysicalConstTableGet::PcmDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const

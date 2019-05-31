@@ -39,7 +39,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CJoinOrderGreedy::CJoinOrderGreedy
 	(
-	IMemoryPool *pmp,
+	CMemoryPool *pmp,
 	CExpressionArray *pdrgpexprComponents,
 	CExpressionArray *pdrgpexprConjuncts
 	)

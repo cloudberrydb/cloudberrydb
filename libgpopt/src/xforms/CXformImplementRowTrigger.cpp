@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementRowTrigger::CXformImplementRowTrigger
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -83,7 +83,7 @@ CXformImplementRowTrigger::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalRowTrigger *popRowTrigger = CLogicalRowTrigger::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 	IMDId *rel_mdid = popRowTrigger->GetRelMdId();

@@ -42,7 +42,7 @@ namespace gpopt
 			explicit
 			CXformPushGbBelowUnion
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformPushGbBelowSetOp<CLogicalUnion>(mp)

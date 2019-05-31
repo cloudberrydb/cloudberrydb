@@ -53,7 +53,7 @@ CAutoRgTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CAutoRg<CHAR> asz;
 	CHAR *sz = GPOS_NEW_ARRAY(mp, CHAR, 1234);

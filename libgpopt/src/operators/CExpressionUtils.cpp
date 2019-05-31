@@ -43,7 +43,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 void CExpressionUtils::UnnestChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr, // parent node
 	ULONG child_index, // child index
 	BOOL fAnd, // is expression an AND node?
@@ -91,7 +91,7 @@ void CExpressionUtils::UnnestChild
 //---------------------------------------------------------------------------
 void CExpressionUtils::AppendChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexpr
 	)
@@ -117,7 +117,7 @@ void CExpressionUtils::AppendChildren
 CExpressionArray *
 CExpressionUtils::PdrgpexprUnnestChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -152,7 +152,7 @@ CExpressionUtils::PdrgpexprUnnestChildren
 CExpression *
 CExpressionUtils::PexprUnnest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -198,7 +198,7 @@ CExpressionUtils::PexprUnnest
 CExpression *
 CExpressionUtils::PexprPushNotOneLevel
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -277,7 +277,7 @@ CExpressionUtils::PexprPushNotOneLevel
 CExpression *
 CExpressionUtils::PexprDedupChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {

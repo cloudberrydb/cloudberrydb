@@ -26,7 +26,7 @@ using namespace gpmd;
 // Ctor
 CScalarArray::CScalarArray
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	IMDId *elem_type_mdid, 
 	IMDId *array_type_mdid, 
 	BOOL is_multidimenstional
@@ -46,7 +46,7 @@ CScalarArray::CScalarArray
 // Ctor
 CScalarArray::CScalarArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *elem_type_mdid,
 	IMDId *array_type_mdid,
 	BOOL is_multidimenstional,

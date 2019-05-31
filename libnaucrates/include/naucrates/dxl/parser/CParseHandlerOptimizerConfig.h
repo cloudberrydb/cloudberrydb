@@ -69,7 +69,7 @@ namespace gpdxl
 			// ctor/dtor
 			CParseHandlerOptimizerConfig
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *parse_handler_root
 				);

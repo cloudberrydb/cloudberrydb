@@ -41,7 +41,7 @@ namespace gpopt
 				m_pScalarIDF->Release();
 			}
 
-			IMemoryPool* Pmp() const
+			CMemoryPool* Pmp() const
 			{
 				return m_amp.Pmp();
 			}
@@ -55,7 +55,7 @@ namespace gpopt
 	static GPOS_RESULT EresUnittest_Eber_WhenBothInputsAreNull()
 	{
 		SEberFixture fixture;
-		IMemoryPool *mp = fixture.Pmp();
+		CMemoryPool *mp = fixture.Pmp();
 
 		ULongPtrArray *pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(CScalar::EberNull));
@@ -74,7 +74,7 @@ namespace gpopt
 	static GPOS_RESULT EresUnittest_Eber_WhenFirstInputIsUnknown()
 	{
 		SEberFixture fixture;
-		IMemoryPool *mp = fixture.Pmp();
+		CMemoryPool *mp = fixture.Pmp();
 
 		ULongPtrArray *pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(CScalar::EberUnknown));
@@ -93,7 +93,7 @@ namespace gpopt
 	static GPOS_RESULT EresUnittest_Eber_WhenSecondInputIsUnknown()
 	{
 		SEberFixture fixture;
-		IMemoryPool *mp = fixture.Pmp();
+		CMemoryPool *mp = fixture.Pmp();
 
 		ULongPtrArray *pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(CScalar::EberNull));
@@ -112,7 +112,7 @@ namespace gpopt
 	static GPOS_RESULT EresUnittest_Eber_WhenFirstInputDiffersFromSecondInput()
 	{
 		SEberFixture fixture;
-		IMemoryPool *mp = fixture.Pmp();
+		CMemoryPool *mp = fixture.Pmp();
 
 		ULongPtrArray *pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(CScalar::EberNull));
@@ -131,7 +131,7 @@ namespace gpopt
 	static GPOS_RESULT EresUnittest_Eber_WhenBothInputsAreSameAndNotNull()
 	{
 		SEberFixture fixture;
-		IMemoryPool *mp = fixture.Pmp();
+		CMemoryPool *mp = fixture.Pmp();
 
 		ULongPtrArray *pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(CScalar::EberTrue));

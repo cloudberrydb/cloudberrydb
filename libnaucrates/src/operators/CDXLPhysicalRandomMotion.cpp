@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalRandomMotion::CDXLPhysicalRandomMotion
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_duplicate_sensitive
 	)
 	:

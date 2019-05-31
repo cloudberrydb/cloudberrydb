@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalNLJoin::CPhysicalNLJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CPhysicalJoin(mp)
@@ -74,7 +74,7 @@ CPhysicalNLJoin::~CPhysicalNLJoin()
 COrderSpec *
 CPhysicalNLJoin::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posInput,
 	ULONG child_index,
@@ -106,7 +106,7 @@ CPhysicalNLJoin::PosRequired
 CRewindabilitySpec *
 CPhysicalNLJoin::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -153,7 +153,7 @@ CPhysicalNLJoin::PrsRequired
 CColRefSet *
 CPhysicalNLJoin::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -228,7 +228,7 @@ CPhysicalNLJoin::EpetOrder
 CPartitionPropagationSpec *
 CPhysicalNLJoin::PppsRequiredNLJoinChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,

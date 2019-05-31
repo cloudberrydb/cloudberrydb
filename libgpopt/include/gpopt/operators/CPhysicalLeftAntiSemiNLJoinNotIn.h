@@ -39,7 +39,7 @@ namespace gpopt
 			explicit
 			CPhysicalLeftAntiSemiNLJoinNotIn
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CPhysicalLeftAntiSemiNLJoin(mp)

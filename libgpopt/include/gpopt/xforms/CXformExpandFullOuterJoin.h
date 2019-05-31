@@ -39,7 +39,7 @@ namespace gpopt
 			// and output columns
 			CExpression *PexprLogicalJoinOverCTEs
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EdxlJoinType edxljointype,
 				ULONG ulLeftCTEId,
 				CColRefArray *pdrgpcrLeft,
@@ -53,7 +53,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformExpandFullOuterJoin(IMemoryPool *mp);
+			CXformExpandFullOuterJoin(CMemoryPool *mp);
 
 			// dtor
 			virtual

@@ -29,7 +29,7 @@ const ELocale CMessageTable::m_invalid_locale = ELocInvalid;
 //---------------------------------------------------------------------------
 CMessageTable::CMessageTable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG size,
 	ELocale locale
 	)

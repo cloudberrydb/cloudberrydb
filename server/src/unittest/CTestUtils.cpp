@@ -96,7 +96,7 @@ CMDProviderMemory *
 CTestUtils::m_pmdpf = NULL;
 
 // local memory pool
-IMemoryPool *
+CMemoryPool *
 CTestUtils::m_mp = NULL;
 
 //---------------------------------------------------------------------------
@@ -150,7 +150,7 @@ CTestUtils::CTestSetup::CTestSetup()
 void
 CTestUtils::InitProviderFile
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_mp);
@@ -196,7 +196,7 @@ CTestUtils::DestroyMDProvider()
 CTableDescriptor *
 CTestUtils::PtabdescPlainWithColNameFormat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG num_cols,
 	IMDId *mdid,
 	const WCHAR *wszColNameFormat,
@@ -251,7 +251,7 @@ CTestUtils::PtabdescPlainWithColNameFormat
 CTableDescriptor *
 CTestUtils::PtabdescPlain
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG num_cols,
 	IMDId *mdid,
 	const CName &nameTable,
@@ -273,7 +273,7 @@ CTestUtils::PtabdescPlain
 CTableDescriptor *
 CTestUtils::PtabdescCreate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG num_cols,
 	IMDId *mdid,
 	const CName &nameTable,
@@ -310,7 +310,7 @@ CTestUtils::PtabdescCreate
 CExpression *
 CTestUtils::PexprLogicalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	const CWStringConst *pstrTableAlias
 	)
@@ -340,7 +340,7 @@ CTestUtils::PexprLogicalGet
 CExpression *
 CTestUtils::PexprLogicalGetNullable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	OID oidTable,
 	const CWStringConst *str_table_name,
 	const CWStringConst *pstrTableAlias
@@ -366,7 +366,7 @@ CTestUtils::PexprLogicalGetNullable
 CExpression *
 CTestUtils::PexprLogicalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringConst *str_table_name,
 	CWStringConst *pstrTableAlias,
 	ULONG ulTableId
@@ -395,7 +395,7 @@ CTestUtils::PexprLogicalGet
 CExpression *
 CTestUtils::PexprLogicalGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable"));
@@ -417,7 +417,7 @@ CTestUtils::PexprLogicalGet
 CExpression *
 CTestUtils::PexprLogicalExternalGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("ExternalTable"));
@@ -448,7 +448,7 @@ CTestUtils::PexprLogicalExternalGet
 CExpression *
 CTestUtils::PexprLogicalGetPartitioned
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	ULONG ulAttributes = 2;
@@ -472,7 +472,7 @@ CTestUtils::PexprLogicalGetPartitioned
 CExpression *
 CTestUtils::PexprLogicalDynamicGetWithIndexes
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	ULONG ulAttributes = 2;
@@ -506,7 +506,7 @@ CTestUtils::PexprLogicalDynamicGetWithIndexes
 CExpression *
 CTestUtils::PexprLogicalSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -532,7 +532,7 @@ CTestUtils::PexprLogicalSelect
 CExpression *
 CTestUtils::PexprLogicalSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringConst *str_table_name,
 	CWStringConst *pstrTableAlias,
 	ULONG ulTableId
@@ -553,7 +553,7 @@ CTestUtils::PexprLogicalSelect
 CExpression *
 CTestUtils::PexprLogicalSelect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalSelect(mp, PexprLogicalGet(mp));
@@ -570,7 +570,7 @@ CTestUtils::PexprLogicalSelect
 CExpression *
 CTestUtils::PexprLogicalSelectWithContradiction
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexpr = PexprLogicalSelect(mp, PexprLogicalGet(mp));
@@ -602,7 +602,7 @@ CTestUtils::PexprLogicalSelectWithContradiction
 CExpression *
 CTestUtils::PexprLogicalSelectPartitioned
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprGet = PexprLogicalGetPartitioned(mp);
@@ -645,7 +645,7 @@ CTestUtils::PexprLogicalSelectPartitioned
 CExpression *
 CTestUtils::PexprLogicalAssert
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprGet = PexprLogicalGet(mp);
@@ -690,7 +690,7 @@ CTestUtils::PexprLogicalAssert
 CExpression *
 CTestUtils::Pexpr3WayJoinPartitioned
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return
@@ -708,7 +708,7 @@ CTestUtils::Pexpr3WayJoinPartitioned
 CExpression *
 CTestUtils::Pexpr4WayJoinPartitioned
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return
@@ -727,7 +727,7 @@ CTestUtils::Pexpr4WayJoinPartitioned
 CExpression *
 CTestUtils::PexprLogicalSelectWithNestedAnd
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -749,7 +749,7 @@ CTestUtils::PexprLogicalSelectWithNestedAnd
 CExpression *
 CTestUtils::PexprLogicalSelectWithNestedOr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -772,7 +772,7 @@ CTestUtils::PexprLogicalSelectWithNestedOr
 CExpression *
 CTestUtils::PexprLogicalSelectWithEvenNestedNot
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -795,7 +795,7 @@ CTestUtils::PexprLogicalSelectWithEvenNestedNot
 CExpression *
 CTestUtils::PexprScIdentCmpScIdent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight,
 	IMDType::ECmpType cmp_type
@@ -828,7 +828,7 @@ CTestUtils::PexprScIdentCmpScIdent
 CExpression *
 CTestUtils::PexprScIdentCmpConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	IMDType::ECmpType cmp_type,
 	ULONG ulVal
@@ -858,7 +858,7 @@ CTestUtils::PexprScIdentCmpConst
 CExpression *
 CTestUtils::PexprLogicalSelectCmpToConst
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate a get expression
@@ -880,7 +880,7 @@ CTestUtils::PexprLogicalSelectCmpToConst
 CExpression *
 CTestUtils::PexprLogicalSelectArrayCmp
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalSelectArrayCmp(mp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq);
@@ -899,7 +899,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 CExpression *
 CTestUtils::PexprLogicalSelectArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CScalarArrayCmp::EArrCmpType earrcmptype,
 	IMDType::ECmpType ecmptype
 	)
@@ -929,7 +929,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 CExpression *
 CTestUtils::PexprLogicalSelectArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CScalarArrayCmp::EArrCmpType earrcmptype,
 	IMDType::ECmpType ecmptype,
 	const IntPtrArray *pdrgpiVals
@@ -975,7 +975,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 CExpression *
 CTestUtils::PexprLogicalSelectWithOddNestedNot
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -1000,7 +1000,7 @@ CTestUtils::PexprLogicalSelectWithOddNestedNot
 CExpression *
 CTestUtils::PexprLogicalSelectWithNestedAndOrNot
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -1032,7 +1032,7 @@ CTestUtils::PexprLogicalSelectWithNestedAndOrNot
 CExpression *
 CTestUtils::PexprLogicalSubqueryWithConstTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator::EOperatorId op_id
 	)
 {
@@ -1096,7 +1096,7 @@ CTestUtils::PexprLogicalSubqueryWithConstTableGet
 CExpression *
 CTestUtils::PexprLogicalSelectWithConstAnySubquery
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalSubqueryWithConstTableGet(mp, COperator::EopScalarSubqueryAny);
@@ -1113,7 +1113,7 @@ CTestUtils::PexprLogicalSelectWithConstAnySubquery
 CExpression *
 CTestUtils::PexprLogicalSelectWithConstAllSubquery
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalSubqueryWithConstTableGet(mp, COperator::EopScalarSubqueryAll);
@@ -1130,7 +1130,7 @@ CTestUtils::PexprLogicalSelectWithConstAllSubquery
 CExpression *
 CTestUtils::PexprLogicalSelectCorrelated
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprOuter = PexprLogicalGet(mp);
@@ -1155,7 +1155,7 @@ CTestUtils::PexprLogicalSelectCorrelated
 CExpression *
 CTestUtils::PexprLogicalSelectOnOuterJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate a pair of get expressions
@@ -1193,7 +1193,7 @@ CTestUtils::PexprLogicalSelectOnOuterJoin
 CExpression *
 CTestUtils::PexprLogicalSelectCorrelated
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *outer_refs,
 	ULONG ulLevel
 	)
@@ -1271,7 +1271,7 @@ CTestUtils::PexprLogicalSelectCorrelated
 CExpression *
 CTestUtils::PexprLogicalProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref,
 	CColRef *new_colref
@@ -1315,7 +1315,7 @@ CTestUtils::PexprLogicalProject
 CExpression *
 CTestUtils::PexprLogicalProject
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate a get expression
@@ -1344,7 +1344,7 @@ CTestUtils::PexprLogicalProject
 CExpression *
 CTestUtils::PexprLogicalProjectGbAggCorrelated
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// create a GbAgg expression
@@ -1371,7 +1371,7 @@ CTestUtils::PexprLogicalProjectGbAggCorrelated
 CExpression *
 CTestUtils::PexprLogicalJoinCorrelated
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprLeft = PexprLogicalSelectCorrelated(mp);
@@ -1401,7 +1401,7 @@ CTestUtils::PexprLogicalJoinCorrelated
 CExpression *
 CTestUtils::PexprLogicalJoinWithPartitionedAndIndexedInnerChild
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprLeft = PexprLogicalGet(mp);
@@ -1431,7 +1431,7 @@ CTestUtils::PexprLogicalJoinWithPartitionedAndIndexedInnerChild
 CExpression *
 CTestUtils::PexprLogicalNAryJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr
 	)
 {
@@ -1457,7 +1457,7 @@ CTestUtils::PexprLogicalNAryJoin
 CExpression *
 CTestUtils::PexprLogicalNAryJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	const ULONG  ulRels = 4;
@@ -1505,7 +1505,7 @@ CTestUtils::PexprLogicalNAryJoin
 CExpression *
 CTestUtils::PexprLeftOuterJoinOnNAryJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprNAryJoin = PexprLogicalNAryJoin(mp);
@@ -1541,7 +1541,7 @@ CTestUtils::PexprLeftOuterJoinOnNAryJoin
 CExpression *
 CTestUtils::PexprNAryJoinOnLeftOuterJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprNAryJoin = PexprLogicalNAryJoin(mp);
@@ -1589,7 +1589,7 @@ CTestUtils::PexprNAryJoinOnLeftOuterJoin
 CExpression *
 CTestUtils::PexprLogicalLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	LINT iStart,
 	LINT iRows,
@@ -1623,7 +1623,7 @@ CTestUtils::PexprLogicalLimit
 CExpression *
 CTestUtils::PexprLogicalLimit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalLimit
@@ -1649,7 +1649,7 @@ CTestUtils::PexprLogicalLimit
 CExpression *
 CTestUtils::PexprLogicalGbAggWithSum
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprGb = PexprLogicalGbAgg(mp);
@@ -1684,7 +1684,7 @@ CTestUtils::PexprLogicalGbAggWithSum
 //---------------------------------------------------------------------------
 CExpression *CTestUtils::PexprLogicalGbAggWithInput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprInput
 	)
 {
@@ -1717,7 +1717,7 @@ CExpression *CTestUtils::PexprLogicalGbAggWithInput
 CExpression *
 CTestUtils::PexprLogicalGbAgg
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalGbAggWithInput(mp, PexprLogicalGet(mp));
@@ -1734,7 +1734,7 @@ CTestUtils::PexprLogicalGbAgg
 CExpression *
 CTestUtils::PexprPrjElemWithSum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref
 	)
 {
@@ -1777,7 +1777,7 @@ CTestUtils::PexprPrjElemWithSum
 CExpression *
 CTestUtils::PexprLogicalGbAggOverJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate a join expression
@@ -1808,7 +1808,7 @@ CTestUtils::PexprLogicalGbAggOverJoin
 CExpression *
 CTestUtils::PexprLogicalGbAggDedupOverInnerJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate a join expression
@@ -1846,7 +1846,7 @@ CTestUtils::PexprLogicalGbAggDedupOverInnerJoin
 CExpression *
 CTestUtils::PexprLogicalGbAggCorrelated
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexpr = PexprLogicalSelectCorrelated(mp);
@@ -1872,7 +1872,7 @@ CTestUtils::PexprLogicalGbAggCorrelated
 CExpression *
 CTestUtils::PexprConstTableGet
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	ULONG ulElements
 	)
 {
@@ -1924,7 +1924,7 @@ CTestUtils::PexprConstTableGet
 CExpression *
 CTestUtils::PexprConstTableGet5
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprConstTableGet(mp, 5 /* ulElements */);
@@ -1941,7 +1941,7 @@ CTestUtils::PexprConstTableGet5
 CExpression *
 CTestUtils::PexprLogicalInsert
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprCTG = PexprConstTableGet(mp, 1 /* ulElements */);
@@ -1972,7 +1972,7 @@ CTestUtils::PexprLogicalInsert
 CExpression *
 CTestUtils::PexprLogicalDelete
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable"));
@@ -2008,7 +2008,7 @@ CTestUtils::PexprLogicalDelete
 CExpression *
 CTestUtils::PexprLogicalUpdate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable"));
@@ -2045,7 +2045,7 @@ CTestUtils::PexprLogicalUpdate
 CExpression *
 CTestUtils::PexprLogicalDynamicGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	const CWStringConst *pstrTableAlias,
 	ULONG ulPartIndex
@@ -2077,7 +2077,7 @@ CTestUtils::PexprLogicalDynamicGet
 CExpression *
 CTestUtils::PexprLogicalDynamicGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("PartTable"));
@@ -2100,7 +2100,7 @@ CTestUtils::PexprLogicalDynamicGet
 CExpression *
 CTestUtils::PexprLogicalSelectWithEqPredicateOverDynamicGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("PartTable"));
@@ -2134,7 +2134,7 @@ CTestUtils::PexprLogicalSelectWithEqPredicateOverDynamicGet
 CExpression *
 CTestUtils::PexprLogicalSelectWithLTPredicateOverDynamicGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CWStringConst strName(GPOS_WSZ_LIT("PartTable"));
@@ -2167,7 +2167,7 @@ CTestUtils::PexprLogicalSelectWithLTPredicateOverDynamicGet
 CExpression *
 CTestUtils::PexprLogicalTVFTwoArgs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalTVF(mp, 2);
@@ -2184,7 +2184,7 @@ CTestUtils::PexprLogicalTVFTwoArgs
 CExpression *
 CTestUtils::PexprLogicalTVFThreeArgs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalTVF(mp, 3);
@@ -2201,7 +2201,7 @@ CTestUtils::PexprLogicalTVFThreeArgs
 CExpression *
 CTestUtils::PexprLogicalTVFNoArgs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalTVF(mp, 0);
@@ -2218,7 +2218,7 @@ CTestUtils::PexprLogicalTVFNoArgs
 CExpression *
 CTestUtils::PexprLogicalTVF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulArgs
 	)
 {
@@ -2281,7 +2281,7 @@ CTestUtils::PexprLogicalTVF
 CExpression *
 CTestUtils::PexprLogicalCTEProducerOverSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulCTEId
 	)
 {
@@ -2307,7 +2307,7 @@ CTestUtils::PexprLogicalCTEProducerOverSelect
 CExpression *
 CTestUtils::PexprLogicalCTEProducerOverSelect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprLogicalCTEProducerOverSelect(mp, 0);
@@ -2324,7 +2324,7 @@ CTestUtils::PexprLogicalCTEProducerOverSelect
 CExpression *
 CTestUtils::PexprCTETree
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	ULONG ulCTEId = 0;
@@ -2361,7 +2361,7 @@ CTestUtils::PexprCTETree
 CExpression *
 CTestUtils::PexprLogicalSequence
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr
 	)
 {
@@ -2386,7 +2386,7 @@ CTestUtils::PexprLogicalSequence
 CExpression *
 CTestUtils::PexprLogicalSequence
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	const ULONG  ulRels = 2;
@@ -2421,7 +2421,7 @@ CTestUtils::PexprLogicalSequence
 CExpression *
 CTestUtils::PexprLogicalUnion
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulDepth
 	)
 {
@@ -2497,7 +2497,7 @@ CTestUtils::PexprLogicalUnion
 CExpression *
 CTestUtils::PexprLogicalSequenceProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	OID oidFunc,
 	CExpression *pexprInput
 	)
@@ -2567,7 +2567,7 @@ CTestUtils::PexprLogicalSequenceProject
 CExpression *
 CTestUtils::PexprOneWindowFunction
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprGet = PexprLogicalGet(mp);
@@ -2589,7 +2589,7 @@ CTestUtils::PexprOneWindowFunction
 CExpression *
 CTestUtils::PexprTwoWindowFunctions
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprWinFunc = PexprOneWindowFunction(mp);
@@ -2614,7 +2614,7 @@ CTestUtils::PexprTwoWindowFunctions
 CExpressionJoinsArray *
 CTestUtils::PdrgpexprJoins
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringConst *pstrRel, // array of relation names
 	ULONG *pulRel, // array of relation oids
 	ULONG ulRels, // number of relations
@@ -2682,7 +2682,7 @@ CTestUtils::PdrgpexprJoins
 CExpression *
 CTestUtils::PexprLogicalNAryJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringConst *pstrRel,
 	ULONG *pulRel,
 	ULONG ulRels,
@@ -2729,7 +2729,7 @@ CTestUtils::PexprLogicalNAryJoin
 CQueryContext *
 CTestUtils::PqcGenerate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefArray *colref_array
 	)
@@ -2780,7 +2780,7 @@ CTestUtils::PqcGenerate
 CQueryContext *
 CTestUtils::PqcGenerate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -2852,7 +2852,7 @@ CTestUtils::PqcGenerate
 CExpression *
 CTestUtils::PexprScalarNestedPreds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CScalarBoolOp::EBoolOperator eboolop
 	)
@@ -2943,7 +2943,7 @@ CTestUtils::PexprFindFirstExpressionWithOpId
 void
 CTestUtils::EqualityPredicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrsLeft,
 	CColRefSet *pcrsRight,
 	CExpressionArray *pdrgpexpr
@@ -2970,7 +2970,7 @@ CTestUtils::EqualityPredicate
 CPoint *
 CTestUtils::PpointInt2
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT i
 	)
 {
@@ -2991,7 +2991,7 @@ CTestUtils::PpointInt2
 CPoint *
 CTestUtils::PpointInt4
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT i
 	)
 {
@@ -3012,7 +3012,7 @@ CTestUtils::PpointInt4
 CPoint *
 CTestUtils::PpointInt4NullVal
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CDatumInt4GPDB *datum = GPOS_NEW(mp) CDatumInt4GPDB(m_sysidDefault, 0, true /* is_null */);
@@ -3032,7 +3032,7 @@ CTestUtils::PpointInt4NullVal
 CPoint *
 CTestUtils::PpointInt8
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT i
 	)
 {
@@ -3052,7 +3052,7 @@ CTestUtils::PpointInt8
 CPoint *
 CTestUtils::PpointBool
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL value
 	)
 {
@@ -3073,7 +3073,7 @@ CTestUtils::PpointBool
 CExpression *
 CTestUtils::PexprReadQuery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *szQueryFileName
 	)
 {
@@ -3115,7 +3115,7 @@ CTestUtils::PexprReadQuery
 GPOS_RESULT
 CTestUtils::EresTranslate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *szQueryFileName,
 	const CHAR *szPlanFileName,
 	BOOL fIgnoreMismatch
@@ -3270,7 +3270,7 @@ CTestUtils::ExtractFilenameFromPath
 void
 CTestUtils::CreateExpectedAndActualFile
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *file_name,
 	CWStringDynamic *strExpected,
 	CWStringDynamic *strActual)
@@ -3315,7 +3315,7 @@ CTestUtils::CreateExpectedAndActualFile
 BOOL
 CTestUtils::FPlanMatch
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IOstream &os,
 	const CDXLNode *pdxlnActual,
 	ULLONG ullPlanIdActual,
@@ -3416,7 +3416,7 @@ CTestUtils::FPlanMatch
 BOOL
 CTestUtils::FPlanCompare
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IOstream &os,
 	const CDXLNode *pdxlnActual,
 	ULLONG ullPlanIdActual,
@@ -3479,7 +3479,7 @@ CTestUtils::FPlanCompare
 IntPtrArray *
 CTestUtils::PdrgpiSegments
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	IntPtrArray *pdrgpiSegments = GPOS_NEW(mp) IntPtrArray(mp);
@@ -3524,7 +3524,7 @@ CTestUtils::FFaultSimulation()
 CHAR *
 CTestUtils::SzMinidumpFileName
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *file_name
 	)
 {
@@ -3565,7 +3565,7 @@ CTestUtils::SzMinidumpFileName
 GPOS_RESULT
 CTestUtils::EresRunMinidump
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	const CHAR *file_name,
 	ULONG *pulTestCounter,
@@ -3681,7 +3681,7 @@ CTestUtils::EresRunMinidump
 GPOS_RESULT
 CTestUtils::EresRunMinidumps
 	(
-	IMemoryPool *, // pmpInput,
+	CMemoryPool *, // pmpInput,
 	const CHAR *rgszFileNames[],
 	ULONG ulTests,
 	ULONG *pulTestCounter,
@@ -3700,7 +3700,7 @@ CTestUtils::EresRunMinidumps
 	{
 		// each test uses a new memory pool to keep total memory consumption low
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		if (fMatchPlans)
 		{
@@ -3780,7 +3780,7 @@ CTestUtils::EresRunMinidumps
 GPOS_RESULT
 CTestUtils::EresRunMinidumpsUsingOneMDFile
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *szMDFilePath,
 	const CHAR *rgszFileNames[],
 	ULONG *pulTestCounter,
@@ -3861,7 +3861,7 @@ CTestUtils::EresSamplePlans
 	{
 		// each test uses a new memory pool to keep total memory consumption low
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		// reset metadata cache
 		CMDCache::Reset();
@@ -4004,7 +4004,7 @@ CTestUtils::EresCheckPlans
 	{
 		// each test uses a new memory pool to keep total memory consumption low
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		// reset metadata cache
 		CMDCache::Reset();
@@ -4151,7 +4151,7 @@ CTestUtils::EresCheckOptimizedPlan
 	{
 		// each test uses a new memory pool to keep total memory consumption low
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		// reset metadata cache
 		CMDCache::Reset();
@@ -4255,7 +4255,7 @@ CTestUtils::EresCheckOptimizedPlan
 IDatum *
 CTestUtils::CreateGenericDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IMDId *mdid_type,
 	CWStringDynamic *pstrEncodedValue,
@@ -4302,7 +4302,7 @@ CTestUtils::CreateGenericDatum
 CConstraintInterval *
 CTestUtils::PciGenericInterval
         (
-        IMemoryPool *mp,
+        CMemoryPool *mp,
         CMDAccessor *md_accessor,
         const CMDIdGPDB &mdidType,
         CColRef *colref,
@@ -4349,7 +4349,7 @@ CTestUtils::PciGenericInterval
 CExpression *
 CTestUtils::PexprScalarCmpIdentToConstant
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -4375,7 +4375,7 @@ CTestUtils::PexprScalarCmpIdentToConstant
 CExpression *
 CTestUtils::PexprExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter
 	)
 {
@@ -4406,7 +4406,7 @@ CTestUtils::PexprExistsSubquery
 CExpression *
 CTestUtils::PexpSubqueryAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter
 	)
 {
@@ -4448,7 +4448,7 @@ CTestUtils::PexpSubqueryAll
 CExpression *
 CTestUtils::PexpSubqueryAny
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter
 	)
 {
@@ -4490,7 +4490,7 @@ CTestUtils::PexpSubqueryAny
 CExpression *
 CTestUtils::PexprNotExistsSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter
 	)
 {
@@ -4561,7 +4561,7 @@ CTestUtils::PexprFirst
 CExpression *
 CTestUtils::PexprAnd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprActual,
 	CExpression *pexprExpected
 	)
@@ -4588,7 +4588,7 @@ CTestUtils::PexprAnd
 CExpression *
 CTestUtils::PexprOr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprActual,
 	CExpression *pexprExpected
 	)
@@ -4662,7 +4662,7 @@ CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 
 	GPOS_RESULT eres =
@@ -4684,7 +4684,7 @@ CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
 
 // Create Equivalence Class based on the breakpoints
 CColRefSetArray *
-CTestUtils::createEquivalenceClasses(IMemoryPool *mp, CColRefSet *pcrs, INT setBoundary[]) {
+CTestUtils::createEquivalenceClasses(CMemoryPool *mp, CColRefSet *pcrs, INT setBoundary[]) {
 	INT i = 0;
 	ULONG bpIndex = 0;
 

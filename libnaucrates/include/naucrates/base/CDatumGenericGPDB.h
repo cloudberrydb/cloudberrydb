@@ -35,7 +35,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 	private:
 
 		// memory pool
-		IMemoryPool *m_mp;
+		CMemoryPool *m_mp;
 
 		// size in bytes
 		ULONG m_size;
@@ -65,7 +65,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 		// ctor
 		CDatumGenericGPDB
 				(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						IMDId *mdid,
 						INT type_modifier,
 						const void *src,
@@ -96,7 +96,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// return string representation
 		virtual
-		const CWStringConst *GetStrRepr(IMemoryPool *mp) const;
+		const CWStringConst *GetStrRepr(CMemoryPool *mp) const;
 
 		// hash function
 		virtual
@@ -108,7 +108,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// copy datum
 		virtual
-		IDatum *MakeCopy(IMemoryPool *mp) const;
+		IDatum *MakeCopy(CMemoryPool *mp) const;
 		
 		// print function
 		virtual
@@ -116,7 +116,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// accessor to bytearray, creates a copy
 		virtual
-		BYTE *MakeCopyOfValue(IMemoryPool *mp, ULONG *pulLength) const;
+		BYTE *MakeCopyOfValue(CMemoryPool *mp, ULONG *pulLength) const;
 
 		// statistics related APIs
 
@@ -160,7 +160,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// return the padded datum
 		virtual
-		IDatum *MakePaddedDatum(IMemoryPool *mp, ULONG col_len) const;
+		IDatum *MakePaddedDatum(CMemoryPool *mp, ULONG col_len) const;
 
 		// does datum support like predicate
 		virtual

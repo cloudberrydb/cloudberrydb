@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformIndexGet2IndexScan::CXformIndexGet2IndexScan
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -66,7 +66,7 @@ CXformIndexGet2IndexScan::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalIndexGet *pop = CLogicalIndexGet::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	CIndexDescriptor *pindexdesc = pop->Pindexdesc();
 	pindexdesc->AddRef();

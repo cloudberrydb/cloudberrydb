@@ -46,7 +46,7 @@ namespace gpopt
 		private:
 			
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// mdid of the table
 			IMDId *m_mdid;
@@ -99,7 +99,7 @@ namespace gpopt
 			// ctor
 			CTableDescriptor
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				IMDId *mdid,
 				const CName &,
 				BOOL convert_hash_to_random,

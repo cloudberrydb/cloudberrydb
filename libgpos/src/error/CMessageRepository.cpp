@@ -31,7 +31,7 @@ CMessageRepository *CMessageRepository::m_repository = NULL;
 //---------------------------------------------------------------------------
 CMessageRepository::CMessageRepository
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)
@@ -117,7 +117,7 @@ CMessageRepository::Init()
 	GPOS_ASSERT(NULL == m_repository);
 	
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CMessageRepository *repository = GPOS_NEW(mp) CMessageRepository(mp);
 	repository->InitDirectory(mp);
@@ -177,7 +177,7 @@ CMessageRepository::Shutdown()
 void
 CMessageRepository::InitDirectory
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	m_hash_table.Init

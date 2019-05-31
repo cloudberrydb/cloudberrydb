@@ -77,7 +77,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Any()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// any distribution
 	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
@@ -106,7 +106,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Random()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -164,7 +164,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Replicated()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -215,7 +215,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Singleton()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -288,7 +288,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Universal()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -350,7 +350,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Hashed()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
@@ -490,7 +490,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// cannot add enforcers for ANY distribution
 	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
@@ -515,7 +515,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeUniversal()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// cannot add enforcers for Universal distribution
 	CDistributionSpecUniversal *pdsuniversal = GPOS_NEW(mp) CDistributionSpecUniversal();
@@ -540,7 +540,7 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeRandom()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

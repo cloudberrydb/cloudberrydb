@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAggDedup2HashAggDedup::CXformGbAggDedup2HashAggDedup
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformGbAgg2HashAgg
@@ -62,7 +62,7 @@ CXformGbAggDedup2HashAggDedup::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CLogicalGbAggDeduplicate *popAggDedup = CLogicalGbAggDeduplicate::PopConvert(pexpr->Pop());
 	CColRefArray *colref_array = popAggDedup->Pdrgpcr();
 	colref_array->AddRef();

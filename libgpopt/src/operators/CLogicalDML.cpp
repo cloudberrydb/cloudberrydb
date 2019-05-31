@@ -39,7 +39,7 @@ const WCHAR CLogicalDML::m_rgwszDml[EdmlSentinel][10] =
 //---------------------------------------------------------------------------
 CLogicalDML::CLogicalDML
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -65,7 +65,7 @@ CLogicalDML::CLogicalDML
 //---------------------------------------------------------------------------
 CLogicalDML::CLogicalDML
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EDMLOperator edmlop,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrSource,
@@ -202,7 +202,7 @@ CLogicalDML::HashValue() const
 COperator *
 CLogicalDML::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -249,7 +249,7 @@ CLogicalDML::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalDML::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -283,7 +283,7 @@ CLogicalDML::PcrsDeriveOutput
 CPropConstraint *
 CLogicalDML::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -307,7 +307,7 @@ CLogicalDML::PpcDeriveConstraint
 CKeyCollection *
 CLogicalDML::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -326,7 +326,7 @@ CLogicalDML::PkcDeriveKeys
 CMaxCard
 CLogicalDML::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -346,7 +346,7 @@ CLogicalDML::Maxcard
 CXformSet *
 CLogicalDML::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -366,7 +366,7 @@ CLogicalDML::PxfsCandidates
 IStatistics *
 CLogicalDML::PstatsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

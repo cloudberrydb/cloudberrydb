@@ -158,7 +158,7 @@ int gpos_exec
 		{
 			// setup task memory
 			CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-			IMemoryPool *mp = amp.Pmp();
+			CMemoryPool *mp = amp.Pmp();
 
 			// scope for ATP
 			{

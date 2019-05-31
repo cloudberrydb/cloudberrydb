@@ -53,7 +53,7 @@ CXMLSerializerTest::EresUnittest()
 CWStringDynamic *
 CXMLSerializerTest::Pstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL indentation
 	)
 {
@@ -88,7 +88,7 @@ GPOS_RESULT
 CXMLSerializerTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// test XML serializer with indentation
 	CWStringDynamic *pstrIndented = Pstr(mp, true /* indentation */);
@@ -136,7 +136,7 @@ GPOS_RESULT
 CXMLSerializerTest::EresUnittest_Base64()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const ULONG ulraSize=5;
 	ULONG rgulRandArr[ulraSize];

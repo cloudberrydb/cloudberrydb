@@ -43,7 +43,7 @@ namespace gpopt
 			explicit
 			CXformImplementLeftSemiCorrelatedApplyIn
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformImplementCorrelatedApply<CLogicalLeftSemiCorrelatedApplyIn, CPhysicalCorrelatedInLeftSemiNLJoin>(mp)

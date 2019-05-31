@@ -29,7 +29,7 @@ using namespace gpmd;
 // ctor
 CXformEagerAgg::CXformEagerAgg
 	(
-		IMemoryPool *mp
+		CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -99,7 +99,7 @@ CXformEagerAgg::Transform
 		return;
 	}
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpression *join_expr = (*agg_expr)[0];
 	CExpression *join_outer_child_expr = (*join_expr)[0];
 	CExpression *join_inner_child_expr = (*join_expr)[1];
@@ -288,7 +288,7 @@ CXformEagerAgg::CanApplyTransform
 void
 CXformEagerAgg::PopulateLowerUpperProjectList
 	(
-	IMemoryPool *mp,	// memory pool
+	CMemoryPool *mp,	// memory pool
 	CExpression *orig_proj_list,	// project list of the original global aggregate
 	CExpression **lower_proj_list,	// project list of the new lower aggregate
 	CExpression **upper_proj_list	// project list of the new upper aggregate
@@ -358,7 +358,7 @@ CXformEagerAgg::PopulateLowerUpperProjectList
 void
 CXformEagerAgg::PopulateLowerProjectElement
 	(
-	IMemoryPool *mp,	// memory pool
+	CMemoryPool *mp,	// memory pool
 	IMDId *agg_mdid,	// original global aggregate function
 	CWStringConst *agg_name,
 	CExpressionArray *agg_arg_array,
@@ -411,7 +411,7 @@ CXformEagerAgg::PopulateLowerProjectElement
 void
 CXformEagerAgg::PopulateUpperProjectElement
 	(
-	IMemoryPool *mp,	// memory pool
+	CMemoryPool *mp,	// memory pool
 	IMDId *agg_mdid,	// original global aggregate function
 	CWStringConst *agg_name,
 	CColRef *lower_colref,

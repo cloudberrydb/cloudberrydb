@@ -35,7 +35,7 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 						
 			// id and version information for the table
 			IMDId *m_mdid;
@@ -56,7 +56,7 @@ namespace gpdxl
 		
 		public:
 			// ctor/dtor
-			CDXLTableDescr(IMemoryPool *mp, IMDId *mdid, CMDName *mdname, ULONG ulExecuteAsUser);
+			CDXLTableDescr(CMemoryPool *mp, IMDId *mdid, CMDName *mdname, ULONG ulExecuteAsUser);
 						
 			virtual
 			~CDXLTableDescr();

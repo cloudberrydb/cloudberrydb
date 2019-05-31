@@ -62,7 +62,7 @@ namespace gpdxl
 
 		public:
 			// ctor/dtor
-			CDXLPhysicalNLJoin(IMemoryPool *mp, EdxlJoinType join_type, BOOL is_index_nlj, BOOL nest_params_exists);
+			CDXLPhysicalNLJoin(CMemoryPool *mp, EdxlJoinType join_type, BOOL is_index_nlj, BOOL nest_params_exists);
 
 			~CDXLPhysicalNLJoin();
 

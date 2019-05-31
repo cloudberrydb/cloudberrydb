@@ -223,7 +223,7 @@ CMemoryPoolBasicTest::EresNewDelete
 	// create memory pool
 	CAutoTimer at("NewDelete test", true /*fPrint*/);
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, false /*fThreadSafe*/);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	WCHAR rgwszText[] = GPOS_WSZ_LIT(
 							"This is a lengthy test string. "
@@ -289,7 +289,7 @@ CMemoryPoolBasicTest::EresOOM
 		false /*fThreadSafe*/,
 		4 * 1024 * 1024 /*ullMaxSize*/
 		);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// OOM
 	GPOS_NEW_ARRAY(mp, BYTE, 128 * 1024 * 1024);
@@ -316,7 +316,7 @@ CMemoryPoolBasicTest::EresThrowingCtor
 
 	// create memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, false /*fThreadSafe*/);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// malicious test class
 	class CMyTestClass
@@ -367,7 +367,7 @@ CMemoryPoolBasicTest::EresLeak
 			false /*fThreadSafe*/,
 			4 * 1024 * 1024 /*ullMaxSize*/
 			);
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		for (ULONG i = 0; i < 10; i++)
 		{
@@ -414,7 +414,7 @@ CMemoryPoolBasicTest::EresLeakByException
 			false /*fThreadSafe*/,
 			4 * 1024 * 1024 /*ullMaxSize*/
 			);
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		for (ULONG i = 0; i < 10; i++)
 		{
@@ -450,7 +450,7 @@ CMemoryPoolBasicTest::EresConcurrency
 
 	// create memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, true /*fThreadSafe*/);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
@@ -499,7 +499,7 @@ CMemoryPoolBasicTest::AllocateSerial
 {
 	GPOS_ASSERT(NULL != pv);
 
-	IMemoryPool *mp = static_cast<IMemoryPool*>(pv);
+	CMemoryPool *mp = static_cast<CMemoryPool*>(pv);
 
 	Allocate(mp, GPOS_MEM_TEST_LOOP_LONG);
 
@@ -523,7 +523,7 @@ CMemoryPoolBasicTest::AllocateRepeated
 {
 	GPOS_ASSERT(NULL != pv);
 
-	IMemoryPool *mp = static_cast<IMemoryPool*>(pv);
+	CMemoryPool *mp = static_cast<CMemoryPool*>(pv);
 
 	for (ULONG i = 0; i < GPOS_MEM_TEST_REPEAT_SHORT; i++)
 	{
@@ -545,7 +545,7 @@ CMemoryPoolBasicTest::AllocateRepeated
 void
 CMemoryPoolBasicTest::Allocate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG count
 	)
 {
@@ -633,7 +633,7 @@ CMemoryPoolBasicTest::EresStress
 
 	// create memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, true /*fThreadSafe*/);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
@@ -677,7 +677,7 @@ CMemoryPoolBasicTest::AllocateStress
 {
 	GPOS_ASSERT(NULL != pv);
 
-	IMemoryPool *mp = static_cast<IMemoryPool*>(pv);
+	CMemoryPool *mp = static_cast<CMemoryPool*>(pv);
 
 	for (ULONG i = 0; i < GPOS_MEM_TEST_LOOP_SHORT; i++)
 	{
@@ -699,7 +699,7 @@ CMemoryPoolBasicTest::AllocateStress
 void
 CMemoryPoolBasicTest::AllocateRandom
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	BYTE *rgpb[GPOS_MEM_TEST_LOOP_STRESS];

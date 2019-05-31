@@ -49,7 +49,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// query context
 			CQueryContext *m_pqc;
@@ -94,7 +94,7 @@ namespace gpopt
 			// apply xforms to group expression and insert results to memo
 			void ApplyTransformations
 				(
-				IMemoryPool *pmpLocal,
+				CMemoryPool *pmpLocal,
 				CXformSet *xform_set,
 				CGroupExpression *pgexpr
 				);
@@ -102,7 +102,7 @@ namespace gpopt
 			// transition a given group to a target state
 			void TransitionGroup
 					(
-					IMemoryPool *pmpLocal,
+					CMemoryPool *pmpLocal,
 					CGroup *pgroup,
 					CGroup::EState estTarget
 					);
@@ -110,7 +110,7 @@ namespace gpopt
 			// transition a given group expression to a target state
 			void TransitionGroupExpression
 					(
-					IMemoryPool *pmpLocal,
+					CMemoryPool *pmpLocal,
 					CGroupExpression *pgexpr,
 					CGroupExpression::EState estTarget
 					);
@@ -244,7 +244,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CEngine(IMemoryPool *mp);
+			CEngine(CMemoryPool *mp);
 						
 			// dtor
 			~CEngine();
@@ -310,7 +310,7 @@ namespace gpopt
 			// return false if it's impossible for the operator to satisfy one or more
 			BOOL FCheckEnfdProps
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CGroupExpression *pgexpr,
 				COptimizationContext *poc,
 				ULONG ulOptReq,
@@ -321,7 +321,7 @@ namespace gpopt
 			// with respect to the given requirements
 			BOOL FValidCTEAndPartitionProperties
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CReqdPropPlan *prpp
 				);
@@ -338,7 +338,7 @@ namespace gpopt
 #endif // GPOS_DEBUG
 
 			// derive statistics
-			void DeriveStats(IMemoryPool *mp);
+			void DeriveStats(CMemoryPool *mp);
 
 			// execute operations after exploration completes
 			void FinalizeExploration();
@@ -406,7 +406,7 @@ namespace gpopt
 			}
 
 			// return array of child optimization contexts corresponding to handle requirements
-			COptimizationContextArray *PdrgpocChildren(IMemoryPool *mp, CExpressionHandle &exprhdl);
+			COptimizationContextArray *PdrgpocChildren(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// build tree map on memo
 			MemoTreeMap *Pmemotmap();
@@ -442,7 +442,7 @@ namespace gpopt
 
 			// derive statistics
 			static
-			void DeriveStats(IMemoryPool *pmpLocal, IMemoryPool *pmpGlobal, CGroup *pgroup, CReqdPropRelational *prprel);
+			void DeriveStats(CMemoryPool *pmpLocal, CMemoryPool *pmpGlobal, CGroup *pgroup, CReqdPropRelational *prprel);
 
 			// return the first group expression in a given group
 			static

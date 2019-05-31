@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarPartDefault::CDXLScalarPartDefault
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG partitioning_level
 	)
 	:

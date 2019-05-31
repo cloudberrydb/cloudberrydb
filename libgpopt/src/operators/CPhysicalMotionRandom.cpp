@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalMotionRandom::CPhysicalMotionRandom
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecRandom *pdsRandom
 	)
 	:
@@ -80,7 +80,7 @@ CPhysicalMotionRandom::Matches
 CColRefSet *
 CPhysicalMotionRandom::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -151,7 +151,7 @@ CPhysicalMotionRandom::EpetOrder
 COrderSpec *
 CPhysicalMotionRandom::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, //exprhdl,
 	COrderSpec *,//posInput,
 	ULONG
@@ -180,7 +180,7 @@ CPhysicalMotionRandom::PosRequired
 COrderSpec *
 CPhysicalMotionRandom::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

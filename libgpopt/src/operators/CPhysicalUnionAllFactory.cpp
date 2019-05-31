@@ -18,7 +18,7 @@ namespace gpopt
 		)
 		: m_popLogicalUnionAll(popLogicalUnionAll) { }
 
-	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(IMemoryPool *mp, BOOL fParallel)
+	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(CMemoryPool *mp, BOOL fParallel)
 	{
 
 		CColRefArray *pdrgpcrOutput = m_popLogicalUnionAll->PdrgpcrOutput();

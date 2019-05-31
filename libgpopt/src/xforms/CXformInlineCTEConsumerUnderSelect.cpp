@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformInlineCTEConsumerUnderSelect::CXformInlineCTEConsumerUnderSelect
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -103,7 +103,7 @@ CXformInlineCTEConsumerUnderSelect::Transform
 		return;
 	}
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// inline consumer
 	GPOS_ASSERT(NULL != popConsumer->Phmulcr());

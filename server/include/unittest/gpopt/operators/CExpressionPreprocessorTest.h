@@ -32,7 +32,7 @@ namespace gpopt
 		private:
 
 			// shorthand for functions for generating the expression for unnest test
-			typedef CExpression *(FnPexprUnnestTestCase)(IMemoryPool *mp, CExpression *pexpr);
+			typedef CExpression *(FnPexprUnnestTestCase)(CMemoryPool *mp, CExpression *pexpr);
 
 			// unnest scalar subqueries test cases
 			struct SUnnestSubqueriesTestCase
@@ -105,7 +105,7 @@ namespace gpopt
 #endif // GPOS_DEBUG
 
 			// create a conjunction of comparisons using the given columns
-			static CExpression *PexprCreateConjunction(IMemoryPool *mp, CColRefArray *colref_array);
+			static CExpression *PexprCreateConjunction(CMemoryPool *mp, CColRefArray *colref_array);
 
 			// Helper for preprocessing window functions with outer references
 			static
@@ -113,7 +113,7 @@ namespace gpopt
 
 			// Helper for preprocessing window functions with distinct aggs
 			static
-			void PreprocessWinFuncWithDistinctAggs(IMemoryPool *mp, const CHAR *szFilePath, BOOL fAllowSeqPrj, BOOL fAllowIDF);
+			void PreprocessWinFuncWithDistinctAggs(CMemoryPool *mp, const CHAR *szFilePath, BOOL fAllowSeqPrj, BOOL fAllowIDF);
 
 			// Helper for preprocessing outer joins
 			static
@@ -123,7 +123,7 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest_CollapseInnerJoinHelper
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				COperator *popJoin,
 				CExpression *rgpexpr[],
 				CDrvdPropRelational *rgpdprel[]
@@ -133,7 +133,7 @@ namespace gpopt
 			static
 			CExpression *PexprJoinHelper
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprLOJ,
 				BOOL fCascadedLOJ,
 				BOOL fIntermediateInnerjoin
@@ -143,7 +143,7 @@ namespace gpopt
 			static
 			CExpression *PexprWindowFuncWithLOJHelper
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprLOJ,
 				CColRef *pcrPartitionBy,
 				BOOL fAddWindowFunction,
@@ -156,7 +156,7 @@ namespace gpopt
 			static
 			CExpression *PexprSelectWithLOJHelper
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprLOJ,
 				CColRef *colref,
 				BOOL fOuterChildPred,
@@ -165,7 +165,7 @@ namespace gpopt
 
 			// helper function for comparing expressions resulting from preprocessing window functions with outer join
 			static
-			GPOS_RESULT EresCompareExpressions(IMemoryPool *mp, CWStringDynamic *rgstr[], ULONG size);
+			GPOS_RESULT EresCompareExpressions(CMemoryPool *mp, CWStringDynamic *rgstr[], ULONG size);
 
 			// test case generator for outer joins
 			static
@@ -173,7 +173,7 @@ namespace gpopt
 
 			// helper to create an expression with a predicate containing an array and other comparisons
 			static
-			CExpression *PexprCreateConvertableArray(IMemoryPool *mp, BOOL fCreateInStatement);
+			CExpression *PexprCreateConvertableArray(CMemoryPool *mp, BOOL fCreateInStatement);
 
 		public:
 

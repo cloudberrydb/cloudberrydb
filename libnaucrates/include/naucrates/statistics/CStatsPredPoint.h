@@ -53,7 +53,7 @@ namespace gpnaucrates
 
 			// add padding to datums when needed
 			static
-			IDatum *PreprocessDatum(IMemoryPool *mp, const CColRef *colref, IDatum *datum);
+			IDatum *PreprocessDatum(CMemoryPool *mp, const CColRef *colref, IDatum *datum);
 
 		public:
 
@@ -68,7 +68,7 @@ namespace gpnaucrates
 			// ctor
 			CStatsPredPoint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CColRef *colref,
 				CStatsPred::EStatsCmpType stats_cmp_type,
 				IDatum *datum

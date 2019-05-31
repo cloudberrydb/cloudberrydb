@@ -42,7 +42,7 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApply2LeftSemiJoin
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(mp, true /*fDeepTree*/)
@@ -51,7 +51,7 @@ namespace gpopt
 			// ctor with a passed pattern
 			CXformLeftSemiApply2LeftSemiJoin
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprPattern
 				)
 				:

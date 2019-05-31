@@ -44,7 +44,7 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerDXL::CParseHandlerDXL
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr
 	)
 	:

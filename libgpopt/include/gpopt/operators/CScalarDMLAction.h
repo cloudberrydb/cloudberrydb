@@ -48,7 +48,7 @@ namespace gpopt
 			// ctor
 			CScalarDMLAction
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CScalar(mp)
@@ -92,7 +92,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

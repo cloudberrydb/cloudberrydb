@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CDrvdPropCtxtPlan::CDrvdPropCtxtPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fUpdateCTEMap
 	)
 	:
@@ -70,7 +70,7 @@ CDrvdPropCtxtPlan::~CDrvdPropCtxtPlan()
 CDrvdPropCtxt *
 CDrvdPropCtxtPlan::PdpctxtCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

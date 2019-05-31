@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDifference::CLogicalDifference
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalSetOp(mp)
@@ -50,7 +50,7 @@ CLogicalDifference::CLogicalDifference
 //---------------------------------------------------------------------------
 CLogicalDifference::CLogicalDifference
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -82,7 +82,7 @@ CLogicalDifference::~CLogicalDifference()
 CMaxCard
 CLogicalDifference::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -107,7 +107,7 @@ CLogicalDifference::Maxcard
 COperator *
 CLogicalDifference::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -130,7 +130,7 @@ CLogicalDifference::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalDifference::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -150,7 +150,7 @@ CLogicalDifference::PxfsCandidates
 IStatistics *
 CLogicalDifference::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

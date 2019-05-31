@@ -52,7 +52,7 @@ CHashMapIterTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test data
 	ULONG rgul[] = {1,2,3,4,5,6,7,8,9};

@@ -79,7 +79,7 @@ namespace gpnaucrates
 
 			// return string representation
 			virtual
-			const CWStringConst *GetStrRepr(IMemoryPool *mp) const = 0;
+			const CWStringConst *GetStrRepr(CMemoryPool *mp) const = 0;
 
 			// hash function
 			virtual
@@ -91,7 +91,7 @@ namespace gpnaucrates
 			
 			// create a copy of the datum
 			virtual
-			IDatum *MakeCopy(IMemoryPool *mp) const = 0;
+			IDatum *MakeCopy(CMemoryPool *mp) const = 0;
 
 			// print function
 			virtual
@@ -141,7 +141,7 @@ namespace gpnaucrates
 
 			// return the padded datum
 			virtual
-			IDatum *MakePaddedDatum(IMemoryPool *mp, ULONG col_len) const = 0;
+			IDatum *MakePaddedDatum(CMemoryPool *mp, ULONG col_len) const = 0;
 
 			// does datum support like predicate
 			virtual

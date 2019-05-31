@@ -38,7 +38,7 @@ namespace gpdxl
 		public:
 			// ctor
 			explicit
-			CDXLLogicalProject(IMemoryPool *);
+			CDXLLogicalProject(CMemoryPool *);
 
 			// accessors
 			Edxlopid GetDXLOperator() const;

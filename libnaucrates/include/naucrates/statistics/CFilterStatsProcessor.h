@@ -32,7 +32,7 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistSimpleFilter
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CStatsPred *pred_stats,
 												CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -44,7 +44,7 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistPointFilter
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CStatsPredPoint *pred_stats,
 											   CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -56,7 +56,7 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistLikeFilter
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CStatsPredLike *pred_stats,
 											  CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -68,7 +68,7 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistUnsupportedPred
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CStatsPredUnsupported *pred_stats,
 												   CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -79,7 +79,7 @@ namespace gpnaucrates
 			// create a new hash map of histograms after applying a conjunctive or disjunctive filter
       static
       UlongToHistogramMap *MakeHistHashMapConjOrDisjFilter(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CStatisticsConfig *stats_config,
 			UlongToHistogramMap *input_histograms,
 				CDouble input_rows,
@@ -90,7 +90,7 @@ namespace gpnaucrates
 			// create new hash map of histograms after applying the conjunction predicate
       static
       UlongToHistogramMap *MakeHistHashMapConjFilter(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CStatisticsConfig *stats_config,
 			UlongToHistogramMap *intermediate_histograms,
 				CDouble input_rows,
@@ -101,7 +101,7 @@ namespace gpnaucrates
 			// create new hash map of histograms after applying the disjunctive predicate
       static
       UlongToHistogramMap *MakeHistHashMapDisjFilter(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CStatisticsConfig *stats_config,
 			UlongToHistogramMap *input_histograms,
 				CDouble input_rows,
@@ -117,13 +117,13 @@ namespace gpnaucrates
 
 		// filter
 		static
-		CStatistics *MakeStatsFilter(IMemoryPool *mp, const CStatistics *input_stats, CStatsPred *base_pred_stats, BOOL do_cap_NDVs);
+		CStatistics *MakeStatsFilter(CMemoryPool *mp, const CStatistics *input_stats, CStatsPred *base_pred_stats, BOOL do_cap_NDVs);
 
 		// derive statistics for filter operation based on given scalar expression
 		static
 		IStatistics *MakeStatsFilterForScalarExpr
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						IStatistics *child_stats,
 						CExpression *local_scalar_expr, // filter expression on local columns only

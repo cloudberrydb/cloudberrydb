@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAgg2ScalarAgg::CXformGbAgg2ScalarAgg
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -92,7 +92,7 @@ CXformGbAgg2ScalarAgg::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CColRefArray *colref_array = popAgg->Pdrgpcr();
 	colref_array->AddRef();
 	

@@ -27,7 +27,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDName::CMDName
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CWStringBase *str
 	)
 	:

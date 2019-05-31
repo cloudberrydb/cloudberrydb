@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarSubquery::CDXLScalarSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid
 	)
 	:

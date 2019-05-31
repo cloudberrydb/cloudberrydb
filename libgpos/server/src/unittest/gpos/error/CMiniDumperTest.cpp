@@ -58,7 +58,7 @@ GPOS_RESULT
 CMiniDumperTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CMiniDumperStream mdrs(mp);
 
@@ -96,7 +96,7 @@ GPOS_RESULT
 CMiniDumperTest::EresUnittest_Concurrency()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -235,7 +235,7 @@ CMiniDumperTest::PvLoopSerialize
 //---------------------------------------------------------------------------
 CMiniDumperTest::CMiniDumperStream::CMiniDumperStream
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CMiniDumper(mp)

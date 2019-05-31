@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarSortCol::CDXLScalarSortCol
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	IMDId *mdid_sort_op,
 	CWStringConst *sort_op_name_str,

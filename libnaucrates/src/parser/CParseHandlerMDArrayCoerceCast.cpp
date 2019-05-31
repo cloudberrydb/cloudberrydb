@@ -26,7 +26,7 @@ XERCES_CPP_NAMESPACE_USE
 // ctor
 CParseHandlerMDArrayCoerceCast::CParseHandlerMDArrayCoerceCast
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)

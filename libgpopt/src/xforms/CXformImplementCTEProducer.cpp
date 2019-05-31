@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementCTEProducer::CXformImplementCTEProducer
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -84,7 +84,7 @@ CXformImplementCTEProducer::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalCTEProducer *popCTEProducer = CLogicalCTEProducer::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 	ULONG id = popCTEProducer->UlCTEId();

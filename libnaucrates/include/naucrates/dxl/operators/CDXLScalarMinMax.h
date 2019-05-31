@@ -54,7 +54,7 @@ namespace gpdxl
 		public:
 
 			// ctor
-			CDXLScalarMinMax(IMemoryPool *mp, IMDId *mdid_type, EdxlMinMaxType min_max_type);
+			CDXLScalarMinMax(CMemoryPool *mp, IMDId *mdid_type, EdxlMinMaxType min_max_type);
 
 			//dtor
 			virtual

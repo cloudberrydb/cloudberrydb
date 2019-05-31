@@ -127,7 +127,7 @@ namespace gpopt
 			// dummy expression to used for non-joinable components
 			CExpression *m_pexprDummy;
 
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// build expression linking given components
 			CExpression *PexprBuildPred(CBitSet *pbsFst, CBitSet *pbsSnd);
@@ -173,7 +173,7 @@ namespace gpopt
 			// ctor
 			CJoinOrderDPv2
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprComponents,
 				CExpressionArray *pdrgpexprConjuncts
 				);

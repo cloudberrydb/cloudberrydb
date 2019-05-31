@@ -101,7 +101,7 @@ CDistributionSpecHashed::~CDistributionSpecHashed()
 CDistributionSpec *
 CDistributionSpecHashed::PdsCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -245,7 +245,7 @@ CDistributionSpecHashed::FMatchSubset
 CDistributionSpecHashed *
 CDistributionSpecHashed::PdshashedExcludeColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -293,7 +293,7 @@ CDistributionSpecHashed::PdshashedExcludeColumns
 void
 CDistributionSpecHashed::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
@@ -383,7 +383,7 @@ CDistributionSpecHashed::HashValue() const
 CColRefSet *
 CDistributionSpecHashed::PcrsUsed
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -536,7 +536,7 @@ CDistributionSpecHashed::Equals
 CDistributionSpecHashed *
 CDistributionSpecHashed::PdshashedMaximal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	BOOL fNullsColocated
 	)
@@ -585,7 +585,7 @@ CDistributionSpecHashed::IsCoveredBy
 void
 CDistributionSpecHashed::ComputeEquivHashExprs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expression_handle
 	)
 {
@@ -675,7 +675,7 @@ CDistributionSpecHashed::ComputeEquivHashExprs
 CDistributionSpecHashed *
 CDistributionSpecHashed::Copy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpressionArray *distribution_exprs = this->Pdrgpexpr();
@@ -772,7 +772,7 @@ CDistributionSpecHashed::OsPrint
 CExpressionArrays *
 CDistributionSpecHashed::GetAllDistributionExprs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpressionArrays *all_distribution_exprs = GPOS_NEW(mp) CExpressionArrays(mp);
@@ -793,7 +793,7 @@ CDistributionSpecHashed::GetAllDistributionExprs
 CDistributionSpecHashed *
 CDistributionSpecHashed::Combine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecHashed *other_spec
 	)
 {

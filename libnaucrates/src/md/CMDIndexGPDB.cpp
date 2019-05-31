@@ -33,7 +33,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDIndexGPDB::CMDIndexGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid, 
 	CMDName *mdname,
 	BOOL is_clustered,

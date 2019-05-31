@@ -40,7 +40,7 @@ using namespace gpopt;
 CScalarConst *
 CTranslatorDXLToExprUtils::PopConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	const CDXLScalarConstValue *dxl_op
 	)
@@ -81,7 +81,7 @@ CTranslatorDXLToExprUtils::GetDatum
 IDatumArray *
 CTranslatorDXLToExprUtils::Pdrgpdatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	const CDXLDatumArray *pdrgpdxldatum
 	)
@@ -112,7 +112,7 @@ CTranslatorDXLToExprUtils::Pdrgpdatum
 CExpression *
 CTranslatorDXLToExprUtils::PexprConstInt8
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CSystemId sysid,
 	LINT val
@@ -136,7 +136,7 @@ CTranslatorDXLToExprUtils::PexprConstInt8
 void
 CTranslatorDXLToExprUtils::AddKeySets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	const IMDRelation *pmdrel,
 	UlongToUlongMap *phmululColMapping
@@ -246,7 +246,7 @@ CTranslatorDXLToExprUtils::EBoolOperator
 CColRefArray *
 CTranslatorDXLToExprUtils::Pdrgpcr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	const ULongPtrArray *colids
 	)

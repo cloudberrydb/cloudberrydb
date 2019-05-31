@@ -35,7 +35,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSubqueryQuantified::CScalarSubqueryQuantified
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *scalar_op_mdid,
 	const CWStringConst *pstrScalarOp,
 	const CColRef *colref
@@ -172,7 +172,7 @@ CScalarSubqueryQuantified::Matches
 CColRefSet *
 CScalarSubqueryQuantified::PcrsUsed
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	 CExpressionHandle &exprhdl
 	)
 {
@@ -201,7 +201,7 @@ CScalarSubqueryQuantified::PcrsUsed
 CPartInfo *
 CScalarSubqueryQuantified::PpartinfoDerive
 	(
-	IMemoryPool *, // mp, 
+	CMemoryPool *, // mp, 
 	CExpressionHandle &exprhdl
 	)
 	const

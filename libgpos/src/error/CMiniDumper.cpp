@@ -29,7 +29,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMiniDumper::CMiniDumper
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),

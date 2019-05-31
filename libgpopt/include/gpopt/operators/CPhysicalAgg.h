@@ -48,12 +48,12 @@ namespace gpopt
 			CLogicalGbAgg::EAggStage m_aggStage;
 
 			// compute required distribution of the n-th child of an intermediate aggregate
-			CDistributionSpec *PdsRequiredIntermediateAgg(IMemoryPool *mp, ULONG  ulOptReq) const;
+			CDistributionSpec *PdsRequiredIntermediateAgg(CMemoryPool *mp, ULONG  ulOptReq) const;
 
 			// compute required distribution of the n-th child of a global aggregate
 			CDistributionSpec *PdsRequiredGlobalAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsInput,
 				ULONG child_index,
@@ -66,7 +66,7 @@ namespace gpopt
 			// compute a maximal hashed distribution using the given columns,
 			// if no such distribution can be created, return a Singleton distribution
 			static
-			CDistributionSpec *PdsMaximalHashed(IMemoryPool *mp, CColRefArray *colref_array);
+			CDistributionSpec *PdsMaximalHashed(CMemoryPool *mp, CColRefArray *colref_array);
 
 		protected:
 
@@ -99,7 +99,7 @@ namespace gpopt
 			// compute required columns of the n-th child
 			CColRefSet *PcrsRequiredAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
 				ULONG child_index,
@@ -109,7 +109,7 @@ namespace gpopt
 			// compute required distribution of the n-th child
 			CDistributionSpec *PdsRequiredAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsInput,
 				ULONG child_index,
@@ -124,7 +124,7 @@ namespace gpopt
 			// ctor
 			CPhysicalAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array,
 				CColRefArray *pdrgpcrMinimal, // FD's on grouping columns
 				COperator::EGbAggType egbaggtype,
@@ -210,7 +210,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
 				ULONG child_index,
@@ -222,7 +222,7 @@ namespace gpopt
 			virtual
 			CCTEReq *PcteRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CCTEReq *pcter,
 				ULONG child_index,
@@ -235,7 +235,7 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
 				ULONG child_index,
@@ -251,7 +251,7 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
 				ULONG child_index,
@@ -269,7 +269,7 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
 				ULONG child_index,
@@ -283,17 +283,17 @@ namespace gpopt
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive rewindability
 			virtual
-			CRewindabilitySpec *PrsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CRewindabilitySpec *PrsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpressionHandle &exprhdl,
 				CDrvdPropCtxt * //pdpctxt
 				)
@@ -306,7 +306,7 @@ namespace gpopt
 			virtual
 			CPartFilterMap *PpfmDerive
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				)
 				const

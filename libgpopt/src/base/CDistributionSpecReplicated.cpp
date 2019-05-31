@@ -66,7 +66,7 @@ CDistributionSpecReplicated::FSatisfies
 void
 CDistributionSpecReplicated::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 	#ifdef GPOS_DEBUG

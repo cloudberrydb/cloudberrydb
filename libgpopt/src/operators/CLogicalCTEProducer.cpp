@@ -26,7 +26,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalCTEProducer::CLogicalCTEProducer
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -47,7 +47,7 @@ CLogicalCTEProducer::CLogicalCTEProducer
 //---------------------------------------------------------------------------
 CLogicalCTEProducer::CLogicalCTEProducer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	CColRefArray *colref_array
 	)
@@ -89,7 +89,7 @@ CLogicalCTEProducer::~CLogicalCTEProducer()
 CColRefSet *
 CLogicalCTEProducer::PcrsDeriveOutput
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -108,7 +108,7 @@ CLogicalCTEProducer::PcrsDeriveOutput
 CColRefSet *
 CLogicalCTEProducer::PcrsDeriveNotNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -130,7 +130,7 @@ CLogicalCTEProducer::PcrsDeriveNotNull
 CKeyCollection *
 CLogicalCTEProducer::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -149,7 +149,7 @@ CLogicalCTEProducer::PkcDeriveKeys
 CMaxCard
 CLogicalCTEProducer::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -212,7 +212,7 @@ CLogicalCTEProducer::HashValue() const
 COperator *
 CLogicalCTEProducer::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -233,7 +233,7 @@ CLogicalCTEProducer::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalCTEProducer::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

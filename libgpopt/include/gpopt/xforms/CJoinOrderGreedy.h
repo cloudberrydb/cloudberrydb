@@ -43,7 +43,7 @@ namespace gpopt
 			// ctor
 			CJoinOrderGreedy
 				(
-				IMemoryPool *pmp,
+				CMemoryPool *pmp,
 				CExpressionArray *pdrgpexprComponents,
 				CExpressionArray *pdrgpexprConjuncts
 				);

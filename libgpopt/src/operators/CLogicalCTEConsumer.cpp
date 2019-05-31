@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalCTEConsumer::CLogicalCTEConsumer
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -53,7 +53,7 @@ CLogicalCTEConsumer::CLogicalCTEConsumer
 //---------------------------------------------------------------------------
 CLogicalCTEConsumer::CLogicalCTEConsumer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	CColRefArray *colref_array
 	)
@@ -100,7 +100,7 @@ CLogicalCTEConsumer::~CLogicalCTEConsumer()
 void
 CLogicalCTEConsumer::CreateInlinedExpr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
@@ -125,7 +125,7 @@ CLogicalCTEConsumer::CreateInlinedExpr
 CColRefSet *
 CLogicalCTEConsumer::PcrsDeriveOutput
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 {
@@ -145,7 +145,7 @@ CLogicalCTEConsumer::PcrsDeriveOutput
 CColRefSet *
 CLogicalCTEConsumer::PcrsDeriveNotNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -175,7 +175,7 @@ CLogicalCTEConsumer::PcrsDeriveNotNull
 CKeyCollection *
 CLogicalCTEConsumer::PkcDeriveKeys
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -202,7 +202,7 @@ CLogicalCTEConsumer::PkcDeriveKeys
 CPartInfo *
 CLogicalCTEConsumer::PpartinfoDerive
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -224,7 +224,7 @@ CLogicalCTEConsumer::PpartinfoDerive
 CMaxCard
 CLogicalCTEConsumer::Maxcard
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -246,7 +246,7 @@ CLogicalCTEConsumer::Maxcard
 ULONG
 CLogicalCTEConsumer::JoinDepth
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -326,7 +326,7 @@ CLogicalCTEConsumer::FInputOrderSensitive() const
 COperator *
 CLogicalCTEConsumer::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -354,7 +354,7 @@ CLogicalCTEConsumer::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalCTEConsumer::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -375,7 +375,7 @@ CLogicalCTEConsumer::PxfsCandidates
 CPropConstraint *
 CLogicalCTEConsumer::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -416,7 +416,7 @@ CLogicalCTEConsumer::PpcDeriveConstraint
 IStatistics *
 CLogicalCTEConsumer::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, //exprhdl,
 	IStatisticsArray * // statistics_array
 	)

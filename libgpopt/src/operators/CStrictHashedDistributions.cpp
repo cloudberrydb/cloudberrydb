@@ -8,7 +8,7 @@ using namespace gpopt;
 
 CStrictHashedDistributions::CStrictHashedDistributions
 (
-IMemoryPool *mp,
+CMemoryPool *mp,
 CColRefArray *pdrgpcrOutput,
 CColRef2dArray *pdrgpdrgpcrInput
 )

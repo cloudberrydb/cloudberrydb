@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSplitGbAgg::CXformSplitGbAgg
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -119,7 +119,7 @@ CXformSplitGbAgg::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
 
 	// extract components
@@ -205,7 +205,7 @@ CXformSplitGbAgg::Transform
 void
 CXformSplitGbAgg::PopulateLocalGlobalProjectList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprProjList,
 	CExpression **ppexprProjListLocal,
 	CExpression **ppexprProjListGlobal

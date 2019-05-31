@@ -226,7 +226,7 @@ CParseHandlerTest::EresUnittest_ErrSAXParseException()
 {
 	// create own memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// read DXL file
 	CHAR *dxl_string = CDXLUtils::Read(mp, m_rgszXerceTestFileNames[0]);
@@ -272,7 +272,7 @@ CParseHandlerTest::EresUnittest_MDRequest()
 {
 	// create own memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	return EresParseAndSerializeMDRequest(mp, m_szMDRequestFile, false /* fvalidate */);
 }
@@ -372,13 +372,13 @@ CParseHandlerTest::EresUnittest_RunAllPositiveTests
 	(
 	const CHAR *rgszFileNames[],
 	ULONG ulFiles,
-	GPOS_RESULT (*testFunc)(IMemoryPool *,const CHAR *,BOOL),
+	GPOS_RESULT (*testFunc)(CMemoryPool *,const CHAR *,BOOL),
 	BOOL fValidate
 	)
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// loop over all test files
 	for (ULONG ul = 0; ul< ulFiles; ul++)
@@ -403,7 +403,7 @@ GPOS_RESULT
 CParseHandlerTest::EresUnittest_RunAllNegativeTests()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// loop over all test files
 	for (ULONG ulFileNum = 0;
@@ -445,7 +445,7 @@ CParseHandlerTest::EresUnittest_RunAllNegativeTests()
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializePlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)
@@ -512,7 +512,7 @@ CParseHandlerTest::EresParseAndSerializePlan
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializeQuery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)
@@ -572,7 +572,7 @@ CParseHandlerTest::EresParseAndSerializeQuery
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializeMetadata
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)
@@ -631,7 +631,7 @@ CParseHandlerTest::EresParseAndSerializeMetadata
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializeMDRequest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)
@@ -686,7 +686,7 @@ CParseHandlerTest::EresParseAndSerializeMDRequest
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializeStatistics
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)
@@ -778,7 +778,7 @@ CParseHandlerTest::EresParseAndSerializeStatistics
 GPOS_RESULT
 CParseHandlerTest::EresParseAndSerializeScalarExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *dxl_filename,
 	BOOL fValidate
 	)

@@ -22,7 +22,7 @@ using namespace gpopt;
 CStatistics *
 CGroupByStatsProcessor::CalcGroupByStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	ULongPtrArray *GCs,
 	ULongPtrArray *aggs,

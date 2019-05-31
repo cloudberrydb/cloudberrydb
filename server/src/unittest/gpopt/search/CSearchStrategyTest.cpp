@@ -72,7 +72,7 @@ CSearchStrategyTest::EresUnittest()
 void
 CSearchStrategyTest::Optimize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	Pfpexpr pfnGenerator,
 	CSearchStageArray *search_stage_array,
 	PfnOptimize pfnOptimize
@@ -113,7 +113,7 @@ GPOS_RESULT
 CSearchStrategyTest::EresUnittest_RecursiveOptimize()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	Optimize(mp, CTestUtils::PexprLogicalSelectOnOuterJoin, PdrgpssRandom(mp), CEngineTest::BuildMemoRecursive);
 
 	return GPOS_OK;
@@ -133,7 +133,7 @@ GPOS_RESULT
 CSearchStrategyTest::EresUnittest_MultiThreadedOptimize()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	Optimize(mp, CTestUtils::PexprLogicalSelectOnOuterJoin, PdrgpssRandom(mp), CSchedulerTest::BuildMemoMultiThreaded);
 
 	return GPOS_OK;
@@ -152,7 +152,7 @@ GPOS_RESULT
 CSearchStrategyTest::EresUnittest_Parsing()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/search/strategy0.xml", NULL);
 	CSearchStageArray *search_stage_array = pphDXL->GetSearchStageArray();
 	const ULONG size = search_stage_array->Size();
@@ -183,7 +183,7 @@ GPOS_RESULT
 CSearchStrategyTest::EresUnittest_Timeout()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CAutoTraceFlag atf(EopttracePrintOptimizationStatistics, true);
 	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/search/timeout-strategy.xml", NULL);
 	CSearchStageArray *search_stage_array = pphDXL->GetSearchStageArray();
@@ -209,7 +209,7 @@ CSearchStrategyTest::EresUnittest_ParsingWithException()
 {
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/search/wrong-strategy.xml", NULL);
 	GPOS_DELETE(pphDXL);
 
@@ -228,7 +228,7 @@ CSearchStrategyTest::EresUnittest_ParsingWithException()
 CSearchStageArray *
 CSearchStrategyTest::PdrgpssRandom
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CSearchStageArray *search_stage_array = GPOS_NEW(mp) CSearchStageArray(mp);

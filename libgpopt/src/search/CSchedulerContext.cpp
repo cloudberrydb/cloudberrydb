@@ -71,7 +71,7 @@ CSchedulerContext::~CSchedulerContext()
 void
 CSchedulerContext::Init
 	(
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpGlobal,
 	CJobFactory *pjf,
 	CScheduler *psched,
 	CEngine *peng

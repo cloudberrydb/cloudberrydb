@@ -46,7 +46,7 @@ namespace gpopt
 			// check if given part index id needs to be enforced on top of the given expression
 			BOOL FRequiresPartitionPropagation
 				(
-				IMemoryPool *mp, 
+				CMemoryPool *mp, 
 				CExpression *pexpr, 
 				CExpressionHandle &exprhdl,
 				ULONG part_idx_id
@@ -60,7 +60,7 @@ namespace gpopt
 			// as well as the residual predicate
 			void SplitPartPredicates
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprScalar,
 				CColRef2dArray *pdrgpdrgpcrKeys,
 				UlongToExprMap *phmulexprEqFilter,
@@ -72,7 +72,7 @@ namespace gpopt
 			// indicating which predicates have already been used
 			CExpression *PexprResidualFilter
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexpr,
 				CBitSet *pbsUsed
 				);
@@ -81,7 +81,7 @@ namespace gpopt
 			// an array of predicates on all keys
 			CExpressionArray *PdrgpexprPredicatesOnKey
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexpr,
 				CColRef *colref,
 				CColRefSet *pcrsKeys,
@@ -89,10 +89,10 @@ namespace gpopt
 				);
 
 			// return a colrefset containing all the part keys
-			CColRefSet *PcrsKeys(IMemoryPool *mp, CColRef2dArray *pdrgpdrgpcrKeys);
+			CColRefSet *PcrsKeys(CMemoryPool *mp, CColRef2dArray *pdrgpdrgpcrKeys);
 
 			// return the filter expression for the given Scan Id
-			CExpression *PexprFilter(IMemoryPool *mp, ULONG scan_id);
+			CExpression *PexprFilter(CMemoryPool *mp, ULONG scan_id);
 
 		public:
 
@@ -117,7 +117,7 @@ namespace gpopt
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function
 			virtual
@@ -127,7 +127,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsUsed
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				const
 			{

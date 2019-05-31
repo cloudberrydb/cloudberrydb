@@ -31,7 +31,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSubqueryExistential::CScalarSubqueryExistential
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CScalar(mp)
@@ -97,7 +97,7 @@ CScalarSubqueryExistential::Matches
 CPartInfo *
 CScalarSubqueryExistential::PpartinfoDerive
 	(
-	IMemoryPool *, // mp, 
+	CMemoryPool *, // mp, 
 	CExpressionHandle &exprhdl
 	)
 	const

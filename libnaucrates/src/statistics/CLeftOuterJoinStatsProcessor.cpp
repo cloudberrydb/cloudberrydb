@@ -18,7 +18,7 @@ using namespace gpmd;
 CStatistics *
 CLeftOuterJoinStatsProcessor::CalcLOJoinStatsStatic
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		const IStatistics *outer_side_stats,
 		const IStatistics *inner_side_stats,
 		CStatsPredJoinArray *join_preds_stats
@@ -82,7 +82,7 @@ CLeftOuterJoinStatsProcessor::CalcLOJoinStatsStatic
 UlongToHistogramMap *
 CLeftOuterJoinStatsProcessor::MakeLOJHistogram
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		const CStatistics *outer_side_stats,
 		const CStatistics *inner_side_stats,
 		CStatistics *inner_join_stats,
@@ -177,7 +177,7 @@ CLeftOuterJoinStatsProcessor::MakeLOJHistogram
 void
 CLeftOuterJoinStatsProcessor::AddHistogramsLOJInner
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		const CStatistics *inner_join_stats,
 		ULongPtrArray *inner_colids_with_stats,
 		CDouble num_rows_LASJ,

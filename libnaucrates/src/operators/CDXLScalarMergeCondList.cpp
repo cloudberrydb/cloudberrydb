@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarMergeCondList::CDXLScalarMergeCondList
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLScalar(mp)

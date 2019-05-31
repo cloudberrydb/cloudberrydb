@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInnerJoin::CLogicalInnerJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalJoin(mp)
@@ -53,7 +53,7 @@ CLogicalInnerJoin::CLogicalInnerJoin
 CMaxCard
 CLogicalInnerJoin::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -72,7 +72,7 @@ CLogicalInnerJoin::Maxcard
 CXformSet *
 CLogicalInnerJoin::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -115,7 +115,7 @@ CLogicalInnerJoin::PxfsCandidates
 BOOL
 CLogicalInnerJoin::FFewerConj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexprFst,
 	CGroupExpression *pgexprSnd
 	)

@@ -37,10 +37,10 @@ namespace gpopt
 		private:
 
 			// memory pool used by all workers
-			IMemoryPool *m_pmpGlobal;
+			CMemoryPool *m_pmpGlobal;
 
 			// memory pool used by only by current worker (scratch space)
-			IMemoryPool *m_pmpLocal;
+			CMemoryPool *m_pmpLocal;
 
 			// job factory
 			CJobFactory *m_pjf;
@@ -73,21 +73,21 @@ namespace gpopt
 			// initialization
 			void Init
 				(
-				IMemoryPool *pmpGlobal,
+				CMemoryPool *pmpGlobal,
 				CJobFactory *pjf,
 				CScheduler *psched,
 				CEngine *peng
 				);
 
 			// global memory pool accessor
-			IMemoryPool *GetGlobalMemoryPool() const
+			CMemoryPool *GetGlobalMemoryPool() const
 			{
 				GPOS_ASSERT(FInit() && "Scheduling context is not initialized");
 				return m_pmpGlobal;
 			}
 
 			// local memory pool accessor
-			IMemoryPool *PmpLocal() const
+			CMemoryPool *PmpLocal() const
 			{
 				GPOS_ASSERT(FInit() && "Scheduling context is not initialized");
 				return m_pmpLocal;

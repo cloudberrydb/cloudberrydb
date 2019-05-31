@@ -29,7 +29,7 @@ using namespace gpdxl;
 GPOS_RESULT
 gpdxl::EresExceptionInit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	//---------------------------------------------------------------------------

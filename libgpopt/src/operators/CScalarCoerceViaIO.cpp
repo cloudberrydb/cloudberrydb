@@ -32,7 +32,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceViaIO::CScalarCoerceViaIO
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
 	ECoercionForm ecf,

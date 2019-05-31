@@ -68,7 +68,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Arithmetic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CCost cost1(2.5);
 	CCost cost2(3.0);
@@ -109,7 +109,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Bool()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CCost cost1(2.5);
 	CCost cost2(3.5);
@@ -138,7 +138,7 @@ CCostTest::EresUnittest_Bool()
 void
 CCostTest::TestParams
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCalibrated
 	)
 {
@@ -234,7 +234,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Params()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -283,7 +283,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Parsing()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/cost/cost0.xml", NULL);
 	ICostModelParams *pcp = pphDXL->GetCostModelParams();
 
@@ -311,7 +311,7 @@ CCostTest::EresUnittest_ParsingWithException()
 {
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/cost/wrong-cost.xml", NULL);
 	GPOS_DELETE(pphDXL);
 
@@ -331,7 +331,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_SetParams()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

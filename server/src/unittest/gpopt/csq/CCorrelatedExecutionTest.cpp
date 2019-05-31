@@ -84,7 +84,7 @@ GPOS_RESULT
 CCorrelatedExecutionTest::EresUnittest_RunAllPositiveTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

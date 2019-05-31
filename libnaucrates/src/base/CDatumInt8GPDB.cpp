@@ -185,7 +185,7 @@ CDatumInt8GPDB::HashValue() const
 const CWStringConst *
 CDatumInt8GPDB::GetStrRepr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -248,7 +248,7 @@ CDatumInt8GPDB::Matches
 IDatum *
 CDatumInt8GPDB::MakeCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

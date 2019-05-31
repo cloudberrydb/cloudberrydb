@@ -45,7 +45,7 @@ namespace gpdxl
 			
 		public:
 			// ctor
-			CDXLScalarSubqueryAll(IMemoryPool *mp, IMDId *scalar_op_mdid, CMDName *mdname, ULONG colid);
+			CDXLScalarSubqueryAll(CMemoryPool *mp, IMDId *scalar_op_mdid, CMDName *mdname, ULONG colid);
 
 			// ident accessors
 			Edxlopid GetDXLOperator() const;

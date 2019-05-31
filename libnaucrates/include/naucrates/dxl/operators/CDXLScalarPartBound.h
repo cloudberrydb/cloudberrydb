@@ -45,7 +45,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLScalarPartBound(IMemoryPool *mp, ULONG partitioning_level, IMDId *mdid_type, BOOL is_lower_bound);
+			CDXLScalarPartBound(CMemoryPool *mp, ULONG partitioning_level, IMDId *mdid_type, BOOL is_lower_bound);
 
 			// dtor
 			virtual

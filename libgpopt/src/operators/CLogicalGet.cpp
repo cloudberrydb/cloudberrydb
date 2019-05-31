@@ -40,7 +40,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalGet::CLogicalGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -63,7 +63,7 @@ CLogicalGet::CLogicalGet
 //---------------------------------------------------------------------------
 CLogicalGet::CLogicalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc
 	)
@@ -99,7 +99,7 @@ CLogicalGet::CLogicalGet
 //---------------------------------------------------------------------------
 CLogicalGet::CLogicalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrOutput
@@ -195,7 +195,7 @@ CLogicalGet::Matches
 COperator *
 CLogicalGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -226,7 +226,7 @@ CLogicalGet::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalGet::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 {
@@ -248,7 +248,7 @@ CLogicalGet::PcrsDeriveOutput
 CColRefSet *
 CLogicalGet::PcrsDeriveNotNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -299,7 +299,7 @@ CLogicalGet::FInputOrderSensitive() const
 CKeyCollection *
 CLogicalGet::PkcDeriveKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -321,7 +321,7 @@ CLogicalGet::PkcDeriveKeys
 CXformSet *
 CLogicalGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -343,7 +343,7 @@ CLogicalGet::PxfsCandidates
 IStatistics *
 CLogicalGet::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

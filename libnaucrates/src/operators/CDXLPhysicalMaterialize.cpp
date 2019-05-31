@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalMaterialize::CDXLPhysicalMaterialize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_eager
 	)
 	:
@@ -51,7 +51,7 @@ CDXLPhysicalMaterialize::CDXLPhysicalMaterialize
 //---------------------------------------------------------------------------
 CDXLPhysicalMaterialize::CDXLPhysicalMaterialize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_eager,
 	ULONG spooling_op_id,
 	INT executor_slice,

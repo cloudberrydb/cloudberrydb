@@ -13,7 +13,7 @@ using namespace gpopt;
 
 CLogicalIndexApply::CLogicalIndexApply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalApply(mp),
@@ -25,7 +25,7 @@ CLogicalIndexApply::CLogicalIndexApply
 
 CLogicalIndexApply::CLogicalIndexApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOuterRefs,
 	BOOL fOuterJoin
 	)
@@ -47,7 +47,7 @@ CLogicalIndexApply::~CLogicalIndexApply()
 CMaxCard
 CLogicalIndexApply::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -59,7 +59,7 @@ CLogicalIndexApply::Maxcard
 CXformSet *
 CLogicalIndexApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -89,7 +89,7 @@ CLogicalIndexApply::Matches
 IStatistics *
 CLogicalIndexApply::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray* // stats_ctxt
 	)
@@ -123,7 +123,7 @@ CLogicalIndexApply::PstatsDerive
 COperator *
 CLogicalIndexApply::PopCopyWithRemappedColumns
 (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

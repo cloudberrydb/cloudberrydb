@@ -13,7 +13,7 @@ namespace gpopt
 {
 	CPhysicalParallelUnionAll::CPhysicalParallelUnionAll
 		(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CColRefArray *pdrgpcrOutput,
 			CColRef2dArray *pdrgpdrgpcrInput,
 			ULONG ulScanIdPartialIndex
@@ -48,7 +48,7 @@ namespace gpopt
 	CDistributionSpec *
 	CPhysicalParallelUnionAll::PdsRequired
 		(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CExpressionHandle &,
 			CDistributionSpec *,
 			ULONG child_index,

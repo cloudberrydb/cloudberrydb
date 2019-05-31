@@ -35,7 +35,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMemoryPoolInjectFault::CMemoryPoolInjectFault
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL owns_underlying_memory_pool
 	)
 	:
@@ -101,7 +101,7 @@ CMemoryPoolInjectFault::Free
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMemoryPool::FSimulateAllocFailure
+//		CMemoryPool::FSimulateAllocFailure
 //
 //	@doc:
 //		Check whether to simulate an OOM

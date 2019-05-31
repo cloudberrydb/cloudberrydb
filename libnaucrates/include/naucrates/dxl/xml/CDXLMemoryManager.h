@@ -7,7 +7,7 @@
 //
 //	@doc:
 //		Memory manager for parsing DXL documents used in the Xerces XML parser.
-//		Provides a wrapper around the GPOS IMemoryPool interface.
+//		Provides a wrapper around the GPOS CMemoryPool interface.
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLMemoryManager_H
@@ -31,14 +31,14 @@ namespace gpdxl
 	//
 	//	@doc:
 	//		Memory manager for parsing DXL documents used in the Xerces XML parser.
-	//		Provides a wrapper around the GPOS IMemoryPool interface.
+	//		Provides a wrapper around the GPOS CMemoryPool interface.
 	//
 	//---------------------------------------------------------------------------
 	class CDXLMemoryManager : public MemoryManager
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// private copy ctor
 			CDXLMemoryManager
@@ -50,7 +50,7 @@ namespace gpdxl
 			// ctor
 			CDXLMemoryManager
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				);
 			
 			// MemoryManager interface functions
@@ -68,7 +68,7 @@ namespace gpdxl
 				);
 			
 			// accessor to the underlying memory pool
-			IMemoryPool *Pmp()
+			CMemoryPool *Pmp()
 			{
 				return m_mp;
 			}

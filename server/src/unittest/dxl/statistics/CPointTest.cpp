@@ -38,7 +38,7 @@ CPointTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -57,7 +57,7 @@ CPointTest::EresUnittest_CPointInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate integer points
 	CPoint *point1 = CTestUtils::PpointInt4(mp, 1);
@@ -87,7 +87,7 @@ CPointTest::EresUnittest_CPointBool()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate boolean points
 	CPoint *point1 = CTestUtils::PpointBool(mp, true);

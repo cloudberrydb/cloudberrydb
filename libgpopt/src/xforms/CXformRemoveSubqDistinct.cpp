@@ -20,7 +20,7 @@ using namespace gpopt;
 
 CXformRemoveSubqDistinct::CXformRemoveSubqDistinct
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -105,7 +105,7 @@ CXformRemoveSubqDistinct::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpression *pexprScalar = (*pexpr)[1];
 	CExpression *pexprGbAgg = (*pexprScalar)[0];
 

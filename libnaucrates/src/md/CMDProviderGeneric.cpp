@@ -10,7 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 #include "naucrates/md/CMDProviderGeneric.h"
 #include "naucrates/md/CMDTypeInt2GPDB.h"
@@ -36,7 +36,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDProviderGeneric::CMDProviderGeneric
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// TODO:  - Jan 25, 2012; those should not be tied to a particular system

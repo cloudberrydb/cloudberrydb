@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalJoin::CLogicalJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp)
@@ -71,7 +71,7 @@ CLogicalJoin::Matches
 IStatistics *
 CLogicalJoin::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray *stats_ctxt
 	)

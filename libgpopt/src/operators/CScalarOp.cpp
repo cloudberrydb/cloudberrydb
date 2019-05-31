@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarOp::CScalarOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op,
 	IMDId *return_type_mdid,
 	const CWStringConst *pstrOp

@@ -18,40 +18,11 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 #include "gpos/task/ITask.h"
+#include "gpos/common/CLink.h"
 #include "gpos/_api.h"
 
 namespace gpos
 {
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		SLink
-	//
-	//	@doc:
-	//		Generic link to be embedded in all classes before they can use
-	//		allocation-less lists, e.g. in synchronized hashtables etc.
-	//
-	//---------------------------------------------------------------------------
-	struct SLink
-	{
-
-		private:
-		
-			// no copy constructor
-			SLink(const SLink&);
-
-		public:
-
-			// link forward/backward
-			void *m_next;
-			void *m_prev;
-			
-			// ctor
-			SLink()
-				:
-				m_next(NULL),
-				m_prev(NULL)
-			{}
-	};
 
 	// forward declaration
 	template <class T> class CSyncList;

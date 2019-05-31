@@ -34,7 +34,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarFunc::CScalarFunc
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CScalar(mp),
@@ -60,7 +60,7 @@ CScalarFunc::CScalarFunc
 //---------------------------------------------------------------------------
 CScalarFunc::CScalarFunc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	INT return_type_modifier,

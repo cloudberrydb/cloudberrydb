@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMDCheckConstraintGPDB::CMDCheckConstraintGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	IMDId *rel_mdid,
@@ -80,7 +80,7 @@ CMDCheckConstraintGPDB::~CMDCheckConstraintGPDB()
 CExpression *
 CMDCheckConstraintGPDB::GetCheckConstraintExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRefArray *colref_array
 	)

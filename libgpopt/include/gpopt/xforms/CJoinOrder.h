@@ -66,7 +66,7 @@ namespace gpopt
 				BOOL m_fUsed;
 
 				// ctor
-				SEdge(IMemoryPool *mp, CExpression *pexpr, BOOL is_loj);
+				SEdge(CMemoryPool *mp, CExpression *pexpr, BOOL is_loj);
 				
 				// dtor
 				~SEdge();
@@ -138,7 +138,7 @@ namespace gpopt
 				// ctor
 				SComponent
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CExpression *expr,
 					INT parent_loj_id = NON_LOJ_DEFAULT_ID,
 					EPosition position = EpSentinel
@@ -177,7 +177,7 @@ namespace gpopt
 		protected:
 				
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// edges
 			SEdge **m_rgpedge;
@@ -211,7 +211,7 @@ namespace gpopt
 			// add component to to component array
 			void AddComponent
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CExpression *expr,
 					INT loj_id,
 					EPosition position,
@@ -228,7 +228,7 @@ namespace gpopt
 			// ctor
 			CJoinOrder
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprComponents,
 				CExpressionArray *pdrgpexprConjuncts,
 				BOOL include_outer_join_childs

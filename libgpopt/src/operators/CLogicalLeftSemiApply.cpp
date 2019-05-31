@@ -30,7 +30,7 @@ using namespace gpopt;
 CMaxCard
 CLogicalLeftSemiApply::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -49,7 +49,7 @@ CLogicalLeftSemiApply::Maxcard
 CXformSet *
 CLogicalLeftSemiApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -74,7 +74,7 @@ CLogicalLeftSemiApply::PxfsCandidates
 CColRefSet *
 CLogicalLeftSemiApply::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -95,7 +95,7 @@ CLogicalLeftSemiApply::PcrsDeriveOutput
 COperator *
 CLogicalLeftSemiApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

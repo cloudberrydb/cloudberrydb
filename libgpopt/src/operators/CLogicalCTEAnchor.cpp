@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalCTEAnchor::CLogicalCTEAnchor
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -47,7 +47,7 @@ CLogicalCTEAnchor::CLogicalCTEAnchor
 //---------------------------------------------------------------------------
 CLogicalCTEAnchor::CLogicalCTEAnchor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id
 	)
 	:
@@ -66,7 +66,7 @@ CLogicalCTEAnchor::CLogicalCTEAnchor
 CColRefSet *
 CLogicalCTEAnchor::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -84,7 +84,7 @@ CLogicalCTEAnchor::PcrsDeriveOutput
 CKeyCollection *
 CLogicalCTEAnchor::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -103,7 +103,7 @@ CLogicalCTEAnchor::PkcDeriveKeys
 CPartInfo *
 CLogicalCTEAnchor::PpartinfoDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -129,7 +129,7 @@ CLogicalCTEAnchor::PpartinfoDerive
 CMaxCard
 CLogicalCTEAnchor::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -188,7 +188,7 @@ CLogicalCTEAnchor::HashValue() const
 CXformSet *
 CLogicalCTEAnchor::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

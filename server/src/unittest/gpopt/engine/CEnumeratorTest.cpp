@@ -406,7 +406,7 @@ GPOS_RESULT
 CEnumeratorTest::EresUnittest_RunUnsatisfiedRequiredPropertiesTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszUnsatisfiedRequiredPropertiesPlans);
 
@@ -461,7 +461,7 @@ GPOS_RESULT
 CEnumeratorTest::EresUnittest_RunCompatibleDistributions()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszCompatibleDistributions);
 
 	return CTestUtils::EresRunMinidumps

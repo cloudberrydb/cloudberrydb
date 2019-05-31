@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalMotionGather::CPhysicalMotionGather
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecSingleton::ESegmentType est
 	)
 	:
@@ -53,7 +53,7 @@ CPhysicalMotionGather::CPhysicalMotionGather
 //---------------------------------------------------------------------------
 CPhysicalMotionGather::CPhysicalMotionGather
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecSingleton::ESegmentType est,
 	COrderSpec *pos
 	)
@@ -122,7 +122,7 @@ CPhysicalMotionGather::Matches
 CColRefSet *
 CPhysicalMotionGather::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -209,7 +209,7 @@ CPhysicalMotionGather::EpetOrder
 COrderSpec *
 CPhysicalMotionGather::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *,//posInput,
 	ULONG child_index,
@@ -239,7 +239,7 @@ CPhysicalMotionGather::PosRequired
 COrderSpec *
 CPhysicalMotionGather::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const

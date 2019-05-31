@@ -29,7 +29,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSwitch::CScalarSwitch
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type
 	)
 	:

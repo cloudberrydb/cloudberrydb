@@ -31,7 +31,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CJobFactory::CJobFactory
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulJobs
 	)
 	:

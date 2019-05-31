@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CEnumeratorConfig::CEnumeratorConfig
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULLONG plan_id,
 	ULLONG ullSamples,
 	CDouble cost_threshold

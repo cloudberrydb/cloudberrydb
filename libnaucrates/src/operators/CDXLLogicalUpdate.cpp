@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalUpdate::CDXLLogicalUpdate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLTableDescr *table_descr,
 	ULONG ctid_colid,
 	ULONG segid_colid,

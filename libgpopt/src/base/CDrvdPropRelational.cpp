@@ -91,7 +91,7 @@ CDrvdPropRelational::~CDrvdPropRelational()
 void
 CDrvdPropRelational::Derive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * // pdpctxt
 	)
@@ -218,7 +218,7 @@ CDrvdPropRelational::GetRelationalProperties
 CFunctionalDependencyArray *
 CDrvdPropRelational::PdrgpfdChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG child_index,
 	CExpressionHandle &exprhdl
 	)
@@ -274,7 +274,7 @@ CDrvdPropRelational::PdrgpfdChild
 CFunctionalDependencyArray *
 CDrvdPropRelational::PdrgpfdLocal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -330,7 +330,7 @@ CDrvdPropRelational::PdrgpfdLocal
 CFunctionalDependencyArray *
 CDrvdPropRelational::Pdrgpfd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSplit::CLogicalSplit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -55,7 +55,7 @@ CLogicalSplit::CLogicalSplit
 //---------------------------------------------------------------------------
 CLogicalSplit::CLogicalSplit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrDelete,
 	CColRefArray *pdrgpcrInsert,
 	CColRef *pcrCtid,
@@ -161,7 +161,7 @@ CLogicalSplit::HashValue() const
 COperator *
 CLogicalSplit::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -192,7 +192,7 @@ CLogicalSplit::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalSplit::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -222,7 +222,7 @@ CLogicalSplit::PcrsDeriveOutput
 CKeyCollection *
 CLogicalSplit::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -242,7 +242,7 @@ CLogicalSplit::PkcDeriveKeys
 CMaxCard
 CLogicalSplit::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -262,7 +262,7 @@ CLogicalSplit::Maxcard
 CXformSet *
 CLogicalSplit::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -282,7 +282,7 @@ CLogicalSplit::PxfsCandidates
 IStatistics *
 CLogicalSplit::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

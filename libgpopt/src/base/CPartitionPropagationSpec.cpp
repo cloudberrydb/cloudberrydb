@@ -104,7 +104,7 @@ CPartitionPropagationSpec::Matches
 void
 CPartitionPropagationSpec::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
@@ -226,7 +226,7 @@ CPartitionPropagationSpec::AppendEnforcers
 CExpression *
 CPartitionPropagationSpec::PexprFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id
 	)
 {
@@ -267,7 +267,7 @@ CPartitionPropagationSpec::PexprFilter
 BOOL
 CPartitionPropagationSpec::FRequiresPartitionPropagation
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CExpression *pexpr, 
 	CExpressionHandle &exprhdl,
 	ULONG part_idx_id
@@ -314,7 +314,7 @@ CPartitionPropagationSpec::FRequiresPartitionPropagation
 void
 CPartitionPropagationSpec::SplitPartPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CColRef2dArray *pdrgpdrgpcrKeys,
 	UlongToExprMap *phmulexprEqFilter,	// output
@@ -398,7 +398,7 @@ CPartitionPropagationSpec::SplitPartPredicates
 CColRefSet *
 CPartitionPropagationSpec::PcrsKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef2dArray *pdrgpdrgpcrKeys
 	)
 {
@@ -426,7 +426,7 @@ CPartitionPropagationSpec::PcrsKeys
 CExpression *
 CPartitionPropagationSpec::PexprResidualFilter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr,
 	CBitSet *pbsUsed
 	)
@@ -472,7 +472,7 @@ CPartitionPropagationSpec::PexprResidualFilter
 CExpressionArray *
 CPartitionPropagationSpec::PdrgpexprPredicatesOnKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr,
 	CColRef *colref,
 	CColRefSet *pcrsKeys,

@@ -151,7 +151,7 @@ namespace gpopt
 					);
 
 			// generic walker function, called for every edge in the graph
-			void Walk(IMemoryPool *mp, PfWalker Pfpv, void *pvContext) const
+			void Walk(CMemoryPool *mp, PfWalker Pfpv, void *pvContext) const
             {
                 // retrieve all states
                 EsetStates *pesetStates = GPOS_NEW(mp) EsetStates(mp);
@@ -419,7 +419,7 @@ namespace gpopt
             }
 			
 			// check for unreachable states
-			BOOL FReachable(IMemoryPool *mp) const
+			BOOL FReachable(CMemoryPool *mp) const
             {
                 TEnumState *pestate = NULL;
                 ULONG size = 0;
@@ -430,7 +430,7 @@ namespace gpopt
             }
 			
 			// compute array of unreachable states
-			void Unreachable(IMemoryPool *mp, TEnumState **ppestate, ULONG *pulSize) const
+			void Unreachable(CMemoryPool *mp, TEnumState **ppestate, ULONG *pulSize) const
             {
                 GPOS_ASSERT(NULL != ppestate);
                 GPOS_ASSERT(NULL != pulSize);
@@ -462,7 +462,7 @@ namespace gpopt
 			// dump Moore diagram in graphviz format
 			IOstream &OsDiagramToGraphviz
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IOstream &os,
 				const WCHAR *wszTitle
 				)

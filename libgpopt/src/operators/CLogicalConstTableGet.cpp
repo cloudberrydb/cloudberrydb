@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalConstTableGet::CLogicalConstTableGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -53,7 +53,7 @@ CLogicalConstTableGet::CLogicalConstTableGet
 //---------------------------------------------------------------------------
 CLogicalConstTableGet::CLogicalConstTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnDescriptorArray *pdrgpcoldesc,
 	IDatum2dArray *pdrgpdrgpdatum
 	)
@@ -88,7 +88,7 @@ CLogicalConstTableGet::CLogicalConstTableGet
 //---------------------------------------------------------------------------
 CLogicalConstTableGet::CLogicalConstTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	IDatum2dArray *pdrgpdrgpdatum
 	)
@@ -187,7 +187,7 @@ CLogicalConstTableGet::Matches
 COperator *
 CLogicalConstTableGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -217,7 +217,7 @@ CLogicalConstTableGet::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalConstTableGet::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 {
@@ -239,7 +239,7 @@ CLogicalConstTableGet::PcrsDeriveOutput
 CMaxCard
 CLogicalConstTableGet::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -274,7 +274,7 @@ CLogicalConstTableGet::FInputOrderSensitive() const
 CXformSet *
 CLogicalConstTableGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -295,7 +295,7 @@ CLogicalConstTableGet::PxfsCandidates
 CColumnDescriptorArray *
 CLogicalConstTableGet::PdrgpcoldescMapping
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 	const
@@ -342,7 +342,7 @@ CLogicalConstTableGet::PdrgpcoldescMapping
 IStatistics *
 CLogicalConstTableGet::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

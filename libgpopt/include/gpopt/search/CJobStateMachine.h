@@ -212,7 +212,7 @@ namespace gpopt
 			// dump state machine diagram in graphviz format
 			IOstream &OsDiagramToGraphviz
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IOstream &os,
 				const WCHAR *wszTitle
 				)
@@ -226,7 +226,7 @@ namespace gpopt
 			// compute unreachable states
 			void Unreachable
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				TEnumState **ppestate,
 				ULONG *pulSize
 				)

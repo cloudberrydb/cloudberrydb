@@ -184,7 +184,7 @@ CDatumBoolGPDB::HashValue() const
 const CWStringConst *
 CDatumBoolGPDB::GetStrRepr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -247,7 +247,7 @@ CDatumBoolGPDB::Matches
 IDatum *
 CDatumBoolGPDB::MakeCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

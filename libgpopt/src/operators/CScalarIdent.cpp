@@ -88,7 +88,7 @@ CScalarIdent::FInputOrderSensitive() const
 COperator *
 CScalarIdent::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

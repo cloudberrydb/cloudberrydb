@@ -32,7 +32,7 @@ using namespace gpopt;
 void
 CWindowPreprocessor::SplitPrjList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj,
 	CExpressionArray **ppdrgpexprDistinctAggsPrEl, // output: list of project elements with Distinct Aggs
 	CExpressionArray **ppdrgpexprOtherPrEl, // output: list of project elements with Other window functions
@@ -118,7 +118,7 @@ CWindowPreprocessor::SplitPrjList
 void
 CWindowPreprocessor::SplitSeqPrj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj,
 	CExpression **ppexprGbAgg,	// output: GbAgg expression containing distinct Aggs
 	CExpression **ppexprOutputSeqPrj // output: SeqPrj expression containing all remaining window functions
@@ -201,7 +201,7 @@ CWindowPreprocessor::SplitSeqPrj
 void
 CWindowPreprocessor::CreateCTE
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj,
 	CExpression **ppexprFirstConsumer,
 	CExpression **ppexprSecondConsumer
@@ -303,7 +303,7 @@ CWindowPreprocessor::PdrgpcrGrpCols
 CExpression *
 CWindowPreprocessor::PexprSeqPrj2Join
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj
 	)
 {
@@ -415,7 +415,7 @@ CWindowPreprocessor::PexprSeqPrj2Join
 CExpression *
 CWindowPreprocessor::PexprPreprocess
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {

@@ -28,7 +28,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAssertConstraintList::CScalarAssertConstraintList
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CScalar(mp)

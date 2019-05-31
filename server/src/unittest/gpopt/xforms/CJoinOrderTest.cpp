@@ -67,7 +67,7 @@ GPOS_RESULT
 CJoinOrderTest::EresUnittest_ExpandMinCard()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =

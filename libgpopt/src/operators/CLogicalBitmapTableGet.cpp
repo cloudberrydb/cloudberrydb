@@ -37,7 +37,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CLogicalBitmapTableGet::CLogicalBitmapTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
 	const CName *pnameTableAlias,
@@ -65,7 +65,7 @@ CLogicalBitmapTableGet::CLogicalBitmapTableGet
 //---------------------------------------------------------------------------
 CLogicalBitmapTableGet::CLogicalBitmapTableGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -139,7 +139,7 @@ CLogicalBitmapTableGet::Matches
 CColRefSet *
 CLogicalBitmapTableGet::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &
 #ifdef GPOS_DEBUG
 		exprhdl
@@ -162,7 +162,7 @@ CLogicalBitmapTableGet::PcrsDeriveOutput
 CColRefSet *
 CLogicalBitmapTableGet::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -181,7 +181,7 @@ CLogicalBitmapTableGet::PcrsDeriveOuter
 CPropConstraint *
 CLogicalBitmapTableGet::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -200,7 +200,7 @@ CLogicalBitmapTableGet::PpcDeriveConstraint
 IStatistics *
 CLogicalBitmapTableGet::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray *stats_ctxt
 	)
@@ -246,7 +246,7 @@ CLogicalBitmapTableGet::OsPrint
 COperator *
 CLogicalBitmapTableGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -278,7 +278,7 @@ CLogicalBitmapTableGet::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalBitmapTableGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

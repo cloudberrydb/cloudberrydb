@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformCollapseProject::CXformCollapseProject
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -91,7 +91,7 @@ CXformCollapseProject::Transform
 	GPOS_ASSERT(NULL != pxfres);
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	CExpression *pexprCollapsed = CUtils::PexprCollapseProjects(mp, pexpr);
 

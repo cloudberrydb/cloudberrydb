@@ -54,7 +54,7 @@ namespace gpmd
 			}
 			
 			// factory function for BOOL datums
-			virtual IDatumBool *CreateBoolDatum(IMemoryPool *mp, BOOL value, BOOL is_null) const = 0;
+			virtual IDatumBool *CreateBoolDatum(CMemoryPool *mp, BOOL value, BOOL is_null) const = 0;
 		
 	};
 

@@ -38,7 +38,7 @@ namespace gpdxl
 
 		public:
 			// ctor/dtor
-			CDXLLogicalJoin(IMemoryPool *, 	EdxlJoinType);
+			CDXLLogicalJoin(CMemoryPool *, 	EdxlJoinType);
 
 			// accessors
 			Edxlopid GetDXLOperator() const;

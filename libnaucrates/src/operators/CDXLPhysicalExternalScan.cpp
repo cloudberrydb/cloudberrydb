@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalExternalScan::CDXLPhysicalExternalScan
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLPhysicalTableScan(mp)
@@ -43,7 +43,7 @@ CDXLPhysicalExternalScan::CDXLPhysicalExternalScan
 //---------------------------------------------------------------------------
 CDXLPhysicalExternalScan::CDXLPhysicalExternalScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLTableDescr *table_descr
 	)
 	:

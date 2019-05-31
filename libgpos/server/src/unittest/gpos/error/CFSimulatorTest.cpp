@@ -119,7 +119,7 @@ CFSimulatorTest::EresUnittest_OOM()
 {
 	// create memory pool of 128KB
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	GPOS_RESULT eres = GPOS_FAILED;
 

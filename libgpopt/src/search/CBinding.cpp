@@ -116,7 +116,7 @@ CBinding::PexprExpandPattern
 CExpression *
 CBinding::PexprFinalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpressionArray *pdrgpexpr
 	)
@@ -142,7 +142,7 @@ CBinding::PexprFinalize
 CExpression *
 CBinding::PexprExtract
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast
@@ -221,7 +221,7 @@ CBinding::PexprExtract
 BOOL
 CBinding::FInitChildCursors
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpressionArray *pdrgpexpr
@@ -265,7 +265,7 @@ CBinding::FInitChildCursors
 BOOL
 CBinding::FAdvanceChildCursors
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast,
@@ -344,7 +344,7 @@ CBinding::FAdvanceChildCursors
 BOOL
 CBinding::FExtractChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast,
@@ -394,7 +394,7 @@ CBinding::FExtractChildren
 CExpression *
 CBinding::PexprExtract
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroup *pgroup,
 	CExpression *pexprPattern,
 	CExpression *pexprLast

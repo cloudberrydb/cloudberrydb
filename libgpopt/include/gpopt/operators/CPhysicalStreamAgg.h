@@ -41,14 +41,14 @@ namespace gpopt
 			CColRefSet *m_pcrsMinimalGrpCols;
 
 			// construct order spec on grouping column so that it covers required order spec
-			COrderSpec *PosCovering(IMemoryPool *mp, COrderSpec *posRequired, CColRefArray *pdrgpcrGrp) const;
+			COrderSpec *PosCovering(CMemoryPool *mp, COrderSpec *posRequired, CColRefArray *pdrgpcrGrp) const;
 
 		protected:
 
 			// compute required sort columns of the n-th child
 			COrderSpec *PosRequiredStreamAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
 				ULONG child_index,
@@ -57,14 +57,14 @@ namespace gpopt
 				const;
 
 			// initialize the order spec using the given array of columns
-			void InitOrderSpec(IMemoryPool *mp, CColRefArray *pdrgpcrOrder);
+			void InitOrderSpec(CMemoryPool *mp, CColRefArray *pdrgpcrOrder);
 
 		public:
 
 			// ctor
 			CPhysicalStreamAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array,
 				CColRefArray *pdrgpcrMinimal, // minimal grouping columns based on FD's
 				COperator::EGbAggType egbaggtype,
@@ -107,7 +107,7 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
 				ULONG child_index,
@@ -125,7 +125,7 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

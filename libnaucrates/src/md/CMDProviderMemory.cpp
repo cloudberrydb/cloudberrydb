@@ -11,7 +11,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/task/CWorker.h"
 #include "gpos/common/CAutoP.h"
 #include "gpos/common/CAutoRef.h"
@@ -42,7 +42,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMDProviderMemory::CMDProviderMemory
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *file_name
 	)
 	:
@@ -75,7 +75,7 @@ CMDProviderMemory::CMDProviderMemory
 //---------------------------------------------------------------------------
 CMDProviderMemory::CMDProviderMemory
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDCacheObjectArray *mdcache_obj_array
 	)
 	:
@@ -95,7 +95,7 @@ CMDProviderMemory::CMDProviderMemory
 void
 CMDProviderMemory::LoadMetadataObjectsFromArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDCacheObjectArray *mdcache_obj_array
 	)
 {
@@ -161,7 +161,7 @@ CMDProviderMemory::~CMDProviderMemory()
 CWStringBase *
 CMDProviderMemory::GetMDObjDXLStr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *, //md_accessor
 	IMDId *mdid
 	) 
@@ -233,7 +233,7 @@ CMDProviderMemory::GetMDObjDXLStr
 IMDId *
 CMDProviderMemory::MDId
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CSystemId sysid,
 	IMDType::ETypeInfo type_info
 	) 

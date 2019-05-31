@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMDPartConstraintGPDB::CMDPartConstraintGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *level_with_default_part_array,
 	BOOL is_unbounded,
 	CDXLNode *dxlnode
@@ -70,7 +70,7 @@ CMDPartConstraintGPDB::~CMDPartConstraintGPDB()
 CExpression *
 CMDPartConstraintGPDB::GetPartConstraintExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRefArray *colref_array
 	)

@@ -90,7 +90,7 @@ GPOS_RESULT
 CBindingTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// load dump file
 	CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(mp, szQueryFile);

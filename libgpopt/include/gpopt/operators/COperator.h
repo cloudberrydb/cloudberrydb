@@ -62,7 +62,7 @@ namespace gpopt
 			ULONG m_ulOpId;
 			
 			// memory pool for internal allocations
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// is pattern of xform
 			BOOL m_fPattern;
@@ -91,7 +91,7 @@ namespace gpopt
 			static
 			CFunctionProp *PfpDeriveFromChildren
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				IMDFunction::EFuncStbl efsDefault,
 				IMDFunction::EFuncDataAcc efdaDefault,
@@ -300,7 +300,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			COperator(IMemoryPool *mp);
+			COperator(CMemoryPool *mp);
 
 			// dtor
 			virtual ~COperator() {}
@@ -361,18 +361,18 @@ namespace gpopt
 			
 			// create container for derived properties
 			virtual
-			DrvdPropArray *PdpCreate(IMemoryPool *mp) const = 0;
+			DrvdPropArray *PdpCreate(CMemoryPool *mp) const = 0;
 
 			// create container for required properties
 			virtual
-			CReqdProp *PrpCreate(IMemoryPool *mp) const = 0;
+			CReqdProp *PrpCreate(CMemoryPool *mp) const = 0;
 
 			// return empty container;
 			// caller adds outer references using property derivation
 			virtual
 			CColRefSet *PcrsOuter
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 			{
 				return GPOS_NEW(mp) CColRefSet(mp);
@@ -382,7 +382,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							UlongToColRefMap *colref_mapping,
 							BOOL must_exist
 							) = 0;

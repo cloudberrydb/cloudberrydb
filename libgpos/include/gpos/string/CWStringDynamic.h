@@ -35,7 +35,7 @@ namespace gpos
 		private:
 
 			// string memory pool used for allocating new memory for the string
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// string capacity
 			ULONG m_capacity;
@@ -58,10 +58,10 @@ namespace gpos
 		public:
 
 			// ctor
-			CWStringDynamic(IMemoryPool *mp);
+			CWStringDynamic(CMemoryPool *mp);
 
 			// ctor - copies passed string
-			CWStringDynamic(IMemoryPool *mp, const WCHAR *w_str_buffer);
+			CWStringDynamic(CMemoryPool *mp, const WCHAR *w_str_buffer);
 
 			// appends a string and replaces character with string
 			void AppendEscape(const CWStringBase *str, WCHAR wc, const WCHAR *w_str_replace);

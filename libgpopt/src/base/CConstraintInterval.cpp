@@ -37,7 +37,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CConstraintInterval::CConstraintInterval
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	CRangeArray *pdrgprng,
 	BOOL fIncludesNull
@@ -109,7 +109,7 @@ CConstraintInterval::IsConstraintUnbounded() const
 CConstraint *
 CConstraintInterval::PcnstrCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -129,7 +129,7 @@ CConstraintInterval::PcnstrCopyWithRemappedColumns
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -196,7 +196,7 @@ CConstraintInterval::PciIntervalFromScalarExpr
 CConstraintInterval *
 CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -300,7 +300,7 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraint *pcnstr,
 	CColRef *colref
 	)
@@ -339,7 +339,7 @@ CConstraintInterval::PciIntervalFromConstraint
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarNullTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -378,7 +378,7 @@ CConstraintInterval::PciIntervalFromScalarNullTest
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromColConstCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref,
 	IMDType::ECmpType cmp_type,
 	CScalarConst *popScConst
@@ -406,7 +406,7 @@ CConstraintInterval::PciIntervalFromColConstCmp
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -459,7 +459,7 @@ CConstraintInterval::PciIntervalFromScalarCmp
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarIDF
 (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -521,7 +521,7 @@ CConstraintInterval::PciIntervalFromScalarIDF
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -568,7 +568,7 @@ CConstraintInterval::PciIntervalFromScalarBoolOp
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarBoolOr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -616,7 +616,7 @@ CConstraintInterval::PciIntervalFromScalarBoolOr
 CConstraintInterval *
 CConstraintInterval::PciIntervalFromScalarBoolAnd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -661,7 +661,7 @@ CConstraintInterval::PciIntervalFromScalarBoolAnd
 CExpression *
 CConstraintInterval::PexprScalar
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	if (NULL == m_pexprScalar)
@@ -683,7 +683,7 @@ CConstraintInterval::PexprScalar
 CExpression *
 CConstraintInterval::PexprConstructScalar
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -726,7 +726,7 @@ CConstraintInterval::PexprConstructScalar
 CExpression *
 CConstraintInterval::PexprConstructDisjunctionScalar
 	(
-		IMemoryPool *mp
+		CMemoryPool *mp
 	)
 	const
 {
@@ -843,7 +843,7 @@ bool CConstraintInterval::FConvertsToNotIn() const
 //
 //---------------------------------------------------------------------------
 CExpression *
-CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *mp, bool fIn) const
+CConstraintInterval::PexprConstructArrayScalar(CMemoryPool *mp, bool fIn) const
 {
 	GPOS_ASSERT(FConvertsToIn() || FConvertsToNotIn());
 
@@ -899,7 +899,7 @@ CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *mp, bool fIn) const
 //
 //---------------------------------------------------------------------------
 CExpression *
-CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *mp) const
+CConstraintInterval::PexprConstructArrayScalar(CMemoryPool *mp) const
 {
 	if (1 >= m_pdrgprng->Size())
 	{
@@ -932,7 +932,7 @@ CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *mp) const
 CConstraint *
 CConstraintInterval::Pcnstr
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	const CColRef *colref
 	)
 {
@@ -956,7 +956,7 @@ CConstraintInterval::Pcnstr
 CConstraint *
 CConstraintInterval::Pcnstr
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CColRefSet *pcrs
 	)
 {
@@ -980,7 +980,7 @@ CConstraintInterval::Pcnstr
 CConstraint *
 CConstraintInterval::PcnstrRemapForColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref
 	)
 	const
@@ -1001,7 +1001,7 @@ CConstraintInterval::PcnstrRemapForColumn
 CConstraintInterval *
 CConstraintInterval::PciIntersect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintInterval *pci
 	)
 {
@@ -1059,7 +1059,7 @@ CConstraintInterval::PciIntersect
 CConstraintInterval *
 CConstraintInterval::PciUnion
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintInterval *pci
 	)
 {
@@ -1117,7 +1117,7 @@ CConstraintInterval::PciUnion
 CConstraintInterval *
 CConstraintInterval::PciDifference
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintInterval *pci
 	)
 {
@@ -1187,7 +1187,7 @@ CConstraintInterval::PciDifference
 BOOL
 CConstraintInterval::FContainsInterval
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintInterval *pci
 	)
 {
@@ -1226,7 +1226,7 @@ CConstraintInterval::FContainsInterval
 CConstraintInterval *
 CConstraintInterval::PciUnbounded
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	BOOL fIncludesNull
 	)
@@ -1265,7 +1265,7 @@ CConstraintInterval::PciUnbounded
 CConstraintInterval *
 CConstraintInterval::PciUnbounded
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefSet *pcrs,
 	BOOL fIncludesNull
 	)
@@ -1318,7 +1318,7 @@ CConstraintInterval::MdidType()
 CConstraintInterval *
 CConstraintInterval::PciComplement
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// create an unbounded interval
@@ -1346,7 +1346,7 @@ CConstraintInterval::PciComplement
 CRange *
 CConstraintInterval::PrangeDiffWithRightResidual
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prangeFirst,
 	CRange *prangeSecond,
 	CRange **pprangeResidual,
@@ -1388,7 +1388,7 @@ CConstraintInterval::PrangeDiffWithRightResidual
 void
 CConstraintInterval::AddRemainingRanges
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRangeArray *pdrgprngSrc,
 	ULONG ulStart,
 	CRangeArray *pdrgprngDest
@@ -1415,7 +1415,7 @@ CConstraintInterval::AddRemainingRanges
 void
 CConstraintInterval::AppendOrExtend
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRangeArray *pdrgprng,
 	CRange *prange
 	)
@@ -1494,7 +1494,7 @@ CConstraintInterval::OsPrint
 CRangeArray*
 CConstraintInterval::PciRangeFromColConstCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDType::ECmpType cmp_type,
 	const CScalarConst *popsccnst
 	)

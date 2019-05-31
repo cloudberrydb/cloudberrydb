@@ -48,7 +48,7 @@ CTaskLocalStorage::~CTaskLocalStorage() {}
 void
 CTaskLocalStorage::Reset
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// destroy old 

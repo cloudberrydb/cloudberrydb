@@ -114,7 +114,7 @@ CTreeMapTest::CNode::OsPrint
 //---------------------------------------------------------------------------
 CTreeMapTest::CNode::CNode
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	ULONG *pulData,
 	CNodeArray *pdrgpnd
 	)
@@ -154,7 +154,7 @@ CTreeMapTest::CNode::~CNode()
 CTreeMapTest::CNode*
 CTreeMapTest::Pnd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG *pul,
 	CNodeArray *pdrgpnd,
 	BOOL *fTestTrue
@@ -180,7 +180,7 @@ CTreeMapTest::Pnd
 CTreeMapTest::TestMap *
 CTreeMapTest::PtmapLoad
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	TestMap *ptmap = GPOS_NEW(mp) TestMap(mp, &Pnd);
@@ -244,7 +244,7 @@ GPOS_RESULT
 CTreeMapTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	TestMap *ptmap = NULL;
 	
@@ -273,7 +273,7 @@ GPOS_RESULT
 CTreeMapTest::EresUnittest_Count()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	TestMap *ptmap = PtmapLoad(mp);	
 	
@@ -316,7 +316,7 @@ GPOS_RESULT
 CTreeMapTest::EresUnittest_Unrank()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	TestMap *ptmap = PtmapLoad(mp);	
 	
@@ -357,7 +357,7 @@ CTreeMapTest::EresUnittest_Memo()
 	GPOS_SET_TRACE(EtraceDisablePrintMemoryLeak);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -459,7 +459,7 @@ GPOS_RESULT
 CTreeMapTest::EresUnittest_FailedPlanEnumerationTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	BOOL fMatchPlans = false;
 	BOOL fTestSpacePruning = false;
@@ -531,7 +531,7 @@ GPOS_RESULT
 CTreeMapTest::EresUnittest_Cycle()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	TestMap *ptmap = GPOS_NEW(mp) TestMap(mp, &Pnd);
 

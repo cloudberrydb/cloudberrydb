@@ -51,7 +51,7 @@ using namespace gpnaucrates;
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnInt4Const
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	INT val
 	)
@@ -78,7 +78,7 @@ CTranslatorExprToDXLUtils::PdxlnInt4Const
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnBoolConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	BOOL value
 	)
@@ -105,7 +105,7 @@ CTranslatorExprToDXLUtils::PdxlnBoolConst
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTest
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	const CPartConstraint *ppartcnstr,
@@ -190,7 +190,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTest
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnDefaultPartitionTest
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	ULONG ulPartLevel
 	)
 {	
@@ -214,7 +214,7 @@ CTranslatorExprToDXLUtils::PdxlnDefaultPartitionTest
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTest
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	CConstraint *pcnstr,
@@ -266,7 +266,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTest
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjDisj
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	CConstraintArray *pdrgpcnstr,
@@ -325,7 +325,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjDisj
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPropagationExpressionForPartConstraints
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	UlongToPartConstraintMap *ppartcnstrmap,
@@ -409,7 +409,7 @@ CTranslatorExprToDXLUtils::PdxlnPropagationExpressionForPartConstraints
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjunction
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	CConstraint *pcnstr,
@@ -437,7 +437,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjunction
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestDisjunction
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	CConstraint *pcnstr,
@@ -465,7 +465,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestDisjunction
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestNegation
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CColumnFactory *col_factory,
 	CConstraint *pcnstr,
@@ -496,7 +496,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestNegation
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestInterval
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CConstraint *pcnstr,
 	CColRef2dArray *pdrgpdrgpcrPartKeys,
@@ -576,7 +576,7 @@ CTranslatorExprToDXLUtils::UlPartKeyLevel
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartialScanTestRange
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CRange *prng,
 	IMDId *pmdidPartKeyType,
@@ -646,7 +646,7 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestRange
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeStartPredicate
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	IDatum *datum,
 	CRange::ERangeInclusion eri,
@@ -681,7 +681,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeStartPredicate
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeEndPredicate
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	IDatum *datum,
 	CRange::ERangeInclusion eri,
@@ -717,7 +717,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeEndPredicate
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangePointPredicate
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	IDatum *datum,
 	CRange::ERangeInclusion eri,
@@ -792,7 +792,7 @@ CTranslatorExprToDXLUtils::PdxlnRangePointPredicate
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CExpression *pexprPartKey,
 	IMDId *pmdidTypePartKey,
@@ -897,7 +897,7 @@ CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CDXLNode *pdxlnPartKey,
 	CDXLNode *pdxlnOther,
@@ -952,7 +952,7 @@ CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeFilterScCmp
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CDXLNode *pdxlnScalar,
 	IMDId *pmdidTypePartKey,
@@ -1024,7 +1024,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeFilterScCmp
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeFilterEqCmp
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CDXLNode *pdxlnScalar,
 	IMDId *pmdidTypePartKey,
@@ -1055,7 +1055,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeFilterEqCmp
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeFilterPartBound
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CDXLNode *pdxlnScalar,
 	IMDId *pmdidTypePartKey,
@@ -1101,7 +1101,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeFilterPartBound
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnRangeFilterDefaultAndOpenEnded
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	ULONG ulPartLevel,
 	BOOL fLTComparison,
 	BOOL fGTComparison,
@@ -1163,7 +1163,7 @@ CTranslatorExprToDXLUtils::PdxlnRangeFilterDefaultAndOpenEnded
 CDXLPhysicalProperties *
 CTranslatorExprToDXLUtils::PdxlpropCopy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLNode *dxlnode
 	)
 {
@@ -1193,7 +1193,7 @@ CTranslatorExprToDXLUtils::PdxlpropCopy
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnCmp
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	ULONG ulPartLevel,
 	BOOL fLowerBound,
@@ -1252,7 +1252,7 @@ CTranslatorExprToDXLUtils::PdxlnCmp
 CColRef *
 CTranslatorExprToDXLUtils::PcrCreate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColumnFactory *col_factory,
 	IMDId *mdid_type,
@@ -1280,7 +1280,7 @@ CTranslatorExprToDXLUtils::PcrCreate
 CDXLPhysicalProperties *
 CTranslatorExprToDXLUtils::GetProperties
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// TODO:  - May 10, 2012; replace the dummy implementation with a real one
@@ -1370,7 +1370,7 @@ CTranslatorExprToDXLUtils::FScalarConstFalse
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnProjListFromChildProjList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	ColRefToDXLNodeMap *phmcrdxln, 
 	const CDXLNode *pdxlnProjListChild
@@ -1406,7 +1406,7 @@ CTranslatorExprToDXLUtils::PdxlnProjListFromChildProjList
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColumnFactory *col_factory,
 	ColRefToDXLNodeMap *phmcrdxln,
@@ -1460,7 +1460,7 @@ CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColumnFactory *col_factory,
 	BOOL fConditional,
@@ -1491,7 +1491,7 @@ CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnProjElem
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	ColRefToDXLNodeMap *phmcrdxln, 
 	const CDXLNode *pdxlnChildProjElem
@@ -1524,7 +1524,7 @@ CTranslatorExprToDXLUtils::PdxlnProjElem
 void
 CTranslatorExprToDXLUtils::ReplaceSubplan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ColRefToDXLNodeMap *phmcrdxlnSubplans,  // map of col ref to subplan
 	const CColRef *colref, // key of entry in the passed map
 	CDXLScalarProjElem *pdxlopPrEl // project element to use for creating DXL col ref to replace subplan
@@ -1565,7 +1565,7 @@ CTranslatorExprToDXLUtils::ReplaceSubplan
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnProjElem
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ColRefToDXLNodeMap *phmcrdxlnSubplans, // map of col ref -> subplan: can be modified by this function
 	const CColRef *colref
 	)
@@ -1606,7 +1606,7 @@ CTranslatorExprToDXLUtils::PdxlnProjElem
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnIdent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ColRefToDXLNodeMap *phmcrdxlnSubplans,
 	ColRefToDXLNodeMap *phmcrdxlnIndexLookup,
 	const CColRef *colref
@@ -1655,7 +1655,7 @@ CTranslatorExprToDXLUtils::PdxlnIdent
 IDatumArray *
 CTranslatorExprToDXLUtils::PdrgpdatumNulls
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -1729,7 +1729,7 @@ CTranslatorExprToDXLUtils::FProjectListMatch
 CColRefArray *
 CTranslatorExprToDXLUtils::PdrgpcrMapColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrInput,
 	ColRefToUlongMap *phmcrul,
 	CColRefArray *pdrgpcrMapDest
@@ -1773,7 +1773,7 @@ CTranslatorExprToDXLUtils::PdrgpcrMapColumns
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnResult
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLPhysicalProperties *dxl_properties,
 	CDXLNode *pdxlnPrL,
 	CDXLNode *filter_dxlnode,
@@ -1805,7 +1805,7 @@ CTranslatorExprToDXLUtils::PdxlnResult
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnValuesScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLPhysicalProperties *dxl_properties,
 	CDXLNode *pdxlnPrL,
 	IDatum2dArray *pdrgpdrgdatum
@@ -1858,7 +1858,7 @@ CTranslatorExprToDXLUtils::PdxlnValuesScan
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	ULONG ulPartLevels,
 	ULONG scan_id,
@@ -1904,7 +1904,7 @@ CTranslatorExprToDXLUtils::PdxlnPartitionSelector
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnCombineBoolean
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLNode *first_child_dxlnode,
 	CDXLNode *second_child_dxlnode,
 	EdxlBoolExprType boolexptype
@@ -1944,7 +1944,7 @@ CTranslatorExprToDXLUtils::PdxlnCombineBoolean
 ColRefToUlongMap *
 CTranslatorExprToDXLUtils::PhmcrulColIndex
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -1978,7 +1978,7 @@ CTranslatorExprToDXLUtils::PhmcrulColIndex
 void
 CTranslatorExprToDXLUtils::SetStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CDXLNode *dxlnode,
 	const IStatistics *stats,
@@ -2005,7 +2005,7 @@ CTranslatorExprToDXLUtils::SetStats
 void
 CTranslatorExprToDXLUtils::SetDirectDispatchInfo
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CDXLNode *dxlnode,
 	CDrvdPropRelational *pdpRel,
@@ -2069,7 +2069,7 @@ CTranslatorExprToDXLUtils::SetDirectDispatchInfo
 CDXLDirectDispatchInfo *
 CTranslatorExprToDXLUtils::GetDXLDirectDispatchInfo
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	CExpressionArray *pdrgpexprHashed, 
 	CConstraint *pcnstr
@@ -2143,7 +2143,7 @@ CTranslatorExprToDXLUtils::GetDXLDirectDispatchInfo
 CDXLDirectDispatchInfo *
 CTranslatorExprToDXLUtils::PdxlddinfoSingleDistrKey
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	CExpression *pexprHashed, 
 	CConstraint *pcnstr
@@ -2238,7 +2238,7 @@ CTranslatorExprToDXLUtils::FDirectDispatchable
 CDXLDatum *
 CTranslatorExprToDXLUtils::PdxldatumFromPointConstraint
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	const CColRef *pcrDistrCol, 
 	CConstraint *pcnstrDistrCol
@@ -2282,7 +2282,7 @@ CTranslatorExprToDXLUtils::PdxldatumFromPointConstraint
 CDXLDatum2dArray *
 CTranslatorExprToDXLUtils::PdrgpdrgpdxldatumFromDisjPointConstraint
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	const CColRef *pcrDistrCol, 
 	CConstraint *pcnstrDistrCol
@@ -2536,7 +2536,7 @@ CTranslatorExprToDXLUtils::ExtractIdentColIds
 BOOL
 CTranslatorExprToDXLUtils::FMotionHazard
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLNode *dxlnode,
 	const gpdxl::Edxlopid *peopid,
 	ULONG ulOps,

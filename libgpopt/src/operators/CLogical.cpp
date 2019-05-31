@@ -55,7 +55,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CLogical::CLogical
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	COperator(mp)
@@ -89,7 +89,7 @@ CLogical::~CLogical()
 CColRefArray *
 CLogical::PdrgpcrCreateMapping
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColumnDescriptorArray *pdrgpcoldesc,
 	ULONG ulOpSourceId
 	)
@@ -124,7 +124,7 @@ CLogical::PdrgpcrCreateMapping
 CColRef2dArray *
 CLogical::PdrgpdrgpcrCreatePartCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	const ULongPtrArray *pdrgpulPart
 	)
@@ -156,7 +156,7 @@ CLogical::PdrgpdrgpcrCreatePartCols
 COrderSpec *
 CLogical::PosFromIndex
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IMDIndex *pmdindex,
 	CColRefArray *colref_array,
 	const CTableDescriptor *ptabdesc
@@ -268,7 +268,7 @@ CLogical::PcrsDeriveNotNullPassThruOuter
 CColRefSet *
 CLogical::PcrsDeriveOutputCombineLogical
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -300,7 +300,7 @@ CLogical::PcrsDeriveOutputCombineLogical
 CColRefSet *
 CLogical::PcrsDeriveNotNullCombineLogical
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -351,7 +351,7 @@ CLogical::PpartinfoPassThruOuter
 CKeyCollection *
 CLogical::PkcCombineKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -386,7 +386,7 @@ CLogical::PkcCombineKeys
 CKeyCollection *
 CLogical::PkcKeysBaseTable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBitSetArray *pdrgpbsKeys,
 	const CColRefArray *pdrgpcrOutput
 	)
@@ -429,7 +429,7 @@ CLogical::PkcKeysBaseTable
 CPartInfo *
 CLogical::PpartinfoDeriveCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -469,7 +469,7 @@ CLogical::PpartinfoDeriveCombine
 CColRefSet *
 CLogical::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsUsedAdditional
 	)
@@ -525,7 +525,7 @@ CLogical::PcrsDeriveOuter
 CColRefSet *
 CLogical::PcrsDeriveOuterIndexGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -564,7 +564,7 @@ CLogical::PcrsDeriveOuterIndexGet
 CColRefSet *
 CLogical::PcrsDeriveCorrelatedApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -632,7 +632,7 @@ CLogical::PkcDeriveKeysPassThru
 CKeyCollection *
 CLogical::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -653,7 +653,7 @@ CLogical::PkcDeriveKeys
 CPropConstraint *
 CLogical::PpcDeriveConstraintFromPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -728,7 +728,7 @@ CLogical::PpcDeriveConstraintFromPredicates
 CPropConstraint *
 CLogical::PpcDeriveConstraintFromTable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CTableDescriptor *ptabdesc,
 	const CColRefArray *pdrgpcrOutput
 	)
@@ -821,7 +821,7 @@ CLogical::PpcDeriveConstraintFromTable
 CPropConstraint *
 CLogical::PpcDeriveConstraintFromTableWithPredicates
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	const CTableDescriptor *ptabdesc,
 	const CColRefArray *pdrgpcrOutput
@@ -898,7 +898,7 @@ CLogical::PpcDeriveConstraintPassThru
 CPropConstraint *
 CLogical::PpcDeriveConstraintRestrict
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsOutput
 	)
@@ -971,7 +971,7 @@ CLogical::PpcDeriveConstraintRestrict
 CFunctionProp *
 CLogical::PfpDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -992,7 +992,7 @@ CLogical::PfpDerive
 CFunctionProp *
 CLogical::PfpDeriveFromScalar
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	ULONG ulScalarIndex
 	)
@@ -1023,7 +1023,7 @@ CLogical::PfpDeriveFromScalar
 CMaxCard
 CLogical::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -1044,7 +1044,7 @@ CLogical::Maxcard
 ULONG
 CLogical::JoinDepth
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -1136,7 +1136,7 @@ CLogical::Maxcard
 CColRefSet *
 CLogical::PcrsReqdChildStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	CColRefSet *pcrsUsed, // columns used by scalar child(ren)
@@ -1212,7 +1212,7 @@ CLogical::PstatsPassThruOuter
 IStatistics *
 CLogical::PstatsBaseTable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CTableDescriptor *ptabdesc,
 	CColRefSet *pcrsHistExtra   // additional columns required for stats, not required by parent
@@ -1264,7 +1264,7 @@ CLogical::PstatsBaseTable
 IStatistics *
 CLogical::PstatsDeriveDummy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDouble rows
 	)
@@ -1299,7 +1299,7 @@ CLogical::PstatsDeriveDummy
 CExpression *
 CLogical::PexprPartPred
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CExpression *, //pexprInput,
 	ULONG //child_index
@@ -1324,7 +1324,7 @@ CLogical::PexprPartPred
 DrvdPropArray *
 CLogical::PdpCreate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -1343,7 +1343,7 @@ CLogical::PdpCreate
 CReqdProp *
 CLogical::PrpCreate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -1443,7 +1443,7 @@ CLogical::NameFromLogicalGet
 CColRefSet *
 CLogical::PcrsDist
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CTableDescriptor *ptabdesc,
 	const CColRefArray *pdrgpcrOutput
 	)

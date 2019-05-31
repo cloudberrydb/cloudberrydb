@@ -46,7 +46,7 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CCostContext::CCostContext
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc,
 	ULONG ulOptReq,
 	CGroupExpression *pgexpr
@@ -227,7 +227,7 @@ CCostContext::DeriveStats()
 void
 CCostContext::DerivePlanProps
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != m_pdrgpoc);
@@ -279,7 +279,7 @@ CCostContext::operator ==
 BOOL
 CCostContext::IsValid
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != m_poc);
@@ -575,7 +575,7 @@ CCostContext::IsThreeStageScalarDQACostCtxt
 CCost
 CCostContext::CostCompute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CCostArray *pdrgpcostChildren
 	)
 {

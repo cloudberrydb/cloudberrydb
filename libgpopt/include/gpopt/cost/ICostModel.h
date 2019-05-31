@@ -176,7 +176,7 @@ namespace gpopt
 					// ctor
 					SCostingInfo
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						ULONG ulChildren,
 						CCostingStats *pcstats
 						)
@@ -377,7 +377,7 @@ namespace gpopt
 
 			// create a default cost model instance
 			static
-			ICostModel *PcmDefault(IMemoryPool *mp);
+			ICostModel *PcmDefault(CMemoryPool *mp);
 	};
 }
 

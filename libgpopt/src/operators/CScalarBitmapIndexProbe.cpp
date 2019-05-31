@@ -38,7 +38,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarBitmapIndexProbe::CScalarBitmapIndexProbe
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CIndexDescriptor *pindexdesc,
 	IMDId *pmdidBitmapType
 	)

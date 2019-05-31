@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalNLJoin::CDXLPhysicalNLJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlJoinType join_type,
 	BOOL is_index_nlj,
 	BOOL nest_params_exists

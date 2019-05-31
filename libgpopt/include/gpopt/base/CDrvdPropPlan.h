@@ -67,7 +67,7 @@ namespace gpopt
 			CCTEMap *m_pcm;
 
 			 // copy CTE producer plan properties from given context to current object
-			void CopyCTEProducerPlanProps(IMemoryPool *mp, CDrvdPropCtxt *pdpctxt, COperator *pop);
+			void CopyCTEProducerPlanProps(CMemoryPool *mp, CDrvdPropCtxt *pdpctxt, COperator *pop);
 
 			// private copy ctor
 			CDrvdPropPlan(const CDrvdPropPlan &);
@@ -89,7 +89,7 @@ namespace gpopt
 			}
 
 			// derivation function
-			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
+			void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// short hand for conversion
 			static

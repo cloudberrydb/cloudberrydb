@@ -66,7 +66,7 @@ namespace gpopt
 
 			// similar to GetScCmpMdIdConsiderCasts() but also add the appropriate casts
 			static
-			IMDId *GetScCmpMdIdApplyCasts(IMemoryPool *mp, CMDAccessor *md_accessor, CExpression*& pexprLeft, CExpression*& pexprRight, IMDType::ECmpType cmp_type);
+			IMDId *GetScCmpMdIdApplyCasts(CMemoryPool *mp, CMDAccessor *md_accessor, CExpression*& pexprLeft, CExpression*& pexprRight, IMDType::ECmpType cmp_type);
 
 			// is scalar operator commutative? this can be used with ScalarOp and ScalarCmp
 			static

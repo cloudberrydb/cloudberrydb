@@ -42,7 +42,7 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarIdent
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				CDXLColRef *
 				);
 			

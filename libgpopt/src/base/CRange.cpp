@@ -440,7 +440,7 @@ CRange::FPoint() const
 CExpression *
 CRange::PexprScalar
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -496,7 +496,7 @@ CRange::PexprScalar
 CExpression *
 CRange::PexprEquality
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -524,7 +524,7 @@ CRange::PexprEquality
 CExpression *
 CRange::PexprScalarCompEnd
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum,
 	ERangeInclusion eri,
 	IMDType::ECmpType ecmptIncl,
@@ -565,7 +565,7 @@ CRange::PexprScalarCompEnd
 CRange *
 CRange::PrngIntersect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prange
 	)
 {
@@ -620,7 +620,7 @@ CRange::PrngIntersect
 CRange *
 CRange::PrngDifferenceLeft
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prange
 	)
 {
@@ -670,7 +670,7 @@ CRange::PrngDifferenceLeft
 CRange *
 CRange::PrngDifferenceRight
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prange
 	)
 {
@@ -718,7 +718,7 @@ CRange::PrngDifferenceRight
 CRange *
 CRange::PrngExtend
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CRange *prange
 	)
 {
@@ -818,7 +818,7 @@ CRange::OsPrintBound
 void
 CRange::DbgPrint() const
 {
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }

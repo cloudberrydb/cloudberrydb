@@ -83,7 +83,7 @@ namespace gpopt
 			static
 			CRangeArray *Pdrgprng
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						IMDId *mdid,
 						const SRangeInfo rgRangeInfo[],
 						ULONG ulRanges
@@ -92,7 +92,7 @@ namespace gpopt
 			static
 			CConstraintInterval *PciFirstInterval
 									(
-									IMemoryPool *mp,
+									CMemoryPool *mp,
 									IMDId *mdid,
 									CColRef *colref
 									);
@@ -100,7 +100,7 @@ namespace gpopt
 			static
 			CConstraintInterval *PciSecondInterval
 									(
-									IMemoryPool *mp,
+									CMemoryPool *mp,
 									IMDId *mdid,
 									CColRef *colref
 									);
@@ -109,7 +109,7 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest_CIntervalFromScalarCmp
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CMDAccessor *md_accessor,
 							CColRef *colref
 							);
@@ -118,7 +118,7 @@ namespace gpopt
 			static
 			CExpression *PexprScalarCmp
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CMDAccessor *md_accessor,
 							CColRef *colref,
 							IMDType::ECmpType cmp_type,
@@ -129,19 +129,19 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest_CIntervalFromScalarBoolOp
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CMDAccessor *md_accessor,
 							CColRef *colref
 							);
 
 			// debug print
-			static void PrintConstraint (IMemoryPool *mp, CConstraint *pcnstr);
+			static void PrintConstraint (CMemoryPool *mp, CConstraint *pcnstr);
 
 			// build a conjunction
 			static
 			CConstraintConjunction *Pcstconjunction
 									(
-									IMemoryPool *mp,
+									CMemoryPool *mp,
 									IMDId *mdid,
 									CColRef *colref
 									);
@@ -150,7 +150,7 @@ namespace gpopt
 			static
 			CConstraintDisjunction *Pcstdisjunction
 									(
-									IMemoryPool *mp,
+									CMemoryPool *mp,
 									IMDId *mdid,
 									CColRef *colref
 									);
@@ -180,7 +180,7 @@ namespace gpopt
 			GPOS_RESULT EresUnittest_ConstraintsOnDates();
 
 			// print equivalence classes
-			static void PrintEquivClasses(IMemoryPool *mp, CColRefSetArray *pdrgpcrs, BOOL fExpected = false);
+			static void PrintEquivClasses(CMemoryPool *mp, CColRefSetArray *pdrgpcrs, BOOL fExpected = false);
 	}; // class CConstraintTest
 }
 

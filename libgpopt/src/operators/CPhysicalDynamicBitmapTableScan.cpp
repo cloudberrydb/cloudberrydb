@@ -40,7 +40,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CPhysicalDynamicBitmapTableScan::CPhysicalDynamicBitmapTableScan
 	(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		BOOL is_partial,
 		CTableDescriptor *ptabdesc,
 		ULONG ulOriginOpId,
@@ -85,7 +85,7 @@ CPhysicalDynamicBitmapTableScan::Matches
 IStatistics *
 CPhysicalDynamicBitmapTableScan::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpplan,
 	IStatisticsArray *stats_ctxt

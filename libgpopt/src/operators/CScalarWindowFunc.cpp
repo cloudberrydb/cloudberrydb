@@ -36,7 +36,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarWindowFunc::CScalarWindowFunc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_func,
 	IMDId *mdid_return_type,
 	const CWStringConst *pstrFunc,

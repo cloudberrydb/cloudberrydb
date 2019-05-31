@@ -40,7 +40,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformExpandNAryJoinDPv2(IMemoryPool *mp);
+			CXformExpandNAryJoinDPv2(CMemoryPool *mp);
 
 			// dtor
 			virtual

@@ -44,7 +44,7 @@ namespace gpopt
 			explicit
 			CXformSubqNAryJoin2Apply
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformSubqJoin2Apply

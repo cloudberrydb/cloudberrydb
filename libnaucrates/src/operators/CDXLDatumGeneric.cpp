@@ -32,7 +32,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumGeneric::CDXLDatumGeneric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
 	BOOL is_passed_by_value,

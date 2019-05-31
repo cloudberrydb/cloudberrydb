@@ -44,7 +44,7 @@ const WCHAR CScalarBitmapBoolOp::m_rgwszBitmapOpType[EbitmapboolSentinel][30] =
 //---------------------------------------------------------------------------
 CScalarBitmapBoolOp::CScalarBitmapBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EBitmapBoolOp ebitmapboolop,
 	IMDId *pmdidBitmapType
 	)

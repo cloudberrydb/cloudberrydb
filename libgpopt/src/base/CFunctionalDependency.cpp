@@ -217,7 +217,7 @@ CFunctionalDependency::Equals
 CColRefSet *
 CFunctionalDependency::PcrsKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CFunctionalDependencyArray *pdrgpfd
 	)
 {
@@ -247,7 +247,7 @@ CFunctionalDependency::PcrsKeys
 CColRefArray *
 CFunctionalDependency::PdrgpcrKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CFunctionalDependencyArray *pdrgpfd
 	)
 {

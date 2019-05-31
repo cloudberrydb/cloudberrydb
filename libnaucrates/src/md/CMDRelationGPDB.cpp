@@ -30,7 +30,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRelationGPDB::CMDRelationGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	BOOL fTemporary,

@@ -53,12 +53,12 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalGbAggDeduplicate(IMemoryPool *mp);
+			CLogicalGbAggDeduplicate(CMemoryPool *mp);
 
 			// ctor
 			CLogicalGbAggDeduplicate
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array,
 				COperator::EGbAggType egbaggtype,
 				CColRefArray *pdrgpcrKeys = NULL
@@ -67,7 +67,7 @@ namespace gpopt
 			// ctor
 			CLogicalGbAggDeduplicate
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array,
 				CColRefArray *pdrgpcrMinimal,
 				COperator::EGbAggType egbaggtype,
@@ -108,7 +108,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -116,7 +116,7 @@ namespace gpopt
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stats columns of the n-th child
 			//-------------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
 				ULONG child_index
@@ -140,13 +140,13 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						IStatisticsArray *stats_ctxt
 						)

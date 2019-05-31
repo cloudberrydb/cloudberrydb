@@ -27,7 +27,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CTaskContext::CTaskContext
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_bitset(NULL),
@@ -49,7 +49,7 @@ CTaskContext::CTaskContext
 //---------------------------------------------------------------------------
 CTaskContext::CTaskContext
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CTaskContext &task_ctxt
 	)
 	:

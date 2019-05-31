@@ -42,7 +42,7 @@ namespace gpdxl
 		public:
 			// ctor/dtor
 			explicit
-			CDXLLogical(IMemoryPool *mp);
+			CDXLLogical(CMemoryPool *mp);
 
 			// Get operator type
 			Edxloptype GetDXLOperatorType() const;

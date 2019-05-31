@@ -64,7 +64,7 @@ namespace gpopt
 			// ctor
 			CScalarBooleanTest
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EBoolTest ebt
 				)
 				:
@@ -111,7 +111,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

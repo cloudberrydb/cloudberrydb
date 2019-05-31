@@ -48,11 +48,11 @@ namespace gpopt
 		protected:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// copy function
 			virtual
-			CDrvdPropCtxt *PdpctxtCopy(IMemoryPool *mp) const = 0;
+			CDrvdPropCtxt *PdpctxtCopy(CMemoryPool *mp) const = 0;
 
 			// add props to context
 			virtual
@@ -63,7 +63,7 @@ namespace gpopt
 			// ctor
 			CDrvdPropCtxt
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				m_mp(mp)
@@ -109,7 +109,7 @@ namespace gpopt
 			static
 			CDrvdPropCtxt *PdpctxtCopy
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDrvdPropCtxt *pdpctxt
 				)
 			{

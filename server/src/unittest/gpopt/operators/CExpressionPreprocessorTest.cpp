@@ -287,14 +287,14 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcess()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
 	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 	Pfpexpr rgpf[] =
 		{
 		CTestUtils::PexprLogicalSelectWithConstAnySubquery,
@@ -353,7 +353,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessWindowFunc()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -414,7 +414,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessWindowFunc()
 CExpression *
 CExpressionPreprocessorTest::PexprJoinHelper
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLOJ,
 	BOOL fCascadedLOJ,
 	BOOL fIntermediateInnerjoin
@@ -459,7 +459,7 @@ CExpressionPreprocessorTest::PexprJoinHelper
 CExpression *
 CExpressionPreprocessorTest::PexprWindowFuncWithLOJHelper
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLOJ,
 	CColRef *pcrPartitionBy,
 	BOOL fAddWindowFunction,
@@ -528,7 +528,7 @@ CExpressionPreprocessorTest::PreprocessOuterJoin
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -639,7 +639,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOuterJoinMinidumps()
 GPOS_RESULT
 CExpressionPreprocessorTest::EresCompareExpressions
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringDynamic *rgstr[],
 	ULONG size
 	)
@@ -689,7 +689,7 @@ CExpressionPreprocessorTest::EresTestLOJ
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -873,7 +873,7 @@ CExpressionPreprocessorTest::PreprocessWinFuncWithOuterRefs
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 
 	// reset metadata cache
@@ -971,7 +971,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessWindowFuncWithOuterRefs()
 void
 CExpressionPreprocessorTest::PreprocessWinFuncWithDistinctAggs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *szFilePath,
 	BOOL
 #ifdef GPOS_DEBUG
@@ -1040,7 +1040,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessWindowFuncWithDistinctAggs()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// tests where preprocessing removes SeqPrj nodes
 	const CHAR *rgszTestsDistinctAggsRemoveWindow[] =
@@ -1167,7 +1167,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_UnnestSubqueries()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1398,7 +1398,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessNestedScalarSubqueries()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1459,7 +1459,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessOuterJoin()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1607,7 +1607,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOuterJoin()
 CExpression *
 CExpressionPreprocessorTest::PexprCreateConjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -1641,7 +1641,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*value*/);
 
 	// reset metadata cache
@@ -1854,7 +1854,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1989,7 +1989,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
 GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_CollapseInnerJoinHelper
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator *popJoin,
 	CExpression *rgpexpr[],
 	CDrvdPropRelational *rgpdprel[]
@@ -2095,7 +2095,7 @@ GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_CollapseInnerJoin()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -2226,7 +2226,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicate()
 	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*value*/);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -2283,7 +2283,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicate()
 CExpression *
 CExpressionPreprocessorTest::PexprCreateConvertableArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fCreateInStatement
 	)
 {
@@ -2334,7 +2334,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvertArrayWithEquals()
 	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*value*/);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -2392,7 +2392,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicateDeepExpre
 	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*value*/);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// reset metadata cache
 	CMDCache::Reset();

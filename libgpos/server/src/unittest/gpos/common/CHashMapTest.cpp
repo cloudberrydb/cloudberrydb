@@ -52,7 +52,7 @@ CHashMapTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test with CHAR array
 	ULONG_PTR rgul[] = {1,2,3,4,5,6,7,8,9};
@@ -156,7 +156,7 @@ CHashMapTest::EresUnittest_Ownership()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG ulCnt = 256;
 

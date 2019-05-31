@@ -32,7 +32,7 @@
 CBucket *
 CCardinalityTestUtils::PbucketIntegerClosedLowerBound
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT iLower,
 	INT iUpper,
 	CDouble frequency,
@@ -55,7 +55,7 @@ CCardinalityTestUtils::PbucketIntegerClosedLowerBound
 CBucket *
 CCardinalityTestUtils::PbucketInteger
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT iLower,
 	INT iUpper,
 	BOOL is_lower_closed,
@@ -74,7 +74,7 @@ CCardinalityTestUtils::PbucketInteger
 CBucket *
 CCardinalityTestUtils::PbucketSingletonBoolVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fValue,
 	CDouble frequency
 	)
@@ -90,7 +90,7 @@ CCardinalityTestUtils::PbucketSingletonBoolVal
 CHistogram*
 CCardinalityTestUtils::PhistInt4Remain
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG num_of_buckets,
 	CDouble dNDVPerBucket,
 	BOOL fNullFreq,
@@ -130,7 +130,7 @@ CCardinalityTestUtils::PhistInt4Remain
 CHistogram*
 CCardinalityTestUtils::PhistExampleInt4
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate histogram of the form [0, 10), [10, 20), [20, 30) ... [80, 90)
@@ -155,7 +155,7 @@ CCardinalityTestUtils::PhistExampleInt4
 CHistogram*
 CCardinalityTestUtils::PhistExampleBool
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBucketArray *histogram_buckets = GPOS_NEW(mp) CBucketArray(mp);
@@ -170,7 +170,7 @@ CCardinalityTestUtils::PhistExampleBool
 CPoint *
 CCardinalityTestUtils::PpointGeneric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	OID oid,
 	CWStringDynamic *pstrEncodedValue,
 	LINT value
@@ -189,7 +189,7 @@ CCardinalityTestUtils::PpointGeneric
 CPoint *
 CCardinalityTestUtils::PpointNumeric
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringDynamic *pstrEncodedValue,
 	CDouble value
 	)
@@ -224,7 +224,7 @@ CCardinalityTestUtils::PpointNumeric
 void
 CCardinalityTestUtils::PrintBucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const char *pcPrefix,
 	const CBucket *bucket
 	)
@@ -242,7 +242,7 @@ CCardinalityTestUtils::PrintBucket
 void
 CCardinalityTestUtils::PrintHist
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const char *pcPrefix,
 	const CHistogram *histogram
 	)
@@ -260,7 +260,7 @@ CCardinalityTestUtils::PrintHist
 void
 CCardinalityTestUtils::PrintStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *stats
 	)
 {

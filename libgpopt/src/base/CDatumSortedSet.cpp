@@ -11,7 +11,7 @@ using namespace gpopt;
 
 CDatumSortedSet::CDatumSortedSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprArray,
 	const IComparator *pcomp
 	)

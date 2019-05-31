@@ -70,7 +70,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// cost of group expression under optimization context
 			CCost m_cost;
@@ -124,7 +124,7 @@ namespace gpopt
 			SLink m_link;
 
 			// ctor
-			CCostContext(IMemoryPool *mp, COptimizationContext *poc, ULONG ulOptReq, CGroupExpression *pgexpr);
+			CCostContext(CMemoryPool *mp, COptimizationContext *poc, ULONG ulOptReq, CGroupExpression *pgexpr);
 
 			// dtor
 			virtual
@@ -215,7 +215,7 @@ namespace gpopt
 			}
 
 			// derive properties of the plan carried by cost context
-			void DerivePlanProps(IMemoryPool *mp);
+			void DerivePlanProps(CMemoryPool *mp);
 
 			// set cost context state
 			void SetState
@@ -242,13 +242,13 @@ namespace gpopt
 
 
 			// check validity by comparing derived and required properties
-			BOOL IsValid(IMemoryPool *mp);
+			BOOL IsValid(CMemoryPool *mp);
 
 			// comparison operator
 			BOOL operator == (const CCostContext &cc) const;
 
 			// compute cost
-			CCost CostCompute(IMemoryPool *mp, CCostArray *pdrgpcostChildren);
+			CCost CostCompute(CMemoryPool *mp, CCostArray *pdrgpcostChildren);
 
 			// is current context better than the given equivalent context based on cost?
 			BOOL FBetterThan(const CCostContext *pcc) const;

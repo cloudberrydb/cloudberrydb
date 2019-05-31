@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CConstraintNegation::CConstraintNegation
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraint *pcnstr
 	)
 	:
@@ -65,7 +65,7 @@ CConstraintNegation::~CConstraintNegation()
 CConstraint *
 CConstraintNegation::PcnstrCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -85,7 +85,7 @@ CConstraintNegation::PcnstrCopyWithRemappedColumns
 CConstraint *
 CConstraintNegation::Pcnstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -116,7 +116,7 @@ CConstraintNegation::Pcnstr
 CConstraint *
 CConstraintNegation::Pcnstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -139,7 +139,7 @@ CConstraintNegation::Pcnstr
 CConstraint *
 CConstraintNegation::PcnstrRemapForColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref
 	)
 	const
@@ -160,7 +160,7 @@ CConstraintNegation::PcnstrRemapForColumn
 CExpression *
 CConstraintNegation::PexprScalar
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	if (NULL == m_pexprScalar)

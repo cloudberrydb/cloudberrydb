@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSimplifyGbAgg::CXformSimplifyGbAgg
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -90,7 +90,7 @@ CXformSimplifyGbAgg::Exfp
 BOOL
 CXformSimplifyGbAgg::FDropGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CXformResult *pxfres
 	)
@@ -163,7 +163,7 @@ CXformSimplifyGbAgg::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	if (FDropGbAgg(mp, pexpr,pxfres))
 	{

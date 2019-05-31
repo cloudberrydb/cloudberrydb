@@ -39,7 +39,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalDynamicGetBase(mp),
@@ -59,7 +59,7 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 //---------------------------------------------------------------------------
 CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IMDIndex *pmdindex,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
@@ -145,7 +145,7 @@ CLogicalDynamicIndexGet::Matches
 CColRefSet *
 CLogicalDynamicIndexGet::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -163,7 +163,7 @@ CLogicalDynamicIndexGet::PcrsDeriveOuter
 COperator *
 CLogicalDynamicIndexGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -243,7 +243,7 @@ CLogicalDynamicIndexGet::FInputOrderSensitive() const
 CXformSet *
 CLogicalDynamicIndexGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 const
 {
@@ -264,7 +264,7 @@ const
 IStatistics *
 CLogicalDynamicIndexGet::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray *stats_ctxt
 	)

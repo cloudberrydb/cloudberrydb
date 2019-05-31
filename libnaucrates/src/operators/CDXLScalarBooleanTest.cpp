@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarBooleanTest::CDXLScalarBooleanTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const EdxlBooleanTestType dxl_bool_test_type
 	)
 	:

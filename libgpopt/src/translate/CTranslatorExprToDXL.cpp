@@ -70,7 +70,7 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CTranslatorExprToDXL::CTranslatorExprToDXL
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IntPtrArray *pdrgpiSegments,
 	BOOL fInitColumnFactory
@@ -763,7 +763,7 @@ CTranslatorExprToDXL::PdxlnBitmapTableScan
 void
 CTranslatorExprToDXL::AddBitmapFilterColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPhysicalScan *pop,
 	CExpression *pexprRecheckCond,
 	CExpression *pexprScalar,
@@ -2018,7 +2018,7 @@ CTranslatorExprToDXL::PdxlnAppend
 CColRefArray *
 CTranslatorExprToDXL::PdrgpcrMerge
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOrder,
 	CColRefArray *pdrgpcrRequired
 	)

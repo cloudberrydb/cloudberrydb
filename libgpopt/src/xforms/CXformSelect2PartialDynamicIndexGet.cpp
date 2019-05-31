@@ -34,7 +34,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CXformSelect2PartialDynamicIndexGet::CXformSelect2PartialDynamicIndexGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -95,7 +95,7 @@ CXformSelect2PartialDynamicIndexGet::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -177,7 +177,7 @@ CXformSelect2PartialDynamicIndexGet::Transform
 void
 CXformSelect2PartialDynamicIndexGet::CreatePartialIndexGetPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	SPartDynamicIndexGetInfoArray *pdrgppartdig,
 	const IMDRelation *pmdrel,
@@ -316,7 +316,7 @@ CXformSelect2PartialDynamicIndexGet::CreatePartialIndexGetPlan
 CExpression *
 CXformSelect2PartialDynamicIndexGet::PexprSelectOverDynamicGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CLogicalDynamicGet *popGet,
 	CExpression *pexprScalar,
 	CColRefArray *pdrgpcrDGet,

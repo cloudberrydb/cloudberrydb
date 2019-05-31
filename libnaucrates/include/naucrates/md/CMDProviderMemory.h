@@ -47,7 +47,7 @@ namespace gpmd
 		MDIdToSerializedMDIdMap *m_mdmap;
 			
 			// load MD objects in the hash map
-      void LoadMetadataObjectsFromArray(IMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
+      void LoadMetadataObjectsFromArray(CMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
 			
 			// private copy ctor
 			CMDProviderMemory(const CMDProviderMemory&);
@@ -55,10 +55,10 @@ namespace gpmd
 		public:
 			
 			// ctor
-		CMDProviderMemory(IMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
+		CMDProviderMemory(CMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
 			
 			// ctor
-			CMDProviderMemory(IMemoryPool *mp, const CHAR *file_name);
+			CMDProviderMemory(CMemoryPool *mp, const CHAR *file_name);
 			
 			//dtor
 			virtual 
@@ -66,11 +66,11 @@ namespace gpmd
 
 			// returns the DXL string of the requested metadata object
 			virtual 
-			CWStringBase *GetMDObjDXLStr(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid) const;
+			CWStringBase *GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid) const;
 			
 			// return the mdid for the specified system id and type
 			virtual
-			IMDId *MDId(IMemoryPool *mp, CSystemId sysid, IMDType::ETypeInfo type_info) const;
+			IMDId *MDId(CMemoryPool *mp, CSystemId sysid, IMDType::ETypeInfo type_info) const;
 	};
 }
 

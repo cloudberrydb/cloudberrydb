@@ -257,7 +257,7 @@ CBucket::OsPrint
 CBucket *
 CBucket::MakeBucketGreaterThan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point
 	)
 	const
@@ -301,7 +301,7 @@ CBucket::MakeBucketGreaterThan
 CBucket*
 CBucket::MakeBucketScaleUpper
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point_upper_new,
 	BOOL include_upper
 	)
@@ -362,7 +362,7 @@ CBucket::MakeBucketScaleUpper
 CBucket*
 CBucket::MakeBucketScaleLower
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point_lower_new,
 	BOOL include_lower
 	)
@@ -416,7 +416,7 @@ CBucket::MakeBucketScaleLower
 CBucket*
 CBucket::MakeBucketSingleton
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *point_singleton
 	)
 	const
@@ -458,7 +458,7 @@ CBucket::MakeBucketSingleton
 CBucket *
 CBucket::MakeBucketCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// reuse the points
@@ -479,7 +479,7 @@ CBucket::MakeBucketCopy
 CBucket *
 CBucket::MakeBucketUpdateFrequency
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble rows_old,
 	CDouble rows_new
 	)
@@ -735,7 +735,7 @@ CBucket::Subsumes
 CBucket *
 CBucket::MakeBucketIntersect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucket *bucket,
 	CDouble *result_freq_intersect1,
 	CDouble *result_freq_intersect2
@@ -874,7 +874,7 @@ CBucket::Width() const
 void
 CBucket::Difference
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucket *bucket_other,
 	CBucket **result_bucket_lower,
 	CBucket **result_bucket_upper
@@ -985,7 +985,7 @@ CBucket::IsAfter
 CBucket *
 CBucket::MakeBucketMerged
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBucket *bucket_other,
 	CDouble rows,
 	CDouble rows_other,
@@ -1078,7 +1078,7 @@ CBucket::GetSample
 CBucket*
 CBucket::MakeBucketSingleton
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 {

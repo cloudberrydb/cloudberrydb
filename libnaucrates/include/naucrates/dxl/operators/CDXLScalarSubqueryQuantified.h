@@ -60,7 +60,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLScalarSubqueryQuantified(IMemoryPool *mp, IMDId *scalar_op_mdid, CMDName *mdname, ULONG colid);
+			CDXLScalarSubqueryQuantified(CMemoryPool *mp, IMDId *scalar_op_mdid, CMDName *mdname, ULONG colid);
 
 			// dtor
 			virtual

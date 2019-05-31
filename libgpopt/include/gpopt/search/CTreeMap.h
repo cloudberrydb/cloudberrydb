@@ -54,7 +54,7 @@ namespace gpopt
 			typedef CDynamicPtrArray<R, CleanupRelease<R> > DrgPr;
 
 			// generic rehydrate function
-			typedef R* (*PrFn)(IMemoryPool *, T *, DrgPr *, U *);
+			typedef R* (*PrFn)(CMemoryPool *, T *, DrgPr *, U *);
 
 		private:
 			
@@ -165,7 +165,7 @@ namespace gpopt
 					};
 
 					// memory pool
-					IMemoryPool *m_mp;
+					CMemoryPool *m_mp;
 					
 					// id of node
 					ULONG m_ul;
@@ -204,7 +204,7 @@ namespace gpopt
                     }
 					
 					// rehydrate tree
-					R* PrUnrank(IMemoryPool *mp, PrFn prfn, U *pU,
+					R* PrUnrank(CMemoryPool *mp, PrFn prfn, U *pU,
 								ULONG ulChild, ULLONG ullRank)
                     {
                         GPOS_CHECK_STACK_SIZE;
@@ -236,7 +236,7 @@ namespace gpopt
 				public:
 				
 					// ctor
-					CTreeNode(IMemoryPool *mp, ULONG ul, const T *value)
+					CTreeNode(CMemoryPool *mp, ULONG ul, const T *value)
                         :
                         m_mp(mp),
                         m_ul(ul),
@@ -336,7 +336,7 @@ namespace gpopt
 					// unrank tree of a given rank with a given rehydrate function
 					R* PrUnrank
 						(
-						IMemoryPool *mp, 
+						CMemoryPool *mp, 
 						PrFn prfn,
 						U *pU,
 						ULLONG ullRank
@@ -410,7 +410,7 @@ namespace gpopt
 			};
 			
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// counter for nodes
 			ULONG m_ulCountNodes;
@@ -463,7 +463,7 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CTreeMap(IMemoryPool *mp, PrFn prfn)
+			CTreeMap(CMemoryPool *mp, PrFn prfn)
                 :
                 m_mp(mp),
                 m_ulCountNodes(0),
@@ -556,7 +556,7 @@ namespace gpopt
             }
 
 			// unrank a specific tree
-			R *PrUnrank(IMemoryPool *mp, U *pU, ULLONG ullRank) const
+			R *PrUnrank(CMemoryPool *mp, U *pU, ULLONG ullRank) const
             {
                 return m_ptnRoot->PrUnrank(mp, m_prfn, pU, ullRank);
             }

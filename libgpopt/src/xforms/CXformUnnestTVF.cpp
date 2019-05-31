@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformUnnestTVF::CXformUnnestTVF
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -86,7 +86,7 @@ CXformUnnestTVF::Exfp
 CColRefArray *
 CXformUnnestTVF::PdrgpcrSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprCTEProd,
 	CExpression *pexprCTECons
 	)
@@ -132,7 +132,7 @@ CXformUnnestTVF::PdrgpcrSubqueries
 CExpression *
 CXformUnnestTVF::PexprProjectSubqueries
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprTVF
 	)
 {
@@ -195,7 +195,7 @@ CXformUnnestTVF::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// create a project expression on subquery arguments
 	CExpression *pexprProject = PexprProjectSubqueries(mp, pexpr);

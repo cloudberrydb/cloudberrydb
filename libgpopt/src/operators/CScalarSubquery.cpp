@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarSubquery::CScalarSubquery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	BOOL fGeneratedByExist,
 	BOOL fGeneratedByQuantified
@@ -126,7 +126,7 @@ CScalarSubquery::Matches
 COperator *
 CScalarSubquery::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -148,7 +148,7 @@ CScalarSubquery::PopCopyWithRemappedColumns
 CColRefSet *
 CScalarSubquery::PcrsUsed
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -178,7 +178,7 @@ CScalarSubquery::PcrsUsed
 CPartInfo *
 CScalarSubquery::PpartinfoDerive
 	(
-	IMemoryPool *, // mp, 
+	CMemoryPool *, // mp, 
 	CExpressionHandle &exprhdl
 	)
 	const

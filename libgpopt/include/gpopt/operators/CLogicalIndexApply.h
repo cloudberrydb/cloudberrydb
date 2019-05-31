@@ -35,11 +35,11 @@ namespace gpopt
 		public:
 
 			// ctor
-			CLogicalIndexApply(IMemoryPool *mp,  CColRefArray *pdrgpcrOuterRefs, BOOL fOuterJoin);
+			CLogicalIndexApply(CMemoryPool *mp,  CColRefArray *pdrgpcrOuterRefs, BOOL fOuterJoin);
 
 			// ctor for patterns
 			explicit
-			CLogicalIndexApply(IMemoryPool *mp);
+			CLogicalIndexApply(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -79,7 +79,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveOutput
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 			{
@@ -92,7 +92,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveNotNull
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -102,13 +102,13 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -118,7 +118,7 @@ namespace gpopt
 
 			// applicable transformations
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			// match function
 			virtual
@@ -130,7 +130,7 @@ namespace gpopt
 
 			// derive statistics
 			virtual
-			IStatistics *PstatsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, IStatisticsArray *stats_ctxt) const;
+			IStatistics *PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl, IStatisticsArray *stats_ctxt) const;
 
 			// stat promise
 			virtual
@@ -145,7 +145,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// conversion function
 			static

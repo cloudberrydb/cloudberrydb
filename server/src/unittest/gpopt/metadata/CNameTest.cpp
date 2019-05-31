@@ -76,7 +76,7 @@ GPOS_RESULT
 CNameTest::EresUnittest_Ownership()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringConst strName(GPOS_WSZ_LIT("nametest"));
 	CName name1(&strName);

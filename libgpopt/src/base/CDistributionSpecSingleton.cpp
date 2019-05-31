@@ -109,7 +109,7 @@ CDistributionSpecSingleton::FSatisfies
 void
 CDistributionSpecSingleton::AppendEnforcers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *prpp,
 	CExpressionArray *pdrgpexpr,

@@ -144,7 +144,7 @@ namespace gpos
 			// ctor
 			CMemoryPoolStack
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULLONG capacity,
 				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool

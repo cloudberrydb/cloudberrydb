@@ -60,7 +60,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_Wait()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -103,7 +103,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_WaitAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -170,7 +170,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_TimedWait()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -238,7 +238,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_TimedWaitAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -336,7 +336,7 @@ CAutoTaskProxyTest::EresUnittest_Destroy()
 	const ULONG culTskCnt = 90;
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -475,7 +475,7 @@ CAutoTaskProxyTest::Unittest_PropagateErrorInternal
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -578,7 +578,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_ExecuteError()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// Create new thread so worker for this new
 	// thread is available to run the task ("CAutoTaskProxyTest::PvUnittest_Error")
@@ -632,7 +632,7 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_CheckErrorPropagation()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 

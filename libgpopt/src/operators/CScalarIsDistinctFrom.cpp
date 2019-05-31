@@ -77,7 +77,7 @@ const
 CScalarIsDistinctFrom *
 CScalarIsDistinctFrom::PopCommutedOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator *pop
 	)
 {

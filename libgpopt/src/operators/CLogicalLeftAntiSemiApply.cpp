@@ -31,7 +31,7 @@ using namespace gpopt;
 CKeyCollection *
 CLogicalLeftAntiSemiApply::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -51,7 +51,7 @@ CLogicalLeftAntiSemiApply::PkcDeriveKeys
 CMaxCard
 CLogicalLeftAntiSemiApply::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -72,7 +72,7 @@ CLogicalLeftAntiSemiApply::Maxcard
 CXformSet *
 CLogicalLeftAntiSemiApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -95,7 +95,7 @@ CLogicalLeftAntiSemiApply::PxfsCandidates
 COperator *
 CLogicalLeftAntiSemiApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

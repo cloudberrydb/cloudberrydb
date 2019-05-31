@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformSimplifyLeftOuterJoin(IMemoryPool *mp);
+			CXformSimplifyLeftOuterJoin(CMemoryPool *mp);
 
 			// dtor
 			virtual

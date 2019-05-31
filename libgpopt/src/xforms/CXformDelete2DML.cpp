@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformDelete2DML::CXformDelete2DML
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -84,7 +84,7 @@ CXformDelete2DML::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDelete *popDelete = CLogicalDelete::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 

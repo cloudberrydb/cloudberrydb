@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalWindow::CDXLPhysicalWindow
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *part_by_colid_array,
 	CDXLWindowKeyArray *window_key_array
 	)

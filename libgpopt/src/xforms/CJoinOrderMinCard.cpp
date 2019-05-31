@@ -38,7 +38,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CJoinOrderMinCard::CJoinOrderMinCard
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprComponents,
 	CExpressionArray *pdrgpexprConjuncts
 	)

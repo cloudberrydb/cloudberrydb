@@ -58,7 +58,7 @@ namespace gpopt
 			// ctor
 			CScalarBoolOp
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EBoolOperator eboolop
 				)
 				:
@@ -109,7 +109,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

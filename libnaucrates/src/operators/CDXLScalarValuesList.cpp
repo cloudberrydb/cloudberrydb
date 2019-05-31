@@ -22,7 +22,7 @@ using namespace gpdxl;
 // constructs a m_bytearray_value list node
 CDXLScalarValuesList::CDXLScalarValuesList
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLScalar(mp)

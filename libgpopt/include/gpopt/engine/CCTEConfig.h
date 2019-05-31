@@ -12,7 +12,7 @@
 #define GPOPT_CCTEConfig_H
 
 #include "gpos/base.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/common/CRefCount.h"
 #include "gpos/common/CDouble.h"
 
@@ -58,7 +58,7 @@ namespace gpopt
 
 			// generate default optimizer configurations
 			static
-			CCTEConfig *PcteconfDefault(IMemoryPool *mp)
+			CCTEConfig *PcteconfDefault(CMemoryPool *mp)
 			{
 				return GPOS_NEW(mp) CCTEConfig(0 /* cte_inlining_cut_off */);
 			}

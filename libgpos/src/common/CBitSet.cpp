@@ -34,7 +34,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CBitSet::CBitSetLink::CBitSetLink
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	ULONG offset, 
 	ULONG vector_size
 	)
@@ -55,7 +55,7 @@ CBitSet::CBitSetLink::CBitSetLink
 //---------------------------------------------------------------------------
 CBitSet::CBitSetLink::CBitSetLink
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	const CBitSetLink &bsl
 	)
 	: 
@@ -212,7 +212,7 @@ CBitSet::ComputeOffset
 //---------------------------------------------------------------------------
 CBitSet::CBitSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG vector_size
 	)
 	:
@@ -234,7 +234,7 @@ CBitSet::CBitSet
 //---------------------------------------------------------------------------
 CBitSet::CBitSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBitSet &bs
 	)
 	:

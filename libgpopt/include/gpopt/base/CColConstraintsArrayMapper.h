@@ -4,7 +4,7 @@
 #ifndef GPOPT_CColConstraintsArrayMapper_H
 #define GPOPT_CColConstraintsArrayMapper_H
 
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 #include "gpopt/base/CConstraint.h"
 #include "gpopt/base/IColConstraintsMapper.h"
@@ -16,7 +16,7 @@ namespace gpopt
 		public:
 			CColConstraintsArrayMapper
 				(
-				gpos::IMemoryPool *mp,
+				gpos::CMemoryPool *mp,
 				CConstraintArray *pdrgpcnstr
 				);
 			virtual CConstraintArray *PdrgPcnstrLookup(CColRef *colref);
@@ -24,7 +24,7 @@ namespace gpopt
 			virtual ~CColConstraintsArrayMapper();
 
 		private:
-			gpos::IMemoryPool *m_mp;
+			gpos::CMemoryPool *m_mp;
 			CConstraintArray *m_pdrgpcnstr;
 	};
 }

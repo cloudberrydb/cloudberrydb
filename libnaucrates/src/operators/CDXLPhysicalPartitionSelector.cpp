@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalPartitionSelector::CDXLPhysicalPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_rel,
 	ULONG num_of_part_levels,
 	ULONG scan_id

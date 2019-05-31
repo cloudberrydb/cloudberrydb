@@ -26,7 +26,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformImplementIndexApply(IMemoryPool *mp)
+			CXformImplementIndexApply(CMemoryPool *mp)
 			:
 			// pattern
 			CXformImplementation
@@ -79,7 +79,7 @@ namespace gpopt
 				GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 				GPOS_ASSERT(FCheckPattern(pexpr));
 
-				IMemoryPool *mp = pxfctxt->Pmp();
+				CMemoryPool *mp = pxfctxt->Pmp();
 
 				// extract components
 				CExpression *pexprOuter = (*pexpr)[0];

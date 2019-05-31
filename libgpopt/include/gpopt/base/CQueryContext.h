@@ -53,7 +53,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// required plan properties in optimizer's produced plan
 			CReqdPropPlan *m_prpp;
@@ -74,7 +74,7 @@ namespace gpopt
 			BOOL m_fDeriveStats;
 
 			// collect system columns from output columns
-			void SetSystemCols(IMemoryPool *mp);
+			void SetSystemCols(CMemoryPool *mp);
 
 			// return top level operator in the given expression
 			static
@@ -88,7 +88,7 @@ namespace gpopt
 			// ctor
 			CQueryContext
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CReqdPropPlan *prpp,
 				CColRefArray *colref_array,
@@ -139,7 +139,7 @@ namespace gpopt
 			static
 			CQueryContext *PqcGenerate
 							(
-							IMemoryPool *mp, // memory pool
+							CMemoryPool *mp, // memory pool
 							CExpression *pexpr, // expression representing the query
 							ULongPtrArray *pdrgpulQueryOutputColRefId, // array of output column reference id
 							CMDNameArray *pdrgpmdname, // array of output column names

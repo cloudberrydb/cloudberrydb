@@ -55,7 +55,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Arithmetic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CDouble fp1(2.5);
 	CDouble fp2(3.5);
@@ -114,7 +114,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Bool()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CDouble fp1(2.5);
 	CDouble fp2(3.5);
@@ -158,7 +158,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Convert()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CDouble fp(3.5);
 
@@ -189,7 +189,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Limits()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CDouble fpZero(0);
 	CDouble fpInf(1e10 / fpZero);

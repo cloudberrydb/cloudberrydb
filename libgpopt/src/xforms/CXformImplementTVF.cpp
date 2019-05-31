@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementTVF::CXformImplementTVF
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -110,7 +110,7 @@ CXformImplementTVF::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalTVF *popTVF = CLogicalTVF::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
 	IMDId *mdid_func = popTVF->FuncMdId();

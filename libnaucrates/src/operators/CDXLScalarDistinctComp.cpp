@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarDistinctComp::CDXLScalarDistinctComp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op
 	)
 	:

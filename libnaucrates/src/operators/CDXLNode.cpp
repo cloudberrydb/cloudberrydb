@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -49,7 +49,7 @@ CDXLNode::CDXLNode
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLOperator *dxl_op
 	)
 	:
@@ -72,7 +72,7 @@ CDXLNode::CDXLNode
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLOperator *dxl_op,
 	CDXLNode *child_dxlnode
 	)
@@ -100,7 +100,7 @@ CDXLNode::CDXLNode
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLOperator *dxl_op,
 	CDXLNode *first_child_dxlnode,
 	CDXLNode *second_child_dxlnode
@@ -131,7 +131,7 @@ CDXLNode::CDXLNode
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLOperator *dxl_op,
 	CDXLNode *first_child_dxlnode,
 	CDXLNode *second_child_dxlnode,
@@ -165,7 +165,7 @@ CDXLNode::CDXLNode
 //---------------------------------------------------------------------------
 CDXLNode::CDXLNode
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLOperator *dxl_op,
 	CDXLNodeArray *dxl_array
 	)

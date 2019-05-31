@@ -50,7 +50,7 @@ CParseHandlerFactory::AddMapping
 void
 CParseHandlerFactory::Init
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	m_token_parse_handler_func_map = GPOS_NEW(mp) TokenParseHandlerFuncMap(mp, HASH_MAP_SIZE);
@@ -295,7 +295,7 @@ CParseHandlerFactory::Init
 CParseHandlerBase *
 CParseHandlerFactory::GetParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const XMLCh *token_identifier_str,
 	CParseHandlerManager* parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
@@ -329,7 +329,7 @@ CParseHandlerFactory::GetParseHandler
 CParseHandlerDXL *
 CParseHandlerFactory::GetParseHandlerDXL
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr
 	)
 {
@@ -340,7 +340,7 @@ CParseHandlerFactory::GetParseHandlerDXL
 CParseHandlerBase *
 CParseHandlerFactory::CreatePlanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -352,7 +352,7 @@ CParseHandlerFactory::CreatePlanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMetadataParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -364,7 +364,7 @@ CParseHandlerFactory::CreateMetadataParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDRequestParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -376,7 +376,7 @@ CParseHandlerFactory::CreateMDRequestParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateTraceFlagsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -388,7 +388,7 @@ CParseHandlerFactory::CreateTraceFlagsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateOptimizerCfgParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -400,7 +400,7 @@ CParseHandlerFactory::CreateOptimizerCfgParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateEnumeratorCfgParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -412,7 +412,7 @@ CParseHandlerFactory::CreateEnumeratorCfgParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStatisticsCfgParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -424,7 +424,7 @@ CParseHandlerFactory::CreateStatisticsCfgParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCTECfgParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -436,7 +436,7 @@ CParseHandlerFactory::CreateCTECfgParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCostModelCfgParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -448,7 +448,7 @@ CParseHandlerFactory::CreateCostModelCfgParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateHintParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -460,7 +460,7 @@ CParseHandlerFactory::CreateHintParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowOidsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -472,7 +472,7 @@ CParseHandlerFactory::CreateWindowOidsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDRelationParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -484,7 +484,7 @@ CParseHandlerFactory::CreateMDRelationParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDRelationExtParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -496,7 +496,7 @@ CParseHandlerFactory::CreateMDRelationExtParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDRelationCTASParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -508,7 +508,7 @@ CParseHandlerFactory::CreateMDRelationCTASParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDIndexParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -520,7 +520,7 @@ CParseHandlerFactory::CreateMDIndexParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateRelStatsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -532,7 +532,7 @@ CParseHandlerFactory::CreateRelStatsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateColStatsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -544,7 +544,7 @@ CParseHandlerFactory::CreateColStatsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateColStatsBucketParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -556,7 +556,7 @@ CParseHandlerFactory::CreateColStatsBucketParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDTypeParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -568,7 +568,7 @@ CParseHandlerFactory::CreateMDTypeParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDScalarOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -580,7 +580,7 @@ CParseHandlerFactory::CreateMDScalarOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDFuncParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -592,7 +592,7 @@ CParseHandlerFactory::CreateMDFuncParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDAggParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -604,7 +604,7 @@ CParseHandlerFactory::CreateMDAggParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDTriggerParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -616,7 +616,7 @@ CParseHandlerFactory::CreateMDTriggerParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDCastParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -628,7 +628,7 @@ CParseHandlerFactory::CreateMDCastParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDScCmpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -640,7 +640,7 @@ CParseHandlerFactory::CreateMDScCmpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDIdListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -652,7 +652,7 @@ CParseHandlerFactory::CreateMDIdListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDColsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -663,7 +663,7 @@ CParseHandlerFactory::CreateMDColsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDIndexInfoListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -675,7 +675,7 @@ CParseHandlerFactory::CreateMDIndexInfoListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDColParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -687,7 +687,7 @@ CParseHandlerFactory::CreateMDColParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateColDefaultValExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -699,7 +699,7 @@ CParseHandlerFactory::CreateColDefaultValExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -711,7 +711,7 @@ CParseHandlerFactory::CreatePhysicalOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScalarOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -723,7 +723,7 @@ CParseHandlerFactory::CreateScalarOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePropertiesParseHandler
 	(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CParseHandlerManager *parse_handler_mgr,
 		CParseHandlerBase *parse_handler_root
 	)
@@ -735,7 +735,7 @@ CParseHandlerFactory::CreatePropertiesParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateFilterParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -747,7 +747,7 @@ CParseHandlerFactory::CreateFilterParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateTableScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -759,7 +759,7 @@ CParseHandlerFactory::CreateTableScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateBitmapTableScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -771,7 +771,7 @@ CParseHandlerFactory::CreateBitmapTableScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateDynBitmapTableScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -783,7 +783,7 @@ CParseHandlerFactory::CreateDynBitmapTableScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateExternalScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -795,7 +795,7 @@ CParseHandlerFactory::CreateExternalScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSubqueryScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -807,7 +807,7 @@ CParseHandlerFactory::CreateSubqueryScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateResultParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -819,7 +819,7 @@ CParseHandlerFactory::CreateResultParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateHashJoinParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -831,7 +831,7 @@ CParseHandlerFactory::CreateHashJoinParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateNLJoinParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -843,7 +843,7 @@ CParseHandlerFactory::CreateNLJoinParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMergeJoinParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -855,7 +855,7 @@ CParseHandlerFactory::CreateMergeJoinParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSortParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -867,7 +867,7 @@ CParseHandlerFactory::CreateSortParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateAppendParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -879,7 +879,7 @@ CParseHandlerFactory::CreateAppendParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMaterializeParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -891,7 +891,7 @@ CParseHandlerFactory::CreateMaterializeParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateDTSParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -903,7 +903,7 @@ CParseHandlerFactory::CreateDTSParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateDynamicIdxScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -915,7 +915,7 @@ CParseHandlerFactory::CreateDynamicIdxScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePartitionSelectorParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -927,7 +927,7 @@ CParseHandlerFactory::CreatePartitionSelectorParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSequenceParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -939,7 +939,7 @@ CParseHandlerFactory::CreateSequenceParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLimitParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -951,7 +951,7 @@ CParseHandlerFactory::CreateLimitParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLimitCountParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -963,7 +963,7 @@ CParseHandlerFactory::CreateLimitCountParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSubqueryParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -975,7 +975,7 @@ CParseHandlerFactory::CreateScSubqueryParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScBitmapBoolOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -987,7 +987,7 @@ CParseHandlerFactory::CreateScBitmapBoolOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScArrayParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -999,7 +999,7 @@ CParseHandlerFactory::CreateScArrayParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScArrayRefParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1011,7 +1011,7 @@ CParseHandlerFactory::CreateScArrayRefParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScArrayRefIdxListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1023,7 +1023,7 @@ CParseHandlerFactory::CreateScArrayRefIdxListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScAssertConstraintListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1035,7 +1035,7 @@ CParseHandlerFactory::CreateScAssertConstraintListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScDMLActionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1047,7 +1047,7 @@ CParseHandlerFactory::CreateScDMLActionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScOpListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1059,7 +1059,7 @@ CParseHandlerFactory::CreateScOpListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartOidParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1071,7 +1071,7 @@ CParseHandlerFactory::CreateScPartOidParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartDefaultParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1083,7 +1083,7 @@ CParseHandlerFactory::CreateScPartDefaultParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartBoundParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1095,7 +1095,7 @@ CParseHandlerFactory::CreateScPartBoundParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartBoundInclParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1107,7 +1107,7 @@ CParseHandlerFactory::CreateScPartBoundInclParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartBoundOpenParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1119,7 +1119,7 @@ CParseHandlerFactory::CreateScPartBoundOpenParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartListValuesParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1131,7 +1131,7 @@ CParseHandlerFactory::CreateScPartListValuesParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScPartListNullTestParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1143,7 +1143,7 @@ CParseHandlerFactory::CreateScPartListNullTestParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateDirectDispatchParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1155,7 +1155,7 @@ CParseHandlerFactory::CreateDirectDispatchParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLimitOffsetParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1167,7 +1167,7 @@ CParseHandlerFactory::CreateLimitOffsetParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateGatherMotionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1179,7 +1179,7 @@ CParseHandlerFactory::CreateGatherMotionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateBroadcastMotionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1191,7 +1191,7 @@ CParseHandlerFactory::CreateBroadcastMotionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateRedistributeMotionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1203,7 +1203,7 @@ CParseHandlerFactory::CreateRedistributeMotionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateRoutedMotionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1215,7 +1215,7 @@ CParseHandlerFactory::CreateRoutedMotionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateRandomMotionParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1227,7 +1227,7 @@ CParseHandlerFactory::CreateRandomMotionParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateAggParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1239,7 +1239,7 @@ CParseHandlerFactory::CreateAggParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateAggRefParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1252,7 +1252,7 @@ CParseHandlerFactory::CreateAggRefParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateGroupingColListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1264,7 +1264,7 @@ CParseHandlerFactory::CreateGroupingColListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCmpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1276,7 +1276,7 @@ CParseHandlerFactory::CreateScCmpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateDistinctCmpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1288,7 +1288,7 @@ CParseHandlerFactory::CreateDistinctCmpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScIdParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1300,7 +1300,7 @@ CParseHandlerFactory::CreateScIdParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScFuncExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1312,7 +1312,7 @@ CParseHandlerFactory::CreateScFuncExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScOpExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1324,7 +1324,7 @@ CParseHandlerFactory::CreateScOpExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScArrayCmpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1336,7 +1336,7 @@ CParseHandlerFactory::CreateScArrayCmpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScBoolExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1348,7 +1348,7 @@ CParseHandlerFactory::CreateScBoolExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScMinMaxParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1360,7 +1360,7 @@ CParseHandlerFactory::CreateScMinMaxParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateBooleanTestParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1372,7 +1372,7 @@ CParseHandlerFactory::CreateBooleanTestParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScNullTestParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1384,7 +1384,7 @@ CParseHandlerFactory::CreateScNullTestParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScNullIfParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1396,7 +1396,7 @@ CParseHandlerFactory::CreateScNullIfParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCastParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1408,7 +1408,7 @@ CParseHandlerFactory::CreateScCastParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCoerceToDomainParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1420,7 +1420,7 @@ CParseHandlerFactory::CreateScCoerceToDomainParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCoerceViaIOParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1432,7 +1432,7 @@ CParseHandlerFactory::CreateScCoerceViaIOParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScArrayCoerceExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1444,7 +1444,7 @@ CParseHandlerFactory::CreateScArrayCoerceExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSubPlanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1456,7 +1456,7 @@ CParseHandlerFactory::CreateScSubPlanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSubPlanTestExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1468,7 +1468,7 @@ CParseHandlerFactory::CreateScSubPlanTestExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSubPlanParamListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1480,7 +1480,7 @@ CParseHandlerFactory::CreateScSubPlanParamListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSubPlanParamParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1492,7 +1492,7 @@ CParseHandlerFactory::CreateScSubPlanParamParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalTVFParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1504,7 +1504,7 @@ CParseHandlerFactory::CreateLogicalTVFParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalTVFParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1516,7 +1516,7 @@ CParseHandlerFactory::CreatePhysicalTVFParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCoalesceParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1528,7 +1528,7 @@ CParseHandlerFactory::CreateScCoalesceParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSwitchParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1540,7 +1540,7 @@ CParseHandlerFactory::CreateScSwitchParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScSwitchCaseParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1552,7 +1552,7 @@ CParseHandlerFactory::CreateScSwitchCaseParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScCaseTestParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1564,7 +1564,7 @@ CParseHandlerFactory::CreateScCaseTestParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScConstValueParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1576,7 +1576,7 @@ CParseHandlerFactory::CreateScConstValueParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateIfStmtParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1588,7 +1588,7 @@ CParseHandlerFactory::CreateIfStmtParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateProjListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1600,7 +1600,7 @@ CParseHandlerFactory::CreateProjListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateProjElemParseHandler
 	(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CParseHandlerManager *parse_handler_mgr,
 		CParseHandlerBase *parse_handler_root
 	)
@@ -1612,7 +1612,7 @@ CParseHandlerFactory::CreateProjElemParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateHashExprListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,	
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1625,7 +1625,7 @@ CParseHandlerFactory::CreateHashExprListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateHashExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1638,7 +1638,7 @@ CParseHandlerFactory::CreateHashExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCondListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1650,7 +1650,7 @@ CParseHandlerFactory::CreateCondListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSortColListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1662,7 +1662,7 @@ CParseHandlerFactory::CreateSortColListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSortColParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1675,7 +1675,7 @@ CParseHandlerFactory::CreateSortColParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCostParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1687,7 +1687,7 @@ CParseHandlerFactory::CreateCostParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateTableDescParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1699,7 +1699,7 @@ CParseHandlerFactory::CreateTableDescParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateColDescParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1711,7 +1711,7 @@ CParseHandlerFactory::CreateColDescParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateIdxScanListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1723,7 +1723,7 @@ CParseHandlerFactory::CreateIdxScanListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateIdxOnlyScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1735,7 +1735,7 @@ CParseHandlerFactory::CreateIdxOnlyScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateBitmapIdxProbeParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1748,7 +1748,7 @@ CParseHandlerFactory::CreateBitmapIdxProbeParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateIdxDescrParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1761,7 +1761,7 @@ CParseHandlerFactory::CreateIdxDescrParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateIdxCondListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1773,7 +1773,7 @@ CParseHandlerFactory::CreateIdxCondListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateQueryParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1785,7 +1785,7 @@ CParseHandlerFactory::CreateQueryParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1797,7 +1797,7 @@ CParseHandlerFactory::CreateLogicalOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalGetParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1809,7 +1809,7 @@ CParseHandlerFactory::CreateLogicalGetParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalExtGetParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1821,7 +1821,7 @@ CParseHandlerFactory::CreateLogicalExtGetParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalProjParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1833,7 +1833,7 @@ CParseHandlerFactory::CreateLogicalProjParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalCTEProdParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1845,7 +1845,7 @@ CParseHandlerFactory::CreateLogicalCTEProdParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalCTEConsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1857,7 +1857,7 @@ CParseHandlerFactory::CreateLogicalCTEConsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalCTEAnchorParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1869,7 +1869,7 @@ CParseHandlerFactory::CreateLogicalCTEAnchorParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCTEListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1881,7 +1881,7 @@ CParseHandlerFactory::CreateCTEListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalSetOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1893,7 +1893,7 @@ CParseHandlerFactory::CreateLogicalSetOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalSelectParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1905,7 +1905,7 @@ CParseHandlerFactory::CreateLogicalSelectParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalJoinParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1917,7 +1917,7 @@ CParseHandlerFactory::CreateLogicalJoinParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalQueryOpParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1929,7 +1929,7 @@ CParseHandlerFactory::CreateLogicalQueryOpParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalGrpByParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1941,7 +1941,7 @@ CParseHandlerFactory::CreateLogicalGrpByParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalLimitParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1953,7 +1953,7 @@ CParseHandlerFactory::CreateLogicalLimitParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalConstTableParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1965,7 +1965,7 @@ CParseHandlerFactory::CreateLogicalConstTableParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScScalarSubqueryQuantifiedParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1977,7 +1977,7 @@ CParseHandlerFactory::CreateScScalarSubqueryQuantifiedParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScScalarSubqueryExistsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -1989,7 +1989,7 @@ CParseHandlerFactory::CreateScScalarSubqueryExistsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStatsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2001,7 +2001,7 @@ CParseHandlerFactory::CreateStatsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStackTraceParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2013,7 +2013,7 @@ CParseHandlerFactory::CreateStackTraceParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStatsDrvdRelParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2025,7 +2025,7 @@ CParseHandlerFactory::CreateStatsDrvdRelParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStatsDrvdColParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2037,7 +2037,7 @@ CParseHandlerFactory::CreateStatsDrvdColParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateStatsBucketBoundParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2049,7 +2049,7 @@ CParseHandlerFactory::CreateStatsBucketBoundParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2061,7 +2061,7 @@ CParseHandlerFactory::CreateWindowParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowRefParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2073,7 +2073,7 @@ CParseHandlerFactory::CreateWindowRefParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowFrameParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2085,7 +2085,7 @@ CParseHandlerFactory::CreateWindowFrameParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowKeyParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2097,7 +2097,7 @@ CParseHandlerFactory::CreateWindowKeyParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowKeyListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2109,7 +2109,7 @@ CParseHandlerFactory::CreateWindowKeyListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowSpecParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2121,7 +2121,7 @@ CParseHandlerFactory::CreateWindowSpecParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateWindowSpecListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2133,7 +2133,7 @@ CParseHandlerFactory::CreateWindowSpecListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalWindowParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2145,7 +2145,7 @@ CParseHandlerFactory::CreateLogicalWindowParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalInsertParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2157,7 +2157,7 @@ CParseHandlerFactory::CreateLogicalInsertParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalDeleteParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2169,7 +2169,7 @@ CParseHandlerFactory::CreateLogicalDeleteParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalUpdateParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2181,7 +2181,7 @@ CParseHandlerFactory::CreateLogicalUpdateParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateLogicalCTASParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2193,7 +2193,7 @@ CParseHandlerFactory::CreateLogicalCTASParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalCTASParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2205,7 +2205,7 @@ CParseHandlerFactory::CreatePhysicalCTASParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCTASOptionsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2217,7 +2217,7 @@ CParseHandlerFactory::CreateCTASOptionsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalCTEProdParseHandler
 (
- IMemoryPool *mp,
+ CMemoryPool *mp,
  CParseHandlerManager *parse_handler_mgr,
  CParseHandlerBase *parse_handler_root
  )
@@ -2229,7 +2229,7 @@ CParseHandlerFactory::CreatePhysicalCTEProdParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalCTEConsParseHandler
 (
- IMemoryPool *mp,
+ CMemoryPool *mp,
  CParseHandlerManager *parse_handler_mgr,
  CParseHandlerBase *parse_handler_root
  )
@@ -2241,7 +2241,7 @@ CParseHandlerFactory::CreatePhysicalCTEConsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalDMLParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2253,7 +2253,7 @@ CParseHandlerFactory::CreatePhysicalDMLParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalSplitParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2265,7 +2265,7 @@ CParseHandlerFactory::CreatePhysicalSplitParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalRowTriggerParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2277,7 +2277,7 @@ CParseHandlerFactory::CreatePhysicalRowTriggerParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreatePhysicalAssertParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2289,7 +2289,7 @@ CParseHandlerFactory::CreatePhysicalAssertParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateFrameTrailingEdgeParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2301,7 +2301,7 @@ CParseHandlerFactory::CreateFrameTrailingEdgeParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateFrameLeadingEdgeParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2313,7 +2313,7 @@ CParseHandlerFactory::CreateFrameLeadingEdgeParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSearchStrategyParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2325,7 +2325,7 @@ CParseHandlerFactory::CreateSearchStrategyParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateSearchStageParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2337,7 +2337,7 @@ CParseHandlerFactory::CreateSearchStageParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateXformParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2349,7 +2349,7 @@ CParseHandlerFactory::CreateXformParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCostParamsParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2361,7 +2361,7 @@ CParseHandlerFactory::CreateCostParamsParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateCostParamParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2373,7 +2373,7 @@ CParseHandlerFactory::CreateCostParamParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScExprParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2385,7 +2385,7 @@ CParseHandlerFactory::CreateScExprParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDChkConstraintParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2397,7 +2397,7 @@ CParseHandlerFactory::CreateMDChkConstraintParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateScValuesListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2409,7 +2409,7 @@ CParseHandlerFactory::CreateScValuesListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateValuesScanParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2421,7 +2421,7 @@ CParseHandlerFactory::CreateValuesScanParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateMDArrayCoerceCastParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_mgr,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2432,7 +2432,7 @@ CParseHandlerFactory::CreateMDArrayCoerceCastParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateNLJIndexParamListParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_manager,
 	CParseHandlerBase *parse_handler_root
 	)
@@ -2443,7 +2443,7 @@ CParseHandlerFactory::CreateNLJIndexParamListParseHandler
 CParseHandlerBase *
 CParseHandlerFactory::CreateNLJIndexParamParseHandler
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CParseHandlerManager *parse_handler_manager,
 	CParseHandlerBase *parse_handler_root
 	)

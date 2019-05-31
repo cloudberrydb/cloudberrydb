@@ -53,7 +53,7 @@ GPOS_RESULT
 CContradictionTest::EresUnittest_Constraint()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -61,7 +61,7 @@ CContradictionTest::EresUnittest_Constraint()
 	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 
 	Pfpexpr rgpf[] =
 		{

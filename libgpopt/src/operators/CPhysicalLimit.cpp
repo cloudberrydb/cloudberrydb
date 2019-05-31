@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalLimit::CPhysicalLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpec *pos,
 	BOOL fGlobal,
 	BOOL fHasCount,
@@ -108,7 +108,7 @@ CPhysicalLimit::Matches
 CColRefSet *
 CPhysicalLimit::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -140,7 +140,7 @@ CPhysicalLimit::PcrsRequired
 COrderSpec *
 CPhysicalLimit::PosRequired
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posInput
 	ULONG
@@ -175,7 +175,7 @@ CPhysicalLimit::PosRequired
 CDistributionSpec *
 CPhysicalLimit::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -243,7 +243,7 @@ CPhysicalLimit::PdsRequired
 CRewindabilitySpec *
 CPhysicalLimit::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -280,7 +280,7 @@ CPhysicalLimit::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalLimit::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG
@@ -314,7 +314,7 @@ CPhysicalLimit::PppsRequired
 CCTEReq *
 CPhysicalLimit::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -363,7 +363,7 @@ CPhysicalLimit::FProvidesReqdCols
 COrderSpec *
 CPhysicalLimit::PosDerive
 	(
-	IMemoryPool *,// mp
+	CMemoryPool *,// mp
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -385,7 +385,7 @@ CPhysicalLimit::PosDerive
 CDistributionSpec*
 CPhysicalLimit::PdsDerive
 	(
-	IMemoryPool *,// mp
+	CMemoryPool *,// mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -405,7 +405,7 @@ CPhysicalLimit::PdsDerive
 CRewindabilitySpec *
 CPhysicalLimit::PrsDerive
 	(
-	IMemoryPool *, //mp
+	CMemoryPool *, //mp
 	CExpressionHandle &exprhdl
 	)
 	const

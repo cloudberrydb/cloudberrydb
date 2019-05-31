@@ -54,7 +54,7 @@ namespace gpopt
 		private:
 					
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// attached expression
 			CExpression *m_pexpr;
@@ -121,7 +121,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CExpressionHandle(IMemoryPool *mp);
+			CExpressionHandle(CMemoryPool *mp);
 
 			// dtor
 			~CExpressionHandle();
@@ -145,7 +145,7 @@ namespace gpopt
 			void DeriveCostContextStats();
 
 			// stats derivation using given properties and context
-			void DeriveStats(IMemoryPool *pmpLocal, IMemoryPool *pmpGlobal, CReqdPropRelational *prprel, IStatisticsArray *stats_ctxt);
+			void DeriveStats(CMemoryPool *pmpLocal, CMemoryPool *pmpGlobal, CReqdPropRelational *prprel, IStatisticsArray *stats_ctxt);
 
 			// derive the properties of the plan carried by attached cost context
 			void DerivePlanProps();
@@ -299,7 +299,7 @@ namespace gpopt
 
 			// return the columns used by a logical operator internally as well
 			// as columns used by all its scalar children
-			CColRefSet *PcrsUsedColumns(IMemoryPool *mp);
+			CColRefSet *PcrsUsedColumns(CMemoryPool *mp);
 
 	}; // class CExpressionHandle
 	

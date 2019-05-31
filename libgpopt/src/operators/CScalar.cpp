@@ -31,7 +31,7 @@ using namespace gpopt;
 DrvdPropArray *
 CScalar::PdpCreate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -50,7 +50,7 @@ CScalar::PdpCreate
 CReqdProp *
 CScalar::PrpCreate
 	(
-	IMemoryPool * // mp
+	CMemoryPool * // mp
 	)
 	const
 {
@@ -315,7 +315,7 @@ CScalar::EberNullOnAllNullChildren
 CScalar::EBoolEvalResult
 CScalar::EberEvaluate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar
 	)
 {
@@ -399,7 +399,7 @@ CScalar::FHasNonScalarFunction
 CPartInfo *
 CScalar::PpartinfoDeriveCombineScalar
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {

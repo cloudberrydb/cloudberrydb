@@ -10,7 +10,7 @@ namespace gpopt
 {
 	CMetadataAccessorFactory::CMetadataAccessorFactory
 		(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CDXLMinidump *pdxlmd,
 			const CHAR *file_name
 		)

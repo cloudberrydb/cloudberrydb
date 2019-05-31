@@ -42,7 +42,7 @@ namespace gpdxl
 			// ctors
 			CDXLPhysicalBitmapTableScan
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDXLTableDescr *table_descr
 				)
 				:

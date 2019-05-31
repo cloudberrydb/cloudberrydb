@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalSplit::CDXLPhysicalSplit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *delete_colid_array,
 	ULongPtrArray *insert_colid_array,
 	ULONG action_colid,

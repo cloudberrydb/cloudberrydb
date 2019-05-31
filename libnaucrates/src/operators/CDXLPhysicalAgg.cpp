@@ -26,7 +26,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalAgg::CDXLPhysicalAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlAggStrategy dxl_agg_strategy,
 	BOOL stream_safe
 	)

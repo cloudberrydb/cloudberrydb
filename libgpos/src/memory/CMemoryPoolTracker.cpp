@@ -21,7 +21,7 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 #include "gpos/common/clibwrapper.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/memory/CMemoryPoolManager.h"
 #include "gpos/memory/CMemoryPoolTracker.h"
 #include "gpos/memory/IMemoryVisitor.h"
@@ -47,7 +47,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMemoryPoolTracker::CMemoryPoolTracker
 	(
-	IMemoryPool *underlying_memory_pool,
+	CMemoryPool *underlying_memory_pool,
 	ULLONG max_size,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool

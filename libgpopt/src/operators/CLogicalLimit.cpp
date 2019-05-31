@@ -38,7 +38,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLimit::CLogicalLimit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -61,7 +61,7 @@ CLogicalLimit::CLogicalLimit
 //---------------------------------------------------------------------------
 CLogicalLimit::CLogicalLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpec *pos,
 	BOOL fGlobal,
 	BOOL fHasCount,
@@ -156,7 +156,7 @@ CLogicalLimit::Matches
 COperator *
 CLogicalLimit::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -177,7 +177,7 @@ CLogicalLimit::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalLimit::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -196,7 +196,7 @@ CLogicalLimit::PcrsDeriveOutput
 CColRefSet *
 CLogicalLimit::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -218,7 +218,7 @@ CLogicalLimit::PcrsDeriveOuter
 CMaxCard
 CLogicalLimit::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -248,7 +248,7 @@ CLogicalLimit::Maxcard
 CXformSet *
 CLogicalLimit::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -272,7 +272,7 @@ CLogicalLimit::PxfsCandidates
 CColRefSet *
 CLogicalLimit::PcrsStat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index
@@ -304,7 +304,7 @@ CLogicalLimit::PcrsStat
 CKeyCollection *
 CLogicalLimit::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -344,7 +344,7 @@ CLogicalLimit::OsPrint
 IStatistics *
 CLogicalLimit::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

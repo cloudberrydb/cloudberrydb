@@ -192,7 +192,7 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 	CAutoTraceFlag atf2(EopttraceDisableXformBase + CXform::ExfDynamicGet2DynamicTableScan, true);
 	
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG ulTests = GPOS_ARRAY_SIZE(unSupportedTestCases);
@@ -291,7 +291,7 @@ CICGTest::EresUnittest_NegativeIndexApplyTests()
 	CAutoTraceFlag atfNLJ(EopttraceDisableXformBase + CXform::ExfInnerJoin2NLJoin, true);
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszNegativeIndexApplyFileNames);
@@ -442,7 +442,7 @@ GPOS_RESULT
 CICGTest::EresUnittest_PreferHashJoinVersusIndexJoinWhenRiskIsHigh()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// enable (Redistribute, Broadcast) hash join plans
 	CAutoTraceFlag atf(EopttraceEnableRedistributeBroadcastHashJoin, true /*value*/);

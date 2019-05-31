@@ -66,7 +66,7 @@ CDatumTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -82,7 +82,7 @@ CDatumTest::EresUnittest_Basics()
 					CTestUtils::GetCostModel(mp)
 					);
 
-	typedef IDatum *(*Pfpdatum)(IMemoryPool*, BOOL);
+	typedef IDatum *(*Pfpdatum)(CMemoryPool*, BOOL);
 
 	Pfpdatum rgpf[] =
 		{
@@ -160,7 +160,7 @@ CDatumTest::EresUnittest_Basics()
 IDatum *
 CDatumTest::CreateOidDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {
@@ -178,7 +178,7 @@ CDatumTest::CreateOidDatum
 IDatum *
 CDatumTest::CreateInt2Datum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {
@@ -196,7 +196,7 @@ CDatumTest::CreateInt2Datum
 IDatum *
 CDatumTest::CreateInt4Datum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {
@@ -214,7 +214,7 @@ CDatumTest::CreateInt4Datum
 IDatum *
 CDatumTest::CreateInt8Datum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {
@@ -232,7 +232,7 @@ CDatumTest::CreateInt8Datum
 IDatum *
 CDatumTest::CreateBoolDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {
@@ -250,7 +250,7 @@ CDatumTest::CreateBoolDatum
 IDatum *
 CDatumTest::CreateGenericDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 {

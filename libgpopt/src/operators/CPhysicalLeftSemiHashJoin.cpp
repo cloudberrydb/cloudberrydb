@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalLeftSemiHashJoin::CPhysicalLeftSemiHashJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprOuterKeys,
 	CExpressionArray *pdrgpexprInnerKeys
 	)
@@ -83,7 +83,7 @@ CPhysicalLeftSemiHashJoin::FProvidesReqdCols
 CPartitionPropagationSpec *
 CPhysicalLeftSemiHashJoin::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,

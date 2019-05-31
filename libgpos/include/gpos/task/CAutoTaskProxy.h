@@ -37,7 +37,7 @@ namespace gpos
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// worker pool
 			CWorkerPoolManager *m_pwpm;
@@ -80,7 +80,7 @@ namespace gpos
 			// ctor
 			CAutoTaskProxy
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CWorkerPoolManager *m_pwpm,
 				BOOL propagate_error = true
 				);

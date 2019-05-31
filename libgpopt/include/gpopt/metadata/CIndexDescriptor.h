@@ -64,7 +64,7 @@ namespace gpopt
 			// ctor
 			CIndexDescriptor
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *pmdidIndex,
 				const CName &name,
 				CColumnDescriptorArray *pdrgcoldescKeyCols,
@@ -121,7 +121,7 @@ namespace gpopt
 			// create an index descriptor
 			static CIndexDescriptor *Pindexdesc
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CTableDescriptor *ptabdesc,
 				const IMDIndex *pmdindex
 				);

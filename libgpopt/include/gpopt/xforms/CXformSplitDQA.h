@@ -43,7 +43,7 @@ namespace gpopt
 			static
 			CExpression *PexprMultiLevelAggregation
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpression *pexprRelational,
 							CExpressionArray *pdrgpexprPrElFirstStage,
 							CExpressionArray *pdrgpexprPrElSecondStage,
@@ -59,7 +59,7 @@ namespace gpopt
 			static
 			CExpression *PexprSplitIntoLocalDQAGlobalAgg
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CColumnFactory *col_factory,
 							CMDAccessor *md_accessor,
 							CExpression *pexpr,
@@ -73,7 +73,7 @@ namespace gpopt
 			static
 			CExpression *PexprSplitHelper
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColumnFactory *col_factory,
 				CMDAccessor *md_accessor,
 				CExpression *pexpr,
@@ -90,7 +90,7 @@ namespace gpopt
 			static
 			void PopulatePrLMultiPhaseAgg
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CColumnFactory *col_factory,
 					CMDAccessor *md_accessor,
 					CExpression *pexprPrEl,
@@ -104,7 +104,7 @@ namespace gpopt
 			static
 			CExpression *PexprPrElAgg
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpression *pexprAggFunc,
 							EAggfuncStage eaggfuncstage,
 							CColRef *pcrPreviousStage,
@@ -115,7 +115,7 @@ namespace gpopt
 			static
 			void ExtractDistinctCols
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CColumnFactory *col_factory,
 					CMDAccessor *md_accessor,
 					CExpression *pexpr,
@@ -128,7 +128,7 @@ namespace gpopt
 			static
 			CColRef *PcrAggFuncArgument
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CMDAccessor *md_accessor,
 						CColumnFactory *col_factory,
 						CExpression *pexprArg,
@@ -139,7 +139,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformSplitDQA(IMemoryPool *mp);
+			CXformSplitDQA(CMemoryPool *mp);
 
 			// dtor
 			virtual

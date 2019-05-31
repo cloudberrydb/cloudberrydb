@@ -49,7 +49,7 @@ namespace gpopt
 			// ctors
 			CLogicalDynamicBitmapTableGet
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
 				const CName *pnameTableAlias,
@@ -63,7 +63,7 @@ namespace gpopt
 				);
 
 			explicit
-			CLogicalDynamicBitmapTableGet(IMemoryPool *mp);
+			CLogicalDynamicBitmapTableGet(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -100,21 +100,21 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(IMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOuter(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *PpcDeriveConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stat columns of the n-th child
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &, // exprhdl
 				CColRefSet *, //pcrsInput
 				ULONG // child_index
@@ -126,13 +126,13 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				IStatisticsArray *stats_ctxt
 				)

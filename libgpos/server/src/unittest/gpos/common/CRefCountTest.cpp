@@ -60,7 +60,7 @@ CRefCountTest::EresUnittest_CountUpAndDown()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// blank ref count object
 	CRefCount *pref = GPOS_NEW(mp) CRefCount;
@@ -96,7 +96,7 @@ CRefCountTest::EresUnittest_DeletableObjects()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CAutoTraceFlag atfOOM(EtraceSimulateOOM, false);
 
@@ -162,7 +162,7 @@ CRefCountTest::EresUnittest_Check()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	BYTE *rgb = GPOS_NEW_ARRAY(mp, BYTE, 128);
 	CRefCount *pref = (CRefCount*)rgb;

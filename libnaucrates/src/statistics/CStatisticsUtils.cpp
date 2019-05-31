@@ -59,7 +59,7 @@ using namespace gpmd;
 CPoint *
 CStatisticsUtils::NextPoint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CPoint *point
 	)
@@ -114,7 +114,7 @@ CStatisticsUtils::NextPoint
 CHistogram *
 CStatisticsUtils::TransformMCVToHist
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IMDType *, // mdtype,
 	IDatumArray *mcv_datums,
 	CDoubleArray *freq_array,
@@ -179,7 +179,7 @@ CStatisticsUtils::TransformMCVToHist
 CHistogram *
 CStatisticsUtils::MergeMCVHist
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHistogram *mcv_histogram,
 	const CHistogram *histogram
 	)
@@ -234,7 +234,7 @@ CStatisticsUtils::MergeMCVHist
 CBucketArray *
 CStatisticsUtils::MergeMcvHistBucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBucketArray *mcv_buckets,
 	const CBucketArray *histogram_buckets
 	)
@@ -286,7 +286,7 @@ CStatisticsUtils::MergeMcvHistBucket
 void
 CStatisticsUtils::AddRemainingBuckets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBucketArray *src_buckets,
 	CBucketArray *dest_buckets,
 	ULONG *start_val
@@ -314,7 +314,7 @@ CStatisticsUtils::AddRemainingBuckets
 void
 CStatisticsUtils::SplitHistDriver
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBucket *histogram_bucket,
 								  const CBucketArray *mcv_buckets,
 								  CBucketArray *merged_buckets,
@@ -366,7 +366,7 @@ CStatisticsUtils::SplitHistDriver
 CBucketArray *
 CStatisticsUtils::SplitHistBucketGivenMcvBuckets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBucket *histogram_bucket,
 	const CBucketArray *mcv_buckets
 	)
@@ -442,7 +442,7 @@ CStatisticsUtils::SplitHistBucketGivenMcvBuckets
 CBucket *
 CStatisticsUtils::CreateValidBucket
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPoint *bucket_lower_bound,
 	CPoint *bucket_upper_bound,
 	BOOL is_lower_closed,
@@ -581,7 +581,7 @@ CStatisticsUtils::DistributeBucketProperties
 void
 CStatisticsUtils::PrintColStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPred *pred_stats,
 	ULONG cond_colid,
 	CHistogram *histogram,
@@ -622,7 +622,7 @@ CStatisticsUtils::PrintColStats
 void
 CStatisticsUtils::ExtractUsedColIds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *colids_bitset,
 	CStatsPred *pred_stats,
 	ULongPtrArray *colids
@@ -695,7 +695,7 @@ CStatisticsUtils::ExtractUsedColIds
 void
 CStatisticsUtils::UpdateDisjStatistics
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *dont_update_stats_bitset,
 	CDouble input_disjunct_rows,
 	CDouble local_rows,
@@ -757,7 +757,7 @@ CStatisticsUtils::UpdateDisjStatistics
 CBitSet *
 CStatisticsUtils::GetColsNonUpdatableHistForDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredDisj *pred_stats
 	)
 {
@@ -839,7 +839,7 @@ CStatisticsUtils::GetColsNonUpdatableHistForDisj
 void
 CStatisticsUtils::AddHistogram
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG colid,
 	const CHistogram *histogram,
 	UlongToHistogramMap *col_histogram_mapping,
@@ -909,7 +909,7 @@ CStatisticsUtils::PrintHistogramMap
 UlongToHistogramMap *
 CStatisticsUtils::CreateHistHashMapAfterMergingDisjPreds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *non_updatable_cols,
 	UlongToHistogramMap *col_histogram_mapping,
 	UlongToHistogramMap *disj_preds_histogram_map,
@@ -1018,7 +1018,7 @@ CStatisticsUtils::CreateHistHashMapAfterMergingDisjPreds
 UlongToHistogramMap *
 CStatisticsUtils::CopyHistHashMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToHistogramMap *col_histogram_mapping
 	)
 {
@@ -1119,7 +1119,7 @@ CStatisticsUtils::DatumNull
 IStatistics *
 CStatisticsUtils::DeriveStatsForDynamicScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expr_handle,
 	ULONG part_idx_id,
 	CPartFilterMap *part_filter_map
@@ -1186,7 +1186,7 @@ CStatisticsUtils::DeriveStatsForDynamicScan
 IStatistics *
 CStatisticsUtils::DeriveStatsForIndexGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expr_handle,
 	IStatisticsArray *stats_contexts
 	)
@@ -1256,7 +1256,7 @@ CStatisticsUtils::DeriveStatsForIndexGet
 IStatistics *
 CStatisticsUtils::DeriveStatsForBitmapTableGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &expr_handle,
 	IStatisticsArray *stats_contexts
 	)
@@ -1311,7 +1311,7 @@ CStatisticsUtils::DeriveStatsForBitmapTableGet
 UlongToUlongPtrArrayMap *
 CStatisticsUtils::GetGrpColIdToUpperBoundNDVIdxMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatistics *stats,
 	const CColRefSet *grp_cols_refset,
 	CBitSet *keys // keys derived during optimization
@@ -1368,7 +1368,7 @@ CStatisticsUtils::GetGrpColIdToUpperBoundNDVIdxMap
 void
 CStatisticsUtils::AddNdvForAllGrpCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	const ULongPtrArray *grouping_columns, // array of grouping column ids from a source
 	CDoubleArray *output_ndvs // output array of ndvs
@@ -1414,7 +1414,7 @@ CStatisticsUtils::AddNdvForAllGrpCols
 CDoubleArray *
 CStatisticsUtils::ExtractNDVForGrpCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatisticsConfig *stats_config,
 	const IStatistics *stats,
 	CColRefSet *grp_cols_refset,
@@ -1543,7 +1543,7 @@ CStatisticsUtils::MaxNdv
 CDouble
 CStatisticsUtils::MaxNumGroupsForGivenSrcGprCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatisticsConfig *stats_config,
 	CStatistics *input_stats,
 	const ULongPtrArray *src_grouping_cols
@@ -1595,7 +1595,7 @@ CStatisticsUtils::MaxNumGroupsForGivenSrcGprCols
 CDouble
 CStatisticsUtils::Groups
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IStatistics *stats,
 	const CStatisticsConfig *stats_config,
 	ULongPtrArray *grouping_cols,
@@ -1681,7 +1681,7 @@ CStatisticsUtils::GetCumulativeNDVs
 void
 CStatisticsUtils::AddGrpColStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	CColRefSet *grp_cols_refset,
 	UlongToHistogramMap *output_histograms,
@@ -1734,7 +1734,7 @@ CStatisticsUtils::AddGrpColStats
 CColRefSet *
 CStatisticsUtils::MakeGroupByColsForStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const ULongPtrArray *grouping_columns,
 	CColRefSet *computed_groupby_cols
 	)
@@ -1897,7 +1897,7 @@ CStatisticsUtils::DefaultColumnWidth
 void
 CStatisticsUtils::AddWidthInfo
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				UlongToDoubleMap *src_width,
 				UlongToDoubleMap *dest_width
 		)
@@ -1925,7 +1925,7 @@ CStatisticsUtils::AddWidthInfo
 void
 CStatisticsUtils::ComputeCardUpperBounds
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		const CStatistics *input_stats,
 		CStatistics *output_stats, // output statistics object that is to be updated
 		CDouble rows_output, // estimated output cardinality of the operator

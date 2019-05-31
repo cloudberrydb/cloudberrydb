@@ -5,7 +5,7 @@
 #define GPOPT_CDatumSortedSet_H
 
 #include "naucrates/base/IDatum.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/base/IComparator.h"
 
@@ -21,7 +21,7 @@ namespace gpopt
 		public:
 			CDatumSortedSet
 			(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CExpression *pexprArray,
 			const IComparator *pcomp
 			);

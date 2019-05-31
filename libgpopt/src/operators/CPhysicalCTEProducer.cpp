@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalCTEProducer::CPhysicalCTEProducer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	CColRefArray *colref_array
 	)
@@ -70,7 +70,7 @@ CPhysicalCTEProducer::~CPhysicalCTEProducer()
 CColRefSet *
 CPhysicalCTEProducer::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -103,7 +103,7 @@ CPhysicalCTEProducer::PcrsRequired
 COrderSpec *
 CPhysicalCTEProducer::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
@@ -128,7 +128,7 @@ CPhysicalCTEProducer::PosRequired
 CDistributionSpec *
 CPhysicalCTEProducer::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -153,7 +153,7 @@ CPhysicalCTEProducer::PdsRequired
 CRewindabilitySpec *
 CPhysicalCTEProducer::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -178,7 +178,7 @@ CPhysicalCTEProducer::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalCTEProducer::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -202,7 +202,7 @@ CPhysicalCTEProducer::PppsRequired
 CCTEReq *
 CPhysicalCTEProducer::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -230,7 +230,7 @@ CPhysicalCTEProducer::PcteRequired
 COrderSpec *
 CPhysicalCTEProducer::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -249,7 +249,7 @@ CPhysicalCTEProducer::PosDerive
 CDistributionSpec *
 CPhysicalCTEProducer::PdsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -269,7 +269,7 @@ CPhysicalCTEProducer::PdsDerive
 CRewindabilitySpec *
 CPhysicalCTEProducer::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -288,7 +288,7 @@ CPhysicalCTEProducer::PrsDerive
 CCTEMap *
 CPhysicalCTEProducer::PcmDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const

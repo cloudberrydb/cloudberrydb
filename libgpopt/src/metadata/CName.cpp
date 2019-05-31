@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CName::CName
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CWStringBase *str
 	)
 	:m_str_name(NULL),
@@ -73,7 +73,7 @@ CName::CName
 //---------------------------------------------------------------------------
 CName::CName
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName &nameFirst,
 	const CName &nameSecond
 	)
@@ -125,7 +125,7 @@ CName::CName
 //---------------------------------------------------------------------------
 CName::CName
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName &name
 	)
 	:
@@ -167,7 +167,7 @@ CName::~CName()
 void
 CName::DeepCopy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CWStringConst *str
 	)
 {

@@ -49,7 +49,7 @@ CMCVTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -68,7 +68,7 @@ CMCVTest::EresUnittest_SortInt4MCVs()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	CMDIdGPDB *mdid = GPOS_NEW(mp) CMDIdGPDB(CMDIdGPDB::m_mdid_int4);
@@ -183,7 +183,7 @@ CMCVTest::EresUnittest_MergeHistMCV()
 
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG length = GPOS_ARRAY_SIZE(rgMergeTestElem);
 	for (ULONG ul = 0; ul < length; ul++)

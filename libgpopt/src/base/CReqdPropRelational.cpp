@@ -100,7 +100,7 @@ CReqdPropRelational::~CReqdPropRelational()
 void
 CReqdPropRelational::Compute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdProp *prpInput,
 	ULONG child_index,
@@ -148,7 +148,7 @@ CReqdPropRelational::GetReqdRelationalProps
 CReqdPropRelational *
 CReqdPropRelational::PrprelDifference
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CReqdPropRelational *prprel
 	)
 {

@@ -195,7 +195,7 @@ CCacheTest::CDeepObject::FMyEqual
 void
 CCacheTest::CDeepObject::AddEntry
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulKey,
 	ULONG ulVal
 	)
@@ -346,7 +346,7 @@ CCacheTest::EresUnittest_Refcount()
 	//Scope of the accessor when we insert
 	{
 		CSimpleObjectCacheAccessor ca(pcache);
-		IMemoryPool* mp = ca.Pmp();
+		CMemoryPool* mp = ca.Pmp();
 
 		pso = GPOS_NEW(mp) SSimpleObject(1, 2);
 		GPOS_ASSERT(1 == pso->RefCount());
@@ -404,7 +404,7 @@ CCacheTest::InsertOneElement(CCache<SSimpleObject*, ULONG*> *pCache, ULONG ulKey
 	SSimpleObject *pso = NULL;
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
-		IMemoryPool *mp = ca.Pmp();
+		CMemoryPool *mp = ca.Pmp();
 		pso = GPOS_NEW(mp) SSimpleObject(ulKey, ulKey);
 		ca.Insert(&(pso->m_ulKey), pso);
 		GPOS_ASSERT(3 == pso->RefCount() && "Expected pso, cacheentry and cacheaccessor to have ownership");
@@ -684,7 +684,7 @@ CCacheTest::EresInsertDuplicates
 
 	{
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 		CAutoTrace at(mp);
 		at.Os() << std::endl << "Total memory consumption by cache: " << pcache->TotalAllocatedSize() << " bytes";
 		at.Os() << std::endl << "Total memory consumption by memory manager: " << CMemoryPoolManager::GetMemoryPoolMgr()->TotalAllocatedSize() << " bytes";
@@ -780,7 +780,7 @@ CCacheTest::EresUnittest_DeepObject()
 	// insertion - scope for accessor
 	{
 		CDeepObjectCacheAccessor ca(pcache);
-		IMemoryPool *mp = ca.Pmp();
+		CMemoryPool *mp = ca.Pmp();
 		CDeepObject *pdo = GPOS_NEW(mp) CDeepObject();
 		pdo->AddEntry(mp, 1, 1);
 		pdo->AddEntry(mp, 2, 2);
@@ -798,7 +798,7 @@ CCacheTest::EresUnittest_DeepObject()
 		if (pcache->AllowsDuplicateKeys())
 		{
 			CDeepObjectCacheAccessor ca(pcache);
-			IMemoryPool *mp = ca.Pmp();
+			CMemoryPool *mp = ca.Pmp();
 			CDeepObject *pdoDuplicate = GPOS_NEW(mp) CDeepObject();
 			pdoDuplicate->AddEntry(mp, 1, 5);
 			pdoDuplicate->AddEntry(mp, 2, 5);
@@ -1139,7 +1139,7 @@ GPOS_RESULT
 CCacheTest::EresUnittest_ConcurrentAccess()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for cache auto pointer

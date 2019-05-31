@@ -37,7 +37,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CXformGbAggDedup2HashAggDedup(IMemoryPool *mp);
+			CXformGbAggDedup2HashAggDedup(CMemoryPool *mp);
 
 			// dtor
 			virtual

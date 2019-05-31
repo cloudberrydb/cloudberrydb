@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalLeftAntiSemiNLJoin::CPhysicalLeftAntiSemiNLJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CPhysicalNLJoin(mp)
@@ -79,7 +79,7 @@ CPhysicalLeftAntiSemiNLJoin::FProvidesReqdCols
 CPartitionPropagationSpec *
 CPhysicalLeftAntiSemiNLJoin::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,

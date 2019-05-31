@@ -60,7 +60,7 @@ const ULONG CStatistics::no_card_est_risk_default_val = 1;
 // ctor
 CStatistics::CStatistics
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToHistogramMap *col_histogram_mapping,
 	UlongToDoubleMap *colid_width_mapping,
 	CDouble rows,
@@ -241,7 +241,7 @@ CStatistics::Width
 CDouble
 CStatistics::Width
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *colrefs
 	)
 	const
@@ -261,7 +261,7 @@ CStatistics::Width
 CStatistics *
 CStatistics::MakeDummyStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *colids,
 	CDouble rows
 	)
@@ -289,7 +289,7 @@ CStatistics::MakeDummyStats
 void
 CStatistics::CreateAndInsertUpperBoundNDVs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatistics *stats,
 	ULongPtrArray *colids,
 	CDouble rows
@@ -325,7 +325,7 @@ CStatistics::CreateAndInsertUpperBoundNDVs
 CStatistics *
 CStatistics::MakeDummyStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *col_histogram_mapping,
 	ULongPtrArray *col_width_mapping,
 	CDouble rows
@@ -402,7 +402,7 @@ CStatistics::IsEmptyJoin
 CStatistics *
 CStatistics::CalcLOJoinStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IStatistics *other_stats,
 	CStatsPredJoinArray *join_preds_stats
 	)
@@ -417,7 +417,7 @@ CStatistics::CalcLOJoinStats
 CStatistics *
 CStatistics::CalcLSJoinStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IStatistics *inner_side_stats,
 	CStatsPredJoinArray *join_preds_stats
 	)
@@ -432,7 +432,7 @@ CStatistics::CalcLSJoinStats
 CStatistics *
 CStatistics::CalcInnerJoinStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IStatistics *other_stats,
 	CStatsPredJoinArray *join_preds_stats
 	)
@@ -445,7 +445,7 @@ CStatistics::CalcInnerJoinStats
 CStatistics *
 CStatistics::CalcLASJoinStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IStatistics *other_stats,
 	CStatsPredJoinArray *join_preds_stats,
 	BOOL DoIgnoreLASJHistComputation
@@ -459,7 +459,7 @@ CStatistics::CalcLASJoinStats
 void
 CStatistics::AddNotExcludedHistograms
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *excluded_cols,
 	UlongToHistogramMap *col_histogram_mapping
 	)
@@ -485,7 +485,7 @@ CStatistics::AddNotExcludedHistograms
 UlongToDoubleMap *
 CStatistics::CopyWidths
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -498,7 +498,7 @@ CStatistics::CopyWidths
 void
 CStatistics::CopyWidthsInto
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				UlongToDoubleMap *colid_width_mapping
 		)
 	const
@@ -509,7 +509,7 @@ CStatistics::CopyWidthsInto
 UlongToHistogramMap *
 CStatistics::CopyHistograms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -545,7 +545,7 @@ CStatistics::CopyHistograms
 CReqdPropRelational *
 CStatistics::GetReqdRelationalProps
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -572,7 +572,7 @@ CStatistics::GetReqdRelationalProps
 void
 CStatistics::AppendStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IStatistics *input_stats
 	)
 {
@@ -589,7 +589,7 @@ CStatistics::AppendStats
 IStatistics *
 CStatistics::CopyStats
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -600,7 +600,7 @@ CStatistics::CopyStats
 IStatistics *
 CStatistics::ScaleStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDouble factor
 	)
 	const
@@ -643,7 +643,7 @@ CStatistics::ScaleStats
 IStatistics *
 CStatistics::CopyStatsWithRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -692,7 +692,7 @@ CStatistics::CopyStatsWithRemap
 ULongPtrArray *
 CStatistics::GetColIdsWithStats
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -712,7 +712,7 @@ CStatistics::GetColIdsWithStats
 CColRefSet *
 CStatistics::GetColRefSet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -736,7 +736,7 @@ CStatistics::GetColRefSet
 void
 CStatistics::AddHistogramsWithRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToHistogramMap *src_histograms,
 	UlongToHistogramMap *dest_histograms,
 	UlongToColRefMap *colref_mapping,
@@ -767,7 +767,7 @@ CStatistics::AddHistogramsWithRemap
 void
 CStatistics::AddWidthInfoWithRemap
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		UlongToDoubleMap *src_width,
 		UlongToDoubleMap *dest_width,
 		UlongToColRefMap *colref_mapping,
@@ -845,7 +845,7 @@ CStatistics::AddCardUpperBound
 CDXLStatsDerivedRelation *
 CStatistics::GetDxlStatsDrvdRelation
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor
 	)
 	const

@@ -38,7 +38,7 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CLogicalProject::CLogicalProject
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnary(mp)
@@ -56,7 +56,7 @@ CLogicalProject::CLogicalProject
 CColRefSet *
 CLogicalProject::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -83,7 +83,7 @@ CLogicalProject::PcrsDeriveOutput
 CKeyCollection *
 CLogicalProject::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -103,7 +103,7 @@ CLogicalProject::PkcDeriveKeys
 CColRefSetArray *
 CLogicalProject::PdrgpcrsEquivClassFromScIdent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprPrEl,
 	CColRefSet *not_null_columns
 	)
@@ -163,7 +163,7 @@ CLogicalProject::PdrgpcrsEquivClassFromScIdent
 void
 CLogicalProject::ExtractConstraintFromScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprPrEl,
 	CConstraintArray *pdrgpcnstr, // array of range constraints
 	CColRefSetArray *pdrgpcrs // array of equivalence class
@@ -220,7 +220,7 @@ CLogicalProject::ExtractConstraintFromScConst
 CPropConstraint *
 CLogicalProject::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -312,7 +312,7 @@ CLogicalProject::PpcDeriveConstraint
 CMaxCard
 CLogicalProject::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -338,7 +338,7 @@ CLogicalProject::Maxcard
 CXformSet *
 CLogicalProject::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -363,7 +363,7 @@ CLogicalProject::PxfsCandidates
 IStatistics *
 CLogicalProject::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // stats_ctxt
 	)

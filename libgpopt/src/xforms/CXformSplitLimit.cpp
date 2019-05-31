@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSplitLimit::CXformSplitLimit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -98,7 +98,7 @@ CXformSplitLimit::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	// extract components
 	CLogicalLimit *popLimit = CLogicalLimit::PopConvert(pexpr->Pop());
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -160,7 +160,7 @@ CXformSplitLimit::Transform
 CExpression *
 CXformSplitLimit::PexprLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprRelational,
 	CExpression *pexprScalarStart,
 	CExpression *pexprScalarRows,

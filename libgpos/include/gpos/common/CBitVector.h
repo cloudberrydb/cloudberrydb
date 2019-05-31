@@ -45,13 +45,13 @@ namespace gpos
 		public:
 				
 			// ctor
-			CBitVector(IMemoryPool *mp, ULONG cBits);
+			CBitVector(CMemoryPool *mp, ULONG cBits);
 			
 			// dtor
 			~CBitVector();
 			
 			// copy ctor with target mem pool
-			CBitVector(IMemoryPool *mp, const CBitVector &);
+			CBitVector(CMemoryPool *mp, const CBitVector &);
 			
 			// determine if bit is set
 			BOOL Get(ULONG ulBit) const;

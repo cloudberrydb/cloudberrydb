@@ -43,7 +43,7 @@ namespace gpopt
 			static
 			BOOL FSplitCorrelations
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpressionArray *pdrgpexprAllCorr,
@@ -56,7 +56,7 @@ namespace gpopt
 			static
 			BOOL FDecorrelate
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression **ppexprInnerNew,
 				CExpressionArray **ppdrgpexprCorr
@@ -66,7 +66,7 @@ namespace gpopt
 			static
 			CExpression *PexprDecorrelate
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr
 				);
 
@@ -76,7 +76,7 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformApply2Join<CLogicalLeftSemiApply, CLogicalInnerJoin>(mp, true /*fDeepTree*/)
@@ -85,7 +85,7 @@ namespace gpopt
 			// ctor with a passed pattern
 			CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprPattern
 				)
 				:

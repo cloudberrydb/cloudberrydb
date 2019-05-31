@@ -70,20 +70,20 @@ namespace gpopt
 
 			// given a colrefset from a table, get colids and attno
 			void
-			ExtractColIdsAttno(IMemoryPool *mp, CColRefSet *pcrs, ULongPtrArray *colids, ULongPtrArray *pdrgpulPos) const;
+			ExtractColIdsAttno(CMemoryPool *mp, CColRefSet *pcrs, ULongPtrArray *colids, ULongPtrArray *pdrgpulPos) const;
 
 			// derive stats from base table using filters on partition and/or index columns
-			IStatistics *PstatsDeriveFilter(IMemoryPool *mp, CExpressionHandle &exprhdl, CExpression *pexprFilter) const;
+			IStatistics *PstatsDeriveFilter(CMemoryPool *mp, CExpressionHandle &exprhdl, CExpression *pexprFilter) const;
 
 		public:
 		
 			// ctors
 			explicit
-			CLogicalDynamicGetBase(IMemoryPool *mp);
+			CLogicalDynamicGetBase(CMemoryPool *mp);
 
 			CLogicalDynamicGetBase
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc,
 				ULONG scan_id,
@@ -97,7 +97,7 @@ namespace gpopt
 			
 			CLogicalDynamicGetBase
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc,
 				ULONG scan_id
@@ -195,25 +195,25 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *, CExpressionHandle &);
+			CColRefSet *PcrsDeriveOutput(CMemoryPool *, CExpressionHandle &);
 
 			// derive keys
 			virtual 
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPartInfo *PpartinfoDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 			
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *PpcDeriveConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 		
 			// derive join depth
 			virtual
 			ULONG JoinDepth
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpressionHandle & // exprhdl
 				)
 				const

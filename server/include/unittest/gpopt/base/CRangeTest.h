@@ -31,14 +31,14 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CRangeTest
 	{
-		typedef IDatum * (*PfPdatum)(IMemoryPool *mp, INT i);
+		typedef IDatum * (*PfPdatum)(CMemoryPool *mp, INT i);
 
 		private:
 
 			static
 			GPOS_RESULT EresInitAndCheckRanges
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						IMDId *mdid,
 						PfPdatum pf
 						);
@@ -46,7 +46,7 @@ namespace gpopt
 			static
 			void TestRangeRelationship
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CRange *prange1,
 					CRange *prange2,
 					CRange *prange3,
@@ -57,22 +57,22 @@ namespace gpopt
 			static
 			void PrintRange
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CColRef *colref,
 					CRange *prange
 					);
 
 			// int2 datum
 			static
-			IDatum *CreateInt2Datum(IMemoryPool *mp, INT i);
+			IDatum *CreateInt2Datum(CMemoryPool *mp, INT i);
 
 			// int4 datum
 			static
-			IDatum *CreateInt4Datum(IMemoryPool *mp, INT i);
+			IDatum *CreateInt4Datum(CMemoryPool *mp, INT i);
 
 			// int8 datum
 			static
-			IDatum *CreateInt8Datum(IMemoryPool *mp, INT li);
+			IDatum *CreateInt8Datum(CMemoryPool *mp, INT li);
 
 		public:
 

@@ -6,7 +6,7 @@
 
 #include "gpopt/base/CDistributionSpec.h"
 #include "gpopt/base/CDistributionSpecStrictHashed.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpopt/base/CColRef.h"
 #include "gpopt/base/CUtils.h"
 
@@ -23,7 +23,7 @@ namespace gpopt
 		public:
 			CStrictHashedDistributions
 			(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CColRefArray *pdrgpcrOutput,
 			CColRef2dArray *pdrgpdrgpcrInput
 			);

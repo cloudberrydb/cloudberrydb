@@ -126,7 +126,7 @@ CJoinOrderDP::SComponentPair::~SComponentPair()
 //---------------------------------------------------------------------------
 CJoinOrderDP::CJoinOrderDP
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprComponents,
 	CExpressionArray *pdrgpexprConjuncts
 	)
@@ -598,7 +598,7 @@ CJoinOrderDP::PexprBestJoinOrderDP
 void
 CJoinOrderDP::GenerateSubsets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *pbsCurrent,
 	ULONG *pulElems,
 	ULONG size,
@@ -642,7 +642,7 @@ CJoinOrderDP::GenerateSubsets
 CBitSetArray *
 CJoinOrderDP::PdrgpbsSubsets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CBitSet *pbs
 	)
 {

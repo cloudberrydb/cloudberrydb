@@ -32,7 +32,7 @@ using namespace gpopt;
 BOOL
 CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FSplitCorrelations
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpressionArray *pdrgpexprAllCorr,
@@ -118,7 +118,7 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FSplitCorrelations
 BOOL
 CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FDecorrelate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression **ppexprInnerNew,
 	CExpressionArray **ppdrgpexprCorr
@@ -189,7 +189,7 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FDecorrelate
 CExpression *
 CXformLeftSemiApplyWithExternalCorrs2InnerJoin::PexprDecorrelate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -299,7 +299,7 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpression *pexprResult = PexprDecorrelate(mp, pexpr);
 	if (NULL != pexprResult)
 	{

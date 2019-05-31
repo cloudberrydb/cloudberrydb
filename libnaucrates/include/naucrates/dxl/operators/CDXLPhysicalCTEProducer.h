@@ -42,7 +42,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLPhysicalCTEProducer(IMemoryPool *mp, ULONG id, ULongPtrArray *output_colids_array);
+			CDXLPhysicalCTEProducer(CMemoryPool *mp, ULONG id, ULongPtrArray *output_colids_array);
 
 			// dtor
 			virtual

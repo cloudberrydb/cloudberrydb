@@ -41,7 +41,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformImplementCorrelatedApply(IMemoryPool *mp)
+			CXformImplementCorrelatedApply(CMemoryPool *mp)
                 :
                 // pattern
                 CXformImplementation
@@ -76,7 +76,7 @@ namespace gpopt
                 GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
                 GPOS_ASSERT(FCheckPattern(pexpr));
 
-                IMemoryPool *mp = pxfctxt->Pmp();
+                CMemoryPool *mp = pxfctxt->Pmp();
 
                 // extract components
                 CExpression *pexprLeft = (*pexpr)[0];

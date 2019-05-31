@@ -55,7 +55,7 @@ namespace gpnaucrates
 			static
 			void JoinHistograms
 					(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							const CHistogram *histogram1,
 							const CHistogram *histogram2,
 							CStatsPredJoin *join_pred_stats,
@@ -75,7 +75,7 @@ namespace gpnaucrates
 			static
 			CStatistics *SetResultingJoinStats
 				(
-				 IMemoryPool *mp,
+				 CMemoryPool *mp,
 				 CStatisticsConfig *stats_config,
 				 const IStatistics *outer_stats_input,
 				 const IStatistics *inner_stats_input,
@@ -87,7 +87,7 @@ namespace gpnaucrates
 			static
 			IStatistics *CalcAllJoinStats
 				(
-				 IMemoryPool *mp,
+				 CMemoryPool *mp,
 				 IStatisticsArray *statistics_array,
 				 CExpression *expr,
 				 IStatistics::EStatsJoinType join_type
@@ -97,7 +97,7 @@ namespace gpnaucrates
 			static
 			IStatistics *DeriveJoinStats
 				(
-				 IMemoryPool *mp,
+				 CMemoryPool *mp,
 				 CExpressionHandle &exprhdl,
 				 IStatisticsArray *stats_ctxt
 				 );
@@ -106,7 +106,7 @@ namespace gpnaucrates
 			static
 			IStatistics *DeriveStatsWithOuterRefs
 				(
-				 IMemoryPool *mp,
+				 CMemoryPool *mp,
 				 CExpressionHandle &exprhdl, // handle attached to the logical expression we want to derive stats for
 				 CExpression *expr, // scalar condition used for stats derivation
 				 IStatistics *stats, // statistics object of attached expression

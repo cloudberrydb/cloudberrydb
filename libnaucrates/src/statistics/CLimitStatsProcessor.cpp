@@ -17,7 +17,7 @@ using namespace gpopt;
 CStatistics *
 CLimitStatsProcessor::CalcLimitStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CStatistics *input_stats,
 	CDouble input_limit_rows
 	)

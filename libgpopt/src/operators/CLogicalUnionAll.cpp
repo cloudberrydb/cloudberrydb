@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnion(mp),
@@ -47,7 +47,7 @@ CLogicalUnionAll::CLogicalUnionAll
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput,
 	ULONG ulScanIdPartialIndex
@@ -81,7 +81,7 @@ CLogicalUnionAll::~CLogicalUnionAll()
 CMaxCard
 CLogicalUnionAll::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -108,7 +108,7 @@ CLogicalUnionAll::Maxcard
 COperator *
 CLogicalUnionAll::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -130,7 +130,7 @@ CLogicalUnionAll::PopCopyWithRemappedColumns
 CKeyCollection *
 CLogicalUnionAll::PkcDeriveKeys
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -149,7 +149,7 @@ CLogicalUnionAll::PkcDeriveKeys
 CXformSet *
 CLogicalUnionAll::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -171,7 +171,7 @@ CLogicalUnionAll::PxfsCandidates
 IStatistics *
 CLogicalUnionAll::PstatsDeriveUnionAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -215,7 +215,7 @@ CLogicalUnionAll::PstatsDeriveUnionAll
 IStatistics *
 CLogicalUnionAll::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

@@ -31,7 +31,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLRelStats::CDXLRelStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDIdRelStats *rel_stats_mdid,
 	CMDName *mdname,
 	CDouble rows,
@@ -189,7 +189,7 @@ CDXLRelStats::DebugPrint
 CDXLRelStats *
 CDXLRelStats::CreateDXLDummyRelStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid
 	)
 {

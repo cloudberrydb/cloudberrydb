@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalIndexScan::CPhysicalIndexScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CIndexDescriptor *pindexdesc,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,

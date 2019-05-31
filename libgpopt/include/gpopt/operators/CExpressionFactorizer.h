@@ -71,7 +71,7 @@ namespace gpopt
 
 			typedef CExpression *(*PexprProcessDisj)
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CExpression *pexpr,
 					CExpression *pexprLowestLogicalAncestor
 					);
@@ -80,7 +80,7 @@ namespace gpopt
 			static
 			void AddFactor
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpressionArray *pdrgpexprFactors,
 				CExpressionArray *pdrgpexprResidual,
@@ -90,13 +90,13 @@ namespace gpopt
 
 			// helper for building a factors map
 			static
-			ExprMap *PexprmapFactors(IMemoryPool *mp, CExpression *pexpr);
+			ExprMap *PexprmapFactors(CMemoryPool *mp, CExpression *pexpr);
 
 			// factorize common expressions in Or tree
 			static
 			CExpression *PexprFactorizeDisj
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *  // pexprLowestLogicalAncestor
 				);
@@ -105,7 +105,7 @@ namespace gpopt
 			static
 			CExpression *PexprProcessDisjDescendents
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *pexprLowestLogicalAncestor,
 				PexprProcessDisj pexprorfun
@@ -113,7 +113,7 @@ namespace gpopt
 
 			// discover common factors in scalar expression
 			static
-			CExpression *PexprDiscoverFactors(IMemoryPool *mp, CExpression *pexpr);
+			CExpression *PexprDiscoverFactors(CMemoryPool *mp, CExpression *pexpr);
 
 			// if the given expression is a non volatile scalar expression using table
 			// columns created by the same operator
@@ -142,7 +142,7 @@ namespace gpopt
 			static
 			CExpressionArrays *PdrgPdrgpexprDisjunctArrayForSourceId
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				SourceToArrayPosMap *psrc2array,
 				BOOL fAllowNewSources,
 				ULONG ulOpSourceId
@@ -154,7 +154,7 @@ namespace gpopt
 			static
 			CExpressionArrays *PdrgPdrgpexprDisjunctArrayForColumn
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ColumnToArrayPosMap *pcol2array,
 				BOOL fAllowNewSources,
 				CColRef *colref
@@ -165,7 +165,7 @@ namespace gpopt
 			static
 			void StoreBaseOpToColumnExpr
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				SourceToArrayPosMap *psrc2array,
 				ColumnToArrayPosMap *pcol2array,
@@ -179,7 +179,7 @@ namespace gpopt
 			static
 			void AddInferredFiltersFromArray
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CExpressionArrays *pdrgpdrgpexpr,
 				ULONG ulDisjChildrenLength,
 				CExpressionArray *pdrgpexprPrefilters
@@ -190,7 +190,7 @@ namespace gpopt
 			static
 			CExpression * PexprAddInferredFilters
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpression *pexpr,
 							SourceToArrayPosMap *psrc2array,
 							ColumnToArrayPosMap *pcol2array
@@ -199,13 +199,13 @@ namespace gpopt
 			//	returns the set of columns produced by the scalar children of the given
 			//	expression
 			static
-			CColRefSet *PcrsColumnsProducedByChildren(IMemoryPool *mp, CExpression *pexpr);
+			CColRefSet *PcrsColumnsProducedByChildren(CMemoryPool *mp, CExpression *pexpr);
 
 			// compute disjunctive pre-filters that can be pushed to the column creators
 			static
 			CExpression *PexprExtractInferredFiltersFromDisj
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *pexprLowestLogicalAncestor
 				);
@@ -213,11 +213,11 @@ namespace gpopt
 		public:
 			// factorize common expressions
 			static
-			CExpression *PexprFactorize(IMemoryPool *mp, CExpression *pexpr);
+			CExpression *PexprFactorize(CMemoryPool *mp, CExpression *pexpr);
 
 			// compute disjunctive pre-filters that can be pushed to the column creators
 			static
-			CExpression *PexprExtractInferredFilters(IMemoryPool *mp, CExpression *pexpr);
+			CExpression *PexprExtractInferredFilters(CMemoryPool *mp, CExpression *pexpr);
 	};
 }
 

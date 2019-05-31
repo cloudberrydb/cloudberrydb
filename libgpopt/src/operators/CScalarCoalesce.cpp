@@ -35,7 +35,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoalesce::CScalarCoalesce
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type
 	)
 	:

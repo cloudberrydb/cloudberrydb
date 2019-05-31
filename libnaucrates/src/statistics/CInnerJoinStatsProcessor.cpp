@@ -18,7 +18,7 @@ using namespace gpmd;
 CStatistics *
 CInnerJoinStatsProcessor::CalcInnerJoinStatsStatic
 			(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			const IStatistics *outer_stats_input,
 			const IStatistics *inner_stats_input,
 			CStatsPredJoinArray *join_preds_stats

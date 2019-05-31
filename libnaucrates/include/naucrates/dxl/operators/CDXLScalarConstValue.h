@@ -44,7 +44,7 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarConstValue
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDXLDatum *dxl_datum
 				);
 

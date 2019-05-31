@@ -28,7 +28,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CAutoTaskProxy::CAutoTaskProxy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWorkerPoolManager *pwpm,
 	BOOL propagate_error
 	)
@@ -143,7 +143,7 @@ CAutoTaskProxy::Create
 {
 	// create memory pool for task
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// auto pointer to hold new task context
 	CAutoP<CTaskContext> task_ctxt;

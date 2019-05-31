@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformCTEAnchor2Sequence::CXformCTEAnchor2Sequence
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -92,7 +92,7 @@ CXformCTEAnchor2Sequence::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalCTEAnchor *popCTEAnchor = CLogicalCTEAnchor::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	ULONG id = popCTEAnchor->Id();
 

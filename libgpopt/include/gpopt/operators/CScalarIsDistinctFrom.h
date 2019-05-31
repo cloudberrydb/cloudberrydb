@@ -41,7 +41,7 @@ namespace gpopt
 			// ctor
 			CScalarIsDistinctFrom
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_op,
 				const CWStringConst *pstrOp
 				)
@@ -83,7 +83,7 @@ namespace gpopt
 
 			// get commuted scalar IDF operator
 			virtual
-			CScalarIsDistinctFrom *PopCommutedOp(IMemoryPool *mp, COperator *pop);
+			CScalarIsDistinctFrom *PopCommutedOp(CMemoryPool *mp, COperator *pop);
 
 	}; // class CScalarIsDistinctFrom
 

@@ -41,7 +41,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformImplementDynamicBitmapTableGet(IMemoryPool *mp);
+			CXformImplementDynamicBitmapTableGet(CMemoryPool *mp);
 
 			// dtor
 			virtual

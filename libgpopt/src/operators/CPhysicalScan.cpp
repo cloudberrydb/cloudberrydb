@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalScan::CPhysicalScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrOutput
@@ -163,7 +163,7 @@ CPhysicalScan::EpetOrder
 CDistributionSpecHashed *
 CPhysicalScan::PdshashedDeriveWithOuterRefs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -223,7 +223,7 @@ CPhysicalScan::PdshashedDeriveWithOuterRefs
 CDistributionSpec *
 CPhysicalScan::PdsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -262,7 +262,7 @@ CPhysicalScan::PdsDerive
 CPartIndexMap *
 CPhysicalScan::PpimDeriveFromDynamicScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG part_idx_id,
 	IMDId *rel_mdid,
 	CColRef2dArray *pdrgpdrgpcrPart,
@@ -327,7 +327,7 @@ CPhysicalScan::EpetDistribution
 void
 CPhysicalScan::ComputeTableStats
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_pstatsBaseTable);

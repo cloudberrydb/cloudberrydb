@@ -43,7 +43,7 @@ namespace gpdxl
 		public:
 
 			// ctor
-			CDXLScalarCaseTest(IMemoryPool *mp, IMDId *mdid_type);
+			CDXLScalarCaseTest(CMemoryPool *mp, IMDId *mdid_type);
 
 			// dtor
 			virtual

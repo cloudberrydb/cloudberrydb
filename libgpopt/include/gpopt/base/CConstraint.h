@@ -97,24 +97,24 @@ namespace gpopt
 			// add column as a new equivalence class, if it is not already in one of the
 			// existing equivalence classes
 			static
-			void AddColumnToEquivClasses(IMemoryPool *mp, const CColRef *colref, CColRefSetArray **ppdrgpcrs);
+			void AddColumnToEquivClasses(CMemoryPool *mp, const CColRef *colref, CColRefSetArray **ppdrgpcrs);
 
 			// create constraint from scalar comparison
 			static
-			CConstraint *PcnstrFromScalarCmp(IMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
+			CConstraint *PcnstrFromScalarCmp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
 
 			// create constraint from scalar boolean expression
 			static
-			CConstraint *PcnstrFromScalarBoolOp(IMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
+			CConstraint *PcnstrFromScalarBoolOp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
 
 			// create conjunction/disjunction from array of constraints
 			static
-			CConstraint *PcnstrConjDisj(IMemoryPool *mp, CConstraintArray *pdrgpcnstr, BOOL fConj);
+			CConstraint *PcnstrConjDisj(CMemoryPool *mp, CConstraintArray *pdrgpcnstr, BOOL fConj);
 
 		protected:
 
 			// memory pool -- used for local computations
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// columns used in this constraint
 			CColRefSet *m_pcrsUsed;
@@ -132,21 +132,21 @@ namespace gpopt
 
 			// construct a conjunction or disjunction scalar expression from an
 			// array of constraints
-			CExpression *PexprScalarConjDisj(IMemoryPool *mp, CConstraintArray *pdrgpcnstr, BOOL fConj) const;
+			CExpression *PexprScalarConjDisj(CMemoryPool *mp, CConstraintArray *pdrgpcnstr, BOOL fConj) const;
 
 			// flatten an array of constraints to be used as constraint children
-			CConstraintArray *PdrgpcnstrFlatten(IMemoryPool *mp, CConstraintArray *pdrgpcnstr, EConstraintType ect) const;
+			CConstraintArray *PdrgpcnstrFlatten(CMemoryPool *mp, CConstraintArray *pdrgpcnstr, EConstraintType ect) const;
 
 			// combine any two or more constraints that reference only one particular column
-			CConstraintArray *PdrgpcnstrDeduplicate(IMemoryPool *mp, CConstraintArray *pdrgpcnstr, EConstraintType ect) const;
+			CConstraintArray *PdrgpcnstrDeduplicate(CMemoryPool *mp, CConstraintArray *pdrgpcnstr, EConstraintType ect) const;
 
 			// mapping between columns and arrays of constraints
-			ColRefToConstraintArrayMap *Phmcolconstr(IMemoryPool *mp, CColRefSet *pcrs, CConstraintArray *pdrgpcnstr) const;
+			ColRefToConstraintArrayMap *Phmcolconstr(CMemoryPool *mp, CColRefSet *pcrs, CConstraintArray *pdrgpcnstr) const;
 
 			// return a copy of the conjunction/disjunction constraint for a different column
 			CConstraint *PcnstrConjDisjRemapForColumn
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CColRef *colref,
 							CConstraintArray *pdrgpcnstr,
 							BOOL fConj
@@ -156,13 +156,13 @@ namespace gpopt
 			// create constraint from scalar array comparison expression originally generated for
 			// "scalar op ANY/ALL (array)" construct
 			static
-			CConstraint *PcnstrFromScalarArrayCmp(IMemoryPool *mp, CExpression *pexpr, CColRef *colref);
+			CConstraint *PcnstrFromScalarArrayCmp(CMemoryPool *mp, CExpression *pexpr, CColRef *colref);
 
 		public:
 
 			// ctor
 			explicit
-			CConstraint(IMemoryPool *mp);
+			CConstraint(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -200,7 +200,7 @@ namespace gpopt
 
 			// scalar expression
 			virtual
-			CExpression *PexprScalar(IMemoryPool *mp) = 0;
+			CExpression *PexprScalar(CMemoryPool *mp) = 0;
 
 			// check if there is a constraint on the given column
 			virtual
@@ -208,13 +208,13 @@ namespace gpopt
 
 			// return a copy of the constraint with remapped columns
 			virtual
-			CConstraint *PcnstrCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist) = 0;
+			CConstraint *PcnstrCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist) = 0;
 
 			// return constraint on a given column
 			virtual
 			CConstraint *Pcnstr
 							(
-							IMemoryPool *, //mp,
+							CMemoryPool *, //mp,
 							const CColRef * //colref
 							)
 			{
@@ -225,7 +225,7 @@ namespace gpopt
 			virtual
 			CConstraint *Pcnstr
 							(
-							IMemoryPool *, //mp,
+							CMemoryPool *, //mp,
 							CColRefSet * //pcrs
 							)
 			{
@@ -234,7 +234,7 @@ namespace gpopt
 
 			// return a clone of the constraint for a different column
 			virtual
-			CConstraint *PcnstrRemapForColumn(IMemoryPool *mp, CColRef *colref) const = 0;
+			CConstraint *PcnstrRemapForColumn(CMemoryPool *mp, CColRef *colref) const = 0;
 
 			// print
 			virtual
@@ -249,26 +249,26 @@ namespace gpopt
 			static
 			CConstraint *PcnstrFromScalarExpr
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpression *pexpr,
 							CColRefSetArray **ppdrgpcrs
 							);
 
 			// create conjunction from array of constraints
 			static
-			CConstraint *PcnstrConjunction(IMemoryPool *mp, CConstraintArray *pdrgpcnstr);
+			CConstraint *PcnstrConjunction(CMemoryPool *mp, CConstraintArray *pdrgpcnstr);
 
 			// create disjunction from array of constraints
 			static
-			CConstraint *PcnstrDisjunction(IMemoryPool *mp, CConstraintArray *pdrgpcnstr);
+			CConstraint *PcnstrDisjunction(CMemoryPool *mp, CConstraintArray *pdrgpcnstr);
 
 			// merge equivalence classes coming from children of a bool op
 			static
-			CColRefSetArray *PdrgpcrsMergeFromBoolOp(IMemoryPool *mp, CExpression *pexpr, CColRefSetArray *pdrgpcrsFst, CColRefSetArray *pdrgpcrsSnd);
+			CColRefSetArray *PdrgpcrsMergeFromBoolOp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray *pdrgpcrsFst, CColRefSetArray *pdrgpcrsSnd);
 
 			// subset of the given constraints, which reference the given column
 			static
-			CConstraintArray *PdrgpcnstrOnColumn(IMemoryPool *mp, CConstraintArray *pdrgpcnstr, CColRef *colref, BOOL fExclusive);
+			CConstraintArray *PdrgpcnstrOnColumn(CMemoryPool *mp, CConstraintArray *pdrgpcnstr, CColRef *colref, BOOL fExclusive);
 #ifdef GPOS_DEBUG
 			void DbgPrint() const;
 #endif  // GPOS_DEBUG

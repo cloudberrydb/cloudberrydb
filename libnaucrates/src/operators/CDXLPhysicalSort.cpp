@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalSort::CDXLPhysicalSort
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL discard_duplicates
 	)
 	:

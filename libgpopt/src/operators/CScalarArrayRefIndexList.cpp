@@ -26,7 +26,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarArrayRefIndexList::CScalarArrayRefIndexList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EIndexListType eilt
 	)
 	:

@@ -26,7 +26,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	Ereldistrpolicy rel_distr_policy,

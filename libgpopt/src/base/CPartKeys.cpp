@@ -106,7 +106,7 @@ CPartKeys::FOverlap
 CPartKeys *
 CPartKeys::PpartkeysCopy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CColRef2dArray *pdrgpdrgpcrCopy = GPOS_NEW(mp) CColRef2dArray(mp);
@@ -138,7 +138,7 @@ CPartKeys::PpartkeysCopy
 CPartKeysArray *
 CPartKeys::PdrgppartkeysCopy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CPartKeysArray *pdrgppartkeys
 	)
 {
@@ -166,7 +166,7 @@ CPartKeys::PdrgppartkeysCopy
 CPartKeys *
 CPartKeys::PpartkeysRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping
 	)
 	const
@@ -222,7 +222,7 @@ void
 CPartKeys::DbgPrint() const
 {
 
-	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }

@@ -47,7 +47,7 @@ CBitVector::Clear()
 //---------------------------------------------------------------------------
 CBitVector::CBitVector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG nbits
 	)
 	:
@@ -101,7 +101,7 @@ CBitVector::~CBitVector()
 //---------------------------------------------------------------------------
 CBitVector::CBitVector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBitVector &bv
 	)
 	:

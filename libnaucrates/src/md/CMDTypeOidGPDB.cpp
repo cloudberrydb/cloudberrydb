@@ -42,7 +42,7 @@ CMDTypeOidGPDB::m_mdname(&m_str);
 //---------------------------------------------------------------------------
 CMDTypeOidGPDB::CMDTypeOidGPDB
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)
@@ -111,7 +111,7 @@ CMDTypeOidGPDB::~CMDTypeOidGPDB()
 IDatumOid *
 CMDTypeOidGPDB::CreateOidDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	OID oValue,
 	BOOL is_null
 	)
@@ -266,7 +266,7 @@ CMDTypeOidGPDB::GetDatumForDXLConstVal
 IDatum*
 CMDTypeOidGPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLDatum *dxl_datum
 	)
 	const
@@ -290,7 +290,7 @@ CMDTypeOidGPDB::GetDatumForDXLDatum
 CDXLDatum *
 CMDTypeOidGPDB::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -312,7 +312,7 @@ CMDTypeOidGPDB::GetDatumVal
 CDXLScalarConstValue *
 CMDTypeOidGPDB::GetDXLOpScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -336,7 +336,7 @@ CMDTypeOidGPDB::GetDXLOpScConst
 CDXLDatum *
 CMDTypeOidGPDB::GetDXLDatumNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

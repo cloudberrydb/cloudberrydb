@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementDML::CXformImplementDML
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -84,7 +84,7 @@ CXformImplementDML::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDML *popDML = CLogicalDML::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 

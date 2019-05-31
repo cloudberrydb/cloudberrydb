@@ -42,7 +42,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformInlineCTEConsumerUnderSelect(IMemoryPool *mp);
+			CXformInlineCTEConsumerUnderSelect(CMemoryPool *mp);
 
 			// dtor
 			virtual

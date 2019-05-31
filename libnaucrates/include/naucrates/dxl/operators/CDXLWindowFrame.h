@@ -51,7 +51,7 @@ namespace gpdxl
 		private:
 
 			// memory pool;
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// row or range based window specification method
 			EdxlFrameSpec m_dxl_win_frame_spec;
@@ -72,7 +72,7 @@ namespace gpdxl
 			// ctor
 			CDXLWindowFrame
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EdxlFrameSpec edxlfs,
 				EdxlFrameExclusionStrategy frame_exc_strategy,
 				CDXLNode *pdxlnLeading,

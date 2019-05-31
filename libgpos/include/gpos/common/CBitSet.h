@@ -60,10 +60,10 @@ namespace gpos
 				
 					// ctor
                     explicit
-                    CBitSetLink(IMemoryPool *, ULONG offset, ULONG vector_size);
+                    CBitSetLink(CMemoryPool *, ULONG offset, ULONG vector_size);
 
         			explicit
-					CBitSetLink(IMemoryPool *, const CBitSetLink &);
+					CBitSetLink(CMemoryPool *, const CBitSetLink &);
 					
 					// dtor
 					~CBitSetLink();
@@ -89,7 +89,7 @@ namespace gpos
 			CList<CBitSetLink> m_bsllist;
 		
 			// pool to allocate links from
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// size of individual bitvectors
 			ULONG m_vector_size;
@@ -115,8 +115,8 @@ namespace gpos
 		public:
 				
 			// ctor
-			CBitSet(IMemoryPool *mp, ULONG vector_size = 256);
-			CBitSet(IMemoryPool *mp, const CBitSet &);
+			CBitSet(CMemoryPool *mp, ULONG vector_size = 256);
+			CBitSet(CMemoryPool *mp, const CBitSet &);
 			
 			// dtor
 			virtual ~CBitSet();

@@ -21,7 +21,7 @@
 #include "gpos/common/CSyncHashtable.h"
 
 #include "gpos/memory/CMemoryPoolManager.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/memory/CCacheEntry.h"
 
@@ -99,7 +99,7 @@ namespace gpos
 					CCacheHashtableIterAccessor;
 
 			// memory pool for allocating hashtable and cache entries
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// true if cache does not allow multiple objects with the same key
 			BOOL m_unique;
@@ -323,7 +323,7 @@ namespace gpos
 				GPOS_ASSERT(NULL != entry);
 
 				// destroy the object before deleting memory pool. This cover the case where object & cacheentry use same memory pool
-				IMemoryPool* mp = entry->Pmp();
+				CMemoryPool* mp = entry->Pmp();
 				GPOS_DELETE(entry);
 				CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
 			}
@@ -387,7 +387,7 @@ namespace gpos
 			// ctor
 			CCache
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				BOOL unique,
 				ULLONG cache_quota,
 				ULONG g_clock_init_counter,

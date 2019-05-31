@@ -309,7 +309,7 @@ namespace gpopt
 
 			// verify xform promise on the given expression
 			static
-			BOOL FPromising(IMemoryPool *mp, const CXform *pxform, CExpression *pexpr);
+			BOOL FPromising(CMemoryPool *mp, const CXform *pxform, CExpression *pexpr);
 
 #endif // GPOS_DEBUG
 
@@ -321,40 +321,40 @@ namespace gpopt
 			// returns a set containing all xforms related to index join
 			// caller takes ownership of the returned set
 			static
-			CBitSet *PbsIndexJoinXforms(IMemoryPool *mp);
+			CBitSet *PbsIndexJoinXforms(CMemoryPool *mp);
 
 			// returns a set containing all xforms related to bitmap indexes
 			// caller takes ownership of the returned set
 			static
-			CBitSet *PbsBitmapIndexXforms(IMemoryPool *mp);
+			CBitSet *PbsBitmapIndexXforms(CMemoryPool *mp);
 
 			// returns a set containing all xforms related to heterogeneous indexes
 			// caller takes ownership of the returned set
 			static
-			CBitSet *PbsHeterogeneousIndexXforms(IMemoryPool *mp);
+			CBitSet *PbsHeterogeneousIndexXforms(CMemoryPool *mp);
 
 			// returns a set containing all xforms that generate a plan with a hash join
 			// caller takes ownership of the returned set
 			static
-			CBitSet *PbsHashJoinXforms(IMemoryPool *mp);
+			CBitSet *PbsHashJoinXforms(CMemoryPool *mp);
 
 			// returns a set containing xforms to use only the join order as available
 			// in the query
 			static
-			CBitSet *PbsJoinOrderInQueryXforms(IMemoryPool *mp);
+			CBitSet *PbsJoinOrderInQueryXforms(CMemoryPool *mp);
 
 			// returns a set containing xforms to use combination of greedy xforms
 			// for join order
 			static
-			CBitSet *PbsJoinOrderOnGreedyXforms(IMemoryPool *mp);
+			CBitSet *PbsJoinOrderOnGreedyXforms(CMemoryPool *mp);
 
 			// returns a set containing xforms to use for exhaustive join order
 			static
-			CBitSet *PbsJoinOrderOnExhaustiveXforms(IMemoryPool *mp);
+			CBitSet *PbsJoinOrderOnExhaustiveXforms(CMemoryPool *mp);
 
 			// returns a set containing xforms to use for exhaustive2 join order
 			static
-			CBitSet *PbsJoinOrderOnExhaustive2Xforms(IMemoryPool *mp);
+			CBitSet *PbsJoinOrderOnExhaustive2Xforms(CMemoryPool *mp);
 
 			// return true if xform should be applied only once.
 			// for expression of type CPatternTree, in deep trees, the number

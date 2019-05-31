@@ -31,7 +31,7 @@ namespace gpnaucrates
 			// generate int histogram having tuples not covered by buckets,
 			// including null fraction and nDistinctRemain
 			static
-			CHistogram* PhistExampleInt4Remain(IMemoryPool *mp);
+			CHistogram* PhistExampleInt4Remain(CMemoryPool *mp);
 
 		public:
 

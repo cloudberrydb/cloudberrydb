@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarArrayComp::CDXLScalarArrayComp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op,
 	const CWStringConst *str_opname,
 	EdxlArrayCompType comparison_type

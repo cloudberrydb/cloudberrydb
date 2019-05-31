@@ -68,7 +68,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CTranslatorDXLToExpr::CTranslatorDXLToExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	BOOL fInitColumnFactory
 	)

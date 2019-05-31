@@ -33,7 +33,7 @@ namespace gpopt
 		private:
 
 			// Memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// private copy ctor
 			CXformContext(const CXformContext &);
@@ -44,7 +44,7 @@ namespace gpopt
 			explicit
 			CXformContext
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				: 
 				m_mp(mp)
@@ -57,7 +57,7 @@ namespace gpopt
 
 			// accessor
 			inline
-			IMemoryPool *Pmp() const
+			CMemoryPool *Pmp() const
 			{
 				return m_mp;
 			}

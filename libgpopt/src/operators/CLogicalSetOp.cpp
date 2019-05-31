@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSetOp::CLogicalSetOp
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -53,7 +53,7 @@ CLogicalSetOp::CLogicalSetOp
 //---------------------------------------------------------------------------
 CLogicalSetOp::CLogicalSetOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -81,7 +81,7 @@ CLogicalSetOp::CLogicalSetOp
 //---------------------------------------------------------------------------
 CLogicalSetOp::CLogicalSetOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRefArray *pdrgpcrLeft,
 	CColRefArray *pdrgpcrRight
@@ -132,7 +132,7 @@ CLogicalSetOp::~CLogicalSetOp()
 void
 CLogicalSetOp::BuildColumnSets
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != m_pdrgpcrOutput);
@@ -163,7 +163,7 @@ CLogicalSetOp::BuildColumnSets
 CColRefSet *
 CLogicalSetOp::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &
 #ifdef GPOS_DEBUG
 	 exprhdl
@@ -197,7 +197,7 @@ CLogicalSetOp::PcrsDeriveOutput
 CKeyCollection *
 CLogicalSetOp::PkcDeriveKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -221,7 +221,7 @@ CLogicalSetOp::PkcDeriveKeys
 CPartInfo *
 CLogicalSetOp::PpartinfoDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -304,7 +304,7 @@ CLogicalSetOp::Matches
 CColRefSetArray *
 CLogicalSetOp::PdrgpcrsOutputEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	BOOL fIntersect
 	)
@@ -349,7 +349,7 @@ CLogicalSetOp::PdrgpcrsOutputEquivClasses
 CColRefSetArray *
 CLogicalSetOp::PdrgpcrsInputMapped
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	ULONG ulChild
 	)
@@ -392,7 +392,7 @@ CLogicalSetOp::PdrgpcrsInputMapped
 CConstraintArray *
 CLogicalSetOp::PdrgpcnstrColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	ULONG ulColIndex,
 	ULONG ulStart
@@ -433,7 +433,7 @@ CLogicalSetOp::PdrgpcnstrColumn
 CConstraint *
 CLogicalSetOp::PcnstrColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	ULONG ulColIndex,
 	ULONG ulChild
@@ -473,7 +473,7 @@ CLogicalSetOp::PcnstrColumn
 CPropConstraint *
 CLogicalSetOp::PpcDeriveConstraintIntersectUnion
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	BOOL fIntersect
 	)
@@ -521,7 +521,7 @@ CLogicalSetOp::PpcDeriveConstraintIntersectUnion
 CColRefSet *
 CLogicalSetOp::PcrsStat
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, //exprhdl,
 	CColRefSet *, //pcrsInput
 	ULONG child_index

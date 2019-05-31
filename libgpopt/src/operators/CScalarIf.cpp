@@ -35,7 +35,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarIf::CScalarIf
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid
 	)
 	:

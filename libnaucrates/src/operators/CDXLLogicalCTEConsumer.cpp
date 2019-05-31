@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalCTEConsumer::CDXLLogicalCTEConsumer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	ULongPtrArray *output_colids_array
 	)

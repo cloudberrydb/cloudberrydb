@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalPartitionSelector::CPhysicalPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG scan_id,
 	IMDId *mdid,
 	CColRef2dArray *pdrgpdrgpcr,
@@ -75,7 +75,7 @@ CPhysicalPartitionSelector::CPhysicalPartitionSelector
 //---------------------------------------------------------------------------
 CPhysicalPartitionSelector::CPhysicalPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	UlongToExprMap *phmulexprEqPredicates
 	)
@@ -335,7 +335,7 @@ CPhysicalPartitionSelector::PexprFilter
 CExpression *
 CPhysicalPartitionSelector::PexprPartPred
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulPartLevel
 	)
 	const
@@ -380,7 +380,7 @@ CPhysicalPartitionSelector::PexprPartPred
 CExpression *
 CPhysicalPartitionSelector::PexprCombinedPartPred
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -435,7 +435,7 @@ CPhysicalPartitionSelector::UlPartLevels() const
 CPartFilterMap *
 CPhysicalPartitionSelector::PpfmDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -466,7 +466,7 @@ CPhysicalPartitionSelector::PpfmDerive
 CColRefSet *
 CPhysicalPartitionSelector::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index,
@@ -495,7 +495,7 @@ CPhysicalPartitionSelector::PcrsRequired
 COrderSpec *
 CPhysicalPartitionSelector::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
@@ -520,7 +520,7 @@ CPhysicalPartitionSelector::PosRequired
 CDistributionSpec *
 CPhysicalPartitionSelector::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -557,7 +557,7 @@ CPhysicalPartitionSelector::PdsRequired
 CRewindabilitySpec *
 CPhysicalPartitionSelector::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -582,7 +582,7 @@ CPhysicalPartitionSelector::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalPartitionSelector::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG
@@ -657,7 +657,7 @@ CPhysicalPartitionSelector::PppsRequired
 CCTEReq *
 CPhysicalPartitionSelector::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -705,7 +705,7 @@ CPhysicalPartitionSelector::FProvidesReqdCols
 COrderSpec *
 CPhysicalPartitionSelector::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -724,7 +724,7 @@ CPhysicalPartitionSelector::PosDerive
 CDistributionSpec *
 CPhysicalPartitionSelector::PdsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -743,7 +743,7 @@ CPhysicalPartitionSelector::PdsDerive
 CPartIndexMap *
 CPhysicalPartitionSelector::PpimDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt *pdpctxt
 	)
@@ -787,7 +787,7 @@ CPhysicalPartitionSelector::PpimDerive
 CRewindabilitySpec *
 CPhysicalPartitionSelector::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const

@@ -37,7 +37,7 @@ namespace gpdxl
 		private:
 
 			// memory pool;
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// partition-by column identifiers
 		ULongPtrArray *m_partition_by_colid_array;
@@ -59,7 +59,7 @@ namespace gpdxl
 			// ctor
 			CDXLWindowSpec
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULongPtrArray *partition_by_colid_array,
 				CMDName *mdname,
 				CDXLNode *sort_col_list_dxlnode,

@@ -126,7 +126,7 @@ namespace gpos
 			// ctor
 			CMemoryPoolTracker
 				(
-				IMemoryPool *underlying_memory_pool,
+				CMemoryPool *underlying_memory_pool,
 				ULLONG size,
 				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool

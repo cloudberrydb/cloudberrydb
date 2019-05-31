@@ -78,7 +78,7 @@ const CHAR rgszCostParamNames[CCostModelParamsGPDBLegacy::EcpSentinel][GPOPT_COS
 //---------------------------------------------------------------------------
 CCostModelParamsGPDBLegacy::CCostModelParamsGPDBLegacy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)

@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarBitmapIndexProbe::CDXLScalarBitmapIndexProbe
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLIndexDescr *dxl_index_descr
 	)
 	:

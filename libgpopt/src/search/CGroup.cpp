@@ -161,7 +161,7 @@ CGroup::SContextLink::Equals
 //---------------------------------------------------------------------------
 CGroup::CGroup
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fScalar
 	)
 	:
@@ -350,7 +350,7 @@ CGroup::UpdateBestCost
 COptimizationContext *
 CGroup::PocLookup
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CReqdPropPlan *prpp,
 	ULONG ulSearchStageIndex
 	)
@@ -390,7 +390,7 @@ CGroup::PocLookup
 COptimizationContext *
 CGroup::PocLookupBest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulSearchStages,
 	CReqdPropPlan *prpp
 	)
@@ -911,7 +911,7 @@ CGroup::FInitStats
 void
 CGroup::AppendStats
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IStatistics *stats
 	)
 {
@@ -1160,7 +1160,7 @@ CGroup::CreateDummyCostContext()
 void
 CGroup::RecursiveBuildTreeMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc,
 	CCostContext *pccParent,
 	CGroupExpression *pgexprCurrent,
@@ -1233,7 +1233,7 @@ CGroup::RecursiveBuildTreeMap
 void
 CGroup::BuildTreeMap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc, // NULL if we are in a Scalar group
 	CCostContext *pccParent, // NULL if we are in the Root group
 	ULONG child_index, // index used for treating group as child of parent context
@@ -1335,7 +1335,7 @@ CGroup::BuildTreeMap
 BOOL
 CGroup::FStatsDerivable
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_CHECK_STACK_SIZE;
@@ -1409,7 +1409,7 @@ CGroup::FStatsDerivable
 BOOL
 CGroup::FBetterPromise
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CLogical::EStatPromise espFst,
 	CGroupExpression *pgexprFst,
 	CLogical::EStatPromise espSnd,
@@ -1437,8 +1437,8 @@ CGroup::FBetterPromise
 CLogical::EStatPromise
 CGroup::EspDerive
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CGroupExpression *pgexpr,
 	CReqdPropRelational *prprel,
 	IStatisticsArray *stats_ctxt,
@@ -1491,8 +1491,8 @@ CGroup::EspDerive
 IStatistics *
 CGroup::PstatsRecursiveDerive
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CReqdPropRelational *prprel,
 	IStatisticsArray *stats_ctxt
 	)
@@ -1591,7 +1591,7 @@ CGroup::PstatsRecursiveDerive
 CGroupExpression *
 CGroup::PgexprBestPromise
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexprToMatch
 	)
 {
@@ -1648,8 +1648,8 @@ CGroup::PgexprBestPromise
 CGroupExpression *
 CGroup::PgexprBestPromise
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CReqdPropRelational *prprelInput,
 	IStatisticsArray *stats_ctxt
 	)
@@ -1697,7 +1697,7 @@ CGroup::PgexprBestPromise
 IStatistics *
 CGroup::PstatsInitEmpty
 	(
-	IMemoryPool *pmpGlobal
+	CMemoryPool *pmpGlobal
 	)
 {
 	CStatistics *stats = CStatistics::MakeEmptyStats(pmpGlobal);
@@ -2139,7 +2139,7 @@ CGroup::OsPrint
 CCost
 CGroup::CostLowerBound
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CReqdPropPlan *prppInput
 	)
 {

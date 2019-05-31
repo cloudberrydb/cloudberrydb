@@ -64,7 +64,7 @@ namespace gpdxl
 			// ctor
 			CParseHandlerIndexDescr
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				CParseHandlerManager *,
 				CParseHandlerBase *
 				);

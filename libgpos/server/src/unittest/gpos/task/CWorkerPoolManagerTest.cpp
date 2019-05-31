@@ -190,7 +190,7 @@ CWorkerPoolManagerTest::Unittest_TestTaskPerformance
 	ULONG timeMulti = 0;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// scope for clock
 	{
@@ -236,7 +236,7 @@ CWorkerPoolManagerTest::Unittest_TestTaskPerformance
 void
 CWorkerPoolManagerTest::Unittest_TestSingleTaskPerformance
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulWorkers,
 	ULONG ulIterCnt,
 	void *funcRepeated(void *)
@@ -278,7 +278,7 @@ CWorkerPoolManagerTest::Unittest_TestSingleTaskPerformance
 void
 CWorkerPoolManagerTest::Unittest_TestMultiTaskPerformance
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulWorkers,
 	ULONG ulIterCnt,
 	void *funcSingle(void *)
@@ -336,7 +336,7 @@ CWorkerPoolManagerTest::Unittest_Stress
 	ULONG time = 0;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// set worker count
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();

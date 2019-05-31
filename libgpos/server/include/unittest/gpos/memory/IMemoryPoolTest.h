@@ -3,18 +3,18 @@
 //	Copyright (C) 2008 Greenplum, Inc.
 //
 //	@filename:
-//		IMemoryPoolTest.h
+//		CMemoryPoolTest.h
 //
 //	@doc:
-//		Test for IMemoryPool
+//		Test for CMemoryPool
 //
 //	@owner:
 //
 //	@test:
 //
 //---------------------------------------------------------------------------
-#ifndef GPOS_IMemoryPoolTest_H
-#define GPOS_IMemoryPoolTest_H
+#ifndef GPOS_CMemoryPoolTest_H
+#define GPOS_CMemoryPoolTest_H
 
 #include "gpos/base.h"
 
@@ -25,7 +25,7 @@ namespace gpos
 	//		CMemoryPoolTest
 	//
 	//	@doc:
-	//		Unittest for IMemoryPool
+	//		Unittest for CMemoryPool
 	//
 	//---------------------------------------------------------------------------
 	class CMemoryPoolTest
@@ -37,7 +37,7 @@ namespace gpos
 	};
 }
 
-#endif // !GPOS_IMemoryPoolTest_H
+#endif // !GPOS_CMemoryPoolTest_H
 
 // EOF
 

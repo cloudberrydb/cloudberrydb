@@ -26,7 +26,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInnerApply::CLogicalInnerApply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalApply(mp)
@@ -47,7 +47,7 @@ CLogicalInnerApply::CLogicalInnerApply
 //---------------------------------------------------------------------------
 CLogicalInnerApply::CLogicalInnerApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
@@ -82,7 +82,7 @@ CLogicalInnerApply::~CLogicalInnerApply()
 CMaxCard
 CLogicalInnerApply::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -101,7 +101,7 @@ CLogicalInnerApply::Maxcard
 CXformSet *
 CLogicalInnerApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -126,7 +126,7 @@ CLogicalInnerApply::PxfsCandidates
 COperator *
 CLogicalInnerApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

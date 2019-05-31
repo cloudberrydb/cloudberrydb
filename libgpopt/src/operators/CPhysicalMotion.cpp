@@ -33,7 +33,7 @@ using namespace gpopt;
 BOOL
 CPhysicalMotion::FValidContext
 	(
-	IMemoryPool *,
+	CMemoryPool *,
 	COptimizationContext *poc,
 	COptimizationContextArray *pdrgpocChild
 	)
@@ -75,7 +75,7 @@ CPhysicalMotion::FValidContext
 CDistributionSpec *
 CPhysicalMotion::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CDistributionSpec *pdsRequired,
 	ULONG
@@ -162,7 +162,7 @@ CPhysicalMotion::PdsRequired
 CRewindabilitySpec *
 CPhysicalMotion::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CRewindabilitySpec *, // prsRequired
 	ULONG
@@ -194,7 +194,7 @@ CPhysicalMotion::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalMotion::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG 
@@ -253,7 +253,7 @@ CPhysicalMotion::PppsRequired
 CCTEReq *
 CPhysicalMotion::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -281,7 +281,7 @@ CPhysicalMotion::PcteRequired
 CDistributionSpec *
 CPhysicalMotion::PdsDerive
 	(
-	IMemoryPool */*mp*/,
+	CMemoryPool */*mp*/,
 	CExpressionHandle &/*exprhdl*/
 	)
 	const
@@ -304,7 +304,7 @@ CPhysicalMotion::PdsDerive
 CRewindabilitySpec *
 CPhysicalMotion::PrsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

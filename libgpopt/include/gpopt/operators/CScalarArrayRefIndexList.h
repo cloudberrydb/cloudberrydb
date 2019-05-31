@@ -52,7 +52,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarArrayRefIndexList(IMemoryPool *mp, EIndexListType eilt);
+			CScalarArrayRefIndexList(CMemoryPool *mp, EIndexListType eilt);
 
 			// ident accessors
 			virtual
@@ -89,7 +89,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)

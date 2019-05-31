@@ -16,7 +16,7 @@
 #ifndef GPOS_CCACHEENTRY_H_
 #define GPOS_CCACHEENTRY_H_
 
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/common/CList.h"
 
 
@@ -77,7 +77,7 @@ namespace gpos
 		private:
 
 			// allocated memory pool to the cached object
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 		// value that needs to be cached
 			T m_val;
@@ -94,7 +94,7 @@ namespace gpos
 			// ctor
 			CCacheEntry
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				K key,
 				T val,
 				ULONG g_clock_counter
@@ -132,7 +132,7 @@ namespace gpos
 			}
 
 			// gets the memory pool of cached object
-			IMemoryPool *Pmp() const
+			CMemoryPool *Pmp() const
 			{
 				return m_mp;
 			}

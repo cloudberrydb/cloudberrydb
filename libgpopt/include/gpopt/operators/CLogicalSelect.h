@@ -43,7 +43,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalSelect(IMemoryPool *mp);
+			CLogicalSelect(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -68,21 +68,21 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *,CExpressionHandle &);
+			CColRefSet *PcrsDeriveOutput(CMemoryPool *,CExpressionHandle &);
 			
 			// dervive keys
 			virtual 
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;		
+			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;		
 					
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -94,7 +94,7 @@ namespace gpopt
 			virtual
 			CExpression *PexprPartPred
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpressionHandle &exprhdl,
 							CExpression *pexprInput,
 							ULONG child_index
@@ -107,7 +107,7 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *) const;
+			CXformSet *PxfsCandidates(CMemoryPool *) const;
 
 			//-------------------------------------------------------------------------------------
 			//-------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *mp,
+						CMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						IStatisticsArray *stats_ctxt
 						)

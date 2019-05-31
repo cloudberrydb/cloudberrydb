@@ -55,7 +55,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// number of jobs in each pool
 			const ULONG m_ulJobs;
@@ -133,7 +133,7 @@ namespace gpopt
 			// ctor
 			CJobFactory
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULONG ulJobs
 				);
 

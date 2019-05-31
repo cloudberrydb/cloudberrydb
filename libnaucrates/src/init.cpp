@@ -28,10 +28,10 @@ static
 CDXLMemoryManager *dxl_memory_manager = NULL;
 
 static
-IMemoryPool *pmpXerces = NULL;
+CMemoryPool *pmpXerces = NULL;
 
 static
-IMemoryPool *pmpDXL = NULL;
+CMemoryPool *pmpDXL = NULL;
 
 // safe-guard to prevent initializing DXL support more than once
 static

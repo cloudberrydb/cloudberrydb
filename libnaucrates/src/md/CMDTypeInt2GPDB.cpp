@@ -42,7 +42,7 @@ CMDTypeInt2GPDB::m_mdname(&m_str);
 //---------------------------------------------------------------------------
 CMDTypeInt2GPDB::CMDTypeInt2GPDB
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)
@@ -109,7 +109,7 @@ CMDTypeInt2GPDB::~CMDTypeInt2GPDB()
 IDatumInt2 *
 CMDTypeInt2GPDB::CreateInt2Datum
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	SINT value,
 	BOOL is_null
 	)
@@ -265,7 +265,7 @@ CMDTypeInt2GPDB::GetDatumForDXLConstVal
 IDatum*
 CMDTypeInt2GPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLDatum *dxl_datum
 	)
 	const
@@ -289,7 +289,7 @@ CMDTypeInt2GPDB::GetDatumForDXLDatum
 CDXLDatum *
 CMDTypeInt2GPDB::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -311,7 +311,7 @@ CMDTypeInt2GPDB::GetDatumVal
 CDXLScalarConstValue *
 CMDTypeInt2GPDB::GetDXLOpScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -335,7 +335,7 @@ CMDTypeInt2GPDB::GetDXLOpScConst
 CDXLDatum *
 CMDTypeInt2GPDB::GetDXLDatumNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

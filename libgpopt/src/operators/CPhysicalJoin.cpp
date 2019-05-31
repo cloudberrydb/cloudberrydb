@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalJoin::CPhysicalJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CPhysical(mp)
@@ -85,7 +85,7 @@ CPhysicalJoin::Matches
 COrderSpec *
 CPhysicalJoin::PosPropagateToOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired
 	)
@@ -115,7 +115,7 @@ CPhysicalJoin::PosPropagateToOuter
 CColRefSet *
 CPhysicalJoin::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -140,7 +140,7 @@ CPhysicalJoin::PcrsRequired
 CPartitionPropagationSpec *
 CPhysicalJoin::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -164,7 +164,7 @@ CPhysicalJoin::PppsRequired
 CCTEReq *
 CPhysicalJoin::PcteRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
@@ -225,7 +225,7 @@ CPhysicalJoin::FProvidesReqdCols
 BOOL
 CPhysicalJoin::FSortColsInOuterChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *pos
 	)
@@ -281,7 +281,7 @@ CPhysicalJoin::FOuterProvidesReqdCols
 CDistributionSpec *
 CPhysicalJoin::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -346,7 +346,7 @@ CPhysicalJoin::PdsRequired
 CDistributionSpec *
 CPhysicalJoin::PdsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -379,7 +379,7 @@ CPhysicalJoin::PdsDerive
 CRewindabilitySpec *
 CPhysicalJoin::PrsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -662,7 +662,7 @@ CPhysicalJoin::AddHashKeys
 BOOL
 CPhysicalJoin::FHashJoinPossible
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprOuter,
 	CExpressionArray *pdrgpexprInner,
@@ -719,7 +719,7 @@ CPhysicalJoin::FHashJoinPossible
 void
 CPhysicalJoin::AddFilterOnPartKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fNLJoin,
 	CExpression *pexprScalar,
 	CPartIndexMap *ppimSource,
@@ -819,7 +819,7 @@ CPhysicalJoin::FProcessingChildWithPartConsumer
 CExpression *
 CPhysicalJoin::PexprJoinPredOnPartKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CPartIndexMap *ppimSource,
 	ULONG part_idx_id,
@@ -906,7 +906,7 @@ CPhysicalJoin::UlDistrRequestsForCorrelatedJoin()
 CRewindabilitySpec *
 CPhysicalJoin::PrsRequiredCorrelatedJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -948,7 +948,7 @@ CPhysicalJoin::PrsRequiredCorrelatedJoin
 CDistributionSpec *
 CPhysicalJoin::PdsRequiredCorrelatedJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -1072,7 +1072,7 @@ CPhysicalJoin::CPartPropReq::Equals
 CPhysicalJoin::CPartPropReq *
 CPhysicalJoin::PpprCreate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index
@@ -1098,7 +1098,7 @@ CPhysicalJoin::PpprCreate
 CPartitionPropagationSpec *
 CPhysicalJoin::PppsRequiredCompute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -1194,7 +1194,7 @@ CPhysicalJoin::PppsRequiredCompute
 CPartitionPropagationSpec *
 CPhysicalJoin::PppsRequiredJoinChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,

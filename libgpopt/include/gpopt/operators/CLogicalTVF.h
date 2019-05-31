@@ -62,11 +62,11 @@ namespace gpopt
 		
 			// ctors
 			explicit
-			CLogicalTVF(IMemoryPool *mp);
+			CLogicalTVF(CMemoryPool *mp);
 
 			CLogicalTVF
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_func,
 				IMDId *mdid_return_type,
 				CWStringConst *str,
@@ -75,7 +75,7 @@ namespace gpopt
 
 			CLogicalTVF
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_func,
 				IMDId *mdid_return_type,
 				CWStringConst *str,
@@ -144,7 +144,7 @@ namespace gpopt
 			
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+			COperator *PopCopyWithRemappedColumns(CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -152,13 +152,13 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *, CExpressionHandle &);
+			CColRefSet *PcrsDeriveOutput(CMemoryPool *, CExpressionHandle &);
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & //exprhdl
 				) 
 				const
@@ -170,7 +170,7 @@ namespace gpopt
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & //exprhdl
 				)
 				const
@@ -180,11 +180,11 @@ namespace gpopt
 
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CFunctionProp *PfpDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Required Relational Properties
@@ -194,7 +194,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *,// mp
+				CMemoryPool *,// mp
 				CExpressionHandle &,// exprhdl
 				CColRefSet *,// pcrsInput
 				ULONG // child_index
@@ -210,7 +210,7 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
+			CXformSet *PxfsCandidates(CMemoryPool *mp) const;
 
 			// stat promise
 			virtual
@@ -221,7 +221,7 @@ namespace gpopt
 
 			// derive statistics
 			virtual
-			IStatistics *PstatsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, IStatisticsArray *stats_ctxt) const;
+			IStatistics *PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl, IStatisticsArray *stats_ctxt) const;
 
 			//-------------------------------------------------------------------------------------
 			//-------------------------------------------------------------------------------------

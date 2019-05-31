@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSplitDQA::CXformSplitDQA
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -106,7 +106,7 @@ CXformSplitDQA::Transform
 
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -265,7 +265,7 @@ CXformSplitDQA::Transform
 CExpression *
 CXformSplitDQA::PexprSplitIntoLocalDQAGlobalAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	CMDAccessor *md_accessor,
 	CExpression *pexpr,
@@ -406,7 +406,7 @@ CXformSplitDQA::PexprSplitIntoLocalDQAGlobalAgg
 CExpression *
 CXformSplitDQA::PexprSplitHelper
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	CMDAccessor *md_accessor,
 	CExpression *pexpr,
@@ -523,7 +523,7 @@ CXformSplitDQA::PexprSplitHelper
 CExpression *
 CXformSplitDQA::PexprPrElAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprAggFunc,
 	EAggfuncStage eaggfuncstage,
 	CColRef *pcrPreviousStage,
@@ -584,7 +584,7 @@ CXformSplitDQA::PexprPrElAgg
 void
 CXformSplitDQA::PopulatePrLMultiPhaseAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	CMDAccessor *md_accessor,
 	CExpression *pexprPrEl,
@@ -657,7 +657,7 @@ CXformSplitDQA::PopulatePrLMultiPhaseAgg
 CColRef *
 CXformSplitDQA::PcrAggFuncArgument
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColumnFactory *col_factory,
 	CExpression *pexprArg,
@@ -697,7 +697,7 @@ CXformSplitDQA::PcrAggFuncArgument
 CExpression *
 CXformSplitDQA::PexprMultiLevelAggregation
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprRelational,
 	CExpressionArray *pdrgpexprPrElFirstStage,
 	CExpressionArray *pdrgpexprPrElSecondStage,
@@ -853,7 +853,7 @@ CXformSplitDQA::PexprMultiLevelAggregation
 void
 CXformSplitDQA::ExtractDistinctCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	CMDAccessor *md_accessor,
 	CExpression *pexpr,

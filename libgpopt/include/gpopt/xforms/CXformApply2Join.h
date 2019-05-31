@@ -39,7 +39,7 @@ namespace gpopt
 
 			// check if we can create a correlated apply expression from the given expression
 			static
-			BOOL FCanCreateCorrelatedApply(IMemoryPool *, CExpression *pexprApply)
+			BOOL FCanCreateCorrelatedApply(CMemoryPool *, CExpression *pexprApply)
             {
                 GPOS_ASSERT(NULL != pexprApply);
 
@@ -57,7 +57,7 @@ namespace gpopt
 
 			// create correlated apply expression
 			static
-			void CreateCorrelatedApply(IMemoryPool *mp, CExpression *pexprApply, CXformResult *pxfres)
+			void CreateCorrelatedApply(CMemoryPool *mp, CExpression *pexprApply, CXformResult *pxfres)
             {
                 if (!FCanCreateCorrelatedApply(mp, pexprApply))
                 {
@@ -118,7 +118,7 @@ namespace gpopt
 
 			// helper function to attempt decorrelating Apply's inner child
 			static
-			BOOL FDecorrelate(IMemoryPool *mp, CExpression *pexprApply, CExpression **ppexprInner, CExpressionArray **ppdrgpexpr)
+			BOOL FDecorrelate(CMemoryPool *mp, CExpression *pexprApply, CExpression **ppexprInner, CExpressionArray **ppdrgpexpr)
             {
                 GPOS_ASSERT(NULL != pexprApply);
                 GPOS_ASSERT(NULL != ppexprInner);
@@ -172,7 +172,7 @@ namespace gpopt
                     return;
                 }
 
-                IMemoryPool *mp = pxfctxt->Pmp();
+                CMemoryPool *mp = pxfctxt->Pmp();
                 CExpressionArray *pdrgpexpr = NULL;
                 CExpression *pexprInner = NULL;
                 if (!FDecorrelate(mp, pexprApply, &pexprInner, &pdrgpexpr))
@@ -216,7 +216,7 @@ namespace gpopt
                                 && "Apply's inner child can only use external columns");
 #endif // GPOS_DEBUG
 
-                IMemoryPool *mp = pxfctxt->Pmp();
+                CMemoryPool *mp = pxfctxt->Pmp();
                 CExpression *pexprOuter = (*pexprApply)[0];
                 CExpression *pexprInner = (*pexprApply)[1];
                 CExpression *pexprPred = (*pexprApply)[2];
@@ -241,7 +241,7 @@ namespace gpopt
 
 			// ctor for deep pattern
 			explicit
-			CXformApply2Join<TApply, TJoin>(IMemoryPool *mp, BOOL )
+			CXformApply2Join<TApply, TJoin>(CMemoryPool *mp, BOOL )
                 :
                 // pattern
                 CXformExploration
@@ -259,7 +259,7 @@ namespace gpopt
 
 			// ctor for shallow pattern
 			explicit
-			CXformApply2Join<TApply, TJoin>(IMemoryPool *mp)
+			CXformApply2Join<TApply, TJoin>(CMemoryPool *mp)
                 :
                 // pattern
                 CXformExploration
@@ -278,7 +278,7 @@ namespace gpopt
 			// ctor for passed pattern
 			CXformApply2Join<TApply, TJoin>
 				(
-				IMemoryPool *, // mp
+				CMemoryPool *, // mp
 				CExpression *pexprPattern
 				)
 				:

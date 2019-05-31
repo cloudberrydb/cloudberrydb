@@ -56,7 +56,7 @@ GPOS_RESULT
 CKeyCollectionTest::EresUnittest_Basics()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 
@@ -121,7 +121,7 @@ GPOS_RESULT
 CKeyCollectionTest::EresUnittest_Subsumes()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// Setup an MD cache with a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

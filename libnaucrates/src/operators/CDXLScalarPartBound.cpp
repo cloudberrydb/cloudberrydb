@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarPartBound::CDXLScalarPartBound
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG partitioning_level,
 	IMDId *mdid_type,
 	BOOL is_lower_bound

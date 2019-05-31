@@ -43,7 +43,7 @@ namespace gpopt
 			explicit
 			CXformSimplifySelectWithSubquery
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				// pattern

@@ -39,7 +39,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CConstExprEvaluatorDXL::CConstExprEvaluatorDXL
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IConstDXLNodeEvaluator *pconstdxleval
 	)

@@ -83,7 +83,7 @@ CMinidumpWithConstExprEvaluatorTest::EresUnittest_RunMinidumpTestsWithConstExprE
 	CAutoTraceFlag atf(EopttraceEnableConstantExpressionEvaluation, true /*value*/);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	IConstExprEvaluator *pceeval = GPOS_NEW(mp) CConstExprEvaluatorForDates(mp);
 

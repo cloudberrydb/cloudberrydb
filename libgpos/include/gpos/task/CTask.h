@@ -50,7 +50,7 @@ namespace gpos
 		private:
 
 			// task memory pool -- exclusively used by this task
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// task context
 			CTaskContext *m_task_ctxt;
@@ -100,7 +100,7 @@ namespace gpos
 			// ctor
 			CTask
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CTaskContext *task_ctxt,
 				IErrorContext *err_ctxt,
 				CEvent *event,
@@ -154,7 +154,7 @@ namespace gpos
 			virtual ~CTask();
 
 			// accessor for memory pool, e.g. used for allocating task parameters in
-			IMemoryPool *Pmp() const
+			CMemoryPool *Pmp() const
 			{
 				return m_mp;
 			}

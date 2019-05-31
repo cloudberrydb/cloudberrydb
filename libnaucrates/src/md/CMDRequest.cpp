@@ -29,7 +29,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRequest::CMDRequest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMdIdArray *mdid_array,
 	SMDTypeRequestArray *mdtype_request_array
 	)
@@ -53,7 +53,7 @@ CMDRequest::CMDRequest
 //---------------------------------------------------------------------------
 CMDRequest::CMDRequest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SMDTypeRequest *md_type_request
 	)
 	:

@@ -43,7 +43,7 @@ CMDTypeBoolGPDB::m_mdname(&m_str);
 //---------------------------------------------------------------------------
 CMDTypeBoolGPDB::CMDTypeBoolGPDB
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)
@@ -180,7 +180,7 @@ CMDTypeBoolGPDB::GetMdidForAggType
 IDatumBool *
 CMDTypeBoolGPDB::CreateBoolDatum
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	BOOL bool_val,
 	BOOL is_null
 	)
@@ -268,7 +268,7 @@ CMDTypeBoolGPDB::GetDatumForDXLConstVal
 IDatum*
 CMDTypeBoolGPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLDatum *dxl_datum
 	)
 	const
@@ -292,7 +292,7 @@ CMDTypeBoolGPDB::GetDatumForDXLDatum
 CDXLDatum *
 CMDTypeBoolGPDB::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -313,7 +313,7 @@ CMDTypeBoolGPDB::GetDatumVal
 CDXLScalarConstValue *
 CMDTypeBoolGPDB::GetDXLOpScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -337,7 +337,7 @@ CMDTypeBoolGPDB::GetDXLOpScConst
 CDXLDatum *
 CMDTypeBoolGPDB::GetDXLDatumNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

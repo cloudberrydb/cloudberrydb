@@ -59,7 +59,7 @@ namespace gpopt
 			// ctor
 			CColumnDescriptor
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const IMDType *pmdtype,
 				INT type_modifier,
 				const CName &name,

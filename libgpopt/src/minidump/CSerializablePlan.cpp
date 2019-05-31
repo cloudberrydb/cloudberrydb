@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializablePlan::CSerializablePlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLNode *pdxlnPlan,
 	ULLONG plan_id,
 	ULLONG plan_space_size

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLeftAntiSemiJoin::CLogicalLeftAntiSemiJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalJoin(mp)
@@ -51,7 +51,7 @@ CLogicalLeftAntiSemiJoin::CLogicalLeftAntiSemiJoin
 CMaxCard
 CLogicalLeftAntiSemiJoin::MaxCard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -72,7 +72,7 @@ CLogicalLeftAntiSemiJoin::MaxCard
 CXformSet *
 CLogicalLeftAntiSemiJoin::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -100,7 +100,7 @@ CLogicalLeftAntiSemiJoin::PxfsCandidates
 CColRefSet *
 CLogicalLeftAntiSemiJoin::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -121,7 +121,7 @@ CLogicalLeftAntiSemiJoin::PcrsDeriveOutput
 CKeyCollection *
 CLogicalLeftAntiSemiJoin::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -140,7 +140,7 @@ CLogicalLeftAntiSemiJoin::PkcDeriveKeys
 IStatistics *
 CLogicalLeftAntiSemiJoin::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

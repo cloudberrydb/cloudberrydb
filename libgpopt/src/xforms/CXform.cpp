@@ -109,7 +109,7 @@ CXform::FCheckPattern
 BOOL
 CXform::FPromising
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CXform *pxform,
 	CExpression *pexpr
 	)
@@ -156,7 +156,7 @@ CXform::FEqualIds
 //---------------------------------------------------------------------------
 CBitSet *CXform::PbsIndexJoinXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -189,7 +189,7 @@ CBitSet *CXform::PbsIndexJoinXforms
 //---------------------------------------------------------------------------
 CBitSet *CXform::PbsBitmapIndexXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -218,7 +218,7 @@ CBitSet *CXform::PbsBitmapIndexXforms
 //---------------------------------------------------------------------------
 CBitSet *CXform::PbsHeterogeneousIndexXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -234,7 +234,7 @@ CBitSet *CXform::PbsHeterogeneousIndexXforms
 //	Caller takes ownership of the returned set
 CBitSet *CXform::PbsHashJoinXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -250,7 +250,7 @@ CBitSet *CXform::PbsHashJoinXforms
 
 CBitSet *CXform::PbsJoinOrderInQueryXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -267,7 +267,7 @@ CBitSet *CXform::PbsJoinOrderInQueryXforms
 
 CBitSet *CXform::PbsJoinOrderOnGreedyXforms
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -282,7 +282,7 @@ CBitSet *CXform::PbsJoinOrderOnGreedyXforms
 
 CBitSet *CXform::PbsJoinOrderOnExhaustiveXforms
 	(
-	 IMemoryPool *mp
+	 CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -294,7 +294,7 @@ CBitSet *CXform::PbsJoinOrderOnExhaustiveXforms
 
 CBitSet *CXform::PbsJoinOrderOnExhaustive2Xforms
 	(
-	 IMemoryPool *mp
+	 CMemoryPool *mp
 	)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);

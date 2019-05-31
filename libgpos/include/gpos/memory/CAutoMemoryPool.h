@@ -4,7 +4,7 @@
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
-//		IMemoryPool.h
+//		CMemoryPool.h
 //
 //	@doc:
 //		Memory pool wrapper that cleans up the pool automatically
@@ -21,7 +21,7 @@
 #include "gpos/assert.h"
 #include "gpos/types.h"
 #include "gpos/common/CStackObject.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/memory/CMemoryPoolManager.h"
 
 namespace gpos
@@ -34,7 +34,7 @@ namespace gpos
 	//		Automatic memory pool interface;
 	//		tears down memory pool when going out of scope;
 	//
-	//		For cleanliness, do not provide an automatic cast to IMemoryPool
+	//		For cleanliness, do not provide an automatic cast to CMemoryPool
 	//
 	//---------------------------------------------------------------------------
 	class CAutoMemoryPool : public CStackObject
@@ -55,7 +55,7 @@ namespace gpos
 			CAutoMemoryPool(const CAutoMemoryPool &);
 
 			// memory pool to protect
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// type of leak check to perform
 			ELeakCheck m_leak_check_type;
@@ -75,13 +75,13 @@ namespace gpos
 			~CAutoMemoryPool();
 
 			// accessor
-			IMemoryPool *Pmp() const
+			CMemoryPool *Pmp() const
 			{
 				return m_mp;
 			}
 			
 			// detach from pool
-			IMemoryPool *Detach();
+			CMemoryPool *Detach();
 
 	}; // CAutoMemoryPool
 }

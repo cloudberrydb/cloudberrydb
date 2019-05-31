@@ -45,7 +45,7 @@ namespace gpopt
 			// derive statistics for projection operators
 			IStatistics *PstatsDeriveProject
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CExpressionHandle &exprhdl,
 							UlongToIDatumMap *phmuldatum = NULL
 							)
@@ -57,7 +57,7 @@ namespace gpopt
 			explicit
 			CLogicalUnary
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CLogical(mp)
@@ -83,7 +83,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)
@@ -99,7 +99,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveNotNull
 				(
-				IMemoryPool *,// mp
+				CMemoryPool *,// mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -112,7 +112,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -124,7 +124,7 @@ namespace gpopt
 			virtual
 			CFunctionProp *PfpDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -148,7 +148,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
 				ULONG child_index

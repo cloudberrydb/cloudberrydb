@@ -12,7 +12,7 @@
 #define GPOPT_CStatisticsConfig_H
 
 #include "gpos/base.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/common/CRefCount.h"
 #include "gpos/common/CDouble.h"
 #include "gpos/sync/CAutoMutex.h"
@@ -39,7 +39,7 @@ namespace gpopt
 		private:
 
 			// shared memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// damping factor for filter
 			CDouble m_damping_factor_filter;
@@ -61,7 +61,7 @@ namespace gpopt
 			// ctor
 			CStatisticsConfig
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDouble damping_factor_filter,
 				CDouble damping_factor_join,
 				CDouble damping_factor_groupby
@@ -96,7 +96,7 @@ namespace gpopt
 
 			// generate default optimizer configurations
 			static
-			CStatisticsConfig *PstatsconfDefault(IMemoryPool *mp)
+			CStatisticsConfig *PstatsconfDefault(CMemoryPool *mp)
 			{
 				return GPOS_NEW(mp) CStatisticsConfig
 									(

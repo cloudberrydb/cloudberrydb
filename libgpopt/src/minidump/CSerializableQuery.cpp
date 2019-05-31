@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableQuery::CSerializableQuery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLNode *query,
 	const CDXLNodeArray *query_output_dxlnode_array,
 	const CDXLNodeArray *cte_producers

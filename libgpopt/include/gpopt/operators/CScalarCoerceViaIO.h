@@ -47,7 +47,7 @@ namespace gpopt
 			// ctor
 			CScalarCoerceViaIO
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_type,
 				INT type_modifier,
 				ECoercionForm dxl_coerce_format,

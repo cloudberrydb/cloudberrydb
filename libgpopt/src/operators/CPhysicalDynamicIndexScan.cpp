@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalDynamicIndexScan::CPhysicalDynamicIndexScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_partial,
 	CIndexDescriptor *pindexdesc,
 	CTableDescriptor *ptabdesc,
@@ -191,7 +191,7 @@ CPhysicalDynamicIndexScan::OsPrint
 IStatistics *
 CPhysicalDynamicIndexScan::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpplan,
 	IStatisticsArray *stats_ctxt

@@ -29,7 +29,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalLimit::CDXLLogicalLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL top_limit_under_dml
 	)
 	:

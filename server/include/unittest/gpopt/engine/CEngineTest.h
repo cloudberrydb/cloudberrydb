@@ -38,7 +38,7 @@ namespace gpopt
 #ifdef GPOS_DEBUG
 
 			// type definition for of expression generator
-			typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+			typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 
 			// helper for testing engine using an array of expression generators
 			static
@@ -55,7 +55,7 @@ namespace gpopt
 		public:
 
 			// type definition of optimizer test function
-			typedef void (FnOptimize)(IMemoryPool*, CExpression *, CSearchStageArray *);
+			typedef void (FnOptimize)(CMemoryPool*, CExpression *, CSearchStageArray *);
 
 			// main driver
 			static
@@ -80,7 +80,7 @@ namespace gpopt
 
 			// build memo by recursive optimization
 			static
-			void BuildMemoRecursive(IMemoryPool *mp, CExpression *pexprInput, CSearchStageArray *search_stage_array);
+			void BuildMemoRecursive(CMemoryPool *mp, CExpression *pexprInput, CSearchStageArray *search_stage_array);
 
 			// test of recursive memo building
 			static

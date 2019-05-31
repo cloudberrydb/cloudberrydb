@@ -27,7 +27,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAssertConstraint::CScalarAssertConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringBase *pstrErrorMsg
 	)
 	:

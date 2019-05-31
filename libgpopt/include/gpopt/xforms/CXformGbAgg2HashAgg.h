@@ -42,7 +42,7 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CXformGbAgg2HashAgg(IMemoryPool *mp);
+			CXformGbAgg2HashAgg(CMemoryPool *mp);
 
 			// ctor
 			explicit

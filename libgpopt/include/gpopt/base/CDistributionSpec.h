@@ -100,7 +100,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsUsed
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				const
 			{
@@ -149,7 +149,7 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsCopyWithRemappedColumns
 								(
-								IMemoryPool *, //mp,
+								CMemoryPool *, //mp,
 								UlongToColRefMap *, //colref_mapping,
 								BOOL //must_exist
 								)

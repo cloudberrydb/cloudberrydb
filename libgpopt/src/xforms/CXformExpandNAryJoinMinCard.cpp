@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExpandNAryJoinMinCard::CXformExpandNAryJoinMinCard
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -92,7 +92,7 @@ CXformExpandNAryJoinMinCard::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	const ULONG arity = pexpr->Arity();
 	GPOS_ASSERT(arity >= 3);

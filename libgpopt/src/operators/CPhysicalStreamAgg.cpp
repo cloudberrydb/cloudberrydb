@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalStreamAgg::CPhysicalStreamAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
@@ -77,7 +77,7 @@ CPhysicalStreamAgg::CPhysicalStreamAgg
 void
 CPhysicalStreamAgg::InitOrderSpec
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOrder
 	)
 {
@@ -128,7 +128,7 @@ CPhysicalStreamAgg::~CPhysicalStreamAgg()
 COrderSpec *
 CPhysicalStreamAgg::PosCovering
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COrderSpec *posRequired,
 	CColRefArray *pdrgpcrGrp
 	)
@@ -195,7 +195,7 @@ CPhysicalStreamAgg::PosCovering
 COrderSpec *
 CPhysicalStreamAgg::PosRequiredStreamAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG
@@ -255,7 +255,7 @@ CPhysicalStreamAgg::PosRequiredStreamAgg
 COrderSpec *
 CPhysicalStreamAgg::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const

@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAggWithMDQA2Join::CXformGbAggWithMDQA2Join
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -98,7 +98,7 @@ CXformGbAggWithMDQA2Join::Exfp
 CExpression *
 CXformGbAggWithMDQA2Join::PexprMDQAs2Join
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -158,7 +158,7 @@ CXformGbAggWithMDQA2Join::PexprMDQAs2Join
 CExpression *
 CXformGbAggWithMDQA2Join::PexprExpandMDQAs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -196,7 +196,7 @@ CXformGbAggWithMDQA2Join::PexprExpandMDQAs
 CExpression *
 CXformGbAggWithMDQA2Join::PexprTransform
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -252,7 +252,7 @@ CXformGbAggWithMDQA2Join::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	CExpression *pexprResult = PexprTransform(mp, pexpr);
 	if (NULL != pexprResult)

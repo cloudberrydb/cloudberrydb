@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CQueryContext::CQueryContext
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CReqdPropPlan *prpp,
 	CColRefArray *colref_array,
@@ -143,7 +143,7 @@ CQueryContext::PopTop
 void
 CQueryContext::SetSystemCols
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_pdrgpcrSystemCols);
@@ -174,7 +174,7 @@ CQueryContext::SetSystemCols
 CQueryContext *
 CQueryContext::PqcGenerate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression * pexpr,
 	ULongPtrArray *pdrgpulQueryOutputColRefId,
 	CMDNameArray *pdrgpmdname,

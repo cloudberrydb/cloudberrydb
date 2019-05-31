@@ -72,7 +72,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CEngine::CEngine
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -445,7 +445,7 @@ CEngine::FPossibleDuplicateGroups
 void
 CEngine::DeriveStats
 	(
-	IMemoryPool *pmpLocal
+	CMemoryPool *pmpLocal
 	)
 {
 	CWStringDynamic str(m_mp);
@@ -473,8 +473,8 @@ CEngine::DeriveStats
 void
 CEngine::DeriveStats
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CGroup *pgroup,
 	CReqdPropRelational *prprel
 	)
@@ -744,7 +744,7 @@ CEngine::Pmemotmap()
 void
 CEngine::ApplyTransformations
 	(
-	IMemoryPool *pmpLocal,
+	CMemoryPool *pmpLocal,
 	CXformSet *xform_set,
 	CGroupExpression *pgexpr
 	)
@@ -783,7 +783,7 @@ CEngine::ApplyTransformations
 void
 CEngine::TransitionGroupExpression
 	(
-	IMemoryPool *pmpLocal,
+	CMemoryPool *pmpLocal,
 	CGroupExpression *pgexpr,
 	CGroupExpression::EState estTarget
 	)
@@ -847,7 +847,7 @@ CEngine::TransitionGroupExpression
 void
 CEngine::TransitionGroup
 	(
-	IMemoryPool *pmpLocal,
+	CMemoryPool *pmpLocal,
 	CGroup *pgroup,
 	CGroup::EState estTarget
 	)
@@ -1418,7 +1418,7 @@ CEngine::RecursiveOptimize()
 COptimizationContextArray *
 CEngine::PdrgpocChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -2205,7 +2205,7 @@ CEngine::SamplePlans()
 BOOL
 CEngine::FCheckEnfdProps
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	COptimizationContext *poc,
 	ULONG ulOptReq,
@@ -2337,7 +2337,7 @@ CEngine::FCheckEnfdProps
 BOOL
 CEngine::FValidCTEAndPartitionProperties
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpp
 	)

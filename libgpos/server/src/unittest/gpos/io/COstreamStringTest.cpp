@@ -65,7 +65,7 @@ COstreamStringTest::EresUnittest_Basic()
 {
 	// create memory pool of 128KB
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	CWStringDynamic str(mp);
 	
@@ -116,7 +116,7 @@ COstreamStringTest::EresUnittest_OOM()
 		false /*fThreadSafe*/,
 		1024
 		);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic str(mp);
 	
@@ -146,7 +146,7 @@ COstreamStringTest::EresUnittest_EndlAssert()
 {
 	// create memory pool of 1KB
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic str(mp);
 	

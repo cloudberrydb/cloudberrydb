@@ -84,7 +84,7 @@ CScalarProjectElement::FInputOrderSensitive() const
 COperator *
 CScalarProjectElement::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

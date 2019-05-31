@@ -113,7 +113,7 @@ CEnfdPartitionPropagation::Epet
 BOOL 
 CEnfdPartitionPropagation::FResolved
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartIndexMap *ppim
 	)
 	const
@@ -166,7 +166,7 @@ CEnfdPartitionPropagation::FResolved
 BOOL 
 CEnfdPartitionPropagation::FInScope
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartIndexMap *ppim
 	)
 	const

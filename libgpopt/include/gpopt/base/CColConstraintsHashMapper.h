@@ -4,7 +4,7 @@
 #ifndef GPOPT_CColConstraintsHashMapper_H
 #define GPOPT_CColConstraintsHashMapper_H
 
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 #include "gpopt/base/CConstraint.h"
 #include "gpopt/base/IColConstraintsMapper.h"
@@ -16,7 +16,7 @@ namespace gpopt
 		public:
 			CColConstraintsHashMapper
 				(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CConstraintArray *pdrgPcnstr
 				);
 

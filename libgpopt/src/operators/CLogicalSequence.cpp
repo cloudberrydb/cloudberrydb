@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSequence::CLogicalSequence
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp)
@@ -67,7 +67,7 @@ CLogicalSequence::Matches
 CXformSet *
 CLogicalSequence::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -88,7 +88,7 @@ CLogicalSequence::PxfsCandidates
 CColRefSet *
 CLogicalSequence::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -114,7 +114,7 @@ CLogicalSequence::PcrsDeriveOutput
 CKeyCollection *
 CLogicalSequence::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -136,7 +136,7 @@ CLogicalSequence::PkcDeriveKeys
 CMaxCard
 CLogicalSequence::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -156,7 +156,7 @@ CLogicalSequence::Maxcard
 CPartInfo *
 CLogicalSequence::PpartinfoDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const

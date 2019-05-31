@@ -42,7 +42,7 @@ GPOS_RESULT
 CConstExprEvaluatorDefaultTest::EresUnittest()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CConstExprEvaluatorDefault *pceevaldefault = GPOS_NEW(mp) CConstExprEvaluatorDefault();
 	GPOS_ASSERT(!pceevaldefault->FCanEvalExpressions());

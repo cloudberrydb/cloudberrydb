@@ -21,7 +21,7 @@ namespace
 			{
 			}
 
-			IMemoryPool *Pmp() const
+			CMemoryPool *Pmp() const
 			{
 				return m_amp.Pmp();
 			}
@@ -52,7 +52,7 @@ namespace
 static void
 SerializeOptimizerConfig
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		COptimizerConfig *optimizer_config,
 		COstream &oos,
 		BOOL indentation
@@ -89,7 +89,7 @@ namespace gpdxl
 	{
 		BOOL fValidate = false;
 		Fixture f;
-		IMemoryPool *mp = f.Pmp();
+		CMemoryPool *mp = f.Pmp();
 		// Valid input for this test requires DXL in the form of:
 		// Please note that most editors will automatically add a newline at the end of the file
 		// This will cause the test to fail, as we do a byte-wise string comparison as opposed to a

@@ -287,7 +287,7 @@ namespace gpos
 			// spawns a number of iterator check tasks
 			static void *PvUnittest_IteratorsRun
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				SElemHashtable &,
 				SElem *,
 				ULONG

@@ -35,7 +35,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAggFunc::CScalarAggFunc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *pmdidAggFunc,
 	IMDId *resolved_rettype,
 	const CWStringConst *pstrAggFunc,

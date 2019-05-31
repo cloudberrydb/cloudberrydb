@@ -72,7 +72,7 @@ namespace gpdxl
 			static 
 			CParseHandlerDXL *GetParseHandlerForDXLString
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CWStringBase *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -81,7 +81,7 @@ namespace gpdxl
 
 		public:
 			// helper functions for serializing DXL document header and footer, respectively
-			static void SerializeHeader(IMemoryPool *, CXMLSerializer *);
+			static void SerializeHeader(CMemoryPool *, CXMLSerializer *);
 			static void SerializeFooter(CXMLSerializer *);
 			// helper routine which initializes and starts the xerces parser, 
 			// and returns the top-level parse handler which can be used to
@@ -89,7 +89,7 @@ namespace gpdxl
 			static 
 			CParseHandlerDXL *GetParseHandlerForDXLString
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -98,7 +98,7 @@ namespace gpdxl
 			static 
 			CParseHandlerDXL *GetParseHandlerForDXLFile
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_filename,
 				const CHAR *xsd_file_path
 				);
@@ -107,7 +107,7 @@ namespace gpdxl
 			static 
 			CDXLNode *GetPlanDXLNode
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path,
 				ULLONG *plan_id,
@@ -120,7 +120,7 @@ namespace gpdxl
 			static 
 			CQueryToDXLResult *ParseQueryToQueryDXLTree
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -129,7 +129,7 @@ namespace gpdxl
 			static
 			CDXLNode *ParseDXLToScalarExprDXLNode
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -138,7 +138,7 @@ namespace gpdxl
 			static 
 			CMDRequest *ParseDXLToMDRequest
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -147,7 +147,7 @@ namespace gpdxl
 			static 
 			CMDRequest *ParseDXLToMDRequest
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const WCHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -156,7 +156,7 @@ namespace gpdxl
 			static
 			COptimizerConfig *ParseDXLToOptimizerConfig
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -164,7 +164,7 @@ namespace gpdxl
 			static 
 			IMDCacheObjectArray *ParseDXLToIMDObjectArray
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -172,7 +172,7 @@ namespace gpdxl
 			static 
 			IMDCacheObjectArray *ParseDXLToIMDObjectArray
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CWStringBase *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -181,7 +181,7 @@ namespace gpdxl
 			static 
 			IMDId *ParseDXLToMDId
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CWStringBase *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -189,7 +189,7 @@ namespace gpdxl
 			static 
 			IMDCacheObject *ParseDXLToIMDIdCacheObj
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CWStringBase *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -198,7 +198,7 @@ namespace gpdxl
 			static 
 			CDXLStatsDerivedRelationArray *ParseDXLToStatsDerivedRelArray
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CHAR *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -207,7 +207,7 @@ namespace gpdxl
 			static 
 			CDXLStatsDerivedRelationArray *ParseDXLToStatsDerivedRelArray
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const CWStringBase *dxl_string,
 				const CHAR *xsd_file_path
 				);
@@ -216,7 +216,7 @@ namespace gpdxl
 			static
 			CStatisticsArray *ParseDXLToOptimizerStatisticObjArray
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				CDXLStatsDerivedRelationArray *dxl_derived_rel_stats_array
 				);
@@ -226,7 +226,7 @@ namespace gpdxl
 			static
 			CBucketArray *ParseDXLToBucketsArray
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				CDXLStatsDerivedColumn *dxl_derived_col_stats
 				);
@@ -235,7 +235,7 @@ namespace gpdxl
 			static 
 			void SerializeQuery
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IOstream& os,
 				const CDXLNode *dxl_query_node,
 								   const CDXLNodeArray *query_output_dxlnode_array,
@@ -248,7 +248,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *SerializeULLONG
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ULLONG value
 				);
 
@@ -256,7 +256,7 @@ namespace gpdxl
 			static 
 			void SerializePlan
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IOstream &os,
 				const CDXLNode *node,
 				ULLONG plan_id,
@@ -268,7 +268,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *SerializeStatistics
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				const CStatisticsArray *statistics_array,
 				BOOL serialize_header_footer,
@@ -279,7 +279,7 @@ namespace gpdxl
 			static 
 			void SerializeStatistics
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				const CStatisticsArray *statistics_array,
 				IOstream &os,
@@ -291,7 +291,7 @@ namespace gpdxl
 			static 
 			void SerializeMetadata
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const IMDCacheObjectArray *imd_obj_array,
 				IOstream &os,
 				BOOL serialize_document_header_footer,
@@ -302,7 +302,7 @@ namespace gpdxl
 			static 
 			void SerializeMDRequest
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDRequest *md_request,
 				IOstream &os,
 				BOOL serialize_document_header_footer,
@@ -313,7 +313,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *SerializeMetadata
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const IMDCacheObjectArray *,
 				BOOL serialize_document_header_footer,
 				BOOL indentation
@@ -323,7 +323,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *SerializeMetadata
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const IMDId *mdid,
 				BOOL serialize_document_header_footer,
 				BOOL indentation
@@ -333,7 +333,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *SerializeSamplePlans
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CEnumeratorConfig *enumerator_cfg,
 				BOOL indentation
 				);
@@ -342,7 +342,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *SerializeCostDistr
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CEnumeratorConfig *enumerator_cfg,
 				BOOL indentation
 				);
@@ -351,7 +351,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *SerializeMDObj
 				(
-				IMemoryPool *,
+				CMemoryPool *,
 				const IMDCacheObject *,
 				BOOL serialize_document_header_footer,
 				BOOL indentation
@@ -361,7 +361,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *SerializeScalarExpr
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CDXLNode *node,
 				BOOL serialize_document_header_footer,
 				BOOL indentation
@@ -388,13 +388,13 @@ namespace gpdxl
 			static 
 			CWStringDynamic *CreateDynamicStringFromCharArray
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CHAR *c
 				);
 			
 			// create an MD name from a character array
 			static 
-			CMDName *CreateMDNameFromCharArray(IMemoryPool *mp, const CHAR *c);
+			CMDName *CreateMDNameFromCharArray(CMemoryPool *mp, const CHAR *c);
 			
 			// create an MD name from a Xerces character array
 			static 
@@ -404,7 +404,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *EncodeByteArrayToString
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const BYTE *byte,
 				ULONG length
 				);
@@ -414,7 +414,7 @@ namespace gpdxl
 			static 
 			CWStringDynamic *Serialize
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CDynamicPtrArray<T, CleanupFn> *arr
 				);
 
@@ -422,7 +422,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *Serialize
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const ULongPtr2dArray *pdrgpul
 				);
 
@@ -430,7 +430,7 @@ namespace gpdxl
 			static
 			CWStringDynamic *SerializeToCommaSeparatedString
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CharPtrArray *pdrgpsz
 				);
 
@@ -438,17 +438,17 @@ namespace gpdxl
 			static 
 			BYTE *DecodeByteArrayFromString
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CWStringDynamic *dxl_string,
 				ULONG *length
 				);
 			
 			static 
-			CHAR *Read(IMemoryPool *mp, const CHAR *filename);
+			CHAR *Read(CMemoryPool *mp, const CHAR *filename);
 			
 			// create a multi-byte character string from a wide character string
 			static 
-			CHAR *CreateMultiByteCharStringFromWCString(IMemoryPool *mp, const WCHAR *wc_string);
+			CHAR *CreateMultiByteCharStringFromWCString(CMemoryPool *mp, const WCHAR *wc_string);
 			
 			// serialize a double value in a string
 			static 
@@ -462,7 +462,7 @@ namespace gpdxl
 			static
 			IDatum *GetDatum
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				const CDXLDatum *dxl_datum
 				);
@@ -479,7 +479,7 @@ namespace gpdxl
 	CWStringDynamic *
 	CDXLUtils::Serialize
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		const CDynamicPtrArray<T, CleanupFn> *dynamic_ptr_array
 		)
 	{

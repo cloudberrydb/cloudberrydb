@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarNullTest::CDXLScalarNullTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_null
 	)
 	:

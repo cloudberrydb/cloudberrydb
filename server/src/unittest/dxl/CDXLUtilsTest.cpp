@@ -68,7 +68,7 @@ CDXLUtilsTest::EresUnittest_SerializeQuery()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// read DXL file
 	CHAR *dxl_string = CDXLUtils::Read(mp, szQueryFile);
@@ -124,7 +124,7 @@ CDXLUtilsTest::EresUnittest_SerializePlan()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// read DXL file
 	CHAR *dxl_string = CDXLUtils::Read(mp, szPlanFile);
@@ -173,7 +173,7 @@ GPOS_RESULT
 CDXLUtilsTest::EresUnittest_Encoding()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CAutoP<CDXLMemoryManager> a_pmm(GPOS_NEW(mp) CDXLMemoryManager(mp));
 

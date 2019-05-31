@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalAgg::CPhysicalAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal, // minimal grouping columns based on FD's
 	COperator::EGbAggType egbaggtype,
@@ -151,7 +151,7 @@ CPhysicalAgg::~CPhysicalAgg()
 CColRefSet *
 CPhysicalAgg::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -175,7 +175,7 @@ CPhysicalAgg::PcrsRequired
 CColRefSet *
 CPhysicalAgg::PcrsRequiredAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -209,7 +209,7 @@ CPhysicalAgg::PcrsRequiredAgg
 CDistributionSpec *
 CPhysicalAgg::PdsRequiredAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -279,7 +279,7 @@ CPhysicalAgg::PdsRequiredAgg
 CDistributionSpec *
 CPhysicalAgg::PdsMaximalHashed
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -313,7 +313,7 @@ CPhysicalAgg::PdsMaximalHashed
 CDistributionSpec *
 CPhysicalAgg::PdsRequiredGlobalAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -369,7 +369,7 @@ CPhysicalAgg::PdsRequiredGlobalAgg
 CDistributionSpec *
 CPhysicalAgg::PdsRequiredIntermediateAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG  ulOptReq
 	)
 	const
@@ -407,7 +407,7 @@ CPhysicalAgg::PdsRequiredIntermediateAgg
 CRewindabilitySpec *
 CPhysicalAgg::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -432,7 +432,7 @@ CPhysicalAgg::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalAgg::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG 
@@ -461,7 +461,7 @@ CPhysicalAgg::PppsRequired
 CCTEReq *
 CPhysicalAgg::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -523,7 +523,7 @@ CPhysicalAgg::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalAgg::PdsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -552,7 +552,7 @@ CPhysicalAgg::PdsDerive
 CRewindabilitySpec *
 CPhysicalAgg::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const

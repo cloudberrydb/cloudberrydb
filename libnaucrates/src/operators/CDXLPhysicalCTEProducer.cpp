@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalCTEProducer::CDXLPhysicalCTEProducer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id,
 	ULongPtrArray *output_colids_array
 	)

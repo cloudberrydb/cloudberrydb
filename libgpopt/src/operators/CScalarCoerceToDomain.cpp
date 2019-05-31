@@ -26,7 +26,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceToDomain::CScalarCoerceToDomain
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
 	ECoercionForm ecf,

@@ -49,7 +49,7 @@ namespace gpopt
 			static
 			CExpression *PexprConstInt8
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CMDAccessor *md_accessor,
 							CSystemId sysid,
 							LINT liValue
@@ -59,7 +59,7 @@ namespace gpopt
 			static
 			CScalarConst *PopConst
 							(
-							IMemoryPool *mp,
+							CMemoryPool *mp,
 							CMDAccessor *md_accessor,
 							const CDXLScalarConstValue *dxl_op
 							);
@@ -70,13 +70,13 @@ namespace gpopt
 
 			// create a datum array from a dxl datum array
 			static
-			IDatumArray *Pdrgpdatum(IMemoryPool *mp, CMDAccessor *md_accessor, const CDXLDatumArray *pdrgpdatum);
+			IDatumArray *Pdrgpdatum(CMemoryPool *mp, CMDAccessor *md_accessor, const CDXLDatumArray *pdrgpdatum);
 
 			// update table descriptor's key sets info from the MD cache object
 			static
 			void AddKeySets
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CTableDescriptor *ptabdesc,
 					const IMDRelation *pmdrel,
 					UlongToUlongMap *phmululColMapping
@@ -93,7 +93,7 @@ namespace gpopt
 
 			// construct a dynamic array of col refs corresponding to the given col ids
 			static
-			CColRefArray *Pdrgpcr(IMemoryPool *mp, UlongToColRefMap *colref_mapping, const ULongPtrArray *colids);
+			CColRefArray *Pdrgpcr(CMemoryPool *mp, UlongToColRefMap *colref_mapping, const ULongPtrArray *colids);
 
 			// is the given expression is a scalar function that casts
 			static

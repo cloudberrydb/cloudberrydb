@@ -89,7 +89,7 @@ CSpinlockTest::EresUnittest_Concurrency()
 	CSpinlockDummy slock;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
@@ -223,7 +223,7 @@ CSpinlockTest::EresUnittest_Allocation()
 {
 	// create mem pool for 1KB
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CSpinlockDummy slock;
 	{

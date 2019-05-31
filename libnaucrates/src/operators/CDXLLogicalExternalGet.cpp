@@ -25,7 +25,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalExternalGet::CDXLLogicalExternalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLTableDescr *table_descr
 	)
 	:

@@ -42,7 +42,7 @@ CJoinCardinalityTest::EresUnittest()
 	GPOS_RESULT eres = GPOS_FAILED;
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -69,7 +69,7 @@ CJoinCardinalityTest::EresUnittest_JoinNDVRemain()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SHistogramTestCase rghisttc[] =
 	{
@@ -184,7 +184,7 @@ CJoinCardinalityTest::EresUnittest_Join()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	SStatsJoinSTestCase rgstatsjointc[] =
@@ -293,7 +293,7 @@ CJoinCardinalityTest::EresUnittest_Join()
 CStatsPredJoinArray *
 CJoinCardinalityTest::PdrgpstatspredjoinSingleJoinPredicate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredJoinArray *join_preds_stats = GPOS_NEW(mp) CStatsPredJoinArray(mp);
@@ -306,7 +306,7 @@ CJoinCardinalityTest::PdrgpstatspredjoinSingleJoinPredicate
 CStatsPredJoinArray *
 CJoinCardinalityTest::PdrgpstatspredjoinMultiplePredicates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredJoinArray *join_preds_stats = GPOS_NEW(mp) CStatsPredJoinArray(mp);
@@ -322,7 +322,7 @@ CJoinCardinalityTest::PdrgpstatspredjoinMultiplePredicates
 CStatsPredJoinArray *
 CJoinCardinalityTest::PdrgpstatspredjoinNullableCols
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CStatsPredJoinArray *join_preds_stats = GPOS_NEW(mp) CStatsPredJoinArray(mp);

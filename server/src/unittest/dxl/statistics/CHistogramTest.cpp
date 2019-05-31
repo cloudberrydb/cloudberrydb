@@ -42,7 +42,7 @@ CHistogramTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -61,7 +61,7 @@ CHistogramTest::EresUnittest_CHistogramInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// original histogram
 	CHistogram *histogram = CCardinalityTestUtils::PhistExampleInt4(mp);
@@ -158,7 +158,7 @@ CHistogramTest::EresUnittest_CHistogramBool()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate histogram of the form [false, false), [true,true)
 	CBucketArray *histogram_buckets = GPOS_NEW(mp) CBucketArray(mp);
@@ -190,7 +190,7 @@ CHistogramTest::EresUnittest_CHistogramValid()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CBucketArray *histogram_buckets = GPOS_NEW(mp) CBucketArray(mp);
 
@@ -226,7 +226,7 @@ CHistogramTest::EresUnittest_CHistogramValid()
 CHistogram*
 CHistogramTest::PhistExampleInt4Remain
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// generate histogram of the form [0, 0], [10, 10], [20, 20] ...
@@ -250,7 +250,7 @@ CHistogramTest::EresUnittest_Skew()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CBucket *bucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 100, CDouble(0.6), CDouble(100.0));
 	CBucket *bucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 101, 200, CDouble(0.2), CDouble(100.0));

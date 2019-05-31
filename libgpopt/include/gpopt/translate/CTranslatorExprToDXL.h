@@ -15,7 +15,7 @@
 
 
 #include "gpos/base.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 #include "naucrates/dxl/operators/CDXLScalarBoolExpr.h"
 #include "naucrates/dxl/operators/CDXLScalarWindowRef.h"
@@ -101,7 +101,7 @@ namespace gpopt
 			};
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// metadata accessor
 			CMDAccessor *m_pmda;
@@ -734,7 +734,7 @@ namespace gpopt
 			// combines the ordered columns and required columns into a single list
 			CColRefArray *PdrgpcrMerge
 					(
-					IMemoryPool *mp,
+					CMemoryPool *mp,
 					CColRefArray *pdrgpcrOrder,
 					CColRefArray *pdrgpcrRequired
 					);
@@ -820,7 +820,7 @@ namespace gpopt
 			static
 			void AddBitmapFilterColumns
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CPhysicalScan *pop,
 				CExpression *pexprRecheckCond,
 				CExpression *pexprScalar,
@@ -830,7 +830,7 @@ namespace gpopt
 			// ctor
 			CTranslatorExprToDXL
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
 				IntPtrArray *pdrgpiSegments,
 				BOOL fInitColumnFactory = true

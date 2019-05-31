@@ -25,7 +25,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -47,7 +47,7 @@ CKeyCollection::CKeyCollection
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 	:
@@ -73,7 +73,7 @@ CKeyCollection::CKeyCollection
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 	:
@@ -182,7 +182,7 @@ CKeyCollection::FKey
 BOOL
 CKeyCollection::FKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefArray *colref_array
 	)
 	const
@@ -208,7 +208,7 @@ CKeyCollection::FKey
 CColRefArray *
 CKeyCollection::PdrgpcrTrim
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefArray *colref_array
 	)
 	const
@@ -243,7 +243,7 @@ CKeyCollection::PdrgpcrTrim
 CColRefArray *
 CKeyCollection::PdrgpcrKey
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -270,7 +270,7 @@ CKeyCollection::PdrgpcrKey
 CColRefArray *
 CKeyCollection::PdrgpcrHashableKey
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -301,7 +301,7 @@ CKeyCollection::PdrgpcrHashableKey
 CColRefArray *
 CKeyCollection::PdrgpcrKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulIndex
 	)
 	const
@@ -329,7 +329,7 @@ CKeyCollection::PdrgpcrKey
 CColRefSet *
 CKeyCollection::PcrsKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulIndex
 	)
 	const

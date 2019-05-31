@@ -39,15 +39,15 @@ namespace gpopt
 
 			// generate a random join tree
 			static
-			CExpression *PexprJoinTree(IMemoryPool *mp);
+			CExpression *PexprJoinTree(CMemoryPool *mp);
 			
 			// generate random star join tree
 			static
-			CExpression *PexprStarJoinTree(IMemoryPool *mp, ULONG ulTabs);
+			CExpression *PexprStarJoinTree(CMemoryPool *mp, ULONG ulTabs);
 
 			// application of different xforms for the given expression
 			static
-			void ApplyExprXforms(IMemoryPool *mp, IOstream &os, CExpression *pexpr);
+			void ApplyExprXforms(CMemoryPool *mp, IOstream &os, CExpression *pexpr);
 
 		public:
 

@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnary(mp),
@@ -61,7 +61,7 @@ CLogicalGbAgg::CLogicalGbAgg
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	COperator::EGbAggType egbaggtype
 	)
@@ -89,7 +89,7 @@ CLogicalGbAgg::CLogicalGbAgg
 
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	COperator::EGbAggType egbaggtype,
 	EAggStage aggStage
@@ -127,7 +127,7 @@ CLogicalGbAgg::CLogicalGbAgg
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	COperator::EGbAggType egbaggtype,
 	BOOL fGeneratesDuplicates,
@@ -152,7 +152,7 @@ CLogicalGbAgg::CLogicalGbAgg
 
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	COperator::EGbAggType egbaggtype,
 	BOOL fGeneratesDuplicates,
@@ -186,7 +186,7 @@ CLogicalGbAgg::CLogicalGbAgg
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype
@@ -226,7 +226,7 @@ CLogicalGbAgg::CLogicalGbAgg
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
@@ -286,7 +286,7 @@ CLogicalGbAgg::~CLogicalGbAgg()
 COperator *
 CLogicalGbAgg::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -318,7 +318,7 @@ CLogicalGbAgg::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalGbAgg::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -348,7 +348,7 @@ CLogicalGbAgg::PcrsDeriveOutput
 CColRefSet *
 CLogicalGbAgg::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -372,7 +372,7 @@ CLogicalGbAgg::PcrsDeriveOuter
 CPropConstraint *
 CLogicalGbAgg::PpcDeriveConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -399,7 +399,7 @@ CLogicalGbAgg::PpcDeriveConstraint
 CColRefSet *
 CLogicalGbAgg::PcrsStat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index
@@ -421,7 +421,7 @@ CLogicalGbAgg::PcrsStat
 CColRefSet *
 CLogicalGbAgg::PcrsStatGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index,
@@ -470,7 +470,7 @@ CLogicalGbAgg::PcrsStatGbAgg
 CColRefSet *
 CLogicalGbAgg::PcrsDeriveNotNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -529,7 +529,7 @@ CLogicalGbAgg::HashValue() const
 CKeyCollection *
 CLogicalGbAgg::PkcDeriveKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -581,7 +581,7 @@ CLogicalGbAgg::PkcDeriveKeys
 CMaxCard
 CLogicalGbAgg::Maxcard
 	(
-	IMemoryPool *, //mp
+	CMemoryPool *, //mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -642,7 +642,7 @@ CLogicalGbAgg::Matches
 CXformSet *
 CLogicalGbAgg::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -676,7 +676,7 @@ CLogicalGbAgg::PxfsCandidates
 IStatistics *
 CLogicalGbAgg::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IStatistics *child_stats,
 	CColRefArray *pdrgpcrGroupingCols,
 	ULongPtrArray *pdrgpulComputedCols,
@@ -713,7 +713,7 @@ CLogicalGbAgg::PstatsDerive
 IStatistics *
 CLogicalGbAgg::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

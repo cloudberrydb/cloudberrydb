@@ -51,7 +51,7 @@ CStatsPredPoint::CStatsPredPoint
 //---------------------------------------------------------------------------
 CStatsPredPoint::CStatsPredPoint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	CStatsPred::EStatsCmpType stats_cmp_type,
 	IDatum *datum
@@ -79,7 +79,7 @@ CStatsPredPoint::CStatsPredPoint
 IDatum *
 CStatsPredPoint::PreprocessDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	IDatum *datum
 	)

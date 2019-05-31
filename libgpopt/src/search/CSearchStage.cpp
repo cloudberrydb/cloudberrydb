@@ -123,7 +123,7 @@ CSearchStage::SetBestExpr
 CSearchStageArray *
 CSearchStage::PdrgpssDefault
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);

@@ -26,7 +26,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSwitchCase::CScalarSwitchCase
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CScalar(mp)

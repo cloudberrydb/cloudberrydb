@@ -63,7 +63,7 @@ CDefaultComparator::CDefaultComparator
 BOOL
 CDefaultComparator::FEvalComparison
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IDatum *datum1,
 	const IDatum *datum2,
 	IMDType::ECmpType cmp_type

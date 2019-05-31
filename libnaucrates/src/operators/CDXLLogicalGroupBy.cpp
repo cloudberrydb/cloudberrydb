@@ -26,7 +26,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalGroupBy::CDXLLogicalGroupBy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CDXLLogical(mp),
@@ -44,7 +44,7 @@ CDXLLogicalGroupBy::CDXLLogicalGroupBy
 //---------------------------------------------------------------------------
 CDXLLogicalGroupBy::CDXLLogicalGroupBy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *pdrgpulGrpColIds
 	)
 	:

@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarIfStmt::CDXLScalarIfStmt
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *result_type_mdid
 	)
 	:

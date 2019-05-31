@@ -46,7 +46,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDTypeGenericGPDB::CMDTypeGenericGPDB
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CMDName *mdname,
 	BOOL is_redistributable,
@@ -297,7 +297,7 @@ CMDTypeGenericGPDB::GetDatumForDXLConstVal
 IDatum*
 CMDTypeGenericGPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CDXLDatum *dxl_datum
 	)
 	const
@@ -341,7 +341,7 @@ CMDTypeGenericGPDB::GetDatumForDXLDatum
 CDXLDatum *
 CMDTypeGenericGPDB::GetDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -400,7 +400,7 @@ CMDTypeGenericGPDB::IsAmbiguous() const
 CDXLDatum *
 CMDTypeGenericGPDB::CreateDXLDatumVal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	INT type_modifier,
 	BOOL is_passed_by_value,
@@ -462,7 +462,7 @@ CMDTypeGenericGPDB::CreateDXLDatumVal
 CDXLDatum *
 CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	INT type_modifier,
 	BOOL is_passed_by_value,
@@ -489,7 +489,7 @@ CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable
 CDXLDatum *
 CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	INT type_modifier,
 	BOOL is_passed_by_value,
@@ -515,7 +515,7 @@ CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable
 CDXLScalarConstValue *
 CMDTypeGenericGPDB::GetDXLOpScConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	const
@@ -536,7 +536,7 @@ CMDTypeGenericGPDB::GetDXLOpScConst
 CDXLDatum *
 CMDTypeGenericGPDB::GetDXLDatumNull
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

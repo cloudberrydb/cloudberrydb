@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalJoin::CDXLLogicalJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlJoinType join_type
 	)
 	:CDXLLogical(mp),

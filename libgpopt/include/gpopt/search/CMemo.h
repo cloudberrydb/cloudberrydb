@@ -67,7 +67,7 @@ namespace gpopt
 						CSpinlockMemo> ShtAccIter;
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 		
 			// id counter for groups
 			CAtomicULONG m_aul;
@@ -109,7 +109,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CMemo(IMemoryPool *mp);
+			CMemo(CMemoryPool *mp);
 			
 			// dtor
 			~CMemo();
@@ -148,7 +148,7 @@ namespace gpopt
 			CGroup *PgroupInsert(CGroup *pgroupTarget, CExpression *pexprOrigin, CGroupExpression *pgexpr);
 
 			// extract a plan that delivers the given required properties
-			CExpression *PexprExtractPlan(IMemoryPool *mp, CGroup *pgroupRoot, CReqdPropPlan *prppInput, ULONG ulSearchStages);
+			CExpression *PexprExtractPlan(CMemoryPool *mp, CGroup *pgroupRoot, CReqdPropPlan *prppInput, ULONG ulSearchStages);
 
 			// merge duplicate groups
 			void GroupMerge();
@@ -163,7 +163,7 @@ namespace gpopt
 			IOstream &OsPrint(IOstream &os);
 
 			// derive stats when no stats not present for the group
-			void DeriveStatsIfAbsent(IMemoryPool *mp);
+			void DeriveStatsIfAbsent(CMemoryPool *mp);
 
 			// build tree map
 			void BuildTreeMap(COptimizationContext *poc);

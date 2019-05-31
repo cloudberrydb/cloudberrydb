@@ -54,7 +54,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLScalarBitmapBoolOp(IMemoryPool *mp, IMDId *mdid_type, EdxlBitmapBoolOp bitmap_op_type);
+			CDXLScalarBitmapBoolOp(CMemoryPool *mp, IMDId *mdid_type, EdxlBitmapBoolOp bitmap_op_type);
 			
 			// dtor 
 			virtual

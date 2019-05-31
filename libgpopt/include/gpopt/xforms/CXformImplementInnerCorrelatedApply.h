@@ -41,7 +41,7 @@ namespace gpopt
 			explicit
 			CXformImplementInnerCorrelatedApply
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformImplementCorrelatedApply<CLogicalInnerCorrelatedApply, CPhysicalCorrelatedInnerNLJoin>(mp)

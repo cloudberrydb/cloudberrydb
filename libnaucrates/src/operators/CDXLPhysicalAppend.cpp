@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalAppend::CDXLPhysicalAppend
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fIsTarget,
 	BOOL fIsZapped
 	)

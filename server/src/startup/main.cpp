@@ -261,7 +261,7 @@ void ConfigureTests()
 	// load metadata objects into provider file
 	{
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 		CTestUtils::InitProviderFile(mp);
 
 		// detach safety
@@ -373,7 +373,7 @@ PvExec
 		CMDCache::Init();
 		
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		// load dump file
 		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(mp, file_name);

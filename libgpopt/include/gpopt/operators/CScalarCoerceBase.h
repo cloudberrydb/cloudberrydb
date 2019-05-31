@@ -57,7 +57,7 @@ namespace gpopt
 			// ctor
 			CScalarCoerceBase
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				IMDId *mdid_type,
 				INT type_modifier,
 				ECoercionForm dxl_coerce_format,
@@ -85,7 +85,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				UlongToColRefMap *colref_mapping,
 				BOOL must_exist
 				);

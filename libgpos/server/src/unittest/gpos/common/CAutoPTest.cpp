@@ -53,7 +53,7 @@ CAutoPTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// assignment
 	CAutoP<CHAR> asz;

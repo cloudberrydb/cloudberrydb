@@ -114,7 +114,7 @@ GPOS_RESULT
 CConstExprEvaluatorDXLTest::EresUnittest_Constants()
 {
 	CTestUtils::CTestSetup testsetup;
-	IMemoryPool *mp = testsetup.Pmp();
+	CMemoryPool *mp = testsetup.Pmp();
 	CDummyConstDXLNodeEvaluator consteval(mp, testsetup.Pmda(), m_iDefaultEvalValue);
 	CConstExprEvaluatorDXL  *pceeval =
 			GPOS_NEW(mp) CConstExprEvaluatorDXL(mp, testsetup.Pmda(), &consteval);
@@ -146,7 +146,7 @@ GPOS_RESULT
 CConstExprEvaluatorDXLTest::EresUnittest_NonScalar()
 {
 	CTestUtils::CTestSetup testsetup;
-	IMemoryPool *mp = testsetup.Pmp();
+	CMemoryPool *mp = testsetup.Pmp();
 	CDummyConstDXLNodeEvaluator consteval(mp, testsetup.Pmda(), m_iDefaultEvalValue);
 	CConstExprEvaluatorDXL  *pceeval =
 			GPOS_NEW(mp) CConstExprEvaluatorDXL(mp, testsetup.Pmda(), &consteval);
@@ -174,7 +174,7 @@ GPOS_RESULT
 CConstExprEvaluatorDXLTest::EresUnittest_NestedSubquery()
 {
 	CTestUtils::CTestSetup testsetup;
-	IMemoryPool *mp = testsetup.Pmp();
+	CMemoryPool *mp = testsetup.Pmp();
 	CDummyConstDXLNodeEvaluator consteval(mp, testsetup.Pmda(), m_iDefaultEvalValue);
 	CConstExprEvaluatorDXL  *pceeval =
 			GPOS_NEW(mp) CConstExprEvaluatorDXL(mp, testsetup.Pmda(), &consteval);
@@ -203,7 +203,7 @@ CConstExprEvaluatorDXLTest::EresUnittest_NestedSubquery()
 GPOS_RESULT CConstExprEvaluatorDXLTest::EresUnittest_ScalarContainingVariables()
 {
 	CTestUtils::CTestSetup testsetup;
-	IMemoryPool *mp = testsetup.Pmp();
+	CMemoryPool *mp = testsetup.Pmp();
 	CDummyConstDXLNodeEvaluator consteval(mp, testsetup.Pmda(), m_iDefaultEvalValue);
 	CConstExprEvaluatorDXL  *pceeval =
 			GPOS_NEW(mp) CConstExprEvaluatorDXL(mp, testsetup.Pmda(), &consteval);

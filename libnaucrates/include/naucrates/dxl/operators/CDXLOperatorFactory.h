@@ -909,7 +909,7 @@ namespace gpdxl
 		)
 	{
 		// get the memory pool from the memory manager
-		IMemoryPool *mp = dxl_memory_manager->Pmp();
+		CMemoryPool *mp = dxl_memory_manager->Pmp();
 
 		CDynamicPtrArray<T, CleanupFn> *pdrgpt = GPOS_NEW(mp) CDynamicPtrArray<T, CleanupFn>(mp);
 

@@ -12,7 +12,7 @@
 #define DXL_exception_H
 
 #include "gpos/types.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 namespace gpdxl
 {
@@ -80,7 +80,7 @@ namespace gpdxl
 	};
 
 	// message initialization for GPOS exceptions
-	gpos::GPOS_RESULT EresExceptionInit(gpos::IMemoryPool *mp);
+	gpos::GPOS_RESULT EresExceptionInit(gpos::CMemoryPool *mp);
 
 }
 

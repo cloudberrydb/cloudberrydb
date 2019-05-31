@@ -95,7 +95,7 @@ namespace gpopt
 			}
 
 			// derivation function
-			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
+			void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// check for satisfying required plan properties
 			virtual

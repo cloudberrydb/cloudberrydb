@@ -70,7 +70,7 @@ CDrvdPropScalar::~CDrvdPropScalar()
 void
 CDrvdPropScalar::Derive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * // pdpctxt
 	)

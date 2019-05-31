@@ -27,7 +27,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalMotionRoutedDistribute::CPhysicalMotionRoutedDistribute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecRouted *pdsRouted
 	)
 	:
@@ -94,7 +94,7 @@ CPhysicalMotionRoutedDistribute::Matches
 CColRefSet *
 CPhysicalMotionRoutedDistribute::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -165,7 +165,7 @@ CPhysicalMotionRoutedDistribute::EpetOrder
 COrderSpec *
 CPhysicalMotionRoutedDistribute::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *,//posInput
 	ULONG 
@@ -194,7 +194,7 @@ CPhysicalMotionRoutedDistribute::PosRequired
 COrderSpec *
 CPhysicalMotionRoutedDistribute::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const

@@ -34,7 +34,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformSelect2BitmapBoolOp(IMemoryPool *mp);
+			CXformSelect2BitmapBoolOp(CMemoryPool *mp);
 
 			// dtor
 			virtual

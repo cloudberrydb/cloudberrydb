@@ -90,7 +90,7 @@ IMDRelation::GetStorageTypeStr
 CWStringDynamic *
 IMDRelation::ColumnsToStr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *colid_array
 	)
 {

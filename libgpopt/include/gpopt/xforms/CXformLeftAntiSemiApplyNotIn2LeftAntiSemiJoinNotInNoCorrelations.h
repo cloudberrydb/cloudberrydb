@@ -47,7 +47,7 @@ namespace gpopt
 			explicit
 			CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotInNoCorrelations
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformApply2Join<CLogicalLeftAntiSemiApplyNotIn, CLogicalLeftAntiSemiJoinNotIn>(mp)

@@ -33,7 +33,7 @@ namespace gpopt
 			BOOL
 			FCanLeftOuterIndexApply
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprInner,
 				CExpression *pexprScalar
 				) const
@@ -95,7 +95,7 @@ namespace gpopt
 			// takes the ownership and responsibility to release
 			// the instance.
 			virtual
-			CLogicalJoin *PopLogicalJoin(IMemoryPool *mp) const
+			CLogicalJoin *PopLogicalJoin(CMemoryPool *mp) const
 			{
 				return GPOS_NEW(mp) TJoin(mp);
 			}
@@ -107,7 +107,7 @@ namespace gpopt
 			virtual
 			CLogicalApply *PopLogicalApply
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CColRefArray *colref_array
 				) const
 			{
@@ -118,7 +118,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, is_partial, eidxtype>(IMemoryPool *mp)
+			CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, is_partial, eidxtype>(CMemoryPool *mp)
 			:
 			// pattern
 			CXformJoin2IndexApply
@@ -162,7 +162,7 @@ namespace gpopt
 				GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 				GPOS_ASSERT(FCheckPattern(pexpr));
 
-				IMemoryPool *mp = pxfctxt->Pmp();
+				CMemoryPool *mp = pxfctxt->Pmp();
 
 				// extract components
 				CExpression *pexprOuter = (*pexpr)[0];

@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CColRefSet::CColRefSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulSizeBits
 	)
 	:
@@ -48,7 +48,7 @@ CColRefSet::CColRefSet
 //---------------------------------------------------------------------------
 CColRefSet::CColRefSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefSet &bs
 	)
 	:
@@ -66,7 +66,7 @@ CColRefSet::CColRefSet
 //---------------------------------------------------------------------------
 CColRefSet::CColRefSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefArray *colref_array,
 	ULONG size
 	)
@@ -326,7 +326,7 @@ CColRefSet::Replace
 CColRefArray *
 CColRefSet::Pdrgpcr
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -420,7 +420,7 @@ CColRefSet::OsPrint
 void
 CColRefSet::ExtractColIds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *colids
 	)
 	const

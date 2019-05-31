@@ -28,7 +28,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 void SetTraceflags
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CBitSet *pbsInput, // set of trace flags to be enabled
 	CBitSet **ppbsEnabled,   // output: enabled trace flags before function is called
 	CBitSet **ppbsDisabled   // output: disabled trace flags before function is called

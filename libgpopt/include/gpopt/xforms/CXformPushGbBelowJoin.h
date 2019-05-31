@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformPushGbBelowJoin(IMemoryPool *mp);
+			CXformPushGbBelowJoin(CMemoryPool *mp);
 
 			// ctor
 			explicit

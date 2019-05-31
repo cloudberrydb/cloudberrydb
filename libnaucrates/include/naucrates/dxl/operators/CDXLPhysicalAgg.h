@@ -67,7 +67,7 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				EdxlAggStrategy dxl_agg_strategy,
 				BOOL stream_safe
 				);

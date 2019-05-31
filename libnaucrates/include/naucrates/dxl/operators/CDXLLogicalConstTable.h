@@ -45,7 +45,7 @@ namespace gpdxl
 			// ctor
 			CDXLLogicalConstTable
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDXLColDescrArray *dxl_col_descr_array,
 				CDXLDatum2dArray *pdrgpdrgpdxldatum
 				);

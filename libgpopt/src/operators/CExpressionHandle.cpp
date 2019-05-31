@@ -49,7 +49,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CExpressionHandle::CExpressionHandle
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -756,8 +756,8 @@ CExpressionHandle::DeriveCostContextStats()
 void
 CExpressionHandle::DeriveStats
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CReqdPropRelational *prprel,
 	IStatisticsArray *stats_ctxt
 	)
@@ -1905,7 +1905,7 @@ CExpressionHandle::FNextChildIndex
 CColRefSet *
 CExpressionHandle::PcrsUsedColumns
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	COperator *pop = Pop();

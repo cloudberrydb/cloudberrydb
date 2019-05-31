@@ -49,7 +49,7 @@ namespace gpdxl
 		private:
 		
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// dxl tree operator class
 			CDXLOperator *m_dxl_op;
@@ -71,12 +71,12 @@ namespace gpdxl
 			// ctors
 
 			explicit
-			CDXLNode(IMemoryPool *mp);			
-			CDXLNode(IMemoryPool *mp, CDXLOperator *dxl_op);
-			CDXLNode(IMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *child_dxlnode);
-			CDXLNode(IMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *first_child_dxlnode, CDXLNode *second_child_dxlnode);
-			CDXLNode(IMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *first_child_dxlnode, CDXLNode *second_child_dxlnode, CDXLNode *third_child_dxlnode);
-			CDXLNode(IMemoryPool *mp, CDXLOperator *dxl_op, CDXLNodeArray *dxl_array);
+			CDXLNode(CMemoryPool *mp);			
+			CDXLNode(CMemoryPool *mp, CDXLOperator *dxl_op);
+			CDXLNode(CMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *child_dxlnode);
+			CDXLNode(CMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *first_child_dxlnode, CDXLNode *second_child_dxlnode);
+			CDXLNode(CMemoryPool *mp, CDXLOperator *dxl_op, CDXLNode *first_child_dxlnode, CDXLNode *second_child_dxlnode, CDXLNode *third_child_dxlnode);
+			CDXLNode(CMemoryPool *mp, CDXLOperator *dxl_op, CDXLNodeArray *dxl_array);
 			
 			// dtor
 			virtual

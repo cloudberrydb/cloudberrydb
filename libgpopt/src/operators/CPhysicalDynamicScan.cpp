@@ -37,7 +37,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CPhysicalDynamicScan::CPhysicalDynamicScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_partial,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
@@ -110,7 +110,7 @@ CPhysicalDynamicScan::HashValue() const
 CPartIndexMap *
 CPhysicalDynamicScan::PpimDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, //exprhdl
 	CDrvdPropCtxt *pdpctxt
 	)

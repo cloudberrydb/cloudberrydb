@@ -77,7 +77,7 @@ namespace gpdxl
 			
 		protected:
 			// memory pool to create DXL objects in
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// manager for transitions between parse handlers
 			CParseHandlerManager *m_parse_handler_mgr;
@@ -135,7 +135,7 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CParseHandlerBase(IMemoryPool *mp, CParseHandlerManager *parse_handler_mgr, CParseHandlerBase *parse_handler_root);
+			CParseHandlerBase(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr, CParseHandlerBase *parse_handler_root);
 			
 			//dtor
 			virtual

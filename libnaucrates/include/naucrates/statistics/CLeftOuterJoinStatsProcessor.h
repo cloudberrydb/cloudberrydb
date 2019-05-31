@@ -22,7 +22,7 @@ namespace gpnaucrates
 		static
 		UlongToHistogramMap *MakeLOJHistogram
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CStatistics *outer_stats,
 				const CStatistics *inner_side_stats,
 				CStatistics *inner_join_stats,
@@ -34,7 +34,7 @@ namespace gpnaucrates
 		static
 		void AddHistogramsLOJInner
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CStatistics *inner_join_stats,
 				ULongPtrArray *inner_colids_with_stats,
 				CDouble num_rows_LASJ,
@@ -46,7 +46,7 @@ namespace gpnaucrates
 		static
 		CStatistics *CalcLOJoinStatsStatic
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const IStatistics *outer_stats,
 				const IStatistics *inner_side_stats,
 				CStatsPredJoinArray *join_preds_stats

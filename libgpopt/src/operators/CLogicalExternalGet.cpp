@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalExternalGet::CLogicalExternalGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalGet(mp)
@@ -51,7 +51,7 @@ CLogicalExternalGet::CLogicalExternalGet
 //---------------------------------------------------------------------------
 CLogicalExternalGet::CLogicalExternalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc
 	)
@@ -69,7 +69,7 @@ CLogicalExternalGet::CLogicalExternalGet
 //---------------------------------------------------------------------------
 CLogicalExternalGet::CLogicalExternalGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrOutput
@@ -114,7 +114,7 @@ CLogicalExternalGet::Matches
 COperator *
 CLogicalExternalGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -147,7 +147,7 @@ CLogicalExternalGet::PopCopyWithRemappedColumns
 CXformSet *
 CLogicalExternalGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

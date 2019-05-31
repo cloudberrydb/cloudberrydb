@@ -26,7 +26,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLColRef::CDXLColRef
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDName *mdname,
 	ULONG id,
 	IMDId *mdid_type,

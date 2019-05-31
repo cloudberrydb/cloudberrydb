@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMiniDumperDXL::CMiniDumperDXL
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CMiniDumper(mp)

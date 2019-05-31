@@ -164,7 +164,7 @@ namespace gpopt
 				CleanupDelete<ULONG>, CleanupRelease<CCTEMapEntry> > UlongToCTEMapEntryMapIter;
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// cte map
 			UlongToCTEMapEntryMap *m_phmcm;
@@ -183,7 +183,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CCTEMap(IMemoryPool *mp);
+			CCTEMap(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -219,7 +219,7 @@ namespace gpopt
 			BOOL FSatisfies(const CCTEReq *pcter) const;
 
 			// return producer ids that are in this map but not in the given requirement
-			ULongPtrArray *PdrgpulAdditionalProducers(IMemoryPool *mp, const CCTEReq *pcter) const;
+			ULongPtrArray *PdrgpulAdditionalProducers(CMemoryPool *mp, const CCTEReq *pcter) const;
 
 			// print function
 			virtual
@@ -227,7 +227,7 @@ namespace gpopt
 
 			// combine the two given maps and return the resulting map
 			static
-			CCTEMap *PcmCombine(IMemoryPool *mp, const CCTEMap &cmFirst, const CCTEMap &cmSecond);
+			CCTEMap *PcmCombine(CMemoryPool *mp, const CCTEMap &cmFirst, const CCTEMap &cmSecond);
 
 	}; // class CCTEMap
 

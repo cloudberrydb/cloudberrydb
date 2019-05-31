@@ -55,7 +55,7 @@ GPOS_RESULT
 CColRefSetTest::EresUnittest_Basics()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 

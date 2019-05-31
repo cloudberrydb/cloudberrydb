@@ -57,7 +57,7 @@ namespace gpmd
 			
 		public:
 			// ctor/dtor
-			CMDProviderGeneric(IMemoryPool *mp);
+			CMDProviderGeneric(CMemoryPool *mp);
 			
 			// dtor
 			~CMDProviderGeneric();

@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalFullOuterJoin::CLogicalFullOuterJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalJoin(mp)
@@ -50,7 +50,7 @@ CLogicalFullOuterJoin::CLogicalFullOuterJoin
 CMaxCard
 CLogicalFullOuterJoin::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -85,7 +85,7 @@ CLogicalFullOuterJoin::Maxcard
 CXformSet *
 CLogicalFullOuterJoin::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

@@ -45,7 +45,7 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// name
 			CMDName *m_mdname;
@@ -66,7 +66,7 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLColRef
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CMDName *mdname,
 				ULONG id,
 				IMDId *mdid_type,

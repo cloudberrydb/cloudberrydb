@@ -24,7 +24,7 @@ using namespace gpopt;
 void
 CJoinStatsProcessor::JoinHistograms
 		(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				const CHistogram *histogram1,
 				const CHistogram *histogram2,
 				CStatsPredJoin *join_pred_stats,
@@ -137,7 +137,7 @@ CJoinStatsProcessor::JoinHistograms
 IStatistics *
 CJoinStatsProcessor::CalcAllJoinStats
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		IStatisticsArray *statistics_array,
 		CExpression *expr,
 		IStatistics::EStatsJoinType join_type
@@ -225,7 +225,7 @@ CJoinStatsProcessor::CalcAllJoinStats
 CStatistics *
 CJoinStatsProcessor::SetResultingJoinStats
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CStatisticsConfig *stats_config,
 		const IStatistics *outer_stats_input,
 		const IStatistics *inner_stats_input,
@@ -438,7 +438,7 @@ CJoinStatsProcessor::JoinStatsAreEmpty
 IStatistics *
 CJoinStatsProcessor::DeriveJoinStats
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CExpressionHandle &exprhdl,
 		IStatisticsArray *stats_ctxt
 		)
@@ -563,7 +563,7 @@ CJoinStatsProcessor::DeriveJoinStats
 IStatistics *
 CJoinStatsProcessor::DeriveStatsWithOuterRefs
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CExpressionHandle &
 #ifdef GPOS_DEBUG
 		exprhdl // handle attached to the logical expression we want to derive stats for

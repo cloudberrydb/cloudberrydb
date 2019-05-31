@@ -44,7 +44,7 @@ namespace gpdxl
 			explicit
 			CDXLScalarRecheckCondFilter
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CDXLScalarFilter(mp)

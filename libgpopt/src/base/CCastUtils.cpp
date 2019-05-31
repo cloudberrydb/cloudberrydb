@@ -123,7 +123,7 @@ CCastUtils::PcrExtractFromScIdOrCastScId
 CExpression *
 CCastUtils::PexprCast
     (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	const CColRef *colref,
 	IMDId *mdid_dest
@@ -219,7 +219,7 @@ CCastUtils::PexprWithoutBinaryCoercibleCasts
 CExpressionArray *
 CCastUtils::PdrgpexprCastEquality
     (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -258,7 +258,7 @@ CCastUtils::PdrgpexprCastEquality
 CExpression *
 CCastUtils::PexprAddCast
     (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprPred
 	)
 {
@@ -325,7 +325,7 @@ CCastUtils::PexprAddCast
 CExpression *
 CCastUtils::PexprCast
     (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CExpression *pexpr,
 	IMDId *mdid_dest

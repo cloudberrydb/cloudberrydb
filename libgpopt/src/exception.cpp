@@ -27,7 +27,7 @@ using namespace gpos;
 GPOS_RESULT
 gpopt::EresExceptionInit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	//---------------------------------------------------------------------------

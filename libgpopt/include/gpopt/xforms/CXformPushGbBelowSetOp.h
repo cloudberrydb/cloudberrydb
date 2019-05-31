@@ -40,7 +40,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformPushGbBelowSetOp(IMemoryPool *mp)
+			CXformPushGbBelowSetOp(CMemoryPool *mp)
                 :
                 CXformExploration
                 (
@@ -91,7 +91,7 @@ namespace gpopt
                 GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
                 GPOS_ASSERT(FCheckPattern(pexpr));
 
-                IMemoryPool *mp = pxfctxt->Pmp();
+                CMemoryPool *mp = pxfctxt->Pmp();
 
                 CExpression *pexprSetOp = (*pexpr)[0];
                 CExpression *pexprPrjList = (*pexpr)[1];

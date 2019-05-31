@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalGbAggDeduplicate::CLogicalGbAggDeduplicate
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalGbAgg(mp),
@@ -48,7 +48,7 @@ CLogicalGbAggDeduplicate::CLogicalGbAggDeduplicate
 //---------------------------------------------------------------------------
 CLogicalGbAggDeduplicate::CLogicalGbAggDeduplicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	COperator::EGbAggType egbaggtype,
 	CColRefArray *pdrgpcrKeys
@@ -70,7 +70,7 @@ CLogicalGbAggDeduplicate::CLogicalGbAggDeduplicate
 //---------------------------------------------------------------------------
 CLogicalGbAggDeduplicate::CLogicalGbAggDeduplicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
@@ -108,7 +108,7 @@ CLogicalGbAggDeduplicate::~CLogicalGbAggDeduplicate()
 COperator *
 CLogicalGbAggDeduplicate::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -137,7 +137,7 @@ CLogicalGbAggDeduplicate::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalGbAggDeduplicate::PcrsStat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index
@@ -179,7 +179,7 @@ CLogicalGbAggDeduplicate::HashValue() const
 CKeyCollection *
 CLogicalGbAggDeduplicate::PkcDeriveKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -241,7 +241,7 @@ CLogicalGbAggDeduplicate::Matches
 CXformSet *
 CLogicalGbAggDeduplicate::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -264,7 +264,7 @@ CLogicalGbAggDeduplicate::PxfsCandidates
 IStatistics *
 CLogicalGbAggDeduplicate::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

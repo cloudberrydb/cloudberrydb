@@ -74,7 +74,7 @@ CSyncListTest::EresUnittest_Basics()
 	// scope for auto trace
 	{
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 
 		CAutoTrace trace(mp);
 		IOstream &os(trace.Os());
@@ -140,7 +140,7 @@ CSyncListTest::EresUnittest_Concurrency()
 
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SElem rgelem[GPOS_SLIST_SIZE];
 	CSyncList<SElem> list;
@@ -191,7 +191,7 @@ CSyncListTest::EresUnittest_Concurrency()
 void
 CSyncListTest::ConcurrentPush
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SArg *parg
 	)
 {
@@ -227,7 +227,7 @@ CSyncListTest::ConcurrentPush
 void
 CSyncListTest::ConcurrentPushPop
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SArg *parg
 	)
 {
@@ -263,7 +263,7 @@ CSyncListTest::ConcurrentPushPop
 void
 CSyncListTest::ConcurrentPop
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	SArg *parg
 	)
 {

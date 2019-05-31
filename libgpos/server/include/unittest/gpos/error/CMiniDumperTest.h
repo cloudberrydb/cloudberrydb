@@ -45,7 +45,7 @@ namespace gpos
 				public:
 
 					// ctor
-					CMiniDumperStream(IMemoryPool *mp);
+					CMiniDumperStream(CMemoryPool *mp);
 
 					// dtor
 					virtual

@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalDynamicTableScan::CPhysicalDynamicTableScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL is_partial,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
@@ -81,7 +81,7 @@ CPhysicalDynamicTableScan::Matches
 IStatistics *
 CPhysicalDynamicTableScan::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpplan,
 	IStatisticsArray * // stats_ctxt

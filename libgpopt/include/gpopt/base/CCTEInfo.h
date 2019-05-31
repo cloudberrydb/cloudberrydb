@@ -125,7 +125,7 @@ namespace gpopt
 				private:
 
 					// memory pool
-					IMemoryPool *m_mp;
+					CMemoryPool *m_mp;
 
 					// logical producer expression
 					CExpression *m_pexprCTEProducer;
@@ -142,8 +142,8 @@ namespace gpopt
 					CMutex m_mutex;
 
 					// ctors
-					CCTEInfoEntry(IMemoryPool *mp, CExpression *pexprCTEProducer);
-					CCTEInfoEntry(IMemoryPool *mp, CExpression *pexprCTEProducer, BOOL fUsed);
+					CCTEInfoEntry(CMemoryPool *mp, CExpression *pexprCTEProducer);
+					CCTEInfoEntry(CMemoryPool *mp, CExpression *pexprCTEProducer, BOOL fUsed);
 
 					// dtor
 					~CCTEInfoEntry();
@@ -186,7 +186,7 @@ namespace gpopt
 							CleanupDelete<ULONG>, CleanupRelease<CCTEInfoEntry> > UlongToCTEInfoEntryMapIter;
 
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// mapping from cte producer id -> cte info entry
 			UlongToCTEInfoEntryMap *m_phmulcteinfoentry;
@@ -218,7 +218,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CCTEInfo(IMemoryPool *mp);
+			CCTEInfo(CMemoryPool *mp);
 
 			//dtor
 			virtual
@@ -258,10 +258,10 @@ namespace gpopt
 				);
 
 			// return a CTE requirement with all the producers as optional
-			CCTEReq *PcterProducers(IMemoryPool *mp) const;
+			CCTEReq *PcterProducers(CMemoryPool *mp) const;
 
 			// return an array of all stored CTE expressions
-			CExpressionArray *PdrgPexpr(IMemoryPool *mp) const;
+			CExpressionArray *PdrgPexpr(CMemoryPool *mp) const;
 
 			// disable CTE inlining
 			void DisableInlining()
@@ -289,7 +289,7 @@ namespace gpopt
 			ULONG UlConsumerColPos(ULONG ulCTEId, CColRef *colref);
 
 			// return a map from Id's of consumer columns in the given column set to their corresponding producer columns
-			UlongToColRefMap *PhmulcrConsumerToProducer(IMemoryPool *mp, ULONG ulCTEId, CColRefSet *pcrs, CColRefArray *pdrgpcrProducer);
+			UlongToColRefMap *PhmulcrConsumerToProducer(CMemoryPool *mp, ULONG ulCTEId, CColRefSet *pcrs, CColRefArray *pdrgpcrProducer);
 
 	}; // CCTEInfo
 }

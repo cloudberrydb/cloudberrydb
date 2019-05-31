@@ -53,7 +53,7 @@ CBucketTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -72,7 +72,7 @@ CBucketTest::EresUnittest_CBucketInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate integer points
 	CPoint *point1 = CTestUtils::PpointInt4(mp, 1);
@@ -132,7 +132,7 @@ CBucketTest::EresUnittest_CBucketBool()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate boolean points
 	CPoint *p1 = CTestUtils::PpointBool(mp, true);
@@ -161,7 +161,7 @@ CBucketTest::EresUnittest_CBucketScale()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// generate integer point
 	CPoint *point1 = CTestUtils::PpointInt4(mp, 10);
@@ -207,7 +207,7 @@ CBucketTest::EresUnittest_CBucketDifference()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// bucket [1,100)
 	CBucket *bucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 100, CDouble(1.0), CDouble(1.0));
@@ -249,7 +249,7 @@ CBucketTest::EresUnittest_CBucketIntersect()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	SBucketsIntersectTestElem rgBucketsIntersectTestElem[] =
 		{

@@ -32,7 +32,7 @@ namespace gpopt
 		private:
 
 			// definition of operator processor
-			typedef BOOL(FnProcessor)(IMemoryPool *, CExpression *, BOOL, CExpression **, CExpressionArray *);
+			typedef BOOL(FnProcessor)(CMemoryPool *, CExpression *, BOOL, CExpression **, CExpressionArray *);
 
 			//---------------------------------------------------------------------------
 			//	@struct:
@@ -70,7 +70,7 @@ namespace gpopt
 			static
 			BOOL FPullableCorrelations
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				CExpressionArray *pdrgpexpr,
 				CExpressionArray *pdrgpexprCorrelations
@@ -88,7 +88,7 @@ namespace gpopt
 			static
 			BOOL FProcessOperator
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -99,7 +99,7 @@ namespace gpopt
 			static
 			BOOL FProcessPredicate
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprLogical,
 				CExpression *pexprScalar,
 				BOOL fEqualityOnly,
@@ -112,7 +112,7 @@ namespace gpopt
 			static
 			BOOL FProcessSelect
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -124,7 +124,7 @@ namespace gpopt
 			static
 			BOOL FProcessGbAgg
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -135,7 +135,7 @@ namespace gpopt
 			static
 			BOOL FProcessJoin
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -147,7 +147,7 @@ namespace gpopt
 			static
 			BOOL FProcessProject
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -158,7 +158,7 @@ namespace gpopt
 			static
 			BOOL FProcessAssert
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -169,7 +169,7 @@ namespace gpopt
 			static
 			BOOL FProcessMaxOneRow
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -180,7 +180,7 @@ namespace gpopt
 			static
 			BOOL FProcessLimit
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexpr,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,
@@ -193,7 +193,7 @@ namespace gpopt
 			static
 			BOOL FProcess
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpression *pexprOrig,
 				BOOL fEqualityOnly,
 				CExpression **ppexprDecorrelated,

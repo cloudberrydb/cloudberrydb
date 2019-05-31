@@ -38,7 +38,7 @@ namespace gpopt
 	{
 		private:
 
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// optimizer configurations
 			const COptimizerConfig *m_optimizer_config;
@@ -49,7 +49,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CSerializableOptimizerConfig(IMemoryPool *mp, const COptimizerConfig *optimizer_config);
+			CSerializableOptimizerConfig(CMemoryPool *mp, const COptimizerConfig *optimizer_config);
 
 			// dtor
 			virtual

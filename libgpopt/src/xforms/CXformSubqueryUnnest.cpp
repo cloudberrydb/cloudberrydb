@@ -59,7 +59,7 @@ CXformSubqueryUnnest::Exfp
 CExpression *
 CXformSubqueryUnnest::PexprSubqueryUnnest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEnforceCorrelatedApply
 	)
@@ -155,7 +155,7 @@ CXformSubqueryUnnest::Transform
 	)
 	const
 {
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	CMemoryPool *pmp = pxfctxt->Pmp();
 
 	CExpression *pexprAvoidCorrelatedApply = PexprSubqueryUnnest(pmp, pexpr, fEnforceCorrelatedApply);
 	if (NULL != pexprAvoidCorrelatedApply)

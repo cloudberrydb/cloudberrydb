@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalRowTrigger::CPhysicalRowTrigger
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	INT type,
 	CColRefArray *pdrgpcrOld,
@@ -88,7 +88,7 @@ CPhysicalRowTrigger::~CPhysicalRowTrigger()
 COrderSpec *
 CPhysicalRowTrigger::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, //exprhdl,
 	COrderSpec *, //posRequired,
 	ULONG
@@ -117,7 +117,7 @@ CPhysicalRowTrigger::PosRequired
 COrderSpec *
 CPhysicalRowTrigger::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -162,7 +162,7 @@ CPhysicalRowTrigger::EpetOrder
 CColRefSet *
 CPhysicalRowTrigger::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG
@@ -193,7 +193,7 @@ CPhysicalRowTrigger::PcrsRequired
 CDistributionSpec *
 CPhysicalRowTrigger::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -224,7 +224,7 @@ CPhysicalRowTrigger::PdsRequired
 CRewindabilitySpec *
 CPhysicalRowTrigger::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -249,7 +249,7 @@ CPhysicalRowTrigger::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalRowTrigger::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -274,7 +274,7 @@ CPhysicalRowTrigger::PppsRequired
 CCTEReq *
 CPhysicalRowTrigger::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -322,7 +322,7 @@ CPhysicalRowTrigger::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalRowTrigger::PdsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -341,7 +341,7 @@ CPhysicalRowTrigger::PdsDerive
 CRewindabilitySpec *
 CPhysicalRowTrigger::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const

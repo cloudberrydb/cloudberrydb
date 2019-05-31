@@ -32,7 +32,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalPartitionSelectorDML::CPhysicalPartitionSelectorDML
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	UlongToExprMap *phmulexprEqPredicates,
 	CColRef *pcrOid
@@ -96,7 +96,7 @@ CPhysicalPartitionSelectorDML::HashValue() const
 CPartFilterMap *
 CPhysicalPartitionSelectorDML::PpfmDerive
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -115,7 +115,7 @@ CPhysicalPartitionSelectorDML::PpfmDerive
 CDistributionSpec *
 CPhysicalPartitionSelectorDML::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
@@ -164,7 +164,7 @@ CPhysicalPartitionSelectorDML::PdsRequired
 COrderSpec *
 CPhysicalPartitionSelectorDML::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
@@ -236,7 +236,7 @@ CPhysicalPartitionSelectorDML::FProvidesReqdCols
 CPartitionPropagationSpec *
 CPhysicalPartitionSelectorDML::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -261,7 +261,7 @@ CPhysicalPartitionSelectorDML::PppsRequired
 CPartIndexMap *
 CPhysicalPartitionSelectorDML::PpimDerive
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * //pdpctxt
 	)

@@ -232,7 +232,7 @@ const CHAR rgszCostParamNames[CCostModelParamsGPDB::EcpSentinel][GPOPT_COSTPARAM
 //---------------------------------------------------------------------------
 CCostModelParamsGPDB::CCostModelParamsGPDB
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp)

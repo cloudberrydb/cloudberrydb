@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalUnion::CLogicalUnion
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalSetOp(mp)
@@ -49,7 +49,7 @@ CLogicalUnion::CLogicalUnion
 //---------------------------------------------------------------------------
 CLogicalUnion::CLogicalUnion
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOutput,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
@@ -95,7 +95,7 @@ CLogicalUnion::~CLogicalUnion()
 COperator *
 CLogicalUnion::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -117,7 +117,7 @@ CLogicalUnion::PopCopyWithRemappedColumns
 CMaxCard
 CLogicalUnion::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -144,7 +144,7 @@ CLogicalUnion::Maxcard
 CXformSet *
 CLogicalUnion::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	) 
 	const
 {
@@ -164,7 +164,7 @@ CLogicalUnion::PxfsCandidates
 IStatistics *
 CLogicalUnion::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

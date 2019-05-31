@@ -63,7 +63,7 @@ GPOS_RESULT
 CWStringTest::EresUnittest_Append()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("123"));
 	CWStringDynamic *pstr2 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("456"));
@@ -134,7 +134,7 @@ CWStringTest::EresUnittest_AppendFormat()
 		false /*fThreadSafe*/,
 		1024 * 1024 /*ullSizeMax*/
 		);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("Hello"));
 
@@ -200,7 +200,7 @@ CWStringTest::EresUnittest_AppendFormatInvalidLocale()
 		false /*fThreadSafe*/,
 		1024 * 1024 /*ullSizeMax*/
 		);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CHAR *oldLocale = setlocale(LC_CTYPE, NULL);
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp);
@@ -242,7 +242,7 @@ GPOS_RESULT
 CWStringTest::EresUnittest_AppendFormatLarge()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("Hello"));
 	CWStringConst cstr1(GPOS_WSZ_LIT(" World "));
@@ -336,7 +336,7 @@ CWStringTest::EresUnittest_Initialize()
 {
 #ifdef GPOS_DEBUG // run this test in debug mode only
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 		
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("123"));
 	
@@ -380,7 +380,7 @@ CWStringTest::EresUnittest_Equals()
 {
 #ifdef GPOS_DEBUG
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// dynamic strings
 	CWStringDynamic *str1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("123"));
@@ -434,7 +434,7 @@ GPOS_RESULT
 CWStringTest::EresUnittest_Copy()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	CWStringDynamic *pstr1 = GPOS_NEW(mp) CWStringDynamic(mp, GPOS_WSZ_LIT("Hello"));
 	
@@ -466,7 +466,7 @@ GPOS_RESULT
 CWStringTest::EresUnittest_AppendEscape()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const WCHAR *w_str = GPOS_WSZ_LIT("Helloe ");
 	CWStringConst cstr(w_str);

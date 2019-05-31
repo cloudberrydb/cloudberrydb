@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarOpList::CDXLScalarOpList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlOpListType dxl_op_list_type
 	)
 	:

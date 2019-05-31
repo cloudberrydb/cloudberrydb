@@ -38,7 +38,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CXformImplementAssert(IMemoryPool *mp);
+			CXformImplementAssert(CMemoryPool *mp);
 
 			// dtor
 			virtual 

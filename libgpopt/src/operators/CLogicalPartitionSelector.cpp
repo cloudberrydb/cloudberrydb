@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalPartitionSelector::CLogicalPartitionSelector
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -50,7 +50,7 @@ CLogicalPartitionSelector::CLogicalPartitionSelector
 //---------------------------------------------------------------------------
 CLogicalPartitionSelector::CLogicalPartitionSelector
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	CExpressionArray *pdrgpexprFilters,
 	CColRef *pcrOid
@@ -133,7 +133,7 @@ CLogicalPartitionSelector::HashValue() const
 COperator *
 CLogicalPartitionSelector::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -157,7 +157,7 @@ CLogicalPartitionSelector::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalPartitionSelector::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -180,7 +180,7 @@ CLogicalPartitionSelector::PcrsDeriveOutput
 CMaxCard
 CLogicalPartitionSelector::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -200,7 +200,7 @@ CLogicalPartitionSelector::Maxcard
 CXformSet *
 CLogicalPartitionSelector::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {

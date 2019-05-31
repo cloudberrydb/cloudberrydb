@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformUpdate2DML::CXformUpdate2DML
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -85,7 +85,7 @@ CXformUpdate2DML::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalUpdate *popUpdate = CLogicalUpdate::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 

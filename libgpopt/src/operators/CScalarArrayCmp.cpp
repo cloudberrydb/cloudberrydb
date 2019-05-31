@@ -42,7 +42,7 @@ const CHAR CScalarArrayCmp::m_rgszCmpType[EarrcmpSentinel][10] =
 //---------------------------------------------------------------------------
 CScalarArrayCmp::CScalarArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op,
 	const CWStringConst *pstrOp,
 	EArrCmpType earrcmpt
@@ -210,7 +210,7 @@ CScalarArrayCmp::OsPrint
 CExpression *
 CScalarArrayCmp::PexprExpand
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprArrayCmp
 	)
 {

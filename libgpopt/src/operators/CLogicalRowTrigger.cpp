@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalRowTrigger::CLogicalRowTrigger
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -53,7 +53,7 @@ CLogicalRowTrigger::CLogicalRowTrigger
 //---------------------------------------------------------------------------
 CLogicalRowTrigger::CLogicalRowTrigger
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	INT type,
 	CColRefArray *pdrgpcrOld,
@@ -237,7 +237,7 @@ CLogicalRowTrigger::HashValue() const
 COperator *
 CLogicalRowTrigger::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -270,7 +270,7 @@ CLogicalRowTrigger::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalRowTrigger::PcrsDeriveOutput
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -288,7 +288,7 @@ CLogicalRowTrigger::PcrsDeriveOutput
 CKeyCollection *
 CLogicalRowTrigger::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -307,7 +307,7 @@ CLogicalRowTrigger::PkcDeriveKeys
 CMaxCard
 CLogicalRowTrigger::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -327,7 +327,7 @@ CLogicalRowTrigger::Maxcard
 CXformSet *
 CLogicalRowTrigger::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -347,7 +347,7 @@ CLogicalRowTrigger::PxfsCandidates
 IStatistics *
 CLogicalRowTrigger::PstatsDerive
 	(
-	IMemoryPool *, // mp,
+	CMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)
@@ -367,7 +367,7 @@ CLogicalRowTrigger::PstatsDerive
 CFunctionProp *
 CLogicalRowTrigger::PfpDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const

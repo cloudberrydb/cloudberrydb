@@ -32,7 +32,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformEagerAgg(IMemoryPool *mp);
+			CXformEagerAgg(CMemoryPool *mp);
 
 			// ctor
 			explicit
@@ -98,7 +98,7 @@ namespace gpopt
 		// from all the original aggregates
 		void PopulateLowerUpperProjectList
 			(
-			IMemoryPool *mp,               // memory pool
+			CMemoryPool *mp,               // memory pool
 			CExpression *orig_proj_list,   // project list of the original aggregate
 			CExpression **lower_proj_list, // output project list of the new lower aggregate
 			CExpression **upper_proj_list  // output project list of the new upper aggregate
@@ -107,7 +107,7 @@ namespace gpopt
 		// generate project element for lower aggregate for a single original aggregate
 		void PopulateLowerProjectElement
 			(
-			IMemoryPool *mp,	// memory pool
+			CMemoryPool *mp,	// memory pool
 			IMDId *agg_mdid,	// original global aggregate function
 			CWStringConst *agg_name,
 			CExpressionArray *agg_arg_array,
@@ -118,7 +118,7 @@ namespace gpopt
 		// generate project element for upper aggregate
 		void PopulateUpperProjectElement
 			(
-			IMemoryPool *mp,	// memory pool
+			CMemoryPool *mp,	// memory pool
 			IMDId *agg_mdid,	// aggregate mdid to create
 			CWStringConst *agg_name,
 			CColRef *lower_colref,

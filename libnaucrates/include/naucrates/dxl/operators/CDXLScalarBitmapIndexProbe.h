@@ -45,7 +45,7 @@ namespace gpdxl
 			// ctor
 			CDXLScalarBitmapIndexProbe
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDXLIndexDescr *dxl_index_descr
 				);
 

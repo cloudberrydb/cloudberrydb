@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CIndexDescriptor::CIndexDescriptor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *pmdidIndex,
 	const CName &name,
 	CColumnDescriptorArray *pdrgcoldescKeyCols,
@@ -109,7 +109,7 @@ CIndexDescriptor::UlIncludedColumns() const
 CIndexDescriptor *
 CIndexDescriptor::Pindexdesc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CTableDescriptor *ptabdesc,
 	const IMDIndex *pmdindex
 	)

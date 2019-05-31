@@ -62,7 +62,7 @@ namespace gpopt
 			// extract costing info from children
 			void ExtractChildrenCostingInfo
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				ICostModel *pcm,
 				CExpressionHandle &exprhdl,
 				ICostModel::SCostingInfo *pci
@@ -111,7 +111,7 @@ namespace gpopt
 			}
 
 			// compute partial plan cost
-			CCost CostCompute(IMemoryPool *mp);
+			CCost CostCompute(CMemoryPool *mp);
 
 			// hash function used for cost bounding
 			static

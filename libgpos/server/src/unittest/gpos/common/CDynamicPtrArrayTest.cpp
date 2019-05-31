@@ -55,7 +55,7 @@ CDynamicPtrArrayTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test with CHAR array
 
@@ -143,7 +143,7 @@ CDynamicPtrArrayTest::EresUnittest_Ownership()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test with ULONGs
 
@@ -196,7 +196,7 @@ CDynamicPtrArrayTest::EresUnittest_ArrayAppend()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	typedef CDynamicPtrArray<ULONG, CleanupNULL<ULONG> > UlongArray;
 
@@ -245,7 +245,7 @@ CDynamicPtrArrayTest::EresUnittest_ArrayAppendExactFit()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	typedef CDynamicPtrArray<ULONG, CleanupNULL<ULONG> > UlongArray;
 
@@ -299,7 +299,7 @@ CDynamicPtrArrayTest::EresUnittest_PdrgpulSubsequenceIndexes()
 	typedef CDynamicPtrArray<ULONG, CleanupNULL<ULONG> > UlongArray;
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// the array containing elements to look up
 	UlongArray *pdrgULONGLookup = GPOS_NEW(mp) UlongArray(mp);

@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalIndexGet::CLogicalIndexGet
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -63,7 +63,7 @@ CLogicalIndexGet::CLogicalIndexGet
 //---------------------------------------------------------------------------
 CLogicalIndexGet::CLogicalIndexGet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const IMDIndex *pmdindex,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
@@ -164,7 +164,7 @@ CLogicalIndexGet::Matches
 COperator *
 CLogicalIndexGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -199,7 +199,7 @@ CLogicalIndexGet::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalIndexGet::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 {
@@ -220,7 +220,7 @@ CLogicalIndexGet::PcrsDeriveOutput
 CColRefSet *
 CLogicalIndexGet::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -252,7 +252,7 @@ CLogicalIndexGet::FInputOrderSensitive() const
 CXformSet *
 CLogicalIndexGet::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 const
 {
@@ -275,7 +275,7 @@ const
 IStatistics *
 CLogicalIndexGet::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray *stats_ctxt
 	)

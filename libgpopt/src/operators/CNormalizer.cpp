@@ -106,7 +106,7 @@ CNormalizer::FPushableThruSeqPrjChild
 	{
 		GPOS_ASSERT(NULL == CDistributionSpecHashed::PdsConvert(pds)->PdshashedEquiv());
 		CAutoMemoryPool amp;
-		IMemoryPool *mp = amp.Pmp();
+		CMemoryPool *mp = amp.Pmp();
 		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
 		CColRefSet *pcrsPartCols = CUtils::PcrsExtractColumns(mp, CDistributionSpecHashed::PdsConvert(pds)->Pdrgpexpr());
 		if (pcrsPartCols->ContainsAll(pcrsUsed))
@@ -161,7 +161,7 @@ CNormalizer::FPushable
 CExpression *
 CNormalizer::PexprRecursiveNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -194,7 +194,7 @@ CNormalizer::PexprRecursiveNormalize
 void
 CNormalizer::SplitConjunct
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprConj,
 	CExpressionArray **ppdrgpexprPushable,
@@ -243,7 +243,7 @@ CNormalizer::SplitConjunct
 void
 CNormalizer::PushThruOuterChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -352,7 +352,7 @@ CNormalizer::PushThruOuterChild
 BOOL
 CNormalizer::FSimplifySelectOnOuterJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprOuterJoin,
 	CExpression *pexprPred, // selection predicate
 	CExpression **ppexprResult
@@ -410,7 +410,7 @@ CNormalizer::FSimplifySelectOnOuterJoin
 BOOL
 CNormalizer::FSimplifySelectOnFullJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprFullJoin,
 	CExpression *pexprPred, // selection predicate
 	CExpression **ppexprResult
@@ -477,7 +477,7 @@ CNormalizer::FSimplifySelectOnFullJoin
 void
 CNormalizer::PushThruSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSelect,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -553,7 +553,7 @@ CNormalizer::PushThruSelect
 CExpression *
 CNormalizer::PexprSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexpr
 	)
@@ -619,7 +619,7 @@ CNormalizer::PexprSelect
 void
 CNormalizer::PushThruUnaryWithoutScalarChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -661,7 +661,7 @@ CNormalizer::PushThruUnaryWithoutScalarChild
 void
 CNormalizer::PushThruUnaryWithScalarChild
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -706,7 +706,7 @@ CNormalizer::PushThruUnaryWithScalarChild
 void
 CNormalizer::SplitConjunctForSeqPrj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj,
 	CExpression *pexprConj,
 	CExpressionArray **ppdrgpexprPushable,
@@ -750,7 +750,7 @@ CNormalizer::SplitConjunctForSeqPrj
 void
 CNormalizer::PushThruSeqPrj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSeqPrj,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -807,7 +807,7 @@ CNormalizer::PushThruSeqPrj
 void
 CNormalizer::PushThruSetOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprSetOp,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -878,7 +878,7 @@ CNormalizer::PushThruSetOp
 void
 CNormalizer::PushThruJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprJoin,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -1020,7 +1020,7 @@ CNormalizer::FChild
 void
 CNormalizer::PushThru
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CExpression *pexprConj,
 	CExpression **ppexprResult
@@ -1084,7 +1084,7 @@ CNormalizer::PushThru
 void
 CNormalizer::PushThru
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CExpressionArray *pdrgpexprConjuncts,
 	CExpression **ppexprResult,
@@ -1140,7 +1140,7 @@ CNormalizer::PushThru
 CExpression *
 CNormalizer::PexprNormalize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1210,7 +1210,7 @@ CNormalizer::PexprNormalize
 CExpression *
 CNormalizer::PexprPullUpAndCombineProjects
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL *pfSuccess		// output to indicate whether anything was pulled up
 	)
@@ -1321,7 +1321,7 @@ CNormalizer::PexprPullUpAndCombineProjects
 CExpression *
 CNormalizer::PexprPullUpProjectElements
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSet *pcrsUsed,
 	CColRefSet *pcrsOutput,
@@ -1398,7 +1398,7 @@ CNormalizer::PexprPullUpProjectElements
 CExpression *
 CNormalizer::PexprPullUpProjections
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1435,7 +1435,7 @@ CNormalizer::PexprPullUpProjections
 BOOL
 CNormalizer::FLocalColsSubsetOfInputCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {

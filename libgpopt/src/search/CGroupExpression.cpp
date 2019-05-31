@@ -46,7 +46,7 @@ const CGroupExpression CGroupExpression::m_gexprInvalid;
 //---------------------------------------------------------------------------
 CGroupExpression::CGroupExpression
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COperator *pop,
 	CGroupArray *pdrgpgroup,
 	CXform::EXformId exfid,
@@ -262,7 +262,7 @@ CGroupExpression::SetOptimizationLevel()
 BOOL
 CGroupExpression::FValidContext
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc,
 	COptimizationContextArray *pdrgpocChild
 	)
@@ -454,7 +454,7 @@ CGroupExpression::PccInsertBest
 CCostContext *
 CGroupExpression::PccComputeCost
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc,
 	ULONG ulOptReq,
 	COptimizationContextArray *pdrgpoc, // array of child contexts
@@ -532,7 +532,7 @@ CGroupExpression::PccComputeCost
 CCost
 CGroupExpression::CostLowerBound
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CReqdPropPlan *prppInput,
 	CCostContext *pccChild,
 	ULONG child_index
@@ -613,7 +613,7 @@ CGroupExpression::ResetState()
 CCost
 CGroupExpression::CostCompute
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CCostContext *pcc
 	)
 	const
@@ -704,7 +704,7 @@ CGroupExpression::PccLookup
 CCostContextArray *
 CGroupExpression::PdrgpccLookupAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	COptimizationContext *poc
 	)
 {
@@ -781,8 +781,8 @@ CGroupExpression::PccInsert
 void
 CGroupExpression::PreprocessTransform
 	(
-	IMemoryPool *pmpLocal,
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *pmpLocal,
+	CMemoryPool *pmpGlobal,
 	CXform *pxform
 	)
 {
@@ -809,8 +809,8 @@ CGroupExpression::PreprocessTransform
 void
 CGroupExpression::PostprocessTransform
 	(
-	IMemoryPool *, // pmpLocal
-	IMemoryPool *, // pmpGlobal
+	CMemoryPool *, // pmpLocal
+	CMemoryPool *, // pmpGlobal
 	CXform *pxform
 	)
 {
@@ -832,8 +832,8 @@ CGroupExpression::PostprocessTransform
 void
 CGroupExpression::Transform
 	(
-	IMemoryPool *mp,
-	IMemoryPool *pmpLocal,
+	CMemoryPool *mp,
+	CMemoryPool *pmpLocal,
 	CXform *pxform,
 	CXformResult *pxfres,
 	ULONG *pulElapsedTime, // output: elapsed time in millisecond
@@ -1065,8 +1065,8 @@ CGroupExpression::HashValue
 IStatistics *
 CGroupExpression::PstatsRecursiveDerive
 	(
-	IMemoryPool *, // pmpLocal
-	IMemoryPool *pmpGlobal,
+	CMemoryPool *, // pmpLocal
+	CMemoryPool *pmpGlobal,
 	CReqdPropRelational *prprel,
 	IStatisticsArray *stats_ctxt,
 	BOOL fComputeRootStats
@@ -1108,7 +1108,7 @@ CGroupExpression::PstatsRecursiveDerive
 void
 CGroupExpression::PrintXform
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CXform *pxform,
 	CExpression *pexpr,
 	CXformResult *pxfres,

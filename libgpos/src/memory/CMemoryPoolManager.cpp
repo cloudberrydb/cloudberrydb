@@ -17,7 +17,7 @@
 #include "gpos/task/CAutoTraceFlag.h"
 #include "gpos/error/CFSimulator.h" // for GPOS_FPSIMULATOR
 #include "gpos/error/CAutoTrace.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpos/memory/CMemoryPoolAlloc.h"
 #include "gpos/memory/CMemoryPoolInjectFault.h"
 #include "gpos/memory/CMemoryPoolManager.h"
@@ -46,8 +46,8 @@ CMemoryPoolManager *CMemoryPoolManager::m_memory_pool_mgr = NULL;
 //---------------------------------------------------------------------------
 CMemoryPoolManager::CMemoryPoolManager
 	(
-	IMemoryPool *internal,
-	IMemoryPool *base
+	CMemoryPool *internal,
+	CMemoryPool *base
 	)
 	:
 	m_base_memory_pool(base),
@@ -107,10 +107,10 @@ CMemoryPoolManager::Init
 	}
 
 	// create base memory pool
-	IMemoryPool *base = new(alloc_base) CMemoryPoolAlloc(alloc, free_func);
+	CMemoryPool *base = new(alloc_base) CMemoryPoolAlloc(alloc, free_func);
 
 	// create internal memory pool
-	IMemoryPool *internal = new(alloc_internal) CMemoryPoolTracker
+	CMemoryPool *internal = new(alloc_internal) CMemoryPoolTracker
 			(
 			base,
 			gpos::ullong_max, // ullMaxMemory
@@ -153,7 +153,7 @@ CMemoryPoolManager::Init
 //		Create new memory pool
 //
 //---------------------------------------------------------------------------
-IMemoryPool *
+CMemoryPool *
 CMemoryPoolManager::Create
 	(
 	AllocType alloc_type,
@@ -161,7 +161,7 @@ CMemoryPoolManager::Create
 	ULLONG capacity
 	)
 {
-	IMemoryPool *mp =
+	CMemoryPool *mp =
 #ifdef GPOS_DEBUG
 			CreatePoolStack(alloc_type, capacity, thread_safe);
 #else
@@ -171,7 +171,7 @@ CMemoryPoolManager::Create
 	// accessor scope
 	{
 		MemoryPoolKeyAccessor acc(m_hash_table, mp->GetHashKey());
-		acc.Insert(Convert(mp));
+		acc.Insert(mp);
 	}
 
 	return mp;
@@ -186,11 +186,11 @@ CMemoryPoolManager::Create
 //		Create new pool of given type
 //
 //---------------------------------------------------------------------------
-IMemoryPool *
+CMemoryPool *
 CMemoryPoolManager::New
 	(
 	AllocType alloc_type,
-	IMemoryPool *underlying_memory_pool,
+	CMemoryPool *underlying_memory_pool,
 	ULLONG capacity,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
@@ -232,7 +232,7 @@ CMemoryPoolManager::New
 //		Surround new pool with tracker pools
 //
 //---------------------------------------------------------------------------
-IMemoryPool *
+CMemoryPool *
 CMemoryPoolManager::CreatePoolStack
 	(
 	AllocType alloc_type,
@@ -240,7 +240,7 @@ CMemoryPoolManager::CreatePoolStack
 	BOOL thread_safe
 	)
 {
-	IMemoryPool *base = m_base_memory_pool;
+	CMemoryPool *base = m_base_memory_pool;
 	BOOL malloc_type = (EatTracker == alloc_type);
 
 	// check if tracking and fault injection on internal allocations
@@ -248,7 +248,7 @@ CMemoryPoolManager::CreatePoolStack
 	if (NULL != ITask::Self() && !malloc_type  && GPOS_FTRACE(EtraceTestMemoryPools))
 	{
 		// put fault injector on top of base pool
-		IMemoryPool *FPSim_low = GPOS_NEW(m_internal_memory_pool) CMemoryPoolInjectFault
+		CMemoryPool *FPSim_low = GPOS_NEW(m_internal_memory_pool) CMemoryPoolInjectFault
 				(
 				base,
 				false /*owns_underlying_memory_pool*/
@@ -266,7 +266,7 @@ CMemoryPoolManager::CreatePoolStack
 	}
 
 	// tracker pool goes on top
-	IMemoryPool *requested = base;
+	CMemoryPool *requested = base;
 	if (!malloc_type)
 	{
 		// put requested pool on top of underlying pool
@@ -281,7 +281,7 @@ CMemoryPoolManager::CreatePoolStack
 	}
 
 	// put fault injector on top of requested pool
-	IMemoryPool *FPSim = GPOS_NEW(m_internal_memory_pool) CMemoryPoolInjectFault
+	CMemoryPool *FPSim = GPOS_NEW(m_internal_memory_pool) CMemoryPoolInjectFault
 				(
 				requested,
 				!malloc_type
@@ -306,7 +306,7 @@ CMemoryPoolManager::CreatePoolStack
 void
 CMemoryPoolManager::DeleteUnregistered
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(mp != NULL);
@@ -317,12 +317,12 @@ CMemoryPoolManager::DeleteUnregistered
 		MemoryPoolKeyAccessor acc(m_hash_table, mp->GetHashKey());
 
 		// make sure that this pool is not in the hash table
-		IMemoryPool *found = acc.Find();
+		CMemoryPool *found = acc.Find();
 		while (NULL != found)
 		{
 			GPOS_ASSERT(found != mp && "Attempt to delete a registered memory pool");
 
-			found = acc.Next(Convert(found));
+			found = acc.Next(found);
 		}
 	}
 #endif // GPOS_DEBUG
@@ -342,7 +342,7 @@ CMemoryPoolManager::DeleteUnregistered
 void
 CMemoryPoolManager::Destroy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != mp);
@@ -350,7 +350,7 @@ CMemoryPoolManager::Destroy
 	// accessor scope
 	{
 		MemoryPoolKeyAccessor acc(m_hash_table, mp->GetHashKey());
-		acc.Remove(Convert(mp));
+		acc.Remove(mp);
 	}
 
 	mp->TearDown();
@@ -375,7 +375,7 @@ CMemoryPoolManager::TotalAllocatedSize()
 	while (iter.Advance())
 	{
 		MemoryPoolIterAccessor acc(iter);
-		IMemoryPool *mp = acc.Value();
+		CMemoryPool *mp = acc.Value();
 		if (NULL != mp)
 		{
 			total_size = total_size + mp->TotalAllocatedSize();
@@ -407,7 +407,7 @@ CMemoryPoolManager::OsPrint
 	MemoryPoolIter iter(m_hash_table);
 	while (iter.Advance())
 	{
-		IMemoryPool *mp = NULL;
+		CMemoryPool *mp = NULL;
 		{
 			MemoryPoolIterAccessor acc(iter);
 			mp = acc.Value();
@@ -434,7 +434,7 @@ CMemoryPoolManager::OsPrint
 void
 CMemoryPoolManager::PrintOverSizedPools
 	(
-	IMemoryPool *trace,
+	CMemoryPool *trace,
 	ULLONG size_threshold // size threshold in bytes
 	)
 {
@@ -447,7 +447,7 @@ CMemoryPoolManager::PrintOverSizedPools
 	while (iter.Advance())
 	{
 		MemoryPoolIterAccessor acc(iter);
-		IMemoryPool *mp = acc.Value();
+		CMemoryPool *mp = acc.Value();
 
 		if (NULL != mp)
 		{
@@ -531,8 +531,8 @@ CMemoryPoolManager::Shutdown()
 	Cleanup();
 
 	// save off pointers for explicit deletion
-	IMemoryPool *internal = m_internal_memory_pool;
-	IMemoryPool *base = m_base_memory_pool;
+	CMemoryPool *internal = m_internal_memory_pool;
+	CMemoryPool *base = m_base_memory_pool;
 
 	GPOS_DELETE(CMemoryPoolManager::m_memory_pool_mgr);
 	CMemoryPoolManager::m_memory_pool_mgr = NULL;

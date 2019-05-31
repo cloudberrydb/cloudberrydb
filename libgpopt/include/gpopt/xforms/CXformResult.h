@@ -44,7 +44,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CXformResult(IMemoryPool *);
+			CXformResult(CMemoryPool *);
 
 			// dtor
 			~CXformResult();

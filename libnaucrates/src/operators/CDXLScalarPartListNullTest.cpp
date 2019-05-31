@@ -18,7 +18,7 @@ using namespace gpdxl;
 // Ctor
 CDXLScalarPartListNullTest::CDXLScalarPartListNullTest
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG partitioning_level,
 	BOOL is_null
 	)

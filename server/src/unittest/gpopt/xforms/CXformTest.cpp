@@ -60,9 +60,9 @@ GPOS_RESULT
 CXformTest::EresUnittest_ApplyXforms()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
-	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
+	typedef CExpression *(*Pfpexpr)(CMemoryPool*);
 	Pfpexpr rgpf[] = 
 					{
 					CTestUtils::PexprLogicalApplyWithOuterRef<CLogicalInnerApply>,
@@ -145,7 +145,7 @@ GPOS_RESULT
 CXformTest::EresUnittest_ApplyXforms_CTE()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -224,7 +224,7 @@ CXformTest::EresUnittest_ApplyXforms_CTE()
 void
 CXformTest::ApplyExprXforms
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IOstream &os,
 	CExpression *pexpr
 	)
@@ -282,7 +282,7 @@ CXformTest::ApplyExprXforms
 CExpression *
 CXformTest::PexprStarJoinTree
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulTabs
 	)
 {
@@ -319,7 +319,7 @@ CXformTest::PexprStarJoinTree
 CExpression *
 CXformTest::PexprJoinTree
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	return PexprStarJoinTree(mp, 3);

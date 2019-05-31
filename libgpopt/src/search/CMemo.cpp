@@ -45,7 +45,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMemo::CMemo
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -322,7 +322,7 @@ CMemo::PgroupInsert
 CExpression *
 CMemo::PexprExtractPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CGroup *pgroupRoot,
 	CReqdPropPlan *prppInput,
 	ULONG ulSearchStages
@@ -698,7 +698,7 @@ CMemo::OsPrint
 void
 CMemo::DeriveStatsIfAbsent
 	(
-	IMemoryPool *pmpLocal
+	CMemoryPool *pmpLocal
 	)
 {
 	CGroup *pgroup = m_listGroups.PtFirst();

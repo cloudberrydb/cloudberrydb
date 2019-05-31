@@ -6,7 +6,7 @@
 using namespace gpopt;
 CHashedDistributions::CHashedDistributions
 		(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CColRefArray *pdrgpcrOutput,
 		CColRef2dArray *pdrgpdrgpcrInput
 		)

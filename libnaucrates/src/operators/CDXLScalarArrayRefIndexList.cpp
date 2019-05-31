@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarArrayRefIndexList::CDXLScalarArrayRefIndexList
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EIndexListBound index_list_bound
 	)
 	:

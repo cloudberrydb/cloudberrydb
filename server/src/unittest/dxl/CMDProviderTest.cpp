@@ -74,7 +74,7 @@ CMDProviderTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// test lookup with a file-based provider
 	CMDProviderMemory *pmdpFile = GPOS_NEW(mp) CMDProviderMemory(mp, file_name);
@@ -111,7 +111,7 @@ CMDProviderTest::EresUnittest_Basic()
 void
 CMDProviderTest::TestMDLookup
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDProvider *pmdp
 	)
 {
@@ -155,7 +155,7 @@ CMDProviderTest::EresUnittest_Stats()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	CMDProviderMemory *pmdpFile = GPOS_NEW(mp) CMDProviderMemory(mp, file_name);
 
@@ -205,7 +205,7 @@ GPOS_RESULT
 CMDProviderTest::EresUnittest_Negative()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	CMDProviderMemory *pmdpFile = GPOS_NEW(mp) CMDProviderMemory(mp, file_name);
 	pmdpFile->AddRef();

@@ -68,7 +68,7 @@ CXformJoin2IndexApply::Exfp
 void
 CXformJoin2IndexApply::ComputeColumnSets
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprInner,
 	CExpression *pexprScalar,
 	CColRefSet **ppcrsScalarExpr,
@@ -98,7 +98,7 @@ CXformJoin2IndexApply::ComputeColumnSets
 void
 CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -187,7 +187,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 void
 CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -279,7 +279,7 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 void
 CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -339,7 +339,7 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 //---------------------------------------------------------------------------
 void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -473,7 +473,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 void
 CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
@@ -584,7 +584,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 void
 CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CExpression *pexprOuter,
 	CExpression *pexprScalar,
@@ -767,7 +767,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 CExpression *
 CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG, //  ulOriginOpId
 	CLogicalDynamicGet *popDynamicGet,
 	ULONG ulCTEId,
@@ -841,7 +841,7 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 CExpression *
 CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG ulOriginOpId,
 	CLogicalDynamicGet *popDynamicGet,
 	CExpressionArray *pdrgpexprIndex,
@@ -914,7 +914,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 CExpression *
 CXformJoin2IndexApply::PexprConstructUnionAll
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrLeftSchema,
 	CColRefArray *pdrgpcrRightSchema,
 	CExpression *pexprLeftChild,
@@ -948,7 +948,7 @@ CXformJoin2IndexApply::PexprConstructUnionAll
 void
 CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CLogicalDynamicGet *popDynamicGet,
 	ULONG ulCTEId,
 	CExpression *pexprUnion,

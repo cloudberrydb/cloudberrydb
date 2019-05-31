@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarAssertConstraint::CDXLScalarAssertConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CWStringBase *error_msg
 	)
 	:

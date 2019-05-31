@@ -46,7 +46,7 @@ BOOL CConstraint::m_fFalse(false);
 //---------------------------------------------------------------------------
 CConstraint::CConstraint
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_phmcontain(NULL),
@@ -84,7 +84,7 @@ CConstraint::~CConstraint()
 CConstraint *
 CConstraint::PcnstrFromScalarArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRef *colref
 	)
@@ -163,7 +163,7 @@ CConstraint::PcnstrFromScalarArrayCmp
 CConstraint *
 CConstraint::PcnstrFromScalarExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSetArray **ppdrgpcrs // output equivalence classes
 	)
@@ -237,7 +237,7 @@ CConstraint::PcnstrFromScalarExpr
 CConstraint *
 CConstraint::PcnstrConjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr
 	)
 {
@@ -255,7 +255,7 @@ CConstraint::PcnstrConjunction
 CConstraint *
 CConstraint::PcnstrDisjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr
 	)
 {
@@ -273,7 +273,7 @@ CConstraint::PcnstrDisjunction
 CConstraint *
 CConstraint::PcnstrConjDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr,
 	BOOL fConj
 	)
@@ -328,7 +328,7 @@ CConstraint::PcnstrConjDisj
 void
 CConstraint::AddColumnToEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	CColRefSetArray **ppdrgpcrs
 	)
@@ -360,7 +360,7 @@ CConstraint::AddColumnToEquivClasses
 CConstraint *
 CConstraint::PcnstrFromScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSetArray **ppdrgpcrs // output equivalence classes
 	)
@@ -445,7 +445,7 @@ CConstraint::PcnstrFromScalarCmp
 CConstraint *
 CConstraint::PcnstrFromScalarBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSetArray **ppdrgpcrs // output equivalence classes
 	)
@@ -546,7 +546,7 @@ CConstraint::PcnstrFromScalarBoolOp
 CColRefSetArray *
 CConstraint::PdrgpcrsMergeFromBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefSetArray *pdrgpcrsFst,
 	CColRefSetArray *pdrgpcrsSnd
@@ -586,7 +586,7 @@ CConstraint::PdrgpcrsMergeFromBoolOp
 CConstraintArray *
 CConstraint::PdrgpcnstrOnColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr,
 	CColRef *colref,
 	BOOL fExclusive		// returned constraints must reference ONLY the given col
@@ -624,7 +624,7 @@ CConstraint::PdrgpcnstrOnColumn
 CExpression *
 CConstraint::PexprScalarConjDisj
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr,
 	BOOL fConj
 	)
@@ -661,7 +661,7 @@ CConstraint::PexprScalarConjDisj
 CConstraintArray *
 CConstraint::PdrgpcnstrFlatten
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr,
 	EConstraintType ect
 	)
@@ -709,7 +709,7 @@ CConstraint::PdrgpcnstrFlatten
 CConstraintArray *
 CConstraint::PdrgpcnstrDeduplicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraintArray *pdrgpcnstr,
 	EConstraintType ect
 	)
@@ -802,7 +802,7 @@ CConstraint::PdrgpcnstrDeduplicate
 ColRefToConstraintArrayMap *
 CConstraint::Phmcolconstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs,
 	CConstraintArray *pdrgpcnstr
 	)
@@ -839,7 +839,7 @@ CConstraint::Phmcolconstr
 CConstraint *
 CConstraint::PcnstrConjDisjRemapForColumn
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref,
 	CConstraintArray *pdrgpcnstr,
 	BOOL fConj

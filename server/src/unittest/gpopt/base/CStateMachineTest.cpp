@@ -111,7 +111,7 @@ GPOS_RESULT
 CStateMachineTest::EresUnittest_Basics()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CTestMachine *ptm = GPOS_NEW(mp) CTestMachine;
 	CRandom rand;

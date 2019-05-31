@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformIndexGet2IndexScan(IMemoryPool *);
+			CXformIndexGet2IndexScan(CMemoryPool *);
 
 			// dtor
 			virtual

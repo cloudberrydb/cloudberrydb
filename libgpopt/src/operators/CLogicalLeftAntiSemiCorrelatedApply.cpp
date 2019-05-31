@@ -26,7 +26,7 @@ using namespace gpopt;
 CXformSet *
 CLogicalLeftAntiSemiCorrelatedApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -47,7 +47,7 @@ CLogicalLeftAntiSemiCorrelatedApply::PxfsCandidates
 COperator *
 CLogicalLeftAntiSemiCorrelatedApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

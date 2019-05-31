@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalDML::CPhysicalDML
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CLogicalDML::EDMLOperator edmlop,
 	CTableDescriptor *ptabdesc,
 	CColRefArray *pdrgpcrSource,
@@ -104,7 +104,7 @@ CPhysicalDML::~CPhysicalDML()
 COrderSpec *
 CPhysicalDML::PosRequired
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
@@ -133,7 +133,7 @@ CPhysicalDML::PosRequired
 COrderSpec *
 CPhysicalDML::PosDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
@@ -184,7 +184,7 @@ CPhysicalDML::EpetOrder
 CColRefSet *
 CPhysicalDML::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG
@@ -216,7 +216,7 @@ CPhysicalDML::PcrsRequired
 CDistributionSpec *
 CPhysicalDML::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
 	CDistributionSpec *, // pdsInput,
 	ULONG
@@ -260,7 +260,7 @@ CPhysicalDML::PdsRequired
 CRewindabilitySpec *
 CPhysicalDML::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
@@ -285,7 +285,7 @@ CPhysicalDML::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalDML::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -310,7 +310,7 @@ CPhysicalDML::PppsRequired
 CCTEReq *
 CPhysicalDML::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -358,7 +358,7 @@ CPhysicalDML::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalDML::PdsDerive
 	(
-	IMemoryPool *,//mp,
+	CMemoryPool *,//mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -377,7 +377,7 @@ CPhysicalDML::PdsDerive
 CRewindabilitySpec *
 CPhysicalDML::PrsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -491,7 +491,7 @@ CPhysicalDML::EpetRewindability
 COrderSpec *
 CPhysicalDML::PosComputeRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc
 	)
 {
@@ -589,7 +589,7 @@ CPhysicalDML::FInsertSortOnRows
 void
 CPhysicalDML::ComputeRequiredLocalColumns
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_pcrsRequiredLocal);

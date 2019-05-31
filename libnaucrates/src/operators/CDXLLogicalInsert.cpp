@@ -30,7 +30,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalInsert::CDXLLogicalInsert
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDXLTableDescr *table_descr,
 	ULongPtrArray *src_colids_array
 	)

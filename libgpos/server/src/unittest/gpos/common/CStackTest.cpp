@@ -58,7 +58,7 @@ CStackTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// test with CHAR array
 
@@ -105,7 +105,7 @@ CStackTest::EresUnittest_PushPop()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG rgul[4] = {1,2,3,4};
 	CStack<ULONG> *pstk = GPOS_NEW(mp) CStack<ULONG> (mp, 4);
@@ -166,7 +166,7 @@ CStackTest::EresUnittest_Pop()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	ULONG rgsz[] = {1, 2, 3, 4};
 

@@ -59,7 +59,7 @@ const CDecorrelator::SOperatorProcessor CDecorrelator::m_rgopproc[] =
 BOOL
 CDecorrelator::FPullableCorrelations
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprChildren,
 	CExpressionArray *pdrgpexprCorrelations
@@ -186,7 +186,7 @@ CDecorrelator::FDelayable
 BOOL
 CDecorrelator::FProcess
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -233,7 +233,7 @@ CDecorrelator::FProcess
 BOOL
 CDecorrelator::FProcessOperator
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -282,7 +282,7 @@ CDecorrelator::FProcessOperator
 BOOL
 CDecorrelator::FProcessPredicate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical, // logical parent of predicate tree
 	CExpression *pexprScalar,
 	BOOL fEqualityOnly,
@@ -354,7 +354,7 @@ CDecorrelator::FProcessPredicate
 BOOL
 CDecorrelator::FProcessSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -412,7 +412,7 @@ CDecorrelator::FProcessSelect
 BOOL
 CDecorrelator::FProcessGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL, // fEqualityOnly
 	CExpression **ppexprDecorrelated,
@@ -478,7 +478,7 @@ CDecorrelator::FProcessGbAgg
 BOOL
 CDecorrelator::FProcessJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -558,7 +558,7 @@ CDecorrelator::FProcessJoin
 BOOL
 CDecorrelator::FProcessAssert
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -608,7 +608,7 @@ CDecorrelator::FProcessAssert
 BOOL
 CDecorrelator::FProcessMaxOneRow
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -674,7 +674,7 @@ CDecorrelator::FProcessMaxOneRow
 BOOL
 CDecorrelator::FProcessProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
@@ -751,7 +751,7 @@ CDecorrelator::FProcessProject
 BOOL
 CDecorrelator::FProcessLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,

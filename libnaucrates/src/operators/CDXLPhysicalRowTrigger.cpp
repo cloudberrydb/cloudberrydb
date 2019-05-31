@@ -27,7 +27,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalRowTrigger::CDXLPhysicalRowTrigger
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *rel_mdid,
 	INT type,
 	ULongPtrArray *colids_old,

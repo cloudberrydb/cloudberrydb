@@ -94,7 +94,7 @@ CDrvdPropPlan::Pdpplan
 void
 CDrvdPropPlan::Derive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt *pdpctxt
 	)
@@ -132,7 +132,7 @@ CDrvdPropPlan::Derive
 void
 CDrvdPropPlan::CopyCTEProducerPlanProps
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDrvdPropCtxt *pdpctxt,
 	COperator *pop
 	)

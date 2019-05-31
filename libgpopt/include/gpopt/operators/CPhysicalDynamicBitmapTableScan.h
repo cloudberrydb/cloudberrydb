@@ -48,7 +48,7 @@ namespace gpopt
 			// ctor
 			CPhysicalDynamicBitmapTableScan
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				BOOL is_partial,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
@@ -81,7 +81,7 @@ namespace gpopt
 
 			// statistics derivation during costing
 			virtual
-			IStatistics *PstatsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpplan, IStatisticsArray *stats_ctxt) const;
+			IStatistics *PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpplan, IStatisticsArray *stats_ctxt) const;
 
 			// conversion function
 			static

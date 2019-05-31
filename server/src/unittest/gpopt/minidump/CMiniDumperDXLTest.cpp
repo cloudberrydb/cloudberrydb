@@ -76,7 +76,7 @@ GPOS_RESULT
 CMiniDumperDXLTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic minidumpstr(mp);
 	COstreamString oss(&minidumpstr);
@@ -251,7 +251,7 @@ GPOS_RESULT
 CMiniDumperDXLTest::EresUnittest_Load()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc);
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	const CHAR *rgszMinidumps[] =
 	{

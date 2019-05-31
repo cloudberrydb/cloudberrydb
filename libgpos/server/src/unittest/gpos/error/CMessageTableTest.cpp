@@ -53,7 +53,7 @@ CMessageTableTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CMessageTable *pmt = GPOS_NEW(mp)
 		CMessageTable(mp, GPOS_MSGTAB_SIZE, ElocEnUS_Utf8);

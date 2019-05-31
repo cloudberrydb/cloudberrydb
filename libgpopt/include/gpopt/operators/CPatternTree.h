@@ -40,7 +40,7 @@ namespace gpopt
 			explicit
 			CPatternTree
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				: 
 				CPattern(mp)

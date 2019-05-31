@@ -36,7 +36,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExpandNAryJoinDPv2::CXformExpandNAryJoinDPv2
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -109,7 +109,7 @@ CXformExpandNAryJoinDPv2::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	const ULONG arity = pexpr->Arity();
 	GPOS_ASSERT(arity >= 3);

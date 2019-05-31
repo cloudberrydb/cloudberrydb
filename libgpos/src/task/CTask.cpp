@@ -32,7 +32,7 @@ const CTaskId CTaskId::m_invalid_tid;
 //---------------------------------------------------------------------------
 CTask::CTask
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTaskContext *task_ctxt,
 	IErrorContext *err_ctxt,
 	CEvent *event,

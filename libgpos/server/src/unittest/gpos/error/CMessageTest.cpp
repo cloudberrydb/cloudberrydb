@@ -53,7 +53,7 @@ CMessageTest::EresUnittest_BasicWrapper()
 {
 	// create memory pool of 128KB
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	return EresUnittest_Basic(mp,
 				// parameters to Assert message
@@ -77,7 +77,7 @@ CMessageTest::EresUnittest_Basic
 {	
 	const ULONG size = 2048;
 	
-	IMemoryPool *mp = (IMemoryPool*)pv;
+	CMemoryPool *mp = (CMemoryPool*)pv;
 
 	// take pre-defined assertion exc message
 	CMessage *pmsg = CMessage::GetMessage(CException::ExmiAssert);

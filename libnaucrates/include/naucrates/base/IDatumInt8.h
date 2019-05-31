@@ -96,7 +96,7 @@ namespace gpnaucrates
 			virtual
 			IDatum *MakePaddedDatum
 				(
-				IMemoryPool *, // mp,
+				CMemoryPool *, // mp,
 				ULONG    // col_len
 				)
 				const

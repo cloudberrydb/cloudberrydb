@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSequenceProject::CLogicalSequenceProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpec *pds,
 	COrderSpecArray *pdrgpos,
 	CWindowFrameArray *pdrgpwf
@@ -89,7 +89,7 @@ CLogicalSequenceProject::CLogicalSequenceProject
 //---------------------------------------------------------------------------
 CLogicalSequenceProject::CLogicalSequenceProject
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalUnary(mp),
@@ -129,7 +129,7 @@ CLogicalSequenceProject::~CLogicalSequenceProject()
 COperator *
 CLogicalSequenceProject::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -167,7 +167,7 @@ CLogicalSequenceProject::PopCopyWithRemappedColumns
 void
 CLogicalSequenceProject::SetHasOrderSpecs
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != m_pdrgpos);
@@ -198,7 +198,7 @@ CLogicalSequenceProject::SetHasOrderSpecs
 void
 CLogicalSequenceProject::SetHasFrameSpecs
 	(
-	IMemoryPool * // mp
+	CMemoryPool * // mp
 	)
 {
 	GPOS_ASSERT(NULL != m_pdrgpwf);
@@ -231,7 +231,7 @@ CLogicalSequenceProject::SetHasFrameSpecs
 CColRefSet *
 CLogicalSequenceProject::PcrsDeriveOutput
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -259,7 +259,7 @@ CLogicalSequenceProject::PcrsDeriveOutput
 CColRefSet *
 CLogicalSequenceProject::PcrsDeriveOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -303,7 +303,7 @@ CLogicalSequenceProject::FHasLocalOuterRefs
 CKeyCollection *
 CLogicalSequenceProject::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -323,7 +323,7 @@ CLogicalSequenceProject::PkcDeriveKeys
 CMaxCard
 CLogicalSequenceProject::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -393,7 +393,7 @@ CLogicalSequenceProject::HashValue() const
 CXformSet *
 CLogicalSequenceProject::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -416,7 +416,7 @@ CLogicalSequenceProject::PxfsCandidates
 IStatistics *
 CLogicalSequenceProject::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // stats_ctxt
 	)
@@ -465,7 +465,7 @@ CLogicalSequenceProject::OsPrint
 CLogicalSequenceProject *
 CLogicalSequenceProject::PopRemoveLocalOuterRefs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {

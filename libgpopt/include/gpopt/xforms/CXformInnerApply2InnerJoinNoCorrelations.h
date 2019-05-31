@@ -43,7 +43,7 @@ namespace gpopt
 			explicit
 			CXformInnerApply2InnerJoinNoCorrelations
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>(mp)

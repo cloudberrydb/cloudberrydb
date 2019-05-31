@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalApply::CLogicalApply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogical(mp),
@@ -47,7 +47,7 @@ CLogicalApply::CLogicalApply
 //---------------------------------------------------------------------------
 CLogicalApply::CLogicalApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
@@ -84,7 +84,7 @@ CLogicalApply::~CLogicalApply()
 CColRefSet *
 CLogicalApply::PcrsStat
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
 	ULONG child_index

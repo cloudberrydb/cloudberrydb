@@ -81,7 +81,7 @@ namespace gpos
 		private:
 		
 			// memory pool
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 			
 			// currently allocated size
 			ULONG m_capacity;
@@ -143,7 +143,7 @@ namespace gpos
 		
 			// ctor
 			explicit
-			CDynamicPtrArray<T, CleanupFn> (IMemoryPool *mp, ULONG min_size = 4, ULONG expansion_factor = 10)
+			CDynamicPtrArray<T, CleanupFn> (CMemoryPool *mp, ULONG min_size = 4, ULONG expansion_factor = 10)
             :
             m_mp(mp),
             m_capacity(0),

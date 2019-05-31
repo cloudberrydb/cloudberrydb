@@ -36,7 +36,7 @@ GPOS_RESULT
 CEquivalenceClassesTest::EresUnittest_NotDisjointEquivalanceClasses()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 
@@ -111,7 +111,7 @@ GPOS_RESULT
 CEquivalenceClassesTest::EresUnittest_IntersectEquivalanceClasses()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 

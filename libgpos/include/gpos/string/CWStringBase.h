@@ -23,7 +23,7 @@
 namespace gpos
 {
 	class CWStringConst;
-	class IMemoryPool;
+	class CMemoryPool;
 	
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -72,7 +72,7 @@ namespace gpos
 			virtual ~CWStringBase(){}
 			
 			// deep copy of the string
-			virtual CWStringConst *Copy(IMemoryPool *mp) const;
+			virtual CWStringConst *Copy(CMemoryPool *mp) const;
 
 			// accessors
 			virtual ULONG Length() const;

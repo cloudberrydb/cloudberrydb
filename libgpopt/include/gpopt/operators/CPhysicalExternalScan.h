@@ -36,7 +36,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CPhysicalExternalScan(IMemoryPool *, const CName *, CTableDescriptor *, CColRefArray *);
+			CPhysicalExternalScan(CMemoryPool *, const CName *, CTableDescriptor *, CColRefArray *);
 
 			// ident accessors
 			virtual
@@ -64,7 +64,7 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsDerive
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const

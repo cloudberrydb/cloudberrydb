@@ -91,7 +91,7 @@ CXformSimplifySubquery::Exfp
 BOOL
 CXformSimplifySubquery::FSimplifyQuantified
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CExpression **ppexprNewScalar
 	)
@@ -129,7 +129,7 @@ CXformSimplifySubquery::FSimplifyQuantified
 BOOL
 CXformSimplifySubquery::FSimplifyExistential
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CExpression **ppexprNewScalar
 	)
@@ -166,7 +166,7 @@ CXformSimplifySubquery::FSimplifyExistential
 BOOL
 CXformSimplifySubquery::FSimplify
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CExpression **ppexprNewScalar,
 	FnSimplify *pfnsimplify,
@@ -249,7 +249,7 @@ CXformSimplifySubquery::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpression *pexprInput = pexpr;
 	const ULONG size = GPOS_ARRAY_SIZE(m_rgssm);
 	for (ULONG ul = 0; ul < size; ul++)

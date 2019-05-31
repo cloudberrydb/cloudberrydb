@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalCTEAnchor::CDXLLogicalCTEAnchor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG id
 	)
 	:

@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementSplit::CXformImplementSplit
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformImplementation
@@ -85,7 +85,7 @@ CXformImplementSplit::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalSplit *popSplit = CLogicalSplit::PopConvert(pexpr->Pop());
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 	CColRefArray *pdrgpcrDelete = popSplit->PdrgpcrDelete();

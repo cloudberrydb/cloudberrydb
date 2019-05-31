@@ -38,7 +38,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarSubqueryExistential(IMemoryPool *mp);
+			CScalarSubqueryExistential(CMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -61,7 +61,7 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //mp,
+						CMemoryPool *, //mp,
 						UlongToColRefMap *, //colref_mapping,
 						BOOL //must_exist
 						)
@@ -73,7 +73,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *mp, 
+				CMemoryPool *mp, 
 				CExpressionHandle &exprhdl
 				) 
 				const;

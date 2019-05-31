@@ -31,7 +31,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarConst::CScalarConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IDatum *datum
 	)
 	:

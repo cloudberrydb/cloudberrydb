@@ -33,7 +33,7 @@ namespace gpdxl
 		public:
 
 			// ctor
-			CDXLScalarValuesList(IMemoryPool *mp);
+			CDXLScalarValuesList(CMemoryPool *mp);
 
 			// dtor
 			virtual

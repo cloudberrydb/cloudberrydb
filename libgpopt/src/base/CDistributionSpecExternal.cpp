@@ -71,7 +71,7 @@ CDistributionSpecExternal::FSatisfies
 void
 CDistributionSpecExternal::AppendEnforcers
 	(
-	IMemoryPool *,
+	CMemoryPool *,
 	CExpressionHandle &,
 	CReqdPropPlan *,
 	CExpressionArray *,

@@ -58,7 +58,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::m_dOuterInnerRatioThreshold = 0.0
 //---------------------------------------------------------------------------
 CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	// pattern
@@ -93,7 +93,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Exfp
 	CColRefSet *pcrsInner = exprhdl.GetRelationalProperties(1 /*child_index*/)->PcrsOutput();
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	if (!CPredicateUtils::FSimpleEqualityUsingCols(mp, pexprScalar, pcrsInner))
 	{
@@ -211,7 +211,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 	// extract components
 	CExpression *pexprOuter = (*pexpr)[0];
 	CExpression *pexprInner = (*pexpr)[1];
@@ -348,7 +348,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::FValidInnerExpr
 CExpression *
 CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::PexprLeftAntiSemiJoinWithInnerGroupBy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOuter,
 	CColRefArray *pdrgpcrOuterCopy,
 	CColRefSet *pcrsScalar,
@@ -423,7 +423,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::PexprLeftAntiSemiJoinWithInnerGro
 CExpression *
 CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::PexprProjectOverLeftAntiSemiJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOuter,
 	CColRefSet *pcrsScalar,
 	CColRefSet *pcrsInner,

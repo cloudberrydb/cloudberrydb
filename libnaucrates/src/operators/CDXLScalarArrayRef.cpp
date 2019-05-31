@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarArrayRef::CDXLScalarArrayRef
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *elem_type_mdid,
 	INT type_modifier,
 	IMDId *array_type_mdid,

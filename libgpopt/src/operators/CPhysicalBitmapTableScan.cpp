@@ -34,7 +34,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CPhysicalBitmapTableScan::CPhysicalBitmapTableScan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
 	const CName *pnameTableAlias,

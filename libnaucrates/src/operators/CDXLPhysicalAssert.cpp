@@ -28,7 +28,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalAssert::CDXLPhysicalAssert
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CHAR *sql_state
 	)
 	:

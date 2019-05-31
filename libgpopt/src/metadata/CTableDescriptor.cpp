@@ -35,7 +35,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CTableDescriptor::CTableDescriptor
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid,
 	const CName &name,
 	BOOL convert_hash_to_random,

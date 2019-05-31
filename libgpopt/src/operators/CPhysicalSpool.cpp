@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSpool::CPhysicalSpool
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL eager
 	)
 	:
@@ -61,7 +61,7 @@ CPhysicalSpool::~CPhysicalSpool()
 CColRefSet *
 CPhysicalSpool::PcrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
@@ -87,7 +87,7 @@ CPhysicalSpool::PcrsRequired
 COrderSpec *
 CPhysicalSpool::PosRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
@@ -113,7 +113,7 @@ CPhysicalSpool::PosRequired
 CDistributionSpec *
 CPhysicalSpool::PdsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
@@ -138,7 +138,7 @@ CPhysicalSpool::PdsRequired
 CPartitionPropagationSpec *
 CPhysicalSpool::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
@@ -163,7 +163,7 @@ CPhysicalSpool::PppsRequired
 CCTEReq *
 CPhysicalSpool::PcteRequired
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
@@ -191,7 +191,7 @@ CPhysicalSpool::PcteRequired
 CRewindabilitySpec *
 CPhysicalSpool::PrsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG
@@ -240,7 +240,7 @@ CPhysicalSpool::PrsRequired
 COrderSpec *
 CPhysicalSpool::PosDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -260,7 +260,7 @@ CPhysicalSpool::PosDerive
 CDistributionSpec *
 CPhysicalSpool::PdsDerive
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -280,7 +280,7 @@ CPhysicalSpool::PdsDerive
 CRewindabilitySpec *
 CPhysicalSpool::PrsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -425,7 +425,7 @@ CPhysicalSpool::EpetRewindability
 BOOL
 CPhysicalSpool::FValidContext
 	(
-	IMemoryPool *,
+	CMemoryPool *,
 	COptimizationContext *poc,
 	COptimizationContextArray *pdrgpocChild
 	)

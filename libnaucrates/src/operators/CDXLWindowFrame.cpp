@@ -31,7 +31,7 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLWindowFrame::CDXLWindowFrame
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlFrameSpec edxlfs,
 	EdxlFrameExclusionStrategy frame_exc_strategy,
 	CDXLNode *dxlnode_leading,

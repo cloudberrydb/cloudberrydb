@@ -36,7 +36,7 @@ ULONG COptCtxt::m_ulFirstValidPartId = 1;
 //---------------------------------------------------------------------------
 COptCtxt::COptCtxt
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColumnFactory *col_factory,
 	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
@@ -102,7 +102,7 @@ COptCtxt::~COptCtxt()
 COptCtxt *
 COptCtxt::PoctxtCreate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
 	COptimizerConfig *optimizer_config

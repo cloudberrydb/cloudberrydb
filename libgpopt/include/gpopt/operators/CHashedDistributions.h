@@ -6,7 +6,7 @@
 
 #include "gpopt/base/CDistributionSpec.h"
 #include "gpopt/base/CDistributionSpecHashed.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 #include "gpopt/base/CColRef.h"
 #include "gpopt/base/CUtils.h"
 
@@ -22,7 +22,7 @@ namespace gpopt
 		public:
 			CHashedDistributions
 			(
-			IMemoryPool *mp,
+			CMemoryPool *mp,
 			CColRefArray *pdrgpcrOutput,
 			CColRef2dArray *pdrgpdrgpcrInput
 			);

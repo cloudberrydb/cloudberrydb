@@ -57,7 +57,7 @@ using namespace gpopt;
 void
 COptimizer::PrintQuery
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprTranslated,
 	CQueryContext *pqc
 	)
@@ -94,7 +94,7 @@ COptimizer::PrintQuery
 void
 COptimizer::PrintPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprPlan
 	)
 {
@@ -114,7 +114,7 @@ COptimizer::PrintPlan
 void
 COptimizer::DumpSamples
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CEnumeratorConfig *pec,
 	ULONG ulSessionId,
 	ULONG ulCmdId
@@ -144,7 +144,7 @@ COptimizer::DumpSamples
 void
 COptimizer::PrintQueryOrPlan
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CQueryContext *pqc
 	)
@@ -181,7 +181,7 @@ COptimizer::PrintQueryOrPlan
 CDXLNode *
 COptimizer::PdxlnOptimize
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor,
 	const CDXLNode *query,
 	const CDXLNodeArray *query_output_dxlnode_array, 
@@ -351,7 +351,7 @@ COptimizer::HandleExceptionAfterFinalizingMinidump
 void
 COptimizer::CheckCTEConsistency
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -375,7 +375,7 @@ COptimizer::CheckCTEConsistency
 CExpression *
 COptimizer::PexprOptimize
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CQueryContext *pqc,
 	CSearchStageArray *search_stage_array
 	)
@@ -408,7 +408,7 @@ COptimizer::PexprOptimize
 CDXLNode *
 COptimizer::CreateDXLNode
 	(
-	IMemoryPool *mp, 
+	CMemoryPool *mp, 
 	CMDAccessor *md_accessor, 
 	CExpression *pexpr,
 	CColRefArray *colref_array,

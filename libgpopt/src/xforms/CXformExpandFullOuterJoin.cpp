@@ -28,7 +28,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExpandFullOuterJoin::CXformExpandFullOuterJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CXformExploration
@@ -99,7 +99,7 @@ CXformExpandFullOuterJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
 	CExpression *pexprA = (*pexpr)[0];
 	CExpression *pexprB = (*pexpr)[1];
@@ -201,7 +201,7 @@ CXformExpandFullOuterJoin::Transform
 CExpression *
 CXformExpandFullOuterJoin::PexprLogicalJoinOverCTEs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlJoinType edxljointype,
 	ULONG ulLeftCTEId,
 	CColRefArray *pdrgpcrLeft,

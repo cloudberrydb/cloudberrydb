@@ -48,7 +48,7 @@ namespace gpos
 		public:
 
 			// ctor
-			CMessageTable(IMemoryPool *mp, ULONG size, ELocale locale);
+			CMessageTable(CMemoryPool *mp, ULONG size, ELocale locale);
 		
 			// lookup message by error/local
 			CMessage *LookupMessage(CException exc);

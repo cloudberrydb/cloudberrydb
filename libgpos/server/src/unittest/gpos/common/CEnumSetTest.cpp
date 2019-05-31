@@ -54,7 +54,7 @@ CEnumSetTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	typedef CEnumSet<eTest, eTestSentinel> CETestSet;
 	typedef CEnumSetIter<eTest, eTestSentinel> CETestIter;

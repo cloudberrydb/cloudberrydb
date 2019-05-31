@@ -32,7 +32,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLScalarOpExpr::CDXLScalarOpExpr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_op,
 	IMDId *return_type_mdid,
 	const CWStringConst *str_opname

@@ -42,7 +42,7 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApplyIn2LeftSemiJoin
 				(
-				IMemoryPool *mp
+				CMemoryPool *mp
 				)
 				:
 				CXformLeftSemiApply2LeftSemiJoin

@@ -31,7 +31,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLeftSemiJoin::CLogicalLeftSemiJoin
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalJoin(mp)
@@ -51,7 +51,7 @@ CLogicalLeftSemiJoin::CLogicalLeftSemiJoin
 CXformSet *
 CLogicalLeftSemiJoin::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -81,7 +81,7 @@ CLogicalLeftSemiJoin::PxfsCandidates
 CColRefSet *
 CLogicalLeftSemiJoin::PcrsDeriveOutput
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -102,7 +102,7 @@ CLogicalLeftSemiJoin::PcrsDeriveOutput
 CKeyCollection *
 CLogicalLeftSemiJoin::PkcDeriveKeys
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -122,7 +122,7 @@ CLogicalLeftSemiJoin::PkcDeriveKeys
 CMaxCard
 CLogicalLeftSemiJoin::Maxcard
 	(
-	IMemoryPool *, // mp
+	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -141,7 +141,7 @@ CLogicalLeftSemiJoin::Maxcard
 IStatistics *
 CLogicalLeftSemiJoin::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CStatsPredJoinArray *join_preds_stats,
 	IStatistics *outer_stats,
 	IStatistics *inner_side_stats
@@ -162,7 +162,7 @@ CLogicalLeftSemiJoin::PstatsDerive
 IStatistics *
 CLogicalLeftSemiJoin::PstatsDerive
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IStatisticsArray * // not used
 	)

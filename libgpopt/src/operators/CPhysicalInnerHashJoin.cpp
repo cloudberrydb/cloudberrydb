@@ -29,7 +29,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalInnerHashJoin::CPhysicalInnerHashJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprOuterKeys,
 	CExpressionArray *pdrgpexprInnerKeys
 	)
@@ -63,7 +63,7 @@ CPhysicalInnerHashJoin::~CPhysicalInnerHashJoin()
 CDistributionSpecHashed *
 CPhysicalInnerHashJoin::PdshashedCreateMatching
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpecHashed *pdshashed,
 	ULONG ulSourceChild // index of child that delivered the given hashed distribution
 	)
@@ -100,7 +100,7 @@ CPhysicalInnerHashJoin::PdshashedCreateMatching
 CDistributionSpec *
 CPhysicalInnerHashJoin::PdsDeriveFromHashedChildren
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpec *pdsOuter,
 	CDistributionSpec *pdsInner
 	)
@@ -136,7 +136,7 @@ CPhysicalInnerHashJoin::PdsDeriveFromHashedChildren
 CDistributionSpec *
 CPhysicalInnerHashJoin::PdsDeriveFromReplicatedOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpec *
 #ifdef GPOS_DEBUG
 	pdsOuter
@@ -180,7 +180,7 @@ CPhysicalInnerHashJoin::PdsDeriveFromReplicatedOuter
 CDistributionSpec *
 CPhysicalInnerHashJoin::PdsDeriveFromHashedOuter
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpec *pdsOuter,
 	CDistributionSpec *
 #ifdef GPOS_DEBUG
@@ -217,7 +217,7 @@ CPhysicalInnerHashJoin::PdsDeriveFromHashedOuter
 CDistributionSpec *
 CPhysicalInnerHashJoin::PdsDerive
 (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -272,7 +272,7 @@ CPhysicalInnerHashJoin::PdsDerive
 CPartitionPropagationSpec *
 CPhysicalInnerHashJoin::PppsRequired
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,

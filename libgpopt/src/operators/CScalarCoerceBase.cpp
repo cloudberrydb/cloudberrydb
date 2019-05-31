@@ -32,7 +32,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceBase::CScalarCoerceBase
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
 	ECoercionForm ecf,
@@ -135,7 +135,7 @@ CScalarCoerceBase::Location() const
 COperator*
 CScalarCoerceBase::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *, //mp,
+	CMemoryPool *, //mp,
 	UlongToColRefMap *, //colref_mapping,
 	BOOL //must_exist
 	)

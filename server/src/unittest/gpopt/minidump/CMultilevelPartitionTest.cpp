@@ -84,7 +84,7 @@ GPOS_RESULT
 CMultilevelPartitionTest::EresUnittest_RunTests()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszMultilevel);
 

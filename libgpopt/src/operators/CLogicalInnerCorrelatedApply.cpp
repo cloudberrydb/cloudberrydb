@@ -25,7 +25,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInnerCorrelatedApply::CLogicalInnerCorrelatedApply
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	CLogicalInnerApply(mp)
@@ -41,7 +41,7 @@ CLogicalInnerCorrelatedApply::CLogicalInnerCorrelatedApply
 //---------------------------------------------------------------------------
 CLogicalInnerCorrelatedApply::CLogicalInnerCorrelatedApply
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
@@ -60,7 +60,7 @@ CLogicalInnerCorrelatedApply::CLogicalInnerCorrelatedApply
 CXformSet *
 CLogicalInnerCorrelatedApply::PxfsCandidates
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	const
 {
@@ -104,7 +104,7 @@ CLogicalInnerCorrelatedApply::Matches
 COperator *
 CLogicalInnerCorrelatedApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)

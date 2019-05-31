@@ -23,7 +23,7 @@
 using namespace gpos;
 using namespace gpopt;
 
-static IMemoryPool *mp = NULL;
+static CMemoryPool *mp = NULL;
 
 
 //---------------------------------------------------------------------------

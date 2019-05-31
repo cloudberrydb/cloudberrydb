@@ -50,13 +50,13 @@ namespace gpopt
 			// ctor
 			CPhysicalMotionGather
 				(
-				IMemoryPool *mp, 
+				CMemoryPool *mp, 
 				CDistributionSpecSingleton::ESegmentType est
 				);
 			
 			CPhysicalMotionGather
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CDistributionSpecSingleton::ESegmentType est,
 				COrderSpec *pos
 				);
@@ -118,7 +118,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
 				ULONG child_index,
@@ -130,7 +130,7 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *mp,
+				CMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posInput,
 				ULONG child_index,
@@ -149,7 +149,7 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 			
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

@@ -62,10 +62,10 @@ CAutoMemoryPool::CAutoMemoryPool
 //		created pool until it is safe, e.g., in constructors
 //
 //---------------------------------------------------------------------------
-IMemoryPool *
+CMemoryPool *
 CAutoMemoryPool::Detach()
 {
-	IMemoryPool *mp = m_mp;
+	CMemoryPool *mp = m_mp;
 	m_mp = NULL;
 	
 	return mp;

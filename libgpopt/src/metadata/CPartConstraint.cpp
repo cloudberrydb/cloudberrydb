@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPartConstraint::CPartConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToConstraintMap *phmulcnstr,
 	CBitSet *pbsDefaultParts,
 	BOOL is_unbounded,
@@ -62,7 +62,7 @@ CPartConstraint::CPartConstraint
 //---------------------------------------------------------------------------
 CPartConstraint::CPartConstraint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraint *pcnstr,
 	BOOL fDefaultPartition,
 	BOOL is_unbounded
@@ -155,7 +155,7 @@ CPartConstraint::~CPartConstraint()
 CConstraint *
 CPartConstraint::PcnstrBuildCombined
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CConstraintArray *pdrgpcnstr = GPOS_NEW(mp) CConstraintArray(mp);
@@ -312,7 +312,7 @@ CPartConstraint::Pcnstr
 BOOL
 CPartConstraint::FOverlapLevel
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CPartConstraint *ppartcnstr,
 	ULONG ulLevel
 	)
@@ -352,7 +352,7 @@ CPartConstraint::FOverlapLevel
 BOOL
 CPartConstraint::FOverlap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CPartConstraint *ppartcnstr
 	)
 	const
@@ -463,7 +463,7 @@ CPartConstraint::FCanNegate() const
 CPartConstraint *
 CPartConstraint::PpartcnstrRemaining
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartConstraint *ppartcnstr
 	)
 {
@@ -531,7 +531,7 @@ CPartConstraint::PpartcnstrRemaining
 CConstraint *
 CPartConstraint::PcnstrRemaining
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CConstraint *pcnstrFst,
 	CConstraint *pcnstrSnd
 	)
@@ -565,7 +565,7 @@ CPartConstraint::PcnstrRemaining
 CPartConstraint *
 CPartConstraint::PpartcnstrCopyWithRemappedColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
 	)
@@ -699,7 +699,7 @@ CPartConstraint::FDisjunctionPossible
 CPartConstraint *
 CPartConstraint::PpartcnstrDisjunction
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CPartConstraint *ppartcnstrFst,
 	CPartConstraint *ppartcnstrSnd
 	)
@@ -785,7 +785,7 @@ CPartConstraint::PpartcnstrDisjunction
 void
 CPartConstraint::CopyPartConstraints
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToPartConstraintMap *ppartcnstrmapDest,
 	UlongToPartConstraintMap *ppartcnstrmapSource
 	)
@@ -828,7 +828,7 @@ CPartConstraint::CopyPartConstraints
 UlongToPartConstraintMap *
 CPartConstraint::PpartcnstrmapCombine
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToPartConstraintMap *ppartcnstrmapFst,
 	UlongToPartConstraintMap *ppartcnstrmapSnd
 	)

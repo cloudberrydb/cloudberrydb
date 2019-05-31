@@ -809,7 +809,7 @@ namespace gpdxl
 
 			// memory pool -- not owned
 			static
-			IMemoryPool *m_mp;
+			CMemoryPool *m_mp;
 
 			// local dxl memory manager
 			static
@@ -830,7 +830,7 @@ namespace gpdxl
 		
 			// initialize constants. Must be called before constants are accessed.
 			static 
-			void Init(IMemoryPool *mp);
+			void Init(CMemoryPool *mp);
 
 			// cleanup tokens
 			static 

@@ -253,7 +253,7 @@ CSchedulerTest::ScheduleRoot
 	GPOS_ASSERT(CJobTest::EttSpawn == ett || CJobTest::EttStartQueue == ett);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	const ULONG ulJobs = ulRounds * ulFanout + 1;
 
@@ -302,7 +302,7 @@ CSchedulerTest::ScheduleRoot
 void
 CSchedulerTest::RunTasks
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CJobFactory *pjf,
 	CScheduler *psched,
 	CEngine *peng,
@@ -361,7 +361,7 @@ GPOS_RESULT
 CSchedulerTest::EresUnittest_BuildMemo()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -411,7 +411,7 @@ GPOS_RESULT
 CSchedulerTest::EresUnittest_BuildMemoLargeJoins()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -472,7 +472,7 @@ CSchedulerTest::EresUnittest_BuildMemoLargeJoins()
 void
 CSchedulerTest::BuildMemoMultiThreaded
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprInput,
 	 CSearchStageArray *search_stage_array
 	)

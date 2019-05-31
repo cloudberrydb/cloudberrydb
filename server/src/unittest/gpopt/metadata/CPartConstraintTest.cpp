@@ -75,7 +75,7 @@ CPartConstraintTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CPartConstraintTest::EresUnittest_DateIntervals),
 		};
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -102,7 +102,7 @@ GPOS_RESULT
 CPartConstraintTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	
 	// setup an MD accessor
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -174,7 +174,7 @@ CPartConstraintTest::EresUnittest_Basic()
 CConstraint *
 CPartConstraintTest::PcnstrInterval
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref,
 	ULONG ulLeft,
 	ULONG ulRight
@@ -211,7 +211,7 @@ CPartConstraintTest::EresUnittest_DateIntervals()
 	CAutoTraceFlag atf(EopttraceEnableConstantExpressionEvaluation, true /*value*/);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	// setup an MD accessor
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

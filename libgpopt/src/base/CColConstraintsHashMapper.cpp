@@ -22,7 +22,7 @@ static
 ColRefToConstraintArrayMap *
 PhmcolconstrSingleColConstr
 	(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CConstraintArray *drgPcnstr
 	)
 {
@@ -55,7 +55,7 @@ PhmcolconstrSingleColConstr
 
 CColConstraintsHashMapper::CColConstraintsHashMapper
 	(
-		IMemoryPool *mp,
+		CMemoryPool *mp,
 		CConstraintArray *pdrgpcnstr
 	) :
 	m_phmColConstr(PhmcolconstrSingleColConstr(mp, pdrgpcnstr))

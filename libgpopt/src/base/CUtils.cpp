@@ -157,7 +157,7 @@ CUtils::OsPrintDrgPcoldesc
 CExpression *
 CUtils::PexprScalarIdent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -170,7 +170,7 @@ CUtils::PexprScalarIdent
 CExpression *
 CUtils::PexprScalarProjectElement
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef *colref,
 	CExpression *pexpr
 	)
@@ -185,7 +185,7 @@ CUtils::PexprScalarProjectElement
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	const CColRef *pcrRight,
 	CWStringConst strOp,
@@ -223,7 +223,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	CExpression *pexprRight,
 	CWStringConst strOp,
@@ -261,7 +261,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	const CColRef *pcrRight,
 	IMDType::ECmpType cmp_type
@@ -281,7 +281,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	CExpression *pexprRight,
 	IMDType::ECmpType cmp_type
@@ -300,7 +300,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	const CColRef *pcrRight,
 	IMDType::ECmpType cmp_type
@@ -319,7 +319,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	const CColRef *pcrRight,
 	CWStringConst strOp,
@@ -357,7 +357,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight,
 	CWStringConst strOp,
@@ -395,7 +395,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight,
 	IMDType::ECmpType cmp_type
@@ -435,7 +435,7 @@ CUtils::PexprScalarCmp
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	const CColRef *pcrRight
 	)
@@ -450,7 +450,7 @@ CUtils::PexprScalarEqCmp
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight
 	)
@@ -465,7 +465,7 @@ CUtils::PexprScalarEqCmp
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	CExpression *pexprRight
 	)
@@ -480,7 +480,7 @@ CUtils::PexprScalarEqCmp
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	const CColRef *pcrRight
 	)
@@ -538,7 +538,7 @@ CUtils::PScalarArrayConstChildAt
 CExpression *
 CUtils::PScalarArrayExprChildAt
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprArray,
 	ULONG ul
 	)
@@ -623,7 +623,7 @@ CUtils::FScalarArrayCollapsed(CExpression *pexprArray)
 CExpression *
 CUtils::PexprCollapseConstArray
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprArray
 	)
 {
@@ -672,7 +672,7 @@ CUtils::PexprCollapseConstArray
 CExpression *
 CUtils::PexprScalarArrayCmp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CScalarArrayCmp::EArrCmpType earrcmptype,
 	IMDType::ECmpType ecmptype,
 	CExpressionArray *pexprScalarChildren,
@@ -716,7 +716,7 @@ CUtils::PexprScalarArrayCmp
 CExpression *
 CUtils::PexprCmpWithZero
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	IMDId *mdid_type_left,
 	IMDType::ECmpType ecmptype
@@ -746,7 +746,7 @@ CUtils::PexprCmpWithZero
 CExpression *
 CUtils::PexprIDF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight
 	)
@@ -777,7 +777,7 @@ CUtils::PexprIDF
 CExpression *
 CUtils::PexprINDF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	const CColRef *pcrRight
 	)
@@ -793,7 +793,7 @@ CUtils::PexprINDF
 CExpression *
 CUtils::PexprINDF
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight
 	)
@@ -808,7 +808,7 @@ CUtils::PexprINDF
 CExpression *
 CUtils::PexprIsNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -821,7 +821,7 @@ CUtils::PexprIsNull
 CExpression *
 CUtils::PexprIsNotNull
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -834,7 +834,7 @@ CUtils::PexprIsNotNull
 CExpression *
 CUtils::PexprIsNotFalse
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -848,7 +848,7 @@ CUtils::PexprIsNotFalse
 BOOL
 CUtils::FUsesNullableCol
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprScalar,
 	CExpression *pexprLogical
 	)
@@ -1434,7 +1434,7 @@ CUtils::FScalarConstIntZero
 CExpressionArray *
 CUtils::PdrgpexprDedup
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr
 	)
 {
@@ -1653,7 +1653,7 @@ CUtils::Contains
 CExpression *
 CUtils::PexprNegate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -1667,7 +1667,7 @@ CUtils::PexprNegate
 CExpression *
 CUtils::PexprScalarOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *pcrLeft,
 	CExpression *pexprRight,
 	const CWStringConst strOp,
@@ -1691,7 +1691,7 @@ CUtils::PexprScalarOp
 CExpression *
 CUtils::PexprScalarBoolOp
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CScalarBoolOp::EBoolOperator eboolop,
 	CExpressionArray *pdrgpexpr
 	)
@@ -1711,7 +1711,7 @@ CUtils::PexprScalarBoolOp
 CExpression *
 CUtils::PexprScalarConstBool
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	BOOL fval,
 	BOOL is_null
 	)
@@ -1732,7 +1732,7 @@ CUtils::PexprScalarConstBool
 CExpression *
 CUtils::PexprScalarConstInt4
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	INT val
 	)
 {
@@ -1752,7 +1752,7 @@ CUtils::PexprScalarConstInt4
 CExpression *
 CUtils::PexprScalarConstInt8
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	LINT val,
 	BOOL is_null
 	)
@@ -1773,7 +1773,7 @@ CUtils::PexprScalarConstInt8
 CExpression *
 CUtils::PexprScalarConstOid
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	OID oid_val
 	)
 {
@@ -1803,7 +1803,7 @@ CUtils::PcrFromProjElem
 CScalarAggFunc *
 CUtils::PopAggFunc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *pmdidAggFunc,
 	const CWStringConst *pstrAggFunc,
 	BOOL is_distinct,
@@ -1823,7 +1823,7 @@ CUtils::PopAggFunc
 CExpression *
 CUtils::PexprAggFunc
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	IMDId *pmdidAggFunc,
 	const CWStringConst *pstrAggFunc,
 	const CColRef *colref,
@@ -1851,7 +1851,7 @@ CUtils::PexprAggFunc
 CExpression *
 CUtils::PexprCountStar
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	// TODO,  04/26/2012, create count(*) expressions in a system-independent
@@ -1872,7 +1872,7 @@ CUtils::PexprCountStar
 CExpression *
 CUtils::PexprCountStar
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical
 	)
 {
@@ -1900,7 +1900,7 @@ CUtils::PexprCountStar
 CExpression *
 CUtils::PexprCountStarAndSum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	CExpression *pexprLogical
 	)
@@ -2046,7 +2046,7 @@ CUtils::FHasCountAggMatchingColumn
 CExpression *
 CUtils::PexprSum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref
 	)
 {
@@ -2059,7 +2059,7 @@ CUtils::PexprSum
 CExpression *
 CUtils::PexprGbAggSum
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CColRefArray *pdrgpcrSum
 	)
@@ -2091,7 +2091,7 @@ CUtils::PexprGbAggSum
 CExpression *
 CUtils::PexprCount
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRef *colref,
 	BOOL is_distinct
 	)
@@ -2105,7 +2105,7 @@ CUtils::PexprCount
 CExpression *
 CUtils::PexprMin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	const CColRef *colref
 	)
@@ -2117,7 +2117,7 @@ CUtils::PexprMin
 CExpression *
 CUtils::PexprAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	IMDType::EAggType agg_type,
 	const CColRef *colref,
@@ -2140,7 +2140,7 @@ CUtils::PexprAgg
 CExpression *
 CUtils::PexprLogicalSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprPredicate
 	)
@@ -2161,7 +2161,7 @@ CUtils::PexprLogicalSelect
 CExpression *
 CUtils::PexprSafeSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexprLogical,
 	CExpression *pexprPred
 	)
@@ -2184,7 +2184,7 @@ CUtils::PexprSafeSelect
 CExpression *
 CUtils::PexprCollapseSelect
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprPredicate
 	)
@@ -2216,7 +2216,7 @@ CUtils::PexprCollapseSelect
 CExpression *
 CUtils::PexprLogicalProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprPrjList,
 	BOOL fNewComputedCol
@@ -2249,7 +2249,7 @@ CUtils::PexprLogicalProject
 CExpression *
 CUtils::PexprLogicalSequenceProject
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDistributionSpec *pds,
 	COrderSpecArray *pdrgpos,
 	CWindowFrameArray *pdrgpwf,
@@ -2279,7 +2279,7 @@ CUtils::PexprLogicalSequenceProject
 CExpression *
 CUtils::PexprLogicalProjectNulls
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CExpression *pexpr,
 	UlongToColRefMap *colref_mapping
@@ -2297,7 +2297,7 @@ CUtils::PexprLogicalProjectNulls
 CExpression *
 CUtils::PexprScalarProjListConst
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	IDatumArray *pdrgpdatum,
 	UlongToColRefMap *colref_mapping
@@ -2347,7 +2347,7 @@ CUtils::PexprScalarProjListConst
 CExpression *
 CUtils::PexprAddProjection
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpression *pexprProjected
 	)
@@ -2368,7 +2368,7 @@ CUtils::PexprAddProjection
 CExpression *
 CUtils::PexprAddProjection
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprProjected
 	)
@@ -2410,7 +2410,7 @@ CUtils::PexprAddProjection
 CExpression *
 CUtils::PexprLogicalGbAgg
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CExpression *pexprRelational,
 	CExpression *pexprPrL,
@@ -2431,7 +2431,7 @@ CUtils::PexprLogicalGbAgg
 CExpression *
 CUtils::PexprLogicalGbAggGlobal
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	CExpression *pexprRelational,
 	CExpression *pexprProjList
@@ -2537,7 +2537,7 @@ CUtils::FScalarConstFalse
 CColRefArray *
 CUtils::PdrgpcrNonSystemCols
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
@@ -2562,7 +2562,7 @@ CUtils::PdrgpcrNonSystemCols
 CColRefArray *
 CUtils::PdrgpcrGroupingKey
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	CColRefArray **ppdrgpcrKey // output: array of key columns contained in the returned grouping columns
 	)
@@ -2608,7 +2608,7 @@ CUtils::PdrgpcrGroupingKey
 CColRefSetArray *
 CUtils::PdrgpcrsAddEquivClass
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrsNew,
 	CColRefSetArray *pdrgpcrs
 	)
@@ -2639,7 +2639,7 @@ CUtils::PdrgpcrsAddEquivClass
 CColRefSetArray *
 CUtils::PdrgpcrsMergeEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSetArray *pdrgpcrsFst,
 	CColRefSetArray *pdrgpcrsSnd
 	)
@@ -2666,7 +2666,7 @@ CUtils::PdrgpcrsMergeEquivClasses
 CColRefSetArray *
 CUtils::PdrgpcrsIntersectEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSetArray *pdrgpcrsFst,
 	CColRefSetArray *pdrgpcrsSnd
 	)
@@ -2750,7 +2750,7 @@ CUtils::PdrgpcrsIntersectEquivClasses
 CColRefSetArray *
 CUtils::PdrgpcrsCopyChildEquivClasses
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
@@ -2785,7 +2785,7 @@ CUtils::PdrgpcrsCopyChildEquivClasses
 CColRefArray *
 CUtils::PdrgpcrExcludeColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrOriginal,
 	CColRefSet *pcrsExcluded
 	)
@@ -3264,7 +3264,7 @@ CUtils::FUsesChildColsOnly
 	GPOS_ASSERT(3 == exprhdl.Arity());
 
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CColRefSet *pcrsUsed =  exprhdl.GetDrvdScalarProps(2 /*child_index*/)->PcrsUsed();
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	pcrs->Include(exprhdl.GetRelationalProperties(0 /*child_index*/)->PcrsOutput());
@@ -3356,7 +3356,7 @@ CUtils::UlCountOperator
 CColRefArray *
 CUtils::PdrgpcrRedistributableSubset
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -3422,7 +3422,7 @@ CUtils::FLogicalDML
 CHAR *
 CUtils::CreateMultiByteCharStringFromWCString
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	WCHAR *wsz
 	)
 {
@@ -3438,7 +3438,7 @@ CUtils::CreateMultiByteCharStringFromWCString
 BOOL
 CUtils::FFunctionallyDependent
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CDrvdPropRelational *pdprel,
 	CColRefSet *pcrsKey,
 	CColRef *colref
@@ -3484,7 +3484,7 @@ CUtils::FFunctionallyDependent
 ULongPtrArray *
 CUtils::Pdrgpul
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefArray *colref_array
 	)
 {
@@ -3514,7 +3514,7 @@ CUtils::GenerateFileName
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 
 	CWStringDynamic *filename_template = GPOS_NEW(mp) CWStringDynamic(mp);
 	COstreamString oss(filename_template);
@@ -3597,7 +3597,7 @@ CUtils::PcrRemap
 CColRefSet *
 CUtils::PcrsRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrs,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
@@ -3624,7 +3624,7 @@ CUtils::PcrsRemap
 CColRefArray *
 CUtils::PdrgpcrRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
@@ -3651,7 +3651,7 @@ CUtils::PdrgpcrRemap
 CColRefArray *
 CUtils::PdrgpcrRemapAndCreate
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	UlongToColRefMap *colref_mapping
 	)
@@ -3693,7 +3693,7 @@ CUtils::PdrgpcrRemapAndCreate
 CColRef2dArray *
 CUtils::PdrgpdrgpcrRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef2dArray *pdrgpdrgpcr,
 	UlongToColRefMap *colref_mapping,
 	BOOL must_exist
@@ -3718,7 +3718,7 @@ CUtils::PdrgpdrgpcrRemap
 CExpressionArray *
 CUtils::PdrgpexprRemap
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArray *pdrgpexpr,
 	UlongToColRefMap *colref_mapping
 	)
@@ -3742,7 +3742,7 @@ CUtils::PdrgpexprRemap
 UlongToColRefMap *
 CUtils::PhmulcrMapping
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *pdrgpcrFrom,
 	CColRefArray *pdrgpcrTo
 	)
@@ -3760,7 +3760,7 @@ CUtils::PhmulcrMapping
 void
 CUtils::AddColumnMapping
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	UlongToColRefMap *colref_mapping,
 	CColRefArray *pdrgpcrFrom,
 	CColRefArray *pdrgpcrTo
@@ -3807,7 +3807,7 @@ CUtils::AddColumnMapping
 CColRefArray *
 CUtils::PdrgpcrExactCopy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -3829,7 +3829,7 @@ CUtils::PdrgpcrExactCopy
 CColRefArray *
 CUtils::PdrgpcrCopy
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array,
 	BOOL fAllComputed,
 	UlongToColRefMap *colref_mapping
@@ -3909,7 +3909,7 @@ CUtils::UlHashColArray
 CColRefSet *
 CUtils::PcrsCTEProducerColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSet *pcrsInput,
 	CLogicalCTEConsumer *popCTEConsumer
 	)
@@ -3937,7 +3937,7 @@ CUtils::PcrsCTEProducerColumns
 CExpression *
 CUtils::PexprConjINDFCond
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef2dArray *pdrgpdrgpcrInput
 	)
 {
@@ -4004,7 +4004,7 @@ CUtils::UlPcrIndexContainingSet
 CExpression *
 CUtils::PexprCast
 (
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CExpression *pexpr,
 	IMDId *mdid_dest
@@ -4057,7 +4057,7 @@ CUtils::FHasDuplicates
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *mp = amp.Pmp();
+	CMemoryPool *mp = amp.Pmp();
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 
 	const ULONG length = colref_array->Size();
@@ -4081,7 +4081,7 @@ CUtils::FHasDuplicates
 CExpression *
 CUtils::PexprLogicalJoin
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	EdxlJoinType edxljointype,
 	CExpressionArray *pdrgpexpr
 	)
@@ -4120,7 +4120,7 @@ CUtils::PexprLogicalJoin
 CExpressionArray *
 CUtils::PdrgpexprScalarIdents
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefArray *colref_array
 	)
 {
@@ -4143,7 +4143,7 @@ CUtils::PdrgpexprScalarIdents
 CColRefSet *
 CUtils::PcrsExtractColumns
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CExpressionArray *pdrgpexpr
 	)
 {
@@ -4166,7 +4166,7 @@ CUtils::PcrsExtractColumns
 UlongToConstraintMap *
 CUtils::PhmulcnstrBoolConstOnPartKeys
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRef2dArray *pdrgpdrgpcrPartKey,
 	BOOL value
 	)
@@ -4207,7 +4207,7 @@ CUtils::PhmulcnstrBoolConstOnPartKeys
 CBitSet *
 CUtils::PbsAllSet
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULONG size
 	)
 {
@@ -4224,7 +4224,7 @@ CUtils::PbsAllSet
 CBitSet *
 CUtils::Pbs
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	ULongPtrArray *pdrgpul
 	)
 {
@@ -4245,7 +4245,7 @@ CUtils::Pbs
 CPartConstraint *
 CUtils::PpartcnstrFromMDPartCnstr
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CColRef2dArray *pdrgpdrgpcrPartKey,
 	const IMDPartConstraint *mdpart_constraint,
@@ -4315,7 +4315,7 @@ CUtils::PpartcnstrFromMDPartCnstr
 CExpression *
 CUtils::PexprLogicalCTGDummy
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 {
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
@@ -4366,7 +4366,7 @@ CUtils::PcrMap
 BOOL
 CUtils::FMotionOverUnresolvedPartConsumers
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartIndexMap *ppimReqd
 	)
@@ -4448,7 +4448,7 @@ CUtils::FDuplicateHazardMotion
 CExpression *
 CUtils::PexprCollapseProjects
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr
 	)
 {
@@ -4645,7 +4645,7 @@ INT CUtils::IDatumCmp
 BOOL
 CUtils::FEquivalanceClassesDisjoint
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	const CColRefSetArray *pdrgpcrs
 	)
 {
@@ -4689,7 +4689,7 @@ CUtils::FEquivalanceClassesDisjoint
 BOOL
 CUtils::FEquivalanceClassesEqual
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CColRefSetArray *pdrgpcrsFst,
 	CColRefSetArray *pdrgpcrsSnd
 	)
@@ -4751,7 +4751,7 @@ CUtils::FEquivalanceClassesEqual
 void
 CUtils::ValidateCTEProducerConsumerLocality
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	EExecLocalityType eelt,
 	UlongToUlongMap *phmulul // Hash Map containing the CTE Producer id and its execution locality
@@ -4837,7 +4837,7 @@ CUtils::ExecLocalityType
 CExpression *
 CUtils::PexprLimit
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *pexpr,
 	ULONG ulOffSet,
 	ULONG count
@@ -5083,7 +5083,7 @@ CUtils::PexprMatchEqualityOrINDF
 CExpression *
 CUtils::MakeJoinWithoutInferredPreds
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpression *join_expr
 	)
 {
@@ -5176,7 +5176,7 @@ CUtils::CanRemoveInferredPredicates
 CExpressionArrays *
 CUtils::GetCombinedExpressionArrays
 	(
-	IMemoryPool *mp,
+	CMemoryPool *mp,
 	CExpressionArrays *exprs_array,
 	CExpressionArrays *exprs_array_other
 	)

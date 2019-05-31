@@ -14,7 +14,7 @@
 
 
 #include "gpos/memory/CMemoryPoolManager.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
 
 #include "gpos/task/CWorkerPoolManager.h"
 
@@ -36,7 +36,7 @@ CWorkerPoolManager *CWorkerPoolManager::m_worker_pool_manager = NULL;
 //---------------------------------------------------------------------------
 CWorkerPoolManager::CWorkerPoolManager
 	(
-	IMemoryPool *mp
+	CMemoryPool *mp
 	)
 	:
 	m_mp(mp),
@@ -96,7 +96,7 @@ CWorkerPoolManager::Init
 	GPOS_ASSERT(min_workers <= max_workers);
 	GPOS_ASSERT(max_workers <= GPOS_THREAD_MAX);
 
-	IMemoryPool *mp =
+	CMemoryPool *mp =
 		CMemoryPoolManager::GetMemoryPoolMgr()->Create
 			(
 			CMemoryPoolManager::EatTracker,
@@ -167,7 +167,7 @@ CWorkerPoolManager::Shutdown()
 	worker_pool_manager->m_thread_manager.ShutDown();
 
 
-	IMemoryPool *mp = worker_pool_manager->m_mp;
+	CMemoryPool *mp = worker_pool_manager->m_mp;
 
 	// destroy worker pool
 	CWorkerPoolManager::m_worker_pool_manager = NULL;
