@@ -1857,11 +1857,8 @@ CREATE VIEW gp_toolkit.gp_resgroup_status_per_host AS
       , sum((s.memory->'available'       )::text::integer) AS memory_available
       , sum((s.memory->'quota_used'      )::text::integer) AS memory_quota_used
       , sum((s.memory->'quota_available' )::text::integer) AS memory_quota_available
-      , sum((s.memory->'quota_proposed'  )::text::integer) AS memory_quota_proposed
       , sum((s.memory->'shared_used'     )::text::integer) AS memory_shared_used
       , sum((s.memory->'shared_available')::text::integer) AS memory_shared_available
-      , sum((s.memory->'shared_granted'  )::text::integer) AS memory_shared_granted
-      , sum((s.memory->'shared_proposed' )::text::integer) AS memory_shared_proposed
     FROM s
     INNER JOIN pg_catalog.gp_segment_configuration AS c
         ON s.segment_id = c.content
@@ -1903,11 +1900,8 @@ CREATE VIEW gp_toolkit.gp_resgroup_status_per_segment AS
       , sum((s.memory->'available'       )::text::integer) AS memory_available
       , sum((s.memory->'quota_used'      )::text::integer) AS memory_quota_used
       , sum((s.memory->'quota_available' )::text::integer) AS memory_quota_available
-      , sum((s.memory->'quota_proposed'  )::text::integer) AS memory_quota_proposed
       , sum((s.memory->'shared_used'     )::text::integer) AS memory_shared_used
       , sum((s.memory->'shared_available')::text::integer) AS memory_shared_available
-      , sum((s.memory->'shared_granted'  )::text::integer) AS memory_shared_granted
-      , sum((s.memory->'shared_proposed' )::text::integer) AS memory_shared_proposed
     FROM s
     INNER JOIN pg_catalog.gp_segment_configuration AS c
         ON s.segment_id = c.content
