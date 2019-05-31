@@ -104,6 +104,7 @@ groups:
   - [[ test.name ]]
 {% endfor %}
   - check_centos
+  - combine_cli_coverage
 {% endif %}
 {% if "AA" in test_sections %}
   ## --------------------------------------------------------------------
@@ -243,6 +244,7 @@ groups:
   - [[ test.name ]]
 {% endfor %}
   - check_centos
+  - combine_cli_coverage
   - compile_gpdb_centos6
 {% if "centos6" in os_types and "ICW" in test_sections %}
   - gpexpand
@@ -1536,6 +1538,34 @@ jobs:
               JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% endfor %}
+
+- name: combine_cli_coverage
+  plan:
+    - aggregate:
+      - get: gpdb6-centos7-test
+      - get: gpdb_src
+        passed:
+          - compile_gpdb_centos6
+      - get: bin_gpdb_centos6
+        trigger: true
+        passed:
+        {% for test in CLI_BEHAVE_TESTS %}
+          - [[ test.name ]]
+        {% endfor %}
+    - task: combine_coverage
+      image: gpdb6-centos7-test
+      input_mapping:
+        bin_gpdb: bin_gpdb_centos6
+      config:
+        platform: linux
+        inputs:
+          - name: gpdb_src
+          - name: bin_gpdb
+        run:
+          path: gpdb_src/concourse/scripts/combine_cli_coverage.bash
+          args: [ "gs://((coverage-bucket-name))/((pipeline-name))/", "((coverage-bucket-name))/((pipeline-name))" ]
+        params:
+          JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% if "centos6" in os_types and "ICW" in test_sections %}
 - name: pg_upgrade
