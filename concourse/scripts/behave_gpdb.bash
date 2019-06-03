@@ -19,47 +19,49 @@ function install_python_hacks() {
     fi
 }
 
+function install_python_requirements() {
+    # virtualenv 16.0 and greater does not support python2.6, which is
+    # used on centos6
+    pip install --user virtualenv~=15.0
+    export PATH=$PATH:~/.local/bin
+
+    # create virtualenv before sourcing greenplum_path since greenplum_path
+    # modifies PYTHONHOME and PYTHONPATH
+    #
+    # XXX Patch up the vendored Python's RPATH so we can successfully run
+    # virtualenv. If we instead set LD_LIBRARY_PATH (as greenplum_path.sh
+    # does), the system Python and the vendored Python will collide and
+    # virtualenv will fail. This step requires patchelf.
+    if which patchelf > /dev/null; then
+        patchelf \
+            --set-rpath /usr/local/greenplum-db-devel/ext/python/lib \
+            /usr/local/greenplum-db-devel/ext/python/bin/python
+
+        virtualenv \
+            --python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
+    else
+        # We don't have patchelf on this environment. The only workaround we
+        # currently have is to set both PYTHONHOME and LD_LIBRARY_PATH and
+        # pray that the resulting libpython collision doesn't break
+        # something too badly.
+        echo 'WARNING: about to execute a cross-linked virtualenv; here there be dragons'
+        LD_LIBRARY_PATH=/usr/local/greenplum-db-devel/ext/python/lib \
+        PYTHONHOME=/usr/local/greenplum-db-devel/ext/python \
+        virtualenv \
+            --python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
+    fi
+
+    # Install requirements into the vendored Python stack.
+    mkdir -p /tmp/py-requirements
+    source /tmp/venv/bin/activate
+        pip install --prefix /tmp/py-requirements -r ./gpdb_src/gpMgmt/requirements-dev.txt
+        cp -r /tmp/py-requirements/* /usr/local/greenplum-db-devel/ext/python/
+    deactivate
+}
+
 function gen_env(){
     cat > /opt/run_test.sh <<-EOF
 		set -ex
-
-		# virtualenv 16.0 and greater does not support python2.6, which is
-		# used on centos6
-		pip install --user virtualenv~=15.0
-		export PATH=\$PATH:~/.local/bin
-
-		# create virtualenv before sourcing greenplum_path since greenplum_path
-		# modifies PYTHONHOME and PYTHONPATH
-		#
-		# XXX Patch up the vendored Python's RPATH so we can successfully run
-		# virtualenv. If we instead set LD_LIBRARY_PATH (as greenplum_path.sh
-		# does), the system Python and the vendored Python will collide and
-		# virtualenv will fail. This step requires patchelf.
-		if which patchelf > /dev/null; then
-			patchelf \
-				--set-rpath /usr/local/greenplum-db-devel/ext/python/lib \
-				/usr/local/greenplum-db-devel/ext/python/bin/python
-
-			virtualenv \
-				--python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
-		else
-			# We don't have patchelf on this environment. The only workaround we
-			# currently have is to set both PYTHONHOME and LD_LIBRARY_PATH and
-			# pray that the resulting libpython collision doesn't break
-			# something too badly.
-			echo 'WARNING: about to execute a cross-linked virtualenv; here there be dragons'
-			LD_LIBRARY_PATH=/usr/local/greenplum-db-devel/ext/python/lib \
-			PYTHONHOME=/usr/local/greenplum-db-devel/ext/python \
-			virtualenv \
-				--python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
-		fi
-
-		# Install requirements into the vendored Python stack.
-		mkdir -p /tmp/py-requirements
-		source /tmp/venv/bin/activate
-		    pip install --prefix /tmp/py-requirements -r "\${1}/gpdb_src/gpMgmt/requirements-dev.txt"
-		    cp -r /tmp/py-requirements/* /usr/local/greenplum-db-devel/ext/python/
-		deactivate
 
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
 
@@ -94,6 +96,7 @@ function _main() {
     time (make_cluster)
 
     time install_python_hacks
+    time install_python_requirements
     time gen_env
 
     time run_test
