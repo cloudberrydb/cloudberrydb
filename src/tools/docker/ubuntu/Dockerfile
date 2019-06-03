@@ -1,14 +1,13 @@
 ARG BASE_IMAGE=ubuntu:18.04
 
-FROM ${BASE_IMAGE}
+FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG BASE_IMAGE
 
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends apt-utils software-properties-common && \
-    apt-get install -y --no-install-recommends openjdk-8-jdk && \
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
-    apt-get update -y && \
+    apt-get install -y --no-install-recommends apt-utils openjdk-8-jdk software-properties-common && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt-get update -y && \
     apt-get install -y --no-install-recommends gcc-6 g++-6 cmake && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6 && \
     update-alternatives --config gcc && \
@@ -33,6 +32,7 @@ RUN apt-get update -y && \
     libperl-dev \
     libreadline-dev \
     libssl-dev \
+    $([ "$BASE_IMAGE" = ubuntu:16.04 ] && echo libxerces-c-dev) \
     libxml2-dev \
     libyaml-dev \
     libzstd1-dev \
