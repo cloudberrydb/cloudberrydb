@@ -12,18 +12,23 @@ groups:
     - gpdb_icg_with_orca
     - gpdb_icg_with_planner
     - build_gpdb
+    - xerces_ubuntu18
+    - orca_ubuntu18_release
+    - orca_ubuntu18_debug
 
   - name: ReleaseBuilds
     jobs:
     - orca_centos5_release
     - orca_centos6_release
     - orca_centos7_release
+    - orca_ubuntu18_release
 
   - name: DebugBuilds
     jobs:
     - orca_centos5_debug
     - orca_centos6_debug
     - orca_centos7_debug
+    - orca_ubuntu18_debug
 
   - name: ICG
     jobs:
@@ -61,6 +66,12 @@ resources:
     repository: pivotaldata/gpdb6-centos7-build
     tag: latest
 
+- name: ubuntu18.04-build
+  type: docker-image
+  source:
+    repository: pivotaldata/gpdb6-ubuntu18.04-build
+    tag: latest
+
 - name: orca_github_release
   type: github-release
   source:
@@ -92,6 +103,33 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: bin_xerces_centos5.tar.gz
+
+- name: bin_xerces_ubuntu18
+  type: s3
+  source:
+    access_key_id: {{s3_access_key_id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{s3_secret_access_key}}
+    versioned_file: bin_xerces_ubuntu18.tar.gz
+
+- name: bin_orca_ubuntu18_debug
+  type: s3
+  source:
+    access_key_id: {{s3_access_key_id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{s3_secret_access_key}}
+    versioned_file: bin_orca_ubuntu18_debug.tar.gz
+
+- name: bin_orca_ubuntu18_release
+  type: s3
+  source:
+    access_key_id: {{s3_access_key_id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{s3_secret_access_key}}
+    versioned_file: bin_orca_ubuntu18_release.tar.gz
 
 - name: bin_orca_centos5_debug
   type: s3
@@ -190,6 +228,8 @@ jobs:
       - orca_centos6_debug
       - orca_centos7_release
       - orca_centos7_debug
+      - orca_ubuntu18_release
+      - orca_ubuntu18_debug
       trigger: true
     - get: bin_orca_centos5_release
       passed:
@@ -224,14 +264,40 @@ jobs:
   - aggregate:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      image: centos5-build
   - aggregate:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+      params:
+        dst_tarball: package_tarball_centos5/bin_xerces_centos5.tar.gz
+        src_root: build_xerces/install
   - aggregate:
     - put: bin_xerces_centos5
       params:
         from: package_tarball_centos5/bin_xerces_centos5.tar.gz
 
+- name: xerces_ubuntu18
+  max_in_flight: 2
+  plan:
+  - get: xerces_patch
+    trigger: true
+  - get: ubuntu18.04-build
+  - aggregate:
+    - task: build
+      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      image: ubuntu18.04-build
+  - aggregate:
+    - task: package_tarball
+      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+      params:
+        dst_tarball: package_tarball_centos5/bin_xerces_ubuntu18.tar.gz
+        src_root: build_xerces/install
+  - aggregate:
+    - put: bin_xerces_ubuntu18
+      params:
+        from: package_tarball_centos5/bin_xerces_ubuntu18.tar.gz
+
+ ## CentOS5 build
 - name: orca_centos5_release
   max_in_flight: 2
   plan:
@@ -334,7 +400,7 @@ jobs:
     params:
       from: package_tarball/bin_orca_centos6_debug.tar.gz
 
-#CentOS7
+#CentOS7 build
 - name: orca_centos7_release
   max_in_flight: 2
   plan:
@@ -384,6 +450,59 @@ jobs:
   - put: bin_orca_centos7_debug
     params:
       from: package_tarball/bin_orca_centos7_debug.tar.gz
+
+## Ubuntu18 build
+- name: orca_ubuntu18_release
+  max_in_flight: 2
+  plan:
+  - get: ubuntu18.04-build
+  - get: orca_src
+    trigger: true
+  - get: bin_xerces_centos5
+    passed:
+    - xerces_ubuntu18
+    resource: bin_xerces_ubuntu18
+  - task: build_and_test_release
+    file: orca_src/concourse/build_and_test_centos.yml
+    params:
+      BUILD_TYPE: --build_type=RelWithDebInfo
+      OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ""
+    image: ubuntu18.04-build
+  - task: package_tarball_release
+    file: orca_src/concourse/package_tarball_centos.yml
+    params:
+      dst_tarball: package_tarball/bin_orca_ubuntu18_release.tar.gz
+      src_root: build_and_test/install
+  - put: bin_orca_ubuntu18_release
+    params:
+      from: package_tarball/bin_orca_ubuntu18_release.tar.gz
+
+- name: orca_ubuntu18_debug
+  max_in_flight: 2
+  plan:
+  - get: ubuntu18.04-build
+  - get: orca_src
+    trigger: true
+  - get: bin_xerces_centos5
+    passed:
+    - xerces_ubuntu18
+    resource: bin_xerces_ubuntu18
+  - task: build_and_test_debug
+    file: orca_src/concourse/build_and_test_centos.yml
+    params:
+      BUILD_TYPE: --build_type=DEBUG
+      OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ""
+    image: ubuntu18.04-build
+  - task: package_tarball_debug
+    file: orca_src/concourse/package_tarball_centos.yml
+    params:
+      dst_tarball: package_tarball/bin_orca_ubuntu18_debug.tar.gz
+      src_root: build_and_test/install
+  - put: bin_orca_ubuntu18_debug
+    params:
+      from: package_tarball/bin_orca_ubuntu18_debug.tar.gz
 
 - name: build_gpdb
   plan:
