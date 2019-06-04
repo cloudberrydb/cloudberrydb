@@ -49,9 +49,11 @@ jobs:
   plan:
   - get: xerces_patch
     trigger: true
+  - get: centos5-build
   - aggregate:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      image: centos5-build
   - aggregate:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
