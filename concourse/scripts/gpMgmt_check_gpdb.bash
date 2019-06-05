@@ -36,11 +36,23 @@ function setup_gpadmin_user() {
 
 function _main() {
 
-    install_and_configure_gpdb
+    # Run some of the following commands in a subshell so that they do not
+    # pollute the environment after sourcing greenplum_path.
+    (install_and_configure_gpdb)
     setup_gpadmin_user
-    make_cluster
+    (make_cluster)
+
+    # pip-install the gpMgmt requirements file.
+    install_python_hacks
+    install_python_requirements
+
+    # Set up test coverage.
+    setup_coverage
+
     gen_env
     run_test
+
+    prepare_coverage "$TEST_NAME"
 }
 
 _main "$@"

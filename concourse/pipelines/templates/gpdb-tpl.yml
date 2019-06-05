@@ -1448,11 +1448,25 @@ jobs:
       passed: [gate_cli_start]
       trigger: [[ test_trigger ]]
     - get: gpdb6-centos6-test
+    - get: gpdb6-centos7-test
   - task: check_centos
     file: gpdb_src/concourse/tasks/gpMgmt_check_gpdb.yml
     image: gpdb6-centos6-test
     params:
       TEST_OS: centos
+      TEST_NAME: gpmgmt_unit_tests
+  - task: publish_coverage
+    image: gpdb6-centos7-test
+    config:
+      platform: linux
+      inputs:
+        - name: gpdb_src
+        - name: coverage
+      run:
+        path: gpdb_src/concourse/scripts/gsutil_sync
+        args: [ "./coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+      params:
+        JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% for test in CLI_BEHAVE_TESTS %}
 - name: [[ test.name ]]
@@ -1549,6 +1563,7 @@ jobs:
       - get: bin_gpdb_centos6
         trigger: true
         passed:
+          - check_centos
         {% for test in CLI_BEHAVE_TESTS %}
           - [[ test.name ]]
         {% endfor %}

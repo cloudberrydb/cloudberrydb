@@ -136,12 +136,7 @@ function _main() {
 
     time run_test
 
-    # Uniquify the coverage files a little bit with the $TEST_NAME.
-    pushd ./coverage/*
-        for f in *; do
-            mv "$f" "$TEST_NAME.$f"
-        done
-    popd
+    time prepare_coverage "$TEST_NAME"
 }
 
 _main "$@"
