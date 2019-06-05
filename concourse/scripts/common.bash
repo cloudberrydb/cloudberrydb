@@ -68,6 +68,9 @@ function install_python_hacks() {
     # fix this later, but it's not available on all platforms.
     if which yum > /dev/null; then
         yum install -y patchelf
+    elif which apt > /dev/null; then
+        apt update
+        apt install patchelf
     else
         set +x
         echo "ERROR: install_python_hacks() doesn't support the current platform and should be modified"
