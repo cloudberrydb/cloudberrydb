@@ -17,6 +17,8 @@
 
 #define JOIN_ORDER_DP_THRESHOLD ULONG(10)
 #define BROADCAST_THRESHOLD ULONG(10000000)
+#define PUSH_GROUP_BY_BELOW_SETOP_THRESHOLD ULONG(10)
+
 
 namespace gpopt
 {
@@ -47,6 +49,8 @@ namespace gpopt
 
 			BOOL m_fEnforceConstraintsOnDML;
 
+			ULONG m_ulPushGroupByBelowSetopThreshold;
+
 			// private copy ctor
 			CHint(const CHint &);
 
@@ -60,7 +64,8 @@ namespace gpopt
 				ULONG array_expansion_threshold,
 				ULONG ulJoinOrderDPLimit,
 				ULONG broadcast_threshold,
-				BOOL enforce_constraint_on_dml
+				BOOL enforce_constraint_on_dml,
+				ULONG push_group_by_below_setop_threshold
 				)
 				:
 				m_ulMinNumOfPartsToRequireSortOnInsert(min_num_of_parts_to_require_sort_on_insert),
@@ -68,7 +73,8 @@ namespace gpopt
 				m_ulArrayExpansionThreshold(array_expansion_threshold),
 				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit),
 				m_ulBroadcastThreshold(broadcast_threshold),
-				m_fEnforceConstraintsOnDML(enforce_constraint_on_dml)
+				m_fEnforceConstraintsOnDML(enforce_constraint_on_dml),
+				m_ulPushGroupByBelowSetopThreshold(push_group_by_below_setop_threshold)
 			{
 			}
 
@@ -121,6 +127,12 @@ namespace gpopt
 				return m_fEnforceConstraintsOnDML;
 			}
 
+			// Skip CXformPushGbBelowSetOp if set op arity is greater than this
+			ULONG UlPushGroupByBelowSetopThreshold() const
+			{
+				return m_ulPushGroupByBelowSetopThreshold;
+			}
+
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
@@ -132,7 +144,8 @@ namespace gpopt
 					gpos::int_max,			 /* array_expansion_threshold */
 					JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
 					BROADCAST_THRESHOLD,	 /*broadcast_threshold*/
-					true					 /* enforce_constraint_on_dml */
+					true,					 /* enforce_constraint_on_dml */
+					PUSH_GROUP_BY_BELOW_SETOP_THRESHOLD /* push_group_by_below_setop_threshold */
 				);
 			}
 

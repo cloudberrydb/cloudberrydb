@@ -87,7 +87,8 @@ CParseHandlerHint::StartElement
 	ULONG array_expansion_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, gpos::int_max);
 	ULONG join_order_dp_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenJoinOrderDPThreshold, EdxltokenHint, true, JOIN_ORDER_DP_THRESHOLD);
 	ULONG broadcast_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenBroadcastThreshold, EdxltokenHint, true, BROADCAST_THRESHOLD);
-	ULONG enforce_constraint_on_dml = CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenEnforceConstraintsOnDML, EdxltokenHint, true, true);
+	BOOL enforce_constraint_on_dml = CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenEnforceConstraintsOnDML, EdxltokenHint, true, true);
+	ULONG push_group_by_below_setop_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenPushGroupByBelowSetopThreshold, EdxltokenHint, true, PUSH_GROUP_BY_BELOW_SETOP_THRESHOLD);
 
 	m_hint = GPOS_NEW(m_mp) CHint
 								(
@@ -96,7 +97,8 @@ CParseHandlerHint::StartElement
 								array_expansion_threshold,
 								join_order_dp_threshold,
 								broadcast_threshold,
-								enforce_constraint_on_dml
+								enforce_constraint_on_dml,
+								push_group_by_below_setop_threshold
 								);
 }
 

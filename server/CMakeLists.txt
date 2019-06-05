@@ -188,7 +188,7 @@ PartTbl-WindowFuncNoDisjunctPredPushDown PartTbl-WindowFuncSinglePredPushDown;
 CSetop1Test:
 ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll
 PushGbBelowNaryUnion-1 PushGbBelowNaryUnion-2 MS-UnionAll-1
-MS-UnionAll-5 MS-UnionAll-6 MS-UnionAll-7;
+MS-UnionAll-5 MS-UnionAll-6 MS-UnionAll-7 ManyTextUnionsInSubquery;
 
 CSetop2Test:
 Cascaded-UnionAll-Same-Cols-Order Cascaded-UnionAll-Differing-Cols
