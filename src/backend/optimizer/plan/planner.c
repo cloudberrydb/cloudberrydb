@@ -3064,36 +3064,28 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	}
 
 	/*
-	 * If ORDER BY was given and we were not able to make the plan come out in
-	 * the right order, add an explicit sort step.
+	 * Greenplum specific behavior:
+	 * In Postgres, the process order is sort -> rowmarks -> limit,
+	 * the reason I think is that we should only lock those tuples after
+	 * limit. Based on the one tuple one time model, the following plan
+	 *     limit
+	 *        -> lockrows
+	 *            -> sort
+	 *                -> scan
+	 * will only lock one tuple even the sort node sort all tuples.
+	 *
+	 * But for Greenplum, we might not emit lockrows plannode due to many
+	 * limitations in MPP architecture. Greenplum can only behave like
+	 * postgres in some simple cases (refer the function
+	 * `parser/analyze.c:checkCanOptSelectLockingClause` for details).
+	 * Select-statement with limit clause and locking clause  is not a
+	 * simple case, because we can only know which tuples will be output
+	 * on QD, but lock rows have to work on QEs. So for select-statement
+	 * with limit clause and locking clause will not emit lockrows plannode,
+	 * that is, in such case, it will ignore the rowmarks.
+	 *
+	 * So Greenplum changes the process order as: rowmarks(maybe) -> sort -> limit.
 	 */
-	if (parse->sortClause)
-	{
-		if (!pathkeys_contained_in(root->sort_pathkeys, current_pathkeys))
-		{
-			result_plan = (Plan *) make_sort_from_pathkeys(root,
-														   result_plan,
-														 root->sort_pathkeys,
-														   limit_tuples,
-														   true);
-			mark_sort_locus(result_plan);
-			current_pathkeys = root->sort_pathkeys;
-			result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
-		}
-
-		if (must_gather && result_plan->flow->flotype != FLOW_SINGLETON)
-		{
-			/*
-			 * current_pathkeys might contain unneeded columns that have been
-			 * eliminated from the final target list, and we cannot maintain
-			 * such an order in the Motion anymore. So use root->sortpathkeys
-			 * rather than current_pathkeys here. (See similar case in LIMIT
-			 * handling below.
-			 */
-			current_pathkeys = root->sort_pathkeys;
-			result_plan = (Plan *) make_motion_gather(root, result_plan, current_pathkeys);
-		}
-	}
 
 	/*
 	 * Greenplum specific behavior:
@@ -3140,6 +3132,38 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			 * cause the sort key columns to be replaced with new values.
 			 */
 			current_pathkeys = NIL;
+		}
+	}
+
+	/*
+	 * If ORDER BY was given and we were not able to make the plan come out in
+	 * the right order, add an explicit sort step.
+	 */
+	if (parse->sortClause)
+	{
+		if (!pathkeys_contained_in(root->sort_pathkeys, current_pathkeys))
+		{
+			result_plan = (Plan *) make_sort_from_pathkeys(root,
+														   result_plan,
+														 root->sort_pathkeys,
+														   limit_tuples,
+														   true);
+			mark_sort_locus(result_plan);
+			current_pathkeys = root->sort_pathkeys;
+			result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
+		}
+
+		if (must_gather && result_plan->flow->flotype != FLOW_SINGLETON)
+		{
+			/*
+			 * current_pathkeys might contain unneeded columns that have been
+			 * eliminated from the final target list, and we cannot maintain
+			 * such an order in the Motion anymore. So use root->sortpathkeys
+			 * rather than current_pathkeys here. (See similar case in LIMIT
+			 * handling below.
+			 */
+			current_pathkeys = root->sort_pathkeys;
+			result_plan = (Plan *) make_motion_gather(root, result_plan, current_pathkeys);
 		}
 	}
 
