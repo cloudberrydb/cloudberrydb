@@ -447,7 +447,7 @@
                     </dxl:ProjList>
                   </dxl:CTEConsumer>
                 </dxl:Result>
-                <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                   <dxl:Properties>
                     <dxl:Cost StartupCost="0" TotalCost="19.078613" Rows="1.000000" Width="16"/>
                   </dxl:Properties>

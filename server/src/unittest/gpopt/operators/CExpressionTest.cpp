@@ -22,6 +22,7 @@
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/mdcache/CAutoMDAccessor.h"
 #include "gpopt/operators/ops.h"
+#include "gpopt/operators/CLogicalDynamicGetBase.h"
 
 #include "unittest/base.h"
 #include "unittest/gpopt/operators/CExpressionTest.h"
@@ -179,6 +180,27 @@ CExpressionTest::EresUnittest_SimpleOps()
 
 		// generate simple expression
 		CExpression *pexpr = rgpf[i](mp);
+
+		CLogicalGet *popGet = dynamic_cast<CLogicalGet *>(pexpr->Pop());
+		CLogicalDynamicGetBase *popDynGet = dynamic_cast<CLogicalDynamicGetBase *>(pexpr->Pop());
+		CColRefArray *colrefs = NULL;
+
+		if (NULL != popGet)
+		{
+			colrefs = popGet->PdrgpcrOutput();
+		}
+		else if (NULL != popDynGet)
+		{
+			colrefs = popDynGet->PdrgpcrOutput();
+		}
+
+		if (NULL != colrefs)
+		{
+			for (ULONG ul = 0; ul < colrefs->Size(); ul++)
+			{
+				(*colrefs)[ul]->MarkAsUsed();
+			}
+		}
 
 		// self-match
 		GPOS_ASSERT(pexpr->FMatchDebug(pexpr));

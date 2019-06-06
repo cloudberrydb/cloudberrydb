@@ -709,7 +709,6 @@
                 <dxl:TableDescriptor Mdid="0.259515.1.1" TableName="foo3_p">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="j" TypeMdid="0.1043.1.0" ColWidth="20"/>
                     <dxl:Column ColId="2" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="4" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -746,8 +745,6 @@
                 <dxl:TableDescriptor Mdid="0.259490.1.1" TableName="foo2">
                   <dxl:Columns>
                     <dxl:Column ColId="10" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="11" Attno="2" ColName="j" TypeMdid="0.25.1.0"/>
-                    <dxl:Column ColId="12" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="20"/>
                     <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

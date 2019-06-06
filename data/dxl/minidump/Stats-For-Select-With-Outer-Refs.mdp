@@ -824,7 +824,6 @@
                         <dxl:Column ColId="25" Attno="1" ColName="adrelid" TypeMdid="0.26.1.0"/>
                         <dxl:Column ColId="26" Attno="2" ColName="adnum" TypeMdid="0.21.1.0"/>
                         <dxl:Column ColId="27" Attno="3" ColName="adbin" TypeMdid="0.25.1.0"/>
-                        <dxl:Column ColId="28" Attno="4" ColName="adsrc" TypeMdid="0.25.1.0"/>
                         <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="30" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                         <dxl:Column ColId="31" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -882,20 +881,10 @@
               <dxl:Column ColId="0" Attno="1" ColName="attrelid" TypeMdid="0.26.1.0"/>
               <dxl:Column ColId="1" Attno="2" ColName="attname" TypeMdid="0.19.1.0"/>
               <dxl:Column ColId="2" Attno="3" ColName="atttypid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="3" Attno="4" ColName="attstattarget" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="4" Attno="5" ColName="attlen" TypeMdid="0.21.1.0"/>
               <dxl:Column ColId="5" Attno="6" ColName="attnum" TypeMdid="0.21.1.0"/>
-              <dxl:Column ColId="6" Attno="7" ColName="attndims" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="7" Attno="8" ColName="attcacheoff" TypeMdid="0.23.1.0"/>
               <dxl:Column ColId="8" Attno="9" ColName="atttypmod" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="9" Attno="10" ColName="attbyval" TypeMdid="0.16.1.0"/>
-              <dxl:Column ColId="10" Attno="11" ColName="attstorage" TypeMdid="0.18.1.0"/>
-              <dxl:Column ColId="11" Attno="12" ColName="attalign" TypeMdid="0.18.1.0"/>
               <dxl:Column ColId="12" Attno="13" ColName="attnotnull" TypeMdid="0.16.1.0"/>
               <dxl:Column ColId="13" Attno="14" ColName="atthasdef" TypeMdid="0.16.1.0"/>
-              <dxl:Column ColId="14" Attno="15" ColName="attisdropped" TypeMdid="0.16.1.0"/>
-              <dxl:Column ColId="15" Attno="16" ColName="attislocal" TypeMdid="0.16.1.0"/>
-              <dxl:Column ColId="16" Attno="17" ColName="attinhcount" TypeMdid="0.23.1.0"/>
               <dxl:Column ColId="17" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
               <dxl:Column ColId="18" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
               <dxl:Column ColId="19" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

@@ -745,9 +745,6 @@
                             <dxl:Columns>
                               <dxl:Column ColId="0" Attno="1" ColName="empid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="1" Attno="2" ColName="deptno" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="2" Attno="3" ColName="fname" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                              <dxl:Column ColId="3" Attno="4" ColName="lname" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                              <dxl:Column ColId="4" Attno="5" ColName="salary" TypeMdid="0.1700.1.0"/>
                               <dxl:Column ColId="5" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="6" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                               <dxl:Column ColId="7" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -899,9 +896,6 @@
                             <dxl:Columns>
                               <dxl:Column ColId="22" Attno="1" ColName="empid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="23" Attno="2" ColName="deptno" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="24" Attno="3" ColName="fname" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                              <dxl:Column ColId="25" Attno="4" ColName="lname" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                              <dxl:Column ColId="26" Attno="5" ColName="salary" TypeMdid="0.1700.1.0"/>
                               <dxl:Column ColId="27" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="28" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                               <dxl:Column ColId="29" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -1054,9 +1048,6 @@
                           <dxl:Columns>
                             <dxl:Column ColId="44" Attno="1" ColName="empid" TypeMdid="0.23.1.0"/>
                             <dxl:Column ColId="45" Attno="2" ColName="deptno" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="46" Attno="3" ColName="fname" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                            <dxl:Column ColId="47" Attno="4" ColName="lname" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="48" Attno="5" ColName="salary" TypeMdid="0.1700.1.0"/>
                             <dxl:Column ColId="49" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                             <dxl:Column ColId="50" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                             <dxl:Column ColId="51" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

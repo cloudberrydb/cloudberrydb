@@ -382,7 +382,7 @@
         <dxl:SortingColumnList>
           <dxl:SortingColumn ColId="0" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
         </dxl:SortingColumnList>
-        <dxl:Aggregate AggregationStrategy="Sorted">
+        <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="2139.798809" Rows="10000.000000" Width="4"/>
           </dxl:Properties>
@@ -423,7 +423,6 @@
               <dxl:TableDescriptor Mdid="0.988369.1.1" TableName="foo">
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="1" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
                   <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="3" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                   <dxl:Column ColId="4" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

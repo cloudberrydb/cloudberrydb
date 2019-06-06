@@ -480,7 +480,7 @@
                   </dxl:Comparison>
                 </dxl:Filter>
                 <dxl:OneTimeFilter/>
-                <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false">
+                <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                   <dxl:Properties>
                     <dxl:Cost StartupCost="0" TotalCost="1324032.403685" Rows="6.000000" Width="24"/>
                   </dxl:Properties>
@@ -586,8 +586,6 @@
                           <dxl:TableDescriptor Mdid="0.16391.1.0" TableName="t2">
                             <dxl:Columns>
                               <dxl:Column ColId="10" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                              <dxl:Column ColId="11" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
-                              <dxl:Column ColId="12" Attno="3" ColName="c" TypeMdid="0.23.1.0" ColWidth="4"/>
                               <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                               <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                               <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

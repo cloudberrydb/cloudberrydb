@@ -4535,37 +4535,8 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
                         <dxl:TableDescriptor Mdid="0.4435137.1.1" TableName="order_lineitems">
                           <dxl:Columns>
                             <dxl:Column ColId="0" Attno="1" ColName="order_id" TypeMdid="0.1043.1.0" ColWidth="21"/>
-                            <dxl:Column ColId="1" Attno="2" ColName="order_item_id" TypeMdid="0.20.1.0"/>
-                            <dxl:Column ColId="2" Attno="3" ColName="product_id" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="3" Attno="4" ColName="product_name" TypeMdid="0.1043.1.0" ColWidth="2000"/>
-                            <dxl:Column ColId="4" Attno="5" ColName="customer_id" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="5" Attno="6" ColName="store_id" TypeMdid="0.23.1.0"/>
                             <dxl:Column ColId="6" Attno="7" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0" ColWidth="30"/>
                             <dxl:Column ColId="7" Attno="8" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                            <dxl:Column ColId="8" Attno="9" ColName="ship_datetime" TypeMdid="0.1114.1.0"/>
-                            <dxl:Column ColId="9" Attno="10" ColName="item_return_datetime" TypeMdid="0.1114.1.0"/>
-                            <dxl:Column ColId="10" Attno="11" ColName="item_refund_datetime" TypeMdid="0.1114.1.0"/>
-                            <dxl:Column ColId="11" Attno="12" ColName="product_category_id" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="12" Attno="13" ColName="product_category_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="13" Attno="14" ColName="payment_method_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="14" Attno="15" ColName="tax_amount" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="15" Attno="16" ColName="item_quantity" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="16" Attno="17" ColName="item_price" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="17" Attno="18" ColName="discount_amount" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="18" Attno="19" ColName="coupon_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="19" Attno="20" ColName="coupon_amount" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="20" Attno="21" ColName="ship_address_line1" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="21" Attno="22" ColName="ship_address_line2" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="22" Attno="23" ColName="ship_address_line3" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="23" Attno="24" ColName="ship_address_city" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="24" Attno="25" ColName="ship_address_state" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="25" Attno="26" ColName="ship_address_postal_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="26" Attno="27" ColName="ship_address_country" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="27" Attno="28" ColName="ship_phone_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="28" Attno="29" ColName="ship_customer_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="29" Attno="30" ColName="ship_customer_email_address" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                            <dxl:Column ColId="30" Attno="31" ColName="ordering_session_id" TypeMdid="0.1043.1.0" ColWidth="30"/>
-                            <dxl:Column ColId="31" Attno="32" ColName="website_url" TypeMdid="0.1043.1.0" ColWidth="500"/>
                             <dxl:Column ColId="32" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                             <dxl:Column ColId="33" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                             <dxl:Column ColId="34" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>

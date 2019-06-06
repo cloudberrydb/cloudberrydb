@@ -477,7 +477,6 @@ explain select * from A where not exists (select sum(C.i) from C where C.i = A.i
                 <dxl:TableDescriptor Mdid="0.24583.1.0" TableName="c">
                   <dxl:Columns>
                     <dxl:Column ColId="9" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="10" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
                     <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                     <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                     <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

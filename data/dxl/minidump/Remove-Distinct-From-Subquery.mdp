@@ -2,10 +2,8 @@
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
  <dxl:Comment><![CDATA[
   Objective: Convert SubqueryAny to SubqueryExists while removing distinct from the subquery
-
 create table foo(a int, b int);
 create table bar(c int, d int);
-
 explain
 select * from bar where exists (select distinct a from foo)
 union all
@@ -628,7 +626,6 @@ select * from bar where c not in (select distinct a from foo);
                       <dxl:TableDescriptor Mdid="0.188698.1.0" TableName="foo">
                         <dxl:Columns>
                           <dxl:Column ColId="9" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                          <dxl:Column ColId="10" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
                           <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                           <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                           <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -738,7 +735,6 @@ select * from bar where c not in (select distinct a from foo);
                   <dxl:TableDescriptor Mdid="0.188698.1.0" TableName="foo">
                     <dxl:Columns>
                       <dxl:Column ColId="27" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="28" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
                       <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                       <dxl:Column ColId="30" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                       <dxl:Column ColId="31" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -817,7 +813,6 @@ select * from bar where c not in (select distinct a from foo);
                   <dxl:TableDescriptor Mdid="0.188698.1.0" TableName="foo">
                     <dxl:Columns>
                       <dxl:Column ColId="45" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="46" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
                       <dxl:Column ColId="47" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                       <dxl:Column ColId="48" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                       <dxl:Column ColId="49" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -931,7 +926,6 @@ select * from bar where c not in (select distinct a from foo);
                   <dxl:TableDescriptor Mdid="0.188698.1.0" TableName="foo">
                     <dxl:Columns>
                       <dxl:Column ColId="63" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="64" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
                       <dxl:Column ColId="65" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                       <dxl:Column ColId="66" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                       <dxl:Column ColId="67" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

@@ -774,7 +774,6 @@ explain analyze insert into t1 select t2.a,t3.b from t2, t3 where t2.a = t3.a;
                 <dxl:TableDescriptor Mdid="0.16538.1.0" TableName="t2">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.25.1.0"/>
                     <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="3" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                     <dxl:Column ColId="4" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>

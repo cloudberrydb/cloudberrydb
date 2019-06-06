@@ -4279,29 +4279,13 @@
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.2372852.1.1" TableName="asset_records">
                     <dxl:Columns>
-                      <dxl:Column ColId="0" Attno="1" ColName="parent" TypeMdid="0.16.1.0"/>
                       <dxl:Column ColId="1" Attno="2" ColName="uid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="2" Attno="3" ColName="checkin_timestamp" TypeMdid="0.1114.1.0"/>
                       <dxl:Column ColId="3" Attno="4" ColName="active" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="4" Attno="5" ColName="dns" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="5" Attno="6" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="6" Attno="7" ColName="netbios" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="7" Attno="8" ColName="domain" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="8" Attno="9" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="9" Attno="10" ColName="subnet" TypeMdid="0.1043.1.0" ColWidth="2048"/>
-                      <dxl:Column ColId="10" Attno="11" ColName="mac" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="11" Attno="12" ColName="os" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="12" Attno="13" ColName="friendly_os" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="13" Attno="14" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="14" Attno="15" ColName="asset_type" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="15" Attno="16" ColName="is_portable" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="16" Attno="17" ColName="release_environment" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="17" Attno="18" ColName="managed_by" TypeMdid="0.1043.1.0" ColWidth="2048"/>
-                      <dxl:Column ColId="18" Attno="19" ColName="explicitly_managed_by" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="19" Attno="20" ColName="managed_by_source" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="20" Attno="21" ColName="region" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="21" Attno="22" ColName="country" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="22" Attno="23" ColName="state" TypeMdid="0.1043.1.0" ColWidth="255"/>
                       <dxl:Column ColId="23" Attno="24" ColName="create_ts" TypeMdid="0.1114.1.0"/>
                       <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="25" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
@@ -4375,18 +4359,8 @@
                       <dxl:TableDescriptor Mdid="0.2284492.1.1" TableName="coverage">
                         <dxl:Columns>
                           <dxl:Column ColId="27" Attno="1" ColName="date" TypeMdid="0.1114.1.0"/>
-                          <dxl:Column ColId="28" Attno="2" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="32"/>
                           <dxl:Column ColId="29" Attno="3" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="64"/>
-                          <dxl:Column ColId="30" Attno="4" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="16"/>
                           <dxl:Column ColId="31" Attno="5" ColName="vendor_sla" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="32" Attno="6" ColName="log_any" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="33" Attno="7" ColName="log_sec" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="34" Attno="8" ColName="log_sys" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="35" Attno="9" ColName="log_app" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="36" Attno="10" ColName="first_log" TypeMdid="0.1114.1.0"/>
-                          <dxl:Column ColId="37" Attno="11" ColName="last_log" TypeMdid="0.1114.1.0"/>
-                          <dxl:Column ColId="38" Attno="12" ColName="reason" TypeMdid="0.1043.1.0" ColWidth="256"/>
-                          <dxl:Column ColId="39" Attno="13" ColName="create_ts" TypeMdid="0.1114.1.0"/>
                           <dxl:Column ColId="40" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                           <dxl:Column ColId="41" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                           <dxl:Column ColId="42" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>

@@ -948,27 +948,6 @@
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="proname" TypeMdid="0.19.1.0"/>
                   <dxl:Column ColId="1" Attno="2" ColName="pronamespace" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="proowner" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="3" Attno="4" ColName="prolang" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="4" Attno="5" ColName="proisagg" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="5" Attno="6" ColName="prosecdef" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="6" Attno="7" ColName="proisstrict" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="7" Attno="8" ColName="proretset" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="8" Attno="9" ColName="provolatile" TypeMdid="0.18.1.0"/>
-                  <dxl:Column ColId="9" Attno="10" ColName="pronargs" TypeMdid="0.21.1.0"/>
-                  <dxl:Column ColId="10" Attno="11" ColName="prorettype" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="11" Attno="12" ColName="proiswin" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="12" Attno="13" ColName="proargtypes" TypeMdid="0.30.1.0"/>
-                  <dxl:Column ColId="13" Attno="14" ColName="proallargtypes" TypeMdid="0.1028.1.0"/>
-                  <dxl:Column ColId="14" Attno="15" ColName="proargmodes" TypeMdid="0.1002.1.0"/>
-                  <dxl:Column ColId="15" Attno="16" ColName="proargnames" TypeMdid="0.1009.1.0"/>
-                  <dxl:Column ColId="16" Attno="17" ColName="prosrc" TypeMdid="0.25.1.0"/>
-                  <dxl:Column ColId="17" Attno="18" ColName="probin" TypeMdid="0.17.1.0"/>
-                  <dxl:Column ColId="18" Attno="19" ColName="proacl" TypeMdid="0.1034.1.0"/>
-                  <dxl:Column ColId="19" Attno="20" ColName="provariadic" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="20" Attno="21" ColName="pronargdefaults" TypeMdid="0.21.1.0"/>
-                  <dxl:Column ColId="21" Attno="22" ColName="proargdefaults" TypeMdid="0.25.1.0"/>
-                  <dxl:Column ColId="22" Attno="23" ColName="prodataaccess" TypeMdid="0.18.1.0"/>
                   <dxl:Column ColId="23" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="24" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                   <dxl:Column ColId="25" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1025,15 +1004,13 @@
                   <dxl:IndexCondList>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                       <dxl:Ident ColId="31" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.19.1.0" IsNull="false" IsByValue="false" Value="dGlkeWNhdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                      <dxl:ConstValue TypeMdid="0.19.1.0" IsNull="false" IsByValue="false" Value="dGlkeWNhdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                     </dxl:Comparison>
                   </dxl:IndexCondList>
                   <dxl:IndexDescriptor Mdid="0.2684.1.0" IndexName="pg_namespace_nspname_index"/>
                   <dxl:TableDescriptor Mdid="0.2615.1.1" TableName="pg_namespace">
                     <dxl:Columns>
                       <dxl:Column ColId="31" Attno="1" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:Column ColId="32" Attno="2" ColName="nspowner" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="33" Attno="3" ColName="nspacl" TypeMdid="0.1034.1.0"/>
                       <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="35" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                       <dxl:Column ColId="36" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1087,27 +1064,6 @@
                 <dxl:Columns>
                   <dxl:Column ColId="42" Attno="1" ColName="proname" TypeMdid="0.19.1.0"/>
                   <dxl:Column ColId="43" Attno="2" ColName="pronamespace" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="44" Attno="3" ColName="proowner" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="45" Attno="4" ColName="prolang" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="46" Attno="5" ColName="proisagg" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="47" Attno="6" ColName="prosecdef" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="48" Attno="7" ColName="proisstrict" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="49" Attno="8" ColName="proretset" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="50" Attno="9" ColName="provolatile" TypeMdid="0.18.1.0"/>
-                  <dxl:Column ColId="51" Attno="10" ColName="pronargs" TypeMdid="0.21.1.0"/>
-                  <dxl:Column ColId="52" Attno="11" ColName="prorettype" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="53" Attno="12" ColName="proiswin" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="54" Attno="13" ColName="proargtypes" TypeMdid="0.30.1.0"/>
-                  <dxl:Column ColId="55" Attno="14" ColName="proallargtypes" TypeMdid="0.1028.1.0"/>
-                  <dxl:Column ColId="56" Attno="15" ColName="proargmodes" TypeMdid="0.1002.1.0"/>
-                  <dxl:Column ColId="57" Attno="16" ColName="proargnames" TypeMdid="0.1009.1.0"/>
-                  <dxl:Column ColId="58" Attno="17" ColName="prosrc" TypeMdid="0.25.1.0"/>
-                  <dxl:Column ColId="59" Attno="18" ColName="probin" TypeMdid="0.17.1.0"/>
-                  <dxl:Column ColId="60" Attno="19" ColName="proacl" TypeMdid="0.1034.1.0"/>
-                  <dxl:Column ColId="61" Attno="20" ColName="provariadic" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="62" Attno="21" ColName="pronargdefaults" TypeMdid="0.21.1.0"/>
-                  <dxl:Column ColId="63" Attno="22" ColName="proargdefaults" TypeMdid="0.25.1.0"/>
-                  <dxl:Column ColId="64" Attno="23" ColName="prodataaccess" TypeMdid="0.18.1.0"/>
                   <dxl:Column ColId="65" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="66" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                   <dxl:Column ColId="67" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1164,15 +1120,13 @@
                   <dxl:IndexCondList>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                       <dxl:Ident ColId="73" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.19.1.0" IsNull="false" IsByValue="false" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                      <dxl:ConstValue TypeMdid="0.19.1.0" IsNull="false" IsByValue="false" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                     </dxl:Comparison>
                   </dxl:IndexCondList>
                   <dxl:IndexDescriptor Mdid="0.2684.1.0" IndexName="pg_namespace_nspname_index"/>
                   <dxl:TableDescriptor Mdid="0.2615.1.1" TableName="pg_namespace">
                     <dxl:Columns>
                       <dxl:Column ColId="73" Attno="1" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:Column ColId="74" Attno="2" ColName="nspowner" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="75" Attno="3" ColName="nspacl" TypeMdid="0.1034.1.0"/>
                       <dxl:Column ColId="76" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="77" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                       <dxl:Column ColId="78" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>

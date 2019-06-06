@@ -739,7 +739,6 @@ where (cd.dyear = 2001 and s.tickets_cnt &gt; 3) or (cd.dmoy = 4 and s.tickets_c
                           <dxl:Column ColId="21" Attno="2" ColName="ticket_number" TypeMdid="0.23.1.0"/>
                           <dxl:Column ColId="22" Attno="3" ColName="cid" TypeMdid="0.23.1.0"/>
                           <dxl:Column ColId="23" Attno="4" ColName="date_sk" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="24" Attno="5" ColName="type" TypeMdid="0.25.1.0"/>
                           <dxl:Column ColId="25" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                           <dxl:Column ColId="26" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                           <dxl:Column ColId="27" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

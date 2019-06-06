@@ -622,7 +622,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="LeftAntiSemiJoin" IndexNestedLoopJoin="false">
+        <dxl:NestedLoopJoin JoinType="LeftAntiSemiJoin" IndexNestedLoopJoin="false" OuterRefAsParam="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="1293.402376" Rows="44.400000" Width="8"/>
           </dxl:Properties>
@@ -702,7 +702,6 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
                 <dxl:TableDescriptor Mdid="0.2868145.1.1" TableName="t2">
                   <dxl:Columns>
                     <dxl:Column ColId="9" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="10" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

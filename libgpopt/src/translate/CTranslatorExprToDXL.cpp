@@ -940,7 +940,7 @@ CTranslatorExprToDXL::PdxlnDynamicTableScan
 	
 	CPhysicalDynamicTableScan *popDTS = CPhysicalDynamicTableScan::PopConvert(pexprDTS->Pop());	
 	CColRefArray *pdrgpcrOutput = popDTS->PdrgpcrOutput();
-	
+
 	// translate table descriptor
 	CDXLTableDescr *table_descr = MakeDXLTableDescr(popDTS->Ptabdesc(), pdrgpcrOutput);
 
@@ -7302,20 +7302,24 @@ CTranslatorExprToDXL::MakeDXLTableDescr
 
 		GPOS_ASSERT(NULL != pcd);
 
-		CMDName *pmdnameCol = GPOS_NEW(m_mp) CMDName(m_mp, pcd->Name().Pstr());
-
 		// output col ref for the current col descrs
 		CColRef *colref = NULL;
 		if (NULL != pdrgpcrOutput)
 		{
 			colref = (*pdrgpcrOutput)[ul];
+			if (colref->GetUsage() != CColRef::EUsed)
+			{
+				continue;
+			}
 		}
 		else
 		{
 			colref = m_pcf->PcrCreate(pcd->RetrieveType(), pcd->TypeModifier(), pcd->Name());
 		}
 
-		// use the col ref id for the corresponding output output column as 
+		CMDName *pmdnameCol = GPOS_NEW(m_mp) CMDName(m_mp, pcd->Name().Pstr());
+
+		// use the col ref id for the corresponding output column as
 		// colid for the dxl column
 		CMDIdGPDB *pmdidColType = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
 		pmdidColType->AddRef();

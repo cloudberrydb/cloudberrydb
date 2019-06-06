@@ -125,7 +125,7 @@ CTranslatorDXLToExprTest::Pexpr
 												ptroutput->GetOutputColumnsDXLArray(),
 												ptroutput->GetCTEProducerDXLArray()
 												);
-	
+
 	//clean up
 	GPOS_DELETE(ptroutput);
 	GPOS_DELETE(pdxltr);

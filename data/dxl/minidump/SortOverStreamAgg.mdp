@@ -2190,37 +2190,8 @@
                     <dxl:TableDescriptor Mdid="0.40615.1.1" TableName="dm_calendar">
                       <dxl:Columns>
                         <dxl:Column ColId="0" Attno="1" ColName="calendar_id" TypeMdid="0.20.1.0"/>
-                        <dxl:Column ColId="1" Attno="2" ColName="date_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="2" Attno="3" ColName="date_name_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="3" Attno="4" ColName="calendar_date" TypeMdid="0.1082.1.0"/>
-                        <dxl:Column ColId="4" Attno="5" ColName="current_day" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="5" Attno="6" ColName="month_id" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="6" Attno="7" ColName="month_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="7" Attno="8" ColName="month_name_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="8" Attno="9" ColName="month_name_short" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="9" Attno="10" ColName="month_name_short_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="10" Attno="11" ColName="days_in_month" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="11" Attno="12" ColName="first_of_month" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="12" Attno="13" ColName="last_month_id" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="13" Attno="14" ColName="month_end" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="14" Attno="15" ColName="quarter_id" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="15" Attno="16" ColName="quarter_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="16" Attno="17" ColName="quarter_name_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="17" Attno="18" ColName="quarter_name_short" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="18" Attno="19" ColName="quarter_name_short_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
                         <dxl:Column ColId="19" Attno="20" ColName="year_id" TypeMdid="0.1700.1.0"/>
                         <dxl:Column ColId="20" Attno="21" ColName="year_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="21" Attno="22" ColName="year_name_cn" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="22" Attno="23" ColName="description" TypeMdid="0.1043.1.0" ColWidth="500"/>
-                        <dxl:Column ColId="23" Attno="24" ColName="create_date" TypeMdid="0.1114.1.0"/>
-                        <dxl:Column ColId="24" Attno="25" ColName="month_week_num" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="25" Attno="26" ColName="month_week_begin" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="26" Attno="27" ColName="month_week_end" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="27" Attno="28" ColName="half_year" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="28" Attno="29" ColName="weekend_flag" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="29" Attno="30" ColName="holidays_flag" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="30" Attno="31" ColName="workday_flag" TypeMdid="0.1043.1.0" ColWidth="100"/>
-                        <dxl:Column ColId="31" Attno="32" ColName="month_number" TypeMdid="0.1700.1.0"/>
                         <dxl:Column ColId="32" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="33" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                         <dxl:Column ColId="34" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

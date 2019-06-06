@@ -1143,19 +1143,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
           <dxl:UpperBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACzkwODYyMDA=" LintValue="1055261476"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:GPDBScalarOp Mdid="0.410.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.20.1.0"/>
-        <dxl:RightType Mdid="0.20.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.467.1.0"/>
-        <dxl:Commutator Mdid="0.410.1.0"/>
-        <dxl:InverseOp Mdid="0.411.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.1981.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
         <dxl:InequalityOp Mdid="0.608.1.0"/>
@@ -1197,6 +1184,14 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
           <dxl:OpClass Mdid="0.1980.1.0"/>
           <dxl:OpClass Mdid="0.3028.1.0"/>
         </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.410.1.0" Name="=" ComparisonType="Eq">
+        <dxl:LeftType Mdid="0.20.1.0"/>
+        <dxl:RightType Mdid="0.20.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.467.1.0"/>
+        <dxl:Commutator Mdid="0.410.1.0"/>
+        <dxl:InverseOp Mdid="0.411.1.0"/>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
@@ -3261,6 +3256,18 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.1.0"/>
+        <dxl:Commutator Mdid="0.521.1.0"/>
+        <dxl:InverseOp Mdid="0.525.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1978.1.0"/>
+          <dxl:OpClass Mdid="0.3027.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
       <dxl:GPDBFunc Mdid="0.65.1.0" Name="int4eq" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.16.1.0"/>
       </dxl:GPDBFunc>
@@ -3786,18 +3793,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
               <dxl:Filter/>
               <dxl:TableDescriptor Mdid="0.15754823.1.1" TableName="s_co_plew_persl">
                 <dxl:Columns>
-                  <dxl:Column ColId="0" Attno="1" ColName="dtime" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                  <dxl:Column ColId="1" Attno="2" ColName="dversion" TypeMdid="0.1043.1.0" ColWidth="15"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="dbridge" TypeMdid="0.1043.1.0" ColWidth="17"/>
-                  <dxl:Column ColId="3" Attno="4" ColName="dcomp" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                  <dxl:Column ColId="4" Attno="5" ColName="dkst" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                  <dxl:Column ColId="5" Attno="6" ColName="dverw_e" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                  <dxl:Column ColId="6" Attno="7" ColName="dbudget" TypeMdid="0.1043.1.0" ColWidth="15"/>
-                  <dxl:Column ColId="7" Attno="8" ColName="dfkt_grp" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                  <dxl:Column ColId="8" Attno="9" ColName="dmeas_pb" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                  <dxl:Column ColId="9" Attno="10" ColName="wert" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="10" Attno="11" ColName="verarb_ab" TypeMdid="0.1114.1.0"/>
-                  <dxl:Column ColId="11" Attno="12" ColName="verarb_bis" TypeMdid="0.1114.1.0"/>
                   <dxl:Column ColId="12" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="13" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                   <dxl:Column ColId="14" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -4001,28 +3996,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                               <dxl:Filter/>
                                               <dxl:TableDescriptor Mdid="0.15754853.1.1" TableName="s_kst_ps_elem_vgz" ExecuteAsUser="10">
                                                 <dxl:Columns>
-                                                  <dxl:Column ColId="68" Attno="1" ColName="element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                  <dxl:Column ColId="69" Attno="2" ColName="element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                  <dxl:Column ColId="70" Attno="3" ColName="element_name" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                  <dxl:Column ColId="71" Attno="4" ColName="name_german" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                  <dxl:Column ColId="72" Attno="5" ColName="order_position" TypeMdid="0.23.1.0"/>
-                                                  <dxl:Column ColId="73" Attno="6" ColName="ress_bezei" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                                                  <dxl:Column ColId="74" Attno="7" ColName="gsch_fdf" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                                  <dxl:Column ColId="75" Attno="8" ColName="kst_art" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                                  <dxl:Column ColId="76" Attno="9" ColName="org_elem_nr" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                                  <dxl:Column ColId="77" Attno="10" ColName="guelt_ab" TypeMdid="0.1082.1.0"/>
-                                                  <dxl:Column ColId="78" Attno="11" ColName="guelt_bis" TypeMdid="0.1082.1.0"/>
-                                                  <dxl:Column ColId="79" Attno="12" ColName="element_name_lang" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                  <dxl:Column ColId="80" Attno="13" ColName="fid" TypeMdid="0.21.1.0"/>
-                                                  <dxl:Column ColId="81" Attno="14" ColName="fid_kst" TypeMdid="0.21.1.0"/>
-                                                  <dxl:Column ColId="82" Attno="15" ColName="inn_dienst_ad" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                                  <dxl:Column ColId="83" Attno="16" ColName="kst_stat" TypeMdid="0.21.1.0"/>
-                                                  <dxl:Column ColId="84" Attno="17" ColName="parent_element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                  <dxl:Column ColId="85" Attno="18" ColName="parent_element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                  <dxl:Column ColId="86" Attno="19" ColName="keze_entl_kst" TypeMdid="0.21.1.0"/>
-                                                  <dxl:Column ColId="87" Attno="20" ColName="keze_parent" TypeMdid="0.21.1.0"/>
-                                                  <dxl:Column ColId="88" Attno="21" ColName="verarb_ab" TypeMdid="0.1082.1.0"/>
-                                                  <dxl:Column ColId="89" Attno="22" ColName="verarb_bis" TypeMdid="0.1082.1.0"/>
                                                   <dxl:Column ColId="90" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                                   <dxl:Column ColId="91" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                                                   <dxl:Column ColId="92" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -4120,27 +4093,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                                       <dxl:TableDescriptor Mdid="0.15754853.1.1" TableName="s_kst_ps_elem_vgz" ExecuteAsUser="10">
                                                         <dxl:Columns>
                                                           <dxl:Column ColId="94" Attno="1" ColName="element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                          <dxl:Column ColId="95" Attno="2" ColName="element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                          <dxl:Column ColId="96" Attno="3" ColName="element_name" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                          <dxl:Column ColId="97" Attno="4" ColName="name_german" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                          <dxl:Column ColId="98" Attno="5" ColName="order_position" TypeMdid="0.23.1.0"/>
-                                                          <dxl:Column ColId="99" Attno="6" ColName="ress_bezei" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                                                          <dxl:Column ColId="100" Attno="7" ColName="gsch_fdf" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                                          <dxl:Column ColId="101" Attno="8" ColName="kst_art" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                                          <dxl:Column ColId="102" Attno="9" ColName="org_elem_nr" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                                          <dxl:Column ColId="103" Attno="10" ColName="guelt_ab" TypeMdid="0.1082.1.0"/>
-                                                          <dxl:Column ColId="104" Attno="11" ColName="guelt_bis" TypeMdid="0.1082.1.0"/>
-                                                          <dxl:Column ColId="105" Attno="12" ColName="element_name_lang" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                                          <dxl:Column ColId="106" Attno="13" ColName="fid" TypeMdid="0.21.1.0"/>
-                                                          <dxl:Column ColId="107" Attno="14" ColName="fid_kst" TypeMdid="0.21.1.0"/>
-                                                          <dxl:Column ColId="108" Attno="15" ColName="inn_dienst_ad" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                                          <dxl:Column ColId="109" Attno="16" ColName="kst_stat" TypeMdid="0.21.1.0"/>
-                                                          <dxl:Column ColId="110" Attno="17" ColName="parent_element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                          <dxl:Column ColId="111" Attno="18" ColName="parent_element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                                          <dxl:Column ColId="112" Attno="19" ColName="keze_entl_kst" TypeMdid="0.21.1.0"/>
-                                                          <dxl:Column ColId="113" Attno="20" ColName="keze_parent" TypeMdid="0.21.1.0"/>
-                                                          <dxl:Column ColId="114" Attno="21" ColName="verarb_ab" TypeMdid="0.1082.1.0"/>
-                                                          <dxl:Column ColId="115" Attno="22" ColName="verarb_bis" TypeMdid="0.1082.1.0"/>
                                                           <dxl:Column ColId="116" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                                           <dxl:Column ColId="117" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                                                           <dxl:Column ColId="118" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -4170,28 +4122,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                         <dxl:Filter/>
                         <dxl:TableDescriptor Mdid="0.15754853.1.1" TableName="s_kst_ps_elem_vgz" ExecuteAsUser="10">
                           <dxl:Columns>
-                            <dxl:Column ColId="15" Attno="1" ColName="element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="16" Attno="2" ColName="element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="17" Attno="3" ColName="element_name" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                            <dxl:Column ColId="18" Attno="4" ColName="name_german" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                            <dxl:Column ColId="19" Attno="5" ColName="order_position" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="20" Attno="6" ColName="ress_bezei" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                            <dxl:Column ColId="21" Attno="7" ColName="gsch_fdf" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                            <dxl:Column ColId="22" Attno="8" ColName="kst_art" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                            <dxl:Column ColId="23" Attno="9" ColName="org_elem_nr" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                            <dxl:Column ColId="24" Attno="10" ColName="guelt_ab" TypeMdid="0.1082.1.0"/>
-                            <dxl:Column ColId="25" Attno="11" ColName="guelt_bis" TypeMdid="0.1082.1.0"/>
-                            <dxl:Column ColId="26" Attno="12" ColName="element_name_lang" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                            <dxl:Column ColId="27" Attno="13" ColName="fid" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="28" Attno="14" ColName="fid_kst" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="29" Attno="15" ColName="inn_dienst_ad" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                            <dxl:Column ColId="30" Attno="16" ColName="kst_stat" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="31" Attno="17" ColName="parent_element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="32" Attno="18" ColName="parent_element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                            <dxl:Column ColId="33" Attno="19" ColName="keze_entl_kst" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="34" Attno="20" ColName="keze_parent" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="35" Attno="21" ColName="verarb_ab" TypeMdid="0.1082.1.0"/>
-                            <dxl:Column ColId="36" Attno="22" ColName="verarb_bis" TypeMdid="0.1082.1.0"/>
                             <dxl:Column ColId="37" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                             <dxl:Column ColId="38" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                             <dxl:Column ColId="39" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -4303,27 +4233,6 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                 <dxl:TableDescriptor Mdid="0.15754853.1.1" TableName="s_kst_ps_elem_vgz" ExecuteAsUser="10">
                                   <dxl:Columns>
                                     <dxl:Column ColId="41" Attno="1" ColName="element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                    <dxl:Column ColId="42" Attno="2" ColName="element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                    <dxl:Column ColId="43" Attno="3" ColName="element_name" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                    <dxl:Column ColId="44" Attno="4" ColName="name_german" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                    <dxl:Column ColId="45" Attno="5" ColName="order_position" TypeMdid="0.23.1.0"/>
-                                    <dxl:Column ColId="46" Attno="6" ColName="ress_bezei" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                                    <dxl:Column ColId="47" Attno="7" ColName="gsch_fdf" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                    <dxl:Column ColId="48" Attno="8" ColName="kst_art" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                    <dxl:Column ColId="49" Attno="9" ColName="org_elem_nr" TypeMdid="0.1043.1.0" ColWidth="12"/>
-                                    <dxl:Column ColId="50" Attno="10" ColName="guelt_ab" TypeMdid="0.1082.1.0"/>
-                                    <dxl:Column ColId="51" Attno="11" ColName="guelt_bis" TypeMdid="0.1082.1.0"/>
-                                    <dxl:Column ColId="52" Attno="12" ColName="element_name_lang" TypeMdid="0.1043.1.0" ColWidth="80"/>
-                                    <dxl:Column ColId="53" Attno="13" ColName="fid" TypeMdid="0.21.1.0"/>
-                                    <dxl:Column ColId="54" Attno="14" ColName="fid_kst" TypeMdid="0.21.1.0"/>
-                                    <dxl:Column ColId="55" Attno="15" ColName="inn_dienst_ad" TypeMdid="0.1043.1.0" ColWidth="1"/>
-                                    <dxl:Column ColId="56" Attno="16" ColName="kst_stat" TypeMdid="0.21.1.0"/>
-                                    <dxl:Column ColId="57" Attno="17" ColName="parent_element_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                    <dxl:Column ColId="58" Attno="18" ColName="parent_element_id_vm" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                                    <dxl:Column ColId="59" Attno="19" ColName="keze_entl_kst" TypeMdid="0.21.1.0"/>
-                                    <dxl:Column ColId="60" Attno="20" ColName="keze_parent" TypeMdid="0.21.1.0"/>
-                                    <dxl:Column ColId="61" Attno="21" ColName="verarb_ab" TypeMdid="0.1082.1.0"/>
-                                    <dxl:Column ColId="62" Attno="22" ColName="verarb_bis" TypeMdid="0.1082.1.0"/>
                                     <dxl:Column ColId="63" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                     <dxl:Column ColId="64" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                                     <dxl:Column ColId="65" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>

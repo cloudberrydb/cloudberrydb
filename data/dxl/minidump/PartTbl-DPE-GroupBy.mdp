@@ -713,7 +713,6 @@
                         <dxl:Column ColId="12" Attno="1" ColName="dist" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="13" Attno="2" ColName="tid" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="14" Attno="3" ColName="t1" TypeMdid="0.25.1.0"/>
-                        <dxl:Column ColId="15" Attno="4" ColName="t2" TypeMdid="0.25.1.0"/>
                         <dxl:Column ColId="16" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="17" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                         <dxl:Column ColId="18" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

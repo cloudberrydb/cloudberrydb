@@ -2843,22 +2843,6 @@ OR
                             <dxl:TableDescriptor Mdid="0.1260.1.1" TableName="pg_authid" ExecuteAsUser="10">
                               <dxl:Columns>
                                 <dxl:Column ColId="63" Attno="1" ColName="rolname" TypeMdid="0.19.1.0"/>
-                                <dxl:Column ColId="64" Attno="2" ColName="rolsuper" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="65" Attno="3" ColName="rolinherit" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="66" Attno="4" ColName="rolcreaterole" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="67" Attno="5" ColName="rolcreatedb" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="68" Attno="6" ColName="rolcatupdate" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="69" Attno="7" ColName="rolcanlogin" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="70" Attno="8" ColName="rolconnlimit" TypeMdid="0.23.1.0"/>
-                                <dxl:Column ColId="71" Attno="9" ColName="rolpassword" TypeMdid="0.25.1.0"/>
-                                <dxl:Column ColId="72" Attno="10" ColName="rolvaliduntil" TypeMdid="0.1184.1.0"/>
-                                <dxl:Column ColId="73" Attno="11" ColName="rolconfig" TypeMdid="0.1009.1.0"/>
-                                <dxl:Column ColId="74" Attno="12" ColName="rolresqueue" TypeMdid="0.26.1.0"/>
-                                <dxl:Column ColId="75" Attno="13" ColName="rolcreaterextgpfd" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="76" Attno="14" ColName="rolcreaterexthttp" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="77" Attno="15" ColName="rolcreatewextgpfd" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="78" Attno="16" ColName="rolcreaterexthdfs" TypeMdid="0.16.1.0"/>
-                                <dxl:Column ColId="79" Attno="17" ColName="rolcreatewexthdfs" TypeMdid="0.16.1.0"/>
                                 <dxl:Column ColId="80" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                 <dxl:Column ColId="81" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                                 <dxl:Column ColId="82" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -2912,22 +2896,6 @@ OR
                   <dxl:TableDescriptor Mdid="0.1260.1.1" TableName="pg_authid" ExecuteAsUser="10">
                     <dxl:Columns>
                       <dxl:Column ColId="89" Attno="1" ColName="rolname" TypeMdid="0.19.1.0"/>
-                      <dxl:Column ColId="90" Attno="2" ColName="rolsuper" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="91" Attno="3" ColName="rolinherit" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="92" Attno="4" ColName="rolcreaterole" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="93" Attno="5" ColName="rolcreatedb" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="94" Attno="6" ColName="rolcatupdate" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="95" Attno="7" ColName="rolcanlogin" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="96" Attno="8" ColName="rolconnlimit" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="97" Attno="9" ColName="rolpassword" TypeMdid="0.25.1.0"/>
-                      <dxl:Column ColId="98" Attno="10" ColName="rolvaliduntil" TypeMdid="0.1184.1.0"/>
-                      <dxl:Column ColId="99" Attno="11" ColName="rolconfig" TypeMdid="0.1009.1.0"/>
-                      <dxl:Column ColId="100" Attno="12" ColName="rolresqueue" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="101" Attno="13" ColName="rolcreaterextgpfd" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="102" Attno="14" ColName="rolcreaterexthttp" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="103" Attno="15" ColName="rolcreatewextgpfd" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="104" Attno="16" ColName="rolcreaterexthdfs" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="105" Attno="17" ColName="rolcreatewexthdfs" TypeMdid="0.16.1.0"/>
                       <dxl:Column ColId="106" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="107" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
                       <dxl:Column ColId="108" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>

@@ -768,7 +768,7 @@ union
                 </dxl:ProjList>
                 <dxl:Filter/>
                 <dxl:OneTimeFilter/>
-                <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                   <dxl:Properties>
                     <dxl:Cost StartupCost="0" TotalCost="1293.000345" Rows="1.000000" Width="23"/>
                   </dxl:Properties>
@@ -809,7 +809,6 @@ union
                     <dxl:TableDescriptor Mdid="0.40094456.1.1" TableName="city">
                       <dxl:Columns>
                         <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="1" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
                         <dxl:Column ColId="2" Attno="3" ColName="countrycode" TypeMdid="0.1042.1.0" ColWidth="3"/>
                         <dxl:Column ColId="3" Attno="4" ColName="district" TypeMdid="0.25.1.0"/>
                         <dxl:Column ColId="4" Attno="5" ColName="population" TypeMdid="0.23.1.0"/>
@@ -858,19 +857,6 @@ union
                           <dxl:Columns>
                             <dxl:Column ColId="12" Attno="1" ColName="code" TypeMdid="0.1042.1.0" ColWidth="3"/>
                             <dxl:Column ColId="13" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="14" Attno="3" ColName="continent" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="15" Attno="4" ColName="region" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="16" Attno="5" ColName="surfacearea" TypeMdid="0.700.1.0"/>
-                            <dxl:Column ColId="17" Attno="6" ColName="indepyear" TypeMdid="0.21.1.0"/>
-                            <dxl:Column ColId="18" Attno="7" ColName="population" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="19" Attno="8" ColName="lifeexpectancy" TypeMdid="0.700.1.0"/>
-                            <dxl:Column ColId="20" Attno="9" ColName="gnp" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="21" Attno="10" ColName="gnpold" TypeMdid="0.1700.1.0"/>
-                            <dxl:Column ColId="22" Attno="11" ColName="localname" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="23" Attno="12" ColName="governmentform" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="24" Attno="13" ColName="headofstate" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="25" Attno="14" ColName="capital" TypeMdid="0.23.1.0"/>
-                            <dxl:Column ColId="26" Attno="15" ColName="code2" TypeMdid="0.1042.1.0" ColWidth="2"/>
                             <dxl:Column ColId="27" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                             <dxl:Column ColId="28" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                             <dxl:Column ColId="29" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -1118,7 +1104,7 @@ union
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
-                        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="3017.001118" Rows="1.000000" Width="52"/>
                           </dxl:Properties>
@@ -1198,7 +1184,7 @@ union
                               </dxl:ProjList>
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
-                              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                                 <dxl:Properties>
                                   <dxl:Cost StartupCost="0" TotalCost="2155.000518" Rows="1.000000" Width="16"/>
                                 </dxl:Properties>
@@ -1296,8 +1282,6 @@ union
                                     <dxl:Columns>
                                       <dxl:Column ColId="92" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
                                       <dxl:Column ColId="93" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
-                                      <dxl:Column ColId="94" Attno="3" ColName="countrycode" TypeMdid="0.1042.1.0" ColWidth="3"/>
-                                      <dxl:Column ColId="95" Attno="4" ColName="district" TypeMdid="0.25.1.0"/>
                                       <dxl:Column ColId="96" Attno="5" ColName="population" TypeMdid="0.23.1.0"/>
                                       <dxl:Column ColId="97" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                       <dxl:Column ColId="98" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1331,20 +1315,6 @@ union
                                       <dxl:TableDescriptor Mdid="0.40094484.1.1" TableName="country">
                                         <dxl:Columns>
                                           <dxl:Column ColId="70" Attno="1" ColName="code" TypeMdid="0.1042.1.0" ColWidth="3"/>
-                                          <dxl:Column ColId="71" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="72" Attno="3" ColName="continent" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="73" Attno="4" ColName="region" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="74" Attno="5" ColName="surfacearea" TypeMdid="0.700.1.0"/>
-                                          <dxl:Column ColId="75" Attno="6" ColName="indepyear" TypeMdid="0.21.1.0"/>
-                                          <dxl:Column ColId="76" Attno="7" ColName="population" TypeMdid="0.23.1.0"/>
-                                          <dxl:Column ColId="77" Attno="8" ColName="lifeexpectancy" TypeMdid="0.700.1.0"/>
-                                          <dxl:Column ColId="78" Attno="9" ColName="gnp" TypeMdid="0.1700.1.0"/>
-                                          <dxl:Column ColId="79" Attno="10" ColName="gnpold" TypeMdid="0.1700.1.0"/>
-                                          <dxl:Column ColId="80" Attno="11" ColName="localname" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="81" Attno="12" ColName="governmentform" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="82" Attno="13" ColName="headofstate" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="83" Attno="14" ColName="capital" TypeMdid="0.23.1.0"/>
-                                          <dxl:Column ColId="84" Attno="15" ColName="code2" TypeMdid="0.1042.1.0" ColWidth="2"/>
                                           <dxl:Column ColId="85" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                           <dxl:Column ColId="86" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                                           <dxl:Column ColId="87" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -1361,7 +1331,7 @@ union
                             </dxl:BroadcastMotion>
                           </dxl:Materialize>
                         </dxl:NestedLoopJoin>
-                        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="3017.001118" Rows="1.000000" Width="52"/>
                           </dxl:Properties>
@@ -1441,7 +1411,7 @@ union
                               </dxl:ProjList>
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
-                              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                                 <dxl:Properties>
                                   <dxl:Cost StartupCost="0" TotalCost="2155.000518" Rows="1.000000" Width="16"/>
                                 </dxl:Properties>
@@ -1539,8 +1509,6 @@ union
                                     <dxl:Columns>
                                       <dxl:Column ColId="161" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
                                       <dxl:Column ColId="162" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
-                                      <dxl:Column ColId="163" Attno="3" ColName="countrycode" TypeMdid="0.1042.1.0" ColWidth="3"/>
-                                      <dxl:Column ColId="164" Attno="4" ColName="district" TypeMdid="0.25.1.0"/>
                                       <dxl:Column ColId="165" Attno="5" ColName="population" TypeMdid="0.23.1.0"/>
                                       <dxl:Column ColId="166" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                       <dxl:Column ColId="167" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1574,20 +1542,6 @@ union
                                       <dxl:TableDescriptor Mdid="0.40094484.1.1" TableName="country">
                                         <dxl:Columns>
                                           <dxl:Column ColId="139" Attno="1" ColName="code" TypeMdid="0.1042.1.0" ColWidth="3"/>
-                                          <dxl:Column ColId="140" Attno="2" ColName="name" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="141" Attno="3" ColName="continent" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="142" Attno="4" ColName="region" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="143" Attno="5" ColName="surfacearea" TypeMdid="0.700.1.0"/>
-                                          <dxl:Column ColId="144" Attno="6" ColName="indepyear" TypeMdid="0.21.1.0"/>
-                                          <dxl:Column ColId="145" Attno="7" ColName="population" TypeMdid="0.23.1.0"/>
-                                          <dxl:Column ColId="146" Attno="8" ColName="lifeexpectancy" TypeMdid="0.700.1.0"/>
-                                          <dxl:Column ColId="147" Attno="9" ColName="gnp" TypeMdid="0.1700.1.0"/>
-                                          <dxl:Column ColId="148" Attno="10" ColName="gnpold" TypeMdid="0.1700.1.0"/>
-                                          <dxl:Column ColId="149" Attno="11" ColName="localname" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="150" Attno="12" ColName="governmentform" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="151" Attno="13" ColName="headofstate" TypeMdid="0.25.1.0"/>
-                                          <dxl:Column ColId="152" Attno="14" ColName="capital" TypeMdid="0.23.1.0"/>
-                                          <dxl:Column ColId="153" Attno="15" ColName="code2" TypeMdid="0.1042.1.0" ColWidth="2"/>
                                           <dxl:Column ColId="154" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                           <dxl:Column ColId="155" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                                           <dxl:Column ColId="156" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

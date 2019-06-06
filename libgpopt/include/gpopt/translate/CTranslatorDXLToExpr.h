@@ -392,6 +392,8 @@ namespace gpopt
 			// construct the mapping between the DXL ColId and CColRef
 			void ConstructDXLColId2ColRefMapping(const CDXLColDescrArray *dxl_col_descr_array, const CColRefArray *colref_array);
 
+			void MarkUnknownColsAsUnused();
+
 			// look up the column reference in the hash map. We raise an exception if
 			// the column is not found
 			static

@@ -490,7 +490,7 @@ see sql/DynamicBitmapIndexScan.sql
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="6896.008532" Rows="1.000000" Width="9"/>
           </dxl:Properties>
@@ -555,7 +555,7 @@ see sql/DynamicBitmapIndexScan.sql
                   <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
-              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
+              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true" OuterRefAsParam="false">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="862.001830" Rows="1.000000" Width="8"/>
                 </dxl:Properties>
@@ -600,18 +600,6 @@ see sql/DynamicBitmapIndexScan.sql
                       <dxl:Columns>
                         <dxl:Column ColId="7" Attno="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
                         <dxl:Column ColId="8" Attno="2" ColName="language" TypeMdid="0.1043.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="9" Attno="3" ColName="last_update_date" TypeMdid="0.1082.1.0"/>
-                        <dxl:Column ColId="10" Attno="4" ColName="last_updated_by" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="11" Attno="5" ColName="creation_date" TypeMdid="0.1082.1.0"/>
-                        <dxl:Column ColId="12" Attno="6" ColName="created_by" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="13" Attno="7" ColName="last_update_login" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="14" Attno="8" ColName="description" TypeMdid="0.1043.1.0" ColWidth="240"/>
-                        <dxl:Column ColId="15" Attno="9" ColName="source_lang" TypeMdid="0.1043.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="16" Attno="10" ColName="flex_value_meaning" TypeMdid="0.1043.1.0" ColWidth="150"/>
-                        <dxl:Column ColId="17" Attno="11" ColName="legalhold" TypeMdid="0.1043.1.0" ColWidth="5"/>
-                        <dxl:Column ColId="18" Attno="12" ColName="legaldescription" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                        <dxl:Column ColId="19" Attno="13" ColName="dataowner" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                        <dxl:Column ColId="20" Attno="14" ColName="purgedate" TypeMdid="0.1082.1.0"/>
                         <dxl:Column ColId="21" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="22" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                         <dxl:Column ColId="23" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -684,7 +672,6 @@ see sql/DynamicBitmapIndexScan.sql
                       <dxl:Columns>
                         <dxl:Column ColId="0" Attno="1" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
                         <dxl:Column ColId="1" Attno="2" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="2" Attno="3" ColName="flex_value" TypeMdid="0.1043.1.0" ColWidth="150"/>
                         <dxl:Column ColId="3" Attno="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="5" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>

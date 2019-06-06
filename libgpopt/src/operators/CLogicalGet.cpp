@@ -26,6 +26,7 @@
 #include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/metadata/CName.h"
 
+#include "gpopt/translate/CTranslatorDXLToExpr.h"
 
 using namespace gpopt;
 
@@ -231,7 +232,17 @@ CLogicalGet::PcrsDeriveOutput
 	)
 {
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	pcrs->Include(m_pdrgpcrOutput);
+	for (ULONG i = 0; i < m_pdrgpcrOutput->Size(); i++)
+	{
+		// We want to limit the output columns to only those which are referenced in the query
+		// We will know the entire list of columns which are referenced in the query only after
+		// translating the entire DXL to an expression. Hence we should not limit the output columns
+		// before we have processed the entire DXL.
+		if ((*m_pdrgpcrOutput)[i]->GetUsage() == CColRef::EUsed || (*m_pdrgpcrOutput)[i]->GetUsage() == CColRef::EUnknown)
+		{
+			pcrs->Include((*m_pdrgpcrOutput)[i]);
+		}
+	}
 
 	return pcrs;
 }

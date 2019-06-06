@@ -501,9 +501,7 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                     <dxl:Filter/>
                     <dxl:TableDescriptor Mdid="0.57461.1.0" TableName="s">
                       <dxl:Columns>
-                        <dxl:Column ColId="21" Attno="1" ColName="c" TypeMdid="0.23.1.0" ColWidth="4"/>
                         <dxl:Column ColId="22" Attno="2" ColName="d" TypeMdid="0.23.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="23" Attno="3" ColName="e" TypeMdid="0.23.1.0" ColWidth="4"/>
                         <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                         <dxl:Column ColId="25" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                         <dxl:Column ColId="26" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -543,8 +541,6 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                     <dxl:Filter/>
                     <dxl:TableDescriptor Mdid="0.57461.1.0" TableName="s">
                       <dxl:Columns>
-                        <dxl:Column ColId="31" Attno="1" ColName="c" TypeMdid="0.23.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="32" Attno="2" ColName="d" TypeMdid="0.23.1.0" ColWidth="4"/>
                         <dxl:Column ColId="33" Attno="3" ColName="e" TypeMdid="0.23.1.0" ColWidth="4"/>
                         <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                         <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
@@ -604,8 +600,6 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                     <dxl:TableDescriptor Mdid="0.57461.1.0" TableName="s">
                       <dxl:Columns>
                         <dxl:Column ColId="11" Attno="1" ColName="c" TypeMdid="0.23.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="12" Attno="2" ColName="d" TypeMdid="0.23.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="13" Attno="3" ColName="e" TypeMdid="0.23.1.0" ColWidth="4"/>
                         <dxl:Column ColId="14" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                         <dxl:Column ColId="15" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                         <dxl:Column ColId="16" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -676,9 +670,6 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                       <dxl:TableDescriptor Mdid="0.57425.1.0" TableName="r_p">
                         <dxl:Columns>
                           <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
-                          <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
-                          <dxl:Column ColId="2" Attno="3" ColName="x" TypeMdid="0.23.1.0" ColWidth="4"/>
-                          <dxl:Column ColId="3" Attno="4" ColName="y" TypeMdid="0.23.1.0" ColWidth="4"/>
                           <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                           <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                           <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

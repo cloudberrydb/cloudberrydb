@@ -495,7 +495,6 @@ explain select tab3.k, (select tab2.k from tab2 where tab2.i = tab1.i limit 1) a
                         <dxl:TableDescriptor Mdid="0.40966.1.0" TableName="tab2">
                           <dxl:Columns>
                             <dxl:Column ColId="20" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                            <dxl:Column ColId="21" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
                             <dxl:Column ColId="22" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="0"/>
                             <dxl:Column ColId="23" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                             <dxl:Column ColId="24" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
@@ -616,7 +615,6 @@ explain select tab3.k, (select tab2.k from tab2 where tab2.i = tab1.i limit 1) a
                 <dxl:Columns>
                   <dxl:Column ColId="10" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
                   <dxl:Column ColId="11" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
-                  <dxl:Column ColId="12" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="0"/>
                   <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                   <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                   <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

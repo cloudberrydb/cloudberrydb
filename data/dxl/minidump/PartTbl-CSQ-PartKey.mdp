@@ -467,10 +467,8 @@
                             <dxl:Filter/>
                             <dxl:TableDescriptor Mdid="0.100193.1.1" TableName="decodenum">
                               <dxl:Columns>
-                                <dxl:Column ColId="11" Attno="1" ColName="numcol" TypeMdid="0.1700.1.0"/>
                                 <dxl:Column ColId="12" Attno="2" ColName="distcol" TypeMdid="0.23.1.0"/>
                                 <dxl:Column ColId="13" Attno="3" ColName="ptcol" TypeMdid="0.23.1.0"/>
-                                <dxl:Column ColId="14" Attno="4" ColName="decodetxt" TypeMdid="0.25.1.0"/>
                                 <dxl:Column ColId="15" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                 <dxl:Column ColId="16" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                                 <dxl:Column ColId="17" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

@@ -561,7 +561,6 @@ select * from x2 where a in (select a from y union select 1::int8);
                                     <dxl:TableDescriptor Mdid="0.19760808.1.1" TableName="y">
                                       <dxl:Columns>
                                         <dxl:Column ColId="8" Attno="1" ColName="m" TypeMdid="0.23.1.0"/>
-                                        <dxl:Column ColId="9" Attno="2" ColName="n" TypeMdid="0.23.1.0"/>
                                         <dxl:Column ColId="10" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                         <dxl:Column ColId="11" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                                         <dxl:Column ColId="12" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

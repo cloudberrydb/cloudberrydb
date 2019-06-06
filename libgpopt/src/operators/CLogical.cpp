@@ -15,6 +15,7 @@
 #include "naucrates/md/IMDColumn.h"
 #include "naucrates/md/IMDCheckConstraint.h"
 
+#include "gpopt/base/CColRef.h"
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/CConstraintConjunction.h"
@@ -105,8 +106,7 @@ CLogical::PdrgpcrCreateMapping
 	{
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[ul];
 		CName name(mp, pcoldesc->Name());
-		
-		CColRef *colref = col_factory->PcrCreate(pcoldesc, name, ulOpSourceId);
+		CColRef *colref = col_factory->PcrCreate(pcoldesc, name, ulOpSourceId, false /* mark_as_used */ );
 		colref_array->Append(colref);
 	}
 	
@@ -143,6 +143,10 @@ CLogical::PdrgpdrgpcrCreatePartCols
 		
 		CColRef *colref = (*colref_array)[ulCol];
 		CColRefArray * pdrgpcrCurr = GPOS_NEW(mp) CColRefArray(mp);
+		// The partition columns are not explicity referenced in the query but we
+		// still need to mark them as used since they are required during partition
+		// elimination
+		colref->MarkAsUsed();
 		pdrgpcrCurr->Append(colref);
 		pdrgpdrgpcrPart->Append(pdrgpcrCurr);
 	}
@@ -756,7 +760,7 @@ CLogical::PpcDeriveConstraintFromTable
 
 		pdrgpcrNonSystem->Append(colref);
 
-		if (pcoldesc->IsNullable())
+		if (pcoldesc->IsNullable() || colref->GetUsage() == CColRef::EUnused)
 		{
 			continue;
 		}
@@ -1465,6 +1469,7 @@ CLogical::PcrsDist
 	{
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[ul];
 		CColRef *colref = (*pdrgpcrOutput)[ul];
+
 		phmicr->Insert(GPOS_NEW(mp) INT(pcoldesc->AttrNum()), colref);
 	}
 
@@ -1475,6 +1480,10 @@ CLogical::PcrsDist
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldescDist)[ul2];
 		const INT attno = pcoldesc->AttrNum();
 		CColRef *pcrMapped = phmicr->Find(&attno);
+		// The distribution columns are not explicity referenced in the query but we
+		// still need to mark distribution columns as used since they are required
+		// to add motions
+		pcrMapped->MarkAsUsed();
 		GPOS_ASSERT(NULL != pcrMapped);
 		pcrsDist->Include(pcrMapped);
 	}

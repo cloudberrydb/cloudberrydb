@@ -462,7 +462,7 @@ explain select f.k, f.subq from (select tab3.k, (select tab2.k from tab2 where t
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="167572.984819" Rows="9846.000000" Width="16"/>
           </dxl:Properties>
@@ -585,7 +585,6 @@ explain select f.k, f.subq from (select tab3.k, (select tab2.k from tab2 where t
                                 <dxl:TableDescriptor Mdid="0.98459.1.0" TableName="tab2">
                                   <dxl:Columns>
                                     <dxl:Column ColId="20" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                    <dxl:Column ColId="21" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
                                     <dxl:Column ColId="22" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="0"/>
                                     <dxl:Column ColId="23" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                     <dxl:Column ColId="24" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
@@ -775,7 +774,6 @@ explain select f.k, f.subq from (select tab3.k, (select tab2.k from tab2 where t
                               <dxl:Columns>
                                 <dxl:Column ColId="10" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
                                 <dxl:Column ColId="11" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                <dxl:Column ColId="12" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="0"/>
                                 <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                 <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                 <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -803,8 +801,6 @@ explain select f.k, f.subq from (select tab3.k, (select tab2.k from tab2 where t
             <dxl:TableDescriptor Mdid="0.98465.1.0" TableName="tab3">
               <dxl:Columns>
                 <dxl:Column ColId="31" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                <dxl:Column ColId="32" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
-                <dxl:Column ColId="33" Attno="3" ColName="k" TypeMdid="0.1043.1.0" ColWidth="0"/>
                 <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                 <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                 <dxl:Column ColId="36" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

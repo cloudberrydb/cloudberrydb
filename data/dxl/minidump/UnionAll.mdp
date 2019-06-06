@@ -8964,39 +8964,9 @@
                 <dxl:TableDescriptor Mdid="0.18402.1.1" TableName="catalog_sales">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="2" Attno="3" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="3" Attno="4" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="4" Attno="5" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="5" Attno="6" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="6" Attno="7" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="7" Attno="8" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="8" Attno="9" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="9" Attno="10" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="10" Attno="11" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="11" Attno="12" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="12" Attno="13" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="13" Attno="14" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="14" Attno="15" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="15" Attno="16" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="16" Attno="17" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="17" Attno="18" ColName="cs_order_number" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="18" Attno="19" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="19" Attno="20" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="20" Attno="21" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="21" Attno="22" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="22" Attno="23" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="23" Attno="24" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="24" Attno="25" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="25" Attno="26" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="26" Attno="27" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="27" Attno="28" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="28" Attno="29" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="29" Attno="30" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="30" Attno="31" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="31" Attno="32" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="32" Attno="33" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="33" Attno="34" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
                     <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="36" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -9020,39 +8990,9 @@
                 <dxl:TableDescriptor Mdid="0.18359.1.1" TableName="web_sales">
                   <dxl:Columns>
                     <dxl:Column ColId="41" Attno="1" ColName="ws_sold_date_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="42" Attno="2" ColName="ws_sold_time_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="43" Attno="3" ColName="ws_ship_date_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="44" Attno="4" ColName="ws_item_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="45" Attno="5" ColName="ws_bill_customer_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="46" Attno="6" ColName="ws_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="47" Attno="7" ColName="ws_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="48" Attno="8" ColName="ws_bill_addr_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="49" Attno="9" ColName="ws_ship_customer_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="50" Attno="10" ColName="ws_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="51" Attno="11" ColName="ws_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="52" Attno="12" ColName="ws_ship_addr_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="53" Attno="13" ColName="ws_web_page_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="54" Attno="14" ColName="ws_web_site_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="55" Attno="15" ColName="ws_ship_mode_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="56" Attno="16" ColName="ws_warehouse_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="57" Attno="17" ColName="ws_promo_sk" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="58" Attno="18" ColName="ws_order_number" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="59" Attno="19" ColName="ws_quantity" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="60" Attno="20" ColName="ws_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="61" Attno="21" ColName="ws_list_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="62" Attno="22" ColName="ws_sales_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="63" Attno="23" ColName="ws_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="64" Attno="24" ColName="ws_ext_sales_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="65" Attno="25" ColName="ws_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="66" Attno="26" ColName="ws_ext_list_price" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="67" Attno="27" ColName="ws_ext_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="68" Attno="28" ColName="ws_coupon_amt" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="69" Attno="29" ColName="ws_ext_ship_cost" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="70" Attno="30" ColName="ws_net_paid" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="71" Attno="31" ColName="ws_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="72" Attno="32" ColName="ws_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="73" Attno="33" ColName="ws_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="74" Attno="34" ColName="ws_net_profit" TypeMdid="0.1700.1.0"/>
                     <dxl:Column ColId="75" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="76" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="77" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -9081,23 +9021,7 @@
             <dxl:TableDescriptor Mdid="0.17929.1.1" TableName="customer">
               <dxl:Columns>
                 <dxl:Column ColId="82" Attno="1" ColName="c_customer_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="83" Attno="2" ColName="c_customer_id" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="84" Attno="3" ColName="c_current_cdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="85" Attno="4" ColName="c_current_hdemo_sk" TypeMdid="0.23.1.0"/>
                 <dxl:Column ColId="86" Attno="5" ColName="c_current_addr_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="87" Attno="6" ColName="c_first_shipto_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="88" Attno="7" ColName="c_first_sales_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="89" Attno="8" ColName="c_salutation" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="90" Attno="9" ColName="c_first_name" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="91" Attno="10" ColName="c_last_name" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="92" Attno="11" ColName="c_preferred_cust_flag" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="93" Attno="12" ColName="c_birth_day" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="94" Attno="13" ColName="c_birth_month" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="95" Attno="14" ColName="c_birth_year" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="96" Attno="15" ColName="c_birth_country" TypeMdid="0.1043.1.0"/>
-                <dxl:Column ColId="97" Attno="16" ColName="c_login" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="98" Attno="17" ColName="c_email_address" TypeMdid="0.1042.1.0"/>
-                <dxl:Column ColId="99" Attno="18" ColName="c_last_review_date" TypeMdid="0.1042.1.0"/>
                 <dxl:Column ColId="100" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                 <dxl:Column ColId="101" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                 <dxl:Column ColId="102" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

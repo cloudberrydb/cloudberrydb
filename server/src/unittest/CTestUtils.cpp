@@ -317,16 +317,27 @@ CTestUtils::PexprLogicalGet
 {
 	GPOS_ASSERT(NULL != ptabdesc);
 
-	return GPOS_NEW(mp) CExpression
-					(
-					mp,                   
-					GPOS_NEW(mp) CLogicalGet
-								(
-								mp,
-								GPOS_NEW(mp) CName(mp, CName(pstrTableAlias)),
-								ptabdesc
-								)
-					);
+	CLogicalGet *pop = GPOS_NEW(mp) CLogicalGet
+						(
+						 mp,
+						 GPOS_NEW(mp) CName(mp, CName(pstrTableAlias)),
+						 ptabdesc
+						 );
+
+	CExpression *result = GPOS_NEW(mp) CExpression
+							(
+							mp,
+							pop
+							);
+
+	CColRefArray *arr = pop->PdrgpcrOutput();
+	for (ULONG ul = 0; ul < arr->Size(); ul++)
+	{
+		CColRef *ref = (*arr)[ul];
+		ref->MarkAsUsed();
+	}
+
+	return result;
 }
 
 //---------------------------------------------------------------------------

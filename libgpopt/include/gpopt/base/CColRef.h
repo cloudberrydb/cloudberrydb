@@ -17,6 +17,7 @@
 #include "gpos/common/CHashMap.h"
 
 #include "gpopt/metadata/CName.h"
+#include "naucrates/traceflags/traceflags.h"
 
 #include "naucrates/md/IMDType.h"
 
@@ -50,8 +51,18 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CColRef
 	{
+
+		public:
+			enum EUsedStatus
+			{
+				EUsed,
+				EUnused,
+				EUnknown,
+				ESentinel
+			};
+
 		private:
-			
+
 			// type information
 			const IMDType *m_pmdtype;
 
@@ -63,6 +74,9 @@ namespace gpopt
 
 			// private copy ctor
 			CColRef(const CColRef &);
+
+			// track the usage of colref (used/unused/unknown)
+			EUsedStatus m_used;
 			
 		public:
 		
@@ -73,7 +87,7 @@ namespace gpopt
 				
 				EcrtSentinel
 			};
-		
+
 			// ctor
 			CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id, const CName *pname);
 
@@ -176,6 +190,33 @@ namespace gpopt
 			// invalid key
 			static
 			const ULONG m_ulInvalid;
+
+			void MarkAsUnused()
+			{
+				GPOS_ASSERT(m_used != EUsed);
+				m_used = EUnused;
+			}
+
+			void MarkAsUsed()
+			{
+				m_used = EUsed;
+			}
+
+			void MarkAsUnknown()
+			{
+				m_used = EUnknown;
+			}
+
+			EUsedStatus GetUsage() const
+			{
+
+				if (GPOS_FTRACE(EopttraceTranslateUnusedColrefs) || FSystemCol())
+				{
+					return EUsed;
+				}
+
+				return m_used;
+			}
 
 #ifdef GPOS_DEBUG
 			void DbgPrint() const;

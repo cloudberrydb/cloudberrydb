@@ -1753,7 +1753,6 @@ select id from uav1 union select val from uav4 union select id from uav2;
                 <dxl:TableDescriptor Mdid="0.425620.1.1" TableName="uav1">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="val" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="3" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="4" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -1790,7 +1789,6 @@ select id from uav1 union select val from uav4 union select id from uav2;
                 <dxl:Filter/>
                 <dxl:TableDescriptor Mdid="0.425805.1.1" TableName="uav4">
                   <dxl:Columns>
-                    <dxl:Column ColId="9" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="10" Attno="2" ColName="val" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
@@ -1829,7 +1827,6 @@ select id from uav1 union select val from uav4 union select id from uav2;
                 <dxl:TableDescriptor Mdid="0.425646.1.1" TableName="uav2">
                   <dxl:Columns>
                     <dxl:Column ColId="18" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="19" Attno="2" ColName="val" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="20" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="21" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="22" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

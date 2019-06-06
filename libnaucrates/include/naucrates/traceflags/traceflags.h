@@ -177,6 +177,11 @@ namespace gpos
 
 		// Eager Agg 
 		EopttraceEnableEagerAgg = 103030,
+
+		// Translate unused colrefs. specifically translate all colrefs, including ones
+		// that are not referenced in the query.
+		EopttraceTranslateUnusedColrefs = 103031,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

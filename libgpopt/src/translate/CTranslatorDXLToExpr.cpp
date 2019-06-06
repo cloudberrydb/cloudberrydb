@@ -26,7 +26,7 @@
 #include "naucrates/dxl/operators/dxlops.h"
 
 #include "gpopt/base/CAutoOptCtxt.h"
-#include "gpopt/base/CColRefSet.h"
+#include "gpopt/base/CColRef.h"
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/base/CColumnFactory.h"
 #include "gpopt/base/CEnfdOrder.h"
@@ -348,7 +348,14 @@ CTranslatorDXLToExpr::PexprTranslateQuery
 {
 	CAutoTimer at("\n[OPT]: DXL To Expr Translation Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
-	return Pexpr(dxlnode, query_output_dxlnode_array, cte_producers);
+	CExpression *pexpr = Pexpr(dxlnode, query_output_dxlnode_array, cte_producers);
+
+	// We need to mark all the colrefs which are not being referenced in the query as unused.
+	// This needs to be done here after translating since we won't know which columns are
+	// required until entire DXL tree has been processed
+	MarkUnknownColsAsUnused();
+
+	return pexpr;
 }
 
 //---------------------------------------------------------------------------
@@ -1009,6 +1016,7 @@ CTranslatorDXLToExpr::LookupColRef
     	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2ExprAttributeNotFound, colid);
     }
 
+	colref->MarkAsUsed();
 	return colref;
 }
 
@@ -1272,7 +1280,7 @@ CTranslatorDXLToExpr::PexprLogicalCTEProducer
 	for (ULONG ul = 0; ul < length; ul++)
 	{
 		ULONG *pulColId = (*pdrgpulCols)[ul];
-		const CColRef *colref = m_phmulcr->Find(pulColId);
+		CColRef *colref = LookupColRef(m_phmulcr, *pulColId);
 		GPOS_ASSERT(NULL != colref);
 
 		if (pcrsProducer->FMember(colref))
@@ -4027,6 +4035,21 @@ CTranslatorDXLToExpr::AddDistributionColumns
 		GPOS_ASSERT(NULL != pulPos);
 		
 		ptabdesc->AddDistributionColumn(*pulPos);
+	}
+}
+
+void
+CTranslatorDXLToExpr::MarkUnknownColsAsUnused()
+{
+	UlongToColRefMapIter iter(m_phmulcr);
+
+	while (iter.Advance())
+	{
+		CColRef *colref = m_phmulcr->Find(iter.Key());
+		if (colref->GetUsage() == CColRef::EUnknown)
+		{
+			colref->MarkAsUnused();
+		}
 	}
 }
 

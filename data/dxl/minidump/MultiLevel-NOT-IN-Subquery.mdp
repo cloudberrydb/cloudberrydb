@@ -682,7 +682,6 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i not in (
                             <dxl:TableDescriptor Mdid="0.16391.1.0" TableName="c">
                               <dxl:Columns>
                                 <dxl:Column ColId="27" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                <dxl:Column ColId="28" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
                                 <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                 <dxl:Column ColId="30" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                 <dxl:Column ColId="31" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -759,7 +758,7 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i not in (
             </dxl:SubPlan>
           </dxl:Filter>
           <dxl:OneTimeFilter/>
-          <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+          <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="1293.001624" Rows="30.000000" Width="16"/>
             </dxl:Properties>

@@ -5180,23 +5180,8 @@
                   <dxl:Filter/>
                   <dxl:TableDescriptor Mdid="0.738647.1.1" TableName="times">
                     <dxl:Columns>
-                      <dxl:Column ColId="24" Attno="1" ColName="id" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="25" Attno="2" ColName="date_id" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="26" Attno="3" ColName="date_text_id" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="27" Attno="4" ColName="day_name" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="28" Attno="5" ColName="day_number_in_week" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="29" Attno="6" ColName="day_number_in_month" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="30" Attno="7" ColName="week_number_in_month" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="31" Attno="8" ColName="week_number_in_year" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="32" Attno="9" ColName="week_start_date" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="33" Attno="10" ColName="week_end_date" TypeMdid="0.1082.1.0"/>
                       <dxl:Column ColId="34" Attno="11" ColName="month_number" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="35" Attno="12" ColName="month_name" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="36" Attno="13" ColName="year_number" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="37" Attno="14" ColName="quarter_number" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="38" Attno="15" ColName="quarter_desc" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="39" Attno="16" ColName="leap" TypeMdid="0.16.1.0"/>
-                      <dxl:Column ColId="40" Attno="17" ColName="days_in_year" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="41" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="42" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="43" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -5260,21 +5245,8 @@
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="l_id" TypeMdid="0.23.1.0"/>
                   <dxl:Column ColId="1" Attno="2" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="l_partkey" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="3" Attno="4" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="4" Attno="5" ColName="l_linenumber" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="5" Attno="6" ColName="l_quantity" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="6" Attno="7" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="7" Attno="8" ColName="l_discount" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="8" Attno="9" ColName="l_tax" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="9" Attno="10" ColName="l_returnflag" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                  <dxl:Column ColId="10" Attno="11" ColName="l_linestatus" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                  <dxl:Column ColId="11" Attno="12" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
-                  <dxl:Column ColId="12" Attno="13" ColName="l_commitdate" TypeMdid="0.1082.1.0"/>
                   <dxl:Column ColId="13" Attno="14" ColName="l_receiptdate" TypeMdid="0.1082.1.0"/>
-                  <dxl:Column ColId="14" Attno="15" ColName="l_shipinstruct" TypeMdid="0.1042.1.0" ColWidth="25"/>
                   <dxl:Column ColId="15" Attno="16" ColName="l_shipmode" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                  <dxl:Column ColId="16" Attno="17" ColName="l_comment" TypeMdid="0.1043.1.0" ColWidth="44"/>
                   <dxl:Column ColId="17" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="18" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                   <dxl:Column ColId="19" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

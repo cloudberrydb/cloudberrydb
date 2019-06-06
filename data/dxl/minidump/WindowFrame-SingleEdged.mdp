@@ -314,8 +314,6 @@
               <dxl:TableDescriptor Mdid="0.17004.1.1" TableName="customer">
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="cn" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="1" Attno="2" ColName="cname" TypeMdid="0.25.1.0"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="cloc" TypeMdid="0.25.1.0"/>
                   <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="4" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                   <dxl:Column ColId="5" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

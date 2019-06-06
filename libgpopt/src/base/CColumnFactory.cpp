@@ -172,6 +172,7 @@ CColumnFactory::PcrCreate
 	// ensure uniqueness
 	GPOS_ASSERT(NULL == LookupColRef(id));
 	m_sht.Insert(colref);
+	colref->MarkAsUsed();
 	
 	return a_pcr.Reset();
 }
@@ -193,7 +194,8 @@ CColumnFactory::PcrCreate
 	const CColumnDescriptor *pcoldesc,
 	ULONG id,
 	const CName &name,
-	ULONG ulOpSource
+	ULONG ulOpSource,
+	BOOL mark_as_used
 	)
 {
 	CName *pnameCopy = GPOS_NEW(m_mp) CName(m_mp, name);
@@ -206,6 +208,10 @@ CColumnFactory::PcrCreate
 	// ensure uniqueness
 	GPOS_ASSERT(NULL == LookupColRef(id));
 	m_sht.Insert(colref);
+	if (mark_as_used)
+	{
+		colref->MarkAsUsed();
+	}
 	
 	return a_pcr.Reset();
 }
@@ -245,6 +251,7 @@ CColumnFactory::PcrCreate
 	// ensure uniqueness
 	GPOS_ASSERT(NULL == LookupColRef(id));
 	m_sht.Insert(colref);
+	colref->MarkAsUsed();
 
 	return a_pcr.Reset();
 }
@@ -262,12 +269,13 @@ CColumnFactory::PcrCreate
 	(
 	const CColumnDescriptor *pcoldesc,
 	const CName &name,
-	ULONG ulOpSource
+	ULONG ulOpSource,
+	BOOL mark_as_used
 	)
 {
 	ULONG id = m_aul.Incr();
 	
-	return PcrCreate(pcoldesc, id, name, ulOpSource);
+	return PcrCreate(pcoldesc, id, name, ulOpSource, mark_as_used);
 }
 
 //---------------------------------------------------------------------------

@@ -387,7 +387,7 @@
           </dxl:SortingColumnList>
           <dxl:LimitCount/>
           <dxl:LimitOffset/>
-          <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+          <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="194.052734" Rows="1.000000" Width="28"/>
             </dxl:Properties>

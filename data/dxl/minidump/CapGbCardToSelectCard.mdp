@@ -11011,29 +11011,8 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
                   <dxl:Filter/>
                   <dxl:TableDescriptor Mdid="0.25472.1.1" TableName="store_sales">
                     <dxl:Columns>
-                      <dxl:Column ColId="29" Attno="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="30" Attno="2" ColName="ss_sold_time_sk" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="31" Attno="3" ColName="ss_item_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="32" Attno="4" ColName="ss_customer_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="33" Attno="5" ColName="ss_cdemo_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="34" Attno="6" ColName="ss_hdemo_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="35" Attno="7" ColName="ss_addr_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="36" Attno="8" ColName="ss_store_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="37" Attno="9" ColName="ss_promo_sk" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="38" Attno="10" ColName="ss_ticket_number" TypeMdid="0.20.1.0"/>
-                      <dxl:Column ColId="39" Attno="11" ColName="ss_quantity" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="40" Attno="12" ColName="ss_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="41" Attno="13" ColName="ss_list_price" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="42" Attno="14" ColName="ss_sales_price" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="43" Attno="15" ColName="ss_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="44" Attno="16" ColName="ss_ext_sales_price" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="45" Attno="17" ColName="ss_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="46" Attno="18" ColName="ss_ext_list_price" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="47" Attno="19" ColName="ss_ext_tax" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="48" Attno="20" ColName="ss_coupon_amt" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="49" Attno="21" ColName="ss_net_paid" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="50" Attno="22" ColName="ss_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="51" Attno="23" ColName="ss_net_profit" TypeMdid="0.1700.1.0"/>
                       <dxl:Column ColId="52" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="53" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="54" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -11107,26 +11086,9 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
                       <dxl:Columns>
                         <dxl:Column ColId="0" Attno="1" ColName="i_item_sk" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="1" Attno="2" ColName="i_item_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                        <dxl:Column ColId="2" Attno="3" ColName="i_rec_start_date" TypeMdid="0.1082.1.0"/>
-                        <dxl:Column ColId="3" Attno="4" ColName="i_rec_end_date" TypeMdid="0.1082.1.0"/>
                         <dxl:Column ColId="4" Attno="5" ColName="i_item_desc" TypeMdid="0.1043.1.0" ColWidth="200"/>
                         <dxl:Column ColId="5" Attno="6" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="6" Attno="7" ColName="i_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="7" Attno="8" ColName="i_brand_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="8" Attno="9" ColName="i_brand" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                        <dxl:Column ColId="9" Attno="10" ColName="i_class_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="10" Attno="11" ColName="i_class" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                        <dxl:Column ColId="11" Attno="12" ColName="i_category_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="12" Attno="13" ColName="i_category" TypeMdid="0.1042.1.0" ColWidth="50"/>
                         <dxl:Column ColId="13" Attno="14" ColName="i_manufact_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="14" Attno="15" ColName="i_manufact" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                        <dxl:Column ColId="15" Attno="16" ColName="i_size" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="16" Attno="17" ColName="i_formulation" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="17" Attno="18" ColName="i_color" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="18" Attno="19" ColName="i_units" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                        <dxl:Column ColId="19" Attno="20" ColName="i_container" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                        <dxl:Column ColId="20" Attno="21" ColName="i_manager_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="21" Attno="22" ColName="i_product_name" TypeMdid="0.1042.1.0" ColWidth="50"/>
                         <dxl:Column ColId="22" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="23" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                         <dxl:Column ColId="24" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

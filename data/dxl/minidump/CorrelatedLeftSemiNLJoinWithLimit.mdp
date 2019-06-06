@@ -155,6 +155,18 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
+      <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.1.0"/>
+        <dxl:Commutator Mdid="0.521.1.0"/>
+        <dxl:InverseOp Mdid="0.525.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1978.1.0"/>
+          <dxl:OpClass Mdid="0.3027.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
         <dxl:InequalityOp Mdid="0.608.1.0"/>
@@ -185,6 +197,17 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
+      <dxl:GPDBScalarOp Mdid="0.2799.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.27.1.0"/>
+        <dxl:RightType Mdid="0.27.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.2791.1.0"/>
+        <dxl:Commutator Mdid="0.2800.1.0"/>
+        <dxl:InverseOp Mdid="0.2802.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.2789.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.73731.1.0.0" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.333333" DistinctValues="1.333333">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>

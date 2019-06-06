@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
 	<dxl:Comment><![CDATA[
-
 	For DDL and Insert statement, refer to gpdb: src/test/regress/sql/bb_mpph.sql
         
 	Objective: After we started extracting LOJ's children while implementing join order algorithm, the LOJ's filter
 	was erroneously being pushed down. This led to wrong results. 
-
 	SELECT    'mpph21', 
 		  s_name, 
 		  Count(DISTINCT(l1.l_orderkey::text 
@@ -39,7 +37,6 @@
 	GROUP BY  s_name 
 	ORDER BY  numwait DESC, 
 		  s_name limit 100;
-
 	  ]]>
   </dxl:Comment>
   <dxl:Thread Id="0">
@@ -6065,14 +6062,7 @@
                                     <dxl:TableDescriptor Mdid="0.31262.1.0" TableName="heap_orders">
                                       <dxl:Columns>
                                         <dxl:Column ColId="14" Attno="1" ColName="o_orderkey" TypeMdid="0.20.1.0" ColWidth="8"/>
-                                        <dxl:Column ColId="15" Attno="2" ColName="o_custkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                         <dxl:Column ColId="16" Attno="3" ColName="o_orderstatus" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                        <dxl:Column ColId="17" Attno="4" ColName="o_totalprice" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="8"/>
-                                        <dxl:Column ColId="18" Attno="5" ColName="o_orderdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                        <dxl:Column ColId="19" Attno="6" ColName="o_orderpriority" TypeMdid="0.1042.1.0" TypeModifier="19" ColWidth="16"/>
-                                        <dxl:Column ColId="20" Attno="7" ColName="o_clerk" TypeMdid="0.1042.1.0" TypeModifier="19" ColWidth="16"/>
-                                        <dxl:Column ColId="21" Attno="8" ColName="o_shippriority" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                        <dxl:Column ColId="22" Attno="9" ColName="o_comment" TypeMdid="0.1043.1.0" TypeModifier="83" ColWidth="49"/>
                                         <dxl:Column ColId="23" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                         <dxl:Column ColId="24" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                         <dxl:Column ColId="25" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -6154,11 +6144,7 @@
                                           <dxl:Columns>
                                             <dxl:Column ColId="0" Attno="1" ColName="s_suppkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                             <dxl:Column ColId="1" Attno="2" ColName="s_name" TypeMdid="0.1042.1.0" TypeModifier="29" ColWidth="26"/>
-                                            <dxl:Column ColId="2" Attno="3" ColName="s_address" TypeMdid="0.1043.1.0" TypeModifier="44" ColWidth="26"/>
                                             <dxl:Column ColId="3" Attno="4" ColName="s_nationkey" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                            <dxl:Column ColId="4" Attno="5" ColName="s_phone" TypeMdid="0.1042.1.0" TypeModifier="19" ColWidth="16"/>
-                                            <dxl:Column ColId="5" Attno="6" ColName="s_acctbal" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="7"/>
-                                            <dxl:Column ColId="6" Attno="7" ColName="s_comment" TypeMdid="0.1043.1.0" TypeModifier="105" ColWidth="62"/>
                                             <dxl:Column ColId="7" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                             <dxl:Column ColId="8" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                             <dxl:Column ColId="9" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -6298,21 +6284,10 @@
                                                 <dxl:TableDescriptor Mdid="0.31256.1.0" TableName="heap_lineitem">
                                                   <dxl:Columns>
                                                     <dxl:Column ColId="41" Attno="1" ColName="l_orderkey" TypeMdid="0.20.1.0" ColWidth="8"/>
-                                                    <dxl:Column ColId="42" Attno="2" ColName="l_partkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="43" Attno="3" ColName="l_suppkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="44" Attno="4" ColName="l_linenumber" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                                    <dxl:Column ColId="45" Attno="5" ColName="l_quantity" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="5"/>
-                                                    <dxl:Column ColId="46" Attno="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="8"/>
-                                                    <dxl:Column ColId="47" Attno="7" ColName="l_discount" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                    <dxl:Column ColId="48" Attno="8" ColName="l_tax" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                    <dxl:Column ColId="49" Attno="9" ColName="l_returnflag" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                    <dxl:Column ColId="50" Attno="10" ColName="l_linestatus" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                    <dxl:Column ColId="51" Attno="11" ColName="l_shipdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="52" Attno="12" ColName="l_commitdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="53" Attno="13" ColName="l_receiptdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                                    <dxl:Column ColId="54" Attno="14" ColName="l_shipinstruct" TypeMdid="0.1042.1.0" TypeModifier="29" ColWidth="26"/>
-                                                    <dxl:Column ColId="55" Attno="15" ColName="l_shipmode" TypeMdid="0.1042.1.0" TypeModifier="14" ColWidth="11"/>
-                                                    <dxl:Column ColId="56" Attno="16" ColName="l_comment" TypeMdid="0.1043.1.0" TypeModifier="48" ColWidth="27"/>
                                                     <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                                     <dxl:Column ColId="58" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="59" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -6344,21 +6319,9 @@
                                                 <dxl:TableDescriptor Mdid="0.31256.1.0" TableName="heap_lineitem">
                                                   <dxl:Columns>
                                                     <dxl:Column ColId="87" Attno="1" ColName="l_orderkey" TypeMdid="0.20.1.0" ColWidth="8"/>
-                                                    <dxl:Column ColId="88" Attno="2" ColName="l_partkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="89" Attno="3" ColName="l_suppkey" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                                    <dxl:Column ColId="90" Attno="4" ColName="l_linenumber" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                                    <dxl:Column ColId="91" Attno="5" ColName="l_quantity" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="5"/>
-                                                    <dxl:Column ColId="92" Attno="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="8"/>
-                                                    <dxl:Column ColId="93" Attno="7" ColName="l_discount" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                    <dxl:Column ColId="94" Attno="8" ColName="l_tax" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                    <dxl:Column ColId="95" Attno="9" ColName="l_returnflag" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                    <dxl:Column ColId="96" Attno="10" ColName="l_linestatus" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                    <dxl:Column ColId="97" Attno="11" ColName="l_shipdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="98" Attno="12" ColName="l_commitdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="99" Attno="13" ColName="l_receiptdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                                    <dxl:Column ColId="100" Attno="14" ColName="l_shipinstruct" TypeMdid="0.1042.1.0" TypeModifier="29" ColWidth="26"/>
-                                                    <dxl:Column ColId="101" Attno="15" ColName="l_shipmode" TypeMdid="0.1042.1.0" TypeModifier="14" ColWidth="11"/>
-                                                    <dxl:Column ColId="102" Attno="16" ColName="l_comment" TypeMdid="0.1043.1.0" TypeModifier="48" ColWidth="27"/>
                                                     <dxl:Column ColId="103" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                                     <dxl:Column ColId="104" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                                     <dxl:Column ColId="105" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -6392,21 +6355,7 @@
                                               <dxl:TableDescriptor Mdid="0.31256.1.0" TableName="heap_lineitem">
                                                 <dxl:Columns>
                                                   <dxl:Column ColId="64" Attno="1" ColName="l_orderkey" TypeMdid="0.20.1.0" ColWidth="8"/>
-                                                  <dxl:Column ColId="65" Attno="2" ColName="l_partkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                                   <dxl:Column ColId="66" Attno="3" ColName="l_suppkey" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                                  <dxl:Column ColId="67" Attno="4" ColName="l_linenumber" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                                  <dxl:Column ColId="68" Attno="5" ColName="l_quantity" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="5"/>
-                                                  <dxl:Column ColId="69" Attno="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="8"/>
-                                                  <dxl:Column ColId="70" Attno="7" ColName="l_discount" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                  <dxl:Column ColId="71" Attno="8" ColName="l_tax" TypeMdid="0.1700.1.0" TypeModifier="983046" ColWidth="4"/>
-                                                  <dxl:Column ColId="72" Attno="9" ColName="l_returnflag" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                  <dxl:Column ColId="73" Attno="10" ColName="l_linestatus" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
-                                                  <dxl:Column ColId="74" Attno="11" ColName="l_shipdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                                  <dxl:Column ColId="75" Attno="12" ColName="l_commitdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                                  <dxl:Column ColId="76" Attno="13" ColName="l_receiptdate" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                                                  <dxl:Column ColId="77" Attno="14" ColName="l_shipinstruct" TypeMdid="0.1042.1.0" TypeModifier="29" ColWidth="26"/>
-                                                  <dxl:Column ColId="78" Attno="15" ColName="l_shipmode" TypeMdid="0.1042.1.0" TypeModifier="14" ColWidth="11"/>
-                                                  <dxl:Column ColId="79" Attno="16" ColName="l_comment" TypeMdid="0.1043.1.0" TypeModifier="48" ColWidth="27"/>
                                                   <dxl:Column ColId="80" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                                   <dxl:Column ColId="81" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                                   <dxl:Column ColId="82" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -6443,8 +6392,6 @@
                                   <dxl:Columns>
                                     <dxl:Column ColId="30" Attno="1" ColName="n_nationkey" TypeMdid="0.23.1.0" ColWidth="4"/>
                                     <dxl:Column ColId="31" Attno="2" ColName="n_name" TypeMdid="0.1042.1.0" TypeModifier="29" ColWidth="26"/>
-                                    <dxl:Column ColId="32" Attno="3" ColName="n_regionkey" TypeMdid="0.23.1.0" ColWidth="4"/>
-                                    <dxl:Column ColId="33" Attno="4" ColName="n_comment" TypeMdid="0.1043.1.0" TypeModifier="156" ColWidth="75"/>
                                     <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                                     <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                                     <dxl:Column ColId="36" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

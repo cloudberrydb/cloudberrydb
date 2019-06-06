@@ -368,7 +368,6 @@ EXPLAIN SELECT (SELECT count(*) FROM bar where c = a) FROM foo;
               <dxl:TableDescriptor Mdid="0.16396.1.1" TableName="foo">
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
                   <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                   <dxl:Column ColId="3" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                   <dxl:Column ColId="4" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -423,7 +422,6 @@ EXPLAIN SELECT (SELECT count(*) FROM bar where c = a) FROM foo;
                   <dxl:TableDescriptor Mdid="0.16423.1.1" TableName="bar">
                     <dxl:Columns>
                       <dxl:Column ColId="9" Attno="1" ColName="c" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="10" Attno="2" ColName="d" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

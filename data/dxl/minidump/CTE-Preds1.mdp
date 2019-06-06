@@ -272,7 +272,7 @@
                 <dxl:Ident ColId="10" ColName="j" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
-            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="19.032715" Rows="1.000000" Width="16"/>
               </dxl:Properties>
@@ -304,7 +304,6 @@
                   <dxl:TableDescriptor Mdid="0.32780.1.1" TableName="x">
                     <dxl:Columns>
                       <dxl:Column ColId="18" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="19" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="20" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="21" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="22" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

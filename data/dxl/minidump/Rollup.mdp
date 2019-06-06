@@ -2932,7 +2932,7 @@
                 <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
-            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="215992293591.142578" Rows="907530642.000000" Width="31"/>
               </dxl:Properties>
@@ -2973,26 +2973,6 @@
                     <dxl:Columns>
                       <dxl:Column ColId="20" Attno="1" ColName="i_item_sk" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="21" Attno="2" ColName="i_item_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                      <dxl:Column ColId="22" Attno="3" ColName="i_rec_start_date" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="23" Attno="4" ColName="i_rec_end_date" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="24" Attno="5" ColName="i_item_desc" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                      <dxl:Column ColId="25" Attno="6" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="26" Attno="7" ColName="i_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="27" Attno="8" ColName="i_brand_id" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="28" Attno="9" ColName="i_brand" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                      <dxl:Column ColId="29" Attno="10" ColName="i_class_id" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="30" Attno="11" ColName="i_class" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                      <dxl:Column ColId="31" Attno="12" ColName="i_category_id" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="32" Attno="13" ColName="i_category" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                      <dxl:Column ColId="33" Attno="14" ColName="i_manufact_id" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="34" Attno="15" ColName="i_manufact" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                      <dxl:Column ColId="35" Attno="16" ColName="i_size" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="36" Attno="17" ColName="i_formulation" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="37" Attno="18" ColName="i_color" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                      <dxl:Column ColId="38" Attno="19" ColName="i_units" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                      <dxl:Column ColId="39" Attno="20" ColName="i_container" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                      <dxl:Column ColId="40" Attno="21" ColName="i_manager_id" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="41" Attno="22" ColName="i_product_name" TypeMdid="0.1042.1.0" ColWidth="50"/>
                       <dxl:Column ColId="42" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="43" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="44" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -3017,18 +2997,7 @@
                 <dxl:TableDescriptor Mdid="0.66674.1.1" TableName="customer_address">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="ca_address_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="ca_address_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                    <dxl:Column ColId="2" Attno="3" ColName="ca_street_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                    <dxl:Column ColId="3" Attno="4" ColName="ca_street_name" TypeMdid="0.1043.1.0" ColWidth="60"/>
-                    <dxl:Column ColId="4" Attno="5" ColName="ca_street_type" TypeMdid="0.1042.1.0" ColWidth="15"/>
-                    <dxl:Column ColId="5" Attno="6" ColName="ca_suite_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                    <dxl:Column ColId="6" Attno="7" ColName="ca_city" TypeMdid="0.1043.1.0" ColWidth="60"/>
                     <dxl:Column ColId="7" Attno="8" ColName="ca_county" TypeMdid="0.1043.1.0" ColWidth="30"/>
-                    <dxl:Column ColId="8" Attno="9" ColName="ca_state" TypeMdid="0.1042.1.0" ColWidth="2"/>
-                    <dxl:Column ColId="9" Attno="10" ColName="ca_zip" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                    <dxl:Column ColId="10" Attno="11" ColName="ca_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                    <dxl:Column ColId="11" Attno="12" ColName="ca_gmt_offset" TypeMdid="0.1700.1.0"/>
-                    <dxl:Column ColId="12" Attno="13" ColName="ca_location_type" TypeMdid="0.1042.1.0" ColWidth="20"/>
                     <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

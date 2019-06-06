@@ -483,9 +483,6 @@
                 <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.1007.1.0"/>
                 <dxl:Column ColId="2" Attno="3" ColName="c" TypeMdid="0.1003.1.0"/>
                 <dxl:Column ColId="3" Attno="4" ColName="d" TypeMdid="0.1009.1.0"/>
-                <dxl:Column ColId="4" Attno="5" ColName="e" TypeMdid="0.1022.1.0"/>
-                <dxl:Column ColId="5" Attno="6" ColName="f" TypeMdid="0.1014.1.0"/>
-                <dxl:Column ColId="6" Attno="7" ColName="g" TypeMdid="0.1015.1.0"/>
                 <dxl:Column ColId="7" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                 <dxl:Column ColId="8" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                 <dxl:Column ColId="9" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

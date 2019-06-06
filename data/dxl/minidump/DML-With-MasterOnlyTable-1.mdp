@@ -483,16 +483,6 @@
                     <dxl:Filter/>
                     <dxl:TableDescriptor Mdid="0.5036.1.0" TableName="gp_segment_configuration">
                       <dxl:Columns>
-                        <dxl:Column ColId="8" Attno="1" ColName="dbid" TypeMdid="0.21.1.0" ColWidth="2"/>
-                        <dxl:Column ColId="9" Attno="2" ColName="content" TypeMdid="0.21.1.0" ColWidth="2"/>
-                        <dxl:Column ColId="10" Attno="3" ColName="role" TypeMdid="0.18.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="11" Attno="4" ColName="preferred_role" TypeMdid="0.18.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="12" Attno="5" ColName="mode" TypeMdid="0.18.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="13" Attno="6" ColName="status" TypeMdid="0.18.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="14" Attno="7" ColName="port" TypeMdid="0.23.1.0" ColWidth="4"/>
-                        <dxl:Column ColId="15" Attno="8" ColName="hostname" TypeMdid="0.25.1.0" ColWidth="7"/>
-                        <dxl:Column ColId="16" Attno="9" ColName="address" TypeMdid="0.25.1.0" ColWidth="7"/>
-                        <dxl:Column ColId="17" Attno="10" ColName="datadir" TypeMdid="0.25.1.0" ColWidth="73"/>
                         <dxl:Column ColId="18" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                         <dxl:Column ColId="19" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                         <dxl:Column ColId="20" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

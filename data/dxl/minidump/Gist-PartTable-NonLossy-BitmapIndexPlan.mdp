@@ -402,8 +402,6 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.23.1.0" ColWidth="4"/>
                   <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.603.1.0" ColWidth="32"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="p" TypeMdid="0.604.1.0" ColWidth="8"/>
-                  <dxl:Column ColId="3" Attno="4" ColName="c" TypeMdid="0.718.1.0" ColWidth="24"/>
                   <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                   <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                   <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

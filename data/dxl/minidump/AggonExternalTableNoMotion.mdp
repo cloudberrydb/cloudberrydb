@@ -361,10 +361,6 @@
                 <dxl:TableDescriptor Mdid="0.196638.1.0" TableName="ext_expenses">
                   <dxl:Columns>
                     <dxl:Column ColId="0" Attno="1" ColName="name" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="1" Attno="2" ColName="date" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="2" Attno="3" ColName="amount" TypeMdid="0.700.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="3" Attno="4" ColName="category" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="4" Attno="5" ColName="desc1" TypeMdid="0.25.1.0" ColWidth="8"/>
                     <dxl:Column ColId="5" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                     <dxl:Column ColId="6" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                     <dxl:Column ColId="7" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -388,10 +384,6 @@
                 <dxl:TableDescriptor Mdid="0.196638.1.0" TableName="ext_expenses">
                   <dxl:Columns>
                     <dxl:Column ColId="12" Attno="1" ColName="name" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="13" Attno="2" ColName="date" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="14" Attno="3" ColName="amount" TypeMdid="0.700.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="15" Attno="4" ColName="category" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="16" Attno="5" ColName="desc1" TypeMdid="0.25.1.0" ColWidth="8"/>
                     <dxl:Column ColId="17" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                     <dxl:Column ColId="18" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                     <dxl:Column ColId="19" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -415,10 +407,6 @@
                 <dxl:TableDescriptor Mdid="0.196638.1.0" TableName="ext_expenses">
                   <dxl:Columns>
                     <dxl:Column ColId="24" Attno="1" ColName="name" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="25" Attno="2" ColName="date" TypeMdid="0.1082.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="26" Attno="3" ColName="amount" TypeMdid="0.700.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="27" Attno="4" ColName="category" TypeMdid="0.25.1.0" ColWidth="8"/>
-                    <dxl:Column ColId="28" Attno="5" ColName="desc1" TypeMdid="0.25.1.0" ColWidth="8"/>
                     <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                     <dxl:Column ColId="30" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                     <dxl:Column ColId="31" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

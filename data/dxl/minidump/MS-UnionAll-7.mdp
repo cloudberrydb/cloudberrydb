@@ -1083,34 +1083,13 @@
                           </dxl:Filter>
                           <dxl:TableDescriptor Mdid="0.17298420.1.1" TableName="mr_star1_cashflows_dh" ExecuteAsUser="10">
                             <dxl:Columns>
-                              <dxl:Column ColId="0" Attno="1" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              <dxl:Column ColId="1" Attno="2" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="2" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              <dxl:Column ColId="3" Attno="4" ColName="ticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="4" Attno="5" ColName="longticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="5" Attno="6" ColName="counterpartyid" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="6" Attno="7" ColName="entity" TypeMdid="0.1042.1.0" ColWidth="4"/>
-                              <dxl:Column ColId="7" Attno="8" ColName="tradetype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                              <dxl:Column ColId="8" Attno="9" ColName="subtype" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="9" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="10" Attno="11" ColName="tradingaccount" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="11" Attno="12" ColName="productidtype" TypeMdid="0.1043.1.0" ColWidth="32"/>
                               <dxl:Column ColId="12" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="13" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
-                              <dxl:Column ColId="14" Attno="15" ColName="uomname" TypeMdid="0.1042.1.0" ColWidth="6"/>
-                              <dxl:Column ColId="15" Attno="16" ColName="marketstatename" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="16" Attno="17" ColName="process2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="17" Attno="18" ColName="observablename" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="18" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="19" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="20" Attno="21" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="21" Attno="22" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="22" Attno="23" ColName="entityid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="23" Attno="24" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="24" Attno="25" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="25" Attno="26" ColName="productid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="26" Attno="27" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="27" Attno="28" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="28" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="30" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
@@ -1347,34 +1326,13 @@
                           </dxl:Filter>
                           <dxl:TableDescriptor Mdid="0.17306732.1.1" TableName="mr_star1_deltas_dh" ExecuteAsUser="10">
                             <dxl:Columns>
-                              <dxl:Column ColId="33" Attno="1" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              <dxl:Column ColId="34" Attno="2" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="35" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              <dxl:Column ColId="36" Attno="4" ColName="ticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="37" Attno="5" ColName="longticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="38" Attno="6" ColName="counterpartyid" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="39" Attno="7" ColName="entity" TypeMdid="0.1042.1.0" ColWidth="4"/>
-                              <dxl:Column ColId="40" Attno="8" ColName="tradetype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                              <dxl:Column ColId="41" Attno="9" ColName="subtype" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="42" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="43" Attno="11" ColName="tradingaccount" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="44" Attno="12" ColName="productidtype" TypeMdid="0.1043.1.0" ColWidth="32"/>
                               <dxl:Column ColId="45" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="46" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
-                              <dxl:Column ColId="47" Attno="15" ColName="uomname" TypeMdid="0.1042.1.0" ColWidth="6"/>
-                              <dxl:Column ColId="48" Attno="16" ColName="marketstatename" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="49" Attno="17" ColName="process2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="50" Attno="18" ColName="observablename" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="51" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="52" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="53" Attno="21" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="54" Attno="22" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="55" Attno="23" ColName="entityid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="56" Attno="24" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="57" Attno="25" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="58" Attno="26" ColName="productid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="59" Attno="27" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="60" Attno="28" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="61" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="62" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="63" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
@@ -1611,34 +1569,13 @@
                           </dxl:Filter>
                           <dxl:TableDescriptor Mdid="0.17327104.1.1" TableName="mr_star1_gammas_dh" ExecuteAsUser="10">
                             <dxl:Columns>
-                              <dxl:Column ColId="66" Attno="1" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              <dxl:Column ColId="67" Attno="2" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="68" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              <dxl:Column ColId="69" Attno="4" ColName="ticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="70" Attno="5" ColName="longticket" TypeMdid="0.1042.1.0" ColWidth="12"/>
-                              <dxl:Column ColId="71" Attno="6" ColName="counterpartyid" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="72" Attno="7" ColName="entity" TypeMdid="0.1042.1.0" ColWidth="4"/>
-                              <dxl:Column ColId="73" Attno="8" ColName="tradetype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                              <dxl:Column ColId="74" Attno="9" ColName="subtype" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="75" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="76" Attno="11" ColName="tradingaccount" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                              <dxl:Column ColId="77" Attno="12" ColName="productidtype" TypeMdid="0.1043.1.0" ColWidth="32"/>
                               <dxl:Column ColId="78" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="79" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
-                              <dxl:Column ColId="80" Attno="15" ColName="uomname" TypeMdid="0.1042.1.0" ColWidth="6"/>
-                              <dxl:Column ColId="81" Attno="16" ColName="marketstatename" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="82" Attno="17" ColName="process2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="83" Attno="18" ColName="observablename" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="84" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
                               <dxl:Column ColId="85" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                              <dxl:Column ColId="86" Attno="21" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="87" Attno="22" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="88" Attno="23" ColName="entityid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="89" Attno="24" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="90" Attno="25" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="91" Attno="26" ColName="productid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="92" Attno="27" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              <dxl:Column ColId="93" Attno="28" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               <dxl:Column ColId="94" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
                               <dxl:Column ColId="95" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="96" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>

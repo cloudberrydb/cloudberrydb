@@ -10644,33 +10644,8 @@
                     <dxl:TableDescriptor Mdid="0.1962503.1.1" TableName="date_dim">
                       <dxl:Columns>
                         <dxl:Column ColId="27" Attno="1" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="28" Attno="2" ColName="d_date_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                        <dxl:Column ColId="29" Attno="3" ColName="d_date" TypeMdid="0.1082.1.0"/>
-                        <dxl:Column ColId="30" Attno="4" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="31" Attno="5" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="32" Attno="6" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="33" Attno="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="34" Attno="8" ColName="d_dow" TypeMdid="0.23.1.0"/>
                         <dxl:Column ColId="35" Attno="9" ColName="d_moy" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="36" Attno="10" ColName="d_dom" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="37" Attno="11" ColName="d_qoy" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="38" Attno="12" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="39" Attno="13" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="40" Attno="14" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="41" Attno="15" ColName="d_day_name" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                        <dxl:Column ColId="42" Attno="16" ColName="d_quarter_name" TypeMdid="0.1042.1.0" ColWidth="6"/>
-                        <dxl:Column ColId="43" Attno="17" ColName="d_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="44" Attno="18" ColName="d_weekend" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="45" Attno="19" ColName="d_following_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="46" Attno="20" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="47" Attno="21" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="48" Attno="22" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="49" Attno="23" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="50" Attno="24" ColName="d_current_day" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="51" Attno="25" ColName="d_current_week" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="52" Attno="26" ColName="d_current_month" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="53" Attno="27" ColName="d_current_quarter" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                        <dxl:Column ColId="54" Attno="28" ColName="d_current_year" TypeMdid="0.1042.1.0" ColWidth="1"/>
                         <dxl:Column ColId="55" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                         <dxl:Column ColId="56" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                         <dxl:Column ColId="57" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

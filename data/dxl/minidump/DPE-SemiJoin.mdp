@@ -1293,7 +1293,6 @@ Select * from X where X.a < ANY (select a from P);
                       <dxl:TableDescriptor Mdid="0.35837767.1.1" TableName="p">
                         <dxl:Columns>
                           <dxl:Column ColId="8" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="9" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
                           <dxl:Column ColId="10" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                           <dxl:Column ColId="11" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                           <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>

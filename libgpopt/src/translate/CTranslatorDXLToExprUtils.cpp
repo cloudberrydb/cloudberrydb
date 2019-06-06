@@ -258,7 +258,8 @@ CTranslatorDXLToExprUtils::Pdrgpcr
 	for (ULONG ul = 0; ul < colids->Size(); ul++)
 	{
 		ULONG *pulColId = (*colids)[ul];
-		const CColRef *colref = colref_mapping->Find(pulColId);
+		CColRef *colref = colref_mapping->Find(pulColId);
+		colref->MarkAsUsed();
 		GPOS_ASSERT(NULL != colref);
 
 		colref_array->Append(const_cast<CColRef*>(colref));

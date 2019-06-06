@@ -1583,8 +1583,6 @@
                     <dxl:Columns>
                       <dxl:Column ColId="11" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
                       <dxl:Column ColId="12" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="13" Attno="3" ColName="c" TypeMdid="0.25.1.0"/>
-                      <dxl:Column ColId="14" Attno="4" ColName="d" TypeMdid="0.1700.1.0"/>
                       <dxl:Column ColId="15" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                       <dxl:Column ColId="16" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                       <dxl:Column ColId="17" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -1622,10 +1620,7 @@
                 <dxl:Filter/>
                 <dxl:TableDescriptor Mdid="0.501311.1.1" TableName="dml_union_s">
                   <dxl:Columns>
-                    <dxl:Column ColId="22" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
                     <dxl:Column ColId="23" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="24" Attno="3" ColName="c" TypeMdid="0.25.1.0"/>
-                    <dxl:Column ColId="25" Attno="4" ColName="d" TypeMdid="0.1700.1.0"/>
                     <dxl:Column ColId="26" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                     <dxl:Column ColId="27" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                     <dxl:Column ColId="28" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>

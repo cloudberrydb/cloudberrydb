@@ -1888,19 +1888,12 @@
                           <dxl:TableDescriptor Mdid="0.91393.1.1" TableName="t49">
                             <dxl:Columns>
                               <dxl:Column ColId="30" Attno="1" ColName="c586" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="31" Attno="2" ColName="c587" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="32" Attno="3" ColName="c588" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="33" Attno="4" ColName="c589" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="34" Attno="5" ColName="c590" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="35" Attno="6" ColName="c591" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="36" Attno="7" ColName="c592" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="37" Attno="8" ColName="c593" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="38" Attno="9" ColName="c594" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="39" Attno="10" ColName="c595" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="40" Attno="11" ColName="c596" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="41" Attno="12" ColName="c597" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="42" Attno="13" ColName="c598" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="43" Attno="14" ColName="c599" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="44" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="45" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                               <dxl:Column ColId="46" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -1995,16 +1988,12 @@
                               <dxl:TableDescriptor Mdid="0.92635.1.1" TableName="t97">
                                 <dxl:Columns>
                                   <dxl:Column ColId="47" Attno="1" ColName="c1190" TypeMdid="0.25.1.0"/>
-                                  <dxl:Column ColId="48" Attno="2" ColName="c1191" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="49" Attno="3" ColName="c1192" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="50" Attno="4" ColName="c1193" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="51" Attno="5" ColName="c1194" TypeMdid="0.25.1.0"/>
-                                  <dxl:Column ColId="52" Attno="6" ColName="c1195" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="53" Attno="7" ColName="c1196" TypeMdid="0.25.1.0"/>
-                                  <dxl:Column ColId="54" Attno="8" ColName="c1197" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="55" Attno="9" ColName="c1198" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="56" Attno="10" ColName="c1199" TypeMdid="0.25.1.0"/>
-                                  <dxl:Column ColId="57" Attno="11" ColName="c1200" TypeMdid="0.25.1.0"/>
                                   <dxl:Column ColId="58" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                   <dxl:Column ColId="59" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                                   <dxl:Column ColId="60" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -2112,7 +2101,6 @@
                               <dxl:Columns>
                                 <dxl:Column ColId="61" Attno="1" ColName="c1047" TypeMdid="0.25.1.0"/>
                                 <dxl:Column ColId="62" Attno="2" ColName="c1048" TypeMdid="0.25.1.0"/>
-                                <dxl:Column ColId="63" Attno="3" ColName="c1049" TypeMdid="0.25.1.0"/>
                                 <dxl:Column ColId="64" Attno="4" ColName="c1050" TypeMdid="0.25.1.0"/>
                                 <dxl:Column ColId="65" Attno="5" ColName="c1051" TypeMdid="0.25.1.0"/>
                                 <dxl:Column ColId="66" Attno="6" ColName="c1052" TypeMdid="0.25.1.0"/>
@@ -2275,8 +2263,6 @@
                             <dxl:Columns>
                               <dxl:Column ColId="0" Attno="1" ColName="c0" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="1" Attno="2" ColName="c1" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="2" Attno="3" ColName="c2" TypeMdid="0.25.1.0"/>
-                              <dxl:Column ColId="3" Attno="4" ColName="c3" TypeMdid="0.25.1.0"/>
                               <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                               <dxl:Column ColId="5" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                               <dxl:Column ColId="6" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
@@ -2334,20 +2320,13 @@
                           <dxl:Columns>
                             <dxl:Column ColId="7" Attno="1" ColName="c910" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="8" Attno="2" ColName="c911" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="9" Attno="3" ColName="c912" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="10" Attno="4" ColName="c913" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="11" Attno="5" ColName="c914" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="12" Attno="6" ColName="c915" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="13" Attno="7" ColName="c916" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="14" Attno="8" ColName="c917" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="15" Attno="9" ColName="c918" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="16" Attno="10" ColName="c919" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="17" Attno="11" ColName="c920" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="18" Attno="12" ColName="c921" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="19" Attno="13" ColName="c922" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="20" Attno="14" ColName="c923" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="21" Attno="15" ColName="c924" TypeMdid="0.25.1.0"/>
-                            <dxl:Column ColId="22" Attno="16" ColName="c925" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="23" Attno="17" ColName="c926" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="24" Attno="18" ColName="c927" TypeMdid="0.25.1.0"/>
                             <dxl:Column ColId="25" Attno="19" ColName="c928" TypeMdid="0.25.1.0"/>

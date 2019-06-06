@@ -12,8 +12,6 @@ CREATE TABLE foo_prt (
           DEFAULT PARTITION managed  WITH (appendonly=false)
           );
 CREATE INDEX foo_idx ON foo_prt USING btree (a);
-
-
 explain select t1.a from t1, foo_prt t2, t3 where (t1.b = t2.a) and t2.a = t3.b;
                                                    QUERY PLAN
 ----------------------------------------------------------------------------------------------------------------

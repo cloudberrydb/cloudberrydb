@@ -74,7 +74,8 @@ namespace gpopt
 					const CColumnDescriptor *pcoldesc,
 					ULONG id,
 					const CName &name,
-					ULONG ulOpSource
+					ULONG ulOpSource,
+					BOOL mark_as_used=true
 					);
 
 		public:
@@ -99,7 +100,8 @@ namespace gpopt
 				(
 				const CColumnDescriptor *pcoldescr,
 				const CName &name,
-				ULONG ulOpSource
+				ULONG ulOpSource,
+				BOOL mark_as_used
 				);
 
 			// create a column reference given its type, attno, nullability and name

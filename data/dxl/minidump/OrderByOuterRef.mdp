@@ -474,7 +474,6 @@
                               <dxl:TableDescriptor Mdid="0.990131.1.1" TableName="s">
                                 <dxl:Columns>
                                   <dxl:Column ColId="9" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
-                                  <dxl:Column ColId="10" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
                                   <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                                   <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
                                   <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
@@ -486,15 +485,15 @@
                               </dxl:TableDescriptor>
                             </dxl:TableScan>
                           </dxl:GatherMotion>
-                          </dxl:Materialize>
-                          <dxl:LimitCount>
-                            <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                            </dxl:FuncExpr>
-                          </dxl:LimitCount>
-                          <dxl:LimitOffset>
-                            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-                          </dxl:LimitOffset>
+                        </dxl:Materialize>
+                        <dxl:LimitCount>
+                          <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          </dxl:FuncExpr>
+                        </dxl:LimitCount>
+                        <dxl:LimitOffset>
+                          <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                        </dxl:LimitOffset>
                       </dxl:Limit>
                     </dxl:Result>
                   </dxl:Aggregate>

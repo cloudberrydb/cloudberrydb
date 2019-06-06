@@ -1906,7 +1906,6 @@
                   <dxl:TableDescriptor Mdid="0.65577.1.0" TableName="t4">
                     <dxl:Columns>
                       <dxl:Column ColId="27" Attno="1" ColName="g" TypeMdid="0.23.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="28" Attno="2" ColName="h" TypeMdid="0.23.1.0" ColWidth="4"/>
                       <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                       <dxl:Column ColId="30" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                       <dxl:Column ColId="31" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -1931,7 +1930,6 @@
                 <dxl:TableDescriptor Mdid="0.65580.1.0" TableName="t5">
                   <dxl:Columns>
                     <dxl:Column ColId="36" Attno="1" ColName="i" TypeMdid="0.23.1.0" ColWidth="4"/>
-                    <dxl:Column ColId="37" Attno="2" ColName="j" TypeMdid="0.23.1.0" ColWidth="4"/>
                     <dxl:Column ColId="38" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                     <dxl:Column ColId="39" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                     <dxl:Column ColId="40" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -1956,7 +1954,6 @@
               <dxl:TableDescriptor Mdid="0.65571.1.0" TableName="t2">
                 <dxl:Columns>
                   <dxl:Column ColId="9" Attno="1" ColName="c" TypeMdid="0.23.1.0" ColWidth="4"/>
-                  <dxl:Column ColId="10" Attno="2" ColName="d" TypeMdid="0.23.1.0" ColWidth="4"/>
                   <dxl:Column ColId="11" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                   <dxl:Column ColId="12" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                   <dxl:Column ColId="13" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
@@ -1981,7 +1978,6 @@
             <dxl:TableDescriptor Mdid="0.65574.1.0" TableName="t3">
               <dxl:Columns>
                 <dxl:Column ColId="18" Attno="1" ColName="e" TypeMdid="0.23.1.0" ColWidth="4"/>
-                <dxl:Column ColId="19" Attno="2" ColName="f" TypeMdid="0.23.1.0" ColWidth="4"/>
                 <dxl:Column ColId="20" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
                 <dxl:Column ColId="21" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
                 <dxl:Column ColId="22" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>

@@ -5347,62 +5347,8 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
             <dxl:TableDescriptor Mdid="0.1279380.1.1" TableName="stg_xdr_crce_cdr">
               <dxl:Columns>
                 <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="1" Attno="2" ColName="headerversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="2" Attno="3" ColName="tickettypeid" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="3" Attno="4" ColName="success" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="4" Attno="5" ColName="provider" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="5" Attno="6" ColName="application" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="6" Attno="7" ColName="tickettype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="7" Attno="8" ColName="nodeid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="8" Attno="9" ColName="tickettimestamp" TypeMdid="0.1184.1.0"/>
                 <dxl:Column ColId="9" Attno="10" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-                <dxl:Column ColId="10" Attno="11" ColName="sessionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="11" Attno="12" ColName="transactionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="12" Attno="13" ColName="sequenceid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="13" Attno="14" ColName="subscriberid" TypeMdid="0.1043.1.0" ColWidth="128"/>
                 <dxl:Column ColId="14" Attno="15" ColName="subscriberaddress" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="15" Attno="16" ColName="subscribertype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="16" Attno="17" ColName="errorcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="17" Attno="18" ColName="groupid" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="18" Attno="19" ColName="subscriberstate" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="19" Attno="20" ColName="subscriberstateinfo" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="20" Attno="21" ColName="languageid" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="21" Attno="22" ColName="chargenotification" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="22" Attno="23" ColName="recordversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="23" Attno="24" ColName="crceoperation" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="24" Attno="25" ColName="chargemode" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="25" Attno="26" ColName="imsi" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="26" Attno="27" ColName="callingmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="27" Attno="28" ColName="clipsuppressnumber" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="28" Attno="29" ColName="calledmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="29" Attno="30" ColName="destinationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="30" Attno="31" ColName="destinationzone" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="31" Attno="32" ColName="traffictype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="32" Attno="33" ColName="messagetypeindicator" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="33" Attno="34" ColName="bearertype" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="34" Attno="35" ColName="subscriberlocation" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="35" Attno="36" ColName="locationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="36" Attno="37" ColName="answertime" TypeMdid="0.1184.1.0"/>
-                <dxl:Column ColId="37" Attno="38" ColName="maxcallcost" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="38" Attno="39" ColName="callduration" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="39" Attno="40" ColName="chargedduration" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="40" Attno="41" ColName="referencenumber" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="41" Attno="42" ColName="chargefreeaction" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="42" Attno="43" ColName="tariff" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="43" Attno="44" ColName="accountid" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="44" Attno="45" ColName="accountdifference" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="45" Attno="46" ColName="chargeamount" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="46" Attno="47" ColName="currency" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="47" Attno="48" ColName="closingbalance" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="48" Attno="49" ColName="crceresultcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="49" Attno="50" ColName="transparentdata" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="50" Attno="51" ColName="additionalratinginfo" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="51" Attno="52" ColName="apn" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="52" Attno="53" ColName="transferredunits" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="53" Attno="54" ColName="accounttype" TypeMdid="0.1043.1.0" ColWidth="128"/>
-                <dxl:Column ColId="54" Attno="55" ColName="ratinggroup" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="55" Attno="56" ColName="roaming" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="56" Attno="57" ColName="nrofsegments" TypeMdid="0.20.1.0"/>
                 <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
                 <dxl:Column ColId="58" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
                 <dxl:Column ColId="59" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
