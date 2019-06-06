@@ -12,7 +12,7 @@ function make_sync_tools() {
     make sync_tools
   popd
 
-  wget -q -O - https://github.com/greenplum-db/gporca/archive/v3.47.0.tar.gz | tar zxf - -C ${GPDB_SRC_PATH}/gpAux/ext/${BLD_ARCH}
+  wget -q -O - https://github.com/greenplum-db/gporca/archive/v3.48.0.tar.gz | tar zxf - -C ${GPDB_SRC_PATH}/gpAux/ext/${BLD_ARCH}
   mkdir -p orca_src
   mv ${GPDB_SRC_PATH}/gpAux/ext/${BLD_ARCH}/gporca*/* orca_src/
 
