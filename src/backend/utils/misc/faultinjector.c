@@ -879,7 +879,7 @@ FaultInjector_SetFaultInjection(
 			}
 			elog(LOG, "%s", entry->bufOutput);
 			if (length > sizeof(entry->bufOutput))
-				elog(LOG, "fault status truncated from %d to %d characters",
+				elog(LOG, "fault status truncated from %d to %zu characters",
 					 length, sizeof(entry->bufOutput));
 			break;
 		}
