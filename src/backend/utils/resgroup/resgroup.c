@@ -2532,7 +2532,7 @@ AssignResGroupOnMaster(void)
 		self->caps = slot->caps;
 
 		/* Don't error out before this line in this function */
-		SIMPLE_FAULT_INJECTOR(ResGroupAssignedOnMaster);
+		SIMPLE_FAULT_INJECTOR("resgroup_assigned_on_master");
 
 		/* Add into cgroup */
 		ResGroupOps_AssignGroup(self->groupId, &(self->caps), MyProcPid);

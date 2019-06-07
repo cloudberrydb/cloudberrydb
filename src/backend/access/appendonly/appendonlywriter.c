@@ -208,7 +208,7 @@ AORelCreateHashEntry(Oid relid)
 	 */
 	release_lightweight_lock();
 
-	SIMPLE_FAULT_INJECTOR(BeforeCreatingAnAOHashEntry);
+	SIMPLE_FAULT_INJECTOR("before_creating_an_ao_hash_entry");
 
 	/*
 	 * Now get all the segment files information for this relation from the QD

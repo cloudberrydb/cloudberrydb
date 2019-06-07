@@ -106,7 +106,7 @@ CTranslatorRelcacheToDXL::RetrieveObject
 	GPOS_ASSERT(NULL != md_accessor);
 
 #ifdef FAULT_INJECTOR
-	gpdb::InjectFaultInOptTasks(OptRelcacheTranslatorCatalogAccess);
+	gpdb::InjectFaultInOptTasks("opt_relcache_translator_catalog_access");
 #endif // FAULT_INJECTOR
 
 	switch(mdid->MdidType())

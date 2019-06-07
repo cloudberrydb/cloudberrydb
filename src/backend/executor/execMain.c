@@ -539,7 +539,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 				SetupInterconnect(estate);
 				UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
 
-				SIMPLE_FAULT_INJECTOR(QEGotSnapshotAndInterconnect);
+				SIMPLE_FAULT_INJECTOR("qe_got_snapshot_and_interconnect");
 				Assert(estate->interconnect_context);
 			}
 			PG_CATCH();
@@ -1020,7 +1020,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	if (estate->es_processed >= 10000 && estate->es_processed <= 1000000)
 	//if (estate->es_processed >= 10000)
 	{
-		if (FaultInjector_InjectFaultIfSet(ExecutorRunHighProcessed,
+		if (FaultInjector_InjectFaultIfSet("executor_run_high_processed",
 										   DDLNotSpecified,
 										   "" /* databaseName */,
 										   "" /* tableName */) == FaultInjectorTypeSkip)
@@ -2999,7 +2999,7 @@ ExecutePlan(EState *estate,
 			 */
 			if (estate->es_processed >= 10000 && estate->es_processed <= 1000000)
 			{
-				if (FaultInjector_InjectFaultIfSet(ExecutorRunHighProcessed,
+				if (FaultInjector_InjectFaultIfSet("executor_run_high_processed",
 												   DDLNotSpecified,
 												   "" /* databaseName */,
 												   "" /* tableName */) == FaultInjectorTypeSkip)

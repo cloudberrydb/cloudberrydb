@@ -187,7 +187,7 @@ DistributedLog_AdvanceOldestXmin(TransactionId oldestLocalXmin,
 	if (MyProcPort)
 		dbname = MyProcPort->database_name;
 
-	FaultInjector_InjectFaultIfSet(DistributedLogAdvanceOldestXmin, DDLNotSpecified,
+	FaultInjector_InjectFaultIfSet("distributedlog_advance_oldest_xmin", DDLNotSpecified,
 								   dbname?dbname: "", "");
 #endif
 

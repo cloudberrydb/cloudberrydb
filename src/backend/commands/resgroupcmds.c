@@ -251,7 +251,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 			CpusetDifference(defaultGroupCpuset, caps.cpuset, MaxCpuSetLength);
 			ResGroupOps_SetCpuSet(DEFAULT_CPUSET_GROUP_ID, defaultGroupCpuset);
 		}
-		SIMPLE_FAULT_INJECTOR(CreateResourceGroupFail);
+		SIMPLE_FAULT_INJECTOR("create_resource_group_fail");
 	}
 	else if (Gp_role == GP_ROLE_DISPATCH)
 		ereport(WARNING,

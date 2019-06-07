@@ -1141,13 +1141,13 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 			if (InterruptPending)
 				break;
 		}
-		SIMPLE_FAULT_INJECTOR(BeforeOneSliceDispatched);
+		SIMPLE_FAULT_INJECTOR("before_one_slice_dispatched");
 
 		cdbdisp_dispatchToGang(ds, primaryGang, si);
 		if (planRequiresTxn || isDtxExplicitBegin())
 			addToGxactTwophaseSegments(primaryGang);
 
-		SIMPLE_FAULT_INJECTOR(AfterOneSliceDispatched);
+		SIMPLE_FAULT_INJECTOR("after_one_slice_dispatched");
 	}
 
 	pfree(sliceVector);

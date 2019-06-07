@@ -209,7 +209,7 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt,
 
 	CdbDispatchCopyStart(c, (Node *) stmt, flags);
 
-	SIMPLE_FAULT_INJECTOR(CdbCopyStartAfterDispatch);
+	SIMPLE_FAULT_INJECTOR("cdb_copy_start_after_dispatch");
 }
 
 /*

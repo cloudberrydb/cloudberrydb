@@ -288,7 +288,7 @@ ProcArrayAdd(PGPROC *proc)
 
 	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
 
-	SIMPLE_FAULT_INJECTOR(ProcArray_Add);
+	SIMPLE_FAULT_INJECTOR("procarray_add");
 
 	if (arrayP->numProcs >= arrayP->maxProcs)
 	{
@@ -1802,7 +1802,7 @@ getDtxCheckPointInfo(char **result, int *result_size)
 	for (i = 0; i < *shmNumCommittedGxacts; i++)
 		gxact_log_array[actual++] = shmCommittedGxactArray[i++];
 
-	SIMPLE_FAULT_INJECTOR(CheckPointDtxInfo);
+	SIMPLE_FAULT_INJECTOR("checkpoint_dtx_info");
 
 	/*
 	 * If a transaction inserted 'commit' record logically before the checkpoint

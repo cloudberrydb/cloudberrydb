@@ -802,7 +802,7 @@ cleanupQE(SegmentDatabaseDescriptor *segdbDesc)
 	Assert(segdbDesc != NULL);
 
 #ifdef FAULT_INJECTOR
-	if (SIMPLE_FAULT_INJECTOR(CleanupQE) == FaultInjectorTypeSkip)
+	if (SIMPLE_FAULT_INJECTOR("cleanup_qe") == FaultInjectorTypeSkip)
 		return false;
 #endif
 
@@ -1253,7 +1253,7 @@ getAddressesForDBid(GpSegConfigEntry *c, int elevel)
 
 #ifdef FAULT_INJECTOR
 	if (am_ftsprobe &&
-		SIMPLE_FAULT_INJECTOR(GetDnsCachedAddress) == FaultInjectorTypeSkip)
+		SIMPLE_FAULT_INJECTOR("get_dns_cached_address") == FaultInjectorTypeSkip)
 	{
 		/* inject a dns error for primary of segment 0 */
 		if (c->segindex == 0 &&

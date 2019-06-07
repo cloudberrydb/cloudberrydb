@@ -418,7 +418,7 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, char role,
 		simple_heap_insert(histrel, histtuple);
 		CatalogUpdateIndexes(histrel, histtuple);
 
-		SIMPLE_FAULT_INJECTOR(FtsUpdateConfig);
+		SIMPLE_FAULT_INJECTOR("fts_update_config");
 
 		heap_close(histrel, RowExclusiveLock);
 	}
@@ -527,7 +527,7 @@ void FtsLoop()
 		skip_fts_probe = false;
 
 #ifdef FAULT_INJECTOR
-		if (SIMPLE_FAULT_INJECTOR(FtsProbe) == FaultInjectorTypeSkip)
+		if (SIMPLE_FAULT_INJECTOR("fts_probe") == FaultInjectorTypeSkip)
 			skip_fts_probe = true;
 #endif
 
