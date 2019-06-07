@@ -25,9 +25,10 @@ Python module requirements:
   - jinja2 (install through pip or easy_install)
 """
 
+from __future__ import print_function
+
 import argparse
 import datetime
-import glob
 import os
 import re
 import subprocess
@@ -42,7 +43,7 @@ TEMPLATE_ENVIRONMENT = Environment(
     loader=FileSystemLoader(os.path.join(PIPELINES_DIR, 'templates')),
     trim_blocks=True,
     lstrip_blocks=True,
-    variable_start_string='[[', # 'default {{ has conflict with pipeline syntax'
+    variable_start_string='[[',  # 'default {{ has conflict with pipeline syntax'
     variable_end_string=']]',
     extensions=['jinja2.ext.loopcontrols']
 )
@@ -84,9 +85,9 @@ def suggested_git_remote():
     """Try to guess the current git remote"""
     default_remote = "<https://github.com/<github-user>/gpdb>"
 
-    remote = subprocess.check_output(["git", "ls-remote", "--get-url"]).rstrip()
+    remote = subprocess.check_output(["git", "ls-remote", "--get-url"]).decode('utf-8').rstrip()
 
-    if "greenplum-db/gpdb"  in remote:
+    if "greenplum-db/gpdb" in remote:
         return default_remote
 
     if "git@" in remote:
@@ -99,7 +100,7 @@ def suggested_git_remote():
 
 def suggested_git_branch():
     """Try to guess the current git branch"""
-    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
+    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode('utf-8').rstrip()
     if branch == "master" or is_a_base_branch(branch):
         return "<branch-name>"
     return branch
@@ -119,9 +120,9 @@ def render_template(template_filename, context):
 def validate_pipeline_release_jobs(raw_pipeline_yml):
     """Make sure all jobs in specified pipeline that don't block release are accounted
     for (they should belong to JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE, defined above)"""
-    print "======================================================================"
-    print "Validate Pipeline Release Jobs"
-    print "----------------------------------------------------------------------"
+    print("======================================================================")
+    print("Validate Pipeline Release Jobs")
+    print("----------------------------------------------------------------------")
 
     # ignore concourse v2.x variable interpolation
     pipeline_yml_cleaned = re.sub('{{', '', re.sub('}}', '', raw_pipeline_yml))
@@ -141,12 +142,12 @@ def validate_pipeline_release_jobs(raw_pipeline_yml):
         [j for j in non_release_blocking_jobs if j not in JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE]
 
     if unaccounted_for_jobs:
-        print "Please add the following jobs as a Release_Candidate dependency or ignore them"
-        print "by adding them to JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE in "+ __file__
-        print unaccounted_for_jobs
+        print("Please add the following jobs as a Release_Candidate dependency or ignore them")
+        print("by adding them to JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE in " + __file__)
+        print(unaccounted_for_jobs)
         return False
 
-    print "Pipeline validated: all jobs accounted for"
+    print("Pipeline validated: all jobs accounted for")
     return True
 
 
@@ -178,7 +179,7 @@ def create_pipeline(args):
     if args.pipeline_target == 'prod':
         validated = validate_pipeline_release_jobs(pipeline_yml)
         if not validated:
-            print "Refusing to update the pipeline file"
+            print("Refusing to update the pipeline file")
             return False
 
     with open(args.output_filepath, 'w') as output:
@@ -242,19 +243,19 @@ def header(args):
 def print_fly_commands(args):
     pipeline_name = os.path.basename(args.output_filepath).rsplit('.', 1)[0]
 
-    print header(args)
+    print(header(args))
     if args.pipeline_target == 'prod':
-        print 'NOTE: You can set the production pipelines with the following:\n'
+        print('NOTE: You can set the production pipelines with the following:\n')
         pipeline_name = "gpdb_%s" % BASE_BRANCH if BASE_BRANCH == "master" else BASE_BRANCH
-        print gen_pipeline(args, pipeline_name, ["gpdb_%s-ci-secrets.prod.yml" % BASE_BRANCH],
-                           "https://github.com/greenplum-db/gpdb.git", BASE_BRANCH)
-        print gen_pipeline(args, "%s_without_asserts" % pipeline_name, ["gpdb_%s_without_asserts-ci-secrets.prod.yml" % BASE_BRANCH],
-                           "https://github.com/greenplum-db/gpdb.git", BASE_BRANCH)
+        print(gen_pipeline(args, pipeline_name, ["gpdb_%s-ci-secrets.prod.yml" % BASE_BRANCH],
+                           "https://github.com/greenplum-db/gpdb.git", BASE_BRANCH))
+        print(gen_pipeline(args, "%s_without_asserts" % pipeline_name, ["gpdb_%s_without_asserts-ci-secrets.prod.yml" % BASE_BRANCH],
+                           "https://github.com/greenplum-db/gpdb.git", BASE_BRANCH))
         return
 
-    print 'NOTE: You can set the developer pipeline with the following:\n'
-    print gen_pipeline(args, pipeline_name, ["gpdb_%s-ci-secrets.dev.yml" % BASE_BRANCH,
-                                             "ccp_ci_secrets_%s.yml" % args.pipeline_target])
+    print('NOTE: You can set the developer pipeline with the following:\n')
+    print(gen_pipeline(args, pipeline_name, ["gpdb_%s-ci-secrets.dev.yml" % BASE_BRANCH,
+                                             "ccp_ci_secrets_%s.yml" % args.pipeline_target]))
 
 
 def main():
@@ -370,7 +371,7 @@ def main():
     if (args.user != os.getlogin() and args.use_branch) or \
        (args.user != os.getlogin() and output_path_is_set) or \
        (args.use_branch and output_path_is_set):
-        print "Only one of -b, -o, and -u may be specified."
+        print("Only one of -b, -o, and -u may be specified.")
         exit(1)
 
     if args.pipeline_target == 'prod':
