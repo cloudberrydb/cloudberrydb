@@ -829,14 +829,6 @@ jobs:
       resource: libsigar-centos6
     - get: python-tarball
       resource: python-centos6
-  - task: sync_tools
-    file: gpdb_src/concourse/tasks/sync_tools.yml
-    image: gpdb6-centos6-build
-    params:
-      TARGET_OS: centos
-      TARGET_OS_VERSION: 6
-      TASK_OS: centos
-      TASK_OS_VERSION: 6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
@@ -871,14 +863,6 @@ jobs:
       resource: libsigar-centos7
     - get: python-tarball
       resource: python-centos7
-  - task: sync_tools
-    file: gpdb_src/concourse/tasks/sync_tools.yml
-    image: gpdb6-centos7-build
-    params:
-      TARGET_OS: centos
-      TARGET_OS_VERSION: 7
-      TASK_OS: centos
-      TASK_OS_VERSION: 7
   - task: compile_gpdb
     image: gpdb6-centos7-build
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -933,14 +917,6 @@ jobs:
       resource: libsigar-centos6
     - get: python-tarball
       resource: python-centos6
-  - task: sync_tools
-    file: gpdb_src/concourse/tasks/sync_tools.yml
-    image: gpdb6-centos6-build
-    params:
-      TARGET_OS: centos
-      TARGET_OS_VERSION: 6
-      TASK_OS: centos
-      TASK_OS_VERSION: 6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
@@ -968,14 +944,6 @@ jobs:
           resource: libquicklz-ubuntu18.04
         - get: python-tarball
           resource: python-ubuntu18.04
-    - task: sync_tools
-      file: gpdb_src/concourse/tasks/sync_tools.yml
-      image: gpdb6-ubuntu18.04-build
-      params:
-        TARGET_OS: ubuntu
-        TARGET_OS_VERSION: 18.04
-        TASK_OS: ubuntu
-        TASK_OS_VERSION: 18.04
     - task: compile_gpdb
       image: gpdb6-ubuntu18.04-build
       file: gpdb_src/concourse/tasks/compile_gpdb.yml

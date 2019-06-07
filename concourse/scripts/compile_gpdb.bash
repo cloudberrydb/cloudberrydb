@@ -191,6 +191,14 @@ function export_gpdb_clients() {
   popd
 }
 
+function fetch_orca_src {
+  local orca_tag="${1}"
+
+  mkdir orca_src
+  wget --quiet --output-document=- "https://github.com/greenplum-db/gporca/archive/${orca_tag}.tar.gz" \
+    | tar xzf - --strip-components=1 --directory=orca_src
+}
+
 function build_xerces()
 {
     OUTPUT_DIR="gpdb_src/gpAux/ext/${BLD_ARCH}"
@@ -208,12 +216,12 @@ function build_and_test_orca()
 }
 
 function _main() {
-  # Copy input ext dir; assuming ext doesnt exist
-  cp -a gpAux_ext/ext ${GPDB_SRC_PATH}/gpAux
+  mkdir gpdb_src/gpAux/ext
 
   case "${TARGET_OS}" in
     centos|ubuntu)
       prep_env
+      fetch_orca_src "${ORCA_TAG}"
       build_xerces
       build_and_test_orca
       install_deps
