@@ -80,12 +80,6 @@ typedef struct FaultInjectorEntry_s {
 } FaultInjectorEntry_s;
 
 
-extern FaultInjectorType_e	FaultInjectorTypeStringToEnum(
-									char*		faultTypeString);
-
-extern DDLStatement_e FaultInjectorDDLStringToEnum(
-									char*	ddlString);
-
 extern Size FaultInjector_ShmemSize(void);
 
 extern void FaultInjector_ShmemInit(void);

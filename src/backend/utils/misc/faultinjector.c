@@ -81,6 +81,10 @@ static bool FaultInjector_RemoveHashEntry(
 
 static int FaultInjector_SetFaultInjection(FaultInjectorEntry_s *entry);
 
+static FaultInjectorType_e FaultInjectorTypeStringToEnum(const char *faultType);
+
+static DDLStatement_e FaultInjectorDDLStringToEnum(const char *ddlString);
+
 /* Arrays to map between enum values and strings */
 const char*
 FaultInjectorTypeEnumToString[] = {
@@ -103,8 +107,8 @@ FaultInjectorStateEnumToString[] = {
 #undef FI_STATE
 };
 
-FaultInjectorType_e
-FaultInjectorTypeStringToEnum(char* faultTypeString)
+static FaultInjectorType_e
+FaultInjectorTypeStringToEnum(const char* faultTypeString)
 {
 	FaultInjectorType_e	faultTypeEnum = FaultInjectorTypeMax;
 	int	ii;
@@ -120,8 +124,8 @@ FaultInjectorTypeStringToEnum(char* faultTypeString)
 	return faultTypeEnum;
 }
 
-DDLStatement_e
-FaultInjectorDDLStringToEnum(char* ddlString)
+static DDLStatement_e
+FaultInjectorDDLStringToEnum(const char* ddlString)
 {
 	DDLStatement_e	ddlEnum = DDLMax;
 	int	ii;
@@ -232,6 +236,15 @@ FaultInjector_InjectFaultIfSet(
 	int						ii = 0;
 	int cnt = 3600;
 	FaultInjectorType_e retvalue = FaultInjectorTypeNotSpecified;
+
+	if (strlen(faultName) >= sizeof(localEntry.faultName))
+		elog(ERROR, "fault name too long: '%s'", faultName);
+	if (strcmp(faultName, FaultInjectorNameAll) == 0)
+		elog(ERROR, "invalid fault name '%s'", faultName);
+	if (strlen(databaseName) >= NAMEDATALEN)
+		elog(ERROR, "database name too long:'%s'", databaseName);
+	if (strlen(tableName) >= NAMEDATALEN)
+		elog(ERROR, "table name too long: '%s'", tableName);
 
 	/*
 	 * Auto-vacuum worker and launcher process, may run at unpredictable times
@@ -821,75 +834,53 @@ FaultInjector_SetFaultInjection(
 
 		case FaultInjectorTypeStatus:
 		{	
-			HASH_SEQ_STATUS			hash_status;
 			FaultInjectorEntry_s	*entryLocal;
-			bool					found = FALSE;
 			int                     length;
-			
-			if (faultInjectorShmem->hash == NULL) {
+
+			if (faultInjectorShmem->hash == NULL)
+			{
 				status = STATUS_ERROR;
 				break;
 			}
 			length = snprintf(entry->bufOutput, sizeof(entry->bufOutput), "Success: ");
-			
-			hash_seq_init(&hash_status, faultInjectorShmem->hash);
 
-			while ((entryLocal = (FaultInjectorEntry_s *) hash_seq_search(&hash_status)) != NULL) {
-				ereport(LOG,
-					(errmsg("fault injector status: "
-							"fault name:'%s' "
-							"fault type:'%s' "
-							"ddl statement:'%s' "
-							"database name:'%s' "
-							"table name:'%s' "
-							"start occurrence:'%d' "
-							"end occurrence:'%d' "
-							"extra argument:'%d' "
-							"fault injection state:'%s' "
-							"num times hit:'%d' ",
-							entryLocal->faultName,
-							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType],
-							FaultInjectorDDLEnumToString[entryLocal->ddlStatement],
-							entryLocal->databaseName,
-							entryLocal->tableName,
-							entryLocal->startOccurrence,
-							entryLocal->endOccurrence,
-							entryLocal->extraArg,
-							FaultInjectorStateEnumToString[entryLocal->faultInjectorState],
-						entryLocal->numTimesTriggered)));
-				
-				if (strcmp(entry->faultName, entryLocal->faultName) == 0 ||
-					strcmp(entry->faultName, FaultInjectorNameAll) == 0)
-				{
-					length = snprintf((entry->bufOutput + length), sizeof(entry->bufOutput) - length,
-									  "fault name:'%s' "
-									  "fault type:'%s' "
-									  "ddl statement:'%s' "
-									  "database name:'%s' "
-									  "table name:'%s' "
-									  "start occurrence:'%d' "
-									  "end occurrence:'%d' "
-									  "extra arg:'%d' "
-									  "fault injection state:'%s'  "
-									  "num times hit:'%d' \n",
-									  entryLocal->faultName,
-									  FaultInjectorTypeEnumToString[entryLocal->faultInjectorType],
-									  FaultInjectorDDLEnumToString[entryLocal->ddlStatement],
-									  entryLocal->databaseName,
-									  entryLocal->tableName,
-									  entryLocal->startOccurrence,
-									  entryLocal->endOccurrence,
-									  entryLocal->extraArg,
-									  FaultInjectorStateEnumToString[entryLocal->faultInjectorState],
-									  entryLocal->numTimesTriggered);
-						found = TRUE;
-				}
+			entryLocal = FaultInjector_LookupHashEntry(entry->faultName);
+			if (entryLocal)
+			{
+				length = snprintf(
+					(entry->bufOutput + length),
+					sizeof(entry->bufOutput) - length,
+					"fault name:'%s' "
+					"fault type:'%s' "
+					"ddl statement:'%s' "
+					"database name:'%s' "
+					"table name:'%s' "
+					"start occurrence:'%d' "
+					"end occurrence:'%d' "
+					"extra arg:'%d' "
+					"fault injection state:'%s'  "
+					"num times hit:'%d' \n",
+					entryLocal->faultName,
+					FaultInjectorTypeEnumToString[entryLocal->faultInjectorType],
+					FaultInjectorDDLEnumToString[entryLocal->ddlStatement],
+					entryLocal->databaseName,
+					entryLocal->tableName,
+					entryLocal->startOccurrence,
+					entryLocal->endOccurrence,
+					entryLocal->extraArg,
+					FaultInjectorStateEnumToString[entryLocal->faultInjectorState],
+					entryLocal->numTimesTriggered);
 			}
-			if (found == FALSE) {
-				snprintf(entry->bufOutput, sizeof(entry->bufOutput), "Failure: "
-						 "fault name:'%s' not set",
-						 entry->faultName);
+			else
+			{
+				length = snprintf(entry->bufOutput, sizeof(entry->bufOutput),
+								  "Failure: fault name:'%s' not set",
+								  entry->faultName);
 			}
+			elog(LOG, "%s", entry->bufOutput);
+			if (length > sizeof(entry->bufOutput))
+				elog(LOG, "fault status truncated from %d to %d characters",
+					 length, sizeof(entry->bufOutput));
 			break;
 		}
 		case FaultInjectorTypeResume:
@@ -976,13 +967,26 @@ InjectFault(char *faultName, char *type, char *ddlStatement, char *databaseName,
 		 faultName, type, ddlStatement, databaseName, tableName,
 		 startOccurrence, endOccurrence, extraArg );
 
-	strlcpy(faultEntry.faultName, faultName, sizeof(faultEntry.faultName));
+	if (strlcpy(faultEntry.faultName, faultName, sizeof(faultEntry.faultName)) >=
+		sizeof(faultEntry.faultName))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("fault name too long: '%s'", faultName),
+				 errdetail("Fault name should be no more than %d characters.",
+						   FAULT_NAME_MAX_LENGTH-1)));
 
 	faultEntry.faultInjectorType = FaultInjectorTypeStringToEnum(type);
 	if (faultEntry.faultInjectorType == FaultInjectorTypeMax)
 		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("could not recognize fault type '%s'", type)));
+
+	/* Special fault name "all" is only used to reset all faults */
+	if (faultEntry.faultInjectorType != FaultInjectorTypeReset &&
+		strcmp(faultEntry.faultName, FaultInjectorNameAll) == 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid fault name '%s'", faultName)));
 
 	faultEntry.extraArg = extraArg;
 	if (faultEntry.faultInjectorType == FaultInjectorTypeSleep)
@@ -999,9 +1003,22 @@ InjectFault(char *faultName, char *type, char *ddlStatement, char *databaseName,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("could not recognize DDL statement")));
 
-	snprintf(faultEntry.databaseName, sizeof(faultEntry.databaseName), "%s", databaseName);
+	if (strlcpy(faultEntry.databaseName, databaseName,
+				sizeof(faultEntry.databaseName)) >=
+		sizeof(faultEntry.databaseName))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("database name too long: '%s'", databaseName),
+				 errdetail("Database name should be no more than %d characters.",
+						   NAMEDATALEN-1)));
 
-	snprintf(faultEntry.tableName, sizeof(faultEntry.tableName), "%s", tableName);
+	if (strlcpy(faultEntry.tableName, tableName, sizeof(faultEntry.tableName)) >=
+		sizeof(faultEntry.tableName))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("table name too long: '%s'", tableName),
+				 errdetail("Table name should be no more than %d characters.",
+						   NAMEDATALEN-1)));
 
 	if (startOccurrence < 1 || startOccurrence > 1000)
 		ereport(ERROR,
