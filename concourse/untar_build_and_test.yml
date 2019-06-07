@@ -7,7 +7,7 @@ image_resource:
 inputs:
   - name: orca_main_src
   - name: orca_tarball
-  - name: bin_xerces_centos5
+  - name: bin_xerces
 
 caches:
   - path: .ccache
@@ -24,4 +24,4 @@ run:
   args:
   - -exc
   - |
-    orca_main_src/concourse/untar_build_and_test.py ${BUILD_TYPE} ${OUTPUT_DIR} ${SKIP_TESTS} bin_xerces_centos5
+    orca_main_src/concourse/untar_build_and_test.py ${BUILD_TYPE} ${OUTPUT_DIR} ${SKIP_TESTS} bin_xerces

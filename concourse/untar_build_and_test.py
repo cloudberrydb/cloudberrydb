@@ -19,7 +19,7 @@ def exec_command(cmd):
 
 untar_orca_cmd = "mkdir -p orca_src && tar -xf orca_tarball/orca_src.tar.gz -C orca_src --strip 1"
 exec_command(untar_orca_cmd)
-build_and_test_orca_cmd = "orca_main_src/concourse/build_and_test.py {0} {1} {2} bin_xerces_centos5".format(BUILD_TYPE, OUTPUT_DIR, SKIP_TESTS)
+build_and_test_orca_cmd = "orca_main_src/concourse/build_and_test.py {0} {1} {2} bin_xerces".format(BUILD_TYPE, OUTPUT_DIR, SKIP_TESTS)
 exec_command(build_and_test_orca_cmd)
 
 SRC_DIR=OUTPUT_DIR.split('=')[1]

@@ -261,20 +261,21 @@ jobs:
   plan:
   - get: xerces_patch
     trigger: true
+  - get: centos5-build
   - aggregate:
     - task: build
-      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
   - aggregate:
     - task: package_tarball
-      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+      file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
-        dst_tarball: package_tarball_centos5/bin_xerces_centos5.tar.gz
+        dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
         src_root: build_xerces/install
   - aggregate:
     - put: bin_xerces_centos5
       params:
-        from: package_tarball_centos5/bin_xerces_centos5.tar.gz
+        from: package_tarball/bin_xerces_centos5.tar.gz
 
 - name: xerces_ubuntu18
   max_in_flight: 2
@@ -284,18 +285,18 @@ jobs:
   - get: ubuntu18.04-build
   - aggregate:
     - task: build
-      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: ubuntu18.04-build
   - aggregate:
     - task: package_tarball
-      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+      file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
-        dst_tarball: package_tarball_centos5/bin_xerces_ubuntu18.tar.gz
+        dst_tarball: package_tarball/bin_xerces_ubuntu18.tar.gz
         src_root: build_xerces/install
   - aggregate:
     - put: bin_xerces_ubuntu18
       params:
-        from: package_tarball_centos5/bin_xerces_ubuntu18.tar.gz
+        from: package_tarball/bin_xerces_ubuntu18.tar.gz
 
  ## CentOS5 build
 - name: orca_centos5_release
@@ -304,18 +305,19 @@ jobs:
   - get: centos5-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_release
     image: centos5-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ''
   - task: package_tarball_release
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos5_release.tar.gz
@@ -329,19 +331,20 @@ jobs:
   - get: centos5-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_debug
     image: centos5-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ''
   - task: package_tarball_debug
     image: centos5-build
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos5_debug.tar.gz
@@ -356,18 +359,19 @@ jobs:
   - get: centos6-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_release
     image: centos6-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_release
     image: centos6-build
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos6_release.tar.gz
@@ -381,18 +385,19 @@ jobs:
   - get: centos6-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_debug
     image: centos6-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_debug
     image: centos6-build
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos6_debug.tar.gz
@@ -407,18 +412,19 @@ jobs:
   - get: centos7-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_release
     image: centos7-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_release
     image: centos7-build
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos7_release.tar.gz
@@ -432,18 +438,19 @@ jobs:
   - get: centos7-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_centos5
     passed:
     - xerces_centos5
   - task: build_and_test_debug
     image: centos7-build
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_debug
     image: centos7-build
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos7_debug.tar.gz
@@ -458,19 +465,19 @@ jobs:
   - get: ubuntu18.04-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_ubuntu18
     passed:
     - xerces_ubuntu18
-    resource: bin_xerces_ubuntu18
   - task: build_and_test_release
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ""
     image: ubuntu18.04-build
   - task: package_tarball_release
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       dst_tarball: package_tarball/bin_orca_ubuntu18_release.tar.gz
       src_root: build_and_test/install
@@ -484,19 +491,19 @@ jobs:
   - get: ubuntu18.04-build
   - get: orca_src
     trigger: true
-  - get: bin_xerces_centos5
+  - get: bin_xerces
+    resource: bin_xerces_ubuntu18
     passed:
     - xerces_ubuntu18
-    resource: bin_xerces_ubuntu18
   - task: build_and_test_debug
-    file: orca_src/concourse/build_and_test_centos.yml
+    file: orca_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ""
     image: ubuntu18.04-build
   - task: package_tarball_debug
-    file: orca_src/concourse/package_tarball_centos.yml
+    file: orca_src/concourse/package_tarball.yml
     params:
       dst_tarball: package_tarball/bin_orca_ubuntu18_debug.tar.gz
       src_root: build_and_test/install

@@ -155,15 +155,18 @@ jobs:
   - get: centos5-build
   - aggregate:
     - task: build
-      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+      file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
   - aggregate:
     - task: package_tarball
-      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+      file: xerces_patch/concourse/xerces-c/package_tarball.yml
+      params:
+        dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
+        src_root: build_xerces/install
   - aggregate:
     - put: bin_xerces_centos5
       params:
-        from: package_tarball_centos5/bin_xerces_centos5.tar.gz
+        from: package_tarball/bin_xerces_centos5.tar.gz
 - name: orca_centos5_release
   max_in_flight: 2
   plan:
@@ -175,7 +178,8 @@ jobs:
     - get: orca_main_src
       passed:
       - clone_repos_to_test
-    - get: bin_xerces_centos5
+    - get: bin_xerces
+      resource: bin_xerces_centos5
       passed:
       - xerces_centos5
     - get: orca_tarball
@@ -186,7 +190,7 @@ jobs:
       passed:
       - clone_repos_to_test
   - task: untar_build_and_test_release
-    file: orca_main_src/concourse/untar_build_and_test_centos.yml
+    file: orca_main_src/concourse/untar_build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
@@ -256,19 +260,20 @@ jobs:
     - get: orca_src
       resource: orca_baseline_src
       trigger: true
-    - get: bin_xerces_centos5
+    - get: bin_xerces
+      resource: bin_xerces_centos5
       passed:
       - xerces_centos5
     - get: centos5-build
   - task: build_and_test_release
     image: centos5-build
-    file: orca_main_src/concourse/build_and_test_centos.yml
+    file: orca_main_src/concourse/build_and_test.yml
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: --skiptests
   - task: package_tarball_release
-    file: orca_main_src/concourse/package_tarball_centos.yml
+    file: orca_main_src/concourse/package_tarball.yml
     params:
       src_root: build_and_test/install
       dst_tarball: package_tarball/bin_orca_centos5_release.tar.gz
