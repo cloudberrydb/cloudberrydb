@@ -199,6 +199,9 @@ xact_desc(StringInfo buf, XLogRecord *record)
 
 		appendStringInfo(buf, "commit prepared %u: ", xlrec->xid);
 		xact_desc_commit(buf, &xlrec->crec);
+
+		appendStringInfo(buf, " gid = %u-%.10u", xlrec->distribTimeStamp, xlrec->distribXid);
+		appendStringInfo(buf, " gxid = %u", xlrec->distribXid);
 	}
 	else if (info == XLOG_XACT_ABORT_PREPARED)
 	{
