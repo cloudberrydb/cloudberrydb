@@ -254,6 +254,31 @@ union
 (13 rows)
 
 --
+-- Test pulling up distribution key expression, when the different branches
+-- of a UNION ALL have different typmods.
+--
+create table pullup_distkey_test(
+    a character varying,
+    b character varying(30)
+) distributed by (b);
+insert into pullup_distkey_test values ('foo', 'bar');
+with base as
+(
+  select a, b from pullup_distkey_test
+  union all
+  select 'xx' as a, 'bar' as b
+)
+select a from base
+union all
+select a from base where a = 'foo';
+  a  
+-----
+ foo
+ xx
+ foo
+(3 rows)
+
+--
 -- Setup
 --
 --start_ignore
