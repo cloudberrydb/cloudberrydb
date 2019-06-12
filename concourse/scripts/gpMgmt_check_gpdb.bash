@@ -42,17 +42,24 @@ function _main() {
     setup_gpadmin_user
     (make_cluster)
 
-    # pip-install the gpMgmt requirements file.
     install_python_hacks
-    install_python_requirements
-
-    # Set up test coverage.
-    setup_coverage
+    install_python_requirements_on_single_host ./gpdb_src/gpMgmt/requirements-dev.txt
 
     gen_env
+
+    # need to run setup_coverage as gpadmin due to scp and ssh commands
+    su gpadmin -c "
+        source ./gpdb_src/concourse/scripts/common.bash
+        # setup hostfile_all for demo_cluster tests
+        echo localhost > /tmp/hostfile_all
+        setup_coverage ./gpdb_src
+    "
+
     run_test
 
-    prepare_coverage "$TEST_NAME"
+    # collect coverage
+    cp -r /tmp/coverage/* ./coverage/
+    tar_coverage "$TEST_NAME"
 }
 
 _main "$@"

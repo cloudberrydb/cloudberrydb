@@ -1,5 +1,6 @@
 platform: linux
 inputs:
+ - name: gpdb_src
  - name: ccp_src
  - name: cluster_env_files
 outputs:
@@ -10,40 +11,34 @@ run:
   - -c
   - |
     set -ex
-    ccp_src/scripts/setup_ssh_to_cluster.sh
 
-    # Install patchelf. We need to SSH as root, hence the use of
-    # cluster_env_files.
-    ssh -t ccp-$(cat cluster_env_files/terraform/name)-0 "bash -c '
-        # Our Python installation does not run standalone; it requires
-        # LD_LIBRARY_PATH which causes virtualenv to fail (because the system
-        # and vendored libpythons collide). We will try our best to install
-        # patchelf to fix this later, but it is not available on all platforms.
-        set -ex
-        if which yum > /dev/null; then
-            sudo yum install -y patchelf
-        else
-            set +x
-            echo \"ERROR: install_python_hacks() does not support the current platform and should be modified\"
-            exit 1
-        fi
-    '"
+    ccp_src/scripts/setup_ssh_to_cluster.sh
 
     # TODO: ask CCP maintainers for a feature to do this for us
     scp cluster_env_files/hostfile_all mdw:/tmp
-    ssh -t mdw "$CUSTOM_ENV bash /home/gpadmin/gpdb_src/concourse/scripts/run_behave_test.sh \"$BEHAVE_FLAGS\""
 
-    # Collect coverage data.
+    # Install patchelf. We need to SSH as root, hence the use of
+    # cluster_env_files.
+    ssh -t ccp-$(cat cluster_env_files/terraform/name)-0 "sudo bash -c '
+        source /home/gpadmin/gpdb_src/concourse/scripts/common.bash
+        install_python_hacks
+    '"
+
+    ssh -t mdw "
+        source /home/gpadmin/gpdb_src/concourse/scripts/common.bash
+        install_python_requirements_on_multi_host /home/gpadmin/gpdb_src/gpMgmt/requirements-dev.txt
+
+        # Enable coverage.py on all hosts. (This modifies greenplum_path.sh and must
+        # come before the source below.)
+        setup_coverage /home/gpadmin/gpdb_src
+
+        $CUSTOM_ENV bash /home/gpadmin/gpdb_src/concourse/scripts/run_behave_test.sh \"$BEHAVE_FLAGS\"
+    "
+
+    # collect coverage
     while read -r host; do
         scp -r "$host:/tmp/coverage/*" ./coverage/
     done < cluster_env_files/hostfile_all
 
-    # Uniquify the coverage files a little bit with the $TEST_NAME.
-    pushd coverage/*
-        for f in *; do
-            mv "$f" "$TEST_NAME.$f"
-        done
-
-        # Compress coverage files and remove the originals
-        tar --remove-files -cf "ccp-$TEST_NAME.tar" *
-    popd
+    source ./gpdb_src/concourse/scripts/common.bash
+    tar_coverage "${TEST_NAME}_ccp"

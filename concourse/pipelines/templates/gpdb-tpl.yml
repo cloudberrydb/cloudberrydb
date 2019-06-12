@@ -1388,11 +1388,25 @@ jobs:
       passed: [gate_gpperfmon_start]
       trigger: true
     - get: gpdb6-centos6-test
+    - get: gpdb6-centos7-test
   - task: gpperfmon
     file: gpdb_src/concourse/tasks/behave_gpdb.yml
     image: gpdb6-centos6-test
     params:
       BEHAVE_TAGS: gpperfmon
+      TEST_NAME: gpperfmon_centos6
+  - task: publish_coverage
+    image: gpdb6-centos7-test
+    config:
+      platform: linux
+      inputs:
+        - name: gpdb_src
+        - name: coverage
+      run:
+        path: gpdb_src/concourse/scripts/gsutil_sync
+        args: [ "./coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+      params:
+        JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% if "centos7" in os_types %}
 - name: gpperfmon_centos7
@@ -1413,6 +1427,19 @@ jobs:
     image: gpdb6-centos7-test
     params:
       BEHAVE_TAGS: gpperfmon
+      TEST_NAME: gpperfmon_centos7
+  - task: publish_coverage
+    image: gpdb6-centos7-test
+    config:
+      platform: linux
+      inputs:
+        - name: gpdb_src
+        - name: coverage
+      run:
+        path: gpdb_src/concourse/scripts/gsutil_sync
+        args: [ "./coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+      params:
+        JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% endif %}
 

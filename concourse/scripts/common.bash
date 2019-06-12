@@ -66,16 +66,7 @@ function install_python_hacks() {
     # LD_LIBRARY_PATH which causes virtualenv to fail (because the system and
     # vendored libpythons collide). We'll try our best to install patchelf to
     # fix this later, but it's not available on all platforms.
-    if which zypper > /dev/null; then
-        zypper addrepo https://download.opensuse.org/repositories/devel:tools:building/SLE_12_SP4/devel:tools:building.repo
-        # Note that this will fail on SLES11.
-        if ! zypper --non-interactive --gpg-auto-import-keys install patchelf; then
-            set +x
-            echo 'WARNING: could not install patchelf; virtualenv may fail later'
-            echo 'WARNING: This is a known issue on SLES11.'
-            set -x
-        fi
-    elif which yum > /dev/null; then
+    if which yum > /dev/null; then
         yum install -y patchelf
     else
         set +x
@@ -84,7 +75,7 @@ function install_python_hacks() {
     fi
 }
 
-function install_python_requirements() {
+function _install_python_requirements() {
     # virtualenv 16.0 and greater does not support python2.6, which is
     # used on centos6
     pip install --user virtualenv~=15.0
@@ -115,21 +106,41 @@ function install_python_requirements() {
         virtualenv \
             --python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
     fi
+}
 
-    # Install requirements into the vendored Python stack.
+function install_python_requirements_on_single_host() {
+    local requirements_txt="$1"
+    _install_python_requirements
+
+    # Install requirements into the vendored Python stack
     mkdir -p /tmp/py-requirements
     source /tmp/venv/bin/activate
-        pip install --prefix /tmp/py-requirements -r ./gpdb_src/gpMgmt/requirements-dev.txt
+        pip install --prefix /tmp/py-requirements -r ${requirements_txt}
         cp -r /tmp/py-requirements/* /usr/local/greenplum-db-devel/ext/python/
     deactivate
 }
 
+function install_python_requirements_on_multi_host() {
+    local requirements_txt="$1"
+    _install_python_requirements
+
+    # Install requirements into the vendored Python stack on all hosts.
+    mkdir -p /tmp/py-requirements
+    source /tmp/venv/bin/activate
+        pip install --prefix /tmp/py-requirements -r ${requirements_txt}
+        while read -r host; do
+            rsync -rz /tmp/py-requirements/ "$host":/usr/local/greenplum-db-devel/ext/python/
+        done < /tmp/hostfile_all
+    deactivate
+}
+
 function setup_coverage() {
-    # Enables coverage.py on this machine. Note that this function modifies
-    # greenplum_path.sh, so callers need to source that file AFTER this is done.
-    local commit_sha
-    read -r commit_sha < ./gpdb_src/.git/HEAD
-    local coverage_path="$(pwd)/coverage/$commit_sha"
+    # Enables coverage.py on all hosts in the cluster. Note that this function
+    # modifies greenplum_path.sh, so callers need to source that file AFTER this
+    # is done.
+    local gpdb_src_dir="$1"
+    local commit_sha=$(head -1 "$gpdb_src_dir/.git/HEAD")
+    local coverage_path="/tmp/coverage/$commit_sha"
 
     # This file will be copied into GPDB's PYTHONPATH; it sets up the coverage
     # hook for all Python source files that are executed.
@@ -146,17 +157,18 @@ data_file = $coverage_path/coverage
 parallel = True
 COVEOF
 
-    # Now copy everything over to the installation.
-    cp /tmp/sitecustomize.py /usr/local/greenplum-db-devel/lib/python
-    cp /tmp/coveragerc /usr/local/greenplum-db-devel
-    mkdir -p $coverage_path
-    chown gpadmin:gpadmin $coverage_path
+    # Now copy everything over to the hosts.
+    while read -r host; do
+        scp /tmp/sitecustomize.py "$host":/usr/local/greenplum-db-devel/lib/python
+        scp /tmp/coveragerc "$host":/usr/local/greenplum-db-devel
+        ssh "$host" "mkdir -p $coverage_path" < /dev/null
 
-    # Enable coverage instrumentation after sourcing greenplum_path.
-    echo 'export COVERAGE_PROCESS_START=/usr/local/greenplum-db-devel/coveragerc' >> /usr/local/greenplum-db-devel/greenplum_path.sh
+        # Enable coverage instrumentation after sourcing greenplum_path.
+        ssh "$host" "echo 'export COVERAGE_PROCESS_START=/usr/local/greenplum-db-devel/coveragerc' >> /usr/local/greenplum-db-devel/greenplum_path.sh" < /dev/null
+    done < /tmp/hostfile_all
 }
 
-function prepare_coverage() {
+function tar_coverage() {
     # Call this function after running tests under the setup_coverage
     # environment. It performs any final needed manipulation of the coverage
     # data before it is published.
