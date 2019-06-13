@@ -2818,7 +2818,7 @@ static struct config_string ConfigureNamesString[] =
 		{"default_tablespace", PGC_USERSET, CLIENT_CONN_STATEMENT,
 			gettext_noop("Sets the default tablespace to create tables and indexes in."),
 			gettext_noop("An empty string selects the database's default tablespace."),
-			GUC_IS_NAME
+			GUC_IS_NAME | GUC_GPDB_ADDOPT
 		},
 		&default_tablespace,
 		"",

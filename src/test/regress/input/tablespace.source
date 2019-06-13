@@ -114,6 +114,25 @@ RESET ROLE;
 
 ALTER TABLESPACE testspace RENAME TO testspace_renamed;
 
+-- Test that default_tablespace GUC is honored even after gang reset.
+CREATE OR REPLACE FUNCTION cleanupAllGangs() RETURNS BOOL
+AS '@abs_builddir@/regress@DLSUFFIX@', 'cleanupAllGangs' LANGUAGE C;
+
+SET default_tablespace TO testspace_renamed;
+
+-- Destroy the QD-QE libpq connections.
+select cleanupAllGangs();
+
+-- New gang will be setup to dispatch this DDL and default_tablespace
+-- should be set to testspace_renamed on QEs.
+CREATE TABLE tablespace_table1(a int, b int) DISTRIBUTED BY (a);
+
+SELECT spcname FROM pg_class c, pg_tablespace t
+WHERE c.reltablespace = t.oid and c.relname = 'tablespace_table1';
+
+SELECT spcname FROM gp_dist_random('pg_class') c, pg_tablespace t
+WHERE c.reltablespace = t.oid and c.relname = 'tablespace_table1';
+
 ALTER TABLE ALL IN TABLESPACE testspace_renamed SET TABLESPACE pg_default;
 ALTER INDEX ALL IN TABLESPACE testspace_renamed SET TABLESPACE pg_default;
 
