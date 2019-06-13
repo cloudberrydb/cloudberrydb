@@ -65,9 +65,7 @@ namespace gpopt
 			// attached cost context
 			CCostContext *m_pcc;
 
-			// derived properties of attached expr/gexpr;
-			// set during derived property computation
-			DrvdPropArray *m_pdp;
+			DrvdPropArray *m_pdpplan;
 
 			// statistics of attached expr/gexpr;
 			// set during derived stats computation
@@ -77,9 +75,6 @@ namespace gpopt
 			// set during required property computation
 			CReqdProp *m_prp;
 
-			// array of children's derived properties
-			CDrvdProp2dArray *m_pdrgpdp;
-
 			// array of children's derived stats
 			IStatisticsArray *m_pdrgpstat;
 
@@ -88,15 +83,6 @@ namespace gpopt
 
 			// private copy ctor
 			CExpressionHandle(const CExpressionHandle &);
-
-			// cache properties of group and its children on the handle
-			void CopyGroupProps();
-
-			// cache properties of expression and its children on the handle
-			void CopyExprProps();
-
-			// cache properties of cost context and its children on the handle
-			void CopyCostCtxtProps();
 
 			// derive the properties of the plan carried by attached cost context,
 			// uses passed context object during derivation
@@ -178,19 +164,13 @@ namespace gpopt
 			CDrvdPropScalar *GetDrvdScalarProps(ULONG child_index) const;
 
 			// derived properties of attached expr/gexpr
-			DrvdPropArray *Pdp() const
-			{
-				return m_pdp;
-			}
+			DrvdPropArray *Pdp() const;
 
 			// derived relational properties of attached expr/gexpr
 			CDrvdPropRelational *GetRelationalProperties() const;
 
 			// stats of attached expr/gexpr
-			IStatistics *Pstats() const
-			{
-				return m_pstats;
-			}
+			IStatistics *Pstats();
 
 			// required properties of attached expr/gexpr
 			CReqdProp *Prp() const
@@ -300,6 +280,8 @@ namespace gpopt
 			// return the columns used by a logical operator internally as well
 			// as columns used by all its scalar children
 			CColRefSet *PcrsUsedColumns(CMemoryPool *mp);
+
+		friend class CExpression;
 
 	}; // class CExpressionHandle
 	

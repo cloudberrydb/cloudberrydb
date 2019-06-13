@@ -186,9 +186,8 @@ CConstraint::PcnstrFromScalarExpr
 	GPOS_ASSERT(NULL == *ppdrgpcrs);
 
 	(void) pexpr->PdpDerive();
-	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->Pdp(DrvdPropArray::EptScalar));
 
-	CColRefSet *pcrs = pdpScalar->PcrsUsed();
+	CColRefSet *pcrs = pexpr->GetDrvdPropScalar()->PcrsUsed();
 	ULONG num_cols = pcrs->Size();
 
 	if (0 == num_cols)

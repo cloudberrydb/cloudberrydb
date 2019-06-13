@@ -1601,7 +1601,7 @@ CExpressionPreprocessor::PexprFromConstraints
 		CExpression *pexprChildNew = PexprFromConstraints(mp, pexprChild, pcrsProcessed);
 
 		// we already called derive at the beginning, so child properties are already derived
-		CDrvdPropRelational *pdprelChild = CDrvdPropRelational::GetRelationalProperties(pexprChild->Pdp(DrvdPropArray::EptRelational));
+		CDrvdPropRelational *pdprelChild = pexprChild->GetDrvdPropRelational();
 
 		CColRefSet *pcrsOutChild = GPOS_NEW(mp) CColRefSet(mp);
 

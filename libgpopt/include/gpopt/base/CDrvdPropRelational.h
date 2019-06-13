@@ -124,82 +124,43 @@ namespace gpopt
 			void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// output columns
-			CColRefSet *PcrsOutput() const
-			{
-				return m_pcrsOutput;
-			}
+			CColRefSet *PcrsOutput() const;
 
 			// outer references
-			CColRefSet *PcrsOuter() const
-			{
-				return m_pcrsOuter;
-			}
+			CColRefSet *PcrsOuter() const;
 			
 			// nullable columns
-			CColRefSet *PcrsNotNull() const
-			{
-				return m_pcrsNotNull;
-			}
+			CColRefSet *PcrsNotNull() const;
 
 			// columns from the inner child of a correlated-apply expression that can be used above the apply expression
-			CColRefSet *PcrsCorrelatedApply() const
-			{
-				return m_pcrsCorrelatedApply;
-			}
+			CColRefSet *PcrsCorrelatedApply() const;
 
 			// key collection
-			CKeyCollection *Pkc() const
-			{
-				return m_pkc;
-			}
+			CKeyCollection *Pkc() const;
 		
 			// functional dependencies
-			CFunctionalDependencyArray *Pdrgpfd() const
-			{
-				return m_pdrgpfd;
-			}
+			CFunctionalDependencyArray *Pdrgpfd() const;
 
 			// check if relation has a key
-			BOOL FHasKey() const
-			{
-				return NULL != m_pkc;
-			}
+			BOOL FHasKey() const;
 
 			// max cardinality
-			CMaxCard Maxcard() const
-			{
-				return m_maxcard;
-			}
+			CMaxCard Maxcard() const;
 
 			// join depth
-			ULONG JoinDepth() const
-			{
-				return m_ulJoinDepth;
-			}
+			ULONG JoinDepth() const;
 
 			// partition consumers
-			CPartInfo *Ppartinfo() const
-			{
-				return m_ppartinfo;
-			}
+			CPartInfo *Ppartinfo() const;
 
 			// constraint property
-			CPropConstraint *Ppc() const
-			{
-				return m_ppc;
-			}
+			CPropConstraint *Ppc() const;
 
 			// function properties
-			CFunctionProp *Pfp() const
-			{
-				return m_pfp;
-			}
+			CFunctionProp *Pfp() const;
 
 			// has partial indexes
-			BOOL FHasPartialIndexes() const
-			{
-				return m_fHasPartialIndexes;
-			}
+			BOOL FHasPartialIndexes() const;
 
 			// shorthand for conversion
 			static

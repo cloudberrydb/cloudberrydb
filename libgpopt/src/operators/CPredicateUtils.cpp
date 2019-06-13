@@ -1673,7 +1673,7 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	CColRefSetArray *pdrgpcrsChild = NULL;
 	CConstraint *pcnstr = NULL;
 	(void) pexprScalar->PdpDerive();
-	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->Pdp(DrvdPropArray::EptScalar));
+	CDrvdPropScalar *pdpScalar = pexprScalar->GetDrvdPropScalar();
 	if (pdpScalar->FHasScalarArrayCmp() &&
 	    !GPOS_FTRACE(EopttraceArrayConstraints))
 	{

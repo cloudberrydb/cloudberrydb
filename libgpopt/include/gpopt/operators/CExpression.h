@@ -54,6 +54,8 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CExpression : public CRefCount
 	{
+		friend class CExpressionHandle;
+
 		private:
 		
 			// memory pool
@@ -94,6 +96,9 @@ namespace gpopt
 
 			// set expression's derivable property
 			void SetPdp(DrvdPropArray *pdp, const DrvdPropArray::EPropType ept);
+
+			// get expression's derived property given its type
+			DrvdPropArray *Pdp(const DrvdPropArray::EPropType ept) const;
 
 #ifdef GPOS_DEBUG
 
@@ -230,8 +235,11 @@ namespace gpopt
 				return m_prpp;
 			}
 
-			// get expression's derived property given its type
-			DrvdPropArray *Pdp(const DrvdPropArray::EPropType ept) const;
+			CDrvdPropRelational *GetDrvdPropRelational() const;
+
+			CDrvdPropPlan *GetDrvdPropPlan() const;
+
+			CDrvdPropScalar *GetDrvdPropScalar() const;
 
 			// get derived statistics object
 			const IStatistics *Pstats() const
@@ -319,7 +327,6 @@ namespace gpopt
 			// rehydrate expression from a given cost context and child expressions
 			static
 			CExpression *PexprRehydrate(CMemoryPool *mp, CCostContext *pcc, CExpressionArray *pdrgpexpr, CDrvdPropCtxtPlan *pdpctxtplan);
-
 
 	}; // class CExpression
 

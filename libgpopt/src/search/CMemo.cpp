@@ -138,11 +138,11 @@ CMemo::Add
 	DrvdPropArray *pdp = NULL;
 	if (pexprOrigin->Pop()->FScalar())
 	{
-		pdp = pexprOrigin->Pdp(DrvdPropArray::EptScalar);
+		pdp = pexprOrigin->GetDrvdPropScalar();
 	}
 	else
 	{
-		pdp = pexprOrigin->Pdp(DrvdPropArray::EptRelational);
+		pdp = pexprOrigin->GetDrvdPropRelational();
 	}
 	GPOS_ASSERT(NULL != pdp);
 

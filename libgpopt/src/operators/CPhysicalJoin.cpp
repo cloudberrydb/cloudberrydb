@@ -492,8 +492,8 @@ CPhysicalJoin::FPredKeysSeparated
 	CColRefSet *pcrsUsedPredOuter = CDrvdPropScalar::GetDrvdScalarProps(pexprPredOuter->PdpDerive())->PcrsUsed();
 	CColRefSet *pcrsUsedPredInner = CDrvdPropScalar::GetDrvdScalarProps(pexprPredInner->PdpDerive())->PcrsUsed();
 
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
-	CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
+	CColRefSet *outer_refs = pexprOuter->GetDrvdPropRelational()->PcrsOutput();
+	CColRefSet *pcrsInner = pexprInner->GetDrvdPropRelational()->PcrsOutput();
 
 	// make sure that each predicate child uses columns from a different join child
 	// in order to reject predicates of the form 'X Join Y on f(X.a, Y.b) = 5'

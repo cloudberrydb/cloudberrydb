@@ -398,6 +398,26 @@ CExpression::Pdp
 	return NULL;
 }
 
+CDrvdPropRelational *
+CExpression::GetDrvdPropRelational()
+	const
+{
+	return m_pdprel;
+}
+
+CDrvdPropPlan *
+CExpression::GetDrvdPropPlan()
+	const
+{
+	return m_pdpplan;
+}
+
+CDrvdPropScalar *
+CExpression::GetDrvdPropScalar()
+	const
+{
+	return m_pdpscalar;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -535,17 +555,33 @@ CExpression::PdpDerive
 	// see if suitable prop is already cached
 	if (NULL == Pdp(ept))
 	{
+		const ULONG arity = Arity();
+		for (ULONG ul = 0; ul < arity; ul++)
+		{
+			CExpression *pexprChild = (*m_pdrgpexpr)[ul];
+			DrvdPropArray *pdp = pexprChild->PdpDerive(pdpctxt);
+
+			// add child props to derivation context
+			CDrvdPropCtxt::AddDerivedProps(pdp, pdpctxt);
+		}
+
 		CExpressionHandle exprhdl(m_mp);
 		exprhdl.Attach(this);
+		exprhdl.CopyStats();
 
-		// trigger recursive property derivation
-		exprhdl.DeriveProps(pdpctxt);
-		
-		// cache handle's derived properties on expression
-		CRefCount::SafeRelease(Pdp(ept));
-		DrvdPropArray *pdp = exprhdl.Pdp();
-		pdp->AddRef();
-		SetPdp(pdp, ept);
+		switch (ept)
+		{
+			case DrvdPropArray::EptRelational:
+				m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational();
+			case DrvdPropArray::EptPlan:
+				m_pdpplan = GPOS_NEW(m_mp) CDrvdPropPlan();
+			case DrvdPropArray::EptScalar:
+				m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar();
+			default:
+				break;
+		}
+
+		Pdp(ept)->Derive(m_mp, exprhdl, pdpctxt);
 	}
 
 	return Pdp(ept);
@@ -1445,7 +1481,7 @@ CExpression::FValidPlan
 		pdpctxtplan->CopyCTEProducerProps(pdpplan, ulCTEId);
 	}
 
-	CDrvdPropRelational *pdprel = CDrvdPropRelational::GetRelationalProperties(Pdp(DrvdPropArray::EptRelational));
+	CDrvdPropRelational *pdprel = GetDrvdPropRelational();
 
 	return prpp->FCompatible(exprhdl, CPhysical::PopConvert(m_pop), pdprel, pdpplan)
 	        && FValidChildrenDistribution(pdpctxtplan)
@@ -1510,7 +1546,7 @@ CExpression::FValidPartEnforcers
 {
 	GPOS_ASSERT(Pop()->FPhysical());
 
-	CDrvdPropRelational *pdprel = CDrvdPropRelational::GetRelationalProperties(Pdp(DrvdPropArray::EptRelational));
+	CDrvdPropRelational *pdprel = GetDrvdPropRelational();
 	CPartInfo *ppartinfo = pdprel->Ppartinfo();
 	GPOS_ASSERT(NULL != ppartinfo);
 

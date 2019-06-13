@@ -176,7 +176,7 @@ CDrvdPropRelational::FSatisfies
 	GPOS_ASSERT(NULL != prpp);
 	GPOS_ASSERT(NULL != prpp->PcrsRequired());
 
-	BOOL fSatisfies = m_pcrsOutput->ContainsAll(prpp->PcrsRequired());
+	BOOL fSatisfies = PcrsOutput()->ContainsAll(prpp->PcrsRequired());
 
 	return fSatisfies;
 }
@@ -369,7 +369,7 @@ CDrvdPropRelational::OsPrint
 	)
 	const
 {
-	os	<<	"Output Cols: [" << *m_pcrsOutput << "]"
+	os	<<	"Output Cols: [" << *PcrsOutput() << "]"
 		<<	", Outer Refs: [" << *m_pcrsOuter << "]"
 		<<	", Not Null Cols: [" << *m_pcrsNotNull << "]"
 		<< ", Corr. Apply Cols: [" << *m_pcrsCorrelatedApply <<"]";
@@ -410,5 +410,95 @@ CDrvdPropRelational::OsPrint
 	return os;
 }
 
+// output columns
+CColRefSet *
+CDrvdPropRelational::PcrsOutput() const
+{
+	return m_pcrsOutput;
+}
+
+// outer references
+CColRefSet *
+CDrvdPropRelational::PcrsOuter() const
+{
+	return m_pcrsOuter;
+}
+
+// nullable columns
+CColRefSet *
+CDrvdPropRelational::PcrsNotNull() const
+{
+	return m_pcrsNotNull;
+}
+
+// columns from the inner child of a correlated-apply expression that can be used above the apply expression
+CColRefSet *
+CDrvdPropRelational::PcrsCorrelatedApply() const
+{
+	return m_pcrsCorrelatedApply;
+}
+
+// key collection
+CKeyCollection *
+CDrvdPropRelational::Pkc() const
+{
+	return m_pkc;
+}
+
+// functional dependencies
+CFunctionalDependencyArray *
+CDrvdPropRelational::Pdrgpfd() const
+{
+	return m_pdrgpfd;
+}
+
+// check if relation has a key
+BOOL
+CDrvdPropRelational::FHasKey() const
+{
+	return NULL != m_pkc;
+}
+
+// max cardinality
+CMaxCard
+CDrvdPropRelational::Maxcard() const
+{
+	return m_maxcard;
+}
+
+// join depth
+ULONG
+CDrvdPropRelational::JoinDepth() const
+{
+	return m_ulJoinDepth;
+}
+
+// partition consumers
+CPartInfo *
+CDrvdPropRelational::Ppartinfo() const
+{
+	return m_ppartinfo;
+}
+
+// constraint property
+CPropConstraint *
+CDrvdPropRelational::Ppc() const
+{
+	return m_ppc;
+}
+
+// function properties
+CFunctionProp *
+CDrvdPropRelational::Pfp() const
+{
+	return m_pfp;
+}
+
+// has partial indexes
+BOOL
+CDrvdPropRelational::FHasPartialIndexes() const
+{
+	return m_fHasPartialIndexes;
+}
 
 // EOF

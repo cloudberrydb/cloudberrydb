@@ -845,10 +845,6 @@ namespace gpopt
 			// return column reference defined by project element
 			static
 			CColRef *PcrFromProjElem(CExpression *pexprPrEl);
-			
-			// is given column functionally dependent on the given keyset
-			static
-			BOOL FFunctionallyDependent(CMemoryPool *mp, CDrvdPropRelational *pdprel, CColRefSet *pcrsKey, CColRef *colref);
 
 			// construct an array of colids from the given array of column references
 			static

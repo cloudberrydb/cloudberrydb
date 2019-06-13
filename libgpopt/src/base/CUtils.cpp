@@ -3441,52 +3441,6 @@ CUtils::CreateMultiByteCharStringFromWCString
 	return sz;
 }
 
-// is the given column functionally dependent on the given keyset
-BOOL
-CUtils::FFunctionallyDependent
-	(
-	CMemoryPool *mp,
-	CDrvdPropRelational *pdprel,
-	CColRefSet *pcrsKey,
-	CColRef *colref
-	)
-{
-	GPOS_ASSERT(NULL != pdprel);
-	GPOS_ASSERT(NULL != pcrsKey);
-	GPOS_ASSERT(NULL != colref);
-
-	// check if column is a constant
-	if (NULL != pdprel->Ppc()->Pcnstr())
-	{
-		CConstraint *pcnstr = pdprel->Ppc()->Pcnstr()->Pcnstr(mp, colref);
-		if (NULL != pcnstr && CPredicateUtils::FConstColumn(pcnstr, colref))
-		{
-			pcnstr->Release();
-			return true;
-		}
-		
-		CRefCount::SafeRelease(pcnstr);
-	}
-	
-	// not a constant: check if column is functionally dependent on the key
-	CFunctionalDependencyArray *pdrgpfd = pdprel->Pdrgpfd();
-
-	if (pdrgpfd != NULL)
-	{
-		const ULONG size = pdrgpfd->Size();
-		for (ULONG ul = 0; ul < size; ul++)
-		{
-			CFunctionalDependency *pfd = (*pdrgpfd)[ul];
-			if (pfd->FFunctionallyDependent(pcrsKey, colref))
-			{
-				return true;
-			}
-		}
-	}
-	
-	return false;
-}
-
 // construct an array of colids from the given array of column references
 ULongPtrArray *
 CUtils::Pdrgpul
