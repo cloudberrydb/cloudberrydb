@@ -549,13 +549,6 @@ XactLockTableInsert(TransactionId xid)
 
 	SET_LOCKTAG_TRANSACTION(tag, xid);
 
-	if (LockAcquire(&tag, ExclusiveLock, false, true) == LOCKACQUIRE_NOT_AVAIL)
-	{
-		elog(LOG,"XactLockTableInsert lock for xid = %u is not available!", xid);
-		
-		return;
-	}
-
 	(void) LockAcquire(&tag, ExclusiveLock, false, false);
 }
 
