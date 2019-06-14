@@ -630,7 +630,7 @@ CRange::PrngDifferenceLeft
 		return this;
 	}
 
-	if (FStartsBefore(prange) && NULL != prange->PdatumLeft())
+	if (NULL != prange->PdatumLeft() && FStartsBefore(prange))
 	{
 		m_mdid->AddRef();
 
@@ -680,7 +680,7 @@ CRange::PrngDifferenceRight
 		return this;
 	}
 
-	if (FEndsAfter(prange) && NULL != prange->PdatumRight())
+	if (NULL != prange->PdatumRight() && FEndsAfter(prange))
 	{
 		m_mdid->AddRef();
 
@@ -722,9 +722,9 @@ CRange::PrngExtend
 	CRange *prange
 	)
 {
-	if (FDisjointLeft(prange) &&
-		m_pcomp->Equals(prange->PdatumLeft(), m_pdatumRight) &&
-		(EriIncluded == prange->EriLeft() || EriIncluded == m_eriRight))
+	if ((EriIncluded == prange->EriLeft() || EriIncluded == m_eriRight)
+		&& (m_pcomp->Equals(prange->PdatumLeft(), m_pdatumRight))
+		)
 	{
 		// ranges are contiguous so combine them into one
 		m_mdid->AddRef();
