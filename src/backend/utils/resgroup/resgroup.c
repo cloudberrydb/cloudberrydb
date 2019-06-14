@@ -3447,6 +3447,7 @@ shouldBypassQuery(const char *query_string)
 	List *parsetree_list; 
 	ListCell *parsetree_item;
 	Node *parsetree;
+	bool		bypass;
 
 	if (gp_resource_group_bypass)
 		return true;
@@ -3467,16 +3468,21 @@ shouldBypassQuery(const char *query_string)
 		return false;
 
 	/* Only bypass SET/RESET/SHOW command for now */
+	bypass = true;
 	foreach(parsetree_item, parsetree_list)
 	{
 		parsetree = (Node *) lfirst(parsetree_item);
 
 		if (nodeTag(parsetree) != T_VariableSetStmt &&
 			nodeTag(parsetree) != T_VariableShowStmt)
-			return false;
+		{
+			bypass = false;
+			break;
+		}
 	}
 
-	return true;
+	list_free_deep(parsetree_list);
+	return bypass;
 }
 
 /*
