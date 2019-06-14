@@ -327,6 +327,7 @@ namespace gpopt
 		return interval->OsPrint(os);
 	}
 
+	typedef CDynamicPtrArray<CConstraintInterval, CleanupRelease> CConstraintIntervalArray;
 }
 
 #endif // !GPOPT_CConstraintInterval_H

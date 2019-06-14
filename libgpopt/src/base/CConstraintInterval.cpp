@@ -580,29 +580,58 @@ CConstraintInterval::PciIntervalFromScalarBoolOr
 	const ULONG arity = pexpr->Arity();
 	GPOS_ASSERT(0 < arity);
 
-	CConstraintInterval *pci = PciIntervalFromScalarExpr(mp, (*pexpr)[0], colref);
-	if (NULL == pci)
-	{
-		return NULL;
-	}
-
-	for (ULONG ul = 1; ul < arity; ul++)
+	CConstraintIntervalArray *child_constraints = GPOS_NEW(mp) CConstraintIntervalArray(mp);
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CConstraintInterval *pciChild = PciIntervalFromScalarExpr(mp, (*pexpr)[ul], colref);
 
 		if (NULL == pciChild)
 		{
-			pci->Release();
+			child_constraints->Release();
 			return NULL;
 		}
 
-		CConstraintInterval *pciOr = pci->PciUnion(mp, pciChild);
-		pci->Release();
-		pciChild->Release();
-		pci = pciOr;
+		child_constraints->Append(pciChild);
 	}
 
-	return pci;
+	CConstraintIntervalArray *constraints;
+
+	// PciUnion each interval in pairs. Given intervals I1,I2.., I5, perform the unions as follows:
+	// iteration 1: I1 U I2, I3 U I4, I5
+	// iteration 2: I12 U I34, I5
+	// iteration 3: I1234 U I5
+	while(child_constraints->Size() > 1)
+	{
+		constraints = GPOS_NEW(mp) CConstraintIntervalArray(mp);
+
+		ULONG length = child_constraints->Size();
+		ULONG ul;
+
+		for(ul = 0; ul < length - 1; ul += 2)
+		{
+			CConstraintInterval *pci1 = (*child_constraints)[ul];
+			CConstraintInterval *pci2 = (*child_constraints)[ul+1];
+
+			CConstraintInterval *pciOr = pci1->PciUnion(mp, pci2);
+			constraints->Append(pciOr);
+		}
+
+		if (ul < length)
+		{
+			// append the odd one at the end
+			CConstraintInterval *pciChild = (*child_constraints)[ul];
+			pciChild->AddRef();
+			constraints->Append(pciChild);
+		}
+		child_constraints->Release();
+		child_constraints = constraints;
+	}
+	GPOS_ASSERT(child_constraints->Size() == 1);
+	CConstraintInterval *dest = (*child_constraints)[0];
+	dest->AddRef();
+	child_constraints->Release();
+
+	return dest;
 }
 
 //---------------------------------------------------------------------------
