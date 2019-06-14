@@ -2975,6 +2975,10 @@ groupSetMemorySpillRatio(const ResGroupCaps *caps)
 {
 	char value[64];
 
+	/* No need to set memory_spill_ratio if it is already up-to-date */
+	if (caps->memSpillRatio == memory_spill_ratio)
+		return;
+
 	snprintf(value, sizeof(value), "%d", caps->memSpillRatio);
 	set_config_option("memory_spill_ratio", value, PGC_USERSET, PGC_S_RESGROUP,
 					  GUC_ACTION_SET, true, 0);
