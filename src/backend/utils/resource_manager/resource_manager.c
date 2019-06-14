@@ -30,35 +30,10 @@
 bool	ResourceScheduler = false;						/* Is scheduling enabled? */
 ResourceManagerPolicy Gp_resource_manager_policy;
 
-static bool resourceGroupActivated = false;
-
-bool
-IsResQueueEnabled(void)
-{
-	return ResourceScheduler &&
-		Gp_resource_manager_policy == RESOURCE_MANAGER_POLICY_QUEUE;
-}
-
 /*
- * Caution: resource group may be enabled but not activated.
+ * Global variables.
  */
-bool
-IsResGroupEnabled(void)
-{
-	return ResourceScheduler &&
-		Gp_resource_manager_policy == RESOURCE_MANAGER_POLICY_GROUP;
-}
-
-/*
- * Resource group do not govern the auxiliary processes and special backends
- * like ftsprobe, filerep process, so we need to check if resource group is
- * actually activated
- */
-bool
-IsResGroupActivated(void)
-{
-	return IsResGroupEnabled() && resourceGroupActivated;
-}
+bool		ResGroupActivated = false;
 
 void
 ResManagerShmemInit(void)
@@ -105,7 +80,7 @@ InitResManager(void)
 		InitResGroups();
 		ResGroupOps_AdjustGUCs();
 
-		resourceGroupActivated = true;
+		ResGroupActivated = true;
 	}
 	else
 	{
