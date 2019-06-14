@@ -101,10 +101,6 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest();
 
-			// test evaluation for a constant
-			static
-			GPOS_RESULT EresUnittest_Constants();
-
 			// test that evaluation fails for a non scalar input
 			static
 			GPOS_RESULT EresUnittest_NonScalar();

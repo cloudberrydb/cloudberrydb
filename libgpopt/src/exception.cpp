@@ -85,9 +85,9 @@ gpopt::EresExceptionInit
 
 			CMessage(CException(gpopt::ExmaGPOPT, gpopt::ExmiEvalUnsupportedScalarExpr),
 					 CException::ExsevError,
-					 GPOS_WSZ_WSZLEN("Expecting a scalar expression without a subquery, received a %s"),
-					 1,
-					 GPOS_WSZ_WSZLEN("Non scalar expression or scalar expression with a subquery")),
+					 GPOS_WSZ_WSZLEN("Expecting a scalar expression like (const cmp const), ignoring casts"),
+					 0,
+					 GPOS_WSZ_WSZLEN("Not a constant scalar expression")),
 
 			CMessage(CException(gpopt::ExmaGPOPT, gpopt::ExmiCTEProducerConsumerMisAligned),
 					 CException::ExsevError,

@@ -75,7 +75,6 @@ CConstExprEvaluatorDXLTest::EresUnittest()
 	{
 		CUnittest rgut[] =
 			{
-			GPOS_UNITTEST_FUNC(CConstExprEvaluatorDXLTest::EresUnittest_Constants),
 			GPOS_UNITTEST_FUNC_THROW
 				(
 				CConstExprEvaluatorDXLTest::EresUnittest_NonScalar,
@@ -99,39 +98,6 @@ CConstExprEvaluatorDXLTest::EresUnittest()
 		return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
 	}
 
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CConstExprEvaluatorDXLTest::EresUnittest_Constants
-//
-//	@doc:
-//		Test evaluation for a constant.
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CConstExprEvaluatorDXLTest::EresUnittest_Constants()
-{
-	CTestUtils::CTestSetup testsetup;
-	CMemoryPool *mp = testsetup.Pmp();
-	CDummyConstDXLNodeEvaluator consteval(mp, testsetup.Pmda(), m_iDefaultEvalValue);
-	CConstExprEvaluatorDXL  *pceeval =
-			GPOS_NEW(mp) CConstExprEvaluatorDXL(mp, testsetup.Pmda(), &consteval);
-
-	// Test that evaluation works for an integer constant
-	CExpression *pexprConstInput = CUtils::PexprScalarConstInt4(testsetup.Pmp(), m_iDefaultEvalValue);
-	CExpression *pexprConstResult = pceeval->PexprEval(pexprConstInput);
-#ifdef GPOS_DEBUG
-	CScalarConst *popScConstInput = CScalarConst::PopConvert(pexprConstInput->Pop());
-	CScalarConst *popScConstResult = CScalarConst::PopConvert(pexprConstResult->Pop());
-	GPOS_ASSERT(popScConstResult->Matches(popScConstInput));
-#endif // GPOS_DEBUG
-	pexprConstInput->Release();
-	pexprConstResult->Release();
-	pceeval->Release();
-
-	return GPOS_OK;
 }
 
 //---------------------------------------------------------------------------

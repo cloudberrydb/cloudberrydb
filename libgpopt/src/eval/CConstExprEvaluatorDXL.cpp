@@ -64,58 +64,6 @@ CConstExprEvaluatorDXL::~CConstExprEvaluatorDXL()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CConstExprEvaluatorDXL::FValidInput
-//
-//	@doc:
-//		Checks if the given expression is a valid input for constant expression evaluation,
-//		i.e., a scalar expression without variables and without subqueries.
-//		If it returns false, it sets the contents of the error message appropriately.
-//		If szErrorMsg is not null and this function returns false, szErrorMsg will contain
-//		the error message.
-//
-//---------------------------------------------------------------------------
-BOOL
-CConstExprEvaluatorDXL::FValidInput
-	(
-	CExpression *pexpr,
-	const CHAR **szErrorMsg
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	// if the expression is not scalar, we should not try to evaluate it
-	if (!pexpr->Pop()->FScalar())
-	{
-		if (NULL != szErrorMsg)
-		{
-			*szErrorMsg = pexpr->Pop()->SzId();
-		}
-		return false;
-	}
-	// if the expression has a subquery, we should not try to evaluate it
-	if (CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->FHasSubquery())
-	{
-		if (NULL != szErrorMsg)
-		{
-			*szErrorMsg = "expression containing subqueries";
-		}
-		return false;
-	}
-	// if the expression uses or defines any variables, we should not try to evaluate it
-	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	if (0 != pdpScalar->PcrsUsed()->Size() ||
-		0 != pdpScalar->PcrsDefined()->Size())
-	{
-		if (NULL != szErrorMsg)
-		{
-			*szErrorMsg = "expression with variables";
-		}
-		return false;
-	}
-	return true;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CConstExprEvaluatorDXL::PexprEval
 //
 //	@doc:
@@ -131,10 +79,9 @@ CConstExprEvaluatorDXL::PexprEval
 {
 	GPOS_ASSERT(NULL != pexpr);
 
-	const CHAR *szErrorMsg = "";
-	if (!FValidInput(pexpr, &szErrorMsg))
+	if (!CPredicateUtils::FCompareConstToConstIgnoreCast(pexpr))
 	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiEvalUnsupportedScalarExpr, szErrorMsg);
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiEvalUnsupportedScalarExpr);
 	}
 	CDXLNode *pdxlnExpr = m_trexpr2dxl.PdxlnScalar(pexpr);
 	CDXLNode *pdxlnResult = m_pconstdxleval->EvaluateExpr(pdxlnExpr);

@@ -64,10 +64,6 @@ namespace gpopt
 			// private copy ctor
 			CConstExprEvaluatorDXL(const CConstExprEvaluatorDXL &);
 
-			// checks if the given expression is a valid input for constant expression evaluation
-			static
-			BOOL FValidInput(CExpression *pexpr, const CHAR **szErrorMsg);
-
 		public:
 			// ctor
 			CConstExprEvaluatorDXL(CMemoryPool *mp, CMDAccessor *md_accessor, IConstDXLNodeEvaluator *pconstdxleval);

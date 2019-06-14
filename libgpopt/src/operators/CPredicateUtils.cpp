@@ -1221,6 +1221,41 @@ CPredicateUtils::FIdentCompareConstIgnoreCast
 	return false;
 }
 
+// is the given expression a comparison between a const and a const
+BOOL
+CPredicateUtils::FCompareConstToConstIgnoreCast
+	(
+	CExpression *pexpr
+	)
+{
+	COperator *pop = pexpr->Pop();
+
+	if (COperator::EopScalarCmp != pop->Eopid())
+	{
+		return false;
+	}
+
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	// left side must be scalar const
+
+	if (!(CUtils::FScalarConst(pexprLeft) ||
+				CCastUtils::FBinaryCoercibleCastedConst(pexprLeft)))
+	{
+		return false;
+	}
+
+	// right side must be a constant
+	if (!(CUtils::FScalarConst(pexprRight) ||
+		  CCastUtils::FBinaryCoercibleCastedConst(pexprRight)))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 // is the given expression an array comparison between scalar ident
 // and a const array or a constant
 BOOL
