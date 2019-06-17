@@ -193,8 +193,9 @@ class SQLIsolationExecutor(object):
             """
             query = ("SELECT hostname, port FROM gp_segment_configuration WHERE"
                      " content = %s AND role = '%s'") % (contentid, role)
-            con = self.connectdb(self.dbname)
+            con = self.connectdb(self.dbname, given_opt="-c gp_session_role=utility")
             r = con.query(query).getresult()
+            con.close()
             if len(r) == 0:
                 raise Exception("Invalid content %s" % contentid)
             if r[0][0] == socket.gethostname():
