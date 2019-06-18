@@ -755,19 +755,17 @@ SELECT * FROM geometricTypesPartition
 
 EXPLAIN SELECT * FROM geometricTypesPartition 
  WHERE c ~= SeedToCircle(101);
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.01 rows=1 width=68)
-   ->  Sequence  (cost=0.00..0.00 rows=1 width=68)
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=68)
+   ->  Sequence  (cost=0.00..6.00 rows=1 width=68)
          ->  Partition Selector for geometrictypespartition (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Partitions selected: 2 (out of 2)
-         ->  Dynamic Bitmap Heap Scan on geometrictypespartition (dynamic scan id: 1)  (cost=0.00..0.00 rows=1 width=68)
-               Recheck Cond: (c ~= '<(8479,-3121),8441>'::circle)
-               ->  Dynamic Bitmap Index Scan on geometrictypespartition_1_prt_1_c_idx  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: (c ~= '<(8479,-3121),8441>'::circle)
- Planning time: 26.900 ms
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(10 rows)
+         ->  Dynamic Index Scan on geometrictypespartition (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=68)
+               Index Cond: (c ~= '<(8479,-3121),8441>'::circle)
+               Filter: (c ~= '<(8479,-3121),8441>'::circle)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.47.0
+(8 rows)
 
 DROP TABLE IF EXISTS geometricTypesPartition;
 -- ----------------------------------------------------------------------
