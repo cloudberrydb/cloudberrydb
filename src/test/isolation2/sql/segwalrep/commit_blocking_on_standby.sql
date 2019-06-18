@@ -14,12 +14,12 @@ select application_name, state, sync_state from pg_stat_replication;
 select gp_inject_fault_infinite2('walrecv_skip_flush', 'skip', dbid, hostname, port)
 from gp_segment_configuration where content=-1 and role='m';
 
+select gp_wait_until_triggered_fault2('walrecv_skip_flush', 1, dbid, hostname, port)
+from gp_segment_configuration where content=-1 and role='m';
+
 -- Should block in commit (SyncrepWaitForLSN()), waiting for commit
 -- LSN to be flushed on standby.
 1&: create table commit_blocking_on_standby_t1 (a int) distributed by (a);
-
-select gp_wait_until_triggered_fault2('walrecv_skip_flush', 1, dbid, hostname, port)
-from gp_segment_configuration where content=-1 and role='m';
 
 -- The create table command should be seen as blocked.
 select datname, waiting_reason, query from pg_stat_activity
