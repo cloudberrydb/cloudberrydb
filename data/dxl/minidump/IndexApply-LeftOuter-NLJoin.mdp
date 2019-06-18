@@ -503,7 +503,7 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
     <dxl:Plan Id="0" SpaceSize="16">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="3466.003117" Rows="5.000000" Width="40"/>
+          <dxl:Cost StartupCost="0" TotalCost="585.257377" Rows="5.000000" Width="40"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -539,9 +539,9 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="3466.002372" Rows="5.000000" Width="40"/>
+            <dxl:Cost StartupCost="0" TotalCost="585.256632" Rows="5.000000" Width="40"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -579,9 +579,9 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
           <dxl:JoinFilter>
             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
           </dxl:JoinFilter>
-          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1742.001590" Rows="4.000000" Width="32"/>
+              <dxl:Cost StartupCost="0" TotalCost="517.128720" Rows="4.000000" Width="32"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -613,7 +613,7 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
             <dxl:JoinFilter>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
             </dxl:JoinFilter>
-            <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+            <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="449.000653" Rows="3.000000" Width="24"/>
               </dxl:Properties>
@@ -641,7 +641,7 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
               <dxl:JoinFilter>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:JoinFilter>
-              <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+              <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="437.000259" Rows="2.000000" Width="16"/>
                 </dxl:Properties>
@@ -767,7 +767,7 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
             </dxl:NestedLoopJoin>
             <dxl:BitmapTableScan>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1293.000440" Rows="0.333333" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="68.127570" Rows="0.333333" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="27" Alias="a">
@@ -806,7 +806,7 @@ explain select * from t0 left join t1 on t0.a=t1.a left join t2 on (t2.a=t0.a an
           </dxl:NestedLoopJoin>
           <dxl:BitmapTableScan>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1724.000471" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="68.127601" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="32" Alias="a">

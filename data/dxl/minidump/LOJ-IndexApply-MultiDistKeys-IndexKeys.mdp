@@ -465,7 +465,7 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b and foo.c
     <dxl:Plan Id="0" SpaceSize="4">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1299.002120" Rows="3.000000" Width="48"/>
+          <dxl:Cost StartupCost="0" TotalCost="868.122120" Rows="3.000000" Width="48"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -498,9 +498,9 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b and foo.c
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1299.001584" Rows="3.000000" Width="48"/>
+            <dxl:Cost StartupCost="0" TotalCost="868.121584" Rows="3.000000" Width="48"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -535,7 +535,7 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b and foo.c
           <dxl:JoinFilter>
             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
           </dxl:JoinFilter>
-          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="437.000487" Rows="2.000000" Width="32"/>
             </dxl:Properties>
@@ -648,7 +648,7 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b and foo.c
           </dxl:NestedLoopJoin>
           <dxl:BitmapTableScan>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="862.000880" Rows="0.500000" Width="16"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.120880" Rows="0.500000" Width="16"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="20" Alias="a">

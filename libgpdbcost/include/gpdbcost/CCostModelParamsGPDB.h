@@ -101,6 +101,7 @@ namespace gpopt
 				EcpBitmapPageCostLargeNDV, // bitmap page cost for large NDV
 				EcpBitmapPageCostSmallNDV, // bitmap page cost for smaller NDV
 				EcpBitmapNDVThreshold, // bitmap NDV threshold
+				EcpBitmapScanRebindCost, // cost of rebind operation in a bitmap scan
 
 				EcpSentinel
 			};
@@ -313,6 +314,10 @@ namespace gpopt
 			// default threshold of NDV for bitmap costing
 			static
 			const CDouble DBitmapNDVThreshold;
+
+			// cost of bitmap scan rebind
+			static
+			const CDouble DBitmapScanRebindCost;
 
 			// private copy ctor
 			CCostModelParamsGPDB(CCostModelParamsGPDB &);

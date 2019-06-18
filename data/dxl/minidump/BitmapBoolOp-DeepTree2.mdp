@@ -917,7 +917,7 @@ explain select * from t where c1 = 10 or (c2 = '4' and c5> 100);
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.052122" Rows="14.195200" Width="27"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.112122" Rows="14.195200" Width="27"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="c1">
@@ -946,7 +946,7 @@ explain select * from t where c1 = 10 or (c2 = '4' and c5> 100);
         <dxl:SortingColumnList/>
         <dxl:BitmapTableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.050402" Rows="14.195200" Width="27"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.110402" Rows="14.195200" Width="27"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="c1">

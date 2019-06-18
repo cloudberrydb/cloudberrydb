@@ -405,7 +405,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c > 11 OR d > 20;
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.002849" Rows="3.000000" Width="16"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.062849" Rows="3.000000" Width="16"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -425,7 +425,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c > 11 OR d > 20;
         <dxl:SortingColumnList/>
         <dxl:BitmapTableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.002640" Rows="3.000000" Width="16"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.062640" Rows="3.000000" Width="16"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">

@@ -1,43 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-Objective:
-The alternative produced should contain a NLJ index scan for the 
-underlying GiST index on one of the two tables.
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Comment><![CDATA[
+    Objective:
+    The alternative produced should contain a NLJ index scan for the 
+    underlying GiST index on one of the two tables.
 
-CREATE TABLE gist_tbl (b box, p polygon, c circle);
-CREATE INDEX poly_index ON gist_tbl USING gist (p);
+    CREATE TABLE gist_tbl (b box, p polygon, c circle);
+    CREATE INDEX poly_index ON gist_tbl USING gist (p);
 
-CREATE TABLE gist_tbl2 (a int, p polygon, c circle);
+    CREATE TABLE gist_tbl2 (a int, p polygon, c circle);
 
-EXPLAIN SELECT gist_tbl.p FROM gist_tbl 
- INNER JOIN gist_tbl2 ON gist_tbl2.p ~= gist_tbl.p;
+    EXPLAIN SELECT gist_tbl.p FROM gist_tbl 
+     INNER JOIN gist_tbl2 ON gist_tbl2.p ~= gist_tbl.p;
 
                           QUERY PLAN
-Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
-   ->  Nested Loop  (cost=0.00..433.00 rows=1 width=8)
-         Join Filter: true
-         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-               ->  Table Scan on gist_tbl2  (cost=0.00..431.00 rows=1 width=8)
-         ->  Index Scan using poly_index on gist_tbl  (cost=0.00..2.00 rows=1 width=8)
-               Index Cond: gist_tbl.p ~= gist_tbl2.p
-               Filter: gist_tbl.p ~= gist_tbl2.p
- Optimizer status: PQO version 2.65.1
-(9 rows)
--->
-<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+    Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
+       ->  Nested Loop  (cost=0.00..433.00 rows=1 width=8)
+             Join Filter: true
+             ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                   ->  Table Scan on gist_tbl2  (cost=0.00..431.00 rows=1 width=8)
+             ->  Index Scan using poly_index on gist_tbl  (cost=0.00..2.00 rows=1 width=8)
+                   Index Cond: gist_tbl.p ~= gist_tbl2.p
+                   Filter: gist_tbl.p ~= gist_tbl2.p
+     Optimizer status: PQO version 2.65.1
+    (9 rows)
+  ]]>
+  </dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
-      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:WindowOids RowNumber="3100" Rank="3101"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
         <dxl:CostParams>
           <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="101013,102074,102146,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="100000" EnforceConstraintsOnDML="false"/>
+      <dxl:TraceFlags Value="101013,102074,102113,102120,102146,103001,103014,103015,103022,103027,103029,104003,104004,104005,105000,106000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -55,85 +56,8 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.96.1.0"/>
-        <dxl:InequalityOp Mdid="0.518.1.0"/>
-        <dxl:LessThanOp Mdid="0.97.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
-        <dxl:ComparisonOp Mdid="0.351.1.0"/>
-        <dxl:ArrayType Mdid="0.1007.1.0"/>
-        <dxl:MinAgg Mdid="0.2132.1.0"/>
-        <dxl:MaxAgg Mdid="0.2116.1.0"/>
-        <dxl:AvgAgg Mdid="0.2101.1.0"/>
-        <dxl:SumAgg Mdid="0.2108.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.607.1.0"/>
-        <dxl:InequalityOp Mdid="0.608.1.0"/>
-        <dxl:LessThanOp Mdid="0.609.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
-        <dxl:ComparisonOp Mdid="0.356.1.0"/>
-        <dxl:ArrayType Mdid="0.1028.1.0"/>
-        <dxl:MinAgg Mdid="0.2118.1.0"/>
-        <dxl:MaxAgg Mdid="0.2134.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.387.1.0"/>
-        <dxl:InequalityOp Mdid="0.402.1.0"/>
-        <dxl:LessThanOp Mdid="0.2799.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.2801.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.2800.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.2802.1.0"/>
-        <dxl:ComparisonOp Mdid="0.2794.1.0"/>
-        <dxl:ArrayType Mdid="0.1010.1.0"/>
-        <dxl:MinAgg Mdid="0.2798.1.0"/>
-        <dxl:MaxAgg Mdid="0.2797.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.385.1.0"/>
-        <dxl:InequalityOp Mdid="0.0.0.0"/>
-        <dxl:LessThanOp Mdid="0.0.0.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:ComparisonOp Mdid="0.0.0.0"/>
-        <dxl:ArrayType Mdid="0.1012.1.0"/>
-        <dxl:MinAgg Mdid="0.0.0.0"/>
-        <dxl:MaxAgg Mdid="0.0.0.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.352.1.0"/>
-        <dxl:InequalityOp Mdid="0.0.0.0"/>
-        <dxl:LessThanOp Mdid="0.0.0.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:ComparisonOp Mdid="0.0.0.0"/>
-        <dxl:ArrayType Mdid="0.1011.1.0"/>
-        <dxl:MinAgg Mdid="0.0.0.0"/>
-        <dxl:MaxAgg Mdid="0.0.0.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.573968.1.0.1" Name="p" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.573968.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:RelationStatistics Mdid="2.573948.1.0" Name="gist_tbl" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.573948.1.0" Name="gist_tbl" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="9,3" NumberLeafPartitions="0">
+      <dxl:RelationStatistics Mdid="2.16400.1.0" Name="gist_tbl" Rows="0.000000" EmptyRelation="true"/>
+      <dxl:Relation Mdid="0.16400.1.0" Name="gist_tbl" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="9,3" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="b" Attno="1" Mdid="0.603.1.0" Nullable="true" ColWidth="32">
             <dxl:DefaultValue/>
@@ -167,33 +91,18 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.573967.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16406.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Index Mdid="0.573967.1.0" Name="poly_index" IsClustered="false" IndexType="Gist" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.16406.1.0" Name="poly_index" IsClustered="false" IndexType="Gist" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.2594.1.0"/>
         </dxl:OpClasses>
       </dxl:Index>
-      <dxl:Type Mdid="0.718.1.0" Name="circle" IsRedistributable="false" IsHashable="false" IsComposite="false" IsFixedLength="true" Length="24" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.0.0.0"/>
-        <dxl:InequalityOp Mdid="0.0.0.0"/>
-        <dxl:LessThanOp Mdid="0.0.0.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
-        <dxl:ComparisonOp Mdid="0.0.0.0"/>
-        <dxl:ArrayType Mdid="0.719.1.0"/>
-        <dxl:MinAgg Mdid="0.0.0.0"/>
-        <dxl:MaxAgg Mdid="0.0.0.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:RelationStatistics Mdid="2.573968.1.0" Name="gist_tbl2" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.573968.1.0" Name="gist_tbl2" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" NumberLeafPartitions="0">
+      <dxl:RelationStatistics Mdid="2.16407.1.0" Name="gist_tbl2" Rows="0.000000" EmptyRelation="true"/>
+      <dxl:Relation Mdid="0.16407.1.0" Name="gist_tbl2" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
@@ -230,6 +139,99 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.16400.1.0.1" Name="p" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.607.1.0"/>
+        <dxl:InequalityOp Mdid="0.608.1.0"/>
+        <dxl:LessThanOp Mdid="0.609.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
+        <dxl:ComparisonOp Mdid="0.356.1.0"/>
+        <dxl:ArrayType Mdid="0.1028.1.0"/>
+        <dxl:MinAgg Mdid="0.2118.1.0"/>
+        <dxl:MaxAgg Mdid="0.2134.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.387.1.0"/>
+        <dxl:InequalityOp Mdid="0.402.1.0"/>
+        <dxl:LessThanOp Mdid="0.2799.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2801.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2800.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2802.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2794.1.0"/>
+        <dxl:ArrayType Mdid="0.1010.1.0"/>
+        <dxl:MinAgg Mdid="0.2798.1.0"/>
+        <dxl:MaxAgg Mdid="0.2797.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.385.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1012.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.352.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1011.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.16407.1.0.1" Name="p" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.16407.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:Type Mdid="0.718.1.0" Name="circle" IsRedistributable="false" IsHashable="false" IsComposite="false" IsFixedLength="true" Length="24" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.0.0.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.719.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
       <dxl:Type Mdid="0.603.1.0" Name="box" IsRedistributable="false" IsHashable="false" IsComposite="false" IsFixedLength="true" Length="32" PassByValue="false">
         <dxl:EqualityOp Mdid="0.0.0.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -270,7 +272,6 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
           <dxl:OpClass Mdid="0.2594.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.573948.1.0.1" Name="p" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
     </dxl:Metadata>
     <dxl:Query>
       <dxl:OutputColumns>
@@ -279,7 +280,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
       <dxl:CTEList/>
       <dxl:LogicalJoin JoinType="Inner">
         <dxl:LogicalGet>
-          <dxl:TableDescriptor Mdid="0.573948.1.0" TableName="gist_tbl">
+          <dxl:TableDescriptor Mdid="0.16400.1.0" TableName="gist_tbl">
             <dxl:Columns>
               <dxl:Column ColId="1" Attno="1" ColName="b" TypeMdid="0.603.1.0" ColWidth="32"/>
               <dxl:Column ColId="2" Attno="2" ColName="p" TypeMdid="0.604.1.0" ColWidth="8"/>
@@ -295,7 +296,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
           </dxl:TableDescriptor>
         </dxl:LogicalGet>
         <dxl:LogicalGet>
-          <dxl:TableDescriptor Mdid="0.573968.1.0" TableName="gist_tbl2">
+          <dxl:TableDescriptor Mdid="0.16407.1.0" TableName="gist_tbl2">
             <dxl:Columns>
               <dxl:Column ColId="11" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
               <dxl:Column ColId="12" Attno="2" ColName="p" TypeMdid="0.604.1.0" ColWidth="8"/>
@@ -316,7 +317,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="7">
+    <dxl:Plan Id="0" SpaceSize="8">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="437.000401" Rows="1.000000" Width="8"/>
@@ -328,7 +329,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true" OuterRefAsParam="false">
+        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true" OuterRefAsParam="true">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="437.000371" Rows="1.000000" Width="8"/>
           </dxl:Properties>
@@ -362,7 +363,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:TableDescriptor Mdid="0.573968.1.0" TableName="gist_tbl2">
+              <dxl:TableDescriptor Mdid="0.16407.1.0" TableName="gist_tbl2">
                 <dxl:Columns>
                   <dxl:Column ColId="10" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
                   <dxl:Column ColId="11" Attno="2" ColName="p" TypeMdid="0.604.1.0" ColWidth="8"/>
@@ -398,8 +399,8 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
                 <dxl:Ident ColId="11" ColName="p" TypeMdid="0.604.1.0"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
-            <dxl:IndexDescriptor Mdid="0.573967.1.0" IndexName="poly_index"/>
-            <dxl:TableDescriptor Mdid="0.573948.1.0" TableName="gist_tbl">
+            <dxl:IndexDescriptor Mdid="0.16406.1.0" IndexName="poly_index"/>
+            <dxl:TableDescriptor Mdid="0.16400.1.0" TableName="gist_tbl">
               <dxl:Columns>
                 <dxl:Column ColId="1" Attno="2" ColName="p" TypeMdid="0.604.1.0" ColWidth="8"/>
                 <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
@@ -412,6 +413,9 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=8)
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:IndexScan>
+          <dxl:NLJIndexParamList>
+            <dxl:NLJIndexParam ColId="11" ColName="p" TypeMdid="0.604.1.0"/>
+          </dxl:NLJIndexParamList>
         </dxl:NestedLoopJoin>
       </dxl:GatherMotion>
     </dxl:Plan>
