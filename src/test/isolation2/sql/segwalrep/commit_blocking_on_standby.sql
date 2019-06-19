@@ -14,6 +14,9 @@ select application_name, state, sync_state from pg_stat_replication;
 select gp_inject_fault_infinite2('walrecv_skip_flush', 'skip', dbid, hostname, port)
 from gp_segment_configuration where content=-1 and role='m';
 
+-- Generate some WAL to trigger the fault
+checkpoint;
+
 select gp_wait_until_triggered_fault2('walrecv_skip_flush', 1, dbid, hostname, port)
 from gp_segment_configuration where content=-1 and role='m';
 
@@ -21,7 +24,26 @@ from gp_segment_configuration where content=-1 and role='m';
 -- LSN to be flushed on standby.
 1&: create table commit_blocking_on_standby_t1 (a int) distributed by (a);
 
--- The create table command should be seen as blocked.
+-- The create table command should be seen as blocked.  Wait until
+-- that happens.
+do $$
+declare
+  c int; /* in func */
+  i int; /* in func */
+begin
+  c := 0; /* in func */
+  i := 0; /* in func */
+  while c < 1 and i < 120 loop
+    select count(*) into c from pg_stat_activity
+    where waiting_reason = 'replication'; /* in func */
+    perform pg_sleep(0.5); /* in func */
+  end loop; /* in func */
+  if i = 120 then
+    raise exception 'timeout waiting for command to get blocked'; /* in func */
+  end if; /* in func */
+end; /* in func */
+$$;
+
 select datname, waiting_reason, query from pg_stat_activity
 where waiting_reason = 'replication';
 
