@@ -8762,9 +8762,37 @@ select max(b), (select foo.a * count(bar.e) from bar), (with cte as (select e, m
 select b + (a+1) from foo group by b, a+1;
  ?column? 
 ----------
-        7
-        3
         5
+        3
+        7
+(3 rows)
+
+-- subselects inside aggs
+SELECT  foo.b+1, avg (( SELECT bar.f FROM bar WHERE bar.d = foo.b)) AS t FROM foo GROUP BY foo.b;
+ ?column? |           t            
+----------+------------------------
+        3 |     2.0000000000000000
+        4 |     3.0000000000000000
+        2 | 1.00000000000000000000
+(3 rows)
+
+SELECT foo.b+1, sum( 1 + (SELECT bar.f FROM bar WHERE bar.d = ANY (SELECT jazz.g FROM jazz WHERE jazz.h = foo.b))) AS t FROM foo GROUP BY foo.b;
+ERROR:  correlated subquery with skip-level correlations is not supported
+select foo.b+1, sum((with cte as (select * from jazz) select 1 from cte where cte.h = foo.b)) as t FROM foo GROUP BY foo.b;
+ ?column? | t 
+----------+---
+        3 | 1
+        4 |  
+        2 |  
+(3 rows)
+
+-- ctes inside aggs
+select foo.b+1, sum((with cte as (select * from jazz) select 1 from cte cte1, cte cte2 where cte1.h = foo.b)) as t FROM foo GROUP BY foo.b;
+ ?column? | t 
+----------+---
+        3 | 1
+        4 |  
+        2 |  
 (3 rows)
 
 drop table foo, bar, jazz;

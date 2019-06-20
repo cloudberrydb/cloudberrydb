@@ -808,9 +808,39 @@ CQueryMutators::RunExtractAggregatesMutator
 			{
 				// If Var references the top level query inside an Aggref that also
 				// references top level query, the Aggref is moved to the derived query
-				// (see comments in Aggref if-case above). Thus, these Vars reference
+				// (see comments in Aggref if-case above). Thus, these Var references
 				// are brought up to the top-query level.
+				// e.g:
+				// explain select (select sum(foo.a) from jazz) from foo group by a, b;
+				// is transformed into
+				// select (select fnew.sum_t from jazz)
+				// from (select foo.a, foo.b, sum(foo.a) sum_t
+				//       from foo group by foo.a, foo.b) fnew;
+				//
+				// Note the foo.a var which is in sum() in a subquery must now become a
+				// var referencing the current query level.
 				var->varlevelsup = 0;
+				return (Node *) var;
+			}
+
+			// Skip vars inside Aggrefs, since they have already been fixed when they
+			// were moved into the derived query in ConvertToDerivedTable(), and thus,
+			// the relative varno, varattno & varlevelsup should still be valid.
+			// e.g:
+			// SELECT foo.b+1, avg(( SELECT bar.f FROM bar
+			//                       WHERE bar.d = foo.b)) AS t
+			// FROM foo GROUP BY foo.b;
+			// is transformed into
+			// SELECT fnew.b+1, fnew.avg_t
+			// FROM (SELECT foo.b,`avg(( SELECT bar.f FROM bar
+			//                           WHERE bar.d = foo.b)) AS t
+			//       FROM foo) fnew;
+			//
+			// Note the foo.b outerref in subquery inside the avg() aggregation.
+			// Because it is inside the aggregation, it was pushed down along with
+			// the aggregate function, and thus does not need to be fixed.
+			if (context->m_is_mutating_agg_arg)
+			{
 				return (Node *) var;
 			}
 
