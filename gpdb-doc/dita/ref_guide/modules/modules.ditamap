@@ -5,6 +5,7 @@
     <topicref href="auto-explain.xml"/>
     <topicref href="citext.xml" linking="none"/>
     <topicref href="dblink.xml" linking="none"/>
+    <topicref href="diskquota.xml" linking="none"/>
     <topicref href="fuzzystrmatch.xml" linking="none"/>
     <topicref href="gp_sparse_vector.xml" linking="none"/>
     <topicref href="hstore.xml" linking="none"/>

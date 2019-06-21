@@ -20,6 +20,8 @@
           data type.</li>
        <li><codeph><xref href="dblink.xml" format="dita"
               >dblink</xref></codeph> - Provides connections to other Greenplum databases.</li>
+      <li><codeph><xref href="diskquota.xml#topic_gzw_2wz_13b"/></codeph> - Allows administrators to
+        set disk usage quotas for Greenplum Database roles and schemas.</li>
        <li><codeph><xref href="fuzzystrmatch.xml"
              format="dita">fuzzystrmatch</xref></codeph> - Determines similarities and differences
          between strings.</li>
