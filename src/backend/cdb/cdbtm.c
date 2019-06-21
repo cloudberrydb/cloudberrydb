@@ -97,6 +97,7 @@ static void clearAndResetGxact(void);
 static void resetCurrentGxact(void);
 static void doPrepareTransaction(void);
 static void doInsertForgetCommitted(void);
+static void doNotifyingOnePhaseCommit(void);
 static void doNotifyingCommitPrepared(void);
 static void doNotifyingCommitNotPrepared(void);
 static void doNotifyingAbort(void);
@@ -319,6 +320,8 @@ notifyCommittedDtxTransaction(void)
 	if (currentGxact->state == DTX_STATE_PREPARED ||
 		currentGxact->state == DTX_STATE_INSERTED_COMMITTED)
 		doNotifyingCommitPrepared();
+	else if (currentGxact->state == DTX_STATE_ONE_PHASE_COMMIT)
+		doNotifyingOnePhaseCommit();
 	else
 		doNotifyingCommitNotPrepared();
 }
@@ -568,6 +571,39 @@ doNotifyingCommitNotPrepared(void)
 		ereport(LOG, (errmsg("failed to commit explict read-only transaction, destroy the writer gang")));
 		DisconnectAndDestroyAllGangs(true);
 		CheckForResetSession();
+	}
+}
+
+static void
+doNotifyingOnePhaseCommit(void)
+{
+	bool		succeeded;
+	bool		badGangs;
+	volatile int savedInterruptHoldoffCount;
+
+	Assert(list_length(currentGxact->twophaseSegments) <= 1);
+
+	if (strlen(currentGxact->gid) >= TMGIDSIZE)
+		elog(PANIC, "Distributed transaction identifier too long (%d)",
+			 (int) strlen(currentGxact->gid));
+
+	elog(DTM_DEBUG5, "doNotifyingOnePhaseCommit entering in state = %s", DtxStateToString(currentGxact->state));
+
+	Assert(currentGxact->state == DTX_STATE_ONE_PHASE_COMMIT);
+	setCurrentGxactState(DTX_STATE_PERFORMING_ONE_PHASE_COMMIT);
+
+	savedInterruptHoldoffCount = InterruptHoldoffCount;
+
+	Assert(currentGxact->twophaseSegments != NIL);
+
+	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE, /* flags */ 0,
+											 currentGxact->gid, currentGxact->gxid,
+											 &badGangs, /* raiseError */ true,
+											 currentGxact->twophaseSegments, NULL, 0);
+	if (!succeeded)
+	{
+		Assert(currentGxact->state == DTX_STATE_PERFORMING_ONE_PHASE_COMMIT);
+		elog(ERROR, "one phase commit failed");
 	}
 }
 
@@ -874,6 +910,9 @@ doNotifyingAbort(void)
 void
 prepareDtxTransaction(void)
 {
+	TransactionId xid = GetTopTransactionIdIfAny();
+	bool		markXidCommitted = TransactionIdIsValid(xid);
+
 	if (DistributedTransactionContext != DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE)
 	{
 		elog(DTM_DEBUG5, "prepareDtxTransaction nothing to do (DistributedTransactionContext = '%s')",
@@ -892,6 +931,18 @@ prepareDtxTransaction(void)
 	if (!ExecutorDidWriteXLog())
 		return;
 
+	/*
+	 * If only one segment was involved in the transaction, and no local XID
+	 * has been assigned on the QD either, we can perform one-phase commit
+	 * on that one segment. Otherwise, broadcast PREPARE TRANSACTION to the
+	 * segments.
+	 */
+	if (!markXidCommitted && list_length(currentGxact->twophaseSegments) < 2)
+	{
+		setCurrentGxactState(DTX_STATE_ONE_PHASE_COMMIT);
+		return;
+	}
+
 	elog(DTM_DEBUG5,
 		 "prepareDtxTransaction called with state = %s",
 		 DtxStateToString(currentGxact->state));
@@ -900,9 +951,6 @@ prepareDtxTransaction(void)
 	Assert(currentGxact->gxid > FirstDistributedTransactionId);
 	Assert(strlen(currentGxact->gid) > 0);
 
-	/*
-	 * Broadcast PREPARE TRANSACTION to segments.
-	 */
 	doPrepareTransaction();
 }
 
@@ -952,6 +1000,11 @@ rollbackDtxTransaction(void)
 
 		case DTX_STATE_PREPARED:
 			setCurrentGxactState(DTX_STATE_NOTIFYING_ABORT_PREPARED);
+			break;
+
+		case DTX_STATE_ONE_PHASE_COMMIT:
+		case DTX_STATE_PERFORMING_ONE_PHASE_COMMIT:
+			setCurrentGxactState(DTX_STATE_NOTIFYING_ABORT_NO_PREPARED);
 			break;
 
 		case DTX_STATE_NOTIFYING_ABORT_NO_PREPARED:
@@ -1389,6 +1442,7 @@ initGxact(TMGXACT *gxact, bool resetXid)
 	gxact->writerGangLost = false;
 	gxact->twophaseSegmentsMap = NULL;
 	gxact->twophaseSegments = NIL;
+	gxact->isOnePhaseCommit = false;
 }
 
 bool
@@ -2018,6 +2072,34 @@ performDtxProtocolPrepare(const char *gid)
 
 
 /**
+ * On the QE, run the Commit one-phase operation.
+ */
+static void
+performDtxProtocolCommitOnePhase(const char *gid)
+{
+	elog(DTM_DEBUG5,
+		 "performDtxProtocolCommitOnePhase going to call CommitTransaction for distributed transaction %s", gid);
+
+	/* MyTmGxact is now not used on QE for one-phase commit */
+	memcpy(MyTmGxact->gid, gid, TMGIDSIZE);
+	MyTmGxact->isOnePhaseCommit = true;
+
+	StartTransactionCommand();
+
+	if (!EndTransactionBlock())
+	{
+		elog(ERROR, "One-phase Commit of distributed transaction %s failed", gid);
+		return;
+	}
+
+	/* Calling CommitTransactionCommand will cause the actual COMMIT work to be performed. */
+	CommitTransactionCommand();
+
+	finishDistributedTransactionContext("performDtxProtocolCommitOnePhase -- Commit onephase", false);
+	MyProc->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
+}
+
+/**
  * On the QD, run the Commit Prepared operation.
  */
 static void
@@ -2107,6 +2189,7 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 			break;
 
 		case DTX_PROTOCOL_COMMAND_PREPARE:
+		case DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE:
 
 			/*
 			 * The QD has directed us to read-only commit or prepare an
@@ -2124,7 +2207,10 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 
 				case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
 				case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
-					performDtxProtocolPrepare(gid);
+					if (dtxProtocolCommand == DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE)
+						performDtxProtocolCommitOnePhase(gid);
+					else
+						performDtxProtocolPrepare(gid);
 					break;
 
 				case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:

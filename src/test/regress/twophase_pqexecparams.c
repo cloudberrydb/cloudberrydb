@@ -31,7 +31,7 @@ main(int argc, char **argv)
 	const char *conninfo;
 	PGconn	   *conn;
 	PGresult   *res;
-	const char *paramValues[1];
+	const char *paramValues[2];
 
 	/*
 	 * If the user supplies a parameter on the command line, use it as the
@@ -69,7 +69,8 @@ main(int argc, char **argv)
 	PQexec(conn, "SET debug_dtm_action_segment = 0");
 	PQexec(conn, "SET debug_dtm_action = \"fail_begin_command\"");
 
-	paramValues[0] = "joe's place";
+	paramValues[0] = "1";
+	paramValues[1] = "2";
 
 	/* Upone receving the INSERT below, the segment will error out due to the
 	 * fault-injector GUCs set earlier.  However, the master will retry and we
@@ -77,8 +78,8 @@ main(int argc, char **argv)
 	 */
 
 	res = PQexecParams(conn,
-					   "INSERT INTO test1(t) VALUES($1)",
-					   1,		/* one param */
+					   "INSERT INTO test1(i) VALUES($1), ($2)",
+					   2,		/* one param */
 					   NULL,	/* let the backend deduce param type */
 					   paramValues,
 					   NULL,	/* don't need param lengths since text */

@@ -5669,7 +5669,8 @@ getRecordTimestamp(XLogRecord *record, TimestampTz *recordXtime)
 		*recordXtime = ((xl_xact_commit_compact *) XLogRecGetData(record))->xact_time;
 		return true;
 	}
-	if (record->xl_rmid == RM_XACT_ID && record_info == XLOG_XACT_COMMIT)
+	if (record->xl_rmid == RM_XACT_ID &&
+		(record_info == XLOG_XACT_COMMIT || record_info == XLOG_XACT_ONE_PHASE_COMMIT))
 	{
 		*recordXtime = ((xl_xact_commit *) XLogRecGetData(record))->xact_time;
 		return true;
@@ -5727,7 +5728,9 @@ recoveryStopsBefore(XLogRecord *record)
 		return false;
 	record_info = record->xl_info & ~XLR_INFO_MASK;
 
-	if (record_info == XLOG_XACT_COMMIT_COMPACT || record_info == XLOG_XACT_COMMIT)
+	if (record_info == XLOG_XACT_COMMIT_COMPACT ||
+		record_info == XLOG_XACT_COMMIT ||
+		record_info == XLOG_XACT_ONE_PHASE_COMMIT)
 	{
 		isCommit = true;
 		recordXid = record->xl_xid;
@@ -5847,6 +5850,7 @@ recoveryStopsAfter(XLogRecord *record)
 	if (record->xl_rmid == RM_XACT_ID &&
 		(record_info == XLOG_XACT_COMMIT_COMPACT ||
 		 record_info == XLOG_XACT_COMMIT ||
+		 record_info == XLOG_XACT_ONE_PHASE_COMMIT ||
 		 record_info == XLOG_XACT_COMMIT_PREPARED ||
 		 record_info == XLOG_XACT_ABORT ||
 		 record_info == XLOG_XACT_ABORT_PREPARED))
@@ -5884,6 +5888,7 @@ recoveryStopsAfter(XLogRecord *record)
 
 			if (record_info == XLOG_XACT_COMMIT_COMPACT ||
 				record_info == XLOG_XACT_COMMIT ||
+				record_info == XLOG_XACT_ONE_PHASE_COMMIT ||
 				record_info == XLOG_XACT_COMMIT_PREPARED)
 			{
 				ereport(LOG,
@@ -6010,6 +6015,7 @@ recoveryApplyDelay(XLogRecord *record)
 	if (!(record->xl_rmid == RM_XACT_ID &&
 		  (record_info == XLOG_XACT_COMMIT_COMPACT ||
 		   record_info == XLOG_XACT_COMMIT ||
+		   record_info == XLOG_XACT_ONE_PHASE_COMMIT ||
 		   record_info == XLOG_XACT_COMMIT_PREPARED)))
 		return false;
 

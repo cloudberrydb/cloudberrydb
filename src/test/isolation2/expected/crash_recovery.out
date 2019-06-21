@@ -19,7 +19,7 @@ CREATE
 --------------------------
  t                        
 (1 row)
-2&:insert into crash_test_table values (1);  <waiting ...>
+2&:insert into crash_test_table values (1), (11), (111), (1111);  <waiting ...>
 3&:create table crash_test_ddl(c1 int);  <waiting ...>
 
 -- wait session 2 and session 3 hit inject point
@@ -32,7 +32,7 @@ CREATE
 CHECKPOINT
 
 -- transaction of session 4 inserted 'COMMIT' record after checkpoint
-4&:insert into crash_test_table values (2);  <waiting ...>
+4&:insert into crash_test_table values (2), (22), (222), (2222);  <waiting ...>
 
 -- wait session 4 hit inject point
 1:select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 3, 1);
@@ -47,7 +47,7 @@ CHECKPOINT
 --------------------------
  t                        
 (1 row)
-5&:INSERT INTO crash_test_table VALUES (3);  <waiting ...>
+5&:INSERT INTO crash_test_table VALUES (3), (33), (333), (3333);  <waiting ...>
 
 -- wait session 5 hit inject point
 1:select gp_wait_until_triggered_fault('transaction_abort_after_distributed_prepared', 1, 1);
@@ -102,11 +102,17 @@ server closed the connection unexpectedly
 -- Strangely, the test framework does not sort this output.
 -- So to make things correct, we add `order by` here.
 6:select * from crash_test_table order by 1;
- c1 
-----
- 1  
- 2  
-(2 rows)
+ c1   
+------
+ 1    
+ 2    
+ 11   
+ 22   
+ 111  
+ 222  
+ 1111 
+ 2222 
+(8 rows)
 6:select * from crash_test_ddl order by 1;
  c1 
 ----

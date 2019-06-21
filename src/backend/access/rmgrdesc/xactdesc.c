@@ -82,7 +82,8 @@ xact_desc_commit(StringInfo buf, xl_xact_commit *xlrec)
 				appendStringInfo(buf, " unknown id %d", msg->id);
 		}
 	}
-
+	if (xlrec->distribTimeStamp != 0 || xlrec->distribXid != InvalidDistributedTransactionId)
+		appendStringInfo(buf, " gid = %u-%.10u", xlrec->distribTimeStamp, xlrec->distribXid);
 	/*
 -	 * MPP: Return end of regular commit information.
 	 */
@@ -243,6 +244,13 @@ xact_desc(StringInfo buf, XLogRecord *record)
 
 		appendStringInfo(buf, "distributed forget ");
 		xact_desc_distributed_forget(buf, xlrec);
+	}
+	else if (info == XLOG_XACT_ONE_PHASE_COMMIT)
+	{
+		xl_xact_commit *xlrec = (xl_xact_commit *) rec;
+
+		appendStringInfoString(buf, "one-phase commit: ");
+		xact_desc_commit(buf, xlrec);
 	}
 	else
 		appendStringInfoString(buf, "UNKNOWN");

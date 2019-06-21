@@ -1287,6 +1287,8 @@ RecordTransactionCommit(void)
 	bool		isDtxPrepared = 0;
 	TMGXACT_LOG gxact_log;
 	XLogRecPtr	recptr = InvalidXLogRecPtr;
+	DistributedTransactionTimeStamp distribTimeStamp;
+	DistributedTransactionId distribXid;
 
 	/* Like in CommitTransaction(), treat a QE reader as if there was no XID */
 	if (DistributedTransactionContext == DTX_CONTEXT_QE_ENTRY_DB_SINGLETON ||
@@ -1297,6 +1299,9 @@ RecordTransactionCommit(void)
 	else
 		xid = GetTopTransactionIdIfAny();
 	markXidCommitted = TransactionIdIsValid(xid);
+
+	if (Gp_role == GP_ROLE_EXECUTE && MyTmGxact->isOnePhaseCommit)
+		dtxCrackOpenGid(MyTmGxact->gid, &distribTimeStamp, &distribXid);
 
 	/* Get data needed for commit record */
 	nrels = smgrGetPendingDeletes(true, &rels);
@@ -1479,6 +1484,12 @@ RecordTransactionCommit(void)
 
 				insertedDistributedCommitted();
 			}
+			else if (Gp_role == GP_ROLE_EXECUTE && MyTmGxact->isOnePhaseCommit)
+			{
+				xlrec.distribTimeStamp = distribTimeStamp;
+				xlrec.distribXid = distribXid;
+				recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_ONE_PHASE_COMMIT, rdata);
+			}
 			else
 			{
 				recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_COMMIT, rdata);
@@ -1555,6 +1566,10 @@ RecordTransactionCommit(void)
 				DistributedLog_SetCommittedTree(xid, nchildren, children,
 												getDtxStartTime(),
 												getDistributedTransactionId(),
+												/* isRedo */ false);
+			else if (Gp_role == GP_ROLE_EXECUTE && MyTmGxact->isOnePhaseCommit)
+				DistributedLog_SetCommittedTree(xid, nchildren, children,
+												distribTimeStamp, distribXid,
 												/* isRedo */ false);
 
 			TransactionIdCommitTree(xid, nchildren, children);
@@ -6422,6 +6437,12 @@ xact_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribut
 		if (standbyState >= STANDBY_INITIALIZED)
 			ProcArrayApplyXidAssignment(xlrec->xtop,
 										xlrec->nsubxacts, xlrec->xsub);
+	}
+	else if (info == XLOG_XACT_ONE_PHASE_COMMIT)
+	{
+		xl_xact_commit *xlrec = (xl_xact_commit *) XLogRecGetData(record);
+
+		xact_redo_commit(xlrec, record->xl_xid, lsn, xlrec->distribTimeStamp, xlrec->distribXid);
 	}
 	else
 		elog(PANIC, "xact_redo: unknown op code %u", info);

@@ -118,6 +118,7 @@ typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
 #define XLOG_XACT_COMMIT_COMPACT	0x60
 #define XLOG_XACT_DISTRIBUTED_COMMIT 0x70
 #define XLOG_XACT_DISTRIBUTED_FORGET 0x80
+#define XLOG_XACT_ONE_PHASE_COMMIT	0x90
 
 typedef struct xl_xact_assignment
 {
@@ -148,6 +149,8 @@ typedef struct xl_xact_commit
 	int			nmsgs;			/* number of shared inval msgs */
 	Oid			dbId;			/* MyDatabaseId */
 	Oid			tsId;			/* MyDatabaseTableSpace */
+	DistributedTransactionTimeStamp distribTimeStamp; /**/
+	DistributedTransactionId        distribXid;       /**/
 	/* Array of RelFileNode(s) to drop at commit */
 	RelFileNodePendingDelete xnodes[1];		/* VARIABLE LENGTH ARRAY */
 	/* ARRAY OF COMMITTED SUBTRANSACTION XIDs FOLLOWS */

@@ -37,6 +37,12 @@ typedef enum
 	DTX_STATE_ACTIVE_DISTRIBUTED,
 
 	/**
+	 * For one-phase optimization commit, we haven't run the commit yet
+	 */
+	DTX_STATE_ONE_PHASE_COMMIT,
+	DTX_STATE_PERFORMING_ONE_PHASE_COMMIT,
+
+	/**
 	 * For two-phase commit, the first phase is about to run
 	 */
 	DTX_STATE_PREPARING,
@@ -92,6 +98,7 @@ typedef enum
 	DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED = 1,
 	DTX_PROTOCOL_COMMAND_PREPARE,
 	DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED,
+	DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE,
 	DTX_PROTOCOL_COMMAND_COMMIT_PREPARED,
 	/* for explicit transaction that doesn't write any xlog */
 	DTX_PROTOCOL_COMMAND_COMMIT_NOT_PREPARED,
@@ -218,6 +225,9 @@ typedef struct TMGXACT
 	int							sessionId;
 	
 	bool						explicitBeginRemembered;
+
+	/* Used on QE, indicates the transaction applies one-phase commit protocol */
+	bool						isOnePhaseCommit;
 
 	/*
 	 * This is similar to xmin of PROC, stores lowest dxid on first snapshot

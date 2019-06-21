@@ -100,6 +100,8 @@ DtxProtocolCommandToString(DtxProtocolCommand command)
 			return "Distributed Prepare";
 		case DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED:
 			return "Distributed Abort (Some Prepared)";
+		case DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE:
+			return "Distributed Commit (one-phase)";
 		case DTX_PROTOCOL_COMMAND_COMMIT_PREPARED:
 			return "Distributed Commit Prepared";
 		case DTX_PROTOCOL_COMMAND_COMMIT_NOT_PREPARED:
