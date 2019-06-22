@@ -63,6 +63,15 @@ namespace gpopt
 				estSentinel
 			};
 
+			// circular dependency state
+			enum ECircularDependency
+			{
+				ecdDefault,						// default state
+				ecdCircularDependency,			// contains circular dependency
+
+				ecdSentinel
+			};
+
 			// type definition of cost context hash table
 			typedef
 				CSyncHashtable<
@@ -138,6 +147,9 @@ namespace gpopt
 
 			// map of partial plans to their cost lower bound
 			PartialPlanToCostMap *m_ppartialplancostmap;
+
+			// circular dependency state
+			ECircularDependency m_ecirculardependency;
 
 			// hashtable of cost contexts
 			ShtCC m_sht;
@@ -452,6 +464,8 @@ namespace gpopt
 			static
 			const CGroupExpression m_gexprInvalid;
 
+			virtual
+			BOOL ContainsCircularDependencies();
 	}; // class CGroupExpression
 	
 }

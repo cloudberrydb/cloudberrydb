@@ -170,7 +170,7 @@ CJobGroupImplementation::FScheduleGroupExpressions
 	CGroupExpression *pgexpr = PgexprFirstUnsched();
 	while (NULL != pgexpr)
 	{
-		if (!pgexpr->FTransitioned(CGroupExpression::estImplemented))
+		if (!pgexpr->FTransitioned(CGroupExpression::estImplemented) && !pgexpr->ContainsCircularDependencies())
 		{
 			CJobGroupExpressionImplementation::ScheduleJob(psc, pgexpr, this);
 			pgexprLast = pgexpr;

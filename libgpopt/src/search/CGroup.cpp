@@ -1665,13 +1665,16 @@ CGroup::PgexprBestPromise
 
 	while (NULL != pgexprCurrent)
 	{
-		CLogical::EStatPromise espCurrent =
+		if (!pgexprCurrent->ContainsCircularDependencies())
+		{
+			CLogical::EStatPromise espCurrent =
 			EspDerive(pmpLocal, pmpGlobal, pgexprCurrent, prprelInput, stats_ctxt, true /*fDeriveChildStats*/);
 
-		if (FBetterPromise(pmpLocal, espCurrent, pgexprCurrent, espBest, pgexprBest))
-		{
-			pgexprBest = pgexprCurrent;
-			espBest = espCurrent;
+			if (FBetterPromise(pmpLocal, espCurrent, pgexprCurrent, espBest, pgexprBest))
+			{
+				pgexprBest = pgexprCurrent;
+				espBest = espCurrent;
+			}
 		}
 
 		// move to next logical group expression
