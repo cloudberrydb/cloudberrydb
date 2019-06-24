@@ -37,7 +37,7 @@ select gp_wait_until_triggered_fault2('walrecv_skip_flush', 1, dbid, hostname, p
 
 -- The create table command should be seen as blocked.  Wait until
 -- that happens.
-do $$ declare c int; /* in func */ i int; /* in func */ begin c := 0; /* in func */ i := 0; /* in func */ while c < 1 and i < 120 loop select count(*) into c from pg_stat_activity where waiting_reason = 'replication'; /* in func */ perform pg_sleep(0.5); /* in func */ end loop; /* in func */ if i = 120 then raise exception 'timeout waiting for command to get blocked'; /* in func */ end if; /* in func */ end; /* in func */ $$;
+do $$ declare c int; /* in func */ i int; /* in func */ begin c := 0; /* in func */ i := 0; /* in func */ while c < 1 and i < 120 loop select count(*) into c from pg_stat_activity where waiting_reason = 'replication'; /* in func */ perform pg_sleep(0.5); /* in func */ i := i + 1; /* in func */ end loop; /* in func */ if i = 120 then raise exception 'timeout waiting for command to get blocked'; /* in func */ end if; /* in func */ end; /* in func */ $$;
 DO
 
 select datname, waiting_reason, query from pg_stat_activity where waiting_reason = 'replication';

@@ -37,6 +37,7 @@ begin
     select count(*) into c from pg_stat_activity
     where waiting_reason = 'replication'; /* in func */
     perform pg_sleep(0.5); /* in func */
+    i := i + 1; /* in func */
   end loop; /* in func */
   if i = 120 then
     raise exception 'timeout waiting for command to get blocked'; /* in func */
