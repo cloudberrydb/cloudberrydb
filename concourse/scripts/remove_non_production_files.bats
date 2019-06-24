@@ -52,10 +52,10 @@ main() {
 
   run main
   [ "$status" -eq 0 ]
-  [[ "$output" =~ $'a\nb' ]]
+  [[ "$output" =~ "rm".*$'\n'.*"a".*$'\n'.*b ]]
 }
 
-@test "it works when there are no files to remove" {
+@test "it fails when there are no files to remove" {
   export INPUT_TARBALL="a.tar.gz"
   export NON_PRODUCTION_FILES="empty-NON_PRODUCTION_FILES.txt"
 
@@ -105,5 +105,6 @@ main() {
 
   run main
   [ "$status" -ne 0 ]
-  [[ "$output" =~ "rm: b: No such file or directory" ]]
+  # rm: cannot remove `b': No such file or directory
+  [[ "$output" =~ "rm".*"b".*"No such file or directory" ]]
 }

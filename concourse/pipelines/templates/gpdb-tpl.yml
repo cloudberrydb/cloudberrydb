@@ -41,6 +41,7 @@
 groups:
 - name: all
   jobs:
+  - concourse_unit_tests
 {% if "centos6" in os_types %}
   - compile_gpdb_centos6
   - compile_gpdb_binary_swap_centos6
@@ -355,6 +356,13 @@ resources:
     ignore_paths:
     - gpdb-doc/*
     - README*
+
+- name: bats_src
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/bats-core/bats-core.git
+    tag: v1.1.0
 
 {% if "centos6" in os_types %}
 - name: gpdb_src_binary_swap
@@ -837,6 +845,41 @@ anchors:
 ## ======================================================================
 
 jobs:
+
+## ======================================================================
+##  ____  _            _ _              _   _       _ _     _____         _
+## |  _ \(_)_ __   ___| (_)_ __   ___  | | | |_ __ (_) |_  |_   _|__  ___| |_ ___
+## | |_) | | '_ \ / _ \ | | '_ \ / _ \ | | | | '_ \| | __|   | |/ _ \/ __| __/ __|
+## |  __/| | |_) |  __/ | | | | |  __/ | |_| | | | | | |_    | |  __/\__ \ |_\__ \
+## |_|   |_| .__/ \___|_|_|_| |_|\___|  \___/|_| |_|_|\__|   |_|\___||___/\__|___/
+##         |_|
+## ======================================================================
+
+{% if "centos7" in os_types %}
+- name: concourse_unit_tests
+  plan:
+    - aggregate:
+      - get: bats_src
+      - get: gpdb_src
+        trigger: true
+      - get: gpdb6-centos7-build
+    - task: run_unit_tests
+      image: gpdb6-centos7-build
+      config:
+        inputs:
+          - name: bats_src
+          - name: gpdb_src
+        platform: linux
+        run:
+          path: bash
+          args:
+          - -exc
+          - |
+            bats_src/install.sh /usr/local
+            cd gpdb_src/concourse
+            bats -t scripts/*.bats
+            python -m unittest discover --verbose -s scripts/ -p *_test.py
+{% endif %}
 
 ## ======================================================================
 ##   ____                      _ _
