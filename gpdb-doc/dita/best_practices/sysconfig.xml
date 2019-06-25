@@ -62,8 +62,8 @@ MIRROR_PORT_BASE = 7000</codeblock></p>
  noop anticipatory [deadline] cfq </codeblock>
       <p>The maximum number of OS files and processes should be increased in the
           <codeph>/etc/security/limits.conf</codeph> file.
-        <codeblock>* soft  nofile 65536
-* hard  nofile 65536
+        <codeblock>* soft  nofile 524288
+* hard  nofile 524288
 * soft  nproc 131072
 * hard  nproc 131072</codeblock></p>
       <p>Enable core files output to a known location and make sure <codeph>limits.conf</codeph>
