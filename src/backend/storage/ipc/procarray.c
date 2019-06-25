@@ -1291,15 +1291,7 @@ GetOldestXmin(Relation rel, bool ignoreVacuum)
 	 */
 	if (IsPostmasterEnvironment && !IS_QUERY_DISPATCHER() &&
 		!IsBinaryUpgrade && !gp_maintenance_mode)
-	{
-		TransactionId distribOldestXmin;
-
-		distribOldestXmin = DistributedLog_GetOldestXmin(result);
-
-		if (TransactionIdIsValid(distribOldestXmin) &&
-			TransactionIdPrecedes(distribOldestXmin, result))
-			result = distribOldestXmin;
-	}
+		result = DistributedLog_GetOldestXmin(result);
 
 	return result;
 }

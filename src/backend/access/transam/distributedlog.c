@@ -251,14 +251,18 @@ TransactionId
 DistributedLog_GetOldestXmin(TransactionId oldestLocalXmin)
 {
 	TransactionId result;
-
 	result = DistributedLogShared->oldestXmin;
 
 	Assert(!IS_QUERY_DISPATCHER());
-	Assert (result != InvalidTransactionId);
-	Assert (!TransactionIdFollows(result, oldestLocalXmin));
+	elogif(Debug_print_full_dtm, LOG, "distributed oldestXmin is '%u'", result);
 
-	elogif(Debug_print_full_dtm, LOG, "oldestXmin is '%u'", result);
+	/*
+	 * Like in DistributedLog_AdvanceOldestXmin(), the shared oldestXmin
+	 * might already have been advanced past oldestLocalXmin.
+	 */
+	if (!TransactionIdIsValid(result) ||
+		TransactionIdFollows(result, oldestLocalXmin))
+		result = oldestLocalXmin;
 
 	return result;
 }
