@@ -1829,6 +1829,16 @@ CStatisticsUtils::GetFrequency
 	return freq;
 }
 
+BOOL
+CStatisticsUtils::IsStatsCmpTypeNdvEq
+	(
+	 CStatsPred::EStatsCmpType stats_cmp_type
+	)
+{
+	return (CStatsPred::EstatscmptEqNDVOuter == stats_cmp_type ||
+			CStatsPred::EstatscmptEqNDVInner == stats_cmp_type
+			);
+}
 //---------------------------------------------------------------------------
 //	@function:
 //		CStatisticsUtils::FIncreasesRisk
