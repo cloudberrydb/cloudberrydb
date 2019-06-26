@@ -362,7 +362,7 @@ resources:
   source:
     branch: master
     uri: https://github.com/bats-core/bats-core.git
-    tag: v1.1.0
+    tag_filter: v1.1.0
 
 {% if "centos6" in os_types %}
 - name: gpdb_src_binary_swap
