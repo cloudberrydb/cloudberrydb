@@ -36,4 +36,4 @@ run:
     pushd bin_gpdb_clients_windows
         tar xzvf *.tar.gz
     popd
-    cp bin_gpdb_clients_windows/greenplum-clients-x86_64.msi release_candidates/clients-rc-${gpdb_semver}-windows_x86_64.msi
+    cp bin_gpdb_clients_windows/greenplum-clients-x86_64.msi release_candidates/clients-rc-${gpdb_semver}-windows_x86_64${RC_BUILD_TYPE_GCS}.msi
