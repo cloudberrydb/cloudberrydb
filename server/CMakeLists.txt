@@ -272,6 +272,9 @@ Gist-AOCOTable-NonLossy-BitmapIndexPlan Gist-NonPart-Lossy-BitmapIndexPlan Gist-
 Gist-PartTable-Lossy-IndexPlan Gist-PartTable-NonLossy-BitmapIndexPlan Gist-PartialIndex-TableScan
 Gist-NestedLoopJoin-Lossy-IndexPlan Gist-NestedLoopJoin-Postgis-IndexPlan Gist-OrderBy-BitmapPlan Gist-OrderBy-IndexPlan;
 
+CGinIndexTest:
+GinIndex GinIndexPathOpClass GinIndexSearchModeAll;
+
 CReplicatedTableTest:
 ReplicatedTableSelect ReplicatedTableInsert ReplicatedTable-CTAS ReplicatedHashJoinReplicated ReplicatedJoinHashDistributedTable ReplicatedJoinRandomDistributedTable ReplicatedLOJHashDistributedTable ReplicatedLOJRandomDistributedTable ReplicatedLOJReplicated ReplicatedNLJReplicated ReplicatedTableAggregate ReplicatedTableCTE ReplicatedTableGroupBy ReplicatedJoinPartitionedTable ReplicatedTableInClause;
 

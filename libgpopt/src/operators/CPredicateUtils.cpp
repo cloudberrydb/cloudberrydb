@@ -2029,10 +2029,12 @@ CPredicateUtils::PexprIndexLookup
 		cmptype = CUtils::ParseCmpType(CScalarArrayCmp::PopConvert(pexprScalar->Pop())->MdIdOp());
 	}
 
+	BOOL gin_or_gist_index = (pmdindex->IndexType() == IMDIndex::EmdindGist || pmdindex->IndexType() == IMDIndex::EmdindGin);
+
 	if (cmptype == IMDType::EcmptNEq ||
 		cmptype == IMDType::EcmptIDF ||
-		(cmptype == IMDType::EcmptOther && pmdindex->IndexType() != IMDIndex::EmdindGist) || // only GiST indexes with a comparison type other are ok
-		(pmdindex->IndexType() == IMDIndex::EmdindGist && pexprScalar->Arity() < 2)) // we do not support index expressions for GiST indexes
+		(cmptype == IMDType::EcmptOther && !gin_or_gist_index) || // only GiST indexes with a comparison type other are ok
+		(gin_or_gist_index && pexprScalar->Arity() < 2)) // we do not support index expressions for GiST indexes
 	{
 		return NULL;
 	}

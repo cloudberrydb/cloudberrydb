@@ -2337,7 +2337,9 @@ CXformUtils::FIndexApplicable
 	)
 {
 	// GiST can match with either Btree or Bitmap indexes
-	if (pmdindex->IndexType() == IMDIndex::EmdindGist)
+	if (pmdindex->IndexType() == IMDIndex::EmdindGist ||
+		// GIN can only match with Bitmap Indexes
+		(emdindtype == IMDIndex::EmdindBitmap && IMDIndex::EmdindGin == pmdindex->IndexType()))
 	{
 		if (pmdrel->IsPartialIndex(pmdindex->MDId()))
 		{

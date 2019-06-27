@@ -4119,6 +4119,10 @@ CDXLOperatorFactory::ParseIndexType
 	{
 		return IMDIndex::EmdindGist;
 	}
+	else if (0 == XMLString::compareString(xml_val, CDXLTokens::XmlstrToken(EdxltokenIndexTypeGin)))
+	{
+		return IMDIndex::EmdindGin;
+	}
 	
 	GPOS_RAISE
 			(

@@ -44,6 +44,7 @@ namespace gpmd
 				EmdindBtree,	// btree
 				EmdindBitmap,	// bitmap
 				EmdindGist,     // gist using btree or bitmap
+				EmdindGin,		// gin using btree or bitmap
 				EmdindSentinel
 			};
 

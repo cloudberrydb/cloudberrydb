@@ -176,8 +176,8 @@ CLogical::PosFromIndex
 
 	COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
 
-	// GiST indexes have no order, so return an empty order spec
-	if (pmdindex->IndexType() == IMDIndex::EmdindGist)
+	// GiST & GIN indexes have no order, so return an empty order spec
+	if (pmdindex->IndexType() == IMDIndex::EmdindGist || pmdindex->IndexType() == IMDIndex::EmdindGin)
 		return pos;
 
 	const ULONG ulLenKeys = pmdindex->Keys();
