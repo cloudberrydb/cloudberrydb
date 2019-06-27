@@ -780,7 +780,19 @@ CConstraint::PdrgpcnstrDeduplicate
 		GPOS_ASSERT(NULL != pexpr);
 
 		CConstraint *pcnstrNew = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexpr, colref);
-		GPOS_ASSERT(NULL != pcnstrNew);
+		if (NULL == pcnstrNew)
+		{
+			// We ran into a type conflict that prevents us from using this method to simplify the constraint.
+			// Give up and return the un-flattened constraint.
+			// Note that if we get here, that means that
+			//   a) a single constraint
+			//   b) in case of a conjunction expression, none of the constraints
+			//   c) in case of a disjunction, at least one of the constraints
+			// could not be converted.
+			pcnstrChild->AddRef();
+			pcnstrNew = pcnstrChild;
+		}
+
 		pexpr->Release();
 		pdrgpcnstrNew->Append(pcnstrNew);
 		pcrsDeduped->Include(colref);
