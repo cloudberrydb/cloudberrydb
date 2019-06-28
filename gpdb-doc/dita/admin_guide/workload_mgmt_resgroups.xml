@@ -540,7 +540,7 @@ SET statement_mem='10 MB';</codeblock></p>
         groups, change roles' resource groups, and create workload management rules. </p>
       <p>Workload management assignment rules assign transactions to different resource groups based
         on user-defined criteria. If no assignment rule is matched, Greenplum Database assigns the
-        transaction to the role's default resource group.
+        transaction to the role's default resource group.</p>
       <p>Refer to the <xref href="http://gpcc.docs.pivotal.io/latest" format="html" scope="external"
           >Greenplum Command Center documentation</xref> for more information about creating and
         managing resource groups and workload management rules. </p>
