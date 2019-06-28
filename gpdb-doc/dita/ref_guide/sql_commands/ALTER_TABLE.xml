@@ -944,7 +944,7 @@ where <varname>action</varname> is one of:
                                 After a table rewrite, the table will appear empty to concurrent
                                 transactions, if they are using a snapshot taken before the rewrite
                                 occurred. See <xref
-                                        href="https://www.postgreql.org/docs/9.4/mvcc-caveats.html"
+                                        href="https://www.postgresql.org/docs/9.4/mvcc-caveats.html"
                                         scope="external" format="html">MVCC Caveats</xref> for more
                                 details. </p>
                         <p> The <codeph>USING</codeph> option of <codeph>SET DATA TYPE</codeph> can
