@@ -2995,7 +2995,7 @@
     <title>gp_enable_gpperfmon</title>
     <body>
       <p>Enables or disables the data collection agents that populate the <codeph>gpperfmon</codeph>
-        database for Greenplum Command Center.</p>
+        database.</p>
       <table id="gp_enable_gpperfmon_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -3661,7 +3661,7 @@
     <body>
       <p>Sets the frequency that the Greenplum Database server processes send query execution
         updates to the data collection agent processes used to populate the
-          <codeph>gpperfmon</codeph> database for Command Center. Query operations executed during
+          <codeph>gpperfmon</codeph> database. Query operations executed during
         this interval are sent through UDP to the segment monitor agents. If you find that an
         excessive number of UDP packets are dropped during long-running, complex queries, you may
         consider increasing this value.</p>
@@ -5292,7 +5292,7 @@
   <topic id="gpperfmon_port">
     <title>gpperfmon_port</title>
     <body>
-      <p>Sets the port on which all data collection agents (for Command Center) communicate with the
+      <p>Sets the port on which all data collection agents communicate with the
         master. </p>
       <table id="gpperfmon_port_table">
         <tgroup cols="3">
