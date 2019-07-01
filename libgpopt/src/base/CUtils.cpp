@@ -2513,6 +2513,27 @@ CUtils::FScalarConstBool
 	return false;
 }
 
+BOOL
+CUtils::FScalarConstBoolNull
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	COperator *pop = pexpr->Pop();
+	if (COperator::EopScalarConst == pop->Eopid())
+	{
+		CScalarConst *popScalarConst = CScalarConst::PopConvert(pop);
+		if (IMDType::EtiBool ==  popScalarConst->GetDatum()->GetDatumType())
+		{
+			return popScalarConst->GetDatum()->IsNull();
+		}
+	}
+
+	return false;
+}
+
 // checks to see if the expression is a scalar const TRUE
 BOOL
 CUtils::FScalarConstTrue

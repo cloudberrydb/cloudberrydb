@@ -61,6 +61,7 @@ Correlated-AntiSemiJoin CorrelatedAntiSemiJoin-True Correlated-LASJ-With-Outer-C
 Correlated-LASJ-With-Outer-Const Correlated-LASJ-With-Outer-Expr;
 
 CPredicateTest:
+ConvertBoolConstNullToConstTableFalseFilter 
 TranslateOneTimeFilterConjunctQuals TranslateFilterDisjunctQuals TranslateFilterWithCTEAndTableScanIntoFilterAndOneTimeFilter
 InferPredicates InferPredicatesForLimit InferPredicatesBCC-vc-vc InferPredicatesBCC-vc-txt
 InferPredicatesBCC-txt-txt InferPredicatesBCC-oid-oid InferPredicatesBCC-vcpart-txt

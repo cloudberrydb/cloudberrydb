@@ -1096,6 +1096,9 @@ namespace gpopt
 
 			static
 			void AddExprs(CExpressionArrays *results_exprs, CExpressionArrays *input_exprs);
+
+			static
+			BOOL FScalarConstBoolNull(CExpression *pexpr);
 	}; // class CUtils
 
 	// hash set from expressions
