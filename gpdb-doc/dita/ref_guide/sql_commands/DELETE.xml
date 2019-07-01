@@ -34,7 +34,8 @@ DELETE FROM [ONLY] <varname>table</varname> [[AS] <varname>alias</varname>]
                 the table's columns, and/or columns of other tables mentioned in
                     <codeph>USING</codeph>, can be computed. The syntax of the
                     <codeph>RETURNING</codeph> list is identical to that of the output list of
-                    <codeph>SELECT</codeph>.</p>
+                    <codeph>SELECT</codeph>.<note>The <codeph>RETURNING</codeph> clause is not
+                    supported when deleting from append-optimized tables.</note></p>
             <p>You must have the <codeph>DELETE</codeph> privilege on the table to delete from it. </p>
             <note>As the default, Greenplum Database acquires an <codeph>EXCLUSIVE</codeph> lock on
                 tables for <codeph>DELETE</codeph> operations on heap tables. When the Global
