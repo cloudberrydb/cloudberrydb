@@ -1565,15 +1565,22 @@ CSubqueryHandler::FRemoveAllSubquery
 	if (fOuterRefsUnderInner)
 	{
 		// outer references in SubqueryAll necessitate correlated execution for correctness
+		// Only in the filter context, do we want to create a CLogicalLeftAntiSemiCorrelatedApplyNotIn
+		if (EsqctxtFilter == esqctxt)
+		{
+			// build subquery quantified comparison
+			CExpression *pexprResult = NULL;
+			CExpression *pexprPredicate = PexprSubqueryPred(pexprInner, pexprSubquery, &pexprResult);
 
-		// build subquery quantified comparison
-		CExpression *pexprResult = NULL;
-		CExpression *pexprPredicate = PexprSubqueryPred(pexprInner, pexprSubquery, &pexprResult);
+			*ppexprResidualScalar = CUtils::PexprScalarConstBool(mp, true /*value*/);
+			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(mp, pexprOuter, pexprResult, colref, eopidSubq, pexprPredicate);
 
-		*ppexprResidualScalar = CUtils::PexprScalarConstBool(mp, true /*value*/);
-		*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(mp, pexprOuter, pexprResult, colref, eopidSubq, pexprPredicate);
-
-		return fSuccess;
+			return fSuccess;
+		}
+		else
+		{
+			fUseCorrelated = true;
+		}
 	}
 
 	CExpression *pexprInversePred = CXformUtils::PexprInversePred(mp, pexprSubquery);
