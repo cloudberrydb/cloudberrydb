@@ -170,7 +170,7 @@ You create a named query by adding the query statement to a text file that has t
 
 You must place a query text file in the PXF JDBC server configuration directory from which it will be accessed. If you want to make the query available to more than one JDBC server configuration, you must copy the query text file to the configuration directory for each JDBC server.
 
-The query text file must contain a single query that you want to run in the remote SQL database. You must contruct the query in accordance with the syntax supported by the database.
+The query text file must contain a single query that you want to run in the remote SQL database. You must construct the query in accordance with the syntax supported by the database.
 
 For example, if a MySQL database has a `customers` table and an `orders` table, you could include the following SQL statement in a query text file:
 
@@ -392,7 +392,7 @@ Perform the following procedure to configure a PXF JDBC server for Hive:
             <value>kerberos</value>
         </property>
         ```
-    4. Add the `saslQop` property to `jdbc.url`, and set it to match the `hive.server2.thrift.sasl.qop` property setting in `hive-site.xml`. For example, if the `hive-site.xml` file includes the following property settting:
+    4. Add the `saslQop` property to `jdbc.url`, and set it to match the `hive.server2.thrift.sasl.qop` property setting in `hive-site.xml`. For example, if the `hive-site.xml` file includes the following property setting:
 
         ``` xml
         <property>
