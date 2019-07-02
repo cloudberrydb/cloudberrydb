@@ -347,7 +347,7 @@ CPhysicalJoin::PdsRequired
 CDistributionSpec *
 CPhysicalJoin::PdsDerive
 	(
-	CMemoryPool *, // mp,
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -355,17 +355,36 @@ CPhysicalJoin::PdsDerive
 	CDistributionSpec *pdsOuter = exprhdl.Pdpplan(0 /*child_index*/)->Pds();
 	CDistributionSpec *pdsInner = exprhdl.Pdpplan(1 /*child_index*/)->Pds();
 
+	CDistributionSpec *pds;
+
 	if (CDistributionSpec::EdtReplicated == pdsOuter->Edt() ||
 		CDistributionSpec::EdtUniversal == pdsOuter->Edt())
 	{
 		// if outer is replicated/universal, return inner distribution
-		pdsInner->AddRef();
-		return pdsInner;
+		pds = pdsInner;
+	}
+	else
+	{
+		// otherwise, return outer distribution
+		pds = pdsOuter;
 	}
 
-	// otherwise, return outer distribution
-	pdsOuter->AddRef();
-	return pdsOuter;
+	if (CDistributionSpec::EdtHashed == pds->Edt())
+	{
+		CDistributionSpecHashed *pdsHashed = CDistributionSpecHashed::PdsConvert(pds);
+
+		// Clean up any incomplete distribution specs since they can no longer be completed above
+		// Note that, since this is done at the lowest join, no relevant equivalent specs are lost.
+		if (!pdsHashed->HasCompleteEquivSpec(mp))
+		{
+			CExpressionArray *pdrgpexpr = pdsHashed->Pdrgpexpr();
+			pdrgpexpr->AddRef();
+			return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, pdsHashed->FNullsColocated());
+		}
+	}
+
+	pds->AddRef();
+	return pds;
 }
 
 

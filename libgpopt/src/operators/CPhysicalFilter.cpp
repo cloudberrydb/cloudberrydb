@@ -330,12 +330,72 @@ CPhysicalFilter::PosDerive
 CDistributionSpec *
 CPhysicalFilter::PdsDerive
 	(
-	CMemoryPool *, // mp
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return PdsDerivePassThruOuter(exprhdl);
+	CDistributionSpec *pdsChild = PdsDerivePassThruOuter(exprhdl);
+
+	if (CDistributionSpec::EdtHashed == pdsChild->Edt() && exprhdl.HasOuterRefs())
+	{
+		CExpression *pexprFilterPred = exprhdl.PexprScalarChild(1);
+
+		CDistributionSpecHashed *pdshashedOriginal = CDistributionSpecHashed::PdsConvert(pdsChild);
+		CDistributionSpecHashed *pdshashedEquiv = pdshashedOriginal->PdshashedEquiv();
+
+		// If the child op is an IndexScan on multi-key distributed table, the
+		// derived distribution spec may contain an incomplete equivalent
+		// distribution spec (see CPhysicalScan::PdsDerive()). In that case, try to
+		// complete the spec here.
+		// Also, if there is no equivalent spec, try to find a predicate on the
+		// filter op itself, that can be used to create a complete equivalent spec
+		// here.
+		if (NULL == pdshashedEquiv || !pdshashedOriginal->HasCompleteEquivSpec(mp))
+		{
+			CDistributionSpecHashed *pdshashed;
+
+			// use the original preds if no equivalent spec exists
+			if (NULL == pdshashedEquiv)
+			{
+				pdshashed = pdshashedOriginal;
+			}
+			// use the filter preds to complete the incomplete spec
+			else
+			{
+				GPOS_ASSERT(!pdshashedOriginal->HasCompleteEquivSpec(mp));
+				pdshashed = pdshashedEquiv;
+			}
+
+			CDistributionSpecHashed *pdshashedComplete =
+				CDistributionSpecHashed::CompleteEquivSpec(mp, pdshashed, pexprFilterPred);
+
+			CExpressionArray *pdrgpexprOriginal = pdshashedOriginal->Pdrgpexpr();
+			pdrgpexprOriginal->AddRef();
+
+			CDistributionSpecHashed *pdsResult;
+			if (NULL == pdshashedComplete)
+			{
+				// could not complete the spec, return the original without any equiv spec
+				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated());
+			}
+			else
+			{
+				// return the original with the completed equiv spec
+				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated(), pdshashedComplete);
+			}
+
+			// in any case, returned distribution spec must be complete!
+			GPOS_ASSERT(NULL == pdsResult->PdshashedEquiv() || pdsResult->HasCompleteEquivSpec(mp));
+			pdsChild->Release();
+			return pdsResult;
+		}
+
+		// in any case, returned distribution spec must be complete!
+		GPOS_ASSERT(NULL == pdshashedEquiv || pdshashedOriginal->HasCompleteEquivSpec(mp));
+	}
+
+	return pdsChild;
 }
 
 

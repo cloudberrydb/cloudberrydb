@@ -219,6 +219,18 @@ namespace gpopt
 
 			// return a new spec created after merging the current spec with the input spec as equivalents
 			CDistributionSpecHashed *Combine(CMemoryPool *mp, CDistributionSpecHashed *other_spec);
+
+			// check if the equivalent spec (if any) has no matching columns with the main spec
+			BOOL HasCompleteEquivSpec(CMemoryPool *mp);
+
+			// use given predicates to complete an incomplete spec, if possible
+			static
+			CDistributionSpecHashed *CompleteEquivSpec
+				 (
+				 CMemoryPool *mp,
+				 CDistributionSpecHashed *pdshashed,
+				 CExpression *pexprPred
+				 );
 	}; // class CDistributionSpecHashed
 
 }

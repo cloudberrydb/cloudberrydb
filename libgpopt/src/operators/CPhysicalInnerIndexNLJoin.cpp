@@ -131,12 +131,19 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		// check if we could create an equivalent hashed distribution request to the inner child
 		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(pdsInner);
 		CDistributionSpecHashed *pdshashedEquiv = pdshashed->PdshashedEquiv();
-		if (NULL != pdshashedEquiv)
+
+		// If the inner child is a IndexScan on a multi-key distributed index, it
+		// may derive an incomplete equiv spec (see CPhysicalScan::PdsDerive()).
+		// However, there is no point to using that here since there will be no
+		// operator above this that can complete it.
+		if (pdshashed->HasCompleteEquivSpec(mp))
 		{
 			// request hashed distribution from outer
 			pdshashedEquiv->Pdrgpexpr()->AddRef();
-			CDistributionSpecHashed *pdsHashedRequired = GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			CDistributionSpecHashed *pdsHashedRequired =
+				GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
 			pdsHashedRequired->ComputeEquivHashExprs(mp, exprhdl);
+
 			return pdsHashedRequired;
 		}
 	}

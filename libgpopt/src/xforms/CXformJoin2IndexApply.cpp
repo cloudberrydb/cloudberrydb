@@ -214,25 +214,6 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 		IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
 		const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
 
-		// distribution keys and btree index keys must match each other for left outer join
-		// Given:
-		//
-		// R (a, b, c) distributed by (a)
-		// S (a, b, c) distributed by (a), btree index1 on S(a), btree index2 on S(b)
-		//
-		// R LOJ S on R.a=S.a and R.c=S.c, we are good to do outer index NL join.
-		// R LOJ S on R.a=S.a and R.b=S.b, we need to take care that in non-distributed
-		// scenario, it is fine to choose either condition as the index scan condition,
-		// and the other one as the index scan filter. But in distributed scenario,
-		// we have to choose R.a=S.a as the index scan condition, R.b=S.b as the index
-		// scan filter, because of Orca issue #309.
-		// TODO: remove the constraint when issue #309 is fixed:
-		// https://github.com/greenplum-db/gporca/issues/309
-		if (m_fOuterJoin && !FMatchDistKeyAndIndexKey(pmdrel, pmdindex))
-		{
-			continue;
-		}
-
 		CPartConstraint *ppartcnstrIndex = NULL;
 		if (NULL != popDynamicGet)
 		{
@@ -350,36 +331,6 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	CXformResult *pxfres
 	) const
 {
-	if (m_fOuterJoin)
-	{
-		// find the indexes whose included columns meet the required columns
-		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-		const IMDRelation *pmdrel = md_accessor->RetrieveRel(ptabdescInner->MDId());
-		const ULONG ulIndices = ptabdescInner->IndexCount();
-		BOOL fIndexApplicable = false;
-
-		for (ULONG ul = 0; ul < ulIndices; ul++)
-		{
-			IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
-			const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
-
-			// there must be at least 1 index matches the distribution keys
-			// for left out join index apply.
-			// TODO: remove this constraint when issue #309 is fixed:
-			// https://github.com/greenplum-db/gporca/issues/309
-			if (FMatchDistKeyAndIndexKey(pmdrel, pmdindex))
-			{
-				fIndexApplicable = true;
-				break;
-			}
-		}
-
-		if (!fIndexApplicable)
-		{
-			return;
-		}
-	}
-
 	CLogical *popGet = CLogical::PopConvert(pexprInner->Pop());
 	CExpression *pexprLogicalIndexGet = CXformUtils::PexprBitmapTableGet
 										(
@@ -985,39 +936,6 @@ CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
 									pexprUnion
 									);
 	pxfres->Add(pexprAnchor);
-}
-
-// check whether distribution key and the index key are matched.
-// always returns true for master only table.
-BOOL
-CXformJoin2IndexApply::FMatchDistKeyAndIndexKey
-	(
-	const IMDRelation *pmdrel,
-	const IMDIndex *pmdindex
-	) const
-{
-	if (pmdrel->GetRelDistribution() == IMDRelation::EreldistrMasterOnly)
-	{
-		return true;
-	}
-
-	ULONG length = pmdrel->DistrColumnCount();
-	if (length != pmdindex->Keys())
-	{
-		return false;
-	}
-
-	for (ULONG ul = 0; ul < length; ul++)
-	{
-		const IMDColumn *pmdCol = pmdrel->GetDistrColAt(ul);
-		ULONG ulPos = pmdrel->GetPosFromAttno(pmdCol->AttrNum());
-		if (pmdindex->GetKeyPos(ulPos) == gpos::ulong_max)
-		{
-			return false;
-		}
-	}
-
-	return true;
 }
 
 // EOF

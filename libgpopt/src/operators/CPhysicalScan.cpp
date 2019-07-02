@@ -154,66 +154,6 @@ CPhysicalScan::EpetOrder
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalScan::PdshashedDeriveWithOuterRefs
-//
-//	@doc:
-//		Derive hashed distribution when predicates have outer references
-//
-//---------------------------------------------------------------------------
-CDistributionSpecHashed *
-CPhysicalScan::PdshashedDeriveWithOuterRefs
-	(
-	CMemoryPool *mp,
-	CExpressionHandle &exprhdl
-	)
-	const
-{
-	GPOS_ASSERT(exprhdl.HasOuterRefs());
-	GPOS_ASSERT(CDistributionSpec::EdtHashed == m_pds->Edt());
-
-	CExpression *pexprIndexPred = exprhdl.PexprScalarChild(0 /*child_index*/);
-	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprIndexPred);
-
-	CExpressionArray *pdrgpexprMatching = GPOS_NEW(mp) CExpressionArray(mp);
-	CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(m_pds);
-	CExpressionArray *pdrgpexprHashed = pdshashed->Pdrgpexpr();
-	const ULONG size = pdrgpexprHashed->Size();
-
-	BOOL fSuccess = true;
-	for (ULONG ul = 0; fSuccess && ul < size; ul++)
-	{
-		CExpression *pexpr = (*pdrgpexprHashed)[ul];
-		CExpression *pexprMatching = CUtils::PexprMatchEqualityOrINDF(pexpr, pdrgpexpr);
-		fSuccess = (NULL != pexprMatching);
-		if (fSuccess)
-		{
-			pexprMatching->AddRef();
-			pdrgpexprMatching->Append(pexprMatching);
-		}
-	}
-	pdrgpexpr->Release();
-
-	if (fSuccess)
-	{
-		GPOS_ASSERT(pdrgpexprMatching->Size() == pdrgpexprHashed->Size());
-
-		// create a matching hashed distribution request
-		BOOL fNullsColocated = pdshashed->FNullsColocated();
-		CDistributionSpecHashed *pdshashedEquiv = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprMatching, fNullsColocated);
-
-		pdrgpexprHashed->AddRef();
-		CDistributionSpecHashed *pdshashedResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprHashed, fNullsColocated, pdshashedEquiv);
-
-		return pdshashedResult;
-	}
-
-	pdrgpexprMatching->Release();
-
-	return NULL;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalScan::PdsDerive
 //
 //	@doc:
@@ -236,13 +176,41 @@ CPhysicalScan::PdsDerive
 		CDistributionSpec::EdtHashed == m_pds->Edt() &&
 		exprhdl.HasOuterRefs())
 	{
-		// if index conditions have outer references and index relation is hashed,
+		// If index conditions have outer references and the index relation is hashed,
 		// check to see if we can derive an equivalent hashed distribution for the
-		// outer references
-		CDistributionSpecHashed *pdshashed = PdshashedDeriveWithOuterRefs(mp, exprhdl);
-		if (NULL != pdshashed)
+		// outer references. For multi-distribution key tables with an index, it is
+		// possible for a spec to have a column from both the inner and the outer
+		// table. This is termed "incomplete" and added as an equivalent spec.
+		//
+		// For example, if we have foo (a, b) distributed by (a,b)
+		//                         bar (c, d) distributed by (c, d)
+		// with an index on idx_bar_d, if we have the query
+		// 		select * from foo join bar on a = c and b = d,
+		// it is possible to get a spec of [a, d].
+		//
+		// An incomplete spec is relevant only when we have an index join on a
+		// multi-key distributed table. This is handled either by completing the
+		// equivalent spec using Filter predicates above (see
+		// CPhysicalFilter::PdsDerive()), or by discarding an incomplete spec at
+		// the index join (see CPhysicalJoin::PdsDerive()).
+		//
+		// This way the equiv spec stays incomplete only as long as it needs to be.
+
+		CExpression *pexprIndexPred = exprhdl.PexprScalarChild(0 /*child_index*/);
+
+		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(m_pds);
+		CDistributionSpecHashed *pdshashedEquiv = CDistributionSpecHashed::CompleteEquivSpec(mp, pdshashed, pexprIndexPred);
+
+		if (NULL != pdshashedEquiv)
 		{
-			return pdshashed;
+			CExpressionArray *pdrgpexprHashed = pdshashed->Pdrgpexpr();
+			pdrgpexprHashed->AddRef();
+			CDistributionSpecHashed *pdshashedResult =
+				GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprHashed,
+													 pdshashed->FNullsColocated(),
+													 pdshashedEquiv);
+
+			return pdshashedResult;
 		}
 	}
 

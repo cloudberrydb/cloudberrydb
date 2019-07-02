@@ -72,13 +72,6 @@ namespace gpopt
 			// compute stats of underlying table
 			void ComputeTableStats(CMemoryPool *mp);
 
-			// derive hashed distribution when index conditions have outer references
-			CDistributionSpecHashed *PdshashedDeriveWithOuterRefs
-				(
-				CMemoryPool *mp,
-				CExpressionHandle &exprhdl
-				) const;
-
 			// search the given array of predicates for an equality predicate that has
 			// one side equal to given expression
 			static

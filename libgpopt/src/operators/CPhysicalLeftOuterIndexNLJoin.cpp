@@ -57,7 +57,7 @@ CDistributionSpec *
 CPhysicalLeftOuterIndexNLJoin::PdsRequired
 	(
 	CMemoryPool *mp,
-	CExpressionHandle &,//exprhdl,
+	CExpressionHandle &exprhdl,
 	CDistributionSpec *,//pdsRequired,
 	ULONG child_index,
 	CDrvdProp2dArray *pdrgpdpCtxt,
@@ -91,12 +91,38 @@ CPhysicalLeftOuterIndexNLJoin::PdsRequired
 		// check if we could create an equivalent hashed distribution request to the inner child
 		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(pdsInner);
 		CDistributionSpecHashed *pdshashedEquiv = pdshashed->PdshashedEquiv();
-		if (NULL != pdshashedEquiv)
+
+		// If the inner child is a IndexScan on a multi-key distributed index, it
+		// may derive an incomplete equiv spec (see CPhysicalScan::PdsDerive()).
+		// However, there is no point to using that here since there will be no
+		// operator above this that can complete it.
+		//
+		// NB: Technically for Outer joins, the entire distribution key of the
+		// table must be present in the join clause to produce the index scan
+		// alternative in the first place (see CXformJoin2IndexApplyBase).
+		// Therefore, when an incomplete spec is created in the inner subtree for
+		// such a table, there will also be a CPhysicalFilter (that has the
+		// remaining predicates) on top to complete the spec. Thus, at this point
+		// in the code, pdshashedEquiv should be complete. However, just in case
+		// that precondition is not met, it is safer to to check for completeness
+		// properly anyway.
+		if (pdshashed->HasCompleteEquivSpec(mp))
 		{
 			// request hashed distribution from outer
 			pdshashedEquiv->Pdrgpexpr()->AddRef();
-			return GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			CDistributionSpecHashed *pdsHashedRequired =
+				GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			pdsHashedRequired->ComputeEquivHashExprs(mp, exprhdl);
+
+			return pdsHashedRequired;
 		}
+
+		// if the equivalent spec cannot be used, request the original - even
+		// though this spec will fail to produce a plan during property
+		// enforcement, it is still better than falling back to planner, since
+		// there may be other alternatives that will succeed.
+		pdshashed->AddRef();
+		return pdshashed;
 	}
 
 	// shouldn't come here!

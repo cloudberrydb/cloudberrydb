@@ -823,5 +823,81 @@ CDistributionSpecHashed::Combine
 	return combined_hashed_spec;
 }
 
+// check if the equivalent spec (if any) has no matching columns with the main spec
+BOOL
+CDistributionSpecHashed::HasCompleteEquivSpec
+	(
+	 CMemoryPool *mp
+	)
+{
+	CDistributionSpecHashed *pdshashedEquiv = this->PdshashedEquiv();
+
+	if (NULL != pdshashedEquiv)
+	{
+		CColRefSet *pcrshashed = this->PcrsUsed(mp);
+		CColRefSet *pcrshashedEquiv = pdshashedEquiv->PcrsUsed(mp);
+
+		// it is considered complete, if the equivalent spec has no matching
+		// columns with the main spec
+		BOOL result = !pcrshashedEquiv->FIntersects(pcrshashed);
+		pcrshashed->Release();
+		pcrshashedEquiv->Release();
+		return result;
+	}
+
+	// no equivalent spec - so, it can't be incomplete
+	return false;
+}
+
+// use given predicates to complete an incomplete spec, if possible
+CDistributionSpecHashed *
+CDistributionSpecHashed::CompleteEquivSpec
+	(
+	CMemoryPool *mp,
+	CDistributionSpecHashed *pdshashed,
+	CExpression *pexprPred
+	)
+{
+	CExpressionArray *pdrgpexprPred = CPredicateUtils::PdrgpexprConjuncts(mp, pexprPred);
+	CExpressionArray *pdrgpexprResult = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpressionArray *pdrgpexprHashed = pdshashed->Pdrgpexpr();
+	const ULONG size = pdrgpexprHashed->Size();
+
+	ULONG num_orig_exprs_used = 0;
+	for (ULONG ul = 0; ul < size; ul++)
+	{
+
+		CExpression *pexpr = (*pdrgpexprHashed)[ul];
+		CExpression *pexprMatching = CUtils::PexprMatchEqualityOrINDF(pexpr, pdrgpexprPred);
+		if (NULL != pexprMatching)
+		{
+			pexprMatching->AddRef();
+			pdrgpexprResult->Append(pexprMatching);
+		}
+		else
+		{
+			++num_orig_exprs_used;
+			pexpr->AddRef();
+			pdrgpexprResult->Append(pexpr);
+		}
+	}
+	pdrgpexprPred->Release();
+
+	// don't create an equiv spec, if it uses the same exprs as the original
+	if (num_orig_exprs_used == size)
+	{
+		pdrgpexprResult->Release();
+		return NULL;
+	}
+
+	GPOS_ASSERT(pdrgpexprResult->Size() == pdrgpexprHashed->Size());
+
+	// create a matching hashed distribution request
+	BOOL fNullsColocated = pdshashed->FNullsColocated();
+	CDistributionSpecHashed *pdshashedEquiv =
+		GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprResult, fNullsColocated);
+
+	return pdshashedEquiv;
+}
 // EOF
 

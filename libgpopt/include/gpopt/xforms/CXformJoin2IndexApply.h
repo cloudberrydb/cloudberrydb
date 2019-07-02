@@ -164,14 +164,6 @@ namespace gpopt
 				CXformResult *pxfres
 				) const;
 
-			// check whether distribution key and the index key are matched.
-			// always returns true for master only table.
-			BOOL FMatchDistKeyAndIndexKey
-				(
-				const IMDRelation *pmdrel,
-				const IMDIndex *pmdindex
-				) const;
-
 		protected:
 
 			// is the logical join that is being transformed an outer join?
