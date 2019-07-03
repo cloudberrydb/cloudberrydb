@@ -842,3 +842,16 @@ FROM pg_locks WHERE locktype='transactionid';
 (1 row)
 
 ROLLBACK;
+-- Test that exported snapshots are cleared upon abort.  In Greenplum,
+-- exported snapshots are cleared earlier than PostgreSQL during
+-- abort.
+begin;
+select count(1) = 1 from pg_catalog.pg_export_snapshot();
+ ?column? 
+----------
+ t
+(1 row)
+
+select pg_cancel_backend(pg_backend_pid());
+ERROR:  canceling statement due to user request
+rollback;

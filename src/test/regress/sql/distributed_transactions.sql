@@ -584,3 +584,11 @@ SELECT CASE WHEN count(*) < 50 THEN 'not many XID locks'
             ELSE 'lots of XID locks: ' || count(*) END
 FROM pg_locks WHERE locktype='transactionid';
 ROLLBACK;
+
+-- Test that exported snapshots are cleared upon abort.  In Greenplum,
+-- exported snapshots are cleared earlier than PostgreSQL during
+-- abort.
+begin;
+select count(1) = 1 from pg_catalog.pg_export_snapshot();
+select pg_cancel_backend(pg_backend_pid());
+rollback;
