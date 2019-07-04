@@ -177,7 +177,6 @@ struct ConnHashTable
 	int			size;
 };
 
-#define DEFAULT_CONN_HTAB_SIZE 16
 #define CONN_HASH_VALUE(icpkt) ((uint32)((((icpkt)->srcPid ^ (icpkt)->dstPid)) + (icpkt)->dstContentId))
 #define CONN_HASH_MATCH(a, b) (((a)->motNodeId == (b)->motNodeId && \
 								(a)->dstContentId == (b)->dstContentId && \
@@ -1511,7 +1510,8 @@ initConnHashTable(ConnHashTable *ht, MemoryContext cxt)
 	int			i;
 
 	ht->cxt = cxt;
-	ht->size = DEFAULT_CONN_HTAB_SIZE;
+	ht->size = Gp_role == GP_ROLE_DISPATCH ? (getgpsegmentCount() * 2) : ic_htab_size;
+	Assert(ht->size > 0);
 
 	if (ht->cxt)
 	{

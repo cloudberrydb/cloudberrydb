@@ -60,6 +60,12 @@ int			qe_identifier = 0;
  */
 int			host_segments = 0;
 
+/*
+ * size of hash table of interconnect connections
+ * equals to 2 * (the number of total segments)
+ */
+int			ic_htab_size = 0;
+
 Gang      *CurrentGangCreating = NULL;
 
 CreateGangFunc pCreateGangFunc = cdbgang_createGang_async;
@@ -357,7 +363,7 @@ makeOptions(void)
  */
 bool
 build_gpqeid_param(char *buf, int bufsz,
-				   bool is_writer, int identifier, int hostSegs)
+				   bool is_writer, int identifier, int hostSegs, int icHtabSize)
 {
 	int		len;
 #ifdef HAVE_INT64_TIMESTAMP
@@ -370,9 +376,9 @@ build_gpqeid_param(char *buf, int bufsz,
 #endif
 #endif
 
-	len = snprintf(buf, bufsz, "%d;" TIMESTAMP_FORMAT ";%s;%d;%d",
+	len = snprintf(buf, bufsz, "%d;" TIMESTAMP_FORMAT ";%s;%d;%d;%d",
 				   gp_session_id, PgStartTime,
-				   (is_writer ? "true" : "false"), identifier, hostSegs);
+				   (is_writer ? "true" : "false"), identifier, hostSegs, icHtabSize);
 
 	return (len > 0 && len < bufsz);
 }
@@ -444,11 +450,16 @@ cdbgang_parse_gpqeid_params(struct Port *port __attribute__((unused)),
 		host_segments = (int) strtol(cp, NULL, 10);
 	}
 
+	if (gpqeid_next_param(&cp, &np))
+	{
+		ic_htab_size = (int) strtol(cp, NULL, 10);
+	}
+
 	/* Too few items, or too many? */
 	if (!cp || np)
 		goto bad;
 
-	if (gp_session_id <= 0 || PgStartTime <= 0 || qe_identifier < 0 || host_segments <= 0)
+	if (gp_session_id <= 0 || PgStartTime <= 0 || qe_identifier < 0 || host_segments <= 0 || ic_htab_size <= 0)
 		goto bad;
 
 	pfree(gpqeid);
