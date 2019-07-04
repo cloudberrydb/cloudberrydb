@@ -72,8 +72,9 @@ extern Size ShmemBackendArraySize(void);
 extern void ShmemBackendArrayAllocation(void);
 #endif
 
-/* CDB */
-typedef int (PMSubStartCallback)(void);
+extern void load_auxiliary_libraries(void);
+extern bool amAuxiliaryBgWorker(void);
+extern bool IsUnderMasterDispatchMode(void);
 
 /*
  * Note: MAX_BACKENDS is limited to 2^23-1 because inval.c stores the
@@ -83,5 +84,6 @@ typedef int (PMSubStartCallback)(void);
  * GUC check hooks and in RegisterBackgroundWorker().
  */
 #define MAX_BACKENDS	0x7fffff
+#define MaxPMAuxProc	6
 
 #endif   /* _POSTMASTER_H */

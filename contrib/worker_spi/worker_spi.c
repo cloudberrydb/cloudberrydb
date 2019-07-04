@@ -350,6 +350,7 @@ _PG_init(void)
 	worker.bgw_restart_time = BGW_NEVER_RESTART;
 	worker.bgw_main = worker_spi_main;
 	worker.bgw_notify_pid = 0;
+	worker.bgw_start_rule = NULL;
 
 	/*
 	 * Now fill in worker-specific data, and do the actual registrations.

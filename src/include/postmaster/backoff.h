@@ -26,7 +26,8 @@ extern Datum gp_adjust_priority_int(PG_FUNCTION_ARGS);
 extern Datum gp_adjust_priority_value(PG_FUNCTION_ARGS);
 extern Datum gp_list_backend_priorities(PG_FUNCTION_ARGS);
 
-extern int backoff_start(void);
+extern void BackoffSweeperMain(Datum main_arg);
+extern bool BackoffSweeperStartRule(Datum main_arg);
 
 
 #endif /* BACKOFF_H_ */

@@ -28,8 +28,6 @@
 #include "postgres.h"
 
 #include "postmaster/backoff.h"
-#include "postmaster/fork_process.h"
-#include "postmaster/postmaster.h"
 #ifndef HAVE_GETRUSAGE
 #include "rusagestub.h"
 #else
@@ -37,36 +35,21 @@
 #include <sys/resource.h>
 #endif
 #include "storage/ipc.h"
-#include "storage/smgr.h"
-#include "storage/shmem.h"
-#include "utils/resowner.h"
 #include "cdb/cdbvars.h"
-#include "storage/backendid.h"
-#include "pgstat.h"
-#include "miscadmin.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
 #include "libpq-fe.h"
-#include <unistd.h>
 
 #include <signal.h>
 #include "libpq/pqsignal.h"
-#include "utils/ps_status.h"
 #include "tcop/tcopprot.h"
+#include "postmaster/bgworker.h"
 #include "storage/pmsignal.h"	/* PostmasterIsAlive */
-#include "catalog/pg_database.h"
-#include "catalog/pg_resourcetype.h"
-#include "catalog/pg_resqueue.h"
-#include "catalog/pg_tablespace.h"
-#include "catalog/catalog.h"
 #include "storage/proc.h"
-#include "storage/sinval.h"
+#include "catalog/pg_resourcetype.h"
 #include "utils/builtins.h"
 #include "utils/resource_manager.h"
-#include "utils/syscache.h"
 #include "funcapi.h"
-#include "catalog/pg_type.h"
-#include "access/tuptoaster.h"
 #include "access/xact.h"
 #include "port/atomics.h"
 #include "pg_trace.h"
@@ -210,9 +193,6 @@ static inline double numProcsPerSegment(void);
 /* Sweeper related routines */
 static void BackoffSweeper(void);
 static void BackoffSweeperLoop(void);
-NON_EXEC_STATIC void BackoffSweeperMain(int argc, char *argv[]);
-static void BackoffRequestShutdown(SIGNAL_ARGS);
-static volatile bool sweeperShutdownRequested = false;
 static volatile bool isSweeperProcess = false;
 
 /* Resource queue related routines */
@@ -1181,125 +1161,26 @@ gp_adjust_priority_int(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(numfound);
 }
 
-/*
- * Main entry point for backoff process. This forks off a sweeper process
- * and calls BackoffSweeperMain(), which does all the setup.
- *
- * This code is heavily based on pgarch.c, q.v.
- */
-int
-backoff_start(void)
+bool
+BackoffSweeperStartRule(Datum main_arg)
 {
-	pid_t		backoffId = -1;
+	if (IsResQueueEnabled())
+		return true;
 
-	switch ((backoffId = fork_process()))
-	{
-		case -1:
-			ereport(LOG,
-					(errmsg("could not fork sweeper process: %m")));
-			return 0;
-
-		case 0:
-			/* in postmaster child ... */
-			/* Close the postmaster's sockets */
-			ClosePostmasterPorts(false);
-
-			BackoffSweeperMain(0, NULL);
-			break;
-		default:
-			return (int) backoffId;
-	}
-
-	/* shouldn't get here */
-	Assert(false);
-	return 0;
+	return false;
 }
-
 
 /**
  * This method is called after fork of the sweeper process. It sets up signal
  * handlers and does initialization that is required by a postgres backend.
  */
-NON_EXEC_STATIC void
-BackoffSweeperMain(int argc, char *argv[])
+void
+BackoffSweeperMain(Datum main_arg)
 {
-	sigjmp_buf	local_sigjmp_buf;
-
-	IsUnderPostmaster = true;
 	isSweeperProcess = true;
 
-	/* Stay away from PMChildSlot */
-	MyPMChildSlot = -1;
-
-	/* reset MyProcPid */
-	MyProcPid = getpid();
-
-	/* Lose the postmaster's on-exit routines */
-	on_exit_reset();
-
-	/* Identify myself via ps */
-	init_ps_display("sweeper process", "", "", "");
-
-	SetProcessingMode(InitProcessing);
-
-	/*
-	 * Set up signal handlers.  We operate on databases much like a regular
-	 * backend, so we use the same signal handling.  See equivalent code in
-	 * tcop/postgres.c.
-	 */
-	pqsignal(SIGHUP, SIG_IGN);
-	pqsignal(SIGINT, SIG_IGN);
-	pqsignal(SIGALRM, SIG_IGN);
-	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, SIG_IGN);
-
-	pqsignal(SIGTERM, die);
-	pqsignal(SIGQUIT, quickdie);
-	pqsignal(SIGUSR2, BackoffRequestShutdown);
-
-	pqsignal(SIGFPE, FloatExceptionHandler);
-	pqsignal(SIGCHLD, SIG_DFL);
-
-	/*
-	 * Copied from bgwriter
-	 */
-	CurrentResourceOwner = ResourceOwnerCreate(NULL, "Sweeper process");
-
-	/* Early initialization */
-	BaseInit();
-
-	/* See InitPostgres()... */
-	InitProcess();
-
-	SetProcessingMode(NormalProcessing);
-
-	/*
-	 * If an exception is encountered, processing resumes here.
-	 *
-	 * See notes in postgres.c about the design of this coding.
-	 */
-	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
-	{
-		/* Prevents interrupts while cleaning up */
-		HOLD_INTERRUPTS();
-
-		/* Report the error to the server log */
-		EmitErrorReport();
-
-		/*
-		 * We can now go away.  Note that because we'll call InitProcess, a
-		 * callback will be registered to do ProcKill, which will clean up
-		 * necessary state.
-		 */
-		proc_exit(0);
-	}
-
-	/* We can now handle ereport(ERROR) */
-	PG_exception_stack = &local_sigjmp_buf;
-
-	PG_SETMASK(&UnBlockSig);
-
-	MyBackendId = InvalidBackendId;
+	/* We're now ready to receive signals */
+	BackgroundWorkerUnblockSignals();
 
 	/* main loop */
 	BackoffSweeperLoop();
@@ -1317,33 +1198,25 @@ BackoffSweeperLoop(void)
 {
 	for (;;)
 	{
-		CHECK_FOR_INTERRUPTS();
-
-		if (sweeperShutdownRequested)
-			break;
-
-		/* no need to live on if postmaster has died */
-		if (!PostmasterIsAlive())
-			exit(1);
+		int		rc;
 
 		if (gp_enable_resqueue_priority)
 			BackoffSweeper();
 
 		Assert(gp_resqueue_priority_sweeper_interval > 0.0);
+
 		/* Sleep a while. */
-		pg_usleep(gp_resqueue_priority_sweeper_interval * 1000.0);
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   gp_resqueue_priority_sweeper_interval * 1000L);
+		ResetLatch(&MyProc->procLatch);
+
+		/* emergency bailout if postmaster has died */
+		if (rc & WL_POSTMASTER_DEATH)
+			proc_exit(1);
 	}							/* end server loop */
 
 	return;
-}
-
-/**
- * Note the request to shut down.
- */
-static void
-BackoffRequestShutdown(SIGNAL_ARGS)
-{
-	sweeperShutdownRequested = true;
 }
 
 /**

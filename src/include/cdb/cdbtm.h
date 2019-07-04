@@ -282,7 +282,6 @@ typedef struct TmControlBlock
 
 extern volatile bool *shmDtmStarted;
 extern int max_tm_gxacts;
-extern bool am_dtx_recovery;
 
 extern DtxContext DistributedTransactionContext;
 
@@ -368,8 +367,10 @@ extern bool currentGxactWriterGangLost(void);
 
 extern void addToGxactTwophaseSegments(struct Gang* gp);
 
-extern int dtx_recovery_start(void);
 extern DistributedTransactionId generateGID(void);
 extern void ClearTransactionState(TransactionId latestXid);
+
+extern void DtxRecoveryMain(Datum main_arg);
+extern bool DtxRecoveryStartRule(Datum main_arg);
 
 #endif   /* CDBTM_H */

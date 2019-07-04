@@ -55,8 +55,6 @@
 /* The maximum bytes for error message */
 #define ERROR_MESSAGE_MAX_SIZE 200
 
-extern bool Gp_entry_postmaster;
-
 /*
  * We read() into a temp buffer twice as big as a chunk, so that any fragment
  * left after processing can be moved down to the front and we'll still have
@@ -278,7 +276,7 @@ SysLoggerMain(int argc, char *argv[])
 
 	am_syslogger = true;
 
-	if (Gp_entry_postmaster && Gp_role == GP_ROLE_DISPATCH)
+	if (IsUnderMasterDispatchMode())
 		init_ps_display("master logger process", "", "", "");
 	else
 		init_ps_display("logger process", "", "", "");
@@ -819,8 +817,7 @@ SysLoggerMain(int argc, char *argv[])
 static void
 open_alert_log_file()
 {
-    if (Gp_entry_postmaster &&
-        Gp_role == GP_ROLE_DISPATCH &&
+	if (IsUnderMasterDispatchMode() &&
         gpperfmon_log_alert_level != GPPERFMON_LOG_ALERT_LEVEL_NONE)
     {
         alert_log_level_opened = true;
@@ -1464,7 +1461,7 @@ fillinErrorDataFromSegvChunk(GpErrorData *errorData, PipeProtoChunk *chunk)
 	Assert(signalName != NULL);
 	snprintf(errorData->error_message, ERROR_MESSAGE_MAX_SIZE,
 			 "Unexpected internal error: %s received signal %s",
-			 (Gp_entry_postmaster && Gp_role == GP_ROLE_DISPATCH) ? "Master process" : "Segment process",
+			 IsUnderMasterDispatchMode() ? "Master process" : "Segment process",
 			 signalName);
 	
 	errorData->error_detail = NULL;

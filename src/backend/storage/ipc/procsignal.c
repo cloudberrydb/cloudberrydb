@@ -59,7 +59,7 @@ typedef struct
  * possible auxiliary process type.  (This scheme assumes there is not
  * more than one of any auxiliary process type at a time.)
  */
-#define NumProcSignalSlots	(MaxBackends + NUM_AUXILIARY_PROCS)
+#define NumProcSignalSlots	(MaxBackends + NUM_AUXPROCTYPES)
 
 /*
  * If this flag is set, the process latch will be set whenever SIGUSR1

@@ -1163,8 +1163,11 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	/* initialize client encoding */
 	InitializeClientEncoding();
 
-	/* report this backend in the PgBackendStatus array */
-	if (!bootstrap)
+	/*
+	 * report this backend in the PgBackendStatus array, meanwhile, we do not
+	 * want users to see auxiliary background worker like fts in pg_stat_* views.
+	 */
+	if (!bootstrap && !amAuxiliaryBgWorker())
 		pgstat_bestart();
 		
 	/* 

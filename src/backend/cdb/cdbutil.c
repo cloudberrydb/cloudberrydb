@@ -987,8 +987,13 @@ cdb_setup(void)
 	/*
 	 * Backend process requires consistent state, it cannot proceed until
 	 * dtx recovery process finish up the recovery of distributed transactions.
+	 *
+	 * Ignore background worker because bgworker_should_start_mpp() already did
+	 * the check.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && !*shmDtmStarted)
+	if (!IsBackgroundWorker &&
+		Gp_role == GP_ROLE_DISPATCH &&
+		!*shmDtmStarted)
 	{
 		while (true)
 		{

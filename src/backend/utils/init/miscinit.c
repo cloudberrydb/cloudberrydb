@@ -471,10 +471,8 @@ InitializeSessionUserIdStandalone(void)
 	 */
 	AssertState(!IsUnderPostmaster || IsAutoVacuumWorkerProcess() || IsBackgroundWorker
 				|| am_startup
-				|| am_dtx_recovery
-				|| (am_ftshandler && am_mirror)
 				|| (IsFaultHandler && am_mirror)
-				|| am_global_deadlock_detector);
+				|| (am_ftshandler && am_mirror));
 
 	/* call only once */
 	AssertState(!OidIsValid(AuthenticatedUserId));
@@ -1397,9 +1395,11 @@ void
 process_shared_preload_libraries(void)
 {
 	process_shared_preload_libraries_in_progress = true;
+
 	load_libraries(shared_preload_libraries_string,
 				   "shared_preload_libraries",
 				   false);
+
 	process_shared_preload_libraries_in_progress = false;
 }
 

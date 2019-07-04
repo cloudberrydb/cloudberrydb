@@ -14,37 +14,26 @@
 
 #include <unistd.h>
 
-#include "access/xact.h"
-#include "access/transam.h"
-#include "postmaster/fork_process.h"
-#include "postmaster/postmaster.h"
-#include "catalog/catalog.h"
-#include "catalog/pg_authid.h"
+/* These are always necessary for a bgworker */
+#include "miscadmin.h"
+#include "postmaster/bgworker.h"
 #include "storage/ipc.h"
-#include "storage/pmsignal.h"			/* PostmasterIsAlive */
+#include "storage/latch.h"
+#include "storage/lwlock.h"
 #include "storage/proc.h"
+#include "storage/shmem.h"
 #include "storage/procarray.h"
-#include "storage/procsignal.h"
-#include "storage/backendid.h"
-#include "storage/bufmgr.h"
-#include "storage/sinvaladt.h"
+
+#include "access/xact.h"
+#include "cdb/cdbvars.h"
+#include "executor/spi.h"
+#include "postmaster/postmaster.h"
 #include "tcop/tcopprot.h"
 #include "utils/gdd.h"
 #include "utils/builtins.h"
-#include "utils/fmgroids.h"
 #include "utils/snapmgr.h"
 #include "utils/memutils.h"
-#include "utils/syscache.h"
-#include "utils/ps_status.h"
 #include "utils/faultinjector.h"
-#include "cdb/cdbvars.h"
-
-#include "libpq/pqsignal.h"
-#include "libpq/libpq-be.h"
-#include "executor/spi.h"
-#include "utils/sharedsnapshot.h"
-#include "utils/timeout.h"
-
 #include "gdddetector.h"
 #include "gdddetectorpriv.h"
 
@@ -71,10 +60,7 @@ typedef struct EdgeSatelliteData
 #define GET_LOCKMODE_FROM_EDGE(edge) (((EdgeSatelliteData *) ((edge)->data))->lockmode)
 #define GET_LOCKTYPE_FROM_EDGE(edge) (((EdgeSatelliteData *) ((edge)->data))->locktype)
 
-#ifdef EXEC_BACKEND
-static pid_t global_deadlock_detector_forkexec(void);
-#endif
-NON_EXEC_STATIC void GlobalDeadLockDetectorMain(int argc, char *argv[]);
+void GlobalDeadLockDetectorMain(Datum main_arg);
 
 static void GlobalDeadLockDetectorLoop(void);
 static int  doDeadLockCheck(void);
@@ -84,283 +70,52 @@ static void dumpCancelResult(StringInfo str, List *xids);
 extern void dumpGddCtx(GddCtx *ctx, StringInfo str);
 static void dumpGddGraph(GddGraph *graph, StringInfo str);
 static void dumpGddEdge(GddEdge *edge, StringInfo str);
-static void TimeoutHandler(void);
 
 static MemoryContext	gddContext;
 static MemoryContext    oldContext;
 
 static volatile sig_atomic_t got_SIGHUP = false;
-static volatile bool shutdown_requested = false;
 
 int gp_global_deadlock_detector_period;
 
-bool am_global_deadlock_detector = false;
-
-/*
- * Main entry point for global deadlock detector process.
- *
- * This code is heavily based on pgarch.c, q.v.
- */
-int
-global_deadlock_detector_start(void)
-{
-	pid_t		GlobalDeadLockDetectorPID;
-
-#ifdef EXEC_BACKEND
-	switch ((GlobalDeadLockDetectorPID = global_deadlock_detector_forkexec()))
-#else
-	switch ((GlobalDeadLockDetectorPID = fork_process()))
-#endif
-	{
-		case -1:
-			ereport(LOG,
-					(errmsg("could not fork global dead lock detector process: %m")));
-			return 0;
-
-#ifndef EXEC_BACKEND
-		case 0:
-			/* in postmaster child ... */
-			/* Close the postmaster's sockets */
-			ClosePostmasterPorts(false);
-
-			GlobalDeadLockDetectorMain(0, NULL);
-			break;
-#endif
-		default:
-			return (int) GlobalDeadLockDetectorPID;
-	}
-
-	/* shouldn't get here */
-	return 0;
-}
-
-
-#ifdef EXEC_BACKEND
-/*
- * global_deadlock_detector_forkexec()
- *
- * Format up the arglist for the serqserver process, then fork and exec.
- */
-static pid_t
-global_deadlock_detector_forkexec(void)
-{
-	char	   *av[10];
-	int			ac = 0;
-
-	av[ac++] = "postgres";
-	av[ac++] = "--globaldeadlockdetector";
-	av[ac++] = NULL;			/* filled in by postmaster_forkexec */
-	av[ac] = NULL;
-
-	Assert(ac < lengthof(av));
-
-	return postmaster_forkexec(ac, av);
-}
-#endif   /* EXEC_BACKEND */
-
-static void
-RequestShutdown(SIGNAL_ARGS)
-{
-	shutdown_requested = true;
-}
+static bool am_global_deadlock_detector = false;
 
 /* SIGHUP: set flag to reload config file */
 static void
 sigHupHandler(SIGNAL_ARGS)
 {
 	got_SIGHUP = true;
+
+	if(MyProc)
+		SetLatch(&MyProc->procLatch);
+}
+
+bool
+GlobalDeadLockDetectorStartRule(Datum main_arg)
+{
+	/* we only start gdd on master when -E is specified */
+	if (IsUnderMasterDispatchMode() &&
+		gp_enable_global_deadlock_detector)
+		return true;
+
+	return false;
 }
 
 /*
  * GlobalDeadLockDetectorMain
  */
-NON_EXEC_STATIC void
-GlobalDeadLockDetectorMain(int argc, char *argv[])
+void
+GlobalDeadLockDetectorMain(Datum main_arg)
 {
-	sigjmp_buf	local_sigjmp_buf;
-	char	   *fullpath;
-
-	IsUnderPostmaster = true;
 	am_global_deadlock_detector = true;
 
-	/* Stay away from PMChildSlot */
-	MyPMChildSlot = -1;
-
-	/* reset MyProcPid */
-	MyProcPid = getpid();
-
-	/* record Start Time for logging */
-	MyStartTime = time(NULL);
-
-	/* Lose the postmaster's on-exit routines */
-	on_exit_reset();
-
-	/*
-	 * If possible, make this process a group leader, so that the postmaster
-	 * can signal any child processes too.	(gdd probably never has any
-	 * child processes, but for consistency we make all postmaster child
-	 * processes do this.)
-	 */
-#ifdef HAVE_SETSID
-	if (setsid() < 0)
-		elog(FATAL, "setsid() failed: %m");
-#endif
-
-	/* Identify myself via ps */
-	init_ps_display("global deadlock detector process", "", "", "");
-
-	SetProcessingMode(InitProcessing);
-
 	pqsignal(SIGHUP, sigHupHandler);
-	pqsignal(SIGINT, StatementCancelHandler);
-	pqsignal(SIGTERM, die);
-	pqsignal(SIGQUIT, quickdie); /* we don't do any seq-server specific cleanup, just use the standard. */
-	InitializeTimeouts();
 
-	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
-	/* We don't listen for async notifies */
-	pqsignal(SIGUSR2, RequestShutdown);
-	pqsignal(SIGFPE, FloatExceptionHandler);
-	pqsignal(SIGCHLD, SIG_DFL);
+	/* We're now ready to receive signals */
+	BackgroundWorkerUnblockSignals();
 
-	RegisterTimeout(DEADLOCK_TIMEOUT, TimeoutHandler);
-	RegisterTimeout(STATEMENT_TIMEOUT, TimeoutHandler);
-	RegisterTimeout(LOCK_TIMEOUT, TimeoutHandler);
-	RegisterTimeout(GANG_TIMEOUT, TimeoutHandler);
-
-	/*
-	 * Create a resource owner to keep track of our resources (currently only
-	 * buffer pins).
-	 */
-	CurrentResourceOwner = ResourceOwnerCreate(NULL, "GlobalDeadLockDetector");
-
-	/* Early initialization */
-	BaseInit();
-
-	/* See InitPostgres()... */
-	/*
-	 * Create a per-backend PGPROC struct in shared memory, except in the
-	 * EXEC_BACKEND case where this was done in SubPostmasterMain. We must do
-	 * this before we can use LWLocks (and in the EXEC_BACKEND case we already
-	 * had to do some stuff with LWLocks).
-	 */
-#ifndef EXEC_BACKEND
-	InitProcess();
-#endif
-	InitBufferPoolBackend();
-	InitXLOGAccess();
-
-	SetProcessingMode(NormalProcessing);
-
-	/* Allocate MemoryContext */
-	gddContext = AllocSetContextCreate(TopMemoryContext,
-									   "GddContext",
-									   ALLOCSET_DEFAULT_MINSIZE,
-									   ALLOCSET_DEFAULT_INITSIZE,
-									   ALLOCSET_DEFAULT_MAXSIZE);
-
-	/*
-	 * If an exception is encountered, processing resumes here.
-	 *
-	 * See notes in postgres.c about the design of this coding.
-	 */
-	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
-	{
-		/* Prevents interrupts while cleaning up */
-		HOLD_INTERRUPTS();
-
-		/* Report the error to the server log */
-		EmitErrorReport();
-
-		AbortCurrentTransaction();
-		/*
-		 * We can now go away.	Note that because we'll call InitProcess, a
-		 * callback will be registered to do ProcKill, which will clean up
-		 * necessary state.
-		 */
-		proc_exit(0);
-	}
-
-	/* We can now handle ereport(ERROR) */
-	PG_exception_stack = &local_sigjmp_buf;
-
-	PG_SETMASK(&UnBlockSig);
-
-
-	/*
-	 * The following additional initialization allows us to call the persistent meta-data modules.
-	 */
-
-	/*
-	 * Add my PGPROC struct to the ProcArray.
-	 *
-	 * Once I have done this, I am visible to other backends!
-	 */
-	InitProcessPhase2();
-
-	/*
-	 * Initialize my entry in the shared-invalidation manager's array of
-	 * per-backend data.
-	 *
-	 * Sets up MyBackendId, a unique backend identifier.
-	 */
-	MyBackendId = InvalidBackendId;
-
-	SharedInvalBackendInit(false);
-
-	if (MyBackendId > MaxBackends || MyBackendId <= 0)
-		elog(FATAL, "bad backend id: %d", MyBackendId);
-
-	/*
-	 * bufmgr needs another initialization call too
-	 */
-	InitBufferPoolBackend();
-
-	/* heap access requires the rel-cache */
-	RelationCacheInitialize();
-	InitCatalogCache();
-
-	/*
-	 * It's now possible to do real access to the system catalogs.
-	 *
-	 * Load relcache entries for the system catalogs.  This must create at
-	 * least the minimum set of "nailed-in" cache entries.
-	 */
-	RelationCacheInitializePhase2();
-
-	/*
-	 * Start a new transaction here before first access to db, and get a
-	 * snapshot.  We don't have a use for the snapshot itself, but we're
-	 * interested in the secondary effect that it sets RecentGlobalXmin.
-	 */
-	StartTransactionCommand();
-	(void) GetTransactionSnapshot();
-
-	/*
-	 * In order to access the catalog, we need a database, and a
-	 * tablespace; our access to the heap is going to be slightly
-	 * limited, so we'll just use some defaults.
-	 */
-	if (!FindMyDatabase(DB_FOR_COMMON_ACCESS, &MyDatabaseId, &MyDatabaseTableSpace))
-		ereport(FATAL,
-				(errcode(ERRCODE_UNDEFINED_DATABASE),
-				 errmsg("database \"%s\" does not exit", DB_FOR_COMMON_ACCESS)));
-
-	/* Now we can mark our PGPROC entry with the database ID */
-	/* (We assume this is an atomic store so no lock is needed) */
-	MyProc->databaseId = MyDatabaseId;
-
-	fullpath = GetDatabasePath(MyDatabaseId, MyDatabaseTableSpace);
-
-	SetDatabasePath(fullpath);
-
-	RelationCacheInitializePhase3();
-
-	InitializeSessionUserIdStandalone();
-
-	/* close the transaction we started above */
-	CommitTransactionCommand();
+	/* Connect to our database */
+	BackgroundWorkerInitializeConnection(DB_FOR_COMMON_ACCESS, NULL);
 
 	/* disable orca here */
 	extern bool optimizer;
@@ -375,18 +130,19 @@ GlobalDeadLockDetectorMain(int argc, char *argv[])
 static void
 GlobalDeadLockDetectorLoop(void)
 {
-	int status;
+	int	status;
 
-	for (;;)
+	/* Allocate MemoryContext */
+	gddContext = AllocSetContextCreate(TopMemoryContext,
+									   "GddContext",
+									   ALLOCSET_DEFAULT_MINSIZE,
+									   ALLOCSET_DEFAULT_INITSIZE,
+									   ALLOCSET_DEFAULT_MAXSIZE);
+
+	while (true)
 	{
-		CHECK_FOR_INTERRUPTS();
-
-		if (shutdown_requested)
-			break;
-
-		/* no need to live on if postmaster has died */
-		if (!PostmasterIsAlive())
-			exit(1);
+		int			rc;
+		int			timeout;
 
 		if (got_SIGHUP)
 		{
@@ -406,9 +162,17 @@ GlobalDeadLockDetectorLoop(void)
 		else
 			AbortCurrentTransaction();
 
-		/* GUC gp_global_deadlock_detector_period may be changed, skip sleep */
-		if (!got_SIGHUP)
-			pg_usleep(gp_global_deadlock_detector_period * 1000000L);
+		timeout = got_SIGHUP ? 0 : gp_global_deadlock_detector_period;
+
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   timeout * 1000L);
+
+		ResetLatch(&MyProc->procLatch);
+
+		/* emergency bailout if postmaster has died */
+		if (rc & WL_POSTMASTER_DEATH)
+			proc_exit(1);
 	}
 
 	return;
@@ -723,10 +487,4 @@ dumpGddEdge(GddEdge *edge, StringInfo str)
 					 GET_PID_FROM_VERT(edge->to),
 					 edge->to->id,
 					 GET_SESSIONID_FROM_VERT(edge->from));
-}
-
-static void
-TimeoutHandler(void)
-{
-	kill(MyProcPid, SIGINT);
 }

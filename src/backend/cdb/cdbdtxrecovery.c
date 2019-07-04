@@ -13,27 +13,23 @@
 #include "postgres.h"
 #include <unistd.h>
 
+/* These are always necessary for a bgworker */
+#include "miscadmin.h"
+#include "postmaster/bgworker.h"
+#include "storage/ipc.h"
+#include "storage/latch.h"
+#include "storage/lwlock.h"
+#include "storage/proc.h"
+#include "storage/shmem.h"
+#include "storage/procarray.h"
+
 #include "access/xact.h"
-#include "cdb/cdbtm.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbdisp_query.h"
-#include "postmaster/fork_process.h"
 #include "postmaster/postmaster.h"
-#include "storage/ipc.h"
-#include "storage/procsignal.h"
-#include "storage/proc.h"
-#include "storage/sinvaladt.h"
 #include "tcop/tcopprot.h"
-#include "utils/faultinjector.h"
-#include "utils/guc.h"
-#include "utils/ps_status.h"
-#include "utils/syscache.h"
-#include "utils/snapmgr.h"
-
-#include "libpq/pqsignal.h"
-#include "libpq-fe.h"
 #include "libpq-int.h"
 
 volatile bool *shmDtmStarted;
@@ -44,8 +40,6 @@ volatile int *shmNumCommittedGxacts;
 
 static int	redoFileFD = -1;
 static int	redoFileOffset;
-
-bool		am_dtx_recovery;
 
 typedef struct InDoubtDtx
 {
@@ -72,8 +66,6 @@ static void UtilityModeSaveRedo(bool committed, TMGXACT_LOG *gxact_log);
 static void ReplayRedoFromUtilityMode(void);
 static void RemoveRedoUtilityModeFile(void);
 static void dumpRMOnlyDtx(HTAB *htab, StringInfoData *buff);
-
-NON_EXEC_STATIC void DtxRecoveryMain(int argc, char *argv[]);
 
 static bool
 doNotifyCommittedInDoubt(char *gid)
@@ -625,213 +617,31 @@ redoDistributedForgetCommitRecord(TMGXACT_LOG *gxact_log)
 		 gxact_log->gid);
 }
 
-/*
- * Main entry point for dtx recovery process.
- *
- * This code is heavily based on pgarch.c, q.v.
- */
-int
-dtx_recovery_start(void)
+bool
+DtxRecoveryStartRule(Datum main_arg)
 {
-	pid_t		pid;
+	/* only start dtx recovery in dispatch mode */
+	if (IsUnderMasterDispatchMode())
+		return true;
 
-	switch ((pid = fork_process()))
-	{
-		case -1:
-			ereport(LOG,
-					(errmsg("could not fork dtx recovery process: %m")));
-			return 0;
-
-		case 0:
-			/* in postmaster child ... */
-			/* Close the postmaster's sockets */
-			ClosePostmasterPorts(false);
-			DtxRecoveryMain(0, NULL);
-			break;
-
-		default:
-			return (int) pid;
-	}
-
-	/* shouldn't get here */
-	return 0;
+	return false;
 }
 
 /*
  * DtxRecoveryMain
  */
-NON_EXEC_STATIC void
-DtxRecoveryMain(int argc, char *argv[])
+void
+DtxRecoveryMain(Datum main_arg)
 {
-	sigjmp_buf	local_sigjmp_buf;
-	char	   *fullpath;
+	/* We're now ready to receive signals */
+	BackgroundWorkerUnblockSignals();
 
-	IsUnderPostmaster = true;
-
-	am_dtx_recovery = true;
-
-	/* Stay away from PMChildSlot */
-	MyPMChildSlot = -1;
-
-	/* Reset MyProcPid */
-	MyProcPid = getpid();
-
-	/* Record Start Time for logging */
-	MyStartTime = time(NULL);
-
-	/* Lose the postmaster's on-exit routines */
-	on_exit_reset();
-
-	/*
-	 * If possible, make this process a group leader, so that the postmaster
-	 * can signal any child processes too
-	 */
-#ifdef HAVE_SETSID
-	if (setsid() < 0)
-		elog(FATAL, "setsid() failed: %m");
-#endif
-
-	/* Identify myself via ps */
-	init_ps_display("dtx recovery process", "", "", "");
-
-	SetProcessingMode(InitProcessing);
-
-	pqsignal(SIGHUP, SIG_IGN);
-	pqsignal(SIGINT, StatementCancelHandler);
-	pqsignal(SIGTERM, die);
-	pqsignal(SIGQUIT, quickdie);
-	pqsignal(SIGALRM, SIG_IGN);
-
-	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
-	/* We don't listen for async notifies */
-	pqsignal(SIGUSR2, SIG_IGN);
-	pqsignal(SIGFPE, FloatExceptionHandler);
-	pqsignal(SIGCHLD, SIG_DFL);
-
-	/*
-	 * Create a resource owner to keep track of our resources (currently only
-	 * buffer pins).
-	 */
-	CurrentResourceOwner = ResourceOwnerCreate(NULL, "DtxRecovery");
-
-	/* Early initialization */
-	BaseInit();
-
-	/*
-	 * Create a per-backend PGPROC struct in shared memory. We must do this
-	 * before we can use LWLocks (and in the EXEC_BACKEND case we already had
-	 * to do some stuff with LWLocks).
-	 */
-	InitProcess();
-	InitBufferPoolBackend();
-	InitXLOGAccess();
-
-	SetProcessingMode(NormalProcessing);
-
-	/*
-	 * If an exception is encountered, processing resumes here.
-	 *
-	 * See notes in postgres.c about the design of this coding.
-	 */
-	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
-	{
-		/* Prevents interrupts while cleaning up */
-		HOLD_INTERRUPTS();
-
-		/* Report the error to the server log */
-		EmitErrorReport();
-
-		/*
-		 * We can now go away.	Note that because we'll call InitProcess, a
-		 * callback will be registered to do ProcKill, which will clean up
-		 * necessary state.
-		 */
-		proc_exit(1);
-	}
-
-	/* We can now handle ereport(ERROR) */
-	PG_exception_stack = &local_sigjmp_buf;
-
-	PG_SETMASK(&UnBlockSig);
-
-	/*
-	 * The following additional initialization allows us to call the
-	 * persistent meta-data modules.
-	 */
-
-	/*
-	 * Add my PGPROC struct to the ProcArray.
-	 *
-	 * Once I have done this, I am visible to other backends!
-	 */
-	InitProcessPhase2();
-
-	/*
-	 * Initialize my entry in the shared-invalidation manager's array of
-	 * per-backend data.
-	 *
-	 * Sets up MyBackendId, a unique backend identifier.
-	 */
-	MyBackendId = InvalidBackendId;
-
-	SharedInvalBackendInit(false);
-
-	if (MyBackendId > MaxBackends || MyBackendId <= 0)
-		elog(FATAL, "bad backend id: %d", MyBackendId);
-
-	/*
-	 * Bufmgr needs another initialization call too
-	 */
-	InitBufferPoolBackend();
-
-	/* Heap access requires the rel-cache */
-	RelationCacheInitialize();
-	InitCatalogCache();
-
-	/*
-	 * It's now possible to do real access to the system catalogs.
-	 *
-	 * Load relcache entries for the system catalogs.  This must create at
-	 * least the minimum set of "nailed-in" cache entries.
-	 */
-	RelationCacheInitializePhase2();
-
-	/*
-	 * Start a new transaction here before first access to db, and get a
-	 * snapshot.  We don't have a use for the snapshot itself, but we're
-	 * interested in the secondary effect that it sets RecentGlobalXmin.
-	 */
-	StartTransactionCommand();
-	(void) GetTransactionSnapshot();
-
-	/*
-	 * In order to access the catalog, we need a database, and a tablespace;
-	 * our access to the heap is going to be slightly limited, so we'll just
-	 * use some defaults.
-	 */
-	if (!FindMyDatabase(DB_FOR_COMMON_ACCESS, &MyDatabaseId, &MyDatabaseTableSpace))
-		ereport(FATAL,
-				(errcode(ERRCODE_UNDEFINED_DATABASE),
-				 errmsg("database \"%s\" does not exit", DB_FOR_COMMON_ACCESS)));
-
-	/*
-	 * Now we can mark our PGPROC entry with the database ID
-	 * (We assume this is an atomic store so no lock is needed)
-	 */
-	MyProc->databaseId = MyDatabaseId;
-
-	fullpath = GetDatabasePath(MyDatabaseId, MyDatabaseTableSpace);
-
-	SetDatabasePath(fullpath);
-
-	RelationCacheInitializePhase3();
-
-	InitializeSessionUserIdStandalone();
+	/* Connect to postgres */
+	BackgroundWorkerInitializeConnection(DB_FOR_COMMON_ACCESS, NULL);
 
 	/* do the real job of dtx recovery process */
+	StartTransactionCommand();
 	recoverTM();
-
 	CommitTransactionCommand();
 
 	/* One iteration done, go away */

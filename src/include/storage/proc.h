@@ -283,11 +283,8 @@ extern PGPROC *PreparedXactProcs;
  * Background writer, checkpointer and WAL writer run during normal operation.
  * Startup process and WAL receiver also consume 2 slots, but WAL writer is
  * launched only after startup has exited, so we only need 4 slots.
- *
- * In GPDB, we have some extra processes.
- * GPDB_90_MERGE_FIXME: count them correctly. 10 is an exaggeration.
  */
-#define NUM_AUXILIARY_PROCS		(/* PG */ 4 + /* GPDB */ 10)
+#define NUM_AUXILIARY_PROCS		4
 
 
 /* configurable options */
