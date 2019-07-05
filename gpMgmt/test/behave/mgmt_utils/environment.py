@@ -1,5 +1,4 @@
 import os
-import platform
 import shutil
 
 import behave
@@ -62,6 +61,10 @@ def before_feature(context, feature):
         dbconn.execSQL(context.conn, 'insert into t3 values(1, 4)')
         context.conn.commit()
 
+    if 'gppkg' in feature.tags:
+        run_command(context, 'bash demo/gppkg/generate_sample_gppkg.sh buildGppkg')
+        run_command(context, 'cp -f /tmp/sample-gppkg/sample.gppkg test/behave/mgmt_utils/steps/data/')
+
 
 def after_feature(context, feature):
     if 'analyzedb' in feature.tags:
@@ -75,11 +78,6 @@ def after_feature(context, feature):
             ''')
 
 def before_scenario(context, scenario):
-    if "skip_fixme_ubuntu18.04" in scenario.effective_tags:
-        if platform.linux_distribution()[0].lower() == "ubuntu" and platform.linux_distribution()[1] == "18.04":
-            scenario.skip("skipping scenario tagged with @skip_fixme_ubuntu18.04")
-            return
-
     if "skip" in scenario.effective_tags:
         scenario.skip("skipping scenario tagged with @skip")
         return
