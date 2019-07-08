@@ -20,6 +20,7 @@
 .autotools
 .cproject
 .project
+.vscode
 build
 server/minidumps/
 ivy-*.xml
