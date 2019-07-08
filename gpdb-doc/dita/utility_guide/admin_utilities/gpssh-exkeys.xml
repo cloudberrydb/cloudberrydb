@@ -55,7 +55,7 @@
             <p>To specify new expansion hosts to be added to an existing Greenplum Database system,
                 use the <codeph>-e</codeph> and <codeph>-x</codeph> options. The <codeph>-e</codeph>
                 option specifies a file containing a list of existing hosts in the system that have
-                aready exchanged SSH keys. The <codeph>-x</codeph> option specifies a file
+                already exchanged SSH keys. The <codeph>-x</codeph> option specifies a file
                 containing a list of new hosts that need to participate in the SSH key exchange. </p>
             <p>The <codeph>gpssh-exkeys</codeph> utility performs key exchange using the following
                 steps:</p>

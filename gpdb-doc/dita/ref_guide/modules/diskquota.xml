@@ -150,7 +150,7 @@ $ gpstop -ar</codeblock></li>
         map. For append-optimized tables, the calculation includes the visibility map and index, and
         the block directory table.</p>
       <p>The <codeph>diskquota</codeph> module cannot detect a newly created table inside of an
-        uncommited transaction. The size of the new table is not included in the disk usage
+        uncommitted transaction. The size of the new table is not included in the disk usage
         calculated for the corresponding schema or role until after the transaction has committed.
         Similarly, a table created using the <codeph>CREATE TABLE AS</codeph> command is not
         included in disk usage statistics until the command has completed.</p>
