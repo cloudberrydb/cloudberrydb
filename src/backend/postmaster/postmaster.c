@@ -6236,7 +6236,7 @@ bgworker_should_start_mpp(BackgroundWorker *worker)
 	 * or BgWorkerStart_ConsistentState because it's not safe to do a read
 	 * or write if DTX is not recovered.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (IsUnderMasterDispatchMode())
 	{
 		if (!*shmDtmStarted &&
 			(start_time == BgWorkerStart_ConsistentState ||
