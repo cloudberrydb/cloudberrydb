@@ -48,7 +48,6 @@ groups:
 {% if "centos6" in os_types %}
   - compile_gpdb_centos6
   - compile_gpdb_binary_swap_centos6
-  - compile_gpdb_open_source_centos6
 {% endif %}
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
@@ -151,7 +150,6 @@ groups:
 {% if "centos6" in os_types %}
   - compile_gpdb_centos6
   - compile_gpdb_binary_swap_centos6
-  - compile_gpdb_open_source_centos6
 {% endif %}
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
@@ -958,23 +956,6 @@ jobs:
     - put: bin_gpdb_clients_centos7
       params:
         file: gpdb_artifacts/gpdb-clients-centos7.tar.gz
-
-{% endif %}
-{% if "centos6" in os_types %}
-- name: compile_gpdb_open_source_centos6
-  public: true
-  plan:
-  - aggregate:
-    - get: reduced-frequency-trigger
-      trigger: ((reduced-frequency-trigger-flag))
-    - get: gpdb_src
-      trigger: ((gpdb_src-trigger-flag))
-    - get: gpdb6-centos6-build
-  - task: compile_gpdb
-    image: gpdb6-centos6-build
-    file: gpdb_src/concourse/tasks/compile_gpdb_open_source_centos.yml
-    params:
-        CONFIGURE_FLAGS: {{configure_flags}}
 
 {% endif %}
 {% if "centos6" in os_types %}
@@ -2035,7 +2016,6 @@ jobs:
       trigger: true
       passed:
       - compile_gpdb_centos6
-      - compile_gpdb_open_source_centos6
       - compile_gpdb_centos7
       - compile_gpdb_ubuntu18.04
       - icw_planner_centos6
