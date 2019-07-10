@@ -6379,11 +6379,7 @@ maybe_start_bgworker(void)
 		if (bgworker_should_start_now(rw->rw_worker.bgw_start_time))
 		{
 			if (!bgworker_should_start_mpp(&rw->rw_worker))
-			{
-				/* tell ServerLoop to try again */
-				StartWorkerNeeded = true;
 				continue;
-			}
 
 			/* reset crash time before trying to start worker */
 			rw->rw_crashed_at = 0;
