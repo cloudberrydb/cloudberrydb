@@ -632,6 +632,17 @@ cdbcomponent_updateCdbComponents(void)
 	uint8 ftsVersion= getFtsVersion();
 	int expandVersion = GetGpExpandVersion();
 
+	/*
+	 * FTS takes responsibility for updating gp_segment_configuration, in each
+	 * fts probe cycle, FTS firstly gets a copy of current configuration, then
+	 * probe the segments based on it and finally free the copy in the end. In
+	 * the probe stage, FTS might start/close transactions many times, so FTS
+	 * should not update current copy of gp_segment_configuration when a new
+	 * transaction is started.
+	 */
+	if (am_ftsprobe)
+		return;
+
 	PG_TRY();
 	{
 		if (cdb_component_dbs == NULL)
