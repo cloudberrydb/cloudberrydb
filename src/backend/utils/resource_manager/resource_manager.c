@@ -18,6 +18,7 @@
 #include "cdb/memquota.h"
 #include "executor/spi.h"
 #include "postmaster/fts.h"
+#include "postmaster/postmaster.h"
 #include "replication/walsender.h"
 #include "utils/faultinjector.h"
 #include "utils/guc.h"
@@ -64,6 +65,7 @@ InitResManager(void)
 	else if  (IsResGroupEnabled() &&
 			 (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) &&
 			 IsUnderPostmaster &&
+			 !amAuxiliaryBgWorker() &&
 			 !am_walsender && !am_ftshandler && !IsFaultHandler)
 	{
 		/*
