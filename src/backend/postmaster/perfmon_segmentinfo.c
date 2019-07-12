@@ -87,9 +87,7 @@ void SegmentInfoSenderMain(Datum main_arg)
 bool
 SegmentInfoSenderStartRule(Datum main_arg)
 {
-	/*
-	 * TODO: is this correct? either GUC is on will turn on this auxiliary process ? */
-	if (!gp_enable_gpperfmon && !gp_enable_query_metrics)
+	if (!gp_enable_gpperfmon)
 		return false;
 
 	/* FIXME: even for the utility mode? */
