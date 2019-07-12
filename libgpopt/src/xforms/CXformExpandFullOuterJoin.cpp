@@ -107,11 +107,11 @@ CXformExpandFullOuterJoin::Transform
 
 	// 1. create the CTE producers
 	const ULONG ulCTEIdA = COptCtxt::PoctxtFromTLS()->Pcteinfo()->next_id();
-	CColRefArray *pdrgpcrOutA = CDrvdPropRelational::GetRelationalProperties(pexprA->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrOutA = pexprA->DeriveOutputColumns()->Pdrgpcr(mp);
 	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEIdA, pdrgpcrOutA, pexprA);
 
 	const ULONG ulCTEIdB = COptCtxt::PoctxtFromTLS()->Pcteinfo()->next_id();
-	CColRefArray *pdrgpcrOutB = CDrvdPropRelational::GetRelationalProperties(pexprB->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrOutB = pexprB->DeriveOutputColumns()->Pdrgpcr(mp);
 	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEIdB, pdrgpcrOutB, pexprB);
 
 	// 2. create the right child (PROJECT over LASJ)
@@ -150,9 +150,8 @@ CXformExpandFullOuterJoin::Transform
 
 	// inputs from the second child have to be in the correct order
 	// a. add new computed columns from the project only
-	CDrvdPropRelational *pdprelProject = CDrvdPropRelational::GetRelationalProperties(pexprProject->PdpDerive());
 	CColRefSet *pcrsProjOnly = GPOS_NEW(mp) CColRefSet(mp);
-	pcrsProjOnly->Include(pdprelProject->PcrsOutput());
+	pcrsProjOnly->Include(pexprProject->DeriveOutputColumns());
 	pcrsProjOnly->Exclude(pdrgpcrRightB);
 	CColRefArray *pdrgpcrProj = pcrsProjOnly->Pdrgpcr(mp);
 	pcrsProjOnly->Release();

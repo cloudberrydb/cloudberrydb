@@ -261,14 +261,14 @@ CLogicalRowTrigger::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalRowTrigger::PcrsDeriveOutput
+//		CLogicalRowTrigger::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalRowTrigger::PcrsDeriveOutput
+CLogicalRowTrigger::DeriveOutputColumns
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl
@@ -286,7 +286,7 @@ CLogicalRowTrigger::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalRowTrigger::PkcDeriveKeys
+CLogicalRowTrigger::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -298,14 +298,14 @@ CLogicalRowTrigger::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalRowTrigger::Maxcard
+//		CLogicalRowTrigger::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalRowTrigger::Maxcard
+CLogicalRowTrigger::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -313,7 +313,7 @@ CLogicalRowTrigger::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------
@@ -358,14 +358,14 @@ CLogicalRowTrigger::PstatsDerive
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalRowTrigger::PfpDerive
+//		CLogicalRowTrigger::DeriveFunctionProperties
 //
 //	@doc:
 //		Derive function properties
 //
 //---------------------------------------------------------------------------
 CFunctionProp *
-CLogicalRowTrigger::PfpDerive
+CLogicalRowTrigger::DeriveFunctionProperties
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

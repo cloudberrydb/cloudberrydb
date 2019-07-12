@@ -346,7 +346,7 @@ CPhysicalAgg::PdsRequiredGlobalAgg
 	}
 
 	if (0 == ulOptReq &&
-		(IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties(0)->Pfp()->Efs()))
+		(IMDFunction::EfsVolatile == exprhdl.DeriveFunctionProperties(0)->Efs()))
 	{
 		// request a singleton distribution if child has volatile functions
 		return GPOS_NEW(mp) CDistributionSpecSingleton();

@@ -128,8 +128,7 @@ CXformEagerAgg::Transform
 	push_down_gb_cols->Union(grouping_cols);
 
 	/* only keep columns from outer child in the new grouping col set */
-	CColRefSet *outer_child_cols = CDrvdPropRelational::GetRelationalProperties(
-		join_outer_child_expr->PdpDerive())->PcrsOutput();
+	CColRefSet *outer_child_cols = join_outer_child_expr->DeriveOutputColumns();
 	push_down_gb_cols->Intersection(outer_child_cols);
 
 	/* create new project lists for the two new Gb aggregates */
@@ -253,8 +252,7 @@ CXformEagerAgg::CanApplyTransform
 	CExpression *join_outer_child_expr = (*join_expr)[0];
 
 	// currently only supporting aggregate column references from outer child
-	CColRefSet *join_outer_child_cols = CDrvdPropRelational::GetRelationalProperties(
-		join_outer_child_expr->PdpDerive())->PcrsOutput();
+	CColRefSet *join_outer_child_cols = join_outer_child_expr->DeriveOutputColumns();
 	CColRefSet *agg_proj_list_cols = CDrvdPropScalar::GetDrvdScalarProps(
 		agg_proj_list_expr->PdpDerive())->PcrsUsed();
 	if (!join_outer_child_cols->ContainsAll(agg_proj_list_cols))

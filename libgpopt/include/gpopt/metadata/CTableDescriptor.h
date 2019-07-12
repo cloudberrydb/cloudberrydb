@@ -211,7 +211,7 @@ namespace gpopt
 			ULONG IndexCount();
 
 			// true iff this table has partial indexes
-			BOOL FHasPartialIndexes() const
+			BOOL HasPartialIndexes() const
 			{
 				return m_fHasPartialIndexes;
 			}

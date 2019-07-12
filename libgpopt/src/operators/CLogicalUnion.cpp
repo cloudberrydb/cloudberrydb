@@ -108,14 +108,14 @@ CLogicalUnion::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalUnion::Maxcard
+//		CLogicalUnion::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalUnion::Maxcard
+CLogicalUnion::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -124,10 +124,10 @@ CLogicalUnion::Maxcard
 {
 	const ULONG arity = exprhdl.Arity();
 	
-	CMaxCard maxcard = exprhdl.GetRelationalProperties(0)->Maxcard();
+	CMaxCard maxcard = exprhdl.DeriveMaxCard(0);
 	for (ULONG ul = 1; ul < arity; ul++)
 	{
-		maxcard += exprhdl.GetRelationalProperties(ul)->Maxcard();
+		maxcard += exprhdl.DeriveMaxCard(ul);
 	}
 	
 	return maxcard;

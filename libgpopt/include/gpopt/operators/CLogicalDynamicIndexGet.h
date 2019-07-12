@@ -133,7 +133,7 @@ namespace gpopt
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(CMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *DeriveOuterReferences(CMemoryPool *mp, CExpressionHandle &exprhdl);
 			
 			// sensitivity to order of inputs
 			virtual

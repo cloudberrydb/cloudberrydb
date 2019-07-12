@@ -220,7 +220,7 @@ CCTEInfo::PexprPreprocessCTEProducer
 	CExpression *pexprProducerChild = (*pexprCTEProducer)[0];
 
 	// get cte output cols for preprocessing use
-	CColRefSet *pcrsOutput = CLogicalCTEProducer::PopConvert(pexprCTEProducer->Pop())->pcrsOutput();
+	CColRefSet *pcrsOutput = CLogicalCTEProducer::PopConvert(pexprCTEProducer->Pop())->DeriveOutputColumns();
 
 	CExpression *pexprChildPreprocessed = CExpressionPreprocessor::PexprPreprocess(m_mp, pexprProducerChild, pcrsOutput);
 

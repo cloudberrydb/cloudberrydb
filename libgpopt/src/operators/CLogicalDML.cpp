@@ -240,14 +240,14 @@ CLogicalDML::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDML::PcrsDeriveOutput
+//		CLogicalDML::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalDML::PcrsDeriveOutput
+CLogicalDML::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
@@ -274,14 +274,14 @@ CLogicalDML::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDML::PpcDeriveConstraint
+//		CLogicalDML::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive constraint property
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalDML::PpcDeriveConstraint
+CLogicalDML::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -305,7 +305,7 @@ CLogicalDML::PpcDeriveConstraint
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalDML::PkcDeriveKeys
+CLogicalDML::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -317,14 +317,14 @@ CLogicalDML::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDML::Maxcard
+//		CLogicalDML::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalDML::Maxcard
+CLogicalDML::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -332,7 +332,7 @@ CLogicalDML::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

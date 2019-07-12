@@ -25,7 +25,7 @@
 #include "gpopt/base/CReqdPropRelational.h"
 #include "gpopt/base/CPrintPrefix.h"
 #include "gpopt/operators/COperator.h"
-
+#include "gpopt/base/CKeyCollection.h"
 
 namespace gpopt
 {
@@ -40,6 +40,7 @@ namespace gpopt
 	class CDrvdPropPlan;
 	class CDrvdPropCtxt;
 	class CDrvdPropCtxtPlan;
+	class CPropConstraint;
 
 	using namespace gpos;
 	using namespace gpnaucrates;
@@ -93,9 +94,6 @@ namespace gpopt
 
 			// id of origin group expression, used for debugging expressions extracted from memo
 			ULONG m_ulOriginGrpExprId;
-
-			// set expression's derivable property
-			void SetPdp(DrvdPropArray *pdp, const DrvdPropArray::EPropType ept);
 
 			// get expression's derived property given its type
 			DrvdPropArray *Pdp(const DrvdPropArray::EPropType ept) const;
@@ -182,13 +180,6 @@ namespace gpopt
 				IStatistics *input_stats,
 				CCost cost = GPOPT_INVALID_COST
 				);
-
-			// ctor for expression with derived properties
-			CExpression
-				(
-				CMemoryPool *mp,
-				DrvdPropArray *pdprop
-				);
 			
 			// dtor
 			~CExpression();
@@ -256,7 +247,9 @@ namespace gpopt
 			// get the suitable derived property type based on operator
 			DrvdPropArray::EPropType Ept() const;
 
-			// derive properties, determine the suitable derived property type internally
+			// Derive all properties immediately. The suitable derived property is
+			// determined internally. To derive properties on an on-demand bases, use
+			// DeriveXXX() methods.
 			DrvdPropArray *PdpDerive(CDrvdPropCtxt *pdpctxt = NULL);
 
 			// derive statistics
@@ -327,6 +320,20 @@ namespace gpopt
 			// rehydrate expression from a given cost context and child expressions
 			static
 			CExpression *PexprRehydrate(CMemoryPool *mp, CCostContext *pcc, CExpressionArray *pdrgpexpr, CDrvdPropCtxtPlan *pdpctxtplan);
+
+			// Relational property accessors - derived as needed
+			CColRefSet *DeriveOuterReferences();
+			CColRefSet *DeriveOutputColumns();
+			CColRefSet *DeriveNotNullColumns();
+			CColRefSet *DeriveCorrelatedApplyColumns();
+			CKeyCollection *DeriveKeyCollection();
+			CPropConstraint *DerivePropertyConstraint();
+			CMaxCard DeriveMaxCard();
+			ULONG DeriveJoinDepth();
+			CFunctionProp *DeriveFunctionProperties();
+			CFunctionalDependencyArray *DeriveFunctionalDependencies();
+			CPartInfo *DerivePartitionInfo();
+			BOOL DeriveHasPartialIndexes();
 
 	}; // class CExpression
 

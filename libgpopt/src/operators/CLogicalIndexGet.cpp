@@ -190,14 +190,14 @@ CLogicalIndexGet::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalIndexGet::PcrsDeriveOutput
+//		CLogicalIndexGet::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalIndexGet::PcrsDeriveOutput
+CLogicalIndexGet::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -211,14 +211,14 @@ CLogicalIndexGet::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalIndexGet::PcrsDeriveOuter
+//		CLogicalIndexGet::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalIndexGet::PcrsDeriveOuter
+CLogicalIndexGet::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

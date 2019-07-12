@@ -57,14 +57,14 @@ CLogicalCTEAnchor::CLogicalCTEAnchor
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEAnchor::PcrsDeriveOutput
+//		CLogicalCTEAnchor::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalCTEAnchor::PcrsDeriveOutput
+CLogicalCTEAnchor::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -82,7 +82,7 @@ CLogicalCTEAnchor::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalCTEAnchor::PkcDeriveKeys
+CLogicalCTEAnchor::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -94,40 +94,40 @@ CLogicalCTEAnchor::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEAnchor::PpartinfoDerive
+//		CLogicalCTEAnchor::DerivePartitionInfo
 //
 //	@doc:
 //		Derive part consumer
 //
 //---------------------------------------------------------------------------
 CPartInfo *
-CLogicalCTEAnchor::PpartinfoDerive
+CLogicalCTEAnchor::DerivePartitionInfo
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	CPartInfo *ppartinfoChild = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
+	CPartInfo *ppartinfoChild = exprhdl.DerivePartitionInfo(0);
 	GPOS_ASSERT(NULL != ppartinfoChild);
 
 	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexprProducer);
-	CPartInfo *ppartinfoCTEProducer = CDrvdPropRelational::GetRelationalProperties(pexprProducer->PdpDerive())->Ppartinfo();
+	CPartInfo *ppartinfoCTEProducer = pexprProducer->DerivePartitionInfo();
 
 	return CPartInfo::PpartinfoCombine(mp, ppartinfoChild, ppartinfoCTEProducer);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEAnchor::Maxcard
+//		CLogicalCTEAnchor::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalCTEAnchor::Maxcard
+CLogicalCTEAnchor::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -135,7 +135,7 @@ CLogicalCTEAnchor::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

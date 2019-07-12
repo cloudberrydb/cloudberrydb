@@ -98,11 +98,11 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard DeriveMaxCard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Transformations

@@ -76,7 +76,7 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput
+			CColRefSet *DeriveOutputColumns
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
@@ -87,7 +87,7 @@ namespace gpopt
 					
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive
+			CPartInfo *DerivePartitionInfo
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
@@ -99,7 +99,7 @@ namespace gpopt
 
 			
 			// derive keys
-			CKeyCollection *PkcDeriveKeys
+			CKeyCollection *DeriveKeyCollection
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
@@ -111,7 +111,7 @@ namespace gpopt
 
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive
+			CFunctionProp *DeriveFunctionProperties
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl

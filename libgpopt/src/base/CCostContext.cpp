@@ -237,7 +237,7 @@ CCostContext::DerivePlanProps
 		// derive properties of the plan carried by cost context
 		CExpressionHandle exprhdl(mp);
 		exprhdl.Attach(this);
-		exprhdl.DerivePlanProps();
+		exprhdl.DerivePlanPropsForCostContext();
 		CDrvdPropPlan *pdpplan = CDrvdPropPlan::Pdpplan(exprhdl.Pdp());
 		GPOS_ASSERT(NULL != pdpplan);
 
@@ -379,8 +379,8 @@ CCostContext::BreakCostTiesForJoinPlans
 
 	// both plans have equal estimated rows for both children, break tie based on join depth
 	*pfTiesResolved = true;
-	ULONG ulOuterJoinDepthFst = CDrvdPropRelational::GetRelationalProperties((*pccFst->Pgexpr())[0]->Pdp())->JoinDepth();
-	ULONG ulInnerJoinDepthFst = CDrvdPropRelational::GetRelationalProperties((*pccFst->Pgexpr())[1]->Pdp())->JoinDepth();
+	ULONG ulOuterJoinDepthFst = CDrvdPropRelational::GetRelationalProperties((*pccFst->Pgexpr())[0]->Pdp())->GetJoinDepth();
+	ULONG ulInnerJoinDepthFst = CDrvdPropRelational::GetRelationalProperties((*pccFst->Pgexpr())[1]->Pdp())->GetJoinDepth();
 	if (ulInnerJoinDepthFst < ulOuterJoinDepthFst)
 	{
 		*ppccPrefered = pccFst;

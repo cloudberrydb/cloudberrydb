@@ -150,12 +150,12 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(CMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *DeriveOutputColumns(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint
+			CPropConstraint *DerivePropertyConstraint
 				(
 				CMemoryPool *, // mp
 				CExpressionHandle &exprhdl
@@ -167,11 +167,11 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard DeriveMaxCard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive
+			CPartInfo *DerivePartitionInfo
 				(
 				CMemoryPool *, // mp,
 				CExpressionHandle &exprhdl
@@ -211,7 +211,7 @@ namespace gpopt
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive statistics
 			virtual

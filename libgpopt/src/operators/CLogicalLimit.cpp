@@ -168,14 +168,14 @@ CLogicalLimit::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLimit::PcrsDeriveOutput
+//		CLogicalLimit::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalLimit::PcrsDeriveOutput
+CLogicalLimit::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -187,21 +187,21 @@ CLogicalLimit::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLimit::PcrsDeriveOuter
+//		CLogicalLimit::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalLimit::PcrsDeriveOuter
+CLogicalLimit::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
 	CColRefSet *pcrsSort = m_pos->PcrsUsed(mp);
-	CColRefSet *outer_refs = CLogical::PcrsDeriveOuter(mp, exprhdl, pcrsSort);
+	CColRefSet *outer_refs = CLogical::DeriveOuterReferences(mp, exprhdl, pcrsSort);
 	pcrsSort->Release();
 
 	return outer_refs;
@@ -209,14 +209,14 @@ CLogicalLimit::PcrsDeriveOuter
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLimit::Maxcard
+//		CLogicalLimit::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLimit::Maxcard
+CLogicalLimit::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -233,7 +233,7 @@ CLogicalLimit::Maxcard
 	}
 
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 
@@ -302,7 +302,7 @@ CLogicalLimit::PcrsStat
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalLimit::PkcDeriveKeys
+CLogicalLimit::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -352,7 +352,7 @@ CLogicalLimit::PstatsDerive
 {
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
 	IStatistics *child_stats = exprhdl.Pstats(0);
-	CMaxCard maxcard = this->Maxcard(mp, exprhdl);
+	CMaxCard maxcard = this->DeriveMaxCard(mp, exprhdl);
 	CDouble dRowsMax = CDouble(maxcard.Ull());
 
 	if (child_stats->Rows() <= dRowsMax)

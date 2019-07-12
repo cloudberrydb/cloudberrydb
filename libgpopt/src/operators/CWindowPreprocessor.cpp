@@ -213,14 +213,14 @@ CWindowPreprocessor::CreateCTE
 	GPOS_ASSERT(NULL != ppexprSecondConsumer);
 
 	CExpression *pexprChild = (*pexprSeqPrj)[0];
-	CColRefSet *pcrsChildOutput = CDrvdPropRelational::GetRelationalProperties(pexprChild->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsChildOutput = pexprChild->DeriveOutputColumns();
 	CColRefArray *pdrgpcrChildOutput = pcrsChildOutput->Pdrgpcr(mp);
 
 	// create a CTE producer based on SeqPrj child expression
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
 	const ULONG ulCTEId = pcteinfo->next_id();
 	CExpression *pexprCTEProd = CXformUtils::PexprAddCTEProducer(mp, ulCTEId, pdrgpcrChildOutput, pexprChild);
-	CColRefArray *pdrgpcrProducerOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrProducerOutput = pexprCTEProd->DeriveOutputColumns()->Pdrgpcr(mp);
 
 	// first consumer creates new output columns to be used later as input to GbAgg expression
 	*ppexprFirstConsumer =
@@ -324,7 +324,7 @@ CWindowPreprocessor::PexprSeqPrj2Join
 
 	// extract output columns of SeqPrj child expression
 	CExpression *pexprChild = (*pexprSeqPrj)[0];
-	CColRefArray *pdrgpcrChildOutput = CDrvdPropRelational::GetRelationalProperties(pexprChild->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrChildOutput = pexprChild->DeriveOutputColumns()->Pdrgpcr(mp);
 
 	// to match requested columns upstream, we have to re-use the same computed
 	// columns that define the aggregates, we avoid recreating new columns during

@@ -96,8 +96,8 @@ CXformJoinAssociativity::CreatePredicates
 	
 	// columns for new lower join
 	CColRefSet *pcrsLower = GPOS_NEW(mp) CColRefSet(mp);
-	pcrsLower->Union(CDrvdPropRelational::GetRelationalProperties(pexprLeftLeft->PdpDerive())->PcrsOutput());
-	pcrsLower->Union(CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput());
+	pcrsLower->Union(pexprLeftLeft->DeriveOutputColumns());
+	pcrsLower->Union(pexprRight->DeriveOutputColumns());
 	
 	// convert current predicates into arrays of conjuncts
 	CExpressionArray *pdrgpexprOrig = GPOS_NEW(mp) CExpressionArray(mp);
@@ -174,8 +174,8 @@ CXformJoinAssociativity::Exfp
 {
 	if 
 		(
-		GPOPT_MAX_JOIN_DEPTH_FOR_ASSOCIATIVITY < exprhdl.GetRelationalProperties()->JoinDepth() ||  // disallow xform beyond max join depth
-		GPOPT_MAX_JOIN_RIGHT_CHILD_DEPTH_FOR_ASSOCIATIVITY < exprhdl.GetRelationalProperties(1)->JoinDepth()  // disallow xform if input is not a left deep tree
+		GPOPT_MAX_JOIN_DEPTH_FOR_ASSOCIATIVITY < exprhdl.DeriveJoinDepth() ||  // disallow xform beyond max join depth
+		GPOPT_MAX_JOIN_RIGHT_CHILD_DEPTH_FOR_ASSOCIATIVITY < exprhdl.DeriveJoinDepth(1)  // disallow xform if input is not a left deep tree
 		)
 	{
 		// restrict associativity to left-deep trees by prohibiting the

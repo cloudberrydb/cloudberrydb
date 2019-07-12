@@ -383,7 +383,7 @@ CJoinOrder::ComputeEdgeCover()
 		for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++)
 		{
 			CExpression *pexprComp = m_rgpcomp[ulComp]->m_pexpr;
-			CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexprComp->PdpDerive())->PcrsOutput();
+			CColRefSet *pcrsOutput = pexprComp->DeriveOutputColumns();
 
 			if (!pcrsUsed->IsDisjoint(pcrsOutput))
 			{

@@ -230,14 +230,14 @@ CLogicalTVF::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalTVF::PcrsDeriveOutput
+//		CLogicalTVF::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalTVF::PcrsDeriveOutput
+CLogicalTVF::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -251,14 +251,14 @@ CLogicalTVF::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalTVF::PfpDerive
+//		CLogicalTVF::DeriveFunctionProperties
 //
 //	@doc:
 //		Derive function properties
 //
 //---------------------------------------------------------------------------
 CFunctionProp *
-CLogicalTVF::PfpDerive
+CLogicalTVF::DeriveFunctionProperties
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -308,14 +308,14 @@ CLogicalTVF::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalTVF::Maxcard
+//		CLogicalTVF::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalTVF::Maxcard
+CLogicalTVF::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl

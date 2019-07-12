@@ -105,7 +105,7 @@ CXformSimplifyGbAgg::FDropGbAgg
 		return false;
 	}
 
-	CKeyCollection *pkc = CDrvdPropRelational::GetRelationalProperties(pexprRelational->PdpDerive())->Pkc();
+	CKeyCollection *pkc = pexprRelational->DeriveKeyCollection();
 	if (NULL == pkc)
 	{
 		// relational child does not have key
@@ -182,7 +182,7 @@ CXformSimplifyGbAgg::Transform
 
 	CColRefSet *pcrsCovered = GPOS_NEW(mp) CColRefSet(mp);	// set of grouping columns covered by FD's
 	CColRefSet *pcrsMinimal = GPOS_NEW(mp) CColRefSet(mp); // a set of minimal grouping columns based on FD's
-	CFunctionalDependencyArray *pdrgpfd = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->Pdrgpfd();
+	CFunctionalDependencyArray *pdrgpfd = pexpr->DeriveFunctionalDependencies();
 
 	// collect grouping columns FD's
 	const ULONG size = (pdrgpfd == NULL) ? 0 : pdrgpfd->Size();

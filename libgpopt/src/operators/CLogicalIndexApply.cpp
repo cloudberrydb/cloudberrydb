@@ -45,7 +45,7 @@ CLogicalIndexApply::~CLogicalIndexApply()
 
 
 CMaxCard
-CLogicalIndexApply::Maxcard
+CLogicalIndexApply::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

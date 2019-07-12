@@ -404,7 +404,7 @@ CJobGroupExpressionOptimization::DerivePrevChildProps
 
 	CExpressionHandle exprhdl(psc->GetGlobalMemoryPool());
 	exprhdl.Attach(pccChildBest);
-	exprhdl.DerivePlanProps();
+	exprhdl.DerivePlanPropsForCostContext();
 	exprhdl.Pdp()->AddRef();
 	m_pdrgpdp->Append(exprhdl.Pdp());
 

@@ -223,8 +223,7 @@ CStatisticsTest::EresUnittest_GbAggWithRepeatedGbCols()
 					);
 
 	CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp);
-	CDrvdPropRelational *pdprel = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive());
-	CColRefSet *colrefs = pdprel->PcrsOutput();
+	CColRefSet *colrefs = pexpr->DeriveOutputColumns();
 
 	// create first GbAgg expression: GbAgg on top of given expression
 	CColRefArray *pdrgpcr1 = GPOS_NEW(mp) CColRefArray(mp);

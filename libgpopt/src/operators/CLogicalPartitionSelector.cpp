@@ -148,14 +148,14 @@ CLogicalPartitionSelector::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalPartitionSelector::PcrsDeriveOutput
+//		CLogicalPartitionSelector::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalPartitionSelector::PcrsDeriveOutput
+CLogicalPartitionSelector::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -163,7 +163,7 @@ CLogicalPartitionSelector::PcrsDeriveOutput
 {
 	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
 
-	pcrsOutput->Union(exprhdl.GetRelationalProperties(0)->PcrsOutput());
+	pcrsOutput->Union(exprhdl.DeriveOutputColumns(0));
 	pcrsOutput->Include(m_pcrOid);
 
 	return pcrsOutput;
@@ -171,14 +171,14 @@ CLogicalPartitionSelector::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalPartitionSelector::Maxcard
+//		CLogicalPartitionSelector::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalPartitionSelector::Maxcard
+CLogicalPartitionSelector::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -186,7 +186,7 @@ CLogicalPartitionSelector::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

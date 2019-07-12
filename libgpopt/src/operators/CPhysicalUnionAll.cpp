@@ -508,7 +508,7 @@ const
 		ULONG ulChildrenWithConsumers = 0;
 		for (ULONG ulChildIdx = 0; ulChildIdx < arity; ulChildIdx++)
 		{
-			if (exprhdl.GetRelationalProperties(ulChildIdx)->Ppartinfo()->FContainsScanId(scan_id))
+			if (exprhdl.DerivePartitionInfo(ulChildIdx)->FContainsScanId(scan_id))
 			{
 				ulChildrenWithConsumers++;
 			}

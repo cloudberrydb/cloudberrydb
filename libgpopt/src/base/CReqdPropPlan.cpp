@@ -286,7 +286,7 @@ CReqdPropPlan::PpfmCombineDerived
 	)
 {
 	// get partitioning info below required child
-	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties(child_index)->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.DerivePartitionInfo(child_index);
 	const ULONG ulConsumers = ppartinfo->UlConsumers();
 
 	CPartFilterMap *ppfmDerived = GPOS_NEW(mp) CPartFilterMap(mp);
@@ -465,7 +465,7 @@ CReqdPropPlan::FProvidesReqdCols
 		return false;
 	}
 
-	CColRefSet *pcrsOutput = exprhdl.GetRelationalProperties()->PcrsOutput();
+	CColRefSet *pcrsOutput = exprhdl.DeriveOutputColumns();
 
 	// check if property spec members use columns from operator output
 	BOOL fProvidesReqdCols = true;
@@ -571,6 +571,7 @@ CReqdPropPlan::FSatisfied
 {
 	GPOS_ASSERT(NULL != pdprel);
 	GPOS_ASSERT(NULL != pdpplan);
+	GPOS_ASSERT(pdprel->IsComplete());
 
 	// first, check satisfiability of relational properties
 	if (!pdprel->FSatisfies(this))
@@ -581,7 +582,7 @@ CReqdPropPlan::FSatisfied
 	// second, check satisfiability of plan properties;
 	// if max cardinality <= 1, then any order requirement is already satisfied;
 	// we only need to check satisfiability of distribution and rewindability
-	if (pdprel->Maxcard().Ull() <= 1)
+	if (pdprel->GetMaxCard().Ull() <= 1)
 	{
 		GPOS_ASSERT(NULL != pdpplan->Ppim());
 		

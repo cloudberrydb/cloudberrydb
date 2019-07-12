@@ -130,14 +130,14 @@ CLogicalBitmapTableGet::Matches
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalBitmapTableGet::PcrsDeriveOutput
+//		CLogicalBitmapTableGet::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalBitmapTableGet::PcrsDeriveOutput
+CLogicalBitmapTableGet::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &
@@ -153,14 +153,14 @@ CLogicalBitmapTableGet::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalBitmapTableGet::PcrsDeriveOuter
+//		CLogicalBitmapTableGet::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalBitmapTableGet::PcrsDeriveOuter
+CLogicalBitmapTableGet::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -172,14 +172,14 @@ CLogicalBitmapTableGet::PcrsDeriveOuter
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalBitmapTableGet::PpcDeriveConstraint
+//		CLogicalBitmapTableGet::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive the constraint property.
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalBitmapTableGet::PpcDeriveConstraint
+CLogicalBitmapTableGet::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

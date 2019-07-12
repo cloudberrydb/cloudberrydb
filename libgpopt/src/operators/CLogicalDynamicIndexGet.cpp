@@ -136,14 +136,14 @@ CLogicalDynamicIndexGet::Matches
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicIndexGet::PcrsDeriveOuter
+//		CLogicalDynamicIndexGet::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalDynamicIndexGet::PcrsDeriveOuter
+CLogicalDynamicIndexGet::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

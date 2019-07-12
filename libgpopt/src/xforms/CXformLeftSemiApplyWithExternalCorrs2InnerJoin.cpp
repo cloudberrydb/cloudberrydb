@@ -49,8 +49,8 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FSplitCorrelations
 	GPOS_ASSERT(NULL != ppcrsInnerUsed);
 
 	// collect output columns of all children
-	CColRefSet *pcrsOuterOuput = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsInnerOuput = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsOuterOuput = pexprOuter->DeriveOutputColumns();
+	CColRefSet *pcrsInnerOuput = pexprInner->DeriveOutputColumns();
 	CColRefSet *pcrsChildren = GPOS_NEW(mp) CColRefSet(mp, *pcrsOuterOuput);
 	pcrsChildren->Union(pcrsInnerOuput);
 
@@ -200,7 +200,7 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::PexprDecorrelate
 	CExpressionHandle exprhdl(mp);
 	exprhdl.Attach(pexpr);
 
-	if (NULL == exprhdl.GetRelationalProperties(0 /*child_index*/)->Pkc() || !CUtils::FInnerUsesExternalCols(exprhdl))
+	if (NULL == exprhdl.DeriveKeyCollection(0 /*child_index*/) || !CUtils::FInnerUsesExternalCols(exprhdl))
 	{
 		// outer child must have a key and inner child must have external correlations
 		return NULL;

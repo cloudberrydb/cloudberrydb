@@ -44,14 +44,14 @@ CLogicalInnerJoin::CLogicalInnerJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalInnerJoin::Maxcard
+//		CLogicalInnerJoin::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalInnerJoin::Maxcard
+CLogicalInnerJoin::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

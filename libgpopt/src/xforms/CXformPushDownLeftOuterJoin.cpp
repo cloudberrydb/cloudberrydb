@@ -132,7 +132,7 @@ CXformPushDownLeftOuterJoin::Transform
 	for (ULONG ul = 0 ; ul < arity - 1; ul++)
 	{
 		CExpression *pexprChild = (*pexprNAryJoin)[ul];
-		CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexprChild->PdpDerive())->PcrsOutput();
+		CColRefSet *pcrsOutput = pexprChild->DeriveOutputColumns();
 		pexprChild->AddRef();
 		if (!pcrsOutput->IsDisjoint(pcrsLOJUsed))
 		{

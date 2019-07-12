@@ -80,14 +80,14 @@ CLogicalCTEProducer::~CLogicalCTEProducer()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEProducer::PcrsDeriveOutput
+//		CLogicalCTEProducer::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalCTEProducer::PcrsDeriveOutput
+CLogicalCTEProducer::DeriveOutputColumns
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -99,14 +99,14 @@ CLogicalCTEProducer::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEProducer::PcrsDeriveNotNull
+//		CLogicalCTEProducer::DeriveNotNullColumns
 //
 //	@doc:
 //		Derive not nullable output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalCTEProducer::PcrsDeriveNotNull
+CLogicalCTEProducer::DeriveNotNullColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -114,7 +114,7 @@ CLogicalCTEProducer::PcrsDeriveNotNull
 	const
 {
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, m_pdrgpcr);
-	pcrs->Intersection(exprhdl.GetRelationalProperties(0)->PcrsNotNull());
+	pcrs->Intersection(exprhdl.DeriveNotNullColumns(0));
 
 	return pcrs;
 }
@@ -128,7 +128,7 @@ CLogicalCTEProducer::PcrsDeriveNotNull
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalCTEProducer::PkcDeriveKeys
+CLogicalCTEProducer::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -140,14 +140,14 @@ CLogicalCTEProducer::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEProducer::Maxcard
+//		CLogicalCTEProducer::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalCTEProducer::Maxcard
+CLogicalCTEProducer::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -155,7 +155,7 @@ CLogicalCTEProducer::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

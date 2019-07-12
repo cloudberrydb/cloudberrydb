@@ -222,14 +222,14 @@ CLogicalSequenceProject::SetHasFrameSpecs
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequenceProject::PcrsDeriveOutput
+//		CLogicalSequenceProject::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalSequenceProject::PcrsDeriveOutput
+CLogicalSequenceProject::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -239,7 +239,7 @@ CLogicalSequenceProject::PcrsDeriveOutput
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 
-	pcrs->Union(exprhdl.GetRelationalProperties(0)->PcrsOutput());
+	pcrs->Union(exprhdl.DeriveOutputColumns(0));
 
 	// the scalar child defines additional columns
 	pcrs->Union(exprhdl.GetDrvdScalarProps(1)->PcrsDefined());
@@ -250,20 +250,20 @@ CLogicalSequenceProject::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequenceProject::PcrsDeriveOuter
+//		CLogicalSequenceProject::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalSequenceProject::PcrsDeriveOuter
+CLogicalSequenceProject::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
-	CColRefSet *outer_refs = CLogical::PcrsDeriveOuter(mp, exprhdl, m_pcrsLocalUsed);
+	CColRefSet *outer_refs = CLogical::DeriveOuterReferences(mp, exprhdl, m_pcrsLocalUsed);
 
 	return outer_refs;
 }
@@ -286,7 +286,7 @@ CLogicalSequenceProject::FHasLocalOuterRefs
 {
 	GPOS_ASSERT(this == exprhdl.Pop());
 
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 
 	return !(outer_refs->IsDisjoint(m_pcrsLocalUsed));
 }
@@ -301,7 +301,7 @@ CLogicalSequenceProject::FHasLocalOuterRefs
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalSequenceProject::PkcDeriveKeys
+CLogicalSequenceProject::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -314,14 +314,14 @@ CLogicalSequenceProject::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequenceProject::Maxcard
+//		CLogicalSequenceProject::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalSequenceProject::Maxcard
+CLogicalSequenceProject::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -329,7 +329,7 @@ CLogicalSequenceProject::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 
@@ -471,7 +471,7 @@ CLogicalSequenceProject::PopRemoveLocalOuterRefs
 {
 	GPOS_ASSERT(this == exprhdl.Pop());
 
-	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 	CDistributionSpec *pds = m_pds;
 	if (CDistributionSpec::EdtHashed == m_pds->Edt())
 	{

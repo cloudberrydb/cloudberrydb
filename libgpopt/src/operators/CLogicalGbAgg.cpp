@@ -309,14 +309,14 @@ CLogicalGbAgg::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGbAgg::PcrsDeriveOutput
+//		CLogicalGbAgg::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalGbAgg::PcrsDeriveOutput
+CLogicalGbAgg::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -328,8 +328,7 @@ CLogicalGbAgg::PcrsDeriveOutput
 
 	// include the intersection of the grouping columns and the child's output
 	pcrs->Include(Pdrgpcr());
-	CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties(0);
-	pcrs->Intersection(pdprel->PcrsOutput());
+	pcrs->Intersection(exprhdl.DeriveOutputColumns(0));
 
 	// the scalar child defines additional columns
 	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined());
@@ -339,14 +338,14 @@ CLogicalGbAgg::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGbAgg::PcrsDeriveOuter
+//		CLogicalGbAgg::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalGbAgg::PcrsDeriveOuter
+CLogicalGbAgg::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -355,7 +354,7 @@ CLogicalGbAgg::PcrsDeriveOuter
 	CColRefSet *pcrsGrp = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsGrp->Include(m_pdrgpcr);
 
-	CColRefSet *outer_refs = CLogical::PcrsDeriveOuter(mp, exprhdl, pcrsGrp);
+	CColRefSet *outer_refs = CLogical::DeriveOuterReferences(mp, exprhdl, pcrsGrp);
 	pcrsGrp->Release();
 
 	return outer_refs;
@@ -363,14 +362,14 @@ CLogicalGbAgg::PcrsDeriveOuter
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGbAgg::PpcDeriveConstraint
+//		CLogicalGbAgg::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive constraint property
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalGbAgg::PpcDeriveConstraint
+CLogicalGbAgg::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -461,14 +460,14 @@ CLogicalGbAgg::PcrsStatGbAgg
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGbAgg::PcrsDeriveNotNull
+//		CLogicalGbAgg::DeriveNotNullColumns
 //
 //	@doc:
 //		Derive not null columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalGbAgg::PcrsDeriveNotNull
+CLogicalGbAgg::DeriveNotNullColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -483,7 +482,7 @@ CLogicalGbAgg::PcrsDeriveNotNull
 	pcrs->Include(Pdrgpcr());
 
 	// intersect with not nullable columns from relational child
-	pcrs->Intersection(exprhdl.GetRelationalProperties(0)->PcrsNotNull());
+	pcrs->Intersection(exprhdl.DeriveNotNullColumns(0));
 
 	// TODO,  03/18/2012, add nullability info of computed columns
 
@@ -527,7 +526,7 @@ CLogicalGbAgg::HashValue() const
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalGbAgg::PkcDeriveKeys
+CLogicalGbAgg::DeriveKeyCollection
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -572,14 +571,14 @@ CLogicalGbAgg::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGbAgg::Maxcard
+//		CLogicalGbAgg::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalGbAgg::Maxcard
+CLogicalGbAgg::DeriveMaxCard
 	(
 	CMemoryPool *, //mp
 	CExpressionHandle &exprhdl
@@ -593,7 +592,7 @@ CLogicalGbAgg::Maxcard
 	}
 
 	// contradictions produce no rows
-	if (CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
+	if (exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}

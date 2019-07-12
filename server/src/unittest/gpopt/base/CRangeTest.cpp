@@ -205,7 +205,7 @@ CRangeTest::EresUnittest_CRangeFromScalar()
 	CMemoryPool *mp = amp.Pmp();
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	CDatumInt4GPDB *pdatumint4 = GPOS_NEW(mp) CDatumInt4GPDB(CTestUtils::m_sysidDefault, 10 /*val*/);
@@ -364,7 +364,7 @@ CRangeTest::TestRangeRelationship
 	GPOS_ASSERT_MSG(prange4->FOverlapsRight(prange3), "[-10, 10) overlaps end (-20, 0]");
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	PrintRange(mp, colref, prange1);

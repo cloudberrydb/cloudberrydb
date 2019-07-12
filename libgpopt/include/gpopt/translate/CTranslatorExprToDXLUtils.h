@@ -533,7 +533,7 @@ namespace gpopt
 				CMemoryPool *mp, 
 				CMDAccessor *md_accessor, 
 				CDXLNode *dxlnode, 
-				CDrvdPropRelational *pdpRel, 
+				CExpression *pexpr,
 				CDistributionSpecArray *pdrgpdsBaseTables
 				);
 			

@@ -76,7 +76,7 @@ CXformJoin2IndexApply::ComputeColumnSets
 	CColRefSet **ppcrsReqd
 	) const
 {
-	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsInnerOutput = pexprInner->DeriveOutputColumns();
 	*ppcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
 	*ppcrsOuterRefs = GPOS_NEW(mp) CColRefSet(mp, **ppcrsScalarExpr);
 	(*ppcrsOuterRefs)->Difference(pcrsInnerOutput);
@@ -561,7 +561,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	// columns from the outer branch of the IndexApply or Join
 	// we will create copies of these columns because every CTE consumer needs to have its
 	// own column ids
-	CColRefArray *pdrgpcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrOuter = pexprOuter->DeriveOutputColumns()->Pdrgpcr(mp);
 
 	// positions in pdrgpcrOuter of the outer references mentioned in the scan filter
 	// we need them because each time we create copies of pdrgpcrOuter, we will extract the
@@ -649,7 +649,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		CColRefArray *pdrgpcrNew = NULL;
 		if (NULL == colref_mapping)
 		{
-			pdrgpcrNew = CDrvdPropRelational::GetRelationalProperties(pexprUnionAllChild->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+			pdrgpcrNew = pexprUnionAllChild->DeriveOutputColumns()->Pdrgpcr(mp);
 		}
 		else
 		{

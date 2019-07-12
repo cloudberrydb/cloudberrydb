@@ -50,14 +50,14 @@ CLogicalSelect::~CLogicalSelect()
 }
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSelect::PcrsDeriveOutput
+//		CLogicalSelect::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalSelect::PcrsDeriveOutput
+CLogicalSelect::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -76,7 +76,7 @@ CLogicalSelect::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalSelect::PkcDeriveKeys
+CLogicalSelect::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -121,14 +121,14 @@ CLogicalSelect::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSelect::Maxcard
+//		CLogicalSelect::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalSelect::Maxcard
+CLogicalSelect::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -138,13 +138,13 @@ CLogicalSelect::Maxcard
 	// in case of a false condition or a contradiction, maxcard should be zero
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(1);
 	if ((NULL != pexprScalar && (CUtils::FScalarConstFalse(pexprScalar) ||  CUtils::FScalarConstBoolNull(pexprScalar))) ||
-		CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
+		exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}
 
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 
@@ -185,7 +185,7 @@ CLogicalSelect::PstatsDerive
 	CExpression *expr_with_outer_refs = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 
 	CPredicateUtils::SeparateOuterRefs(mp, pexprPredicate, outer_refs, &local_expr, &expr_with_outer_refs);
 	pexprPredicate->Release();
@@ -244,7 +244,7 @@ CLogicalSelect::PexprPartPred
 	GPOS_ASSERT(NULL != pexprScalar);
 
 	// get partition keys
-	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties()->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.DerivePartitionInfo();
 	GPOS_ASSERT(NULL != ppartinfo);
 
 	// we assume that the select is right on top of the dynamic get, so there

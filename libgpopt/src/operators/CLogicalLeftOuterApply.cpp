@@ -71,21 +71,21 @@ CLogicalLeftOuterApply::~CLogicalLeftOuterApply()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftOuterApply::Maxcard
+//		CLogicalLeftOuterApply::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLeftOuterApply::Maxcard
+CLogicalLeftOuterApply::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.DeriveMaxCard(0));
 }
 
 //---------------------------------------------------------------------------

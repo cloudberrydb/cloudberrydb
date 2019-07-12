@@ -116,7 +116,7 @@ namespace gpopt
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stats columns of the n-th child
 			//-------------------------------------------------------------------------------------

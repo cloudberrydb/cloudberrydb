@@ -72,14 +72,14 @@ CLogicalLeftSemiJoin::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftSemiJoin::PcrsDeriveOutput
+//		CLogicalLeftSemiJoin::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalLeftSemiJoin::PcrsDeriveOutput
+CLogicalLeftSemiJoin::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -100,7 +100,7 @@ CLogicalLeftSemiJoin::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalLeftSemiJoin::PkcDeriveKeys
+CLogicalLeftSemiJoin::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -113,21 +113,21 @@ CLogicalLeftSemiJoin::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftSemiJoin::Maxcard
+//		CLogicalLeftSemiJoin::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLeftSemiJoin::Maxcard
+CLogicalLeftSemiJoin::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.DeriveMaxCard(0));
 }
 
 //---------------------------------------------------------------------------

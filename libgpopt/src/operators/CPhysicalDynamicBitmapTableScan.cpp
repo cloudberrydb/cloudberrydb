@@ -107,7 +107,7 @@ CPhysicalDynamicBitmapTableScan::PstatsDerive
 	CExpression *expr_with_outer_refs = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 
 	CPredicateUtils::SeparateOuterRefs(mp, pexprCondChild, outer_refs, &local_expr, &expr_with_outer_refs);
 

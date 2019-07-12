@@ -105,7 +105,7 @@ namespace gpopt
 
 			// derive join depth
 			virtual
-			ULONG JoinDepth
+			ULONG DeriveJoinDepth
 				(
 				CMemoryPool *, // mp
 				CExpressionHandle & // exprhdl

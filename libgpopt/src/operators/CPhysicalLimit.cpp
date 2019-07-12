@@ -225,7 +225,7 @@ CPhysicalLimit::PdsRequired
 
 	// no local limits are generated if there are outer references, so if this
 	// is a local limit, there should be no outer references
-	GPOS_ASSERT(0 == exprhdl.GetRelationalProperties()->PcrsOuter()->Size());
+	GPOS_ASSERT(0 == exprhdl.DeriveOuterReferences()->Size());
 
 	// for local limit, we impose no distribution requirements
 	return GPOS_NEW(mp) CDistributionSpecAny(this->Eopid());

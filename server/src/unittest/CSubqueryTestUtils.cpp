@@ -115,7 +115,7 @@ CSubqueryTestUtils::PexprSelectWithAggSubquery
 	GPOS_ASSERT(NULL != pexprInner);
 
 	// get any column
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprOuter->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrs->PcrAny();
 
 	// generate agg subquery
@@ -305,8 +305,8 @@ CSubqueryTestUtils::PexprSelectWithAggSubqueryOverJoin
 	CMDIdGPDB *pmdidT = GPOS_NEW(mp) CMDIdGPDB(GPOPT_TEST_REL_OID3, 1, 1);
 	CTableDescriptor *ptabdescT = CTestUtils::PtabdescCreate(mp, 3 /*num_cols*/, pmdidT, CName(&strNameT));
 	CExpression *pexprT = CTestUtils::PexprLogicalGet(mp, ptabdescT, &strNameT);
-	CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprR->PdpDerive())->PcrsOutput()->PcrAny();
-	CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprT->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrInner = pexprR->DeriveOutputColumns()->PcrAny();
+	CColRef *pcrOuter = pexprT->DeriveOutputColumns()->PcrAny();
 
 	CExpression *pexprPred = NULL;
 	if (fCorrelated)
@@ -815,10 +815,10 @@ CSubqueryTestUtils::PexprSelectWithNestedSubquery
 	)
 {
 	CExpression *pexprInner = PexprSelectWithAggSubquery(mp, fCorrelated);
-	CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrInner = pexprInner->DeriveOutputColumns()->PcrAny();
 
 	CExpression *pexprOuter = CTestUtils::PexprLogicalGet(mp);
-	CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
 
 	CExpression *pexprSubq = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarSubquery(mp, pcrInner, false /*fGeneratedByExist*/, false /*fGeneratedByQuantified*/), pexprInner);
 
@@ -935,8 +935,8 @@ CSubqueryTestUtils::PexprSelectWith2LevelsCorrSubquery
 		CExpression *pexprInnerSelect = (*(*pexprInnerSubq)[0])[0];
 		CExpressionArray *pdrgpexpr = (*pexprInnerSelect)[1]->PdrgPexpr();
 
-		CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput()->PcrAny();
-		CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprInnerSelect->PdpDerive())->PcrsOutput()->PcrAny();
+		CColRef *pcrOuter = pexpr->DeriveOutputColumns()->PcrAny();
+		CColRef *pcrInner = pexprInnerSelect->DeriveOutputColumns()->PcrAny();
 		CExpression *pexprPred = CUtils::PexprScalarEqCmp(mp, pcrOuter, pcrInner);
 		pdrgpexpr->Append(pexprPred);
 	}
@@ -1021,7 +1021,7 @@ CSubqueryTestUtils::PexprSubquery
 	GPOS_ASSERT(NULL != pexprInner);
 
 	// get a random column from inner expression
-	CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrInner = pexprInner->DeriveOutputColumns()->PcrAny();
 
 	// generate a non-correlated predicate to be added to inner expression
 	CExpression *pexprNonCorrelated = CUtils::PexprScalarEqCmp(mp, pcrInner, CUtils::PexprScalarConstInt4(mp, 5 /*val*/));
@@ -1031,7 +1031,7 @@ CSubqueryTestUtils::PexprSubquery
 	if (fCorrelated)
 	{
 		// get a random column from outer expression
-		CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+		CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
 
 		// generate correlated predicate
 		CExpression *pexprCorrelated = CUtils::PexprScalarEqCmp(mp, pcrOuter, pcrInner);
@@ -1078,11 +1078,11 @@ CSubqueryTestUtils::PexprSubqueryQuantified
 	CExpression *pexprSelect = PexprSubquery(mp, pexprOuter, pexprInner, fCorrelated);
 
 	// get random columns from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprInner->DeriveOutputColumns();
 	const CColRef *pcrInner = pcrs->PcrAny();
 
 	// get random columns from outer expression
-	pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	pcrs = pexprOuter->DeriveOutputColumns();
 	const CColRef *pcrOuter = pcrs->PcrAny();
 
 	// return a quantified subquery expression
@@ -1155,7 +1155,7 @@ CSubqueryTestUtils::PexprUndecorrelatableSubquery
 	}
 
 	// generate a regular predicate
-	CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprPred = CUtils::PexprScalarEqCmp(mp, pcrOuter, CUtils::PexprScalarConstInt4(mp, 5 /*val*/));
 
 	// generate OR expression of  predicates
@@ -1262,12 +1262,12 @@ CSubqueryTestUtils::PexprUndecorrelatableScalarSubquery
 	CExpression *pexprSelect = PexprSubquery(mp, pexprOuter, pexprInner, fCorrelated);
 
 	// get a random column from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprInner->DeriveOutputColumns();
 	CColRef *pcrInner =  pcrs->PcrAny();
 
 	CExpression *pexprSubquery = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarSubquery(mp, pcrInner, false /*fGeneratedByExist*/, false /*fGeneratedByQuantified*/), pexprSelect);
 
-	CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprPred = CUtils::PexprScalarEqCmp(mp, pcrOuter, pexprSubquery);
 
 	return CUtils::PexprLogicalSelect(mp, pexprOuter, pexprPred);
@@ -1338,7 +1338,7 @@ CSubqueryTestUtils::PexprSubqueryAgg
 	CExpression *pexprSelect = PexprSubquery(mp, pexprOuter, pexprInner, fCorrelated);
 
 	// get a random column from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprInner->DeriveOutputColumns();
 	CColRef *pcrInner =  pcrs->PcrAny();
 
 	// generate a SUM expression
@@ -1383,7 +1383,7 @@ CSubqueryTestUtils::PexprSelectWithSubqueryBoolOp
 	GPOS_ASSERT(CScalarBoolOp::EboolopAnd == eboolop || CScalarBoolOp::EboolopOr == eboolop);
 
 	// get any two columns
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprOuter->DeriveOutputColumns();
 	CColRef *pcrLeft = pcrs->PcrAny();
 
 	// generate agg subquery
@@ -1532,8 +1532,8 @@ CSubqueryTestUtils::PexprSelectWithQuantifiedAggSubquery
 	pexprGb->AddRef();
 	pexprSubq->Release();
 
-	CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprGb->PdpDerive())->PcrsOutput()->PcrAny();
-	CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrInner = pexprGb->DeriveOutputColumns()->PcrAny();
+	CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprSubqueryQuantified = NULL;
 	if (COperator::EopScalarSubqueryAny == op_id)
 	{
@@ -1673,7 +1673,7 @@ CSubqueryTestUtils::PexprSelectWithTrimmableExistentialSubquery
 	}
 
 	// generate a regular predicate
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprOuter->DeriveOutputColumns();
 	CExpression *pexprEqPred = CUtils::PexprScalarEqCmp(mp, pcrs->PcrAny(), CUtils::PexprScalarConstInt4(mp, 5 /*val*/));
 
 	CExpression *pexprConjunction =
@@ -1755,11 +1755,11 @@ CSubqueryTestUtils::PexprSubqueryWithConstTableGet
 	CExpression *pexprConstTableGet = CTestUtils::PexprConstTableGet(mp, 3 /* ulElements */);
 
 	// get random columns from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprConstTableGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprConstTableGet->DeriveOutputColumns();
 	const CColRef *pcrInner = pcrs->PcrAny();
 
 	// get random columns from outer expression
-	pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	pcrs = pexprOuter->DeriveOutputColumns();
 	const CColRef *pcrOuter = pcrs->PcrAny();
 
 	const CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("="));
@@ -1822,11 +1822,11 @@ CSubqueryTestUtils::PexprSubqueryWithDisjunction
 	{
 		CExpression *pexprConstTableGet = CTestUtils::PexprConstTableGet(mp, 3 /* ulElements */);
 		// get random columns from inner expression
-		CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprConstTableGet->PdpDerive())->PcrsOutput();
+		CColRefSet *pcrs = pexprConstTableGet->DeriveOutputColumns();
 		const CColRef *pcrInner = pcrs->PcrAny();
 
 		// get random columns from outer expression
-		pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+		pcrs = pexprOuter->DeriveOutputColumns();
 		const CColRef *pcrOuter = pcrs->PcrAny();
 
 		const CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("="));

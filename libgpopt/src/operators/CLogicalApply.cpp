@@ -100,7 +100,7 @@ CLogicalApply::PcrsStat
 	if (0 == child_index)
 	{
 		// add outer references coming from inner child
-		pcrsUsed->Union(exprhdl.GetRelationalProperties(1)->PcrsOuter());
+		pcrsUsed->Union(exprhdl.DeriveOuterReferences(1));
 	}
 
 	CColRefSet *pcrsStat = PcrsReqdChildStats(mp, exprhdl, pcrsInput, pcrsUsed, child_index);

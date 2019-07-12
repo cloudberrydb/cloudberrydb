@@ -48,7 +48,7 @@ namespace gpopt
 					return true;
 
 				// now consider hash distributed table
-				CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+				CColRefSet *pcrsInnerOutput = pexprInner->DeriveOutputColumns();
 				CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
 				CColRefSet *pcrsInnerRefs = GPOS_NEW(mp) CColRefSet(mp, *pcrsScalarExpr);
 				pcrsInnerRefs->Intersection(pcrsInnerOutput);

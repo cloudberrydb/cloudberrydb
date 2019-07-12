@@ -71,14 +71,14 @@ CLogicalDifferenceAll::~CLogicalDifferenceAll()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDifferenceAll::Maxcard
+//		CLogicalDifferenceAll::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalDifferenceAll::Maxcard
+CLogicalDifferenceAll::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -86,12 +86,12 @@ CLogicalDifferenceAll::Maxcard
 	const
 {
 	// contradictions produce no rows
-	if (CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
+	if (exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}
 
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ CLogicalDifferenceAll::PopCopyWithRemappedColumns
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalDifferenceAll::PkcDeriveKeys
+CLogicalDifferenceAll::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp,
 	CExpressionHandle & //exprhdl
@@ -172,7 +172,7 @@ CLogicalDifferenceAll::PstatsDerive
 	CExpression *pexprScCond = CUtils::PexprConjINDFCond(mp, m_pdrgpdrgpcrInput);
 
 	// compute the statistics for LASJ
-	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 	CStatsPredJoinArray *join_preds_stats = CStatsPredUtils::ExtractJoinStatsFromExpr
 														(
 														mp, 

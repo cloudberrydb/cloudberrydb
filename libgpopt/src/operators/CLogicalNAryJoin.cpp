@@ -40,14 +40,14 @@ CLogicalNAryJoin::CLogicalNAryJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalNAryJoin::Maxcard
+//		CLogicalNAryJoin::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalNAryJoin::Maxcard
+CLogicalNAryJoin::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

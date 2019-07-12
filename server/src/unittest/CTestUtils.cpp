@@ -527,7 +527,7 @@ CTestUtils::PexprLogicalSelect
 	GPOS_ASSERT(NULL != pexpr);
 
 	// get any two columns
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrs->PcrAny();
 	CColRef *pcrRight = pcrs->PcrAny();
 	CExpression *pexprPredicate = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
@@ -589,7 +589,7 @@ CTestUtils::PexprLogicalSelectWithContradiction
 {
 	CExpression *pexpr = PexprLogicalSelect(mp, PexprLogicalGet(mp));
 	// get any column
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	CExpression *pexprConstFirst = CUtils::PexprScalarConstInt4(mp, 3 /*val*/);
@@ -665,7 +665,7 @@ CTestUtils::PexprLogicalAssert
 	CExpression *pexprGet = PexprLogicalGet(mp);
 	
 	// get any two columns
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrs->PcrAny();
 	CColRef *pcrRight = pcrs->PcrAny();
 	CExpression *pexprPredicate = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
@@ -819,10 +819,10 @@ CTestUtils::PexprScIdentCmpScIdent
 	GPOS_ASSERT(NULL != pexprRight);
 	GPOS_ASSERT(cmp_type <= IMDType::EcmptOther);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = pexprLeft->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrsLeft->PcrAny();
 
-	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsRight = pexprRight->DeriveOutputColumns();
 	CColRef *pcrRight =  pcrsRight->PcrAny();
 
 	CExpression *pexprPred = CUtils::PexprScalarCmp(mp, pcrLeft, pcrRight, cmp_type);
@@ -850,7 +850,7 @@ CTestUtils::PexprScIdentCmpConst
 {
 	GPOS_ASSERT(NULL != pexpr);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrs->PcrAny();
 	CExpression *pexprUl = CUtils::PexprScalarConstInt4(mp, ulVal);
 
@@ -956,7 +956,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	CExpression *pexprGet = PexprLogicalGet(mp);
 
 	// get the first column
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	// construct an array of integers
@@ -1062,11 +1062,11 @@ CTestUtils::PexprLogicalSubqueryWithConstTableGet
 	CExpression *pexprConstTableGet = PexprConstTableGet(mp, 3 /* ulElements */);
 
 	// get random columns from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprConstTableGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprConstTableGet->DeriveOutputColumns();
 	const CColRef *pcrInner = pcrs->PcrAny();
 
 	// get random columns from outer expression
-	pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	pcrs = pexprOuter->DeriveOutputColumns();
 	const CColRef *pcrOuter = pcrs->PcrAny();
 
 	const CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("="));
@@ -1148,7 +1148,7 @@ CTestUtils::PexprLogicalSelectCorrelated
 	)
 {
 	CExpression *pexprOuter = PexprLogicalGet(mp);
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *outer_refs = pexprOuter->DeriveOutputColumns();
 
 	CExpression *pexpr = PexprLogicalSelectCorrelated(mp, outer_refs, 8);
 
@@ -1177,8 +1177,8 @@ CTestUtils::PexprLogicalSelectOnOuterJoin
 	CExpression *pexprInner = NULL;
 	CSubqueryTestUtils::GenerateGetExpressions(mp, &pexprOuter, &pexprInner);
 
-	const CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
-	const CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput()->PcrAny();
+	const CColRef *pcrOuter = pexprOuter->DeriveOutputColumns()->PcrAny();
+	const CColRef *pcrInner = pexprInner->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprOuterJoinPred = CUtils::PexprScalarEqCmp(mp, pcrOuter, pcrInner);
 	CExpression *pexprOuterJoin =
 			GPOS_NEW(mp) CExpression
@@ -1221,7 +1221,7 @@ CTestUtils::PexprLogicalSelectCorrelated
 
 	CExpression *pexpr = PexprLogicalSelectCorrelated(mp, outer_refs, ulLevel - 1);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	GPOS_ASSERT(outer_refs->IsDisjoint(pcrs));
 
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
@@ -1336,7 +1336,7 @@ CTestUtils::PexprLogicalProject
 	CExpression *pexpr = PexprLogicalGet(mp);
 
 	// get output columns
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CColRef *colref =  pcrs->PcrAny();
@@ -1395,8 +1395,8 @@ CTestUtils::PexprLogicalJoinCorrelated
 	pdrgpexpr->Append(pexprLeft);
 	pdrgpexpr->Append(pexprRight);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = pexprLeft->DeriveOutputColumns();
+	CColRefSet *pcrsRight = pexprRight->DeriveOutputColumns();
 
 	EqualityPredicate(mp, pcrsLeft, pcrsRight, pdrgpexpr);
 
@@ -1425,8 +1425,8 @@ CTestUtils::PexprLogicalJoinWithPartitionedAndIndexedInnerChild
 	pdrgpexpr->Append(pexprLeft);
 	pdrgpexpr->Append(pexprRight);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = pexprLeft->DeriveOutputColumns();
+	CColRefSet *pcrsRight = pexprRight->DeriveOutputColumns();
 
 	EqualityPredicate(mp, pcrsLeft, pcrsRight, pdrgpexpr);
 
@@ -1526,13 +1526,13 @@ CTestUtils::PexprLeftOuterJoinOnNAryJoin
 	CExpression *pexprLOJInnerChild = PexprLogicalGet(mp);
 
 	// get a random column from LOJ inner child output
-	CColRef *pcrLeft1 = CDrvdPropRelational::GetRelationalProperties(pexprLOJInnerChild->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrLeft1 = pexprLOJInnerChild->DeriveOutputColumns()->PcrAny();
 
 	// get a random column from NAry join second child
-	CColRef *pcrLeft2 = CDrvdPropRelational::GetRelationalProperties((*pexprNAryJoin)[1]->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrLeft2 = (*pexprNAryJoin)[1]->DeriveOutputColumns()->PcrAny();
 
 	// get a random column from NAry join output
-	CColRef *pcrRight = CDrvdPropRelational::GetRelationalProperties(pexprNAryJoin->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrRight = pexprNAryJoin->DeriveOutputColumns()->PcrAny();
 
 	CExpression *pexprPred1 = CUtils::PexprScalarEqCmp(mp, pcrLeft1, pcrRight);
 	CExpression *pexprPred2 = CUtils::PexprScalarEqCmp(mp, pcrLeft2, pcrRight);
@@ -1559,7 +1559,7 @@ CTestUtils::PexprNAryJoinOnLeftOuterJoin
 	)
 {
 	CExpression *pexprNAryJoin = PexprLogicalNAryJoin(mp);
-	CColRef *pcrNAryJoin = CDrvdPropRelational::GetRelationalProperties((*pexprNAryJoin)[0]->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrNAryJoin = (*pexprNAryJoin)[0]->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprScalar = (*pexprNAryJoin)[pexprNAryJoin->Arity() - 1];
 
 	// copy NAry-Join children
@@ -1571,10 +1571,10 @@ CTestUtils::PexprNAryJoinOnLeftOuterJoin
 	CExpression *pexprLOJInnerChild = PexprLogicalGet(mp);
 
 	// get a random column from LOJ outer child output
-	CColRef *pcrLeft = CDrvdPropRelational::GetRelationalProperties(pexprLOJOuterChild->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrLeft = pexprLOJOuterChild->DeriveOutputColumns()->PcrAny();
 
 	// get a random column from LOJ inner child output
-	CColRef *pcrRight = CDrvdPropRelational::GetRelationalProperties(pexprLOJInnerChild->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrRight = pexprLOJInnerChild->DeriveOutputColumns()->PcrAny();
 
 	CExpression *pexprPred = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 	CExpression *pexprLOJ = GPOS_NEW(mp) CExpression (mp, GPOS_NEW(mp) CLogicalLeftOuterJoin(mp), pexprLOJOuterChild, pexprLOJInnerChild, pexprPred);
@@ -1670,7 +1670,7 @@ CTestUtils::PexprLogicalGbAggWithSum
 
 	// get a random column from Gb child
 	CColRef *colref =
-		CDrvdPropRelational::GetRelationalProperties((*pexprGb)[0]->PdpDerive())->PcrsOutput()->PcrAny();
+		(*pexprGb)[0]->DeriveOutputColumns()->PcrAny();
 
 	// generate a SUM expression
 	CExpression *pexprProjElem = PexprPrjElemWithSum(mp, colref);
@@ -1703,8 +1703,7 @@ CExpression *CTestUtils::PexprLogicalGbAggWithInput
 	)
 {
 	// get the first few columns
-	CDrvdPropRelational *pdprel = CDrvdPropRelational::GetRelationalProperties(pexprInput->PdpDerive());
-	CColRefSet *pcrs = pdprel->PcrsOutput();
+	CColRefSet *pcrs = pexprInput->DeriveOutputColumns();
 
 	ULONG num_cols = std::min(3u, pcrs->Size());
 
@@ -1799,7 +1798,7 @@ CTestUtils::PexprLogicalGbAggOverJoin
 
 	// include one grouping column
 	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
-	CColRef *colref = CDrvdPropRelational::GetRelationalProperties(pexprJoin->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *colref = pexprJoin->DeriveOutputColumns()->PcrAny();
 	colref_array->Append(colref);
 
 	return CUtils::PexprLogicalGbAggGlobal
@@ -1830,7 +1829,7 @@ CTestUtils::PexprLogicalGbAggDedupOverInnerJoin
 
 	// get join's outer child
 	CExpression *pexprOuter = (*pexprJoin)[0];
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprOuter->DeriveOutputColumns();
 
 	// grouping columns: all columns from outer child
 	CColRefArray *pdrgpcrGrp = pcrs->Pdrgpcr(mp);
@@ -1867,7 +1866,7 @@ CTestUtils::PexprLogicalGbAggCorrelated
 
 	// include one grouping column
 	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
-	CColRef *colref = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *colref = pexpr->DeriveOutputColumns()->PcrAny();
 	colref_array->Append(colref);
 
 	CExpression *pexprList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp));
@@ -1960,7 +1959,7 @@ CTestUtils::PexprLogicalInsert
 {
 	CExpression *pexprCTG = PexprConstTableGet(mp, 1 /* ulElements */);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprCTG->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprCTG->DeriveOutputColumns();
 	CColRefArray *colref_array = pcrs->Pdrgpcr(mp);
 
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable"));
@@ -1996,7 +1995,7 @@ CTestUtils::PexprLogicalDelete
 
 	CExpression *pexprGet = PexprLogicalGet(mp, ptabdesc, &strAlias);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRefArray *colref_array = pcrs->Pdrgpcr(mp);
 
 	CColRef *colref = pcrs->PcrFirst();
@@ -2032,7 +2031,7 @@ CTestUtils::PexprLogicalUpdate
 
 	CExpression *pexprGet = PexprLogicalGet(mp, ptabdesc, &strAlias);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRefArray *pdrgpcrDelete = pcrs->Pdrgpcr(mp);
 	CColRefArray *pdrgpcrInsert = pcrs->Pdrgpcr(mp);
 
@@ -2300,7 +2299,7 @@ CTestUtils::PexprLogicalCTEProducerOverSelect
 	)
 {
 	CExpression *pexprSelect = CTestUtils::PexprLogicalSelect(mp);
-	CColRefArray *colref_array = CDrvdPropRelational::GetRelationalProperties(pexprSelect->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *colref_array = pexprSelect->DeriveOutputColumns()->Pdrgpcr(mp);
 
 	return GPOS_NEW(mp) CExpression
 					(
@@ -2520,7 +2519,7 @@ CTestUtils::PexprLogicalSequenceProject
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	pdrgpexpr->Append(CUtils::PexprScalarIdent(mp, CDrvdPropRelational::GetRelationalProperties(pexprInput->PdpDerive())->PcrsOutput()->PcrAny()));
+	pdrgpexpr->Append(CUtils::PexprScalarIdent(mp, pexprInput->DeriveOutputColumns()->PcrAny()));
 	COrderSpecArray *pdrgpos = GPOS_NEW(mp) COrderSpecArray(mp);
 	CWindowFrameArray *pdrgwf = GPOS_NEW(mp) CWindowFrameArray(mp);
 
@@ -2720,8 +2719,8 @@ CTestUtils::PexprLogicalNAryJoin
 			CExpression *pexprRight = (*pdrgpexpr)[ul + 1];
 
 			// get any two columns; one from each side
-			CColRef *pcrLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive())->PcrsOutput()->PcrAny();
-			CColRef *pcrRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput()->PcrAny();
+			CColRef *pcrLeft = pexprLeft->DeriveOutputColumns()->PcrAny();
+			CColRef *pcrRight = pexprRight->DeriveOutputColumns()->PcrAny();
 			pdrgpexprPred->Append(CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight));
 		}
 	}
@@ -2799,7 +2798,7 @@ CTestUtils::PqcGenerate
 	)
 {
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	pcrs->Include(CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput());
+	pcrs->Include(pexpr->DeriveOutputColumns());
 
 	// keep a subset of columns
 	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
@@ -2877,7 +2876,7 @@ CTestUtils::PexprScalarNestedPreds
 				CScalarBoolOp::EboolopOr == eboolop ||
 				CScalarBoolOp::EboolopNot == eboolop);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrs->PcrAny();
 	CExpression *pexprConstActual = CUtils::PexprScalarConstInt4(mp, 3 /*val*/);
 
@@ -4369,7 +4368,7 @@ CTestUtils::PexprScalarCmpIdentToConstant
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexpr);
 
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexpr->DeriveOutputColumns();
 	CColRef *pcrAny =  pcrs->PcrAny();
 	CExpression *pexprConst =  CUtils::PexprScalarConstInt4(mp, 10 /* val */);
 
@@ -4426,12 +4425,12 @@ CTestUtils::PexpSubqueryAll
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexprOuter);
 
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *outer_refs = pexprOuter->DeriveOutputColumns();
 	const CColRef *pcrOuter = outer_refs->PcrAny();
 
 
 	CExpression *pexprInner = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
 	const CColRef *pcrInner = pcrsInner->PcrAny();
 
 	return GPOS_NEW(mp) CExpression
@@ -4468,12 +4467,12 @@ CTestUtils::PexpSubqueryAny
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexprOuter);
 
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *outer_refs = pexprOuter->DeriveOutputColumns();
 	const CColRef *pcrOuter = outer_refs->PcrAny();
 
 
 	CExpression *pexprInner = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
 	const CColRef *pcrInner = pcrsInner->PcrAny();
 
 	return GPOS_NEW(mp) CExpression

@@ -310,7 +310,7 @@ CEngineTest::EresUnittest_AppendStats()
 	// create a non-empty set of output columns as requirements for stats derivation
 	ULONG ulIndex = 0;
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	CColRefSetIter crsi(*CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput());
+	CColRefSetIter crsi(*pexpr->DeriveOutputColumns());
 	while (crsi.Advance() && ulIndex < 3)
 	{
 		CColRef *colref = crsi.Pcr();
@@ -703,10 +703,10 @@ CEngineTest::EresUnittest_BuildMemoWithCTE()
 	CExpression *pexprCTE = CTestUtils::PexprCTETree(mp);
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprCTE->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = pexprCTE->DeriveOutputColumns();
 	CColRef *pcrLeft =  pcrsLeft->PcrAny();
 
-	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsRight = pexprGet->DeriveOutputColumns();
 	CColRef *pcrRight =  pcrsRight->PcrAny();
 
 	CExpression *pexprScalar = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);

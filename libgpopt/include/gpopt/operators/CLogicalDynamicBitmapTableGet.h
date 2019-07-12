@@ -104,11 +104,11 @@ namespace gpopt
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(CMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *DeriveOuterReferences(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *DerivePropertyConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stat columns of the n-th child
 			virtual

@@ -1324,14 +1324,14 @@ CStatsPredUtils::ExtractJoinStatsFromExprHandle
 	const ULONG size = expr_handle.Arity();
 	for (ULONG ul = 0; ul < size - 1; ul++)
 	{
-		CColRefSet *output_col_ref_set = expr_handle.GetRelationalProperties(ul)->PcrsOutput();
+		CColRefSet *output_col_ref_set = expr_handle.DeriveOutputColumns(ul);
 		output_col_ref_set->AddRef();
 		output_col_refsets->Append(output_col_ref_set);
 	}
 
 	// TODO:  02/29/2012 replace with constraint property info once available
 	CExpression *scalar_expr = expr_handle.PexprScalarChild(expr_handle.Arity() - 1);
-	CColRefSet *outer_refs = expr_handle.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = expr_handle.DeriveOuterReferences();
 
 	CStatsPredJoinArray *join_pred_stats = ExtractJoinStatsFromExpr(mp, expr_handle, scalar_expr, output_col_refsets, outer_refs);
 

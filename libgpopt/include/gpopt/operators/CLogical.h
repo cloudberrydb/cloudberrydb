@@ -186,7 +186,7 @@ namespace gpopt
 
 			// derive outer references
 			static
-			CColRefSet *PcrsDeriveOuter(CMemoryPool *mp, CExpressionHandle &exprhdl, CColRefSet *pcrsUsedAdditional);
+			CColRefSet *DeriveOuterReferences(CMemoryPool *mp, CExpressionHandle &exprhdl, CColRefSet *pcrsUsedAdditional);
 
 		public:
 		
@@ -222,17 +222,17 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(CMemoryPool *mp, CExpressionHandle &exprhdl) = 0;
+			CColRefSet *DeriveOutputColumns(CMemoryPool *mp, CExpressionHandle &exprhdl) = 0;
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter
+			CColRefSet *DeriveOuterReferences
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 			{
-				return PcrsDeriveOuter(mp, exprhdl, NULL /*pcrsUsedAdditional*/);
+				return DeriveOuterReferences(mp, exprhdl, NULL /*pcrsUsedAdditional*/);
 			}
 			
 			// derive outer references for index get and dynamic index get operators
@@ -241,7 +241,7 @@ namespace gpopt
 
 			// derive not nullable output columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull
+			CColRefSet *DeriveNotNullColumns
 				(
 				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
@@ -254,31 +254,31 @@ namespace gpopt
 
 			// derive columns from the inner child of a correlated-apply expression that can be used above the apply expression
 			virtual
-			CColRefSet *PcrsDeriveCorrelatedApply(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CColRefSet *DeriveCorrelatedApplyColumns(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard DeriveMaxCard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive join depth
 			virtual
-			ULONG JoinDepth(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			ULONG DeriveJoinDepth(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition information
 			virtual
-			CPartInfo *PpartinfoDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const = 0;
+			CPartInfo *DerivePartitionInfo(CMemoryPool *mp, CExpressionHandle &exprhdl) const = 0;
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const = 0;
+			CPropConstraint *DerivePropertyConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const = 0;
 			
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CFunctionProp *DeriveFunctionProperties(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Derived Stats

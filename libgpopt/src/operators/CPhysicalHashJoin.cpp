@@ -541,7 +541,7 @@ CPhysicalHashJoin::PdshashedPassThru
 	}
 
 	// since incoming request is hashed, we attempt here to propagate this request to outer child
-	CColRefSet *pcrsOuterOutput = exprhdl.GetRelationalProperties(0 /*child_index*/)->PcrsOutput();
+	CColRefSet *pcrsOuterOutput = exprhdl.DeriveOutputColumns(0 /*child_index*/);
 	CExpressionArray *pdrgpexprIncomingRequest = pdshashedInput->Pdrgpexpr();
 	CColRefSet *pcrsAllUsed = CUtils::PcrsExtractColumns(mp, pdrgpexprIncomingRequest);
 	BOOL fSubset = pcrsOuterOutput->ContainsAll(pcrsAllUsed);

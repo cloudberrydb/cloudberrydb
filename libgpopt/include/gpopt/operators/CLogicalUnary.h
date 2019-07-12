@@ -97,7 +97,7 @@ namespace gpopt
 
 			// derive not nullable output columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull
+			CColRefSet *DeriveNotNullColumns
 				(
 				CMemoryPool *,// mp
 				CExpressionHandle &exprhdl
@@ -110,7 +110,7 @@ namespace gpopt
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive
+			CPartInfo *DerivePartitionInfo
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl
@@ -122,7 +122,7 @@ namespace gpopt
 			
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive
+			CFunctionProp *DeriveFunctionProperties
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl

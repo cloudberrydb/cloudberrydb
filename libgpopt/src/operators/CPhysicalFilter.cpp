@@ -205,10 +205,10 @@ CPhysicalFilter::PppsRequired
 	CPartFilterMap *ppfmResult = GPOS_NEW(mp) CPartFilterMap(mp);
 	
 	/// get derived part consumers
-	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties(0)->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.DerivePartitionInfo(0);
 	
 	const ULONG ulPartIndexIds = pdrgpul->Size();
-	BOOL fUseConstraints = (1 == exprhdl.GetRelationalProperties()->JoinDepth());
+	BOOL fUseConstraints = (1 == exprhdl.DeriveJoinDepth());
 	
 	for (ULONG ul = 0; ul < ulPartIndexIds; ul++)
 	{

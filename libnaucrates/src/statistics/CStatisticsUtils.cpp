@@ -1238,7 +1238,7 @@ CStatisticsUtils::DeriveStatsForIndexGet
 	CExpression *outer_refs_expr = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *outer_col_refset = expr_handle.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_col_refset = expr_handle.DeriveOuterReferences();
 
 	CPredicateUtils::SeparateOuterRefs(mp, scalar_expr, outer_col_refset, &local_expr, &outer_refs_expr);
 
@@ -1283,7 +1283,7 @@ CStatisticsUtils::DeriveStatsForBitmapTableGet
 	ULONG child_cond_index = 0;
 
 	// get outer references from expression handle
-	CColRefSet *outer_col_refset = expr_handle.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_col_refset = expr_handle.DeriveOuterReferences();
 	CExpression *local_expr = NULL;
 	CExpression *outer_refs_expr = NULL;
 	CExpression *scalar_expr = expr_handle.PexprScalarChild(child_cond_index);

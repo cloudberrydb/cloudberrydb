@@ -157,7 +157,7 @@ CScalarSubquery::PcrsUsed
 	// used columns is an empty set unless subquery column is an outer reference
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 
-	CColRefSet *pcrsChildOutput = exprhdl.GetRelationalProperties(0 /* child_index */)->PcrsOutput();
+	CColRefSet *pcrsChildOutput = exprhdl.DeriveOutputColumns(0 /* child_index */);
 	if (!pcrsChildOutput->FMember(m_pcr))
 	{
 		// subquery column is not produced by relational child, add it to used columns
@@ -169,7 +169,7 @@ CScalarSubquery::PcrsUsed
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSubquery::PpartinfoDerive
+//		CScalarSubquery::DerivePartitionInfo
 //
 //	@doc:
 //		Derive partition consumers
@@ -183,7 +183,7 @@ CScalarSubquery::PpartinfoDerive
 	)
 	const
 {
-	CPartInfo *ppartinfoChild = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
+	CPartInfo *ppartinfoChild = exprhdl.DerivePartitionInfo(0);
 	GPOS_ASSERT(NULL != ppartinfoChild);
 	ppartinfoChild->AddRef();
 	return ppartinfoChild;

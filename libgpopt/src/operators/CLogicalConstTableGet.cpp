@@ -208,14 +208,14 @@ CLogicalConstTableGet::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalConstTableGet::PcrsDeriveOutput
+//		CLogicalConstTableGet::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalConstTableGet::PcrsDeriveOutput
+CLogicalConstTableGet::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -230,14 +230,14 @@ CLogicalConstTableGet::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalConstTableGet::Maxcard
+//		CLogicalConstTableGet::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalConstTableGet::Maxcard
+CLogicalConstTableGet::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl

@@ -108,6 +108,9 @@ namespace gpopt
 			virtual
 			IOstream &OsPrint(IOstream &os) const = 0;
 
+			virtual
+			BOOL IsComplete() const { return true; }
+
 #ifdef GPOS_DEBUG
 			// debug print for interactive debugging sessions only
 			void DbgPrint() const;

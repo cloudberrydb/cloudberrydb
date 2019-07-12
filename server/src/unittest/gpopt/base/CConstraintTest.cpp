@@ -135,7 +135,7 @@ CConstraintTest::EresUnittest_CInterval()
 	IMDId *mdid = pmdtypeint8->MDId();
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	// first interval
@@ -227,11 +227,11 @@ CConstraintTest::EresUnittest_CConjunction()
 	IMDId *mdid = pmdtypeint8->MDId();
 
 	CExpression *pexprGet1 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs1 = CDrvdPropRelational::GetRelationalProperties(pexprGet1->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs1 = pexprGet1->DeriveOutputColumns();
 	CColRef *pcr1 =  pcrs1->PcrAny();
 
 	CExpression *pexprGet2 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs2 = CDrvdPropRelational::GetRelationalProperties(pexprGet2->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs2 = pexprGet2->DeriveOutputColumns();
 	CColRef *pcr2 =  pcrs2->PcrAny();
 
 	CConstraintConjunction *pcconj1 = Pcstconjunction(mp, mdid, pcr1);
@@ -361,11 +361,11 @@ CConstraintTest::EresUnittest_CDisjunction()
 	IMDId *mdid = pmdtypeint8->MDId();
 
 	CExpression *pexprGet1 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs1 = CDrvdPropRelational::GetRelationalProperties(pexprGet1->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs1 = pexprGet1->DeriveOutputColumns();
 	CColRef *pcr1 =  pcrs1->PcrAny();
 
 	CExpression *pexprGet2 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs2 = CDrvdPropRelational::GetRelationalProperties(pexprGet2->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs2 = pexprGet2->DeriveOutputColumns();
 	CColRef *pcr2 =  pcrs2->PcrAny();
 
 	CConstraintDisjunction *pcdisj1 = Pcstdisjunction(mp, mdid, pcr1);
@@ -436,7 +436,7 @@ CConstraintTest::EresUnittest_CNegation()
 	IMDId *mdid = pmdtypeint8->MDId();
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	CConstraintInterval *pci = PciFirstInterval(mp, mdid, colref);
@@ -499,7 +499,7 @@ CConstraintTest::EresUnittest_CIntervalFromScalarExpr()
 	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	// from ScalarCmp
@@ -544,11 +544,11 @@ CConstraintTest::EresUnittest_CConstraintFromScalarExpr()
 	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
 	CExpression *pexprGet1 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs1 = CDrvdPropRelational::GetRelationalProperties(pexprGet1->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs1 = pexprGet1->DeriveOutputColumns();
 	CColRef *pcr1 =  pcrs1->PcrAny();
 
 	CExpression *pexprGet2 = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs2 = CDrvdPropRelational::GetRelationalProperties(pexprGet2->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs2 = pexprGet2->DeriveOutputColumns();
 	CColRef *pcr2 =  pcrs2->PcrAny();
 
 	CColRefSetArray *pdrgpcrs = NULL;
@@ -639,7 +639,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo()
 
 	// get a column ref
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	// create constraint
@@ -708,7 +708,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 
 	// get a column ref
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *colref =  pcrs->PcrAny();
 
 	CRangeArray *pdrgprng = NULL;
@@ -830,7 +830,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	// Create an IN array expression
 	CExpression *pexpr = CTestUtils::PexprLogicalSelectArrayCmp(mp);
 	// get a ref to the comparison column
-	CColRef *colref = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *colref = pexpr->DeriveOutputColumns()->PcrAny();
 
 	// remove the array child
 	CExpression *pexprArrayComp = (*pexpr->PdrgPexpr())[1];
@@ -847,7 +847,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 
 	CExpression *pexprNotIn = CTestUtils::PexprLogicalSelectArrayCmp(mp, CScalarArrayCmp::EarrcmpAll, IMDType::EcmptNEq);
 	CExpression *pexprArrayNotInComp = (*pexprNotIn->PdrgPexpr())[1];
-	CColRef *pcrNot = CDrvdPropRelational::GetRelationalProperties(pexprNotIn->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrNot = pexprNotIn->DeriveOutputColumns()->PcrAny();
 	CConstraintInterval *pcnstNotIn = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexprArrayNotInComp, pcrNot);
 	GPOS_ASSERT(CConstraint::EctInterval == pcnstNotIn->Ect());
 	// a NOT IN range array should have one more element than the expression array consts
@@ -866,7 +866,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	}
 	CExpression *pexprInRepeatsSelect =
 			CTestUtils::PexprLogicalSelectArrayCmp(mp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq, pdrgpi);
-	CColRef *pcrInRepeats = CDrvdPropRelational::GetRelationalProperties(pexprInRepeatsSelect->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrInRepeats = pexprInRepeatsSelect->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprArrayCmpRepeats = (*pexprInRepeatsSelect->PdrgPexpr())[1];
 	// add 2 repeated values and one unique
 	CConstraintInterval *pcnstInRepeats = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexprArrayCmpRepeats, pcrInRepeats);
@@ -876,7 +876,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 
 	// create a NOT IN expression with repeated values
 	CExpression *pexprNotInRepeatsSelect = CTestUtils::PexprLogicalSelectArrayCmp(mp, CScalarArrayCmp::EarrcmpAll, IMDType::EcmptNEq, pdrgpi);
-	CColRef *pcrNotInRepeats = CDrvdPropRelational::GetRelationalProperties(pexprNotInRepeatsSelect->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *pcrNotInRepeats = pexprNotInRepeatsSelect->DeriveOutputColumns()->PcrAny();
 	CExpression *pexprNotInArrayCmpRepeats = (*pexprNotInRepeatsSelect->PdrgPexpr())[1];
 	CConstraintInterval *pcnstNotInRepeats = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexprNotInArrayCmpRepeats, pcrNotInRepeats);
 	// a total of 5 unique ScalarConsts in the expression will result in 6 ranges
@@ -939,7 +939,7 @@ EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum*) pdatumNull));
 	pexprArrayChild->PdrgPexpr()->Append(pexprConstNull);
 
-	CColRef *colref = CDrvdPropRelational::GetRelationalProperties(pexprIn->PdpDerive())->PcrsOutput()->PcrAny();
+	CColRef *colref = pexprIn->DeriveOutputColumns()->PcrAny();
 	CConstraintInterval *pci = CConstraintInterval::PciIntervalFromScalarExpr(mp, (*pexprIn)[1], colref);
 	GPOS_RTL_ASSERT(!pci->FIncludesNull());
 	GPOS_RTL_ASSERT(2 == pci->Pdrgprng()->Size());

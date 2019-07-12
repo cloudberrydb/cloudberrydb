@@ -161,7 +161,7 @@ namespace gpopt
 
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive
+			CFunctionProp *DeriveFunctionProperties
 				(
 				CMemoryPool *mp,
 				CExpressionHandle &exprhdl

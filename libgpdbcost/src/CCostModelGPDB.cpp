@@ -1504,7 +1504,7 @@ CCostModelGPDB::CostBitmapTableScan
 	CCost result(0.0);
 	CExpression *pexprIndexCond = exprhdl.PexprScalarChild(1 /*child_index*/);
 	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprIndexCond->PdpDerive())->PcrsUsed();
-	CColRefSet *outerRefs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outerRefs = exprhdl.DeriveOuterReferences();
 	CColRefSet *pcrsLocalUsed = GPOS_NEW(mp) CColRefSet(mp, *pcrsUsed);
 
 	// subtract outer references from the used colrefs, so we can see

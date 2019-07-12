@@ -216,27 +216,27 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(CMemoryPool *,CExpressionHandle &);
+			CColRefSet *DeriveOutputColumns(CMemoryPool *,CExpressionHandle &);
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(CMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *DeriveOuterReferences(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive not null columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CColRefSet *DeriveNotNullColumns(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard DeriveMaxCard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *DerivePropertyConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stats columns of the n-th child
 			//-------------------------------------------------------------------------------------

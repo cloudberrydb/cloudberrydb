@@ -41,21 +41,21 @@ CLogicalLeftOuterJoin::CLogicalLeftOuterJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftOuterJoin::Maxcard
+//		CLogicalLeftOuterJoin::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLeftOuterJoin::Maxcard
+CLogicalLeftOuterJoin::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.DeriveMaxCard(0));
 }
 
 //---------------------------------------------------------------------------

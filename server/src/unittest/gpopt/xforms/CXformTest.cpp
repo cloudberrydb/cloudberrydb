@@ -291,13 +291,9 @@ CXformTest::PexprStarJoinTree
 	
 	for (ULONG ul = 1; ul < ulTabs; ul++)
 	{
-		CDrvdPropRelational *pdprelLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive());
-		CColRef *pcrLeft = pdprelLeft->PcrsOutput()->PcrAny();
-	
+		CColRef *pcrLeft = pexprLeft->DeriveOutputColumns()->PcrAny();
 		CExpression *pexprRight = CTestUtils::PexprLogicalGet(mp);
-
-		CDrvdPropRelational *pdprelRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive());
-		CColRef *pcrRight = pdprelRight->PcrsOutput()->PcrAny();
+		CColRef *pcrRight = pexprRight->DeriveOutputColumns()->PcrAny();
 		
 		CExpression *pexprPred = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 		

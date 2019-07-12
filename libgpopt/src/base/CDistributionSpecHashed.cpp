@@ -619,7 +619,7 @@ CDistributionSpecHashed::ComputeEquivHashExprs
 			// there is only one colref in the set
 			const CColRef *distribution_colref = distribution_expr_cols->PcrAny();
 			GPOS_ASSERT(NULL != distribution_colref);
-			CColRefSet *equiv_cols = expression_handle.GetRelationalProperties()->Ppc()->PcrsEquivClass(distribution_colref);
+			CColRefSet *equiv_cols = expression_handle.DerivePropertyConstraint()->PcrsEquivClass(distribution_colref);
 			// if there are equivalent columns, then we have a chance to create equivalent distribution exprs
 			if (NULL != equiv_cols)
 			{

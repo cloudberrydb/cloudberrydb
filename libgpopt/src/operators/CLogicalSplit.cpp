@@ -183,14 +183,14 @@ CLogicalSplit::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSplit::PcrsDeriveOutput
+//		CLogicalSplit::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalSplit::PcrsDeriveOutput
+CLogicalSplit::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -199,7 +199,7 @@ CLogicalSplit::PcrsDeriveOutput
 	GPOS_ASSERT(2 == exprhdl.Arity());
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	pcrs->Union(exprhdl.GetRelationalProperties(0)->PcrsOutput());
+	pcrs->Union(exprhdl.DeriveOutputColumns(0));
 	pcrs->Include(m_pcrAction);
 	
 	if (NULL != m_pcrTupleOid)
@@ -220,7 +220,7 @@ CLogicalSplit::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalSplit::PkcDeriveKeys
+CLogicalSplit::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -233,14 +233,14 @@ CLogicalSplit::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSplit::Maxcard
+//		CLogicalSplit::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalSplit::Maxcard
+CLogicalSplit::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -248,7 +248,7 @@ CLogicalSplit::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

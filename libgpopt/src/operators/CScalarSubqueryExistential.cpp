@@ -88,7 +88,7 @@ CScalarSubqueryExistential::Matches
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSubqueryExistential::PpartinfoDerive
+//		CScalarSubqueryExistential::DerivePartitionInfo
 //
 //	@doc:
 //		Derive partition consumers
@@ -102,7 +102,7 @@ CScalarSubqueryExistential::PpartinfoDerive
 	)
 	const
 {
-	CPartInfo *ppartinfoChild = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
+	CPartInfo *ppartinfoChild = exprhdl.DerivePartitionInfo(0);
 	GPOS_ASSERT(NULL != ppartinfoChild);
 	ppartinfoChild->AddRef();
 	return ppartinfoChild;

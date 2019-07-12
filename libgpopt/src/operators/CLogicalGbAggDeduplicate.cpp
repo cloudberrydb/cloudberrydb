@@ -177,7 +177,7 @@ CLogicalGbAggDeduplicate::HashValue() const
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalGbAggDeduplicate::PkcDeriveKeys
+CLogicalGbAggDeduplicate::DeriveKeyCollection
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl

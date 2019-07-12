@@ -94,8 +94,8 @@ CXformUnnestTVF::PdrgpcrSubqueries
 	CExpression *pexprProject = (*pexprCTEProd)[0];
 	GPOS_ASSERT(COperator::EopLogicalProject == pexprProject->Pop()->Eopid());
 
-	CColRefArray *pdrgpcrProdOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
-	CColRefArray *pdrgpcrConsOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTECons->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrProdOutput = pexprCTEProd->DeriveOutputColumns()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrConsOutput = pexprCTECons->DeriveOutputColumns()->Pdrgpcr(mp);
 	GPOS_ASSERT(pdrgpcrProdOutput->Size() == pdrgpcrConsOutput->Size());
 
 	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
@@ -222,7 +222,7 @@ CXformUnnestTVF::Transform
 	pexprProject->Release();
 
 	// create CTE consumer
-	CColRefArray *pdrgpcrProducerOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrProducerOutput = pexprCTEProd->DeriveOutputColumns()->Pdrgpcr(mp);
 	CColRefArray *pdrgpcrConsumerOutput = CUtils::PdrgpcrCopy(mp, pdrgpcrProducerOutput);
 	CLogicalCTEConsumer *popConsumer = GPOS_NEW(mp) CLogicalCTEConsumer(mp, ulCTEId, pdrgpcrConsumerOutput);
 	CExpression *pexprCTECons = GPOS_NEW(mp) CExpression(mp, popConsumer);

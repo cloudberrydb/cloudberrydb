@@ -21,21 +21,21 @@ using namespace gpopt;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftSemiApply::Maxcard
+//		CLogicalLeftSemiApply::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLeftSemiApply::Maxcard
+CLogicalLeftSemiApply::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.DeriveMaxCard(0));
 }
 
 //---------------------------------------------------------------------------
@@ -65,14 +65,14 @@ CLogicalLeftSemiApply::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftSemiApply::PcrsDeriveOutput
+//		CLogicalLeftSemiApply::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalLeftSemiApply::PcrsDeriveOutput
+CLogicalLeftSemiApply::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

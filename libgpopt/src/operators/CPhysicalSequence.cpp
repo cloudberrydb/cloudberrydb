@@ -204,7 +204,7 @@ CPhysicalSequence::FProvidesReqdCols
 	ULONG arity = exprhdl.Arity();
 	GPOS_ASSERT(0 < arity);
 	
-	CColRefSet *pcrsChild = exprhdl.GetRelationalProperties(arity - 1)->PcrsOutput();
+	CColRefSet *pcrsChild = exprhdl.DeriveOutputColumns(arity - 1);
 
 	return pcrsChild->ContainsAll(pcrsRequired);
 }

@@ -172,7 +172,7 @@ CPhysicalNLJoin::PcrsRequired
 	// so we can use the outer refs of the inner child as required from outer child
 	if (0 == child_index)
 	{
-		CColRefSet *outer_refs = exprhdl.GetRelationalProperties(1)->PcrsOuter();
+		CColRefSet *outer_refs = exprhdl.DeriveOuterReferences(1);
 		pcrs->Include(outer_refs);
 	}
 

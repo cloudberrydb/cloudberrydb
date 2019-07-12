@@ -377,7 +377,7 @@ COptimizationContext::FOptimizeNLJoin
 	// columns and columns to be generated from inner child
 	CPhysicalNLJoin *popNLJoin = CPhysicalNLJoin::PopConvert(pop);
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, popNLJoin->PdrgPcrInner());
-	CColRefSet *pcrsOuterChild = CDrvdPropRelational::GetRelationalProperties((*pgexprJoin)[0]->Pdp())->PcrsOutput();
+	CColRefSet *pcrsOuterChild = CDrvdPropRelational::GetRelationalProperties((*pgexprJoin)[0]->Pdp())->GetOutputColumns();
 	pcrs->Include(pcrsOuterChild);
 	BOOL fIncluded = pcrs->ContainsAll(poc->Prpp()->PcrsRequired());
 	pcrs->Release();
@@ -443,7 +443,7 @@ COptimizationContext::PrppCTEProducer
 		return NULL;
 	}
 
-	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties((*pgexpr)[1]->Pdp())->PcrsOutput();
+	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties((*pgexpr)[1]->Pdp())->GetOutputColumns();
 	CPhysicalCTEProducer *popProducer = CPhysicalCTEProducer::PopConvert(pccProducer->Pgexpr()->Pop());
 	UlongToColRefMap *colref_mapping = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PhmulcrConsumerToProducer(mp, popProducer->UlCTEId(), pcrsInnerOutput, popProducer->Pdrgpcr());
 	CReqdPropPlan *prppProducer = CReqdPropPlan::PrppRemap(mp, pocProducer->Prpp(), pccConsumer->Pdpplan(), colref_mapping);

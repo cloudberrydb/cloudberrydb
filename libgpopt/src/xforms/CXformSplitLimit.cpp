@@ -61,7 +61,7 @@ CXformSplitLimit::Exfp
 	)
 	const
 {
-	if (0 < exprhdl.GetRelationalProperties()->PcrsOuter()->Size())
+	if (0 < exprhdl.DeriveOuterReferences()->Size())
 	{
 		return CXform::ExfpNone;
 	}
@@ -106,11 +106,8 @@ CXformSplitLimit::Transform
 	CExpression *pexprScalarRows = (*pexpr)[2];
 	COrderSpec *pos = popLimit->Pos();
 
-	// get relational properties
-	CDrvdPropRelational *pdprel = pexprRelational->GetDrvdPropRelational();
-
 	// TODO: , Feb 20, 2012, we currently only split limit with offset 0.
-	if (!CUtils::FHasZeroOffset(pexpr) || 0 < pdprel->PcrsOuter()->Size())
+	if (!CUtils::FHasZeroOffset(pexpr) || 0 < pexprRelational->DeriveOuterReferences()->Size())
 	{
 		return;
 	}

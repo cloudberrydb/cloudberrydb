@@ -107,7 +107,7 @@ namespace gpopt
 			}
 
 			// accessors
-			CColRefSet *PcrsOutput() const
+			CColRefSet *DeriveOutputColumns() const
 			{
 				return m_pcrsOutput;
 			}

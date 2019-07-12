@@ -57,7 +57,7 @@ CLogicalLeftAntiSemiJoin::MaxCard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 
@@ -91,14 +91,14 @@ CLogicalLeftAntiSemiJoin::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftAntiSemiJoin::PcrsDeriveOutput
+//		CLogicalLeftAntiSemiJoin::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalLeftAntiSemiJoin::PcrsDeriveOutput
+CLogicalLeftAntiSemiJoin::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -119,7 +119,7 @@ CLogicalLeftAntiSemiJoin::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalLeftAntiSemiJoin::PkcDeriveKeys
+CLogicalLeftAntiSemiJoin::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

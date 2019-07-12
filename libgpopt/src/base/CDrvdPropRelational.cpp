@@ -34,8 +34,12 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CDrvdPropRelational::CDrvdPropRelational
-	()
+	(
+	CMemoryPool *mp
+	)
 	:
+	m_mp(mp),
+	m_is_prop_derived(NULL),
 	m_pcrsOutput(NULL),
 	m_pcrsOuter(NULL),
 	m_pcrsNotNull(NULL),
@@ -46,8 +50,10 @@ CDrvdPropRelational::CDrvdPropRelational
 	m_ppartinfo(NULL),
 	m_ppc(NULL),
 	m_pfp(NULL),
-	m_fHasPartialIndexes(false)
-{}
+	m_is_complete(false)
+{
+	m_is_prop_derived = GPOS_NEW(mp) CBitSet(mp, EdptSentinel);
+}
 
 
 //---------------------------------------------------------------------------
@@ -63,6 +69,7 @@ CDrvdPropRelational::~CDrvdPropRelational()
 	{
 		CAutoSuspendAbort asa;
 
+		CRefCount::SafeRelease(m_is_prop_derived);
 		CRefCount::SafeRelease(m_pcrsOutput);
 		CRefCount::SafeRelease(m_pcrsOuter);
 		CRefCount::SafeRelease(m_pcrsNotNull);
@@ -81,82 +88,57 @@ CDrvdPropRelational::~CDrvdPropRelational()
 //		CDrvdPropRelational::Derive
 //
 //	@doc:
-//		Derive relational props
+//		Derive relational props. This derives ALL properties
 //
 //---------------------------------------------------------------------------
 void
 CDrvdPropRelational::Derive
 	(
-	CMemoryPool *mp,
+	CMemoryPool *, //mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * // pdpctxt
 	)
 {
 	GPOS_CHECK_ABORT;
 
-	CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
-
 	// call output derivation function on the operator
-	m_pcrsOutput = popLogical->PcrsDeriveOutput(mp, exprhdl);
+	DeriveOutputColumns(exprhdl);
 
 	// derive outer-references
-	m_pcrsOuter = popLogical->PcrsDeriveOuter(mp, exprhdl);
+	DeriveOuterReferences(exprhdl);
 	
 	// derive not null columns
-	m_pcrsNotNull = popLogical->PcrsDeriveNotNull(mp, exprhdl);
+	DeriveNotNullColumns(exprhdl);
 
 	// derive correlated apply columns
-	m_pcrsCorrelatedApply = popLogical->PcrsDeriveCorrelatedApply(mp, exprhdl);
-
-	// derive keys
-	m_pkc = popLogical->PkcDeriveKeys(mp, exprhdl);
+	DeriveCorrelatedApplyColumns(exprhdl);
 	
 	// derive constraint
-	m_ppc = popLogical->PpcDeriveConstraint(mp, exprhdl);
+	DerivePropertyConstraint(exprhdl);
 
 	// compute max card
-	m_maxcard = popLogical->Maxcard(mp, exprhdl);
+	DeriveMaxCard(exprhdl);
+
+	// derive keys
+	DeriveKeyCollection(exprhdl);
 	
 	// derive join depth
-	m_ulJoinDepth = popLogical->JoinDepth(mp, exprhdl);
+	DeriveJoinDepth(exprhdl);
 
 	// derive function properties
-	m_pfp = popLogical->PfpDerive(mp, exprhdl);
-
-	// no key but only one row implies a key
-	if (!FHasKey() && 1 == m_maxcard)
-	{
-		GPOS_ASSERT(NULL == m_pkc);
-		
-		if (0 < m_pcrsOutput->Size())
-		{
-			m_pcrsOutput->AddRef();
-			m_pkc = GPOS_NEW(mp) CKeyCollection(mp, m_pcrsOutput);
-		}
-	}
+	DeriveFunctionProperties(exprhdl);
 
 	// derive functional dependencies
-	m_pdrgpfd = Pdrgpfd(mp, exprhdl);
+	DeriveFunctionalDependencies(exprhdl);
 	
 	// derive partition consumers
-	m_ppartinfo = popLogical->PpartinfoDerive(mp, exprhdl);
+	DerivePartitionInfo(exprhdl);
 	GPOS_ASSERT(NULL != m_ppartinfo);
 
-	COperator::EOperatorId op_id = popLogical->Eopid();
+	DeriveHasPartialIndexes(exprhdl);
 
-	// determine if it is a dynamic get (with or without a select above it) with partial indexes
-	if (COperator::EopLogicalDynamicGet == op_id)
-	{
-		m_fHasPartialIndexes =
-				CLogicalDynamicGet::PopConvert(popLogical)->Ptabdesc()->FHasPartialIndexes();
-	}
-	else if (COperator::EopLogicalSelect == op_id)
-	{
-		m_fHasPartialIndexes =
-				exprhdl.GetRelationalProperties(0 /*child_index*/)->FHasPartialIndexes();
-	}
+	m_is_complete = true;
 }
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -176,7 +158,7 @@ CDrvdPropRelational::FSatisfies
 	GPOS_ASSERT(NULL != prpp);
 	GPOS_ASSERT(NULL != prpp->PcrsRequired());
 
-	BOOL fSatisfies = PcrsOutput()->ContainsAll(prpp->PcrsRequired());
+	BOOL fSatisfies = GetOutputColumns()->ContainsAll(prpp->PcrsRequired());
 
 	return fSatisfies;
 }
@@ -198,7 +180,6 @@ CDrvdPropRelational::GetRelationalProperties
 {
 	GPOS_ASSERT(NULL != pdp);
 	GPOS_ASSERT(EptRelational == pdp->Ept() && "This is not a relational properties container");
-
 	return dynamic_cast<CDrvdPropRelational*>(pdp);
 }
 
@@ -212,7 +193,7 @@ CDrvdPropRelational::GetRelationalProperties
 //
 //---------------------------------------------------------------------------
 CFunctionalDependencyArray *
-CDrvdPropRelational::PdrgpfdChild
+CDrvdPropRelational::DeriveChildFunctionalDependencies
 	(
 	CMemoryPool *mp,
 	ULONG child_index,
@@ -223,10 +204,10 @@ CDrvdPropRelational::PdrgpfdChild
 	GPOS_ASSERT(!exprhdl.FScalarChild(child_index));
 
 	// get FD's of the child
-	CFunctionalDependencyArray *pdrgpfdChild = exprhdl.GetRelationalProperties(child_index)->Pdrgpfd();
+	CFunctionalDependencyArray *pdrgpfdChild = exprhdl.Pdrgpfd(child_index);
 
 	// get output columns of the parent
-	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->PcrsOutput();
+	CColRefSet *pcrsOutput = exprhdl.DeriveOutputColumns();
 
 	// collect child FD's that are applicable to the parent
 	CFunctionalDependencyArray *pdrgpfd = GPOS_NEW(mp) CFunctionalDependencyArray(mp);
@@ -268,7 +249,7 @@ CDrvdPropRelational::PdrgpfdChild
 //
 //---------------------------------------------------------------------------
 CFunctionalDependencyArray *
-CDrvdPropRelational::PdrgpfdLocal
+CDrvdPropRelational::DeriveLocalFunctionalDependencies
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -277,7 +258,7 @@ CDrvdPropRelational::PdrgpfdLocal
 	CFunctionalDependencyArray *pdrgpfd = GPOS_NEW(mp) CFunctionalDependencyArray(mp);
 
 	// get local key
-	CKeyCollection *pkc = CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Pkc();
+	CKeyCollection *pkc = exprhdl.DeriveKeyCollection();
 	
 	if (NULL == pkc)
 	{
@@ -292,7 +273,7 @@ CDrvdPropRelational::PdrgpfdLocal
 		pcrsKey->Include(pdrgpcrKey);
 
 		// get output columns
-		CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->PcrsOutput();
+		CColRefSet *pcrsOutput = exprhdl.DeriveOutputColumns();
 		CColRefSet *pcrsDetermined = GPOS_NEW(mp) CColRefSet(mp);
 		pcrsDetermined->Include(pcrsOutput);
 		pcrsDetermined->Exclude(pcrsKey);
@@ -317,45 +298,6 @@ CDrvdPropRelational::PdrgpfdLocal
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDrvdPropRelational::Pdrgpfd
-//
-//	@doc:
-//		Helper for deriving functional dependencies
-//
-//---------------------------------------------------------------------------
-CFunctionalDependencyArray *
-CDrvdPropRelational::Pdrgpfd
-	(
-	CMemoryPool *mp,
-	CExpressionHandle &exprhdl
-	)
-{
-	GPOS_ASSERT(exprhdl.Pop()->FLogical());
-
-	CFunctionalDependencyArray *pdrgpfd = GPOS_NEW(mp) CFunctionalDependencyArray(mp);
-	const ULONG arity = exprhdl.Arity();
-
-	// collect applicable FD's from logical children
-	for (ULONG ul = 0; ul < arity; ul++)
-	{
-		if (!exprhdl.FScalarChild(ul))
-		{
-			CFunctionalDependencyArray *pdrgpfdChild = PdrgpfdChild(mp, ul, exprhdl);
-			CUtils::AddRefAppend<CFunctionalDependency, CleanupRelease>(pdrgpfd, pdrgpfdChild);
-			pdrgpfdChild->Release();
-		}
-	}
-	// add local FD's
-	CFunctionalDependencyArray *pdrgpfdLocal = PdrgpfdLocal(mp, exprhdl);
-	CUtils::AddRefAppend<CFunctionalDependency, CleanupRelease>(pdrgpfd, pdrgpfdLocal);
-	pdrgpfdLocal->Release();
-
-	return pdrgpfd;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CDrvdPropRelational::OsPrint
 //
 //	@doc:
@@ -369,41 +311,41 @@ CDrvdPropRelational::OsPrint
 	)
 	const
 {
-	os	<<	"Output Cols: [" << *PcrsOutput() << "]"
-		<<	", Outer Refs: [" << *m_pcrsOuter << "]"
-		<<	", Not Null Cols: [" << *m_pcrsNotNull << "]"
-		<< ", Corr. Apply Cols: [" << *m_pcrsCorrelatedApply <<"]";
+	os	<<	"Output Cols: [" << *GetOutputColumns() << "]"
+		<<	", Outer Refs: [" << *GetOuterReferences() << "]"
+		<<	", Not Null Cols: [" << *GetNotNullColumns() << "]"
+		<< ", Corr. Apply Cols: [" << *GetCorrelatedApplyColumns() <<"]";
 
-	if (NULL == m_pkc)
+	if (NULL == GetKeyCollection())
 	{
 		os << ", Keys: []";
 	}
 	else
 	{
-		os << ", " << *m_pkc;
+		os << ", " << *GetKeyCollection();
 	}
 	
-	os << ", Max Card: " << m_maxcard;
+	os << ", Max Card: " << GetMaxCard();
 
-	os << ", Join Depth: " << m_ulJoinDepth;
+	os << ", Join Depth: " << GetJoinDepth();
 
-	os << ", Constraint Property: [" << *m_ppc << "]";
+	os << ", Constraint Property: [" << *GetPropertyConstraint() << "]";
 
-	const ULONG ulFDs = m_pdrgpfd->Size();
+	const ULONG ulFDs = GetFunctionalDependencies()->Size();
 	
 	os << ", FDs: [";
 	for (ULONG ul = 0; ul < ulFDs; ul++)
 	{
-		CFunctionalDependency *pfd = (*m_pdrgpfd)[ul];
+		CFunctionalDependency *pfd = (*GetFunctionalDependencies())[ul];
 		os << *pfd;
 	}
 	os << "]";
 	
-	os << ", Function Properties: [" << *m_pfp << "]";
+	os << ", Function Properties: [" << *GetFunctionProperties() << "]";
 
-	os << ", Part Info: [" << *m_ppartinfo << "]";
+	os << ", Part Info: [" << *GetPartitionInfo() << "]";
 
-	if (m_fHasPartialIndexes)
+	if (HasPartialIndexes())
 	{
 		os <<", Has Partial Indexes";
 	}
@@ -412,93 +354,286 @@ CDrvdPropRelational::OsPrint
 
 // output columns
 CColRefSet *
-CDrvdPropRelational::PcrsOutput() const
+CDrvdPropRelational::GetOutputColumns() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pcrsOutput;
+}
+
+// output columns
+CColRefSet *
+CDrvdPropRelational::DeriveOutputColumns(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPcrsOutput))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pcrsOutput = popLogical->DeriveOutputColumns(m_mp, exprhdl);
+	}
+
 	return m_pcrsOutput;
 }
 
 // outer references
 CColRefSet *
-CDrvdPropRelational::PcrsOuter() const
+CDrvdPropRelational::GetOuterReferences() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pcrsOuter;
+}
+
+// outer references
+CColRefSet *
+CDrvdPropRelational::DeriveOuterReferences(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPcrsOuter))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pcrsOuter = popLogical->DeriveOuterReferences(m_mp, exprhdl);
+	}
+
 	return m_pcrsOuter;
 }
 
 // nullable columns
 CColRefSet *
-CDrvdPropRelational::PcrsNotNull() const
+CDrvdPropRelational::GetNotNullColumns() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pcrsNotNull;
+}
+
+CColRefSet *
+CDrvdPropRelational::DeriveNotNullColumns(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPcrsNotNull))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pcrsNotNull = popLogical->DeriveNotNullColumns(m_mp, exprhdl);
+	}
+
 	return m_pcrsNotNull;
 }
 
 // columns from the inner child of a correlated-apply expression that can be used above the apply expression
 CColRefSet *
-CDrvdPropRelational::PcrsCorrelatedApply() const
+CDrvdPropRelational::GetCorrelatedApplyColumns() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pcrsCorrelatedApply;
+}
+
+CColRefSet *
+CDrvdPropRelational::DeriveCorrelatedApplyColumns(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPcrsCorrelatedApply))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pcrsCorrelatedApply = popLogical->DeriveCorrelatedApplyColumns(m_mp, exprhdl);
+	}
+
 	return m_pcrsCorrelatedApply;
 }
 
 // key collection
 CKeyCollection *
-CDrvdPropRelational::Pkc() const
+CDrvdPropRelational::GetKeyCollection() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pkc;
+}
+
+CKeyCollection *
+CDrvdPropRelational::DeriveKeyCollection(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPkc))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pkc = popLogical->DeriveKeyCollection(m_mp, exprhdl);
+
+		if (NULL == m_pkc && 1 == DeriveMaxCard(exprhdl))
+		{
+			m_pcrsOutput = DeriveOutputColumns(exprhdl);
+
+			if (0 < m_pcrsOutput->Size())
+			{
+				m_pcrsOutput->AddRef();
+				m_pkc = GPOS_NEW(m_mp) CKeyCollection(m_mp, m_pcrsOutput);
+			}
+		}
+	}
+
 	return m_pkc;
 }
 
 // functional dependencies
 CFunctionalDependencyArray *
-CDrvdPropRelational::Pdrgpfd() const
+CDrvdPropRelational::GetFunctionalDependencies() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
 	return m_pdrgpfd;
 }
 
-// check if relation has a key
-BOOL
-CDrvdPropRelational::FHasKey() const
+CFunctionalDependencyArray *
+CDrvdPropRelational::DeriveFunctionalDependencies(CExpressionHandle &exprhdl)
 {
-	return NULL != m_pkc;
+	if (!m_is_prop_derived->ExchangeSet(EdptPdrgpfd))
+	{
+		CFunctionalDependencyArray *pdrgpfd = GPOS_NEW(m_mp) CFunctionalDependencyArray(m_mp);
+		const ULONG arity = exprhdl.Arity();
+
+		// collect applicable FD's from logical children
+		for (ULONG ul = 0; ul < arity; ul++)
+		{
+			if (!exprhdl.FScalarChild(ul))
+			{
+				CFunctionalDependencyArray *pdrgpfdChild = DeriveChildFunctionalDependencies(m_mp, ul, exprhdl);
+				CUtils::AddRefAppend<CFunctionalDependency, CleanupRelease>(pdrgpfd, pdrgpfdChild);
+				pdrgpfdChild->Release();
+			}
+		}
+		// add local FD's
+		CFunctionalDependencyArray *pdrgpfdLocal = DeriveLocalFunctionalDependencies(m_mp, exprhdl);
+		CUtils::AddRefAppend<CFunctionalDependency, CleanupRelease>(pdrgpfd, pdrgpfdLocal);
+		pdrgpfdLocal->Release();
+
+		m_pdrgpfd = pdrgpfd;
+	}
+
+	return m_pdrgpfd;
 }
 
 // max cardinality
 CMaxCard
-CDrvdPropRelational::Maxcard() const
+CDrvdPropRelational::GetMaxCard() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_maxcard;
+}
+
+CMaxCard
+CDrvdPropRelational::DeriveMaxCard(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptMaxCard))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_maxcard = popLogical->DeriveMaxCard(m_mp, exprhdl);
+	}
+
 	return m_maxcard;
 }
 
 // join depth
 ULONG
-CDrvdPropRelational::JoinDepth() const
+CDrvdPropRelational::GetJoinDepth() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_ulJoinDepth;
+}
+
+ULONG
+CDrvdPropRelational::DeriveJoinDepth(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptJoinDepth))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_ulJoinDepth = popLogical->DeriveJoinDepth(m_mp, exprhdl);
+	}
+
 	return m_ulJoinDepth;
 }
 
 // partition consumers
 CPartInfo *
-CDrvdPropRelational::Ppartinfo() const
+CDrvdPropRelational::GetPartitionInfo() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_ppartinfo;
+}
+
+CPartInfo *
+CDrvdPropRelational::DerivePartitionInfo(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPpartinfo))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_ppartinfo = popLogical->DerivePartitionInfo(m_mp, exprhdl);
+
+		GPOS_ASSERT(NULL != m_ppartinfo);
+	}
+
 	return m_ppartinfo;
 }
 
 // constraint property
 CPropConstraint *
-CDrvdPropRelational::Ppc() const
+CDrvdPropRelational::GetPropertyConstraint() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_ppc;
+}
+
+CPropConstraint *
+CDrvdPropRelational::DerivePropertyConstraint(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPpc))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_ppc = popLogical->DerivePropertyConstraint(m_mp, exprhdl);
+	}
+
 	return m_ppc;
 }
 
 // function properties
 CFunctionProp *
-CDrvdPropRelational::Pfp() const
+CDrvdPropRelational::GetFunctionProperties() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
+	return m_pfp;
+}
+
+CFunctionProp *
+CDrvdPropRelational::DeriveFunctionProperties(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptPfp))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		m_pfp = popLogical->DeriveFunctionProperties(m_mp, exprhdl);
+	}
+
 	return m_pfp;
 }
 
 // has partial indexes
 BOOL
-CDrvdPropRelational::FHasPartialIndexes() const
+CDrvdPropRelational::HasPartialIndexes() const
 {
+	GPOS_RTL_ASSERT(IsComplete());
 	return m_fHasPartialIndexes;
 }
 
+BOOL
+CDrvdPropRelational::DeriveHasPartialIndexes(CExpressionHandle &exprhdl)
+{
+	if (!m_is_prop_derived->ExchangeSet(EdptFHasPartialIndexes))
+	{
+		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
+		COperator::EOperatorId op_id = popLogical->Eopid();
+
+
+		// determine if it is a dynamic get (with or without a select above it) with partial indexes
+		if (COperator::EopLogicalDynamicGet == op_id)
+		{
+			m_fHasPartialIndexes =
+					CLogicalDynamicGet::PopConvert(popLogical)->Ptabdesc()->HasPartialIndexes();
+		}
+		else if (COperator::EopLogicalSelect == op_id)
+		{
+			m_fHasPartialIndexes = exprhdl.DeriveHasPartialIndexes(0);
+		}
+
+	}
+
+	return m_fHasPartialIndexes;
+}
 // EOF

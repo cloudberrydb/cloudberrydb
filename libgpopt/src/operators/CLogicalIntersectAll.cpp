@@ -72,14 +72,14 @@ CLogicalIntersectAll::~CLogicalIntersectAll()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalIntersectAll::Maxcard
+//		CLogicalIntersectAll::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalIntersectAll::Maxcard
+CLogicalIntersectAll::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -87,13 +87,13 @@ CLogicalIntersectAll::Maxcard
 	const
 {
 	// contradictions produce no rows
-	if (CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
+	if (exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}
 
-	CMaxCard maxcardL = exprhdl.GetRelationalProperties(0)->Maxcard();
-	CMaxCard maxcardR = exprhdl.GetRelationalProperties(1)->Maxcard();
+	CMaxCard maxcardL = exprhdl.DeriveMaxCard(0);
+	CMaxCard maxcardR = exprhdl.DeriveMaxCard(1);
 
 	if (maxcardL <= maxcardR)
 	{
@@ -134,7 +134,7 @@ CLogicalIntersectAll::PopCopyWithRemappedColumns
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalIntersectAll::PkcDeriveKeys
+CLogicalIntersectAll::DeriveKeyCollection
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -193,7 +193,7 @@ CLogicalIntersectAll::PstatsDerive
 
 	// TODO:  Jan 8th 2012, add the stats for window operation
 	CExpression *pexprScCond = CUtils::PexprConjINDFCond(mp, pdrgpdrgpcrInput);
-	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 	CStatsPredJoinArray *join_preds_stats = CStatsPredUtils::ExtractJoinStatsFromExpr
 														(
 														mp, 

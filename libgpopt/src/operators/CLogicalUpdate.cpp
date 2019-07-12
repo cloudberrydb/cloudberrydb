@@ -188,14 +188,14 @@ CLogicalUpdate::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalUpdate::PcrsDeriveOutput
+//		CLogicalUpdate::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalUpdate::PcrsDeriveOutput
+CLogicalUpdate::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
@@ -222,7 +222,7 @@ CLogicalUpdate::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalUpdate::PkcDeriveKeys
+CLogicalUpdate::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -234,14 +234,14 @@ CLogicalUpdate::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalUpdate::Maxcard
+//		CLogicalUpdate::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalUpdate::Maxcard
+CLogicalUpdate::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -249,7 +249,7 @@ CLogicalUpdate::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

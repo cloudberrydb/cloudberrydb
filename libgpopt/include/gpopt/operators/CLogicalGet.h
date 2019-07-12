@@ -147,15 +147,15 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(CMemoryPool *mp, CExpressionHandle &exprhdl);
+			CColRefSet *DeriveOutputColumns(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive not nullable output columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CColRefSet *DeriveNotNullColumns(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive
+			CPartInfo *DerivePartitionInfo
 				(
 				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
@@ -167,7 +167,7 @@ namespace gpopt
 			
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint
+			CPropConstraint *DerivePropertyConstraint
 				(
 				CMemoryPool *mp,
 				CExpressionHandle & // exprhdl
@@ -179,7 +179,7 @@ namespace gpopt
 
 			// derive join depth
 			virtual
-			ULONG JoinDepth
+			ULONG DeriveJoinDepth
 				(
 				CMemoryPool *, // mp
 				CExpressionHandle & // exprhdl
@@ -218,7 +218,7 @@ namespace gpopt
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive statistics
 			virtual

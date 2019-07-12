@@ -29,7 +29,7 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalLeftAntiSemiApply::PkcDeriveKeys
+CLogicalLeftAntiSemiApply::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -42,14 +42,14 @@ CLogicalLeftAntiSemiApply::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalLeftAntiSemiApply::Maxcard
+//		CLogicalLeftAntiSemiApply::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalLeftAntiSemiApply::Maxcard
+CLogicalLeftAntiSemiApply::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -57,7 +57,7 @@ CLogicalLeftAntiSemiApply::Maxcard
 	const
 {
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 

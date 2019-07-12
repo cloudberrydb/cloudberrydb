@@ -102,7 +102,7 @@ CPredicateUtilsTest::EresUnittest_Conjunctions()
 
 	// conjunction on scalar comparisons
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRef *pcr1 = pcrs->PcrAny();
 	CColRef *pcr2 = pcrs->PcrFirst();
 	CExpression *pexprCmp1 = CUtils::PexprScalarCmp(mp, pcr1, pcr2, IMDType::EcmptEq);
@@ -178,7 +178,7 @@ CPredicateUtilsTest::EresUnittest_Disjunctions()
 
 	// disjunction on scalar comparisons
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrs = pexprGet->DeriveOutputColumns();
 	CColRefSetIter crsi(*pcrs);
 
 #ifdef GPOS_DEBUG
@@ -274,8 +274,8 @@ CPredicateUtilsTest::EresUnittest_PlainEqualities()
 
 	CExpressionArray *pdrgpexprOriginal = GPOS_NEW(mp) CExpressionArray(mp);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprLeft->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprRight->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = pexprLeft->DeriveOutputColumns();
+	CColRefSet *pcrsRight = pexprRight->DeriveOutputColumns();
 
 	CColRef *pcrLeft = pcrsLeft->PcrAny();
 	CColRef *pcrRight = pcrsRight->PcrAny();

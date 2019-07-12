@@ -88,14 +88,14 @@ CLogicalAssert::Matches
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalAssert::PcrsDeriveOutput
+//		CLogicalAssert::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalAssert::PcrsDeriveOutput
+CLogicalAssert::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -114,7 +114,7 @@ CLogicalAssert::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalAssert::PkcDeriveKeys
+CLogicalAssert::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -147,14 +147,14 @@ CLogicalAssert::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalAssert::Maxcard
+//		CLogicalAssert::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalAssert::Maxcard
+CLogicalAssert::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -166,7 +166,7 @@ CLogicalAssert::Maxcard
 	GPOS_ASSERT(NULL != pexprScalar);
 
 	if (CUtils::FScalarConstFalse(pexprScalar) ||
-		CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
+		exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(1 /*ull*/);
 	}
@@ -180,7 +180,7 @@ CLogicalAssert::Maxcard
 	}
 
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 
@@ -201,7 +201,7 @@ CLogicalAssert::PstatsDerive
 	)
 	const
 {
-	CMaxCard maxcard = CLogicalAssert::PopConvert(exprhdl.Pop())->Maxcard(mp, exprhdl);
+	CMaxCard maxcard = CLogicalAssert::PopConvert(exprhdl.Pop())->DeriveMaxCard(mp, exprhdl);
 	if (1 == maxcard.Ull())
 	{
 		// a max card of one requires re-scaling stats

@@ -73,14 +73,14 @@ CLogicalInnerApply::~CLogicalInnerApply()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalInnerApply::Maxcard
+//		CLogicalInnerApply::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalInnerApply::Maxcard
+CLogicalInnerApply::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl

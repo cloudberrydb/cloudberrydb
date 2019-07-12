@@ -47,14 +47,14 @@ CLogicalProject::CLogicalProject
 	
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalProject::PcrsDeriveOutput
+//		CLogicalProject::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalProject::PcrsDeriveOutput
+CLogicalProject::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -65,7 +65,7 @@ CLogicalProject::PcrsDeriveOutput
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	
 	// the scalar child defines additional columns
-	pcrs->Union(exprhdl.GetRelationalProperties(0)->PcrsOutput());
+	pcrs->Union(exprhdl.DeriveOutputColumns(0));
 	pcrs->Union(exprhdl.GetDrvdScalarProps(1)->PcrsDefined());
 	
 	return pcrs;
@@ -81,7 +81,7 @@ CLogicalProject::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalProject::PkcDeriveKeys
+CLogicalProject::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -211,14 +211,14 @@ CLogicalProject::ExtractConstraintFromScConst
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalProject::PpcDeriveConstraint
+//		CLogicalProject::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive constraint property
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalProject::PpcDeriveConstraint
+CLogicalProject::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -248,7 +248,7 @@ CLogicalProject::PpcDeriveConstraint
 		}
 		else
 		{
-			CColRefSet *not_null_columns = exprhdl.GetRelationalProperties(0 /*ulChild*/)->PcrsNotNull();
+			CColRefSet *not_null_columns = exprhdl.DeriveNotNullColumns(0 /*ulChild*/);
 			CColRefSetArray *pdrgpcrsChild = PdrgpcrsEquivClassFromScIdent(mp, pexprPrEl, not_null_columns);
 
 			if (NULL != pdrgpcrsChild)
@@ -273,7 +273,7 @@ CLogicalProject::PpcDeriveConstraint
 		return PpcDeriveConstraintPassThru(exprhdl, 0 /*ulChild*/);
 	}
 
-	CPropConstraint *ppcChild = exprhdl.GetRelationalProperties(0 /*ulChild*/)->Ppc();
+	CPropConstraint *ppcChild = exprhdl.DerivePropertyConstraint(0 /* ulChild */);
 
 	// equivalence classes coming from child
 	CColRefSetArray *pdrgpcrsChild = ppcChild->PdrgpcrsEquivClasses();
@@ -303,14 +303,14 @@ CLogicalProject::PpcDeriveConstraint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalProject::Maxcard
+//		CLogicalProject::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalProject::Maxcard
+CLogicalProject::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -324,7 +324,7 @@ CLogicalProject::Maxcard
 	}
 
 	// pass on max card of first child
-	return exprhdl.GetRelationalProperties(0)->Maxcard();
+	return exprhdl.DeriveMaxCard(0);
 }
 
 //---------------------------------------------------------------------------

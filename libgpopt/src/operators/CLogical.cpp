@@ -228,7 +228,7 @@ CLogical::PcrsDeriveOutputPassThru
 	// may have additional children that are ignored, e.g., scalar children
 	GPOS_ASSERT(1 <= exprhdl.Arity());
 	
-	CColRefSet *pcrs = exprhdl.GetRelationalProperties(0)->PcrsOutput();
+	CColRefSet *pcrs = exprhdl.DeriveOutputColumns(0);
 	pcrs->AddRef();
 	
 	return pcrs;
@@ -253,7 +253,7 @@ CLogical::PcrsDeriveNotNullPassThruOuter
 	// may have additional children that are ignored, e.g., scalar children
 	GPOS_ASSERT(1 <= exprhdl.Arity());
 
-	CColRefSet *pcrs = exprhdl.GetRelationalProperties(0)->PcrsNotNull();
+	CColRefSet *pcrs = exprhdl.DeriveNotNullColumns(0);
 	pcrs->AddRef();
 
 	return pcrs;
@@ -282,7 +282,7 @@ CLogical::PcrsDeriveOutputCombineLogical
 	ULONG arity = exprhdl.Arity();
 	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
-		CColRefSet *pcrsChild = exprhdl.GetRelationalProperties(ul)->PcrsOutput();
+		CColRefSet *pcrsChild = exprhdl.DeriveOutputColumns(ul);
 		GPOS_ASSERT(pcrs->IsDisjoint(pcrsChild) && "Input columns are not disjoint");
 
 		pcrs->Union(pcrsChild);
@@ -314,7 +314,7 @@ CLogical::PcrsDeriveNotNullCombineLogical
 	ULONG arity = exprhdl.Arity();
 	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
-		CColRefSet *pcrsChild = exprhdl.GetRelationalProperties(ul)->PcrsNotNull();
+		CColRefSet *pcrsChild = exprhdl.DeriveNotNullColumns(ul);
 		GPOS_ASSERT(pcrs->IsDisjoint(pcrsChild) && "Input columns are not disjoint");
 
 		pcrs->Union(pcrsChild);
@@ -337,7 +337,7 @@ CLogical::PpartinfoPassThruOuter
 	CExpressionHandle &exprhdl
 	)
 {
-	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.DerivePartitionInfo(0);
 	GPOS_ASSERT(NULL != ppartinfo);
 	ppartinfo->AddRef();
 	return ppartinfo;
@@ -363,7 +363,7 @@ CLogical::PkcCombineKeys
 	const ULONG arity = exprhdl.Arity();
 	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
-		CKeyCollection *pkc = exprhdl.GetRelationalProperties(ul)->Pkc();
+		CKeyCollection *pkc = exprhdl.DeriveKeyCollection(ul);
 		if (NULL == pkc)
 		{
 			// if a child has no key, the operator has no key
@@ -451,7 +451,7 @@ CLogical::PpartinfoDeriveCombine
 		}
 		else
 		{
-			ppartinfoChild = exprhdl.GetRelationalProperties(ul)->Ppartinfo();
+			ppartinfoChild = exprhdl.DerivePartitionInfo(ul);
 		}
 		GPOS_ASSERT(NULL != ppartinfoChild);
 		CPartInfo *ppartinfoCombined = CPartInfo::PpartinfoCombine(mp, ppartinfo, ppartinfoChild);
@@ -464,14 +464,14 @@ CLogical::PpartinfoDeriveCombine
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogical::PcrsDeriveOuter
+//		CLogical::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogical::PcrsDeriveOuter
+CLogical::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl,
@@ -495,11 +495,9 @@ CLogical::PcrsDeriveOuter
 		}
 		else
 		{
-			CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties(i);
-			pcrsOutput->Union(pdprel->PcrsOutput());
-
 			// add outer references from relational children
-			outer_refs->Union(pdprel->PcrsOuter());
+			outer_refs->Union(exprhdl.DeriveOuterReferences(i));
+			pcrsOutput->Union(exprhdl.DeriveOutputColumns(i));
 		}
 	}
 
@@ -536,7 +534,7 @@ CLogical::PcrsDeriveOuterIndexGet
 	ULONG arity = exprhdl.Arity();
 	CColRefSet *outer_refs = GPOS_NEW(mp) CColRefSet(mp);
 
-	CColRefSet *pcrsOutput = PcrsDeriveOutput(mp, exprhdl);
+	CColRefSet *pcrsOutput = DeriveOutputColumns(mp, exprhdl);
 	
 	CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	for (ULONG i = 0; i < arity; i++)
@@ -566,7 +564,7 @@ CLogical::PcrsDeriveOuterIndexGet
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogical::PcrsDeriveCorrelatedApply
+CLogical::DeriveCorrelatedApplyColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -590,7 +588,7 @@ CLogical::PcrsDeriveCorrelatedApply
 		if (!exprhdl.FScalarChild(ul))
 		{
 			CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties(ul);
-			pcrs->Union(pdprel->PcrsCorrelatedApply());
+			pcrs->Union(pdprel->GetCorrelatedApplyColumns());
 		}
 	}
 
@@ -613,7 +611,7 @@ CLogical::PkcDeriveKeysPassThru
 	ULONG ulChild
 	)
 {	
-	CKeyCollection *pkcLeft = exprhdl.GetRelationalProperties(ulChild)->Pkc();
+	CKeyCollection *pkcLeft = exprhdl.GetRelationalProperties(ulChild)->GetKeyCollection();
 	
 	// key collection may be NULL
 	if (NULL != pkcLeft)
@@ -634,7 +632,7 @@ CLogical::PkcDeriveKeysPassThru
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogical::PkcDeriveKeys
+CLogical::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
@@ -695,8 +693,7 @@ CLogical::PpcDeriveConstraintFromPredicates
 		}
 		else
 		{
-			CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties(ul);
-			CPropConstraint *ppc = pdprel->Ppc();
+			CPropConstraint *ppc = exprhdl.DerivePropertyConstraint(ul);
 
 			// equivalence classes coming from child
 			CColRefSetArray *pdrgpcrsChild = ppc->PdrgpcrsEquivClasses();
@@ -889,7 +886,7 @@ CLogical::PpcDeriveConstraintPassThru
 	)
 {
 	// return constraint property of child
-	CPropConstraint *ppc = exprhdl.GetRelationalProperties(ulChild)->Ppc();
+	CPropConstraint *ppc = exprhdl.DerivePropertyConstraint(ulChild);
 	if (NULL != ppc)
 	{
 		ppc->AddRef();
@@ -914,7 +911,7 @@ CLogical::PpcDeriveConstraintRestrict
 	)
 {
 	// constraint property from relational child
-	CPropConstraint *ppc = exprhdl.GetRelationalProperties(0)->Ppc();
+	CPropConstraint *ppc = exprhdl.DerivePropertyConstraint(0);
 	CColRefSetArray *pdrgpcrs = ppc->PdrgpcrsEquivClasses();
 
 	// construct new array of equivalence classes
@@ -972,14 +969,14 @@ CLogical::PpcDeriveConstraintRestrict
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogical::PfpDerive
+//		CLogical::DeriveFunctionProperties
 //
 //	@doc:
 //		Derive function properties
 //
 //---------------------------------------------------------------------------
 CFunctionProp *
-CLogical::PfpDerive
+CLogical::DeriveFunctionProperties
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -1024,14 +1021,14 @@ CLogical::PfpDeriveFromScalar
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogical::Maxcard
+//		CLogical::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogical::Maxcard
+CLogical::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle & // exprhdl
@@ -1045,14 +1042,14 @@ CLogical::Maxcard
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogical::JoinDepth
+//		CLogical::DeriveJoinDepth
 //
 //	@doc:
 //		Derive join depth
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogical::JoinDepth
+CLogical::DeriveJoinDepth
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -1067,7 +1064,7 @@ CLogical::JoinDepth
 	{
 		if (!exprhdl.FScalarChild(ul))
 		{
-			ulDepth = ulDepth + exprhdl.GetRelationalProperties(ul)->JoinDepth();
+			ulDepth = ulDepth + exprhdl.DeriveJoinDepth(ul);
 		}
 	}
 
@@ -1090,12 +1087,12 @@ CLogical::MaxcardDef
 {
 	const ULONG arity = exprhdl.Arity();
 
-	CMaxCard maxcard = exprhdl.GetRelationalProperties(0)->Maxcard();
+	CMaxCard maxcard = exprhdl.DeriveMaxCard(0);
 	for (ULONG ul = 1; ul < arity - 1; ul++)
 	{
 		if (!exprhdl.FScalarChild(ul))
 		{
-			maxcard *= exprhdl.GetRelationalProperties(ul)->Maxcard();
+			maxcard *= exprhdl.DeriveMaxCard(ul);
 		}
 	}
 
@@ -1104,7 +1101,7 @@ CLogical::MaxcardDef
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogical::Maxcard
+//		CLogical::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card given scalar child and constraint property. If a
@@ -1127,7 +1124,7 @@ CLogical::Maxcard
 		( (CUtils::FScalarConstFalse(pexprScalar) &&
 				(COperator::EopLogicalFullOuterJoin != exprhdl.Pop()->Eopid() &&
 						COperator::EopLogicalLeftOuterJoin != exprhdl.Pop()->Eopid()))
-		|| CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction()))
+		|| exprhdl.DerivePropertyConstraint()->FContradiction()))
 	{
 		return CMaxCard(0 /*ull*/);
 	}
@@ -1161,7 +1158,7 @@ CLogical::PcrsReqdChildStats
 	pcrs->Union(pcrsUsed);
 
 	// intersect with the output columns of relational child
-	pcrs->Intersection(exprhdl.GetRelationalProperties(child_index)->PcrsOutput());
+	pcrs->Intersection(exprhdl.DeriveOutputColumns(child_index));
 
 	return pcrs;
 }
@@ -1236,8 +1233,7 @@ CLogical::PstatsBaseTable
 		pcrsHist->Include(pcrsHistExtra);
 	}
 
-	CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties();
-	CColRefSet *pcrsOutput = pdprel->PcrsOutput();
+	CColRefSet *pcrsOutput = exprhdl.DeriveOutputColumns();
 	CColRefSet *pcrsWidth = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsWidth->Include(pcrsOutput);
 	pcrsWidth->Exclude(pcrsHist);
@@ -1338,7 +1334,7 @@ CLogical::PdpCreate
 	)
 	const
 {
-	return GPOS_NEW(mp) CDrvdPropRelational();
+	return GPOS_NEW(mp) CDrvdPropRelational(mp);
 }
 
 

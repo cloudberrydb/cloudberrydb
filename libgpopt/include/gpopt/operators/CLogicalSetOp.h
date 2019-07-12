@@ -152,15 +152,15 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(CMemoryPool *, CExpressionHandle &);
+			CColRefSet *DeriveOutputColumns(CMemoryPool *, CExpressionHandle &);
 			
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(CMemoryPool *mp, CExpressionHandle &exprhdl) const;		
+			CKeyCollection *DeriveKeyCollection(CMemoryPool *mp, CExpressionHandle &exprhdl) const;		
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CPartInfo *DerivePartitionInfo(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Required Relational Properties

@@ -218,14 +218,14 @@ CLogicalGet::PopCopyWithRemappedColumns
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGet::PcrsDeriveOutput
+//		CLogicalGet::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalGet::PcrsDeriveOutput
+CLogicalGet::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -250,14 +250,14 @@ CLogicalGet::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalGet::PcrsDeriveNotNull
+//		CLogicalGet::DeriveNotNullColumns
 //
 //	@doc:
 //		Derive not null output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalGet::PcrsDeriveNotNull
+CLogicalGet::DeriveNotNullColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -266,10 +266,10 @@ CLogicalGet::PcrsDeriveNotNull
 {
 	// get all output columns
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	pcrs->Include(CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->PcrsOutput());
+	pcrs->Include(exprhdl.DeriveOutputColumns());
 
 	// filters out nullable columns
-	CColRefSetIter crsi(*CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->PcrsOutput());
+	CColRefSetIter crsi(*exprhdl.DeriveOutputColumns());
 	while (crsi.Advance())
 	{
 		CColRefTable *pcrtable = CColRefTable::PcrConvert(const_cast<CColRef*>(crsi.Pcr()));
@@ -308,7 +308,7 @@ CLogicalGet::FInputOrderSensitive() const
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalGet::PkcDeriveKeys
+CLogicalGet::DeriveKeyCollection
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl

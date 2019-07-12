@@ -221,7 +221,7 @@ CPhysicalStreamAgg::PosRequiredStreamAgg
 	CColRefSet *pcrs = pos->PcrsUsed(mp);
 
 	// get key collection of the relational child
-	CKeyCollection *pkc = exprhdl.GetRelationalProperties(0)->Pkc();
+	CKeyCollection *pkc = exprhdl.DeriveKeyCollection(0);
 
 	if (NULL != pkc && pkc->FKey(pcrs, false /*fExactMatch*/))
 	{

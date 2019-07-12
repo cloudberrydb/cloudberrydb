@@ -590,7 +590,7 @@ CPhysical::PcrsChildReqd
 	}
 
 	// intersect computed column set with child's output columns
-	pcrs->Intersection(exprhdl.GetRelationalProperties(child_index)->PcrsOutput());
+	pcrs->Intersection(exprhdl.DeriveOutputColumns(child_index));
 
 	// insert request in map
 	pcrs->AddRef();
@@ -622,7 +622,7 @@ CPhysical::FUnaryProvidesReqdCols
 {
 	GPOS_ASSERT(NULL != pcrsRequired);
 
-	CColRefSet *pcrsOutput = exprhdl.GetRelationalProperties(0 /*child_index*/)->PcrsOutput();
+	CColRefSet *pcrsOutput = exprhdl.DeriveOutputColumns(0 /*child_index*/);
 
 	return pcrsOutput->ContainsAll(pcrsRequired);
 }
@@ -822,7 +822,7 @@ CPhysical::PppsRequiredPushThruNAry
 		CBitSet *pbsPartConsumer = GPOS_NEW(mp) CBitSet(mp);
 		for (ULONG ulChildIdx = 0; ulChildIdx < arity; ulChildIdx++)
 		{
-			if (exprhdl.GetRelationalProperties(ulChildIdx)->Ppartinfo()->FContainsScanId(part_idx_id))
+			if (exprhdl.DerivePartitionInfo(ulChildIdx)->FContainsScanId(part_idx_id))
 			{
 				(void) pbsPartConsumer->ExchangeSet(ulChildIdx);
 			}
@@ -851,7 +851,7 @@ CPhysical::PppsRequiredPushThruNAry
 		// clean up
 		pbsPartConsumer->Release();
 
-		CPartKeysArray *pdrgppartkeys = exprhdl.GetRelationalProperties(child_index)->Ppartinfo()->PdrgppartkeysByScanId(part_idx_id);
+		CPartKeysArray *pdrgppartkeys = exprhdl.DerivePartitionInfo(child_index)->PdrgppartkeysByScanId(part_idx_id);
 		GPOS_ASSERT(NULL != pdrgppartkeys);
 		pdrgppartkeys->AddRef();
 
@@ -931,7 +931,7 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 {
 	GPOS_ASSERT(NULL != pppsRequired);
 
-	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties(0)->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.DerivePartitionInfo(0);
 		
 	CPartIndexMap *ppimReqd = pppsRequired->Ppim();
 	CPartFilterMap *ppfmReqd = pppsRequired->Ppfm();

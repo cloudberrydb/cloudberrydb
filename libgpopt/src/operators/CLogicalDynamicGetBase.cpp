@@ -175,14 +175,14 @@ CLogicalDynamicGetBase::~CLogicalDynamicGetBase()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicGetBase::PcrsDeriveOutput
+//		CLogicalDynamicGetBase::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalDynamicGetBase::PcrsDeriveOutput
+CLogicalDynamicGetBase::DeriveOutputColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -203,7 +203,7 @@ CLogicalDynamicGetBase::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalDynamicGetBase::PkcDeriveKeys
+CLogicalDynamicGetBase::DeriveKeyCollection
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -218,14 +218,14 @@ CLogicalDynamicGetBase::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicGetBase::PpcDeriveConstraint
+//		CLogicalDynamicGetBase::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive constraint property
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalDynamicGetBase::PpcDeriveConstraint
+CLogicalDynamicGetBase::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -244,7 +244,7 @@ CLogicalDynamicGetBase::PpcDeriveConstraint
 //
 //---------------------------------------------------------------------------
 CPartInfo *
-CLogicalDynamicGetBase::PpartinfoDerive
+CLogicalDynamicGetBase::DerivePartitionInfo
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl

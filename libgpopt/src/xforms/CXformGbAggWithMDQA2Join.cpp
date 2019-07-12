@@ -109,7 +109,7 @@ CXformGbAggWithMDQA2Join::PexprMDQAs2Join
 	// extract components
 	CExpression *pexprChild = (*pexpr)[0];
 
-	CColRefSet *pcrsChildOutput = CDrvdPropRelational::GetRelationalProperties(pexprChild->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsChildOutput = pexprChild->DeriveOutputColumns();
 	CColRefArray *pdrgpcrChildOutput = pcrsChildOutput->Pdrgpcr(mp);
 
 	// create a CTE producer based on child expression

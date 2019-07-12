@@ -74,6 +74,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pop);
 
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 	if (NULL != pgexpr)
 	{
 		CopyGroupPropsAndStats(NULL /*input_stats*/);
@@ -113,6 +114,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pop);
 	GPOS_ASSERT(NULL != pexpr);
 
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 1);
 	m_pdrgpexpr->Append(pexpr);
 
@@ -155,6 +157,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pexprChildFirst);
 	GPOS_ASSERT(NULL != pexprChildSecond);
 
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 2);
 	m_pdrgpexpr->Append(pexprChildFirst);
 	m_pdrgpexpr->Append(pexprChildSecond);
@@ -200,6 +203,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pexprChildSecond);
 	GPOS_ASSERT(NULL != pexprChildThird);
 
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 3);
 	m_pdrgpexpr->Append(pexprChildFirst);
 	m_pdrgpexpr->Append(pexprChildSecond);
@@ -240,6 +244,8 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pop);
 	GPOS_ASSERT(NULL != pdrgpexpr);
+
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 }
 
 
@@ -279,6 +285,7 @@ CExpression::CExpression
 	GPOS_ASSERT(pgexpr->Arity() == (pdrgpexpr == NULL ? 0 : pdrgpexpr->Size()));
 	GPOS_ASSERT(NULL != pgexpr->Pgroup());
 
+	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 	CopyGroupPropsAndStats(input_stats);
 }
 
@@ -337,8 +344,7 @@ CExpression::CopyGroupPropsAndStats
 	}
 	else
 	{
-		GPOS_ASSERT(NULL == m_pdprel);
-
+		m_pdprel->Release();
 		m_pdprel = CDrvdPropRelational::GetRelationalProperties(pdp);
 	}
 
@@ -399,59 +405,24 @@ CExpression::Pdp
 }
 
 CDrvdPropRelational *
-CExpression::GetDrvdPropRelational()
-	const
+CExpression::GetDrvdPropRelational() const
 {
+	GPOS_RTL_ASSERT(m_pdprel->IsComplete());
 	return m_pdprel;
 }
 
 CDrvdPropPlan *
-CExpression::GetDrvdPropPlan()
-	const
+CExpression::GetDrvdPropPlan() const
 {
+	GPOS_RTL_ASSERT(m_pdpplan->IsComplete());
 	return m_pdpplan;
 }
 
 CDrvdPropScalar *
-CExpression::GetDrvdPropScalar()
-	const
+CExpression::GetDrvdPropScalar() const
 {
+	GPOS_RTL_ASSERT(m_pdpscalar->IsComplete());
 	return m_pdpscalar;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpression::SetPdp
-//
-//	@doc:
-//		Set property value based on operator type;
-//		only used internally during property derivation
-//
-//---------------------------------------------------------------------------
-void
-CExpression::SetPdp
-	(
-	DrvdPropArray *pdp,
-	const DrvdPropArray::EPropType ept
-	)
-{
-	GPOS_ASSERT(NULL != pdp);
-
-	switch (ept)
-	{
-		case DrvdPropArray::EptRelational:
-			m_pdprel = CDrvdPropRelational::GetRelationalProperties(pdp);
-			break;
-		case DrvdPropArray::EptPlan:
-			m_pdpplan = CDrvdPropPlan::Pdpplan(pdp);
-			break;
-		case DrvdPropArray::EptScalar:
-			m_pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pdp);
-			break;
-		default:
-			GPOS_ASSERT(!"Invalid property type");
-			break;
-	}
 }
 
 #ifdef GPOS_DEBUG
@@ -529,15 +500,9 @@ CExpression::Ept() const
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpression::PdpDerive
-//
-//	@doc:
-//		Derive properties;
-//		Determine the suitable derived property type internally
-//
-//---------------------------------------------------------------------------
+// Derive all properties immediately. The suitable derived property is
+// determined internally. To derive properties on an on-demand bases, use
+// DeriveXXX() methods.
 DrvdPropArray *
 CExpression::PdpDerive
 	(
@@ -552,9 +517,15 @@ CExpression::PdpDerive
 	AssertValidPropDerivation(ept);
 #endif // GPOS_DEBUG
 
-	// see if suitable prop is already cached
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+
+	// see if suitable prop is already cached. This only applies to scalar and plan properties.
+	// relational properties are never null and are handled in the next case
 	if (NULL == Pdp(ept))
 	{
+		GPOS_ASSERT(DrvdPropArray::EptRelational != ept);
+
 		const ULONG arity = Arity();
 		for (ULONG ul = 0; ul < arity; ul++)
 		{
@@ -565,28 +536,32 @@ CExpression::PdpDerive
 			CDrvdPropCtxt::AddDerivedProps(pdp, pdpctxt);
 		}
 
-		CExpressionHandle exprhdl(m_mp);
-		exprhdl.Attach(this);
 		exprhdl.CopyStats();
 
 		switch (ept)
 		{
-			case DrvdPropArray::EptRelational:
-				m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational();
 			case DrvdPropArray::EptPlan:
 				m_pdpplan = GPOS_NEW(m_mp) CDrvdPropPlan();
+				break;
 			case DrvdPropArray::EptScalar:
 				m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar();
+				break;
 			default:
 				break;
 		}
 
 		Pdp(ept)->Derive(m_mp, exprhdl, pdpctxt);
 	}
-
+	// If we havn't derived all properties, do that now. If we've derived some
+	// of the properties, this will only derive properties that have not yet been derived.
+	else if (!Pdp(ept)->IsComplete())
+	{
+		Pdp(ept)->Derive(m_mp, exprhdl, pdpctxt);
+	}
+	// Otherwise, we've already derived all properties and can simply return them
+	GPOS_ASSERT(Pdp(ept)->IsComplete());
 	return Pdp(ept);
 }
-
 
 
 //---------------------------------------------------------------------------
@@ -712,7 +687,7 @@ CExpression::ResetDerivedProperty
 	{
 		case DrvdPropArray::EptRelational:
 			CRefCount::SafeRelease(m_pdprel);
-			m_pdprel = NULL;
+			m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 			break;
 		case DrvdPropArray::EptPlan:
 			CRefCount::SafeRelease(m_pdpplan);
@@ -803,7 +778,7 @@ CExpression::ResetStats()
 BOOL
 CExpression::HasOuterRefs()
 {
-	return (0 < CDrvdPropRelational::GetRelationalProperties(PdpDerive())->PcrsOuter()->Size());
+	return (0 < DeriveOuterReferences()->Size());
 }
 
 //---------------------------------------------------------------------------
@@ -1546,8 +1521,7 @@ CExpression::FValidPartEnforcers
 {
 	GPOS_ASSERT(Pop()->FPhysical());
 
-	CDrvdPropRelational *pdprel = GetDrvdPropRelational();
-	CPartInfo *ppartinfo = pdprel->Ppartinfo();
+	CPartInfo *ppartinfo = DerivePartitionInfo();
 	GPOS_ASSERT(NULL != ppartinfo);
 
 	if (0 == ppartinfo->UlConsumers())
@@ -1566,6 +1540,102 @@ CExpression::FValidPartEnforcers
 	}
 
 	return true;
+}
+
+CColRefSet *
+CExpression::DeriveOuterReferences()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveOuterReferences(exprhdl);
+}
+
+CColRefSet *
+CExpression::DeriveOutputColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveOutputColumns(exprhdl);
+}
+
+CColRefSet *
+CExpression::DeriveNotNullColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveNotNullColumns(exprhdl);
+}
+
+CColRefSet *
+CExpression::DeriveCorrelatedApplyColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveCorrelatedApplyColumns(exprhdl);
+}
+
+CMaxCard
+CExpression::DeriveMaxCard()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveMaxCard(exprhdl);
+}
+
+CKeyCollection *
+CExpression::DeriveKeyCollection()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveKeyCollection(exprhdl);
+}
+
+CPropConstraint *
+CExpression::DerivePropertyConstraint()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DerivePropertyConstraint(exprhdl);
+}
+
+ULONG
+CExpression::DeriveJoinDepth()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveJoinDepth(exprhdl);
+}
+
+CFunctionProp *
+CExpression::DeriveFunctionProperties()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveFunctionProperties(exprhdl);
+}
+
+CFunctionalDependencyArray *
+CExpression::DeriveFunctionalDependencies()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveFunctionalDependencies(exprhdl);
+}
+
+CPartInfo *
+CExpression::DerivePartitionInfo()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DerivePartitionInfo(exprhdl);
+}
+
+BOOL
+CExpression::DeriveHasPartialIndexes()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdprel->DeriveHasPartialIndexes(exprhdl);
 }
 
 // EOF

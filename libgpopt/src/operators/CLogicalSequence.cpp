@@ -79,14 +79,14 @@ CLogicalSequence::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequence::PcrsDeriveOutput
+//		CLogicalSequence::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalSequence::PcrsDeriveOutput
+CLogicalSequence::DeriveOutputColumns
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -95,7 +95,7 @@ CLogicalSequence::PcrsDeriveOutput
 	GPOS_ASSERT(1 <= exprhdl.Arity());
 	
 	// get output columns of last child
-	CColRefSet *pcrs = exprhdl.GetRelationalProperties(exprhdl.Arity() - 1)->PcrsOutput();
+	CColRefSet *pcrs = exprhdl.DeriveOutputColumns(exprhdl.Arity() - 1);
 	pcrs->AddRef();
 	
 	return pcrs;
@@ -112,7 +112,7 @@ CLogicalSequence::PcrsDeriveOutput
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalSequence::PkcDeriveKeys
+CLogicalSequence::DeriveKeyCollection
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -127,14 +127,14 @@ CLogicalSequence::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequence::Maxcard
+//		CLogicalSequence::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalSequence::Maxcard
+CLogicalSequence::DeriveMaxCard
 	(
 	CMemoryPool *, // mp
 	CExpressionHandle &exprhdl
@@ -142,19 +142,19 @@ CLogicalSequence::Maxcard
 	const
 {
 	// pass on max card of last child
-	return exprhdl.GetRelationalProperties(exprhdl.Arity() - 1)->Maxcard();
+	return exprhdl.DeriveMaxCard(exprhdl.Arity() - 1);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalSequence::PpartinfoDerive
+//		CLogicalSequence::DerivePartitionInfo
 //
 //	@doc:
 //		Derive part consumers
 //
 //---------------------------------------------------------------------------
 CPartInfo *
-CLogicalSequence::PpartinfoDerive
+CLogicalSequence::DerivePartitionInfo
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

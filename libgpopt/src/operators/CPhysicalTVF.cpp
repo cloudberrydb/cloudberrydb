@@ -98,7 +98,7 @@ CPhysicalTVF::Matches
 		return m_func_mdid->Equals(popTVF->FuncMdId()) &&
 				m_return_type_mdid->Equals(popTVF->ReturnTypeMdId()) &&
 				m_pdrgpcoldesc == popTVF->Pdrgpcoldesc() &&
-				m_pcrsOutput->Equals(popTVF->PcrsOutput());
+				m_pcrsOutput->Equals(popTVF->DeriveOutputColumns());
 	}
 
 	return false;
@@ -322,7 +322,7 @@ CPhysicalTVF::PrsDerive
 	// TODO: shardikar; If the executor materializes the function results, aren't
 	// volatile functions rewindable? Or should they be rescannable and
 	// re-executed every time?
-	if (IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties()->Pfp()->Efs())
+	if (IMDFunction::EfsVolatile == exprhdl.DeriveFunctionProperties()->Efs())
 	{
 		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRescannable, CRewindabilitySpec::EmhtNoMotion);
 	}

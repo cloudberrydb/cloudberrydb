@@ -90,7 +90,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Exfp
 	)
 	const
 {
-	CColRefSet *pcrsInner = exprhdl.GetRelationalProperties(1 /*child_index*/)->PcrsOutput();
+	CColRefSet *pcrsInner = exprhdl.DeriveOutputColumns(1 /*child_index*/);
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
 	CAutoMemoryPool amp;
 	CMemoryPool *mp = amp.Pmp();
@@ -228,7 +228,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
 	}
 
 	const ULONG ulCTEOuterId = COptCtxt::PoctxtFromTLS()->Pcteinfo()->next_id();
-	CColRefSet *outer_refs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *outer_refs = pexprOuter->DeriveOutputColumns();
 	CColRefArray *pdrgpcrOuter = outer_refs->Pdrgpcr(mp);
 	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEOuterId, pdrgpcrOuter, pexprOuter);
 
@@ -245,13 +245,13 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
 									pexprScalar
 									);
 
-	CColRefSet *pcrsJoinOutput = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsJoinOutput = pexpr->DeriveOutputColumns();
 	CColRefArray *pdrgpcrJoinOutput = pcrsJoinOutput->Pdrgpcr(mp);
 	const ULONG ulCTEJoinId = COptCtxt::PoctxtFromTLS()->Pcteinfo()->next_id();
 	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEJoinId, pdrgpcrJoinOutput, pexprInnerJoin);
 
 	CColRefSet *pcrsScalar = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
-	CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
 
 	CColRefArray *pdrgpcrProjectOutput = NULL;
 	CExpression *pexprProjectAppendNulls = PexprProjectOverLeftAntiSemiJoin

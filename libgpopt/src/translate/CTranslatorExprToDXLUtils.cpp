@@ -2008,12 +2008,12 @@ CTranslatorExprToDXLUtils::SetDirectDispatchInfo
 	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
 	CDXLNode *dxlnode,
-	CDrvdPropRelational *pdpRel,
+	CExpression *pexpr,
 	CDistributionSpecArray *pdrgpdsBaseTables
 	)
 {
 	GPOS_ASSERT(NULL != dxlnode);
-	GPOS_ASSERT(NULL != pdpRel);
+	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(NULL != pdrgpdsBaseTables);
 	
 	Edxlopid edxlopid = dxlnode->GetOperator()->GetDXLOperator();
@@ -2024,7 +2024,7 @@ CTranslatorExprToDXLUtils::SetDirectDispatchInfo
 		return;
 	}
 	
-	if (1 != pdpRel->JoinDepth() || 1 != pdrgpdsBaseTables->Size())
+	if (1 != pexpr->DeriveJoinDepth() || 1 != pdrgpdsBaseTables->Size())
 	{
 		// direct dispatch not supported for join queries
 		return;
@@ -2038,7 +2038,7 @@ CTranslatorExprToDXLUtils::SetDirectDispatchInfo
 		return;
 	}
 	
-	CPropConstraint *ppc = pdpRel->Ppc();
+	CPropConstraint *ppc = pexpr->DerivePropertyConstraint();
 	if (NULL == ppc->Pcnstr())
 	{
 		return;

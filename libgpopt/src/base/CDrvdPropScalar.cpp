@@ -88,7 +88,7 @@ CDrvdPropScalar::Derive
 	m_pcrsUsed = popScalar->PcrsUsed(mp, exprhdl);
 
 	// derive function properties
-	m_pfp = popScalar->PfpDerive(mp, exprhdl);
+	m_pfp = popScalar->DeriveFunctionProperties(mp, exprhdl);
 
 	// add defined and used columns of children
 	const ULONG arity = exprhdl.Arity();
@@ -107,7 +107,7 @@ CDrvdPropScalar::Derive
 
 			// parent operator is a subquery, add outer references
 			// from its relational child as used columns
- 			m_pcrsUsed->Union(exprhdl.GetRelationalProperties(0)->PcrsOuter());
+ 			m_pcrsUsed->Union(exprhdl.DeriveOuterReferences(0));
 		}
 	}
 

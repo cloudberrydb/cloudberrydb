@@ -72,7 +72,7 @@ namespace gpopt
 
 			// derive not nullable output columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull
+			CColRefSet *DeriveNotNullColumns
 				(
 				CMemoryPool *,// mp
 				CExpressionHandle &exprhdl
@@ -85,11 +85,11 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+			CMaxCard DeriveMaxCard(CMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint
+			CPropConstraint *DerivePropertyConstraint
 				(
 				CMemoryPool *, //mp,
 				CExpressionHandle &exprhdl

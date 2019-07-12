@@ -138,14 +138,14 @@ CLogicalDynamicBitmapTableGet::Matches
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicBitmapTableGet::PpcDeriveConstraint
+//		CLogicalDynamicBitmapTableGet::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive the constraint property.
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalDynamicBitmapTableGet::PpcDeriveConstraint
+CLogicalDynamicBitmapTableGet::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
@@ -157,14 +157,14 @@ CLogicalDynamicBitmapTableGet::PpcDeriveConstraint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicBitmapTableGet::PcrsDeriveOuter
+//		CLogicalDynamicBitmapTableGet::DeriveOuterReferences
 //
 //	@doc:
 //		Derive outer references
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalDynamicBitmapTableGet::PcrsDeriveOuter
+CLogicalDynamicBitmapTableGet::DeriveOuterReferences
 	(
 	CMemoryPool *mp,
 	CExpressionHandle &exprhdl

@@ -116,14 +116,14 @@ CLogicalCTEConsumer::CreateInlinedExpr
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::PcrsDeriveOutput
+//		CLogicalCTEConsumer::DeriveOutputColumns
 //
 //	@doc:
 //		Derive output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalCTEConsumer::PcrsDeriveOutput
+CLogicalCTEConsumer::DeriveOutputColumns
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -136,14 +136,14 @@ CLogicalCTEConsumer::PcrsDeriveOutput
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::PcrsDeriveNotNull
+//		CLogicalCTEConsumer::DeriveNotNullColumns
 //
 //	@doc:
 //		Derive not nullable output columns
 //
 //---------------------------------------------------------------------------
 CColRefSet *
-CLogicalCTEConsumer::PcrsDeriveNotNull
+CLogicalCTEConsumer::DeriveNotNullColumns
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & // exprhdl
@@ -154,7 +154,7 @@ CLogicalCTEConsumer::PcrsDeriveNotNull
 	GPOS_ASSERT(NULL != pexprProducer);
 
 	// find producer's not null columns
-	CColRefSet *pcrsProducerNotNull = CDrvdPropRelational::GetRelationalProperties(pexprProducer->PdpDerive())->PcrsNotNull();
+	CColRefSet *pcrsProducerNotNull = pexprProducer->DeriveNotNullColumns();
 
 	// map producer's not null columns to consumer's output columns
 	CColRefSet *pcrsConsumerNotNull = CUtils::PcrsRemap(mp, pcrsProducerNotNull, m_phmulcr, true /*must_exist*/);
@@ -173,7 +173,7 @@ CLogicalCTEConsumer::PcrsDeriveNotNull
 //
 //---------------------------------------------------------------------------
 CKeyCollection *
-CLogicalCTEConsumer::PkcDeriveKeys
+CLogicalCTEConsumer::DeriveKeyCollection
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -182,7 +182,7 @@ CLogicalCTEConsumer::PkcDeriveKeys
 {
 	CExpression *pexpr = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexpr);
-	CKeyCollection *pkc = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->Pkc();
+	CKeyCollection *pkc = pexpr->DeriveKeyCollection();
 	if (NULL != pkc)
 	{
 		pkc->AddRef();
@@ -193,21 +193,21 @@ CLogicalCTEConsumer::PkcDeriveKeys
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::PpartinfoDerive
+//		CLogicalCTEConsumer::DerivePartitionInfo
 //
 //	@doc:
 //		Derive partition consumers
 //
 //---------------------------------------------------------------------------
 CPartInfo *
-CLogicalCTEConsumer::PpartinfoDerive
+CLogicalCTEConsumer::DerivePartitionInfo
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
 {
-	CPartInfo *ppartInfo = CDrvdPropRelational::GetRelationalProperties(m_pexprInlined->PdpDerive())->Ppartinfo();
+	CPartInfo *ppartInfo = m_pexprInlined->DerivePartitionInfo();
 	ppartInfo->AddRef();
 
 	return ppartInfo;
@@ -215,14 +215,14 @@ CLogicalCTEConsumer::PpartinfoDerive
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::Maxcard
+//		CLogicalCTEConsumer::DeriveMaxCard
 //
 //	@doc:
 //		Derive max card
 //
 //---------------------------------------------------------------------------
 CMaxCard
-CLogicalCTEConsumer::Maxcard
+CLogicalCTEConsumer::DeriveMaxCard
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -231,20 +231,20 @@ CLogicalCTEConsumer::Maxcard
 {
 	CExpression *pexpr = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexpr);
-	return CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->Maxcard();
+	return pexpr->DeriveMaxCard();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::JoinDepth
+//		CLogicalCTEConsumer::DeriveJoinDepth
 //
 //	@doc:
 //		Derive join depth
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogicalCTEConsumer::JoinDepth
+CLogicalCTEConsumer::DeriveJoinDepth
 	(
 	CMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
@@ -253,7 +253,7 @@ CLogicalCTEConsumer::JoinDepth
 {
 	CExpression *pexpr = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexpr);
-	return CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->JoinDepth();
+	return pexpr->DeriveJoinDepth();
 }
 
 
@@ -366,14 +366,14 @@ CLogicalCTEConsumer::PxfsCandidates
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEConsumer::PpcDeriveConstraint
+//		CLogicalCTEConsumer::DerivePropertyConstraint
 //
 //	@doc:
 //		Derive constraint property
 //
 //---------------------------------------------------------------------------
 CPropConstraint *
-CLogicalCTEConsumer::PpcDeriveConstraint
+CLogicalCTEConsumer::DerivePropertyConstraint
 	(
 	CMemoryPool *mp,
 	CExpressionHandle & //exprhdl
@@ -382,7 +382,7 @@ CLogicalCTEConsumer::PpcDeriveConstraint
 {
 	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexprProducer);
-	CPropConstraint *ppc = CDrvdPropRelational::GetRelationalProperties(pexprProducer->PdpDerive())->Ppc();
+	CPropConstraint *ppc = pexprProducer->DerivePropertyConstraint();
 	CColRefSetArray *pdrgpcrs = ppc->PdrgpcrsEquivClasses();
 	CConstraint *pcnstr = ppc->Pcnstr();
 
