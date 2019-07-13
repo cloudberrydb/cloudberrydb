@@ -74,6 +74,10 @@ namespace gpopt
 				)
 				const
 			{
+				if (NULL == m_phmcrcrs)
+				{
+					return NULL;
+				}
 				return m_phmcrcrs->Find(colref);
 			}
 
