@@ -549,24 +549,6 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: server/published/master/server-rc-(.*)-ubuntu18.04_x86_64((rc-build-type-gcs)).tar.gz
 
-# DEPRECATED: Use the above GCS resources instead of these S3 resources.
-- name: bin_gpdb_centos6_rc_s3
-  type: s3
-  source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{gpdb-stable-builds-bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: release_candidates/bin_gpdb_centos6/master/((rc-build-type))/bin_gpdb.tar.gz
-- name: bin_gpdb_centos7_rc_s3
-  type: s3
-  source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{gpdb-stable-builds-bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: release_candidates/bin_gpdb_centos7/master/((rc-build-type))/bin_gpdb.tar.gz
-
 - name: bin_gpdb_clients_centos6_rc
   type: gcs
   source:
@@ -2148,12 +2130,6 @@ jobs:
     - put: bin_gpdb_clients_windows_rc
       params:
         file: "release_candidates/clients-rc-*-windows*.msi"
-    - put: bin_gpdb_centos6_rc_s3
-      params:
-        file: bin_gpdb_centos6/bin_gpdb.tar.gz
-    - put: bin_gpdb_centos7_rc_s3
-      params:
-        file: bin_gpdb_centos7/bin_gpdb.tar.gz
 
 {% endif %}
 
