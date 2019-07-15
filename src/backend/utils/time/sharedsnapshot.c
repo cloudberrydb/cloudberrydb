@@ -714,7 +714,7 @@ dumpSharedLocalSnapshot_forCursor(void)
 		FileWriteFieldWithCount(count, f, src->snapshot.xmax);
 		FileWriteFieldWithCount(count, f, src->snapshot.xcnt);
 
-		if (!FileWriteOK(f, &src->snapshot.xip, src->snapshot.xcnt * sizeof(TransactionId)))
+		if (!FileWriteOK(f, src->snapshot.xip, src->snapshot.xcnt * sizeof(TransactionId)))
 			break;
 		count += src->snapshot.xcnt * sizeof(TransactionId);
 
