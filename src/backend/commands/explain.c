@@ -959,6 +959,16 @@ show_dispatch_info(Slice *slice, ExplainState *es, Plan *plan)
 	{
 		if (segments == 0)
 			appendStringInfo(es->str, "  (slice%d)", slice->sliceIndex);
+		else if (slice->primaryGang && gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+			/*
+			 * In gpdb 5 there was a unique gang_id for each gang, this was
+			 * retired since gpdb 6, so we use the qe identifier from the first
+			 * segment of the gang to identify each gang.
+			 */
+			appendStringInfo(es->str, "  (slice%d; gang%d; segments: %d)",
+							 slice->sliceIndex,
+							 slice->primaryGang->db_descriptors[0]->identifier,
+							 segments);
 		else
 			appendStringInfo(es->str, "  (slice%d; segments: %d)",
 							 slice->sliceIndex, segments);
@@ -966,6 +976,8 @@ show_dispatch_info(Slice *slice, ExplainState *es, Plan *plan)
 	else
 	{
 		ExplainPropertyInteger("Slice", slice->sliceIndex, es);
+		if (slice->primaryGang && gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+			ExplainPropertyInteger("Gang", slice->primaryGang->db_descriptors[0]->identifier, es);
 		ExplainPropertyInteger("Segments", segments, es);
 		ExplainPropertyText("Gang Type", gangTypeToString(slice->gangType), es);
 	}

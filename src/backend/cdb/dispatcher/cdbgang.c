@@ -129,6 +129,11 @@ AllocateGang(CdbDispatcherState *ds, GangType type, List *segments)
 	newGang->allocated = true;
 	newGang->type = type;
 
+	/*
+	 * Push to the head of the allocated list, later in
+	 * cdbdisp_destroyDispatcherState() we should recycle them from the head to
+	 * restore the original order of the idle gangs.
+	 */
 	ds->allocatedGangs = lcons(newGang, ds->allocatedGangs);
 	ds->largestGangSize = Max(ds->largestGangSize, newGang->size);
 

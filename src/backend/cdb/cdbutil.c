@@ -763,6 +763,10 @@ cdbcomponent_allocateIdleQE(int contentId, SegmentType segmentType)
 
 	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
 
+	/*
+	 * Always try to pop from the head.  Make sure to push them back to head
+	 * in cdbcomponent_recycleIdleQE().
+	 */
 	curItem = list_head(cdbinfo->freelist);
 	while (curItem != NULL)
 	{
@@ -882,9 +886,25 @@ cdbcomponent_recycleIdleQE(SegmentDatabaseDescriptor *segdbDesc, bool forceDestr
 	}
 	else
 	{
-		/* attatch reader to the tail of freelist */
-		segdbDesc->segment_database_info->freelist =
-			lappend(segdbDesc->segment_database_info->freelist, segdbDesc);
+		ListCell   *lastWriter = NULL;
+		ListCell   *cell;
+
+		/*
+		 * In cdbcomponent_allocateIdleQE() readers are always popped from the
+		 * head, so to restore the original order we must pushed them back to
+		 * the head, and keep in mind readers must be put after the writers.
+		 */
+
+		for (cell = list_head(segdbDesc->segment_database_info->freelist);
+			 cell && ((SegmentDatabaseDescriptor *) lfirst(cell))->isWriter;
+			 lastWriter = cell, cell = lnext(cell)) ;
+
+		if (lastWriter)
+			lappend_cell(segdbDesc->segment_database_info->freelist,
+						 lastWriter, segdbDesc);
+		else
+			segdbDesc->segment_database_info->freelist =
+				lcons(segdbDesc, segdbDesc->segment_database_info->freelist);
 	}
 
 	INCR_COUNT(cdbinfo, numIdleQEs);
