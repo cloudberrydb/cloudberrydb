@@ -57,11 +57,6 @@ CMDProviderMemory::CMDProviderMemory
 	CAutoRef<IMDCacheObjectArray> mdcache_obj_array;
 	mdcache_obj_array = CDXLUtils::ParseDXLToIMDObjectArray(mp, dxl_file.Rgt(), NULL /*xsd_file_path*/);
 	
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
-	
 	LoadMetadataObjectsFromArray(mp, mdcache_obj_array.Value());
 }
 

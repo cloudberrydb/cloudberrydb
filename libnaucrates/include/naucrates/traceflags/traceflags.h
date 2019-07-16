@@ -85,8 +85,8 @@ namespace gpos
 		///////////////////// engine flags ////////////////////
 		///////////////////////////////////////////////////////
 
-		// use threads in optimization engine
-		EopttraceParallel = 103000,
+		// first engine flag
+		EopttraceFirstEngineFlag = 103000, // not currently used
 
 		// produce a minidump
 		EopttraceMinidump = 103001,

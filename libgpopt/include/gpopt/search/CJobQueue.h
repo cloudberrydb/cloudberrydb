@@ -14,9 +14,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CList.h"
-#include "gpos/sync/CSpinlock.h"
 
-#include "gpopt/spinlock.h"
 #include "gpopt/search/CJob.h"
 
 namespace gpopt
@@ -36,16 +34,13 @@ namespace gpopt
 		private:
 
 			// main job
-			volatile CJob *m_pj;
+			CJob *m_pj;
 
 			// flag indicating if main job has completed
-			volatile BOOL m_fCompleted;
+			BOOL m_fCompleted;
 
 			// list of jobs waiting for main job to complete
 			CList<CJob> m_listjQueued;
-
-			// lock protecting queue
-			CSpinlockJobQueue m_lock;
 
 		public:
 

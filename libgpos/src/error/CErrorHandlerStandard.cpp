@@ -13,6 +13,7 @@
 #include "gpos/error/CErrorContext.h"
 #include "gpos/error/CErrorHandlerStandard.h"
 #include "gpos/error/CLogger.h"
+#include "gpos/io/ioutils.h"
 #include "gpos/string/CWStringStatic.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 #include "gpos/task/CTask.h"

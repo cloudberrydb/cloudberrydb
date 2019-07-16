@@ -13,7 +13,6 @@
 
 #include "gpos/base.h"
 #include "gpos/string/CWStringDynamic.h"
-#include "gpos/sync/CMutex.h"
 
 #include "naucrates/statistics/IStatistics.h"
 #include "naucrates/statistics/CStatsPredDisj.h"
@@ -109,9 +108,6 @@ namespace gpnaucrates
 			// array of upper bound of ndv per source;
 			// source can be one of the following operators: like Get, Group By, and Project
       CUpperBoundNDVPtrArray *m_src_upper_bound_NDVs;
-
-			// mutex for locking entry when accessing hashmap from source id -> upper bound of source cardinality
-			CMutex m_src_upper_bound_mapping_mutex;
 
       // the default value for operators that have no cardinality estimation risk
       static

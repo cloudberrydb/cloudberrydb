@@ -54,11 +54,6 @@ CIOUtils::Dump
 		GPOS_RESET_EX;
 	}
 	GPOS_CATCH_END;
-
-	// reset time slice
-#ifdef GPOS_DEBUG
-    CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 

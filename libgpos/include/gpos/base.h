@@ -20,7 +20,6 @@
 #include "gpos/error/ILogger.h"
 #include "gpos/memory/CMemoryPool.h"
 #include "gpos/task/ITask.h"
-#include "gpos/task/IWorker.h"
 
 #endif // GPOS_base_H
 

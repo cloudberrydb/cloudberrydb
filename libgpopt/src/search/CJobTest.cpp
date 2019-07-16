@@ -23,7 +23,7 @@ using namespace gpos;
 #define GPOPT_JOB_TEST_DUMMY_CONST	45
 
 // initialization of static members
-volatile ULONG_PTR CJobTest::m_ulpCnt;
+ULONG_PTR CJobTest::m_ulpCnt;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -104,7 +104,7 @@ CJobTest::FSpawn
 	CSchedulerContext *psc
 	)
 {
-	ULONG_PTR ulpOffset = ExchangeAddUlongPtrWithInt(&m_ulpCnt, 1);
+	ULONG_PTR ulpOffset = m_ulpCnt++;
 
 #ifdef GPOS_DEBUG
 	if (10 == ulpOffset && psc->Psched()->FTrackingJobs())
@@ -160,7 +160,7 @@ CJobTest::FStartQueue
 	CSchedulerContext *psc
 	)
 {
-	ULONG_PTR ulpOffset = ExchangeAddUlongPtrWithInt(&m_ulpCnt, 1);
+	ULONG_PTR ulpOffset = m_ulpCnt++;
 
 	if (0 == ulpOffset)
 	{

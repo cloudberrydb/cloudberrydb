@@ -7,7 +7,7 @@
 //
 //	@doc:
 //		Interface class to worker; broken into interface and implementation
-//		to avoid cyclic dependencies between worker, list, spinlock etc.
+//		to avoid cyclic dependencies between worker, list, etc.
 //		The Worker abstraction contains only components needed to schedule,
 //		execute, and abort tasks; no task specific configuration such as
 //		output streams is contained in Worker;
@@ -31,15 +31,6 @@
 	while (0)
 
 
-// assert no spinlock
-#define GPOS_ASSERT_NO_SPINLOCK  \
-		GPOS_ASSERT_IMP \
-		( \
-			NULL != IWorker::Self(), \
-			(!IWorker::Self()->OwnsSpinlocks()) && "Must not hold a spinlock!" \
-		)
-
-
 #if (GPOS_SunOS)
 #define GPOS_CHECK_ABORT_MAX_INTERVAL_MSEC   (ULONG(2000))
 #else
@@ -49,8 +40,6 @@
 namespace gpos
 {
 	// prototypes
-	class CSpinlockBase;
-	class CMutexBase;
 	class ITask;
 	class CWorkerId;
 
@@ -82,27 +71,12 @@ namespace gpos
 			virtual ~IWorker() {}
 
 			// accessors
-			virtual ULONG GetThreadId() const = 0;
-			virtual CWorkerId GetWid() const = 0;
 			virtual ULONG_PTR GetStackStart() const = 0;
 			virtual ITask *GetTask() = 0;
 
 			// stack check
 			virtual BOOL CheckStackSize(ULONG request = 0) const = 0;
 			
-#ifdef GPOS_DEBUG
-			virtual BOOL CanAcquireSpinlock(const CSpinlockBase*) const = 0;
-			virtual BOOL OwnsSpinlocks() const = 0;
-			virtual void RegisterSpinlock(CSpinlockBase *) = 0;
-			virtual void UnregisterSpinlock(CSpinlockBase*) = 0;
-			
-			virtual BOOL OwnsMutexes() const = 0;
-			virtual void RegisterMutex(CMutexBase *) = 0;
-			virtual void UnregisterMutex(CMutexBase *) = 0;
-
-			static BOOL m_enforce_time_slices;
-#endif // GPOS_DEBUG
-
 			// lookup worker in worker pool manager
 			static IWorker *Self();
 

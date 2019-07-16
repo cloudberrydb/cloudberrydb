@@ -10,7 +10,6 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
-#include "gpos/sync/CAutoMutex.h"
 
 #include "gpopt/base/CUtils.h"
 #include "gpopt/base/CCastUtils.h"

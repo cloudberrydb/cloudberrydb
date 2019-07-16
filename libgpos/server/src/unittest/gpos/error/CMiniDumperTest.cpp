@@ -38,8 +38,7 @@ CMiniDumperTest::EresUnittest()
 {
 	CUnittest rgut[] =
 		{
-		GPOS_UNITTEST_FUNC(CMiniDumperTest::EresUnittest_Basic),
-		GPOS_UNITTEST_FUNC(CMiniDumperTest::EresUnittest_Concurrency),
+		GPOS_UNITTEST_FUNC(CMiniDumperTest::EresUnittest_Basic)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -86,67 +85,6 @@ CMiniDumperTest::EresUnittest_Basic()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperTest::EresUnittest_Concurrency
-//
-//	@doc:
-//		Test minidump handler for multiple executing threads
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMiniDumperTest::EresUnittest_Concurrency()
-{
-	CAutoMemoryPool amp;
-	CMemoryPool *mp = amp.Pmp();
-
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
-
-	CWStringDynamic wstrMinidump(mp);
-	COstreamString oss(&wstrMinidump);
-	CMiniDumperStream mdrs(mp);
-	mdrs.Init(&oss);
-
-	GPOS_TRY
-	{
-		// register stack serializer with error context
-		CSerializableStack ss;
-
-		CAutoTaskProxy atp(mp, pwpm);
-		CTask *rgPtsk[6];
-
-		// one task throws, the other get aborted
-		rgPtsk[0] = atp.Create(PvRaise, NULL);
-		rgPtsk[1] = atp.Create(PvLoop, NULL);
-		rgPtsk[2] = atp.Create(PvLoop, NULL);
-		rgPtsk[3] = atp.Create(PvLoopSerialize, NULL);
-		rgPtsk[4] = atp.Create(PvLoopSerialize, NULL);
-		rgPtsk[5] = atp.Create(PvLoopSerialize, NULL);
-
-		for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgPtsk); i++)
-		{
-			atp.Schedule(rgPtsk[i]);
-		}
-
-		for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgPtsk); i++)
-		{
-			atp.Wait(rgPtsk[i]);
-		}
-	}
-	GPOS_CATCH_EX(ex)
-	{
-		mdrs.Finalize();
-
-		GPOS_RESET_EX;
-
-		GPOS_TRACE(wstrMinidump.GetBuffer());
-	}
-	GPOS_CATCH_END;
-
-	return GPOS_OK;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CMiniDumperTest::PvRaise
 //
 //	@doc:
@@ -166,60 +104,6 @@ CMiniDumperTest::PvRaise
 
 	// raise exception to trigger minidump
 	GPOS_OOM_CHECK(NULL);
-
-	return NULL;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperTest::PvLoop
-//
-//	@doc:
-//		Function waiting for abort
-//
-//---------------------------------------------------------------------------
-void *
-CMiniDumperTest::PvLoop
-	(
-	void * // pv
-	)
-{
-	// loop until task is aborted
-	while(true)
-	{
-		GPOS_CHECK_ABORT;
-
-		clib::USleep(100);
-	}
-
-	return NULL;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperTest::PvLoopSerialize
-//
-//	@doc:
-//		Function waiting for abort
-//
-//---------------------------------------------------------------------------
-void *
-CMiniDumperTest::PvLoopSerialize
-	(
-	void * // pv
-	)
-{
-	CSerializableStack ss;
-
-	// loop until task is aborted
-	while(true)
-	{
-		GPOS_CHECK_ABORT;
-
-		clib::USleep(100);
-	}
 
 	return NULL;
 }
@@ -300,7 +184,7 @@ CMiniDumperTest::CMiniDumperStream::SerializeEntryHeader()
 	wstr.AppendFormat
 		(
 		GPOS_WSZ_LIT("<THREAD ID=%d>\n"),
-		CWorker::Self()->GetThreadId()
+		0
 		);
 
 	*m_oos << wstr.GetBuffer();

@@ -6,13 +6,10 @@
 //		CSyncList.h
 //
 //	@doc:
-//		Template-based synchronized list class with minimum synchronization
-//		overhead; it provides a minimal set of thread-safe operations through
-//		atomic primitives (lock-free);
+//		Template-based synchronized list class - no longer thread-safe
 //
 //		It requires that the elements are only inserted once, as their address
-//		is used for identification; if elements are concurrently deleted,
-//		iteration through the list is not thread safe;
+//		is used for identification;
 //
 //		In order to be useful for system programming the class must be
 //		allocation-less, i.e. manage elements without additional allocation,
@@ -24,7 +21,6 @@
 #include "gpos/types.h"
 
 #include "gpos/common/CList.h"
-#include "gpos/sync/atomic.h"
 
 namespace gpos
 {
@@ -45,20 +41,6 @@ namespace gpos
 
 			// underlying list
 			CList<T> m_list;
-
-			// back-off after too many attempts
-			void CheckBackOff(ULONG &attempts) const
-            {
-                if (++attempts == GPOS_SPIN_ATTEMPTS)
-                {
-                    // back-off
-                    clib::USleep(GPOS_SPIN_BACKOFF);
-
-                    attempts = 0;
-
-                    GPOS_CHECK_ABORT;
-                }
-            }
 
 			// no copy ctor
 			CSyncList(const CSyncList&);
@@ -88,7 +70,6 @@ namespace gpos
                 GPOS_ASSERT(NULL != elem);
                 GPOS_ASSERT(m_list.First() != elem);
 
-                ULONG attempts = 0;
                 SLink &link = m_list.Link(elem);
 
     #ifdef GPOS_DEBUG
@@ -97,60 +78,40 @@ namespace gpos
 
                 GPOS_ASSERT(NULL == link.m_next);
 
-                // keep spinning until passed element becomes the head
-                while (true)
-                {
-                    T *head = m_list.First();
+				T *head = m_list.First();
 
-                    GPOS_ASSERT(elem != head && "Element is already inserted");
-                    GPOS_ASSERT(next_head == link.m_next && "Element is concurrently accessed");
+				GPOS_ASSERT(elem != head && "Element is already inserted");
+				GPOS_ASSERT(next_head == link.m_next && "Element is concurrently accessed");
 
-                    // set current head as next element
-                    link.m_next = head;
-    #ifdef GPOS_DEBUG
-                    next_head = link.m_next;
-    #endif // GPOS_DEBUG
+				// set current head as next element
+				link.m_next = head;
+#ifdef GPOS_DEBUG
+				next_head = link.m_next;
+#endif // GPOS_DEBUG
 
-                    // attempt to set element as head
-                    if (CompareSwap<T>((volatile T**) &m_list.m_head, head, elem))
-                    {
-                        break;
-                    }
-
-                    CheckBackOff(attempts);
-                }
+				// set element as head
+				GPOS_ASSERT(m_list.m_head == head);
+				m_list.m_head = elem;
             }
 
 			// remove element from the head of the list;
 			T *Pop()
             {
-                ULONG attempts = 0;
                 T *old_head = NULL;
 
-                // keep spinning until the head is removed
-                while (true)
-                {
-                    // get current head
-                    old_head = m_list.First();
-                    if (NULL == old_head)
-                    {
-                        break;
-                    }
+				// get current head
+				old_head = m_list.First();
+				if (NULL != old_head)
+				{
+					// second element becomes the new head
+					SLink &link = m_list.Link(old_head);
+					T *new_head = static_cast<T*>(link.m_next);
 
-                    // second element becomes the new head
-                    SLink &link = m_list.Link(old_head);
-                    T *new_head = static_cast<T*>(link.m_next);
-
-                    // attempt to set new head
-                    if (CompareSwap<T>((volatile T**) &m_list.m_head, old_head, new_head))
-                    {
-                        // reset link
-                        link.m_next = NULL;
-                        break;
-                    }
-
-                    CheckBackOff(attempts);
-                }
+					GPOS_ASSERT(m_list.m_head == old_head);
+					m_list.m_head = new_head;
+					// reset link
+					link.m_next = NULL;
+				}
 
                 return old_head;
             }

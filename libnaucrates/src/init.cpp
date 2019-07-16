@@ -35,11 +35,11 @@ CMemoryPool *pmpDXL = NULL;
 
 // safe-guard to prevent initializing DXL support more than once
 static
-volatile ULONG_PTR m_ulpInitDXL = 0;
+ULONG_PTR m_ulpInitDXL = 0;
 
 // safe-guard to prevent shutting DXL support down more than once
 static
-volatile ULONG_PTR m_ulpShutdownDXL = 0;
+ULONG_PTR m_ulpShutdownDXL = 0;
 
 
 //---------------------------------------------------------------------------
@@ -54,16 +54,16 @@ volatile ULONG_PTR m_ulpShutdownDXL = 0;
 //---------------------------------------------------------------------------
 void InitDXL()
 {
-	if (0 < ExchangeAddUlongPtrWithInt(&m_ulpInitDXL, 1))
+	if (0 < m_ulpInitDXL)
 	{
 		// DXL support is already initialized by a previous call
-		(void) ExchangeAddUlongPtrWithInt(&m_ulpInitDXL, -1);
-
 		return;
 	}
 
 	GPOS_ASSERT(NULL != pmpXerces);
 	GPOS_ASSERT(NULL != pmpDXL);
+
+	m_ulpInitDXL++;
 
 	// setup own memory manager
 	dxl_memory_manager = GPOS_NEW(pmpXerces) CDXLMemoryManager(pmpXerces);
@@ -94,15 +94,15 @@ void InitDXL()
 //---------------------------------------------------------------------------
 void ShutdownDXL()
 {
-	if (0 < ExchangeAddUlongPtrWithInt(&m_ulpShutdownDXL, 1))
+	if (0 < m_ulpShutdownDXL)
 	{
 		// DXL support is already shut-down by a previous call
-		(void) ExchangeAddUlongPtrWithInt(&m_ulpShutdownDXL, -1);
-
 		return;
 	}
 
 	GPOS_ASSERT(NULL != pmpXerces);
+
+	m_ulpShutdownDXL++;
 
 	XMLPlatformUtils::Terminate();
 

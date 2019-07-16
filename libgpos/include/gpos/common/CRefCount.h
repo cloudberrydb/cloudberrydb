@@ -16,7 +16,6 @@
 
 #include "gpos/utils.h"
 #include "gpos/assert.h"
-#include "gpos/sync/atomic.h"
 #include "gpos/types.h"
 
 #include "gpos/error/CException.h"
@@ -44,7 +43,7 @@ namespace gpos
 		private:
 		
 			// reference counter -- first in class to be in sync with Check()
-			volatile ULONG_PTR m_refs;
+			ULONG_PTR m_refs;
 			
 #ifdef GPOS_DEBUG
 			// sanity check to detect deleted memory
@@ -95,7 +94,7 @@ namespace gpos
 #ifdef GPOS_DEBUG
 				Check();
 #endif // GPOS_DEBUG				
-				(void) ExchangeAddUlongPtrWithInt(&m_refs, 1);
+				m_refs++;
 			}
 
 			// count down
@@ -104,10 +103,10 @@ namespace gpos
 #ifdef GPOS_DEBUG	
 				Check();
 #endif // GPOS_DEBUG
-				if (1 == ExchangeAddUlongPtrWithInt(&m_refs, -1))
+				m_refs--;
+
+				if (0 == m_refs)
 				{
-					// the following check is not thread-safe -- we intentionally allow this to capture
-					// the exceptional case where ref-count wrongly reaching zero
 					if (!Deletable())
 					{
 						// restore ref-count

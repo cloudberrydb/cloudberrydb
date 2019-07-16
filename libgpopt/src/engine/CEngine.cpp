@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"
+#include "gpos/common/syslibwrapper.h"
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"
 #include "gpos/task/CAutoTaskProxy.h"
@@ -383,15 +384,10 @@ CEngine::InsertXformResult
 	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics) && 0 < pxfres->Pdrgpexpr()->Size())
 	{
 		(void) m_xforms->ExchangeSet(exfidOrigin);
-		(void) ExchangeAddUlongPtrWithInt(&(*m_pdrgpulpXformCalls)[m_ulCurrSearchStage][exfidOrigin], 1);
-
-		{
-			CAutoMutex am(m_mutexOptStats);
-			am.Lock();
-			(*m_pdrgpulpXformTimes)[m_ulCurrSearchStage][exfidOrigin] += ulXformTime;
-			(*m_pdrgpulpXformBindings)[m_ulCurrSearchStage][exfidOrigin] += ulNumberOfBindings;
-			(*m_pdrgpulpXformResults)[m_ulCurrSearchStage][exfidOrigin] += pxfres->Pdrgpexpr()->Size();
-		}
+		(*m_pdrgpulpXformCalls)[m_ulCurrSearchStage][exfidOrigin] += 1;
+		(*m_pdrgpulpXformTimes)[m_ulCurrSearchStage][exfidOrigin] += ulXformTime;
+		(*m_pdrgpulpXformBindings)[m_ulCurrSearchStage][exfidOrigin] += ulNumberOfBindings;
+		(*m_pdrgpulpXformResults)[m_ulCurrSearchStage][exfidOrigin] += pxfres->Pdrgpexpr()->Size();
 	}
 
 	CExpression *pexpr = pxfres->PexprNext();
@@ -1703,47 +1699,12 @@ CEngine::Optimize()
 
 	CAutoTimer at("\n[OPT]: Total Optimization Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
-	if (GPOS_FTRACE(EopttraceParallel))
-	{
-		MultiThreadedOptimize(2 /*ulWorkers*/);
-	}
-	else
-	{
-		MainThreadOptimize();
-	}
-
-	{
-		if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
-		{
-			CAutoTrace atSearch(m_mp);
-			atSearch.Os() << "[OPT]: Search terminated at stage " << m_ulCurrSearchStage << "/" << m_search_stage_array->Size();
-		}
-	}
-
-	if (optimizer_config->GetEnumeratorCfg()->FSample())
-	{
-		SamplePlans();
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CEngine::MainThreadOptimize
-//
-//	@doc:
-//		Run optimizer on the main thread
-//
-//---------------------------------------------------------------------------
-void
-CEngine::MainThreadOptimize()
-{
 	GPOS_ASSERT(NULL != PgroupRoot());
 	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS());
 
 	const ULONG ulJobs = std::min((ULONG) GPOPT_JOBS_CAP, (ULONG) (m_pmemo->UlpGroups() * GPOPT_JOBS_PER_GROUP));
 	CJobFactory jf(m_mp, ulJobs);
-	CScheduler sched(m_mp, ulJobs, 1 /*ulWorkers*/);
+	CScheduler sched(m_mp, ulJobs);
 
 	CSchedulerContext sc;
 	sc.Init(m_mp, &jf, &sched, this);
@@ -1774,121 +1735,32 @@ CEngine::MainThreadOptimize()
 		poc->Release();
 
 		// extract best plan found at the end of current search stage
-		CExpression *pexprPlan =
-			m_pmemo->PexprExtractPlan
-								(
-								m_mp,
-								m_pmemo->PgroupRoot(),
-								m_pqc->Prpp(),
-								m_search_stage_array->Size()
-								);
+		CExpression *pexprPlan = m_pmemo->PexprExtractPlan
+							(
+							m_mp,
+							m_pmemo->PgroupRoot(),
+							m_pqc->Prpp(),
+							m_search_stage_array->Size()
+							);
 		PssCurrent()->SetBestExpr(pexprPlan);
 
 		FinalizeSearchStage();
 	}
-}
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CEngine::MultiThreadedOptimize
-//
-//	@doc:
-//		Multi-threaded optimization
-//
-//---------------------------------------------------------------------------
-void
-CEngine::MultiThreadedOptimize
-	(
-	ULONG  ulWorkers
-	)
-{
-	GPOS_ASSERT(NULL != PgroupRoot());
-	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS());
-
-	const ULONG ulJobs = std::min((ULONG) GPOPT_JOBS_CAP, (ULONG) (m_pmemo->UlpGroups() * GPOPT_JOBS_PER_GROUP));
-	CJobFactory jf(m_mp, ulJobs);
-	CScheduler sched(m_mp, ulJobs, ulWorkers);
-
-	CSchedulerContext sc;
-	sc.Init(m_mp, &jf, &sched, this);
-
-	const ULONG ulSearchStages = m_search_stage_array->Size();
-	for (ULONG ul = 0; !FSearchTerminated() && ul < ulSearchStages; ul++)
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
-		PssCurrent()->RestartTimer();
+		CAutoTrace atSearch(m_mp);
+		atSearch.Os() << "[OPT]: Search terminated at stage " << m_ulCurrSearchStage << "/" << m_search_stage_array->Size();
+	}
 
-		// optimize root group
-		m_pqc->Prpp()->AddRef();
-		COptimizationContext *poc = GPOS_NEW(m_mp) COptimizationContext
-								(
-								m_mp,
-								PgroupRoot(),
-								m_pqc->Prpp(),
-								GPOS_NEW(m_mp) CReqdPropRelational(GPOS_NEW(m_mp) CColRefSet(m_mp)), // pass empty required relational properties initially
-								GPOS_NEW(m_mp) IStatisticsArray(m_mp), // pass empty stats context initially
-								m_ulCurrSearchStage
-								);
 
-		// schedule main optimization job
-		ScheduleMainJob(&sc, poc);
-
-		// create task array
-		CAutoRg<CTask*> a_rgptsk;
-		a_rgptsk = GPOS_NEW_ARRAY(m_mp, CTask*, ulWorkers);
-
-		// create scheduling contexts
-		CAutoRg<CSchedulerContext> a_rgsc;
-		a_rgsc = GPOS_NEW_ARRAY(m_mp, CSchedulerContext, ulWorkers);
-
-		// scope for ATP
-		{
-			CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
-			CAutoTaskProxy atp(m_mp, pwpm);
-
-			for (ULONG i = 0; i < ulWorkers; i++)
-			{
-				// initialize scheduling context
-				a_rgsc[i].Init(m_mp, &jf, &sched, this);
-
-				// create scheduling task
-				a_rgptsk[i] = atp.Create(CScheduler::Run, &a_rgsc[i]);
-
-				// store a pointer to optimizer's context in current task local storage
-				a_rgptsk[i]->GetTls().Reset(m_mp);
-				a_rgptsk[i]->GetTls().Store(COptCtxt::PoctxtFromTLS());
-			}
-
-			// start tasks
-			for (ULONG i = 0; i < ulWorkers; i++)
-			{
-				atp.Schedule(a_rgptsk[i]);
-			}
-
-			// wait for tasks to complete
-			for (ULONG i = 0; i < ulWorkers; i++)
-			{
-				CTask *ptsk;
-				atp.WaitAny(&ptsk);
-			}
-		}
-
-		poc->Release();
-
-		// extract best plan found at the end of current search stage
-		CExpression *pexprPlan =
-			m_pmemo->PexprExtractPlan
-								(
-								m_mp,
-								m_pmemo->PgroupRoot(),
-								m_pqc->Prpp(),
-								m_search_stage_array->Size()
-								);
-		PssCurrent()->SetBestExpr(pexprPlan);
-
-		FinalizeSearchStage();
+	if (optimizer_config->GetEnumeratorCfg()->FSample())
+	{
+		SamplePlans();
 	}
 }
+
 
 //---------------------------------------------------------------------------
 //	@function:

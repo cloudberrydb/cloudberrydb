@@ -94,8 +94,7 @@ namespace gpos
 			// hash table
 			CSyncHashtable
 				<CTaskLocalStorageObject, 
-				Etlsidx,
-				CSpinlockOS> m_hash_table;
+				Etlsidx> m_hash_table;
 
 			// private copy ctor
 			CTaskLocalStorage(const CTaskLocalStorage &);

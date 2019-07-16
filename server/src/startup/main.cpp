@@ -19,7 +19,6 @@
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/test/CFSimulatorTestExt.h"
 #include "gpos/test/CUnittest.h"
-#include "gpos/test/CTimeSliceTest.h"
 
 
 #include "gpopt/engine/CEnumeratorConfig.h"
@@ -103,7 +102,6 @@
 #include "unittest/gpopt/operators/CPredicateUtilsTest.h"
 #include "unittest/gpopt/operators/CScalarIsDistinctFromTest.h"
 
-#include "unittest/gpopt/search/CSchedulerTest.h"
 #include "unittest/gpopt/search/CSearchStrategyTest.h"
 #include "unittest/gpopt/minidump/CMultilevelPartitionTest.h"
 #include "unittest/gpopt/search/COptimizationJobsTest.h"
@@ -217,7 +215,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CScalarIsDistinctFromTest),
 	GPOS_UNITTEST_STD(CPartConstraintTest),
 #if !defined(GPOS_SunOS)
-	GPOS_UNITTEST_STD(CSchedulerTest),
 	GPOS_UNITTEST_STD(CSearchStrategyTest),
 #endif  // !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(COptimizationJobsTest),
@@ -237,10 +234,6 @@ static gpos::CUnittest rgut[] =
 #ifdef GPOS_FPSIMULATOR
 	GPOS_UNITTEST_EXT(CFSimulatorTestExt),
 #endif // GPOS_FPSIMULATOR
-
-#ifdef GPOS_DEBUG
-	GPOS_UNITTEST_EXT(CTimeSliceTest),
-#endif // GPOS_DEBUG
 };
 
 //---------------------------------------------------------------------------
@@ -447,11 +440,6 @@ INT main
 	gpopt_init();
 
 	GPOS_ASSERT(iArgs >= 0);
-
-	if (gpos_set_threads(4, 20))
-	{
-		return GPOS_FAILED;
-	}
 
 	// setup args for unittest params
 	CMainArgs ma(iArgs, rgszArgs, "uU:d:xT:i:");

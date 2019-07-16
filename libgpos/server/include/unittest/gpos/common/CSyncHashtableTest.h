@@ -13,9 +13,6 @@
 
 #include "gpos/base.h"
 
-#include "gpos/sync/CAutoSpinlock.h"
-#include "gpos/sync/CEvent.h"
-
 #include "gpos/common/CList.h"
 
 #include "gpos/common/CSyncHashtable.h"
@@ -45,16 +42,16 @@ namespace gpos
 		private:
 
 			// types used by testing functions
-			typedef CSyncHashtable<SElem, ULONG, CSpinlockDummy>
+			typedef CSyncHashtable<SElem, ULONG>
 				SElemHashtable;
 
-			typedef CSyncHashtableAccessByKey<SElem, ULONG, CSpinlockDummy>
+			typedef CSyncHashtableAccessByKey<SElem, ULONG>
 				SElemHashtableAccessor;
 
-			typedef CSyncHashtableIter<SElem, ULONG, CSpinlockDummy>
+			typedef CSyncHashtableIter<SElem, ULONG>
 				SElemHashtableIter;
 
-			typedef CSyncHashtableAccessByIter<SElem, ULONG, CSpinlockDummy>
+			typedef CSyncHashtableAccessByIter<SElem, ULONG>
 				SElemHashtableIterAccessor;
 
 			// function pointer to a hash table task
@@ -187,112 +184,6 @@ namespace gpos
 
 			}; // struct SElem
 
-
-			//---------------------------------------------------------------------------
-			//	@class:
-			//		SIterTest
-			//
-			//	@doc:
-			//		Local class used for passing arguments to concurrent tasks;
-			//
-			//---------------------------------------------------------------------------
-			struct SElemTest
-			{
-
-				private:
-
-					// hash table to operate on
-					SElemHashtable &m_sht;
-
-					// array of elements maintained by hash table
-					SElem *m_rgelem;
-
-					// event used for waiting all tasks to start
-					CEvent *m_pevent;
-
-					// number of started tasks
-					ULONG m_ulStarted;
-
-
-				public:
-
-					// ctor
-					SElemTest
-						(
-						SElemHashtable &sht,
-						SElem *rgelem,
-						CEvent *pevent = NULL
-						)
-						:
-						m_sht(sht),
-						m_rgelem(rgelem),
-						m_pevent(pevent),
-						m_ulStarted(0)
-					{
-					}
-
-					// hash table accessor
-					SElemHashtable &GetHashTable() const
-					{
-						return m_sht;
-					}
-
-					// elements array accessor
-					SElem *Rgelem() const
-					{
-						return m_rgelem;
-					}
-
-					// event accessor
-					CEvent *Pevent() const
-					{
-						return m_pevent;
-					}
-
-					// started tasks accessor
-					ULONG UlStarted() const
-					{
-						return m_ulStarted;
-					}
-
-					void IncStarted()
-					{
-						m_ulStarted++;
-					}
-
-
-			}; // struct SElemTest
-
-
-			// internal tasks used for testing concurrent access
-
-			// wait for all non-started tasks to start
-			static void Unittest_WaitTasks(SElemTest *);
-
-			// inserts a subset of elements
-			static void *PvUnittest_Inserter(void *);
-
-			// looks up a subset of elements
-			static void *PvUnittest_Reader(void *);
-
-			// removes a subset of elements
-			static void *PvUnittest_Remover(void *);
-
-			// checks the number of visited elements
-			static void *PvUnittest_Iterator(void *);
-
-			// checks the number and contents of visited elements
-			static void *PvUnittest_IteratorCheck(void *);
-
-			// spawns a number of iterator check tasks
-			static void *PvUnittest_IteratorsRun
-				(
-				CMemoryPool *,
-				SElemHashtable &,
-				SElem *,
-				ULONG
-				);
-
 		public:
 
 			// actual unittests
@@ -302,13 +193,7 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_ComplexEquality();
 			static GPOS_RESULT EresUnittest_SameKeyIteration();
 			static GPOS_RESULT EresUnittest_NonConcurrentIteration();
-			static GPOS_RESULT EresUnittest_ConcurrentIteration();
-			static GPOS_RESULT EresUnittest_Concurrency();
 
-
-#ifdef GPOS_DEBUG
-			static GPOS_RESULT EresUnittest_AccessorDeadlock();
-#endif // GPOS_DEBUG
 	};
 }
 

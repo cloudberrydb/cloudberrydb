@@ -96,15 +96,12 @@ namespace gpos
 
 			// helper functions
 			static void *PvRaise(void *);
-			static void *PvLoop(void *);
-			static void *PvLoopSerialize(void *);
 
 		public:
 
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_Basic();
-			static GPOS_RESULT EresUnittest_Concurrency();
 
 	}; // class CMiniDumperTest
 }

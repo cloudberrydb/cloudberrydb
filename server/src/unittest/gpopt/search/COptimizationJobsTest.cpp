@@ -102,7 +102,7 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 		// optimize query
 		CJobFactory jf(mp, 1000 /*ulJobs*/);
-		CScheduler sched(mp, 1000 /*ulJobs*/, 1 /*ulWorkers*/);
+		CScheduler sched(mp, 1000 /*ulJobs*/);
 		CSchedulerContext sc;
 		sc.Init(mp, &jf, &sched, &eng);
 		CJob *pj = jf.PjCreate(CJob::EjtGroupOptimization);

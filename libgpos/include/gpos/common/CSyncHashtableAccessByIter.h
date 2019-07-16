@@ -29,24 +29,24 @@ namespace gpos
 	//		hash table iterator
 	//
 	//---------------------------------------------------------------------------
-	template <class T, class K, class S>
-	class CSyncHashtableAccessByIter : public CSyncHashtableAccessorBase<T, K, S>
+	template <class T, class K>
+	class CSyncHashtableAccessByIter : public CSyncHashtableAccessorBase<T, K>
 	{
 
 		// iterator class is a friend
-		friend class CSyncHashtableIter<T, K, S>;
+		friend class CSyncHashtableIter<T, K>;
 
 		private:
 
 			// shorthand for base class
-			typedef class CSyncHashtableAccessorBase<T, K, S> Base;
+			typedef class CSyncHashtableAccessorBase<T, K> Base;
 
 			// target iterator
-			CSyncHashtableIter<T, K, S> &m_iter;
+			CSyncHashtableIter<T, K> &m_iter;
 
 			// no copy ctor
-			CSyncHashtableAccessByIter<T, K, S>
-				(const CSyncHashtableAccessByIter<T, K, S>&);
+			CSyncHashtableAccessByIter<T, K>
+				(const CSyncHashtableAccessByIter<T, K>&);
 
 			// returns the first valid element starting from the given element
 			T *FirstValid(T *value) const
@@ -67,8 +67,8 @@ namespace gpos
 
 			// ctor
 			explicit
-			CSyncHashtableAccessByIter<T, K, S>
-				(CSyncHashtableIter<T, K, S> &iter)
+			CSyncHashtableAccessByIter<T, K>
+				(CSyncHashtableIter<T, K> &iter)
             :
             Base(iter.m_ht, iter.m_bucket_idx),
             m_iter(iter)

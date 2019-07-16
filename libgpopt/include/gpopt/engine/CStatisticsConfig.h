@@ -15,7 +15,6 @@
 #include "gpos/memory/CMemoryPool.h"
 #include "gpos/common/CRefCount.h"
 #include "gpos/common/CDouble.h"
-#include "gpos/sync/CAutoMutex.h"
 
 #include "naucrates/md/IMDId.h"
 #include "naucrates/md/CMDIdColStats.h"
@@ -52,9 +51,6 @@ namespace gpopt
 
 			// hash set of md ids for columns with missing statistics
 			MdidHashSet *m_phsmdidcolinfo;
-
-			// mutex for locking entry when accessing / changing missing statistics column info
-			CMutex m_mutexMissingColStats;
 
 		public:
 

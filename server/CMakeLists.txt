@@ -422,7 +422,6 @@ add_orca_test(CPredicateUtilsTest)
 add_orca_test(CPartConstraintTest)
 
 if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS"))
-  add_orca_test(CSchedulerTest)
   add_orca_test(CSearchStrategyTest)
 endif()
 

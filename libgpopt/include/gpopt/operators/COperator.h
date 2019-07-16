@@ -14,7 +14,6 @@
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
 #include "gpos/common/CHashMap.h"
-#include "gpos/sync/CAtomicCounter.h"
 
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/base/CDrvdProp.h"
@@ -101,7 +100,7 @@ namespace gpopt
 
 			// generate unique operator ids
 			static
-			CAtomicULONG m_aulOpIdCounter;
+			ULONG m_aulOpIdCounter;
 
 		public:
 

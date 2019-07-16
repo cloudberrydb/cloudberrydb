@@ -45,6 +45,13 @@ namespace gpopt
 			static
 			void Optimize(CMemoryPool *mp, Pfpexpr pfnGenerator, CSearchStageArray *search_stage_array, PfnOptimize pfnOptimize);
 
+			static void BuildMemo
+				(
+				 CMemoryPool *mp,
+				 CExpression *pexprInput,
+				 CSearchStageArray *search_stage_array
+				 );
+
 		public:
 
 			// unittests driver

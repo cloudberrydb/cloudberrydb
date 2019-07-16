@@ -28,7 +28,6 @@
 
 #include "gpos/common/clibwrapper.h"
 #include "gpos/error/CException.h"
-#include "gpos/task/IWorker.h"
 
 using namespace gpos;
 
@@ -624,8 +623,6 @@ gpos::clib::Malloc
 	SIZE_T size
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
-
 	return malloc(size);
 }
 
@@ -644,8 +641,6 @@ gpos::clib::Free
 	void *src
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
-
 	free(src);
 }
 

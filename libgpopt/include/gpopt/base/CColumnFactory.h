@@ -14,9 +14,7 @@
 #include "gpos/base.h"
 #include "gpos/common/CList.h"
 #include "gpos/common/CSyncHashtable.h"
-#include "gpos/sync/CAtomicCounter.h"
 
-#include "gpopt/spinlock.h"
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/metadata/CColumnDescriptor.h"
 
@@ -56,13 +54,12 @@ namespace gpopt
 			ColRefToColRefSetMap *m_phmcrcrs;
 
 			// id counter
-			CAtomicULONG m_aul;
+			ULONG m_aul;
 
 			// hash table
 			CSyncHashtable
 				<CColRef,
-				ULONG,
-				CSpinlockColumnFactory> m_sht;
+				ULONG> m_sht;
 
 			// private copy ctor
 			CColumnFactory(const CColumnFactory &);

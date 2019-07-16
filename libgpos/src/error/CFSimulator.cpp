@@ -55,7 +55,7 @@ CFSimulator::AddTracker
 	// disable OOM simulation in this scope
 	CAutoTraceFlag atf(EtraceSimulateOOM, false);
 
-	// allocate new tracker before getting the spinlock
+	// allocate new tracker
 	CStackTracker *new_stack_tracker = GPOS_NEW(m_mp) CStackTracker(m_mp, m_resolution, key);
 	
 	// assume somebody overtook

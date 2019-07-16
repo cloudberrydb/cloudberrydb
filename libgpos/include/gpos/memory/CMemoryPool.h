@@ -390,20 +390,6 @@ namespace gpos
 				CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
 			}
 	};
-
-	// Specialization for volatile-qualified types.
-	template <typename T>
-	class CDeleter<volatile T> {
-		public:
-			static void Delete(volatile T* object) {
-				CDeleter<T>::Delete(const_cast<T*>(object));
-			}
-
-			static void DeleteArray(volatile T* object_array) {
-				CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
-			}
-	};
-
 	}  // namespace delete_detail
 } // gpos
 

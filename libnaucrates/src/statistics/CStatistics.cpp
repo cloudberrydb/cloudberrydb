@@ -20,7 +20,6 @@
 #include "naucrates/statistics/CLeftAntiSemiJoinStatsProcessor.h"
 #include "naucrates/statistics/CInnerJoinStatsProcessor.h"
 #include "gpos/common/CBitSet.h"
-#include "gpos/sync/CAutoMutex.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 
 #include "gpopt/base/CColumnFactory.h"
@@ -810,8 +809,6 @@ CStatistics::GetIndexUpperBoundNDVs
 	)
 {
 	GPOS_ASSERT(NULL != colref);
- 	CAutoMutex am(m_src_upper_bound_mapping_mutex);
- 	am.Lock();
 
  	const ULONG length = m_src_upper_bound_NDVs->Size();
  	for (ULONG i = 0; i < length; i++)
@@ -834,9 +831,6 @@ CStatistics::AddCardUpperBound
 	)
 {
 	GPOS_ASSERT(NULL != upper_bound_NDVs);
-
-	CAutoMutex am(m_src_upper_bound_mapping_mutex);
-	am.Lock();
 
 	m_src_upper_bound_NDVs->Append(upper_bound_NDVs);
 }
@@ -876,9 +870,6 @@ CStatistics::GetColUpperBoundNDVs
 	)
 {
 	GPOS_ASSERT(NULL != colref);
-
-	CAutoMutex am(m_src_upper_bound_mapping_mutex);
-	am.Lock();
 
 	const ULONG length = m_src_upper_bound_NDVs->Size();
 	for (ULONG i = 0; i < length; i++)

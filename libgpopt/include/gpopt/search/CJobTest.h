@@ -59,7 +59,7 @@ namespace gpopt
 
 			// iteration counter
 			static
-			volatile ULONG_PTR m_ulpCnt;
+			ULONG_PTR m_ulpCnt;
 
 			// job queue
 			CJobQueue *m_pjq;

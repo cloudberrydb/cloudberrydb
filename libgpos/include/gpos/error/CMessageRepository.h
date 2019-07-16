@@ -11,7 +11,6 @@
 #ifndef GPOS_CMessageRepository_H
 #define GPOS_CMessageRepository_H
 
-#include "gpos/sync/CSpinlock.h"
 #include "gpos/error/CMessageTable.h"
 
 namespace gpos
@@ -38,14 +37,12 @@ namespace gpos
 			// short hand for Table of Message Tables (TMT)
 			typedef CSyncHashtable<
 						CMessageTable, 
-						ELocale, 
-						CSpinlockOS> TMT;
+						ELocale> TMT;
 
 			// short hand for TMT accessor
 			typedef CSyncHashtableAccessByKey<
 						CMessageTable, 
-						ELocale, 
-						CSpinlockOS> TMTAccessor;
+						ELocale> TMTAccessor;
 		
 			// basic hash table
 			TMT m_hash_table;

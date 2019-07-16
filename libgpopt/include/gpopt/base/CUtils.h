@@ -1448,9 +1448,12 @@ namespace gpopt
 
 		// match if the index descriptors are identical
 		// we will compare MDIds, so both indexes should be partial or non-partial.
-		// for heterogeneous indexes, we use pointer comparison of part constraints to avoid
-		// memory allocation because matching function is used while holding spin locks.
-		// this means that we may miss matches for heterogeneous indexes
+		// Possible future improvement:
+		// For heterogeneous indexes, we use pointer comparison of part constraints.
+		// That was to avoid memory allocation because matching function was used while
+		// holding spin locks. This is no longer an issue, as we don't use spin locks
+		// anymore. Using a match function would mean improved matching for heterogeneous
+		// indexes.
 		return  pop1->UlOriginOpId() == popIndex2->UlOriginOpId() &&
 				pop1->ScanId() == popIndex2->ScanId() &&
 				pop1->UlSecondaryScanId() == popIndex2->UlSecondaryScanId() &&
@@ -1484,9 +1487,10 @@ namespace gpopt
 		T *popScan2 = T::PopConvert(pop2);
 
 		// match if the table descriptors are identical
-		// for partial scans, we use pointer comparison of part constraints to avoid
-		// memory allocation because matching function is used while holding spin locks.
-		// this means that we may miss matches for partial scans
+		// Possible improvement:
+		// For partial scans, we use pointer comparison of part constraints to avoid
+		// memory allocation because matching function was used while holding spin locks.
+		// Using a match function would mean improved matches for partial scans.
 		return pop1->ScanId() == popScan2->ScanId() &&
 				pop1->UlSecondaryScanId() == popScan2->UlSecondaryScanId() &&
 				pop1->Ptabdesc()->MDId()->Equals(popScan2->Ptabdesc()->MDId()) &&

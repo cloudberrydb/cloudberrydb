@@ -16,7 +16,6 @@
 #include "gpos/error/CLoggerSyslog.h"
 #include "gpos/error/CMessageRepository.h"
 #include "gpos/string/CWStringConst.h"
-#include "gpos/sync/CAutoMutex.h"
 
 using namespace gpos;
 

@@ -40,8 +40,7 @@ CFSimulatorTest::EresUnittest()
 		};
 		
 	// ignore this test for FP simulation and time slicing check
-	if (CFSimulator::FSimulation() ||
-	    IWorker::m_enforce_time_slices)
+	if (CFSimulator::FSimulation() )
 	{
 		return GPOS_OK;
 	}

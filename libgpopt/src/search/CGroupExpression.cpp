@@ -156,11 +156,6 @@ CGroupExpression::CleanupContexts()
 			}
 		}
 	}
-
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 }
 
 

@@ -44,17 +44,17 @@ namespace gpos
 	//		the hashtable class in order to link to a target hashtable.
 	//
 	//---------------------------------------------------------------------------
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableIter
 	{
 
 		// iterator accessor class is a friend
-		friend class CSyncHashtableAccessByIter<T, K, S>;
+		friend class CSyncHashtableAccessByIter<T, K>;
 
 		private:
 
 			// target hashtable
-			CSyncHashtable<T, K, S> &m_ht;
+			CSyncHashtable<T, K> &m_ht;
 
 			// index of bucket to operate on
 			ULONG m_bucket_idx;
@@ -67,7 +67,7 @@ namespace gpos
 			T *m_invalid_elem;
 
 			// no copy ctor
-			CSyncHashtableIter<T, K, S>(const CSyncHashtableIter<T, K, S>&);
+			CSyncHashtableIter<T, K>(const CSyncHashtableIter<T, K>&);
 
 			// inserts invalid element at the head of current bucket
 			void InsertInvalidElement()
@@ -75,7 +75,7 @@ namespace gpos
                 m_invalid_elem_inserted = false;
                 while (m_bucket_idx < m_ht.m_nbuckets)
                 {
-                    CSyncHashtableAccessByIter<T, K, S> acc(*this);
+                    CSyncHashtableAccessByIter<T, K> acc(*this);
 
                     T *first = acc.First();
                     T *first_valid = NULL;
@@ -98,7 +98,7 @@ namespace gpos
 			// advances invalid element in current bucket
 			void AdvanceInvalidElement()
             {
-                CSyncHashtableAccessByIter<T, K, S> acc(*this);
+                CSyncHashtableAccessByIter<T, K> acc(*this);
 
                 T *value = acc.FirstValid(m_invalid_elem);
 
@@ -121,7 +121,7 @@ namespace gpos
 
 			// ctor
 			explicit
-			CSyncHashtableIter<T, K, S>(CSyncHashtable<T, K, S> &ht)
+			CSyncHashtableIter<T, K>(CSyncHashtable<T, K> &ht)
             :
             m_ht(ht),
             m_bucket_idx(0),
@@ -143,12 +143,12 @@ namespace gpos
             }
 
 			// dtor
-			~CSyncHashtableIter<T, K, S>()
+			~CSyncHashtableIter<T, K>()
             {
                 if (m_invalid_elem_inserted)
                 {
                     // remove invalid element
-                    CSyncHashtableAccessByIter<T, K, S> acc(*this);
+                    CSyncHashtableAccessByIter<T, K> acc(*this);
                     acc.Remove(m_invalid_elem);
                 }
             }

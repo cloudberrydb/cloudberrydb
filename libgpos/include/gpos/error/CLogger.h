@@ -12,7 +12,6 @@
 #define GPOS_CLogger_H
 
 #include "gpos/error/ILogger.h"
-#include "gpos/sync/CMutex.h"
 #include "gpos/string/CWStringStatic.h"
 
 namespace gpos
@@ -46,9 +45,6 @@ namespace gpos
 
 			// message buffer wrapper
 			CWStringStatic m_msg_wrapper;
-
-			// mutex for atomic log writes
-			CMutex m_mutex;
 
 			// error logging information level
 			ErrorInfoLevel m_info_level;
@@ -114,14 +110,6 @@ namespace gpos
 			{
 				m_info_level = info_level;
 			}
-
-#ifdef GPOS_FPSIMULATOR
-			// check if a message is logged
-			BOOL MessageIsLogged() const
-			{
-				return m_mutex.IsOwned();
-			}
-#endif // GPOS_FPSIMULATOR
 
 	};	// class CLogger
 }

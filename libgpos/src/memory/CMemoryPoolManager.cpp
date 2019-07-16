@@ -24,8 +24,6 @@
 #include "gpos/memory/CMemoryPoolStack.h"
 #include "gpos/memory/CMemoryPoolTracker.h"
 #include "gpos/memory/CMemoryVisitorPrint.h"
-#include "gpos/sync/CAutoSpinlock.h"
-#include "gpos/sync/CAutoMutex.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 
 

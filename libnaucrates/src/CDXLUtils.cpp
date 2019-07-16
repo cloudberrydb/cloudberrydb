@@ -85,10 +85,6 @@ CDXLUtils::GetParseHandlerForDXLString
 	CDXLMemoryManager *memory_manager = GPOS_NEW(mp) CDXLMemoryManager(mp);
 	SAX2XMLReader* sax_2_xml_reader = XMLReaderFactory::createXMLReader(memory_manager);
 
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 	XMLCh *xsd_path = NULL;
 
 	if (NULL != xsd_file_path)
@@ -120,10 +116,6 @@ CDXLUtils::GetParseHandlerForDXLString
 				memory_manager
 	    	);
 
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 	try
 	{
 		sax_2_xml_reader->parse(*input_src_memory_buffer);
@@ -145,10 +137,6 @@ CDXLUtils::GetParseHandlerForDXLString
 	}
 
 
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 	GPOS_CHECK_ABORT;
 
 	// cleanup
@@ -157,11 +145,6 @@ CDXLUtils::GetParseHandlerForDXLString
 	GPOS_DELETE(parse_handler_mgr);
 	GPOS_DELETE(memory_manager);
 	delete xsd_path;
-
-	// reset time slice counter as unloading deleting Xerces SAX2 readers seems to take a lot of time (OPT-491)
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 
 	GPOS_CHECK_ABORT;
 
@@ -229,10 +212,6 @@ CDXLUtils::GetParseHandlerForDXLFile
 
 		sax_2_xml_reader->parse(dxl_filename);
 
-		// reset time slice
-#ifdef GPOS_DEBUG
-	    CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 	}
 	catch (const XMLException&)
 	{
@@ -268,11 +247,6 @@ CDXLUtils::GetParseHandlerForDXLFile
 	// cleanup
 	delete sax_2_xml_reader;
 	
-	// reset time slice counter as unloading deleting Xerces SAX2 readers seems to take a lot of time (OPT-491)
-#ifdef GPOS_DEBUG
-    CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-    
 	delete[] xsd_path;
 	
 	return parse_handler_dxl;

@@ -25,14 +25,10 @@
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/memory/CCacheEntry.h"
 
-#include "gpos/sync/CSpinlock.h"
-
 #include "gpos/common/CAutoTimer.h"
 #include "gpos/common/CSyncHashtableAccessByKey.h"
 #include "gpos/common/CSyncHashtableIter.h"
 #include "gpos/common/CSyncHashtableAccessByIter.h"
-
-#include "gpos/sync/CAutoSpinlock.h"
 
 #include "gpos/task/CAutoSuspendAbort.h"
 #include "gpos/task/CWorker.h"
@@ -89,13 +85,13 @@ namespace gpos
 			typedef CCacheEntry<T, K> CCacheHashTableEntry;
 
 			// type definition of hashtable, accessor and iterator
-			typedef CSyncHashtable<CCacheHashTableEntry, K, CSpinlockCache>
+			typedef CSyncHashtable<CCacheHashTableEntry, K>
 				CCacheHashtable;
-			typedef CSyncHashtableAccessByKey<CCacheHashTableEntry, K, CSpinlockCache>
+			typedef CSyncHashtableAccessByKey<CCacheHashTableEntry, K>
 				CCacheHashtableAccessor;
-			typedef CSyncHashtableIter<CCacheHashTableEntry, K, CSpinlockCache>
+			typedef CSyncHashtableIter<CCacheHashTableEntry, K>
 				CCacheHashtableIter;
-			typedef CSyncHashtableAccessByIter<CCacheHashTableEntry, K, CSpinlockCache>
+			typedef CSyncHashtableAccessByIter<CCacheHashTableEntry, K>
 					CCacheHashtableIterAccessor;
 
 			// memory pool for allocating hashtable and cache entries
@@ -118,9 +114,6 @@ namespace gpos
 
 			// number of times cache entries were evicted
 			ULLONG m_eviction_counter;
-
-			// atomic lock for eviction; only one thread can execute eviction process at a time
-			volatile ULONG m_eviction_lock;
 
 			// if the gclock hand was already advanced and therefore can serve the next entry
 			BOOL m_clock_hand_advanced;
@@ -157,7 +150,7 @@ namespace gpos
 					(m_unique && NULL == (found = acc.Find())))
 				{
 					acc.Insert(entry);
-					ExchangeAddUllongWithUllong((volatile ULLONG *)&m_cache_size, entry->Pmp()->TotalAllocatedSize());
+					m_cache_size += entry->Pmp()->TotalAllocatedSize();
 				}
 				else
 				{
@@ -255,44 +248,38 @@ namespace gpos
 			{
 				GPOS_ASSERT(0 != m_cache_quota || "Cannot evict from an unlimited sized cache");
 
-				if (CompareSwap(&m_eviction_lock, 0, 1))
+				if (m_cache_size > m_cache_quota)
 				{
-					if (m_cache_size > m_cache_quota)
+					double to_free = static_cast<double>(static_cast<double>(m_cache_size) -
+														 static_cast<double>(m_cache_quota) * (1.0 - m_eviction_factor));
+					GPOS_ASSERT(0 < to_free);
+
+					ULLONG num_to_free = static_cast<ULLONG>(to_free);
+					ULLONG total_freed = 0;
+
+					// retryCount indicates the number of times we want to circle around the buckets.
+					// depending on our previous cursor position (e.g., may be at the very last bucket)
+					// we may end up circling 1 less time than the retry count
+					for (ULONG retry_count = 0; retry_count < m_gclock_init_counter + 1; retry_count++)
 					{
-						double to_free = static_cast<double>(static_cast<double>(m_cache_size) -
-								static_cast<double>(m_cache_quota) * (1.0 - m_eviction_factor));
-						GPOS_ASSERT(0 < to_free);
+						total_freed = EvictEntriesOnePass(total_freed, num_to_free);
 
-						ULLONG num_to_free = static_cast<ULLONG>(to_free);
-						ULLONG total_freed = 0;
-
-						// retryCount indicates the number of times we want to circle around the buckets.
-						// depending on our previous cursor position (e.g., may be at the very last bucket)
-						// we may end up circling 1 less time than the retry count
-						for (ULONG retry_count = 0; retry_count < m_gclock_init_counter + 1; retry_count++)
+						if (total_freed >= num_to_free)
 						{
-							total_freed = EvictEntriesOnePass(total_freed, num_to_free);
-
-							if (total_freed >= num_to_free)
-							{
-								// successfully freed up enough. The final action must have been a valid eviction
-								GPOS_ASSERT(m_clock_hand_advanced);
-								// no need to retry
-								break;
-							}
-
-							// exhausted the iterator, so rewind it
-							m_clock_hand->Rewind();
+							// successfully freed up enough. The final action must have been a valid eviction
+							GPOS_ASSERT(m_clock_hand_advanced);
+							// no need to retry
+							break;
 						}
 
-						if (0 < total_freed)
-						{
-							++m_eviction_counter;
-						}
+						// exhausted the iterator, so rewind it
+						m_clock_hand->Rewind();
 					}
 
-					// release the lock
-					m_eviction_lock = 0;
+					if (0 < total_freed)
+					{
+						++m_eviction_counter;
+					}
 				}
 			}
 
@@ -360,8 +347,7 @@ namespace gpos
 									m_clock_hand_advanced = true;
 
 									ULLONG num_freed = entry->Pmp()->TotalAllocatedSize();
-									ExchangeAddUllongWithUllong((volatile ULLONG *) &m_cache_size,
-											-num_freed);
+									m_cache_size -= num_freed;
 									total_freed += num_freed;
 								}
 							}
@@ -402,7 +388,6 @@ namespace gpos
 			m_gclock_init_counter(g_clock_init_counter),
 			m_eviction_factor((float)0.1),
 			m_eviction_counter(0),
-			m_eviction_lock(0),
 			m_clock_hand_advanced(false),
 			m_hash_func(hash_func),
 			m_equal_func(equal_func)

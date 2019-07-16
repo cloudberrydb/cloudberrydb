@@ -14,7 +14,6 @@
 
 #include "gpos/types.h"
 #include "gpos/utils.h"
-#include "gpos/sync/CAtomicCounter.h"
 
 namespace gpos
 {
@@ -35,14 +34,14 @@ namespace gpos
 			ULONG_PTR m_task_id;
 
 			// atomic counter
-			static CAtomicULONG_PTR m_counter;
+			static ULONG_PTR m_counter;
 
 		public:
 
 			// ctor
 			CTaskId()
 				:
-				m_task_id(m_counter.Incr())
+				m_task_id(m_counter++)
 			{}
 
 			// simple comparison

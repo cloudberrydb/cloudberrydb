@@ -3580,11 +3580,6 @@ CUtils::GenerateFileName
 	buf[length - 1] = '\0';
 
 	GPOS_DELETE(filename_template);
-
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 }
 
 // return the mapping of the given colref based on the given hashmap

@@ -99,8 +99,6 @@ CMemoryPoolStack::Allocate
 	ULONG alloc = GPOS_MEM_ALIGNED_SIZE(bytes);
 	GPOS_ASSERT(MAX_ALIGNED(alloc));
 
-	CAutoSpinlock as(m_lock);
-
 	// check if memory pool has enough capacity
 	if (alloc + m_reserved > m_capacity)
 	{
@@ -108,9 +106,7 @@ CMemoryPoolStack::Allocate
 	}
 
 	// find block to allocate memory in it
-	SBlockDescriptor *desc = FindMemoryBlock(as, alloc);
-
-	GPOS_ASSERT_IMP(IsThreadSafe(), m_lock.IsOwned());
+	SBlockDescriptor *desc = FindMemoryBlock(alloc);
 
 	if (NULL != desc)
 	{
@@ -138,22 +134,15 @@ CMemoryPoolStack::Allocate
 CMemoryPoolStack::SBlockDescriptor *
 CMemoryPoolStack::FindMemoryBlock
 	(
-	CAutoSpinlock &as,
 	ULONG alloc
 	)
 {
-	SLock(as);
-
 	SBlockDescriptor *desc = m_block_descriptor;
 
 	if (NULL == desc || !desc->CanFit(alloc))
 	{
-		// release spinlock to allocate memory from underlying pool
-		SUnlock(as);
-
 		// allocate a new block
 		desc = New(alloc);
-		SLock(as);
 
 		if (NULL == desc)
 		{
@@ -216,8 +205,6 @@ CMemoryPoolStack::New
 void
 CMemoryPoolStack::TearDown()
 {
-	GPOS_ASSERT(!m_lock.IsOwned());
-
 	while (!m_block_list.IsEmpty())
 	{
 		GetUnderlyingMemoryPool()->Free(m_block_list.RemoveHead());

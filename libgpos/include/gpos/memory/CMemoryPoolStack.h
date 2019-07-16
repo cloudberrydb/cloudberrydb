@@ -23,8 +23,6 @@
 #include "gpos/common/CList.h"
 #include "gpos/error/CFSimulator.h"
 #include "gpos/memory/CMemoryPool.h"
-#include "gpos/sync/CAutoSpinlock.h"
-#include "gpos/sync/CSpinlock.h"
 
 
 namespace gpos
@@ -92,7 +90,7 @@ namespace gpos
 
 			// size of reserved memory;
 			// this includes total allocated memory and pending allocations;
-			volatile ULLONG m_reserved;
+			ULLONG m_reserved;
 
 			// max memory to allow in the pool;
 			// if equal to ULLONG, checks for exceeding max memory are bypassed
@@ -104,32 +102,11 @@ namespace gpos
 			// list of allocated blocks
 			CList<SBlockDescriptor> m_block_list;
 
-			// spinlock to protect allocations inside the currently used block
-			CSpinlockOS m_lock;
-
 			// allocate block from underlying pool
 			SBlockDescriptor *New(ULONG size);
 
 			// find block to provide memory for allocation request
-			SBlockDescriptor *FindMemoryBlock(CAutoSpinlock &as, ULONG alloc);
-
-			// acquire spinlock if pool is thread-safe
-			void SLock(CAutoSpinlock &as)
-			{
-				if (IsThreadSafe())
-				{
-					as.Lock();
-				}
-			}
-
-			// release spinlock if pool is thread-safe
-			void SUnlock(CAutoSpinlock &as)
-			{
-				if (IsThreadSafe())
-				{
-					as.Unlock();
-				}
-			}
+			SBlockDescriptor *FindMemoryBlock(ULONG alloc);
 
 #ifdef GPOS_DEBUG
 			// check if a particular allocation is sound for this memory pool

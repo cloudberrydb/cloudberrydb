@@ -14,7 +14,6 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CHashMap.h"
-#include "gpos/sync/CAtomicCounter.h"
 
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLScalarBoolExpr.h"

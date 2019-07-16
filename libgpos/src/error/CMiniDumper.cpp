@@ -14,7 +14,6 @@
 #include "gpos/error/CErrorContext.h"
 #include "gpos/error/CMiniDumper.h"
 #include "gpos/string/CWStringConst.h"
-#include "gpos/sync/atomic.h"
 #include "gpos/task/CTask.h"
 
 using namespace gpos;

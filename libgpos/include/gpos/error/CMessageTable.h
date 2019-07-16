@@ -30,14 +30,12 @@ namespace gpos
 			// short hand for message tables
 			typedef CSyncHashtable<
 						CMessage, 
-						CException, 
-						CSpinlockOS> MessageTable;
+						CException> MessageTable;
 
 			// short hand for message table accessor
 			typedef CSyncHashtableAccessByKey<
 						CMessage, 
-						CException, 
-						CSpinlockOS> MTAccessor;
+						CException> MTAccessor;
 		
 			// message hashtable
 			MessageTable m_hash_table;

@@ -348,11 +348,6 @@ CEnumeratorConfig::DumpSamples
 	CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(str->GetBuffer()));
 	CIOUtils::Dump(file_name, sz);
 	GPOS_DELETE_ARRAY(sz);
-
-	// reset time slice
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 
@@ -382,11 +377,6 @@ CEnumeratorConfig::DumpCostDistr
 	CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(str->GetBuffer()));
 	CIOUtils::Dump(file_name, sz);
 	GPOS_DELETE_ARRAY(sz);
-
-	// reset time slice
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 

@@ -19,8 +19,7 @@ using namespace gpos;
 // shorthand for HT accessor
 typedef	CSyncHashtableAccessByKey
 			<CTaskLocalStorageObject, 
-			CTaskLocalStorage::Etlsidx,
-			CSpinlockOS> HashTableAccessor;
+			CTaskLocalStorage::Etlsidx> HashTableAccessor;
 
 
 // invalid idx

@@ -20,7 +20,7 @@
 using namespace gpopt;
 
 // generate unique operator ids
-CAtomicULONG COperator::m_aulOpIdCounter(0);
+ULONG COperator::m_aulOpIdCounter(0);
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -35,7 +35,7 @@ COperator::COperator
 	CMemoryPool *mp
 	)
 	:
-	m_ulOpId(m_aulOpIdCounter.Incr()),
+	m_ulOpId(m_aulOpIdCounter++),
 	m_mp(mp),
 	m_fPattern(false)
 {

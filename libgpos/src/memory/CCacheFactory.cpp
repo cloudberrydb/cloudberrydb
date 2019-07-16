@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 
+#include "gpos/io/ioutils.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/memory/CCache.h"
 #include "gpos/memory/CCacheFactory.h"

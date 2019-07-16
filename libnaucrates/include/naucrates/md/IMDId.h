@@ -56,7 +56,7 @@ namespace gpmd
 			// number of deletion locks -- each MDAccessor adds a new deletion lock if it uses
 			// an MDId object in its internal hash-table, the deletion lock is released when
 			// MDAccessor is destroyed
-			volatile ULONG_PTR m_deletion_locks;
+			ULONG_PTR m_deletion_locks;
 
 		public:
 			//------------------------------------------------------------------
@@ -118,7 +118,7 @@ namespace gpmd
 			// increase number of deletion locks
 			void AddDeletionLock()
 			{
-				(void) ExchangeAddUlongPtrWithInt(&m_deletion_locks, 1);
+				m_deletion_locks++;
 			}
 
 			// decrease number of deletion locks
@@ -126,7 +126,7 @@ namespace gpmd
 			{
 				GPOS_ASSERT(0 < m_deletion_locks);
 
-				(void) ExchangeAddUlongPtrWithInt(&m_deletion_locks, -1);
+				m_deletion_locks--;
 			}
 
 			// return number of deletion locks

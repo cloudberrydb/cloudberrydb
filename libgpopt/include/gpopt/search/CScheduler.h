@@ -14,7 +14,6 @@
 #include "gpos/base.h"
 #include "gpos/common/CSyncList.h"
 #include "gpos/common/CSyncPool.h"
-#include "gpos/sync/CEvent.h"
 
 #include "gpopt/search/CJob.h"
 
@@ -92,34 +91,24 @@ namespace gpopt
 				}
 			};
 
-			// mutex and event mechanism for individual workers
-			CMutex m_mutex;
-			CEvent m_event;
-					
 			// list of jobs waiting to execute
 			CSyncList<SJobLink> m_listjlWaiting;
 
 			// pool of job link objects
 			CSyncPool<SJobLink> m_spjl;
 
-			// number of tasks assigned
-			const ULONG_PTR m_ulpTasksMax;
-
-			// number of active tasks;
-			volatile ULONG_PTR m_ulpTasksActive;
-
 			// current job counters
-			volatile ULONG_PTR m_ulpTotal;
-			volatile ULONG_PTR m_ulpRunning;
-			volatile ULONG_PTR m_ulpQueued;
+			ULONG_PTR m_ulpTotal;
+			ULONG_PTR m_ulpRunning;
+			ULONG_PTR m_ulpQueued;
 
 			// stats
-			volatile ULONG_PTR m_ulpStatsQueued;
-			volatile ULONG_PTR m_ulpStatsDequeued;
-			volatile ULONG_PTR m_ulpStatsSuspended;
-			volatile ULONG_PTR m_ulpStatsCompleted;
-			volatile ULONG_PTR m_ulpStatsCompletedQueued;
-			volatile ULONG_PTR m_ulpStatsResumed;
+			ULONG_PTR m_ulpStatsQueued;
+			ULONG_PTR m_ulpStatsDequeued;
+			ULONG_PTR m_ulpStatsSuspended;
+			ULONG_PTR m_ulpStatsCompleted;
+			ULONG_PTR m_ulpStatsCompletedQueued;
+			ULONG_PTR m_ulpStatsResumed;
 
 #ifdef GPOS_DEBUG
 			// list of running jobs
@@ -133,10 +122,7 @@ namespace gpopt
 			const BOOL m_fTrackingJobs;
 #endif // GPOS_DEBUG
 
-			// internal job processing task
-			void ProcessJobs(CSchedulerContext *psc);
-
-			// keep executing waiting jobs (if any)
+			// keep executing jobs (if any)
 			void ExecuteJobs(CSchedulerContext *psc);
 
 			// process job execution results
@@ -171,30 +157,6 @@ namespace gpopt
 				return (0 == m_ulpTotal);
 			}
 
-			// increment counter of active tasks
-			void IncTasksActive()
-			{
-				(void) ExchangeAddUlongPtrWithInt(&m_ulpTasksActive, 1);
-			}
-
-			// decrement counter of active tasks
-			void DecrTasksActive()
-			{
-				(void) ExchangeAddUlongPtrWithInt(&m_ulpTasksActive, -1);
-			}
-
-			// check if there is enough work for more workers
-			BOOL FIncreaseWorkers() const
-			{
-				GPOS_ASSERT(m_ulpTasksMax >= m_ulpRunning);
-				return
-					(
-					m_ulpTasksMax > m_ulpTasksActive &&
-					(OPT_SCHED_QUEUED_RUNNING_RATIO < m_ulpQueued / (m_ulpTasksActive + 1))
-				    )
-				    ;
-			}
-
 			// no copy ctor
 			CScheduler(const CScheduler&);
 
@@ -204,8 +166,7 @@ namespace gpopt
 			CScheduler
 				(
 				CMemoryPool *mp,
-				ULONG ulJobs,
-				ULONG_PTR ulpTasks
+				ULONG ulJobs
 #ifdef GPOS_DEBUG
 				,
 				BOOL fTrackingJobs = true

@@ -108,16 +108,7 @@ add_gpos_custom_alloc_test(CMemoryPoolCustomAllocTest)
 add_gpos_test(CWStringTest)
 add_gpos_test(CStringTest)
 
-# sync
-add_gpos_test(CAutoMutexTest)
-add_gpos_test(CAutoSpinlockTest)
-add_gpos_test(CEventTest)
-add_gpos_test(CMutexTest)
-add_gpos_test(CSpinlockTest)
-
 # task
-add_gpos_test(CAutoTaskProxyTest)
-add_gpos_test(CWorkerPoolManagerTest)
 add_gpos_test(CTaskLocalStorageTest)
 
 # test

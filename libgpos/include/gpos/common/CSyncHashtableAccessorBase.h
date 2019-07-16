@@ -9,10 +9,6 @@
 //		Base hashtable accessor class; provides primitives to operate
 //		on a target bucket in the hashtable.
 //
-//		Throughout its life time, the accessor holds the spinlock on a
-//		target bucket; this allows clients to implement more complex
-//		functionality than simple test-and-insert/remove functions.
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableAccessorBase_H_
 #define GPOS_CSyncHashtableAccessorBase_H_
@@ -37,51 +33,47 @@ namespace gpos
 	//		rationale behind this class
 	//
 	//---------------------------------------------------------------------------
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableAccessorBase : public CStackObject
 	{
 
 		private:
 
 			// shorthand for buckets
-			typedef struct CSyncHashtable<T, K, S>::SBucket SBucket;
+			typedef struct CSyncHashtable<T, K>::SBucket SBucket;
 
 			// target hashtable
-			CSyncHashtable<T, K, S> &m_ht;
+			CSyncHashtable<T, K> &m_ht;
 
 			// bucket to operate on
 			SBucket &m_bucket;
 
 			// no copy ctor
-			CSyncHashtableAccessorBase<T, K, S>
-				(const CSyncHashtableAccessorBase<T, K, S>&);
+			CSyncHashtableAccessorBase<T, K>
+				(const CSyncHashtableAccessorBase<T, K>&);
 
 		protected:
 
 			// ctor - protected to restrict instantiation to children
-			CSyncHashtableAccessorBase<T, K, S>
+			CSyncHashtableAccessorBase<T, K>
 				(
-				CSyncHashtable<T, K, S> &ht,
+				CSyncHashtable<T, K> &ht,
 				ULONG bucket_idx
 				)
             :
             m_ht(ht),
             m_bucket(m_ht.GetBucket(bucket_idx))
             {
-                // acquire spin lock on bucket
-                m_bucket.m_lock.Lock();
             }
 
 			// dtor
 			virtual
-			~CSyncHashtableAccessorBase<T, K, S>()
+			~CSyncHashtableAccessorBase<T, K>()
             {
-                // unlock bucket
-                m_bucket.m_lock.Unlock();
             }
 
 			// accessor to hashtable
-			CSyncHashtable<T, K, S>& GetHashTable() const
+			CSyncHashtable<T, K>& GetHashTable() const
 			{
 				return m_ht;
 			}
@@ -117,7 +109,7 @@ namespace gpos
                 m_bucket.m_chain.Prepend(value);
 
                 // increase number of entries
-                (void) ExchangeAddUlongPtrWithInt(&(m_ht.m_size), 1);
+                m_ht.m_size++;
             }
 
 			// adds first element before second element
@@ -131,8 +123,8 @@ namespace gpos
                 m_bucket.m_chain.Prepend(value, ptNext);
 
                 // increase number of entries
-                (void) ExchangeAddUlongPtrWithInt(&(m_ht.m_size), 1);
-            }
+                m_ht.m_size++;
+			}
 
 			// adds first element after second element
 			void Append(T *value, T *ptPrev)
@@ -145,7 +137,7 @@ namespace gpos
                 m_bucket.m_chain.Append(value, ptPrev);
 
                 // increase number of entries
-                (void) ExchangeAddUlongPtrWithInt(&(m_ht.m_size), 1);
+                m_ht.m_size++;
             }
 
 		public:
@@ -157,7 +149,7 @@ namespace gpos
                 m_bucket.m_chain.Remove(value);
 
                 // decrease number of entries
-                (void) ExchangeAddUlongPtrWithInt(&(m_ht.m_size), -1);
+                m_ht.m_size--;
             }
 
 	}; // class CSyncHashtableAccessorBase

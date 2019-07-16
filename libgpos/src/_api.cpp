@@ -51,7 +51,7 @@ void gpos_init(struct gpos_init_params* params) {
 		return;
 	}
 
-	if (GPOS_OK != gpos::CWorkerPoolManager::Init(0,0))
+	if (GPOS_OK != gpos::CWorkerPoolManager::Init())
 	{
 		CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 		return;
@@ -78,41 +78,6 @@ void gpos_init(struct gpos_init_params* params) {
 	}
 #endif // GPOS_FPSIMULATOR
 }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		gpos_exec
-//
-//	@doc:
-//		Set number of threads in worker pool;
-//		return 0 for successful completion, 1 for error;
-//		if any exception happens re-throw it.
-//
-//---------------------------------------------------------------------------
-int gpos_set_threads(int min, int max)
-{
-	try
-	{
-		CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
-
-		// check if worker pool is initialized
-		if (NULL == pwpm)
-		{
-			return 1;
-		}
-
-		pwpm->SetMinWorkers(min);
-		pwpm->SetMaxWorkers(max);
-	}
-	catch (...)
-	{
-		// unexpected failure
-		return 1;
-	}
-
-	return 0;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -152,7 +117,7 @@ int gpos_exec
 		}
 
 		// put worker to stack - main thread has id '0'
-		CWorker wrkr(0, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) pvStackStart);
+		CWorker wrkr(GPOS_WORKER_STACK_SIZE, (ULONG_PTR) pvStackStart);
 
 		// scope for memory pool
 		{

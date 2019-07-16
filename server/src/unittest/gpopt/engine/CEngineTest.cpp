@@ -75,7 +75,6 @@ CEngineTest::EresUnittest_Basic()
 	CAutoTraceFlag atf2(EopttracePrintMemoAfterExploration, true);
 	CAutoTraceFlag atf3(EopttracePrintMemoAfterImplementation, true);
 	CAutoTraceFlag atf4(EopttracePrintMemoAfterOptimization, true);
-	CAutoTraceFlag atf5(EopttraceParallel, false);
 	CAutoTraceFlag atf6(EopttracePrintXform, true);
 	CAutoTraceFlag atf7(EopttracePrintGroupProperties, true);
 	CAutoTraceFlag atf8(EopttracePrintOptimizationContext, true);

@@ -17,10 +17,6 @@
 
 using namespace gpos;
 
-#ifdef GPOS_DEBUG
-BOOL IWorker::m_enforce_time_slices(false);
-#endif // GPOS_DEBUG
-
 //---------------------------------------------------------------------------
 //	@function:
 //		IWorker::Self

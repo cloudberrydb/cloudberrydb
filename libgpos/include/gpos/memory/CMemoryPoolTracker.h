@@ -21,16 +21,12 @@
 #include "gpos/assert.h"
 #include "gpos/types.h"
 #include "gpos/utils.h"
+#include "gpos/common/CList.h"
 #include "gpos/common/CStackDescriptor.h"
 #include "gpos/memory/CMemoryPool.h"
-#include "gpos/sync/CAutoSpinlock.h"
-#include "gpos/sync/CSpinlock.h"
 
 namespace gpos
 {
-	// prototypes
-	class CAutoMutex;
-
 	// memory pool with statistics and debugging support
 	class CMemoryPoolTracker : public CMemoryPool
 	{
@@ -68,9 +64,6 @@ namespace gpos
 				SLink m_link;
 			};
 
-			// lock for synchronization
-			CSpinlockOS m_lock;
-
 			// statistics
 			CMemoryPoolStatistics m_memory_pool_statistics;
 
@@ -89,28 +82,10 @@ namespace gpos
 			CList<SAllocHeader> m_allocations_list;
 
 			// attempt to reserve memory for allocation
-			BOOL Reserve(CAutoSpinlock &as, ULONG ulAlloc);
+			BOOL Reserve(ULONG ulAlloc);
 
 			// revert memory reservation
-			void Unreserve(CAutoSpinlock &as, ULONG alloc, BOOL mem_available);
-
-			// acquire spinlock if pool is thread-safe
-			void SLock(CAutoSpinlock &as)
-			{
-				if (IsThreadSafe())
-				{
-					as.Lock();
-				}
-			}
-
-			// release spinlock if pool is thread-safe
-			void SUnlock(CAutoSpinlock &as)
-			{
-				if (IsThreadSafe())
-				{
-					as.Unlock();
-				}
-			}
+			void Unreserve(ULONG alloc, BOOL mem_available);
 
 			// private copy ctor
 			CMemoryPoolTracker(CMemoryPoolTracker &);

@@ -38,7 +38,6 @@ CAutoTaskProxy::CAutoTaskProxy
 	m_propagate_error(propagate_error)
 {
 	m_list.Init(GPOS_OFFSET(CTask, m_proxy_link));
-	m_event.Init(&m_mutex);
 
 	// register new ATP to worker pool
 	m_pwpm->AddRef();
@@ -103,13 +102,12 @@ CAutoTaskProxy::Destroy
 	CTask *task
 	)
 {
-	GPOS_ASSERT(OwnerOf(task) && "Task not owned by this ATP object");
-
 	// cancel scheduled task
 	if (task->IsScheduled() && !task->IsReported())
 	{
 		Cancel(task);
-		Wait(task);
+		task->SetReported();
+		CheckError(task);
 	}
 
 	// unregister task from worker pool
@@ -138,7 +136,7 @@ CAutoTaskProxy::Create
 	(
 	void *(*pfunc)(void*),
 	void *arg,
-	volatile BOOL *cancel
+	BOOL *cancel
 	)
 {
 	// create memory pool for task
@@ -173,7 +171,7 @@ CAutoTaskProxy::Create
 	// auto pointer to hold new task
 	// task is created inside ATP's memory pool
 	CAutoP<CTask> new_task;
-	new_task = GPOS_NEW(m_mp) CTask(mp, task_ctxt.Value(), err_ctxt.Value(), &m_event, cancel);
+	new_task = GPOS_NEW(m_mp) CTask(mp, task_ctxt.Value(), err_ctxt.Value(), cancel);
 
 	// reset auto pointers - task now handles task and error context
 	(void) task_ctxt.Reset();
@@ -214,193 +212,9 @@ CAutoTaskProxy::Schedule
 	CTask *task
 	)
 {
-	GPOS_ASSERT(OwnerOf(task) && "Task not owned by this ATP object");
 	GPOS_ASSERT(CTask::EtsInit == task->m_status && "Task already scheduled");
 
 	m_pwpm->Schedule(task);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoTaskProxy::Wait
-//
-//	@doc:
-//		Wait for task to complete
-//
-//---------------------------------------------------------------------------
-void
-CAutoTaskProxy::Wait
-	(
-	CTask *task
-	)
-{
-	CAutoMutex am(m_mutex);
-	am.Lock();
-
-	GPOS_ASSERT(OwnerOf(task) && "Task not owned by this ATP object");
-	GPOS_ASSERT(task->IsScheduled() && "Task not scheduled yet");
-	GPOS_ASSERT(!task->IsReported() && "Task already reported as completed");
-
-	// wait until task finishes
-	while (!task->IsFinished())
-	{
-		m_event.Wait();
-	}
-
-	// mark task as reported
-	task->SetReported();
-
-	// check error from sub-task
-	CheckError(task);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoTaskProxy::TimedWait
-//
-//	@doc:
-//		Wait for task to complete - with timeout;
-//		Returns GPOS_OK if task is found or GPOS_TIMEOUT if timeout expires;
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CAutoTaskProxy::TimedWait
-	(
-	CTask *task,
-	ULONG timeout_ms
-	)
-{
-	CAutoMutex am(m_mutex);
-	am.Lock();
-
-	GPOS_ASSERT(OwnerOf(task) && "Task not owned by this ATP object");
-	GPOS_ASSERT(task->IsScheduled() && "Task not scheduled yet");
-	GPOS_ASSERT(!task->IsReported() && "Task already reported as completed");
-
-	CWallClock clock;
-	ULONG elapsed_ms = 0;
-
-	// wait until task finishes or timeout expires
-	while (!task->IsFinished() && (elapsed_ms = clock.ElapsedMS()) < timeout_ms)
-	{
-		m_event.TimedWait(timeout_ms - elapsed_ms);
-	}
-
-	// check if timeout expired
-	if (!task->IsFinished())
-	{
-		return GPOS_TIMEOUT;
-	}
-
-	// mark task as reported
-	task->SetReported();
-
-	// check error from sub-task
-	CheckError(task);
-
-	return GPOS_OK;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoTaskProxy::WaitAny
-//
-//	@doc:
-//		Wait until at least one task completes
-//
-//
-//---------------------------------------------------------------------------
-void
-CAutoTaskProxy::WaitAny
-	(
-	CTask **task
-	)
-{
-	GPOS_ASSERT(!m_list.IsEmpty() && "ATP owns no task");
-
-	*task = NULL;
-
-	CAutoMutex am(m_mutex);
-	am.Lock();
-
-	// check if any task has completed so far
-	if (GPOS_OK != FindFinished(task))
-	{
-		// wait for next task to complete
-		m_event.Wait();
-
-		// find completed task
-#ifdef GPOS_DEBUG
-		GPOS_RESULT find_res =
-#endif // GPOS_DEBUG
-		FindFinished(task);
-
-		GPOS_ASSERT(GPOS_OK == find_res);
-	}
-
-	GPOS_ASSERT(NULL != *task);
-
-	// check error from sub-task
-	CheckError(*task);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoTaskProxy::TimedWaitAny
-//
-//	@doc:
-//		Wait until at least one task completes - with timeout;
-//		Returns GPOS_OK if task is found or GPOS_TIMEOUT if timeout expires;
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CAutoTaskProxy::TimedWaitAny
-	(
-	CTask **task,
-	ULONG timeout_ms
-	)
-{
-	GPOS_ASSERT(!m_list.IsEmpty() && "ATP owns no task");
-
-	*task = NULL;
-
-	CAutoMutex am(m_mutex);
-	am.Lock();
-
-	// check if any task has completed so far
-	if (GPOS_OK != FindFinished(task))
-	{
-		// wait for next task to complete - with timeout
-		GPOS_RESULT timeout_status = m_event.TimedWait(timeout_ms);
-
-		// check if timeout not expired
-		if (GPOS_OK == timeout_status)
-		{
-#ifdef GPOS_DEBUG
-			GPOS_RESULT find_status =
-#endif // GPOS_DEBUG
-			FindFinished(task);
-
-			GPOS_ASSERT(GPOS_OK == find_status);
-		}
-		else
-		{
-			// timeout expired, no task completed
-			GPOS_ASSERT(GPOS_TIMEOUT == timeout_status);
-			return GPOS_TIMEOUT;
-		}
-	}
-
-	GPOS_ASSERT(NULL != *task);
-
-	// check error from sub-task
-	CheckError(*task);
-
-	return GPOS_OK;
 }
 
 
@@ -481,7 +295,6 @@ CAutoTaskProxy::Execute
 	CTask *task
 	)
 {
-	GPOS_ASSERT(OwnerOf(task) && "Task not owned by this ATP object");
 	GPOS_ASSERT(CTask::EtsInit == task->m_status && "Task already scheduled");
 
 	// mark task as ready to execute
@@ -624,30 +437,6 @@ CAutoTaskProxy::PropagateError
 	// propagate the error
 	CException::Reraise(current_err_ctxt->GetException(), true /*propagate*/);
 }
-
-
-#ifdef GPOS_DEBUG
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoTaskProxy::OwnerOf
-//
-//	@doc:
-//		Check task owner
-//
-//---------------------------------------------------------------------------
-BOOL
-CAutoTaskProxy::OwnerOf(CTask *task)
-{
-	CWorkerId wid;
-	GPOS_ASSERT(NULL != task);
-	GPOS_ASSERT(wid == m_wid_parent &&
-			   "Only ATP owner can schedule and wait for task");
-	return (GPOS_OK == m_list.Find(task));
-}
-
-#endif // GPOS_DEBUG
 
 // EOF
 

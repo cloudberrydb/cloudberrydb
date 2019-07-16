@@ -85,13 +85,6 @@ namespace gpos
 			// remove
 			static GPOS_RESULT EresRemoveDuplicates(CCache<SSimpleObject*, ULONG*> *);
 
-			// insert/delete/lookup tasks
-			static void* PvInsertTask(void *);
-
-			static void* PvDeleteTask(void *);
-
-			static void* PvLookupTask(void *);
-
 			// inserts one SSimpleObject with key and value set to ulKey
 			static ULLONG InsertOneElement(CCache<SSimpleObject*, ULONG*> *pCache, ULONG ulKey);
 
@@ -198,7 +191,6 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_DeepObject();
 			static GPOS_RESULT EresUnittest_Iteration();
 			static GPOS_RESULT EresUnittest_IterativeDeletion();
-			static GPOS_RESULT EresUnittest_ConcurrentAccess();
 
 
 	}; // class CCacheTest

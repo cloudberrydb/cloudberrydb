@@ -37,8 +37,6 @@ CGroupProxy::CGroupProxy
 	m_pgroup(pgroup)
 {
 	GPOS_ASSERT(NULL != pgroup);
-
-	m_pgroup->m_lock.Lock();
 }
 
 
@@ -52,7 +50,6 @@ CGroupProxy::CGroupProxy
 //---------------------------------------------------------------------------
 CGroupProxy::~CGroupProxy()
 {
-	m_pgroup->m_lock.Unlock();
 }
 
 

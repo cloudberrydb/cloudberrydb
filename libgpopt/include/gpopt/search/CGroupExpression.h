@@ -16,7 +16,6 @@
 #include "gpos/common/CList.h"
 #include "gpos/common/CRefCount.h"
 
-#include "gpopt/spinlock.h"
 #include "gpopt/base/CCostContext.h"
 #include "gpopt/engine/CPartialPlan.h"
 #include "gpopt/operators/COperator.h"
@@ -76,8 +75,7 @@ namespace gpopt
 			typedef
 				CSyncHashtable<
 					CCostContext, // entry
-					OPTCTXT_PTR, // search key
-					CSpinlockCC> ShtCC;
+					OPTCTXT_PTR   /* search key */> ShtCC;
 
 		private:
 
@@ -88,22 +86,19 @@ namespace gpopt
 			typedef
 				CSyncHashtableAccessByKey<
 					CCostContext, // entry
-					OPTCTXT_PTR, // search key
-					CSpinlockCC> ShtAcc;
+					OPTCTXT_PTR> ShtAcc;
 
 			// definition of context hash table iter
 			typedef
 				CSyncHashtableIter<
 					CCostContext, // entry
-					OPTCTXT_PTR, // search key
-					CSpinlockCC> ShtIter;
+					OPTCTXT_PTR> ShtIter;
 
 			// definition of context hash table iter accessor
 			typedef
 				CSyncHashtableAccessByIter<
 					CCostContext, // entry
-					OPTCTXT_PTR, // search key
-					CSpinlockCC> ShtAccIter;
+					OPTCTXT_PTR> ShtAccIter;
 
 			// map of partial plans to their costs
 			typedef CHashMap<CPartialPlan, CCost, CPartialPlan::HashValue, CPartialPlan::Equals,

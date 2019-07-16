@@ -272,9 +272,6 @@ CUnittest::EresExecTest
 	{
 		// reset cancellation flag
 		CTask::Self()->ResetCancel();
-#ifdef GPOS_DEBUG
-		CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 
 		eres = ut.m_pfunc != NULL ? ut.m_pfunc() : ut.m_pfuncSubtest(ut.m_ulSubtest);
 

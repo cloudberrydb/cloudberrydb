@@ -19,7 +19,6 @@
 #include "gpos/memory/CCache.h"
 #include "gpos/memory/CCacheAccessor.h"
 
-#include "gpopt/spinlock.h"
 #include "gpopt/mdcache/CMDKey.h"
 #include "gpopt/engine/CStatisticsConfig.h"
 
@@ -105,25 +104,25 @@ namespace gpopt
 		typedef CCacheAccessor<IMDCacheObject*, CMDKey*> CacheAccessorMD;
 		
 		// hashtable for cache accessors indexed by the md id of the accessed object 
-		typedef CSyncHashtable<SMDAccessorElem, MdidPtr, CSpinlockMDAcc> MDHT;
+		typedef CSyncHashtable<SMDAccessorElem, MdidPtr> MDHT;
 		
-		typedef CSyncHashtableAccessByKey<SMDAccessorElem, MdidPtr, CSpinlockMDAcc>
+		typedef CSyncHashtableAccessByKey<SMDAccessorElem, MdidPtr>
 			MDHTAccessor;
 		
 		// iterator for the cache accessors hashtable
-		typedef CSyncHashtableIter<SMDAccessorElem, MdidPtr, CSpinlockMDAcc> MDHTIter;		
-		typedef CSyncHashtableAccessByIter<SMDAccessorElem, MdidPtr, CSpinlockMDAcc>
+		typedef CSyncHashtableIter<SMDAccessorElem, MdidPtr> MDHTIter;
+		typedef CSyncHashtableAccessByIter<SMDAccessorElem, MdidPtr>
 				MDHTIterAccessor;
 				
 		// hashtable for MD providers indexed by the source system id 
-		typedef CSyncHashtable<SMDProviderElem, SMDProviderElem, CSpinlockMDAccMDP> MDPHT;
+		typedef CSyncHashtable<SMDProviderElem, SMDProviderElem> MDPHT;
 		
-		typedef CSyncHashtableAccessByKey<SMDProviderElem, SMDProviderElem, CSpinlockMDAccMDP>
+		typedef CSyncHashtableAccessByKey<SMDProviderElem, SMDProviderElem>
 			MDPHTAccessor;
 		
 		// iterator for the providers hashtable
-		typedef CSyncHashtableIter<SMDProviderElem, SMDProviderElem, CSpinlockMDAccMDP> MDPHTIter;		
-		typedef CSyncHashtableAccessByIter<SMDProviderElem, SMDProviderElem, CSpinlockMDAccMDP>
+		typedef CSyncHashtableIter<SMDProviderElem, SMDProviderElem> MDPHTIter;
+		typedef CSyncHashtableAccessByIter<SMDProviderElem, SMDProviderElem>
 				MDPHTIterAccessor;
 				
 		// element in the cache accessor hashtable maintained by the MD Accessor

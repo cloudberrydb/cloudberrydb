@@ -898,7 +898,7 @@ CMDAccessorTest::PvInitMDAAndLookup
 			// wait for completion
 			for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgPtsk); i++)
 			{
-				atp.Wait(rgPtsk[i]);
+				atp.Execute(rgPtsk[i]);
 				GPOS_CHECK_ABORT;
 	
 			}

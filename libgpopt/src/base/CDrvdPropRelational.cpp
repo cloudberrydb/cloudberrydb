@@ -73,10 +73,6 @@ CDrvdPropRelational::~CDrvdPropRelational()
 		CRefCount::SafeRelease(m_ppc);
 		CRefCount::SafeRelease(m_pfp);
 	}
-
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 

@@ -11,7 +11,6 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CAutoP.h"
-#include "gpos/sync/CAutoMutex.h"
 
 #include "naucrates/traceflags/traceflags.h"
 #include "gpopt/base/CColRefSet.h"

@@ -13,7 +13,6 @@
 #include "gpos/common/CAutoP.h"
 #include "gpos/common/CHashMap.h"
 #include "gpos/common/CHashMapIter.h"
-#include "gpos/sync/CAutoMutex.h"
 
 #include "naucrates/traceflags/traceflags.h"
 #include "gpopt/base/CColRefSet.h"
@@ -83,10 +82,6 @@ CStatisticsConfig::AddMissingStatsColumn
 	GPOS_ASSERT(NULL != pmdidCol);
 
 	// add the new column information to the hash set
-	// to be sure that no one else does this at the same time, lock the mutex
-	CAutoMutex am(m_mutexMissingColStats);
-	am.Lock();
-
 	if (m_phsmdidcolinfo->Insert(pmdidCol))
 	{
 		pmdidCol->AddRef();
@@ -109,9 +104,6 @@ CStatisticsConfig::CollectMissingStatsColumns
     )
 {
 	GPOS_ASSERT(NULL != pdrgmdid);
-
-	CAutoMutex am(m_mutexMissingColStats);
-	am.Lock();
 
 	MdidHashSetIter hsiter(m_phsmdidcolinfo);
 	while (hsiter.Advance())

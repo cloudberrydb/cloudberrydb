@@ -14,8 +14,6 @@
 #include "gpos/base.h"
 #include "gpos/common/CHashMap.h"
 #include "gpos/common/CStack.h"
-#include "gpos/sync/CMutex.h"
-#include "gpos/sync/CAtomicCounter.h"
 
 #include "gpopt/base/CColumnFactory.h"
 #include "gpopt/operators/CExpression.h"
@@ -66,9 +64,6 @@ namespace gpopt
 					ULONG m_ulCount;
 
 				public:
-
-					// mutex for locking entry when changing member variables
-					CMutex m_mutex;
 
 					// ctor
 					explicit
@@ -138,9 +133,6 @@ namespace gpopt
 
 				public:
 
-					// mutex for locking entry when changing member variables when deriving stats
-					CMutex m_mutex;
-
 					// ctors
 					CCTEInfoEntry(CMemoryPool *mp, CExpression *pexprCTEProducer);
 					CCTEInfoEntry(CMemoryPool *mp, CExpression *pexprCTEProducer, BOOL fUsed);
@@ -192,7 +184,7 @@ namespace gpopt
 			UlongToCTEInfoEntryMap *m_phmulcteinfoentry;
 
 			// next available CTE Id
-			CAtomicULONG m_ulNextCTEId;
+			ULONG m_ulNextCTEId;
 
 			// whether or not to inline CTE consumers
 			BOOL m_fEnableInlining;
@@ -247,7 +239,7 @@ namespace gpopt
 			// next available CTE id
 			ULONG next_id()
 			{
-				return m_ulNextCTEId.Incr();
+				return m_ulNextCTEId++;
 			}
 
 			// derive the statistics on the CTE producer

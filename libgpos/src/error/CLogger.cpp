@@ -15,8 +15,8 @@
 #include "gpos/error/CLoggerStream.h"
 #include "gpos/error/CLoggerSyslog.h"
 #include "gpos/error/CMessageRepository.h"
+#include "gpos/io/ioutils.h"
 #include "gpos/string/CWStringConst.h"
-#include "gpos/sync/CAutoMutex.h"
 
 using namespace gpos;
 
@@ -78,10 +78,6 @@ CLogger::Log
 	ULONG line
 	)
 {
-	// get exclusive access
-	CAutoMutex am(m_mutex);
-	am.Lock();
-
 	// format log message
 	Format(msg, severity, filename, line);
 
@@ -155,7 +151,6 @@ CLogger::Format
 	{
 		// LOG ENTRY FORMAT: [date],[thread id],[severity],[message],
 
-		ULONG thread_id = IWorker::Self()->GetThreadId();
 		const CHAR *sev = CException::m_severity[severity];
 		m_msg_wrapper.Append(&strc);
 
@@ -165,7 +160,7 @@ CLogger::Format
 		m_entry_wrapper.AppendFormat
 			(
 			GPOS_WSZ_LIT(",THD%03d,%s,\"%ls\",\n"),
-			thread_id,
+			0, //thread id
 			sev,
 			m_msg_wrapper.GetBuffer()
 			);

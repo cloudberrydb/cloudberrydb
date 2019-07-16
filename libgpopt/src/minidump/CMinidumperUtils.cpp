@@ -129,11 +129,6 @@ CMinidumperUtils::PdxlmdLoad
 	// cleanup
 	GPOS_DELETE(parse_handler_dxl);
 	
-	// reset time slice
-#ifdef GPOS_DEBUG
-    CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-
 	return GPOS_NEW(mp) CDXLMinidump
 				(
 				pbs,
@@ -287,12 +282,7 @@ CMinidumperUtils::PdxlnExecuteMinidump
 
 	// cleanup
 	GPOS_DELETE(pdxlmd);
-	
-	// reset time slice
-#ifdef GPOS_DEBUG
-    CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-    
+
 	return pdxlnPlan;
 }
 

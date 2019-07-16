@@ -7,12 +7,7 @@
 //
 //	@doc:
 //		Accessor for allocation-less static hashtable;
-//		The Accessor is instantiated with a target key. Throughout its life
-//		time, the accessor holds the spinlock on the target key's bucket --
-//		regardless of whether or not the key exists in the hashtable; this 
-//		allows clients to implement more complex functionality than simple
-//		test-and-insert/remove functions; acquiring and releasing locks is
-//		done by the parent CSyncHashtableAccessorBase class.
+//		The Accessor is instantiated with a target key.
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableAccessByKey_H
 #define GPOS_CSyncHashtableAccessByKey_H
@@ -35,21 +30,21 @@ namespace gpos
 	//		details on the rationale behind this class
 	//
 	//---------------------------------------------------------------------------
-	template <class T, class K, class S>
-	class CSyncHashtableAccessByKey : public CSyncHashtableAccessorBase<T, K, S>
+	template <class T, class K>
+	class CSyncHashtableAccessByKey : public CSyncHashtableAccessorBase<T, K>
 	{
 
 		private:
 
 			// shorthand for accessor's base class
-			typedef class CSyncHashtableAccessorBase<T, K, S> Base;
+			typedef class CSyncHashtableAccessorBase<T, K> Base;
 
 			// target key
 			const K &m_key;
 
 			// no copy ctor
-			CSyncHashtableAccessByKey<T, K, S>
-				(const CSyncHashtableAccessByKey<T, K, S>&);
+			CSyncHashtableAccessByKey<T, K>
+				(const CSyncHashtableAccessByKey<T, K>&);
 		
 			// finds the first element matching target key starting from
 			// the given element
@@ -78,9 +73,9 @@ namespace gpos
 
 		public:
 	
-			// ctor - acquires spinlock on target bucket
-			CSyncHashtableAccessByKey<T, K, S>
-				(CSyncHashtable<T, K, S> &ht, const K &key)
+			// ctor
+			CSyncHashtableAccessByKey<T, K>
+				(CSyncHashtable<T, K> &ht, const K &key)
             :
             Base(ht, ht.GetBucketIndex(key)),
             m_key(key)

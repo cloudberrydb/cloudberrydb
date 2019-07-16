@@ -15,9 +15,7 @@
 #include "gpos/common/CRefCount.h"
 #include "gpos/common/CSyncHashtable.h"
 #include "gpos/common/CSyncList.h"
-#include "gpos/sync/CAtomicCounter.h"
 
-#include "gpopt/spinlock.h"
 #include "gpopt/search/CGroupExpression.h"
 
 namespace gpopt
@@ -49,34 +47,31 @@ namespace gpopt
 			typedef
 					CSyncHashtableAccessByKey<
 						CGroupExpression, // entry
-						CGroupExpression, // search key
-						CSpinlockMemo> ShtAcc;
+						CGroupExpression> ShtAcc;
 
 			// definition of hash table iterator
 			typedef
 					CSyncHashtableIter<
 						CGroupExpression, // entry
-						CGroupExpression, // search key
-						CSpinlockMemo> ShtIter;
+						CGroupExpression> ShtIter;
 
 			// definition of hash table iterator accessor
 			typedef
 					CSyncHashtableAccessByIter<
 						CGroupExpression, // entry
-						CGroupExpression, // search key
-						CSpinlockMemo> ShtAccIter;
+						CGroupExpression> ShtAccIter;
 
 			// memory pool
 			CMemoryPool *m_mp;
 		
 			// id counter for groups
-			CAtomicULONG m_aul;
+			ULONG m_aul;
 
 			// root group
 			CGroup *m_pgroupRoot;
 
 			// number of groups
-			volatile ULONG_PTR m_ulpGrps;
+			ULONG_PTR m_ulpGrps;
 
 			// tree map of member group expressions
 			MemoTreeMap *m_pmemotmap;
@@ -87,8 +82,7 @@ namespace gpopt
 			// hashtable of all group expressions
 			CSyncHashtable<
 				CGroupExpression, // entry
-				CGroupExpression, // search key
-				CSpinlockMemo> m_sht;
+				CGroupExpression> m_sht;
 
 			// add new group
 			void Add(CGroup *pgroup, CExpression *pexprOrigin);

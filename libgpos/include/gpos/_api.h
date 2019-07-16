@@ -37,7 +37,7 @@ struct gpos_exec_params
 	void *stack_start;              /* start of current thread's stack */
 	char *error_buffer;             /* buffer used to store error messages */
 	int error_buffer_size;          /* size of error message buffer */
-	volatile bool *abort_requested; /* flag indicating if abort is requested */
+	bool *abort_requested;          /* flag indicating if abort is requested */
 };
 
 /* struct containing initialization parameters for gpos */
@@ -50,12 +50,6 @@ struct gpos_init_params
 
 /* initialize GPOS memory pool, worker pool and message repository */
 void gpos_init(struct gpos_init_params *params);
-
-/*
- * set number of threads in worker pool
- * return 0 for successful completion, 1 for error
- */
-int gpos_set_threads(int min, int max);
 
 /*
  * execute function as a GPOS task using current thread;

@@ -305,10 +305,6 @@ CExpression::~CExpression()
 
 		m_pop->Release();
 	}
-
-#ifdef GPOS_DEBUG
-	CWorker::Self()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 

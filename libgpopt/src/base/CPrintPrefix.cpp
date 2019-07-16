@@ -10,7 +10,6 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
-#include "gpos/task/IWorker.h"
 
 #include "gpopt/base/CPrintPrefix.h"
 

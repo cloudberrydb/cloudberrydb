@@ -13,7 +13,6 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CList.h"
-#include "gpos/sync/atomic.h"
 
 namespace gpopt
 {
@@ -124,7 +123,7 @@ namespace gpopt
 			CJobQueue *m_pjq;
 
 			// reference counter
-			volatile ULONG_PTR m_ulpRefs;
+			ULONG_PTR m_ulpRefs;
 
 			// job id - set by job factory
 			ULONG m_id;
@@ -171,15 +170,14 @@ namespace gpopt
 			// increment reference counter
 			void IncRefs()
 			{
-				(void) ExchangeAddUlongPtrWithInt(&m_ulpRefs, 1);
+				m_ulpRefs++;
 			}
 
 			// decrement reference counter
 			ULONG_PTR UlpDecrRefs()
 			{
-				ULONG_PTR ulpRefs = ExchangeAddUlongPtrWithInt(&m_ulpRefs, -1);
-				GPOS_ASSERT(0 < ulpRefs && "Decrement counter from 0");
-				return ulpRefs;
+				GPOS_ASSERT(0 < m_ulpRefs && "Decrement counter from 0");
+				return m_ulpRefs--;
 			}
 
 			// notify parent of job completion;

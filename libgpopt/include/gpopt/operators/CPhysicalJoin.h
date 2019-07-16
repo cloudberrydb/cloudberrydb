@@ -145,9 +145,6 @@ namespace gpopt
 			typedef CHashMap<CPartPropReq, CPartitionPropagationSpec, CPartPropReq::HashValue, CPartPropReq::Equals,
 						CleanupRelease<CPartPropReq>, CleanupRelease<CPartitionPropagationSpec> > PartPropReqToPartPropSpecMap;
 
-			// mutex for locking map of child columns requests during lookup/insertion
-			CMutex m_mutexJoin;
-
 			// partition propagation request map
 			PartPropReqToPartPropSpecMap *m_phmpp;
 

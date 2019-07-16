@@ -47,13 +47,13 @@ namespace gpos
 
 		private:
 
-			typedef CSyncHashtableAccessByKey<CMemoryPool, ULONG_PTR, CSpinlockOS>
+			typedef CSyncHashtableAccessByKey<CMemoryPool, ULONG_PTR>
 				MemoryPoolKeyAccessor;
 
-			typedef CSyncHashtableIter<CMemoryPool, ULONG_PTR, CSpinlockOS>
+			typedef CSyncHashtableIter<CMemoryPool, ULONG_PTR>
 				MemoryPoolIter;
 
-			typedef CSyncHashtableAccessByIter<CMemoryPool, ULONG_PTR, CSpinlockOS>
+			typedef CSyncHashtableAccessByIter<CMemoryPool, ULONG_PTR>
 				MemoryPoolIterAccessor;
 
 			// memory pool used to get memory from the underlying system
@@ -72,7 +72,7 @@ namespace gpos
 			BOOL m_allow_global_new;
 
 			// hash table to maintain created pools
-			CSyncHashtable<CMemoryPool, ULONG_PTR, CSpinlockOS> m_hash_table;
+			CSyncHashtable<CMemoryPool, ULONG_PTR> m_hash_table;
 
 			// global instance
 			static CMemoryPoolManager *m_memory_pool_mgr;

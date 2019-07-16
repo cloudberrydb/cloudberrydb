@@ -11,6 +11,7 @@
 
 #include "gpos/base.h"
 #include "gpos/io/COstreamBasic.h"
+#include "gpos/io/ioutils.h"
 
 using namespace gpos;
 

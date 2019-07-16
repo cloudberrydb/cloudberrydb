@@ -14,6 +14,7 @@
 #include "gpos/error/CMessageRepository.h"
 #include "gpos/error/CMiniDumper.h"
 #include "gpos/error/CSerializable.h"
+#include "gpos/io/ioutils.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 
 using namespace gpos;

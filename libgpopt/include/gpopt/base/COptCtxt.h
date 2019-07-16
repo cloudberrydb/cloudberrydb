@@ -74,7 +74,7 @@ namespace gpopt
 			IComparator *m_pcomp;
 
 			// atomic counter for generating part index ids
-			CAtomicULONG m_auPartId;
+			ULONG m_auPartId;
 
 			// global CTE information
 			CCTEInfo *m_pcteinfo;
@@ -230,7 +230,7 @@ namespace gpopt
 			// return a new part index id
 			ULONG UlPartIndexNextVal()
 			{
-				return m_auPartId.Incr();
+				return m_auPartId++;
 			}
 			
 			// required system columns

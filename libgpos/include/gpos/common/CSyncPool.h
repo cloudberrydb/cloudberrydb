@@ -23,7 +23,6 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 
-#include "gpos/sync/atomic.h"
 #include "gpos/common/CAutoP.h"
 
 #define BYTES_PER_ULONG (GPOS_SIZEOF(ULONG))
@@ -37,7 +36,7 @@ namespace gpos
 	//		CSyncPool<class T>
 	//
 	//	@doc:
-	//		Synchronized object pool class
+	//		Object pool class (not thread-safe, despite the name)
 	//
 	//---------------------------------------------------------------------------
 	template <class T>
@@ -52,10 +51,10 @@ namespace gpos
 			T *m_objects;
 
 			// bitmap indicating object reservation
-			volatile ULONG *m_objs_reserved;
+			ULONG *m_objs_reserved;
 
 			// bitmap indicating object recycle
-			volatile ULONG *m_objs_recycled;
+			ULONG *m_objs_recycled;
 
 			// number of allocated objects
 			ULONG m_numobjs;
@@ -64,13 +63,13 @@ namespace gpos
 			ULONG m_bitmap_size;
 
 			// offset of last lookup - clock index
-			volatile ULONG_PTR m_last_lookup_idx;
+			ULONG_PTR m_last_lookup_idx;
 
 			// offset of id inside the object
 			ULONG m_id_offset;
 
 			// atomically set bit if it is unset
-			BOOL SetBit(volatile ULONG *dest, ULONG bit_val)
+			BOOL SetBit(ULONG *dest, ULONG bit_val)
             {
                 GPOS_ASSERT(NULL != dest);
 
@@ -82,8 +81,9 @@ namespace gpos
                     ULONG new_val = bit_val | old_val;
 
                     // attempt to set the bit
-                    if (CompareSwap(dest, old_val, new_val))
+                    if (*dest == old_val)
                     {
+						*dest = new_val;
                         return true;
                     }
 
@@ -94,7 +94,7 @@ namespace gpos
             }
 
 			// atomically unset bit if it is set
-			BOOL UnsetBit(volatile ULONG *dest, ULONG bit_val)
+			BOOL UnsetBit(ULONG *dest, ULONG bit_val)
             {
                 GPOS_ASSERT(NULL != dest);
 
@@ -106,8 +106,9 @@ namespace gpos
                     ULONG new_val = bit_val ^ old_val;
 
                     // attempt to set the bit
-                    if (CompareSwap(dest, old_val, new_val))
+                    if (*dest == old_val)
                     {
+						*dest = new_val;
                         return true;
                     }
 
@@ -207,7 +208,7 @@ namespace gpos
                 for (ULONG i = 0; i < 2 * m_numobjs; i++)
                 {
                     // move clock index
-                    ULONG_PTR index = ExchangeAddUlongPtrWithInt(&m_last_lookup_idx, 1) % m_numobjs;
+                    ULONG_PTR index = (m_last_lookup_idx++) % m_numobjs;
 
                     ULONG elem_offset = (ULONG) index / BITS_PER_ULONG;
                     ULONG bit_offset = (ULONG) index % BITS_PER_ULONG;

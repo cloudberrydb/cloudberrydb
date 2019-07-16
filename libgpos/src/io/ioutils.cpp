@@ -47,7 +47,6 @@ gpos::ioutils::CheckState
 	SFileStat *file_state
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 	GPOS_ASSERT(NULL != file_state);
 
@@ -81,7 +80,6 @@ gpos::ioutils::CheckStateUsingFileDescriptor
 	SFileStat *file_state
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_state);
 
 	// reset file state
@@ -113,7 +111,6 @@ gpos::ioutils::PathExists
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	SFileStat fs;
@@ -138,7 +135,6 @@ gpos::ioutils::IsDir
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	SFileStat fs;
@@ -162,7 +158,6 @@ gpos::ioutils::IsFile
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	SFileStat fs;
@@ -186,7 +181,6 @@ gpos::ioutils::FileSize
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 	GPOS_ASSERT(IsFile(file_path));
 
@@ -211,8 +205,6 @@ gpos::ioutils::FileSize
 	const INT file_descriptor
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
-
 	SFileStat fs;
 	CheckStateUsingFileDescriptor(file_descriptor, &fs);
 
@@ -235,7 +227,6 @@ gpos::ioutils::CheckFilePermissions
 	ULONG permission_bits
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	SFileStat fs;
@@ -260,7 +251,6 @@ gpos::ioutils::CreateDir
 	ULONG permission_bits
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	INT res = -1;
@@ -289,7 +279,6 @@ gpos::ioutils::RemoveDir
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 	GPOS_ASSERT(IsDir(file_path));
 
@@ -321,7 +310,6 @@ gpos::ioutils::Move
 	const CHAR *szNew
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != old_path);
 	GPOS_ASSERT(NULL != szNew);
 	GPOS_ASSERT(IsFile(old_path));
@@ -358,7 +346,6 @@ gpos::ioutils::Unlink
 	const CHAR *file_path
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	// delete existing file
@@ -384,7 +371,6 @@ gpos::ioutils::OpenFile
 	INT permission_bits
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_path);
 
 	INT res = open(file_path, mode, permission_bits);
@@ -409,8 +395,6 @@ gpos::ioutils::CloseFile
 	INT file_descriptor
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
-
 	INT res = close(file_descriptor);
 
 	GPOS_ASSERT(0 == res || EBADF != errno);
@@ -434,7 +418,6 @@ gpos::ioutils::GetFileState
 	SFileStat *file_state
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != file_state);
 
 	INT res = fstat(file_descriptor, file_state);
@@ -461,7 +444,6 @@ gpos::ioutils::Write
 	const ULONG_PTR ulpCount
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != buffer);
 	GPOS_ASSERT(0 < ulpCount);
 	GPOS_ASSERT(ULONG_PTR_MAX / 2 > ulpCount);
@@ -490,7 +472,6 @@ gpos::ioutils::Read
 	const ULONG_PTR ulpCount
 	)
 {
-	GPOS_ASSERT_NO_SPINLOCK;
 	GPOS_ASSERT(NULL != buffer);
 	GPOS_ASSERT(0 < ulpCount);
 	GPOS_ASSERT(ULONG_PTR_MAX / 2 > ulpCount);
@@ -580,11 +561,7 @@ FSimulateIOErrorInternal
 		// disable simulation temporarily to log injection
 		CAutoTraceFlag(EtraceSimulateIOError, false);
 
-		CLogger *plogger = dynamic_cast<CLogger*>(ITask::Self()->GetTaskCtxt()->GetErrorLogger());
-		if (!plogger->MessageIsLogged())
-		{
-			GPOS_TRACE_FORMAT_ERR("Simulating I/O error at %s:%d", file, line_num);
-		}
+		GPOS_TRACE_FORMAT_ERR("Simulating I/O error at %s:%d", file, line_num);
 
 		errno = error_no;
 

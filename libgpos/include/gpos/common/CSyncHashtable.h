@@ -15,7 +15,7 @@
 //		2)	expects target type to have SLink (see CList.h) and Key
 //			members with appopriate accessors;
 //		3)	clients must provide their own hash function;
-//		4)	hashtable synchronizes through spinlocks on each bucket;
+//		4)	hashtable is not thread-safe, despite the name;
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtable_H
 #define GPOS_CSyncHashtable_H
@@ -24,23 +24,22 @@
 
 #include "gpos/common/CAutoRg.h"
 #include "gpos/common/CList.h"
-#include "gpos/sync/CAutoSpinlock.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 
 namespace gpos
 {
 
 	// prototypes
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableAccessorBase;
 
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableAccessByKey;
 
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableIter;
 
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtableAccessByIter;
 
 	//---------------------------------------------------------------------------
@@ -55,18 +54,18 @@ namespace gpos
 	//		the use of the offset macro in the template definition, however.
 	//
 	//---------------------------------------------------------------------------
-	template <class T, class K, class S>
+	template <class T, class K>
 	class CSyncHashtable
 	{
 		// accessor and iterator classes are friends
-		friend class CSyncHashtableAccessorBase<T, K, S>;
-		friend class CSyncHashtableAccessByKey<T, K, S>;
-		friend class CSyncHashtableAccessByIter<T, K, S>;
-		friend class CSyncHashtableIter<T, K, S>;
+		friend class CSyncHashtableAccessorBase<T, K>;
+		friend class CSyncHashtableAccessByKey<T, K>;
+		friend class CSyncHashtableAccessByIter<T, K>;
+		friend class CSyncHashtableIter<T, K>;
 
 		private:
 	
-			// hash bucket is a pair of list, spinlock
+			// hash bucket is a list of entries
 			struct SBucket
 			{
 				private:
@@ -78,9 +77,6 @@ namespace gpos
 			
 					// ctor
 					SBucket() {};
-				
-					// spinlock to protect bucket
-					S m_lock;
 				
 					// hash chain
 					CList<T> m_chain;
@@ -99,7 +95,7 @@ namespace gpos
 			ULONG m_nbuckets;
 
 			// number of ht entries
-			volatile ULONG_PTR m_size;
+			ULONG_PTR m_size;
 		
 			// offset of key
 			ULONG m_key_offset;
@@ -168,7 +164,7 @@ namespace gpos
 			typedef void (*DestroyEntryFuncPtr)(T *);
 
 			// ctor
-			CSyncHashtable<T, K, S>()
+			CSyncHashtable<T, K>()
 				:
 				m_buckets(NULL),
 				m_nbuckets(0),
@@ -180,7 +176,7 @@ namespace gpos
 			// dtor
 			// deallocates hashtable internals, does not destroy
 			// client objects
-			~CSyncHashtable<T, K, S>()
+			~CSyncHashtable<T, K>()
             {
                 Cleanup();
             }
@@ -246,7 +242,7 @@ namespace gpos
                 CAutoSuspendAbort asa;
 
                 T *value = NULL;
-                CSyncHashtableIter<T, K, S> it(*this);
+                CSyncHashtableIter<T, K> it(*this);
 
                 // since removing an entry will automatically advance iter's
                 // position, we need to make sure that advance iter is called
@@ -259,7 +255,7 @@ namespace gpos
                     }
 
                     {
-                        CSyncHashtableAccessByIter<T, K, S> acc(it);
+                        CSyncHashtableAccessByIter<T, K> acc(it);
                         if (NULL != (value = acc.Value()))
                         {
                             acc.Remove(value);
@@ -268,7 +264,7 @@ namespace gpos
                 }
 
     #ifdef GPOS_DEBUG
-                CSyncHashtableIter<T, K, S> it_snd(*this);
+                CSyncHashtableIter<T, K> it_snd(*this);
                 GPOS_ASSERT(!it_snd.Advance());
     #endif // GPOS_DEBUG
             }
@@ -283,15 +279,11 @@ namespace gpos
                 // determine target bucket
                 SBucket &bucket = GetBucket(GetBucketIndex(key));
 
-                // acquire auto spinlock
-                CAutoSpinlock alock(bucket.m_lock);
-                alock.Lock();
-
                 // inserting at bucket's head is required by hashtable iteration
                 bucket.m_chain.Prepend(value);
 
                 // increase number of entries
-                (void) ExchangeAddUlongPtrWithInt(&m_size, 1);
+                m_size++;
             }
 
 			// return number of entries

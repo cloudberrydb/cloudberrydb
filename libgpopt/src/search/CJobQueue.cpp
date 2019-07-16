@@ -17,8 +17,6 @@
 //
 //---------------------------------------------------------------------------
 
-#include "gpos/sync/CAutoSpinlock.h"
-
 #include "gpopt/search/CJobFactory.h"
 #include "gpopt/search/CJobQueue.h"
 #include "gpopt/search/CScheduler.h"
@@ -49,9 +47,6 @@ CJobQueue::EjqrAdd
 	// check if job has completed before getting the lock
 	if (!m_fCompleted)
 	{
-		CAutoSpinlock as(m_lock);
-		as.Lock();
-
 		// check if this is the main job
 		if (pj == m_pj)
 		{
@@ -103,14 +98,8 @@ CJobQueue::NotifyCompleted
 	CSchedulerContext *psc
 	)
 {
-	// scope for auto spinlock
-	{
-		CAutoSpinlock as(m_lock);
-		as.Lock();
-
-		GPOS_ASSERT(!m_fCompleted);
-		m_fCompleted = true;
-	}
+	GPOS_ASSERT(!m_fCompleted);
+	m_fCompleted = true;
 
 	GPOS_ASSERT(!m_listjQueued.IsEmpty());
 	while (!m_listjQueued.IsEmpty())

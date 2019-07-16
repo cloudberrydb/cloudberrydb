@@ -42,14 +42,7 @@ namespace gpos
 			static GPOS_RESULT EresLeak(CMemoryPoolManager::AllocType eat);
 			static GPOS_RESULT EresLeakByException(CMemoryPoolManager::AllocType eat);
 #endif // GPOS_DEBUG
-			static GPOS_RESULT EresConcurrency(CMemoryPoolManager::AllocType eat);
-			static GPOS_RESULT EresStress(CMemoryPoolManager::AllocType eat);
 
-			static void *AllocateSerial(void *pv);
-			static void *AllocateRepeated(void *pv);
-			static void *AllocateStress(void *pv);
-			static void Allocate(CMemoryPool *mp, ULONG count);
-			static void AllocateRandom(CMemoryPool *mp);
 			static ULONG Size(ULONG offset);
 
 		public:
