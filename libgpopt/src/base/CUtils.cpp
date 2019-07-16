@@ -2370,7 +2370,8 @@ CUtils::PexprAddProjection
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
-	CExpressionArray *pdrgpexprProjected
+	CExpressionArray *pdrgpexprProjected,
+	BOOL fNewComputedCol
 	)
 {
 	GPOS_ASSERT(pexpr->Pop()->FLogical());
@@ -2403,7 +2404,7 @@ CUtils::PexprAddProjection
 
 	CExpression *pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpexprPrjElem);
 
-	return PexprLogicalProject(mp, pexpr, pexprPrjList, true /*fNewComputedCol*/);
+	return PexprLogicalProject(mp, pexpr, pexprPrjList, fNewComputedCol);
 }
 
 // generate an aggregate expression

@@ -336,7 +336,7 @@ namespace gpopt
 
 			// generate a project expression with one or more additional project elements
 			static
-			CExpression *PexprAddProjection(CMemoryPool *mp, CExpression *pexpr, CExpressionArray *pdrgpexprProjected);
+			CExpression *PexprAddProjection(CMemoryPool *mp, CExpression *pexpr, CExpressionArray *pdrgpexprProjected, BOOL fNewComputedCol = true);
 
 			// generate an aggregate expression
 			static
