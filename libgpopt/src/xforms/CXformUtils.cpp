@@ -62,7 +62,7 @@ CXformUtils::ExfpLogicalJoin2PhysicalJoin
 	// if scalar predicate has a subquery, we must have an
 	// equivalent logical Apply expression created during exploration;
 	// no need for generating a physical join
-	if (exprhdl.GetDrvdScalarProps(2)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(2))
 	{
 		return CXform::ExfpNone;
 	}
@@ -92,7 +92,7 @@ CXformUtils::ExfpSemiJoin2CrossProduct
 			COperator::EopLogicalLeftAntiSemiJoin == op_id ||
 			COperator::EopLogicalLeftAntiSemiJoinNotIn == op_id);
 
-	CColRefSet *pcrsUsed = exprhdl.GetDrvdScalarProps(2 /*child_index*/)->PcrsUsed();
+	CColRefSet *pcrsUsed = exprhdl.DeriveUsedColumns(2);
 	CColRefSet *pcrsOuterOutput = exprhdl.DeriveOutputColumns(0 /*child_index*/);
 	if (0 == pcrsUsed->Size() || !pcrsOuterOutput->ContainsAll(pcrsUsed))
 	{
@@ -118,7 +118,7 @@ CXformUtils::ExfpExpandJoinOrder
 	CExpressionHandle &exprhdl
 	)
 {
-	if (exprhdl.GetDrvdScalarProps(exprhdl.Arity() - 1)->FHasSubquery() || exprhdl.HasOuterRefs())
+	if (exprhdl.DeriveHasSubquery(exprhdl.Arity() - 1) || exprhdl.HasOuterRefs())
 	{
 		// subqueries must be unnested before applying xform
 		return CXform::ExfpNone;
@@ -420,7 +420,7 @@ CXformUtils::PexprSwapJoins
 			COperator::EopLogicalLeftAntiSemiJoinNotIn == eopidBottom);
 
 	// get used columns by the join predicate of top join
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps((*pexprTopJoin)[2]->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = (*pexprTopJoin)[2]->DeriveUsedColumns();
 
 	// get output columns of bottom join's children
 	const CColRefSet *pcrsBottomOuter = (*pexprBottomJoin)[0]->DeriveOutputColumns();
@@ -516,10 +516,10 @@ CXformUtils::PexprPushGbBelowJoin
 
 	CColRefSet *pcrsOuterOutput = pexprOuter->DeriveOutputColumns();
 	CColRefSet *pcrsAggOutput = pexprGb->DeriveOutputColumns();
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = pexprPrjList->DeriveUsedColumns();
 	CColRefSet *pcrsFKey = PcrsFKey(mp, pexprOuter, pexprInner, pexprScalar);
 
-	CColRefSet *pcrsScalarFromOuter = GPOS_NEW(mp) CColRefSet(mp, *(CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed()));
+	CColRefSet *pcrsScalarFromOuter = GPOS_NEW(mp) CColRefSet(mp, *(pexprScalar->DeriveUsedColumns()));
 	pcrsScalarFromOuter->Intersection(pcrsOuterOutput);
 
 	// use minimal grouping columns if they exist, otherwise use all grouping columns
@@ -1088,7 +1088,7 @@ CXformUtils::PexprSeparateSubqueryPreds
 		CExpression *pexprConj = (*pdrgpexprConjuncts)[ul];
 		pexprConj->AddRef();
 
-		if (CDrvdPropScalar::GetDrvdScalarProps(pexprConj->PdpDerive())->FHasSubquery())
+		if (pexprConj->DeriveHasSubquery())
 		{
 			pdrgpexprSQ->Append(pexprConj);
 		}
@@ -3347,7 +3347,7 @@ CXformUtils::PexprBitmapSelectBestIndex
 	CExpression **ppexprResidual
 	)
 {
-	CColRefSet *pcrsScalar = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsScalar = pexprPred->DeriveUsedColumns();
 	ULONG ulBestIndex = 0;
 	CExpression *pexprIndexFinal = NULL;
 	CDouble bestSelectivity = CDouble(2.0); // selectivity can be a max value of 1
@@ -3500,6 +3500,7 @@ CXformUtils::PexprBitmapSelectBestIndex
 	(*ppexprResidual) = pexprPred;
 	return NULL;
 }
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -3855,7 +3856,7 @@ CXformUtils::PexprSelect2BitmapBoolOp
 
 	// derive the scalar and relational properties to build set of required columns
 	CColRefSet *pcrsOutput = pexpr->DeriveOutputColumns();
-	CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsScalarExpr = pexprScalar->DeriveUsedColumns();
 
 	CColRefSet *pcrsReqd = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsReqd->Include(pcrsOutput);
@@ -4394,7 +4395,7 @@ CXformUtils::FJoinPredOnSingleChild
 	GPOS_ASSERT(CUtils::FLogicalJoin(exprhdl.Pop()));
 
 	const ULONG arity = exprhdl.Arity();
-	if (0 == exprhdl.GetDrvdScalarProps(arity - 1)->PcrsUsed()->Size())
+	if (0 == exprhdl.DeriveUsedColumns(arity - 1)->Size())
 	{
 		// no columns are used in join predicate
 		return false;
@@ -4415,7 +4416,7 @@ CXformUtils::FJoinPredOnSingleChild
 	for (ULONG ulPred = 0; !fPredUsesSingleChild && ulPred < ulPreds; ulPred++)
 	{
 		CExpression *pexpr = (*pdrgpexprPreds)[ulPred];
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexpr->DeriveUsedColumns();
 		for (ULONG ulChild = 0; !fPredUsesSingleChild && ulChild < arity - 1; ulChild++)
 		{
 			fPredUsesSingleChild = (*pdrgpcrs)[ulChild]->ContainsAll(pcrsUsed);
@@ -4762,7 +4763,7 @@ CXformUtils::PexprGbAggOnCTEConsumer2Join
 	}
 
 	CExpression *pexprPrjList = (*pexprGbAgg)[1];
-	ULONG ulDistinctAggs = CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->UlDistinctAggs();
+	ULONG ulDistinctAggs = pexprPrjList->DeriveTotalDistinctAggs();
 
 	if (1 == ulDistinctAggs)
 	{

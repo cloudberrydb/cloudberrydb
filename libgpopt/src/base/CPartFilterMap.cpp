@@ -326,7 +326,7 @@ CPartFilterMap::FCopyPartFilter
 			for (ULONG ul=0; ul< conjuncts->Size(); ++ul)
 			{
 				CExpression *conjunct = (*conjuncts)[ul];
-				CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(conjunct->PdpDerive())->PcrsUsed();
+				CColRefSet *pcrsUsed = conjunct->DeriveUsedColumns();
 				if (filter_colrefs->ContainsAll(pcrsUsed))
 				{
 					conjunct->AddRef();

@@ -79,7 +79,7 @@ CXformGbAgg2HashAgg::Exfp
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(exprhdl.Pop());
 	CColRefArray *colref_array = popAgg->Pdrgpcr();
 	if (0 == colref_array->Size() ||
-		exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery() ||
+		exprhdl.DeriveHasSubquery(1) ||
 		!CUtils::FComparisonPossible(colref_array, IMDType::EcmptEq) ||
 		!CUtils::IsHashable(colref_array))
 	{

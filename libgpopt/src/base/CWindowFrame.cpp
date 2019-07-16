@@ -74,12 +74,12 @@ CWindowFrame::CWindowFrame
 	m_pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	if (NULL != pexprLeading)
 	{
-		m_pcrsUsed->Include(CDrvdPropScalar::GetDrvdScalarProps(pexprLeading->PdpDerive())->PcrsUsed());
+		m_pcrsUsed->Include(pexprLeading->DeriveUsedColumns());
 	}
 
 	if (NULL != pexprTrailing)
 	{
-		m_pcrsUsed->Include(CDrvdPropScalar::GetDrvdScalarProps(pexprTrailing->PdpDerive())->PcrsUsed());
+		m_pcrsUsed->Include(pexprTrailing->DeriveUsedColumns());
 	}
 }
 

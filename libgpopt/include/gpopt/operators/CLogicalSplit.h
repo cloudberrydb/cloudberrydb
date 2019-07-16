@@ -197,7 +197,7 @@ namespace gpopt
 						mp,
 						exprhdl,
 						pcrsInput,
-						exprhdl.GetDrvdScalarProps(1)->PcrsUsed(),
+						exprhdl.DeriveUsedColumns(1),
 						child_index
 						);
 			}

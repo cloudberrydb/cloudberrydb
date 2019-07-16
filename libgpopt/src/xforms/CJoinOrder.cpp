@@ -378,7 +378,7 @@ CJoinOrder::ComputeEdgeCover()
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
 		CExpression *pexpr = m_rgpedge[ulEdge]->m_pexpr;
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexpr->DeriveUsedColumns();
 
 		for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++)
 		{

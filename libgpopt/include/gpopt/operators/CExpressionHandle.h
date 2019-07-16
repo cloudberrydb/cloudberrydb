@@ -319,6 +319,18 @@ namespace gpopt
 			BOOL DeriveHasPartialIndexes();
 			BOOL DeriveHasPartialIndexes(ULONG child_index);
 
+			// Scalar property accessors
+			CColRefSet *DeriveDefinedColumns(ULONG child_index);
+			CColRefSet *DeriveUsedColumns(ULONG child_index);
+			CColRefSet *DeriveSetReturningFunctionColumns(ULONG child_index);
+			BOOL DeriveHasSubquery(ULONG child_index);
+			CPartInfo *DeriveScalarPartitionInfo(ULONG child_index);
+			CFunctionProp *DeriveScalarFunctionProperties(ULONG child_index);
+			BOOL DeriveHasNonScalarFunction(ULONG child_index);
+			ULONG DeriveTotalDistinctAggs(ULONG child_index);
+			BOOL DeriveHasMultipleDistinctAggs(ULONG child_index);
+			BOOL DeriveHasScalarArrayCmp(ULONG child_index);
+
 	}; // class CExpressionHandle
 	
 }

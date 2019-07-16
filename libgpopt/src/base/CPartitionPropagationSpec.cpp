@@ -160,7 +160,7 @@ CPartitionPropagationSpec::AppendEnforcers
 			
 			// find out which keys are used in the predicate, in case there are multiple
 			// keys at this point (e.g. from a union of multiple CTE consumers)
-			CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+			CColRefSet *pcrsUsed = pexprScalar->DeriveUsedColumns();
 			const ULONG ulKeysets = pdrgppartkeys->Size();
 			for (ULONG ulKey = 0; NULL == pdrgpdrgpcrKeys && ulKey < ulKeysets; ulKey++)
 			{
@@ -498,7 +498,7 @@ CPartitionPropagationSpec::PdrgpexprPredicatesOnKey
 		CExpression *pexpr = (*pdrgpexpr)[ul];
 		GPOS_ASSERT(pexpr->Pop()->FScalar());
 
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexpr->DeriveUsedColumns();
 		CColRefSet *pcrsUsedKeys = GPOS_NEW(mp) CColRefSet(mp, *pcrsUsed);
 		pcrsUsedKeys->Intersection(pcrsKeys);
 

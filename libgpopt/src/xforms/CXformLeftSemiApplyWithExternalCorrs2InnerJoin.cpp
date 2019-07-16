@@ -63,7 +63,7 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FSplitCorrelations
 	for (ULONG ul = 0; fSuccess && ul < ulCorrs; ul++)
 	{
 		CExpression *pexprCurrent = (*pdrgpexprAllCorr)[ul];
-		CColRefSet *pcrsCurrent = GPOS_NEW(mp) CColRefSet(mp, *CDrvdPropScalar::GetDrvdScalarProps(pexprCurrent->PdpDerive())->PcrsUsed());
+		CColRefSet *pcrsCurrent = GPOS_NEW(mp) CColRefSet(mp, *pexprCurrent->DeriveUsedColumns());
 		if (pcrsCurrent->IsDisjoint(pcrsOuterOuput) || pcrsCurrent->IsDisjoint(pcrsInnerOuput))
 		{
 			// add current correlation to external correlation

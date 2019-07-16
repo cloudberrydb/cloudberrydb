@@ -3244,9 +3244,8 @@ CTranslatorDXLToExpr::PexprAggFunc
 		for (ULONG ul = 0; ul < pdrgpexprArgs->Size(); ul++)
 		{
 			CExpression *pexprAggrefChild = (*pdrgpexprArgs)[ul];
-			CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexprAggrefChild->PdpDerive());
 
-			if (pdpScalar->FHasNonScalarFunction())
+			if (pexprAggrefChild->DeriveHasNonScalarFunction())
 			{
 				GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Aggregate function with set returning attributes"));
 			}

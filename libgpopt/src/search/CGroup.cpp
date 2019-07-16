@@ -1042,7 +1042,7 @@ CGroup::CreateScalarExpression()
 
 	// if group has subquery, cache only the root operator
 	// since the underlying tree have relational operator
-	if (CDrvdPropScalar::GetDrvdScalarProps(Pdp())->FHasSubquery())
+	if (CDrvdPropScalar::GetDrvdScalarProps(Pdp())->HasSubquery())
 	{
 		COperator *pop = pgexprFirst->Pop();
 		pop->AddRef();

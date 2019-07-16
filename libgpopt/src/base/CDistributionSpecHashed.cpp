@@ -603,7 +603,7 @@ CDistributionSpecHashed::ComputeEquivHashExprs
 			CExpressionArray *equiv_distribution_exprs = GPOS_NEW(mp) CExpressionArray(mp);
 
 			CExpression *distribution_expr = (*distribution_exprs)[distribution_key_idx];
-			CColRefSet *distribution_expr_cols = CDrvdPropScalar::GetDrvdScalarProps(distribution_expr->PdpDerive())->PcrsUsed();
+			CColRefSet *distribution_expr_cols = distribution_expr->DeriveUsedColumns();
 			// the input expr is always equivalent to itself, so add it to the equivalent expr array
 			distribution_expr->AddRef();
 			equiv_distribution_exprs->Append(distribution_expr);

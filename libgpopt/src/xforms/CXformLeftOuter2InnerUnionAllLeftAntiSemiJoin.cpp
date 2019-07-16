@@ -250,7 +250,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
 	const ULONG ulCTEJoinId = COptCtxt::PoctxtFromTLS()->Pcteinfo()->next_id();
 	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEJoinId, pdrgpcrJoinOutput, pexprInnerJoin);
 
-	CColRefSet *pcrsScalar = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsScalar = pexprScalar->DeriveUsedColumns();
 	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
 
 	CColRefArray *pdrgpcrProjectOutput = NULL;

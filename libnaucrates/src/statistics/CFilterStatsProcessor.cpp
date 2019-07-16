@@ -84,7 +84,7 @@ CFilterStatsProcessor::SelectivityOfPredicate
 	CExpression *local_expr = NULL;
 	CExpression *expr_with_outer_refs = NULL;
 
-	CColRefSet *used_col_refs = CDrvdPropScalar::GetDrvdScalarProps(pred->PdpDerive())->PcrsUsed();
+	CColRefSet *used_col_refs = pred->DeriveUsedColumns();
 	CColRefSet *used_local_col_refs = GPOS_NEW(mp) CColRefSet(mp, *used_col_refs);
 	ULONG num_outer_ref_preds = 0;
 

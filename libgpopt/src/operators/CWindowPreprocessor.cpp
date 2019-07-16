@@ -309,7 +309,7 @@ CWindowPreprocessor::PexprSeqPrj2Join
 {
 	GPOS_ASSERT(NULL != pexprSeqPrj);
 	GPOS_ASSERT(COperator::EopLogicalSequenceProject == pexprSeqPrj->Pop()->Eopid());
-	GPOS_ASSERT(0 < CDrvdPropScalar::GetDrvdScalarProps((*pexprSeqPrj)[1]->PdpDerive())->UlDistinctAggs());
+	GPOS_ASSERT(0 < (*pexprSeqPrj)[1]->DeriveTotalDistinctAggs());
 
 	// split SeqPrj expression into a GbAgg expression (for distinct Aggs), and
 	// another SeqPrj expression (for remaining window functions)
@@ -426,7 +426,7 @@ CWindowPreprocessor::PexprPreprocess
 
 	COperator *pop = pexpr->Pop();
 	if (COperator::EopLogicalSequenceProject == pop->Eopid() &&
-		0 < CDrvdPropScalar::GetDrvdScalarProps((*pexpr)[1]->PdpDerive())->UlDistinctAggs())
+		0 < (*pexpr)[1]->DeriveTotalDistinctAggs())
 	{
 		CExpression *pexprJoin = PexprSeqPrj2Join(mp, pexpr);
 

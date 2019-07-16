@@ -107,7 +107,7 @@ CNormalizer::FPushableThruSeqPrjChild
 		GPOS_ASSERT(NULL == CDistributionSpecHashed::PdsConvert(pds)->PdshashedEquiv());
 		CAutoMemoryPool amp;
 		CMemoryPool *mp = amp.Pmp();
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexprPred->DeriveUsedColumns();
 		CColRefSet *pcrsPartCols = CUtils::PcrsExtractColumns(mp, CDistributionSpecHashed::PdsConvert(pds)->Pdrgpexpr());
 		if (pcrsPartCols->ContainsAll(pcrsUsed))
 		{
@@ -141,7 +141,7 @@ CNormalizer::FPushable
 	GPOS_ASSERT(NULL != pexprPred);
 
 	CColRefSet *pcrsUsed =
-		CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+		pexprPred->DeriveUsedColumns();
 	CColRefSet *pcrsOutput =
 		pexprLogical->DeriveOutputColumns();
 
@@ -1281,7 +1281,7 @@ CNormalizer::PexprPullUpAndCombineProjects
 		availableCRs->Include(pexprRelational->DeriveOutputColumns());
 		availableCRs->Include(pexprRelational->DeriveOuterReferences());
 		// check that the new project node has all the values it needs
-		GPOS_ASSERT(availableCRs->ContainsAll(CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed()));
+		GPOS_ASSERT(availableCRs->ContainsAll(pexprPrjList->DeriveUsedColumns()));
 		availableCRs->Release();
 #endif
 
@@ -1300,7 +1300,7 @@ CNormalizer::PexprPullUpAndCombineProjects
 	// some project elements were pulled - add a project on top of output expression
 	*pfSuccess = true;
 	CExpression *pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpexprPrElPullUp);
-	GPOS_ASSERT(pexprOutput->DeriveOutputColumns()->ContainsAll(CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed()));
+	GPOS_ASSERT(pexprOutput->DeriveOutputColumns()->ContainsAll(pexprPrjList->DeriveUsedColumns()));
 
 	return GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexprOutput, pexprPrjList);
 }
@@ -1350,16 +1350,14 @@ CNormalizer::PexprPullUpProjectElements
 		CExpression *pexprPrEl = (*pexprPrL)[ul];
 		CScalarProjectElement *popPrEl = CScalarProjectElement::PopConvert(pexprPrEl->Pop());
 		CColRef *pcrDefined = popPrEl->Pcr();
-		CColRefSet *pcrsUsedByProjElem = CDrvdPropScalar::GetDrvdScalarProps(pexprPrEl->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsedByProjElem = pexprPrEl->DeriveUsedColumns();
 
 		// a proj elem can be pulled up only if the defined column is not in
 		// pcrsUsed and its used columns are in pcrOutput
 		// NB we don't pull up projections that call set-returning functions
 		pexprPrEl->AddRef();
 
-		CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexprPrEl->PdpDerive());
-
-		if (!pcrsUsed->FMember(pcrDefined) && pcrsOutput->ContainsAll(pcrsUsedByProjElem) && !pdpscalar->FHasNonScalarFunction())
+		if (!pcrsUsed->FMember(pcrDefined) && pcrsOutput->ContainsAll(pcrsUsedByProjElem) && !pexprPrEl->DeriveHasNonScalarFunction())
 		{
 			(*ppdrgpexprPrElPullUp)->Append(pexprPrEl);
 		}

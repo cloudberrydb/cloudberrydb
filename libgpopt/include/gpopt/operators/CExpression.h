@@ -335,6 +335,18 @@ namespace gpopt
 			CPartInfo *DerivePartitionInfo();
 			BOOL DeriveHasPartialIndexes();
 
+			// Scalar property accessors - derived as needed
+			CColRefSet *DeriveDefinedColumns();
+			CColRefSet *DeriveUsedColumns();
+			CColRefSet *DeriveSetReturningFunctionColumns();
+			BOOL DeriveHasSubquery();
+			CPartInfo *DeriveScalarPartitionInfo();
+			CFunctionProp *DeriveScalarFunctionProperties();
+			BOOL DeriveHasNonScalarFunction();
+			ULONG DeriveTotalDistinctAggs();
+			BOOL DeriveHasMultipleDistinctAggs();
+			BOOL DeriveHasScalarArrayCmp();
+
 	}; // class CExpression
 
 

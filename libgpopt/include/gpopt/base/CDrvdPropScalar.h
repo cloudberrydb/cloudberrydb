@@ -40,8 +40,27 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CDrvdPropScalar : public CDrvdProp
 	{
+		friend class CExpression;
+		enum EDrvdPropType
+		{
+			EdptPcrsDefined = 0,
+			EdptPcrsUsed,
+			EdptPcrsSetReturningFunction,
+			EdptFHasSubquery,
+			EdptPPartInfo,
+			EdptPfp,
+			EdptFHasNonScalarFunction,
+			EdptUlDistinctAggs,
+			EdptFHasMultipleDistinctAggs,
+			EdptFHasScalarArrayCmp,
+			EdptSentinel
+		};
 
 		private:
+
+			CMemoryPool *m_mp;
+
+			CBitSet *m_is_prop_derived;
 
 			// defined columns
 			CColRefSet *m_pcrsDefined;
@@ -78,10 +97,44 @@ namespace gpopt
 			// private copy ctor
 			CDrvdPropScalar(const CDrvdPropScalar &);
 
+			// Have all the properties been derived?
+			//
+			// NOTE1: This is set ONLY when Derive() is called. If all the properties
+			// are independently derived, m_is_complete will remain false. In that
+			// case, even though Derive() would attempt to derive all the properties
+			// once again, it should be quick, since each individual member has been
+			// cached.
+			// NOTE2: Once these properties are detached from the
+			// corresponding expression used to derive it, this MUST be set to true,
+			// since after the detachment, there will be no way to derive the
+			// properties once again.
+			BOOL m_is_complete;
+
+		protected:
+			CColRefSet *DeriveDefinedColumns(CExpressionHandle &);
+
+			CColRefSet *DeriveUsedColumns(CExpressionHandle &);
+
+			CColRefSet *DeriveSetReturningFunctionColumns(CExpressionHandle &);
+
+			BOOL DeriveHasSubquery(CExpressionHandle &);
+
+			CPartInfo *DerivePartitionInfo(CExpressionHandle &);
+
+			CFunctionProp *DeriveFunctionProperties(CExpressionHandle &);
+
+			BOOL DeriveHasNonScalarFunction(CExpressionHandle &);
+
+			ULONG DeriveTotalDistinctAggs(CExpressionHandle &);
+
+			BOOL DeriveHasMultipleDistinctAggs(CExpressionHandle &);
+
+			BOOL DeriveHasScalarArrayCmp(CExpressionHandle &);
+
 		public:
 
 			// ctor
-			CDrvdPropScalar();
+			CDrvdPropScalar(CMemoryPool *mp);
 
 			// dtor
 			virtual 
@@ -94,6 +147,9 @@ namespace gpopt
 				return EptScalar;
 			}
 
+			virtual
+			BOOL IsComplete() const { return m_is_complete; }
+
 			// derivation function
 			void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
@@ -101,66 +157,35 @@ namespace gpopt
 			virtual
 			BOOL FSatisfies(const CReqdPropPlan *prpp) const;
 
-
 			// defined columns
-			CColRefSet *PcrsDefined() const
-			{
-				return m_pcrsDefined;
-			}
+			CColRefSet *GetDefinedColumns() const;
 
 			// used columns
-			CColRefSet *PcrsUsed() const
-			{
-				return m_pcrsUsed;
-			}
+			CColRefSet *GetUsedColumns() const;
 
 			// columns containing set-returning function
-			CColRefSet *PcrsSetReturningFunction() const
-			{
-				return m_pcrsSetReturningFunction;
-			}
+			CColRefSet *GetSetReturningFunctionColumns() const;
 
 			// do subqueries appear in the operator's tree?
-			BOOL FHasSubquery() const
-			{
-				return m_fHasSubquery;
-			}
+			BOOL HasSubquery() const;
 
 			// derived partition consumers
-			CPartInfo *Ppartinfo() const
-			{
-				return m_ppartinfo;
-			}
-			
+			CPartInfo *GetPartitionInfo() const;
+
 			// function properties
-			CFunctionProp *Pfp() const
-			{
-				return m_pfp;
-			}
+			CFunctionProp *GetFunctionProperties() const;
 
 			// scalar expression contains non-scalar function?
 			virtual
-			BOOL FHasNonScalarFunction() const
-			{
-				return m_fHasNonScalarFunction;
-			}
+			BOOL HasNonScalarFunction() const;
 
 			// return total number of Distinct Aggs, only applicable to project list
-			ULONG UlDistinctAggs() const
-			{
-				return m_ulDistinctAggs;
-			}
+			ULONG GetTotalDistinctAggs() const;
 
 			// does operator define Distinct Aggs on different arguments, only applicable to project lists
-			BOOL FHasMultipleDistinctAggs() const
-			{
-				return m_fHasMultipleDistinctAggs;
-			}
+			BOOL HasMultipleDistinctAggs() const;
 
-			BOOL FHasScalarArrayCmp() const
-			{
-				return m_fHasScalarArrayCmp;
-			}
+			BOOL HasScalarArrayCmp() const;
 
 			// short hand for conversion
 			static

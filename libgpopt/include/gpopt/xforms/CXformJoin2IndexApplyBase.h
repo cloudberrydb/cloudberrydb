@@ -49,7 +49,7 @@ namespace gpopt
 
 				// now consider hash distributed table
 				CColRefSet *pcrsInnerOutput = pexprInner->DeriveOutputColumns();
-				CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+				CColRefSet *pcrsScalarExpr = pexprScalar->DeriveUsedColumns();
 				CColRefSet *pcrsInnerRefs = GPOS_NEW(mp) CColRefSet(mp, *pcrsScalarExpr);
 				pcrsInnerRefs->Intersection(pcrsInnerOutput);
 
@@ -65,7 +65,7 @@ namespace gpopt
 					for (ULONG ul = 0; ul < pdrgpexpr->Size(); ul++)
 					{
 						CExpression *pexprPred = (*pdrgpexpr)[ul];
-						CColRefSet *pcrsPred = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+						CColRefSet *pcrsPred = pexprPred->DeriveUsedColumns();
 
 						// if it doesn't have equi-join predicate on the distribution key,
 						// we can't transform to left outer index apply, because only

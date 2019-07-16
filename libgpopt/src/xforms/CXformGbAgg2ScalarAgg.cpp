@@ -60,7 +60,7 @@ CXformGbAgg2ScalarAgg::Exfp
 	const
 {
 	if (0 < CLogicalGbAgg::PopConvert(exprhdl.Pop())->Pdrgpcr()->Size() ||
-		exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
+		exprhdl.DeriveHasSubquery(1))
 	{
 		// GbAgg has grouping columns, or agg functions use subquery arguments
 		return CXform::ExfpNone;

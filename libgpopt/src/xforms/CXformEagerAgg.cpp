@@ -122,7 +122,7 @@ CXformEagerAgg::Transform
 	CColRefSet *push_down_gb_cols = GPOS_NEW(mp) CColRefSet
 		(
 		mp,
-		*(CDrvdPropScalar::GetDrvdScalarProps(join_condition_expr->PdpDerive())->PcrsUsed())
+		*(join_condition_expr->DeriveUsedColumns())
 		);
 	CColRefSet *grouping_cols = (CLogicalGbAgg::PopConvert(agg_expr->Pop()))->PcrsLocalUsed();
 	push_down_gb_cols->Union(grouping_cols);
@@ -253,8 +253,7 @@ CXformEagerAgg::CanApplyTransform
 
 	// currently only supporting aggregate column references from outer child
 	CColRefSet *join_outer_child_cols = join_outer_child_expr->DeriveOutputColumns();
-	CColRefSet *agg_proj_list_cols = CDrvdPropScalar::GetDrvdScalarProps(
-		agg_proj_list_expr->PdpDerive())->PcrsUsed();
+	CColRefSet *agg_proj_list_cols = agg_proj_list_expr->DeriveUsedColumns();
 	if (!join_outer_child_cols->ContainsAll(agg_proj_list_cols))
 	{
 		// all columns used by the Gb aggregate should only be present in outer

@@ -125,7 +125,7 @@ namespace gpopt
 			static
 			CFunctionalDependencyArray *DeriveLocalFunctionalDependencies(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
-			// Have all the properties been derivied?
+			// Have all the properties been derived?
 			//
 			// NOTE1: This is set ONLY when Derive() is called. If all the properties
 			// are independently derived, m_is_complete will remain false. In that

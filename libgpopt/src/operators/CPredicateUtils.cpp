@@ -185,8 +185,8 @@ CPredicateUtils::FIdentCompareOuterRefExprIgnoreCast
 
 	BOOL leftIsACol = CUtils::FScalarIdentIgnoreCast(pexprLeft);
 	BOOL rightIsACol = CUtils::FScalarIdentIgnoreCast(pexprRight);
-    CColRefSet *pcrsUsedLeft = CDrvdPropScalar::GetDrvdScalarProps(pexprLeft->PdpDerive())->PcrsUsed();
-	CColRefSet *pcrsUsedRight = CDrvdPropScalar::GetDrvdScalarProps(pexprRight->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsedLeft = pexprLeft->DeriveUsedColumns();
+	CColRefSet *pcrsUsedRight = pexprRight->DeriveUsedColumns();
 
 	// allow any expressions of the form
 	//  col = expr(outer refs)
@@ -226,14 +226,13 @@ CPredicateUtils::FValidRefsOnly
 	CColRefSet *pcrsAllowedRefs
 	)
 {
-	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive());
 	if (NULL != pcrsAllowedRefs)
 	{
-		return pcrsAllowedRefs->ContainsAll(pdpscalar->PcrsUsed());
+		return pcrsAllowedRefs->ContainsAll(pexprScalar->DeriveUsedColumns());
 	}
 
 	return CUtils::FVarFreeExpr(pexprScalar) &&
-			IMDFunction::EfsVolatile != pdpscalar->Pfp()->Efs();
+			IMDFunction::EfsVolatile != pexprScalar->DeriveScalarFunctionProperties()->Efs();
 }
 
 // is the given expression a conjunction of equality comparisons
@@ -1481,9 +1480,8 @@ CPredicateUtils::PexprPartPruningPredicate
 		if (FComparison(pexpr, pcrPartKey, pcrsAllowedRefs))
 		{
 			CScalarCmp *popCmp = CScalarCmp::PopConvert(pexpr->Pop());
-			CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-			
-			if (!pdpscalar->Pfp()->NeedsSingletonExecution() && FRangeComparison(popCmp->ParseCmpType()))
+
+			if (!pexpr->DeriveScalarFunctionProperties()->NeedsSingletonExecution() && FRangeComparison(popCmp->ParseCmpType()))
 			{
 				pexpr->AddRef();
 				pdrgpexprResult->Append(pexpr);
@@ -1721,9 +1719,7 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	CExpressionArray *pdrgpexprConjuncts = PdrgpexprConjuncts(mp, pexprScalar);
 	CColRefSetArray *pdrgpcrsChild = NULL;
 	CConstraint *pcnstr = NULL;
-	(void) pexprScalar->PdpDerive();
-	CDrvdPropScalar *pdpScalar = pexprScalar->GetDrvdPropScalar();
-	if (pdpScalar->FHasScalarArrayCmp() &&
+	if (pexprScalar->DeriveHasScalarArrayCmp() &&
 	    !GPOS_FTRACE(EopttraceArrayConstraints))
 	{
 		// if we have any Array Comparisons, we expand them into conjunctions/disjunctions
@@ -1974,7 +1970,7 @@ CPredicateUtils::PexprIndexLookupKeyOnLeft
 		(CCastUtils::FBinaryCoercibleCastedScId(pexprLeft) && pcrsIndex->FMember(CScalarIdent::PopConvert((*pexprLeft)[0]->Pop())->Pcr())))
 	{
 		// left expression is a scalar identifier or casted scalar identifier on an index key
-		CColRefSet *pcrsUsedRight = CDrvdPropScalar::GetDrvdScalarProps(pexprRight->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsedRight = pexprRight->DeriveUsedColumns();
 		BOOL fSuccess = true;
 
 		if (0 < pcrsUsedRight->Size())
@@ -2127,7 +2123,7 @@ CPredicateUtils::ExtractIndexPredicates
 
 		pexprCond->AddRef();
 		
-		CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp, *CDrvdPropScalar::GetDrvdScalarProps(pexprCond->PdpDerive())->PcrsUsed());
+		CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp, *pexprCond->DeriveUsedColumns());
 		if (NULL != pcrsAcceptedOuterRefs)
 		{
 			// filter out all accepted outer references
@@ -2197,7 +2193,7 @@ CPredicateUtils::SeparateOuterRefs
 	GPOS_ASSERT(NULL != ppexprLocal);
 	GPOS_ASSERT(NULL != ppexprOuterRef);
 
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = pexprScalar->DeriveUsedColumns();
 	if (pcrsUsed->IsDisjoint(outer_refs))
 	{
 		// if used columns are disjoint from outer references, return input expression
@@ -2215,7 +2211,7 @@ CPredicateUtils::SeparateOuterRefs
 	for (ULONG ul = 0; ul < size; ul++)
 	{
 		CExpression *pexprPred = (*pdrgpexpr)[ul];
-		CColRefSet *pcrsPredUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsPredUsed = pexprPred->DeriveUsedColumns();
 		pexprPred->AddRef();
 		if (0 == pcrsPredUsed->Size() || outer_refs->IsDisjoint(pcrsPredUsed))
 		{
@@ -2365,7 +2361,7 @@ CPredicateUtils::FImpliedPredicate
 	GPOS_ASSERT(pexprPred->Pop()->FScalar());
 	GPOS_ASSERT(FCheckPredicateImplication(pexprPred));
 
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = pexprPred->DeriveUsedColumns();
 	const ULONG size = pdrgpcrsEquivClasses->Size();
 	for (ULONG ul = 0; ul < size; ul++)
 	{
@@ -2461,7 +2457,7 @@ CPredicateUtils::FValidSemiJoinCorrelations
 	for (ULONG ul = 0; fValid && ul < ulCorrs; ul++)
 	{
 		CExpression *pexprPred = (*pdrgpexprCorrelations)[ul];
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexprPred->DeriveUsedColumns();
 		if (0 < pcrsUsed->Size() && !pcrsChildren->ContainsAll(pcrsUsed) && !pcrsUsed->IsDisjoint(pcrsInnerOuput))
 		{
 			// disallow correlations referring to inner child
@@ -2496,7 +2492,7 @@ CPredicateUtils::FSimpleEqualityUsingCols
 	{
 		// join predicate must be an equality of scalar idents and uses columns from given set
 		CExpression *pexprConj = (*pdrgpexpr)[ul];
-		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprConj->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = pexprConj->DeriveUsedColumns();
 		fSuccess = IsEqualityOp(pexprConj) &&
 				CUtils::FScalarIdent((*pexprConj)[0]) &&
 				CUtils::FScalarIdent((*pexprConj)[1]) &&
@@ -2564,13 +2560,12 @@ CPredicateUtils::FNullRejecting
 	GPOS_ASSERT(NULL != pexprScalar);
 	GPOS_ASSERT(pexprScalar->Pop()->FScalar());
 
-	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive());
-	BOOL fHasVolatileFunctions = (IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs());
-	BOOL fHasSQL = (IMDFunction::EfdaNoSQL != pdpscalar->Pfp()->Efda());
+	BOOL fHasVolatileFunctions = (IMDFunction::EfsVolatile == pexprScalar->DeriveScalarFunctionProperties()->Efs());
+	BOOL fHasSQL = (IMDFunction::EfdaNoSQL != pexprScalar->DeriveScalarFunctionProperties()->Efda());
 
 	if (fHasVolatileFunctions ||
 		fHasSQL ||
-		pdpscalar->FHasNonScalarFunction())
+		pexprScalar->DeriveHasNonScalarFunction())
 	{
 		// scalar expression must not have volatile functions, functions with SQL, subquery or non-scalar functions
 		return false;
@@ -2654,7 +2649,7 @@ CPredicateUtils::FCompatibleIndexPredicate
 	}
 
 	CExpression *pexprLeft = (*pexprPred)[0];
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprLeft->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = pexprLeft->DeriveUsedColumns();
 	GPOS_ASSERT(1 == pcrsUsed->Size());
 
 	CColRef *pcrIndexKey = pcrsUsed->PcrFirst();

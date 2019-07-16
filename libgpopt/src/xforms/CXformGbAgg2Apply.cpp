@@ -60,7 +60,7 @@ CXformGbAgg2Apply::Exfp
 	const
 {
 	CLogicalGbAgg *popGbAgg = CLogicalGbAgg::PopConvert(exprhdl.Pop());
-	if (popGbAgg->FGlobal() && exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
+	if (popGbAgg->FGlobal() && exprhdl.DeriveHasSubquery(1))
 	{
 		return CXform::ExfpHigh;
 	}

@@ -69,7 +69,7 @@ CXformSimplifySubquery::Exfp
 	const
 {
 	// consider this transformation only if subqueries exist
-	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(1))
 	{
 		return CXform::ExfpHigh;
 	}
@@ -186,7 +186,7 @@ CXformSimplifySubquery::FSimplify
 	// for all other types of subqueries, or if no other subqueries are
 	// below this point, we add-ref root node and return immediately
 	if (CUtils::FSubquery(pexprScalar->Pop()) ||
-		!CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->FHasSubquery())
+		!pexprScalar->DeriveHasSubquery())
 	{
 		pexprScalar->AddRef();
 		*ppexprNewScalar = pexprScalar;

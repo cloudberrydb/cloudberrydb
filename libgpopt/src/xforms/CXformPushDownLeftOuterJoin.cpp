@@ -123,7 +123,7 @@ CXformPushDownLeftOuterJoin::Transform
 	CExpression *pexprLOJInnerChild = (*pexpr)[1];
 	CExpression *pexprLOJScalarChild = (*pexpr)[2];
 
-	CColRefSet *pcrsLOJUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprLOJScalarChild->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsLOJUsed = pexprLOJScalarChild->DeriveUsedColumns();
 	CExpressionArray *pdrgpexprLOJChildren = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArray *pdrgpexprNAryJoinChildren = GPOS_NEW(mp) CExpressionArray(mp);
 

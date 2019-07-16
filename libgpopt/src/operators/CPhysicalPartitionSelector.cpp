@@ -478,7 +478,7 @@ CPhysicalPartitionSelector::PcrsRequired
 				"Required properties can only be computed on the relational child");
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, *pcrsInput);
-	pcrs->Union(CDrvdPropScalar::GetDrvdScalarProps(m_pexprCombinedPredicate->PdpDerive())->PcrsUsed());
+	pcrs->Union(m_pexprCombinedPredicate->DeriveUsedColumns());
 	pcrs->Intersection(exprhdl.DeriveOutputColumns(child_index));
 
 	return pcrs;

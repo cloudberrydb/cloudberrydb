@@ -53,7 +53,7 @@ CLogicalUnary::Esp
 {
 	// low promise for stat derivation if scalar predicate has subqueries, or logical
 	// expression has outer-refs or is part of an Apply expression
-	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery() ||
+	if (exprhdl.DeriveHasSubquery(1) ||
 		exprhdl.HasOuterRefs() ||
 		 (NULL != exprhdl.Pgexpr() &&
 			CXformUtils::FGenerateApply(exprhdl.Pgexpr()->ExfidOrigin()))

@@ -48,7 +48,7 @@ namespace gpopt
 	//		has to implement virtual derivation functions to be called by the
 	//		derivation mechanism of each single property. For example,
 	//		CPhysical::PosDerive() is used to derive sort order of an expression
-	//		rooted by a given physical operator. Similarly, CScalar::PcrsUsed() is
+	//		rooted by a given physical operator. Similarly, CScalar::GetUsedColumns() is
 	//		used to derive the used columns in a scalar expression rooted by a
 	//		given operator.
 	//

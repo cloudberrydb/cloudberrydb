@@ -75,6 +75,8 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pop);
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
+
 	if (NULL != pgexpr)
 	{
 		CopyGroupPropsAndStats(NULL /*input_stats*/);
@@ -115,6 +117,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pexpr);
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 1);
 	m_pdrgpexpr->Append(pexpr);
 
@@ -158,6 +161,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pexprChildSecond);
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 2);
 	m_pdrgpexpr->Append(pexprChildFirst);
 	m_pdrgpexpr->Append(pexprChildSecond);
@@ -204,6 +208,7 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pexprChildThird);
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
 	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, 3);
 	m_pdrgpexpr->Append(pexprChildFirst);
 	m_pdrgpexpr->Append(pexprChildSecond);
@@ -246,6 +251,8 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pdrgpexpr);
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
+
 }
 
 
@@ -286,6 +293,8 @@ CExpression::CExpression
 	GPOS_ASSERT(NULL != pgexpr->Pgroup());
 
 	m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
+	m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
+
 	CopyGroupPropsAndStats(input_stats);
 }
 
@@ -338,8 +347,7 @@ CExpression::CopyGroupPropsAndStats
 	pdp->AddRef();
 	if (m_pgexpr->Pgroup()->FScalar())
 	{
-		GPOS_ASSERT(NULL == m_pdpscalar);
-
+		m_pdpscalar->Release();
 		m_pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pdp);
 	}
 	else
@@ -520,11 +528,12 @@ CExpression::PdpDerive
 	CExpressionHandle exprhdl(m_mp);
 	exprhdl.Attach(this);
 
-	// see if suitable prop is already cached. This only applies to scalar and plan properties.
+	// see if suitable prop is already cached. This only applies to plan properties.
 	// relational properties are never null and are handled in the next case
 	if (NULL == Pdp(ept))
 	{
 		GPOS_ASSERT(CDrvdProp::EptRelational != ept);
+		GPOS_ASSERT(CDrvdProp::EptScalar != ept);
 
 		const ULONG arity = Arity();
 		for (ULONG ul = 0; ul < arity; ul++)
@@ -542,9 +551,6 @@ CExpression::PdpDerive
 		{
 			case CDrvdProp::EptPlan:
 				m_pdpplan = GPOS_NEW(m_mp) CDrvdPropPlan();
-				break;
-			case CDrvdProp::EptScalar:
-				m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar();
 				break;
 			default:
 				break;
@@ -695,7 +701,7 @@ CExpression::ResetDerivedProperty
 			break;
 		case CDrvdProp::EptScalar:
 			CRefCount::SafeRelease(m_pdpscalar);
-			m_pdpscalar  = NULL;
+			m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar(m_mp);
 			break;
 		default:
 			GPOS_ASSERT(!"Invalid property type");
@@ -1638,4 +1644,75 @@ CExpression::DeriveHasPartialIndexes()
 	return m_pdprel->DeriveHasPartialIndexes(exprhdl);
 }
 
+// Scalar property accessors - derived as needed
+CColRefSet *
+CExpression::DeriveDefinedColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveDefinedColumns(exprhdl);
+}
+CColRefSet *
+CExpression::DeriveUsedColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveUsedColumns(exprhdl);
+}
+CColRefSet *
+CExpression::DeriveSetReturningFunctionColumns()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveSetReturningFunctionColumns(exprhdl);
+}
+BOOL
+CExpression::DeriveHasSubquery()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveHasSubquery(exprhdl);
+}
+CPartInfo *
+CExpression::DeriveScalarPartitionInfo()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DerivePartitionInfo(exprhdl);
+}
+CFunctionProp *
+CExpression::DeriveScalarFunctionProperties()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveFunctionProperties(exprhdl);
+}
+BOOL
+CExpression::DeriveHasNonScalarFunction()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveHasNonScalarFunction(exprhdl);
+}
+ULONG
+CExpression::DeriveTotalDistinctAggs()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveTotalDistinctAggs(exprhdl);
+}
+BOOL
+CExpression::DeriveHasMultipleDistinctAggs()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveHasMultipleDistinctAggs(exprhdl);
+}
+BOOL
+CExpression::DeriveHasScalarArrayCmp()
+{
+	CExpressionHandle exprhdl(m_mp);
+	exprhdl.Attach(this);
+	return m_pdpscalar->DeriveHasScalarArrayCmp(exprhdl);
+}
 // EOF

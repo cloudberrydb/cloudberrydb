@@ -242,7 +242,7 @@ CLogicalSequenceProject::DeriveOutputColumns
 	pcrs->Union(exprhdl.DeriveOutputColumns(0));
 
 	// the scalar child defines additional columns
-	pcrs->Union(exprhdl.GetDrvdScalarProps(1)->PcrsDefined());
+	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
 
 	return pcrs;
 }

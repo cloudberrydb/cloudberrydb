@@ -168,7 +168,7 @@ CLogicalSelect::PstatsDerive
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
 	IStatistics *child_stats = exprhdl.Pstats(0);
 
-	if (exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(1))
 	{
 		// in case of subquery in select predicate, we return child stats
 		child_stats->AddRef();
@@ -235,7 +235,7 @@ CLogicalSelect::PexprPartPred
 
 	// in case of subquery in select predicate, we cannot extract the whole
 	// predicate, and it would not be helpful anyway, so return NULL
-	if (exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(1))
 	{
 		return NULL;
 	}

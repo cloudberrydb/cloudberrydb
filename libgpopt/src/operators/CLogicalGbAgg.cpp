@@ -331,7 +331,7 @@ CLogicalGbAgg::DeriveOutputColumns
 	pcrs->Intersection(exprhdl.DeriveOutputColumns(0));
 
 	// the scalar child defines additional columns
-	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined());
+	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
 
 	return pcrs;
 }
@@ -435,7 +435,7 @@ CLogicalGbAgg::PcrsStatGbAgg
 	pcrs->Include(pdrgpcrGrp);
 
 	// other columns used in aggregates
-	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsUsed());
+	pcrs->Union(exprhdl.DeriveUsedColumns(1));
 
 	// if the grouping column is a computed column, then add its corresponding used columns
 	// to required columns for statistics computation
@@ -552,7 +552,7 @@ CLogicalGbAgg::DeriveKeyCollection
 		else
 		{
 			// scalar and single-group aggs produce one row that constitutes a key
-			CColRefSet *pcrs = exprhdl.GetDrvdScalarProps(1)->PcrsDefined();
+			CColRefSet *pcrs = exprhdl.DeriveDefinedColumns(1);
 
 			if (0 == pcrs->Size())
 			{
@@ -723,7 +723,7 @@ CLogicalGbAgg::PstatsDerive
 
 	// extract computed columns
 	ULongPtrArray *pdrgpulComputedCols = GPOS_NEW(mp) ULongPtrArray(mp);
-	exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined()->ExtractColIds(mp, pdrgpulComputedCols);
+	exprhdl.DeriveDefinedColumns(1)->ExtractColIds(mp, pdrgpulComputedCols);
 
 	IStatistics *stats = PstatsDerive(mp, child_stats, Pdrgpcr(), pdrgpulComputedCols, NULL /*keys*/);
 

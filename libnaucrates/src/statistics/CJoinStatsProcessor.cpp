@@ -469,7 +469,7 @@ CJoinStatsProcessor::DeriveJoinStats
 	}
 
 	CExpression *join_pred_expr = NULL;
-	if (exprhdl.GetDrvdScalarProps(arity - 1)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(arity - 1))
 	{
 		// in case of subquery in join predicate, assume join condition is True
 		join_pred_expr = CUtils::PexprScalarConstBool(mp, true /*value*/);

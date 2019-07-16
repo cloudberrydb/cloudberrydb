@@ -85,7 +85,7 @@ CXformSplitGbAgg::Exfp
 	// do not split aggregate if it is a local aggregate, has distinct aggs, has outer references,
 	// or return types of Agg functions are ambiguous
 	if (!CLogicalGbAgg::PopConvert(exprhdl.Pop())->FGlobal() ||
-		0 < exprhdl.GetDrvdScalarProps(1 /*child_index*/)->UlDistinctAggs() ||
+		0 < exprhdl.DeriveTotalDistinctAggs(1) ||
 		0 < exprhdl.DeriveOuterReferences()->Size() ||
 		CXformUtils::FHasAmbiguousType(exprhdl.PexprScalarChild(1 /*child_index*/), COptCtxt::PoctxtFromTLS()->Pmda())
 		)

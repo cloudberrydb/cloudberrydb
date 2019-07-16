@@ -1049,23 +1049,17 @@ CExpressionHandle::GetRelationalProperties
 			return (*Pexpr())[child_index]->GetDrvdPropRelational();
 		}
 
-		// return props after calling derivation function. This calls the on-demand function of the expression
+		// return props after calling derivation function
 		return CDrvdPropRelational::GetRelationalProperties((*Pexpr())[child_index]->PdpDerive());
-	}
-
-	if (FAttachedToLeafPattern())
-	{
-		GPOS_ASSERT(NULL != Pexpr());
-		GPOS_ASSERT(NULL != Pexpr()->Pgexpr());
-
-		// handle is attached to a leaf pattern, get relational props from child group
-		return CDrvdPropRelational::GetRelationalProperties((*Pexpr()->Pgexpr())[child_index]->Pdp());
 	}
 
 	GPOS_ASSERT(NULL != m_pcc || NULL != m_pgexpr);
 
 	// handle is used for deriving plan properties, get relational props from child group
-	return CDrvdPropRelational::GetRelationalProperties((*Pgexpr())[child_index]->Pdp());
+	CDrvdPropRelational* drvdProps = CDrvdPropRelational::GetRelationalProperties((*Pgexpr())[child_index]->Pdp());
+	GPOS_ASSERT(drvdProps->IsComplete());
+
+	return drvdProps;
 }
 
 //---------------------------------------------------------------------------
@@ -1173,17 +1167,7 @@ CExpressionHandle::GetDrvdScalarProps
 	if (NULL != Pexpr())
 	{
 		// handle is used for required property computation
-		CDrvdProp *pdp = (*Pexpr())[child_index]->PdpDerive();
-		return CDrvdPropScalar::GetDrvdScalarProps(pdp);
-	}
-
-	if (FAttachedToLeafPattern())
-	{
-		GPOS_ASSERT(NULL != Pexpr());
-		GPOS_ASSERT(NULL != Pexpr()->Pgexpr());
-
-		// handle is attached to a leaf pattern, get scalar props from child group
-		return CDrvdPropScalar::GetDrvdScalarProps((*Pexpr()->Pgexpr())[child_index]->Pdp());
+		return CDrvdPropScalar::GetDrvdScalarProps((*Pexpr())[child_index]->PdpDerive());
 	}
 
 	GPOS_ASSERT(NULL != m_pcc || NULL != m_pgexpr);
@@ -1437,7 +1421,7 @@ CExpressionHandle::PexprScalarChild
 		GPOS_ASSERT((*m_pgexpr)[child_index]->FScalar());
 
 		CExpression *pexprScalar = (*m_pgexpr)[child_index]->PexprScalar();
-		GPOS_ASSERT_IMP(NULL == pexprScalar, CDrvdPropScalar::GetDrvdScalarProps((*m_pgexpr)[child_index]->Pdp())->FHasSubquery());
+		GPOS_ASSERT_IMP(NULL == pexprScalar, CDrvdPropScalar::GetDrvdScalarProps((*m_pgexpr)[child_index]->Pdp())->HasSubquery());
 
 		return pexprScalar;
 	}
@@ -1448,7 +1432,7 @@ CExpressionHandle::PexprScalarChild
 		// get the scalar child from that group
 		CGroupExpression *pgexpr = (*m_pexpr)[child_index]->Pgexpr();
 		CExpression *pexprScalar = pgexpr->Pgroup()->PexprScalar();
-		GPOS_ASSERT_IMP(NULL == pexprScalar, CDrvdPropScalar::GetDrvdScalarProps((*m_pexpr)[child_index]->PdpDerive())->FHasSubquery());
+		GPOS_ASSERT_IMP(NULL == pexprScalar, (*m_pexpr)[child_index]->DeriveHasSubquery());
 
 		return pexprScalar;
 	}
@@ -1507,7 +1491,7 @@ CExpressionHandle::PfpChild
 {
 	if (FScalarChild(child_index))
 	{
-		return GetDrvdScalarProps(child_index)->Pfp();
+		return DeriveScalarFunctionProperties(child_index);
 	}
 
 	return this->DeriveFunctionProperties(child_index);
@@ -1732,7 +1716,7 @@ CExpressionHandle::PcrsUsedColumns
 	{
 		if (FScalarChild(ul))
 		{
-			pcrs->Include(GetDrvdScalarProps(ul)->PcrsUsed());
+			pcrs->Include(DeriveUsedColumns(ul));
 		}
 	}
 
@@ -1764,7 +1748,10 @@ CExpressionHandle::Pstats()
 	return m_pstats;
 }
 
-
+// The below functions use on-demand property derivation
+// only if there is an expression associated with the expression handle.
+// If there is only a group expression or a cost context assoicated with the handle,
+// all properties must have already been derived as we can't derive anything.
 CColRefSet *
 CExpressionHandle::DeriveOuterReferences(ULONG child_index)
 {
@@ -2029,4 +2016,105 @@ CExpressionHandle::DeriveHasPartialIndexes()
 	return GetRelationalProperties()->HasPartialIndexes();
 }
 
+// Scalar property accessors
+
+CColRefSet *
+CExpressionHandle::DeriveDefinedColumns(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveDefinedColumns();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetDefinedColumns();
+}
+
+CColRefSet *
+CExpressionHandle::DeriveUsedColumns(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveUsedColumns();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetUsedColumns();
+}
+
+CColRefSet *
+CExpressionHandle::DeriveSetReturningFunctionColumns(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveSetReturningFunctionColumns();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetSetReturningFunctionColumns();
+}
+
+BOOL
+CExpressionHandle::DeriveHasSubquery(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveHasSubquery();
+	}
+
+	return GetDrvdScalarProps(child_index)->HasSubquery();
+}
+
+CPartInfo *
+CExpressionHandle::DeriveScalarPartitionInfo(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveScalarPartitionInfo();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetPartitionInfo();
+}
+
+CFunctionProp *
+CExpressionHandle::DeriveScalarFunctionProperties(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveScalarFunctionProperties();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetFunctionProperties();
+}
+
+BOOL
+CExpressionHandle::DeriveHasNonScalarFunction(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveHasNonScalarFunction();
+	}
+
+	return GetDrvdScalarProps(child_index)->HasNonScalarFunction();
+}
+
+ULONG
+CExpressionHandle::DeriveTotalDistinctAggs(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveTotalDistinctAggs();
+	}
+
+	return GetDrvdScalarProps(child_index)->GetTotalDistinctAggs();
+}
+
+BOOL
+CExpressionHandle::DeriveHasMultipleDistinctAggs(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveHasMultipleDistinctAggs();
+	}
+
+	return GetDrvdScalarProps(child_index)->HasMultipleDistinctAggs();
+}
+
+BOOL
+CExpressionHandle::DeriveHasScalarArrayCmp(ULONG child_index){
+	if (NULL != Pexpr())
+	{
+		return (*Pexpr())[child_index]->DeriveHasScalarArrayCmp();
+	}
+
+	return GetDrvdScalarProps(child_index)->HasScalarArrayCmp();
+}
 // EOF

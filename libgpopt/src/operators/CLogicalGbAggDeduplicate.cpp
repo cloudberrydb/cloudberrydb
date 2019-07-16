@@ -275,7 +275,7 @@ CLogicalGbAggDeduplicate::PstatsDerive
 
 	// extract computed columns
 	ULongPtrArray *pdrgpulComputedCols = GPOS_NEW(mp) ULongPtrArray(mp);
-	exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined()->ExtractColIds(mp, pdrgpulComputedCols);
+	exprhdl.DeriveDefinedColumns(1)->ExtractColIds(mp, pdrgpulComputedCols);
 
 	// construct bitset with keys of join child
 	CBitSet *keys = GPOS_NEW(mp) CBitSet(mp);

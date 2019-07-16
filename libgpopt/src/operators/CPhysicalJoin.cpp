@@ -489,8 +489,8 @@ CPhysicalJoin::FPredKeysSeparated
 	GPOS_ASSERT(NULL != pexprPredOuter);
 	GPOS_ASSERT(NULL != pexprPredInner);
 
-	CColRefSet *pcrsUsedPredOuter = CDrvdPropScalar::GetDrvdScalarProps(pexprPredOuter->PdpDerive())->PcrsUsed();
-	CColRefSet *pcrsUsedPredInner = CDrvdPropScalar::GetDrvdScalarProps(pexprPredInner->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsedPredOuter = pexprPredOuter->DeriveUsedColumns();
+	CColRefSet *pcrsUsedPredInner = pexprPredInner->DeriveUsedColumns();
 
 	CColRefSet *outer_refs = pexprOuter->DeriveOutputColumns();
 	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
@@ -655,11 +655,11 @@ CPhysicalJoin::AlignJoinKeyOuterInner
 	GPOS_ASSERT(NULL != pexprPredInner);
 
 	CColRefSet *pcrsOuter = pexprOuter->DeriveOutputColumns();
-	CColRefSet *pcrsPredOuter = CDrvdPropScalar::GetDrvdScalarProps(pexprPredOuter->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsPredOuter = pexprPredOuter->DeriveUsedColumns();
 
 #ifdef GPOS_DEBUG
 	CColRefSet *pcrsInner = pexprInner->DeriveOutputColumns();
-	CColRefSet *pcrsPredInner = CDrvdPropScalar::GetDrvdScalarProps(pexprPredInner->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsPredInner = pexprPredInner->DeriveUsedColumns();
 #endif // GPOS_DEBUG
 
 	CExpression *pexprOuterKeyWithoutBCC = CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter);

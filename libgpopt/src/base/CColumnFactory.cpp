@@ -416,8 +416,7 @@ CColumnFactory::AddComputedToUsedColsMap
 	const CScalarProjectElement *popScPrEl = CScalarProjectElement::PopConvert(pexpr->Pop());
 	CColRef *pcrComputedCol = popScPrEl->Pcr();
 
-	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	CColRefSet *pcrsUsed = pdpscalar->PcrsUsed();
+	CColRefSet *pcrsUsed = pexpr->DeriveUsedColumns();
 	if (NULL != pcrsUsed && 0 < pcrsUsed->Size())
 	{
 #ifdef GPOS_DEBUG

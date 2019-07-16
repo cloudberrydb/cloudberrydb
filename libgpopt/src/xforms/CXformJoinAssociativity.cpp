@@ -121,7 +121,7 @@ CXformJoinAssociativity::CreatePredicates
 	for (ULONG ul = 0; ul < ulConj; ul++)
 	{
 		CExpression *pexprPred = (*pdrgpexprOrig)[ul];
-		CColRefSet *pcrs = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrs = pexprPred->DeriveUsedColumns();
 		
 		pexprPred->AddRef();
 		if (pcrsLower->ContainsAll(pcrs))

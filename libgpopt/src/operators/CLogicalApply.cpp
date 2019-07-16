@@ -95,7 +95,7 @@ CLogicalApply::PcrsStat
 
 	CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	// add columns used by scalar child
-	pcrsUsed->Union(exprhdl.GetDrvdScalarProps(2)->PcrsUsed());
+	pcrsUsed->Union(exprhdl.DeriveUsedColumns(2));
 
 	if (0 == child_index)
 	{

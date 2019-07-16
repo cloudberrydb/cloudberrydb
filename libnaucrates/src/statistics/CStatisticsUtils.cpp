@@ -1242,7 +1242,7 @@ CStatisticsUtils::DeriveStatsForIndexGet
 
 	CPredicateUtils::SeparateOuterRefs(mp, scalar_expr, outer_col_refset, &local_expr, &outer_refs_expr);
 
-	used_col_refset->Union(expr_handle.GetDrvdScalarProps(0 /*child_index*/)->PcrsUsed());
+	used_col_refset->Union(expr_handle.DeriveUsedColumns(0));
 
 	// filter out outer references in used columns
 	used_col_refset->Difference(outer_col_refset);
@@ -1291,7 +1291,7 @@ CStatisticsUtils::DeriveStatsForBitmapTableGet
 
 	// collect columns used by the index
 	CColRefSet *used_col_refset = GPOS_NEW(mp) CColRefSet(mp);
-	used_col_refset->Union(expr_handle.GetDrvdScalarProps(child_cond_index)->PcrsUsed());
+	used_col_refset->Union(expr_handle.DeriveUsedColumns(child_cond_index));
 	used_col_refset->Difference(outer_col_refset);
 	IStatistics *base_table_stats = CLogical::PstatsBaseTable(mp, expr_handle, table_descriptor, used_col_refset);
 	used_col_refset->Release();

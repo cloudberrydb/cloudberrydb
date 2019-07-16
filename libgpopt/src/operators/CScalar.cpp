@@ -35,7 +35,7 @@ CScalar::PdpCreate
 	)
 	const
 {
-	return GPOS_NEW(mp) CDrvdPropScalar();
+	return GPOS_NEW(mp) CDrvdPropScalar(mp);
 }
 
 
@@ -85,8 +85,7 @@ CScalar::FHasSubquery
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
-			if (pdpscalar->FHasSubquery())
+			if (exprhdl.DeriveHasSubquery(i))
 			{
 				return true;
 			}
@@ -376,8 +375,7 @@ CScalar::FHasNonScalarFunction
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
-			if (pdpscalar->FHasNonScalarFunction())
+			if (exprhdl.DeriveHasNonScalarFunction(i))
 			{
 				return true;
 			}
@@ -412,7 +410,7 @@ CScalar::PpartinfoDeriveCombineScalar
 	{
 		if (exprhdl.FScalarChild(ul))
 		{
-			CPartInfo *ppartinfoChild = exprhdl.GetDrvdScalarProps(ul)->Ppartinfo();
+			CPartInfo *ppartinfoChild = exprhdl.DeriveScalarPartitionInfo(ul);
 			GPOS_ASSERT(NULL != ppartinfoChild);
 			CPartInfo *ppartinfoCombined = CPartInfo::PpartinfoCombine(mp, ppartinfo, ppartinfoChild);
 			ppartinfo->Release();
@@ -441,8 +439,7 @@ CScalar::FHasScalarArrayCmp
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
-			if (pdpscalar->FHasScalarArrayCmp())
+			if (exprhdl.DeriveHasScalarArrayCmp(i))
 			{
 				return true;
 			}

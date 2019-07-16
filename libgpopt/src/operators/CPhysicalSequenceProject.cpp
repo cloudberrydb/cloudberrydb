@@ -169,11 +169,11 @@ CPhysicalSequenceProject::ComputeRequiredLocalColumns
 		CWindowFrame *pwf = (*m_pdrgpwf)[ul];
 		if (NULL != pwf->PexprLeading())
 		{
-			m_pcrsRequiredLocal->Union(CDrvdPropScalar::GetDrvdScalarProps(pwf->PexprLeading()->PdpDerive())->PcrsUsed());
+			m_pcrsRequiredLocal->Union(pwf->PexprLeading()->DeriveUsedColumns());
 		}
 		if (NULL != pwf->PexprTrailing())
 		{
-			m_pcrsRequiredLocal->Union(CDrvdPropScalar::GetDrvdScalarProps(pwf->PexprTrailing()->PdpDerive())->PcrsUsed());
+			m_pcrsRequiredLocal->Union(pwf->PexprTrailing()->DeriveUsedColumns());
 		}
 	}
 }
@@ -480,7 +480,7 @@ CPhysicalSequenceProject::FProvidesReqdCols
 
 	CColRefSet *pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
 	// include defined columns by scalar project list
-	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined());
+	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
 
 	// include output columns of the relational child
 	pcrs->Union(exprhdl.DeriveOutputColumns(0 /*child_index*/));

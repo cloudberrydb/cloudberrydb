@@ -77,7 +77,7 @@ CXformGbAgg2StreamAgg::Exfp
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(exprhdl.Pop());
 	if (0 == popAgg->Pdrgpcr()->Size() ||
 		!CUtils::FComparisonPossible(popAgg->Pdrgpcr(), IMDType::EcmptL) ||
-		exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
+		exprhdl.DeriveHasSubquery(1))
 	{
 		// no grouping columns, or no sort operators are available for grouping columns, or
 		// agg functions use subquery arguments

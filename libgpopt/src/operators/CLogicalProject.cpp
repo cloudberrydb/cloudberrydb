@@ -66,7 +66,7 @@ CLogicalProject::DeriveOutputColumns
 	
 	// the scalar child defines additional columns
 	pcrs->Union(exprhdl.DeriveOutputColumns(0));
-	pcrs->Union(exprhdl.GetDrvdScalarProps(1)->PcrsDefined());
+	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
 	
 	return pcrs;
 }
@@ -225,7 +225,7 @@ CLogicalProject::DerivePropertyConstraint
 	)
 	const
 {
-	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(1))
 	{
 		return PpcDeriveConstraintPassThru(exprhdl, 0 /*ulChild*/);
 	}
@@ -317,7 +317,7 @@ CLogicalProject::DeriveMaxCard
 	)
 	const
 {
-	if (exprhdl.GetDrvdScalarProps(1)->FHasNonScalarFunction())
+	if (exprhdl.DeriveHasNonScalarFunction(1))
 	{
 		// unbounded by default
 		return CMaxCard();

@@ -858,7 +858,7 @@ CUtils::FUsesNullableCol
 
 	CColRefSet *pcrsNotNull = pexprLogical->DeriveNotNullColumns();
 	CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
-	pcrsUsed->Include(CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed());
+	pcrsUsed->Include(pexprScalar->DeriveUsedColumns());
 	pcrsUsed->Intersection(pexprLogical->DeriveOutputColumns());
 
 	BOOL fUsesNullableCol = !pcrsNotNull->ContainsAll(pcrsUsed);
@@ -894,10 +894,7 @@ CUtils::FHasSubquery
 	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(pexpr->Pop()->FScalar());
 
-	CDrvdProp *pdp = pexpr->PdpDerive();
-	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pdp);
-
-	return pdpscalar->FHasSubquery();
+	return pexpr->DeriveHasSubquery();
 }
 
 
@@ -927,7 +924,7 @@ CUtils::FHasSubqueryOrApply
 			return true;
 		}
 
-		if (pop->FScalar() && CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->FHasSubquery())
+		if (pop->FScalar() && pexpr->DeriveHasSubquery())
 		{
 			return true;
 		}
@@ -3185,14 +3182,13 @@ CUtils::FVarFreeExpr
 		return true;
 	}
 	
-	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	if (pdpScalar->FHasSubquery())
+	if (pexpr->DeriveHasSubquery())
 	{
 		return false;
 	}
 	
-	GPOS_ASSERT(0 == pdpScalar->PcrsDefined()->Size());
-	CColRefSet *pcrsUsed = pdpScalar->PcrsUsed();
+	GPOS_ASSERT(0 == pexpr->DeriveDefinedColumns()->Size());
+	CColRefSet *pcrsUsed = pexpr->DeriveUsedColumns();
 	
 	// no variables in expression
 	return 0 == pcrsUsed->Size();
@@ -3277,7 +3273,7 @@ CUtils::FUsesChildColsOnly
 
 	CAutoMemoryPool amp;
 	CMemoryPool *mp = amp.Pmp();
-	CColRefSet *pcrsUsed =  exprhdl.GetDrvdScalarProps(2 /*child_index*/)->PcrsUsed();
+	CColRefSet *pcrsUsed =  exprhdl.DeriveUsedColumns(2);
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	pcrs->Include(exprhdl.DeriveOutputColumns(0 /*child_index*/));
 	pcrs->Include(exprhdl.DeriveOutputColumns(1 /*child_index*/));
@@ -4115,7 +4111,7 @@ CUtils::PcrsExtractColumns
 	for (ULONG ul = 0; ul < length; ul++)
 	{
 		CExpression *pexpr = (*pdrgpexpr)[ul];
-		pcrs->Include(CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->PcrsUsed());
+		pcrs->Include(pexpr->DeriveUsedColumns());
 	}
 
 	return pcrs;
@@ -4436,7 +4432,7 @@ CUtils::PexprCollapseProjects
 	CColRefSet *pcrsDefinedChild = GPOS_NEW(mp) CColRefSet
 										(
 										mp,
-										*CDrvdPropScalar::GetDrvdScalarProps(pexprChildScalar->PdpDerive())->PcrsDefined()
+										*pexprChildScalar->DeriveDefinedColumns()
 										);
 
 	// array of project elements for the new child project node
@@ -4446,7 +4442,7 @@ CUtils::PexprCollapseProjects
 	CExpressionArray *pdrgpexprSetReturnFunc = GPOS_NEW(mp) CExpressionArray(mp);
 	ULONG ulCollapsableSetReturnFunc = 0;
 
-	BOOL fChildProjElHasSetReturn = CDrvdPropScalar::GetDrvdScalarProps(pexprChildScalar->PdpDerive())->FHasNonScalarFunction();
+	BOOL fChildProjElHasSetReturn = pexprChildScalar->DeriveHasNonScalarFunction();
 
 	// iterate over the parent project elements and see if we can add it to the child's project node
 	CExpressionArray *pdrgpexprPrEl = GPOS_NEW(mp) CExpressionArray(mp);
@@ -4458,12 +4454,12 @@ CUtils::PexprCollapseProjects
 		CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet
 											(
 											mp,
-											*CDrvdPropScalar::GetDrvdScalarProps(pexprPrE->PdpDerive())->PcrsUsed()
+											*pexprPrE->DeriveUsedColumns()
 											);
 
 		pexprPrE->AddRef();
 
-		BOOL fHasSetReturn = CDrvdPropScalar::GetDrvdScalarProps(pexprPrE->PdpDerive())->FHasNonScalarFunction();
+		BOOL fHasSetReturn = pexprPrE->DeriveHasNonScalarFunction();
 
 		pcrsUsed->Intersection(pcrsDefinedChild);
 		ULONG ulIntersect = pcrsUsed->Size();
@@ -4984,9 +4980,8 @@ CUtils::PcrExtractFromScExpression
  	CExpression *pexpr
 	)
 {
-	CDrvdPropScalar *pdrvdPropScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	if (pdrvdPropScalar->PcrsUsed()->Size() == 1)
-		return pdrvdPropScalar->PcrsUsed()->PcrFirst();
+	if (pexpr->DeriveUsedColumns()->Size() == 1)
+		return pexpr->DeriveUsedColumns()->PcrFirst();
 
 	return NULL;
 }

@@ -63,7 +63,7 @@ CXformSelect2IndexGet::Exfp
 	)
 	const
 {
-	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(1))
 	{
 		return CXform::ExfpNone;
 	}
@@ -112,7 +112,7 @@ CXformSelect2IndexGet::Transform
 
 	// derive the scalar and relational properties to build set of required columns
 	CColRefSet *pcrsOutput = pexpr->DeriveOutputColumns();
-	CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsScalarExpr = pexprScalar->DeriveUsedColumns();
 
 	CColRefSet *pcrsReqd = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsReqd->Include(pcrsOutput);

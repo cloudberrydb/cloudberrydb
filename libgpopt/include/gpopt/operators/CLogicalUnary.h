@@ -155,7 +155,7 @@ namespace gpopt
 				)
 				const
 			{
-				return PcrsReqdChildStats(mp, exprhdl, pcrsInput, exprhdl.GetDrvdScalarProps(1)->PcrsUsed(), child_index);
+				return PcrsReqdChildStats(mp, exprhdl, pcrsInput, exprhdl.DeriveUsedColumns(1), child_index);
 			}
 
 	}; // class CLogicalUnary

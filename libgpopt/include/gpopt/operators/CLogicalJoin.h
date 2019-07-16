@@ -134,7 +134,7 @@ namespace gpopt
 				const
 			{
 				// no stat derivation on Join trees with subqueries
-				if (exprhdl.GetDrvdScalarProps(exprhdl.Arity() - 1)->FHasSubquery())
+				if (exprhdl.DeriveHasSubquery(exprhdl.Arity() - 1))
 				{
 					 return EspLow;
 				}
@@ -175,7 +175,7 @@ namespace gpopt
 			{
 				const ULONG arity = exprhdl.Arity();
 
-				return PcrsReqdChildStats(mp, exprhdl, pcrsInput, exprhdl.GetDrvdScalarProps(arity - 1)->PcrsUsed(), child_index);
+				return PcrsReqdChildStats(mp, exprhdl, pcrsInput, exprhdl.DeriveUsedColumns(arity - 1), child_index);
 			}
 
 			// return true if operator can select a subset of input tuples based on some predicate

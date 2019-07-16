@@ -66,7 +66,7 @@ CXformExpandNAryJoin::Exfp
 	)
 	const
 {
-	if (exprhdl.GetDrvdScalarProps(exprhdl.Arity() - 1)->FHasSubquery())
+	if (exprhdl.DeriveHasSubquery(exprhdl.Arity() - 1))
 	{
 		// subqueries must be unnested before applying xform
 		return CXform::ExfpNone;

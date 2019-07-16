@@ -77,7 +77,7 @@ CXformImplementTVF::Exfp
 	const ULONG arity = exprhdl.Arity();
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		if (exprhdl.GetDrvdScalarProps(ul)->FHasSubquery())
+		if (exprhdl.DeriveHasSubquery(ul))
 		{
 			// xform is inapplicable if TVF argument is a subquery
 			return CXform::ExfpNone;

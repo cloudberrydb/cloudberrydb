@@ -63,7 +63,7 @@ CXformUnnestTVF::Exfp
 	const ULONG arity = exprhdl.Arity();
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		if (exprhdl.GetDrvdScalarProps(ul)->FHasSubquery())
+		if (exprhdl.DeriveHasSubquery(ul))
 		{
 			// xform is applicable if TVF argument is a subquery
 			return CXform::ExfpHigh;
@@ -103,7 +103,7 @@ CXformUnnestTVF::PdrgpcrSubqueries
 	for (ULONG ulOuter = 0; ulOuter < ulPrjElems; ulOuter++)
 	{
 		CExpression *pexprPrjElem = (*(*pexprProject)[1])[ulOuter];
-		if (CDrvdPropScalar::GetDrvdScalarProps((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
+		if ((*pexprPrjElem)[0]->DeriveHasSubquery())
 		{
 			CColRef *pcrProducer = CScalarProjectElement::PopConvert(pexprPrjElem->Pop())->Pcr();
 			CColRef *pcrConsumer =  CUtils::PcrMap(pcrProducer, pdrgpcrProdOutput, pdrgpcrConsOutput);
@@ -144,7 +144,7 @@ CXformUnnestTVF::PexprProjectSubqueries
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CExpression *pexprScalarChild = (*pexprTVF)[ul];
-		if (CDrvdPropScalar::GetDrvdScalarProps(pexprScalarChild->PdpDerive())->FHasSubquery())
+		if (pexprScalarChild->DeriveHasSubquery())
 		{
 			pexprScalarChild->AddRef();
 			pdrgpexprSubqueries->Append(pexprScalarChild);
@@ -210,7 +210,7 @@ CXformUnnestTVF::Transform
 	for (ULONG ulOuter = 0; ulOuter < ulPrjElems; ulOuter++)
 	{
 		CExpression *pexprPrjElem = (*(*pexprProject)[1])[ulOuter];
-		if (CDrvdPropScalar::GetDrvdScalarProps((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
+		if ((*pexprPrjElem)[0]->DeriveHasSubquery())
 		{
 			CColRef *pcrSubq = CScalarProjectElement::PopConvert(pexprPrjElem->Pop())->Pcr();
 			pdrgpcrOutput->Append(pcrSubq);
@@ -239,7 +239,7 @@ CXformUnnestTVF::Transform
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CExpression *pexprScalarChild = (*pexpr)[ul];
-		if (CDrvdPropScalar::GetDrvdScalarProps(pexprScalarChild->PdpDerive())->FHasSubquery())
+		if (pexprScalarChild->DeriveHasSubquery())
 		{
 			CColRef *colref =(*pdrgpcrSubqueries)[ulIndex];
 			pdrgpexprNewArgs->Append(CUtils::PexprScalarIdent(mp, colref));

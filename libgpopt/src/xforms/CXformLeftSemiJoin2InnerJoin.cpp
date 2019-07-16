@@ -66,7 +66,7 @@ CXformLeftSemiJoin2InnerJoin::Exfp
 	)
 	const
 {
-	if (exprhdl.HasOuterRefs() || exprhdl.GetDrvdScalarProps(2)->FHasSubquery())
+	if (exprhdl.HasOuterRefs() || exprhdl.DeriveHasSubquery(2))
 	{
 		return ExfpNone;
 	}
@@ -120,7 +120,7 @@ CXformLeftSemiJoin2InnerJoin::Transform
 	// construct grouping columns by collecting used columns in the join predicate
 	// that come from join's inner child
 	CColRefSet *pcrsOuterOutput = pexprOuter->DeriveOutputColumns();
-	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsed = pexprScalar->DeriveUsedColumns();
 	CColRefSet *pcrsGb = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsGb->Include(pcrsUsed);
 	pcrsGb->Difference(pcrsOuterOutput);

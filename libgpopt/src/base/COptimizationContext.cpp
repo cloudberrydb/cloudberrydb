@@ -318,7 +318,7 @@ COptimizationContext::FOptimizeAgg
 
 	if (GPOS_FTRACE(EopttraceForceExpandedMDQAs))
 	{
-		BOOL fHasMultipleDistinctAggs = CDrvdPropScalar::GetDrvdScalarProps((*pgexprAgg)[1]->Pdp())->FHasMultipleDistinctAggs();
+		BOOL fHasMultipleDistinctAggs = CDrvdPropScalar::GetDrvdScalarProps((*pgexprAgg)[1]->Pdp())->HasMultipleDistinctAggs();
 		if (fHasMultipleDistinctAggs)
 		{
 			// do not optimize plans with MDQAs, since preference is for plans with expanded MDQAs

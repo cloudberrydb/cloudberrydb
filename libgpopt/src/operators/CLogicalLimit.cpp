@@ -283,8 +283,8 @@ CLogicalLimit::PcrsStat
 
 	CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	// add columns used by number of rows and offset scalar children
-	pcrsUsed->Union(exprhdl.GetDrvdScalarProps(1)->PcrsUsed());
-	pcrsUsed->Union(exprhdl.GetDrvdScalarProps(2)->PcrsUsed());
+	pcrsUsed->Union(exprhdl.DeriveUsedColumns(1));
+	pcrsUsed->Union(exprhdl.DeriveUsedColumns(2));
 
 	CColRefSet *pcrsStat = PcrsReqdChildStats(mp, exprhdl, pcrsInput, pcrsUsed, child_index);
 	pcrsUsed->Release();

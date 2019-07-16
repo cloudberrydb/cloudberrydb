@@ -39,12 +39,10 @@ CXformJoin2IndexApply::Exfp
 	)
 	const
 {
-	CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(2 /*child_index*/);
-	GPOS_ASSERT(NULL != pdpscalar);
 
 	if (
-		0 == pdpscalar->PcrsUsed()->Size() ||
-		pdpscalar->FHasSubquery() ||
+		0 == exprhdl.DeriveUsedColumns(2)->Size() ||
+		exprhdl.DeriveHasSubquery(2) ||
 		exprhdl.HasOuterRefs()
 		)
 	{
@@ -77,7 +75,7 @@ CXformJoin2IndexApply::ComputeColumnSets
 	) const
 {
 	CColRefSet *pcrsInnerOutput = pexprInner->DeriveOutputColumns();
-	*ppcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	*ppcrsScalarExpr = pexprScalar->DeriveUsedColumns();
 	*ppcrsOuterRefs = GPOS_NEW(mp) CColRefSet(mp, **ppcrsScalarExpr);
 	(*ppcrsOuterRefs)->Difference(pcrsInnerOutput);
 

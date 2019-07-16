@@ -365,16 +365,15 @@ CExpressionFactorizer::PcrsUsedByPushableScalar
 		return NULL;
 	}
 
-	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	if (0 < pdpscalar->PcrsDefined()->Size() ||
-	    pdpscalar->FHasSubquery() ||
-	    IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs() ||
-	    IMDFunction::EfdaNoSQL != pdpscalar->Pfp()->Efda())
+	if (0 < pexpr->DeriveDefinedColumns()->Size() ||
+	    pexpr->DeriveHasSubquery() ||
+	    IMDFunction::EfsVolatile == pexpr->DeriveScalarFunctionProperties()->Efs() ||
+	    IMDFunction::EfdaNoSQL != pexpr->DeriveScalarFunctionProperties()->Efda())
 	{
 		return NULL;
 	}
 
-	return pdpscalar->PcrsUsed();
+	return pexpr->DeriveUsedColumns();
 }
 
 //---------------------------------------------------------------------------
@@ -738,8 +737,7 @@ CExpressionFactorizer::PcrsColumnsProducedByChildren
 			CExpression *pexprGrandChild = (*pexprChild)[ulBelowChild];
 			if (pexprGrandChild->Pop()->FScalar())
 			{
-				CColRefSet *pcrsChildDefined =
-						CDrvdPropScalar::GetDrvdScalarProps(pexprGrandChild->PdpDerive())->PcrsDefined();
+				CColRefSet *pcrsChildDefined = pexprGrandChild->DeriveDefinedColumns();
 				pcrs->Include(pcrsChildDefined);
 			}
 		}

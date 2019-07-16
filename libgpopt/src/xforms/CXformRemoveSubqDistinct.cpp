@@ -44,7 +44,7 @@ CXformRemoveSubqDistinct::Exfp
 	const
 {
 	// consider this transformation only if subqueries exist
-	if (!exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
+	if (!exprhdl.DeriveHasSubquery(1))
 	{
 		return CXform::ExfpNone;
 	}
