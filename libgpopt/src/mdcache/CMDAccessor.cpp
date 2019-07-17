@@ -657,7 +657,7 @@ CMDAccessor::GetImdObj
 			CAutoP<SMDAccessorElem> a_pmdaccelem;
 			a_pmdaccelem = GPOS_NEW(m_mp) SMDAccessorElem(pmdobjNew, pmdidNew);
 
-			MDHTAccessor mdhtacc(m_shtCacheAccessors, a_pmdaccelem->MDId());
+			MDHTAccessor mdhtacc(m_shtCacheAccessors, pmdidNew);
 
 			if (NULL == mdhtacc.Find())
 			{
@@ -665,7 +665,7 @@ CMDAccessor::GetImdObj
 				mdhtacc.Insert(a_pmdaccelem.Value());
 
 				// add deletion lock for mdid
-				a_pmdaccelem->MDId()->AddDeletionLock();
+				pmdidNew->AddDeletionLock();
 				a_pmdaccelem.Reset();
 			}
 		}
