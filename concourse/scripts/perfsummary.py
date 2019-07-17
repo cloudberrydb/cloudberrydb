@@ -192,8 +192,8 @@ class FileState:
                     if myLineNoRows == baseLineNoRows:
                         rows_change_found = True
                     else:
-                        myOptimizer = re.sub(r'Optimizer[ a-z]*:[ a-zA-Z0-9.]*', 'Optimizer:xxx', myLine)
-                        baseOptimizer = re.sub(r'Optimizer[ a-z]*:[ a-zA-Z0-9.]*', 'Optimizer:xxx', baseLine)
+                        myOptimizer = re.sub(r'Optimizer[ a-z]*:.*', 'Optimizer:xxx', myLine)
+                        baseOptimizer = re.sub(r'Optimizer[ a-z]*:.*', 'Optimizer:xxx', baseLine)
                         if myOptimizer != baseOptimizer:
                             # lines are different even with masked-out rows and cost
                             plan_change_found = True
