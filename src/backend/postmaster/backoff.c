@@ -1208,7 +1208,7 @@ BackoffSweeperLoop(void)
 		/* Sleep a while. */
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   gp_resqueue_priority_sweeper_interval * 1000L);
+					   gp_resqueue_priority_sweeper_interval);
 		ResetLatch(&MyProc->procLatch);
 
 		/* emergency bailout if postmaster has died */
