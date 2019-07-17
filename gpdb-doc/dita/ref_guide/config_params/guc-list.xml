@@ -4636,8 +4636,6 @@
         master should reflect the usage of all available CPU cores. </p>
       <p>Incorrect settings can result in CPU under-utilization or query prioritization not working
         as designed. </p>
-      <p>The default values for the Greenplum Data Computing Appliance V2 are 4 for segments and 25
-        for the master.</p>
       <table id="gp_resqueue_priority_cpucores_per_segment_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>

@@ -394,8 +394,7 @@
                 value for this parameter should be sufficient for typical database operations. </li>
               <li id="iz174445"><codeph>gp_resqueue_priority_cpucores_per_segment</codeph> -
                 Specifies the number of CPU cores allocated per segment instance. The default value
-                is 4 for the master and segments. For Greenplum Data Computing Appliance Version 2,
-                the default value is 4 for segments and 25 for the master. <p>Each host checks its
+                is 4 for the master and segments. <p>Each host checks its
                   own <codeph>postgresql.conf</codeph> file for the value of this parameter. This
                   parameter also affects the master node, where it should be set to a value
                   reflecting the higher ratio of CPU cores. For example, on a cluster that has 10
