@@ -91,6 +91,9 @@ namespace gpoptudfs
 
 			};
 
+			typedef CSyncHashtable<SConnectionDescriptor, ULONG_PTR>
+			ConnectionHT;
+
 			// path where socket is initialized
 			const CHAR *m_socket_path;
 
