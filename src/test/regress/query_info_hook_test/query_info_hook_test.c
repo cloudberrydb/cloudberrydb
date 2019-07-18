@@ -1,6 +1,7 @@
 #include "postgres.h"
 
 #include "fmgr.h"
+#include "cdb/cdbvars.h"
 #include "utils/metrics_utils.h"
 #include "nodes/execnodes.h"
 #include "nodes/print.h"
@@ -32,6 +33,11 @@ _PG_fini(void)
 static void
 test_hook(QueryMetricsStatus status, void* args)
 {
+	if (Gp_role != GP_ROLE_DISPATCH)
+		return;
+	if (GpIdentity.segindex > -1)
+		return;
+
 	switch (status)
 	{
 		case METRICS_PLAN_NODE_INITIALIZE:

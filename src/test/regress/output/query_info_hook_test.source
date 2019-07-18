@@ -47,13 +47,6 @@ ALTER TABLE queryInfoHookTable1 SET DISTRIBUTED BY (name);
 WARNING:  Query submit
 WARNING:  Query start
 WARNING:  Plan node initializing
-WARNING:  Plan node executing node_type: RESULT
-WARNING:  Plan node finished
-WARNING:  Query done
-WARNING:  Query submit
-WARNING:  Query start
-WARNING:  Plan node initializing
-WARNING:  Plan node executing node_type: MOTION
 WARNING:  Plan node finished
 WARNING:  Plan node finished
 WARNING:  Query done
@@ -64,10 +57,6 @@ WARNING:  Query submit
 WARNING:  Query start
 WARNING:  Plan node initializing
 WARNING:  Plan node executing node_type: MOTION
-WARNING:  Plan node executing node_type: HASHJOIN
-WARNING:  Plan node executing node_type: HASH
-WARNING:  Plan node finished
-WARNING:  Query done
 WARNING:  Plan node finished
 WARNING:  Plan node finished
 WARNING:  Plan node finished
