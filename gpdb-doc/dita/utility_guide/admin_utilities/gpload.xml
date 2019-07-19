@@ -552,7 +552,17 @@
                                                 default client encoding is used. For information
                                                 about supported character sets, see the
                                                   <cite>Greenplum Database Reference
-                                                Guide</cite>.</pd>
+                                                  Guide</cite>.<note>If you <i>change</i> the
+                                                  <codeph>ENCODING</codeph> value in an existing
+                                                  <codeph>gpload</codeph> control file, you must
+                                                  manually drop any external tables that were
+                                                  creating using the previous
+                                                  <codeph>ENCODING</codeph> configuration.
+                                                  <codeph>gpload</codeph> does not drop and recreate
+                                                  external tables to use the new
+                                                  <codeph>ENCODING</codeph> if
+                                                  <codeph>REUSE_TABLES</codeph> is set to
+                                                  <codeph>true</codeph>.</note></pd>
                                         </plentry>
                                         <plentry>
                                             <pt id="cferrorlimit">ERROR_LIMIT</pt>
