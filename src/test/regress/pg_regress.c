@@ -93,6 +93,7 @@ _stringlist *dblist = NULL;
 bool		debug = false;
 char	   *inputdir = ".";
 char	   *outputdir = ".";
+char	   *tablespacedir = ".";
 char	   *prehook = "";
 char	   *psqldir = PGBINDIR;
 char	   *launcher = NULL;
@@ -774,7 +775,7 @@ convert_sourcefiles_in(char *source_subdir, char *dest_dir, char *dest_subdir, c
 	if (!directory_exists(dest_subdir))
 		make_directory(dest_subdir);
 
-	snprintf(testtablespace, MAXPGPATH, "%s/testtablespace", outputdir);
+	snprintf(testtablespace, MAXPGPATH, "%s/testtablespace", tablespacedir);
 
 #ifdef WIN32
 
@@ -2750,6 +2751,7 @@ help(void)
 	printf(_("                            UAO row and column tests\n"));
 	printf(_("  --ignore-plans            ignore any explain plan diffs\n"));
 	printf(_("  --print-failure-diffs     Print the diff file to standard out after a failure\n"));
+	printf(_("  --tablespace-dir=DIR      place tablespace files in DIR/testtablespace (default \"./testtablespace\")\n"));
 	printf(_("\n"));
 	printf(_("Options for \"temp-install\" mode:\n"));
 	printf(_("  --extra-install=DIR       additional directory to install (e.g., contrib)\n"));
@@ -2805,6 +2807,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		{"ignore-plans", no_argument, NULL, 28},
 		{"prehook", required_argument, NULL, 29},
 		{"print-failure-diffs", no_argument, NULL, 30},
+		{"tablespace-dir", required_argument, NULL, 80},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -2940,6 +2943,9 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 			case 30:
 				print_failure_diffs_is_enabled = true;
 				break;
+			case 80:
+				tablespacedir = strdup(optarg);
+				break;
 			default:
 				/* getopt_long already emitted a complaint */
 				fprintf(stderr, _("\nTry \"%s -h\" for more information.\n"),
@@ -2979,6 +2985,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	inputdir = make_absolute_path(inputdir);
 	outputdir = make_absolute_path(outputdir);
 	dlpath = make_absolute_path(dlpath);
+	tablespacedir = make_absolute_path(tablespacedir);
 
 	/*
 	 * Initialization
