@@ -2,7 +2,7 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: gpdb/conan
+    repository: pivotaldata/conan
     tag: latest
 inputs:
   - name: orca_src
