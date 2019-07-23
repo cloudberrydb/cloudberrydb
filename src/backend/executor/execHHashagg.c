@@ -314,24 +314,7 @@ makeHashAggEntryForInput(AggState *aggstate, TupleTableSlot *inputslot, uint32 h
 
 	if (GET_TOTAL_USED_SIZE(hashtable) + MAXALIGN(MAXALIGN(tup_len) + aggs_len) >=
 		hashtable->max_mem)
-	{
-		if (IsResGroupEnabled())
-		{
-			elog(HHA_MSG_LVL,
-				 "HashAgg: no enough operator memory to store new tuple: "
-				 "operator memory is %.0f bytes, "
-				 "current used size is %.0f bytes, "
-				 "need %lu bytes to store the new tuple; "
-				 "the overuse is allowed in resource group mode",
-				 hashtable->max_mem,
-				 GET_TOTAL_USED_SIZE(hashtable),
-				 MAXALIGN(MAXALIGN(tup_len) + aggs_len));
-		}
-		else
-		{
-			return NULL;
-		}
-	}
+		return NULL;
 
 	/*
 	 * Form memtuple into group_buf.
@@ -377,24 +360,7 @@ makeHashAggEntryForGroup(AggState *aggstate, void *tuple_and_aggs,
 	MemoryContext oldcxt;
 
 	if (GET_TOTAL_USED_SIZE(hashtable) + input_size >= hashtable->max_mem)
-	{
-		if (IsResGroupEnabled())
-		{
-			elog(HHA_MSG_LVL,
-				 "HashAgg: no enough operator memory to store new group keys and aggregate values: "
-				 "operator memory is %.0f bytes, "
-				 "current used size is %.0f bytes, "
-				 "need %d bytes to store the new data; "
-				 "the overuse is allowed in resource group mode",
-				 hashtable->max_mem,
-				 GET_TOTAL_USED_SIZE(hashtable),
-				 input_size);
-		}
-		else
-		{
-			return NULL;
-		}
-	}
+		return NULL;
 
 	copy_tuple_and_aggs = mpool_alloc(hashtable->group_buf, input_size);
 	memcpy(copy_tuple_and_aggs, tuple_and_aggs, input_size);
