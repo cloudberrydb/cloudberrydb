@@ -347,6 +347,7 @@ bool		optimizer_enable_tablescan;
 bool		optimizer_enable_hashagg;
 bool		optimizer_enable_groupagg;
 bool		optimizer_expand_fulljoin;
+bool		optimizer_enable_mergejoin;
 
 /* Optimizer plan enumeration related GUCs */
 bool		optimizer_enumerate_plans;
@@ -2527,6 +2528,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_expand_fulljoin,
 		false,
+		NULL, NULL, NULL
+	},
+	{
+		{"optimizer_enable_mergejoin", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables the optimizer's support of merge joins."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_mergejoin,
+		true,
 		NULL, NULL, NULL
 	},
 	{

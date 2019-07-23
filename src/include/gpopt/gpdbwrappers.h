@@ -464,6 +464,9 @@ namespace gpdb {
 	// is the given operator hash-joinable
 	bool IsOpHashJoinable(Oid opno, Oid inputtype);
 
+	// is the given operator merge-joinable
+	bool IsOpMergeJoinable(Oid opno, Oid inputtype);
+
 	// is the given operator strict
 	bool IsOpStrict(Oid opno);
 
@@ -614,6 +617,9 @@ namespace gpdb {
 	
 	// get oids of op classes for the index keys
 	List *GetIndexOpFamilies(Oid index_oid);
+
+	// get oids of op classes for the merge join
+	List *GetMergeJoinOpFamilies(Oid opno);
 
 	// returns the result of evaluating 'expr' as an Expr. Caller keeps ownership of 'expr'
 	// and takes ownership of the result 

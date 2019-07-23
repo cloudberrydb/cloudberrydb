@@ -473,6 +473,7 @@ extern bool optimizer_enable_eageragg;
 extern bool optimizer_expand_fulljoin;
 extern bool optimizer_enable_hashagg;
 extern bool optimizer_enable_groupagg;
+extern bool optimizer_enable_mergejoin;
 
 /* Optimizer plan enumeration related GUCs */
 extern bool optimizer_enumerate_plans;
