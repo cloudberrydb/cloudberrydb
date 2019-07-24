@@ -219,13 +219,17 @@ IndexScanWithNestedCTEAndSetOp Blocking-Spool-Parallel-Union-All;
 CEquivClassTest:
 Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion;
 
-COuterJoinTest:
+COuterJoin1Test:
 ExpandNAryJoinGreedyWithLOJOnly NaryWithLojAndNonLojChilds LOJ_bb_mpph LOJ-Condition-False
 LeftJoin-With-Pred-On-Inner LeftJoin-With-Pred-On-Inner2
-LeftJoin-With-Col-Const-Pred LeftJoin-With-Coalesce LOJWithFalsePred
+LeftJoin-With-Col-Const-Pred LeftJoin-With-Coalesce LOJWithFalsePred;
+
+COuterJoin2Test:
 LOJ-IsNullPred Select-Proj-OuterJoin OuterJoin-With-OuterRefs Join-Disj-Subqs
 EffectOfLocalPredOnJoin EffectOfLocalPredOnJoin2 EffectOfLocalPredOnJoin3
-LeftJoin-UnsupportedFilter-Cardinality LeftOuter2InnerUnionAllAntiSemiJoin
+LeftJoin-UnsupportedFilter-Cardinality LeftOuter2InnerUnionAllAntiSemiJoin;
+
+COuterJoin3Test:
 LOJ_IDF_no_convert_outer_ref_predicate_with_NULL
 LOJ_IDF_no_convert_outer_ref_predicate_with_inner_ref LOJ_convert_to_inner_with_inner_predicate_IDF
 LOJ_dont_convert_to_inner_with_inner_predicate_IDF_const LOJ_dont_convert_to_inner_with_outer_predicate_INDF
