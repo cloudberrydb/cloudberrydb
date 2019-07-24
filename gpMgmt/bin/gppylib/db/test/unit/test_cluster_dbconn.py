@@ -72,5 +72,13 @@ class ConnectTestCase(unittest.TestCase):
 
         self.assertEqual(result, '"$user",public')
 
+    def test_no_transaction_after_connect(self):
+        with dbconn.connect(self.url) as conn:
+            db = pg.DB(conn)
+            # this would fail if we were in a transaction DROP DATABASE cannot
+            # run inside a transaction block
+            db.query("DROP DATABASE IF EXISTS some_nonexistent_database")
+
+
 if __name__ == '__main__':
     unittest.main()
