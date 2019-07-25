@@ -184,7 +184,7 @@
       <p>Using <codeph>UPDATE</codeph> in Greenplum Database has the following restrictions:</p>
       <ul>
         <li id="ix155050">While GPORCA supports updates to Greenplum distribution key columns, the
-          Postgres planner does not.</li>
+          Postgres Planner does not.</li>
         <li id="ix142137">If mirrors are enabled, you cannot use <codeph>STABLE</codeph> or
             <codeph>VOLATILE</codeph> functions in an <codeph>UPDATE</codeph> statement.</li>
         <li id="ix155339">Greenplum Database partitioning columns cannot be updated.</li>
@@ -365,7 +365,7 @@
             an update operation and a later transaction executes an update or delete and the query
             plan contains a motion operator.</li>
           <li>Concurrent update transactions on the same distribution key of a heap table that are
-            executed by the Greenplum Database Postgres query optimizer.</li>
+            executed by the Postgres Planner.</li>
           <li>Concurrent update transactions on the same row of a hash table that are executed by
             the GPORCA optimizer.</li>
         </ul></p>
