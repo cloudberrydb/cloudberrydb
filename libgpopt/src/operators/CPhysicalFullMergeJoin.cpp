@@ -14,7 +14,6 @@
 #include "gpopt/base/CDistributionSpecNonSingleton.h"
 #include "gpopt/base/CDistributionSpecHashed.h"
 #include "gpopt/base/CCastUtils.h"
-#include "gpopt/base/CColRefSetIter.h"
 
 #include "gpopt/base/CUtils.h"
 
@@ -148,29 +147,19 @@ CPhysicalFullMergeJoin::PosRequired
 		clauses = m_inner_merge_clauses;
 	}
 
-	CColRefSet *ordering_cols = GPOS_NEW(mp) CColRefSet(mp);
 	for (ULONG ul = 0; ul < clauses->Size(); ++ul)
 	{
 		CExpression *expr = (*clauses)[ul];
 
 		GPOS_ASSERT(CUtils::FScalarIdent(expr));
-
 		const CColRef *colref = CCastUtils::PcrExtractFromScIdOrCastScId(expr);
-		ordering_cols->Include(colref);
-	}
 
-	CColRefSetIter iter(*ordering_cols);
-	while (iter.Advance())
-	{
-		CColRef *colref = iter.Pcr();
 		// Make sure that the corresponding properties (mergeStrategies, mergeNullsFirst)
 		// in CTranslatorDXLToPlStmt::TranslateDXLMergeJoin() match.
 		gpmd::IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(IMDType::EcmptL);
 		mdid->AddRef();
 		os->Append(mdid, colref, COrderSpec::EntLast);
 	}
-
-	ordering_cols->Release();
 
 	return os;
 }
