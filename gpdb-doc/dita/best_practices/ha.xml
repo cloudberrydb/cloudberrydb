@@ -435,7 +435,7 @@
             following:<codeblock>gpmovemirrors -i <varname>mirror_config_file</varname></codeblock></li>
         </ol>
         <p>The <codeph>gpmovemirrors</codeph> utility validates the input file, calls
-            <codeph>gp_recoverseg</codeph> to relocate each specified mirror, and removes the
+            <codeph>gprecoverseg</codeph> to relocate each specified mirror, and removes the
           original mirror. It creates a backout configuration file which can be used as input to
             <codeph>gpmovemirrors</codeph> to undo the changes that were made. The backout file has
           the same name as the input file, with the suffix
