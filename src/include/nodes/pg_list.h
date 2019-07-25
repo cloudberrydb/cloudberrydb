@@ -130,11 +130,6 @@ list_length(const List *l)
 #define lfourth_oid(l)			lfirst_oid(lnext(lnext(lnext(list_head(l)))))
 #define lfourth_node(type,l)	castNode(type, lfourth(l))
 
-#define lfifth(l)				lfirst(lnext(lnext(lnext(lnext(list_head(l))))))
-#define lfifth_int(l)			lfirst_int(lnext(lnext(lnext(lnext(list_head(l))))))
-#define lfifth_oid(l)			lfirst_oid(lnext(lnext(lnext(lnext(list_head(l))))))
-#define lcfifth(l)				lnext(lnext(lnext(lnext(list_head(l)))))
-
 #define llast(l)				lfirst(list_tail(l))
 #define llast_int(l)			lfirst_int(list_tail(l))
 #define llast_oid(l)			lfirst_oid(list_tail(l))
