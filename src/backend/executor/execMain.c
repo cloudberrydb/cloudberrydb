@@ -103,7 +103,6 @@
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbexplain.h"             /* cdbexplain_sendExecStats() */
 #include "cdb/cdbplan.h"
-#include "cdb/cdbsrlz.h"
 #include "cdb/cdbsubplan.h"
 #include "cdb/cdbvars.h"
 #include "cdb/ml_ipc.h"

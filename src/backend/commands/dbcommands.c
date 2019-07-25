@@ -73,7 +73,6 @@
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbsreh.h"
-#include "cdb/cdbsrlz.h"
 #include "cdb/cdbvars.h"
 
 #include "utils/pg_rusage.h"

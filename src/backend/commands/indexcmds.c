@@ -67,7 +67,6 @@
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdboidsync.h"
 #include "cdb/cdbpartition.h"
-#include "cdb/cdbsrlz.h"
 #include "cdb/cdbvars.h"
 #include "libpq-fe.h"
 #include "utils/faultinjector.h"
