@@ -16835,7 +16835,7 @@ postgres=# SELECT * FROM pg_xlogfile_name_offset(pg_stop_backup());
         linkend="protocol-replication">. Corresponds to the replication protocol
         command <literal>CREATE_REPLICATION_SLOT ... PHYSICAL</literal>. The optional
         second parameter,  when <literal>true</>, specifies that the <acronym>LSN</>
-        for this replication slot be reserved immediately; the <acronym<LSN</>
+        for this replication slot be reserved immediately; the <acronym>LSN</>
         is otherwise reserved on first connection from a streaming replication
         client.
        </entry>

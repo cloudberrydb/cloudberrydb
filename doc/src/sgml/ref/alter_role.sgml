@@ -182,8 +182,8 @@ ALTER ROLE <replaceable class="PARAMETER">name</replaceable> RESOURCE GROUP {<re
       <listitem>
        <para>
         The <literal>RESOURCE QUEUE</literal> that this role is in, or 
-		<literal>NONE</literal> to remove the role from any resource queuing 
-		restrictions. See <xref linkend="sql-createresourcequeue" 
+        <literal>NONE</literal> to remove the role from any resource queuing 
+        restrictions. See <xref linkend="sql-createresourcequeue" 
         endterm="sql-createresourcequeue-title"> for more information.
        </para>
       </listitem>

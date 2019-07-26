@@ -1268,5 +1268,5 @@ ALTER TABLE distributors DROP CONSTRAINT distributors_pkey,
 </refentry>
 
 <!-- Keep this comment at the end of the file
-	 GPDB_92_MERGE_FIXME: Why not follow pg upstram to format for 'alter table' document?
+     GPDB_92_MERGE_FIXME: Why not follow pg upstram to format for 'alter table' document?
 -->

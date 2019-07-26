@@ -180,6 +180,11 @@ PostgreSQL documentation
        <para>
         Dump <literal>resource groups</literal> and <literal>role</literal>
         to <literal>resource groups</literal> associations.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>--lock-wait-timeout=<replaceable class="parameter">timeout</replaceable></option></term>
       <listitem>
        <para>

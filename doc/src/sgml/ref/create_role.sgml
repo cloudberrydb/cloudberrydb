@@ -339,7 +339,7 @@ CREATE ROLE <replaceable class="PARAMETER">name</replaceable> [ [ WITH ] <replac
         You can assign the <literal>default_group</literal> resource group to any role.
        </para>
        <para>
-	See <xref linkend="sql-createresourcegroup" 
+        See <xref linkend="sql-createresourcegroup" 
         endterm="sql-createresourcegroup-title"> for more information.
        </para>
       </listitem>
@@ -350,7 +350,7 @@ CREATE ROLE <replaceable class="PARAMETER">name</replaceable> [ [ WITH ] <replac
       <listitem>
        <para>
         The <literal>RESOURCE QUEUE</literal> that this role is in.
-		See <xref linkend="sql-createresourcequeue" 
+        See <xref linkend="sql-createresourcequeue" 
         endterm="sql-createresourcequeue-title"> for more information.
        </para>
       </listitem>
