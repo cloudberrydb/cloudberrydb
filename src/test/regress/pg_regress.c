@@ -2475,7 +2475,7 @@ run_single_test(const char *test, test_function tfunc)
 static void
 find_helper_programs(const char *argv0)
 {
-	if (find_other_exec(argv0, "gpdiff.pl", NULL, gpdiffprog) != 0)
+	if (find_other_exec(argv0, "gpdiff.pl", "gpdiff.pl " GP_VERSION"\n", gpdiffprog) != 0)
 	{
 		char		full_path[MAXPGPATH];
 
@@ -2488,7 +2488,8 @@ find_helper_programs(const char *argv0)
 				progname, full_path);
 		exit(1);
 	}
-	if (find_other_exec(argv0, "gpstringsubs.pl", NULL, gpstringsubsprog) != 0)
+
+	if (find_other_exec(argv0, "gpstringsubs.pl", "gpstringsubs.pl " GP_VERSION"\n", gpstringsubsprog) != 0)
 	{
 		char		full_path[MAXPGPATH];
 
