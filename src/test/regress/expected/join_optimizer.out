@@ -2272,7 +2272,7 @@ select * from
    ->  Merge Full Join
          Merge Cond: ((j1_tbl.i = j2_tbl.i) AND (j1_tbl.i = j2_tbl.k))
          ->  Sort
-               Sort Key: j1_tbl.i
+               Sort Key: j1_tbl.i, j1_tbl.i
                ->  Seq Scan on j1_tbl
          ->  Sort
                Sort Key: j2_tbl.i, j2_tbl.k
