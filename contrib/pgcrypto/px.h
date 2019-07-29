@@ -199,7 +199,6 @@ const char *px_strerror(int err);
 const char *px_resolve_alias(const PX_Alias *aliases, const char *name);
 
 void		px_set_debug_handler(void (*handler) (const char *));
-void		px_memset(void *ptr, int c, size_t len);
 
 void		px_memset(void *ptr, int c, size_t len);
 
