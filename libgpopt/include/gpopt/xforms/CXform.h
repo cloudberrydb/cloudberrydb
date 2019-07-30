@@ -218,6 +218,10 @@ namespace gpopt
 				ExfEagerAgg,
 				ExfExpandNAryJoinDPv2,
 				ExfImplementFullOuterMergeJoin,
+				ExfLeftOuterJoin2DynamicBitmapIndexGetApply,
+				ExfLeftOuterJoin2DynamicIndexGetApply,
+				ExfLeftOuterJoinWithInnerSelect2DynamicBitmapIndexGetApply,
+				ExfLeftOuterJoinWithInnerSelect2DynamicIndexGetApply,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};
