@@ -71,12 +71,11 @@ static bool
 doNotifyCommittedInDoubt(char *gid)
 {
 	bool		succeeded;
-	bool		badGangs;
 
 	/* UNDONE: Pass real gxid instead of InvalidDistributedTransactionId. */
-	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED, /* flags */ 0,
-											 gid, InvalidDistributedTransactionId,
-											 &badGangs, /* raiseError */ false,
+	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED,
+											 gid,
+											 NULL, /* raiseError */ false,
 											 cdbcomponent_getCdbComponentsList(), NULL, 0);
 	if (!succeeded)
 		elog(FATAL, "Crash recovery broadcast of the distributed transaction "
@@ -92,12 +91,11 @@ static void
 doAbortInDoubt(char *gid)
 {
 	bool		succeeded;
-	bool		badGangs;
 
 	/* UNDONE: Pass real gxid instead of InvalidDistributedTransactionId. */
-	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED, /* flags */ 0,
-											 gid, InvalidDistributedTransactionId,
-											 &badGangs, /* raiseError */ false,
+	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED,
+											 gid,
+											 NULL, /* raiseError */ false,
 											 cdbcomponent_getCdbComponentsList(), NULL, 0);
 	if (!succeeded)
 		elog(FATAL, "Crash recovery retry of the distributed transaction "

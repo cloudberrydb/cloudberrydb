@@ -11,6 +11,9 @@
 -- start_matchsubs
 -- m/WARNING:.*Any temporary tables for this session have been dropped because the gang was disconnected/
 -- s/session id \=\s*\d+/session id \= DUMMY/gm
+--
+-- m/^DETAIL:.*gid=.*/
+-- s/gid=\d+-\d+/gid DUMMY/
 -- end_matchsubs
 CREATE TABLE foo(a int, b int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
@@ -24,7 +27,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000582.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014049, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 142)
 -- 2
@@ -36,7 +40,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000588.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014088, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 143)
 -- 3
@@ -48,7 +53,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000594.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014112, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 144)
 -- 4
@@ -60,7 +66,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000600.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014133, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 145)
 -- 5
@@ -72,7 +79,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000606.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014160, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 146)
 -- 6
@@ -84,7 +92,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000612.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014195, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 147)
 -- 7
@@ -96,7 +105,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000618.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014230, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 148)
 -- 8
@@ -108,7 +118,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000624.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014313, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 149)
 -- 9
@@ -120,7 +131,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000630.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014356, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 150)
 -- 10
@@ -132,7 +144,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000636.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014367, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 151)
 -- 11
@@ -144,7 +157,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000642.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014373, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 152)
 -- 12
@@ -156,7 +170,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000648.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014383, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 153)
 -- 13
@@ -168,7 +183,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000654.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014389, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 154)
 -- 14
@@ -180,7 +196,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000660.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014398, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 155)
 -- 15
@@ -192,7 +209,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000666.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014406, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 156)
 -- 16
@@ -204,7 +222,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000672.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014421, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 157)
 -- 17
@@ -216,7 +235,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000678.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014434, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 158)
 -- 18
@@ -228,7 +248,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000684.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014446, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 159)
 -- 19
@@ -240,7 +261,8 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000690.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014494, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 160)
 -- 20
@@ -252,6 +274,7 @@ SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=commit_prepared;
 SET debug_dtm_action=fail_begin_command;
 DROP TABLE foo_stg;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1518745234-0000000696.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561095062-0000014522, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 WARNING:  Any temporary tables for this session have been dropped because the gang was disconnected (session id = 161)

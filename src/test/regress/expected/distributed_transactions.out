@@ -13,6 +13,9 @@
 -- m/NOTICE:  exchanged partition .*/
 -- s/pg_temp_\d+/pg_temp_DUMMY/gm
 --
+-- m/^DETAIL:.*gid=.*/
+-- s/gid=\d+-\d+/gid DUMMY/
+--
 -- end_matchsubs
 --
 --
@@ -99,7 +102,8 @@ SET debug_dtm_action = "fail_begin_command";
 SET debug_dtm_action_target = "protocol";
 SET debug_dtm_action_protocol = "commit_prepared";
 COMMIT;
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid = 1477546849-0000000071.  Retrying ... try 1
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561094833-0000002743, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 SELECT * FROM distxact1_3;
  a  
@@ -137,7 +141,8 @@ SET debug_dtm_action = "fail_begin_command";
 SET debug_dtm_action_target = "protocol";
 SET debug_dtm_action_protocol = "abort_prepared";
 COMMIT;
-WARNING:  the distributed transaction 'Abort Prepared' broadcast failed to one or more segments for gid = 1539036319-0000000288.  Retrying ... try 0
+WARNING:  the distributed transaction broadcast failed to one or more segments
+DETAIL:  gid=1561094833-0000003185, state=Notifying Abort Prepared
 ERROR:  Raise an error as directed by Debug_abort_after_distributed_prepared
 SELECT * FROM distxact1_4;
  a 
@@ -362,7 +367,10 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 DROP TABLE
 -- Test two phase commit for extended query
 \! ./twophase_pqexecparams dbname=regression
-WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments for gid DUMMY
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+WARNING:  the distributed transaction 'Commit Prepared' broadcast failed to one or more segments. Retrying ... try 1
+DETAIL:  gid=1561094833-0000003786, state=Retry Commit Prepared
 NOTICE:  Releasing segworker group to retry broadcast.
 result: INSERT 0 2
 --

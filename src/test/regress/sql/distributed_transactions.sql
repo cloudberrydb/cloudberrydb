@@ -13,6 +13,9 @@
 -- m/NOTICE:  exchanged partition .*/
 -- s/pg_temp_\d+/pg_temp_DUMMY/gm
 --
+-- m/^DETAIL:.*gid=.*/
+-- s/gid=\d+-\d+/gid DUMMY/
+--
 -- end_matchsubs
 --
 --

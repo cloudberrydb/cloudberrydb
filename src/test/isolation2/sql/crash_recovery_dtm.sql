@@ -4,8 +4,11 @@
 --
 -- # create a match/subs expression
 --
+-- s/\s+\(.*\.[ch]:\d+\)/ (SOMEFILE:SOMEFUNC)/
 -- m/(PANIC):.*unable to complete*/
--- s/gid \=\s*\d+-\d+/gid \= DUMMY/gm
+--
+-- m/^DETAIL:.*gid=.*/
+-- s/gid=\d+-\d+/gid DUMMY/
 --
 -- m/^ERROR:  Error on receive from seg0.*: server closed the connection unexpectedly/
 -- s/^ERROR:  Error on receive from seg0.*: server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/

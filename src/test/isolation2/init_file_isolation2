@@ -47,4 +47,5 @@ s/^ERROR:  Error on receive from  pid=\d+: server closed the connection unexpect
 
 m/available \d+ MB/
 s/available \d+ MB//
+
 -- end_matchsubs

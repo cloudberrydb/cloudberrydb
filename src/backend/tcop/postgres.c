@@ -1430,21 +1430,18 @@ CheckDebugDtmActionProtocol(DtxProtocolCommand dtxProtocolCommand,
 
 static void
 exec_mpp_dtx_protocol_command(DtxProtocolCommand dtxProtocolCommand,
-							  int flags, const char *loggingStr,
-							  const char *gid, DistributedTransactionId gxid,
+							  const char *loggingStr,
+							  const char *gid,
 							  DtxContextInfo *contextInfo)
 {
 	CommandDest dest = whereToSendOutput;
 	const char *commandTag = loggingStr;
 
 	if (log_statement == LOGSTMT_ALL)
-	{
-		elog(LOG,"DTM protocol command '%s' for gid = %s",
-			 loggingStr, gid);
-	}
+		elog(LOG,"DTM protocol command '%s' for gid = %s", loggingStr, gid);
 
-	elog((Debug_print_full_dtm ? LOG : DEBUG5),"exec_mpp_dtx_protocol_command received the dtxProtocolCommand = %d (%s) gid = %s (gxid = %u, flags = 0x%x)",
-		 dtxProtocolCommand, loggingStr, gid, gxid, flags);
+	elog((Debug_print_full_dtm ? LOG : DEBUG5),"exec_mpp_dtx_protocol_command received the dtxProtocolCommand = %d (%s) gid = %s",
+		 dtxProtocolCommand, loggingStr, gid);
 
 	set_ps_display(commandTag, false);
 
@@ -1478,7 +1475,7 @@ exec_mpp_dtx_protocol_command(DtxProtocolCommand dtxProtocolCommand,
 
 	BeginCommand(commandTag, dest);
 
-	performDtxProtocolCommand(dtxProtocolCommand, flags, loggingStr, gid, gxid, contextInfo);
+	performDtxProtocolCommand(dtxProtocolCommand, gid, contextInfo);
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),"exec_mpp_dtx_protocol_command calling EndCommand for dtxProtocolCommand = %d (%s) gid = %s",
 		 dtxProtocolCommand, loggingStr, gid);
@@ -5254,17 +5251,10 @@ PostgresMain(int argc, char *argv[],
             case 'T': /* MPP dispatched dtx protocol command from QD */
 				{
 					DtxProtocolCommand dtxProtocolCommand;
-
-					int flags;
-
 					int loggingStrLen;
 					const char *loggingStr;
-
 					int gidLen;
 					const char *gid;
-
-					DistributedTransactionId gxid;
-
 					int serializedDtxContextInfolen;
 					const char *serializedDtxContextInfo;
 
@@ -5278,9 +5268,6 @@ PostgresMain(int argc, char *argv[],
 					/* get the transaction protocol command # */
 					dtxProtocolCommand = (DtxProtocolCommand) pq_getmsgint(&input_message, 4);
 
-					/* get the flags */
-					flags = pq_getmsgint(&input_message, 4);
-
 					/* get the logging string length */
 					loggingStrLen = pq_getmsgint(&input_message, 4);
 
@@ -5292,9 +5279,6 @@ PostgresMain(int argc, char *argv[],
 
 					/* get the logging string */
 					gid = pq_getmsgbytes(&input_message,gidLen);
-
-					/* get the distributed transaction id */
-					gxid = (DistributedTransactionId) pq_getmsgint(&input_message, 4);
 
 					serializedDtxContextInfolen = pq_getmsgint(&input_message, 4);
 
@@ -5308,7 +5292,7 @@ PostgresMain(int argc, char *argv[],
 
 					pq_getmsgend(&input_message);
 
-					exec_mpp_dtx_protocol_command(dtxProtocolCommand, flags, loggingStr, gid, gxid, &TempDtxContextInfo);
+					exec_mpp_dtx_protocol_command(dtxProtocolCommand, loggingStr, gid, &TempDtxContextInfo);
 
 					send_ready_for_query = true;
             	}

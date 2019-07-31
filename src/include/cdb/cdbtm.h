@@ -345,15 +345,14 @@ extern void setupRegularDtxContext (void);
 extern void setupQEDtxContext (DtxContextInfo *dtxContextInfo);
 extern void finishDistributedTransactionContext (char *debugCaller, bool aborted);
 extern void performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
-					int flags,
-					const char *loggingStr, const char *gid, 
-					DistributedTransactionId gxid, DtxContextInfo *contextInfo);
+									  const char *gid,
+									  DtxContextInfo *contextInfo);
 extern void UtilityModeFindOrCreateDtmRedoFile(void);
 extern void UtilityModeCloseDtmRedoFile(void);
 
+extern bool currentDtxDispatchProtocolCommand(DtxProtocolCommand dtxProtocolCommand, bool raiseError);
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
-extern bool doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
-							 char *gid, DistributedTransactionId gxid,
+extern bool doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, char *gid,
 							 bool *badGangs, bool raiseError, List *twophaseSegments,
 							 char *serializedDtxContextInfo, int serializedDtxContextInfoLen);
 
