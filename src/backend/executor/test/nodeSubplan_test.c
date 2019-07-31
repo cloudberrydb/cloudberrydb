@@ -90,7 +90,7 @@ test__ExecSetParamPlan__Check_Dispatch_Results(void **state)
 	Gp_role = GP_ROLE_DISPATCH;
 	((SubPlan*)(plan->xprstate.expr))->initPlanParallel = true;
 
-	will_be_called(isCurrentDtxTwoPhase);
+	will_be_called(isCurrentDtxTwoPhaseActivated);
 
 	expect_any(CdbDispatchPlan,queryDesc);
 	expect_any(CdbDispatchPlan,planRequiresTxn);

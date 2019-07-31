@@ -56,7 +56,6 @@ test__CreateDistributedSnapshot(void **state)
 
 	/* This is going to act as our gxact */
 	allTmGxact[procArray->pgprocnos[0]].gxid = 20;
-	allTmGxact[procArray->pgprocnos[0]].state = DTX_STATE_ACTIVE_DISTRIBUTED;
 	allTmGxact[procArray->pgprocnos[0]].xminDistributedSnapshot = InvalidDistributedTransactionId;
 
 	procArray->numProcs = 1;
@@ -85,11 +84,9 @@ test__CreateDistributedSnapshot(void **state)
 	allTmGxact[procArray->pgprocnos[0]].xminDistributedSnapshot = InvalidDistributedTransactionId;
 
 	allTmGxact[procArray->pgprocnos[1]].gxid = 10;
-	allTmGxact[procArray->pgprocnos[1]].state = DTX_STATE_ACTIVE_DISTRIBUTED;
 	allTmGxact[procArray->pgprocnos[1]].xminDistributedSnapshot = 5;
 
 	allTmGxact[procArray->pgprocnos[2]].gxid = 30;
-	allTmGxact[procArray->pgprocnos[2]].state = DTX_STATE_ACTIVE_DISTRIBUTED;
 	allTmGxact[procArray->pgprocnos[2]].xminDistributedSnapshot = 20;
 
 	procArray->numProcs = 3;
@@ -113,11 +110,9 @@ test__CreateDistributedSnapshot(void **state)
 	allTmGxact[procArray->pgprocnos[0]].xminDistributedSnapshot = InvalidDistributedTransactionId;
 
 	allTmGxact[procArray->pgprocnos[3]].gxid = 15;
-	allTmGxact[procArray->pgprocnos[3]].state = DTX_STATE_ACTIVE_DISTRIBUTED;
 	allTmGxact[procArray->pgprocnos[3]].xminDistributedSnapshot = 12;
 
 	allTmGxact[procArray->pgprocnos[4]].gxid = 7;
-	allTmGxact[procArray->pgprocnos[4]].state = DTX_STATE_ACTIVE_DISTRIBUTED;
 	allTmGxact[procArray->pgprocnos[4]].xminDistributedSnapshot = 7;
 
 	procArray->numProcs = 5;

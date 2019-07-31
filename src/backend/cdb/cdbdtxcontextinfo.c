@@ -102,7 +102,7 @@ DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
 			memcpy(gid, "<empty>", 8);
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "DtxContextInfo_CreateOnMaster Gp_role is DISPATCH and have currentGxact = %s, gxid = %u --> have distributed snapshot",
+			 "DtxContextInfo_CreateOnMaster Gp_role is DISPATCH and have gid = %s, gxid = %u --> have distributed snapshot",
 			 gid,
 			 getDistributedTransactionId());
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),

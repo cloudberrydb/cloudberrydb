@@ -82,6 +82,7 @@ bool		log_lock_waits = false;
 PGPROC	   *MyProc = NULL;
 PGXACT	   *MyPgXact = NULL;
 TMGXACT	   *MyTmGxact = NULL;
+TMGXACTLOCAL	*MyTmGxactLocal = NULL;
 
 /* Special for MPP reader gangs */
 PGPROC	   *lockHolderProcPtr;
@@ -378,6 +379,9 @@ InitProcess(void)
 	}
 	MyPgXact = &ProcGlobal->allPgXact[MyProc->pgprocno];
 	MyTmGxact = &ProcGlobal->allTmGxact[MyProc->pgprocno];
+	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAlloc(TopMemoryContext, sizeof(TMGXACTLOCAL));
+	if (MyTmGxactLocal == NULL)
+		elog(FATAL, "allocating TMGXACTLOCAL failed");
 
 	if (gp_debug_pgproc)
 	{
@@ -501,7 +505,7 @@ InitProcess(void)
 	MyProc->queryCommandId = -1;
 
 	/* Init gxact */
-	initGxact(MyTmGxact, true);
+	resetGxact();
 
 	/*
 	 * Arrange to clean up at backend exit.
@@ -608,6 +612,9 @@ InitAuxiliaryProcess(void)
 	lockHolderProcPtr = auxproc;
 	MyPgXact = &ProcGlobal->allPgXact[auxproc->pgprocno];
 	MyTmGxact = &ProcGlobal->allTmGxact[auxproc->pgprocno];
+	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAlloc(TopMemoryContext, sizeof(TMGXACTLOCAL));
+	if (MyTmGxactLocal == NULL)
+		elog(FATAL, "allocating TMGXACTLOCAL failed");
 
 	SpinLockRelease(ProcStructLock);
 

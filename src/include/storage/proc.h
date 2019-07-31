@@ -101,7 +101,7 @@ struct PGPROC
 	/*
 	 * Distributed transaction information. This is only maintained on QE's
 	 * and accessed by the backend itself, so this doesn't need to be
-	 * protected by any lock. On QD currentGXact provides this info, hence
+	 * protected by any lock. On QD MyTmGxact provides this info, hence
 	 * redundant info is not maintained here for QD. In fact, it could be just
 	 * a global variable in backend-private memory, but it seems useful to
 	 * have this information available for debugging purposes.
@@ -207,6 +207,7 @@ struct PGPROC
 extern PGDLLIMPORT PGPROC *MyProc;
 extern PGDLLIMPORT struct PGXACT *MyPgXact;
 extern PGDLLIMPORT struct TMGXACT *MyTmGxact;
+extern PGDLLIMPORT struct TMGXACTLOCAL *MyTmGxactLocal;
 
 /* Special for MPP reader gangs */
 extern PGDLLIMPORT PGPROC *lockHolderProcPtr;

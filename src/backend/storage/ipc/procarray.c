@@ -405,7 +405,7 @@ ProcArrayEndGxact(void)
 	if (InvalidDistributedTransactionId != gxid &&
 		TransactionIdPrecedes(ShmemVariableCache->latestCompletedDxid, gxid))
 		ShmemVariableCache->latestCompletedDxid = gxid;
-	initGxact(MyTmGxact, true);
+	resetGxact();
 }
 
 /*
@@ -490,8 +490,8 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool lockHeld)
 	}
 
 	/* Clear distributed transaction status for one-phase commit transaction */
-	if (Gp_role == GP_ROLE_EXECUTE && MyTmGxact->isOnePhaseCommit)
-		initGxact(MyTmGxact, false);
+	if (Gp_role == GP_ROLE_EXECUTE && MyTmGxactLocal->isOnePhaseCommit)
+		resetGxact();
 }
 
 
@@ -1746,9 +1746,8 @@ getAllDistributedXactStatus(TMGALLXACTSTATUS **allDistributedXactStatus)
 			TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
 			all->statusArray[i].gxid = gxact->gxid;
-			Assert(strlen(gxact->gid) < TMGIDSIZE);
-			memcpy(all->statusArray[i].gid, gxact->gid, TMGIDSIZE);
-			all->statusArray[i].state = gxact->state;
+			dtxFormGID(all->statusArray[i].gid, gxact->distribTimeStamp, gxact->gxid);
+			all->statusArray[i].state = 0; /* deprecate this field */
 			all->statusArray[i].sessionId = gxact->sessionId;
 			all->statusArray[i].xminDistributedSnapshot = gxact->xminDistributedSnapshot;
 		}
@@ -1802,9 +1801,8 @@ getDtxCheckPointInfo(char **result, int *result_size)
 
 	/*
 	 * If a transaction inserted 'commit' record logically before the checkpoint
-	 * REDO pointer, and it hasn't inserted the 'forget' record. we will see its
-	 * 'TMGXACT->state' is between 'DTX_STATE_INSERTED_COMMITTED' and
-	 * 'DTX_STATE_INSERTING_FORGET_COMMITTED'. such transactions should be included
+	 * REDO pointer, and it hasn't inserted the 'forget' record. we will see 
+	 * needIncludedInCkpt is true. such transactions should be included
 	 * in the checkpoint record so that the second phase of 2PC can be executed
 	 * during crash recovery.
 	 *
@@ -1819,35 +1817,17 @@ getDtxCheckPointInfo(char **result, int *result_size)
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
 		TMGXACT_LOG *gxact_log;
-
-		/*
-		 * Note no 'volatile' is used to describe 'gxact'.  We will check
-		 * gxact->state first before memcpy gxact->gid. And the allowed state
-		 * are:
-		 * DTX_STATE_INSERTED_COMMITTED,
-		 * DTX_STATE_FORCED_COMMITTED,
-		 * DTX_STATE_NOTIFYING_COMMIT_PREPARED,
-		 * DTX_STATE_INSERTING_FORGET_COMMITTED,
-		 * DTX_STATE_RETRY_COMMIT_PREPARED.
-		 *
-		 * So this will not contend with setCurrentGxact, as it sets
-		 * gxact->state to DTX_STATE_ACTIVE_NOT_DISTRIBUTED after settling down
-		 * gxact->gid.
-		 */
 		TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
-		if (!includeInCheckpointIsNeeded(gxact))
+		if (!gxact->needIncludedInCkpt)
 			continue;
 
 		gxact_log = &gxact_log_array[actual];
-		if (strlen(gxact->gid) >= TMGIDSIZE)
-			elog(PANIC, "Distribute transaction identifier too long (%d)",
-				 (int) strlen(gxact->gid));
-		memcpy(gxact_log->gid, gxact->gid, TMGIDSIZE);
+		dtxFormGID(gxact_log->gid, gxact->distribTimeStamp, gxact->gxid);
 		gxact_log->gxid = gxact->gxid;
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "Add DTM checkpoint entry gid = %s.", gxact->gid);
+			 "Add DTM checkpoint entry gid = %s.", gxact_log->gid);
 
 		actual++;
 	}
@@ -1930,8 +1910,6 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 		gxid = gxact_candidate->gxid;
 		if (gxid == InvalidDistributedTransactionId)
 			continue;
-
-		Assert(gxact_candidate->state != DTX_STATE_NONE);
 
 		/*
 		 * Include the current distributed transaction in the min/max
