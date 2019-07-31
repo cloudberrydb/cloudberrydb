@@ -36,12 +36,6 @@ typedef struct Gang
 	int	size;
 
 	/*
-	 * Keep track of dispatcher use for writer gang. (reader gangs already track
-	 * this properly, since they get allocated from a list of available gangs.)
-	 */
-	bool dispatcherActive;
-
-	/*
 	 * Array of QEs/segDBs that make up this gang. Sorted by segment index.
 	 */
 	struct SegmentDatabaseDescriptor **db_descriptors;	
