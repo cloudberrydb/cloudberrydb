@@ -297,8 +297,8 @@ SELECT count(*) from testjsonb  WHERE j->'array' @> '5'::jsonb;
 
 DROP INDEX jidx_array;
 --gin path opclass
+DROP INDEX jidx;
 CREATE INDEX jidx ON testjsonb USING gin (j jsonb_path_ops);
-ERROR:  relation "jidx" already exists
 EXPLAIN SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
                                       QUERY PLAN                                       
 ---------------------------------------------------------------------------------------
