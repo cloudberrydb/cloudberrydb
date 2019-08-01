@@ -56,7 +56,7 @@ namespace gpopt
 			virtual
 			void AddProps
 				(
-				DrvdPropArray* // pdp
+				CDrvdProp* // pdp
 				)
 			{
 				// derived relational context is currently empty

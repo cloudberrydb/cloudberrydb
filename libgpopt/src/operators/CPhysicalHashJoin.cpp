@@ -184,7 +184,7 @@ CPhysicalHashJoin::PosRequired
 	child_index
 #endif // GPOS_DEBUG
 	,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -213,7 +213,7 @@ CPhysicalHashJoin::PrsRequired
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -401,7 +401,7 @@ CPhysicalHashJoin::PdsRequiredSingleton
 	CExpressionHandle  &, // exprhdl
 	CDistributionSpec *, // pdsInput
 	ULONG  child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 	const
 {
@@ -457,7 +457,7 @@ CPhysicalHashJoin::PdsRequiredReplicate
 	CExpressionHandle  &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG  child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG ulOptReq
 	)
 	const
@@ -523,7 +523,7 @@ CPhysicalHashJoin::PdshashedPassThru
 	CExpressionHandle  &exprhdl,
 	CDistributionSpecHashed *pdshashedInput,
 	ULONG  , // child_index
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG
 #ifdef GPOS_DEBUG
 	 ulOptReq
@@ -601,7 +601,7 @@ CPhysicalHashJoin::PdsRequiredRedistribute
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *, // pdsInput
 	ULONG  child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG ulOptReq
 	)
 	const
@@ -679,7 +679,7 @@ CPhysicalHashJoin::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG ulOptReq // identifies which optimization request should be created
 	)
 	const

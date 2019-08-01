@@ -118,7 +118,7 @@ namespace gpopt
 				COptimizationContext *pocOrigin, // optimization context of parent operator
 				CExpressionHandle &exprhdlPlan, // handle to compute required plan properties
 				CExpressionHandle &exprhdlRel, // handle to compute required relational properties
-				CDrvdProp2dArray *pdrgpdpChildren, // derived plan properties of optimized children
+				CDrvdPropArray *pdrgpdpChildren, // derived plan properties of optimized children
 				IStatisticsArray *pdrgpstatCurrentCtxt,
 				ULONG child_index,
 				ULONG ulOptReq
@@ -130,7 +130,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CExpressionHandle &exprhdlRel,
 				COptimizationContext *pocOrigin,
-				CDrvdProp2dArray *pdrgpdp,
+				CDrvdPropArray *pdrgpdp,
 				IStatisticsArray *pdrgpstatCurrentCtxt,
 				ULONG child_index,
 				ULONG ulOptReq

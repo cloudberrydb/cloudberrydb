@@ -97,7 +97,7 @@ CPhysicalMotionHashDistribute::PcrsRequired
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -171,7 +171,7 @@ CPhysicalMotionHashDistribute::PosRequired
 	child_index
 #endif // GPOS_DEBUG
 	,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -249,7 +249,7 @@ CPhysicalMotionHashDistribute::PdsRequired
 		CExpressionHandle &exprhdl,
 		CDistributionSpec *pdsRequired,
 		ULONG child_index,
-		CDrvdProp2dArray *pdrgpdpCtxt,
+		CDrvdPropArray *pdrgpdpCtxt,
 		ULONG ulOptReq
 	) const
 {

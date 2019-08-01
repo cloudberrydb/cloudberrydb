@@ -47,7 +47,7 @@ namespace gpopt
 	//		of an expression.
 	//
 	//---------------------------------------------------------------------------
-	class CDrvdPropRelational : public DrvdPropArray
+	class CDrvdPropRelational : public CDrvdProp
 	{
 		friend class CExpression;
 
@@ -235,7 +235,7 @@ namespace gpopt
 
 			// shorthand for conversion
 			static
-			CDrvdPropRelational *GetRelationalProperties(DrvdPropArray *pdp);
+			CDrvdPropRelational *GetRelationalProperties(CDrvdProp *pdp);
 
 			// check for satisfying required plan properties
 			virtual

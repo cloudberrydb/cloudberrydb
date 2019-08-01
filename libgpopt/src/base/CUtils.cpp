@@ -894,7 +894,7 @@ CUtils::FHasSubquery
 	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(pexpr->Pop()->FScalar());
 
-	DrvdPropArray *pdp = pexpr->PdpDerive();
+	CDrvdProp *pdp = pexpr->PdpDerive();
 	CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pdp);
 
 	return pdpscalar->FHasSubquery();

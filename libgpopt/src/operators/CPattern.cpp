@@ -24,7 +24,7 @@ using namespace gpopt;
 //		expression has to take care of this on a higher level
 //
 //---------------------------------------------------------------------------
-DrvdPropArray *
+CDrvdProp *
 CPattern::PdpCreate
 	(
 	CMemoryPool * // mp

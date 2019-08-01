@@ -135,7 +135,7 @@ CMemo::Add
 	GPOS_ASSERT(!pexprOrigin->Pop()->FPhysical() && "Physical operators do not create new groups");
 
 	// extract expression props
-	DrvdPropArray *pdp = NULL;
+	CDrvdProp *pdp = NULL;
 	if (pexprOrigin->Pop()->FScalar())
 	{
 		pdp = pexprOrigin->GetDrvdPropScalar();

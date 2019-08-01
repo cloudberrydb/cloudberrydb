@@ -3,7 +3,7 @@
 //	Copyright (C) 2009 - 2011 EMC CORP.
 //
 //	@filename:
-//		DrvdPropArray.h
+//		CDrvdProp.h
 //
 //	@doc:
 //		Base class for all derived properties
@@ -23,23 +23,23 @@ namespace gpopt
 	// fwd declarations
 	class CExpressionHandle;
 	class COperator;
-	class DrvdPropArray;
+	class CDrvdProp;
 	class CDrvdPropCtxt;
 	class CReqdPropPlan;
 	
 	// dynamic array for properties
-	typedef CDynamicPtrArray<DrvdPropArray, CleanupRelease> CDrvdProp2dArray;
+	typedef CDynamicPtrArray<CDrvdProp, CleanupRelease> CDrvdPropArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		DrvdPropArray
+	//		CDrvdProp
 	//
 	//	@doc:
 	//		Abstract base class for all derived properties. Individual property
-	//		components are added separately. DrvdPropArray is memory pool-agnostic.
+	//		components are added separately. CDrvdProp is memory pool-agnostic.
 	//
 	//		All derived property classes implement a pure virtual function
-	//		DrvdPropArray::Derive(). This function is responsible for filling in the
+	//		CDrvdProp::Derive(). This function is responsible for filling in the
 	//		different properties in the property container. For example
 	//		CDrvdPropScalar::Derive() fills in used and defined columns in the
 	//		current scalar property container.
@@ -62,7 +62,7 @@ namespace gpopt
 	//		CExpressionHandle::DeriveProps().
 	//
 	//---------------------------------------------------------------------------
-	class DrvdPropArray : public CRefCount
+	class CDrvdProp : public CRefCount
 	{
 
 		public:
@@ -81,16 +81,16 @@ namespace gpopt
 		private:
 
 			// private copy ctor
-			DrvdPropArray(const DrvdPropArray &);
+			CDrvdProp(const CDrvdProp &);
 
 		public:
 
 			// ctor
-			DrvdPropArray();
+			CDrvdProp();
 
 			// dtor
 			virtual 
-			~DrvdPropArray() {}
+			~CDrvdProp() {}
 
 			// type of properties
 			virtual
@@ -116,10 +116,10 @@ namespace gpopt
 			void DbgPrint() const;
 #endif // GPOS_DEBUG
 
-	}; // class DrvdPropArray
+	}; // class CDrvdProp
 
  	// shorthand for printing
-	IOstream &operator << (IOstream &os, const DrvdPropArray &drvdprop);
+	IOstream &operator << (IOstream &os, const CDrvdProp &drvdprop);
 
 }
 

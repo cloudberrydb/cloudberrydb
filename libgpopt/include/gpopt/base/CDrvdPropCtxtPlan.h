@@ -57,7 +57,7 @@ namespace gpopt
 
 			// add props to context
 			virtual
-			void AddProps(DrvdPropArray *pdp);
+			void AddProps(CDrvdProp *pdp);
 
 		public:
 

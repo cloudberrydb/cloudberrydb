@@ -120,7 +120,7 @@ CPhysicalJoin::PcrsRequired
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -145,7 +145,7 @@ CPhysicalJoin::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
@@ -169,7 +169,7 @@ CPhysicalJoin::PcteRequired
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const
@@ -286,7 +286,7 @@ CPhysicalJoin::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const
@@ -884,7 +884,7 @@ CPhysicalJoin::PrsRequiredCorrelatedJoin
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const
@@ -926,7 +926,7 @@ CPhysicalJoin::PdsRequiredCorrelatedJoin
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG  ulOptReq
 	)
 	const
@@ -978,7 +978,7 @@ CPhysicalJoin::Edm
 	(
 	CReqdPropPlan *, // prppInput
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 {
@@ -1172,7 +1172,7 @@ CPhysicalJoin::PppsRequiredJoinChild
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	BOOL fNLJoin
 	)
 {

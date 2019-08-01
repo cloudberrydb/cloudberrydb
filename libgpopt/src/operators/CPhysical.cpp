@@ -167,7 +167,7 @@ CPhysical::LookupRequest
 //		Create base container of derived properties
 //
 //---------------------------------------------------------------------------
-DrvdPropArray *
+CDrvdProp *
 CPhysical::PdpCreate
 	(
 	CMemoryPool *mp
@@ -707,7 +707,7 @@ CCTEMap *
 CPhysical::PcmCombine
 	(
 	CMemoryPool *mp,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpdpCtxt);
@@ -743,7 +743,7 @@ CPhysical::PcterNAry
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 	const
 {
@@ -1350,21 +1350,21 @@ CPhysical::FUnaryUsesDefinedColumns
 }
 
 CEnfdDistribution::EDistributionMatching
-CPhysical::Edm(CReqdPropPlan *, ULONG , CDrvdProp2dArray *, ULONG)
+CPhysical::Edm(CReqdPropPlan *, ULONG , CDrvdPropArray *, ULONG)
 {
 	// by default, request distribution satisfaction
 	return CEnfdDistribution::EdmSatisfy;
 }
 
 CEnfdOrder::EOrderMatching
-CPhysical::Eom(CReqdPropPlan *, ULONG , CDrvdProp2dArray *, ULONG)
+CPhysical::Eom(CReqdPropPlan *, ULONG , CDrvdPropArray *, ULONG)
 {
 	// request satisfaction by default
 	return CEnfdOrder::EomSatisfy;
 }
 
 CEnfdRewindability::ERewindabilityMatching
-CPhysical::Erm(CReqdPropPlan *, ULONG , CDrvdProp2dArray *, ULONG)
+CPhysical::Erm(CReqdPropPlan *, ULONG , CDrvdPropArray *, ULONG)
 {
 	// request satisfaction by default
 	return CEnfdRewindability::ErmSatisfy;

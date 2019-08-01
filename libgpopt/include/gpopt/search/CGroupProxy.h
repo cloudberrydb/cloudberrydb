@@ -21,7 +21,7 @@ namespace gpopt
 	
 	// forward declarations
 	class CGroupExpression;
-	class DrvdPropArray;
+	class CDrvdProp;
 	class COptimizationContext;
 	
 	//---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ namespace gpopt
 			void MoveDuplicateGExpr(CGroupExpression *pgexpr);
 
 			// initialize group's properties;
-			void InitProperties(DrvdPropArray *pdp);
+			void InitProperties(CDrvdProp *pdp);
 
 			// initialize group's stat;
 			void InitStats(IStatistics *stats);

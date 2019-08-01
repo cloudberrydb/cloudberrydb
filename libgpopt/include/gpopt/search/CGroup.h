@@ -34,7 +34,7 @@ namespace gpopt
 	// forward declarations
 	class CGroup;
 	class CGroupExpression;
-	class DrvdPropArray;
+	class CDrvdProp;
 	class CDrvdPropCtxtPlan;
 	class CGroupProxy;
 	class COptimizationContext;
@@ -197,7 +197,7 @@ namespace gpopt
 			CList<CGroupExpression> m_listDupGExprs;
 
 			// group derived properties
-			DrvdPropArray *m_pdp;
+			CDrvdProp *m_pdp;
 
 			// group stats
 			IStatistics *m_pstats;
@@ -281,7 +281,7 @@ namespace gpopt
 			void MoveDuplicateGExpr(CGroupExpression *pgexpr);
 
 			// initialize group's properties
-			void InitProperties(DrvdPropArray *pdp);
+			void InitProperties(CDrvdProp *pdp);
 
 			// initialize group's stats
 			void InitStats(IStatistics *stats);
@@ -364,7 +364,7 @@ namespace gpopt
 			}
 			
 			// group properties accessor
-			DrvdPropArray *Pdp() const
+			CDrvdProp *Pdp() const
 			{
 				return m_pdp;
 			}

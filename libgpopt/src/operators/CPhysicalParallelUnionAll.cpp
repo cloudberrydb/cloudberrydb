@@ -52,7 +52,7 @@ namespace gpopt
 			CExpressionHandle &,
 			CDistributionSpec *,
 			ULONG child_index,
-			CDrvdProp2dArray *,
+			CDrvdPropArray *,
 			ULONG ulOptReq
 		)
 	const
@@ -81,7 +81,7 @@ namespace gpopt
 		(
 		CReqdPropPlan *, // prppInput
 		ULONG,  // child_index
-		CDrvdProp2dArray *, //pdrgpdpCtxt
+		CDrvdPropArray *, //pdrgpdpCtxt
 		ULONG // ulOptReq
 		)
 	{

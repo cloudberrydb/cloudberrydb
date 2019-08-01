@@ -77,7 +77,7 @@ CPhysicalAssert::PcrsRequired
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -102,7 +102,7 @@ CPhysicalAssert::PosRequired
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -128,7 +128,7 @@ CPhysicalAssert::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG ulOptReq
 	)
 	const
@@ -164,7 +164,7 @@ CPhysicalAssert::PrsRequired
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -190,7 +190,7 @@ CPhysicalAssert::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG  child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
@@ -219,7 +219,7 @@ CPhysicalAssert::PcteRequired
 	child_index
 #endif
 	,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const

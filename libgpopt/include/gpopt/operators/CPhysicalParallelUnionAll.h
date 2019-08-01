@@ -27,14 +27,14 @@ namespace gpopt
 
 			virtual CDistributionSpec *
 			PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl, CDistributionSpec *pdsRequired,
-						ULONG child_index, CDrvdProp2dArray *pdrgpdpCtxt, ULONG ulOptReq) const;
+						ULONG child_index, CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const;
 
 			virtual
 			CEnfdDistribution::EDistributionMatching Edm
 				(
 				CReqdPropPlan *, // prppInput
 				ULONG,  // child_index
-				CDrvdProp2dArray *, //pdrgpdpCtxt
+				CDrvdPropArray *, //pdrgpdpCtxt
 				ULONG // ulOptReq
 				);
 

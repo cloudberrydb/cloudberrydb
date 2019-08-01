@@ -96,7 +96,7 @@ CPhysicalRowTrigger::PosRequired
 	child_index
 #endif
 	,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -170,7 +170,7 @@ CPhysicalRowTrigger::PcrsRequired
 	child_index
 #endif // GPOS_DEBUG
 	,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -197,7 +197,7 @@ CPhysicalRowTrigger::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -228,7 +228,7 @@ CPhysicalRowTrigger::PrsRequired
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -253,7 +253,7 @@ CPhysicalRowTrigger::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
@@ -282,7 +282,7 @@ CPhysicalRowTrigger::PcteRequired
 	child_index
 #endif
 	,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const

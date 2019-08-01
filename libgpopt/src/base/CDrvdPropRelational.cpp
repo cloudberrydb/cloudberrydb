@@ -175,7 +175,7 @@ CDrvdPropRelational::FSatisfies
 CDrvdPropRelational *
 CDrvdPropRelational::GetRelationalProperties
 	(
-	DrvdPropArray *pdp
+	CDrvdProp *pdp
 	)
 {
 	GPOS_ASSERT(NULL != pdp);

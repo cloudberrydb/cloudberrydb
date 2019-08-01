@@ -65,7 +65,7 @@ CPhysicalSpool::PcrsRequired
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -91,7 +91,7 @@ CPhysicalSpool::PosRequired
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -117,7 +117,7 @@ CPhysicalSpool::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -142,7 +142,7 @@ CPhysicalSpool::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
@@ -171,7 +171,7 @@ CPhysicalSpool::PcteRequired
 	child_index
 #endif
 	,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const
@@ -199,7 +199,7 @@ CPhysicalSpool::PrsRequired
 	child_index
 #endif // GPOS_DEBUG
 	,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const

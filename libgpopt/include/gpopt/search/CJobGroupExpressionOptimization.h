@@ -90,7 +90,7 @@ namespace gpopt
 			IStatisticsArray *m_pdrgpstatCurrentCtxt;
 
 			// array of derived properties of optimal implementations of child groups
-			CDrvdProp2dArray *m_pdrgpdp;
+			CDrvdPropArray *m_pdrgpdp;
 
 			// optimization order of children
 			CPhysical::EChildExecOrder m_eceo;

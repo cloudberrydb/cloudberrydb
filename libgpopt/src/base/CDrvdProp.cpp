@@ -3,7 +3,7 @@
 //	Copyright (C) 2009 Greenplum, Inc.
 //
 //	@filename:
-//		DrvdPropArray.cpp
+//		CDrvdProp.cpp
 //
 //	@doc:
 //		Implementation of derived properties
@@ -21,17 +21,17 @@
 
 namespace gpopt {
 
-	DrvdPropArray::DrvdPropArray()
+	CDrvdProp::CDrvdProp()
 	{}
 
-	IOstream &operator << (IOstream &os, const DrvdPropArray &drvdprop)
+	IOstream &operator << (IOstream &os, const CDrvdProp &drvdprop)
 	{
 		return drvdprop.OsPrint(os);
 	}
 
 #ifdef GPOS_DEBUG
 	void
-	DrvdPropArray::DbgPrint() const
+	CDrvdProp::DbgPrint() const
 	{
 		CMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
 		CAutoTrace at(mp);

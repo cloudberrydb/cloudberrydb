@@ -218,7 +218,7 @@ void
 CCTEReq::InsertConsumer
 	(
 	ULONG id,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 {
 	ULONG ulProducerId = gpos::ulong_max;
@@ -412,7 +412,7 @@ CCTEReq::PcterUnresolvedSequence
 	(
 	CMemoryPool *mp,
 	CCTEMap *pcm,
-	CDrvdProp2dArray *pdrgpdpCtxt // context contains derived plan properties of producer tree
+	CDrvdPropArray *pdrgpdpCtxt // context contains derived plan properties of producer tree
 	)
 {
 	GPOS_ASSERT(NULL != pcm);

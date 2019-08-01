@@ -100,7 +100,7 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *,//pdsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const

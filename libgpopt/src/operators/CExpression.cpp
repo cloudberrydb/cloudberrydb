@@ -331,7 +331,7 @@ CExpression::CopyGroupPropsAndStats
 {
 	GPOS_ASSERT(NULL != m_pgexpr);
 
-	DrvdPropArray *pdp = m_pgexpr->Pgroup()->Pdp();
+	CDrvdProp *pdp = m_pgexpr->Pgroup()->Pdp();
 	GPOS_ASSERT(NULL != pdp);
 
 	// copy properties
@@ -380,20 +380,20 @@ CExpression::CopyGroupPropsAndStats
 //		only used internally during property derivation
 //
 //---------------------------------------------------------------------------
-DrvdPropArray *
+CDrvdProp *
 CExpression::Pdp
 	(
-	const DrvdPropArray::EPropType ept
+	const CDrvdProp::EPropType ept
 	)
 	const
 {
 	switch (ept)
 	{
-		case DrvdPropArray::EptRelational:
+		case CDrvdProp::EptRelational:
 			return m_pdprel;
-		case DrvdPropArray::EptPlan:
+		case CDrvdProp::EptPlan:
 			return m_pdpplan;
-		case DrvdPropArray::EptScalar:
+		case CDrvdProp::EptScalar:
 			return m_pdpscalar;
 		default:
 			break;
@@ -438,28 +438,28 @@ CExpression::GetDrvdPropScalar() const
 void
 CExpression::AssertValidPropDerivation
 	(
-	const DrvdPropArray::EPropType ept
+	const CDrvdProp::EPropType ept
 	)
 {
 	COperator *pop = Pop();
 
-	GPOS_ASSERT_IMP(pop->FScalar(), DrvdPropArray::EptScalar == ept);
-	GPOS_ASSERT_IMP(pop->FLogical(), DrvdPropArray::EptRelational == ept);
+	GPOS_ASSERT_IMP(pop->FScalar(), CDrvdProp::EptScalar == ept);
+	GPOS_ASSERT_IMP(pop->FLogical(), CDrvdProp::EptRelational == ept);
 	GPOS_ASSERT_IMP
 		(
 		pop->FPattern(),
-		DrvdPropArray::EptRelational == ept || DrvdPropArray::EptScalar == ept
+		CDrvdProp::EptRelational == ept || CDrvdProp::EptScalar == ept
 		);
 
 	GPOS_ASSERT_IMP
 		(
 		pop->FPhysical(),
-		DrvdPropArray::EptRelational == ept || DrvdPropArray::EptPlan == ept
+		CDrvdProp::EptRelational == ept || CDrvdProp::EptPlan == ept
 		);
 
 	GPOS_ASSERT_IMP
 		(
-		pop->FPhysical() && DrvdPropArray::EptRelational == ept,
+		pop->FPhysical() && CDrvdProp::EptRelational == ept,
 		NULL != m_pdprel &&
 		"Relational properties were not copied from Memo"
 		);
@@ -476,34 +476,34 @@ CExpression::AssertValidPropDerivation
 //		Get the suitable derived property type based on operator
 //
 //---------------------------------------------------------------------------
-DrvdPropArray::EPropType
+CDrvdProp::EPropType
 CExpression::Ept() const
 {
 	if (Pop()->FLogical())
 	{
-		return DrvdPropArray::EptRelational;
+		return CDrvdProp::EptRelational;
 	}
 
 	if (Pop()->FPhysical())
 	{
 		GPOS_ASSERT(NULL != m_pdprel && "Relational properties were not copied from Memo");
-		return DrvdPropArray::EptPlan;
+		return CDrvdProp::EptPlan;
 	}
 
 	if (Pop()->FScalar())
 	{
-		return DrvdPropArray::EptScalar;
+		return CDrvdProp::EptScalar;
 	}
 
 	GPOS_ASSERT(!"Unexpected operator type");
-	return DrvdPropArray::EptInvalid;
+	return CDrvdProp::EptInvalid;
 }
 
 
 // Derive all properties immediately. The suitable derived property is
 // determined internally. To derive properties on an on-demand bases, use
 // DeriveXXX() methods.
-DrvdPropArray *
+CDrvdProp *
 CExpression::PdpDerive
 	(
 	CDrvdPropCtxt *pdpctxt // derivation context, passed by caller
@@ -512,7 +512,7 @@ CExpression::PdpDerive
 	GPOS_CHECK_STACK_SIZE;
 	GPOS_CHECK_ABORT;
 
-	const DrvdPropArray::EPropType ept = Ept();
+	const CDrvdProp::EPropType ept = Ept();
 #ifdef GPOS_DEBUG
 	AssertValidPropDerivation(ept);
 #endif // GPOS_DEBUG
@@ -524,13 +524,13 @@ CExpression::PdpDerive
 	// relational properties are never null and are handled in the next case
 	if (NULL == Pdp(ept))
 	{
-		GPOS_ASSERT(DrvdPropArray::EptRelational != ept);
+		GPOS_ASSERT(CDrvdProp::EptRelational != ept);
 
 		const ULONG arity = Arity();
 		for (ULONG ul = 0; ul < arity; ul++)
 		{
 			CExpression *pexprChild = (*m_pdrgpexpr)[ul];
-			DrvdPropArray *pdp = pexprChild->PdpDerive(pdpctxt);
+			CDrvdProp *pdp = pexprChild->PdpDerive(pdpctxt);
 
 			// add child props to derivation context
 			CDrvdPropCtxt::AddDerivedProps(pdp, pdpctxt);
@@ -540,10 +540,10 @@ CExpression::PdpDerive
 
 		switch (ept)
 		{
-			case DrvdPropArray::EptPlan:
+			case CDrvdProp::EptPlan:
 				m_pdpplan = GPOS_NEW(m_mp) CDrvdPropPlan();
 				break;
-			case DrvdPropArray::EptScalar:
+			case CDrvdProp::EptScalar:
 				m_pdpscalar = GPOS_NEW(m_mp) CDrvdPropScalar();
 				break;
 			default:
@@ -680,20 +680,20 @@ CExpression::PstatsDerive
 void
 CExpression::ResetDerivedProperty
 	(
-	DrvdPropArray::EPropType ept
+	CDrvdProp::EPropType ept
 	)
 {
 	switch (ept)
 	{
-		case DrvdPropArray::EptRelational:
+		case CDrvdProp::EptRelational:
 			CRefCount::SafeRelease(m_pdprel);
 			m_pdprel = GPOS_NEW(m_mp) CDrvdPropRelational(m_mp);
 			break;
-		case DrvdPropArray::EptPlan:
+		case CDrvdProp::EptPlan:
 			CRefCount::SafeRelease(m_pdpplan);
 			m_pdpplan = NULL;
 			break;
-		case DrvdPropArray::EptScalar:
+		case CDrvdProp::EptScalar:
 			CRefCount::SafeRelease(m_pdpscalar);
 			m_pdpscalar  = NULL;
 			break;
@@ -718,11 +718,11 @@ CExpression::ResetDerivedProperties()
 	// protect against stack overflow during recursion
 	GPOS_CHECK_STACK_SIZE;
 
-	DrvdPropArray::EPropType rgept[] =
+	CDrvdProp::EPropType rgept[] =
 		{
-		DrvdPropArray::EptRelational,
-		DrvdPropArray::EptScalar,
-		DrvdPropArray::EptPlan
+		CDrvdProp::EptRelational,
+		CDrvdProp::EptScalar,
+		CDrvdProp::EptPlan
 		};
 
 	for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgept); i++)
@@ -839,7 +839,7 @@ CExpression::PrppDecorate
 		exprhdl.InitReqdProps(prppInput);
 
 		// create array of child derived properties
-		CDrvdProp2dArray *pdrgpdp = GPOS_NEW(m_mp) CDrvdProp2dArray(m_mp);
+		CDrvdPropArray *pdrgpdp = GPOS_NEW(m_mp) CDrvdPropArray(m_mp);
 
 		const ULONG arity =  Arity();
 		for (ULONG ul = 0; ul < arity; ul++)
@@ -851,7 +851,7 @@ CExpression::PrppDecorate
 			(void) pexprChild->PrppCompute(mp, exprhdl.Prpp(ul));
 
 			// add plan props of current child to derived props array
-			DrvdPropArray *pdp = pexprChild->PdpDerive();
+			CDrvdProp *pdp = pexprChild->PdpDerive();
 			pdp->AddRef();
 			pdrgpdp->Append(pdp);
 		}

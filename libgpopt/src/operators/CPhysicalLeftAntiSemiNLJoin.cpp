@@ -83,7 +83,7 @@ CPhysicalLeftAntiSemiNLJoin::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt,
+	CDrvdPropArray *, // pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 {

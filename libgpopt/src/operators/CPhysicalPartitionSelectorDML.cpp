@@ -119,7 +119,7 @@ CPhysicalPartitionSelectorDML::PdsRequired
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -168,7 +168,7 @@ CPhysicalPartitionSelectorDML::PosRequired
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -240,7 +240,7 @@ CPhysicalPartitionSelectorDML::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {

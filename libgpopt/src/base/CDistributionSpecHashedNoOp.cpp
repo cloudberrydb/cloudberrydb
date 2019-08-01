@@ -36,7 +36,7 @@ CDistributionSpecHashedNoOp::AppendEnforcers
 	CExpression *pexpr
 	)
 {
-	DrvdPropArray *pdp = exprhdl.Pdp();
+	CDrvdProp *pdp = exprhdl.Pdp();
 	CDistributionSpec *pdsChild = CDrvdPropPlan::Pdpplan(pdp)->Pds();
 	CDistributionSpecHashed *pdsChildHashed = dynamic_cast<CDistributionSpecHashed *>(pdsChild);
 

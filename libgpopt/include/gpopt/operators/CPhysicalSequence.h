@@ -83,7 +83,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
 				ULONG child_index,
-				CDrvdProp2dArray *pdrgpdpCtxt,
+				CDrvdPropArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -95,7 +95,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CCTEReq *pcter,
 				ULONG child_index,
-				CDrvdProp2dArray *pdrgpdpCtxt,
+				CDrvdPropArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -108,7 +108,7 @@ namespace gpopt
 				CExpressionHandle &, // exprhdl
 				COrderSpec *, // posRequired
 				ULONG, // child_index
-				CDrvdProp2dArray *, // pdrgpdpCtxt
+				CDrvdPropArray *, // pdrgpdpCtxt
 				ULONG // ulOptReq
 				)
 				const;
@@ -121,7 +121,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
 				ULONG child_index,
-				CDrvdProp2dArray *pdrgpdpCtxt,
+				CDrvdPropArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -134,7 +134,7 @@ namespace gpopt
 				CExpressionHandle &, //exprhdl
 				CRewindabilitySpec *, //prsRequired
 				ULONG, // child_index
-				CDrvdProp2dArray *, // pdrgpdpCtxt
+				CDrvdPropArray *, // pdrgpdpCtxt
 				ULONG ulOptReq
 				)
 				const;
@@ -147,7 +147,7 @@ namespace gpopt
 				CExpressionHandle &, //exprhdl,
 				CPartitionPropagationSpec *, //pppsRequired,
 				ULONG , //child_index,
-				CDrvdProp2dArray *, //pdrgpdpCtxt,
+				CDrvdPropArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				);
 			

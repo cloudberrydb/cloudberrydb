@@ -1122,7 +1122,7 @@ CExpressionTest::EresCheckCachedReqdCols
 	exprhdl.InitReqdProps(prppInput);
 
 	// create array of child derived properties
-	CDrvdProp2dArray *pdrgpdp = GPOS_NEW(mp) CDrvdProp2dArray(mp);
+	CDrvdPropArray *pdrgpdp = GPOS_NEW(mp) CDrvdPropArray(mp);
 
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG arity =  pexpr->Arity();
@@ -1163,7 +1163,7 @@ CExpressionTest::EresCheckCachedReqdCols
 		}
 
 		// add plan props of current child to derived props array
-		DrvdPropArray *pdp = pexprChild->PdpDerive();
+		CDrvdProp *pdp = pexprChild->PdpDerive();
 		pdp->AddRef();
 		pdrgpdp->Append(pdp);
 	}

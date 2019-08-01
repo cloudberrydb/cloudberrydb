@@ -103,7 +103,7 @@ namespace gpopt
 				(
 				CReqdPropPlan *, // prppInput
 				ULONG,  // child_index
-				CDrvdProp2dArray *, //pdrgpdpCtxt
+				CDrvdPropArray *, //pdrgpdpCtxt
 				ULONG // ulOptReq
 				)
 			{
@@ -118,7 +118,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
 				ULONG child_index,
-				CDrvdProp2dArray *pdrgpdpCtxt,
+				CDrvdPropArray *pdrgpdpCtxt,
 				ULONG  ulOptReq
 				)
 				const
@@ -134,7 +134,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
 				ULONG child_index,
-				CDrvdProp2dArray *pdrgpdpCtxt,
+				CDrvdPropArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const

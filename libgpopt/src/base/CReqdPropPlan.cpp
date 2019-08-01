@@ -136,7 +136,7 @@ CReqdPropPlan::ComputeReqdCols
 	CExpressionHandle &exprhdl,
 	CReqdProp *prpInput,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 {
 	GPOS_ASSERT(NULL == m_pcrs);
@@ -162,7 +162,7 @@ CReqdPropPlan::ComputeReqdCTEs
 	CExpressionHandle &exprhdl,
 	CReqdProp *prpInput,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 {
 	GPOS_ASSERT(NULL == m_pcter);
@@ -188,7 +188,7 @@ CReqdPropPlan::Compute
 	CExpressionHandle &exprhdl,
 	CReqdProp *prpInput,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG ulOptReq
 	)
 {
@@ -282,7 +282,7 @@ CReqdPropPlan::PpfmCombineDerived
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prppInput,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt
+	CDrvdPropArray *pdrgpdpCtxt
 	)
 {
 	// get partitioning info below required child

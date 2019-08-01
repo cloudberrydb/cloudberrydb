@@ -156,7 +156,7 @@ CDrvdPropScalar::Derive
 CDrvdPropScalar *
 CDrvdPropScalar::GetDrvdScalarProps
 	(
-	DrvdPropArray *pdp
+	CDrvdProp *pdp
 	)
 {
 	GPOS_ASSERT(NULL != pdp);

@@ -200,7 +200,7 @@ CPhysicalUnionAll::PcrsRequired
 		CExpressionHandle &,//exprhdl,
 		CColRefSet *pcrsRequired,
 		ULONG child_index,
-		CDrvdProp2dArray *, // pdrgpdpCtxt
+		CDrvdPropArray *, // pdrgpdpCtxt
 		ULONG // ulOptReq
 	)
 {
@@ -228,7 +228,7 @@ CPhysicalUnionAll::PosRequired
 	child_index
 #endif // GPOS_DEBUG
 	,
-		CDrvdProp2dArray *, // pdrgpdpCtxt
+		CDrvdPropArray *, // pdrgpdpCtxt
 		ULONG // ulOptReq
 )
 const
@@ -255,7 +255,7 @@ CPhysicalUnionAll::PrsRequired
 		CExpressionHandle &exprhdl,
 		CRewindabilitySpec *prsRequired,
 		ULONG child_index,
-		CDrvdProp2dArray *, // pdrgpdpCtxt
+		CDrvdPropArray *, // pdrgpdpCtxt
 		ULONG // ulOptReq
 	)
 const
@@ -280,7 +280,7 @@ CPhysicalUnionAll::PppsRequired
 		CExpressionHandle &exprhdl,
 		CPartitionPropagationSpec *pppsRequired,
 		ULONG child_index,
-		CDrvdProp2dArray *, //pdrgpdpCtxt,
+		CDrvdPropArray *, //pdrgpdpCtxt,
 		ULONG //ulOptReq
 	)
 {
@@ -315,7 +315,7 @@ CPhysicalUnionAll::PcteRequired
 		CExpressionHandle &exprhdl,
 		CCTEReq *pcter,
 		ULONG child_index,
-		CDrvdProp2dArray *pdrgpdpCtxt,
+		CDrvdPropArray *pdrgpdpCtxt,
 		ULONG //ulOptReq
 	)
 const

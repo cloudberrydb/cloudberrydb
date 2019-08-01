@@ -111,7 +111,7 @@ namespace gpopt
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
 				ULONG child_index,
-				CDrvdProp2dArray *, //pdrgpdpCtxt,
+				CDrvdPropArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				)
 				const

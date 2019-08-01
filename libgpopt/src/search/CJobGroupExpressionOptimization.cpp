@@ -305,7 +305,7 @@ CJobGroupExpressionOptimization::InitChildGroupsOptimization
 	}
 
 	// create child groups derived properties
-	m_pdrgpdp = GPOS_NEW(psc->GetGlobalMemoryPool()) CDrvdProp2dArray(psc->GetGlobalMemoryPool());
+	m_pdrgpdp = GPOS_NEW(psc->GetGlobalMemoryPool()) CDrvdPropArray(psc->GetGlobalMemoryPool());
 
 	// initialize stats context with input stats context
 	m_pdrgpstatCurrentCtxt = GPOS_NEW(psc->GetGlobalMemoryPool()) IStatisticsArray(psc->GetGlobalMemoryPool());

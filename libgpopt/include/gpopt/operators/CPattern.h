@@ -60,7 +60,7 @@ namespace gpopt
 
 			// create derived properties container
 			virtual
-			DrvdPropArray *PdpCreate(CMemoryPool *mp) const;
+			CDrvdProp *PdpCreate(CMemoryPool *mp) const;
 
 			// create required properties container
 			virtual

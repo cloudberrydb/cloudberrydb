@@ -103,7 +103,7 @@ CPhysicalSequence::PcrsRequired
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -136,7 +136,7 @@ CPhysicalSequence::PppsRequired
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt,
+	CDrvdPropArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
@@ -160,7 +160,7 @@ CPhysicalSequence::PcteRequired
 	CExpressionHandle &exprhdl,
 	CCTEReq *pcter,
 	ULONG child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const
@@ -228,7 +228,7 @@ CPhysicalSequence::PdsRequired
 	,
 	CDistributionSpec *pdsRequired,
 	ULONG  child_index,
-	CDrvdProp2dArray *pdrgpdpCtxt,
+	CDrvdPropArray *pdrgpdpCtxt,
 	ULONG  ulOptReq
 	)
 	const
@@ -295,7 +295,7 @@ CPhysicalSequence::PosRequired
 	CExpressionHandle &, // exprhdl,
 	COrderSpec * ,// posRequired,
 	ULONG , // child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -319,7 +319,7 @@ CPhysicalSequence::PrsRequired
 	CExpressionHandle &, // exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG , // child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const

@@ -501,13 +501,13 @@ CGroup::SetId
 void
 CGroup::InitProperties
 	(
-	DrvdPropArray *pdp
+	CDrvdProp *pdp
 	)
 {
 	GPOS_ASSERT(NULL == m_pdp);
 	GPOS_ASSERT(NULL != pdp);
-	GPOS_ASSERT_IMP(FScalar(), DrvdPropArray::EptScalar == pdp->Ept());
-	GPOS_ASSERT_IMP(!FScalar(), DrvdPropArray::EptRelational == pdp->Ept());
+	GPOS_ASSERT_IMP(FScalar(), CDrvdProp::EptScalar == pdp->Ept());
+	GPOS_ASSERT_IMP(!FScalar(), CDrvdProp::EptRelational == pdp->Ept());
 
 	m_pdp = pdp;
 }

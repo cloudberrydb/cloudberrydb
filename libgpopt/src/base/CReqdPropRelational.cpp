@@ -104,7 +104,7 @@ CReqdPropRelational::Compute
 	CExpressionHandle &exprhdl,
 	CReqdProp *prpInput,
 	ULONG child_index,
-	CDrvdProp2dArray *, // pdrgpdpCtxt
+	CDrvdPropArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {

@@ -1327,7 +1327,7 @@ CLogical::PexprPartPred
 //		Create base container of derived properties
 //
 //---------------------------------------------------------------------------
-DrvdPropArray *
+CDrvdProp *
 CLogical::PdpCreate
 	(
 	CMemoryPool *mp

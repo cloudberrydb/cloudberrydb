@@ -71,7 +71,7 @@ namespace gpopt
 			// derived plan properties of the gexpr attached by a CostContext under
 			// the default CDrvdPropCtxtPlan. See DerivePlanPropsForCostContext()
 			// NB: does NOT support on-demand property derivation
-			DrvdPropArray *m_pdpplan;
+			CDrvdProp *m_pdpplan;
 
 			// statistics of attached expr/gexpr;
 			// set during derived stats computation
@@ -143,13 +143,13 @@ namespace gpopt
 			void InitReqdProps(CReqdProp *prpInput);
 
 			// compute required properties of the n-th child
-			void ComputeChildReqdProps(ULONG child_index, CDrvdProp2dArray *pdrgpdpCtxt, ULONG ulOptReq);
+			void ComputeChildReqdProps(ULONG child_index, CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq);
 
 			// copy required properties of the n-th child
 			void CopyChildReqdProps(ULONG child_index, CReqdProp *prp);
 
 			// compute required columns of the n-th child
-			void ComputeChildReqdCols(ULONG child_index, CDrvdProp2dArray *pdrgpdpCtxt);
+			void ComputeChildReqdCols(ULONG child_index, CDrvdPropArray *pdrgpdpCtxt);
 
 			// required properties computation of all children
 			void ComputeReqdProps(CReqdProp *prpInput, ULONG ulOptReq);
@@ -167,7 +167,7 @@ namespace gpopt
 			CDrvdPropScalar *GetDrvdScalarProps(ULONG child_index) const;
 
 			// derived properties of attached expr/gexpr
-			DrvdPropArray *Pdp() const;
+			CDrvdProp *Pdp() const;
 
 			// derived relational properties of attached expr/gexpr
 			CDrvdPropRelational *GetRelationalProperties() const;
