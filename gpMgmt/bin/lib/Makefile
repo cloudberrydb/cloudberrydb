@@ -26,7 +26,7 @@ uninstall:
 	rm -f '$(DESTDIR)$(bindir)/lib/crashreport.gdb'
 
 distclean: clean
-	gp_bash_version.sh
+	rm -f gp_bash_version.sh
 
 clean:
 	rm -f *.pyc
