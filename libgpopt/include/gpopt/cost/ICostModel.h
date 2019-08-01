@@ -144,34 +144,10 @@ namespace gpopt
 					// computed cost of child operators
 					DOUBLE *m_pdCostChildren;
 
-				public:
+					// stats of the children
+					CCostingStats **m_pdrgstatsChildren;
 
-					// ctor
-					SCostingInfo
-						(
-						ULONG ulChildren,
-						CCostingStats *pcstats,
-						DOUBLE rows,
-						DOUBLE width,
-						DOUBLE num_rebinds,
-						DOUBLE *pdRowsChildren,
-						DOUBLE *pdWidthChildren,
-						DOUBLE *pdRebindsChildren,
-						DOUBLE *pdCostChildren
-						)
-						:
-						m_ulChildren(ulChildren),
-						m_pcstats(pcstats),
-						m_rows(rows),
-						m_width(width),
-						m_num_rebinds(num_rebinds),
-						m_pdRowsChildren(pdRowsChildren),
-						m_pdWidthChildren(pdWidthChildren),
-						m_pdRebindsChildren(pdRebindsChildren),
-						m_pdCostChildren(pdCostChildren)
-					{
-						GPOS_ASSERT(NULL != pcstats);
-					};
+				public:
 
 					// ctor
 					SCostingInfo
@@ -189,7 +165,8 @@ namespace gpopt
 						m_pdRowsChildren(NULL),
 						m_pdWidthChildren(NULL),
 						m_pdRebindsChildren(NULL),
-						m_pdCostChildren(NULL)
+						m_pdCostChildren(NULL),
+						m_pdrgstatsChildren(NULL)
 					{
 						GPOS_ASSERT(NULL != pcstats);
 						if (0 < ulChildren)
@@ -198,6 +175,12 @@ namespace gpopt
 							m_pdWidthChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
 							m_pdRebindsChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
 							m_pdCostChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
+							m_pdrgstatsChildren =  GPOS_NEW_ARRAY(mp, CCostingStats*, ulChildren);
+
+							for ( ULONG ul=0; ul < m_ulChildren; ul++)
+							{
+								m_pdrgstatsChildren[ul] = NULL;
+							}
 						}
 					}
 
@@ -208,6 +191,13 @@ namespace gpopt
 						GPOS_DELETE_ARRAY(m_pdWidthChildren);
 						GPOS_DELETE_ARRAY(m_pdRebindsChildren);
 						GPOS_DELETE_ARRAY(m_pdCostChildren);
+
+						for ( ULONG ul=0; ul < m_ulChildren; ul++)
+						{
+							CRefCount::SafeRelease(m_pdrgstatsChildren[ul]);
+						}
+
+						GPOS_DELETE_ARRAY(m_pdrgstatsChildren);
 						m_pcstats->Release();
 					}
 
@@ -344,10 +334,26 @@ namespace gpopt
 						m_pdCostChildren[ulPos] = dCostChild;
 					}
 
+					// child stats setter
+					void SetChildStats
+						(
+						ULONG ulPos,
+						CCostingStats *child_stats
+						)
+					{
+						m_pdrgstatsChildren[ulPos] = child_stats;
+					}
+
 					// return additional cost statistics
 					CCostingStats *Pcstats() const
 					{
 						return m_pcstats;
+					}
+
+					// return additional child statistics
+					CCostingStats *Pcstats(ULONG child_index) const
+					{
+						return m_pdrgstatsChildren[child_index];
 					}
 
 			}; // struct SCostingInfo

@@ -102,6 +102,7 @@ namespace gpopt
 				EcpBitmapPageCostSmallNDV, // bitmap page cost for smaller NDV
 				EcpBitmapNDVThreshold, // bitmap NDV threshold
 				EcpBitmapScanRebindCost, // cost of rebind operation in a bitmap scan
+				EcpPenalizeHJSkewUpperLimit, // upper limit for penalizing a skewed hashjoin operator
 
 				EcpSentinel
 			};
@@ -318,6 +319,10 @@ namespace gpopt
 			// cost of bitmap scan rebind
 			static
 			const CDouble DBitmapScanRebindCost;
+
+			// upper limit for penalizing a skewed hash operator
+			static
+			const CDouble DPenalizeHJSkewUpperLimit;
 
 			// private copy ctor
 			CCostModelParamsGPDB(CCostModelParamsGPDB &);

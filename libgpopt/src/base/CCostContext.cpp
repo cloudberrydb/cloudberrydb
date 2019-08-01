@@ -620,6 +620,10 @@ CCostContext::CostCompute
 		GPOS_ASSERT(NULL != pccChild);
 
 		IStatistics *child_stats = pccChild->Pstats();
+
+		child_stats->AddRef();
+		ci.SetChildStats(ul, GPOS_NEW(mp) ICostModel::CCostingStats(child_stats));
+
 		DOUBLE dRowsChild = child_stats->Rows().Get();
 		if (CDistributionSpec::EdptPartitioned == pccChild->Pdpplan()->Pds()->Edpt())
 		{

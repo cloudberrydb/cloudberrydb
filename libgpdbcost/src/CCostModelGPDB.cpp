@@ -9,6 +9,7 @@
 //		Implementation of GPDB cost model
 //---------------------------------------------------------------------------
 
+#include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/COrderSpec.h"
 #include "gpopt/base/CWindowFrame.h"
 #include "gpopt/metadata/CTableDescriptor.h"
@@ -906,6 +907,7 @@ CCostModelGPDB::CostHashJoin
 	const CDouble dHJFeedingTupColumnSpillingCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpHJFeedingTupColumnSpillingCostUnit)->Get();
 	const CDouble dHJFeedingTupWidthSpillingCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpHJFeedingTupWidthSpillingCostUnit)->Get();
 	const CDouble dHJHashingTupWidthSpillingCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpHJHashingTupWidthSpillingCostUnit)->Get();
+	const CDouble dPenalizeHJSkewUpperLimit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpPenalizeHJSkewUpperLimit)->Get();
 	GPOS_ASSERT(0 < dHJHashTableInitCostFactor);
 	GPOS_ASSERT(0 < dHJHashTableColumnCostUnit);
 	GPOS_ASSERT(0 < dHJHashTableWidthCostUnit);
@@ -917,6 +919,7 @@ CCostModelGPDB::CostHashJoin
 	GPOS_ASSERT(0 < dHJFeedingTupColumnSpillingCostUnit);
 	GPOS_ASSERT(0 < dHJFeedingTupWidthSpillingCostUnit);
 	GPOS_ASSERT(0 < dHJHashingTupWidthSpillingCostUnit);
+	GPOS_ASSERT(0 < dPenalizeHJSkewUpperLimit);
 
 	// get the number of columns used in join condition
 	CExpression *pexprJoinCond= exprhdl.PexprScalarChild(2);
@@ -978,7 +981,52 @@ CCostModelGPDB::CostHashJoin
 	}
 	CCost costChild = CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 
-	return costChild + costLocal;
+	CDouble skew_ratio = 1;
+	ULONG arity = exprhdl.Arity();
+	
+	// Hashjoin with skewed HashRedistribute below them are expensive
+	// find out if there is a skewed redistribute child of this HashJoin.
+	if(!GPOS_FTRACE(EopttracePenalizeSkewedHashJoin))
+	{
+		for (ULONG ul = 0; ul < arity - 1; ++ul)
+		{
+			COperator *popChild = exprhdl.Pop(ul);
+			if (NULL == popChild || COperator::EopPhysicalMotionHashDistribute != popChild->Eopid())
+			{
+				continue;
+			}
+
+			CPhysicalMotion *motion = CPhysicalMotion::PopConvert(popChild);
+			CColRefSet *columns = motion->Pds()->PcrsUsed(mp);
+
+			// we decide if there is a skew by calculating the NDVs of the HashRedistribute
+			CDouble ndv = 1.0;
+			CColRefSetIter iter(*columns);
+			while (iter.Advance())
+			{
+				CColRef *colref = iter.Pcr();
+				ndv = ndv * pci->Pcstats(ul)->GetNDVs(colref);
+			}
+
+			// if the NDVs are less than number of segments then there is definitely
+			// a skew. NDV < 1 implies no stats exist for the columns involved. So we don't
+			// want to take any decision.
+			// In case of a skew, penalize the local cost of HashJoin with a
+			// skew ratio = (num of segments)/ndv
+			if (ndv < pcmgpdb->UlHosts() && (ndv >= 1))
+			{
+				CDouble sk = pcmgpdb->UlHosts() / ndv;
+				skew_ratio =  CDouble(std::max(sk.Get(),skew_ratio.Get()));
+			}
+
+			columns->Release();
+		}
+	}
+
+	// if we end up penalizing redistribute too much, we will start getting gather motions
+	// which are not necessarily a good idea. So we maintain a upper limit of skew.
+	skew_ratio =  CDouble(std::min(dPenalizeHJSkewUpperLimit.Get(),skew_ratio.Get()));
+	return costChild + CCost(costLocal.Get() * skew_ratio);
 }
 
 //---------------------------------------------------------------------------

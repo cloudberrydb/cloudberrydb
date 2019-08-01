@@ -206,6 +206,9 @@ namespace gpos
 		// Always pick plans that split scalar DQA into a plan with 3-stage aggregation
 		EopttraceForceThreeStageScalarDQA = 104005,
 
+		// Penalize HashJoins with a skewed hash distribute under them
+		EopttracePenalizeSkewedHashJoin = 104006,
+
 		///////////////////////////////////////////////////////
 		/////////// constant expression evaluator flags ///////
 		///////////////////////////////////////////////////////

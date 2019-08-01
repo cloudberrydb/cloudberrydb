@@ -41,7 +41,6 @@ ULONG CICGTest::m_ulTestCounterNoAdditionTraceFlag = 0;
 // minidump files
 const CHAR *rgszFileNames[] =
 	{
-		"../data/dxl/minidump/DisableLargeTableBroadcast.mdp",
 		"../data/dxl/minidump/InsertIntoNonNullAfterDroppingColumn.mdp",
 		"../data/dxl/minidump/OptimizerConfigWithSegmentsForCosting.mdp",
 		"../data/dxl/minidump/QueryMismatchedDistribution.mdp",
