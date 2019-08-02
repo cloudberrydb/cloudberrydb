@@ -10,7 +10,7 @@
 
 #include "../lsyscache.c"
 
-void
+static void
 test_get_func_arg_types_can_correctly_return_more_than_one_argtype(void **state)
 {
 	HeapTuple	tp;

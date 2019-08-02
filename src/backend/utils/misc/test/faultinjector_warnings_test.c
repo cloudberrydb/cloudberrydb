@@ -15,22 +15,22 @@
 static bool warning_was_called = false;
 
 
-void some_warning(FaultInjectorEntry_s faultEntry)
+static void
+some_warning(FaultInjectorEntry_s faultEntry)
 {
 	warning_was_called = true;
 }
 
-
-void setup()
+static void
+setup()
 {
 	warning_was_called = false;
 
 	warnings_init();
 }
 
-
-
-void test_fault_injection_warnings_can_be_added_and_emitted(void **state)
+static void
+test_fault_injection_warnings_can_be_added_and_emitted(void **state)
 {
 	setup();
 
@@ -43,8 +43,8 @@ void test_fault_injection_warnings_can_be_added_and_emitted(void **state)
 	assert_true(warning_was_called);
 }
 
-
-void test_fault_injection_warnings_not_called_when_empty(void **state)
+static void
+test_fault_injection_warnings_not_called_when_empty(void **state)
 {
 	setup();
 
@@ -55,7 +55,6 @@ void test_fault_injection_warnings_not_called_when_empty(void **state)
 
 	assert_false(warning_was_called);
 }
-
 
 int main(int argc, char* argv[]) {
 	cmockery_parse_arguments(argc, argv);

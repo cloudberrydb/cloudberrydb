@@ -10,10 +10,9 @@
 #define MAX_PROCS 100
 VariableCacheData vcdata;
 
-void setup(TmControlBlock *controlBlock)
+static void
+setup(TmControlBlock *controlBlock)
 {
-	PGPROC *tmp_proc;
-
 	ShmemVariableCache = &vcdata;
 	shmNextSnapshotId = &controlBlock->NextSnapshotId;
 	shmDistribTimeStamp = &controlBlock->distribTimeStamp;
@@ -36,18 +35,14 @@ void setup(TmControlBlock *controlBlock)
 	procArray->maxProcs = MAX_PROCS;
 }
 
-void
+static void
 test__CreateDistributedSnapshot(void **state)
 {
 	TmControlBlock controlBlock;
-	DistributedSnapshotWithLocalMapping distribSnapshotWithLocalMapping;
-	DistributedSnapshot *ds = &distribSnapshotWithLocalMapping.ds;
+	DistributedSnapshot ds;
 
-	ds->inProgressXidArray =
+	ds.inProgressXidArray =
 		(DistributedTransactionId*)malloc(SIZE_OF_IN_PROGRESS_ARRAY);
-
-	distribSnapshotWithLocalMapping.inProgressMappedLocalXids =
-		(TransactionId*) malloc(1 * sizeof(TransactionId));
 
 	setup(&controlBlock);
 
@@ -71,14 +66,14 @@ test__CreateDistributedSnapshot(void **state)
 	/********************************************************
 	 * Basic case, no other in progress transaction in system
 	 */
-	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
-	CreateDistributedSnapshot(&distribSnapshotWithLocalMapping);
+	memset(ds.inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	CreateDistributedSnapshot(&ds);
 
 	/* perform all the validations */
-	assert_true(ds->xminAllDistributedSnapshots == 20);
-	assert_true(ds->xmin == 20);
-	assert_true(ds->xmax == 25);
-	assert_true(ds->count == 0);
+	assert_true(ds.xminAllDistributedSnapshots == 20);
+	assert_true(ds.xmin == 20);
+	assert_true(ds.xmax == 25);
+	assert_true(ds.count == 0);
 	assert_true(MyTmGxact->xminDistributedSnapshot == 20);
 
 	/*************************************************************************
@@ -99,16 +94,16 @@ test__CreateDistributedSnapshot(void **state)
 
 	procArray->numProcs = 3;
 
-	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
-	CreateDistributedSnapshot(&distribSnapshotWithLocalMapping);
+	memset(ds.inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	CreateDistributedSnapshot(&ds);
 
 	/* perform all the validations */
-	assert_true(ds->xminAllDistributedSnapshots == 5);
-	assert_true(ds->xmin == 10);
-	assert_true(ds->xmax == 30);
-	assert_true(ds->count == 2);
-	assert_true(ds->inProgressXidArray[0] == 10);
-	assert_true(ds->inProgressXidArray[1] == 30);
+	assert_true(ds.xminAllDistributedSnapshots == 5);
+	assert_true(ds.xmin == 10);
+	assert_true(ds.xmax == 30);
+	assert_true(ds.count == 2);
+	assert_true(ds.inProgressXidArray[0] == 10);
+	assert_true(ds.inProgressXidArray[1] == 30);
 	assert_true(MyTmGxact->xminDistributedSnapshot == 10);
 
 	/*************************************************************************
@@ -127,25 +122,24 @@ test__CreateDistributedSnapshot(void **state)
 
 	procArray->numProcs = 5;
 
-	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
-	CreateDistributedSnapshot(&distribSnapshotWithLocalMapping);
-	if (ds->count > 1)
-		qsort(ds->inProgressXidArray, ds->count,
+	memset(ds.inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	CreateDistributedSnapshot(&ds);
+	if (ds.count > 1)
+		qsort(ds.inProgressXidArray, ds.count,
 				sizeof(DistributedTransactionId), DistributedSnapshotMappedEntry_Compare);
 
 	/* perform all the validations */
-	assert_true(ds->xminAllDistributedSnapshots == 5);
-	assert_true(ds->xmin == 7);
-	assert_true(ds->xmax == 30);
-	assert_true(ds->count == 4);
+	assert_true(ds.xminAllDistributedSnapshots == 5);
+	assert_true(ds.xmin == 7);
+	assert_true(ds.xmax == 30);
+	assert_true(ds.count == 4);
 	assert_true(MyTmGxact->xminDistributedSnapshot == 7);
-	assert_true(ds->inProgressXidArray[0] == 7);
-	assert_true(ds->inProgressXidArray[1] == 10);
-	assert_true(ds->inProgressXidArray[2] == 15);
-	assert_true(ds->inProgressXidArray[3] == 30);
+	assert_true(ds.inProgressXidArray[0] == 7);
+	assert_true(ds.inProgressXidArray[1] == 10);
+	assert_true(ds.inProgressXidArray[2] == 15);
+	assert_true(ds.inProgressXidArray[3] == 30);
 
-	free(distribSnapshotWithLocalMapping.inProgressMappedLocalXids);
-	free(ds->inProgressXidArray);
+	free(ds.inProgressXidArray);
 	free(allTmGxact);
 	free(procArray);
 }
