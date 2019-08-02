@@ -46,7 +46,7 @@ resources:
     branch: master
     uri: https://github.com/greenplum-db/gpdb
     paths:
-      - gpAux/releng/releng.mk
+      - config/orca.m4
 
 - name: centos5-build
   type: docker-image
