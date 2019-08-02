@@ -273,150 +273,6 @@
             <li>
               <xref href="#gp_hashjoin_tuples_per_bucket"/>
             </li>
-          </ul>
-        </stentry>
-        <stentry>
-          <ul id="ul_wwy_bmx_wp">
-            <li>
-              <xref href="#gp_ignore_error_table"/>
-            </li>
-            <li>
-              <xref href="#topic_lvm_ttc_3p"/>
-            </li>
-            <li>
-              <xref href="#gp_instrument_shmem_size"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_debug_retry_interval"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_fc_method"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_queue_depth"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_setup_timeout"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_snd_queue_depth"/>
-            </li>
-            <li>
-              <xref href="#gp_interconnect_type"/>
-            </li>
-            <li>
-              <xref href="#gp_log_format"/>
-            </li>
-            <li>
-              <xref href="#gp_log_fts"/>
-            </li>
-            <li><xref href="#gp_log_interconnect"/>
-            </li>
-            <li>
-              <xref href="#gp_log_gang"/>
-            </li>
-            <li>
-              <xref href="#gp_max_local_distributed_cache"/>
-            </li>
-            <li>
-              <xref href="#gp_max_packet_size"/>
-            </li>
-            <li>
-              <xref href="#gp_max_plan_size"/>
-            </li>
-            <li><xref href="#gp_max_slices"/></li>
-            <li>
-              <xref href="#gp_motion_cost_per_row"/>
-            </li>
-            <li><xref href="#gp_recursive_cte"/></li>
-            <li>
-              <xref href="#gp_reject_percent_threshold"/>
-            </li>
-            <li>
-              <xref href="#gp_reraise_signal"/>
-            </li>
-            <li>
-              <xref href="#gp_resgroup_memory_policy"/>
-            </li>
-            <li><xref href="#gp_resource_group_bypass"/>
-            </li>
-            <li>
-              <xref href="#gp_resource_group_cpu_limit"/>
-            </li>
-            <li>
-              <xref href="#gp_resource_group_memory_limit"/>
-            </li>
-            <li>
-              <xref href="#gp_resource_manager"/>
-            </li>
-            <li>
-              <xref href="#gp_resqueue_memory_policy"/>
-            </li>
-            <li>
-              <xref href="#gp_resqueue_priority"/>
-            </li>
-            <li>
-              <xref href="#gp_resqueue_priority_cpucores_per_segment"/>
-            </li>
-            <li>
-              <xref href="#gp_resqueue_priority_sweeper_interval"/>
-            </li>
-            <li>
-              <xref href="#gp_role"/>
-            </li>
-            <li>
-              <xref href="#gp_safefswritesize"/>
-            </li>
-            <li>
-              <xref href="#gp_segment_connect_timeout"/>
-            </li>
-            <li>
-              <xref href="#gp_segments_for_planner"/>
-            </li>
-            <li>
-              <xref href="#gp_server_version"/>
-            </li>
-            <li>
-              <xref href="#gp_server_version_num"/>
-            </li>
-            <li>
-              <xref href="#gp_session_id"/>
-            </li>
-            <li>
-              <xref href="#gp_set_proc_affinity"/>
-            </li>
-            <li>
-              <xref href="#gp_set_read_only"/>
-            </li>
-            <li>
-              <xref href="#gp_statistics_pullup_from_child_partition"/>
-            </li>
-            <li>
-              <xref href="#gp_statistics_use_fkeys"/>
-            </li>
-            <li><xref href="#gp_use_legacy_hashops"/>
-            </li>
-            <li>
-              <xref href="#gp_vmem_idle_resource_timeout"/>
-            </li>
-            <li>
-              <xref href="#gp_vmem_protect_limit"/>
-            </li>
-            <li>
-              <xref href="#gp_vmem_protect_segworker_cache_limit"/>
-            </li>
-            <li>
-              <xref href="#gp_workfile_compression"/>
-            </li>
-            <li>
-              <xref href="#gp_workfile_limit_files_per_query"/>
-            </li>
-            <li>
-              <xref href="#gp_workfile_limit_per_query"/>
-            </li>
-            <li>
-              <xref href="#gp_workfile_limit_per_segment"/>
-            </li>
             <li>
               <xref href="#gpperfmon_port"/>
             </li>
@@ -460,48 +316,10 @@
             <li>
               <xref href="#listen_addresses"/>
             </li>
-            <li>
-              <xref href="#local_preload_libraries"/>
-            </li>
-            <li>
-              <xref href="#lock_timeout"/>
-            </li>
-            <li>
-              <xref href="#log_autostats"/>
-            </li>
-            <li>
-              <xref href="#log_connections"/>
-            </li>
-            <li>
-              <xref href="#log_disconnections"/>
-            </li>
-            <li>
-              <xref href="#log_dispatch_stats"/>
-            </li>
-            <li>
-              <xref href="#log_duration"/>
-            </li>
-            <li>
-              <xref href="#log_error_verbosity"/>
-            </li>
-            <li>
-              <xref href="#log_executor_stats"/>
-            </li>
-            <li>
-              <xref href="#log_hostname"/>
-            </li>
-            <li>
-              <xref href="#log_min_duration_statement"/>
-            </li>
-            <li>
-              <xref href="#log_min_error_statement"/>
-            </li>
-            <li>
-              <xref href="#log_min_messages"/>
-            </li>
-            <li>
-              <xref href="#log_parser_stats"/>
-            </li>
+          </ul>
+        </stentry>
+        <stentry>
+          <ul id="ul_wwy_bmx_wp">
             <li>
               <xref href="#log_planner_stats"/>
             </li>
@@ -533,10 +351,6 @@
             <li>
               <xref href="#max_connections"/>
             </li>
-          </ul>
-        </stentry>
-        <stentry>
-          <ul id="ul_d5f_hmx_wp">
             <li>
               <xref href="#max_files_per_process"/>
             </li>
