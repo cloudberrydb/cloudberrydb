@@ -15,7 +15,7 @@ PROGRAMS= analyzedb gpactivatestandby gpaddmirrors gpcheckcat gpcheckperf \
 	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpinitstandby \
 	gpinitsystem gpload gpload.py gplogfilter gpmovemirrors \
 	gppkg gprecoverseg gpreload gpscp gpsd gpssh gpssh-exkeys gpstart \
-	gpstate gpstop gpsys1 minirepro postgresql_conf_gp_additions
+	gpstate gpstop gpsys1 minirepro
 
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(bindir)/lib'
