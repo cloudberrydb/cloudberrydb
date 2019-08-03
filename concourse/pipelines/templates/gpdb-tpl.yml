@@ -669,40 +669,32 @@ resources:
     versioned_file: ((pipeline-name))/madlib_gppkg/madlib-master-gp6-rhel6-x86_64.gppkg
 
 - name: cmake_tar
-  type: s3
+  type: gcs
   source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{madlib-bucket-name}}
-    region_name: {{madlib-s3-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{madlib-cmake-versioned-file}}
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    versioned_file: madlib-snowflakes/cmake-3.5.2-Linux-x86_64.tar.gz
 
 - name: pyxb
-  type: s3
+  type: gcs
   source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{madlib-bucket-name}}
-    region_name: {{madlib-s3-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{madlib-pyxb-versioned-file}}
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    versioned_file: madlib-snowflakes/PyXB-1.2.6.tar.gz
 
 - name: eigen
-  type: s3
+  type: gcs
   source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{madlib-bucket-name}}
-    region_name: {{madlib-s3-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{madlib-eigen-versioned-file}}
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    versioned_file: madlib-snowflakes/3.2.tar.gz
 
 - name: boost
-  type: s3
+  type: gcs
   source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{madlib-bucket-name}}
-    region_name: {{madlib-s3-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{madlib-boost-versioned-file}}
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    versioned_file: madlib-snowflakes/boost_1_61_0.tar.gz
 {% endif %}
 
 - name: reduced-frequency-trigger
