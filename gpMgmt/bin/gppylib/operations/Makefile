@@ -5,7 +5,7 @@ include $(top_builddir)/src/Makefile.global
 
 PROGRAMS= initstandby.py test_utils_helper.py
 
-DATA= __init__.py buildMirrorSegments.py deletesystem.py gpcheck.py package.py \
+DATA= __init__.py buildMirrorSegments.py deletesystem.py package.py \
 	rebalanceSegments.py reload.py segment_reconfigurer.py startSegments.py \
 	unix.py utils.py
 

@@ -7,7 +7,7 @@ SUBDIRS= commands data db gpMgmttest operations programs system util
 
 $(recurse)
 
-PROGRAMS= gparray.py gpcheckutil.py gpunit unit2
+PROGRAMS= gparray.py gpunit unit2
 
 DATA= __init__.py datetimeutils.py fault_injection.py gp_era.py gpcatalog.py \
 	gphostcache.py gplog.py gpparseopts.py gpresgroup.py gpsubprocess.py \
