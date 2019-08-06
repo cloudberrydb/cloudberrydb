@@ -1947,7 +1947,7 @@
     <body>
       <p>Adjusts the number of digits displayed for floating-point values, including float4, float8,
         and geometric data types. The parameter value is added to the standard number of digits. The
-        value can be set as high as 2, to include partially-significant digits; this is especially
+        value can be set as high as 3, to include partially-significant digits; this is especially
         useful for dumping float data that needs to be restored exactly. Or it can be set negative
         to suppress unwanted digits. </p>
       <table id="extra_float_digits_table">
