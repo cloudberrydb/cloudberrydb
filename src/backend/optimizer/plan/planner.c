@@ -3141,7 +3141,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			if (must_gather && result_plan->flow->flotype != FLOW_SINGLETON)
 			{
 				/*
-				 * Greeplum specific behavior:
+				 * Greenplum specific behavior:
 				 * Add the postponed gather motion of sorting here.
 				 *`The SQL can reach here has the pattern: select xxx from t order by yyy for update (see
 				 * above must_gather's assignment for details). For read committed isolation level,

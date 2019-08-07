@@ -10,7 +10,7 @@
 # RowExclusiveLock mode. Otherwise, it locks the whole table in ExlusiveLock mode.
 # By default, GDD is set distabled and most the the cases are tested under this
 # condition.
-# Greeplum's logic for Select-Statement with locking clause (for update|no key update|share|key share)
+# Greenplum's logic for Select-Statement with locking clause (for update|no key update|share|key share)
 # is different from upstream:
 #   - For all kinds of select-statement with locking clause, Greenplum locks the entire table in ExclusiveLock
 #   mode, and does not generate LockRows plannode in the plan.
