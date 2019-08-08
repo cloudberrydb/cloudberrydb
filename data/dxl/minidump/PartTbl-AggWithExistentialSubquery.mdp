@@ -74,7 +74,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.1042.1.0" Name="bpchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1042.1.0" Name="bpchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1054.1.0"/>
         <dxl:InequalityOp Mdid="0.1057.1.0"/>
         <dxl:LessThanOp Mdid="0.1058.1.0"/>
@@ -136,8 +136,8 @@
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.423237.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="2.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -195,7 +195,7 @@
           <dxl:OpClass Mdid="0.3018.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>
@@ -376,7 +376,7 @@
                   <dxl:LogicalProject>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="22" Alias="?column?">
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                       </dxl:ProjElem>
                     </dxl:ProjList>
                     <dxl:LogicalSelect>
@@ -404,7 +404,7 @@
                   </dxl:LogicalProject>
                 </dxl:SubqueryExists>
                 <dxl:Ident ColId="2" ColName="d" TypeMdid="0.1700.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAAA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAAA=" DoubleValue="0.000000"/>
               </dxl:If>
             </dxl:AggFunc>
           </dxl:ProjElem>
@@ -468,11 +468,11 @@
                           <dxl:Ident ColId="24" ColName="ColRef_0024" TypeMdid="0.16.1.0"/>
                         </dxl:IsNull>
                       </dxl:Not>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
                     </dxl:If>
                     <dxl:Ident ColId="1" ColName="d" TypeMdid="0.1700.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAAA=" DoubleValue="0.000000"/>
+                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAAA=" DoubleValue="0.000000"/>
                   </dxl:If>
                 </dxl:AggFunc>
               </dxl:ProjElem>
@@ -807,19 +807,19 @@
                                 </dxl:Properties>
                                 <dxl:ProjList/>
                                 <dxl:PartEqFilters>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PartEqFilters>
                                 <dxl:PartFilters>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PartFilters>
                                 <dxl:ResidualFilter>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:ResidualFilter>
                                 <dxl:PropagationExpression>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:PropagationExpression>
                                 <dxl:PrintableFilter>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PrintableFilter>
                               </dxl:PartitionSelector>
                               <dxl:DynamicTableScan PartIndexId="1">
@@ -870,10 +870,10 @@
                             </dxl:Properties>
                             <dxl:ProjList>
                               <dxl:ProjElem ColId="21" Alias="?column?">
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="24" Alias="ColRef_0024">
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="13" Alias="c">
                                 <dxl:Ident ColId="13" ColName="c" TypeMdid="0.1042.1.0" TypeModifier="5"/>

@@ -428,7 +428,7 @@ CMDTypeGenericGPDB::CreateDXLDatumVal
 		case GPDB_TEXT:
 		case GPDB_CASH:
 		case GPDB_UUID:
-			return CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable(mp, mdid, type_modifier, is_passed_by_value, is_null, pba, length, lValue, dValue);
+			return CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
 		// time-related types
 		case GPDB_DATE:
 		case GPDB_TIME:

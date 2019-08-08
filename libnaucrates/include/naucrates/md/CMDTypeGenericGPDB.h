@@ -204,7 +204,7 @@ namespace gpmd
 			virtual
 			ULONG Length () const
 			{
-				return m_length;
+				return m_gpdb_length;
 			}
 			
 			virtual
