@@ -201,7 +201,7 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 	CColRef *colref
 	)
 {
-	if (!CPredicateUtils::FCompareIdentToConstArray(pexpr))
+	if (!(CPredicateUtils::FCompareIdentToConstArray(pexpr) || CPredicateUtils::FCompareCastIdentToConstArray(pexpr)))
 	{
 		return NULL;
 	}
@@ -209,7 +209,16 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 	else
 	{
 		// verify column in expr is the same as column which was passed in
-		CScalarIdent *popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		CScalarIdent *popScId = NULL;
+		if (CUtils::FScalarIdent((*pexpr)[0]))
+		{
+			popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		}
+		else
+		{
+			GPOS_ASSERT(CScalarIdent::FCastedScId((*pexpr)[0]));
+			popScId = CScalarIdent::PopConvert((*(*pexpr)[0])[0]->Pop());
+		}
 		GPOS_ASSERT(colref == (CColRef *) popScId->Pcr());
 	}
 #endif // GPOS_DEBUG

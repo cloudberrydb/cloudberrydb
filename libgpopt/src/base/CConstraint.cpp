@@ -96,11 +96,20 @@ CConstraint::PcnstrFromScalarArrayCmp
 	CScalarArrayCmp::EArrCmpType earrccmpt = popScArrayCmp->Earrcmpt();
 
 	if ((CScalarArrayCmp::EarrcmpAny == earrccmpt  || CScalarArrayCmp::EarrcmpAll == earrccmpt) &&
-		CPredicateUtils::FCompareIdentToConstArray(pexpr))
+		(CPredicateUtils::FCompareIdentToConstArray(pexpr) || CPredicateUtils::FCompareCastIdentToConstArray(pexpr)))
 	{
-		// column
 #ifdef GPOS_DEBUG
-		CScalarIdent *popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		// verify column in expr is the same as column which was passed in
+		CScalarIdent *popScId = NULL;
+		if (CUtils::FScalarIdent((*pexpr)[0]))
+		{
+			popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		}
+		else
+		{
+			GPOS_ASSERT(CScalarIdent::FCastedScId((*pexpr)[0]));
+			popScId = CScalarIdent::PopConvert((*(*pexpr)[0])[0]->Pop());
+		}
 		GPOS_ASSERT (colref == (CColRef *) popScId->Pcr());
 #endif // GPOS_DEBUG
 

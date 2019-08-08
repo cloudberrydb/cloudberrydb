@@ -710,7 +710,7 @@ CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoo
 				IMDType::EcmptNEq == CScalarCmp::PopConvert(pexpr->Pop())->ParseCmpType() &&
 					CScalarBoolOp::EboolopAnd == eboolopParent;
 	}
-	else if (CPredicateUtils::FCompareIdentToConstArray(pexpr))
+	else if (CPredicateUtils::FCompareIdentToConstArray(pexpr) || CPredicateUtils::FCompareCastIdentToConstArray(pexpr))
 	{
 		fConvertableExpression = true;
 	}
@@ -718,7 +718,16 @@ CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoo
 	if (fConvertableExpression)
 	{
 		GPOS_ASSERT(0 < pexpr->Arity());
-		CScalarIdent *pscid = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		CScalarIdent *pscid = NULL;
+		if (CUtils::FScalarIdent((*pexpr)[0]))
+		{
+			pscid = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		}
+		else
+		{
+			GPOS_ASSERT(CScalarIdent::FCastedScId((*pexpr)[0]));
+			pscid = CScalarIdent::PopConvert((*(*pexpr)[0])[0]->Pop());
+		}
 		if (!CUtils::FConstrainableType(pscid->MdidType()))
 		{
 			fConvertableExpression = false;
