@@ -90,7 +90,7 @@
             </li>
             <li><xref href="#default_text_search_config" format="dita"/></li>
             <li>
-              <xref href="#default_transction_deferrable"/>
+              <xref href="#default_transaction_deferrable"/>
             </li>
             <li>
               <xref href="#default_transaction_isolation"/>
@@ -268,10 +268,12 @@
               <xref href="#gp_gpperfmon_send_interval"/>
             </li>
             <li>
-              <xref href="#gpperfmon_log_alert_level"/>
-            </li>
-            <li>
               <xref href="#gp_hashjoin_tuples_per_bucket"/>
+            </li>
+            <li><xref href="#gp_vmem_protect_limit"/></li>
+            <li><xref href="#gp_vmem_idle_resource_timeout"/></li>
+            <li>
+              <xref href="#gpperfmon_log_alert_level"/>
             </li>
             <li>
               <xref href="#gpperfmon_port"/>
