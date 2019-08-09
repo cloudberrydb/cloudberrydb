@@ -858,10 +858,14 @@ jobs:
           args:
           - -exc
           - |
-            bats_core_src/install.sh /usr/local
-            cd gpdb_src/concourse
-            bats -t scripts/*.bats
-            python -m unittest discover --verbose -s scripts/ -p *_test.py
+            python -m unittest discover --verbose -s gpdb_src/concourse/scripts/ -p *_test.py
+
+            if ls gpdb_src/concourse/scripts/*.bats >/dev/null 2>&1; then
+              bats_core_src/install.sh /usr/local
+
+              cd gpdb_src/concourse
+              bats -t scripts/*.bats
+            fi
 
 ## ======================================================================
 ##   ____                      _ _
