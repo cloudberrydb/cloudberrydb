@@ -7500,16 +7500,17 @@ set_config_by_name(PG_FUNCTION_ARGS)
 							 true,
 							 0);
 
-    if (Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode())
-    {
-			StringInfoData buffer;
-			initStringInfo(&buffer);
-			appendStringInfo(&buffer, "SET ");
-			if (is_local)
-					appendStringInfo(&buffer, "LOCAL ");
-			appendStringInfo(&buffer, "%s TO '%s'", name, value);
-			CdbDispatchSetCommand(buffer.data, false /* cancelOnError */);
-    }
+	if (Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode())
+	{
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+		appendStringInfo(&buffer, "SET ");
+		if (is_local)
+			appendStringInfo(&buffer, "LOCAL ");
+		appendStringInfo(&buffer, "%s TO '%s'", name, value);
+		CdbDispatchSetCommand(buffer.data, false /* cancelOnError */ );
+	}
 
 	/* get the new current value */
 	new_value = GetConfigOptionByName(name, NULL);
