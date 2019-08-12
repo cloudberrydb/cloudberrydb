@@ -10,7 +10,7 @@ CREATE
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 SELECT gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
@@ -25,7 +25,7 @@ SELECT gp_request_fts_probe_scan();
 SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 
 -- expect: insert/update/select works
@@ -83,5 +83,5 @@ DROP
 SELECT gp_inject_fault('fts_probe', 'reset', 1);
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)

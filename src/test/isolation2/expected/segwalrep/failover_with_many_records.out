@@ -24,7 +24,7 @@ CREATE
 1:SELECT gp_inject_fault_infinite('checkpoint_after_redo_calculated', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 1;
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 2&:CHECKPOINT;  <waiting ...>
 3:INSERT INTO t VALUES (1, 0);
@@ -40,7 +40,7 @@ INSERT 25
 1:SELECT gp_inject_fault_infinite('checkpoint_after_redo_calculated', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 1;
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 2<:  <... completed>
 CHECKPOINT

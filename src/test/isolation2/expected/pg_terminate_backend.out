@@ -5,7 +5,7 @@ CREATE
 select gp_inject_fault('heap_insert', 'infinite_loop', '', '', 'terminate_backend_t', 1, 1, 0, dbid) from gp_segment_configuration where content = 1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 -- expect this command to be terminated by 'test pg_terminate_backend'
@@ -14,7 +14,7 @@ select gp_inject_fault('heap_insert', 'infinite_loop', '', '', 'terminate_backen
 select gp_wait_until_triggered_fault('heap_insert', 1, dbid) from gp_segment_configuration where content = 1 and role = 'p';
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 
 -- extract the pid for the previous query
@@ -35,7 +35,7 @@ server closed the connection unexpectedly
 select gp_inject_fault('heap_insert', 'reset', dbid) from gp_segment_configuration where content = 1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 -- the table should be empty if insert was terminated

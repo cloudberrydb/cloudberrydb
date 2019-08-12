@@ -34,12 +34,12 @@ INSERT 1
 select gp_inject_fault('fts_probe', 'reset', 1);
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 -- force scan to trigger the fault
 select gp_request_fts_probe_scan();
@@ -51,7 +51,7 @@ select gp_request_fts_probe_scan();
 select gp_wait_until_triggered_fault('fts_probe', 1, 1);
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 
 -- stop a mirror and show commit on dbid 2 will block
@@ -119,7 +119,7 @@ COMMIT
 select gp_inject_fault('fts_probe', 'reset', 1);
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 -- everything should be back to normal

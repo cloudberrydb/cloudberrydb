@@ -18,7 +18,7 @@ select application_name, state, sync_state from pg_stat_replication;
 select gp_inject_fault('dtm_broadcast_commit_prepared', 'suspend', dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 1&: create table committed_by_standby(a int, b int);  <waiting ...>
@@ -26,7 +26,7 @@ select gp_inject_fault('dtm_broadcast_commit_prepared', 'suspend', dbid) from gp
 select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 1, dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 
 -- Scenario2: standby broadcasts abort-prepared for a transaction that
@@ -37,12 +37,12 @@ select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 1, dbid) f
 select gp_inject_fault('transaction_abort_after_distributed_prepared', 'error', dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 select gp_inject_fault('transaction_abort_failure', 'suspend', dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 2&: create table aborted_by_standby(a int, b int);  <waiting ...>
@@ -50,7 +50,7 @@ select gp_inject_fault('transaction_abort_failure', 'suspend', dbid) from gp_seg
 select gp_wait_until_triggered_fault('transaction_abort_failure', 1, dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 
 -- Promote standby
@@ -86,7 +86,7 @@ LINE 1: select count(*) from aborted_by_standby;
 select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = -1 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 1<:  <... completed>
 CREATE

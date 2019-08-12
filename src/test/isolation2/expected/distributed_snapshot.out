@@ -35,13 +35,13 @@ INSERT 1
 1: SELECT gp_inject_fault('distributedlog_advance_oldest_xmin', 'suspend', '', 'postgres', '', 1, -1, 5, dbid) from gp_segment_configuration where content = 0 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 3&:@db_name postgres: SELECT count(*) > 0 from gp_dist_random('gp_id');  <waiting ...>
 1: SELECT gp_wait_until_triggered_fault('distributedlog_advance_oldest_xmin', 1, dbid) from gp_segment_configuration where content = 0 and role = 'p';
  gp_wait_until_triggered_fault 
 -------------------------------
- t                             
+ Success:                      
 (1 row)
 2: COMMIT;
 COMMIT
@@ -53,7 +53,7 @@ INSERT 1
 1: SELECT gp_inject_fault('distributedlog_advance_oldest_xmin', 'reset', dbid) from gp_segment_configuration where content = 0 and role = 'p';
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 3<:  <... completed>
  ?column? 

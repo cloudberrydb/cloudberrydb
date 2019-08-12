@@ -98,7 +98,7 @@ server stopped
 select gp_inject_fault_infinite('get_dns_cached_address', 'skip', 1);
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 
 -- trigger failover
@@ -127,7 +127,7 @@ select gp_request_fts_probe_scan();
 select gp_inject_fault('get_dns_cached_address', 'reset', 1);
  gp_inject_fault 
 -----------------
- t               
+ Success:        
 (1 row)
 
 -- session 1: in no transaction and no temp table created, it's safe to

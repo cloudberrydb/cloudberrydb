@@ -103,7 +103,7 @@ select dbid from gp_segment_configuration where content = 0 and role = 'p';
 select gp_inject_fault_infinite('fts_handle_message', 'infinite_loop', dbid) from gp_segment_configuration where content = 0 and role = 'p';
  gp_inject_fault_infinite 
 --------------------------
- t                        
+ Success:                 
 (1 row)
 
 -- trigger failover

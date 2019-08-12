@@ -137,10 +137,9 @@ PL/pgSQL function checkpoint_and_wait_for_replication_replay(integer) line 27 at
 -- triggered immediately, rather that waiting until the next probe
 -- interval.
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
-NOTICE:  Success:
  gp_inject_fault_infinite 
 --------------------------
- t
+ Success:
 (1 row)
 
 select gp_request_fts_probe_scan();
@@ -150,10 +149,9 @@ select gp_request_fts_probe_scan();
 (1 row)
 
 select gp_wait_until_triggered_fault('fts_probe', 1, 1);
-NOTICE:  Success:
  gp_wait_until_triggered_fault 
 -------------------------------
- t
+ Success:
 (1 row)
 
 -- stop a mirror
@@ -224,10 +222,9 @@ select sync_error from gp_stat_replication where gp_segment_id = 0;
 
 -- Resume FTS probes and perform a probe scan.
 select gp_inject_fault('fts_probe', 'reset', 1);
-NOTICE:  Success:
  gp_inject_fault 
 -----------------
- t
+ Success:
 (1 row)
 
 select gp_request_fts_probe_scan();
