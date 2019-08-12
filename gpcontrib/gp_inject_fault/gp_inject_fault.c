@@ -115,6 +115,47 @@ gp_inject_fault(PG_FUNCTION_ARGS)
 	PG_RETURN_DATUM(BoolGetDatum(true));
 }
 
+
+static void
+getHostnameAndPort(int dbid, char **hostname, int *port)
+{
+	HeapTuple	tuple;
+	Relation    configrel;
+	ScanKeyData scankey[1];
+	SysScanDesc scan;
+	Datum       attr;
+	bool        isNull;
+
+	configrel = heap_open(GpSegmentConfigRelationId, AccessShareLock);
+	ScanKeyInit(&scankey[0],
+				Anum_gp_segment_configuration_dbid,
+				BTEqualStrategyNumber, F_INT2EQ,
+				Int16GetDatum(dbid));
+	scan = systable_beginscan(configrel, GpSegmentConfigDbidIndexId, true,
+							  NULL, 1, scankey);
+
+	tuple = systable_getnext(scan);
+
+	if (HeapTupleIsValid(tuple))
+	{
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+							RelationGetDescr(configrel), &isNull);
+		Assert(!isNull);
+		*hostname = TextDatumGetCString(attr);
+
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
+							RelationGetDescr(configrel), &isNull);
+		Assert(!isNull);
+		*port = DatumGetInt16(attr);
+	}
+	else
+		elog(ERROR, "dbid %d not found", dbid);
+
+	systable_endscan(scan);
+	heap_close(configrel, NoLock);
+}
+
+
 PG_FUNCTION_INFO_V1(gp_inject_fault2);
 Datum
 gp_inject_fault2(PG_FUNCTION_ARGS)
@@ -128,8 +169,8 @@ gp_inject_fault2(PG_FUNCTION_ARGS)
 	int		endOccurrence = PG_GETARG_INT32(6);
 	int		extraArg = PG_GETARG_INT32(7);
 	int		dbid = PG_GETARG_INT32(8);
-	char	*hostname = TextDatumGetCString(PG_GETARG_DATUM(9));
-	int		port = PG_GETARG_INT32(10);
+	char	*hostname;
+	int		port;
 	char	*response;
 
 	/* Fast path if injecting fault in our postmaster. */
@@ -150,6 +191,7 @@ gp_inject_fault2(PG_FUNCTION_ARGS)
 		PGconn *conn;
 		PGresult *res;
 
+		getHostnameAndPort(dbid, &hostname, &port);
 		snprintf(conninfo, 1024, "host=%s port=%d %s=%s",
 				 hostname, port, GPCONN_TYPE, GPCONN_TYPE_FAULT);
 		conn = PQconnectdb(conninfo);

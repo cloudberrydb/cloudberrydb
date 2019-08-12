@@ -56,9 +56,7 @@ CREATE FUNCTION gp_inject_fault2(
   start_occurrence int4,
   end_occurrence int4,
   extra_arg int4,
-  db_id int4,
-  hostname text,
-  port int4)
+  db_id int4)
 RETURNS text
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE STRICT NO SQL;
@@ -68,22 +66,18 @@ LANGUAGE C VOLATILE STRICT NO SQL;
 CREATE FUNCTION gp_inject_fault2(
   faultname text,
   type text,
-  db_id int4,
-  hostname text,
-  port int4)
+  db_id int4)
 RETURNS text
-AS $$ select gp_inject_fault2($1, $2, '', '', '', 1, 1, 0, $3, $4, $5) $$
+AS $$ select gp_inject_fault2($1, $2, '', '', '', 1, 1, 0, $3) $$
 LANGUAGE SQL;
 
 -- Simpler version, always trigger until fault is reset.
 CREATE FUNCTION gp_inject_fault_infinite2(
   faultname text,
   type text,
-  db_id int4,
-  hostname text,
-  port int4)
+  db_id int4)
 RETURNS text
-AS $$ select gp_inject_fault2($1, $2, '', '', '', 1, -1, 0, $3, $4, $5) $$
+AS $$ select gp_inject_fault2($1, $2, '', '', '', 1, -1, 0, $3) $$
 LANGUAGE SQL;
 
 -- Simpler version to avoid confusion for wait_until_triggered fault.
@@ -92,9 +86,7 @@ LANGUAGE SQL;
 CREATE FUNCTION gp_wait_until_triggered_fault2(
   faultname text,
   numtimestriggered int4,
-  db_id int4,
-  hostname text,
-  port int4)
+  db_id int4)
 RETURNS text
-AS $$ select gp_inject_fault2($1, 'wait_until_triggered', '', '', '', 1, 1, $2, $3, $4, $5) $$
+AS $$ select gp_inject_fault2($1, 'wait_until_triggered', '', '', '', 1, 1, $2, $3) $$
 LANGUAGE SQL;
