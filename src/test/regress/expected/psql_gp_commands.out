@@ -11,18 +11,14 @@
 (1 row)
 
 \dx+ gp_inject*
-                              Objects in extension "gp_inject_fault"
-                                        Object Description                                        
---------------------------------------------------------------------------------------------------
+                       Objects in extension "gp_inject_fault"
+                                 Object Description                                 
+------------------------------------------------------------------------------------
  function gp_inject_fault(text,text,integer)
  function gp_inject_fault(text,text,text,text,text,integer,integer,integer,integer)
- function gp_inject_fault2(text,text,integer,text,integer)
- function gp_inject_fault2(text,text,text,text,text,integer,integer,integer,integer,text,integer)
  function gp_inject_fault_infinite(text,text,integer)
- function gp_inject_fault_infinite2(text,text,integer,text,integer)
  function gp_wait_until_triggered_fault(text,integer,integer)
- function gp_wait_until_triggered_fault2(text,integer,integer,text,integer)
-(8 rows)
+(4 rows)
 
 --
 -- Test extended \du flags

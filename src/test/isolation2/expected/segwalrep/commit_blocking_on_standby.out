@@ -15,10 +15,10 @@ select application_name, state, sync_state from pg_stat_replication;
 (1 row)
 
 -- Inject fault on standby to skip WAL flush.
-select gp_inject_fault_infinite2('walrecv_skip_flush', 'skip', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='m';
- gp_inject_fault_infinite2 
----------------------------
- Success:                  
+select gp_inject_fault_infinite('walrecv_skip_flush', 'skip', dbid) from gp_segment_configuration where content=-1 and role='m';
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
 (1 row)
 
 begin;
@@ -30,10 +30,10 @@ CREATE
 checkpoint;
 CHECKPOINT
 
-select gp_wait_until_triggered_fault2('walrecv_skip_flush', 1, dbid, hostname, port) from gp_segment_configuration where content=-1 and role='m';
- gp_wait_until_triggered_fault2 
---------------------------------
- Success:                       
+select gp_wait_until_triggered_fault('walrecv_skip_flush', 1, dbid) from gp_segment_configuration where content=-1 and role='m';
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
 (1 row)
 
 -- Should block in commit (SyncrepWaitForLSN()), waiting for commit
@@ -53,10 +53,10 @@ select datname, waiting_reason, query from pg_stat_activity where waiting_reason
  isolation2test | replication    | create table commit_blocking_on_standby_t1 (a int) distributed by (a); 
 (1 row)
 
-select gp_inject_fault2('walrecv_skip_flush', 'reset', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='m';
- gp_inject_fault2 
-------------------
- Success:         
+select gp_inject_fault('walrecv_skip_flush', 'reset', dbid) from gp_segment_configuration where content=-1 and role='m';
+ gp_inject_fault 
+-----------------
+ Success:        
 (1 row)
 
 -- Ensure that commits are no longer blocked.
@@ -84,17 +84,17 @@ INSERT 1
 
 -- Suspend WAL sender in main loop.  "infinite_loop" fault type does
 -- not block signals.
-select gp_inject_fault_infinite2('wal_sender_loop', 'infinite_loop', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='p';
- gp_inject_fault_infinite2 
----------------------------
- Success:                  
+select gp_inject_fault_infinite('wal_sender_loop', 'infinite_loop', dbid) from gp_segment_configuration where content=-1 and role='p';
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
 (1 row)
 
 -- Inject fault on standby to skip WAL flush.
-select gp_inject_fault_infinite2('walrecv_skip_flush', 'skip', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='m';
- gp_inject_fault_infinite2 
----------------------------
- Success:                  
+select gp_inject_fault_infinite('walrecv_skip_flush', 'skip', dbid) from gp_segment_configuration where content=-1 and role='m';
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
 (1 row)
 
 -- Kill existing walsender.  WAL sender and WAL receiver processes
@@ -130,10 +130,10 @@ select wait_until_standby_in_state('catchup');
                              
 (1 row)
 
-select gp_wait_until_triggered_fault2('wal_sender_loop', 1, dbid, hostname, port) from gp_segment_configuration where content=-1 and role='p';
- gp_wait_until_triggered_fault2 
---------------------------------
- Success:                       
+select gp_wait_until_triggered_fault('wal_sender_loop', 1, dbid) from gp_segment_configuration where content=-1 and role='p';
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
 (1 row)
 
 -- WAL sender should be stuck in CATCHUP state.
@@ -149,25 +149,25 @@ select application_name, state, sync_state from pg_stat_replication;
 commit;
 COMMIT
 
-select gp_inject_fault2('wal_sender_after_caughtup_within_range', 'suspend', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='p';
- gp_inject_fault2 
-------------------
- Success:         
+select gp_inject_fault('wal_sender_after_caughtup_within_range', 'suspend', dbid) from gp_segment_configuration where content=-1 and role='p';
+ gp_inject_fault 
+-----------------
+ Success:        
 (1 row)
 
-select gp_inject_fault2('wal_sender_loop', 'reset', dbid, hostname, port) from gp_segment_configuration where content=-1 and role='p';
- gp_inject_fault2 
-------------------
- Success:         
+select gp_inject_fault('wal_sender_loop', 'reset', dbid) from gp_segment_configuration where content=-1 and role='p';
+ gp_inject_fault 
+-----------------
+ Success:        
 (1 row)
 
 -- Once this fault is triggered, WAL sender should have set
 -- caughtup_within_range to true because difference between
 -- sent_location and flush_location is within 1 WAL segment (64) MB.
-select gp_wait_until_triggered_fault2( 'wal_sender_after_caughtup_within_range', 1, dbid, hostname, port) from gp_segment_configuration where content=-1 and role='p';
- gp_wait_until_triggered_fault2 
---------------------------------
- Success:                       
+select gp_wait_until_triggered_fault( 'wal_sender_after_caughtup_within_range', 1, dbid) from gp_segment_configuration where content=-1 and role='p';
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
 (1 row)
 
 -- Should block because standby is considered to have caughtup within
@@ -187,11 +187,11 @@ select datname, waiting_reason, query from pg_stat_activity where waiting_reason
 (1 row)
 
 -- Reset faults on primary as well as mirror.
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content=-1;
- gp_inject_fault2 
-------------------
- Success:         
- Success:         
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content=-1;
+ gp_inject_fault 
+-----------------
+ Success:        
+ Success:        
 (2 rows)
 
 1<:  <... completed>

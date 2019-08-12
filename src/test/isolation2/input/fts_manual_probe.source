@@ -22,7 +22,7 @@
 
 include: helpers/server_helpers.sql;
 
-select gp_inject_fault2('all', 'reset', 1, hostname, port) from master();
+select gp_inject_fault('all', 'reset', 1) from master();
 
 create temp table fts_probe_results(seq serial, seq_name varchar(20),
                                     current_started int, expected_start_delta int,
@@ -75,56 +75,56 @@ select insert_expected_stats('initial', 0, 0);
 select * from get_stats;
 
 -- piggyback test: start multiple probes
-select gp_inject_fault_infinite2('ftsNotify_before', 'suspend', 1, hostname, port) from master();
-select gp_inject_fault_infinite2('ftsLoop_after_latch', 'suspend', 1, hostname, port) from master();
-select gp_inject_fault_infinite2('ftsLoop_before_probe', 'suspend', 1, hostname, port) from master();
+select gp_inject_fault_infinite('ftsNotify_before', 'suspend', 1) from master();
+select gp_inject_fault_infinite('ftsLoop_after_latch', 'suspend', 1) from master();
+select gp_inject_fault_infinite('ftsLoop_before_probe', 'suspend', 1) from master();
 
 1&: select gp_request_fts_probe_scan();
 2&: select gp_request_fts_probe_scan();
 3&: select gp_request_fts_probe_scan();
 
 -- piggyback: ensure the probe requests are at a known starting location
-select gp_wait_until_triggered_fault2('ftsNotify_before', 3, 1, hostname, port) from master();
+select gp_wait_until_triggered_fault('ftsNotify_before', 3, 1) from master();
 
 -- piggyback: ensure the ftsLoop is triggered only once
-select gp_wait_until_triggered_fault2('ftsLoop_after_latch', 1, 1, hostname, port) from master();
-select gp_inject_fault2('ftsLoop_after_latch', 'resume', 1, hostname, port) from master();
+select gp_wait_until_triggered_fault('ftsLoop_after_latch', 1, 1) from master();
+select gp_inject_fault('ftsLoop_after_latch', 'resume', 1) from master();
 
 -- piggyback: ensure the ftsLoop is at a known starting location
-select gp_wait_until_triggered_fault2('ftsLoop_before_probe', 1, 1, hostname, port) from master();
+select gp_wait_until_triggered_fault('ftsLoop_before_probe', 1, 1) from master();
 select insert_expected_stats('top_of_ftsLoop', 0, 0);
 select * from get_stats;
-select gp_inject_fault2('ftsNotify_before', 'resume', 1, hostname, port) from master();
+select gp_inject_fault('ftsNotify_before', 'resume', 1) from master();
 
 -- piggyback: trap the probe requests inside the ftsLoop
-select gp_inject_fault_infinite2('ftsLoop_after_probe', 'suspend', 1, hostname, port) from master();
-select gp_inject_fault2('ftsLoop_before_probe', 'resume', 1, hostname, port) from master();
-select gp_wait_until_triggered_fault2('ftsLoop_after_probe', 1, 1, hostname, port) from master();
+select gp_inject_fault_infinite('ftsLoop_after_probe', 'suspend', 1) from master();
+select gp_inject_fault('ftsLoop_before_probe', 'resume', 1) from master();
+select gp_wait_until_triggered_fault('ftsLoop_after_probe', 1, 1) from master();
 
 select insert_expected_stats('bottom_of_ftsLoop', 1, 0);
 select * from get_stats;
 
 -- fresh result test: issue a new probe request during the in progress piggyback ftsLoop
-select gp_inject_fault2('ftsLoop_before_probe', 'reset', 1, hostname, port) from master();
-select gp_inject_fault_infinite2('ftsLoop_before_probe', 'suspend', 1, hostname, port) from master();
+select gp_inject_fault('ftsLoop_before_probe', 'reset', 1) from master();
+select gp_inject_fault_infinite('ftsLoop_before_probe', 'suspend', 1) from master();
 4&: select gp_request_fts_probe_scan();
 
 -- piggyback: resume the suspended piggyback ftsLoop
-select gp_inject_fault2('ftsLoop_after_probe', 'resume', 1, hostname, port) from master();
+select gp_inject_fault('ftsLoop_after_probe', 'resume', 1) from master();
 
 1<:
 2<:
 3<:
 
 -- fresh result: ensure the next ftsLoop iteration is at a known starting location
-select gp_wait_until_triggered_fault2('ftsLoop_before_probe', 1, 1, hostname, port) from master();
+select gp_wait_until_triggered_fault('ftsLoop_before_probe', 1, 1) from master();
 
 -- piggyback: query the probe stats before the start of the 'fresh result' ftsLoop
 select insert_expected_stats('piggyback_result', 1, 1);
 select * from get_stats;
 
 -- fresh result: resume the suspended ftsLoop
-select gp_inject_fault2('ftsLoop_before_probe', 'resume', 1, hostname, port) from master();
+select gp_inject_fault('ftsLoop_before_probe', 'resume', 1) from master();
 
 4<:
 

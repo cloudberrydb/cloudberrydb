@@ -27,10 +27,10 @@ END;
 $$LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION force_mirrors_to_catch_up() RETURNS VOID AS $$
 BEGIN
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'sleep', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'sleep', dbid) FROM gp_segment_configuration WHERE role='m';
     PERFORM insert_noop_xlog_record();
-    PERFORM gp_wait_until_triggered_fault2('after_xlog_redo_noop', 1, dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'reset', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_wait_until_triggered_fault('after_xlog_redo_noop', 1, dbid) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'reset', dbid) FROM gp_segment_configuration WHERE role='m';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,10 +55,10 @@ drop database dowell;
 --CASE 1: error in segment after db file physically created
 --
 --reset status
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
 -- inject fault on content0 primary to error out after copying
 -- template db directory
-select gp_inject_fault2('create_db_after_file_copy', 'error', dbid, hostname, port)
+select gp_inject_fault('create_db_after_file_copy', 'error', dbid)
 from gp_segment_configuration where content=0 and role='p';
 
 -- should fail
@@ -80,8 +80,8 @@ set gp_select_invisible=off;
 --
 --CASE 2: error after XLOG_DBASE_CREATE on master
 --
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
-select gp_inject_fault2('after_xlog_create_database', 'error', dbid, hostname, port)
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
+select gp_inject_fault('after_xlog_create_database', 'error', dbid)
 from gp_segment_configuration where content=-1 and role='p';
 -- should fail
 create database db2;
@@ -100,8 +100,8 @@ set gp_select_invisible=off;
 --
 --CASE 3: error after XLOG_DBASE_CREATE on segment
 --
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
-select gp_inject_fault2('after_xlog_create_database', 'error', dbid, hostname, port)
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
+select gp_inject_fault('after_xlog_create_database', 'error', dbid)
 from gp_segment_configuration where content=0 and role='p';
 -- should fail
 create database db3;
@@ -120,10 +120,10 @@ set gp_select_invisible=off;
 --
 --CASE 4: panic after XLOG_XACT_PREPARE on segment
 --
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
-select gp_inject_fault2('end_prepare_two_phase', 'panic', dbid, hostname, port)
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
+select gp_inject_fault('end_prepare_two_phase', 'panic', dbid)
 from gp_segment_configuration where content=0 and role='p';
-select gp_inject_fault_infinite2('fts_probe', 'skip', dbid, hostname, port)
+select gp_inject_fault_infinite('fts_probe', 'skip', dbid)
 from gp_segment_configuration where content=0 and role='p';
 -- should fail
 create database db4;
@@ -137,6 +137,6 @@ select db_dirs(oid) from pg_database where datname = 'db4';
 
 set gp_select_invisible=off;
 -- start_ignore
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
 select force_mirrors_to_catch_up();
 -- end_ignore

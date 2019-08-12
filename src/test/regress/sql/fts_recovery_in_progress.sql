@@ -3,7 +3,7 @@
 -- in-recovery to FTS, primary is not actually going through crash-recovery in
 -- test.
 select role, preferred_role, mode, status from gp_segment_configuration where content = 0;
-select gp_inject_fault_infinite2('fts_conn_startup_packet', 'skip', dbid, hostname, port)
+select gp_inject_fault_infinite('fts_conn_startup_packet', 'skip', dbid)
 from gp_segment_configuration where content = 0 and role = 'p';
 -- to make test deterministic and fast
 -- start_ignore
@@ -23,14 +23,14 @@ from gp_segment_configuration where content = 0 and role = 'p';
 select pg_sleep(5);
 show gp_fts_probe_retries;
 select gp_request_fts_probe_scan();
-select gp_wait_until_triggered_fault2('fts_conn_startup_packet', 3, dbid, hostname, port)
+select gp_wait_until_triggered_fault('fts_conn_startup_packet', 3, dbid)
 from gp_segment_configuration where content = 0 and role = 'p';
 select role, preferred_role, mode, status from gp_segment_configuration where content = 0;
 
 -- test other scenario where recovery on primary is hung and hence FTS marks
 -- primary down and promotes mirror. When 'fts_recovery_in_progress' is set to
 -- skip it mimics the behavior of hung recovery on primary.
-select gp_inject_fault_infinite2('fts_recovery_in_progress', 'skip', dbid, hostname, port)
+select gp_inject_fault_infinite('fts_recovery_in_progress', 'skip', dbid)
 from gp_segment_configuration where content = 0 and role = 'p';
 -- We call gp_request_fts_probe_scan twice to guarantee that the scan happens
 -- after the fts_recovery_in_progress fault has been injected. If periodic fts
@@ -104,5 +104,5 @@ select role, preferred_role, mode, status from gp_segment_configuration where co
 -- end_ignore
 
 -- cleanup steps
-select gp_inject_fault2('all', 'reset', dbid, hostname, port)
+select gp_inject_fault('all', 'reset', dbid)
 from gp_segment_configuration where content = 0 and role = 'p';

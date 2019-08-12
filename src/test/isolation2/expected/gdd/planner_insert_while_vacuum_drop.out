@@ -5,17 +5,17 @@
 -- partition so it keeps waiting and the deadlock is not observed.
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 CREATE
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
- gp_inject_fault2 
-------------------
- Success:         
- Success:         
- Success:         
- Success:         
- Success:         
- Success:         
- Success:         
- Success:         
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
+ gp_inject_fault 
+-----------------
+ Success:        
+ Success:        
+ Success:        
+ Success:        
+ Success:        
+ Success:        
+ Success:        
+ Success:        
 (8 rows)
 
 -- Helper function
@@ -39,17 +39,17 @@ show gp_enable_global_deadlock_detector;
 (1 row)
 
 -- VACUUM drop phase is blocked before it opens the child relation on the primary
-SELECT gp_inject_fault2('vacuum_relation_open_relation_during_drop_phase', 'suspend', dbid, hostname, port) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
- gp_inject_fault2 
-------------------
- Success:         
+SELECT gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'suspend', dbid) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
+ gp_inject_fault 
+-----------------
+ Success:        
 (1 row)
 -- VACUUM takes AccessExclusiveLock on the leaf partition on QD
 1&: VACUUM ao_part_tbl;  <waiting ...>
-SELECT gp_wait_until_triggered_fault2('vacuum_relation_open_relation_during_drop_phase', 1, dbid, hostname, port) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
- gp_wait_until_triggered_fault2 
---------------------------------
- Success:                       
+SELECT gp_wait_until_triggered_fault('vacuum_relation_open_relation_during_drop_phase', 1, dbid) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
 (1 row)
 
 -- And INSERT is blocked until it acquires the RowExclusiveLock on the child relation
@@ -64,10 +64,10 @@ SELECT wait_until_acquired_lock_on_rel('ao_part_tbl_1_prt_1', 'RowExclusiveLock'
 (1 row)
 
 -- Reset the fault on VACUUM.
-SELECT gp_inject_fault2('vacuum_relation_open_relation_during_drop_phase', 'reset', dbid, hostname, port) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
- gp_inject_fault2 
-------------------
- Success:         
+SELECT gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', dbid) FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
+ gp_inject_fault 
+-----------------
+ Success:        
 (1 row)
 -- VACUUM waits for AccessExclusiveLock on the leaf table on QE
 1<:  <... completed>

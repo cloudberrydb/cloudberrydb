@@ -57,10 +57,10 @@ $$LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION force_mirrors_to_catch_up() RETURNS VOID AS $$
 BEGIN
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'sleep', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'sleep', dbid) FROM gp_segment_configuration WHERE role='m';
     PERFORM insert_noop_xlog_record();
-    PERFORM gp_wait_until_triggered_fault2('after_xlog_redo_noop', 1, dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'reset', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_wait_until_triggered_fault('after_xlog_redo_noop', 1, dbid) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'reset', dbid) FROM gp_segment_configuration WHERE role='m';
 END;
 $$ LANGUAGE plpgsql;
 

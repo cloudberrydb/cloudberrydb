@@ -59,7 +59,7 @@ create or replace function disable_fts() returns void as $$
 	begin
 		-- intentionally skip fts during these tests
 		-- we know we're going to be inducing errors and panics on primaries
-		perform gp_inject_fault_infinite2('fts_probe', 'skip', dbid, hostname, port)
+		perform gp_inject_fault_infinite('fts_probe', 'skip', dbid)
 			from gp_segment_configuration
 			where content = master_content_id
 			and role = master_primary_role;
@@ -69,7 +69,7 @@ create or replace function disable_fts() returns void as $$
 		-- also, ensure that the fts loop observes the probe being skipped before
 		-- continuing with the test because it could still be in the middle of a
 		-- previous probe
-		perform gp_wait_until_triggered_fault2('fts_probe', 1, dbid, hostname, port)
+		perform gp_wait_until_triggered_fault2('fts_probe', 1, dbid)
 			from gp_segment_configuration
 			where content = master_content_id
 			and role = master_primary_role;
@@ -83,8 +83,8 @@ create or replace function setup(content_id integer, fault_name text, fault_acti
 		perform setup_tablespace_location_dir_for_test(tablespace_dir);
 
 		-- setup faults
-		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
-		perform gp_inject_fault2(fault_name, fault_action_type, dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 		perform disable_fts();
 	end;
 $$ LANGUAGE plpgsql;
@@ -92,7 +92,7 @@ create or replace function cleanup(content_id integer, tablespace_location_dir t
 	begin
 		CHECKPOINT; -- ensure primary/master xlogs do not leak into following test
 		perform force_mirrors_to_catch_up();
-		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration;
+		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
 		perform remove_tablespace_location_directory(tablespace_location_dir);
 	end;
 $$ LANGUAGE plpgsql;
@@ -131,10 +131,10 @@ END;
 $$LANGUAGE plpgsql;
 create or replace function force_mirrors_to_catch_up() returns void as $$
 begin
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'sleep', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'sleep', dbid) FROM gp_segment_configuration WHERE role='m';
     PERFORM insert_noop_xlog_record();
-    PERFORM gp_wait_until_triggered_fault2('after_xlog_redo_noop', 1, dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
-    PERFORM gp_inject_fault2('after_xlog_redo_noop', 'reset', dbid, hostname, port) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_wait_until_triggered_fault('after_xlog_redo_noop', 1, dbid) FROM gp_segment_configuration WHERE role='m';
+    PERFORM gp_inject_fault('after_xlog_redo_noop', 'reset', dbid) FROM gp_segment_configuration WHERE role='m';
 end;
 $$ language plpgsql;
 create or replace function wait_for_primaries_to_restart() returns boolean as $$
@@ -635,9 +635,9 @@ select setup_tablespace_location_dir_for_test(:'tablespace_location');
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2('after_xlog_tblspc_drop', 'error', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = 0;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('after_xlog_tblspc_drop', 'error', dbid) from gp_segment_configuration where role = 'p' and content = 0;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -672,9 +672,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespace should st
             -1 | pg_global
 (12 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = 0;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = 0;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -718,9 +718,9 @@ select setup_tablespace_location_dir_for_test(:'tablespace_location');
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2('after_xlog_tblspc_drop', 'error', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('after_xlog_tblspc_drop', 'error', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -755,9 +755,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespace should st
             -1 | pg_global
 (12 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -875,9 +875,9 @@ select disable_fts();
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -915,9 +915,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespace should no
             -1 | pg_global
 (8 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -961,9 +961,9 @@ select disable_fts();
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -1004,9 +1004,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespaces should e
              2 | pg_global
 (12 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -1052,9 +1052,9 @@ select disable_fts();
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -1089,9 +1089,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespaces should e
             -1 | pg_global
 (12 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -1131,9 +1131,9 @@ select setup_tablespace_location_dir_for_test(:'tablespace_location');
 (1 row)
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
-select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
@@ -1168,9 +1168,9 @@ select * from list_tablespace_catalog_without_oid(); -- the tablespaces should e
             -1 | pg_global
 (12 rows)
 
-select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
- gp_inject_fault2 
-------------------
+select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 

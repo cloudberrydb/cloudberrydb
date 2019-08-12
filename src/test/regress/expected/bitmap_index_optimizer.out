@@ -633,9 +633,9 @@ drop table unlogged_test;
 -- disable fault-tolerance service (FTS) probing to ensure
 -- the mirror does not accidentally get promoted
 --
-SELECT gp_inject_fault_infinite2('fts_probe', 'skip', dbid, hostname, port) FROM gp_segment_configuration WHERE role = 'p' and content = -1;
- gp_inject_fault_infinite2 
----------------------------
+SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' and content = -1;
+ gp_inject_fault_infinite 
+--------------------------
  Success:
 (1 row)
 
@@ -648,14 +648,11 @@ INSERT INTO bm_test_update SELECT i,i FROM generate_series (1, 10000) i;
 CHECKPOINT;
 -- skip all further checkpoint
 SELECT gp_inject_fault_infinite('checkpoint', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content > -1;
-NOTICE:  Success:  (seg0 172.17.0.10:25435 pid=69866)
-NOTICE:  Success:  (seg1 172.17.0.10:25433 pid=69867)
-NOTICE:  Success:  (seg2 172.17.0.10:25434 pid=69868)
  gp_inject_fault_infinite 
 --------------------------
- t
- t
- t
+ Success:
+ Success:
+ Success:
 (3 rows)
 
 INSERT INTO bm_test_insert SELECT generate_series (1, 10000);
@@ -664,18 +661,15 @@ UPDATE bm_test_update SET b=b+1;
 SELECT gp_inject_fault_infinite('finish_prepared_after_record_commit_prepared', 'panic', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content > -1;
 WARNING:  consider disabling FTS probes while injecting a panic.  (seg0 127.0.0.1:7002 pid=98667)
 HINT:  Inject a 'skip' into the 'fts_probe' fault to disable FTS probing.
-NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=98667)
 WARNING:  consider disabling FTS probes while injecting a panic.  (seg1 127.0.0.1:7003 pid=98668)
 HINT:  Inject a 'skip' into the 'fts_probe' fault to disable FTS probing.
-NOTICE:  Success:  (seg1 127.0.0.1:7003 pid=98668)
 WARNING:  consider disabling FTS probes while injecting a panic.  (seg2 127.0.0.1:7004 pid=98669)
 HINT:  Inject a 'skip' into the 'fts_probe' fault to disable FTS probing.
-NOTICE:  Success:  (seg2 127.0.0.1:7004 pid=98669)
  gp_inject_fault_infinite 
 --------------------------
- t
- t
- t
+ Success:
+ Success:
+ Success:
 (3 rows)
 
 SET client_min_messages='ERROR';
@@ -684,25 +678,19 @@ RESET client_min_messages;
 -- reconnect to the database after restart
 \c
 SELECT gp_inject_fault('checkpoint', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content > -1;
-NOTICE:  Success:  (seg1 172.17.0.10:25433 pid=69945)
-NOTICE:  Success:  (seg2 172.17.0.10:25434 pid=69946)
-NOTICE:  Success:  (seg0 172.17.0.10:25435 pid=69944)
  gp_inject_fault 
 -----------------
- t
- t
- t
+ Success:
+ Success:
+ Success:
 (3 rows)
 
 SELECT gp_inject_fault('finish_prepared_after_record_commit_prepared', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content > -1;
-NOTICE:  Success:  (seg1 172.17.0.10:25433 pid=69945)
-NOTICE:  Success:  (seg2 172.17.0.10:25434 pid=69946)
-NOTICE:  Success:  (seg0 172.17.0.10:25435 pid=69944)
  gp_inject_fault 
 -----------------
- t
- t
- t
+ Success:
+ Success:
+ Success:
 (3 rows)
 
 SET enable_seqscan=off;
@@ -724,9 +712,9 @@ DROP TABLE bm_test_update;
 --
 -- re-enable fault-tolerance service (FTS) probing after recovery completed.
 --
-SELECT gp_inject_fault2('fts_probe', 'reset', dbid, hostname, port) FROM gp_segment_configuration WHERE role = 'p' and content = -1;
- gp_inject_fault2 
-------------------
+SELECT gp_inject_fault('fts_probe', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' and content = -1;
+ gp_inject_fault 
+-----------------
  Success:
 (1 row)
 
