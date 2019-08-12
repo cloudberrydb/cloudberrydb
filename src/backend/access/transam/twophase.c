@@ -113,7 +113,6 @@ int			max_prepared_xacts = 0;
  * typedef struct GlobalTransactionData *GlobalTransaction appears in
  * twophase.h
  */
-#define GIDSIZE 200
 
 typedef struct GlobalTransactionData
 {
@@ -961,26 +960,6 @@ TwoPhaseGetDummyProc(TransactionId xid)
  * Header for a 2PC state file
  */
 #define TWOPHASE_MAGIC	0x57F94532		/* format identifier */
-
-typedef struct TwoPhaseFileHeader
-{
-	uint32		magic;			/* format identifier */
-	uint32		total_len;		/* actual file length */
-	TransactionId xid;			/* original transaction XID */
-	Oid			database;		/* OID of database it was in */
-	TimestampTz prepared_at;	/* time of preparation */
-	Oid			owner;			/* user running the transaction */
-	int32		nsubxacts;		/* number of following subxact XIDs */
-	int32		ncommitrels;	/* number of delete-on-commit rels */
-	int32		nabortrels;		/* number of delete-on-abort rels */
-	int32		ncommitdbs;		/* number of delete-on-commit dbs */
-	int32		nabortdbs;		/* number of delete-on-abort dbs */
-	int32		ninvalmsgs;		/* number of cache invalidation messages */
-	bool		initfileinval;	/* does relcache init file need invalidation? */
-	Oid			tablespace_oid_to_delete_on_abort;
-	Oid			tablespace_oid_to_delete_on_commit;
-	char		gid[GIDSIZE];	/* GID for transaction */
-} TwoPhaseFileHeader;
 
 /*
  * Header for each record in a state file

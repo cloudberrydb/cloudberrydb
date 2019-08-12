@@ -19,6 +19,7 @@
 #include "storage/dbdirnode.h"
 #include "storage/sinval.h"
 #include "utils/timestamp.h"
+#include "access/twophase.h"
 
 
 static char*
@@ -205,6 +206,25 @@ xact_desc_assignment(StringInfo buf, xl_xact_assignment *xlrec)
 		appendStringInfo(buf, " %u", xlrec->xsub[i]);
 }
 
+static void
+xact_desc_prepare(StringInfo buf, XLogRecord *record) {
+	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+	char		*rec = XLogRecGetData(record);
+
+	Assert(info == XLOG_XACT_PREPARE);
+
+	TwoPhaseFileHeader *tpfh = (TwoPhaseFileHeader*) rec;
+
+	appendStringInfo(buf, "at = %s", timestamptz_to_str(tpfh->prepared_at));
+
+	appendStringInfo(buf, "; gid = %s", tpfh->gid);
+
+	if (tpfh->tablespace_oid_to_delete_on_commit != InvalidOid)
+		appendStringInfo(buf, "; tablespace_oid_to_delete_on_commit = %u", tpfh->tablespace_oid_to_delete_on_commit);
+	if (tpfh->tablespace_oid_to_delete_on_abort != InvalidOid)
+		appendStringInfo(buf, "; tablespace_oid_to_delete_on_abort = %u", tpfh->tablespace_oid_to_delete_on_abort);
+}
+
 void
 xact_desc(StringInfo buf, XLogRecord *record)
 {
@@ -234,7 +254,8 @@ xact_desc(StringInfo buf, XLogRecord *record)
 	}
 	else if (info == XLOG_XACT_PREPARE)
 	{
-		appendStringInfoString(buf, "prepare");
+		appendStringInfoString(buf, "prepare: ");
+		xact_desc_prepare(buf, record);
 	}
 	else if (info == XLOG_XACT_COMMIT_PREPARED)
 	{
