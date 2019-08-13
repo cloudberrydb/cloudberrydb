@@ -383,21 +383,21 @@ resources:
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos6/libquicklz-(\d.*)\.el6\.x86_64\.rpm
+    versioned_file: centos6/libquicklz-1.5.0-1.el6.x86_64.rpm
 
 - name: libquicklz-devel-centos6
   type: gcs
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos6/libquicklz-devel-(\d.*)\.el6\.x86_64\.rpm
+    versioned_file: centos6/libquicklz-devel-1.5.0-1.el6.x86_64.rpm
 
 - name: libsigar-centos6
   type: gcs
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos6/sigar-rhel6_x86_64-(.*)\.targz
+    versioned_file: centos6/sigar-rhel6_x86_64-1.6.5.targz
 
 {% endif %}
 {% if "centos7" in os_types %}
@@ -406,21 +406,21 @@ resources:
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos7/libquicklz-(\d.*)\.el7\.x86_64\.rpm
+    versioned_file: centos7/libquicklz-1.5.0-1.el7.x86_64.rpm
 
 - name: libquicklz-devel-centos7
   type: gcs
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos7/libquicklz-devel-(\d.*)\.el7\.x86_64\.rpm
+    versioned_file: centos7/libquicklz-devel-1.5.0-1.el7.x86_64.rpm
 
 - name: libsigar-centos7
   type: gcs
   source:
     bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
     json_key: ((gcs-key))
-    regexp: centos7/sigar-rhel7_x86_64-(.*)\.targz
+    versioned_file: centos7/sigar-rhel7_x86_64-1.6.5.targz
 
 {% endif %}
 {% if "ubuntu18.04" in os_types %}
