@@ -7502,13 +7502,25 @@ set_config_by_name(PG_FUNCTION_ARGS)
 
 	if (Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode())
 	{
-		StringInfoData buffer;
+		StringInfoData	buffer;
+		char		   *quoted_name;
+		char		   *quoted_value = NULL;
 
 		initStringInfo(&buffer);
-		appendStringInfo(&buffer, "SET ");
-		if (is_local)
-			appendStringInfo(&buffer, "LOCAL ");
-		appendStringInfo(&buffer, "%s TO '%s'", name, value);
+
+		quoted_name = quote_literal_cstr(name);
+		if (value)
+			quoted_value = quote_literal_cstr(value);
+
+		appendStringInfo(&buffer, "SELECT pg_catalog.set_config(%s, %s, %s)",
+						 quoted_name,
+						 quoted_value ? quoted_value : "NULL",
+						 is_local ? "true" : "false");
+
+		if (quoted_value)
+			pfree(quoted_value);
+		pfree(quoted_name);
+
 		CdbDispatchSetCommand(buffer.data, false /* cancelOnError */ );
 	}
 
