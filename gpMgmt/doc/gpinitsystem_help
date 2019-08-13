@@ -14,12 +14,14 @@ gpinitsystem -c <gpinitsystem_config>
             [-p <postgresql_conf_param_file>]
             [-s <standby_master_host>
                 [-P <standby_master_port>] [ {-S | --standby-datadir} <standby_master_datadir>]
-            [--max_connections=<number>] [--shared_buffers=<size>]
-            [--locale=<locale>] [--lc-collate=<locale>] 
+            [-m number | --max_connections=<number>] [--shared_buffers=<size>]
+            [-n locale | --locale=<locale>] [--lc-collate=<locale>]
             [--lc-ctype=<locale>] [--lc-messages=<locale>] 
             [--lc-monetary=<locale>] [--lc-numeric=<locale>] 
-            [--lc-time=<locale>] [--su_password=<password>] 
+            [--lc-time=<locale>] [-e password | --su_password=<password>]
             [--mirror-mode={group|spread}] [-a] [-q] [-l <logfile_directory>] [-D]
+            [-I input_configuration_file]
+            [-O output_configuration_file]
 
 gpinitsystem -v
 
@@ -97,6 +99,15 @@ OPTIONS
  you can specify the host file using the MACHINE_LIST_FILE parameter 
  in the gpinitsystem_config file.
 
+-I <input_configuration_file>
+ Optional.  The full path and filename of an input configuration file,
+ which defines the Greenplum Database members and segments using the
+ QD_PRIMARY_ARRAY and PRIMARY_ARRAY parameters. The input configuration
+ file is typically created by using gpinitsystem with the -O
+ output_configuration_file option. You must provide either the -c
+ cluster_configuration_file option or the -I input_configuration_file
+ option to gpinitsystem.
+
 
 --locale=<locale> | -n <locale>  
 
@@ -165,6 +176,15 @@ OPTIONS
 
  Sets the maximum number of client connections allowed to the master. 
  The default is 25.
+
+
+-O output_configuration_file
+ Optional. When used with the -O option, gpinitsystem does not create a new
+ Greenplum Database cluster but instead writes the supplied cluster
+ configuration information to the specified output_configuration_file. This file
+ defines Greenplum Database members and segments using the QD_PRIMARY_ARRAY,
+ PRIMARY_ARRAY, and MIRROR_ARRAY parameters, and can be later used with -I
+ input_configuration_file to initialize a new cluster.
 
 
 -p <postgresql_conf_param_file>
