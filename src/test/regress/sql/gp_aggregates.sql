@@ -134,3 +134,15 @@ CREATE AGGREGATE my_numeric_avg(numeric) (
 create temp table numerictesttab as select g::numeric as n from generate_series(1,10) g;
 
 select my_numeric_avg(n) from numerictesttab;
+
+--- Test distinct on UDF which EXECUTE ON ALL SEGMENTS
+CREATE FUNCTION distinct_test() RETURNS SETOF boolean EXECUTE ON ALL SEGMENTS
+    LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY SELECT true;
+END
+$$;
+
+SELECT DISTINCT distinct_test();
+
+DROP FUNCTION distinct_test();

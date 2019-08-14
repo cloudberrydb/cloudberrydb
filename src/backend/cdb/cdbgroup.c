@@ -4796,8 +4796,21 @@ cost_common_agg(PlannerInfo *root, MppGroupContext *ctx, AggPlanInfo *info, Plan
 
 	Assert(dummy != NULL);
 
-	input_rows = info->input_path->parent->rows;
-	input_width = info->input_path->parent->width;
+	/*
+	 * For Result pathnode, its parent would be set to NULL. In that case, we
+	 * can use the rows in the Path and use 0 as the width.
+	 */
+	if (info->input_path->parent)
+	{
+		input_rows = info->input_path->parent->rows;
+		input_width = info->input_path->parent->width;
+	}
+	else
+	{
+		input_rows = info->input_path->rows;
+		input_width = 0;
+	}
+
 	/* Path input width isn't correct for ctx->sub_tlist so we guess. */
 	n = 32 * list_length(ctx->sub_tlist);
 	input_width = (input_width < n) ? input_width : n;

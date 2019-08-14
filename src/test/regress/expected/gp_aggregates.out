@@ -328,3 +328,17 @@ select my_numeric_avg(n) from numerictesttab;
  5.5000000000000000
 (1 row)
 
+--- Test distinct on UDF which EXECUTE ON ALL SEGMENTS
+CREATE FUNCTION distinct_test() RETURNS SETOF boolean EXECUTE ON ALL SEGMENTS
+    LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY SELECT true;
+END
+$$;
+SELECT DISTINCT distinct_test();
+ distinct_test 
+---------------
+ t
+(1 row)
+
+DROP FUNCTION distinct_test();
