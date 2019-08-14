@@ -1150,6 +1150,12 @@ CStatisticsUtils::DeriveStatsForDynamicScan
 	output_colrefs->Append(base_table_stats->GetColRefSet(mp));
 	output_colrefs->Append(part_selector_stats->GetColRefSet(mp));
 
+	/*
+	 * It should be OK to pass outer refs as empty ColrefSet since this is being used inside the
+	 * ExtractJoinStatsFromJoinPredArray to determine if the Join Predicate has only outer references.
+	 * This can never happen for a Dynamic table scan since we need the predicate to contain the
+	 * partition key in order to generate the DTS in the first place
+	 */
 	CColRefSet *outer_refs = GPOS_NEW(mp) CColRefSet(mp);
 
 	// extract all the conjuncts
@@ -1165,8 +1171,16 @@ CStatisticsUtils::DeriveStatsForDynamicScan
 
 	IStatistics *left_semi_join_stats = base_table_stats->CalcLSJoinStats(mp, part_selector_stats, join_preds_stats);
 
-	// TODO:  May 15 2014, handle unsupported predicates for LS joins
-	// cleanup
+	if (NULL != unsupported_pred_stats)
+	{
+		// apply the unsupported join filters as a filter on top of the join results.
+		// TODO,  June 13 2014 we currently only cap NDVs for filters
+		// (also look at CJoinStatsProcessor::CalcAllJoinStats since most of this code was taken from there)
+		IStatistics *stats_after_join_filter = CFilterStatsProcessor::MakeStatsFilter(mp, dynamic_cast<CStatistics *>(left_semi_join_stats), unsupported_pred_stats, false /* do_cap_NDVs */);
+		left_semi_join_stats->Release();
+		left_semi_join_stats = stats_after_join_filter;
+	}
+
 	CRefCount::SafeRelease(unsupported_pred_stats);
 	output_colrefs->Release();
 	outer_refs->Release();

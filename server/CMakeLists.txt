@@ -158,7 +158,7 @@ PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit
 PartSelectorOnJoinSide PartSelectorOnJoinSide2;
 
 CPartTbl2Test:
-DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
+DPE-with-unsupported-pred DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
 NLJ-Broadcast-DPE-Outer-Child Part-Selection-IN Part-Selection-NOT-IN
 Part-Selection-ConstArray-1 Part-Selection-ConstArray-2 PartTbl-WindowFunction
 PartTbl-MultiWayJoin PartTbl-MultiWayJoinWithDPE PartTbl-MultiWayJoinWithDPE-2
