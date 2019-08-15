@@ -395,6 +395,7 @@
 		"optimizer_nestloop_factor",
 		"optimizer_parallel_union",
 		"optimizer_penalize_broadcast_threshold",
+		"optimizer_penalize_skew",
 		"optimizer_print_expression_properties",
 		"optimizer_print_group_properties",
 		"optimizer_print_job_scheduler",
