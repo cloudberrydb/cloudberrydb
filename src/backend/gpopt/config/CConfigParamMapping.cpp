@@ -392,7 +392,7 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elements[] =
 		},
 		{
 		EopttracePenalizeSkewedHashJoin,
-		&optimizer_penalize_skewed_hashjoin,
+		&optimizer_penalize_skew,
 		true, // m_negate_param
 		GPOS_WSZ_LIT("Penalize a hash join with a skewed redistribute as a child.")
 		}

@@ -382,7 +382,7 @@ bool		optimizer_force_multistage_agg;
 bool		optimizer_force_three_stage_scalar_dqa;
 bool		optimizer_force_expanded_distinct_aggs;
 bool		optimizer_force_agg_skew_avoidance;
-bool		optimizer_penalize_skewed_hashjoin;
+bool		optimizer_penalize_skew;
 bool		optimizer_prune_computed_columns;
 bool		optimizer_push_requirements_from_consumer_to_producer;
 bool		optimizer_enforce_subplans;
@@ -2413,12 +2413,12 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"optimizer_penalize_skewed_hashjoin", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Penalize a hashjoin with a skewed hash redistribute below it."),
+		{"optimizer_penalize_skew", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Penalize operators with skewed hash redistribute below it."),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
-		&optimizer_penalize_skewed_hashjoin,
+		&optimizer_penalize_skew,
 		true,
 		NULL, NULL, NULL
 	},
