@@ -239,9 +239,9 @@ SELECT foo();</codeblock>
             <table id="in204913">
                 <title>Built-in functions and operators</title>
                 <tgroup cols="4">
-                    <colspec colname="col1" colnum="1" colwidth="129.02*"/>
-                    <colspec colname="col2" colnum="2" colwidth="108*"/>
-                    <colspec colname="col3" colnum="3" colwidth="144*"/>
+                    <colspec colname="col1" colnum="1" colwidth="75*"/>
+                    <colspec colname="col2" colnum="2" colwidth="50*"/>
+                    <colspec colname="col3" colnum="3" colwidth="60*"/>
                     <colspec colname="col4" colnum="4" colwidth="86*"/>
                     <thead>
                         <row>
@@ -533,25 +533,25 @@ SELECT foo();</codeblock>
                                     text)</p>
                                 <p>database_to_xmlschema(nulls boolean, tableforest boolean,
                                     targetns text)</p>
-                                <p>database_to_xml_and_xmlschema(nulls boolean, tableforest boolean,
-                                    targetns text)</p>
+                                <p>database_to_xml_and_xmlschema( nulls boolean, tableforest
+                                    boolean, targetns text)</p>
                                 <p>query_to_xml(query text, nulls boolean, tableforest boolean,
                                     targetns text)</p>
                                 <p>query_to_xmlschema(query text, nulls boolean, tableforest
                                     boolean, targetns text)</p>
-                                <p>query_to_xml_and_xmlschema(query text, nulls boolean, tableforest
-                                    boolean, targetns text)</p>
+                                <p>query_to_xml_and_xmlschema( query text, nulls boolean,
+                                    tableforest boolean, targetns text)</p>
                                 <p>schema_to_xml(schema name, nulls boolean, tableforest boolean,
                                     targetns text)</p>
-                                <p>schema_to_xmlschema(schema name, nulls boolean, tableforest
+                                <p>schema_to_xmlschema( schema name, nulls boolean, tableforest
                                     boolean, targetns text)</p>
-                                <p>schema_to_xml_and_xmlschema(schema name, nulls boolean,
+                                <p>schema_to_xml_and_xmlschema( schema name, nulls boolean,
                                     tableforest boolean, targetns text)</p>
                                 <p>table_to_xml(tbl regclass, nulls boolean, tableforest boolean,
                                     targetns text)</p>
-                                <p>table_to_xmlschema(tbl regclass, nulls boolean, tableforest
+                                <p>table_to_xmlschema( tbl regclass, nulls boolean, tableforest
                                     boolean, targetns text)</p>
-                                <p>table_to_xml_and_xmlschema(tbl regclass, nulls boolean,
+                                <p>table_to_xml_and_xmlschema( tbl regclass, nulls boolean,
                                     tableforest boolean, targetns text)</p>
                                 <p>xmlagg(xml)</p>
                                 <p>xmlconcat(xml[, ...])</p>
@@ -594,8 +594,8 @@ SELECT foo();</codeblock>
                 <tgroup cols="4">
                     <colspec colname="col1" colnum="1" colwidth="87.46*"/>
                     <colspec colname="col2" colnum="2" colwidth="59*"/>
-                    <colspec colname="col3" colnum="3" colwidth="180*"/>
-                    <colspec colname="col4" colnum="4" colwidth="121.77*"/>
+                    <colspec colname="col3" colnum="3" colwidth="150*"/>
+                    <colspec colname="col4" colnum="4" colwidth="86*"/>
                     <thead>
                         <row>
                             <entry colname="col1">Function</entry>
@@ -793,10 +793,10 @@ SELECT foo();</codeblock>
             <table id="in2073121">
                 <title>Advanced Aggregate Functions</title>
                 <tgroup cols="4">
-                    <colspec colname="col1" colnum="1" colwidth="102.44*"/>
+                    <colspec colname="col1" colnum="1" colwidth="75*"/>
                     <colspec colname="col2" colnum="2" colwidth="59*"/>
-                    <colspec colname="col3" colnum="3" colwidth="201.99*"/>
-                    <colspec colname="col4" colnum="4" colwidth="128*"/>
+                    <colspec colname="col3" colnum="3" colwidth="101.99*"/>
+                    <colspec colname="col4" colnum="4" colwidth="90*"/>
                     <thead>
                         <row>
                             <entry colname="col1">Function</entry>
@@ -817,9 +817,8 @@ SELECT foo();</codeblock>
                                 <codeph>MEDIAN (<i>expression</i>)</codeph>
                                 <p>
                                     <i>Example:</i>
-                                </p>
-                                <codeblock>SELECT department_id, MEDIAN(salary) 
-FROM employees 
+                                </p><codeblock>SELECT departmzent_id, MEDIAN(salary) 
+  FROM employees 
 GROUP BY department_id; </codeblock>
                             </entry>
                             <entry colname="col4">Can take a two-dimensional array as input. Treats
@@ -830,16 +829,17 @@ GROUP BY department_id; </codeblock>
                                 <codeph>sum(array[])</codeph>
                             </entry>
                             <entry colname="col2">
-                                <codeph>smallint[]int[], bigint[], float[]</codeph>
+                                <codeph>smallint[], int[], bigint[], float[]</codeph>
                             </entry>
                             <entry colname="col3">
                                 <codeph>sum(array[[1,2],[3,4]])</codeph>
                                 <p>
                                     <i>Example:</i>
-                                </p>
-                                <codeblock>CREATE TABLE mymatrix (myvalue int[]);
-INSERT INTO mymatrix VALUES (array[[1,2],[3,4]]);
-INSERT INTO mymatrix VALUES (array[[0,1],[1,0]]);
+                                </p><codeblock>CREATE TABLE mymatrix (myvalue int[]);
+INSERT INTO mymatrix 
+   VALUES (array[[1,2],[3,4]]);
+INSERT INTO mymatrix 
+   VALUES (array[[0,1],[1,0]]);
 SELECT sum(myvalue) FROM mymatrix;
  sum 
 ---------------
@@ -873,7 +873,7 @@ SELECT sum(myvalue) FROM mymatrix;
                                 Returns a set of <codeph>anyelement</codeph>, a polymorphic <xref
                                     format="html"
                                     href="https://www.postgresql.org/docs/9.4/datatype-pseudo.html"
-                                    scope="external"><ph>pseudo-type</ph></xref>  in
+                                    scope="external"><ph>pseudo-type</ph></xref> in
                                 PostgreSQL.</entry>
                         </row>
                     </tbody>
