@@ -16,6 +16,7 @@ set gp_log_gang to 'debug';
 set gp_cached_segworkers_threshold to 10;
 set gp_vmem_idle_resource_timeout to '60s';
 set optimizer_enable_motion_broadcast to off;
+set optimizer_force_multistage_agg to on;
 
 create table test_gang_reuse_t1 (c1 int, c2 int);
 
@@ -41,3 +42,5 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 explain analyze select count(*) from test_gang_reuse_t1 a
   join test_gang_reuse_t1 b using (c2)
 ;
+
+reset optimizer_force_multistage_agg;

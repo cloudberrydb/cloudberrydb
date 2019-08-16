@@ -152,14 +152,13 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                                                                                        Assert Cond: ((row_number() OVER (?)) = 1)
                                                                                        ->  WindowAgg
                                                                                              ->  Hash Join
-                                                                                                   Hash Cond: ((keo4.keo_para_budget_date)::text = (min((min((keo4_1.keo_para_budget_date)::text)))))
+                                                                                                   Hash Cond: ((keo4.keo_para_budget_date)::text = (min((keo4_1.keo_para_budget_date)::text)))
                                                                                                    ->  Gather Motion 3:1  (slice3; segments: 3)
                                                                                                          ->  Seq Scan on keo4
                                                                                                    ->  Hash
                                                                                                          ->  Aggregate
                                                                                                                ->  Gather Motion 3:1  (slice4; segments: 3)
-                                                                                                                     ->  Aggregate
-                                                                                                                           ->  Seq Scan on keo4 keo4_1
+                                                                                                                     ->  Seq Scan on keo4 keo4_1
                                  ->  Hash
                                        ->  Broadcast Motion 3:3  (slice6; segments: 3)
                                              ->  Seq Scan on keo2

@@ -5,6 +5,9 @@ set search_path to hashagg_spill;
 create language plpythonu;
 -- end_ignore
 
+-- force multistage to increase likelihood of spilling
+set optimizer_force_multistage_agg = on;
+
 -- set workfile is created to true if all segment did it.
 create or replace function hashagg_spill.is_workfile_created(explain_query text)
 returns setof int as
@@ -103,4 +106,5 @@ select count(*) from (select i, count(*) from aggspill group by i,j,t having cou
 select count(*) from (select i, count(*) from aggspill group by i,j,t having count(*) = 3) g;
 select count(*) from (select a, avg(b), avg(c) from aggspill_numeric_avg group by a) g;
 
+reset optimizer_force_multistage_agg;
 drop schema hashagg_spill cascade;

@@ -200,7 +200,7 @@ select count_operator('select count(*) from multi_stage_test group by b;','Group
 
 --CLEANUP
 reset optimizer_segments;
-set optimizer_force_multistage_agg = off;
+reset optimizer_force_multistage_agg;
 --
 -- Testing not picking HashAgg for aggregates without combine functions
 --

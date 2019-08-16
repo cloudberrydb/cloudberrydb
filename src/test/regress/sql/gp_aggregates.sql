@@ -117,7 +117,9 @@ create aggregate mysum_prefunc(int4) (
   stype=bigint,
   prefunc=int8pl_with_notice
 );
+set optimizer_force_multistage_agg = on;
 select mysum_prefunc(a::int4) from aggtest;
+reset optimizer_force_multistage_agg;
 
 
 -- Test an aggregate with 'internal' transition type, and a combine function,
