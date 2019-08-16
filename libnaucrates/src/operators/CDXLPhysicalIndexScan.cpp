@@ -115,7 +115,7 @@ CDXLPhysicalIndexScan::GetIndexScanDir() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalIndexScan::MakeDXLTableDescr
+//		CDXLPhysicalIndexScan::GetDXLTableDescr
 //
 //	@doc:
 //		Return the associated table descriptor

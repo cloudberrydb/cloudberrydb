@@ -458,7 +458,7 @@ CTranslatorExprToDXL::PdxlnTblScan
 	CColRefArray *pdrgpcrOutput = popTblScan->PdrgpcrOutput();
 	
 	// translate table descriptor
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(popTblScan->Ptabdesc(), pdrgpcrOutput);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(popTblScan->Ptabdesc(), pdrgpcrOutput, pexprTblScan->Prpp());
 
 	// construct plan costs, if there are not passed as a parameter
 	if (NULL == dxl_properties)
@@ -569,7 +569,7 @@ CTranslatorExprToDXL::PdxlnIndexScan
 	CColRefArray *pdrgpcrOutput = popIs->PdrgpcrOutput();
 
 	// translate table descriptor
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(popIs->Ptabdesc(), pdrgpcrOutput);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(popIs->Ptabdesc(), pdrgpcrOutput, pexprIndexScan->Prpp());
 
 	// create index descriptor
 	CIndexDescriptor *pindexdesc = popIs->Pindexdesc();
@@ -832,7 +832,7 @@ CTranslatorExprToDXL::PdxlnBitmapTableScan
 	CPhysicalBitmapTableScan *pop = CPhysicalBitmapTableScan::PopConvert(pexprBitmapTableScan->Pop());
 
 	// translate table descriptor
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(pop->Ptabdesc(), pop->PdrgpcrOutput());
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(pop->Ptabdesc(), pop->PdrgpcrOutput(), pexprBitmapTableScan->Prpp());
 
 	CDXLPhysicalBitmapTableScan *dxl_op = GPOS_NEW(m_mp) CDXLPhysicalBitmapTableScan(m_mp, table_descr);
 	CDXLNode *pdxlnBitmapTableScan = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
@@ -943,7 +943,7 @@ CTranslatorExprToDXL::PdxlnDynamicTableScan
 	CColRefArray *pdrgpcrOutput = popDTS->PdrgpcrOutput();
 
 	// translate table descriptor
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(popDTS->Ptabdesc(), pdrgpcrOutput);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(popDTS->Ptabdesc(), pdrgpcrOutput, pexprDTS->Prpp());
 
 	// construct plan costs
 	CDXLPhysicalProperties *pdxlpropDTS = GetProperties(pexprDTS);
@@ -1053,7 +1053,7 @@ CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan
 	CPhysicalDynamicBitmapTableScan *pop = CPhysicalDynamicBitmapTableScan::PopConvert(pexprScan->Pop());
 	CColRefArray *pdrgpcrOutput = pop->PdrgpcrOutput();
 
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(pop->Ptabdesc(), pdrgpcrOutput);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(pop->Ptabdesc(), pdrgpcrOutput, pexprScan->Prpp());
 	CDXLPhysicalDynamicBitmapTableScan *pdxlopScan =
 			GPOS_NEW(m_mp) CDXLPhysicalDynamicBitmapTableScan
 						(
@@ -1136,7 +1136,7 @@ CTranslatorExprToDXL::PdxlnDynamicIndexScan
 	CColRefArray *pdrgpcrOutput = popDIS->PdrgpcrOutput();
 	
 	// translate table descriptor
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(popDIS->Ptabdesc(), pdrgpcrOutput);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(popDIS->Ptabdesc(), pdrgpcrOutput, pexprDIS->Prpp());
 
 	// create index descriptor
 	CIndexDescriptor *pindexdesc = popDIS->Pindexdesc();
@@ -5526,7 +5526,7 @@ CTranslatorExprToDXL::PdxlnDML
 
 	CDXLNode *child_dxlnode = CreateDXLNode(pexprChild, pdrgpcrSource, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
 
-	CDXLTableDescr *table_descr = MakeDXLTableDescr(ptabdesc, NULL /*pdrgpcrOutput*/);
+	CDXLTableDescr *table_descr = MakeDXLTableDescr(ptabdesc, NULL /*pdrgpcrOutput*/, NULL /*requiredProperties*/);
 	ULongPtrArray *pdrgpul = CUtils::Pdrgpul(m_mp, pdrgpcrSource);
 
 	CDXLDirectDispatchInfo *dxl_direct_dispatch_info = GetDXLDirectDispatchInfo(pexpr);
@@ -7377,7 +7377,11 @@ CDXLTableDescr *
 CTranslatorExprToDXL::MakeDXLTableDescr
 	(
 	const CTableDescriptor *ptabdesc,
-	const CColRefArray *pdrgpcrOutput
+	const CColRefArray *pdrgpcrOutput,
+	const CReqdPropPlan *
+#ifdef GPOS_DEBUG
+	 reqd_prop_plan
+#endif
 	)
 {
 	GPOS_ASSERT(NULL != ptabdesc);
@@ -7406,6 +7410,13 @@ CTranslatorExprToDXL::MakeDXLTableDescr
 			colref = (*pdrgpcrOutput)[ul];
 			if (colref->GetUsage() != CColRef::EUsed)
 			{
+#ifdef GPOS_DEBUG
+				if (NULL != reqd_prop_plan && NULL != reqd_prop_plan->PcrsRequired())
+				{
+					// ensure that any col removed is not a part of the plan's required cols
+					GPOS_ASSERT(!reqd_prop_plan->PcrsRequired()->FMember(colref));
+				}
+#endif
 				continue;
 			}
 		}

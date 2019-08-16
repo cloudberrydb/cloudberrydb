@@ -510,10 +510,6 @@ namespace gpopt
 			// Helpers for column reference sets
 			//-------------------------------------------------------------------
 
-			// return an array of non-system columns in the given set
-			static
-			CColRefArray *PdrgpcrNonSystemCols(CMemoryPool *mp, CColRefSet *pcrs);
-
 			// create an array of output columns including a key for grouping
 			static
 			CColRefArray *PdrgpcrGroupingKey(CMemoryPool *mp, CExpression *pexpr, CColRefArray **ppdrgpcrKey);

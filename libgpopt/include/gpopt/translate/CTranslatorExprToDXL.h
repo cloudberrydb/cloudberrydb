@@ -647,7 +647,7 @@ namespace gpopt
 			// translate a window frame
 			CDXLWindowFrame *GetWindowFrame(CWindowFrame *pwf);
 
-			CDXLTableDescr *MakeDXLTableDescr(const CTableDescriptor *ptabdesc, const CColRefArray *pdrgpcrOutput);
+			CDXLTableDescr *MakeDXLTableDescr(const CTableDescriptor *ptabdesc, const CColRefArray *pdrgpcrOutput, const CReqdPropPlan *requiredProperties);
 
 			// compute physical properties like operator cost from the expression
 			CDXLPhysicalProperties *GetProperties(const CExpression *pexpr);

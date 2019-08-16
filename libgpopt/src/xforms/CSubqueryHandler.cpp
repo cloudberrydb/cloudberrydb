@@ -27,6 +27,7 @@
 
 #include "gpopt/exception.h"
 
+#include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/operators/ops.h"
 #include "gpopt/xforms/CSubqueryHandler.h"
 #include "gpopt/xforms/CXformUtils.h"
@@ -783,9 +784,23 @@ CSubqueryHandler::FCreateGrpCols
 
 	CColRefSet *pcrsOuterOutput =  CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
 	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsUsedOuter = GPOS_NEW(mp) CColRefSet(mp);
 
 	BOOL fGbOnInner = false;
 	CExpression *pexprScalar = NULL;
+
+	// remove any columns that are not referenced in the query from pcrsOuterOutput
+	CColRefSetIter it(*pcrsOuterOutput);
+
+	while (it.Advance())
+	{
+		CColRef *pcr = it.Pcr();
+
+		if (CColRef::EUsed == pcr->GetUsage())
+		{
+			pcrsUsedOuter->Include(pcr);
+		}
+	}
 	if (!fExistential && !fOuterRefsUnderInner)
 	{
 		GPOS_ASSERT(COperator::EopLogicalSelect == pexprInner->Pop()->Eopid() && "expecting Select expression");
@@ -800,7 +815,7 @@ CSubqueryHandler::FCreateGrpCols
 		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
 		CColRefSet *pcrsGb = GPOS_NEW(mp) CColRefSet(mp);
 		pcrsGb->Include(pcrsUsed);
-		pcrsGb->Difference(pcrsOuterOutput);
+		pcrsGb->Difference(pcrsUsedOuter);
 		GPOS_ASSERT(0 < pcrsGb->Size());
 
 		colref_array = pcrsGb->Pdrgpcr(mp);
@@ -810,6 +825,7 @@ CSubqueryHandler::FCreateGrpCols
 	{
 		if (NULL == CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->Pkc())
 		{
+			pcrsUsedOuter->Release();
 			// outer expression must have a key
 			return false;
 		}
@@ -818,12 +834,13 @@ CSubqueryHandler::FCreateGrpCols
 		if (NULL != pdrgpcrSystemCols && 0 < pdrgpcrSystemCols->Size())
 		{
 			CColRefSet *pcrsSystemCols = GPOS_NEW(mp) CColRefSet(mp, pdrgpcrSystemCols);
-			BOOL fOuterSystemColsReqd = !(pcrsSystemCols->IsDisjoint(pcrsOuterOutput));
+			BOOL fOuterSystemColsReqd = !(pcrsSystemCols->IsDisjoint(pcrsUsedOuter));
 			pcrsSystemCols->Release();
 			if (fOuterSystemColsReqd)
 			{
 				// bail out if system columns from outer's output are required since we
 				// may introduce grouping on unsupported types
+				pcrsUsedOuter->Release();
 				return false;
 			}
 		}
@@ -836,7 +853,7 @@ CSubqueryHandler::FCreateGrpCols
 
 	*ppdrgpcr = colref_array;
 	*pfGbOnInner = fGbOnInner;
-
+	pcrsUsedOuter->Release();
 	return true;
 }
 //---------------------------------------------------------------------------

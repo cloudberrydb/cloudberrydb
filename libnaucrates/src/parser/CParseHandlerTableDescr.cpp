@@ -58,7 +58,7 @@ CParseHandlerTableDescr::~CParseHandlerTableDescr()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerTableDescr::MakeDXLTableDescr
+//		CParseHandlerTableDescr::GetDXLTableDescr
 //
 //	@doc:
 //		Returns the table descriptor constructed by the parse handler
