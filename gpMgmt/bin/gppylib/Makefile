@@ -21,10 +21,10 @@ install: installdirs
 	for file in $(PROGRAMS); do \
 		$(INSTALL_SCRIPT) $$file '$(DESTDIR)$(libdir)/python/gppylib/'$$file ; \
 	done
-	$(PERL) $(top_builddir)/putversion '$(DESTDIR)$(libdir)/python/gppylib/mainUtils.py'
 	for file in $(DATA); do \
 		$(INSTALL_DATA) $$file '$(DESTDIR)$(libdir)/python/gppylib/'$$file ; \
 	done
+	$(PERL) $(top_builddir)/putversion '$(DESTDIR)$(libdir)/python/gppylib/mainUtils.py'
 
 uninstall:
 	for file in $(PROGRAMS) $(DATA); do \
