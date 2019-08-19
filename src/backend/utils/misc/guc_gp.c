@@ -1945,7 +1945,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 
 	{
 		{"optimizer", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Enable Pivotal Query Optimizer."),
+			gettext_noop("Enable GPORCA."),
 			NULL
 		},
 		&optimizer,
