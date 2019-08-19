@@ -208,7 +208,7 @@ xact_desc_assignment(StringInfo buf, xl_xact_assignment *xlrec)
 
 static void
 xact_desc_prepare(StringInfo buf, XLogRecord *record) {
-	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+	uint8		info PG_USED_FOR_ASSERTS_ONLY = record->xl_info & ~XLR_INFO_MASK;
 	char		*rec = XLogRecGetData(record);
 
 	Assert(info == XLOG_XACT_PREPARE);
