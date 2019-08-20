@@ -25,7 +25,7 @@
 using namespace gpopt;
 using namespace gpmd;
 
-#define GPOPT_COLFACTORY_HT_BUCKETS	10000
+#define GPOPT_COLFACTORY_HT_BUCKETS	9999
 
 //---------------------------------------------------------------------------
 //	@function:
