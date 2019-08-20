@@ -725,7 +725,7 @@ ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc)
 	 */
 	if (es->analyze && !es->showstatctx->stats_gathered)
 	{
-		if (!es->currentSlice || sliceRunsOnQD(es->currentSlice))
+		if (Gp_role == GP_ROLE_DISPATCH && (!es->currentSlice || sliceRunsOnQD(es->currentSlice)))
 			cdbexplain_localExecStats(queryDesc->planstate, es->showstatctx);
 
         /* Fill in the plan's Instrumentation with stats from qExecs. */
