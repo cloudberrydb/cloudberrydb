@@ -299,7 +299,7 @@
             <row>
               <entry colname="col1">uuid</entry>
               <entry colname="col2"/>
-              <entry colname="col3">32 bytes</entry>
+              <entry colname="col3">16 bytes</entry>
               <entry colname="col4"/>
               <entry colname="col5">Universally Unique Identifiers according to RFC 4122, ISO/IEC
                 9834-8:2005</entry>
