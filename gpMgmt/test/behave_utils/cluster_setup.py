@@ -36,8 +36,6 @@ class TestCluster:
         self.port_base = '20500'
         self.master_port = os.environ.get('PGPORT', '10300')
         self.mirror_port_base = '21500'
-        self.rep_port_base = '22500'
-        self.mirror_rep_port_base = '23500'
 
         self.gpinitconfig_template = local_path('configs/gpinitconfig_template')
         self.gpinitconfig_mirror_template = local_path('configs/gpinitconfig_mirror_template')
@@ -83,8 +81,6 @@ class TestCluster:
         if self.mirror_enabled:
             transforms['%MIRROR_DIR%'] = (self.mirror_dir + ' ') * self.number_of_segments
             transforms['%MIRROR_PORT_BASE%'] = self.mirror_port_base
-            transforms['%REP_PORT_BASE%'] = self.rep_port_base
-            transforms['%MIRROR_REP_PORT_BASE%'] = self.mirror_rep_port_base
 
         # First generate host file based on number_of_hosts
         with open(self.hosts_file, 'w') as f:
