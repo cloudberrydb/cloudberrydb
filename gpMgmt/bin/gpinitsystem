@@ -1665,9 +1665,6 @@ SCAN_LOG () {
 
 DUMP_OUTPUT_CONFIG () {
     $ECHO "ARRAY_NAME=\"$ARRAY_NAME\"" > $OUTPUT_CONFIG
-    if [ x"" != x"$IP_ALLOW" ] ; then
-	$ECHO "IP_ALLOW=$IP_ALLOW" >> $OUTPUT_CONFIG
-    fi
     if [ x"" != x"$TRUSTED_SHELL" ] ; then
 	$ECHO "TRUSTED_SHELL=$TRUSTED_SHELL" >> $OUTPUT_CONFIG
     fi
