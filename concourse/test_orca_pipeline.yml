@@ -123,7 +123,7 @@ jobs:
       params:
         from: package_tarball/bin_xerces_centos5.tar.gz
 - name: orca_centos5_release
-  max_in_flight: 2
+  max_in_flight: 1
   plan:
   - aggregate:
     - get: gporca-commits-to-test
@@ -154,7 +154,7 @@ jobs:
     params:
       from: package_tarball/bin_orca_centos5_release.tar.gz
 - name: orca_centos5_debug
-  max_in_flight: 2
+  max_in_flight: 1
   plan:
   - aggregate:
     - get: gporca-commits-to-test
@@ -234,7 +234,7 @@ jobs:
     params:
       from: package_tarball/bin_gpdb.tar.gz
 - name: gpdb_icg_with_orca
-  max_in_flight: 1
+  max_in_flight: 3
   plan:
   - aggregate:
     - get: gporca-commits-to-test
@@ -278,7 +278,7 @@ jobs:
           file: icg_output/regression.out
     timeout: 180m
 - name: gpdb_icg_with_planner
-  max_in_flight: 1
+  max_in_flight: 3
   plan:
   - aggregate:
     - get: gporca-commits-to-test
