@@ -34,7 +34,12 @@ run:
             sysctl -w kernel.shmmni=4096
             sysctl -w vm.overcommit_memory=2
             sysctl -w vm.overcommit_ratio=95
-            sysctl -w net.ipv4.ip_local_port_range=\"10000 65535\"
+
+            # the recommended port range overlaps with many testing ports, such
+            # as 15432, 25432, 20000, etc., until we have adjusted all of them
+            # to ports below 10000 we would skip this setting.
+            #sysctl -w net.ipv4.ip_local_port_range=\"10000 65535\"
+
             # additional settings
             sysctl -w kernel.sem=\"500 2048000 200 40960\"
             sysctl -w kernel.sysrq=1
