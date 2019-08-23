@@ -1520,9 +1520,8 @@ CCostModelGPDB::CostBitmapTableScan
 
 		// check whether the user specified overriding values in gucs
 		CDouble dInitScan = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpInitScanFactor)->Get();
-		CDouble dInitRebind = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpBitmapScanRebindCost)->Get();
 
-		GPOS_ASSERT(dInitScan >= 0 && dInitRebind >= 0);
+		GPOS_ASSERT(dInitScan >= 0);
 
 		// For now we are trying to cost Bitmap Scan similar to Index Scan. dIndexFilterCostUnit is
 		// the dominant factor in costing Index Scan so we are using it in our model. Also we are giving
@@ -1533,10 +1532,9 @@ CCostModelGPDB::CostBitmapTableScan
 		// Conceptually the cost of evaluating index qual is also linear in the
 		// number of index columns, but we're only accounting for the dominant cost
 
-		result = CCost(// cost for each byte returned by the index scan plus cost for incremental rebinds
-					   pci->NumRebinds() * (pci->Rows() * pci->Width() * dIndexFilterCostUnit + dInitRebind) +
-					   // init cost
-					   dInitScan);
+		result = CCost(
+					   pci->NumRebinds() * (dInitScan + pci->Rows() * pci->Width() * dIndexFilterCostUnit)
+					  );
 	}
 	else
 	{
