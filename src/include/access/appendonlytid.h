@@ -58,9 +58,23 @@ typedef struct AOTupleId
 
 #define AOTupleIdGet_segmentFileNum(h)        ((((h)->bytes_0_1&0xFE00)>>9)) // 7 bits
 
-#define AOTupleIdGet_rowNum(h) \
-	((((uint64)((h)->bytes_0_1&0x01FF))<<31)|(((uint64)((h)->bytes_2_3))<<15)|(((uint64)((h)->bytes_4_5-1))))
- /* top most 25 bits */	/* 15 bits from bytes_4_5 */
+static inline uint64
+AOTupleIdGet_rowNum(AOTupleId *h)
+{
+	uint64 rowNumber;
+	Assert(h->bytes_4_5 > 0);
+	Assert(h->bytes_4_5 <= 0x8000);
+
+	/* top 25 bits */
+	rowNumber = ((uint64)(h->bytes_0_1&0x01FF))<<31;
+	rowNumber |= ((uint64)(h->bytes_2_3))<<15;
+
+	/* lower 15 bits */
+	/* subtract one since we always add one when initialing the bytes_4_5 */
+	rowNumber |= h->bytes_4_5 - 1;
+
+	return rowNumber;
+}
 
 static inline void
 AOTupleIdInit(AOTupleId *h, uint16 segfilenum, uint64 rownum)
