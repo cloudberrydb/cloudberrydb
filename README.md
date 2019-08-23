@@ -1,10 +1,10 @@
 <pre>
 ======================================================================
-               __________  ____  ____  _________
-              / ____/ __ \/ __ \/ __ \/ ____/   |
-             / / __/ /_/ / / / / / /_/ / /   / /| |
-            / /_/ / ____/ /_/ / _, _/ /___/ ___ |
-            \____/_/    \____/_/ |_|\____/_/  |_|
+                 __________  ____  ____  _________
+                / ____/ __ \/ __ \/ __ \/ ____/   |
+               / / __/ /_/ / / / / /_/ / /   / /| |
+              / /_/ / ____/ /_/ / _, _/ /___/ ___ |
+              \____/_/    \____/_/ |_|\____/_/  |_|
                   The Greenplum Query Optimizer
               Copyright (c) 2015, Pivotal Software, Inc.
             Licensed under the Apache License, Version 2.0
@@ -71,7 +71,7 @@ Much like `make`, `ctest` has a -j option that allows running multiple tests in
 parallel to save time. Using it is recommended for faster testing.
 
 ```
-ctest -j7
+ctest -j8
 ```
 
 By default, `ctest` does not print the output of failed tests. To print the
@@ -79,7 +79,12 @@ output of failed tests, use the `--output-on-failure` flag like so (this is
 useful for debugging failed tests):
 
 ```
-ctest -j7 --output-on-failure
+ctest -j8 --output-on-failure
+```
+
+To run only the previously failed ctests, use the `--rerun-failed` flag.
+```
+ctest -j8 --rerun-failed --output-on-failure
 ```
 
 To run a specific individual test, use the `gporca_test` executable directly.
@@ -120,7 +125,7 @@ set optimizer_enable_constant_expression_evaluation=off;
    under the "minidumps" directory, in the master's data directory:
 
 ```
-$ ls -l ~/data-master/minidumps/
+$ ls -l $MASTER_DATA_DIRECTORY/minidumps/
 total 12
 -rw------- 1 heikki heikki 10818 Jun 10 22:02 Minidump_20160610_220222_4_14.mdp
 ```
@@ -129,10 +134,10 @@ total 12
    data/dxl/minidump directory:
 
 ```
-xmllint --format ~/data-master/minidumps/Minidump_20160610_220222_4_14.mdp > data/dxl/minidump/MyTest.xml
+xmllint --format $MASTER_DATA_DIRECTORY/minidumps/Minidump_20160610_220222_4_14.mdp > data/dxl/minidump/MyTest.mdp
 ```
 
-5. Add it to the test suite, in server/src/unittest/gpopt/minidump/CICGTest.cpp
+4. Add it to the test suite, in server/src/unittest/gpopt/minidump/CICGTest.cpp
 
 ```
 --- a/server/src/unittest/gpopt/minidump/CICGTest.cpp
@@ -147,19 +152,58 @@ xmllint --format ~/data-master/minidumps/Minidump_20160610_220222_4_14.mdp > dat
                 // TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time
 ```
 
+Alternatively, it could also be added to the proper test suite in `server/CMakeLists.txt` as follows:
+```
+--- a/server/CMakeLists.txt
++++ b/server/CMakeLists.txt
+@@ -183,7 +183,8 @@ CPartTbl5Test:
+ PartTbl-IsNullPredicate PartTbl-IsNotNullPredicate PartTbl-IndexOnDefPartOnly
+ PartTbl-SubqueryOuterRef PartTbl-CSQ-PartKey PartTbl-CSQ-NonPartKey
+ PartTbl-LeftOuterHashJoin-DPE-IsNull PartTbl-LeftOuterNLJoin-DPE-IsNull
+-PartTbl-List-DPE-Varchar-Predicates PartTbl-List-DPE-Int-Predicates;
++PartTbl-List-DPE-Varchar-Predicates PartTbl-List-DPE-Int-Predicates
++Mytest;
+```
 
-## [Experimental] Concourse
+<a name="updatetest"></a>
+## Update tests
+
+In some situations, a failing test does not necessarily imply that the fix is
+wrong. Occasionally, existing tests need to be updated. There is now a script
+that allows for users to quickly and easily update existing mdps. This script
+takes in a logfile that it will use to update the mdps. This logfile can be
+obtained from running ctest as shown below.
+
+Existing minidumps can be updated by runing the following:
+
+
+1. Run `ctest -j8`.
+
+2. If there are failing tests, run
+```
+ctest -j8 --rerun-failed --output-on-failure | tee /tmp/failures.out
+```
+
+3. The output file can then be used with the `fix_mdps.py` script.
+```
+gporca/scripts/fix_mdps.py --logFile /tmp/failures.out
+```
+Note: This will overwrite existing mdp files. This is best used after
+committing existing changes, so you can more easily see the diff.
+Alternatively, you can use `gporca/scripts/fix_mdps.py --dryRun` to not change
+mdp files
+
+4. Ensure that all changes are valid and as expected.
+
+## Concourse
 GPORCA contains a series of pipeline and task files to run various sets of tests
 on [concourse](http://concourse.ci/). You can learn more about deploying concourse with
 [bosh at bosh.io](http://bosh.io/).
 
 Our concourse currently runs the following sets of tests:
-* build and ctest on centos5
-* build and ctest on debian8
-
-We are currently working on adding support for the following sets of tests:
 * build and ctest on centos6
-* build GPDB with GPORCA and run `make installcheck-good` on centos6
+* build and ctest on centos7
+* build and ctest on ubuntu18
 
 All configuration files for our concourse pipelines can be found in the `concourse/` 
 directory.
@@ -298,7 +342,10 @@ ninja install -C build
 
 ### Common Issues
 
-Note that because Red Hat-based systems do not normally look for shared libraries in `/usr/local/lib`, it is suggested to add `/usr/local/lib` to the /etc/ld.so.conf and run `ldconfig` to rebuild the shared library cache if developing on one of these Linux distributions.
+Note that because Red Hat-based systems do not normally look for shared
+libraries in `/usr/local/lib`, it is suggested to add `/usr/local/lib` to the
+/etc/ld.so.conf and run `ldconfig` to rebuild the shared library cache if
+developing on one of these Linux distributions.
 
 ## Cleanup
 
@@ -328,12 +375,15 @@ We accept contributions via [Github Pull requests](https://help.github.com/artic
 
 Follow the steps below to open a PR:
 1. Fork the project’s repository
-1. Create your own feature branch (e.g. `git checkout -b better_orca`) and make changes on this branch.
+2. Create your own feature branch (e.g. `git checkout -b better_orca`) and make changes on this branch.
     * Follow the previous sections on this page to setup and build in your environment.
-1. Follow the naming and formatting style guide described [here](StyleGuide.md).
-1. Run through all the [tests](#test) in your feature branch and ensure they are successful.
+3. Follow the naming and formatting style guide described [here](StyleGuide.md).
+4. Run through all the [tests](#test) in your feature branch and ensure they are successful.
     * Follow the [Add tests](#addtest) section to add new tests.
-1. Push your local branch to your fork (e.g. `git push origin better_orca`) and [submit a pull request](https://help.github.com/articles/creating-a-pull-request)
+    * Follow the [Update tests](#updatetest) section to update existing tests.
+    * Make sure that ctest passes in both debug and retail build since there are some tests that do not overlap.
+5. Push your local branch to your fork (e.g. `git push origin better_orca`) and [submit a pull request](https://help.github.com/articles/creating-a-pull-request)
+    * In some cases, ICG tests in GPDB may also need to be modified or additional ICG tests may need to be added to provide full coverage for the fix (for example, if the patch fixes wrong results or an execution specific issue). If such a situation occurs, please create a GPDB pull request and reference it in the GPORCA pull request.
 
 Your contribution will be analyzed for product fit and engineering quality prior to merging.  
 Note: All contributions must be sent using GitHub Pull Requests.  
