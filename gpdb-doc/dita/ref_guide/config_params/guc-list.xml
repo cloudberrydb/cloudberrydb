@@ -446,8 +446,8 @@
             <li>
               <xref href="#optimizer_parallel_union" type="section"
               >optimizer_parallel_union</xref></li>
-            <li><xref href="#optimizer_penalize_skewed_hashjoin" type="section"
-                >optimizer_penalize_skewed_hashjoin</xref></li>
+            <li><xref href="#optimizer_penalize_skew" type="section"
+              >optimizer_penalize_skew</xref></li>
             <li>
               <xref href="#optimizer_print_missing_stats" type="section"
                 >optimizer_print_missing_stats</xref>
