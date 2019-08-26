@@ -1146,6 +1146,7 @@ class gpload:
         self.formatOpts = ""
         self.startTimestamp = time.time()
         self.error_table = False
+        self.gpdb_version = ""
         seenv = False
         seenq = False
 
