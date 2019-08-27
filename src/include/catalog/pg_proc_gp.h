@@ -388,12 +388,6 @@ DATA(insert OID = 9997 ( gp_deprecated  PGNSP PGUID 12 1 0 0 0 f f f f f f i 0 0
 DESCR("raises function deprecation error");
 
 
-/* Fault injection */
-/* gp_fault_inject(int4, int8) => int8 */
-DATA(insert OID = 9999 ( gp_fault_inject  PGNSP PGUID 12 1 0 0 0 f f f f t f v 2 0 20 "23 20" _null_ _null_ _null_ _null_ gp_fault_inject _null_ _null_ _null_ n a ));
-DESCR("Greenplum fault testing only");
-
-
 /* Analyze related */
 /* gp_acquire_sample_rows(oid, int4, bool) => SETOF record */
 DATA(insert OID = 6038 ( gp_acquire_sample_rows  PGNSP PGUID 12 1 1000 0 0 f f f f t t v 3 0 2249 "26 23 16" _null_ _null_ _null_ _null_ gp_acquire_sample_rows _null_ _null_ _null_ n s ));
