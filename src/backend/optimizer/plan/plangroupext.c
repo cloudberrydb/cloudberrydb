@@ -136,6 +136,7 @@ typedef struct GroupExtContext
 
 typedef struct SubqueryScanWalkerContext
 {
+	plan_tree_base_prefix base;
 	SubqueryScan *firstSubqueryScan;
 } SubqueryScanWalkerContext;
 
@@ -227,10 +228,11 @@ subqueryScanWalker(Plan *node,
 }
 
 static SubqueryScan*
-findFirstSubqueryScan(Plan *node)
+findFirstSubqueryScan(PlannerInfo *root, Plan *node)
 {
 	SubqueryScanWalkerContext ctx;
 	ctx.firstSubqueryScan = NULL;
+	ctx.base.node = (Node*)root;
 	subqueryScanWalker(node, &ctx);
 	return ctx.firstSubqueryScan;
 }
@@ -788,7 +790,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 			}
 
 			/* update subplan if current_lefttree has been modified */
-			splan = findFirstSubqueryScan(current_lefttree);
+			splan = findFirstSubqueryScan(root, current_lefttree);
 			if (splan != NULL && splan->subplan != root->simple_rel_array[1]->subplan)
 				root->simple_rel_array[1]->subplan = splan->subplan;
 
@@ -2501,7 +2503,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 				root->simple_rte_array[1] != NULL &&
 				root->simple_rte_array[1]->rtekind == RTE_SUBQUERY)
 			{
-				rollup_subplan = findFirstSubqueryScan(rollup_plan);
+				rollup_subplan = findFirstSubqueryScan(root, rollup_plan);
 				list_nth_replace(rollup_subplans, 0, rollup_subplan);
 			}
 		}
