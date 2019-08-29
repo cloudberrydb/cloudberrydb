@@ -18,6 +18,8 @@
  */
 #include "postgres.h"
 
+#include <math.h>
+
 #include "miscadmin.h" /* work_mem */
 #include "executor/executor.h"
 #include "nodes/execnodes.h"
@@ -517,7 +519,7 @@ lookup_agg_hash_entry(AggState *aggstate,
 			entry_datum = memtuple_getattr(mtup, mt_bind, att, &entry_isNull);
 
 			if ( !input_isNull && !entry_isNull &&
-				 (DatumGetBool(FunctionCall2(&aggstate->eqfunctions[i],
+				 (DatumGetBool(FunctionCall2(&aggstate->phase->eqfunctions[i],
 											 input_datum,
 											 entry_datum)) ) )
 				continue; /* Both non-NULL and equal. */
@@ -806,11 +808,14 @@ create_agg_hash_table(AggState *aggstate)
 	HashAggTable *hashtable;
 	Agg *agg = (Agg *)aggstate->ss.ps.plan;
 	MemoryContext oldcxt;
+	MemoryContext curaggcontext;
 
-	oldcxt = MemoryContextSwitchTo(aggstate->aggcontext);
+	curaggcontext = aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory;
+
+	oldcxt = MemoryContextSwitchTo(curaggcontext);
 	hashtable = (HashAggTable *) palloc0(sizeof(HashAggTable));
 
-	hashtable->entry_cxt = AllocSetContextCreate(aggstate->aggcontext, 
+	hashtable->entry_cxt = AllocSetContextCreate(curaggcontext,
 												 "HashAggTableEntryContext",
 												 ALLOCSET_DEFAULT_MINSIZE,
 												 ALLOCSET_DEFAULT_INITSIZE,
@@ -827,7 +832,7 @@ create_agg_hash_table(AggState *aggstate)
 	keywidth = est_hash_tuple_size(aggstate->ss.ss_ScanTupleSlot, aggstate->hash_needed);
 	keywidth = Min(keywidth, agg->plan.plan_width);
 
-	entrywidth = agg_hash_entrywidth(aggstate->numaggs, keywidth, agg->transSpace);
+	entrywidth = agg_hash_entrywidth(aggstate->numaggs, keywidth, 100 /* FIXME: was transspace */);
 
 	if (!calcHashAggTableSizes(1024.0 * (double) operatorMemKB,
 							agg->numGroups,
@@ -920,7 +925,7 @@ agg_hash_initial_pass(AggState *aggstate)
 	}
 	else
 	{
-		outerslot = ExecProcNode(outerPlanState(aggstate));
+		outerslot = fetch_input_tuple(aggstate);
 	}
 
 	/*
@@ -1003,12 +1008,12 @@ agg_hash_initial_pass(AggState *aggstate)
 			int tup_len = memtuple_get_size((MemTuple)entry->tuple_and_aggs);
 			MemSet((char *)entry->tuple_and_aggs + MAXALIGN(tup_len), 0,
 				   aggstate->numaggs * sizeof(AggStatePerGroupData));
-			initialize_aggregates(aggstate, aggstate->peragg, hashtable->groupaggs->aggs);
+			initialize_aggregates(aggstate, aggstate->peragg, hashtable->groupaggs->aggs, 0);
 		}
 			
 		/* Advance the aggregates */
 		advance_aggregates(aggstate, hashtable->groupaggs->aggs);
-		
+
 		hashtable->num_tuples++;
 
 		/* Reset per-input-tuple context after each tuple */
@@ -1023,7 +1028,7 @@ agg_hash_initial_pass(AggState *aggstate)
 		}
 
 		/* Read the next tuple */
-		outerslot = ExecProcNode(outerPlanState(aggstate));
+		outerslot = fetch_input_tuple(aggstate);
 	}
 
 	if (GET_TOTAL_USED_SIZE(hashtable) > hashtable->mem_used)
@@ -2272,7 +2277,10 @@ void reset_agg_hash_table(AggState *aggstate, int64 nentries)
 	double old_nbuckets;
 	HashAggTableSizes hats;
 	MemoryContext oldcxt;
+	MemoryContext curaggcontext;
 	
+	curaggcontext = aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory;
+
 	elog(HHA_MSG_LVL,
 		"HashAgg: resetting " INT64_FORMAT "-entry hash table",
 		hashtable->num_ht_groups);
@@ -2295,7 +2303,7 @@ void reset_agg_hash_table(AggState *aggstate, int64 nentries)
 	{
 		Assert(hats.nbuckets > 0);
 		old_nbuckets = hashtable->nbuckets;
-		oldcxt = MemoryContextSwitchTo(aggstate->aggcontext);
+		oldcxt = MemoryContextSwitchTo(curaggcontext);
 
 		Assert(hashtable->mem_for_metadata > hashtable->nbuckets * OVERHEAD_PER_BUCKET);
 

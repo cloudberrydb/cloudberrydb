@@ -222,7 +222,7 @@ cdbconn_doConnectStart(SegmentDatabaseDescriptor *segdbDesc,
 		 * get user name from AuthenticatedUserId which is initialized
 		 * in InitPostgres()
 		 */
-		values[nkeywords] = GetUserNameFromId(GetAuthenticatedUserId());
+		values[nkeywords] = GetUserNameFromId(GetAuthenticatedUserId(), false);
 	}
 	nkeywords++;
 

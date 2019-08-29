@@ -1037,10 +1037,8 @@ explain select c1 from t1 where not exists (select c2 from t2 where exists (sele
          Hash Cond: t1.c1 = t2.c2
          Join Filter: $0
          InitPlan 1 (returns $0)  (slice4)
-           ->  Limit  (cost=0.00..0.70 rows=1 width=0)
-                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..0.70 rows=1 width=0)
-                       ->  Limit  (cost=0.00..0.68 rows=1 width=0)
-                             ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=0)
+           ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..2.03 rows=3 width=0)
+                 ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=0)
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Hash  (cost=5.38..5.38 rows=2 width=4)
                ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..5.38 rows=2 width=4)

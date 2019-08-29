@@ -11,7 +11,7 @@
 
 static int expected_elevel;
 
-static void ereport_mock(int elevel, int dummy __attribute__((unused)),...)
+static void ereport_mock(int elevel, int dummy pg_attribute_unused(),...)
 {
 	assert_int_equal(elevel, expected_elevel);
 	
@@ -60,7 +60,7 @@ test_GetNewTransactionId_xid_stop_limit(void **state)
 	expect_any(LWLockAcquire, mode);
 	will_return(LWLockAcquire, true);
 
-	expect_any(LWLockRelease, l);
+	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
 
 	expect_any(get_database_name, dbid);
@@ -106,7 +106,7 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 	expect_any(LWLockAcquire, mode);
 	will_return(LWLockAcquire, true);
 
-	expect_any(LWLockRelease, l);
+	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
 
 	expect_any(get_database_name, dbid);
@@ -128,7 +128,7 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 	expect_any(DistributedLog_Extend, newestXact);
 	will_be_called(DistributedLog_Extend);
 
-	expect_any(LWLockRelease, l);
+	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
 	
 	PG_TRY();
@@ -150,7 +150,7 @@ should_acquire_and_release_oid_gen_lock()
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_be_called(LWLockAcquire);
 
-	expect_value(LWLockRelease, l, OidGenLock);
+	expect_value(LWLockRelease, lock, OidGenLock);
 	will_be_called(LWLockRelease);
 }
 

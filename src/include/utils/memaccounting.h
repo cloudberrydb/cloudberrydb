@@ -110,6 +110,7 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_BitmapAnd,
 	MEMORY_OWNER_TYPE_Exec_BitmapOr,
 	MEMORY_OWNER_TYPE_Exec_SeqScan,
+	MEMORY_OWNER_TYPE_Exec_SampleScan,
 	MEMORY_OWNER_TYPE_Exec_DynamicSeqScan,
 	MEMORY_OWNER_TYPE_Exec_ExternalScan,
 	MEMORY_OWNER_TYPE_Exec_IndexScan,

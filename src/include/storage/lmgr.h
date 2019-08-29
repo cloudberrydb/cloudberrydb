@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/lmgr.h
@@ -83,6 +83,11 @@ extern bool ConditionalXactLockTableWait(TransactionId xid);
 /* Lock VXIDs, specified by conflicting locktags */
 extern void WaitForLockers(LOCKTAG heaplocktag, LOCKMODE lockmode);
 extern void WaitForLockersMultiple(List *locktags, LOCKMODE lockmode);
+
+/* Lock an XID for tuple insertion (used to wait for an insertion to finish) */
+extern uint32 SpeculativeInsertionLockAcquire(TransactionId xid);
+extern void SpeculativeInsertionLockRelease(TransactionId xid);
+extern void SpeculativeInsertionWait(TransactionId xid, uint32 token);
 
 /* Lock a general object (other than a relation) of the current database */
 extern void LockDatabaseObject(Oid classid, Oid objid, uint16 objsubid,

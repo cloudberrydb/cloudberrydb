@@ -62,7 +62,7 @@ expectSendFtsResponse(const char *expectedMessageType, const FtsResponse *expect
 	expect_value(EndCommand, dest, DestRemote);
 	will_be_called(EndCommand);
 
-	will_be_called(pq_flush);
+	will_be_called(socket_flush);
 }
 
 static void
@@ -164,7 +164,7 @@ test_HandleFtsWalRepPromoteMirror(void **state)
 	expect_value(LWLockAcquire, mode, LW_SHARED);
 	will_return(LWLockAcquire, true);
 
-	expect_value(LWLockRelease, l, ReplicationSlotControlLock);
+	expect_value(LWLockRelease, lock, ReplicationSlotControlLock);
 	will_be_called(LWLockRelease);
 
 	expect_value(ReplicationSlotCreate, name, INTERNAL_WAL_REPLICATION_SLOT_NAME);

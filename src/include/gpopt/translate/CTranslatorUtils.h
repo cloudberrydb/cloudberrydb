@@ -76,10 +76,6 @@ namespace gpdxl
 			static
 			CBitSet *CreateAttnoSetForGroupingSet(CMemoryPool *mp, List *group_elems, ULONG num_cols, UlongToUlongMap *group_col_pos, CBitSet *group_cols);
 
-			// create a set of grouping sets for a rollup
-			static
-			CBitSetArray *CreateGroupingSetsForRollup(CMemoryPool *mp, GroupingClause *grouping_clause, ULONG num_cols, UlongToUlongMap *grouping_col_to_pos_map, CBitSet *group_cols);
-
 			// check if the given mdid array contains any of the polymorphic
 			// types (ANYELEMENT, ANYARRAY)
 			static

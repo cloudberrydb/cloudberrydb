@@ -84,7 +84,7 @@ AcquireSessionState(int sessionId, int vmem, int activeProcessCount)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	/* Keep the assertions happy */
 	gp_session_id = sessionId;
@@ -267,7 +267,7 @@ test__RedZoneHandler_FlagTopConsumer__FindsTopConsumer(void **state)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	static EventVersion fakeLatestRunawayVersion = 0;
 	static EventVersion fakeCurrentVersion = 1;
@@ -310,7 +310,7 @@ test__RedZoneHandler_FlagTopConsumer__IgnoresIdleSession(void **state)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	static EventVersion fakeLatestRunawayVersion = 0;
 	static EventVersion fakeCurrentVersion = 1;
@@ -353,7 +353,7 @@ test__RedZoneHandler_FlagTopConsumer__ReactivatesDetectorIfNoActiveSession(void 
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	static EventVersion fakeLatestRunawayVersion = 0;
 	static EventVersion fakeCurrentVersion = 1;
@@ -393,7 +393,7 @@ test__RedZoneHandler_FlagTopConsumer__UpdatesEventVersions(void **state)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	static EventVersion fakeLatestRunawayVersion = 0;
 	static EventVersion fakeCurrentVersion = 1;

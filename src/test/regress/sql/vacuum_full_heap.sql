@@ -60,15 +60,8 @@ select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheapt
 
 select max(b), min(length(array_to_string(c, ','))) from vfheaptoast;
 
-select relpages, reltuples from gp_dist_random('pg_class')
-  where oid = (select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass) and gp_segment_id = 1;
-
 delete from vfheaptoast;
 vacuum full vfheaptoast;
 
 select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass)) from gp_dist_random('gp_id') where gp_segment_id = 1;
-
--- check relpages and reltuples (VACUUM FULL clears them)
-select relpages, reltuples from gp_dist_random('pg_class')
-  where oid = (select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass) and gp_segment_id = 1;
 

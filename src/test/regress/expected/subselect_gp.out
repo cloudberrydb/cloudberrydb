@@ -216,11 +216,9 @@ explain select * from mrs_t1 where exists (select x from mrs_t1 where x < -1);
    ->  Result  (cost=3.27..6.47 rows=7 width=4)
          One-Time Filter: $0
          InitPlan 1 (returns $0)  (slice3)
-           ->  Limit  (cost=0.00..3.27 rows=1 width=0)
-                 ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..3.27 rows=1 width=0)
-                       ->  Limit  (cost=0.00..3.25 rows=1 width=0)
-                             ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
-                                   Filter: x < (-1)
+           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..3.25 rows=1 width=0)
+                 ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
+                       Filter: (x < '-1'::integer)
          ->  Seq Scan on mrs_t1  (cost=0.00..3.20 rows=7 width=4)
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -237,11 +235,9 @@ explain select * from mrs_t1 where exists (select x from mrs_t1 where x = 1);
    ->  Result  (cost=3.27..6.47 rows=7 width=4)
          One-Time Filter: $0
          InitPlan 1 (returns $0)  (slice3)
-           ->  Limit  (cost=0.00..3.27 rows=1 width=0)
-                 ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..3.27 rows=1 width=0)
-                       ->  Limit  (cost=0.00..3.25 rows=1 width=0)
-                             ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
-                                   Filter: x = 1
+           ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..3.25 rows=1 width=0)
+                 ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
+                       Filter: (x = 1)
          ->  Seq Scan on mrs_t1  (cost=0.00..3.20 rows=7 width=4)
  Optimizer: Postgres query optimizer
 (11 rows)

@@ -85,6 +85,9 @@ explain (costs off) update base_tbl set a=a+1;
                           QUERY PLAN                           
 ---------------------------------------------------------------
  Update on base_tbl
+   Update on base_tbl
+   Update on child_a
+   Update on child_b
    ->  Redistribute Motion 3:3  (slice1; segments: 3)
          Hash Key: ((base_tbl.a + 1))
          ->  Split
@@ -180,11 +183,9 @@ EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS
 ----------------------------------------------------------
  Delete on keo5
    InitPlan 1 (returns $0)  (slice2)
-     ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
-                 ->  Limit
-                       ->  Seq Scan on keo5 keo5_2
-                             Filter: (x < 2)
+     ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Seq Scan on keo5 keo5_2
+                 Filter: (x < 2)
    ->  Result
          One-Time Filter: $0
          ->  Hash Join

@@ -994,6 +994,7 @@ sub atmsort_bigloop
     my $sql_statement = "";
     my @outarr;
 
+    my $lastmsg = -1;
     my $getrows = 0;
     my $getstatement = 0;
     my $has_order = 0;
@@ -1078,6 +1079,17 @@ sub atmsort_bigloop
             }
             print $atmsort_outfh "GP_IGNORE:", $ini;
             next;
+        }
+
+        # if MATCH then SUBSTITUTE
+        # see HERE document for definitions
+        $ini = match_then_subs($ini);
+
+        # if MATCH then IGNORE
+        # see HERE document for definitions
+        if ( match_then_ignore($ini))
+        {
+            next; # ignore matching lines
         }
 
         if ($getrows) # getting rows from SELECT output
@@ -1272,18 +1284,18 @@ sub atmsort_bigloop
             }
 
             # prune notices with segment info if they are duplicates
-            if ($ini =~ m/^\s*(?:NOTICE|ERROR|HINT|DETAIL|WARNING)\:.*\(seg.*pid.*\)/)
+            if ($ini =~ m/^\s*(?:NOTICE|ERROR|HINT|DETAIL|WARNING)\:.*/)
             {
                 $ini =~ s/\s+(?:\W)?(?:\W)?\(seg.*pid.*\)//;
 
                 my $outsize = scalar(@outarr);
 
-                my $lastguy = -1;
+                $lastmsg = -1;
 
               L_checkfor:
                 for my $jj (1..$outsize)
                 {
-                    my $checkstr = $outarr[$lastguy];
+                    my $checkstr = $outarr[$lastmsg];
 
                     #remove trailing spaces for comparison
                     $checkstr =~ s/\s+$//;
@@ -1303,9 +1315,10 @@ sub atmsort_bigloop
                             $ini = "DUP: " . $ini;
                             last L_checkfor;
                         }
+                        $lastmsg = -1;
                         next L_bigwhile;
                     }
-                    $lastguy--;
+                    $lastmsg--;
                 } # end for
 
             } # end if pruning notices
@@ -1425,20 +1438,22 @@ sub atmsort_bigloop
             } # end sort this region
         } # end finding SQL
 
-        # if MATCH then SUBSTITUTE
-        # see HERE document for definitions
-        $ini = match_then_subs($ini);
-
-        # if MATCH then IGNORE
-        # see HERE document for definitions
-        if ( match_then_ignore($ini))
-        {
-            next; # ignore matching lines
-        }
 
 L_push_outarr:
 
         push @outarr, $ini;
+
+        # lastmsg < -1 means we found sequential block of messages like
+        # "NOTICE|ERROR|HINT|DETAIL|WARNING", they might come from different
+        # QEs, the order of output in QD is uncertain, so let's sort them to
+        # aid diff comparison
+        if ($lastmsg < -1)
+        {
+            my @msgblock = @outarr[$lastmsg..-1];
+            @msgblock = sort @msgblock;
+            splice @outarr, $lastmsg, abs $lastmsg, @msgblock;
+            $lastmsg = -1;
+        }
 
     } # end big while
 

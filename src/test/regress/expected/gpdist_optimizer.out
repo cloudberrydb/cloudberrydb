@@ -735,5 +735,12 @@ select * from xidtab a, xidtab b, xidtab c where a.x=b.x and b.x = c.x;
 (5 rows)
 
 select * from xidtab group by x;
-ERROR:  could not identify an ordering operator for type xid
-HINT:  Use an explicit ordering operator or modify the query.
+ x 
+---
+ 1
+ 5
+ 2
+ 4
+ 3
+(5 rows)
+

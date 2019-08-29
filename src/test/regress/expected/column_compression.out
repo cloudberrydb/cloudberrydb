@@ -1830,9 +1830,9 @@ select typoptions from pg_type t, pg_type_encoding e where
 (1 row)
 
 alter type timestamp with time zone set default encoding(compresstype=zlib);
-ERROR:  syntax error at or near "time"
+ERROR:  syntax error at or near "with"
 LINE 1: alter type timestamp with time zone set default encoding(com...
-                                  ^
+                             ^
 alter type timestamptz set default encoding (compresstype=zlib);
 select typoptions from pg_type t, pg_type_encoding e where
   t.typname = 'timestamptz' and t.oid = e.typid;

@@ -37,7 +37,7 @@ test__ForwardFsyncRequest_enqueue(void **state)
 	expect_value(LWLockAcquire, l, CheckpointerCommLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_return(LWLockAcquire, true);
-	expect_value(LWLockRelease, l, CheckpointerCommLock);
+	expect_value(LWLockRelease, lock, CheckpointerCommLock);
 	will_be_called(LWLockRelease);
 	/* basic enqueue */
 	ret = ForwardFsyncRequest(dummy, MAIN_FORKNUM, 1);
@@ -49,7 +49,7 @@ test__ForwardFsyncRequest_enqueue(void **state)
 		expect_value(LWLockAcquire, l, CheckpointerCommLock);
 		expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 		will_return(LWLockAcquire, true);
-		expect_value(LWLockRelease, l, CheckpointerCommLock);
+		expect_value(LWLockRelease, lock, CheckpointerCommLock);
 		will_be_called(LWLockRelease);
 		ret = ForwardFsyncRequest(dummy, MAIN_FORKNUM, i);
 		assert_true(ret);
@@ -57,7 +57,7 @@ test__ForwardFsyncRequest_enqueue(void **state)
 	expect_value(LWLockAcquire, l, CheckpointerCommLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_return(LWLockAcquire, true);
-	expect_value(LWLockRelease, l, CheckpointerCommLock);
+	expect_value(LWLockRelease, lock, CheckpointerCommLock);
 	will_be_called(LWLockRelease);
 #ifdef USE_ASSERT_CHECKING
 	expect_value(LWLockHeldByMe, l, CheckpointerCommLock);

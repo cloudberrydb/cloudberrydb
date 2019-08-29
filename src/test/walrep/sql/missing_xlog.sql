@@ -160,6 +160,9 @@ select sync_error from gp_stat_replication where gp_segment_id = 0;
 -- bring the missing xlog back on segment 0
 select move_xlog('/tmp/missing_xlog', (select datadir || '/pg_xlog' from gp_segment_configuration c where c.role='p' and c.content=0));
 
+-- force the WAL segment to switch over from after previous pg_switch_xlog().
+create temp table dummy2 (id int4) distributed randomly;
+
 -- the error should go away
 select wait_for_replication_error('none', 0, 500);
 select sync_error from gp_stat_replication where gp_segment_id = 0;

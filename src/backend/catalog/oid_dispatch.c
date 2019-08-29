@@ -93,6 +93,7 @@
 #include "catalog/pg_opfamily.h"
 #include "catalog/pg_partition.h"
 #include "catalog/pg_partition_rule.h"
+#include "catalog/pg_policy.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_resqueue.h"
 #include "catalog/pg_resqueuecapability.h"
@@ -100,6 +101,7 @@
 #include "catalog/pg_resgroupcapability.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_ts_config.h"
 #include "catalog/pg_ts_dict.h"
@@ -109,11 +111,11 @@
 #include "catalog/pg_user_mapping.h"
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbvars.h"
-#include "nodes/pg_list.h"
 #include "executor/execdesc.h"
-#include "utils/memutils.h"
-#include "utils/rbtree.h"
+#include "lib/rbtree.h"
 #include "miscadmin.h"
+#include "nodes/pg_list.h"
+#include "utils/memutils.h"
 
 /* #define OID_DISPATCH_DEBUG */
 
@@ -338,6 +340,13 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 				key.objname = NameStr(opfForm->opfname);
 				break;
 			}
+		case PolicyRelationId:
+			{
+				Form_pg_policy polForm = (Form_pg_policy) GETSTRUCT(tuple);
+
+				key.objname = NameStr(polForm->polname);
+				break;
+			}
 		case ProcedureRelationId:
 			{
 				Form_pg_proc proForm = (Form_pg_proc) GETSTRUCT(tuple);
@@ -382,6 +391,10 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 				Form_pg_tablespace spcForm = (Form_pg_tablespace) GETSTRUCT(tuple);
 
 				key.objname = NameStr(spcForm->spcname);
+				break;
+			}
+		case TransformRelationId:
+			{
 				break;
 			}
 		case TSParserRelationId:
@@ -773,7 +786,7 @@ rbtree_free(RBNode *node, void *arg)
  * particular usecase the only value we have is the key, so make it a no-op.
  */
 static void
-rbtree_combine(RBNode *existing __attribute__((unused)), const RBNode *new __attribute__((unused)), void *arg)
+rbtree_combine(RBNode *existing pg_attribute_unused(), const RBNode *new pg_attribute_unused(), void *arg)
 {
 	return;
 }

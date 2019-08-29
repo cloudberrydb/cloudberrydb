@@ -2171,9 +2171,9 @@ performDtxProtocolAbortPrepared(const char *gid, bool raiseErrorIfNotFound)
  */
 void
 performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
-						  int flags __attribute__((unused)),
-						  const char *loggingStr __attribute__((unused)), const char *gid,
-						  DistributedTransactionId gxid __attribute__((unused)),
+						  int flags pg_attribute_unused(),
+						  const char *loggingStr pg_attribute_unused(), const char *gid,
+						  DistributedTransactionId gxid pg_attribute_unused(),
 						  DtxContextInfo *contextInfo)
 {
 	elog(DTM_DEBUG5,

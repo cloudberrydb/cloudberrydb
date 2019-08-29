@@ -35,7 +35,6 @@ initdb --data-checksums -N -A trust -D $TEST_MASTER >>$log_path 2>&1
 
 # Custom parameters for master's postgresql.conf
 cat >> $TEST_MASTER/postgresql.conf <<EOF
-checkpoint_segments = 50
 shared_buffers = 1MB
 max_connections = 50
 listen_addresses = '$LISTEN_ADDRESSES'

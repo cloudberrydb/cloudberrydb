@@ -28,8 +28,10 @@ ao_invalid_segment_file_test(uint8 xl_info)
 {
 	RelFileNode relfilenode;
 	XLogRecord record;
-	XLogRecord *mockrecord;
+	XLogReaderState *mockrecord;
 	xl_ao_target xlaotarget;
+	xl_ao_insert xlaoinsert;
+	xl_ao_truncate xlaotruncate;
 	char *buffer = NULL;
 
 	/* create mock transaction log */
@@ -43,27 +45,19 @@ ao_invalid_segment_file_test(uint8 xl_info)
 
 	record.xl_info = xl_info;
 	record.xl_rmid = RM_APPEND_ONLY_ID;
-	record.xl_len = 0;
+
+	mockrecord = XLogReaderAllocate(NULL, NULL);
 
 	if (xl_info == XLOG_APPENDONLY_INSERT)
 	{
-		xl_ao_insert xlaoinsert;
-
 		xlaoinsert.target = xlaotarget;
-		buffer = (char *) malloc(SizeOfXLogRecord + SizeOfAOInsert);
-		memcpy(&buffer[SizeOfXLogRecord], &xlaoinsert, SizeOfAOInsert);
+		mockrecord->main_data = &xlaoinsert;
 	}
 	else if (xl_info == XLOG_APPENDONLY_TRUNCATE)
 	{
-		xl_ao_truncate xlaotruncate;
-
 		xlaotruncate.target = xlaotarget;
-		buffer = (char *) malloc(SizeOfXLogRecord + sizeof(xl_ao_truncate));
-		memcpy(&buffer[SizeOfXLogRecord], &xlaotruncate, sizeof(xl_ao_truncate));
+		mockrecord->main_data = &xlaotruncate;
 	}
-
-	memcpy(buffer, &record, SizeOfXLogRecord);
-	mockrecord = (XLogRecord *) buffer;
 
 	/* mock to not find AO segment file */
 	expect_any(PathNameOpenFile, fileName);

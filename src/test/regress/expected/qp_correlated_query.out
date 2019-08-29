@@ -645,9 +645,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = any ( select C.j from C wh
 ----------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=30000000026.26..30000000026.48 rows=10 width=12)
    InitPlan 1 (returns $0)  (slice7)
-     ->  Limit  (cost=10000000000.00..10000000001.58 rows=1 width=0)
            ->  Gather Motion 3:1  (slice6; segments: 3)  (cost=10000000000.00..10000000001.58 rows=1 width=0)
-                 ->  Limit  (cost=10000000000.00..10000000001.56 rows=1 width=0)
                        ->  Nested Loop  (cost=10000000000.00..10000000005.18 rows=2 width=0)
                              ->  Seq Scan on c c_2  (cost=0.00..3.11 rows=1 width=4)
                                    Filter: i = 10
@@ -842,9 +840,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j < all ( select C.j from C wh
 ------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=40000000026.22..40000000026.44 rows=10 width=12)
    InitPlan 1 (returns $0)  (slice6)
-     ->  Limit  (cost=10000000000.00..10000000001.58 rows=1 width=0)
            ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=10000000000.00..10000000001.58 rows=1 width=0)
-                 ->  Limit  (cost=10000000000.00..10000000001.56 rows=1 width=0)
                        ->  Nested Loop  (cost=10000000000.00..10000000005.18 rows=2 width=0)
                              ->  Seq Scan on c c_2  (cost=0.00..3.11 rows=1 width=4)
                                    Filter: (i = 10)

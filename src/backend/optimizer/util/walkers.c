@@ -238,6 +238,7 @@ plan_tree_walker(Node *node,
 			return walk_scan_node_fields((Scan *) node, walker, context);
 
 		case T_SeqScan:
+		case T_SampleScan:
 		case T_DynamicSeqScan:
 		case T_ExternalScan:
 		case T_BitmapHeapScan:
@@ -470,6 +471,11 @@ plan_tree_walker(Node *node,
 				return true;
 			if (walker((Node *) ((ModifyTable *) node)->withCheckOptionLists, context))
 				return true;
+			if (walker((Node *) ((ModifyTable *) node)->onConflictSet, context))
+				return true;
+			if (walker((Node *) ((ModifyTable *) node)->onConflictWhere, context))
+				return true;
+
 			break;
 
 		case T_LockRows:
@@ -878,7 +884,6 @@ check_collation_walker(Node *node, check_collation_context *context)
 		case T_RowCompareExpr:
 		case T_FieldSelect:
 		case T_FieldStore:
-		case T_GroupId:
 		case T_CoerceToDomainValue:
 		case T_CurrentOfExpr:
 		case T_NamedArgExpr:
@@ -892,7 +897,6 @@ check_collation_walker(Node *node, check_collation_context *context)
 		case T_SubPlan:
 		case T_AlternativeSubPlan:
 		case T_GroupingFunc:
-		case T_Grouping:
 		case T_DMLActionExpr:
 		case T_PartBoundExpr:
 			collation = exprCollation(node);

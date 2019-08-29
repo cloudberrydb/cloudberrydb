@@ -1144,6 +1144,8 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_BitmapOr";
 	case MEMORY_OWNER_TYPE_Exec_SeqScan:
 		return "X_SeqScan";
+	case MEMORY_OWNER_TYPE_Exec_SampleScan:
+		return "X_SampleScan";
 	case MEMORY_OWNER_TYPE_Exec_DynamicSeqScan:
 		return "X_DynamicSeqScan";
 	case MEMORY_OWNER_TYPE_Exec_ExternalScan:

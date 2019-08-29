@@ -295,8 +295,6 @@ cat >> $CLUSTER_CONFIG <<-EOF
 	# Shell to use to execute commands on all hosts
 	TRUSTED_SHELL="`pwd`/lalshell"
 	
-	CHECK_POINT_SEGMENTS=8
-	
 	ENCODING=UNICODE
 EOF
 

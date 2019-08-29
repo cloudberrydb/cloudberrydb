@@ -54,6 +54,7 @@
 
 #endif
 
+#include <postgres.h>
 #include <pg_config.h>
 #include <pg_config_manual.h>
 #include "gpfdist_helper.h"
@@ -316,17 +317,17 @@ static void log_gpfdist_status();
 static void log_request_header(const request_t *r);
 
 static void gprint(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 static void gprintln(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 static void gprintlnif(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 static void gfatal(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 static void gwarning(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 static void gdebug(const request_t *r, const char* fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+pg_attribute_printf(2, 3);
 
 /* send gp-proto==1 ctl info */
 static void gp1_send_eof(request_t* r);
@@ -373,9 +374,9 @@ static int local_send(request_t *r, const char* buf, int buflen);
 static int get_unsent_bytes(request_t* r);
 
 static void * palloc_safe(request_t *r, apr_pool_t *pool, apr_size_t size, const char *fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 4, 5)));
+pg_attribute_printf(4, 5);
 static void * pcalloc_safe(request_t *r, apr_pool_t *pool, apr_size_t size, const char *fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 4, 5)));
+pg_attribute_printf(4, 5);
 
 static void process_term_signal(int sig,short event,void* arg);
 int gpfdist_init(int argc, const char* const argv[]);
@@ -1727,7 +1728,7 @@ static int session_active_segs_isempty(session_t* session)
  * Callback when the socket is ready to be written
  */
 void gfile_printf_then_putc_newline(const char *format, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+pg_attribute_printf(1, 2);
 
 static void do_write(int fd, short event, void* arg)
 {
@@ -2728,7 +2729,7 @@ static int ggetpid()
 }
 
 static void _gprint(const request_t *r, const char *level, const char *fmt, va_list args)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 0)));
+pg_attribute_printf(3, 0);
 
 static void _gprint(const request_t *r, const char *level, const char *fmt, va_list args)
 {
@@ -3941,7 +3942,7 @@ static SSL_CTX *initialize_ctx(void)
 	}
 
 	/* Create our context*/
-	ctx = SSL_CTX_new( TLSv1_server_method() );
+	ctx = SSL_CTX_new(SSLv23_server_method());
 
 	/* Generate random seed */
 	if ( RAND_poll() == 0 )

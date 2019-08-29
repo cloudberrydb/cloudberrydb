@@ -1362,6 +1362,56 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_property_secure WHERE f_leak(passwd);
 (6 rows)
 
 --
+-- scenario: qualifiers can be pushed down if they contain leaky functions,
+--           provided they aren't passed data from inside the view.
+--
+SELECT * FROM my_property_normal v
+		WHERE f_leak('passwd') AND f_leak(passwd);
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd123  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => beafsteak  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => hamburger  (seg1 slice1 172.31.33.44:25433 pid=6430)
+ cid |     name      |       tel        |  passwd   
+-----+---------------+------------------+-----------
+ 101 | regress_alice | +81-12-3456-7890 | passwd123
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT * FROM my_property_normal v
+		WHERE f_leak('passwd') AND f_leak(passwd);
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Seq Scan on customer
+         Filter: (f_leak('passwd'::text) AND f_leak(passwd) AND (name = 'regress_alice'::text))
+ Optimizer: Postgres query optimizer
+(4 rows)
+
+SELECT * FROM my_property_secure v
+		WHERE f_leak('passwd') AND f_leak(passwd);
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd123  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+NOTICE:  f_leak => passwd  (seg1 slice1 172.31.33.44:25433 pid=6430)
+ cid |     name      |       tel        |  passwd   
+-----+---------------+------------------+-----------
+ 101 | regress_alice | +81-12-3456-7890 | passwd123
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT * FROM my_property_secure v
+		WHERE f_leak('passwd') AND f_leak(passwd);
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Subquery Scan on v
+         Filter: f_leak(v.passwd)
+         ->  Seq Scan on customer
+               Filter: (f_leak('passwd'::text) AND (name = 'regress_alice'::text))
+ Optimizer: Postgres query optimizer
+(6 rows)
+
+--
 -- scenario: if a qualifier references only one-side of a particular join-
 --           tree, it shall be distributed to the most deep scan plan as
 --           possible as we can.

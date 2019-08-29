@@ -37,7 +37,6 @@ if [ ! -f "$DATA_DIR/gpdata/gpinitsystem_singlenode" ]; then
 	echo 'MASTER_DIRECTORY='$DATA_DIR'/gpdata/gpmaster' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
 	echo 'MASTER_PORT=5432' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
 	echo 'TRUSTED_SHELL=ssh' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
-	echo 'CHECK_POINT_SEGMENTS=8' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
 	echo 'ENCODING=UNICODE' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
 	echo 'DATABASE_NAME=gpadmin' >> $DATA_DIR/gpdata/gpinitsystem_singlenode
 

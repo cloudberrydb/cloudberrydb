@@ -115,8 +115,12 @@ ExecDML(DMLState *node)
 		 * actions depending on the type of plan (constraint enforcement and
 		 * triggers.)
 		 */
-		ExecInsert(node->cleanedUpSlot,
+		/*GPDB_95_MERGE_FIXME: Dose the DML need to support insert on conflict?*/
+		ExecInsert(NULL,
+				   node->cleanedUpSlot,
 				   NULL,
+				   NULL,
+				   ONCONFLICT_NONE,
 				   node->ps.state,
 				   true, /* GPDB_91_MERGE_FIXME: canSetTag, where to get this? */
 				   PLANGEN_OPTIMIZER /* Plan origin */,
@@ -270,7 +274,7 @@ ExecInitDML(DML *node, EState *estate, int eflags)
 		if (resultRelInfo->ri_RelationDesc->rd_rel->relhasindex  &&
 			operation != CMD_DELETE)
 		{
-			ExecOpenIndices(resultRelInfo);
+			ExecOpenIndices(resultRelInfo, false);
 		}
 	}
 

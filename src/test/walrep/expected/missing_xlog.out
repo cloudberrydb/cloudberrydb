@@ -207,6 +207,8 @@ select move_xlog('/tmp/missing_xlog', (select datadir || '/pg_xlog' from gp_segm
  
 (1 row)
 
+-- force the WAL segment to switch over from after previous pg_switch_xlog().
+create temp table dummy2 (id int4) distributed randomly;
 -- the error should go away
 select wait_for_replication_error('none', 0, 500);
  wait_for_replication_error 

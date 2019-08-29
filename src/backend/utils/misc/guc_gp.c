@@ -194,8 +194,6 @@ int			gp_connection_send_timeout;
 
 bool create_restartpoint_on_ckpt_record_replay = false;
 
-char	   *data_directory;
-
 /*
  * This variable is a dummy that doesn't do anything, except in some
  * cases provide the value for SHOW to display.  The real state is elsewhere
@@ -272,8 +270,6 @@ bool		gp_enable_dqa_pruning = true;
 bool		gp_eager_dqa_pruning = FALSE;
 bool		gp_eager_one_phase_agg = FALSE;
 bool		gp_eager_two_phase_agg = FALSE;
-bool		gp_enable_groupext_distinct_pruning = true;
-bool		gp_enable_groupext_distinct_gather = true;
 bool		gp_dynamic_partition_pruning = true;
 bool		gp_log_dynamic_partition_pruning = false;
 bool		gp_cte_sharing = false;
@@ -753,28 +749,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL,
 		},
 		&gp_enable_dqa_pruning,
-		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_enable_groupext_distinct_pruning", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Enable 3-phase aggregation and join to compute distinct-qualified aggregates"
-						 " on grouping extention queries."),
-			NULL,
-		},
-		&gp_enable_groupext_distinct_pruning,
-		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_enable_groupext_distinct_gather", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Enable gathering data to a single node to compute distinct-qualified aggregates"
-						 " on grouping extention queries."),
-			NULL,
-		},
-		&gp_enable_groupext_distinct_gather,
 		true,
 		NULL, NULL, NULL
 	},
@@ -3829,19 +3803,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_autostats_on_change_threshold,
 		INT_MAX, 0, INT_MAX,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_distinct_grouping_sets_threshold", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Threshold for the number of grouping sets whose distinct-qualified "
-						 "aggregate computation will be rewritten based on the multi-phrase aggregation. "
-						 "The rest of grouping sets in the same query will not be rewritten."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_distinct_grouping_sets_threshold,
-		32, 0, 1024,
 		NULL, NULL, NULL
 	},
 

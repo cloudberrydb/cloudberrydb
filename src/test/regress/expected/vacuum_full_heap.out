@@ -147,26 +147,11 @@ select max(b), min(length(array_to_string(c, ','))) from vfheaptoast;
  100 | 48893
 (1 row)
 
-select relpages, reltuples from gp_dist_random('pg_class')
-  where oid = (select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass) and gp_segment_id = 1;
- relpages | reltuples 
-----------+-----------
-       63 |       250
-(1 row)
-
 delete from vfheaptoast;
 vacuum full vfheaptoast;
 select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass)) from gp_dist_random('gp_id') where gp_segment_id = 1;
  pg_relation_size 
 ------------------
                 0
-(1 row)
-
--- check relpages and reltuples (VACUUM FULL clears them)
-select relpages, reltuples from gp_dist_random('pg_class')
-  where oid = (select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass) and gp_segment_id = 1;
- relpages | reltuples 
-----------+-----------
-        0 |         0
 (1 row)
 

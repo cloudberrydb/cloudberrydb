@@ -16,7 +16,7 @@
  * a quick copyObject() call before manipulating the query tree.
  *
  *
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/parser/parse_utilcmd.c
@@ -81,7 +81,7 @@ typedef struct
 {
 	const char *stmtType;		/* "CREATE SCHEMA" or "ALTER SCHEMA" */
 	char	   *schemaname;		/* name of schema */
-	char	   *authid;			/* owner of schema */
+	RoleSpec   *authrole;		/* owner of schema */
 	List	   *sequences;		/* CREATE SEQUENCE items */
 	List	   *tables;			/* CREATE TABLE items */
 	List	   *views;			/* CREATE VIEW items */
@@ -155,6 +155,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	ListCell   *elements;
 	Oid			namespaceid;
 	Oid			existing_relid;
+	ParseCallbackState pcbstate;
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
 	List	   *stenc = NIL;		/* column reference storage encoding clauses */
@@ -182,15 +183,22 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	 */
 	stmt = (CreateStmt *) copyObject(stmt);
 
+	/* Set up pstate */
+	pstate = make_parsestate(NULL);
+	pstate->p_sourcetext = queryString;
+
 	/*
 	 * Look up the creation namespace.  This also checks permissions on the
 	 * target namespace, locks it against concurrent drops, checks for a
 	 * preexisting relation in that namespace with the same name, and updates
-	 * stmt->relation->relpersistence if the select namespace is temporary.
+	 * stmt->relation->relpersistence if the selected namespace is temporary.
 	 */
+	setup_parser_errposition_callback(&pcbstate, pstate,
+									  stmt->relation->location);
 	namespaceid =
 		RangeVarGetAndCheckCreationNamespace(stmt->relation, NoLock,
 											 &existing_relid);
+	cancel_parser_errposition_callback(&pcbstate);
 
 	/*
 	 * If the relation already exists and the user specified "IF NOT EXISTS",
@@ -216,10 +224,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 		&& stmt->relation->relpersistence != RELPERSISTENCE_TEMP)
 		stmt->relation->schemaname = get_namespace_name(namespaceid);
 
-	/* Set up pstate and CreateStmtContext */
-	pstate = make_parsestate(NULL);
-	pstate->p_sourcetext = queryString;
-
+	/* Set up CreateStmtContext */
 	cxt.pstate = pstate;
 	if (IsA(stmt, CreateForeignTableStmt))
 	{
@@ -246,7 +251,18 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	cxt.alist = NIL;
 	cxt.dlist = NIL; /* for deferred analysis requiring the created table */
 	cxt.pkey = NULL;
-	cxt.hasoids = interpretOidsOption(stmt->options, true);
+
+	/*
+	 * Notice that we allow OIDs here only for plain tables, even though
+	 * foreign tables also support them.  This is necessary because the
+	 * default_with_oids GUC must apply only to plain tables and not any other
+	 * relkind; doing otherwise would break existing pg_dump files.  We could
+	 * allow explicit "WITH OIDS" while not allowing default_with_oids to
+	 * affect other relkinds, but it would complicate interpretOidsOption(),
+	 * and right now there's no WITH OIDS option in CREATE FOREIGN TABLE
+	 * anyway.
+	 */
+	cxt.hasoids = interpretOidsOption(stmt->options, !cxt.isforeign);
 
 	Assert(!stmt->ofTypename || !stmt->inhRelations);	/* grammar enforces */
 
@@ -597,7 +613,6 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 		 */
 		seqstmt = makeNode(CreateSeqStmt);
 		seqstmt->sequence = makeRangeVar(snamespace, sname, -1);
-		seqstmt->sequence->relpersistence = cxt->relation->relpersistence;
 		seqstmt->options = NIL;
 
 		/*
@@ -715,21 +730,23 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 				break;
 
 			case CONSTR_CHECK:
-				if (cxt->isforeign)
-					ereport(ERROR,
-							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("constraints are not supported on foreign tables"),
-							 parser_errposition(cxt->pstate,
-												constraint->location)));
 				cxt->ckconstraints = lappend(cxt->ckconstraints, constraint);
 				break;
 
 			case CONSTR_PRIMARY:
+				if (cxt->isforeign)
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("primary key constraints are not supported on foreign tables"),
+							 parser_errposition(cxt->pstate,
+												constraint->location)));
+				/* FALL THRU */
+
 			case CONSTR_UNIQUE:
 				if (cxt->isforeign)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("constraints are not supported on foreign tables"),
+							 errmsg("unique constraints are not supported on foreign tables"),
 							 parser_errposition(cxt->pstate,
 												constraint->location)));
 				if (constraint->keys == NIL)
@@ -746,7 +763,7 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 				if (cxt->isforeign)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("constraints are not supported on foreign tables"),
+							 errmsg("foreign key constraints are not supported on foreign tables"),
 							 parser_errposition(cxt->pstate,
 												constraint->location)));
 
@@ -805,23 +822,39 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 static void
 transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
 {
-	if (cxt->isforeign)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("constraints are not supported on foreign tables"),
-				 parser_errposition(cxt->pstate,
-									constraint->location)));
-
-	if (constraint->contype == CONSTR_EXCLUSION)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("GPDB does not support exclusion constraints")));
-
 	switch (constraint->contype)
 	{
 		case CONSTR_PRIMARY:
+			if (cxt->isforeign)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("primary key constraints are not supported on foreign tables"),
+						 parser_errposition(cxt->pstate,
+											constraint->location)));
+			cxt->ixconstraints = lappend(cxt->ixconstraints, constraint);
+			break;
+
 		case CONSTR_UNIQUE:
+			if (cxt->isforeign)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("unique constraints are not supported on foreign tables"),
+						 parser_errposition(cxt->pstate,
+											constraint->location)));
+			cxt->ixconstraints = lappend(cxt->ixconstraints, constraint);
+			break;
+
 		case CONSTR_EXCLUSION:
+			if (cxt->isforeign)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("exclusion constraints are not supported on foreign tables"),
+						 parser_errposition(cxt->pstate,
+											constraint->location)));
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("GPDB does not support exclusion constraints")));
 			cxt->ixconstraints = lappend(cxt->ixconstraints, constraint);
 			break;
 
@@ -830,6 +863,12 @@ transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
 			break;
 
 		case CONSTR_FOREIGN:
+			if (cxt->isforeign)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("foreign key constraints are not supported on foreign tables"),
+						 parser_errposition(cxt->pstate,
+											constraint->location)));
 			cxt->fkconstraints = lappend(cxt->fkconstraints, constraint);
 			break;
 
@@ -1093,7 +1132,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 			{
 				CommentStmt *stmt = makeNode(CommentStmt);
 
-				stmt->objtype = OBJECT_CONSTRAINT;
+				stmt->objtype = OBJECT_TABCONSTRAINT;
 				stmt->objname = list_make3(makeString(cxt->relation->schemaname),
 										   makeString(cxt->relation->relname),
 										   makeString(n->conname));
@@ -1302,8 +1341,10 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 	index->oldNode = InvalidOid;
 	index->unique = idxrec->indisunique;
 	index->primary = idxrec->indisprimary;
+	index->transformed = true;	/* don't need transformIndexStmt */
 	index->concurrent = false;
 	index->is_split_part = cxt->issplitpart;
+	index->if_not_exists = false;
 
 	/*
 	 * We don't try to preserve the name of the source index; instead, just
@@ -1970,6 +2011,15 @@ transformDistributedBy(CreateStmtContext *cxt,
 
 			parentrel = heap_openrv(parent, AccessShareLock);
 			parentPolicy = parentrel->rd_cdbpolicy;
+
+			if (parentrel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("cannot inherit from foreign table \"%s\" to create table \"%s\"",
+								parent->relname, cxt->relation->relname),
+						 errdetail("An inheritance hierarchy cannot contain a mixture of distributed and non-distributed tables.")));
+			}
 
 			/*
 			 * Partitioned child must have partitioned parents. During binary
@@ -2728,7 +2778,9 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 	index->idxcomment = NULL;
 	index->indexOid = InvalidOid;
 	index->oldNode = InvalidOid;
+	index->transformed = false;
 	index->concurrent = false;
+	index->if_not_exists = false;
 
 	/*
 	 * If it's ALTER TABLE ADD CONSTRAINT USING INDEX, look up the index and
@@ -2977,11 +3029,13 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 
 				Assert(IsA(inh, RangeVar));
 				rel = heap_openrv(inh, AccessShareLock);
-				if (rel->rd_rel->relkind != RELKIND_RELATION)
+				/* check user requested inheritance from valid relkind */
+				if (rel->rd_rel->relkind != RELKIND_RELATION &&
+					rel->rd_rel->relkind != RELKIND_FOREIGN_TABLE)
 					ereport(ERROR,
 							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						   errmsg("inherited relation \"%s\" is not a table",
-								  inh->relname)));
+							 errmsg("inherited relation \"%s\" is not a table or foreign table",
+									inh->relname)));
 				for (count = 0; count < rel->rd_att->natts; count++)
 				{
 					Form_pg_attribute inhattr = rel->rd_att->attrs[count];
@@ -3140,6 +3194,10 @@ transformIndexStmt(Oid relid, IndexStmt *stmt, const char *queryString)
 	Relation	rel;
 	LOCKMODE	lockmode;
 
+	/* Nothing to do if statement already transformed. */
+	if (stmt->transformed)
+		return stmt;
+
 	/*
 	 * We must not scribble on the passed-in IndexStmt, so copy it.  (This is
 	 * overkill, but easy.)
@@ -3239,6 +3297,9 @@ transformIndexStmt(Oid relid, IndexStmt *stmt, const char *queryString)
 		heap_close(rel, lockmode);
 	else
 		heap_close(rel, NoLock);
+
+	/* Mark statement as successfully transformed */
+	stmt->transformed = true;
 
 	return stmt;
 }
@@ -3575,6 +3636,7 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 	List	   *newcmds = NIL;
 	bool		skipValidation = true;
 	AlterTableCmd *newcmd;
+	RangeTblEntry *rte;
 
 	/*
 	 * We must not scribble on the passed-in AlterTableStmt, so copy it. (This
@@ -3591,10 +3653,17 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 	 */
 	rel = relation_open(relid, NoLock);
 
-	/* Set up pstate and CreateStmtContext */
+	/* Set up pstate */
 	pstate = make_parsestate(NULL);
 	pstate->p_sourcetext = queryString;
+	rte = addRangeTableEntryForRelation(pstate,
+										rel,
+										NULL,
+										false,
+										true);
+	addRTEtoQuery(pstate, rte, false, true, true);
 
+	/* Set up CreateStmtContext */
 	cxt.pstate = pstate;
 	if (stmt->relkind == OBJECT_FOREIGN_TABLE)
 	{
@@ -3624,8 +3693,8 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 
 	/*
 	 * The only subtypes that currently require parse transformation handling
-	 * are ADD COLUMN and ADD CONSTRAINT.  These largely re-use code from
-	 * CREATE TABLE.
+	 * are ADD COLUMN, ADD CONSTRAINT and SET DATA TYPE.  These largely re-use
+	 * code from CREATE TABLE.
 	 * And ALTER TABLE ... <operator> PARTITION ...
 	 */
 	foreach(lcmd, stmt->cmds)
@@ -3679,6 +3748,7 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 					newcmds = lappend(newcmds, cmd);
 					break;
 				}
+
 			case AT_AddConstraint:
 
 				/*
@@ -3730,6 +3800,31 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 				cxt.iscreatepart = true;
 				newcmds = lappend(newcmds, cmd);
 				break;
+
+			case AT_AlterColumnType:
+				{
+					ColumnDef  *def = (ColumnDef *) cmd->def;
+
+					/*
+					 * For ALTER COLUMN TYPE, transform the USING clause if
+					 * one was specified.
+					 */
+					if (def->raw_default)
+					{
+						def->cooked_default =
+							transformExpr(pstate, def->raw_default,
+										  EXPR_KIND_ALTER_COL_TRANSFORM);
+
+						/* it can't return a set */
+						if (expression_returns_set(def->cooked_default))
+							ereport(ERROR,
+									(errcode(ERRCODE_DATATYPE_MISMATCH),
+									 errmsg("transform expression must not return a set")));
+					}
+
+					newcmds = lappend(newcmds, cmd);
+					break;
+				}
 
 			default:
 				newcmds = lappend(newcmds, cmd);
@@ -3999,7 +4094,7 @@ transformCreateSchemaStmt(CreateSchemaStmt *stmt)
 
 	cxt.stmtType = "CREATE SCHEMA";
 	cxt.schemaname = stmt->schemaname;
-	cxt.authid = stmt->authid;
+	cxt.authrole = (RoleSpec *) stmt->authrole;
 	cxt.sequences = NIL;
 	cxt.tables = NIL;
 	cxt.views = NIL;

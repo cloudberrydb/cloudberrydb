@@ -78,7 +78,7 @@ class ConnectTestCase(unittest.TestCase):
         with dbconn.connect(self.url, unsetSearchPath=False) as conn:
             result = dbconn.execSQLForSingleton(conn, "SELECT setting FROM pg_settings WHERE name='search_path'")
 
-        self.assertEqual(result, '"$user",public')
+        self.assertEqual(result, '"$user", public')
 
     def test_search_path_cve_2018_1058(self):
         with dbconn.connect(self.url) as conn:

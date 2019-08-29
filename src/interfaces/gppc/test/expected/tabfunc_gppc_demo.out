@@ -476,8 +476,9 @@ LINE 1: SELECT * FROM t1 WHERE a > ALL (
     -- ERROR:  op ANY/ALL (array) requires array on right side
     -- TVE in GROUP BY clause
     SELECT avg(a) FROM t1 GROUP BY TABLE(select c from t1);
-ERROR:  could not identify an ordering operator for type anytable
-HINT:  Use an explicit ordering operator or modify the query.
+ERROR:  could not identify an equality operator for type anytable
+LINE 1: SELECT avg(a) FROM t1 GROUP BY TABLE(select c from t1);
+                                       ^
     -- ERROR:  could not identify an ordering operator for type anytable
     -- TVE in HAVING clause
     SELECT avg(a) FROM t1 GROUP BY c HAVING TABLE(select 51) > 50;
@@ -494,7 +495,7 @@ LINE 1: select a, c, TABLE (SELECT a from t1) over(partition by c) f...
     -- ERROR:  syntax error at or near "over"
     -- TVE in window function
     select a, c, avg(a) over(partition by TABLE (SELECT a from t1)) from t1 where a < 10;
-ERROR:  could not identify an ordering operator for type anytable
+ERROR:  could not identify an equality operator for type anytable
 LINE 1: select a, c, avg(a) over(partition by TABLE (SELECT a from t...
                                               ^
 HINT:  Use an explicit ordering operator or modify the query.

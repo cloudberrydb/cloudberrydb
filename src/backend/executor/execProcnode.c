@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -89,6 +89,7 @@
 #include "executor/nodeDynamicBitmapIndexscan.h"
 #include "executor/nodeBitmapOr.h"
 #include "executor/nodeCtescan.h"
+#include "executor/nodeCustom.h"
 #include "executor/nodeForeignscan.h"
 #include "executor/nodeFunctionscan.h"
 #include "executor/nodeHash.h"
@@ -104,6 +105,7 @@
 #include "executor/nodeNestloop.h"
 #include "executor/nodeRecursiveunion.h"
 #include "executor/nodeResult.h"
+#include "executor/nodeSamplescan.h"
 #include "executor/nodeSeqscan.h"
 #include "executor/nodeSetOp.h"
 #include "executor/nodeSort.h"
@@ -428,6 +430,17 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			END_MEMORY_ACCOUNT();
 			break;
 
+		case T_SampleScan:
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, SampleScan);
+
+			START_MEMORY_ACCOUNT(curMemoryAccountId);
+			{
+			result = (PlanState *) ExecInitSampleScan((SampleScan *) node,
+													  estate, eflags);
+			}
+			END_MEMORY_ACCOUNT();
+			break;
+
 		case T_IndexScan:
 			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, IndexScan);
 
@@ -591,6 +604,11 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 														estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
+			break;
+
+		case T_CustomScan:
+			result = (PlanState *) ExecInitCustomScan((CustomScan *) node,
+													  estate, eflags);
 			break;
 
 			/*
@@ -1001,12 +1019,17 @@ ExecProcNode(PlanState *node)
 			result = ExecSeqScan((SeqScanState *)node);
 			break;
 
+			/*GPDB_95_MERGE_FIXME: Do we need DynamicSampleScan here?*/
 		case T_DynamicSeqScanState:
 			result = ExecDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
 
 		case T_ExternalScanState:
 			result = ExecExternalScan((ExternalScanState *) node);
+			break;
+
+		case T_SampleScanState:
+			result = ExecSampleScan((SampleScanState *) node);
 			break;
 
 		case T_IndexScanState:
@@ -1061,6 +1084,10 @@ ExecProcNode(PlanState *node)
 
 		case T_ForeignScanState:
 			result = ExecForeignScan((ForeignScanState *) node);
+			break;
+
+		case T_CustomScanState:
+			result = ExecCustomScan((CustomScanState *) node);
 			break;
 
 			/*
@@ -1363,6 +1390,9 @@ ExecEndNode(PlanState *node)
 		case T_DynamicSeqScanState:
 			ExecEndDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
+		case T_SampleScanState:
+			ExecEndSampleScan((SampleScanState *) node);
+			break;
 
 		case T_IndexScanState:
 			ExecEndIndexScan((IndexScanState *) node);
@@ -1426,6 +1456,10 @@ ExecEndNode(PlanState *node)
 
 		case T_ForeignScanState:
 			ExecEndForeignScan((ForeignScanState *) node);
+			break;
+
+		case T_CustomScanState:
+			ExecEndCustomScan((CustomScanState *) node);
 			break;
 
 			/*

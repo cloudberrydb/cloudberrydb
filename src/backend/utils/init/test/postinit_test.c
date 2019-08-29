@@ -12,7 +12,7 @@
 #define errfinish errfinish_impl
 
 static int
-errfinish_impl(int dummy __attribute__((unused)),...)
+errfinish_impl(int dummy pg_attribute_unused(),...)
 {
 	PG_RE_THROW();
 }

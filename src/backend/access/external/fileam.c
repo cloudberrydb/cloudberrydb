@@ -1058,7 +1058,7 @@ externalgettup_custom(FileScanDesc scan)
 */
 static HeapTuple
 externalgettup(FileScanDesc scan,
-               ScanDirection dir __attribute__((unused)))
+               ScanDirection dir pg_attribute_unused())
 {
 	bool		custom = (scan->fs_custom_formatter_func != NULL);
 	HeapTuple	tup = NULL;
@@ -2227,7 +2227,7 @@ external_set_env_vars_ext(extvar_t *extvar, char *uri, bool csv, char *escape, c
 	extvar->GP_DATABASE = get_database_name(MyDatabaseId);
 	extvar->GP_SEG_PG_CONF = ConfigFileName;	/* location of the segments
 												 * pg_conf file  */
-	extvar->GP_SEG_DATADIR = data_directory;	/* location of the segments
+	extvar->GP_SEG_DATADIR = DataDir;	/* location of the segments
 												 * datadirectory */
 	sprintf(extvar->GP_DATE, "%04d%02d%02d",
 			1900 + tm->tm_year, 1 + tm->tm_mon, tm->tm_mday);

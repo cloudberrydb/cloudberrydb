@@ -22,7 +22,9 @@ CATALOG(pg_resgroupcapability,6439) BKI_SHARED_RELATION
 
 	int16		reslimittype;	/* resource limit type id (RESGROUP_LIMIT_TYPE_XXX) */
 
+#ifdef CATALOG_VARLEN
 	text		value;		/* resource limit (opaque type)  */
+#endif
 } FormData_pg_resgroupcapability;
 
 

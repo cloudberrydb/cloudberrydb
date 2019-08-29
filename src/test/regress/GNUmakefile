@@ -3,12 +3,15 @@
 # GNUmakefile--
 #    Makefile for src/test/regress (the regression tests)
 #
-# Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/test/regress/GNUmakefile
 #
 #-------------------------------------------------------------------------
+
+PGFILEDESC = "pg_regress - test driver"
+PGAPPICON = win32
 
 subdir = src/test/regress
 top_builddir = ../../..
@@ -23,9 +26,6 @@ endif
 # Greenplum regression tests use $PGPORT
 PGPORT?=15432
 
-# where to find psql for testing an existing installation
-PSQLDIR = $(bindir)
-
 # maximum simultaneous connections for parallel tests
 MAXCONNOPT =
 ifdef MAX_CONNECTIONS
@@ -34,7 +34,6 @@ endif
 
 # stuff to pass into build of pg_regress
 EXTRADEFS = '-DHOST_TUPLE="$(host_tuple)"' \
-	'-DMAKEPROG="$(MAKE)"' \
 	'-DSHELLPROG="$(SHELL)"' \
 	'-DDLSUFFIX="$(DLSUFFIX)"'
 
@@ -52,7 +51,7 @@ LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses -lcurl -lssl
 
 all: pg_regress$(X)
 
-pg_regress$(X): pg_regress.o pg_regress_main.o | submake-libpgport
+pg_regress$(X): pg_regress.o pg_regress_main.o $(WIN32RES) | submake-libpgport
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
 
 # dependencies ensure that path changes propagate
@@ -94,7 +93,7 @@ uninstall:
 # Build dynamically-loaded object file for CREATE FUNCTION ... LANGUAGE C.
 
 NAME = regress
-OBJS = regress.o
+OBJS = $(WIN32RES) regress.o
 
 OBJS += regress_gp.o partindex.o workfile_mgr_test.o
 
@@ -129,9 +128,9 @@ installdirs-tests: installdirs
 	$(MKDIR_P)  $(patsubst $(srcdir)/%/,'$(DESTDIR)$(pkglibdir)/regress/%',$(sort $(dir $(regress_data_files))))
 
 
-# Get some extra C modules from contrib/spi and contrib/dummy_seclabel...
+# Get some extra C modules from contrib/spi
 
-all: refint$(DLSUFFIX) autoinc$(DLSUFFIX) dummy_seclabel$(DLSUFFIX) tablespace-setup hooktest query_info_hook_test
+all: refint$(DLSUFFIX) autoinc$(DLSUFFIX) tablespace-setup hooktest query_info_hook_test
 
 refint$(DLSUFFIX): $(top_builddir)/contrib/spi/refint$(DLSUFFIX)
 	cp $< $@
@@ -139,22 +138,14 @@ refint$(DLSUFFIX): $(top_builddir)/contrib/spi/refint$(DLSUFFIX)
 autoinc$(DLSUFFIX): $(top_builddir)/contrib/spi/autoinc$(DLSUFFIX)
 	cp $< $@
 
-dummy_seclabel$(DLSUFFIX): $(top_builddir)/contrib/dummy_seclabel/dummy_seclabel$(DLSUFFIX)
-	cp $< $@
-
 $(top_builddir)/contrib/spi/refint$(DLSUFFIX): | submake-contrib-spi ;
 
 $(top_builddir)/contrib/spi/autoinc$(DLSUFFIX): | submake-contrib-spi ;
 
-$(top_builddir)/contrib/dummy_seclabel/dummy_seclabel$(DLSUFFIX): | submake-contrib-dummy_seclabel ;
-
 submake-contrib-spi:
 	$(MAKE) -C $(top_builddir)/contrib/spi
 
-submake-contrib-dummy_seclabel:
-	$(MAKE) -C $(top_builddir)/contrib/dummy_seclabel
-
-.PHONY: submake-contrib-spi submake-contrib-dummy_seclabel
+.PHONY: submake-contrib-spi
 
 # Tablespace setup
 
@@ -174,6 +165,7 @@ tablespace-setup:
 	./testtablespace_default_tablespace \
 	./testtablespace_temp_tablespace \
 	./testtablespace_database_tablespace
+
 
 .PHONY: hooktest
 hooktest:
@@ -243,15 +235,12 @@ bigcheck: all tablespace-setup
 
 clean distclean maintainer-clean: clean-lib
 # things built by `all' target
+	rm -f $(OBJS) refint$(DLSUFFIX) autoinc$(DLSUFFIX)
+	rm -f pg_regress_main.o pg_regress.o pg_regress$(X)
+	rm -f twophase_pqexecparams
 	$(MAKE) -C $(top_builddir)/contrib/spi clean
 	$(MAKE) -C hooktest/ clean
 	$(MAKE) -C query_info_hook_test/ clean
-	rm -f twophase_pqexecparams
-# things created by dynamic configs
-	find sql -type l | xargs rm -f
-	find expected -type l | xargs rm -f
-	rm -f $(OBJS) refint$(DLSUFFIX) autoinc$(DLSUFFIX) dummy_seclabel$(DLSUFFIX)
-	rm -f pg_regress_main.o pg_regress.o pg_regress$(X)
 # things created by various check targets
 	rm -f $(output_files) $(input_files)
 	rm -rf ./testtablespace ./testtablespace_*

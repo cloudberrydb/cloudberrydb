@@ -12,7 +12,8 @@
 #include <float.h>
 
 #include "access/gist.h"
-#include "access/skey.h"
+#include "access/stratnum.h"
+#include "fmgr.h"
 
 #include "segdata.h"
 
@@ -27,15 +28,6 @@
 */
 
 PG_MODULE_MAGIC;
-
-extern int	seg_yyparse(SEG *result);
-extern void seg_yyerror(SEG *result, const char *message);
-extern void seg_scanner_init(const char *str);
-extern void seg_scanner_finish(void);
-
-/*
-extern int	 seg_yydebug;
-*/
 
 /*
  * Auxiliary data structure for picksplit method.
@@ -101,7 +93,6 @@ PG_FUNCTION_INFO_V1(seg_different);
 ** Auxiliary functions
 */
 static int	restore(char *s, float val, int n);
-int			significant_digits(char *s);
 
 
 /*****************************************************************************

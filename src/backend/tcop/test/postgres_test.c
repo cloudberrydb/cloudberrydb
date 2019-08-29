@@ -14,7 +14,7 @@
 
 #define errfinish errfinish_impl
 static int
-errfinish_impl(int dummy __attribute__((unused)),...)
+errfinish_impl(int dummy pg_attribute_unused(),...)
 {
 	PG_RE_THROW();
 }
@@ -94,9 +94,6 @@ test__IsTransactionExitStmt__IsQuery(void **state)
 static void
 test__ProcessInterrupts__ClientConnectionLost(void **state)
 {
-	will_be_called(DisableNotifyInterrupt);
-	will_be_called(DisableCatchupInterrupt);
-
 	/*
 	 * Setting all the flags so that ProcessInterrupts only goes in the if-block
 	 * we're interested to test
@@ -122,7 +119,6 @@ test__ProcessInterrupts__ClientConnectionLost(void **state)
 
 	assert_true(whereToSendOutput == DestNone);
 	assert_false(QueryCancelPending);
-	assert_false(ImmediateInterruptOK);
 }
 
 /*
@@ -172,9 +168,6 @@ test__ProcessInterrupts__DoingCommandRead(void **state)
 	expect_any(elog_finish, fmt);
 	will_be_called(elog_finish);
 
-	will_be_called(DisableNotifyInterrupt);
-	will_be_called(DisableCatchupInterrupt);
-
 	EXPECT_EREPORT(ERROR);
 
 	PG_TRY();
@@ -189,7 +182,6 @@ test__ProcessInterrupts__DoingCommandRead(void **state)
 	PG_END_TRY();
 
 	assert_false(QueryCancelPending);
-	assert_false(ImmediateInterruptOK);
 }
 
 int

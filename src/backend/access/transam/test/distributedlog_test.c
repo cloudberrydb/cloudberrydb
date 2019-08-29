@@ -69,7 +69,7 @@ MPP_20426(void **state, TransactionId nextXid)
 	expect_value(SimpleLruReadPage, xid, nextXid);
 	will_return(SimpleLruReadPage, 0);
 
-	expect_value(LWLockRelease, l, DistributedLogControlLock);
+	expect_value(LWLockRelease, lock, DistributedLogControlLock);
 	will_be_called(LWLockRelease);
 
 	/* Run the function. */
@@ -128,7 +128,7 @@ setup(TransactionId nextXid)
 	expect_value(SimpleLruReadPage, xid, nextXid);
 	will_return(SimpleLruReadPage, 0);
 
-	expect_value(LWLockRelease, l, DistributedLogControlLock);
+	expect_value(LWLockRelease, lock, DistributedLogControlLock);
 	will_be_called(LWLockRelease);
 }
 

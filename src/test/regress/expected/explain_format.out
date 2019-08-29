@@ -69,8 +69,8 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
  Planning time: 0.791 ms
    (slice0)    Executor memory: 127K bytes.
    (slice1)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
-   (slice2)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).
-   (slice3)    Executor memory: 1104K bytes avg x 3 workers, 1104K bytes max (seg0).
+   (slice2)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).  Work_mem: 2048K bytes max.
+   (slice3)    Executor memory: 1104K bytes avg x 3 workers, 1104K bytes max (seg0).  Work_mem: 1024K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
  Execution time: 29.929 ms
@@ -407,12 +407,14 @@ QUERY PLAN
       Executor Memory: 
         Average: 2178096
         Workers: 3
-        Maximum Memory Used: 2178096
+        Maximum Memory Used: 2178104
+      Work Maximum Memory: 2097152
     - Slice: 3
       Executor Memory: 
         Average: 1129520
         Workers: 3
-        Maximum Memory Used: 1129520
+        Maximum Memory Used: 1129528
+      Work Maximum Memory: 1048576
   Statement statistics: 
     Memory used: 128000
   Settings: 

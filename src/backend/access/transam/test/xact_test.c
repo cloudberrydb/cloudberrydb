@@ -144,7 +144,7 @@ helper_ExpectLWLock()
 	expect_any(LWLockAcquire, l);
 	expect_value(LWLockAcquire, mode, LW_SHARED);
 	will_return(LWLockAcquire, true);
-	expect_any(LWLockRelease, l);
+	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
 }
 

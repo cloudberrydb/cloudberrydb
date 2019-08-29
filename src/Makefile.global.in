@@ -67,6 +67,7 @@ endif
 endif
 else # not PGXS
 vpath_build = @vpath_build@
+abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 
 ifneq ($(vpath_build),yes)
@@ -224,7 +225,6 @@ enable_gpperfmon    = @enable_gpperfmon@
 
 enable_tap_tests = @enable_tap_tests@
 
-python_enable_shared	= @python_enable_shared@
 python_includespec	= @python_includespec@
 python_libdir		= @python_libdir@
 python_libspec		= @python_libspec@
@@ -235,7 +235,6 @@ python_version		= @python_version@
 krb_srvtab = @krb_srvtab@
 
 TCLSH			= @TCLSH@
-TCL_LIB_FILE		= @TCL_LIB_FILE@
 TCL_LIBS		= @TCL_LIBS@
 TCL_LIB_SPEC		= @TCL_LIB_SPEC@
 TCL_INCLUDE_SPEC	= @TCL_INCLUDE_SPEC@
@@ -377,10 +376,22 @@ BZIP2	= bzip2
 
 # Testing
 
+NO_TEMP_INSTALL = yes # GPDB: We assume a GPDB cluster is running (gpdemo)
+
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 
-check:
+check: temp-install
+
+.PHONY: temp-install
+temp-install:
+ifndef NO_TEMP_INSTALL
+ifeq ($(MAKELEVEL),0)
+	rm -rf '$(abs_top_builddir)'/tmp_install
+	$(MAKE) -C '$(top_builddir)' DESTDIR='$(abs_top_builddir)'/tmp_install install
+endif
+	$(if $(EXTRA_INSTALL),for extra in $(EXTRA_INSTALL); do $(MAKE) -C '$(top_builddir)'/$$extra DESTDIR='$(abs_top_builddir)'/tmp_install install || exit; done)
+endif
 
 PROVE = @PROVE@
 # There are common routines in src/test/perl, and some test suites have
@@ -443,10 +454,12 @@ STRIP_SHARED_LIB = @STRIP_SHARED_LIB@
 
 have_docbook	= @have_docbook@
 COLLATEINDEX	= @COLLATEINDEX@
+DBTOEPUB	= @DBTOEPUB@
 DOCBOOKSTYLE	= @DOCBOOKSTYLE@
 JADE			= @JADE@
 NSGMLS			= @NSGMLS@
 OSX				= @OSX@
+XMLLINT			= @XMLLINT@
 XSLTPROC		= @XSLTPROC@
 
 # Code coverage
@@ -579,13 +592,13 @@ endif
 
 pg_regress_locale_flags = $(if $(ENCODING),--encoding=$(ENCODING)) $(NOLOCALE)
 
-pg_regress_check = $(top_builddir)/src/test/regress/pg_regress --inputdir=$(srcdir) --temp-install=./tmp_check --top-builddir=$(top_builddir) $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
-pg_regress_installcheck = $(top_builddir)/src/test/regress/pg_regress --inputdir=$(srcdir) --psqldir='$(PSQLDIR)' $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
+pg_regress_check = $(with_temp_install) $(top_builddir)/src/test/regress/pg_regress --inputdir=$(srcdir) --temp-instance=./tmp_check --bindir= $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
+pg_regress_installcheck = $(top_builddir)/src/test/regress/pg_regress --inputdir=$(srcdir) --bindir='$(bindir)' $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
 
 pg_regress_clean_files = results/ regression.diffs regression.out tmp_check/ log/
 
-pg_isolation_regress_check = $(top_builddir)/src/test/isolation/pg_isolation_regress --inputdir=$(srcdir) --temp-install=./tmp_check --top-builddir=$(top_builddir) $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
-pg_isolation_regress_installcheck = $(top_builddir)/src/test/isolation/pg_isolation_regress --inputdir=$(srcdir) --top-builddir=$(top_builddir) $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
+pg_isolation_regress_check = $(with_temp_install) $(top_builddir)/src/test/isolation/pg_isolation_regress --inputdir=$(srcdir) --temp-instance=./tmp_check --bindir= $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
+pg_isolation_regress_installcheck = $(top_builddir)/src/test/isolation/pg_isolation_regress --inputdir=$(srcdir) $(pg_regress_locale_flags) $(EXTRA_REGRESS_OPTS)
 
 ##########################################################################
 #
@@ -774,7 +787,7 @@ endif
 define _create_recursive_target
 .PHONY: $(1)-$(2)-recurse
 $(1): $(1)-$(2)-recurse
-$(1)-$(2)-recurse:
+$(1)-$(2)-recurse: $(if $(filter check, $(3)), temp-install)
 	$$(MAKE) -C $(2) $(3)
 endef
 # Note that the use of $$ on the last line above is important; we want

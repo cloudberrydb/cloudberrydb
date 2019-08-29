@@ -69,7 +69,7 @@ CQueryMutators::NeedsProjListNormalization
 
 		// Normalize when there is an expression that is neither used for grouping
 		// nor is an aggregate function
-		if (!IsA(target_entry->expr, Aggref) && !IsA(target_entry->expr, GroupingFunc) && !CTranslatorUtils::IsGroupingColumn( (Node*) target_entry->expr, query->groupClause, query->targetList))
+		if (!IsA(target_entry->expr, Aggref) && !CTranslatorUtils::IsGroupingColumn( (Node*) target_entry->expr, query->groupClause, query->targetList))
 		{
 			return true;
 		}
@@ -99,7 +99,7 @@ CQueryMutators::ShouldFallback
 		return false;
 	}
 
-	if (IsA(node, Const) || IsA(node, Aggref) || IsA(node, GroupingFunc) || IsA(node, SubLink))
+	if (IsA(node, Const) || IsA(node, Aggref) || IsA(node, SubLink))
 	{
 		return false;
 	}
@@ -201,7 +201,7 @@ CQueryMutators::NormalizeGroupByProjList
 			target_entry->expr = (Expr*) RunExtractAggregatesMutator((Node*) target_entry->expr, &context);
 			GPOS_ASSERT
 				(
-				!IsA(target_entry->expr, Aggref) && !IsA(target_entry->expr, GroupingFunc) &&
+				!IsA(target_entry->expr, Aggref) &&
 				"New target list entry should not contain any Aggrefs"
 				);
 		}
@@ -516,11 +516,6 @@ CQueryMutators::RunGroupingColMutator
 		return (Node*) aggref;
 	}
 
-	if (IsA(node, GroupingFunc))
-	{
-		return (Node *) gpdb::CopyObject(node);
-	}
-
 	if (IsA(node, SubLink))
 	{
 		SubLink *old_sublink = (SubLink *) node;
@@ -668,15 +663,10 @@ CQueryMutators::GetTargetEntryForAggExpr
 	ULONG attno
 	)
 {
-	GPOS_ASSERT(IsA(node, Aggref) || IsA(node, GroupingFunc));
+	GPOS_ASSERT(IsA(node, Aggref));
 
 	// get the function/aggregate name
 	CHAR *name = NULL;
-	if (IsA(node, GroupingFunc))
-	{
-		name = CTranslatorUtils::CreateMultiByteCharStringFromWCString(GPOS_WSZ_LIT("grouping"));
-	}
-	else
 	{
 		Aggref *aggref = (Aggref*) node;
 
@@ -944,7 +934,7 @@ CQueryMutators::MakeVarInDerivedTable
 {
 	GPOS_ASSERT(NULL != node);
 	GPOS_ASSERT(NULL != context);
-	GPOS_ASSERT(IsA(node, Aggref) || IsA(node, GroupingFunc));
+	GPOS_ASSERT(IsA(node, Aggref));
 
 	// Append a new target entry for the node to the derived target list ...
 	const ULONG attno = gpdb::ListLength(context->m_groupby_tlist) + 1;

@@ -24,6 +24,7 @@
 #include "catalog/catversion.h"
 #include "catalog/pg_control.h"
 #include "getopt_long.h"
+#include "common/restricted_token.h"
 #include "utils/palloc.h"
 #include "storage/bufpage.h"
 
@@ -218,6 +219,8 @@ main(int argc, char **argv)
 				progname);
 	}
 #endif
+
+	get_restricted_token(progname);
 
 	/* Connect to remote server */
 	if (connstr_source)

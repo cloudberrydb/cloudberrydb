@@ -21,9 +21,6 @@ all:
 	$(MAKE) -C contrib/dblink all
 	$(MAKE) -C contrib/indexscan all
 	$(MAKE) -C contrib/pageinspect all  # needed by src/test/isolation
-	$(MAKE) -C contrib/pg_upgrade_support all
-	$(MAKE) -C contrib/pg_upgrade all
-	$(MAKE) -C contrib/pg_xlogdump all
 	$(MAKE) -C contrib/hstore all
 	$(MAKE) -C contrib/pgcrypto all
 ifeq ($(with_openssl), yes)
@@ -59,9 +56,6 @@ install:
 	$(MAKE) -C contrib/dblink $@
 	$(MAKE) -C contrib/indexscan $@ 
 	$(MAKE) -C contrib/pageinspect $@  # needed by src/test/isolation
-	$(MAKE) -C contrib/pg_upgrade_support $@
-	$(MAKE) -C contrib/pg_upgrade $@
-	$(MAKE) -C contrib/pg_xlogdump $@
 	$(MAKE) -C contrib/hstore $@
 	$(MAKE) -C contrib/pgcrypto $@
 ifeq ($(with_openssl), yes)
@@ -91,6 +85,7 @@ $(call recurse,distprep,doc src config contrib gpcontrib)
 # it's not built by default
 $(call recurse,clean,doc contrib gpcontrib src config)
 clean:
+	rm -rf tmp_install/
 # Garbage from autoconf:
 	@rm -rf autom4te.cache/
 # leap over gpAux/Makefile into subdirectories to avoid circular dependency.
@@ -111,9 +106,10 @@ distclean maintainer-clean:
 	$(MAKE) -C config $@
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C src $@
-	rm -f config.cache config.log config.status GNUmakefile
+	rm -rf tmp_install/
 # Garbage from autoconf:
 	@rm -rf autom4te.cache/
+	rm -f config.cache config.log config.status GNUmakefile
 
 installcheck-resgroup:
 	$(MAKE) -C src/test/isolation2 $@
@@ -166,7 +162,7 @@ installcheck-world: installcheck-gpcheckcat
 installcheck-gpcheckcat:
 	gpcheckcat -A
 $(call recurse,installcheck-world,gpcontrib/gp_replica_check,installcheck)
-$(call recurse,installcheck-world,contrib/pg_upgrade,check)
+$(call recurse,installcheck-world,src/bin/pg_upgrade,check)
 
 # Run mock tests, that don't require a running server. Arguably these should
 # be part of [install]check-world, but we treat them more like part of

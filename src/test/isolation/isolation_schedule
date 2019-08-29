@@ -26,6 +26,20 @@
 #   4. No sublink and no subquery
 #   5. No set operations (union, intersect, …)
 
+# GPDB_95_MERGE_FIXME: Tests insert-conflict-do-update-3,
+# nowait, nowait-2, nowait-3, nowait-4, nowait-5, skip-locked, skip-locked-2,
+# skip-locked-3, skip-locked-4, tuplelock-conflict, alter-table-2,
+# alter-table-2, create-trigger. If GDD is enabled, it will then take
+# RowExclusiveLock and the tests can probably be enabled back.
+# Additionally, skip-locked-4 uses pg_advisory_lock() which only takes the lock
+# on QD, but it needs to take it on QE segments as well.
+# GPDB_95_MERGE_FIXME: insert-conflict-do-nothing, insert-conflict-do-update,
+# and insert-conflict-do-update-2 fail because isolationtester does not include
+# QEs when checking pg_locks. If we are able to add the QE backend pids of gang
+# to this list then these tests can be enabled.  insert-conflict-do-update-2
+# has additional issue where GPDB does not support creating unique indexes on
+# mutated columns via lower().
+
 #test: simple-write-skew
 #test: receipt-report
 #test: temporal-range-integrity
@@ -44,14 +58,31 @@
 #test: eval-plan-qual
 #test: lock-update-delete
 #test: lock-update-traversal
+#test: insert-conflict-do-nothing
+#test: insert-conflict-do-update
+#test: insert-conflict-do-update-2
+#test: insert-conflict-do-update-3
 test: delete-abort-savept
 #test: delete-abort-savept-2
 #test: aborted-keyrevoke
 #test: multixact-no-deadlock
 #test: multixact-no-forget
 #test: propagate-lock-delete
+#test: tuplelock-conflict
+#test: nowait
+#test: nowait-2
+#test: nowait-3
+#test: nowait-4
+#test: nowait-5
+#test: skip-locked
+#test: skip-locked-2
+#test: skip-locked-3
+#test: skip-locked-4
 test: drop-index-concurrently-1
 test: alter-table-1
+#test: alter-table-2
+#test: alter-table-3
+#test: create-trigger
 test: timeouts
 
 #test: prepared-transactions

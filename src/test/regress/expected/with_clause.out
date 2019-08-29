@@ -1373,7 +1373,7 @@ with my_sum(total) as (select sum(total) from with_test1),
 with my_group_sum(i, total) as (select i, sum(total) from with_test1 group by i)
 select *
 from my_sum;
-ERROR:  syntax error at or near "with my_group_sum"
+ERROR:  syntax error at or near "with"
 LINE 2: with my_group_sum(i, total) as (select i, sum(total) from wi...
         ^
 -- Test behavior with an unknown-type literal in the WITH

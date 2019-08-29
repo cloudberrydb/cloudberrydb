@@ -1186,8 +1186,8 @@ SELECT * FROM
           min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
    FROM empsalary) emp
 WHERE depname = 'sales' OR RANDOM() > 0.5;
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Result
          ->  WindowAgg
@@ -1200,7 +1200,7 @@ WHERE depname = 'sales' OR RANDOM() > 0.5;
                                  ->  Sort
                                        Sort Key: depname
                                        ->  Seq Scan on empsalary
-                                             Filter: (((depname)::text = 'sales'::text) OR (random() > 0.5::double precision))
+                                             Filter: (((depname)::text = 'sales'::text) OR (random() > '0.5'::double precision))
  Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0
 (14 rows)
 

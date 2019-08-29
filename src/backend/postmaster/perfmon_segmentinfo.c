@@ -61,7 +61,6 @@ cluster_state_collect_hook_type cluster_state_collect_hook = NULL;
  */
 query_info_collect_hook_type query_info_collect_hook = NULL;
 
-
 /**
  * This method is called after fork of the stats sender process. It sets up signal
  * handlers and does initialization that is required by a postgres backend.

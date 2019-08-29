@@ -1135,9 +1135,8 @@ make_partition_rules(CreateStmtContext *cxt, CreateStmt *stmt,
 					char	   *pfoo = pstrdup(ANDBuf.data);
 
 					pIndAND =
-						(Node *) makeA_Expr(AEXPR_AND, NIL,
-											pIndAND,
-											pEq,
+						(Node *) makeBoolExpr(AND_EXPR,
+											list_make2(pIndAND, pEq),
 											-1 /* position */ );
 
 					resetStringInfo(&ANDBuf);
@@ -1170,9 +1169,8 @@ make_partition_rules(CreateStmtContext *cxt, CreateStmt *stmt,
 				char	   *pfoo = pstrdup(ORBuf.data);
 
 				pIndOR =
-					(Node *) makeA_Expr(AEXPR_OR, NIL,
-										pIndOR,
-										pIndAND,
+					(Node *) makeBoolExpr(OR_EXPR,
+										list_make2(pIndOR, pIndAND),
 										-1 /* position */ );
 
 				resetStringInfo(&ORBuf);
@@ -1402,9 +1400,8 @@ make_partition_rules(CreateStmtContext *cxt, CreateStmt *stmt,
 						char	   *pfoo = pstrdup(ANDBuf.data);
 
 						pIndAND =
-							(Node *) makeA_Expr(AEXPR_AND, NIL,
-												pIndAND,
-												pEq,
+							(Node *) makeBoolExpr(AND_EXPR,
+												list_make2(pIndAND, pEq),
 												-1 /* position */ );
 
 						resetStringInfo(&ANDBuf);
@@ -1466,9 +1463,8 @@ make_partition_rules(CreateStmtContext *cxt, CreateStmt *stmt,
 					 */
 
 					pIndOR =
-						(Node *) makeA_Expr(AEXPR_AND, NIL,
-											pIndOR,
-											pIndAND,
+						(Node *) makeBoolExpr(AND_EXPR,
+											list_make2(pIndOR, pIndAND),
 											-1 /* position */ );
 
 					resetStringInfo(&ORBuf);
@@ -1582,8 +1578,6 @@ deparse_partition_rule(Node *pNode, ParseState *pstate, Node *parent)
 				switch (ax->kind)
 				{
 					case AEXPR_OP:		/* normal operator */
-					case AEXPR_AND:		/* booleans - name field is unused */
-					case AEXPR_OR:
 						break;
 					default:
 						return 0;
@@ -1596,17 +1590,31 @@ deparse_partition_rule(Node *pNode, ParseState *pstate, Node *parent)
 					case AEXPR_OP:		/* normal operator */
 						infix_op = strVal(lfirst(list_head(ax->name)));
 						break;
-					case AEXPR_AND:		/* booleans - name field is unused */
-						infix_op = "AND";
-						break;
-					case AEXPR_OR:
-						infix_op = "OR";
-						break;
 					default:
 						return 0;
 				}
 				return psprintf("(%s %s %s)",
 								left, infix_op, right);
+			}
+			break;
+		case T_BoolExpr:
+			{
+				BoolExpr	*bexpr = (BoolExpr *) pNode;
+				char		*left;
+				char		*right;
+				const char	*infix_op;
+
+				if (bexpr->boolop == AND_EXPR)
+					infix_op = "AND";
+				else if (bexpr->boolop == OR_EXPR)
+					infix_op = "OR";
+				else
+					return 0;
+
+				left = deparse_partition_rule(linitial(bexpr->args), pstate, parent);
+				right = deparse_partition_rule(lsecond(bexpr->args), pstate, parent);
+
+				return psprintf("(%s %s %s)", left, infix_op, right);
 			}
 			break;
 		default:

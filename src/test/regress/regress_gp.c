@@ -26,6 +26,8 @@
 #include "pgstat.h"
 #include "access/transam.h"
 #include "access/xact.h"
+#include "access/xlog.h"
+#include "access/xloginsert.h"
 #include "catalog/catalog.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_type.h"
@@ -2097,7 +2099,7 @@ check_shared_buffer_cache_for_dboid(PG_FUNCTION_ARGS)
 
 	for (i = 0; i < NBuffers; i++)
 	{
-		volatile BufferDesc *bufHdr = &BufferDescriptors[i];
+		volatile BufferDesc *bufHdr = GetBufferDescriptor(i);
 
 		if (bufHdr->tag.rnode.dbNode == databaseOid)
 			PG_RETURN_BOOL(true);
@@ -2154,16 +2156,14 @@ insert_noop_xlog_record(PG_FUNCTION_ARGS)
 {
 	char *no_op_string = "no-op";
 
-	XLogRecData rdata = {};
 	/* Xlog records of length = 0 are disallowed and cause a panic. Thus,
 	 * supplying a dummy non-zero length
 	 */
-	rdata.data = no_op_string;
-	rdata.len = strlen(no_op_string);
-	rdata.buffer = InvalidBuffer;
-	rdata.next = NULL;
+	XLogBeginInsert();
 
-	XLogFlush(XLogInsert(RM_XLOG_ID, XLOG_NOOP, &rdata));
+	XLogRegisterData(no_op_string, strlen(no_op_string));
+
+	XLogFlush(XLogInsert(RM_XLOG_ID, XLOG_NOOP));
 
 	PG_RETURN_VOID();
 }

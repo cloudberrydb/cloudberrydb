@@ -1047,8 +1047,8 @@ cdb_setup(void)
  *
  */
 void
-cdb_cleanup(int code __attribute__((unused)), Datum arg
-						__attribute__((unused)))
+cdb_cleanup(int code pg_attribute_unused(), Datum arg
+						pg_attribute_unused())
 {
 	elog(DEBUG1, "Cleaning up Greenplum components...");
 

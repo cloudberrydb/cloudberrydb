@@ -65,18 +65,18 @@ DROP ROLE test_psql_du_e2;
 -- pg_catalog.pg_roles.rolcreatewextgpfd
 CREATE ROLE test_psql_du_e3 WITH SUPERUSER CREATEEXTTABLE (type = 'writable', protocol = 'gpfdist');
 \du test_psql_du_e3
-                                List of roles
-    Role name    |                   Attributes                   | Member of 
------------------+------------------------------------------------+-----------
- test_psql_du_e3 | Superuser, Wri Ext gpfdist Table, Cannot login | {}
+                                      List of roles
+    Role name    |                         Attributes                         | Member of 
+-----------------+------------------------------------------------------------+-----------
+ test_psql_du_e3 | Superuser, Wri Ext gpfdist Table, Cannot login, Bypass RLS | {}
 
 DROP ROLE test_psql_du_e3;
 CREATE ROLE test_psql_du_e4 WITH SUPERUSER CREATEEXTTABLE (type = 'writable', protocol = 'gpfdists');
 \du test_psql_du_e4
-                                List of roles
-    Role name    |                   Attributes                   | Member of 
------------------+------------------------------------------------+-----------
- test_psql_du_e4 | Superuser, Wri Ext gpfdist Table, Cannot login | {}
+                                      List of roles
+    Role name    |                         Attributes                         | Member of 
+-----------------+------------------------------------------------------------+-----------
+ test_psql_du_e4 | Superuser, Wri Ext gpfdist Table, Cannot login, Bypass RLS | {}
 
 DROP ROLE test_psql_du_e4;
 -- pg_catalog.pg_roles.rolcreaterexthttp
@@ -233,11 +233,11 @@ create operator family dd_opfamily using btree;
 comment on operator family dd_opfamily using btree is 'this is an operator family';
 \dd
                               Object descriptions
-      Schema      |    Name     |     Object      |        Description         
-------------------+-------------+-----------------+----------------------------
- test_psql_schema | dd_ichk     | constraint      | this is a constraint
- test_psql_schema | dd_notify   | rule            | this is a rule
- test_psql_schema | dd_opfamily | operator family | this is an operator family
+      Schema      |    Name     |      Object      |        Description         
+------------------+-------------+------------------+----------------------------
+ test_psql_schema | dd_ichk     | table constraint | this is a constraint
+ test_psql_schema | dd_notify   | rule             | this is a rule
+ test_psql_schema | dd_opfamily | operator family  | this is an operator family
 (3 rows)
 
 -- Clean up

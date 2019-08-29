@@ -94,7 +94,7 @@ AcquireSessionState(int sessionId, int loglevel)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	/* Keep the assertions happy */
 	gp_session_id = sessionId;
@@ -116,7 +116,7 @@ ReleaseSessionState(int sessionId)
 
 	expect_any_count(LWLockAcquire, l, 2);
 	expect_any_count(LWLockAcquire, mode, 2);
-	expect_any_count(LWLockRelease, l, 2);
+	expect_any_count(LWLockRelease, lock, 2);
 
 	gp_session_id = sessionId;
 	/* First find the previously allocated session state */
@@ -312,7 +312,7 @@ test__SessionState_Init__TestSideffects(void **state)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	assert_true(MySessionState == NULL);
 	assert_true(sessionStateInited == false);
@@ -479,7 +479,7 @@ test__SessionState_Shutdown__MarksSessionCleanUponRelease(void **state)
 	will_be_called_count(LWLockRelease, 1);
 	expect_any_count(LWLockAcquire, l, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
-	expect_any_count(LWLockRelease, l, 1);
+	expect_any_count(LWLockRelease, lock, 1);
 
 	/* Bypass assertion */
 	MySessionState = first;

@@ -18,6 +18,7 @@
 #include "access/transam.h"
 #include "access/tuptoaster.h"
 #include "catalog/pg_type.h"
+#include "utils/expandeddatum.h"
 
 #include "cdb/cdbvars.h"
 
@@ -493,6 +494,16 @@ static uint32 compute_memtuple_size_using_bind(
 		{
 			data_length += VARSIZE_ANY_EXHDR(DatumGetPointer(values[i])) + VARHDRSZ_SHORT;
 		}
+		else if (bind->flag == MTB_ByRef &&
+				 VARATT_IS_EXTERNAL_EXPANDED(DatumGetPointer(values[i])))
+		{
+			/*
+			 * we want to flatten the expanded value so that the constructed
+			 * tuple doesn't depend on it
+			 */	
+			data_length = att_align_nominal(data_length, attr->attalign);
+			data_length += EOH_get_flat_size(DatumGetEOHP(values[i]));
+		}
 		else
 		{
 			data_length = att_align_nominal(data_length, attr->attalign); 
@@ -610,8 +621,7 @@ MemTuple memtuple_form_to(
 				if (old_values[i] == values[i])
 					old_values[i] = 0;
 			}
-			
-			else
+			else if (!VARATT_IS_EXTERNAL_EXPANDED(DatumGetPointer(values[i])))
 				hasext = true;
 		}
 	}
@@ -763,9 +773,19 @@ MemTuple memtuple_form_to(
 				if(VARATT_IS_EXTERNAL(DatumGetPointer(values[i])))
 				{
 					varlen_start = (char *) att_align_nominal((long) varlen_start, attr->attalign);
-					attr_len = VARSIZE_EXTERNAL(DatumGetPointer(values[i]));
-					Assert((varlen_start - (char *) mtup) + attr_len <= len);
-					memcpy(varlen_start, DatumGetPointer(values[i]), attr_len);
+
+					if (VARATT_IS_EXTERNAL_EXPANDED(DatumGetPointer(values[i])))
+					{
+						ExpandedObjectHeader *eoh = DatumGetEOHP(values[i]);
+						attr_len = EOH_get_flat_size(eoh);
+						EOH_flatten_into(eoh, varlen_start, attr_len);
+					}
+					else
+					{
+						attr_len = VARSIZE_EXTERNAL(DatumGetPointer(values[i]));
+						Assert((varlen_start - (char *) mtup) + attr_len <= len);
+						memcpy(varlen_start, DatumGetPointer(values[i]), attr_len);
+					}
 				}
 				else if(VARATT_IS_SHORT(DatumGetPointer(values[i])))
 				{
@@ -988,7 +1008,7 @@ Oid MemTupleGetOid(MemTuple mtup, MemTupleBinding *pbind)
 	return ((Oid *) mtup)[1];
 }
 
-void MemTupleSetOid(MemTuple mtup, MemTupleBinding *pbind __attribute__((unused)), Oid oid)
+void MemTupleSetOid(MemTuple mtup, MemTupleBinding *pbind pg_attribute_unused(), Oid oid)
 {
 	Assert(pbind && mtbind_has_oid(pbind));
 	((Oid *) mtup)[1] = oid;

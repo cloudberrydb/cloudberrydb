@@ -61,7 +61,6 @@ STANDBY_FATAL_RET_CODE=2 # copied from gpinitstandby
 PORT_TXT="#port"
 LOG_STATEMENT_TXT="#log_statement ="
 LISTEN_ADR_TXT="listen_addresses"
-CHKPOINT_SEG_TXT="checkpoint_segments"
 CONTENT_ID_TXT="gp_contentid"
 DBID_TXT="gp_dbid"
 INIT_STANDBY_PROG=$GPINITSTANDBY
@@ -394,11 +393,6 @@ CHK_PARAMS () {
 		fi
 		if [ ! $TRUSTED_SHELL ]; then
 				ERROR_EXIT "[FATAL]:-TRUSTED_SHELL variable not set" 2
-		fi
-		# CHECK_POINT_SEGMENTS
-		if [ ! $CHECK_POINT_SEGMENTS ]; then
-			LOG_MSG "[WARN]:-CHECK_POINT_SEGMENTS variable not set, will set to default value"  1
-			CHECK_POINT_SEGMENTS=$DEFAULT_CHK_PT_SEG
 		fi
 		# ENCODING
 		if [ ! $ENCODING ]; then
@@ -1072,7 +1066,6 @@ DISPLAY_CONFIG () {
 		LOG_MSG "[INFO]:-Master buffers             = $MASTER_SHARED_BUFFERS" 1
 		LOG_MSG "[INFO]:-Segment connections        = $QE_MAX_CONNECT" 1
 		LOG_MSG "[INFO]:-Segment buffers            = $QE_SHARED_BUFFERS" 1
-		LOG_MSG "[INFO]:-Checkpoint segments        = $CHECK_POINT_SEGMENTS" 1
 		LOG_MSG "[INFO]:-Encoding                   = $ENCODING" 1
 		LOG_MSG "[INFO]:-Postgres param file        = $PG_ADD" 1
 		LOG_MSG "[INFO]:-Initdb to be used          = $INITDB" 1
@@ -1252,8 +1245,6 @@ CREATE_QD_DB () {
 		SED_PG_CONF ${GP_DIR}/$PG_CONF "$LOG_STATEMENT_TXT" log_statement=all 0
 		ERROR_CHK $? "set log_statement=all in ${GP_DIR}/$PG_CONF" 1
 		LOG_MSG "[INFO]:-Setting Master instance check point segments"
-		SED_PG_CONF ${GP_DIR}/$PG_CONF "$CHKPOINT_SEG_TXT" "checkpoint_segments=$CHECK_POINT_SEGMENTS" 0
-		ERROR_CHK $? "set checkpoint_segments=$CHECK_POINT_SEGMENTS in ${GP_DIR}/$PG_CONF" 1
 
 		LOG_MSG "[INFO]:-Setting Master instance content id"
 		SED_PG_CONF ${GP_DIR}/$PG_CONF "$CONTENT_ID_TXT" "gp_contentid=-1" 0
@@ -1391,7 +1382,6 @@ CREATE_QES_PRIMARY () {
 			export PARALLEL_STATUS_FILE
 			export TOTAL_SEG
 			export ARRAY_NAME
-			export CHECK_POINT_SEGMENTS
 			export QE_MAX_CONNECT
 			export QE_SHARED_BUFFERS
 			export SEG_PREFIX
@@ -1474,7 +1464,6 @@ CREATE_QES_MIRROR () {
 		export ARRAY_NAME
 		export QE_MAX_CONNECT
 		export QE_SHARED_BUFFERS
-		export CHECK_POINT_SEGMENTS
 		export SEG_PREFIX
 		if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
 		FLAG=""
@@ -1667,9 +1656,6 @@ DUMP_OUTPUT_CONFIG () {
     $ECHO "ARRAY_NAME=\"$ARRAY_NAME\"" > $OUTPUT_CONFIG
     if [ x"" != x"$TRUSTED_SHELL" ] ; then
 	$ECHO "TRUSTED_SHELL=$TRUSTED_SHELL" >> $OUTPUT_CONFIG
-    fi
-    if [ x"" != x"$CHECK_POINT_SEGMENTS" ] ; then
-	$ECHO "CHECK_POINT_SEGMENTS=$CHECK_POINT_SEGMENTS" >> $OUTPUT_CONFIG
     fi
     if [ x"" != x"$ENCODING" ] ; then
 	$ECHO "ENCODING=$ENCODING" >> $OUTPUT_CONFIG

@@ -1298,7 +1298,7 @@ getNextBlock(AppendOnlyScanDesc scan)
  */
 static bool
 appendonlygettup(AppendOnlyScanDesc scan,
-				 ScanDirection dir __attribute__((unused)),
+				 ScanDirection dir pg_attribute_unused(),
 				 int nkeys,
 				 ScanKey key,
 				 TupleTableSlot *slot)

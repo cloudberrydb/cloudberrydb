@@ -472,6 +472,9 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 			case T_BitmapHeapScan:
 				/* no change to dispatchInfo --> just iterate children */
 				break;
+			case T_SampleScan:
+				DisableTargetedDispatch(&dispatchInfo);
+				break;
 			case T_SeqScan:
 
 				/*

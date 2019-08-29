@@ -1294,8 +1294,8 @@ FROM (SELECT * FROM sale) sale; --mvd 3,4,5->6; 3,4->7
 create view v1 as
 select dt, sum(cn) over(order by grouping(cn) range grouping(cn) preceding) 
 from sale group by rollup(cn,dt);
-\d+ v1
-drop view v1;
+--\d+ v1
+--drop view v1;
 
 -- MPP-2194, MPP-2236
 drop table if exists win_test_for_window_seq;

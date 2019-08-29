@@ -3,7 +3,7 @@
  * globals.c
  *	  global variable declarations
  *
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,21 +33,29 @@ volatile bool QueryCancelCleanup = false;
 volatile bool QueryFinishPending = false;
 volatile bool ProcDiePending = false;
 volatile bool ClientConnectionLost = false;
-volatile bool ImmediateInterruptOK = false;
-/* Make these signed integers (instead of uint32) to detect garbage negative values. */
 volatile sig_atomic_t ConfigReloadPending = false;
+/*
+ * GPDB: Make these signed integers (instead of uint32) to detect garbage
+ * negative values.
+ */
 volatile int32 InterruptHoldoffCount = 0;
 volatile int32 QueryCancelHoldoffCount = 0;
 volatile int32 CritSectionCount = 0;
-
-volatile bool ImmediateDieOK = false;
-volatile bool TermSignalReceived = false;
 
 int			MyProcPid;
 pg_time_t	MyStartTime;
 struct Port *MyProcPort;
 long		MyCancelKey;
 int			MyPMChildSlot;
+
+/*
+ * MyLatch points to the latch that should be used for signal handling by the
+ * current process. It will either point to a process local latch if the
+ * current process does not have a PGPROC entry in that moment, or to
+ * PGPROC->procLatch if it has. Thus it can always be used in signal handlers,
+ * without checking for its existence.
+ */
+struct Latch *MyLatch;
 
 /*
  * DataDir is the absolute path to the top level of the PGDATA directory tree.

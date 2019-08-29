@@ -67,7 +67,7 @@ test_write_read_shared_snapshot_for_cursor(void **state)
 	expect_any_count(FaultInjector_InjectFaultIfSet, tableName, 13);
 	will_be_called_count(FaultInjector_InjectFaultIfSet, 13);
 
-	expect_any(LWLockRelease, l);
+	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
 
 	MyProc = &writer_proc;

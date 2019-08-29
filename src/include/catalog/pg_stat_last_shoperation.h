@@ -36,8 +36,10 @@ CATALOG(pg_stat_last_shoperation,6056)  BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 	/* */
 	Oid			stasysid;		/* OID of user (when action was performed) */
 	NameData	stausename;		/* name of user (when action was performed) */
+#ifdef CATALOG_VARLEN
 	text		stasubtype;		/* action subtype */
 	timestamptz	statime;
+#endif
 } FormData_pg_statlastshop;
 
 /* GPDB added foreign key definitions for gpcheckcat. */

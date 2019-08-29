@@ -43,7 +43,7 @@
  *
  * Portions Copyright (c) 2005-2010 Greenplum Inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -66,6 +66,8 @@
 #include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "access/xact.h"
+#include "access/xlog.h"
+#include "access/xloginsert.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
@@ -252,7 +254,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	/* However, the eventual owner of the tablespace need not be */
 	if (stmt->owner)
-		ownerId = get_role_oid(stmt->owner, false);
+		ownerId = get_rolespec_oid(stmt->owner, false);
 	else
 		ownerId = GetUserId();
 
@@ -332,6 +334,12 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 						  errdetail("The location is used to create a symlink target from pg_tblspc. Symlink targets are truncated to 100 characters when sending a TAR (e.g the BASE_BACKUP protocol response).")
 						  ));
 
+	/* Warn if the tablespace is in the data directory. */
+	if (path_is_prefix_of_path(DataDir, location))
+		ereport(WARNING,
+				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
+				 errmsg("tablespace location should not be inside the data directory")));
+
 	/*
 	 * Disallow creation of tablespaces named "pg_xxx"; we reserve this
 	 * namespace for system purposes.
@@ -398,21 +406,16 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	/* Record the filesystem change in XLOG */
 	{
 		xl_tblspc_create_rec xlrec;
-		XLogRecData rdata[2];
 
 		xlrec.ts_id = tablespaceoid;
-		rdata[0].data = (char *) &xlrec;
-		rdata[0].len = offsetof(xl_tblspc_create_rec, ts_path);
-		rdata[0].buffer = InvalidBuffer;
-		rdata[0].next = &(rdata[1]);
 
-		rdata[1].data = (char *) location;
-		rdata[1].len = strlen(location) + 1;
-		rdata[1].buffer = InvalidBuffer;
-		rdata[1].next = NULL;
-		
+		XLogBeginInsert();
+		XLogRegisterData((char *) &xlrec,
+						 offsetof(xl_tblspc_create_rec, ts_path));
+		XLogRegisterData((char *) location, strlen(location) + 1);
+
 		SIMPLE_FAULT_INJECTOR("before_xlog_create_tablespace");
-		(void) XLogInsert(RM_TBLSPC_ID, XLOG_TBLSPC_CREATE, rdata);
+		(void) XLogInsert(RM_TBLSPC_ID, XLOG_TBLSPC_CREATE);
 	}
 
 	/*
@@ -640,15 +643,13 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	/* Record the filesystem change in XLOG */
 	{
 		xl_tblspc_drop_rec xlrec;
-		XLogRecData rdata[1];
 
 		xlrec.ts_id = tablespaceoid;
-		rdata[0].data = (char *) &xlrec;
-		rdata[0].len = sizeof(xl_tblspc_drop_rec);
-		rdata[0].buffer = InvalidBuffer;
-		rdata[0].next = NULL;
 
-		(void) XLogInsert(RM_TBLSPC_ID, XLOG_TBLSPC_DROP, rdata);
+		XLogBeginInsert();
+		XLogRegisterData((char *) &xlrec, sizeof(xl_tblspc_drop_rec));
+
+		(void) XLogInsert(RM_TBLSPC_ID, XLOG_TBLSPC_DROP);
 	}
 
 	ScheduleTablespaceDirectoryDeletionForCommit(tablespaceoid);
@@ -800,31 +801,9 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 
 	/*
 	 * In recovery, remove old symlink, in case it points to the wrong place.
-	 *
-	 * On Windows, junction points act like directories so we must be able to
-	 * apply rmdir; in general it seems best to make this code work like the
-	 * symlink removal code in destroy_tablespace_directories, except that
-	 * failure to remove is always an ERROR.
 	 */
 	if (InRecovery)
-	{
-		if (lstat(linkloc, &st) == 0 && S_ISDIR(st.st_mode))
-		{
-			if (rmdir(linkloc) < 0)
-				ereport(ERROR,
-						(errcode_for_file_access(),
-						 errmsg("could not remove directory \"%s\": %m",
-								linkloc)));
-		}
-		else
-		{
-			if (unlink(linkloc) < 0 && errno != ENOENT)
-				ereport(ERROR,
-						(errcode_for_file_access(),
-						 errmsg("could not remove symbolic link \"%s\": %m",
-								linkloc)));
-		}
-	}
+		remove_tablespace_symlink(linkloc);
 
 	/*
 	 * Create the symlink under PGDATA
@@ -1136,7 +1115,8 @@ remove_symlink:
 					 errmsg("could not remove directory \"%s\": %m",
 							linkloc)));
 	}
-	else
+#ifdef S_ISLNK
+	else if (S_ISLNK(st.st_mode))
 	{
 		if (unlink(linkloc) < 0)
 		{
@@ -1147,6 +1127,15 @@ remove_symlink:
 					 errmsg("could not remove symbolic link \"%s\": %m",
 							linkloc)));
 		}
+	}
+#endif
+	else
+	{
+		/* Refuse to remove anything that's not a directory or symlink */
+		ereport(redo ? LOG : ERROR,
+				(ERRCODE_SYSTEM_ERROR,
+				 errmsg("not a directory or symbolic link: \"%s\"",
+						linkloc)));
 	}
 
 	pfree(linkloc_with_version_dir);
@@ -1182,11 +1171,64 @@ directory_is_empty(const char *path)
 	return true;
 }
 
+/*
+ *	remove_tablespace_symlink
+ *
+ * This function removes symlinks in pg_tblspc.  On Windows, junction points
+ * act like directories so we must be able to apply rmdir.  This function
+ * works like the symlink removal code in destroy_tablespace_directories,
+ * except that failure to remove is always an ERROR.  But if the file doesn't
+ * exist at all, that's OK.
+ */
+void
+remove_tablespace_symlink(const char *linkloc)
+{
+	struct stat st;
+
+	if (lstat(linkloc, &st) != 0)
+	{
+		if (errno == ENOENT)
+			return;
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not stat \"%s\": %m", linkloc)));
+	}
+
+	if (S_ISDIR(st.st_mode))
+	{
+		/*
+		 * This will fail if the directory isn't empty, but not
+		 * if it's a junction point.
+		 */
+		if (rmdir(linkloc) < 0)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not remove directory \"%s\": %m",
+							linkloc)));
+	}
+#ifdef S_ISLNK
+	else if (S_ISLNK(st.st_mode))
+	{
+		if (unlink(linkloc) < 0 && errno != ENOENT)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+						errmsg("could not remove symbolic link \"%s\": %m",
+							linkloc)));
+	}
+#endif
+	else
+	{
+		/* Refuse to remove anything that's not a directory or symlink */
+		ereport(ERROR,
+				(errmsg("not a directory or symbolic link: \"%s\"",
+						linkloc)));
+	}
+}
 
 /*
  * Rename a tablespace
  */
-Oid
+ObjectAddress
 RenameTableSpace(const char *oldname, const char *newname)
 {
 	Oid			tspId;
@@ -1197,6 +1239,7 @@ RenameTableSpace(const char *oldname, const char *newname)
 	HeapTuple	tup;
 	HeapTuple	newtuple;
 	Form_pg_tablespace newform;
+	ObjectAddress address;
 
 	/* Search pg_tablespace */
 	rel = heap_open(TableSpaceRelationId, RowExclusiveLock);
@@ -1265,9 +1308,11 @@ RenameTableSpace(const char *oldname, const char *newname)
 
 	InvokeObjectPostAlterHook(TableSpaceRelationId, tspId, 0);
 
+	ObjectAddressSet(address, TableSpaceRelationId, tspId);
+
 	heap_close(rel, NoLock);
 
-	return tspId;
+	return address;
 }
 
 /*
@@ -1494,7 +1539,7 @@ GetDefaultTablespace(char relpersistence)
 typedef struct
 {
 	int			numSpcs;
-	Oid			tblSpcs[1];		/* VARIABLE LENGTH ARRAY */
+	Oid			tblSpcs[FLEXIBLE_ARRAY_MEMBER];
 } temp_tablespaces_extra;
 
 /* check_hook: validate new temp_tablespaces */
@@ -1768,7 +1813,7 @@ get_tablespace_oid(const char *tablespacename, bool missing_ok)
 		 */
 		lockTest = heap_lock_tuple(rel, tuple,
 								   GetCurrentCommandId(true),
-								   LockTupleKeyShare, LockTupleWait,
+								   LockTupleKeyShare, LockWaitBlock,
 								   false,  &buffer, &hufd);
 		ReleaseBuffer(buffer);
 		switch (lockTest)
@@ -1781,7 +1826,7 @@ get_tablespace_oid(const char *tablespacename, bool missing_ok)
 				/* fallthrough */
 
 			case HeapTupleBeingUpdated:
-				Assert(false);  /* Not possible with LockTupleWait */
+				Assert(false);  /* Not possible with LockWaitBlock */
 				/* fallthrough */
 
 			case HeapTupleUpdated:
@@ -1852,12 +1897,12 @@ get_tablespace_name(Oid spc_oid)
  * TABLESPACE resource manager's routines
  */
 void
-tblspc_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
+tblspc_redo(XLogReaderState *record)
 {
-	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
 	/* Backup blocks are not used in tblspc records */
-	Assert(!(record->xl_info & XLR_BKP_BLOCK_MASK));
+	Assert(!XLogRecHasAnyBlockRefs(record));
 
 	if (info == XLOG_TBLSPC_CREATE)
 	{
