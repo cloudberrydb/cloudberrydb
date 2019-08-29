@@ -86,8 +86,7 @@ CSchedulerContext::Init
 
 	m_pmpLocal = CMemoryPoolManager::GetMemoryPoolMgr()->Create
 					(
-					CMemoryPoolManager::EatStack,
-					false /*fThreadSafe*/
+					CMemoryPoolManager::EatStack
 					);
 
 	m_pmpGlobal = pmpGlobal;

@@ -38,14 +38,12 @@ const ULONG_PTR CMemoryPool::m_invalid = ULONG_PTR_MAX;
 CMemoryPool::CMemoryPool
 	(
 	CMemoryPool *underlying_memory_pool,
-	BOOL owns_underlying_memory_pool,
-	BOOL thread_safe
+	BOOL owns_underlying_memory_pool
 	)
 	:
 	m_hash_key(0),
 	m_underlying_memory_pool(underlying_memory_pool),
-	m_owns_underlying_memory_pool(owns_underlying_memory_pool),
-	m_thread_safe(thread_safe)
+	m_owns_underlying_memory_pool(owns_underlying_memory_pool)
 {
 	GPOS_ASSERT_IMP(owns_underlying_memory_pool, NULL != underlying_memory_pool);
 

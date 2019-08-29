@@ -89,9 +89,6 @@ namespace gpos
 			// flag indicating if this pool owns the underlying pool
 			const BOOL m_owns_underlying_memory_pool;
 
-			// flag indicating if memory pool is thread-safe
-			const BOOL m_thread_safe;
-
 #ifdef GPOS_DEBUG
 			// stack where pool is created
 			CStackDescriptor m_stack_desc;
@@ -106,8 +103,7 @@ namespace gpos
 			CMemoryPool
 				(
 				CMemoryPool *underlying_memory_pool,
-				BOOL owns_underlying_memory_pool,
-				BOOL thread_safe
+				BOOL owns_underlying_memory_pool
 				);
 
 			// underlying pool accessor
@@ -140,13 +136,6 @@ namespace gpos
 				{
 					m_underlying_memory_pool->TearDown();
 				}
-			}
-
-			// check if memory pool is thread-safe
-			virtual
-			BOOL IsThreadSafe() const
-			{
-				return m_thread_safe;
 			}
 
 			// hash key accessor

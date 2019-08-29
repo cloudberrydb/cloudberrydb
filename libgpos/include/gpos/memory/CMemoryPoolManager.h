@@ -89,7 +89,6 @@ namespace gpos
 				(
 				AllocType alloc_type,
 				CMemoryPool *underlying_memory_pool,
-				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
 				);
 
@@ -98,8 +97,7 @@ namespace gpos
 			CMemoryPool *CreatePoolStack
 				(
 				AllocType type,
-				ULLONG capacity,
-				BOOL thread_safe
+				ULLONG capacity
 				);
 #endif // GPOS_DEBUG
 
@@ -118,8 +116,7 @@ namespace gpos
 			// create new memory pool
 			CMemoryPool *Create
 				(
-				CMemoryPoolManager::AllocType alloc_type,
-				BOOL thread_safe
+				CMemoryPoolManager::AllocType alloc_type
 				);
 				
 			// release memory pool

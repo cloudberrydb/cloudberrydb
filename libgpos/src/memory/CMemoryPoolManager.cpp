@@ -70,7 +70,7 @@ CMemoryPoolManager::CMemoryPoolManager
 		);
 
 	// create pool used in allocations made using global new operator
-	m_global_memory_pool = Create(EatTracker, true);
+	m_global_memory_pool = Create(EatTracker);
 }
 
 //---------------------------------------------------------------------------
@@ -111,7 +111,6 @@ CMemoryPoolManager::Init
 	CMemoryPool *internal = new(alloc_internal) CMemoryPoolTracker
 			(
 			base,
-			true, // IsThreadSafe
 			false //fOwnsUnderlyingPmp
 			);
 
@@ -153,15 +152,14 @@ CMemoryPoolManager::Init
 CMemoryPool *
 CMemoryPoolManager::Create
 	(
-	AllocType alloc_type,
-	BOOL thread_safe
+	AllocType alloc_type
 	)
 {
 	CMemoryPool *mp =
 #ifdef GPOS_DEBUG
-			CreatePoolStack(alloc_type, capacity, thread_safe);
+			CreatePoolStack(alloc_type, capacity);
 #else
-			New(alloc_type, m_base_memory_pool, thread_safe, false /*owns_underlying_memory_pool*/);
+			New(alloc_type, m_base_memory_pool, false /*owns_underlying_memory_pool*/);
 #endif // GPOS_DEBUG
 
 	// accessor scope
@@ -190,7 +188,6 @@ CMemoryPoolManager::New
 	(
 	AllocType alloc_type,
 	CMemoryPool *underlying_memory_pool,
-	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
 	)
 {
@@ -200,7 +197,6 @@ CMemoryPoolManager::New
 			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolTracker
 						(
 						underlying_memory_pool,
-						thread_safe,
 						owns_underlying_memory_pool
 						);
 
@@ -208,7 +204,6 @@ CMemoryPoolManager::New
 			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolStack
 						(
 						underlying_memory_pool,
-						thread_safe,
 						owns_underlying_memory_pool
 						);
 	}
@@ -232,8 +227,7 @@ CMemoryPool *
 CMemoryPoolManager::CreatePoolStack
 	(
 	AllocType alloc_type,
-	ULLONG capacity,
-	BOOL thread_safe
+	ULLONG capacity
 	)
 {
 	CMemoryPool *base = m_base_memory_pool;
@@ -256,7 +250,6 @@ CMemoryPoolManager::CreatePoolStack
 				EatTracker,
 				FPSim_low,
 				capacity,
-				thread_safe,
 				true /*owns_underlying_memory_pool*/
 				);
 	}
@@ -271,7 +264,6 @@ CMemoryPoolManager::CreatePoolStack
 				alloc_type,
 				base,
 				capacity,
-				thread_safe,
 				base != m_base_memory_pool
 				);
 	}
@@ -284,7 +276,7 @@ CMemoryPoolManager::CreatePoolStack
 				);
 
 	// put tracker on top of the stack
-	return New(EatTracker, FPSim, capacity, thread_safe, true /*fOwnsUnderlying*/);
+	return New(EatTracker, FPSim, capacity, true /*fOwnsUnderlying*/);
 }
 
 #endif // GPOS_DEBUG

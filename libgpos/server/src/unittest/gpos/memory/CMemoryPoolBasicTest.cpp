@@ -217,7 +217,7 @@ CMemoryPoolBasicTest::EresNewDelete
 {
 	// create memory pool
 	CAutoTimer at("NewDelete test", true /*fPrint*/);
-	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, false /*fThreadSafe*/);
+	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat);
 	CMemoryPool *mp = amp.Pmp();
 
 	WCHAR rgwszText[] = GPOS_WSZ_LIT(
@@ -276,7 +276,7 @@ CMemoryPoolBasicTest::EresThrowingCtor
 	CAutoTimer at("ThrowingCtor test", true /*fPrint*/);
 
 	// create memory pool
-	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat, false /*fThreadSafe*/);
+	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat);
 	CMemoryPool *mp = amp.Pmp();
 
 	// malicious test class

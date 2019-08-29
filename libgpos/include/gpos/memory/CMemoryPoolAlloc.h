@@ -43,8 +43,7 @@ namespace gpos
 				CMemoryPool
 					(
 					NULL /*pmpUnderlying*/,
-					false /*fOwnsUnderlying*/,
-					true /*fThreadSafe*/
+					false /*fOwnsUnderlying*/
 					),
 				m_alloc(alloc),
 				m_free(free_func)

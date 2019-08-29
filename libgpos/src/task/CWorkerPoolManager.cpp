@@ -77,8 +77,7 @@ CWorkerPoolManager::Init()
 	CMemoryPool *mp =
 		CMemoryPoolManager::GetMemoryPoolMgr()->Create
 			(
-			CMemoryPoolManager::EatTracker,
-			true /*fThreadSafe*/
+			CMemoryPoolManager::EatTracker
 			// FIXME: GPOS_WORKERPOOL_MEM_POOL_SIZE
 			);
 

@@ -130,8 +130,7 @@ CWStringTest::EresUnittest_AppendFormat()
 	CAutoMemoryPool amp
 		(
 		CAutoMemoryPool::ElcExc,
-		CMemoryPoolManager::EatTracker,
-		false /*fThreadSafe*/
+		CMemoryPoolManager::EatTracker
 		);
 	CMemoryPool *mp = amp.Pmp();
 
@@ -177,8 +176,7 @@ CWStringTest::EresUnittest_AppendFormatInvalidLocale()
 	CAutoMemoryPool amp
 		(
 		CAutoMemoryPool::ElcExc,
-		CMemoryPoolManager::EatTracker,
-		false /*fThreadSafe*/
+		CMemoryPoolManager::EatTracker
 		);
 	CMemoryPool *mp = amp.Pmp();
 

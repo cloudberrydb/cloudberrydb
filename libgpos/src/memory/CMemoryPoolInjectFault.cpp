@@ -39,7 +39,7 @@ CMemoryPoolInjectFault::CMemoryPoolInjectFault
 	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(mp, owns_underlying_memory_pool, true /*fThreadSafe*/)
+	CMemoryPool(mp, owns_underlying_memory_pool)
 {
 	GPOS_ASSERT(mp != NULL);
 }

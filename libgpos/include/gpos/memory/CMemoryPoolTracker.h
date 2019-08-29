@@ -88,7 +88,6 @@ namespace gpos
 			CMemoryPoolTracker
 				(
 				CMemoryPool *underlying_memory_pool,
-				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
 				);
 

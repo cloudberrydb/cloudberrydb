@@ -47,11 +47,10 @@ using namespace gpos;
 CMemoryPoolTracker::CMemoryPoolTracker
 	(
 	CMemoryPool *underlying_memory_pool,
-	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(underlying_memory_pool, owns_underlying_memory_pool, thread_safe),
+	CMemoryPool(underlying_memory_pool, owns_underlying_memory_pool),
 	m_alloc_sequence(0)
 {
 	GPOS_ASSERT(NULL != underlying_memory_pool);

@@ -118,7 +118,6 @@ namespace gpos
 			CMemoryPoolStack
 				(
 				CMemoryPool *mp,
-				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
 				);
 
