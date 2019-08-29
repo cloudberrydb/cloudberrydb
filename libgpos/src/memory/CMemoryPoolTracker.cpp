@@ -46,15 +46,11 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMemoryPoolTracker::CMemoryPoolTracker
 	(
-	CMemoryPool *underlying_memory_pool,
-	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(underlying_memory_pool, owns_underlying_memory_pool),
+	CMemoryPool(),
 	m_alloc_sequence(0)
 {
-	GPOS_ASSERT(NULL != underlying_memory_pool);
-
 	m_allocations_list.Init(GPOS_OFFSET(SAllocHeader, m_link));
 }
 
@@ -95,7 +91,7 @@ CMemoryPoolTracker::Allocate
 
 	// allocate from underlying
 	void *ptr;
-	ptr = GetUnderlyingMemoryPool()->Allocate(alloc, file, line);
+	ptr = clib::Malloc(alloc);
 
 	// check if allocation failed
 	if (NULL == ptr)
@@ -155,7 +151,7 @@ CMemoryPoolTracker::Free
 	m_allocations_list.Remove(header);
 
 	// pass request to underlying memory pool;
-	GetUnderlyingMemoryPool()->Free(header);
+	clib::Free(header);
 }
 
 
@@ -177,8 +173,6 @@ CMemoryPoolTracker::TearDown()
 		void *user_data = header + 1;
 		Free(user_data);
 	}
-
-	CMemoryPool::TearDown();
 }
 
 

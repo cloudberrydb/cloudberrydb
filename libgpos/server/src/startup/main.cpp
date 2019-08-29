@@ -52,7 +52,6 @@
 #include "unittest/gpos/io/COstreamStringTest.h"
 #include "unittest/gpos/io/CFileTest.h"
 
-#include "unittest/gpos/memory/CMemoryPoolAllocTest.h"
 #include "unittest/gpos/memory/CMemoryPoolBasicTest.h"
 #include "unittest/gpos/memory/CCacheTest.h"
 
@@ -107,7 +106,6 @@ static gpos::CUnittest rgut[] =
 	// memory
 	GPOS_UNITTEST_STD(CMemoryPoolBasicTest),
 	GPOS_UNITTEST_STD(CCacheTest),
-	GPOS_UNITTEST_STD(CMemoryPoolAllocTest),
 
 	// string
 	GPOS_UNITTEST_STD(CWStringTest),
@@ -153,7 +151,6 @@ PvExec
 	return NULL;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		main
@@ -172,7 +169,8 @@ INT main
 	// setup args for unittest params
 	CMainArgs ma(iArgs, rgszArgs, "cuU:xT:");
 
-	GPOS_INIT(&ma);
+	struct gpos_init_params init_params = { NULL, NULL, NULL };
+	gpos_init(&init_params);
 
 	GPOS_ASSERT(iArgs >= 0);
 

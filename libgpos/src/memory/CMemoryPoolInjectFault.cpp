@@ -35,13 +35,10 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMemoryPoolInjectFault::CMemoryPoolInjectFault
 	(
-	CMemoryPool *mp,
-	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(mp, owns_underlying_memory_pool)
+	CMemoryPool()
 {
-	GPOS_ASSERT(mp != NULL);
 }
 
 
@@ -57,9 +54,9 @@ CMemoryPoolInjectFault::CMemoryPoolInjectFault
 void *
 CMemoryPoolInjectFault::Allocate
 	(
-	const ULONG num_bytes,
-	const CHAR *filename,
-	const ULONG line
+	 const ULONG num_bytes,
+	 const CHAR *filename __attribute__ ((unused)),
+	 const ULONG line __attribute__ ((unused))
 	)
 {
 #ifdef GPOS_FPSIMULATOR
@@ -71,7 +68,7 @@ CMemoryPoolInjectFault::Allocate
 	}
 #endif
 
-	return GetUnderlyingMemoryPool()->Allocate(num_bytes, filename, line);
+	return clib::Malloc(num_bytes);
 }
 
 
@@ -93,7 +90,7 @@ CMemoryPoolInjectFault::Free
 	void *memory
 	)
 {
-	GetUnderlyingMemoryPool()->Free(memory);
+	clib::Free(memory);
 }
 
 

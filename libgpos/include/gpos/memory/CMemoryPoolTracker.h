@@ -7,7 +7,7 @@
 //		CMemoryPoolTracker.h
 //
 //	@doc:
-//		Memory pool that allocates from an underlying allocator and adds on
+//		Memory pool that allocates from malloc() and adds on
 //		statistics and debugging
 //
 //	@owner:
@@ -85,11 +85,7 @@ namespace gpos
 		public:
 
 			// ctor
-			CMemoryPoolTracker
-				(
-				CMemoryPool *underlying_memory_pool,
-				BOOL owns_underlying_memory_pool
-				);
+			CMemoryPoolTracker();
 
 			// allocate memory
 			virtual
@@ -107,14 +103,6 @@ namespace gpos
 			// prepare the memory pool to be deleted
 			virtual
 			void TearDown();
-
-			// check if the pool stores a pointer to itself at the end of
-			// the header of each allocated object;
-			virtual
-			BOOL StoresPoolPointer() const
-			{
-				return true;
-			}
 
 			// return total allocated size
 			virtual

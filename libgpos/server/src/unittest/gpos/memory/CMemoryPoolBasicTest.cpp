@@ -324,9 +324,7 @@ CMemoryPoolBasicTest::EresLeak
 		CAutoMemoryPool amp
 			(
 			CAutoMemoryPool::ElcStrict,
-			eat,
-			false /*fThreadSafe*/,
-			4 * 1024 * 1024 /*ullMaxSize*/
+			eat
 			);
 		CMemoryPool *mp = amp.Pmp();
 
@@ -371,9 +369,7 @@ CMemoryPoolBasicTest::EresLeakByException
 		CAutoMemoryPool amp
 			(
 			CAutoMemoryPool::ElcExc,
-			eat,
-			false /*fThreadSafe*/,
-			4 * 1024 * 1024 /*ullMaxSize*/
+			eat
 			);
 		CMemoryPool *mp = amp.Pmp();
 

@@ -8,7 +8,7 @@
 //
 //	@doc:
 //		Implementation of memory pool that allocates large blocks from the
-//		underlying pool and incrementally reserves space in them.
+//		system and incrementally reserves space in them.
 //
 //	@owner:
 //
@@ -44,17 +44,13 @@ GPOS_CPL_ASSERT(MAX_ALIGNED(GPOS_MEM_BLOCK_SIZE));
 //---------------------------------------------------------------------------
 CMemoryPoolStack::CMemoryPoolStack
 	(
-	CMemoryPool *mp,
-	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(mp, owns_underlying_memory_pool),
+	CMemoryPool(),
 	m_block_descriptor(NULL),
 	m_reserved(0),
 	m_blocksize(GPOS_MEM_ALIGNED_SIZE(GPOS_MEM_BLOCK_SIZE))
 {
-	GPOS_ASSERT(NULL != mp);
-
 	m_block_list.Init(GPOS_OFFSET(SBlockDescriptor, m_link));
 }
 
@@ -78,7 +74,7 @@ CMemoryPoolStack::~CMemoryPoolStack()
 //		CMemoryPoolStack::Allocate
 //
 //	@doc:
-//		Allocate memory, either from the underlying pool directly (for large
+//		Allocate memory, either from the malloc directly (for large
 //		requests) or by advancing the index in the current block.
 //
 //---------------------------------------------------------------------------
@@ -157,7 +153,7 @@ CMemoryPoolStack::FindMemoryBlock
 //		CMemoryPoolStack::New
 //
 //	@doc:
-//		Allocate block from underlying pool.
+//		Allocate block
 //
 //---------------------------------------------------------------------------
 CMemoryPoolStack::SBlockDescriptor *
@@ -170,10 +166,7 @@ CMemoryPoolStack::New
 	GPOS_ASSERT(MAX_ALIGNED(block_size));
 
 	// allocate memory and put block descriptor to the beginning of it
-	SBlockDescriptor *desc = static_cast<SBlockDescriptor*>
-			(
-			GetUnderlyingMemoryPool()->Allocate(block_size, __FILE__, __LINE__)
-			);
+	SBlockDescriptor *desc = (SBlockDescriptor *) clib::Malloc(block_size);
 
 	if (NULL != desc)
 	{
@@ -189,7 +182,7 @@ CMemoryPoolStack::New
 //		CMemoryPoolStack::TearDown
 //
 //	@doc:
-//		Return all used memory to the underlying pool and tear it down.
+//		Return all used memory to the system and tear it down.
 //
 //---------------------------------------------------------------------------
 void
@@ -197,10 +190,8 @@ CMemoryPoolStack::TearDown()
 {
 	while (!m_block_list.IsEmpty())
 	{
-		GetUnderlyingMemoryPool()->Free(m_block_list.RemoveHead());
+		clib::Free(m_block_list.RemoveHead());
 	}
-
-	CMemoryPool::TearDown();
 
 	m_reserved = 0;
 	m_block_descriptor = NULL;

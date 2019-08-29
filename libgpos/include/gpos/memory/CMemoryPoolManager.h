@@ -56,10 +56,6 @@ namespace gpos
 			typedef CSyncHashtableAccessByIter<CMemoryPool, ULONG_PTR>
 				MemoryPoolIterAccessor;
 
-			// memory pool used to get memory from the underlying system
-			// all created pools use this as their underlying allocator
-			CMemoryPool *m_base_memory_pool;
-
 			// memory pool in which all objects created by the manager itself
 			// are allocated - must be thread-safe
 			CMemoryPool *m_internal_memory_pool;
@@ -78,28 +74,13 @@ namespace gpos
 			static CMemoryPoolManager *m_memory_pool_mgr;
 
 			// private ctor
-			CMemoryPoolManager
-				(
-				CMemoryPool *internal,
-				CMemoryPool *base
-				);
+			CMemoryPoolManager(CMemoryPool *internal);
 
 			// create new pool of given type
 			CMemoryPool *New
 				(
-				AllocType alloc_type,
-				CMemoryPool *underlying_memory_pool,
-				BOOL owns_underlying_memory_pool
+				AllocType alloc_type
 				);
-
-#ifdef GPOS_DEBUG
-			// surround new pool with tracker pools
-			CMemoryPool *CreatePoolStack
-				(
-				AllocType type,
-				ULLONG capacity
-				);
-#endif // GPOS_DEBUG
 
 			// no copy ctor
 			CMemoryPoolManager(const CMemoryPoolManager&);
@@ -121,9 +102,6 @@ namespace gpos
 				
 			// release memory pool
 			void Destroy(CMemoryPool *);
-
-			// delete a pool that is not registered with the memory pool manager
-			void DeleteUnregistered(CMemoryPool *);
 			
 #ifdef GPOS_DEBUG
 			// print internal contents of allocated memory pools
@@ -140,6 +118,11 @@ namespace gpos
 			CMemoryPool *GetGlobalMemoryPool()
 			{
 				return m_global_memory_pool;
+			}
+
+			virtual
+			~CMemoryPoolManager()
+			{
 			}
 
 			// are allocations using global new operator allowed?

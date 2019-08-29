@@ -83,12 +83,6 @@ namespace gpos
 			// hash key is only set by pool manager
 			ULONG_PTR m_hash_key;
 
-			// underlying memory pool - optional
-			CMemoryPool *m_underlying_memory_pool;
-
-			// flag indicating if this pool owns the underlying pool
-			const BOOL m_owns_underlying_memory_pool;
-
 #ifdef GPOS_DEBUG
 			// stack where pool is created
 			CStackDescriptor m_stack_desc;
@@ -98,19 +92,6 @@ namespace gpos
 			SLink m_link;
 
 		protected:
-
-			// ctor
-			CMemoryPool
-				(
-				CMemoryPool *underlying_memory_pool,
-				BOOL owns_underlying_memory_pool
-				);
-
-			// underlying pool accessor
-			CMemoryPool *GetUnderlyingMemoryPool() const
-			{
-				return m_underlying_memory_pool;
-			}
 
 			// invalid memory pool key
 			static
@@ -126,17 +107,11 @@ namespace gpos
 
 			// dtor
 			virtual
-			~CMemoryPool() = 0;
+			~CMemoryPool()
+			{}
 
-			// prepare the memory pool to be deleted
-			virtual
-			void TearDown()
-			{
-				if (m_owns_underlying_memory_pool)
-				{
-					m_underlying_memory_pool->TearDown();
-				}
-			}
+		// prepare the memory pool to be deleted
+			virtual void TearDown() = 0;
 
 			// hash key accessor
 			virtual
@@ -235,14 +210,6 @@ namespace gpos
 			virtual
 			void Free(void *memory) = 0;
 
-
-			// check if the pool stores a pointer to itself at the end of
-			// the header of each allocated object;
-			virtual
-			BOOL StoresPoolPointer() const
-			{
-				return false;
-			}
 
 			// return total allocated size
 			virtual

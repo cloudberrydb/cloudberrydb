@@ -38,10 +38,12 @@ namespace gpos
 			// private copy ctor
 			CMemoryPoolInjectFault(CMemoryPoolInjectFault &);
 
+			ULLONG m_total_allocated_size;
+
 		public:
 
 			// ctor
-			CMemoryPoolInjectFault(CMemoryPool *mp, BOOL owns_underlying_memory_pool);
+			CMemoryPoolInjectFault();
 
 			//dtor
 			virtual
@@ -65,7 +67,7 @@ namespace gpos
 			virtual
 			ULLONG TotalAllocatedSize() const
 			{
-				return GetUnderlyingMemoryPool()->TotalAllocatedSize();
+				return m_total_allocated_size;
 			}
 	};
 }

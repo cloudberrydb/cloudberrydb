@@ -6,7 +6,7 @@
 //		CMemoryPoolStack.h
 //
 //	@doc:
-//		Memory pool that allocates large blocks from the underlying pool and
+//		Memory pool that allocates large blocks from malloc() and
 //		incrementally reserves space in them.
 //
 //	@owner:
@@ -36,7 +36,7 @@ namespace gpos
 	//		Memory pool which allocates memory in blocks; memory is given away
 	//		from the beginning to the end of each block. For requests that exceed
 	//		the block size, the blocks are skipped and the request is satisfied
-	//		from the underlying pool.
+	//		directly with malloc()
 	//
 	//		Note that this pool does not free up  memory, regardless of free
 	//		calls, until it is torn down.
@@ -115,11 +115,7 @@ namespace gpos
 		public:
 
 			// ctor
-			CMemoryPoolStack
-				(
-				CMemoryPool *mp,
-				BOOL owns_underlying_memory_pool
-				);
+			CMemoryPoolStack();
 
 			// dtor
 			virtual
@@ -150,17 +146,9 @@ namespace gpos
 #endif // GPOS_DEBUG
 			}
 
-			// return all used memory to the underlying pool and tear it down
+			// return all used memory to the system and tear it down
 			virtual
 			void TearDown();
-
-			// check if the pool stores a pointer to itself at the end of
-			// the header of each allocated object;
-			virtual
-			BOOL StoresPoolPointer() const
-			{
-				return true;
-			}
 
 			// return total allocated size
 			virtual
