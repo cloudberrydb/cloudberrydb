@@ -31,7 +31,7 @@ installcheck_win: pre_installcheck
 	mkdir start_gpfdist_remote
 	cp -rf start_gpfdist_remote_win/* start_gpfdist_remote
 	scp -P ${REMOTE_PORT} start_gpfdist_remote/*.bat  ${REMOTE_USER}@${REMOTE_HOST}:
-	$(top_builddir)/src/test/regress/pg_regress --psqldir=$(PSQLDIR) --dbname=gpfdist_regression $(REGRESS) $(REGRESS_OPTS)
+	$(top_builddir)/src/test/regress/pg_regress --bindir=$(PSQLDIR) --dbname=gpfdist_regression $(REGRESS) $(REGRESS_OPTS)
 
 clean:
 	rm -rf regression.* sql results expected
