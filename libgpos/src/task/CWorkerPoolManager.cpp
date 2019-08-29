@@ -75,11 +75,7 @@ CWorkerPoolManager::Init()
 	GPOS_ASSERT(NULL == WorkerPoolManager());
 
 	CMemoryPool *mp =
-		CMemoryPoolManager::GetMemoryPoolMgr()->Create
-			(
-			CMemoryPoolManager::EatTracker
-			// FIXME: GPOS_WORKERPOOL_MEM_POOL_SIZE
-			);
+		CMemoryPoolManager::GetMemoryPoolMgr()->CreateMemoryPool();
 
 	GPOS_TRY
 	{

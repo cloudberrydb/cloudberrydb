@@ -19,7 +19,6 @@
 #include "gpos/utils.h"
 #include "gpos/task/ITask.h"
 #include "gpos/common/CLink.h"
-#include "gpos/_api.h"
 
 namespace gpos
 {

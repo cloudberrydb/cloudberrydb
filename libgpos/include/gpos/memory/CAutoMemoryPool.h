@@ -65,8 +65,7 @@ namespace gpos
 			// ctor
 			CAutoMemoryPool
 				(
-				ELeakCheck leak_check_type = ElcExc,
-				CMemoryPoolManager::AllocType ept = CMemoryPoolManager::EatTracker
+				ELeakCheck leak_check_type = ElcExc
 				);
 
 			// dtor

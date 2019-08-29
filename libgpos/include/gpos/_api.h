@@ -56,8 +56,6 @@ struct gpos_exec_params
 /* struct containing initialization parameters for gpos */
 struct gpos_init_params
 {
-	void *(*alloc)(size_t);			/* custom allocator */
-	void (*free)(void*);			/* custom free      */
 	bool (*abort_requested) (void);	/* callback to report abort requests */
 };
 

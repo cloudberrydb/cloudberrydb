@@ -113,7 +113,7 @@ namespace gpos
 			~CMemoryPool()
 			{}
 
-		// prepare the memory pool to be deleted
+			// prepare the memory pool to be deleted
 			virtual void TearDown() = 0;
 
 			// hash key accessor

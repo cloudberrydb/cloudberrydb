@@ -111,7 +111,7 @@ CMemoryPoolBasicTest::EresUnittest_Print()
 GPOS_RESULT
 CMemoryPoolBasicTest::EresUnittest_TestTracker()
 {
-	return EresTestType(CMemoryPoolManager::EatTracker);
+	return EresTestType();
 }
 
 
@@ -125,17 +125,15 @@ CMemoryPoolBasicTest::EresUnittest_TestTracker()
 //---------------------------------------------------------------------------
 GPOS_RESULT
 CMemoryPoolBasicTest::EresTestType
-	(
-	CMemoryPoolManager::AllocType eat
-	)
+	()
 {
-	if (GPOS_OK != EresNewDelete(eat) ||
-	    GPOS_OK != EresTestExpectedError(EresThrowingCtor, eat, CException::ExmiOOM)
+	if (GPOS_OK != EresNewDelete() ||
+	    GPOS_OK != EresTestExpectedError(EresThrowingCtor, CException::ExmiOOM)
 
 #ifdef GPOS_DEBUG
 		||
-	    GPOS_OK != EresTestExpectedError(EresLeak, eat, CException::ExmiAssert) ||
-	    GPOS_OK != EresTestExpectedError(EresLeakByException, eat, CException::ExmiAssert)
+	    GPOS_OK != EresTestExpectedError(EresLeak, CException::ExmiAssert) ||
+	    GPOS_OK != EresTestExpectedError(EresLeakByException, CException::ExmiAssert)
 #endif // GPOS_DEBUG
 	    )
 	{
@@ -157,15 +155,14 @@ CMemoryPoolBasicTest::EresTestType
 GPOS_RESULT
 CMemoryPoolBasicTest::EresTestExpectedError
 	(
-	GPOS_RESULT (*pfunc)(CMemoryPoolManager::AllocType),
-	CMemoryPoolManager::AllocType eat,
+	GPOS_RESULT (*pfunc)(),
 	ULONG minor
 	)
 {
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
 	{
-		pfunc(eat);
+		pfunc();
 	}
 	GPOS_CATCH_EX(ex)
 	{
@@ -194,14 +191,11 @@ CMemoryPoolBasicTest::EresTestExpectedError
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolBasicTest::EresNewDelete
-	(
-	CMemoryPoolManager::AllocType eat
-	)
+CMemoryPoolBasicTest::EresNewDelete()
 {
 	// create memory pool
 	CAutoTimer at("NewDelete test", true /*fPrint*/);
-	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat);
+	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc);
 	CMemoryPool *mp = amp.Pmp();
 
 	WCHAR rgwszText[] = GPOS_WSZ_LIT(
@@ -252,15 +246,12 @@ CMemoryPoolBasicTest::EresNewDelete
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolBasicTest::EresThrowingCtor
-	(
-	CMemoryPoolManager::AllocType eat
-	)
+CMemoryPoolBasicTest::EresThrowingCtor()
 {
 	CAutoTimer at("ThrowingCtor test", true /*fPrint*/);
 
 	// create memory pool
-	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc, eat);
+	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc);
 	CMemoryPool *mp = amp.Pmp();
 
 	// malicious test class
@@ -294,10 +285,7 @@ CMemoryPoolBasicTest::EresThrowingCtor
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolBasicTest::EresLeak
-	(
-	CMemoryPoolManager::AllocType eat
-	)
+CMemoryPoolBasicTest::EresLeak()
 {
 	CAutoTraceFlag atfDump(EtracePrintMemoryLeakDump, true);
 	CAutoTraceFlag atfStackTrace(EtracePrintMemoryLeakStackTrace, true);
@@ -307,8 +295,7 @@ CMemoryPoolBasicTest::EresLeak
 	{
 		CAutoMemoryPool amp
 			(
-			CAutoMemoryPool::ElcStrict,
-			eat
+			CAutoMemoryPool::ElcStrict
 			);
 		CMemoryPool *mp = amp.Pmp();
 
@@ -338,10 +325,7 @@ CMemoryPoolBasicTest::EresLeak
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolBasicTest::EresLeakByException
-	(
-	CMemoryPoolManager::AllocType eat
-	)
+CMemoryPoolBasicTest::EresLeakByException()
 {
 	CAutoTraceFlag atfDump(EtracePrintMemoryLeakDump, true);
 	CAutoTraceFlag atfStackTrace(EtracePrintMemoryLeakStackTrace, true);
@@ -352,8 +336,7 @@ CMemoryPoolBasicTest::EresLeakByException
 		// create memory pool
 		CAutoMemoryPool amp
 			(
-			CAutoMemoryPool::ElcExc,
-			eat
+			CAutoMemoryPool::ElcExc
 			);
 		CMemoryPool *mp = amp.Pmp();
 

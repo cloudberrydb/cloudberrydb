@@ -433,7 +433,7 @@ INT main
 {	
 
 	// Use default allocator
-	struct gpos_init_params gpos_params = { NULL, NULL, NULL };
+	struct gpos_init_params gpos_params = { NULL };
 
 	gpos_init(&gpos_params);
 	gpdxl_init();

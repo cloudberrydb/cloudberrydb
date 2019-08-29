@@ -169,7 +169,7 @@ INT main
 	// setup args for unittest params
 	CMainArgs ma(iArgs, rgszArgs, "cuU:xT:");
 
-	struct gpos_init_params init_params = { NULL, NULL, NULL };
+	struct gpos_init_params init_params = { NULL };
 	gpos_init(&init_params);
 
 	GPOS_ASSERT(iArgs >= 0);

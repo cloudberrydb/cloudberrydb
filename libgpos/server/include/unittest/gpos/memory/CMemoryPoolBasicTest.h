@@ -27,19 +27,18 @@ namespace gpos
 	{
 		private:
 
-			static GPOS_RESULT EresTestType(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresTestType();
 			static GPOS_RESULT EresTestExpectedError
 				(
-				GPOS_RESULT (*pfunc)(CMemoryPoolManager::AllocType),
-				CMemoryPoolManager::AllocType eat,
+				GPOS_RESULT (*pfunc)(),
 				ULONG minor
 				);
 
-			static GPOS_RESULT EresNewDelete(CMemoryPoolManager::AllocType eat);
-			static GPOS_RESULT EresThrowingCtor(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresNewDelete();
+			static GPOS_RESULT EresThrowingCtor();
 #ifdef GPOS_DEBUG
-			static GPOS_RESULT EresLeak(CMemoryPoolManager::AllocType eat);
-			static GPOS_RESULT EresLeakByException(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresLeak();
+			static GPOS_RESULT EresLeakByException();
 #endif // GPOS_DEBUG
 
 			static ULONG Size(ULONG offset);
