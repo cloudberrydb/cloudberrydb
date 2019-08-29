@@ -59,10 +59,10 @@
   <topic id="limits">
     <title>Known Issues and Limitations</title>
     <body>
-     <p>The Greenplum Database 6 Beta foreign-data wrapper implementation has
+     <p>The Greenplum Database 6 foreign-data wrapper implementation has
        the following known issues and limitations:</p>
      <ul>
-       <li>The Greenplum Database 6 Beta distribution does not install any
+       <li>The Greenplum Database 6 distribution does not install any
          foreign data wrappers.</li>
        <li>Greenplum Database uses the <codeph>mpp_execute</codeph> option value
          for foreign table scans only. Greenplum does not honor the
