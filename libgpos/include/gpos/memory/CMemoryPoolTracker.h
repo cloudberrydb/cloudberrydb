@@ -70,22 +70,8 @@ namespace gpos
 			// allocation sequence number
 			ULONG m_alloc_sequence;
 
-			// memory pool capacity;
-			// if equal to ULLONG, checks for exceeding max memory are bypassed
-			const ULLONG m_capacity;
-
-			// size of reserved memory;
-			// this includes total allocated memory and pending allocations;
-			ULLONG m_reserved;
-
 			// list of allocated (live) objects
 			CList<SAllocHeader> m_allocations_list;
-
-			// attempt to reserve memory for allocation
-			BOOL Reserve(ULONG ulAlloc);
-
-			// revert memory reservation
-			void Unreserve(ULONG alloc, BOOL mem_available);
 
 			// private copy ctor
 			CMemoryPoolTracker(CMemoryPoolTracker &);
@@ -102,7 +88,6 @@ namespace gpos
 			CMemoryPoolTracker
 				(
 				CMemoryPool *underlying_memory_pool,
-				ULLONG size,
 				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
 				);

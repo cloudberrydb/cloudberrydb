@@ -45,7 +45,6 @@ GPOS_CPL_ASSERT(MAX_ALIGNED(GPOS_MEM_BLOCK_SIZE));
 CMemoryPoolStack::CMemoryPoolStack
 	(
 	CMemoryPool *mp,
-	ULLONG capacity,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
 	)
@@ -53,11 +52,9 @@ CMemoryPoolStack::CMemoryPoolStack
 	CMemoryPool(mp, owns_underlying_memory_pool, thread_safe),
 	m_block_descriptor(NULL),
 	m_reserved(0),
-	m_capacity(capacity),
 	m_blocksize(GPOS_MEM_ALIGNED_SIZE(GPOS_MEM_BLOCK_SIZE))
 {
 	GPOS_ASSERT(NULL != mp);
-	GPOS_ASSERT(GPOS_MEM_BLOCK_SIZE < m_capacity);
 
 	m_block_list.Init(GPOS_OFFSET(SBlockDescriptor, m_link));
 }
@@ -98,12 +95,6 @@ CMemoryPoolStack::Allocate
 
 	ULONG alloc = GPOS_MEM_ALIGNED_SIZE(bytes);
 	GPOS_ASSERT(MAX_ALIGNED(alloc));
-
-	// check if memory pool has enough capacity
-	if (alloc + m_reserved > m_capacity)
-	{
-		return NULL;
-	}
 
 	// find block to allocate memory in it
 	SBlockDescriptor *desc = FindMemoryBlock(alloc);

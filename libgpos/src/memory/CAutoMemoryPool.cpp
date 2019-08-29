@@ -42,13 +42,12 @@ CAutoMemoryPool::CAutoMemoryPool
 	(
 	ELeakCheck leak_check_type,
 	CMemoryPoolManager::AllocType ept,
-	BOOL thread_safe,
-	ULLONG capacity
+	BOOL thread_safe
 	)
 	:
 	m_leak_check_type(leak_check_type)
 {
-	m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create(ept, thread_safe, capacity);
+	m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create(ept, thread_safe);
 }
 
 

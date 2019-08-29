@@ -80,9 +80,6 @@ namespace gpos
 				ULONG m_alloc;
 			};
 
-			// reference counter
-			ULONG m_ref_counter;
-
 			// hash key is only set by pool manager
 			ULONG_PTR m_hash_key;
 

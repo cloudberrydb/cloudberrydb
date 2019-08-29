@@ -47,15 +47,12 @@ using namespace gpos;
 CMemoryPoolTracker::CMemoryPoolTracker
 	(
 	CMemoryPool *underlying_memory_pool,
-	ULLONG max_size,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
 	)
 	:
 	CMemoryPool(underlying_memory_pool, owns_underlying_memory_pool, thread_safe),
-	m_alloc_sequence(0),
-	m_capacity(max_size),
-	m_reserved(0)
+	m_alloc_sequence(0)
 {
 	GPOS_ASSERT(NULL != underlying_memory_pool);
 
@@ -96,24 +93,14 @@ CMemoryPoolTracker::Allocate
 	GPOS_ASSERT(GPOS_MEM_ALLOC_MAX >= bytes);
 
 	ULONG alloc = GPOS_MEM_BYTES_TOTAL(bytes);
-	const BOOL mem_available = Reserve(alloc);
 
 	// allocate from underlying
 	void *ptr;
-	if (mem_available)
-	{
-		ptr = GetUnderlyingMemoryPool()->Allocate(alloc, file, line);
-	}
-	else
-	{
-		ptr = NULL;
-	}
+	ptr = GetUnderlyingMemoryPool()->Allocate(alloc, file, line);
 
 	// check if allocation failed
 	if (NULL == ptr)
 	{
-		Unreserve(alloc, mem_available);
-
 		return NULL;
 	}
 
@@ -139,65 +126,6 @@ CMemoryPoolTracker::Allocate
 
 	return ptr_result;
 }
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::Reserve
-//
-//	@doc:
-//		Attempt to reserve memory for allocation
-//
-//---------------------------------------------------------------------------
-BOOL
-CMemoryPoolTracker::Reserve
-	(
-	ULONG alloc
-	)
-{
-	BOOL mem_available = false;
-
-	if (gpos::ullong_max == m_capacity)
-	{
-		mem_available = true;
-	}
-	else
-	{
-		if (alloc + m_reserved <= m_capacity)
-		{
-			m_reserved += alloc;
-			mem_available = true;
-		}
-	}
-
-	return mem_available;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::Unreserve
-//
-//	@doc:
-//		Revert memory reservation
-//
-//---------------------------------------------------------------------------
-void
-CMemoryPoolTracker::Unreserve
-	(
-	ULONG alloc,
-	BOOL mem_available
-	)
-{
-	// return reserved memory
-	if (mem_available)
-	{
-		m_reserved -= alloc;
-	}
-
-	m_memory_pool_statistics.RecordFailedAllocation();
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -229,12 +157,6 @@ CMemoryPoolTracker::Free
 
 	// pass request to underlying memory pool;
 	GetUnderlyingMemoryPool()->Free(header);
-
-	// update committed memory value
-	if (m_capacity != gpos::ullong_max)
-	{
-		m_reserved -= total_size;
-	}
 }
 
 

@@ -24,7 +24,6 @@
 
 #define GPOS_WORKERPOOL_HT_SIZE 			(1024)				// number of buckets in hash tables
 #define GPOS_WORKER_STACK_SIZE				(500 * 1024)		// max worker stack size
-#define GPOS_WORKERPOOL_MEM_POOL_SIZE 		(2 * 1024 * 1024)	// memory pool size
 
 namespace gpos
 {

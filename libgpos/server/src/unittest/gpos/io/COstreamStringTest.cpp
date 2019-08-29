@@ -37,12 +37,6 @@ COstreamStringTest::EresUnittest()
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(COstreamStringTest::EresUnittest_Basic),
-		GPOS_UNITTEST_FUNC_THROW
-			(
-			COstreamStringTest::EresUnittest_OOM,
-			CException::ExmaSystem,
-			CException::ExmiOOM
-			),
 #if defined(GPOS_DEBUG) && defined(__GLIBCXX__)
 		GPOS_UNITTEST_FUNC_ASSERT(COstreamStringTest::EresUnittest_EndlAssert),
 #endif
@@ -95,41 +89,6 @@ COstreamStringTest::EresUnittest_Basic()
 	GPOS_ASSERT(str.Equals(&sexp) && "Constructed string does not match expected output");
 	
 	return GPOS_OK;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		COstreamStringTest::EresOOM
-//
-//	@doc:
-//		Out of memory test
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-COstreamStringTest::EresUnittest_OOM()
-{
-	// create memory pool
-	CAutoMemoryPool amp
-		(
-		CAutoMemoryPool::ElcExc,
-		CMemoryPoolManager::EatTracker,
-		false /*fThreadSafe*/,
-		1024
-		);
-	CMemoryPool *mp = amp.Pmp();
-
-	CWStringDynamic str(mp);
-	
-	// define basic stream over wide char out stream
-	COstreamString osb(&str);
-	
-	// we should throw at some point in the loop
-	for (int i=0;i<1024;i++)
-	{
-		osb << 'F' << std::endl;
-	}
-	
-	return GPOS_FAILED;
 }
 
 #if defined(GPOS_DEBUG) && defined(__GLIBCXX__)

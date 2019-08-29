@@ -31,7 +31,6 @@ namespace gpos
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_Basic();
-			static GPOS_RESULT EresUnittest_OOM();
 #ifdef GPOS_DEBUG
 			static GPOS_RESULT EresUnittest_EndlAssert();
 #endif			

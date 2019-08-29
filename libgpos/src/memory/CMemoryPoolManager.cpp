@@ -70,7 +70,7 @@ CMemoryPoolManager::CMemoryPoolManager
 		);
 
 	// create pool used in allocations made using global new operator
-	m_global_memory_pool = Create(EatTracker, true, gpos::ullong_max);
+	m_global_memory_pool = Create(EatTracker, true);
 }
 
 //---------------------------------------------------------------------------
@@ -111,7 +111,6 @@ CMemoryPoolManager::Init
 	CMemoryPool *internal = new(alloc_internal) CMemoryPoolTracker
 			(
 			base,
-			gpos::ullong_max, // ullMaxMemory
 			true, // IsThreadSafe
 			false //fOwnsUnderlyingPmp
 			);
@@ -155,15 +154,14 @@ CMemoryPool *
 CMemoryPoolManager::Create
 	(
 	AllocType alloc_type,
-	BOOL thread_safe,
-	ULLONG capacity
+	BOOL thread_safe
 	)
 {
 	CMemoryPool *mp =
 #ifdef GPOS_DEBUG
 			CreatePoolStack(alloc_type, capacity, thread_safe);
 #else
-			New(alloc_type, m_base_memory_pool, capacity, thread_safe, false /*owns_underlying_memory_pool*/);
+			New(alloc_type, m_base_memory_pool, thread_safe, false /*owns_underlying_memory_pool*/);
 #endif // GPOS_DEBUG
 
 	// accessor scope
@@ -192,7 +190,6 @@ CMemoryPoolManager::New
 	(
 	AllocType alloc_type,
 	CMemoryPool *underlying_memory_pool,
-	ULLONG capacity,
 	BOOL thread_safe,
 	BOOL owns_underlying_memory_pool
 	)
@@ -203,7 +200,6 @@ CMemoryPoolManager::New
 			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolTracker
 						(
 						underlying_memory_pool,
-						capacity,
 						thread_safe,
 						owns_underlying_memory_pool
 						);
@@ -212,7 +208,6 @@ CMemoryPoolManager::New
 			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolStack
 						(
 						underlying_memory_pool,
-						capacity,
 						thread_safe,
 						owns_underlying_memory_pool
 						);

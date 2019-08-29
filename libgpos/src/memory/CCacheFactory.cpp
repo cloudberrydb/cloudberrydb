@@ -74,8 +74,7 @@ CCacheFactory::Init()
 	CMemoryPool *mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create
 							(
 							CMemoryPoolManager::EatTracker,
-							true /*fThreadSafe*/,
-							gpos::ullong_max
+							true /*fThreadSafe*/
 							);
 	GPOS_TRY
 	{

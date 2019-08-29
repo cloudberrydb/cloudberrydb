@@ -146,7 +146,6 @@ CMemoryPoolBasicTest::EresTestType
 	)
 {
 	if (GPOS_OK != EresNewDelete(eat) ||
-	    GPOS_OK != EresTestExpectedError(EresOOM, eat, CException::ExmiOOM) ||
 	    GPOS_OK != EresTestExpectedError(EresThrowingCtor, eat, CException::ExmiOOM)
 
 #ifdef GPOS_DEBUG
@@ -259,40 +258,6 @@ CMemoryPoolBasicTest::EresNewDelete
 
 	return GPOS_OK;
 }
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolBasicTest::EresOOM
-//
-//	@doc:
-//		Basic tests for OOM situation
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMemoryPoolBasicTest::EresOOM
-	(
-	CMemoryPoolManager::AllocType eat
-	)
-{
-	CAutoTimer at("OOM test", true /*fPrint*/);
-
-	// create memory pool
-	CAutoMemoryPool amp
-		(
-		CAutoMemoryPool::ElcExc,
-		eat,
-		false /*fThreadSafe*/,
-		4 * 1024 * 1024 /*ullMaxSize*/
-		);
-	CMemoryPool *mp = amp.Pmp();
-
-	// OOM
-	GPOS_NEW_ARRAY(mp, BYTE, 128 * 1024 * 1024);
-
-	return GPOS_FAILED;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:

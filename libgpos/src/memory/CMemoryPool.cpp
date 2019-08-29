@@ -42,7 +42,6 @@ CMemoryPool::CMemoryPool
 	BOOL thread_safe
 	)
 	:
-	m_ref_counter(0),
 	m_hash_key(0),
 	m_underlying_memory_pool(underlying_memory_pool),
 	m_owns_underlying_memory_pool(owns_underlying_memory_pool),

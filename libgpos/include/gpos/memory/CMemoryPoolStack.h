@@ -92,10 +92,6 @@ namespace gpos
 			// this includes total allocated memory and pending allocations;
 			ULLONG m_reserved;
 
-			// max memory to allow in the pool;
-			// if equal to ULLONG, checks for exceeding max memory are bypassed
-			const ULLONG m_capacity;
-
 			// default block size
 			const ULONG m_blocksize;
 
@@ -122,7 +118,6 @@ namespace gpos
 			CMemoryPoolStack
 				(
 				CMemoryPool *mp,
-				ULLONG capacity,
 				BOOL thread_safe,
 				BOOL owns_underlying_memory_pool
 				);

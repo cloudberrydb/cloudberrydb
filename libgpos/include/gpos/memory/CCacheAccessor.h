@@ -164,8 +164,7 @@ namespace gpos
 				m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create
 						(
 						CMemoryPoolManager::EatTracker,
-						true /*fThreadSafe*/,
-						gpos::ullong_max
+						true /*fThreadSafe*/
 						);
 
 				return m_mp;

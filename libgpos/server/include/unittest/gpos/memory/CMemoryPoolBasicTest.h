@@ -36,7 +36,6 @@ namespace gpos
 				);
 
 			static GPOS_RESULT EresNewDelete(CMemoryPoolManager::AllocType eat);
-			static GPOS_RESULT EresOOM(CMemoryPoolManager::AllocType eat);
 			static GPOS_RESULT EresThrowingCtor(CMemoryPoolManager::AllocType eat);
 #ifdef GPOS_DEBUG
 			static GPOS_RESULT EresLeak(CMemoryPoolManager::AllocType eat);
