@@ -11393,4 +11393,3 @@ SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.a = t2.a
 (3 rows)
 
 DROP TABLE varchar_sc_array_cmp;
---

@@ -2193,7 +2193,6 @@ SET optimizer_array_constraints=on;
 EXPLAIN SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.a = t2.a and (t1.a in ('b', 'c') OR t1.a = 'a');
 SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.a = t2.a and (t1.a in ('b', 'c') OR t1.a = 'a');
 DROP TABLE varchar_sc_array_cmp;
--- 
 
 -- start_ignore
 DROP SCHEMA orca CASCADE;
