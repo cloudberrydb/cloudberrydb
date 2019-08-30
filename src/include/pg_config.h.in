@@ -909,14 +909,14 @@
 /* Define to 1 to build with Bonjour support. (--with-bonjour) */
 #undef USE_BONJOUR
 
-/* Define to use /dev/urandom for random number generation */
-#undef USE_DEV_URANDOM
-
 /* Define to 1 to build with libcurl support. (--with-libcurl) */
 #undef USE_CURL
 
 /* Define to 1 to build with debug_ntuplestore. (--enable-ntuplestore) */
 #undef USE_DEBUG_NTUPLESTORE
+
+/* Define to use /dev/urandom for random number generation */
+#undef USE_DEV_URANDOM
 
 /* Define to 1 if you want float4 values to be passed by value. (Always
    defined in GPDB) */
@@ -949,14 +949,14 @@
 /* Define to select named POSIX semaphores. */
 #undef USE_NAMED_POSIX_SEMAPHORES
 
-/* Define to 1 to build with GPORCA optimizer. (--enable-orca) */
-#undef USE_ORCA
-
 /* Define to build with OpenSSL support. (--with-openssl) */
 #undef USE_OPENSSL
 
 /* Define to use OpenSSL for random number generation */
 #undef USE_OPENSSL_RANDOM
+
+/* Define to 1 to build with Greenplum ORCA optimizer. (--enable-orca) */
+#undef USE_ORCA
 
 /* Define to 1 to build with PAM support. (--with-pam) */
 #undef USE_PAM
