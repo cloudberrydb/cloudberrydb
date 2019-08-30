@@ -42,6 +42,9 @@ GPOS_CPL_ASSERT(GPOS_MEM_ALIGNED_STRUCT_SIZE(gpos::ULONG) == GPOS_MEM_ARCH);
 
 // static pattern to init memory
 #define GPOS_MEM_INIT_PATTERN_CHAR	(0xCC)
+// pattern used to mark deallocated memory, this must match
+// GPOS_WIPED_MEM_PATTERN defined in CRefCount.h
+#define GPOS_MEM_FREED_PATTERN_CHAR	(0xCD)
 
 // max allocation per request: 1GB
 #define GPOS_MEM_ALLOC_MAX			(0x40000000)

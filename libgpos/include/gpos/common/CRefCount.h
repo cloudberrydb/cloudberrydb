@@ -22,10 +22,12 @@
 #include "gpos/common/CHeapObject.h"
 #include "gpos/task/ITask.h"
 
+// pattern used to mark deallocated memory, this must match
+// GPOS_MEM_FREED_PATTERN_CHAR in CMemoryPool.h
 #ifdef GPOS_32BIT
-#define GPOS_WIPED_MEM_PATTERN		0xCcCcCcCc
+#define GPOS_WIPED_MEM_PATTERN		0xCdCdCdCd
 #else
-#define GPOS_WIPED_MEM_PATTERN		0xCcCcCcCcCcCcCcCc
+#define GPOS_WIPED_MEM_PATTERN		0xCdCdCdCdCdCdCdCd
 #endif
 
 namespace gpos

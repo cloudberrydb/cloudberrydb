@@ -141,7 +141,7 @@ CMemoryPoolTracker::Free
 
 #ifdef GPOS_DEBUG
 	// mark user memory as unused in debug mode
-	clib::Memset(ptr, GPOS_MEM_INIT_PATTERN_CHAR, user_size);
+	clib::Memset(ptr, GPOS_MEM_FREED_PATTERN_CHAR, user_size);
 #endif // GPOS_DEBUG
 
 	ULONG total_size = GPOS_MEM_BYTES_TOTAL(user_size);
