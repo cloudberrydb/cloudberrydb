@@ -430,8 +430,7 @@ extern XLogRecPtr XactLogCommitRecord(TimestampTz commit_time,
 					int nmsgs, SharedInvalidationMessage *msgs,
 					int ndeldbs, DbDirNode *deldbs,
 					bool relcacheInval, bool forceSync,
-					TransactionId twophase_xid,
-					const char *gid);
+					TransactionId twophase_xid);
 
 extern XLogRecPtr XactLogAbortRecord(TimestampTz abort_time, 
 				   Oid tablespace_oid_to_abort,

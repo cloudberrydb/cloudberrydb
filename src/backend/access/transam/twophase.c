@@ -1997,8 +1997,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 								 ninvalmsgs, invalmsgs,
 								 ndeldbs, deldbs,
 								 initfileinval, false,
-								 xid,
-								 NULL/* commit prepared */);
+								 xid);
 
 	/*
 	 * We don't currently try to sleep before flush here ... nor is there any
