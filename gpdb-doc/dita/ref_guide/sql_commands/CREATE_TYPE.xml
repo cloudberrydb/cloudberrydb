@@ -62,7 +62,7 @@ existing table in the same schema.</p>
                     attribute types.</p></sectiondiv>
             <sectiondiv id="enum"><b>Enumerated Types</b>
                 <p>The second form of <codeph>CREATE TYPE</codeph> creates an enumerated
-                        (<codeph>ENUM</codeph>) type, as described in <xref href="https://www.postgresql.org/docs/8.3/datatype-enum.html" format="html" scope="external">Enumerated Types</xref> in the PostgreSQL documentation.
+                        (<codeph>ENUM</codeph>) type, as described in <xref href="https://www.postgresql.org/docs/9.4/datatype-enum.html" format="html" scope="external">Enumerated Types</xref> in the PostgreSQL documentation.
                         <codeph>ENUM</codeph> types take a list of quoted labels, each of which must
                     be less than <codeph>NAMEDATALEN</codeph> bytes long (64 in a standard
                     build).</p><p>It is possible to create an enumerated type with zero labels, but

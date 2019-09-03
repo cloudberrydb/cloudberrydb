@@ -391,7 +391,7 @@ SELECT foo();
             </row>
             <row>
               <entry colname="col1">
-                <xref format="html" href="https://www.postgresql.org/docs/9.1/functions-xml.html"
+                <xref format="html" href="https://www.postgresql.org/docs/9.4/functions-xml.html"
                   scope="external">XML Functions</xref> and function-like expressions </entry>
               <entry colname="col2"/>
               <entry colname="col3">
