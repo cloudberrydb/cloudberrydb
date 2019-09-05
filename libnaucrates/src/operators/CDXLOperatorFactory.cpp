@@ -2912,6 +2912,7 @@ CDXLOperatorFactory::GetDatumVal
 		{CMDIdGPDB::m_mdid_varchar.Oid(), &CDXLOperatorFactory::GetDatumStatsLintMappable},
 		{CMDIdGPDB::m_mdid_text.Oid(), &CDXLOperatorFactory::GetDatumStatsLintMappable},
 		{CMDIdGPDB::m_mdid_cash.Oid(), &CDXLOperatorFactory::GetDatumStatsLintMappable},
+		{CMDIdGPDB::m_mdid_uuid.Oid(), &CDXLOperatorFactory::GetDatumStatsLintMappable},
 		// non-integer numeric types
 		{CMDIdGPDB::m_mdid_numeric.Oid(), &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
 		{CMDIdGPDB::m_mdid_float4.Oid(), &CDXLOperatorFactory::GetDatumStatsDoubleMappable},

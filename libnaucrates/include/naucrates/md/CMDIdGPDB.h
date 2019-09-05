@@ -257,6 +257,10 @@ namespace gpmd
 			static
 			CMDIdGPDB m_mdid_count_any;
 
+			// uuid mdid
+			static
+			CMDIdGPDB m_mdid_uuid;
+
 			// unknown datatype mdid
 			static
 			CMDIdGPDB m_mdid_unknown;

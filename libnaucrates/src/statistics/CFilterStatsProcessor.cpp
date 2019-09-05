@@ -595,7 +595,7 @@ CFilterStatsProcessor::MakeHistPointFilter
 	GPOS_ASSERT(NULL != hist_before);
 
 	const ULONG colid = pred_stats->GetColId();
-	GPOS_ASSERT(CHistogram::SupportsFilter(pred_stats->GetCmpType()));
+	GPOS_ASSERT(CHistogram::IsOpSupportedForFilter(pred_stats->GetCmpType()));
 
 	CPoint *point = pred_stats->GetPredPoint();
 

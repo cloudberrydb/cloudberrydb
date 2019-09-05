@@ -98,6 +98,9 @@ CMDIdGPDB CMDIdGPDB::m_mdid_count_star(GPDB_COUNT_STAR);
 // count(Any) mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_count_any(GPDB_COUNT_ANY);
 
+// uuid mdid
+CMDIdGPDB CMDIdGPDB::m_mdid_uuid(GPDB_UUID);
+
 // unknown mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_unknown(GPDB_UNKNOWN);
 

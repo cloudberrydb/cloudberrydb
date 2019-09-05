@@ -829,7 +829,7 @@ CHistogram::MakeHistogramFilter
 	const
 {
 	CHistogram *result_histogram = NULL;
-	GPOS_ASSERT(SupportsFilter(stats_cmp_type));
+	GPOS_ASSERT(IsOpSupportedForFilter(stats_cmp_type));
 
 	switch(stats_cmp_type)
 	{
@@ -1047,7 +1047,7 @@ CHistogram::CopyHistogram
 }
 
 BOOL
-CHistogram::SupportsTextFilter
+CHistogram::IsOpSupportedForTextFilter
 	(
 	CStatsPred::EStatsCmpType stats_cmp_type
 	)
@@ -1067,7 +1067,7 @@ CHistogram::SupportsTextFilter
 
 // is statistics comparison type supported for filter?
 BOOL
-CHistogram::SupportsFilter
+CHistogram::IsOpSupportedForFilter
 	(
 	CStatsPred::EStatsCmpType stats_cmp_type
 	)

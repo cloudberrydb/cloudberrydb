@@ -466,11 +466,11 @@ namespace gpnaucrates
 
 			// is comparison type supported for filters for text columns
 			static
-			BOOL SupportsTextFilter(CStatsPred::EStatsCmpType stats_cmp_type);
+			BOOL IsOpSupportedForTextFilter(CStatsPred::EStatsCmpType stats_cmp_type);
 
 			// is comparison type supported for filters
 			static
-			BOOL SupportsFilter(CStatsPred::EStatsCmpType stats_cmp_type);
+			BOOL IsOpSupportedForFilter(CStatsPred::EStatsCmpType stats_cmp_type);
 
 			// is the join predicate's comparison type supported
 			static

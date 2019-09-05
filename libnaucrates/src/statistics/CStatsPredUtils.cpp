@@ -239,8 +239,10 @@ CStatsPredUtils::IsTextRelatedType(const IMDId *mdid)
 {
 	return mdid->Equals(&CMDIdGPDB::m_mdid_varchar)
 	|| mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)
-	|| mdid->Equals(&CMDIdGPDB::m_mdid_text);
+	|| mdid->Equals(&CMDIdGPDB::m_mdid_text)
+	|| mdid->Equals(&CMDIdGPDB::m_mdid_uuid);
 }
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -304,13 +306,13 @@ CStatsPredUtils::GetPredStats
 	IDatum *datum = scalar_const_op->GetDatum();
 
 	BOOL is_text_related_type = IsTextRelatedType(datum->MDId()) && IsTextRelatedType(col_ref->RetrieveType()->MDId());
-	if (is_text_related_type && !CHistogram::SupportsTextFilter(stats_cmp_type))
+	if (is_text_related_type && !CHistogram::IsOpSupportedForTextFilter(stats_cmp_type))
 	{
 		return GPOS_NEW(mp) CStatsPredUnsupported(col_ref->Id(), stats_cmp_type);
 	}
 
 
-	if (!CHistogram::SupportsFilter(stats_cmp_type) || !IMDType::StatsAreComparable(col_ref->RetrieveType(), datum))
+	if (!CHistogram::IsOpSupportedForFilter(stats_cmp_type) || !IMDType::StatsAreComparable(col_ref->RetrieveType(), datum))
 	{
 		// case 1: unsupported predicate for stats calculations
 		// example: SELECT 1 FROM pg_catalog.pg_class c WHERE c.relname ~ '^(t36)$';
@@ -991,7 +993,7 @@ CStatsPredUtils::ProcessArrayCmp
 	CScalarIdent *scalar_ident_op = CScalarIdent::PopConvert(expr_ident->Pop());
 	const CColRef *col_ref = scalar_ident_op->Pcr();
 
-	if (!CHistogram::SupportsFilter(stats_cmp_type))
+	if (!CHistogram::IsOpSupportedForFilter(stats_cmp_type))
 	{
 		// unsupported predicate for stats calculations
 		pred_stats_array->Append(GPOS_NEW(mp) CStatsPredUnsupported(col_ref->Id(), stats_cmp_type));

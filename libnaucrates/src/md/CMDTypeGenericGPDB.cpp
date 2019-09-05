@@ -429,6 +429,7 @@ CMDTypeGenericGPDB::CreateDXLDatumVal
 		case GPDB_VARCHAR:
 		case GPDB_TEXT:
 		case GPDB_CASH:
+		case GPDB_UUID:
 			return CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable(mp, mdid, type_modifier, is_passed_by_value, is_null, pba, length, lValue, dValue);
 		// time-related types
 		case GPDB_DATE:
@@ -564,6 +565,7 @@ CMDTypeGenericGPDB::HasByte2IntMapping
 	return mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)
 			|| mdid->Equals(&CMDIdGPDB::m_mdid_varchar)
 			|| mdid->Equals(&CMDIdGPDB::m_mdid_text)
+			|| mdid->Equals(&CMDIdGPDB::m_mdid_uuid)
 			|| mdid->Equals(&CMDIdGPDB::m_mdid_cash);
 }
 
