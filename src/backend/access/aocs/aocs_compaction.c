@@ -436,7 +436,6 @@ AOCSDrop(Relation aorel,
 	AOCSFileSegInfo **segfile_array;
 	int			i,
 				segno;
-	LockAcquireResult acquireResult;
 	AOCSFileSegInfo *fsinfo;
 	Snapshot	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
 
