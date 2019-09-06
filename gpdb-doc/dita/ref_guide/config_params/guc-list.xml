@@ -270,6 +270,11 @@
             <li>
               <xref href="#gp_hashjoin_tuples_per_bucket"/>
             </li>
+            <li>
+              <xref href="#gp_resource_manager"/>
+            </li>
+            <li>
+              <xref href="#gp_use_legacy_hashops"/></li>
             <li><xref href="#gp_vmem_protect_limit"/></li>
             <li><xref href="#gp_vmem_idle_resource_timeout"/></li>
             <li>
