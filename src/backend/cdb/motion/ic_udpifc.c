@@ -55,7 +55,6 @@
 #include <limits.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include "pgtime.h"
 #include <netinet/in.h>
 
 #ifdef WIN32
@@ -132,6 +131,9 @@ int
 	512							/* MAX_TRY */
 };
 #define TIMEOUT(try) ((try) < MAX_TRY ? (timeoutArray[(try)]) : (timeoutArray[MAX_TRY]))
+
+#define USECS_PER_SECOND 1000000
+#define MSECS_PER_SECOND 1000
 
 /* 1/4 sec in msec */
 #define RX_THREAD_POLL_TIMEOUT (250)

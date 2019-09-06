@@ -35,6 +35,25 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
+#define USECS_PER_SECOND 1000000
+#define MSECS_PER_SECOND 1000
+
+/*
+ * GpMonotonicTime: used to guarantee that the elapsed time is in
+ * the monotonic order between two gp_get_monotonic_time calls.
+ */
+typedef struct GpMonotonicTime
+{
+	struct timeval beginTime;
+	struct timeval endTime;
+} GpMonotonicTime;
+
+static void gp_set_monotonic_begin_time(GpMonotonicTime *time);
+static void gp_get_monotonic_time(GpMonotonicTime *time);
+static inline uint64 gp_get_elapsed_ms(GpMonotonicTime *time);
+static inline uint64 gp_get_elapsed_us(GpMonotonicTime *time);
+static inline int timeCmp(struct timeval *t1, struct timeval *t2);
+
 /*
  * backlog for listen() call: it is important that this be something like a
  * good match for the maximum number of QEs. Slow insert performance will
@@ -2760,4 +2779,122 @@ SendChunkTCP(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEn
 
 	conn->tupleCount++;
 	return true;
+}
+
+
+
+/*
+ * gp_set_monotonic_begin_time: set the beginTime and endTime to the current
+ * time.
+ */
+static void
+gp_set_monotonic_begin_time(GpMonotonicTime *time)
+{
+	time->beginTime.tv_sec = 0;
+	time->beginTime.tv_usec = 0;
+	time->endTime.tv_sec = 0;
+	time->endTime.tv_usec = 0;
+
+	gp_get_monotonic_time(time);
+
+	time->beginTime.tv_sec = time->endTime.tv_sec;
+	time->beginTime.tv_usec = time->endTime.tv_usec;
+}
+
+
+/*
+ * gp_get_monotonic_time
+ *    This function returns the time in the monotonic order.
+ *
+ * The new time is stored in time->endTime, which has a larger value than
+ * the original value. The original endTime is lost.
+ *
+ * This function is intended for computing elapsed time between two
+ * calls. It is not for getting the system time.
+ */
+static void
+gp_get_monotonic_time(GpMonotonicTime *time)
+{
+	struct timeval newTime;
+	int status;
+
+#if HAVE_LIBRT
+	/* Use clock_gettime to return monotonic time value. */
+	struct timespec ts;
+	status = clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	newTime.tv_sec = ts.tv_sec;
+	newTime.tv_usec = ts.tv_nsec / 1000;
+
+#else
+
+	gettimeofday(&newTime, NULL);
+	status = 0; /* gettimeofday always succeeds. */
+
+#endif
+
+	if (status == 0 &&
+		timeCmp(&time->endTime, &newTime) < 0)
+	{
+		time->endTime.tv_sec = newTime.tv_sec;
+		time->endTime.tv_usec = newTime.tv_usec;
+	}
+	else
+	{
+		time->endTime.tv_usec = time->endTime.tv_usec + 1;
+
+		time->endTime.tv_sec = time->endTime.tv_sec +
+			(time->endTime.tv_usec / USECS_PER_SECOND);
+		time->endTime.tv_usec = time->endTime.tv_usec % USECS_PER_SECOND;
+	}
+}
+
+/*
+ * Compare two times.
+ *
+ * If t1 > t2, return 1.
+ * If t1 == t2, return 0.
+ * If t1 < t2, return -1;
+ */
+static inline int
+timeCmp(struct timeval *t1, struct timeval *t2)
+{
+	if (t1->tv_sec == t2->tv_sec &&
+		t1->tv_usec == t2->tv_usec)
+		return 0;
+
+	if (t1->tv_sec > t2->tv_sec ||
+		(t1->tv_sec == t2->tv_sec &&
+		 t1->tv_usec > t2->tv_usec))
+		return 1;
+
+	return -1;
+}
+
+/*
+ * gp_get_elapsed_us -- return the elapsed time in microseconds
+ * after the given time->beginTime.
+ *
+ * If time->beginTime is not set (0), then return 0.
+ *
+ * Note that the beginTime is not changed, but the endTime is set
+ * to the current time.
+ */
+static inline uint64
+gp_get_elapsed_us(GpMonotonicTime *time)
+{
+	if (time->beginTime.tv_sec == 0 &&
+		time->beginTime.tv_usec == 0)
+		return 0;
+
+	gp_get_monotonic_time(time);
+
+	return ((time->endTime.tv_sec - time->beginTime.tv_sec) * USECS_PER_SECOND +
+			(time->endTime.tv_usec - time->beginTime.tv_usec));
+}
+
+static inline uint64
+gp_get_elapsed_ms(GpMonotonicTime *time)
+{
+	return gp_get_elapsed_us(time) / (USECS_PER_SECOND / MSECS_PER_SECOND);
 }

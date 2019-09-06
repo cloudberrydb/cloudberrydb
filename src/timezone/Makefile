@@ -17,7 +17,6 @@ include $(top_builddir)/src/Makefile.global
 
 # files to build into backend
 OBJS= localtime.o strftime.o pgtz.o
-OBJS += gptime.o
 
 # files needed to build zic utility program
 ZICOBJS= zic.o
