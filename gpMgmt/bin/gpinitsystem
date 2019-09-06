@@ -159,7 +159,6 @@ USAGE () {
 		$ECHO "          postgresql.conf file during Greenplum database initialization."
 		$ECHO "      -P, standby_port [optional]"
 		$ECHO "      -s, standby_hostname [optional]"
-		$ECHO "      -S, configure spread mirroring [default group]"
 		$ECHO
 		$ECHO "      Return codes:"
 		$ECHO "      0 - No problems encountered with requested operation"
