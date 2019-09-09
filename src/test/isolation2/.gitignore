@@ -11,6 +11,7 @@ regression.out
 /GPTest.pm
 /gpdiff.pl
 /gpstringsubs.pl
+/data
 
 # Generated subdirectories
 /results/

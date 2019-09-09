@@ -67,6 +67,9 @@ test: distributed_snapshot
 test: gp_collation
 test: ao_upgrade
 
+# below test utilizes fault injectors so it needs to be in a group by itself
+test: external_table
+
 # Tests on Append-Optimized tables (row-oriented).
 test: concurrent_index_creation_should_not_deadlock
 test: uao/alter_while_vacuum_row uao/alter_while_vacuum2_row
