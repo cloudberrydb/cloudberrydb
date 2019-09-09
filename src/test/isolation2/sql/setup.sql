@@ -86,6 +86,27 @@ SELECT coalesce(
   FROM gp_dist_random('locktest_segments_dist')
   group by relname, relation, mode, locktype;
 
+-- Helper function
+CREATE or REPLACE FUNCTION wait_until_waiting_for_required_lock (rel_name text, lmode text, segment_id integer) /*in func*/
+RETURNS bool AS
+$$
+declare
+retries int; /* in func */
+begin /* in func */
+  retries := 1200; /* in func */
+  loop /* in func */
+    if (select not granted from pg_locks l where granted='f' and l.relation::regclass = rel_name::regclass and l.mode=lmode and l.gp_segment_id=segment_id) then /* in func */
+      return true; /* in func */
+    end if; /* in func */
+    if retries <= 0 then /* in func */
+      return false; /* in func */
+    end if; /* in func */
+    perform pg_sleep(0.1); /* in func */
+    retries := retries - 1; /* in func */
+  end loop; /* in func */
+end; /* in func */
+$$ language plpgsql;
+
 -- start_ignore
 create language plpythonu;
 -- end_ignore

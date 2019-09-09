@@ -1,24 +1,3 @@
--- Helper function
-CREATE or REPLACE FUNCTION lock_wait_until_ungranted()
-RETURNS bool AS
-$$
-declare
-retries int; /* in func */
-begin /* in func */
-  retries := 1200; /* in func */
-  loop /* in func */
-    if (select not granted from pg_locks where granted='f' and relation='concurrent_drop_view'::regclass) then /* in func */
-      return true; /* in func */
-    end if; /* in func */
-    if retries <= 0 then /* in func */
-      return false; /* in func */
-    end if; /* in func */
-    perform pg_sleep(0.1); /* in func */
-    retries := retries - 1; /* in func */
-  end loop; /* in func */
-end; /* in func */
-$$ language plpgsql;
-
 1:drop view if exists concurrent_drop_view cascade;
 1:create view concurrent_drop_view as select * from pg_class;
 1:select viewname from pg_views where viewname = 'concurrent_drop_view';
@@ -34,6 +13,7 @@ $$ language plpgsql;
 1:begin;
 1:drop view concurrent_drop_view;
 2&:select viewname, definition from pg_views where viewname = 'concurrent_drop_view';
-3:select lock_wait_until_ungranted();
+-- wait till halts for AccessShareLock on QD
+3: SELECT wait_until_waiting_for_required_lock('concurrent_drop_view', 'AccessShareLock', -1);
 1:commit;
 2<:

@@ -20,6 +20,9 @@
 -- We should see that VACUUM blocks while the QE holds the access shared lock
 1&: VACUUM ao_test_drop_phase;
 
+-- wait till vacuum halts for AccessExclusiveLock on content 0
+SELECT wait_until_waiting_for_required_lock('ao_test_drop_phase', 'AccessExclusiveLock', 0);
+
 0U: END;
 1<:
 
