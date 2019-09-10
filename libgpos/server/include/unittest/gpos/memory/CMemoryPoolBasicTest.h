@@ -53,7 +53,6 @@ namespace gpos
 #endif // GPOS_DEBUG
 			static GPOS_RESULT EresUnittest_TestTracker();
 			static GPOS_RESULT EresUnittest_TestSlab();
-			static GPOS_RESULT EresUnittest_TestStack();
 
 	}; // class CMemoryPoolBasicTest
 }

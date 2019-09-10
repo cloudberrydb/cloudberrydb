@@ -18,9 +18,7 @@
 #include "gpos/error/CFSimulator.h" // for GPOS_FPSIMULATOR
 #include "gpos/error/CAutoTrace.h"
 #include "gpos/memory/CMemoryPool.h"
-#include "gpos/memory/CMemoryPoolInjectFault.h"
 #include "gpos/memory/CMemoryPoolManager.h"
-#include "gpos/memory/CMemoryPoolStack.h"
 #include "gpos/memory/CMemoryPoolTracker.h"
 #include "gpos/memory/CMemoryVisitorPrint.h"
 #include "gpos/task/CAutoSuspendAbort.h"
@@ -161,9 +159,6 @@ CMemoryPoolManager::New
 		case CMemoryPoolManager::EatTracker:
 			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolTracker();
 
-
-		case CMemoryPoolManager::EatStack:
-			return GPOS_NEW(m_internal_memory_pool) CMemoryPoolStack();
 	}
 
 	GPOS_ASSERT(!"No matching pool type found");

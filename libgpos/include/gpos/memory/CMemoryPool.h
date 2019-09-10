@@ -243,23 +243,6 @@ namespace gpos
 				GPOS_ASSERT(!"not supported");
 			}
 
-			// check if statistics tracking is supported
-			virtual
-			BOOL SupportsStatistics() const
-			{
-				return false;
-			}
-
-			// return the current statistics
-			virtual
-			void UpdateStatistics
-				(
-				CMemoryPoolStatistics &
-				)
-			{
-				GPOS_ASSERT(!"not supported");
-			}
-
 			// dump memory pool to given stream
 			virtual
 			IOstream &OsPrint(IOstream &os);

@@ -221,24 +221,6 @@ CMemoryPoolTracker::WalkLiveObjects
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::UpdateStatistics
-//
-//	@doc:
-//		Update statistics.
-//
-//---------------------------------------------------------------------------
-void
-CMemoryPoolTracker::UpdateStatistics
-	(
-	CMemoryPoolStatistics &memory_pool_statistics
-	)
-{
-	memory_pool_statistics = m_memory_pool_statistics;
-}
-
-
 #endif // GPOS_DEBUG
 
 // EOF

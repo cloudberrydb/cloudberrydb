@@ -62,8 +62,7 @@ CMemoryPoolBasicTest::EresUnittest()
 #ifdef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_Print),
 #endif // GPOS_DEBUG
-		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestTracker),
-		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestStack),
+		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestTracker)
 		};
 
 	CAutoTraceFlag atf(EtraceTestMemoryPools, true /*value*/);
@@ -113,21 +112,6 @@ GPOS_RESULT
 CMemoryPoolBasicTest::EresUnittest_TestTracker()
 {
 	return EresTestType(CMemoryPoolManager::EatTracker);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolBasicTest::EresUnittest_TestStack
-//
-//	@doc:
-//		Run tests for pool using stack allocation
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMemoryPoolBasicTest::EresUnittest_TestStack()
-{
-	return EresTestType(CMemoryPoolManager::EatStack);
 }
 
 

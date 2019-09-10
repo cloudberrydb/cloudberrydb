@@ -124,17 +124,6 @@ namespace gpos
 			virtual
 			void WalkLiveObjects(gpos::IMemoryVisitor *visitor);
 
-			// check if statistics tracking is supported
-			virtual
-			BOOL SupportsStatistics() const
-			{
-				return true;
-			}
-
-			// return the current statistics
-			virtual
-			void UpdateStatistics(CMemoryPoolStatistics &memory_pool_statistics);
-
 #endif // GPOS_DEBUG
 
 	};

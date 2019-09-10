@@ -41,8 +41,7 @@ namespace gpos
 			// different types of pools
 			enum AllocType
 			{
-				EatTracker,
-				EatStack
+				EatTracker
 			};
 
 		private:
