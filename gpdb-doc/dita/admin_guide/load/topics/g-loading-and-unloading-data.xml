@@ -37,14 +37,6 @@
            data transfer from Kafka to Greenplum Database. For information about using
            these tools, refer to the documentation at <xref
             href="../../../greenplum-kafka/intro.xml" format="dita" scope="peer">Pivotal Greenplum-Kafka Integration</xref>.</li>
-        <li otherprops="pivotal">The GemFire-Greenplum Connector allows the transfer of data between
-          a Pivotal GemFire region and a Greenplum Database table. Pivotal GemFire is an in-memory
-          data management system that provides reliable asynchronous event notifications and
-          guaranteed message delivery. For information about using GemFire-Greenplum Connector, see
-            <xref href="http://ggc.docs.pivotal.io/" format="html" scope="external"
-            >http://ggc.docs.pivotal.io/</xref>. For information about Pivotal GemFire, see <xref
-            href="http://gemfire.docs.pivotal.io/" format="html" scope="external"
-            >http://gemfire.docs.pivotal.io/</xref>.</li>
         <li otherprops="pivotal">The Greenplum-Spark Connector provides high speed, parallel data
           transfer between Pivotal Greenplum Database and Apache Spark. For information about using
           the Greenplum-Spark Connector, refer to the documentation at <xref
