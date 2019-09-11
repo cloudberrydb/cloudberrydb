@@ -1,8 +1,6 @@
 -- @Description Assert that QEs don't skip a vacuum drop phase (unless we have
 -- an abort) and thus guarantees that seg file states are consistent across QD/QE.
 
-include: helpers/server_helpers.sql;
-
 -- Given we have an AO table
 1: CREATE TABLE ao_test_drop_phase (a INT, b INT) WITH (appendonly=true);
 -- And the AO table has all tuples on primary with content = 0
@@ -21,9 +19,6 @@ include: helpers/server_helpers.sql;
 1: DELETE FROM ao_test_drop_phase where b != 5;
 -- We should see that VACUUM blocks while the QE holds the access shared lock
 1&: VACUUM ao_test_drop_phase;
-
--- wait till vacuum halts for AccessExclusiveLock on content 0
-SELECT wait_until_waiting_for_required_lock('ao_test_drop_phase', 'AccessExclusiveLock', 0);
 
 0U: END;
 1<:
