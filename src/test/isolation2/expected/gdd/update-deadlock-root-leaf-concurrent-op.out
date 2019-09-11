@@ -27,7 +27,10 @@ UPDATE 1
 
 -- the below update will wait to acquire the transaction lock to update the tuple
 -- held by Session 1
-2&:UPDATE part_tbl SET c = 9 WHERE c = 9;  <waiting ...>
+--
+-- It is possible that GDD gets triggered immediately, so use '2>:' instead of
+-- '2&:' for stable output.
+2>:UPDATE part_tbl SET c = 9 WHERE c = 9;  <waiting ...>
 
 1<:  <... completed>
 UPDATE 1

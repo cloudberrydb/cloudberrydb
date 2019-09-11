@@ -16,7 +16,10 @@ show gp_enable_global_deadlock_detector;
 
 -- the below update will wait to acquire the transaction lock to update the tuple
 -- held by Session 1
-2&:UPDATE part_tbl SET c = 9 WHERE c = 9;
+--
+-- It is possible that GDD gets triggered immediately, so use '2>:' instead of
+-- '2&:' for stable output.
+2>:UPDATE part_tbl SET c = 9 WHERE c = 9;
 
 1<:
 2<:
