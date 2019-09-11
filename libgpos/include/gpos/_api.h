@@ -18,8 +18,21 @@
 #define GPOS_api_H
 
 #include "gpos/config.h"
+#include "gpos/base.h"
 
 #ifdef __cplusplus
+
+// lookup given exception type in the given array
+gpos::BOOL FoundException(gpos::CException &exc, const gpos::ULONG *exceptions, gpos::ULONG size);
+
+// Check if given exception is an unexpected reason for failing to
+// produce a plan
+gpos::BOOL IsUnexpectedFailure(gpos::CException &exc);
+
+// check if given exception should error out
+gpos::BOOL ShouldErrorOut(gpos::CException &exc);
+
+
 extern "C"
 {
 #include <stddef.h>
@@ -59,7 +72,6 @@ int gpos_exec(gpos_exec_params *params);
 
 /* shutdown GPOS memory pool, worker pool and message repository */
 void gpos_terminate(void);
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

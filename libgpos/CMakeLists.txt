@@ -17,6 +17,9 @@ endif()
 
 include_directories(include)
 
+include_directories(${PROJECT_SOURCE_DIR}/libgpopt/include/)
+include_directories(${PROJECT_SOURCE_DIR}/libnaucrates/include/)
+
 configure_file(config.h.in
         ${PROJECT_BINARY_DIR}/libgpos/include/gpos/config.h)
 

@@ -24,7 +24,85 @@
 
 #include "gpos/common/CMainArgs.h"
 
+#include "gpopt/exception.h"
+#include "naucrates/exception.h"
+
 using namespace gpos;
+
+const ULONG expected_opt_fallback[] =
+{
+	gpopt::ExmiInvalidPlanAlternative,		// chosen plan id is outside range of possible plans
+	gpopt::ExmiUnsupportedOp,				// unsupported operator
+	gpopt::ExmiUnsupportedPred,				// unsupported predicate
+	gpopt::ExmiUnsupportedCompositePartKey,	// composite partitioning keys
+	gpopt::ExmiUnsupportedNonDeterministicUpdate // non deterministic update
+};
+
+// array of DXL minor exception types that trigger expected fallback to the planner
+const ULONG expected_dxl_fallback[] =
+{
+	gpdxl::ExmiMDObjUnsupported,			// unsupported metadata object
+	gpdxl::ExmiQuery2DXLUnsupportedFeature,	// unsupported feature during algebrization
+	gpdxl::ExmiPlStmt2DXLConversion,		// unsupported feature during plan freezing
+	gpdxl::ExmiDXL2PlStmtConversion			// unsupported feature during planned statement translation
+};
+
+// array of DXL minor exception types that error out and NOT fallback to the planner
+const ULONG expected_dxl_errors[] =
+{
+	gpdxl::ExmiDXL2PlStmtExternalScanError,	// external table error
+	gpdxl::ExmiQuery2DXLNotNullViolation,	// not null violation
+};
+
+BOOL
+ShouldErrorOut
+(
+	gpos::CException &exc
+)
+{
+	return
+	gpdxl::ExmaDXL == exc.Major() &&
+	FoundException(exc, expected_dxl_errors, GPOS_ARRAY_SIZE(expected_dxl_errors));
+}
+
+gpos::BOOL
+FoundException
+(
+	gpos::CException &exc,
+	const gpos::ULONG *exceptions,
+	gpos::ULONG size
+	)
+{
+	GPOS_ASSERT(NULL != exceptions);
+	
+	gpos::ULONG minor = exc.Minor();
+	gpos::BOOL found = false;
+	for (gpos::ULONG ul = 0; !found && ul < size; ul++)
+	{
+		found = (exceptions[ul] == minor);
+	}
+	
+	return found;
+}
+
+gpos::BOOL IsUnexpectedFailure
+(
+	gpos::CException &exc
+)
+{
+	gpos::ULONG major = exc.Major();
+	
+	gpos::BOOL is_opt_failure_expected =
+	gpopt::ExmaGPOPT == major &&
+	FoundException(exc, expected_opt_fallback, GPOS_ARRAY_SIZE(expected_opt_fallback));
+	
+	gpos::BOOL is_dxl_failure_expected =
+	(gpdxl::ExmaDXL == major || gpdxl::ExmaMD == major) &&
+	FoundException(exc, expected_dxl_fallback, GPOS_ARRAY_SIZE(expected_dxl_fallback));
+	
+	return (!is_opt_failure_expected && !is_dxl_failure_expected);
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -174,15 +252,17 @@ int gpos_exec
 	}
 	catch(CException ex)
 	{
-		std::cerr
-			<< "Unexpected exception reached top of execution stack:"
-			<< " major=" << ex.Major()
-			<< " minor=" << ex.Minor()
-			<< " file=" << ex.Filename()
-			<< " line=" << ex.Line()
-			<< std::endl;
-
-		// unexpected failure
+		if (IsUnexpectedFailure(ex))
+		{
+			std::cerr
+				<< "Unexpected exception reached top of execution stack:"
+				<< " major=" << ex.Major()
+				<< " minor=" << ex.Minor()
+				<< " file=" << ex.Filename()
+				<< " line=" << ex.Line()
+				<< std::endl;
+			// unexpected failure
+		}
 		throw ex;
 	}
 	catch (...)
