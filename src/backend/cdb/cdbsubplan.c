@@ -122,8 +122,6 @@ preprocess_initplans(QueryDesc *queryDesc)
 
 			if (subplan->qDispSliceId > 0)
 			{
-				sps->planstate->plan->nMotionNodes = queryDesc->plannedstmt->nMotionNodes;
-
 				/*
 				 * Adjust for the slice to execute on the QD.
 				 */
