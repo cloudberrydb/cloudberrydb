@@ -456,9 +456,21 @@ apply_motion(PlannerInfo *root, Plan *plan)
 							if (target)
 							{
 								Oid			typeOid = exprType((Node *) target->expr);
-								Oid			opclass;
+								Oid			opclass = InvalidOid;
 
-								opclass = cdb_default_distribution_opclass_for_type(typeOid);
+								/*
+								 * Check for a legacy hash operator class if
+								 * gp_use_legacy_hashops GUC is set. If
+								 * InvalidOid is returned or the GUC is not
+								 * set, we'll get the default operator class.
+								 */
+								if (gp_use_legacy_hashops)
+									opclass = get_legacy_cdbhash_opclass_for_base_type(typeOid);
+
+								if (!OidIsValid(opclass))
+									opclass = cdb_default_distribution_opclass_for_type(typeOid);
+
+
 								if (OidIsValid(opclass))
 								{
 									policykeys = lappend_int(policykeys, i + 1);

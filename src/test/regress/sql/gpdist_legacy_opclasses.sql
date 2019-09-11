@@ -111,6 +111,13 @@ insert into all_legacy_types values (
   '5 + 3i'         -- complex
 );
 
+-- Test that CTAS honors the gp_use_legacy_hashops GUC
+-- Note: When ORCA is on, the distribution is RANDOM.
+create table legacy_hashops_ctas as select 1;
+select gpdp.distkey, gpdp.distclass, pgopc.opcname
+  from gp_distribution_policy gpdp, pg_opclass pgopc
+  where gpdp.localoid='legacy_hashops_ctas'::regclass and pgopc.oid::text = gpdp.distclass::text;
+
 set gp_use_legacy_hashops=off;
 
 
