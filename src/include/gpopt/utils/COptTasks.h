@@ -148,18 +148,6 @@ class COptTasks
 		static
 		CHAR *CreateMultiByteCharStringFromWCString(const WCHAR *wcstr);
 
-		// lookup given exception type in the given array
-		static
-		BOOL FoundException(gpos::CException &exc, const ULONG *exceptions, ULONG size);
-
-		// check if given exception is an unexpected reason for failing to produce a plan
-		static
-		BOOL IsUnexpectedFailure(gpos::CException &exc);
-
-		// check if given exception should error out
-		static
-		BOOL ShouldErrorOut(gpos::CException &exc);
-
 		// set cost model parameters
 		static
 		void SetCostModelParams(ICostModel *cost_model);

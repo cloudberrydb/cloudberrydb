@@ -4502,7 +4502,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_log_failure,
-		OPTIMIZER_ALL_FAIL, optimizer_log_failure_options,
+		OPTIMIZER_UNEXPECTED_FAIL, optimizer_log_failure_options,
 		NULL, NULL, NULL
 	},
 
