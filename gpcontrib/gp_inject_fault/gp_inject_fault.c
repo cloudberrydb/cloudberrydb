@@ -77,7 +77,7 @@ getHostnameAndPort(int dbid, char **hostname, int *port)
 		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
 							RelationGetDescr(configrel), &isNull);
 		Assert(!isNull);
-		*port = DatumGetInt16(attr);
+		*port = DatumGetInt32(attr);
 	}
 	else
 		elog(ERROR, "dbid %d not found", dbid);
