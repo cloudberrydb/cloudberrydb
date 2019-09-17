@@ -726,7 +726,9 @@ inline CTranslatorDXLToScalar::STypeOidAndTypeModifier OidParamOidFromDXLIdentOr
 	}
 	Oid inner_type_oid = CMDIdGPDB::CastMdid(inner_ident->MdidType())->Oid();
 	INT type_modifier = inner_ident->TypeModifier();
-	return {inner_type_oid, type_modifier};
+
+	CTranslatorDXLToScalar::STypeOidAndTypeModifier modifier = { inner_type_oid, type_modifier};
+	return modifier;
 }
 
 //---------------------------------------------------------------------------

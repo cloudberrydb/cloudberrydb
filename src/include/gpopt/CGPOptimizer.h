@@ -44,4 +44,14 @@ class CGPOptimizer
     void TerminateGPOPT();
 };
 
+extern "C"
+{
+
+extern PlannedStmt *GPOPTOptimizedPlan(Query *query, bool *had_unexpected_failure);
+extern char *SerializeDXLPlan(Query *query);
+extern void InitGPOPT ();
+extern void TerminateGPOPT ();
+
+}
+
 #endif // CGPOptimizer_H

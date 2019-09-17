@@ -21,6 +21,7 @@ extern "C" {
 #include "utils/builtins.h"
 }
 
+#include "gpopt/utils/funcs.h"
 #include "gpopt/utils/COptTasks.h"
 
 #include "gpos/_api.h"

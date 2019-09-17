@@ -60,7 +60,7 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CTranslatorQueryToDXL
 	{
-		friend CTranslatorScalarToDXL;
+		friend class CTranslatorScalarToDXL;
 
 		// shorthand for functions for translating DXL nodes to GPDB expressions
 		typedef CDXLNode * (CTranslatorQueryToDXL::*DXLNodeToLogicalFunc)(const RangeTblEntry *rte, ULONG rti, ULONG current_query_level);

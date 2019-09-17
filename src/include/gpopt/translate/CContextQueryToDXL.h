@@ -41,8 +41,8 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CContextQueryToDXL
 	{
-		friend CTranslatorQueryToDXL;
-		friend CTranslatorScalarToDXL;
+		friend class CTranslatorQueryToDXL;
+		friend class CTranslatorScalarToDXL;
 
 		private:
 			// memory pool
