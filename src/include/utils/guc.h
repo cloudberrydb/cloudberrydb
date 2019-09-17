@@ -255,6 +255,10 @@ typedef enum
 extern List    *gp_guc_list_for_explain;
 extern List    *gp_guc_list_for_no_plan;
 
+/* Changed GUC which need to be pass to QE from QD */
+extern List *gp_guc_restore_list;
+extern bool gp_guc_need_restore;
+
 /* GUC vars that are actually declared in guc.c, rather than elsewhere */
 extern bool log_duration;
 extern bool Debug_print_plan;
@@ -807,5 +811,6 @@ extern bool gpvars_check_statement_mem(int *newval, void **extra, GucSource sour
 extern bool gpvars_check_gp_enable_gpperfmon(bool *newval, void **extra, GucSource source);
 extern bool gpvars_check_gp_gpperfmon_send_interval(int *newval, void **extra, GucSource source);
 extern int guc_name_compare(const char *namea, const char *nameb);
+extern void DispatchSyncPGVariable(struct config_generic * gconfig);
 
 #endif   /* GUC_H */
