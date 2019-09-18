@@ -49,7 +49,7 @@ LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses -lcurl -lssl
 
 # Build regression test driver
 
-all: pg_regress$(X)
+all: pg_regress$(X) scan_flaky_fault_injectors
 
 pg_regress$(X): pg_regress.o pg_regress_main.o $(WIN32RES) | submake-libpgport
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
@@ -59,6 +59,10 @@ pg_regress.o: pg_regress.c $(top_builddir)/src/port/pg_config_paths.h
 pg_regress.o: override CPPFLAGS += -I$(top_builddir)/src/port $(EXTRADEFS)
 regress_gp.o: override CFLAGS += -I$(top_builddir)/src/interfaces/libpq
 regress_gp.o: override LDFLAGS += -L$(top_builddir)/src/interfaces/libpq
+
+.PHONY: scan_flaky_fault_injectors
+scan_flaky_fault_injectors:
+	$(top_builddir)/src/test/regress/scan_flaky_fault_injectors.sh
 
 twophase_pqexecparams: twophase_pqexecparams.c
 	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
