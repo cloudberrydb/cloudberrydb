@@ -27,7 +27,6 @@ SET auto_explain.log_verbose = FALSE;
 LOG:  statement: SET auto_explain.log_verbose = FALSE;
 SELECT relname FROM pg_class WHERE relname='pg_class';
 LOG:  statement: SELECT relname FROM pg_class WHERE relname='pg_class';
-LOG:  Planner produced plan :0
 LOG:  duration: 0.112 ms  plan:
 Query Text: SELECT relname FROM pg_class WHERE relname='pg_class';
 Seq Scan on pg_class  (cost=0.00..12.46 rows=1 width=64) (actual rows=1 loops=1)
@@ -70,7 +69,6 @@ LOG:  statement: SET auto_explain.log_verbose = TRUE;
 -- this select should not dump execution plan
 SELECT relname FROM pg_class WHERE relname='pg_class';
 LOG:  statement: SELECT relname FROM pg_class WHERE relname='pg_class';
-LOG:  Planner produced plan :0
  relname  
 ----------
  pg_class
