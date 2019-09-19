@@ -3204,6 +3204,7 @@ CUtils::FPredicate
 	return
 		pop->FScalar() &&
 		(FScalarCmp(pexpr) ||
+		CPredicateUtils::FIDF(pexpr) ||
 		FScalarArrayCmp(pexpr) ||
 		FScalarBoolOp(pexpr) ||
 		FScalarNullTest(pexpr));

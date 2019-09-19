@@ -744,8 +744,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 
 	GPOS_RTL_ASSERT(!pcnstin->FConvertsToNotIn());
 	GPOS_RTL_ASSERT(pcnstin->FConvertsToIn());
-	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_RTL_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(CUtils::FScalarBoolOp(pexpr, CScalarBoolOp::EboolopOr));
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp((*pexpr)[0]));
+	GPOS_RTL_ASSERT(3 == CUtils::UlCountOperator((*pexpr)[0], COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(CUtils::FScalarNullTest((*pexpr)[1]));
 
 	pcnstin->Release();
 
@@ -784,8 +786,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 
 	GPOS_RTL_ASSERT(pcnstNotIn->FConvertsToNotIn());
 	GPOS_RTL_ASSERT(!pcnstNotIn->FConvertsToIn());
-	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_RTL_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(CUtils::FScalarBoolOp(pexpr, CScalarBoolOp::EboolopOr));
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp((*pexpr)[0]));
+	GPOS_RTL_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(CUtils::FScalarNullTest((*pexpr)[1]));
 
 	pcnstNotIn->Release();
 
@@ -937,7 +941,7 @@ EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
 
 	CColRef *colref = CDrvdPropRelational::GetRelationalProperties(pexprIn->PdpDerive())->PcrsOutput()->PcrAny();
 	CConstraintInterval *pci = CConstraintInterval::PciIntervalFromScalarExpr(mp, (*pexprIn)[1], colref);
-	GPOS_RTL_ASSERT(pci->FIncludesNull());
+	GPOS_RTL_ASSERT(!pci->FIncludesNull());
 	GPOS_RTL_ASSERT(2 == pci->Pdrgprng()->Size());
 	pexprIn->Release();
 	pci->Release();

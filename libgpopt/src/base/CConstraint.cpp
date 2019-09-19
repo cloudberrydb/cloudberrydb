@@ -18,6 +18,7 @@
 #include "gpopt/base/CColConstraintsArrayMapper.h"
 #include "gpopt/base/CColConstraintsHashMapper.h"
 #include "gpopt/base/CColRefSetIter.h"
+#include "gpopt/base/CColRefTable.h"
 #include "gpopt/base/CConstraint.h"
 #include "gpopt/base/CConstraintInterval.h"
 #include "gpopt/base/CConstraintConjunction.h"
@@ -86,7 +87,8 @@ CConstraint::PcnstrFromScalarArrayCmp
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
-	CColRef *colref
+	CColRef *colref,
+	BOOL infer_nulls_as
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -141,7 +143,7 @@ CConstraint::PcnstrFromScalarArrayCmp
 		for (ULONG ul = 0; ul < arity; ul++)
 		{
 			CScalarConst *popScConst = CUtils::PScalarArrayConstChildAt(pexprArray,ul);
-			CConstraintInterval *pci =  CConstraintInterval::PciIntervalFromColConstCmp(mp, colref, cmp_type, popScConst);
+			CConstraintInterval *pci =  CConstraintInterval::PciIntervalFromColConstCmp(mp, colref, cmp_type, popScConst, infer_nulls_as);
 			pdrgpcnstr->Append(pci);
 		}
 
@@ -174,7 +176,8 @@ CConstraint::PcnstrFromScalarExpr
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
-	CColRefSetArray **ppdrgpcrs // output equivalence classes
+	CColRefSetArray **ppdrgpcrs, // output equivalence classes
+	BOOL infer_nulls_as
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -207,12 +210,12 @@ CConstraint::PcnstrFromScalarExpr
 		*ppdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
 
 		// first, try creating a single interval constraint from the expression
-		pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexpr, colref);
+		pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(mp, pexpr, colref, infer_nulls_as);
 		if (NULL == pcnstr && CUtils::FScalarArrayCmp(pexpr))
 		{
 			// if the interval creation failed, try creating a disjunction or conjunction
 			// of several interval constraints in the array case
-			pcnstr = PcnstrFromScalarArrayCmp(mp, pexpr, colref);
+			pcnstr = PcnstrFromScalarArrayCmp(mp, pexpr, colref, infer_nulls_as);
 		}
 
 		if (NULL != pcnstr)
@@ -225,10 +228,10 @@ CConstraint::PcnstrFromScalarExpr
 	switch (pexpr->Pop()->Eopid())
 	{
 		case COperator::EopScalarBoolOp:
-			return PcnstrFromScalarBoolOp(mp, pexpr, ppdrgpcrs);
+			return PcnstrFromScalarBoolOp(mp, pexpr, ppdrgpcrs, infer_nulls_as);
 
 		case COperator::EopScalarCmp:
-			return PcnstrFromScalarCmp(mp, pexpr, ppdrgpcrs);
+			return PcnstrFromScalarCmp(mp, pexpr, ppdrgpcrs, infer_nulls_as);
 
 		default:
 			return NULL;
@@ -371,7 +374,8 @@ CConstraint::PcnstrFromScalarCmp
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
-	CColRefSetArray **ppdrgpcrs // output equivalence classes
+	CColRefSetArray **ppdrgpcrs, // output equivalence classes
+	BOOL infer_nulls_as
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -420,8 +424,16 @@ CConstraint::PcnstrFromScalarCmp
 			return NULL;
 		}
 
+		BOOL pcrLeftIncludesNull = infer_nulls_as && CColRef::EcrtTable == pcrLeft->Ecrt() ? 
+								   CColRefTable::PcrConvert(const_cast<CColRef*>(pcrLeft))->IsNullable() : 
+								   false;
+		BOOL pcrRightIncludesNull = infer_nulls_as && CColRef::EcrtTable == pcrRight->Ecrt() ? 
+									CColRefTable::PcrConvert(const_cast<CColRef*>(pcrRight))->IsNullable() : 
+									false;
+
 		*ppdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
-		if (CPredicateUtils::IsEqualityOp(pexpr))
+		BOOL checkEquality = CPredicateUtils::IsEqualityOp(pexpr) && !pcrLeftIncludesNull && !pcrRightIncludesNull;
+		if (checkEquality)
 		{
 			// col1 = col2 or bcast(col1) = col2 or col1 = bcast(col2) or bcast(col1) = bcast(col2)
 			CColRefSet *pcrsNew = GPOS_NEW(mp) CColRefSet(mp);
@@ -431,10 +443,9 @@ CConstraint::PcnstrFromScalarCmp
 			(*ppdrgpcrs)->Append(pcrsNew);
 		}
 
-		// create NOT NULL constraints to both columns
 		CConstraintArray *pdrgpcnstr = GPOS_NEW(mp) CConstraintArray(mp);
-		pdrgpcnstr->Append(CConstraintInterval::PciUnbounded(mp, pcrLeft, false /*fIncludesNull*/));
-		pdrgpcnstr->Append(CConstraintInterval::PciUnbounded(mp, pcrRight, false /*fIncludesNull*/));
+		pdrgpcnstr->Append(CConstraintInterval::PciUnbounded(mp, pcrLeft, pcrLeftIncludesNull /*fIncludesNull*/));
+		pdrgpcnstr->Append(CConstraintInterval::PciUnbounded(mp, pcrRight, pcrRightIncludesNull /*fIncludesNull*/));
 		return CConstraint::PcnstrConjunction(mp, pdrgpcnstr);
 	}
 
@@ -456,7 +467,8 @@ CConstraint::PcnstrFromScalarBoolOp
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
-	CColRefSetArray **ppdrgpcrs // output equivalence classes
+	CColRefSetArray **ppdrgpcrs, // output equivalence classes
+	BOOL infer_nulls_as
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -487,7 +499,7 @@ CConstraint::PcnstrFromScalarBoolOp
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CColRefSetArray *pdrgpcrsChild = NULL;
-		CConstraint *pcnstrChild = PcnstrFromScalarExpr(mp, (*pexpr)[ul], &pdrgpcrsChild);
+		CConstraint *pcnstrChild = PcnstrFromScalarExpr(mp, (*pexpr)[ul], &pdrgpcrsChild, infer_nulls_as);
 		if (NULL == pcnstrChild || pcnstrChild->IsConstraintUnbounded())
 		{
 			CRefCount::SafeRelease(pcnstrChild);

@@ -49,6 +49,16 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/3WayJoinOnMultiDistributionColumnsTablesNoMotion.mdp",
 		"../data/dxl/minidump/4WayJoinInferredPredsRemovedWith2Motion.mdp",
 		"../data/dxl/minidump/NoRedistributeOnAppend.mdp",
+		"../data/dxl/minidump/ConstraintIntervalIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalNotIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithBoolNotIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithBoolNotIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithInIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithInNotIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithInIncludesNullArray.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithNotIncludesNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithMultiColumnsIncludeNull.mdp",
+		"../data/dxl/minidump/ConstraintIntervalWithMultiColumnsNotIncludeNull.mdp",
 
 #ifndef GPOS_DEBUG
 		// TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time

@@ -101,11 +101,11 @@ namespace gpopt
 
 			// create constraint from scalar comparison
 			static
-			CConstraint *PcnstrFromScalarCmp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
+			CConstraint *PcnstrFromScalarCmp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs, BOOL infer_nulls_as=false);
 
 			// create constraint from scalar boolean expression
 			static
-			CConstraint *PcnstrFromScalarBoolOp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs);
+			CConstraint *PcnstrFromScalarBoolOp(CMemoryPool *mp, CExpression *pexpr, CColRefSetArray **ppdrgpcrs, BOOL infer_nulls_as=false);
 
 			// create conjunction/disjunction from array of constraints
 			static
@@ -156,7 +156,13 @@ namespace gpopt
 			// create constraint from scalar array comparison expression originally generated for
 			// "scalar op ANY/ALL (array)" construct
 			static
-			CConstraint *PcnstrFromScalarArrayCmp(CMemoryPool *mp, CExpression *pexpr, CColRef *colref);
+			CConstraint *PcnstrFromScalarArrayCmp
+							(
+							CMemoryPool *mp,
+							CExpression *pexpr,
+							CColRef *colref,
+							BOOL infer_nulls_as=false
+							);
 
 		public:
 
@@ -251,7 +257,8 @@ namespace gpopt
 							(
 							CMemoryPool *mp,
 							CExpression *pexpr,
-							CColRefSetArray **ppdrgpcrs
+							CColRefSetArray **ppdrgpcrs,
+							BOOL infer_nulls_as=false
 							);
 
 			// create conjunction from array of constraints
