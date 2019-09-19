@@ -2194,6 +2194,33 @@ EXPLAIN SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.
 SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.a = t2.a and (t1.a in ('b', 'c') OR t1.a = 'a');
 DROP TABLE varchar_sc_array_cmp;
 
+-- table constraints on nullable columns
+-- start_ignore
+DROP TABLE IF EXISTS tc0, tc1, tc2, tc3, tc4;
+-- end_ignore
+CREATE TABLE tc0 (a int check (a = 5));
+INSERT INTO tc0 VALUES (NULL);
+-- FIXME: Planner gives wrong result
+SELECT * from tc0 where a IS NULL;
+
+CREATE TABLE tc1 (a int check (a between 1 and 2 or a != 3 and a > 5));
+INSERT INTO tc1 VALUES (NULL);
+SELECT * from tc1 where a IS NULL;
+
+CREATE TABLE tc2 (a int check (a in (1,2)));
+INSERT INTO tc2 VALUES (NULL);
+SELECT * from tc2 where a IS NULL;
+
+set optimizer_array_constraints = on;
+CREATE TABLE tc3 (a int check (a = ANY (ARRAY[1,2])));
+INSERT INTO tc3 VALUES (NULL);
+SELECT * from tc3 where a IS NULL;
+reset optimizer_array_constraints;
+
+CREATE TABLE tc4 (a int, b int, check(a + b > 1 and a = b));
+INSERT INTO tc4 VALUES(NULL, NULL);
+SELECT * from tc4 where a IS NULL;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore
