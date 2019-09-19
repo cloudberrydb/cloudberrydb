@@ -379,7 +379,7 @@ InitProcess(void)
 	}
 	MyPgXact = &ProcGlobal->allPgXact[MyProc->pgprocno];
 	MyTmGxact = &ProcGlobal->allTmGxact[MyProc->pgprocno];
-	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAlloc(TopMemoryContext, sizeof(TMGXACTLOCAL));
+	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAllocZero(TopMemoryContext, sizeof(TMGXACTLOCAL));
 	if (MyTmGxactLocal == NULL)
 		elog(FATAL, "allocating TMGXACTLOCAL failed");
 
@@ -612,7 +612,7 @@ InitAuxiliaryProcess(void)
 	lockHolderProcPtr = auxproc;
 	MyPgXact = &ProcGlobal->allPgXact[auxproc->pgprocno];
 	MyTmGxact = &ProcGlobal->allTmGxact[auxproc->pgprocno];
-	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAlloc(TopMemoryContext, sizeof(TMGXACTLOCAL));
+	MyTmGxactLocal = (TMGXACTLOCAL*)MemoryContextAllocZero(TopMemoryContext, sizeof(TMGXACTLOCAL));
 	if (MyTmGxactLocal == NULL)
 		elog(FATAL, "allocating TMGXACTLOCAL failed");
 
