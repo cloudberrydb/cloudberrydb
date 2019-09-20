@@ -81,6 +81,7 @@ omit =
     */bin/behave
     */python/psutil/*
     */python/pygresql/*
+    */python/subprocess32.py
     */python/yaml/*
     */python/lockfile/*
     */gppkg_migrate/*
