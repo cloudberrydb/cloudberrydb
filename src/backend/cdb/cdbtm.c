@@ -95,7 +95,6 @@ static void doPrepareTransaction(void);
 static void doInsertForgetCommitted(void);
 static void doNotifyingOnePhaseCommit(void);
 static void doNotifyingCommitPrepared(void);
-static void doNotifyingCommitNotPrepared(void);
 static void doNotifyingAbort(void);
 static void retryAbortPrepared(void);
 static void doQEDistributedExplicitBegin();
@@ -316,13 +315,20 @@ notifyCommittedDtxTransaction(void)
 	Assert(DistributedTransactionContext == DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE);
 	Assert(isCurrentDtxTwoPhaseActivated());
 
-	if (MyTmGxactLocal->state == DTX_STATE_PREPARED ||
-		MyTmGxactLocal->state == DTX_STATE_INSERTED_COMMITTED)
-		doNotifyingCommitPrepared();
-	else if (MyTmGxactLocal->state == DTX_STATE_ONE_PHASE_COMMIT)
-		doNotifyingOnePhaseCommit();
-	else
-		doNotifyingCommitNotPrepared();
+	switch(MyTmGxactLocal->state)
+	{
+		case DTX_STATE_PREPARED:
+		case DTX_STATE_INSERTED_COMMITTED:
+			doNotifyingCommitPrepared();
+			break;
+		case DTX_STATE_ONE_PHASE_COMMIT:
+			doNotifyingOnePhaseCommit();
+			break;
+		default:
+			ereport(ERROR,
+					(errmsg("Unexpected DTX state"),
+					 TM_ERRDETAIL));
+	}
 }
 
 void
@@ -500,48 +506,13 @@ ClearTransactionState(TransactionId latestXid)
 }
 
 static void
-doNotifyingCommitNotPrepared(void)
-{
-	bool		succeeded;
-	volatile int savedInterruptHoldoffCount;
-	MemoryContext oldcontext = CurrentMemoryContext;;
-
-	if (MyTmGxactLocal->twophaseSegments == NULL)
-		return;
-
-	savedInterruptHoldoffCount = InterruptHoldoffCount;
-
-	PG_TRY();
-	{
-		succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_COMMIT_NOT_PREPARED, true);
-	}
-	PG_CATCH();
-	{
-		/*
-		 * restore the previous value, which is reset to 0 in errfinish.
-		 */
-		MemoryContextSwitchTo(oldcontext);
-		InterruptHoldoffCount = savedInterruptHoldoffCount;
-		succeeded = false;
-		FlushErrorState();
-	}
-	PG_END_TRY();
-
-	if (!succeeded)
-	{
-		ereport(LOG, (errmsg("failed to commit explict read-only transaction, destroy the writer gang")));
-		DisconnectAndDestroyAllGangs(true);
-		CheckForResetSession();
-	}
-}
-
-static void
 doNotifyingOnePhaseCommit(void)
 {
 	bool		succeeded;
 	volatile int savedInterruptHoldoffCount;
 
-	Assert(list_length(MyTmGxactLocal->twophaseSegments) <= 1);
+	if (MyTmGxactLocal->twophaseSegments == NULL)
+		return;
 
 	elog(DTM_DEBUG5, "doNotifyingOnePhaseCommit entering in state = %s", DtxStateToString(MyTmGxactLocal->state));
 
@@ -873,16 +844,14 @@ prepareDtxTransaction(void)
 		return;
 	}
 
-	if (!ExecutorDidWriteXLog())
-		return;
-
 	/*
 	 * If only one segment was involved in the transaction, and no local XID
 	 * has been assigned on the QD either, we can perform one-phase commit
 	 * on that one segment. Otherwise, broadcast PREPARE TRANSACTION to the
 	 * segments.
 	 */
-	if (!markXidCommitted && list_length(MyTmGxactLocal->twophaseSegments) < 2)
+	if (!ExecutorDidWriteXLog() ||
+	    (!markXidCommitted && list_length(MyTmGxactLocal->twophaseSegments) < 2))
 	{
 		setCurrentDtxState(DTX_STATE_ONE_PHASE_COMMIT);
 		return;
@@ -1225,10 +1194,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	struct pg_result **results;
 
 	if (!twophaseSegments)
-	{
-		Assert(dtxProtocolCommand == DTX_PROTOCOL_COMMAND_COMMIT_NOT_PREPARED);
 		return true;
-	}
 
 	dtxProtocolCommandStr = DtxProtocolCommandToString(dtxProtocolCommand);
 
@@ -2217,12 +2183,6 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 			requireDistributedTransactionContext(DTX_CONTEXT_QE_PREPARED);
 			setDistributedTransactionContext(DTX_CONTEXT_QE_FINISH_PREPARED);
 			performDtxProtocolCommitPrepared(gid, /* raiseErrorIfNotFound */ true);
-			break;
-
-		case DTX_PROTOCOL_COMMAND_COMMIT_NOT_PREPARED:
-			Assert(DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER ||
-				   DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER);
-			CommitNotPreparedTransaction();
 			break;
 
 		case DTX_PROTOCOL_COMMAND_ABORT_PREPARED:

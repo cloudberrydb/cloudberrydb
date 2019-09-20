@@ -5367,26 +5367,6 @@ RollbackAndReleaseCurrentSubTransaction(void)
 	}
 }
 
-void
-CommitNotPreparedTransaction(void)
-{
-	TransactionState s = CurrentTransactionState;
-
-	while (s->blockState == TBLOCK_SUBINPROGRESS)
-	{
-		CommitSubTransaction();
-		s = CurrentTransactionState;
-	}
-
-	if (s->blockState == TBLOCK_INPROGRESS)
-	{
-		Assert(s->parent == NULL);
-		CommitTransaction();
-	}
-	s->blockState = TBLOCK_DEFAULT;
-	MyProc->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
-	return;
-}
 /*
  *	AbortOutOfAnyTransaction
  *

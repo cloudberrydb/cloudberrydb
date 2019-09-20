@@ -64,7 +64,7 @@ fetch c0;
 (0 rows)
 
 End;
-INFO:  Distributed transaction command 'Distributed Commit Not Prepared' to ALL contents: 0 1 2
+INFO:  Distributed transaction command 'Distributed Commit (one-phase)' to ALL contents: 0 1 2
 reset test_print_direct_dispatch_info;
 -- ----------------------------------------------------------------------
 -- Test: query03.sql
