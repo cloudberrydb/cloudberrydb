@@ -136,10 +136,10 @@
 
 	/* Read an integer array */
 #define WRITE_INT_ARRAY(fldname, count, Type) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		for(i = 0; i < count; i++) \
+		for(i = 0; i < (count); i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(Type)); \
 		} \
@@ -147,10 +147,10 @@
 
 /* Write a boolean array  */
 #define WRITE_BOOL_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		for(i = 0; i < count; i++) \
+		for(i = 0; i < (count); i++) \
 		{ \
 			char b = node->fldname[i] ? 1 : 0;								\
 			appendBinaryStringInfo(str, (const char *)&b, 1); \
@@ -159,10 +159,10 @@
 
 /* Write an Trasnaction ID array  */
 #define WRITE_XID_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		for(i = 0; i < count; i++) \
+		for(i = 0; i < (count); i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(TransactionId)); \
 		} \
@@ -170,10 +170,10 @@
 
 /* Write an Oid array  */
 #define WRITE_OID_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		for(i = 0; i < count; i++) \
+		for(i = 0; i < (count); i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(Oid)); \
 		} \

@@ -146,11 +146,11 @@ static Bitmapset *bitmapsetRead(void);
 
 /* Read an integer array  */
 #define READ_INT_ARRAY(fldname, count, Type) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (Type *)palloc(count * sizeof(Type)); \
-		for(i = 0; i < count; i++) \
+		local_node->fldname = (Type *)palloc((count) * sizeof(Type)); \
+		for(i = 0; i < (count); i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(Type)); read_str_ptr+=sizeof(Type); \
 		} \
@@ -158,11 +158,11 @@ static Bitmapset *bitmapsetRead(void);
 
 /* Read a bool array  */
 #define READ_BOOL_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (bool *) palloc(count * sizeof(bool)); \
-		for(i = 0; i < count; i++) \
+		local_node->fldname = (bool *) palloc((count) * sizeof(bool)); \
+		for(i = 0; i < (count); i++) \
 		{ \
 			local_node->fldname[i] = *read_str_ptr ? true : false; \
 			read_str_ptr++; \
@@ -171,11 +171,11 @@ static Bitmapset *bitmapsetRead(void);
 
 /* Read an Trasnaction ID array  */
 #define READ_XID_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (TransactionId *)palloc(count * sizeof(TransactionId)); \
-		for(i = 0; i < count; i++) \
+		local_node->fldname = (TransactionId *)palloc((count) * sizeof(TransactionId)); \
+		for(i = 0; i < (count); i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(TransactionId)); read_str_ptr+=sizeof(TransactionId); \
 		} \
@@ -185,11 +185,11 @@ static Bitmapset *bitmapsetRead(void);
 
 /* Read an Oid array  */
 #define READ_OID_ARRAY(fldname, count) \
-	if ( count > 0 ) \
+	if ( (count) > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (Oid *)palloc(count * sizeof(Oid)); \
-		for(i = 0; i < count; i++) \
+		local_node->fldname = (Oid *)palloc((count) * sizeof(Oid)); \
+		for(i = 0; i < (count); i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(Oid)); read_str_ptr+=sizeof(Oid); \
 		} \
