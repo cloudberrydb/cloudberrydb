@@ -43,3 +43,29 @@ select * from subselect_t1 where NULL in (select c from subselect_t2) and exists
 -- Planner test to make sure initplan is removed when no param is used
 select * from subselect_t2 where false and exists (select generate_series(1,2));
 
+
+--
+-- Test running Init Plans in a query that runs in a function in a QE.
+-- Init Plans get special treatment in the QD, for queries that are
+-- dispatched. The point of this test is to make sure the Init Plans work
+-- correctly when they *don't* need the special treatment, in local queries
+-- in QEs.
+--
+create temp table datetab (start timestamp, stop timestamp);
+insert into datetab values ('2019-01-01', '2019-01-10');
+
+-- A function, that contains a query with a subquery that can be turned into
+-- an Init Plan.
+create or replace function number_of_days(start timestamp, stop timestamp) returns text
+as $$
+declare
+  result text;
+begin
+  result := 'full days: ' || (select count(g) from generate_series(start, stop, '1 day') g)::text;
+
+  return result;
+end;
+$$ language plpgsql;
+
+-- Run the function in QEs.
+select number_of_days(start, stop) from datetab;

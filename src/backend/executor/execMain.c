@@ -2191,8 +2191,12 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	/* No more use for locallyExecutableSubplans */
 	bms_free(locallyExecutableSubplans);
 
-	/* Extract all precomputed parameters from init plans */
-	ExtractParamsFromInitPlans(plannedstmt, plannedstmt->planTree, estate);
+	/*
+	 * If this is a query that was dispatched from the QE, extract precomputed
+	 * parameters from all init plans
+	 */
+	if (Gp_role == GP_ROLE_EXECUTE && queryDesc->ddesc)
+		ExtractParamsFromInitPlans(plannedstmt, plannedstmt->planTree, estate);
 
 	/*
 	 * Initialize the private state information for all the nodes in the query

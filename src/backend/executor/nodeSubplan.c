@@ -782,7 +782,8 @@ ExecInitSubPlan(SubPlan *subplan, PlanState *parent)
 			/**
 			 * If we need to evaluate a parameter, save the planstate to do so.
 			 */
-			if ((Gp_role != GP_ROLE_EXECUTE || !subplan->is_initplan))
+			if ((Gp_role != GP_ROLE_EXECUTE || !subplan->is_initplan ||
+				 estate->es_sliceTable == NULL))
 			{
 				prmExec->execPlan = sstate;
 			}
