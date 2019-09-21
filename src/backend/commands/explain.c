@@ -1479,26 +1479,19 @@ ExplainNode(PlanState *planstate, List *ancestors,
 
 				switch (pMotion->motionType)
 				{
+					case MOTIONTYPE_GATHER:
+						if (plan->lefttree->flow->locustype == CdbLocusType_Replicated)
+							sname = "Explicit Gather Motion";
+						else
+							sname = "Gather Motion";
+						scaleFactor = 1;
+						motion_recv = 1;
+						break;
 					case MOTIONTYPE_HASH:
 						sname = "Redistribute Motion";
 						break;
-					case MOTIONTYPE_FIXED:
-						if (pMotion->isBroadcast)
-						{
-							sname = "Broadcast Motion";
-						}
-						else if (plan->lefttree->flow->locustype == CdbLocusType_Replicated)
-						{
-							sname = "Explicit Gather Motion";
-							scaleFactor = 1;
-							motion_recv = 1;
-						}
-						else
-						{
-							sname = "Gather Motion";
-							scaleFactor = 1;
-							motion_recv = 1;
-						}
+					case MOTIONTYPE_BROADCAST:
+						sname = "Broadcast Motion";
 						break;
 					case MOTIONTYPE_EXPLICIT:
 						sname = "Explicit Redistribute Motion";
@@ -1529,8 +1522,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 						motion_snd = plan->lefttree->flow->numsegments;
 					}
 
-					if (pMotion->motionType == MOTIONTYPE_FIXED &&
-						!pMotion->isBroadcast)
+					if (pMotion->motionType == MOTIONTYPE_GATHER)
 					{
 						/* In Gather Motion always display receiver size as 1 */
 						motion_recv = 1;

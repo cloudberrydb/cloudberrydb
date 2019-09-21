@@ -1763,20 +1763,6 @@ gpdb::ListFreeDeep
 }
 
 bool
-gpdb::IsMotionGather
-	(
-	const Motion *motion
-	)
-{
-	GP_WRAP_START;
-	{
-		return isMotionGather(motion);
-	}
-	GP_WRAP_END;
-	return false;
-}
-
-bool
 gpdb::IsAppendOnlyPartitionTable
 	(
 	Oid root_oid

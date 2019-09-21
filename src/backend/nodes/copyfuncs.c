@@ -1357,8 +1357,6 @@ _copyMotion(const Motion *from)
 	COPY_NODE_FIELD(hashExprs);
 	COPY_POINTER_FIELD(hashFuncs, list_length(from->hashExprs) * sizeof(Oid));
 
-	COPY_SCALAR_FIELD(isBroadcast);
-
 	COPY_SCALAR_FIELD(numSortCols);
 	COPY_POINTER_FIELD(sortColIdx, from->numSortCols * sizeof(AttrNumber));
 	COPY_POINTER_FIELD(sortOperators, from->numSortCols * sizeof(Oid));

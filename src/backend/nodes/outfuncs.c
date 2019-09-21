@@ -1205,8 +1205,6 @@ _outMotion(StringInfo str, const Motion *node)
 	for (i = 0; i < list_length(node->hashExprs); i++)
 		appendStringInfo(str, " %u", node->hashFuncs[i]);
 
-	WRITE_INT_FIELD(isBroadcast);
-
 	WRITE_INT_FIELD(numSortCols);
 	appendStringInfoLiteral(str, " :sortColIdx");
 	for (i = 0; i < node->numSortCols; i++)

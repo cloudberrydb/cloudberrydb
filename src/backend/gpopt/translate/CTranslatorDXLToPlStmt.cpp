@@ -260,8 +260,8 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 			{
 				Motion *motion = (Motion *) lfirst(lc);
 				GPOS_ASSERT(IsA(motion, Motion));
-				GPOS_ASSERT(gpdb::IsMotionGather(motion));
-				
+				GPOS_ASSERT(motion->motionType == MOTIONTYPE_GATHER);
+
 				motion->plan.directDispatch.isDirectDispatch = true;
 				motion->plan.directDispatch.contentIds = plan->directDispatch.contentIds;
 			}
@@ -2036,25 +2036,19 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 	{
 		case EdxlopPhysicalMotionGather:
 		{
-			motion->motionType = MOTIONTYPE_FIXED;
-			motion->isBroadcast = false;
+			motion->motionType = MOTIONTYPE_GATHER;
 			flow->numsegments = 1;
-
 			break;
 		}
 		case EdxlopPhysicalMotionRedistribute:
 		case EdxlopPhysicalMotionRandom:
 		{
 			motion->motionType = MOTIONTYPE_HASH;
-			motion->isBroadcast = false;
-
 			break;
 		}
 		case EdxlopPhysicalMotionBroadcast:
 		{
-			motion->motionType = MOTIONTYPE_FIXED;
-			motion->isBroadcast = true;
-
+			motion->motionType = MOTIONTYPE_BROADCAST;
 			break;
 		}
 		case EdxlopPhysicalMotionRoutedDistribute:
@@ -2064,8 +2058,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 
 			motion->motionType = MOTIONTYPE_EXPLICIT;
 			motion->segidColIdx = te_sort_col->resno;
-			motion->isBroadcast = false;
-
 			break;
 			
 		}

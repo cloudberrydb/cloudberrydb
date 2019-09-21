@@ -24,6 +24,4 @@ extern void ExecReScanMotion(MotionState *node);
 
 extern void ExecSquelchMotion(MotionState *node);
 
-extern bool isMotionGather(const Motion *m);
-
 #endif   /* NODEMOTION_H */

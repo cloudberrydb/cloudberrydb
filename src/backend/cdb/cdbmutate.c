@@ -98,8 +98,7 @@ static void assignMotionID(Node *newnode, ApplyMotionState *context, Node *oldno
 
 static void add_slice_to_motion(Motion *motion,
 					MotionType motionType,
-					List *hashExprs, List *hashOpfamilies, int numsegments,
-					bool isBroadcast);
+					List *hashExprs, List *hashOpfamilies, int numsegments);
 
 static Node *apply_motion_mutator(Node *node, ApplyMotionState *context);
 
@@ -788,8 +787,7 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		Assert(flow->req_move == MOVEMENT_NONE && !flow->flow_before_req_move);
 
 		/* If top slice marked as singleton, make it a dispatcher singleton. */
-		if (motion->motionType == MOTIONTYPE_FIXED
-			&& !motion->isBroadcast
+		if (motion->motionType == MOTIONTYPE_GATHER
 			&& context->sliceDepth == 0)
 		{
 			flow->segindex = -1;
@@ -967,8 +965,7 @@ assignMotionID(Node *newnode, ApplyMotionState *context, Node *oldnode)
 static void
 add_slice_to_motion(Motion *motion,
 					MotionType motionType,
-					List *hashExprs, List *hashOpfamilies, int numsegments,
-					bool isBroadcast)
+					List *hashExprs, List *hashOpfamilies, int numsegments)
 {
 	Oid		   *hashFuncs;
 	ListCell   *expr_cell;
@@ -981,7 +978,6 @@ add_slice_to_motion(Motion *motion,
 		Assert(!"what's the proper value of numsegments?");
 	}
 
-	AssertImply(isBroadcast, motionType == MOTIONTYPE_FIXED);
 	Assert(list_length(hashExprs) == list_length(hashOpfamilies));
 
 	hashFuncs = palloc(list_length(hashExprs) * sizeof(Oid));
@@ -998,7 +994,6 @@ add_slice_to_motion(Motion *motion,
 	motion->motionType = motionType;
 	motion->hashExprs = hashExprs;
 	motion->hashFuncs = hashFuncs;
-	motion->isBroadcast = isBroadcast;
 
 	Assert(motion->plan.lefttree);
 
@@ -1012,24 +1007,15 @@ add_slice_to_motion(Motion *motion,
 			motion->plan.flow->hashOpfamilies = copyObject(hashOpfamilies);
 
 			break;
-		case MOTIONTYPE_FIXED:
-			if (motion->isBroadcast)
-			{
-				/* broadcast */
-				motion->plan.flow = makeFlow(FLOW_REPLICATED, numsegments);
-				motion->plan.flow->locustype = CdbLocusType_Replicated;
-
-			}
-			else
-			{
-				/* Focus motion */
-				motion->plan.flow = makeFlow(FLOW_SINGLETON, numsegments);
-				motion->plan.flow->locustype = (motion->plan.flow->segindex < 0) ?
-					CdbLocusType_Entry :
-					CdbLocusType_SingleQE;
-
-			}
-
+		case MOTIONTYPE_GATHER:
+			motion->plan.flow = makeFlow(FLOW_SINGLETON, numsegments);
+			motion->plan.flow->locustype = (motion->plan.flow->segindex < 0) ?
+				CdbLocusType_Entry :
+				CdbLocusType_SingleQE;
+			break;
+		case MOTIONTYPE_BROADCAST:
+			motion->plan.flow = makeFlow(FLOW_REPLICATED, numsegments);
+			motion->plan.flow->locustype = CdbLocusType_Replicated;
 			break;
 		case MOTIONTYPE_EXPLICIT:
 			motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
@@ -1057,7 +1043,7 @@ make_union_motion(Plan *lefttree, bool useExecutorVarFormat, int numsegments)
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
-	add_slice_to_motion(motion, MOTIONTYPE_FIXED, NIL, NIL, numsegments, false);
+	add_slice_to_motion(motion, MOTIONTYPE_GATHER, NIL, NIL, numsegments  );
 	return motion;
 }
 
@@ -1072,7 +1058,7 @@ make_sorted_union_motion(PlannerInfo *root, Plan *lefttree, int numSortCols,
 	motion = make_motion(root, lefttree,
 						 numSortCols, sortColIdx, sortOperators, collations, nullsFirst,
 						 useExecutorVarFormat);
-	add_slice_to_motion(motion, MOTIONTYPE_FIXED, NIL, NIL, numsegments, false);
+	add_slice_to_motion(motion, MOTIONTYPE_GATHER, NIL, NIL, numsegments);
 	return motion;
 }
 
@@ -1091,8 +1077,7 @@ make_hashed_motion(Plan *lefttree,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
 	add_slice_to_motion(motion, MOTIONTYPE_HASH,
-						hashExprs, hashOpfamilies, numsegments,
-						false);
+						hashExprs, hashOpfamilies, numsegments);
 	return motion;
 }
 
@@ -1106,9 +1091,8 @@ make_broadcast_motion(Plan *lefttree, bool useExecutorVarFormat,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
 
-	add_slice_to_motion(motion, MOTIONTYPE_FIXED,
-						NIL, NIL, numsegments,
-						true);
+	add_slice_to_motion(motion, MOTIONTYPE_BROADCAST,
+						NIL, NIL, numsegments);
 	return motion;
 }
 
@@ -1133,8 +1117,7 @@ make_explicit_motion(Plan *lefttree, AttrNumber segidColIdx, bool useExecutorVar
 	numsegments = lefttree->flow->numsegments;
 
 	add_slice_to_motion(motion, MOTIONTYPE_EXPLICIT,
-						NIL, NIL, numsegments,
-						false);
+						NIL, NIL, numsegments);
 	return motion;
 }
 

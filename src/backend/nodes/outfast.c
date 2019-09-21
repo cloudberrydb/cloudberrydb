@@ -587,8 +587,6 @@ _outMotion(StringInfo str, Motion *node)
 	WRITE_NODE_FIELD(hashExprs);
 	WRITE_OID_ARRAY(hashFuncs, list_length(node->hashExprs));
 
-	WRITE_INT_FIELD(isBroadcast);
-
 	WRITE_INT_FIELD(numSortCols);
 	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
 	WRITE_OID_ARRAY(sortOperators, node->numSortCols);

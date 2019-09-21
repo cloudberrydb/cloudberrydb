@@ -2320,14 +2320,15 @@ _readMotion(void)
 	READ_INT_FIELD(motionID);
 	READ_ENUM_FIELD(motionType, MotionType);
 
-	Assert(local_node->motionType == MOTIONTYPE_FIXED || local_node->motionType == MOTIONTYPE_HASH || local_node->motionType == MOTIONTYPE_EXPLICIT);
+	Assert(local_node->motionType == MOTIONTYPE_GATHER ||
+		   local_node->motionType == MOTIONTYPE_HASH ||
+		   local_node->motionType == MOTIONTYPE_BROADCAST ||
+		   local_node->motionType == MOTIONTYPE_EXPLICIT);
 
 	READ_BOOL_FIELD(sendSorted);
 
 	READ_NODE_FIELD(hashExprs);
 	READ_OID_ARRAY(hashFuncs, list_length(local_node->hashExprs));
-
-	READ_INT_FIELD(isBroadcast);
 
 	READ_INT_FIELD(numSortCols);
 	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
