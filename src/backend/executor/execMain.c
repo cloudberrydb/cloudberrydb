@@ -749,12 +749,8 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 
 			Assert(IsA(motionState->ps.plan, Motion));
 
-			/* update the connection information, if needed */
-			if (((PlanState *) motionState)->plan->nMotionNodes > 0)
-			{
-				ExecUpdateTransportState((PlanState *)motionState,
-										 estate->interconnect_context);
-			}
+			ExecUpdateTransportState((PlanState *) motionState,
+									 estate->interconnect_context);
 		}
 		else if (exec_identity == GP_ROOT_SLICE)
 		{
@@ -3660,27 +3656,6 @@ EvalPlanQual(EState *estate, EPQState *epqstate,
 	HeapTuple	copyTuple;
 
 	Assert(rti > 0);
-
-	/*
-	 * If GDD is enabled, the lock of table may downgrade to RowExclusiveLock,
-	 * (see CdbTryOpenRelation function), then EPQ would be triggered, EPQ will
-	 * execute the subplan in the executor, so it will create a new EState,
-	 * but there are no slice tables in the new EState and we can not AssignGangs
-	 * on the QE. In this case, we raise an error.
-	 */
-	if (gp_enable_global_deadlock_detector)
-	{
-		Plan *subPlan = epqstate->plan;
-
-		Assert(subPlan != NULL);
-
-		if (subPlan->nMotionNodes > 0)
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
-					 errmsg("EvalPlanQual can not handle subPlan with Motion node")));
-		}
-	}
 
 	/*
 	 * Get and lock the updated version of the row; if fail, return NULL.

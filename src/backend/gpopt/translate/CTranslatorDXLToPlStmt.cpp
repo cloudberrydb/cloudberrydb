@@ -221,13 +221,12 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 	planned_stmt->relationOids = oids_list;
 	planned_stmt->numSelectorsPerScanId = m_dxl_to_plstmt_context->GetNumPartitionSelectorsList();
 
-	plan->nMotionNodes  = m_dxl_to_plstmt_context->GetCurrentMotionId()-1;
 	planned_stmt->nMotionNodes =  m_dxl_to_plstmt_context->GetCurrentMotionId()-1;
 
 	planned_stmt->commandType = m_cmd_type;
 	
 	GPOS_ASSERT(plan->nMotionNodes >= 0);
-	if (0 == plan->nMotionNodes && !m_is_tgt_tbl_distributed)
+	if (0 == planned_stmt->nMotionNodes && !m_is_tgt_tbl_distributed)
 	{
 		// no motion nodes and not a DML on a distributed table
 		plan->dispatch = DISPATCH_SEQUENTIAL;
@@ -245,7 +244,8 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 	planned_stmt->intoPolicy = m_dxl_to_plstmt_context->GetDistributionPolicy();
 	
 	SetInitPlanVariables(planned_stmt);
-	
+
+	// Can we do direct dispatch?
 	if (CMD_SELECT == m_cmd_type && NULL != dxlnode->GetDXLDirectDispatchInfo())
 	{
 		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(dxlnode->GetDXLDirectDispatchInfo());
@@ -267,7 +267,17 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 			}
 		}
 	}
-	
+
+	if (CMD_INSERT == m_cmd_type && 0 == planned_stmt->nMotionNodes &&
+	    dxlnode->GetOperator()->GetDXLOperator() == EdxlopPhysicalDML)
+	{
+		CDXLPhysicalDML *phy_dml_dxlop = CDXLPhysicalDML::Cast(dxlnode->GetOperator());
+
+		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(phy_dml_dxlop->GetDXLDirectDispatchInfo());
+		plan->directDispatch.contentIds = direct_dispatch_segids;
+		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
+	}
+
 	return planned_stmt;
 }
 
@@ -317,7 +327,6 @@ CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
 	if(1 != m_dxl_to_plstmt_context->GetCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
 	{
 		planned_stmt->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
-		planned_stmt->planTree->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
 	}
 
 	planned_stmt->nParamExec = m_dxl_to_plstmt_context->GetCurrentParamId();
@@ -486,7 +495,6 @@ CTranslatorDXLToPlStmt::TranslateDXLTblScan
 	}
 
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -651,7 +659,6 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexScan
 
 	Plan *plan = &(index_scan->scan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -1002,7 +1009,6 @@ CTranslatorDXLToPlStmt::TranslateDXLLimit
 		limit->limitOffset = limit_offset;
 	}
 
-	plan->nMotionNodes = left_plan->nMotionNodes;
 	SetParamIds(plan);
 
 	// cleanup
@@ -1182,7 +1188,6 @@ CTranslatorDXLToPlStmt::TranslateDXLHashJoin
 
 	plan->lefttree = left_plan;
 	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
 	SetParamIds(plan);
 
 	// cleanup
@@ -1228,7 +1233,6 @@ CTranslatorDXLToPlStmt::TranslateDXLTvf
 	m_dxl_to_plstmt_context->AddRTE(rte);
 
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -1604,7 +1608,6 @@ CTranslatorDXLToPlStmt::TranslateDXLNLJoin
 	}
 	plan->lefttree = left_plan;
 	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
 	SetParamIds(plan);
 
 	// cleanup
@@ -1725,7 +1728,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMergeJoin
 
 	plan->lefttree = left_plan;
 	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
 	SetParamIds(plan);
 
 	merge_join->mergeFamilies = (Oid *) gpdb::GPDBAlloc(sizeof(Oid) * num_join_conds);
@@ -1823,7 +1825,6 @@ CTranslatorDXLToPlStmt::TranslateDXLHash
 	plan->targetlist = target_list;
 	plan->lefttree = left_plan;
 	plan->righttree = NULL;
-	plan->nMotionNodes = left_plan->nMotionNodes;
 	plan->qual = NIL;
 	hash->rescannable = false;
 
@@ -2028,7 +2029,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 
 	motion->motionID = m_dxl_to_plstmt_context->GetNextMotionId();
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes + 1;
 
 	// translate properties of the specific type of motion operator
 
@@ -2197,7 +2197,6 @@ CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
 	child_contexts->Release();
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	SetParamIds(plan);
 
@@ -2264,7 +2263,6 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg
 		);
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	// translate aggregation strategy
 	switch (dxl_phy_agg_dxlop->GetAggStrategy())
@@ -2394,7 +2392,6 @@ CTranslatorDXLToPlStmt::TranslateDXLWindow
 	}
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	// translate partition columns
 	const ULongPtrArray *part_by_cols_array = window_dxlop->GetPartByColsArray();
@@ -2626,7 +2623,6 @@ CTranslatorDXLToPlStmt::TranslateDXLSort
 		);
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	// set sorting info
 	sort->noduplicates = sort_dxlop->FDiscardDuplicates();
@@ -2753,7 +2749,6 @@ CTranslatorDXLToPlStmt::TranslateDXLSubQueryScan
 		);
 
 	subquery_scan->subplan = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	SetParamIds(plan);
 	return (Plan *) subquery_scan;
@@ -2791,8 +2786,6 @@ CTranslatorDXLToPlStmt::TranslateDXLResult
 		&(plan->plan_width)
 		);
 
-	plan->nMotionNodes = 0;
-
 	CDXLNode *child_dxlnode = NULL;
 	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
 
@@ -2806,8 +2799,6 @@ CTranslatorDXLToPlStmt::TranslateDXLResult
 		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
 
 		result->plan.lefttree = child_plan;
-
-		plan->nMotionNodes = child_plan->nMotionNodes;
 	}
 
 	CDXLNode *project_list_dxlnode = (*result_dxlnode)[EdxlresultIndexProjList];
@@ -2890,8 +2881,6 @@ CTranslatorDXLToPlStmt::TranslateDXLPartSelector
 		&(plan->plan_width)
 		);
 
-	plan->nMotionNodes = 0;
-
 	CDXLNode *child_dxlnode = NULL;
 	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
 
@@ -2907,7 +2896,6 @@ CTranslatorDXLToPlStmt::TranslateDXLPartSelector
 		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
 
 		partition_selector->plan.lefttree = child_plan;
-		plan->nMotionNodes = child_plan->nMotionNodes;
 	}
 
 	child_contexts->Append(&child_context);
@@ -3046,7 +3034,6 @@ CTranslatorDXLToPlStmt::TranslateDXLAppend
 
 	const ULONG arity = append_dxlnode->Arity();
 	GPOS_ASSERT(EdxlappendIndexFirstChild < arity);
-	plan->nMotionNodes = 0;
 	append->appendplans = NIL;
 	
 	// translate children
@@ -3060,7 +3047,6 @@ CTranslatorDXLToPlStmt::TranslateDXLAppend
 		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
 
 		append->appendplans = gpdb::LAppend(append->appendplans, child_plan);
-		plan->nMotionNodes += child_plan->nMotionNodes;
 	}
 
 	CDXLNode *project_list_dxlnode = (*append_dxlnode)[EdxlappendIndexProjList];
@@ -3185,7 +3171,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMaterialize
 		);
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	// set spooling info
 	if (materialize_dxlop->IsSpooling())
@@ -3303,7 +3288,6 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 		}
 
 		materialize_plan->lefttree = child_plan;
-		materialize_plan->nMotionNodes = child_plan->nMotionNodes;
 
 		child_plan = materialize_plan;
 	}
@@ -3311,7 +3295,6 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 	InitializeSpoolingInfo(child_plan, cte_id);
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 	plan->qual = NIL;
 	SetParamIds(plan);
 
@@ -3547,7 +3530,6 @@ CTranslatorDXLToPlStmt::TranslateDXLSequence
 	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
 
 	Plan *last_child_plan = TranslateDXLOperatorToPlan(last_child_dxlnode, &child_context, ctxt_translation_prev_siblings);
-	plan->nMotionNodes = last_child_plan->nMotionNodes;
 
 	CDXLNode *project_list_dxlnode = (*sequence_dxlnode)[0];
 
@@ -3571,7 +3553,6 @@ CTranslatorDXLToPlStmt::TranslateDXLSequence
 		Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
 
 		psequence->subplans = gpdb::LAppend(psequence->subplans, child_plan);
-		plan->nMotionNodes += child_plan->nMotionNodes;
 	}
 
 	psequence->subplans = gpdb::LAppend(psequence->subplans, last_child_plan);
@@ -3624,7 +3605,6 @@ CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
 
 	Plan *plan = &(dyn_seq_scan->seqscan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -3703,7 +3683,6 @@ CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan
 
 	Plan *plan = &(dyn_idx_scan->indexscan.scan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -3894,15 +3873,7 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 	plan->targetlist = dml_target_list;
 	
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-
-	if (CMD_INSERT == m_cmd_type && 0 == plan->nMotionNodes)
-	{
-		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(phy_dml_dxlop->GetDXLDirectDispatchInfo());
-		plan->directDispatch.contentIds = direct_dispatch_segids;
-		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
-	}
 	
 	SetParamIds(plan);
 
@@ -4082,7 +4053,6 @@ CTranslatorDXLToPlStmt::TranslateDXLSplit
 	}
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 
 	SetParamIds(plan);
@@ -4155,7 +4125,6 @@ CTranslatorDXLToPlStmt::TranslateDXLAssert
 	GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
 
 	assert_node->plan.lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 
 	CDXLNode *project_list_dxlnode = (*assert_dxlnode)[CDXLPhysicalAssert::EdxlassertIndexProjList];
 
@@ -4260,7 +4229,6 @@ CTranslatorDXLToPlStmt::TranslateDXLRowTrigger
 	}
 
 	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 
 	SetParamIds(plan);
@@ -5136,7 +5104,6 @@ CTranslatorDXLToPlStmt::TranslateDXLCtas
 	Result *result = MakeNode(Result);
 	Plan *result_plan = &(result->plan);
 	result_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	result_plan->nMotionNodes = plan->nMotionNodes;
 	result_plan->lefttree = plan;
 
 	result_plan->targetlist = target_list;
@@ -5390,7 +5357,6 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
 
 	Plan *plan = &(bitmap_tbl_scan->scan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -5620,7 +5586,6 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
 	OID oidRel = CMDIdGPDB::CastMdid(table_descr->MDId())->Oid();
 	Plan *plan = &(bitmap_idx_scan->scan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	GPOS_ASSERT(1 == bitmap_index_probe_dxlnode->Arity());
 	CDXLNode *index_cond_list_dxlnode = (*bitmap_index_probe_dxlnode)[0];
@@ -5695,7 +5660,6 @@ CTranslatorDXLToPlStmt::TranslateDXLValueScan
 	m_dxl_to_plstmt_context->AddRTE(rte);
 
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts

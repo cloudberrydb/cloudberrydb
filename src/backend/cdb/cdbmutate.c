@@ -649,8 +649,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 		AssignContentIdsToPlanData(query, result, root);
 	}
 
-	Assert(result->nMotionNodes == state.nextMotionID - 1);
-	Assert(result->nInitPlans == list_length(state.initPlans));
+	root->glob->nMotionNodes = state.nextMotionID - 1;
 
 	/* Assign slice numbers to the initplans. */
 	foreach(cell, state.initPlans)
@@ -660,6 +659,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 		Assert(IsA(subplan, SubPlan) &&subplan->qDispSliceId == 0);
 		subplan->qDispSliceId = state.nextMotionID++;
 	}
+	root->glob->nInitPlans = list_length(state.initPlans);
 
 	/*
 	 * Discard subtrees of Query node that aren't needed for execution. Note
@@ -913,16 +913,6 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		Assert(flow->req_move == MOVEMENT_NONE);
 
 done:
-
-	/*
-	 * Label the Plan node with the number of Motion nodes and Init Plans in
-	 * this subtree, inclusive of the node itself.  This info is used only in
-	 * the top node of a query or subquery.  Someday, find a better place to
-	 * keep it.
-	 */
-	plan = (Plan *) newnode;
-	plan->nMotionNodes = context->nextMotionID - saveNextMotionID;
-	plan->nInitPlans = list_length(context->initPlans) - saveNumInitPlans;
 
 	/*
 	 * Remember if this was a Motion node. This is used at the top of the

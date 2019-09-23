@@ -373,8 +373,6 @@ _outPlanInfo(StringInfo str, const Plan *node)
 
 	WRITE_NODE_FIELD(flow);
 	WRITE_ENUM_FIELD(dispatch, DispatchMethod);
-	WRITE_INT_FIELD(nMotionNodes);
-	WRITE_INT_FIELD(nInitPlans);
 
 	WRITE_NODE_FIELD(lefttree);
 	WRITE_NODE_FIELD(righttree);

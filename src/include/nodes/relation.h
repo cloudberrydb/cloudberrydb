@@ -144,6 +144,10 @@ typedef struct PlannerGlobal
 	ApplyShareInputContext share;	/* workspace for GPDB plan sharing */
 
 	bool		hasRowSecurity; /* row security applied? */
+
+	int			nMotionNodes;
+	int			nInitPlans;
+
 } PlannerGlobal;
 
 /*----------

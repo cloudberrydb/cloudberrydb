@@ -312,6 +312,8 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->lastRowMarkId = 0;
 	glob->transientPlan = false;
 	glob->oneoffPlan = false;
+	glob->nMotionNodes = 0;
+	glob->nInitPlans = 0;
 	/* ApplyShareInputContext initialization. */
 	glob->share.producers = NULL;
 	glob->share.producer_count = 0;
@@ -478,8 +480,8 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->nParamExec = glob->nParamExec;
 	result->hasRowSecurity = glob->hasRowSecurity;
 
-	result->nMotionNodes = top_plan->nMotionNodes;
-	result->nInitPlans = top_plan->nInitPlans;
+	result->nMotionNodes = glob->nMotionNodes;
+	result->nInitPlans = glob->nInitPlans;
 	result->intoPolicy = GpPolicyCopy(parse->intoPolicy);
 	result->queryPartOids = NIL;
 	result->queryPartsMetadata = NIL;

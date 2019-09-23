@@ -255,13 +255,6 @@ typedef struct Plan
 	 */
 	DirectDispatchInfo directDispatch;
 
-	/*
-	 * CDB: Now many motion nodes are there in the Plan.  How many init plans?
-	 * Additional plan tree global significant only in the root node.
-	 */
-	int nMotionNodes;
-	int nInitPlans;
-
 	/**
 	 * How much memory (in KB) should be used to execute this plan node?
 	 */
