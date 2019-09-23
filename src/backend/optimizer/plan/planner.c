@@ -1508,9 +1508,14 @@ inheritance_planner(PlannerInfo *root)
 			}
 			if (!locus_ok)
 			{
-				ereport(ERROR, (
-								errcode(ERRCODE_INTERNAL_ERROR),
-					 errmsg("incompatible loci in target inheritance set")));
+				/*
+				 * This is reachable, if you have normal distributed/replicated tables,
+				 * and foreign tables that can only be executed in the QD, in the same
+				 * inheritance tree.
+				 */
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("incompatible loci in target inheritance set")));
 			}
 		}
 
