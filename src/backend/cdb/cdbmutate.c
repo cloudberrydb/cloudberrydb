@@ -374,8 +374,9 @@ get_partitioned_policy_from_flow(Plan *plan)
  * -------------------------------------------------------------------------
  */
 Plan *
-apply_motion(PlannerInfo *root, Plan *plan, Query *query)
+apply_motion(PlannerInfo *root, Plan *plan)
 {
+	Query	   *query = root->parse;
 	Plan	   *result;
 	ListCell   *cell;
 	GpPolicy   *targetPolicy = NULL;
@@ -395,7 +396,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 	state.containMotionNodes = false;
 	state.initPlans = NIL;
 
-	Assert(is_plan_node((Node *) plan) && IsA(query, Query));
+	Assert(is_plan_node((Node *) plan));
 
 	/* Does query have a target relation?  (INSERT/DELETE/UPDATE) */
 

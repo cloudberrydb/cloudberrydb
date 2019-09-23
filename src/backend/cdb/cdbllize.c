@@ -128,7 +128,7 @@ static Plan *materialize_subplan(PlannerInfo *root, Plan *subplan);
  * ------------------------------------------------------------------------- *
  */
 Plan *
-cdbparallelize(PlannerInfo *root, Plan *plan, Query *query)
+cdbparallelize(PlannerInfo *root, Plan *plan)
 {
 	PlanProfile profile;
 	PlanProfile *context = &profile;
@@ -141,7 +141,6 @@ cdbparallelize(PlannerInfo *root, Plan *plan, Query *query)
 			 role_to_string(Gp_role));
 
 	Assert(is_plan_node((Node *) plan));
-	Assert(query != NULL && IsA(query, Query));
 
 	/* Print plan if debugging. */
 	if (Debug_print_prelim_plan)
@@ -166,11 +165,11 @@ cdbparallelize(PlannerInfo *root, Plan *plan, Query *query)
 	context->root = root;
 	context->resultSegments = false;
 
-	switch (query->commandType)
+	switch (root->parse->commandType)
 	{
 		case CMD_SELECT:
 			/* SELECT INTO / CREATE TABLE AS always created partitioned tables. */
-			if (query->parentStmtType != PARENTSTMTTYPE_NONE)
+			if (root->parse->parentStmtType != PARENTSTMTTYPE_NONE)
 				context->resultSegments = true;
 			break;
 
@@ -204,8 +203,7 @@ cdbparallelize(PlannerInfo *root, Plan *plan, Query *query)
 		 * Implement the parallelizing directions in the Flow nodes attached
 		 * to the root plan node of each root slice of the plan.
 		 */
-		Assert(root->parse == query);
-		plan = apply_motion(root, plan, query);
+		plan = apply_motion(root, plan);
 
 		/*
 		 * Mark the root plan to DISPATCH_PARALLEL if prescan() says
