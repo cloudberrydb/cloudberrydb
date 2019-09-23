@@ -1891,3 +1891,39 @@ WHERE A.C01 IN(SELECT C02 FROM TEST_IN);
  10000
 (1 row)
 
+--
+-- Variant of the test in upstream 'subselect' test, for PostgreSQL bug #14924
+-- At one point, this produced wrong results on GPDB for different reasons than
+-- the original bug: we forgot to handle the VALUES list in the function to
+-- mutate a plan tree (plan_tree_mutator()).
+--
+create temp table onerowtmp as select 1;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named '?column?' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select val.x
+  from generate_series(1,10) as s(i),
+  lateral (
+    values ((select s.i + 1 from onerowtmp)), (s.i + 101)
+  ) as val(x)
+where s.i < 10 and val.x < 110;
+  x  
+-----
+   2
+ 102
+   3
+ 103
+   4
+ 104
+   5
+ 105
+   6
+ 106
+   7
+ 107
+   8
+ 108
+   9
+ 109
+  10
+(17 rows)
+

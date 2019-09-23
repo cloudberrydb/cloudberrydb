@@ -516,6 +516,7 @@ plan_tree_mutator(Node *node,
 				ValuesScan *newscan;
 
 				FLATCOPY(newscan, scan, ValuesScan);
+				MUTATE(newscan->values_lists, scan->values_lists, List *);
 				SCANMUTATE(newscan, scan);
 				return (Node *) newscan;
 			}

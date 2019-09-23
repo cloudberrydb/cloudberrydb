@@ -796,3 +796,17 @@ ANALYZE TEST_IN;
 SELECT COUNT(*) FROM
 TEST_IN A
 WHERE A.C01 IN(SELECT C02 FROM TEST_IN);
+
+--
+-- Variant of the test in upstream 'subselect' test, for PostgreSQL bug #14924
+-- At one point, this produced wrong results on GPDB for different reasons than
+-- the original bug: we forgot to handle the VALUES list in the function to
+-- mutate a plan tree (plan_tree_mutator()).
+--
+create temp table onerowtmp as select 1;
+select val.x
+  from generate_series(1,10) as s(i),
+  lateral (
+    values ((select s.i + 1 from onerowtmp)), (s.i + 101)
+  ) as val(x)
+where s.i < 10 and val.x < 110;
