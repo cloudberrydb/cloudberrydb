@@ -262,19 +262,6 @@ typedef struct Plan
 	int nMotionNodes;
 	int nInitPlans;
 
-	/*
-	 * CDB: This allows the slice table to accompany the plan as it
-	 * moves around the executor. This is anoter plan tree global that
-	 * should be non-NULL only in the top node of a dispatchable tree.
-	 * It could (and should) move to a TopPlan node if we ever do that.
-	 *
-	 * Currently, the slice table should not be installed on the QD.
-	 * Rather is it shipped to QEs as a separate parameter to MPPEXEC.
-	 * The implementation of MPPEXEC, which runs on the QEs, installs
-	 * the slice table in the plan as required there.
-	 */
-	Node *sliceTable;
-
 	/**
 	 * How much memory (in KB) should be used to execute this plan node?
 	 */

@@ -2492,8 +2492,6 @@ void readPlanInfo(Plan *local_node)
 	READ_INT_FIELD(nMotionNodes);
 	READ_INT_FIELD(nInitPlans);
 
-	READ_NODE_FIELD(sliceTable);
-
     READ_NODE_FIELD(lefttree);
     READ_NODE_FIELD(righttree);
     READ_NODE_FIELD(initPlan);
