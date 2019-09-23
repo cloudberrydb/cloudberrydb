@@ -96,10 +96,6 @@ static Node *pre_dispatch_function_evaluation_mutator(Node *node,
  */
 static void assignMotionID(Node *newnode, ApplyMotionState *context, Node *oldnode);
 
-static void add_slice_to_motion(Motion *motion,
-					MotionType motionType,
-					List *hashExprs, List *hashOpfamilies, int numsegments);
-
 static Node *apply_motion_mutator(Node *node, ApplyMotionState *context);
 
 static bool replace_shareinput_targetlists_walker(Node *node, PlannerInfo *root, bool fPop);
@@ -953,88 +949,24 @@ assignMotionID(Node *newnode, ApplyMotionState *context, Node *oldnode)
 	}
 }
 
-static void
-add_slice_to_motion(Motion *motion,
-					MotionType motionType,
-					List *hashExprs, List *hashOpfamilies, int numsegments)
-{
-	Oid		   *hashFuncs;
-	ListCell   *expr_cell;
-	ListCell   *opf_cell;
-	int			i;
-
-	Assert(numsegments > 0);
-	if (numsegments == GP_POLICY_INVALID_NUMSEGMENTS())
-	{
-		Assert(!"what's the proper value of numsegments?");
-	}
-
-	Assert(list_length(hashExprs) == list_length(hashOpfamilies));
-
-	hashFuncs = palloc(list_length(hashExprs) * sizeof(Oid));
-	i = 0;
-	forboth(expr_cell, hashExprs, opf_cell, hashOpfamilies)
-	{
-		Node	   *expr = lfirst(expr_cell);
-		Oid			opfamily = lfirst_oid(opf_cell);
-		Oid			typeoid = exprType(expr);
-
-		hashFuncs[i++] = cdb_hashproc_in_opfamily(opfamily, typeoid);
-	}
-
-	motion->motionType = motionType;
-	motion->hashExprs = hashExprs;
-	motion->hashFuncs = hashFuncs;
-
-	Assert(motion->plan.lefttree);
-
-	/* Attach a descriptive Flow. */
-	switch (motion->motionType)
-	{
-		case MOTIONTYPE_HASH:
-			motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
-			motion->plan.flow->locustype = CdbLocusType_Hashed;
-			motion->plan.flow->hashExprs = copyObject(motion->hashExprs);
-			motion->plan.flow->hashOpfamilies = copyObject(hashOpfamilies);
-
-			break;
-		case MOTIONTYPE_GATHER:
-			motion->plan.flow = makeFlow(FLOW_SINGLETON, numsegments);
-			motion->plan.flow->locustype = (motion->plan.flow->segindex < 0) ?
-				CdbLocusType_Entry :
-				CdbLocusType_SingleQE;
-			break;
-		case MOTIONTYPE_BROADCAST:
-			motion->plan.flow = makeFlow(FLOW_REPLICATED, numsegments);
-			motion->plan.flow->locustype = CdbLocusType_Replicated;
-			break;
-		case MOTIONTYPE_EXPLICIT:
-			motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
-
-			/*
-			 * TODO: antova - Nov 18, 2010; add a special locus type for
-			 * ExplicitRedistribute flows
-			 */
-			motion->plan.flow->locustype = CdbLocusType_Strewn;
-			break;
-		default:
-			Assert(!"Invalid motion type");
-			motion->plan.flow = NULL;
-			break;
-	}
-
-	Assert(motion->plan.flow);
-}
-
 Motion *
 make_union_motion(Plan *lefttree, bool useExecutorVarFormat, int numsegments)
 {
 	Motion	   *motion;
 
+	Assert(numsegments > 0);
+	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
+
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
-	add_slice_to_motion(motion, MOTIONTYPE_GATHER, NIL, NIL, numsegments  );
+
+	motion->motionType = MOTIONTYPE_GATHER;
+	motion->hashExprs = NIL;
+	motion->hashFuncs = NULL;
+	motion->plan.flow = makeFlow(FLOW_SINGLETON, numsegments);
+	motion->plan.flow->locustype = CdbLocusType_SingleQE;
+
 	return motion;
 }
 
@@ -1046,10 +978,18 @@ make_sorted_union_motion(PlannerInfo *root, Plan *lefttree, int numSortCols,
 {
 	Motion	   *motion;
 
+	Assert(numsegments > 0);
+	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
+
 	motion = make_motion(root, lefttree,
 						 numSortCols, sortColIdx, sortOperators, collations, nullsFirst,
 						 useExecutorVarFormat);
-	add_slice_to_motion(motion, MOTIONTYPE_GATHER, NIL, NIL, numsegments);
+	motion->motionType = MOTIONTYPE_GATHER;
+	motion->hashExprs = NIL;
+	motion->hashFuncs = NULL;
+	motion->plan.flow = makeFlow(FLOW_SINGLETON, numsegments);
+	motion->plan.flow->locustype = CdbLocusType_SingleQE;
+
 	return motion;
 }
 
@@ -1061,14 +1001,38 @@ make_hashed_motion(Plan *lefttree,
 				   int numsegments)
 {
 	Motion	   *motion;
+	Oid		   *hashFuncs;
+	ListCell   *expr_cell;
+	ListCell   *opf_cell;
+	int			i;
 
+	Assert(numsegments > 0);
+	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 	Assert(list_length(hashExprs) == list_length(hashOpfamilies));
+
+	/* Look up the right hash functions for the hash expressions */
+	hashFuncs = palloc(list_length(hashExprs) * sizeof(Oid));
+	i = 0;
+	forboth(expr_cell, hashExprs, opf_cell, hashOpfamilies)
+	{
+		Node	   *expr = lfirst(expr_cell);
+		Oid			opfamily = lfirst_oid(opf_cell);
+		Oid			typeoid = exprType(expr);
+
+		hashFuncs[i++] = cdb_hashproc_in_opfamily(opfamily, typeoid);
+	}
 
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
-	add_slice_to_motion(motion, MOTIONTYPE_HASH,
-						hashExprs, hashOpfamilies, numsegments);
+	motion->motionType = MOTIONTYPE_HASH;
+	motion->hashExprs = hashExprs;
+	motion->hashFuncs = hashFuncs;
+	motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
+	motion->plan.flow->locustype = CdbLocusType_Hashed;
+	motion->plan.flow->hashExprs = copyObject(motion->hashExprs);
+	motion->plan.flow->hashOpfamilies = copyObject(hashOpfamilies);
+
 	return motion;
 }
 
@@ -1078,12 +1042,18 @@ make_broadcast_motion(Plan *lefttree, bool useExecutorVarFormat,
 {
 	Motion	   *motion;
 
+	Assert(numsegments > 0);
+	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
+
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL, /* no ordering */
 						 useExecutorVarFormat);
+	motion->motionType = MOTIONTYPE_BROADCAST;
+	motion->hashExprs = NIL;
+	motion->hashFuncs = NULL;
+	motion->plan.flow = makeFlow(FLOW_REPLICATED, numsegments);
+	motion->plan.flow->locustype = CdbLocusType_Replicated;
 
-	add_slice_to_motion(motion, MOTIONTYPE_BROADCAST,
-						NIL, NIL, numsegments);
 	return motion;
 }
 
@@ -1093,22 +1063,30 @@ make_explicit_motion(Plan *lefttree, AttrNumber segidColIdx, bool useExecutorVar
 	Motion	   *motion;
 	int			numsegments;
 
-	motion = make_motion(NULL, lefttree,
-						 0, NULL, NULL, NULL, NULL, /* no ordering */
-						 useExecutorVarFormat);
-
-	Assert(segidColIdx > 0 && segidColIdx <= list_length(lefttree->targetlist));
-
-	motion->segidColIdx = segidColIdx;
-
 	/*
 	 * For explicit motion data come back to the source segments,
 	 * so numsegments is also the same with source.
 	 */
 	numsegments = lefttree->flow->numsegments;
 
-	add_slice_to_motion(motion, MOTIONTYPE_EXPLICIT,
-						NIL, NIL, numsegments);
+	Assert(numsegments > 0);
+	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
+	Assert(segidColIdx > 0 && segidColIdx <= list_length(lefttree->targetlist));
+
+	motion = make_motion(NULL, lefttree,
+						 0, NULL, NULL, NULL, NULL, /* no ordering */
+						 useExecutorVarFormat);
+	motion->motionType = MOTIONTYPE_EXPLICIT;
+	motion->hashExprs = NIL;
+	motion->hashFuncs = NULL;
+	motion->segidColIdx = segidColIdx;
+	motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
+	/*
+	 * TODO: antova - Nov 18, 2010; add a special locus type for
+	 * ExplicitRedistribute flows
+	 */
+	motion->plan.flow->locustype = CdbLocusType_Strewn;
+
 	return motion;
 }
 
