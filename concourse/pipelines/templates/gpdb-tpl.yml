@@ -405,7 +405,7 @@ resources:
   type: gcs
   source:
     bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key)))
+    json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/centos7/libquicklz-(1\.5\.0-.*)-1.el7.x86_64.rpm
 
 - name: libquicklz-devel-centos7
