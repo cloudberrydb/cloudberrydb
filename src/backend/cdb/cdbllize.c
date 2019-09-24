@@ -989,22 +989,11 @@ prescan_walker(Node *node, PlanProfile *context)
 		 * but in different slices, that would spell trouble, if the subplan's
 		 * Plan tree also contained Motions, because same Motion plan would
 		 * essentially have to send rows to two different receiver slices.
-		 * However, we cannot detect that case here, because we haven't
-		 * assigned slices yet.
-		 *
-		 * We used to make a copy of the whole subplan's Plan tree, with
-		 * a new plan_id, so that each SubPlan references had its own Plan
-		 * tree. That's one way to deal with the issue. However, I haven't
-		 * been able to find a test case that would exhibit that problem. I'm
-		 * not sure if there is some accidental mechanism that prevents
-		 * SubPlans from being propagated across slices, or I just haven't
-		 * found the right test case yet. The test cases that were added with
-		 * the code that duplicated SubPlans no longer fail, even though we
-		 * no longer duplicate. If we find such a case, we can put the SubPlan
-		 * duplication logic back here or come up with some other solution,
-		 * but let's not do that until we have some evidence that it's needed.
-		 * GDPB_96_MERGE_FIXME: Revisit this decision before release, maybe
-		 * try harder to find a repro.
+		 * We wrap potentially problematic SubPlans in PlaceHolderVars during
+		 * planning to avoid that (see make_placeholders_for_subplans() in
+		 * src/backend/optimizer/util/placeholder.c), but it would be nice to
+		 * check for that here. However, we cannot detect that case here,
+		 * because we haven't assigned slices yet.
 		 */
 		if (!context->currentPlanFlow)
 			elog(ERROR, "SubPlan's parent Plan has no Flow information");
@@ -1026,46 +1015,6 @@ prescan_walker(Node *node, PlanProfile *context)
 			Assert(spinfo->is_multirow == spexpr->is_multirow);
 			Assert(spinfo->hasParParam == ((spexpr->parParam) != NIL));
 			Assert(spinfo->subLinkType == spexpr->subLinkType);
-
-			/*
-			 * SubPlan deduplication logic is disabled, see comment above.
-			 * (if you enable this, you'll also need to turn this from a walker
-			 * to a mutator.)
-			 */
-#if 0
-			if (!spinfo->is_initplan)
-			{
-				Plan	   *subplan_plan;
-				SubPlan	   *dupspexpr;
-				int			newplan_id;
-
-				/* make a copy of the SubPlan, processing any other expressions in it */
-				dupspexpr = (SubPlan *) plan_tree_mutator(node, prescan_mutator, context, false);
-
-				newplan_id = list_length(context->root->glob->subplans) + 1;
-				dupspexpr->plan_id = newplan_id;
-				dupspexpr->plan_name = psprintf("%s (copy)", dupspexpr->plan_name);
-
-				subplan_plan = list_nth(context->root->glob->subplans, spexpr->plan_id - 1);
-				context->root->glob->subplans = lappend(context->root->glob->subplans, subplan_plan);
-
-				/* Set up PlanProfileSubPlanInfo for this duplicate */
-				context->subplan_info = repalloc(context->subplan_info,
-												 (newplan_id + 1) * sizeof(PlanProfileSubPlanInfo));
-				spinfo = &context->subplan_info[newplan_id];
-				spinfo->plan_id = newplan_id;
-				spinfo->seen = true;
-				spinfo->initPlanParallel = false;	/* not an initplan */
-				spinfo->is_initplan = false;
-				spinfo->is_multirow = spexpr->is_multirow;
-				spinfo->hasParParam = (spexpr->parParam) != NIL;
-				spinfo->subLinkType = spexpr->subLinkType;
-				spinfo->parentFlow = context->currentPlanFlow;
-
-				context->unvisited_subplans = lappend_int(context->unvisited_subplans, spexpr->plan_id);
-				return (Node *) dupspexpr;
-			}
-#endif
 		}
 	}
 
