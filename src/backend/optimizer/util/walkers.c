@@ -187,6 +187,8 @@ plan_tree_walker(Node *node,
 				return true;
 			if (walker(((PartitionSelector *) node)->propagationExpression, context))
 				return true;
+			if (walker(((PartitionSelector *) node)->partTabTargetlist, context))
+				return true;
 			break;
 
 		case T_Repeat:
