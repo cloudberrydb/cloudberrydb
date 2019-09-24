@@ -387,13 +387,13 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C
                                  ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..87.36 rows=1 width=8)
                                        ->  Seq Scan on a  (cost=0.00..87.32 rows=1 width=8)
                                              Filter: j = ((SubPlan 2))
-                                             SubPlan 2  (slice3; segments: 3)
+                                             SubPlan 2
                                                ->  Result  (cost=0.00..17.06 rows=1 width=4)
                                                      Filter: c_1.j = a.j AND ((SubPlan 1))
                                                      ->  Materialize  (cost=0.00..17.06 rows=1 width=4)
                                                            ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..17.05 rows=1 width=4)
                                                                  ->  Seq Scan on c c_1  (cost=0.00..17.05 rows=1 width=4)
-                                                     SubPlan 1  (slice3; segments: 3)
+                                                     SubPlan 1
                                                        ->  Result  (cost=0.00..3.10 rows=1 width=4)
                                                              Filter: c_1.i = b_1.i
                                                              ->  Materialize  (cost=0.00..3.10 rows=1 width=4)
@@ -436,13 +436,13 @@ explain select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j a
                            ->  Nested Loop  (cost=10000000000.00..10000000090.89 rows=2 width=4)
                                  ->  Seq Scan on a  (cost=0.00..87.32 rows=1 width=4)
                                        Filter: j = ((SubPlan 2))
-                                       SubPlan 2  (slice5; segments: 3)
+                                       SubPlan 2
                                          ->  Result  (cost=0.00..17.06 rows=1 width=4)
                                                Filter: c_1.j = a.j AND ((SubPlan 1))
                                                ->  Materialize  (cost=0.00..17.06 rows=1 width=4)
                                                      ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..17.05 rows=1 width=4)
                                                            ->  Seq Scan on c c_1  (cost=0.00..17.05 rows=1 width=4)
-                                               SubPlan 1  (slice5; segments: 3)
+                                               SubPlan 1
                                                  ->  Result  (cost=0.00..3.10 rows=1 width=4)
                                                        Filter: c_1.i = b_1.i
                                                        ->  Materialize  (cost=0.00..3.10 rows=1 width=4)
@@ -479,7 +479,7 @@ explain select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..33.51 rows=1 width=4)
    ->  Seq Scan on a  (cost=0.00..33.51 rows=1 width=4)
          Filter: (j = (SubPlan 1))
-         SubPlan 1  (slice3; segments: 3)
+         SubPlan 1
            ->  Hash Semi Join  (cost=3.14..6.29 rows=2 width=4)
                  Hash Cond: (c.i = b.i)
                  ->  Result  (cost=0.00..3.12 rows=1 width=8)
@@ -602,7 +602,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C
                                  ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..33.66 rows=1 width=8)
                                        ->  Seq Scan on a  (cost=0.00..33.62 rows=1 width=8)
                                              Filter: j = ((SubPlan 1))
-                                             SubPlan 1  (slice3; segments: 3)
+                                             SubPlan 1
                                                ->  Hash Semi Join  (cost=3.14..6.31 rows=2 width=4)
                                                      Hash Cond: (c_1.i = b_1.i)
                                                      ->  Result  (cost=0.00..3.14 rows=1 width=8)
@@ -709,7 +709,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = any (select C.j from C whe
                                  ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.01..2.18 rows=3 width=4)
                                        ->  Seq Scan on a  (cost=0.01..2.08 rows=1 width=4)
                                              Filter: (hashed SubPlan 1)
-                                             SubPlan 1  (slice2; segments: 3)
+                                             SubPlan 1
                                                ->  Materialize  (cost=0.00..0.01 rows=1 width=0)
                                                      ->  Broadcast Motion 1:3  (slice1; segments: 1)  (cost=0.00..0.01 rows=1 width=0)
                                                            ->  Result  (cost=0.00..0.01 rows=1 width=0)
@@ -805,7 +805,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select sum(C.j) from C wh
                                                                            Group Key: c_1.j
                                                                            ->  Seq Scan on c c_1  (cost=0.00..17.03 rows=2 width=4)
                                                                                  Filter: (SubPlan 1)
-                                                                                 SubPlan 1  (slice3; segments: 3)
+                                                                                 SubPlan 1
                                                                                    ->  Result  (cost=0.00..3.10 rows=1 width=4)
                                                                                          Filter: c_1.i = b_1.i
                                                                                          ->  Materialize  (cost=0.00..3.10 rows=1 width=4)
@@ -889,7 +889,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = all (select C.j from C whe
                                  ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.19 rows=3 width=4)
                                        ->  Seq Scan on a  (cost=0.00..2.09 rows=1 width=4)
                                              Filter: (SubPlan 1)
-                                             SubPlan 1  (slice2; segments: 3)
+                                             SubPlan 1
                                                ->  Materialize  (cost=0.00..0.01 rows=1 width=0)
                                                      ->  Broadcast Motion 1:3  (slice1; segments: 1)  (cost=0.00..0.01 rows=1 width=0)
                                                            ->  Result  (cost=0.00..0.01 rows=1 width=0)
@@ -1201,7 +1201,7 @@ explain select C.j from C where not exists (select max(B.i) from B  where C.i = 
          Sort Key: c.j
          ->  Seq Scan on c  (cost=0.00..31.34 rows=2 width=4)
                Filter: NOT ((SubPlan 1))
-               SubPlan 1  (slice2; segments: 3)
+               SubPlan 1
                  ->  Aggregate  (cost=3.13..3.14 rows=1 width=4)
                        Filter: max(b.i) IS NOT NULL
                        ->  Result  (cost=0.00..3.08 rows=1 width=4)
@@ -3656,7 +3656,7 @@ explain select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
 -------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..39.57 rows=3 width=4)
    ->  Seq Scan on t1 x1  (cost=0.00..39.57 rows=1 width=4)
-         SubPlan 1  (slice1; segments: 1)
+         SubPlan 1
            ->  Aggregate  (cost=12.50..12.51 rows=1 width=8)
                  ->  Function Scan on generate_series  (cost=0.00..10.00 rows=334 width=0)
  Optimizer: legacy query optimizer
@@ -3676,7 +3676,7 @@ explain select t1.a, (select count(*) c from (select city from supplier limit t1
 ---------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..3.99 rows=3 width=4)
    ->  Seq Scan on t1  (cost=0.00..3.99 rows=1 width=4)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.64..0.65 rows=1 width=8)
                  ->  Limit  (cost=0.00..0.63 rows=1 width=2)
                        ->  Limit  (cost=0.00..0.61 rows=1 width=2)
@@ -3701,7 +3701,7 @@ explain select t1.*, (select count(*) as ct from generate_series(1, a), t1) from
 ---------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..30000000533.18 rows=3 width=8)
    ->  Seq Scan on t1  (cost=0.00..30000000533.18 rows=1 width=8)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=10000000177.04..10000000177.05 rows=1 width=8)
                  ->  Nested Loop  (cost=10000000000.00..10000000049.54 rows=1000 width=0)
                        ->  Function Scan on generate_series  (cost=0.00..10.00 rows=334 width=0)
@@ -3727,7 +3727,7 @@ explain select * from t1 where 0 < (select count(*) from generate_series(1, a), 
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..30000000533.19 rows=1 width=8)
    ->  Seq Scan on t1  (cost=0.00..30000000533.19 rows=1 width=8)
          Filter: (0 < (SubPlan 1))
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=10000000177.04..10000000177.05 rows=1 width=8)
                  ->  Nested Loop  (cost=10000000000.00..10000000049.54 rows=1000 width=0)
                        ->  Function Scan on generate_series  (cost=0.00..10.00 rows=334 width=0)

@@ -1586,13 +1586,16 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			appendStringInfo(es->str, "%s", plan_name);
 
 			/*
-			 * Show slice information after the plan name.
+			 * If this SubPlan is being dispatched separately, show slice
+			 * information after the plan name. Currently, we do this for
+			 * Init Plans.
 			 *
 			 * Note: If the top node was a Motion node, we print the slice
 			 * *above* the Motion here. We will print the slice below the
 			 * Motion, below.
 			 */
-			show_dispatch_info(save_currentSlice, es, plan);
+			if (es->subplanDispatchedSeparately)
+				show_dispatch_info(save_currentSlice, es, plan);
 			appendStringInfoChar(es->str, '\n');
 			es->indent++;
 		}
@@ -3472,7 +3475,10 @@ ExplainSubPlans(List *plans, List *ancestors,
 		{
 			es->currentSlice = (Slice *)list_nth(sliceTable->slices,
 												 sp->qDispSliceId);
+			es->subplanDispatchedSeparately = true;
 		}
+		else
+			es->subplanDispatchedSeparately = false;
 
 		ExplainNode(sps->planstate, ancestors,
 					relationship, sp->plan_name, es);

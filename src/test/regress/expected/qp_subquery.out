@@ -1233,7 +1233,7 @@ explain with test as (select * from (select * from append_rel) p where att1 in (
    ->  Append  (cost=584.27..3902.34 rows=25968 width=4)
          ->  Seq Scan on append_rel  (cost=584.27..586.31 rows=1 width=4)
                Filter: (hashed SubPlan 1)
-               SubPlan 1  (slice4; segments: 3)
+               SubPlan 1
                  ->  Materialize  (cost=0.00..649.19 rows=8656 width=4)
                        ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..519.35 rows=8656 width=4)
                              ->  Subquery Scan on test  (cost=0.00..519.35 rows=8656 width=4)
@@ -1258,7 +1258,7 @@ explain with test as (select * from (select * from append_rel) p where att1 in (
                                                                  Filter: (att2 >= 19)
          ->  Seq Scan on append_rel1  (cost=584.27..1658.02 rows=12984 width=4)
                Filter: (hashed SubPlan 1)
-               SubPlan 1  (slice4; segments: 3)
+               SubPlan 1
                  ->  Materialize  (cost=0.00..649.19 rows=8656 width=4)
                        ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..519.35 rows=8656 width=4)
                              ->  Subquery Scan on test_1  (cost=0.00..519.35 rows=8656 width=4)
@@ -1283,7 +1283,7 @@ explain with test as (select * from (select * from append_rel) p where att1 in (
                                                                  Filter: (att2 >= 19)
          ->  Seq Scan on append_rel2  (cost=584.27..1658.02 rows=12984 width=4)
                Filter: (hashed SubPlan 1)
-               SubPlan 1  (slice4; segments: 3)
+               SubPlan 1
                  ->  Materialize  (cost=0.00..649.19 rows=8656 width=4)
                        ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..519.35 rows=8656 width=4)
                              ->  Subquery Scan on test_2  (cost=0.00..519.35 rows=8656 width=4)

@@ -739,7 +739,7 @@ explain (costs off)
 -----------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Seq Scan on int4_tbl
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate
                  ->  Result
                        Filter: (tenk1.unique1 > int4_tbl.f1)

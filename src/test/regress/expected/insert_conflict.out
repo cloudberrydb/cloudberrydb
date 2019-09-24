@@ -52,13 +52,13 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key
    Conflict Filter: (alternatives: SubPlan 1 or hashed SubPlan 2)
    ->  Result
-   SubPlan 1  (slice0; segments: 1)
+   SubPlan 1
      ->  Result
            Filter: (ii.key = excluded.key)
            ->  Materialize
                  ->  Broadcast Motion 3:3  (slice1; segments: 3)
                        ->  Seq Scan on insertconflicttest ii
-   SubPlan 2  (slice0; segments: 1)
+   SubPlan 2
      ->  Materialize
            ->  Broadcast Motion 3:3  (slice2; segments: 3)
                  ->  Seq Scan on insertconflicttest ii_1

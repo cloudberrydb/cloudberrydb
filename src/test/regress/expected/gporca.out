@@ -11117,7 +11117,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                ->  Redistribute Motion 3:3  (slice5; segments: 3)  (cost=0.00..3.30 rows=4 width=4)
                      Hash Key: f2.b
                      ->  Seq Scan on onetimefilter2 f2  (cost=0.00..3.10 rows=4 width=4)
-         SubPlan 1  (slice6; segments: 3)
+         SubPlan 1
            ->  Limit  (cost=0.00..0.04 rows=1 width=0)
                  ->  Limit  (cost=0.00..0.02 rows=1 width=0)
                        ->  Result  (cost=0.00..0.20 rows=4 width=0)
@@ -11132,7 +11132,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                                                                  ->  Seq Scan on onetimefilter1  (cost=0.00..3.10 rows=4 width=8)
                                                                  ->  Hash  (cost=3.10..3.10 rows=4 width=4)
                                                                        ->  Seq Scan on onetimefilter2  (cost=0.00..3.10 rows=4 width=4)
-         SubPlan 2  (slice6; segments: 3)
+         SubPlan 2
            ->  Result  (cost=0.00..0.28 rows=1 width=0)
                  One-Time Filter: (f1.a = 2)
                  ->  Subquery Scan on abc  (cost=0.00..0.28 rows=1 width=0)
@@ -11141,7 +11141,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                              ->  Materialize  (cost=6.51..6.77 rows=4 width=8)
                                    ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=6.51..6.72 rows=4 width=8)
                                          ->  Shared Scan (share slice:id 2:0)  (cost=6.51..6.72 rows=4 width=8)
-         SubPlan 3  (slice6; segments: 3)
+         SubPlan 3
            ->  Subquery Scan on abc_1  (cost=0.00..0.22 rows=1 width=4)
                  Filter: (abc_1.b = f1.b)
                  ->  Result  (cost=6.51..6.77 rows=4 width=8)

@@ -97,7 +97,7 @@ explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 wh
                      ->  Partition Selector for csq_t1 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                            Partitions selected: 4 (out of 4)
                      ->  Dynamic Seq Scan on csq_t1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Result  (cost=0.00..431.00 rows=1 width=1)
            ->  Result  (cost=0.00..431.00 rows=1 width=1)
                  Filter: (CASE WHEN (sum((CASE WHEN csq_t1.x <= csq_t2.x THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN csq_t2.x IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN csq_t1.x IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN csq_t1.x <= csq_t2.x THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
@@ -469,7 +469,7 @@ explain SELECT * FROM csq_r WHERE a IN (SELECT * FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: a = ((SubPlan 1))
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=4)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -488,7 +488,7 @@ explain SELECT * FROM csq_r WHERE a not IN (SELECT * FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: a <> ((SubPlan 1))
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=4)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -506,7 +506,7 @@ explain SELECT * FROM csq_r WHERE exists (SELECT * FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: (SubPlan 1)
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=1)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
                        ->  Result  (cost=0.00..0.00 rows=1 width=1)
@@ -526,7 +526,7 @@ explain SELECT * FROM csq_r WHERE not exists (SELECT * FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: (SubPlan 1)
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=1)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
                        ->  Result  (cost=0.00..0.00 rows=1 width=1)
@@ -545,7 +545,7 @@ explain SELECT * FROM csq_r WHERE a > (SELECT csq_f FROM csq_f(csq_r.a) limit 1)
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: a > ((SubPlan 1))
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Limit  (cost=0.00..0.00 rows=1 width=4)
                  ->  Result  (cost=0.00..0.00 rows=1 width=4)
                        ->  Result  (cost=0.00..0.00 rows=1 width=1)
@@ -564,7 +564,7 @@ explain SELECT * FROM csq_r WHERE a < ANY (SELECT csq_f FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: a < ((SubPlan 1))
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=4)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
  Settings:  optimizer=on; optimizer_segments=3
@@ -583,7 +583,7 @@ explain SELECT * FROM csq_r WHERE a <= ALL (SELECT csq_f FROM csq_f(csq_r.a));
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..862.00 rows=1 width=4)
          Filter: a <= ((SubPlan 1))
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..0.00 rows=1 width=4)
                  ->  Result  (cost=0.00..0.00 rows=1 width=1)
  Settings:  optimizer=on; optimizer_segments=3
@@ -603,7 +603,7 @@ explain SELECT * FROM csq_r WHERE a IN (SELECT csq_f FROM csq_f(csq_r.a),csq_r);
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1724.00 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..1724.00 rows=1 width=4)
          Filter: (SubPlan 1)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Nested Loop  (cost=0.00..862.00 rows=1 width=4)
                  Join Filter: true
                  ->  Result  (cost=0.00..0.00 rows=1 width=4)
@@ -741,7 +741,7 @@ explain select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1
    ->  Result  (cost=0.00..5172.20 rows=1 width=17)
          Filter: 1 = ((SubPlan 1))
          ->  Seq Scan on csq_pullup  (cost=0.00..5172.19 rows=334 width=36)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..431.00 rows=1 width=8)
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
                        Filter: (csq_pullup.n + 1::numeric) = (csq_pullup_1.n + 1::numeric)
@@ -769,7 +769,7 @@ explain select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1
    ->  Result  (cost=0.00..5172.20 rows=1 width=17)
          Filter: 1 = ((SubPlan 1))
          ->  Seq Scan on csq_pullup  (cost=0.00..5172.19 rows=334 width=36)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..431.00 rows=1 width=8)
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
                        Filter: (csq_pullup.n + 1::numeric) = (csq_pullup_1.i + 1)::numeric
@@ -1070,7 +1070,7 @@ explain select 1 from t1 where a in (select b from t2 where a = 1 limit 1);
          Filter: (SubPlan 1)
          ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                ->  Seq Scan on t1  (cost=0.00..431.00 rows=1 width=4)
-         SubPlan 1  (slice0)
+         SubPlan 1
            ->  Limit  (cost=0.00..431.00 rows=1 width=4)
                  ->  Result  (cost=0.00..431.00 rows=1 width=4)
                        Filter: t1.a = 1
@@ -1089,7 +1089,7 @@ explain select 1 from t1 where a in (select b from t2 where a = 1 offset 1);
          Filter: (SubPlan 1)
          ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                ->  Seq Scan on t1  (cost=0.00..431.00 rows=1 width=4)
-         SubPlan 1  (slice0)
+         SubPlan 1
            ->  Limit  (cost=0.00..431.00 rows=1 width=4)
                  ->  Result  (cost=0.00..431.00 rows=1 width=4)
                        Filter: t1.a = 1
@@ -1541,7 +1541,7 @@ EXPLAIN SELECT '' AS six, f1 AS "Correlated Field", f3 AS "Second Field"
                Sort Key: subselect_tbl.f1, subselect_tbl.f3
                ->  Seq Scan on subselect_tbl  (cost=0.00..1324033.89 rows=3 width=12)
                      Filter: (SubPlan 1)
-                     SubPlan 1  (slice2; segments: 3)
+                     SubPlan 1
                        ->  Result  (cost=0.00..431.00 rows=4 width=4)
                              ->  Materialize  (cost=0.00..431.00 rows=4 width=4)
                                    ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=4 width=4)

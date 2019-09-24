@@ -2953,7 +2953,7 @@ order by 1,2;
                      ->  Seq Scan on int8_tbl t1
                ->  Hash
                      ->  Seq Scan on int8_tbl t2
-               SubPlan 1  (slice3; segments: 3)
+               SubPlan 1
                  ->  Limit
                        ->  Limit
                              ->  Result

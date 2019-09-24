@@ -5883,7 +5883,7 @@ explain select 1 as t1 where 1 <= ALL (select x from tbl_z);
 ------------------------------------------------------------------------------------------------------------------
  Result  (cost=10000000651.88..10000000651.89 rows=1 width=0)
    One-Time Filter: (SubPlan 1)
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Materialize  (cost=10000000000.00..10000001544.50 rows=32100 width=4)
            ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000001063.00 rows=96300 width=4)
                  ->  Seq Scan on tbl_z  (cost=10000000000.00..10000001063.00 rows=32100 width=4)
@@ -5897,7 +5897,7 @@ explain select 1 as t1 where 1 <= ALL (select x from tbl_z);
 ----------------------------------------------------------------------------------------------------------------
  Result  (cost=10000000006.52..10000000006.53 rows=1 width=0)
    One-Time Filter: (SubPlan 1)
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Materialize  (cost=10000000000.00..10000000015.44 rows=321 width=4)
            ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000000010.63 rows=963 width=4)
                  ->  Seq Scan on tbl_z  (cost=10000000000.00..10000000010.63 rows=321 width=4)

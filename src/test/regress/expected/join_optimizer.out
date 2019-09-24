@@ -2977,7 +2977,7 @@ order by 1,2;
                      ->  Result
                            ->  Gather Motion 3:1  (slice2; segments: 3)
                                  ->  Seq Scan on int8_tbl int8_tbl_1
-         SubPlan 1  (slice0)
+         SubPlan 1
            ->  Result
                  ->  Result
                        Filter: (1 = "outer".?column?)
@@ -5782,7 +5782,7 @@ select * from
                Output: int4_tbl.f1
                ->  Seq Scan on public.int4_tbl
                      Output: int4_tbl.f1
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Result
                  Output: tenk1.unique1
                  Filter: (tenk1.unique2 = "*VALUES*".column2)

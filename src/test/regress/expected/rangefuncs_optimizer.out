@@ -2099,7 +2099,7 @@ explain (verbose, costs off) select x from int8_tbl, extractq2_wapper(int8_tbl) 
    Output: ((SubPlan 1))
    ->  Seq Scan on public.int8_tbl
          Output: (SubPlan 1)
-         SubPlan 1  (slice1; segments: 1)
+         SubPlan 1
            ->  Result
                  Output: (int8_tbl.*).q2
  Optimizer: Postgres query optimizer

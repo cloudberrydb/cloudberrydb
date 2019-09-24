@@ -95,7 +95,7 @@ explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 wh
          ->  Append  (cost=0.00..810353969.20 rows=57400 width=8)
                ->  Seq Scan on csq_t1_1_prt_1  (cost=0.00..202588492.30 rows=14350 width=8)
                      Filter: (SubPlan 1)
-                     SubPlan 1  (slice17; segments: 3)
+                     SubPlan 1
                        ->  Append  (cost=0.00..4705.00 rows=115 width=4)
                              ->  Result  (cost=0.00..1176.68 rows=29 width=4)
                                    Filter: csq_t2_1_prt_1.y = csq_t1_1_prt_1.y
@@ -119,7 +119,7 @@ explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 wh
                                                ->  Seq Scan on csq_t2_1_prt_4  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_2  (cost=0.00..202588492.30 rows=14350 width=8)
                      Filter: (SubPlan 1)
-                     SubPlan 1  (slice17; segments: 3)
+                     SubPlan 1
                        ->  Append  (cost=0.00..4705.00 rows=115 width=4)
                              ->  Result  (cost=0.00..1176.68 rows=29 width=4)
                                    Filter: csq_t2_1_prt_1_1.y = csq_t1_1_prt_2.y
@@ -143,7 +143,7 @@ explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 wh
                                                ->  Seq Scan on csq_t2_1_prt_4 csq_t2_1_prt_4_1  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_3  (cost=0.00..202588492.30 rows=14350 width=8)
                      Filter: (SubPlan 1)
-                     SubPlan 1  (slice17; segments: 3)
+                     SubPlan 1
                        ->  Append  (cost=0.00..4705.00 rows=115 width=4)
                              ->  Result  (cost=0.00..1176.68 rows=29 width=4)
                                    Filter: csq_t2_1_prt_1_2.y = csq_t1_1_prt_3.y
@@ -167,7 +167,7 @@ explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 wh
                                                ->  Seq Scan on csq_t2_1_prt_4 csq_t2_1_prt_4_2  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_4  (cost=0.00..202588492.30 rows=14350 width=8)
                      Filter: (SubPlan 1)
-                     SubPlan 1  (slice17; segments: 3)
+                     SubPlan 1
                        ->  Append  (cost=0.00..4705.00 rows=115 width=4)
                              ->  Result  (cost=0.00..1176.68 rows=29 width=4)
                                    Filter: csq_t2_1_prt_1_3.y = csq_t1_1_prt_4.y
@@ -273,7 +273,7 @@ explain select * from mrs_t1 where x in (select x-95 from mrs_t1) or x < 5;
  Gather Motion 3:1  (slice2; segments: 3)  (cost=3.30..6.60 rows=13 width=4)
    ->  Seq Scan on mrs_t1  (cost=3.30..6.60 rows=5 width=4)
          Filter: ((hashed SubPlan 1)) OR x < 5
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Materialize  (cost=0.00..3.35 rows=7 width=4)
                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.25 rows=7 width=4)
                        ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=7 width=4)
@@ -642,7 +642,7 @@ explain SELECT * FROM csq_r WHERE a IN (SELECT csq_f FROM csq_f(csq_r.a),csq_r);
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..10000000001.53 rows=1 width=4)
    ->  Seq Scan on csq_r  (cost=0.00..10000000001.53 rows=1 width=4)
          Filter: (SubPlan 1)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Nested Loop  (cost=10000000000.00..10000000001.03 rows=2 width=4)
                  ->  Function Scan on csq_f  (cost=0.00..0.01 rows=1 width=4)
                  ->  Result  (cost=0.00..1.01 rows=1 width=0)
@@ -1264,7 +1264,7 @@ explain SELECT  cc, sum(nn) over() FROM v1_mpp_20470;
                ->  Append  (cost=0.00..1134.00 rows=31134 width=28)
                      ->  Seq Scan on t_mpp_20470_ptr1 b  (cost=0.00..567.00 rows=15567 width=28)
                      ->  Seq Scan on t_mpp_20470_ptr2 b_1  (cost=0.00..567.00 rows=15567 width=28)
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Aggregate  (cost=1371.47..1371.48 rows=1 width=8)
            ->  Append  (cost=0.00..1367.50 rows=32 width=4)
                  ->  Result  (cost=0.00..683.98 rows=16 width=4)
@@ -1697,13 +1697,13 @@ EXPLAIN SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) F
    ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..212.10 rows=1 width=4)
          ->  Limit  (cost=0.00..212.08 rows=1 width=4)
                ->  Seq Scan on tenk2  (cost=0.00..2133536.35 rows=3354 width=4)
-                     SubPlan 1  (slice3; segments: 3)
+                     SubPlan 1
                        ->  Result  (cost=0.00..212.07 rows=1 width=0)
                              Filter: tenk1.unique1 = tenk2.unique1
                              ->  Materialize  (cost=0.00..212.07 rows=1 width=0)
                                    ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..212.06 rows=1 width=0)
                                          ->  Seq Scan on tenk1  (cost=0.00..212.06 rows=1 width=0)
-                     SubPlan 2  (slice3; segments: 3)
+                     SubPlan 2
                        ->  Materialize  (cost=0.00..237.08 rows=3335 width=4)
                              ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..187.05 rows=3335 width=4)
                                    ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..187.05 rows=3335 width=4)

@@ -11181,7 +11181,7 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
    ->  Result  (cost=0.00..1324032.56 rows=1 width=4)
          ->  Seq Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
                Filter: (SubPlan 1)
-               SubPlan 1  (slice2; segments: 3)
+               SubPlan 1
                  ->  Result  (cost=0.00..431.00 rows=2 width=4)
                        ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
@@ -11207,7 +11207,7 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
    ->  Result  (cost=0.00..1324032.56 rows=1 width=4)
          ->  Seq Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
                Filter: (SubPlan 1)
-               SubPlan 1  (slice2; segments: 3)
+               SubPlan 1
                  ->  Result  (cost=0.00..431.00 rows=2 width=4)
                        ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
@@ -11283,7 +11283,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=4 width=4)
                                  Hash Key: onetimefilter2.b
                                  ->  Seq Scan on onetimefilter2  (cost=0.00..431.00 rows=4 width=4)
-               SubPlan 1  (slice6; segments: 3)
+               SubPlan 1
                  ->  Result  (cost=0.00..431.01 rows=1 width=4)
                        ->  Limit  (cost=0.00..431.01 rows=1 width=1)
                              ->  Result  (cost=0.00..431.01 rows=5 width=1)
@@ -11292,7 +11292,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                                          ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=11 width=1)
                                                ->  Result  (cost=0.00..431.00 rows=4 width=1)
                                                      ->  Shared Scan (share slice:id 3:0)  (cost=0.00..431.00 rows=4 width=1)
-               SubPlan 2  (slice6; segments: 3)
+               SubPlan 2
                  ->  Result  (cost=0.00..431.33 rows=3 width=4)
                        ->  Result  (cost=0.00..431.33 rows=3 width=1)
                              One-Time Filter: (onetimefilter1.a = 2)
@@ -11301,7 +11301,7 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                                    ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=11 width=1)
                                          ->  Result  (cost=0.00..431.00 rows=4 width=1)
                                                ->  Shared Scan (share slice:id 4:0)  (cost=0.00..431.00 rows=4 width=1)
-               SubPlan 3  (slice6; segments: 3)
+               SubPlan 3
                  ->  Result  (cost=0.00..431.66 rows=1 width=4)
                        Filter: (share0_ref3.b = onetimefilter1.b)
                        ->  Materialize  (cost=0.00..431.00 rows=11 width=4)
@@ -11453,7 +11453,7 @@ explain SELECT * FROM ds_part, non_part2 WHERE ds_part.c = non_part2.e AND non_p
          Hash Cond: (ds_part.c = non_part2.e)
          ->  Dynamic Seq Scan on ds_part (dynamic scan id: 1)  (cost=0.00..1324050.11 rows=334 width=12)
                Filter: ((a = (b + 1)) AND (SubPlan 1))
-               SubPlan 1  (slice4; segments: 3)
+               SubPlan 1
                  ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
                        ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=3 width=4)
                              ->  Limit  (cost=0.00..431.00 rows=1 width=4)

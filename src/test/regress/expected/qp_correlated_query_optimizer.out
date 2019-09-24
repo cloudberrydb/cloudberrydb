@@ -207,7 +207,7 @@ select * from A,B where exists (select * from C where B.i not in (select C.i fro
          ->  Result
                Filter: ((SubPlan 1) > '0'::bigint)
                ->  Seq Scan on b
-               SubPlan 1  (slice4; segments: 3)
+               SubPlan 1
                  ->  Aggregate
                        ->  Nested Loop
                              Join Filter: true
@@ -402,7 +402,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C
                                  ->  Result  (cost=0.00..1356696141.29 rows=2 width=4)
                                        ->  Seq Scan on a  (cost=0.00..1356696141.29 rows=2 width=4)
                                              Filter: j = ((SubPlan 2))
-                                             SubPlan 2  (slice4; segments: 3)
+                                             SubPlan 2
                                                ->  Result  (cost=0.00..1324036.57 rows=1 width=4)
                                                      Filter: c_1.j = a.j
                                                      ->  Materialize  (cost=0.00..1324036.57 rows=9 width=4)
@@ -410,7 +410,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C
                                                                  ->  Result  (cost=0.00..1324036.57 rows=3 width=4)
                                                                        ->  Seq Scan on c c_1  (cost=0.00..1324036.57 rows=3 width=4)
                                                                              Filter: (SubPlan 1)
-                                                                             SubPlan 1  (slice3; segments: 3)
+                                                                             SubPlan 1
                                                                                ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                                      ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                                            Filter: (CASE WHEN (sum((CASE WHEN c_1.i = b_1.i THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN b_1.i IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN c_1.i IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN c_1.i = b_1.i THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
@@ -459,7 +459,7 @@ explain select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j a
                            Join Filter: true
                            ->  Seq Scan on a  (cost=0.00..1356696141.27 rows=2 width=4)
                                  Filter: j = ((SubPlan 2))
-                                 SubPlan 2  (slice5; segments: 3)
+                                 SubPlan 2
                                    ->  Result  (cost=0.00..1324036.57 rows=1 width=4)
                                          Filter: c_1.j = a.j
                                          ->  Materialize  (cost=0.00..1324036.57 rows=9 width=4)
@@ -467,7 +467,7 @@ explain select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j a
                                                      ->  Result  (cost=0.00..1324036.57 rows=3 width=4)
                                                            ->  Seq Scan on c c_1  (cost=0.00..1324036.57 rows=3 width=4)
                                                                  Filter: (SubPlan 1)
-                                                                 SubPlan 1  (slice4; segments: 3)
+                                                                 SubPlan 1
                                                                    ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                          ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                                Filter: (CASE WHEN (sum((CASE WHEN c_1.i = b_1.i THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN b_1.i IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN c_1.i IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN c_1.i = b_1.i THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
@@ -511,7 +511,7 @@ explain select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i
    ->  Result  (cost=0.00..1765379.74 rows=2 width=4)
          ->  Seq Scan on a  (cost=0.00..1765379.74 rows=2 width=4)
                Filter: (j = (SubPlan 1))
-               SubPlan 1  (slice2; segments: 3)
+               SubPlan 1
                  ->  Result  (cost=0.00..862.00 rows=1 width=4)
                        Filter: (c.j = a.j)
                        ->  Materialize  (cost=0.00..862.00 rows=6 width=4)
@@ -641,7 +641,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C
                                        ->  Result  (cost=0.00..1765379.74 rows=2 width=4)
                                              ->  Seq Scan on a  (cost=0.00..1765379.74 rows=2 width=4)
                                                    Filter: j = ((SubPlan 1))
-                                                   SubPlan 1  (slice3; segments: 3)
+                                                   SubPlan 1
                                                      ->  Result  (cost=0.00..862.00 rows=1 width=4)
                                                            Filter: c_1.j = a.j
                                                            ->  Materialize  (cost=0.00..862.00 rows=6 width=4)
@@ -848,7 +848,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = (select sum(C.j) from C wh
                                                                ->  Result  (cost=0.00..1324036.57 rows=3 width=4)
                                                                      ->  Seq Scan on c c_1  (cost=0.00..1324036.57 rows=3 width=4)
                                                                            Filter: (SubPlan 1)
-                                                                           SubPlan 1  (slice3; segments: 3)
+                                                                           SubPlan 1
                                                                              ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                                    ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                                                                          Filter: ((CASE WHEN ((sum((CASE WHEN (c_1.i <> b_1.i) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (b_1.i IS NULL) THEN 1 ELSE 0 END))) > 0::bigint) THEN NULL::boolean WHEN (c_1.i IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (c_1.i <> b_1.i) THEN 1 ELSE 0 END))) = 0::bigint) THEN true ELSE false END) = true)
@@ -948,7 +948,7 @@ explain select A.i, B.i, C.j from A, B, C where A.j = all (select C.j from C whe
                                        ->  Result  (cost=0.00..882688.08 rows=1 width=4)
                                              ->  Seq Scan on a  (cost=0.00..882688.08 rows=1 width=4)
                                                    Filter: (SubPlan 1)
-                                                   SubPlan 1  (slice2; segments: 3)
+                                                   SubPlan 1
                                                      ->  Result  (cost=0.00..0.00 rows=1 width=1)
                                                            ->  Result  (cost=0.00..0.00 rows=1 width=1)
                                                                  Filter: (CASE WHEN (sum((CASE WHEN $0 <> "outer".j THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN "outer".j IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 <> "outer".j THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
@@ -3833,7 +3833,7 @@ explain select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..882708.48 rows=3 width=12)
    ->  Result  (cost=0.00..882708.48 rows=1 width=12)
          ->  Seq Scan on t1  (cost=0.00..882708.48 rows=334 width=12)
-         SubPlan 1  (slice1; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..0.00 rows=1 width=8)
                  ->  Function Scan on generate_series  (cost=0.00..0.00 rows=334 width=1)
  Optimizer: PQO version 3.27.0
@@ -3854,7 +3854,7 @@ explain select t1.a, (select count(*) c from (select city from supplier limit t1
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324051.59 rows=3 width=12)
    ->  Result  (cost=0.00..1324051.59 rows=1 width=12)
          ->  Seq Scan on t1  (cost=0.00..1324051.59 rows=334 width=12)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..431.00 rows=1 width=8)
                  ->  Limit  (cost=0.00..431.00 rows=5 width=1)
                        ->  Materialize  (cost=0.00..431.00 rows=5 width=1)
@@ -3878,7 +3878,7 @@ explain select t1.*, (select count(*) as ct from generate_series(1, a), t1) from
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1808684647.64 rows=3 width=16)
    ->  Result  (cost=0.00..1808684647.64 rows=1 width=16)
          ->  Seq Scan on t1  (cost=0.00..1808684647.64 rows=334 width=16)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..1765431.58 rows=1 width=8)
                  ->  Nested Loop  (cost=0.00..1765431.58 rows=1000 width=1)
                        Join Filter: true
@@ -3904,7 +3904,7 @@ explain select * from t1 where 0 < (select count(*) from generate_series(1, a), 
    ->  Result  (cost=0.00..1808684647.65 rows=1 width=8)
          Filter: (0 < (SubPlan 1))
          ->  Seq Scan on t1  (cost=0.00..1808684647.64 rows=334 width=16)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Aggregate  (cost=0.00..1765431.58 rows=1 width=8)
                  ->  Nested Loop  (cost=0.00..1765431.58 rows=1000 width=1)
                        Join Filter: true

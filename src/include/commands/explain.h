@@ -52,7 +52,8 @@ typedef struct ExplainState
 
     /* CDB */
     struct CdbExplain_ShowStatCtx  *showstatctx;    /* EXPLAIN ANALYZE info */
-    Slice          *currentSlice;   /* slice whose nodes we are visiting */
+	Slice	   *currentSlice;	/* slice whose nodes we are visiting */
+	bool		subplanDispatchedSeparately;
 
 	PlanState  *parentPlanState;
 } ExplainState;

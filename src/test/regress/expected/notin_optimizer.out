@@ -744,7 +744,7 @@ explain select c2 from t2 where not c2 < all (select c2 from t2);
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324033.39 rows=5 width=4)
    ->  Seq Scan on t2  (cost=0.00..1324033.39 rows=2 width=4)
          Filter: (SubPlan 1)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan
            ->  Materialize  (cost=0.00..431.00 rows=5 width=4)
                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
                        ->  Seq Scan on t2 t2_1  (cost=0.00..431.00 rows=2 width=4)

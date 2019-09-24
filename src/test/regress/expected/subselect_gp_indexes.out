@@ -79,7 +79,7 @@ explain select (select id1 from (select * from choose_seqscan_t2) foo where id2=
 ---------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..184.75 rows=50 width=4)
    ->  Seq Scan on choose_seqscan_t1  (cost=0.00..184.75 rows=17 width=4)
-         SubPlan 1  (slice2; segments: 3)
+         SubPlan 1
            ->  Result  (cost=0.00..3.63 rows=1 width=4)
                  Filter: (choose_seqscan_t2.id2 = choose_seqscan_t1.id2)
                  ->  Materialize  (cost=0.00..3.63 rows=1 width=4)
@@ -139,7 +139,7 @@ explain select (select id1 from (select * from choose_indexscan_t2) foo where id
 -----------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..46.40 rows=20 width=4)
    ->  Seq Scan on choose_indexscan_t1  (cost=0.00..46.40 rows=7 width=4)
-         SubPlan 1  (slice1; segments: 1)
+         SubPlan 1
            ->  Index Scan using choose_indexscan_t2_idx on choose_indexscan_t2  (cost=0.14..2.16 rows=1 width=4)
                  Index Cond: (id2 = choose_indexscan_t1.id2)
  Optimizer: Postgres query optimizer

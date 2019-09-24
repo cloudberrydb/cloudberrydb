@@ -389,7 +389,7 @@ select gp_debug_reset_create_table_default_numsegments();
    ->  Nested Loop  (cost=10000000000.00..10182108256.73 rows=421267500 width=32) (actual time=0.000..0.053 rows=0 loops=1)
          ->  Seq Scan on t1  (cost=0.00..70516404.55 rows=11850 width=16) (actual time=0.000..0.041 rows=0 loops=1)
                Filter: (SubPlan 1)
-               SubPlan 1  (slice4; segments: 1)
+               SubPlan 1
                  ->  Aggregate  (cost=991.77..991.78 rows=1 width=4) (never executed)
                        ->  Result  (cost=0.00..989.11 rows=24 width=4) (never executed)
                              Filter: (t2_1.c2 = t1.c2)
@@ -400,7 +400,7 @@ select gp_debug_reset_create_table_default_numsegments();
                ->  Broadcast Motion 2:1  (slice3; segments: 2)  (cost=0.00..70517826.55 rows=35550 width=16) (never executed)
                      ->  Seq Scan on t2  (cost=0.00..70516404.55 rows=11850 width=16) (actual time=0.000..0.087 rows=0 loops=1)
                            Filter: (SubPlan 2)
-                           SubPlan 2  (slice3; segments: 2)
+                           SubPlan 2
                              ->  Aggregate  (cost=991.77..991.78 rows=1 width=4) (never executed)
                                    ->  Result  (cost=0.00..989.11 rows=24 width=4) (never executed)
                                          Filter: (t1_1.c2 = t2.c2)

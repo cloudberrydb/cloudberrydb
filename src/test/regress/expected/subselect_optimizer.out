@@ -248,7 +248,7 @@ select * from int4_tbl o where not exists
    Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Seq Scan on int4_tbl
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Result
            ->  Result
                  ->  Limit
@@ -870,7 +870,7 @@ select * from int4_tbl where
          Output: int4_tbl.f1
          ->  Seq Scan on public.int4_tbl
                Output: int4_tbl.f1
-   SubPlan 1  (slice0)
+   SubPlan 1
      ->  Result
            Output: tenk1.unique1
            ->  Result
@@ -881,7 +881,7 @@ select * from int4_tbl where
                              Output: tenk1.unique1
                              ->  Seq Scan on public.tenk1
                                    Output: tenk1.unique1
-   SubPlan 2  (slice0)
+   SubPlan 2
      ->  Materialize
            Output: tenk1_1.ten
            ->  Gather Motion 3:1  (slice3; segments: 3)

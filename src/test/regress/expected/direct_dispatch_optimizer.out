@@ -436,7 +436,7 @@ EXPLAIN SELECT a.* FROM MPP_22019_a a INNER JOIN MPP_22019_b b ON a.i = b.i WHER
                      ->  Hash  (cost=431.00..431.00 rows=1 width=8)
                            ->  Seq Scan on mpp_22019_b  (cost=0.00..431.00 rows=1 width=8)
                                  Filter: i = 1
-               SubPlan 1  (slice2; segments: 3)
+               SubPlan 1
                  ->  Result  (cost=0.00..431.00 rows=1 width=4)
                        Filter: mpp_22019_a_1.j = mpp_22019_b.j
                        ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
