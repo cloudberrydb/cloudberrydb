@@ -208,8 +208,14 @@ CREATE TABLE a (i INT, j INT) DISTRIBUTED BY (i);
 INSERT INTO a (SELECT i, i * i FROM generate_series(1, 10) as i);
 SELECT gp_inject_fault('interconnect_setup_palloc', 'error', 1);
 SELECT * FROM a;
-DROP TABLE a;
 SELECT gp_inject_fault('interconnect_setup_palloc', 'reset', 1);
+
+-- The same, but the fault happens while dispatching an Init Plan.
+SELECT gp_inject_fault('interconnect_setup_palloc', 'error', 1);
+SELECT * FROM generate_series(1, 5) g WHERE g < (SELECT max(a.j) FROM a);
+SELECT gp_inject_fault('interconnect_setup_palloc', 'reset', 1);
+
+DROP TABLE a;
 
 -- Test sender QE errors out when setup outgoing connection, the receiver QE is waiting,
 -- at this time, QD should be able to process the error and cancel the receiver QE.

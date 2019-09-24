@@ -490,13 +490,28 @@ SELECT gp_inject_fault('interconnect_setup_palloc', 'error', 1);
 
 SELECT * FROM a;
 ERROR:  fault triggered, fault name:'interconnect_setup_palloc' fault type:'error'
-DROP TABLE a;
 SELECT gp_inject_fault('interconnect_setup_palloc', 'reset', 1);
  gp_inject_fault 
 -----------------
  Success:
 (1 row)
 
+-- The same, but the fault happens while dispatching an Init Plan.
+SELECT gp_inject_fault('interconnect_setup_palloc', 'error', 1);
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+SELECT * FROM generate_series(1, 5) g WHERE g < (SELECT max(a.j) FROM a);
+ERROR:  fault triggered, fault name:'interconnect_setup_palloc' fault type:'error'
+SELECT gp_inject_fault('interconnect_setup_palloc', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+DROP TABLE a;
 -- Test sender QE errors out when setup outgoing connection, the receiver QE is waiting,
 -- at this time, QD should be able to process the error and cancel the receiver QE.
 CREATE TABLE test_ic_error(a INT, b int);
