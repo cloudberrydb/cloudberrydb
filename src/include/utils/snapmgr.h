@@ -19,7 +19,6 @@
 #include "utils/snapshot.h"
 #include "cdb/cdbtm.h"
 
-
 /*
  * The structure used to map times to TransactionId values for the "snapshot
  * too old" feature must have a few entries at the tail to hold old values;

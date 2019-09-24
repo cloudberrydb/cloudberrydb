@@ -494,7 +494,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool lockHeld)
 	}
 
 	/* Clear distributed transaction status for one-phase commit transaction */
-	if (Gp_role == GP_ROLE_EXECUTE && MyTmGxactLocal->isOnePhaseCommit)
+	if (Gp_role == GP_ROLE_EXECUTE)
 		resetGxact();
 }
 
@@ -1972,7 +1972,7 @@ getDtxCheckPointInfo(char **result, int *result_size)
 		TMGXACT_LOG *gxact_log;
 		TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
-		if (!gxact->needIncludedInCkpt)
+		if (!gxact->includeInCkpt)
 			continue;
 
 		gxact_log = &gxact_log_array[actual];

@@ -9,21 +9,23 @@
 #define SIZE_OF_IN_PROGRESS_ARRAY (10 * sizeof(DistributedTransactionId))
 #define MAX_PROCS 100
 VariableCacheData vcdata;
+uint32 nextSnapshotId;
+DistributedTransactionTimeStamp distribTimeStamp;
+int num_committed_xacts;
 
 static void
-setup(TmControlBlock *controlBlock)
+setup(void)
 {
 	ShmemVariableCache = &vcdata;
-	shmNextSnapshotId = &controlBlock->NextSnapshotId;
-	shmDistribTimeStamp = &controlBlock->distribTimeStamp;
-	shmNumCommittedGxacts = &controlBlock->num_committed_xacts;
+	shmNextSnapshotId = &nextSnapshotId;
+	shmDistribTimeStamp = &distribTimeStamp;
+	shmNumCommittedGxacts = &num_committed_xacts;
 
 	/* Some imaginary LWLockId number */
 	*shmDistribTimeStamp = time(NULL);
 	*shmNumCommittedGxacts = 0;
 
 	allTmGxact = malloc(sizeof(TMGXACT)*MAX_PROCS);
-
 
 	procArray = malloc(sizeof(ProcArrayStruct) + sizeof(int) * (MAX_PROCS - 1));
 	procArray->pgprocnos[0] = 0;
@@ -38,13 +40,12 @@ setup(TmControlBlock *controlBlock)
 static void
 test__CreateDistributedSnapshot(void **state)
 {
-	TmControlBlock controlBlock;
 	DistributedSnapshot ds;
 
 	ds.inProgressXidArray =
 		(DistributedTransactionId*)malloc(SIZE_OF_IN_PROGRESS_ARRAY);
 
-	setup(&controlBlock);
+	setup();
 
 #ifdef USE_ASSERT_CHECKING
 	expect_value_count(LWLockHeldByMe, l, ProcArrayLock, -1);

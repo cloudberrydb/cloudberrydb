@@ -2233,11 +2233,13 @@ external_set_env_vars_ext(extvar_t *extvar, char *uri, bool csv, char *escape, c
 			1900 + tm->tm_year, 1 + tm->tm_mon, tm->tm_mday);
 	sprintf(extvar->GP_TIME, "%02d%02d%02d",
 			tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+	/*
+	 * read-only query don't have a valid distributed transaction ID, use
+	 * "session id"-"command id" to identify the transaction.
+	 */
 	if (!getDistributedTransactionIdentifier(extvar->GP_XID))
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("cannot get distributed transaction identifier for \"%s\"",
-						uri)));
+		sprintf(extvar->GP_XID, "%u-%.10u", gp_session_id, gp_command_count);
 
 	sprintf(extvar->GP_CID, "%x", QEDtxContextInfo.curcid);
 	sprintf(extvar->GP_SN, "%x", scancounter);
