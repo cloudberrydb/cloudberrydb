@@ -143,7 +143,8 @@ walk_join_node_fields(Join *join,
 bool
 plan_tree_walker(Node *node,
 				 bool (*walker) (),
-				 void *context)
+				 void *context,
+				 bool recurse_into_subplans)
 {
 	/*
 	 * The walker has already visited the current node, and so we need
@@ -446,8 +447,8 @@ plan_tree_walker(Node *node,
 										   walker, context))
 					return true;
 
-				/* recur into the subplan's plan, a kind of Plan node */
-				if (walker((Node *) subplan_plan, context))
+				/* recurse into the subplan's plan, a kind of Plan node */
+				if (recurse_into_subplans && walker((Node *) subplan_plan, context))
 					return true;
 
 				/* also examine args list */
@@ -692,7 +693,8 @@ extract_nodes_walker(Node *node, extract_context *context)
 	}
 
 	return plan_tree_walker(node, extract_nodes_walker,
-								  (void *) context);
+							(void *) context,
+							true);
 }
 
 /**

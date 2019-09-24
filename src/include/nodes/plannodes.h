@@ -92,6 +92,8 @@ typedef struct PlannedStmt
 	Node	   *utilityStmt;	/* non-null if this is DECLARE CURSOR */
 
 	List	   *subplans;		/* Plan trees for SubPlan expressions */
+	int		   *subplan_sliceIds; /* Slice IDs for initplans. Size equals 'subplans'. 0 for non-initplans */
+	bool	   *subplan_initPlanParallel;
 
 	Bitmapset  *rewindPlanIDs;	/* indices of subplans that require REWIND */
 

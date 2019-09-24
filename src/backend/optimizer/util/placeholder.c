@@ -467,3 +467,184 @@ add_placeholders_to_joinrel(PlannerInfo *root, RelOptInfo *joinrel)
 		}
 	}
 }
+
+/*
+ * In GPDB, SubPlans expressions pose a problem, if they're moved or
+ * duplicated in the plan tree. If the SubPlan contains any Motions, it can
+ * only be evaluated at a particular slice, because the Motion nodes in the
+ * SubPlan are set up to send the result to the parent slice. To prevent
+ * multiple evaluation of SubPlans, we wrap all SubPlan references in
+ * PlaceHolderVars. When wrapped in a PlaceHolderVar, the SubPlan gets
+ * evaluated once, at the lowest level in the join tree where possible, and
+ * if it's needed elsewhere, its value is propagated up the plan tree, in
+ * the target lists of all the nodes.
+ *
+ * This is more conservative than necessary. It would be OK to evaluate a
+ * SubPlan multiple times, as long as all the evaluations happen in the same
+ * slice. However, we don't divide the plan into slices until much later in
+ * planning, so we don't know that yet. It's quite possibly cheaper to avoid
+ * multiple evaluation anyway, since subqueries tend be pretty expensive.
+ * (On the other hand, PlaceHolderVars can constrain the join order if there
+ * are outer joins in the query.)
+ */
+typedef struct
+{
+	PlannerInfo *root;
+	Relids		phrels;		/* current syntactic location (as a set of baserels)
+							 * in the join tree. */
+} make_placeholders_for_subplans_in_expr_context;
+
+static bool
+subplan_needs_placeholder(PlannerInfo *root, SubPlan *spexpr)
+{
+	Plan	   *subplan;
+
+	/* InitPlans should be converted to Params by now. */
+	if (spexpr->is_initplan)
+		elog(ERROR, "unexpected Init Plan in plan tree");
+
+	/*
+	 * We don't need PlaceHolderVars for plans that are readily executable
+	 * anywhere.
+	 *
+	 * XXX: This isn't exactly what we are worried about here. It's
+	 * theoretically possible that the Plan tree contains branches with
+	 * Motions, but the topmost node is General. I don't think the planner
+	 * can produce such plans at the moment, though.
+	 */
+	subplan = planner_subplan_get_plan(root, spexpr);
+	if (subplan->flow->locustype == CdbLocusType_General)
+		return false;
+
+	return true;
+}
+
+static Node *
+make_placeholders_for_subplans_in_expr_mutator(Node *expr, void *context)
+{
+	make_placeholders_for_subplans_in_expr_context *cxt =
+		(make_placeholders_for_subplans_in_expr_context *) context;
+	bool		placeholder_needed = false;
+
+	if (expr == NULL)
+		return NULL;
+	if (IsA(expr, SubPlan))
+	{
+		SubPlan	   *spexpr = (SubPlan *) expr;
+
+		if (subplan_needs_placeholder(cxt->root, spexpr))
+			placeholder_needed = true;
+	}
+	/*
+	 * An AlternativeSubPlan is wrapped in a PlaceHolder, if any of the
+	 * alternative SubPlans need it. (It's probably not possible for only
+	 * some of them to need it, but this seems like the right thing to do,
+	 * if it was.)
+	 */
+	else if (IsA(expr, AlternativeSubPlan))
+	{
+		AlternativeSubPlan *asp = (AlternativeSubPlan *) expr;
+		ListCell   *lc;
+
+		foreach(lc, asp->subplans)
+		{
+			SubPlan	   *spexpr = (SubPlan *) lfirst(lc);
+
+			Assert(IsA(spexpr, SubPlan));
+
+			if (subplan_needs_placeholder(cxt->root, spexpr))
+			{
+				placeholder_needed = true;
+				break;
+			}
+		}
+	}
+
+	if (placeholder_needed)
+		return (Node *) make_placeholder_expr(cxt->root, (Expr *) expr, cxt->phrels);
+	else
+		return expression_tree_mutator(expr, make_placeholders_for_subplans_in_expr_mutator, context);
+}
+
+static Node *
+make_placeholders_for_subplans_in_expr(PlannerInfo *root, Node *expr, Relids phrels)
+{
+	make_placeholders_for_subplans_in_expr_context cxt;
+
+	cxt.root = root;
+	cxt.phrels = phrels;
+
+	return make_placeholders_for_subplans_in_expr_mutator(expr, &cxt);
+}
+
+/*
+ * The logic to track 'scope' is copied from deconstruct_jointree. We cannot
+ * do this in deconstruct_jointree(), because it's too late to assign new
+ * placeholders there.
+ */
+static void
+make_placeholders_for_subplans_recurse(PlannerInfo *root, Node *jtnode, Relids *qualscope)
+{
+	if (jtnode == NULL)
+	{
+		*qualscope = NULL;
+		return;
+	}
+	if (IsA(jtnode, RangeTblRef))
+	{
+		int			varno = ((RangeTblRef *) jtnode)->rtindex;
+
+		/* No quals to deal with here */
+		*qualscope = bms_make_singleton(varno);
+	}
+	else if (IsA(jtnode, FromExpr))
+	{
+		FromExpr   *f = (FromExpr *) jtnode;
+		ListCell   *l;
+
+		/*
+		 * First, recurse to handle child joins.
+		 */
+		*qualscope = NULL;
+		foreach(l, f->fromlist)
+		{
+			Relids		sub_qualscope;
+
+			make_placeholders_for_subplans_recurse(root, lfirst(l), &sub_qualscope);
+			*qualscope = bms_add_members(*qualscope, sub_qualscope);
+		}
+
+		/*
+		 * Now process the top-level quals.
+		 */
+		f->quals = make_placeholders_for_subplans_in_expr(root, f->quals, *qualscope);
+	}
+	else if (IsA(jtnode, JoinExpr))
+	{
+		JoinExpr   *j = (JoinExpr *) jtnode;
+		Relids		leftids = NULL;
+		Relids		rightids = NULL;
+
+		/*
+		 * First, recurse to handle child joins.
+		 */
+		make_placeholders_for_subplans_recurse(root, j->larg, &leftids);
+		make_placeholders_for_subplans_recurse(root, j->rarg, &rightids);
+
+		*qualscope = bms_union(leftids, rightids);
+
+		/* Process the qual clauses */
+		j->quals = make_placeholders_for_subplans_in_expr(root, j->quals, *qualscope);
+	}
+	else
+		elog(ERROR, "unrecognized node type: %d",
+			 (int) nodeTag(jtnode));
+}
+
+void
+make_placeholders_for_subplans(PlannerInfo *root)
+{
+	Relids		scope;
+
+	make_placeholders_for_subplans_recurse(root, (Node *) root->parse->jointree, &scope);
+}

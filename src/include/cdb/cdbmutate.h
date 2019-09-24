@@ -49,7 +49,6 @@ extern void assign_plannode_id(PlannedStmt *stmt);
 extern List *getExprListFromTargetList(List *tlist, int numCols, AttrNumber *colIdx,
 									   bool useExecutorVarFormat);
 extern void remove_unused_initplans(Plan *plan, PlannerInfo *root);
-extern void remove_unused_subplans(PlannerInfo *root, SubPlanWalkerContext *context);
 
 extern int32 cdbhash_const_list(List *plConsts, int iSegments, Oid *hashfuncs);
 extern Node *makeSegmentFilterExpr(int segid);
@@ -57,7 +56,6 @@ extern Node *makeSegmentFilterExpr(int segid);
 extern Node *exec_make_plan_constant(struct PlannedStmt *stmt, EState *estate,
 						bool is_SRI, List **cursorPositions);
 extern void remove_subquery_in_RTEs(Node *node);
-extern void fixup_subplans(Plan *plan, PlannerInfo *root, SubPlanWalkerContext *context);
 
 extern void request_explicit_motion(Plan *plan, Index resultRelationIdx, List *rtable);
 extern void sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,

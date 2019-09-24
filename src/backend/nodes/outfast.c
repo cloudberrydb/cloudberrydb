@@ -369,6 +369,8 @@ _outPlannedStmt(StringInfo str, PlannedStmt *node)
 	WRITE_NODE_FIELD(resultRelations);
 	WRITE_NODE_FIELD(utilityStmt);
 	WRITE_NODE_FIELD(subplans);
+	WRITE_INT_ARRAY(subplan_sliceIds, list_length(node->subplans) + 1, int);
+	WRITE_INT_ARRAY(subplan_initPlanParallel, list_length(node->subplans) + 1, bool);
 	WRITE_BITMAPSET_FIELD(rewindPlanIDs);
 
 	WRITE_NODE_FIELD(result_partitions);

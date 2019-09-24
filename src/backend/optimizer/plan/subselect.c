@@ -805,7 +805,6 @@ build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
 	 */
 	splan = makeNode(SubPlan);
 	splan->subLinkType = subLinkType;
-    splan->qDispSliceId = 0;             /*CDB*/
 	splan->testexpr = NULL;
 	splan->paramIds = NIL;
 	get_first_col_type(plan, &splan->firstColType, &splan->firstColTypmod,
@@ -814,8 +813,6 @@ build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
 	splan->unknownEqFalse = unknownEqFalse;
 	splan->is_initplan = false;
 	splan->is_multirow = false;
-	splan->is_parallelized = false;
-	splan->initPlanParallel = false;
 	splan->setParam = NIL;
 	splan->parParam = NIL;
 	splan->args = NIL;
@@ -3273,7 +3270,6 @@ SS_make_initplan_from_plan(PlannerInfo *root, Plan *plan,
 	node->subLinkType = EXPR_SUBLINK;
 	get_first_col_type(plan, &node->firstColType, &node->firstColTypmod,
 					   &node->firstColCollation);
-    node->qDispSliceId = 0;             /*CDB*/
 	node->plan_id = list_length(root->glob->subplans);
 	node->is_initplan = true;
 	root->init_plans = lappend(root->init_plans, node);

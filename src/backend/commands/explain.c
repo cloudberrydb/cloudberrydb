@@ -3469,12 +3469,13 @@ ExplainSubPlans(List *plans, List *ancestors,
 	{
 		SubPlanState *sps = (SubPlanState *) lfirst(lst);
 		SubPlan    *sp = (SubPlan *) sps->xprstate.expr;
+		int			qDispSliceId = es->pstmt->subplan_sliceIds ? es->pstmt->subplan_sliceIds[sp->plan_id] : 0;
 
 		/* Subplan might have its own root slice */
-		if (sliceTable && sp->qDispSliceId > 0)
+		if (sliceTable && qDispSliceId > 0)
 		{
 			es->currentSlice = (Slice *)list_nth(sliceTable->slices,
-												 sp->qDispSliceId);
+												 qDispSliceId);
 			es->subplanDispatchedSeparately = true;
 		}
 		else

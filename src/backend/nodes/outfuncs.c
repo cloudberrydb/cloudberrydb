@@ -1630,7 +1630,6 @@ _outSubPlan(StringInfo str, const SubPlan *node)
 {
 	WRITE_NODE_TYPE("SUBPLAN");
 
-    WRITE_INT_FIELD(qDispSliceId);  /*CDB*/
 	WRITE_ENUM_FIELD(subLinkType, SubLinkType);
 	WRITE_NODE_FIELD(testexpr);
 	WRITE_NODE_FIELD(paramIds);
@@ -1649,7 +1648,6 @@ _outSubPlan(StringInfo str, const SubPlan *node)
 	WRITE_NODE_FIELD(extParam);
 	WRITE_FLOAT_FIELD(startup_cost, "%.2f");
 	WRITE_FLOAT_FIELD(per_call_cost, "%.2f");
-	WRITE_BOOL_FIELD(initPlanParallel); /*CDB*/
 }
 
 static void

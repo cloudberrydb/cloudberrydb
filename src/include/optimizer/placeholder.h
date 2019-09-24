@@ -30,4 +30,6 @@ extern void add_placeholders_to_base_rels(PlannerInfo *root);
 extern void add_placeholders_to_joinrel(PlannerInfo *root,
 							RelOptInfo *joinrel);
 
+extern void make_placeholders_for_subplans(PlannerInfo *root);
+
 #endif   /* PLACEHOLDER_H */

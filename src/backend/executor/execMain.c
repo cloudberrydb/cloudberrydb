@@ -226,7 +226,7 @@ CopyDirectDispatchFromPlanToSliceTableWalker( Node *node, CopyDirectDispatchToSl
 	{
 		CopyDirectDispatchToSlice(ddPlan, sliceId, context);
 	}
-	return plan_tree_walker(node, CopyDirectDispatchFromPlanToSliceTableWalker, context);
+	return plan_tree_walker(node, CopyDirectDispatchFromPlanToSliceTableWalker, context, true);
 }
 
 static void
@@ -4923,6 +4923,7 @@ typedef struct
 	plan_tree_base_prefix prefix;
 	EState	   *estate;
 	int			currentSliceId;
+	Bitmapset  *processed_subplans;
 } FillSliceTable_cxt;
 
 static void
@@ -5111,25 +5112,45 @@ FillSliceTable_walker(Node *node, void *context)
 
 		/* recurse into children */
 		cxt->currentSliceId = motion->motionID;
-		result = plan_tree_walker(node, FillSliceTable_walker, cxt);
+		result = plan_tree_walker(node, FillSliceTable_walker, cxt, true);
 		cxt->currentSliceId = parentSliceIndex;
 		return result;
 	}
 
 	if (IsA(node, SubPlan))
 	{
-		SubPlan *subplan = (SubPlan *) node;
+		SubPlan	   *subplan = (SubPlan *) node;
+		int			qDispSliceId = stmt->subplan_sliceIds[subplan->plan_id];
+		bool		recurse_into_plan;
+
+		/*
+		 * Only recurse into each subplan on first encounter. But do process
+		 * any test expressions on the SubPlan node itself, in any case. (I'm
+		 * not sure if the test expressions can actually be different on
+		 * different SubPlan references to the same subquery, but let's not
+		 * assume that they can't be.)
+		 */
+		if (!bms_is_member(subplan->plan_id, cxt->processed_subplans))
+		{
+			cxt->processed_subplans = bms_add_member(cxt->processed_subplans, subplan->plan_id);
+			recurse_into_plan = true;
+		}
+		else
+			recurse_into_plan = false;
 
 		if (subplan->is_initplan)
 		{
-			cxt->currentSliceId = subplan->qDispSliceId;
-			result = plan_tree_walker(node, FillSliceTable_walker, cxt);
+			cxt->currentSliceId = qDispSliceId;
+			result = plan_tree_walker(node, FillSliceTable_walker, cxt, recurse_into_plan);
 			cxt->currentSliceId = parentSliceIndex;
-			return result;
 		}
+		else
+			result = plan_tree_walker(node, FillSliceTable_walker, cxt, recurse_into_plan);
+
+		return result;
 	}
 
-	return plan_tree_walker(node, FillSliceTable_walker, cxt);
+	return plan_tree_walker(node, FillSliceTable_walker, cxt, true);
 }
 
 /*
@@ -5153,6 +5174,7 @@ FillSliceTable(EState *estate, PlannedStmt *stmt)
 	cxt.prefix.node = (Node *) stmt;
 	cxt.estate = estate;
 	cxt.currentSliceId = 0;
+	cxt.processed_subplans = NULL;
 
 	if (stmt->intoClause != NULL || stmt->copyIntoClause != NULL)
 	{

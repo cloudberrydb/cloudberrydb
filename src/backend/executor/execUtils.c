@@ -1840,7 +1840,7 @@ MotionFinderWalker(Plan *node,
 	}
 
 	/* Continue walking */
-	return plan_tree_walker((Node*)node, MotionFinderWalker, ctx);
+	return plan_tree_walker((Node*)node, MotionFinderWalker, ctx, true);
 }
 
 /*
@@ -1891,7 +1891,7 @@ SubPlanFinderWalker(Plan *node,
 	}
 
 	/* Continue walking */
-	return plan_tree_walker((Node*)node, SubPlanFinderWalker, ctx);
+	return plan_tree_walker((Node*)node, SubPlanFinderWalker, ctx, true);
 }
 
 /*
@@ -2006,7 +2006,7 @@ ParamExtractorWalker(Plan *node,
 	}
 
 	/* Continue walking */
-	return plan_tree_walker((Node*)node, ParamExtractorWalker, ctx);
+	return plan_tree_walker((Node*)node, ParamExtractorWalker, ctx, true);
 }
 
 /*
@@ -2082,14 +2082,14 @@ MotionAssignerWalker(Plan *node,
 	if (IsA(node, Motion))
 	{
 		ctx->motStack = lcons(node, ctx->motStack);
-		plan_tree_walker((Node *)node, MotionAssignerWalker, ctx);
+		plan_tree_walker((Node *)node, MotionAssignerWalker, ctx, true);
 		ctx->motStack = list_delete_first(ctx->motStack);
 
 		return false;
 	}
 
 	/* Continue walking */
-	return plan_tree_walker((Node*)node, MotionAssignerWalker, ctx);
+	return plan_tree_walker((Node*)node, MotionAssignerWalker, ctx, true);
 }
 
 /*

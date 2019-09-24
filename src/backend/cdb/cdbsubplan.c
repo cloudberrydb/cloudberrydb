@@ -117,15 +117,19 @@ preprocess_initplans(QueryDesc *queryDesc)
 		if (isParamExecutableNow(sps, estate->es_param_exec_vals))
 		{
 			SubPlan    *subplan = (SubPlan *) sps->xprstate.expr;
+			int			qDispSliceId;
 
 			Assert(IsA(subplan, SubPlan));
 
-			if (subplan->qDispSliceId > 0)
+			qDispSliceId = queryDesc->plannedstmt->subplan_sliceIds ?
+				queryDesc->plannedstmt->subplan_sliceIds[subplan->plan_id] : 0;
+
+			if (qDispSliceId > 0)
 			{
 				/*
 				 * Adjust for the slice to execute on the QD.
 				 */
-				rootIndex = subplan->qDispSliceId;
+				rootIndex = qDispSliceId;
 				queryDesc->estate->es_sliceTable->localSlice = rootIndex;
 
 				/* set our global sliceid variable for elog. */
@@ -145,16 +149,16 @@ preprocess_initplans(QueryDesc *queryDesc)
 					sps->planstate->ps_ExprContext = CreateExprContext(estate);
 
 				/* MPP-12048: Set the right slice index before execution. */
-				Assert((subplan->qDispSliceId > queryDesc->plannedstmt->nMotionNodes) &&
-					   (subplan->qDispSliceId <=
+				Assert((qDispSliceId > queryDesc->plannedstmt->nMotionNodes) &&
+					   (qDispSliceId <=
 						(queryDesc->plannedstmt->nMotionNodes
 						 + queryDesc->plannedstmt->nInitPlans)));
 
-				Assert(LocallyExecutingSliceIndex(sps->planstate->state) == subplan->qDispSliceId);
+				Assert(LocallyExecutingSliceIndex(sps->planstate->state) == qDispSliceId);
 
 				/*
 				 * sps->planstate->state->es_cur_slice_idx =
-				 * subplan->qDispSliceId;
+				 * qDispSliceId;
 				 */
 
 				ExecSetParamPlan(sps, sps->planstate->ps_ExprContext, queryDesc);
@@ -365,7 +369,7 @@ param_walker(Node *node, ParamWalkerContext *context)
 		LockRows	*lr = (LockRows*) node;
 		context->epqParams = bms_add_member(context->epqParams, lr->epqParam);
 	}
-	return plan_tree_walker(node, param_walker, context);
+	return plan_tree_walker(node, param_walker, context, true);
 }
 
 /*

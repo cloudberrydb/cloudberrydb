@@ -216,7 +216,8 @@ setSubplanSliceId(SubPlan *subplan, EState *estate)
 {
 	Assert(subplan != NULL && IsA(subplan, SubPlan) &&estate != NULL);
 
-	estate->currentSliceIdInPlan = subplan->qDispSliceId;
+	estate->currentSliceIdInPlan =
+		estate->es_plannedstmt->subplan_sliceIds[subplan->plan_id];
 
 	/*
 	 * The slice that the initPlan will be running is the same as the root

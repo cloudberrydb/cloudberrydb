@@ -160,6 +160,8 @@ query_planner(PlannerInfo *root, List *tlist,
 	 */
 	build_base_rel_tlists(root, tlist);
 
+	make_placeholders_for_subplans(root);
+
 	find_placeholders_in_jointree(root);
 
 	find_lateral_references(root);

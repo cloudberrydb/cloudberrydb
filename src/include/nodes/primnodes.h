@@ -740,8 +740,6 @@ typedef struct SubPlan
 	Node	   *testexpr;		/* OpExpr or RowCompareExpr expression tree */
 	List	   *paramIds;		/* IDs of Params embedded in the above */
 
-    int         qDispSliceId;   /* CDB: slice# of initplan's root slice, or 0 */
-
 	/* Identification of the Plan tree to use: */
 	int			plan_id;		/* Index (from 1) in PlannedStmt.subplans */
 	/* Identification of the SubPlan for EXPLAIN and debugging purposes: */
@@ -761,7 +759,6 @@ typedef struct SubPlan
 								 * initplan? */
 	bool		is_multirow;	/* CDB: May the subplan return more than
 								 * one row? */
-	bool		is_parallelized; /* Has subplan been processed to be executed in parallel setting */
 	/* Information for passing params into and out of the subselect: */
 	/* setParam and parParam are lists of integers (param IDs) */
 	List	   *setParam;		/* initplan subqueries have to set these
@@ -772,7 +769,6 @@ typedef struct SubPlan
 	/* Estimated execution costs: */
 	Cost		startup_cost;	/* one-time setup cost */
 	Cost		per_call_cost;	/* cost for each subplan evaluation */
-	bool		initPlanParallel; /* CDB: Init plan is parallelled */
 } SubPlan;
 
 /*

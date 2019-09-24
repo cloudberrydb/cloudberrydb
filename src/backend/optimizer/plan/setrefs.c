@@ -2994,7 +2994,7 @@ cdb_extract_plan_dependencies_walker(Node *node, cdb_extract_plan_dependencies_c
 	fix_expr_common(context->root, node);
 
 	return plan_tree_walker(node, cdb_extract_plan_dependencies_walker,
-								  (void *) context);
+							(void *) context, true);
 }
 
 /*

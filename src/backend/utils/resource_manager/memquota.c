@@ -357,7 +357,7 @@ static bool PolicyAutoPrelimWalker(Node *node, PolicyAutoContext *context)
 			context->numNonMemIntensiveOperators++;
 		}
 	}
-	return plan_tree_walker(node, PolicyAutoPrelimWalker, context);
+	return plan_tree_walker(node, PolicyAutoPrelimWalker, context, true);
 }
 
 /**
@@ -401,7 +401,7 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
 			elog(GP_RESMANAGER_MEMORY_LOG_LEVEL, "assigning plan node memory = %dKB", (int )planNode->operatorMemKB);
 		}
 	}
-	return plan_tree_walker(node, PolicyAutoAssignWalker, context);
+	return plan_tree_walker(node, PolicyAutoAssignWalker, context, true);
 }
 
 /**
@@ -773,7 +773,7 @@ PolicyEagerFreePrelimWalker(Node *node, PolicyEagerFreeContext *context)
 		}
 	}
 
-	bool result = plan_tree_walker(node, PolicyEagerFreePrelimWalker, context);
+	bool result = plan_tree_walker(node, PolicyEagerFreePrelimWalker, context, true);
 	Assert(!result);
 
 	/*
@@ -878,7 +878,7 @@ PolicyEagerFreeAssignWalker(Node *node, PolicyEagerFreeContext *context)
 		}
 	}
 
-	bool result = plan_tree_walker(node, PolicyEagerFreeAssignWalker, context);
+	bool result = plan_tree_walker(node, PolicyEagerFreeAssignWalker, context, true);
 	Assert(!result);
 
 	/*

@@ -36,9 +36,36 @@
 #include "cdb/cdbmutate.h"
 #include "optimizer/tlist.h"
 
+
 /*
- * A PlanProfile holds state for recursive prescan_walker().
+ * A PlanProfile holds state for cdbparallelize() and its prescan stage.
+ *
+ * PlanProfileSubPlanInfo holds extra information about every subplan in
+ * the plan tree. There is one PlanProfileSubPlanInfo for each entry in
+ * glob->subplans.
  */
+typedef struct PlanProfileSubPlanInfo
+{
+	/*
+	 * plan_id is used to identify this subplan in the overall plan tree.
+	 * Same as SubPlan->plan_id.
+	 */
+	int			plan_id;
+
+	bool		seen;			/* have we seen a SubPlan reference to this yet? */
+	bool		initPlanParallel;	/* T = this is an Init Plan that needs to be
+									 * dispatched, i.e. it contains Motions */
+
+	/* Fields copied from SubPlan */
+	bool		is_initplan;
+	bool		is_multirow;
+	bool		hasParParam;
+	SubLinkType subLinkType;
+
+	/* The context where we saw the SubPlan reference(s) for this. */
+	Flow	   *parentFlow;
+} PlanProfileSubPlanInfo;
+
 typedef struct PlanProfile
 {
 	plan_tree_base_prefix base; /* Required prefix for
@@ -46,28 +73,33 @@ typedef struct PlanProfile
 
 	PlannerInfo *root;			/* cdbparallelize argument, root of top plan. */
 
-	/*
-	 * The result flags refer to relation in the result of an insert, update,
-	 * or delete
-	 */
-	bool		resultSegments;
-
 	/* main plan is parallelled */
 	bool		dispatchParallel;
 
-	/* init plan is parallelled */
-	bool		initPlanParallel;
+	/* Any of the init plans is parallelled */
+	bool		anyInitPlanParallel;
 
+	/* array is indexed by plan_id (plan_id is 1-based, so 0 is unused) */
+	PlanProfileSubPlanInfo *subplan_info;
+
+	/*
+	 * Working queue in prescan stage. Contains plan_ids of subplans that have been
+	 * seen in SubPlan expressions, but haven't been parallelized yet.
+	 */
+	List	   *unvisited_subplans;
+
+	/* working state for prescan_walker() */
 	Flow	   *currentPlanFlow;	/* what is the flow of the current plan
 									 * node */
 } PlanProfile;
 
-
 /*
  * Forward Declarations
  */
-static void prescan(Plan *plan, PlanProfile *context);
+static void prescan_plantree(Plan *plan, PlanProfile *context);
+static void prescan_subplan(int plan_id, PlanProfile *context);
 static bool prescan_walker(Node *node, PlanProfile *context);
+static void parallelize_subplans(Plan *plan, PlanProfile *context);
 
 static bool adjustPlanFlow(Plan *plan,
 			   bool stable,
@@ -81,6 +113,15 @@ static void motion_sanity_check(PlannerInfo *root, Plan *plan);
 static bool loci_compatible(List *hashExpr1, List *hashExpr2);
 static Plan *materialize_subplan(PlannerInfo *root, Plan *subplan);
 
+static bool ContainsParamWalker(Node *expr, void *ctx);
+static Plan *ParallelizeSubplan(PlannerInfo *root, PlanProfileSubPlanInfo *spInfo);
+static Plan *ParallelizeCorrelatedSubPlan(PlannerInfo *root, bool is_initplan, Plan *plan, Movement m, bool subPlanDistributed, Flow *currentPlanFlow);
+struct MapVarsMutatorContext;
+struct ParallelizeCorrelatedPlanWalkerContext;
+static Node *MapVarsMutator(Node *expr, struct MapVarsMutatorContext *ctx);
+static Node *ParallelizeCorrelatedSubPlanMutator(Node *node, struct ParallelizeCorrelatedPlanWalkerContext *ctx);
+static Node *ParallelizeCorrelatedSubPlanUpdateFlowMutator(Node *node);
+
 /* ------------------------------------------------------------------------- *
  * Function cdbparallelize() is the main entry point.
  *
@@ -88,12 +129,6 @@ static Plan *materialize_subplan(PlannerInfo *root, Plan *subplan);
  * is modified in that Flow nodes are attached to Plan nodes in the input
  * as appropriate and the top-level plan node's dispatch field is set
  * to specify how the plan should be handled by the executor.
- *
- * If the dispatch field of the top-level plan is set to a non-default
- * value on entry, the plan is returned unmodified.  This guarantees that
- * we won't parallelize the same input plan more than once, provides a way
- * for the planner to create a plan that this function will recognize as
- * already final.
  *
  * The result is [a copy of] the input plan with alterations to make the
  * plan suitable for execution by Greenplum Database.
@@ -112,15 +147,22 @@ static Plan *materialize_subplan(PlannerInfo *root, Plan *subplan);
  *
  * Outline of processing:
  *
- * - Return the input plan unmodified, if it's dispatch field is set.
+ * - Walk through all init-plans. Make note which ones are used, and
+ *   remove any unused ones (remove_unused_initplans())
  *
- * - Scan (scanForManagedTables) the input plan looking for references to
- *	 managed tables.  If none are found, mark the plan for sequential
- *	 dispatch and return it.
+ * - Walk through the main plan tree, make note of SubPlan expressions
+ *   and the context they appear in. (prescan_plantree())
  *
- * - Augment the input plan (prescan) by attaching Flow nodes to each of
- *	 its Plan nodes.  This is where all the decisions about parallelizing
- *	 the query occur.
+ * - Walk through any subplans that were referenced from the main plan
+ *   tree (prescan_plantree_subplans()). If there are references to
+ *   other subplans in a subplan, they are added to the working queue.
+ *   Iterate until all reachable subplans have been visited.
+ *
+ * - If there were no Motions in the plan, the plan can be executed
+ *   as is, and no further processing is required.
+ *
+ * - Otherwise, "parallelize" any subplan Plans into a form that can be
+ *   executed as part of the main plan. (parallelize_subplans())
  *
  * - Implement the decisions recorded in the Flow nodes (apply_motion)
  *	 to produce a modified copy of the plan.  Mark the copy for parallel
@@ -141,6 +183,13 @@ cdbparallelize(PlannerInfo *root, Plan *plan)
 			 role_to_string(Gp_role));
 
 	Assert(is_plan_node((Node *) plan));
+	/* this should only be called at the top-level, not on a subquery */
+	Assert(root->parent_root == NULL);
+
+	/*
+	 * Walk plan and remove unused initplans and their params
+	 */
+	remove_unused_initplans(plan, root);
 
 	/* Print plan if debugging. */
 	if (Debug_print_prelim_plan)
@@ -163,14 +212,25 @@ cdbparallelize(PlannerInfo *root, Plan *plan)
 	/* Initialize the PlanProfile result ... */
 	planner_init_plan_tree_base(&context->base, root);
 	context->root = root;
-	context->resultSegments = false;
+	context->dispatchParallel = false;
+	context->anyInitPlanParallel = false;
+	context->currentPlanFlow = NULL;
+	context->subplan_info = (PlanProfileSubPlanInfo *)
+		palloc((list_length(root->glob->subplans) + 1) * sizeof(PlanProfileSubPlanInfo));
+	for (int i = 0; i <= list_length(root->glob->subplans); i++)
+	{
+		context->subplan_info[i].plan_id = i;
+		context->subplan_info[i].seen = false;
+		context->subplan_info[i].initPlanParallel = false;
+	}
+	context->unvisited_subplans = NIL;
 
 	switch (root->parse->commandType)
 	{
 		case CMD_SELECT:
 			/* SELECT INTO / CREATE TABLE AS always created partitioned tables. */
 			if (root->parse->parentStmtType != PARENTSTMTTYPE_NONE)
-				context->resultSegments = true;
+				context->dispatchParallel = true;
 			break;
 
 		case CMD_INSERT:
@@ -183,35 +243,68 @@ cdbparallelize(PlannerInfo *root, Plan *plan)
 	}
 
 	/*
-	 * We need to keep track of whether any part of the plan needs to be
-	 * dispatched in parallel.
+	 * First scan the main plantree, making note of any Motion nodes, so that
+	 * we know whether the plan needs to be dispatched in parallel. We also
+	 * make note of any SubPlan expressions, and the parallelization context
+	 * that they appear in.
 	 */
-	context->dispatchParallel = context->resultSegments;
-	context->initPlanParallel = false;
-	context->currentPlanFlow = NULL;
+	prescan_plantree(plan, context);
 
 	/*
-	 * Prescan the plan and attach Flow nodes to its Plan nodes. These nodes
-	 * describe how to parallelize the plan.  We also accumulate summary
-	 * information in the profile stucture.
+	 * Then scan all the subplans that were referenced from the main plan tree.
+	 * Whenever we walk through a sub-plan, we might see more subplans.
+	 * They are added to the 'unvisited_subplans' working queue, so keep
+	 * going until the queue is empty.
 	 */
-	prescan(plan, context);
-
-	if (context->dispatchParallel || context->initPlanParallel)
+	while (context->unvisited_subplans)
 	{
-		/*
-		 * Implement the parallelizing directions in the Flow nodes attached
-		 * to the root plan node of each root slice of the plan.
-		 */
+		int			plan_id = linitial_int(context->unvisited_subplans);
+
+		context->unvisited_subplans = list_delete_first(context->unvisited_subplans);
+
+		prescan_subplan(plan_id, context);
+	}
+
+	root->glob->subplan_sliceIds = palloc0((list_length(root->glob->subplans) + 1) * sizeof(int));
+	root->glob->subplan_initPlanParallel = palloc0((list_length(root->glob->subplans) + 1) * sizeof(bool));
+
+	/*
+	 * Parallelize any subplans.
+	 *
+	 * Do this even when not actually dispatching, to eliminate any unused
+	 * subplans. That's not merely an optimization: the unused subplans might
+	 * contain Motion nodes, and the executor gets confused if there are
+	 * Motion nodes - even though they would never be executed - in a plan
+	 * that's not dispatched.
+	 */
+	parallelize_subplans(plan, context);
+
+	/*
+	 * Implement the parallelizing directions in the Flow nodes attached
+	 * to the root plan node of each root slice of the plan, and assign
+	 * slice IDs to parts of the plan tree that will run in separate
+	 * processes.
+	 */
+	if (context->dispatchParallel || context->anyInitPlanParallel)
 		plan = apply_motion(root, plan);
 
-		/*
-		 * Mark the root plan to DISPATCH_PARALLEL if prescan() says
-		 * it is parallel. Init plan has it's own flag to indicate
-		 * whether it's a parallel plan.
-		 */
-		if (context->dispatchParallel)
-			plan->dispatch = DISPATCH_PARALLEL;
+	/*
+	 * Mark the root plan to DISPATCH_PARALLEL if prescan() says it is
+	 * parallel. Each init plan has its own flag to indicate
+	 * whether it's a parallel plan.
+	 */
+	if (context->dispatchParallel)
+		plan->dispatch = DISPATCH_PARALLEL;
+
+	if (context->anyInitPlanParallel)
+	{
+		for (int plan_id = 1; plan_id <= list_length(root->glob->subplans); plan_id++)
+		{
+			PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
+
+			if (spinfo->seen && spinfo->is_initplan && spinfo->initPlanParallel)
+				root->glob->subplan_initPlanParallel[plan_id] = true;
+		}
 	}
 
 	if (gp_enable_motion_deadlock_sanity)
@@ -220,22 +313,54 @@ cdbparallelize(PlannerInfo *root, Plan *plan)
 	return plan;
 }
 
-
-/* ----------------------------------------------------------------------- *
- * Functions prescan() and prescan_walker() use the plan_tree_walker()
- * framework to visit the nodes of the plan tree in order to check for
- * unsupported usages and collect information for use in finalizing the
- * plan.  The walker exits with an error only due an unexpected problems.
+/*
+ * parallelize_subplans()
  *
- * The plan and query arguments should not be null.
- * ----------------------------------------------------------------------- *
+ * Transform subplans into something that can run in a parallel Greenplum
+ * environment. Also remove unused subplans.
  */
 static void
-prescan(Plan *plan, PlanProfile *context)
+parallelize_subplans(Plan *plan, PlanProfile *context)
 {
-	if (prescan_walker((Node *) plan, context))
+	PlannerInfo *root = context->root;
+
+	/*
+	 * Parallelize all subplans. And remove unused ones
+	 */
+	for (int plan_id = 1; plan_id <= list_length(root->glob->subplans); plan_id++)
 	{
-		Insist(0);
+		PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
+		ListCell   *planlist_cell = list_nth_cell(root->glob->subplans, plan_id - 1);
+		Plan	   *subplan_plan = (Plan *) lfirst(planlist_cell);
+
+		if (spinfo->seen)
+		{
+			if (context->dispatchParallel || spinfo->initPlanParallel)
+				subplan_plan = ParallelizeSubplan(root, spinfo);
+		}
+		else
+		{
+			/*
+			 * Remove unused subplans.
+			 * Executor initializes state for subplans even they are unused.
+			 * When the generated subplan is not used and has motion inside,
+			 * causing motionID not being assigned, which will break sanity
+			 * check when executor tries to initialize subplan state.
+			 */
+			/*
+			 * This subplan is unused. Replace it in the global list of
+			 * subplans with a dummy. (We can't just remove it from the global
+			 * list, because that would screw up the plan_id numbering of the
+			 * subplans).
+			 */
+			pfree(subplan_plan);
+			subplan_plan = (Plan *) make_result(root, NIL,
+												(Node *) list_make1(makeBoolConst(false, false)),
+												NULL);
+		}
+
+		/* Replace subplan in global subplan list. */
+		lfirst(planlist_cell) = subplan_plan;
 	}
 }
 
@@ -246,7 +371,7 @@ typedef struct ParallelizeCorrelatedPlanWalkerContext
 {
 	plan_tree_base_prefix base; /* Required prefix for
 								 * plan_tree_walker/mutator */
-	SubPlan    *sp;				/* subplan node */
+	bool		is_initplan;
 	Movement	movement;		/* What is the final movement necessary? Is it
 								 * gather or broadcast */
 	List	   *rtable;			/* rtable from the global context */
@@ -264,16 +389,6 @@ typedef struct MapVarsMutatorContext
 								 * plan_tree_walker/mutator */
 	List	   *outerTL;		/* Target list from underlying scan node */
 } MapVarsMutatorContext;
-
-/**
- * Forward declarations of static functions
- */
-static bool ContainsParamWalker(Node *expr, void *ctx);
-static void ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context);
-static Plan *ParallelizeCorrelatedSubPlan(PlannerInfo *root, SubPlan *spExpr, Plan *plan, Movement m, bool subPlanDistributed, Flow *currentPlanFlow);
-static Node *MapVarsMutator(Node *expr, MapVarsMutatorContext *ctx);
-static Node *ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerContext *ctx);
-static Node *ParallelizeCorrelatedSubPlanUpdateFlowMutator(Node *node);
 
 /**
  * Does an expression contain a parameter?
@@ -611,23 +726,7 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		SubPlan    *sp = (SubPlan *) node;
 
 		if (sp->is_initplan)
-		{
 			return node;
-		}
-
-		/**
-		 * Pull up the parallelization of subplan to here, because we want to
-		 * set the is_parallelized flag. We don't want to apply double
-		 * parallelization for nested subplan.
-		 * This is for case like:
-		 * select A.i, A.j, (select sum(C.j) from C where C.j = A.j and C.i =
-		 * (select A.i from A where A.i = C.i)) from A;
-		 **/
-		SubPlan    *new_sp = (SubPlan *) plan_tree_mutator(node, ParallelizeCorrelatedSubPlanMutator, ctx);
-
-		Assert(new_sp);
-		new_sp->is_parallelized = true;
-		return (Node *) new_sp;
 	}
 
 	/**
@@ -643,7 +742,7 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		return ParallelizeCorrelatedSubPlanMutator(node, ctx);
 	}
 
-	Node	   *result = plan_tree_mutator(node, ParallelizeCorrelatedSubPlanMutator, ctx);
+	Node	   *result = plan_tree_mutator(node, ParallelizeCorrelatedSubPlanMutator, ctx, false);
 
 	/*
 	 * * Update the flow of the current plan node.
@@ -657,14 +756,14 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
  * Parallelizes a correlated subplan. See ParallelizeCorrelatedSubPlanMutator for details.
  */
 Plan *
-ParallelizeCorrelatedSubPlan(PlannerInfo *root, SubPlan *spExpr, Plan *plan, Movement m, bool subPlanDistributed, Flow *currentPlanFlow)
+ParallelizeCorrelatedSubPlan(PlannerInfo *root, bool is_initplan, Plan *plan, Movement m, bool subPlanDistributed, Flow *currentPlanFlow)
 {
 	ParallelizeCorrelatedPlanWalkerContext ctx;
 
 	ctx.base.node = (Node *) root;
 	ctx.movement = m;
 	ctx.subPlanDistributed = subPlanDistributed;
-	ctx.sp = spExpr;
+	ctx.is_initplan = is_initplan;
 	ctx.rtable = root->glob->finalrtable;
 	ctx.currentPlanFlow = currentPlanFlow;
 	return (Plan *) ParallelizeCorrelatedSubPlanMutator((Node *) plan, &ctx);
@@ -681,28 +780,27 @@ ParallelizeCorrelatedSubPlan(PlannerInfo *root, SubPlan *spExpr, Plan *plan, Mov
  * - If the subplan is correlated, then it transforms the correlated into a form that is
  * executable
  */
-void
-ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
+Plan *
+ParallelizeSubplan(PlannerInfo *root, PlanProfileSubPlanInfo *spInfo)
 {
-	Assert(!spExpr->is_parallelized);
-
 	/**
 	 * If a subplan is multi-row, it cannot be an initplan right now.
 	 */
-	AssertImply(spExpr->is_multirow, !spExpr->is_initplan);
+	AssertImply(spInfo->is_multirow, !spInfo->is_initplan);
 
 	/**
 	 * If it is an initplan, there can be no parameters from outside
 	 */
-	AssertImply(spExpr->is_initplan, spExpr->parParam == NIL);
+	AssertImply(spInfo->is_initplan, !spInfo->hasParParam);
 
-	Plan	   *origPlan = planner_subplan_get_plan(context->root, spExpr);
+	bool		hasParParam = spInfo->hasParParam;
+	Flow	   *parentFlow = spInfo->parentFlow;
+	Plan	   *origPlan = (Plan *) list_nth(root->glob->subplans, spInfo->plan_id - 1);
 
-	bool		containingPlanDistributed = (context->currentPlanFlow &&
-											 (context->currentPlanFlow->flotype == FLOW_PARTITIONED ||
-											  context->currentPlanFlow->flotype == FLOW_REPLICATED));
+	bool		containingPlanDistributed = (parentFlow &&
+											 (parentFlow->flotype == FLOW_PARTITIONED ||
+											  parentFlow->flotype == FLOW_REPLICATED));
 	bool		subPlanDistributed = (origPlan->flow && origPlan->flow->flotype == FLOW_PARTITIONED);
-	bool		hasParParam = (list_length(spExpr->parParam) > 0);
 
 	/**
 	 * If containing plan is distributed then we must know the flow of the subplan.
@@ -711,7 +809,7 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 
 	Plan	   *newPlan = copyObject(origPlan);
 
-	if (spExpr->is_initplan)
+	if (spInfo->is_initplan)
 	{
 		/*
 		 * Corresponds to an initplan whose results need to end up at the QD.
@@ -719,10 +817,9 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 		 * preserved, per spec. Otherwise, initplan doesn't care the query
 		 * result order even if it is specified.
 		 */
-		focusPlan(newPlan, spExpr->subLinkType == ARRAY_SUBLINK, false);
+		focusPlan(newPlan, spInfo->subLinkType == ARRAY_SUBLINK, false);
 	}
-	else if (spExpr->is_multirow
-			 && spExpr->parParam == NIL)
+	else if (spInfo->is_multirow && !hasParParam)
 	{
 		/**
 		 * Corresponds to a multi-row uncorrelated subplan. The results need
@@ -732,9 +829,9 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 
 		if (containingPlanDistributed)
 		{
-			Assert(NULL != context->currentPlanFlow);
+			Assert(parentFlow != NULL);
 			broadcastPlan(newPlan, false /* stable */ , false /* rescannable */,
-						  context->currentPlanFlow->numsegments /* numsegments */);
+						  parentFlow->numsegments /* numsegments */);
 		}
 		else
 		{
@@ -752,7 +849,7 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 		}
 		else
 		{
-			newPlan = materialize_subplan(context->root, newPlan);
+			newPlan = materialize_subplan(root, newPlan);
 		}
 	}
 
@@ -768,17 +865,11 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 		 * Subplan corresponds to a correlated subquery and its parallelization
 		 * requires certain transformations.
 		 */
-		newPlan = ParallelizeCorrelatedSubPlan(context->root, spExpr, newPlan, reqMove, subPlanDistributed, context->currentPlanFlow);
+		newPlan = ParallelizeCorrelatedSubPlan(root, spInfo->is_initplan, newPlan, reqMove, subPlanDistributed, parentFlow);
 	}
 
 	Assert(newPlan);
-
-	/**
-	 * Replace subplan in global subplan list.
-	 */
-	list_nth_replace(context->root->glob->subplans, spExpr->plan_id - 1, newPlan);
-	spExpr->is_parallelized = true;
-
+	return newPlan;
 }
 
 /*
@@ -800,15 +891,60 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
  *    As in the case of the main plan, the actual Motion node is
  *    attached later.
  */
+static void
+prescan_plantree(Plan *plan, PlanProfile *context)
+{
+	(void) prescan_walker((Node *) plan, context);
+}
+
+static void
+prescan_subplan(int plan_id, PlanProfile *context)
+{
+	PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
+	Plan	   *subplan_plan = (Plan *) list_nth(context->root->glob->subplans, plan_id - 1);
+
+	Assert(spinfo->seen);
+	Assert(is_plan_node((Node *) subplan_plan));
+
+	/*
+	 * Init plan and main plan are dispatched separately,
+	 * so we need to set DISPATCH_PARALLEL flag separately
+	 * for them.
+	 *
+	 * save the parallel state of main plan. init plan
+	 * should not effect main plan.
+	 */
+	if (spinfo->is_initplan)
+	{
+		bool		savedMainPlanParallel = context->dispatchParallel;
+
+		context->dispatchParallel = false;
+
+		(void) prescan_walker((Node *) subplan_plan, context);
+
+		/* mark init plan parallel state and restore it for main plan */
+		if (context->dispatchParallel)
+		{
+			spinfo->initPlanParallel = true;
+			context->anyInitPlanParallel = true;
+		}
+
+		context->dispatchParallel = savedMainPlanParallel;
+	}
+	else
+	{
+		(void) prescan_walker((Node *) subplan_plan, context);
+	}
+}
+
 static bool
 prescan_walker(Node *node, PlanProfile *context)
 {
-	bool savedMainPlanParallel = false;
+	Flow	   *savedPlanFlow = context->currentPlanFlow;
+	bool		result;
 
 	if (node == NULL)
 		return false;
-
-	Flow	   *savedPlanFlow = context->currentPlanFlow;
 
 	if (is_plan_node(node))
 	{
@@ -822,87 +958,124 @@ prescan_walker(Node *node, PlanProfile *context)
 			 || plan->flow->flotype == FLOW_REPLICATED))
 			context->dispatchParallel = true;
 
-		context->currentPlanFlow = plan->flow;
-		if (context->currentPlanFlow
-			&& context->currentPlanFlow->flow_before_req_move)
+		/*
+		 * Not all Plan types set the Flow information. If it's missing,
+		 * assume it's the same as parent's
+		 */
+		if (plan->flow)
 		{
-			context->currentPlanFlow = context->currentPlanFlow->flow_before_req_move;
+			context->currentPlanFlow = plan->flow;
+			if (context->currentPlanFlow
+				&& context->currentPlanFlow->flow_before_req_move)
+			{
+				context->currentPlanFlow = context->currentPlanFlow->flow_before_req_move;
+			}
 		}
 
 	}
-
-	switch (nodeTag(node))
-	{
-		case T_SubPlan:
-
-			/*
-			 * A SubPlan node is not a Plan node, but an Expr node that
-			 * contains a Plan and its range table.  It corresponds to a
-			 * SubLink in the query tree (a SQL subquery expression) and may
-			 * occur in an expression or an initplan list.
-			 */
-
-			{
-				/*
-				 * SubPlans establish a local state for the contained plan, * notably the range table.
-				 */
-				SubPlan    *subplan = (SubPlan *) node;
-
-				if (!subplan->is_parallelized)
-				{
-					ParallelizeSubplan(subplan, context);
-				}
-
-				/*
-				 * Init plan and main plan are dispatched separately,
-				 * so we need to set DISPATCH_PARALLEL flag separately
-				 * for them.
-				 *
-				 * save the parallel state of main plan. init plan
-				 * should not effect main plan.
-				 */
-				if (subplan->is_initplan)
-				{
-					savedMainPlanParallel = context->dispatchParallel;
-					context->dispatchParallel = false;
-				}
-
-				break;
-			}
-
-		case T_Motion:
-			{
-				context->dispatchParallel = true;
-				break;
-			}
-
-		default:
-			break;
-
-	}
-
-	bool		result = plan_tree_walker(node, prescan_walker, context);
 
 	if (IsA(node, SubPlan))
 	{
-		SubPlan    *subplan = (SubPlan *) node;
+		SubPlan	   *spexpr = (SubPlan *) node;
+		PlanProfileSubPlanInfo *spinfo = &context->subplan_info[spexpr->plan_id];
 
-		/* mark init plan parallel state and restore it for main plan */
-		if (subplan->is_initplan)
+		/*
+		 * The Plans of the subqueries are handled separately, after the pass
+		 * over the main plan tree. Remember the context where this SubPlan
+		 * reference occurred, so that we can set the flow that the subplan
+		 * needs to feed into correctly, in that separate pass.
+		 *
+		 * XXX: If there are multiple SubPlan references with the same plan_id,
+		 * but in different slices, that would spell trouble, if the subplan's
+		 * Plan tree also contained Motions, because same Motion plan would
+		 * essentially have to send rows to two different receiver slices.
+		 * However, we cannot detect that case here, because we haven't
+		 * assigned slices yet.
+		 *
+		 * We used to make a copy of the whole subplan's Plan tree, with
+		 * a new plan_id, so that each SubPlan references had its own Plan
+		 * tree. That's one way to deal with the issue. However, I haven't
+		 * been able to find a test case that would exhibit that problem. I'm
+		 * not sure if there is some accidental mechanism that prevents
+		 * SubPlans from being propagated across slices, or I just haven't
+		 * found the right test case yet. The test cases that were added with
+		 * the code that duplicated SubPlans no longer fail, even though we
+		 * no longer duplicate. If we find such a case, we can put the SubPlan
+		 * duplication logic back here or come up with some other solution,
+		 * but let's not do that until we have some evidence that it's needed.
+		 * GDPB_96_MERGE_FIXME: Revisit this decision before release, maybe
+		 * try harder to find a repro.
+		 */
+		if (!context->currentPlanFlow)
+			elog(ERROR, "SubPlan's parent Plan has no Flow information");
+
+		if (!spinfo->seen)
 		{
-			if (context->dispatchParallel)
-			{
-				context->initPlanParallel = true;
-				subplan->initPlanParallel= true;
-			}
+			spinfo->seen = true;
+			spinfo->is_initplan = spexpr->is_initplan;
+			spinfo->is_multirow = spexpr->is_multirow;
+			spinfo->hasParParam = (spexpr->parParam) != NIL;
+			spinfo->subLinkType = spexpr->subLinkType;
+			spinfo->parentFlow = context->currentPlanFlow;
 
-			context->dispatchParallel = savedMainPlanParallel;
+			context->unvisited_subplans = lappend_int(context->unvisited_subplans, spexpr->plan_id);
+		}
+		else
+		{
+			Assert(spinfo->is_initplan == spexpr->is_initplan);
+			Assert(spinfo->is_multirow == spexpr->is_multirow);
+			Assert(spinfo->hasParParam == ((spexpr->parParam) != NIL));
+			Assert(spinfo->subLinkType == spexpr->subLinkType);
+
+			/*
+			 * SubPlan deduplication logic is disabled, see comment above.
+			 * (if you enable this, you'll also need to turn this from a walker
+			 * to a mutator.)
+			 */
+#if 0
+			if (!spinfo->is_initplan)
+			{
+				Plan	   *subplan_plan;
+				SubPlan	   *dupspexpr;
+				int			newplan_id;
+
+				/* make a copy of the SubPlan, processing any other expressions in it */
+				dupspexpr = (SubPlan *) plan_tree_mutator(node, prescan_mutator, context, false);
+
+				newplan_id = list_length(context->root->glob->subplans) + 1;
+				dupspexpr->plan_id = newplan_id;
+				dupspexpr->plan_name = psprintf("%s (copy)", dupspexpr->plan_name);
+
+				subplan_plan = list_nth(context->root->glob->subplans, spexpr->plan_id - 1);
+				context->root->glob->subplans = lappend(context->root->glob->subplans, subplan_plan);
+
+				/* Set up PlanProfileSubPlanInfo for this duplicate */
+				context->subplan_info = repalloc(context->subplan_info,
+												 (newplan_id + 1) * sizeof(PlanProfileSubPlanInfo));
+				spinfo = &context->subplan_info[newplan_id];
+				spinfo->plan_id = newplan_id;
+				spinfo->seen = true;
+				spinfo->initPlanParallel = false;	/* not an initplan */
+				spinfo->is_initplan = false;
+				spinfo->is_multirow = spexpr->is_multirow;
+				spinfo->hasParParam = (spexpr->parParam) != NIL;
+				spinfo->subLinkType = spexpr->subLinkType;
+				spinfo->parentFlow = context->currentPlanFlow;
+
+				context->unvisited_subplans = lappend_int(context->unvisited_subplans, spexpr->plan_id);
+				return (Node *) dupspexpr;
+			}
+#endif
 		}
 	}
 
-	/**
-	 * Replace saved flow
-	 */
+	if (IsA(node, Motion))
+		context->dispatchParallel = true;
+
+	/* don't recurse into plan trees of SubPlans */
+	result = plan_tree_walker(node, prescan_walker, context, false);
+
+	/* restore saved flow */
 	context->currentPlanFlow = savedPlanFlow;
 
 	return result;
@@ -1454,12 +1627,12 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 		case T_Sort:
 		case T_Material:
 		case T_ForeignScan:
-			if (plan_tree_walker(node, motion_sanity_walker, result))
+			if (plan_tree_walker(node, motion_sanity_walker, result, true))
 				return true;
 			break;
 
 		case T_Motion:
-			if (plan_tree_walker(node, motion_sanity_walker, result))
+			if (plan_tree_walker(node, motion_sanity_walker, result, true))
 				return true;
 			result->flags |= SANITY_MOTION;
 			elog(DEBUG5, "   found motion");

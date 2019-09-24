@@ -974,7 +974,6 @@ _readSubPlan(void)
 {
 	READ_LOCALS(SubPlan);
 
-    READ_INT_FIELD(qDispSliceId);   /*CDB*/
 	READ_ENUM_FIELD(subLinkType, SubLinkType);
 	READ_NODE_FIELD(testexpr);
 	READ_NODE_FIELD(paramIds);
@@ -993,7 +992,6 @@ _readSubPlan(void)
 	READ_NODE_FIELD(extParam);
 	READ_FLOAT_FIELD(startup_cost);
 	READ_FLOAT_FIELD(per_call_cost);
-	READ_BOOL_FIELD(initPlanParallel); /*CDB*/
 
 	READ_DONE();
 }
@@ -1461,6 +1459,8 @@ _readPlannedStmt(void)
 	READ_NODE_FIELD(resultRelations);
 	READ_NODE_FIELD(utilityStmt);
 	READ_NODE_FIELD(subplans);
+	READ_INT_ARRAY(subplan_sliceIds, list_length(local_node->subplans) + 1, int);
+	READ_INT_ARRAY(subplan_initPlanParallel, list_length(local_node->subplans) + 1, bool);
 	READ_BITMAPSET_FIELD(rewindPlanIDs);
 
 	READ_NODE_FIELD(result_partitions);

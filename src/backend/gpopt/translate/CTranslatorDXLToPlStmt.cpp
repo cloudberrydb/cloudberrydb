@@ -336,12 +336,21 @@ CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
 
 	ListCell *lc = NULL;
 
+	planned_stmt->subplan_sliceIds = (int *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(int));
+	planned_stmt->subplan_initPlanParallel = (bool *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(bool));
+	for (int i = 0; i < list_length(planned_stmt->subplans) + 1; i++)
+	{
+		planned_stmt->subplan_sliceIds[i] = 0;
+		planned_stmt->subplan_initPlanParallel[i] = false;
+	}
+
 	ForEach (lc, subplan_list)
 	{
 		SubPlan *subplan = (SubPlan*) lfirst(lc);
+
 		if (subplan->is_initplan)
 		{
-			SetInitPlanSliceInformation(subplan);
+			SetInitPlanSliceInformation(planned_stmt, subplan);
 		}
 	}
 
@@ -360,7 +369,7 @@ CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
 			SubPlan *subplan = (SubPlan*) lfirst(lc2);
 			if (subplan->is_initplan)
 			{
-				SetInitPlanSliceInformation(subplan);
+				SetInitPlanSliceInformation(planned_stmt, subplan);
 			}
 		}
 	}
@@ -379,7 +388,7 @@ CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(SubPlan * subplan)
+CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(PlannedStmt *planned_stmt, SubPlan *subplan)
 {
 	GPOS_ASSERT(subplan->is_initplan && "This is processed for initplans only");
 
@@ -389,11 +398,11 @@ CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(SubPlan * subplan)
 
 		if(1 < m_dxl_to_plstmt_context->GetCurrentMotionId())
 		{
-			subplan->qDispSliceId =  m_dxl_to_plstmt_context->GetCurrentMotionId() + subplan->plan_id-1;
+			planned_stmt->subplan_sliceIds[subplan->plan_id] = m_dxl_to_plstmt_context->GetCurrentMotionId() + subplan->plan_id-1;
 		}
 		else
 		{
-			subplan->qDispSliceId = 0;
+			planned_stmt->subplan_sliceIds[subplan->plan_id] = 0;
 		}
 	}
 }

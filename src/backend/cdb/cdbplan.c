@@ -107,7 +107,8 @@ static void mutate_join_fields(Join *newplan, Join *oldplan, Node *(*mutator) ()
 Node *
 plan_tree_mutator(Node *node,
 				  Node *(*mutator) (),
-				  void *context)
+				  void *context,
+				  bool recurse_into_subplans)
 {
 	/*
 	 * The mutator has already decided not to modify the current node, but we
@@ -757,24 +758,29 @@ plan_tree_mutator(Node *node,
 			 */
 			{
 				SubPlan    *subplan = (SubPlan *) node;
-				Plan	   *subplan_plan = plan_tree_base_subplan_get_plan(context, subplan);
 				SubPlan    *newnode;
-				Plan	   *newsubplan_plan;
 
 				FLATCOPY(newnode, subplan, SubPlan);
 
 				MUTATE(newnode->testexpr, subplan->testexpr, Node *);
-				MUTATE(newsubplan_plan, subplan_plan, Plan *);
 				MUTATE(newnode->args, subplan->args, List *);
+
+				if (recurse_into_subplans)
+				{
+					Plan	   *subplan_plan = plan_tree_base_subplan_get_plan(context, subplan);
+					Plan	   *newsubplan_plan;
+
+					MUTATE(newsubplan_plan, subplan_plan, Plan *);
+
+					if (newsubplan_plan != subplan_plan)
+						plan_tree_base_subplan_put_plan(context, newnode, newsubplan_plan);
+				}
 
 				/* An IntList isn't interesting to mutate; just copy. */
 				newnode->paramIds = (List *) copyObject(subplan->paramIds);
 				newnode->setParam = (List *) copyObject(subplan->setParam);
 				newnode->parParam = (List *) copyObject(subplan->parParam);
 				newnode->extParam = (List *) copyObject(subplan->extParam);
-
-				if (newsubplan_plan != subplan_plan)
-					plan_tree_base_subplan_put_plan(context, newnode, newsubplan_plan);
 
 				return (Node *) newnode;
 			}

@@ -617,7 +617,7 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 						 */
 						Plan	   *subplan_plan = plan_tree_base_subplan_get_plan(context, subplan);
 
-						plan_tree_walker((Node *) subplan_plan, AssignContentIdsToPlanData_Walker, context);
+						plan_tree_walker((Node *) subplan_plan, AssignContentIdsToPlanData_Walker, context, true);
 					}
 					pushNewDirectDispatchInfo = true;
 					break;
@@ -664,7 +664,7 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 	 * note that the SubqueryScan nodes do NOT reach here -- its children are
 	 * managed in the switch above
 	 */
-	result = plan_tree_walker(node, AssignContentIdsToPlanData_Walker, context);
+	result = plan_tree_walker(node, AssignContentIdsToPlanData_Walker, context, true);
 	Assert(!result);
 
 	if (pushNewDirectDispatchInfo)

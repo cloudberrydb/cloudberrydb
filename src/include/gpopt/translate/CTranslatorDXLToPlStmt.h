@@ -193,7 +193,7 @@ namespace gpdxl
 			void SetParamIds(Plan *);
 
 			// Set the qDispSliceId in the subplans defining an initplan
-			void SetInitPlanSliceInformation(SubPlan *);
+			void SetInitPlanSliceInformation(PlannedStmt *, SubPlan *);
 
 			// Set InitPlanVariable in PlannedStmt
 			void SetInitPlanVariables(PlannedStmt *);
