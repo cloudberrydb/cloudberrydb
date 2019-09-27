@@ -216,10 +216,15 @@ test: upgrade_numsegments
 
 # OOM tests start
 test: create_memory_accounting_tables 
-test: setup_memory_accounting
-test: oom_mixed_1 oom_mixed_2 oom_simple
-test: restore_memory_accounting_default
+ignore: setup_memory_accounting
+ignore: oom_mixed_1 oom_mixed_2 oom_simple
+ignore: restore_memory_accounting_default
 # Sleep and OOM tests end
+
+# Startup OOM tests start
+test: setup_startup_memory_accounting
+test: oom_startup_memory
+test: restore_memory_accounting_default
 
 # Too many exec accounts test start
 test: setup_too_many_exec_accounts
