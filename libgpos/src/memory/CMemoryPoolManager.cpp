@@ -41,18 +41,26 @@ CMemoryPoolManager *CMemoryPoolManager::m_memory_pool_mgr = NULL;
 //---------------------------------------------------------------------------
 CMemoryPoolManager::CMemoryPoolManager
 	(
-	CMemoryPool *internal
+	CMemoryPool *internal,
+	EMemoryPoolType memory_pool_type
 	)
 	:
 	m_internal_memory_pool(internal),
 	m_allow_global_new(true),
-	m_ht_all_pools(NULL)
+	m_ht_all_pools(NULL),
+	m_memory_pool_type(memory_pool_type)
 {
 	GPOS_ASSERT(NULL != internal);
 	GPOS_ASSERT(GPOS_OFFSET(CMemoryPool, m_link) == GPOS_OFFSET(CMemoryPoolTracker, m_link));
 
 }
 
+// Set up CMemoryPoolManager's internals.
+// This must be done here instead of the constructor because CMemoryPoolManager
+// uses virtual methods for determining the correct CMemoryPool for
+// allocations; and these virtual methods must not be called in the
+// constructor, or else it will use the base class allocator instead of the one
+// defined in derived-class virtual function.
 void
 CMemoryPoolManager::Setup()
 {
@@ -72,14 +80,7 @@ CMemoryPoolManager::Setup()
 	m_global_memory_pool = CreateMemoryPool();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolManager::Init
-//
-//	@doc:
-//		Initializer for global memory pool manager
-//
-//---------------------------------------------------------------------------
+// Initialize global memory pool manager using CMemoryPoolTracker
 GPOS_RESULT
 CMemoryPoolManager::Init()
 {

@@ -7,13 +7,9 @@
 //		CMemoryPoolTracker.cpp
 //
 //	@doc:
-//		Implementation for memory pool that allocates from an underlying
-//		allocator and adds synchronization, statistics, debugging information
+//		Implementation for memory pool that allocates from Malloc
+//		and adds synchronization, statistics, debugging information
 //		and memory tracing.
-//
-//	@owner:
-//
-//	@test:
 //
 //---------------------------------------------------------------------------
 
@@ -89,7 +85,6 @@ CMemoryPoolTracker::Allocate
 
 	ULONG alloc = GPOS_MEM_BYTES_TOTAL(bytes);
 
-	// allocate from underlying
 	void *ptr;
 	ptr = clib::Malloc(alloc);
 
@@ -150,7 +145,6 @@ CMemoryPoolTracker::Free
 	m_memory_pool_statistics.RecordFree(user_size, total_size);
 	m_allocations_list.Remove(header);
 
-	// pass request to underlying memory pool;
 	clib::Free(header);
 }
 

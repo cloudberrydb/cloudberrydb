@@ -77,12 +77,26 @@ namespace gpos
 			static
 			void DestroyMemoryPoolAtShutdown(CMemoryPool *mp);
 
+			// Set up CMemoryPoolManager's internals
 			void Setup();
 
 		protected:
 
+			// Used for debugging. Indicates what type of memory pool the manager handles .
+			// EMemoryPoolTracker indicates the manager handles CTrackerMemoryPools.
+			// EMemoryPoolExternal indicates the manager handles memory pools with logic outside
+			// the gporca framework (e.g.: CPallocMemoryPool which is declared in GPDB)
+			enum EMemoryPoolType
+			{
+				EMemoryPoolTracker = 0,
+				EMemoryPoolExternal,
+				EMemoryPoolSentinel
+			};
+
+			EMemoryPoolType m_memory_pool_type;
+
 			// ctor
-			CMemoryPoolManager(CMemoryPool *internal);
+			CMemoryPoolManager(CMemoryPool *internal, EMemoryPoolType memory_pool_type);
 
 			CMemoryPool *GetInternalMemoryPool()
 			{
@@ -102,7 +116,7 @@ namespace gpos
 			// instantiate manager
 			GPOS_TRY
 			{
-				m_memory_pool_mgr = GPOS_NEW(internal) ManagerType(internal);
+				m_memory_pool_mgr = GPOS_NEW(internal) ManagerType(internal, EMemoryPoolTracker);
 				m_memory_pool_mgr->Setup();
 			}
 			GPOS_CATCH_EX(ex)
@@ -121,7 +135,7 @@ namespace gpos
 		public:
 
 			// create new memory pool
-			virtual CMemoryPool *CreateMemoryPool();
+			CMemoryPool *CreateMemoryPool();
 
 			// release memory pool
 			void Destroy(CMemoryPool *);
@@ -169,7 +183,7 @@ namespace gpos
 			// return total allocated size in bytes
 			ULLONG TotalAllocatedSize();
 
-			// initialize global instance
+			// Initialize global memory pool manager using given types
 			static
 			GPOS_RESULT Init();
 
