@@ -3010,6 +3010,7 @@ _readSliceTable(void)
 {
 	READ_LOCALS(SliceTable);
 
+	READ_BITMAPSET_FIELD(used_subplans);
 	READ_INT_FIELD(nMotions);
 	READ_INT_FIELD(nInitPlans);
 	READ_INT_FIELD(localSlice);

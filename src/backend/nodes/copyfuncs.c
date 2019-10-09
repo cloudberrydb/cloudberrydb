@@ -2393,13 +2393,11 @@ _copyFlow(const Flow *from)
 	Flow   *newnode = makeNode(Flow);
 
 	COPY_SCALAR_FIELD(flotype);
-	COPY_SCALAR_FIELD(req_move);
 	COPY_SCALAR_FIELD(locustype);
 	COPY_SCALAR_FIELD(segindex);
 	COPY_SCALAR_FIELD(numsegments);
 	COPY_NODE_FIELD(hashExprs);
 	COPY_NODE_FIELD(hashOpfamilies);
-	COPY_NODE_FIELD(flow_before_req_move);
 
 	return newnode;
 }
@@ -2495,6 +2493,7 @@ _copyRestrictInfo(const RestrictInfo *from)
 	COPY_SCALAR_FIELD(outerjoin_delayed);
 	COPY_SCALAR_FIELD(can_join);
 	COPY_SCALAR_FIELD(pseudoconstant);
+	COPY_SCALAR_FIELD(contain_outer_query_references);
 	COPY_BITMAPSET_FIELD(clause_relids);
 	COPY_BITMAPSET_FIELD(required_relids);
 	COPY_BITMAPSET_FIELD(outer_relids);
@@ -5065,6 +5064,7 @@ _copySliceTable(const SliceTable *from)
 {
 	SliceTable *newnode = makeNode(SliceTable);
 
+	COPY_BITMAPSET_FIELD(used_subplans);
 	COPY_SCALAR_FIELD(nMotions);
 	COPY_SCALAR_FIELD(nInitPlans);
 	COPY_SCALAR_FIELD(localSlice);

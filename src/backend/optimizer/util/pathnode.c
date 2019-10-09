@@ -33,6 +33,7 @@
 
 #include "catalog/pg_proc.h"
 #include "cdb/cdbhash.h"        /* cdb_default_distribution_opfamily_for_type() */
+#include "cdb/cdbmutate.h"
 #include "cdb/cdbpath.h"        /* cdb_create_motion_path() etc */
 #include "cdb/cdbutil.h"		/* getgpsegmentCount() */
 #include "executor/nodeHash.h"
@@ -2337,6 +2338,7 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 	ListCell   *lc;
 	char		exec_location;
 	bool		contain_mutables = false;
+	bool		contain_outer_params = false;
 
 	pathnode->pathtype = T_FunctionScan;
 	pathnode->parent = rel;
@@ -2350,6 +2352,17 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 	 * Otherwise let it be evaluated in the same slice as its parent operator.
 	 */
 	Assert(rte->rtekind == RTE_FUNCTION);
+
+	foreach (lc, rel->baserestrictinfo)
+	{
+		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
+		if (rinfo->contain_outer_query_references)
+		{
+			contain_outer_params = true;
+			break;
+		}
+	}
 
 	/*
 	 * Decide where to execute the FunctionScan.
@@ -2414,6 +2427,10 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 			 * be executed anywhere.
 			 */
 		}
+
+		if (!contain_outer_params &&
+			contains_outer_params(rtfunc->funcexpr, root))
+			contain_outer_params = true;
 	}
 	switch (exec_location)
 	{
@@ -2425,16 +2442,22 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 			 * non-IMMUTABLE functions on the master. Keep that behavior
 			 * for backwards compatibility.
 			 */
-			if (contain_mutables)
+			if (contain_outer_params)
+				CdbPathLocus_MakeOuterQuery(&pathnode->locus, getgpsegmentCount());
+			else if (contain_mutables)
 				CdbPathLocus_MakeEntry(&pathnode->locus);
 			else
 				CdbPathLocus_MakeGeneral(&pathnode->locus,
 										 getgpsegmentCount());
 			break;
 		case PROEXECLOCATION_MASTER:
+			if (contain_outer_params)
+				elog(ERROR, "cannot execute EXECUTE ON MASTER function in a subquery with arguments from outer query");
 			CdbPathLocus_MakeEntry(&pathnode->locus);
 			break;
 		case PROEXECLOCATION_ALL_SEGMENTS:
+			if (contain_outer_params)
+				elog(ERROR, "cannot execute EXECUTE ON ALL SEGMENTS function in a subquery with arguments from outer query");
 			CdbPathLocus_MakeStrewn(&pathnode->locus,
 									getgpsegmentCount());
 			break;
@@ -2527,10 +2550,12 @@ create_valuesscan_path(PlannerInfo *root, RelOptInfo *rel,
 	if (contain_mutable_functions((Node *)rte->values_lists))
 		CdbPathLocus_MakeEntry(&pathnode->locus);
 	else
+	{
 		/*
 		 * ValuesScan can be on any segment.
 		 */
 		CdbPathLocus_MakeGeneral(&pathnode->locus, getgpsegmentCount());
+	}
 
 	pathnode->motionHazard = false;
 	pathnode->rescannable = true;
@@ -2600,6 +2625,8 @@ create_worktablescan_path(PlannerInfo *root, RelOptInfo *rel,
 		CdbPathLocus_MakeGeneral(&result, numsegments);
 	else if (ctelocus == CdbLocusType_SegmentGeneral)
 		CdbPathLocus_MakeSegmentGeneral(&result, numsegments);
+	else if (ctelocus == CdbLocusType_OuterQuery)
+		CdbPathLocus_MakeOuterQuery(&result, numsegments);
 	else
 		CdbPathLocus_MakeStrewn(&result, numsegments);
 
@@ -3197,6 +3224,85 @@ create_hashjoin_path(PlannerInfo *root,
 						  sjinfo, semifactors);
 
 	final_cost_hashjoin(root, pathnode, workspace, sjinfo, semifactors);
+
+	return pathnode;
+}
+
+/*
+ * create_projection_path
+ *	  Creates a pathnode that represents performing a projection.
+ *
+ * 'rel' is the parent relation associated with the result
+ * 'subpath' is the path representing the source of data
+ * 'target' is the PathTarget to be computed
+ */
+ProjectionPath *
+create_projection_path_with_quals(PlannerInfo *root,
+								  RelOptInfo *rel,
+								  Path *subpath,
+								  List *tlist,
+								  List *restrict_clauses)
+{
+	ProjectionPath *pathnode = makeNode(ProjectionPath);
+
+	pathnode->path.pathtype = T_Result;
+	pathnode->path.parent = rel;
+	/* For now, assume we are above any joins, so no parameterization */
+	pathnode->path.param_info = NULL;
+	/* Projection does not change the sort order */
+	pathnode->path.pathkeys = subpath->pathkeys;
+
+	pathnode->subpath = subpath;
+
+	/*
+	 * We might not need a separate Result node.  If the input plan node type
+	 * can project, we can just tell it to project something else.  Or, if it
+	 * can't project but the desired target has the same expression list as
+	 * what the input will produce anyway, we can still give it the desired
+	 * tlist (possibly changing its ressortgroupref labels, but nothing else).
+	 * Note: in the latter case, create_projection_plan has to recheck our
+	 * conclusion; see comments therein.
+	 *
+	 * GPDB: The 'restrict_clauses' is a GPDB addition. If the subpath supports
+	 * Filters, we could push them down too. But currently this is only used on
+	 * top of Material paths, which don't support it, so it doesn't matter.
+	 *
+	 * GPDB_96_MERGE_FIXME: Until 9.6, this isn't used in any situation where
+	 * we wouldn't need a Result. And we don't have is_projection_capable_path()
+	 * yet.
+	 */
+#if 0
+	if (!restrict_clauses &&
+		(is_projection_capable_path(subpath) ||
+		 equal(oldtarget->exprs, target->exprs)))
+	{
+		/* No separate Result node needed */
+		pathnode->dummypp = true;
+
+		/*
+		 * Set cost of plan as subpath's cost, adjusted for tlist replacement.
+		 */
+		pathnode->path.rows = subpath->rows;
+		pathnode->path.startup_cost = subpath->startup_cost +
+			(target->cost.startup - oldtarget->cost.startup);
+		pathnode->path.total_cost = subpath->total_cost +
+			(target->cost.startup - oldtarget->cost.startup) +
+			(target->cost.per_tuple - oldtarget->cost.per_tuple) * subpath->rows;
+	}
+	else
+#endif
+	{
+		/* We really do need the Result node */
+		pathnode->dummypp = false;
+
+		pathnode->path.rows = subpath->rows;
+		pathnode->path.startup_cost = subpath->startup_cost;
+		pathnode->path.total_cost = subpath->total_cost;
+
+		pathnode->cdb_restrict_clauses = restrict_clauses;
+	}
+
+	pathnode->path.locus = subpath->locus;
 
 	return pathnode;
 }

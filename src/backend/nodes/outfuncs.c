@@ -1986,15 +1986,12 @@ _outFlow(StringInfo str, const Flow *node)
 	WRITE_NODE_TYPE("FLOW");
 
 	WRITE_ENUM_FIELD(flotype, FlowType);
-	WRITE_ENUM_FIELD(req_move, Movement);
 	WRITE_ENUM_FIELD(locustype, CdbLocusType);
 	WRITE_INT_FIELD(segindex);
 	WRITE_INT_FIELD(numsegments);
 
 	WRITE_NODE_FIELD(hashExprs);
 	WRITE_NODE_FIELD(hashOpfamilies);
-
-	WRITE_NODE_FIELD(flow_before_req_move);
 }
 
 /*****************************************************************************
@@ -2283,6 +2280,19 @@ _outHashPath(StringInfo str, const HashPath *node)
 	WRITE_INT_FIELD(num_batches);
 }
 
+#ifndef COMPILING_BINARY_FUNCS
+static void
+_outProjectionPath(StringInfo str, const ProjectionPath *node)
+{
+	WRITE_NODE_TYPE("PROJECTIONPATH");
+
+	_outPathInfo(str, (const Path *) node);
+
+	WRITE_NODE_FIELD(subpath);
+	WRITE_BOOL_FIELD(dummypp);
+}
+#endif /* COMPILING_BINARY_FUNCS */
+
 static void
 _outCdbMotionPath(StringInfo str, const CdbMotionPath *node)
 {
@@ -2518,6 +2528,7 @@ _outRestrictInfo(StringInfo str, const RestrictInfo *node)
 	WRITE_BOOL_FIELD(outerjoin_delayed);
 	WRITE_BOOL_FIELD(can_join);
 	WRITE_BOOL_FIELD(pseudoconstant);
+	WRITE_BOOL_FIELD(contain_outer_query_references);
 	WRITE_BITMAPSET_FIELD(clause_relids);
 	WRITE_BITMAPSET_FIELD(required_relids);
 	WRITE_BITMAPSET_FIELD(outer_relids);
@@ -4625,6 +4636,8 @@ static void
 _outSliceTable(StringInfo str, const SliceTable *node)
 {
 	WRITE_NODE_TYPE("SLICETABLE");
+
+	WRITE_BITMAPSET_FIELD(used_subplans);
 	WRITE_INT_FIELD(nMotions);
 	WRITE_INT_FIELD(nInitPlans);
 	WRITE_INT_FIELD(localSlice);
@@ -5248,6 +5261,9 @@ _outNode(StringInfo str, const void *obj)
 				break;
 			case T_HashPath:
 				_outHashPath(str, obj);
+				break;
+			case T_ProjectionPath:
+				_outProjectionPath(str, obj);
 				break;
             case T_CdbMotionPath:
                 _outCdbMotionPath(str, obj);

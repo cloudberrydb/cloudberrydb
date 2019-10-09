@@ -2297,14 +2297,12 @@ _readFlow(void)
 	READ_LOCALS(Flow);
 
 	READ_ENUM_FIELD(flotype, FlowType);
-	READ_ENUM_FIELD(req_move, Movement);
 	READ_ENUM_FIELD(locustype, CdbLocusType);
 	READ_INT_FIELD(segindex);
 	READ_INT_FIELD(numsegments);
 
 	READ_NODE_FIELD(hashExprs);
 	READ_NODE_FIELD(hashOpfamilies);
-	READ_NODE_FIELD(flow_before_req_move);
 
 	READ_DONE();
 }
