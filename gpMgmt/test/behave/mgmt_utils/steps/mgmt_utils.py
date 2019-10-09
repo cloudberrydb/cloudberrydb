@@ -132,6 +132,10 @@ def impl(context):
 def impl(context):
     create_local_demo_cluster(context, num_primaries=3)
 
+@given('create demo cluster config')
+def impl(context):
+    create_local_demo_cluster(context, extra_config='ONLY_PREPARE_CLUSTER_ENV=true')
+
 @given('the cluster config is generated with HBA_HOSTNAMES "{hba_hostnames_toggle}"')
 def impl(context, hba_hostnames_toggle):
     extra_config = 'env EXTRA_CONFIG="HBA_HOSTNAMES={}" ONLY_PREPARE_CLUSTER_ENV=true'.format(hba_hostnames_toggle)

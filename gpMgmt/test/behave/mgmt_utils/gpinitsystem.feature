@@ -17,6 +17,24 @@ Feature: gpinitsystem tests
         And gpconfig should print "Master  value: off" to stdout
         And gpconfig should print "Segment value: off" to stdout
 
+    Scenario: after a failed run of gpinitsystem, a re-run should return exit status 0
+        Given create demo cluster config
+        # force a failure by passing no args
+        When the user runs "gpinitsystem"
+        Then gpinitsystem should return a return code of 2
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+        Then gpinitsystem should return a return code of 0
+
+      Scenario: after gpinitsystem logs a warning, a re-run should return exit status 0
+        Given create demo cluster config
+        # log a warning
+        And the user runs command "echo 'ARRAY_NAME=' >> ../gpAux/gpdemo/clusterConfigFile"
+       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+       Then gpinitsystem should return a return code of 0
+      Given create demo cluster config
+       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+       Then gpinitsystem should return a return code of 0
+
     Scenario: gpinitsystem should warn but not fail when standby cannot be instantiated
         Given the database is running
         And all the segments are running
@@ -25,8 +43,8 @@ Feature: gpinitsystem tests
         And the user runs command "rm -rf /tmp/gpinitsystemtest && mkdir /tmp/gpinitsystemtest"
         # stop db and make sure cluster config exists so that we can manually initialize standby
         And the cluster config is generated with data_checksums "1"
-        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -l /tmp/gpinitsystemtest -s localhost -P 21100 -S /wrong/path -h ../gpAux/gpdemo/hostfile"
-        Then gpinitsystem should return a return code of 1
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -S /wrong/path -h ../gpAux/gpdemo/hostfile"
+        Then gpinitsystem should return a return code of 0
         And gpinitsystem should not print "To activate the Standby Master Segment in the event of Master" to stdout
         And gpinitsystem should print "Cluster setup finished, but Standby Master failed to initialize. Review contents of log files for errors." to stdout
         And sql "select * from gp_toolkit.__gp_user_namespaces" is executed in "postgres" db

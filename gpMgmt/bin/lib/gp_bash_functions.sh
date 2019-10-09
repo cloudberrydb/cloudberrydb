@@ -192,9 +192,6 @@ LOG_MSG () {
 		# compare it to WARN/FATAL.
 		level=${1%%]*}
 		case "$level" in
-		*WARN*)
-			EXIT_STATUS=1
-			;;
 		*FATAL*)
 			EXIT_STATUS=2
 			;;
@@ -227,7 +224,6 @@ POSTGRES_VERSION_CHK() {
     VER=`$TRUSTED_SHELL $HOST "$EXPORT_GPHOME; $EXPORT_LIB_PATH; $GPHOME/bin/postgres --gp-version"`
     if [ $? -ne 0 ] ; then
 	LOG_MSG "[WARN]:- Failed to obtain postgres version on $HOST" 1
-	EXIT_STATUS=1
 	VERSION_MATCH=0
     fi
     LOG_MSG "[INFO]:- Current postgres version = $CURRENT_VERSION"
@@ -236,7 +232,6 @@ POSTGRES_VERSION_CHK() {
     if [ x"$VER" != x"$CURRENT_VERSION" ] ; then
 	LOG_MSG "[WARN]:-Postgres version does not match. [$CURRENT_VERSION != $VER]" 1
 	VERSION_MATCH=0
-	EXIT_STATUS=1
     else
 	VERSION_MATCH=1
     fi
@@ -283,7 +278,6 @@ ERROR_CHK () {
 			INITIAL_LEVEL=$DEBUG_LEVEL
 			DEBUG_LEVEL=1
 			LOG_MSG "[WARN]:-Issue with $MSG_TXT"
-			EXIT_STATUS=1
 			DEBUG_LEVEL=$INITIAL_LEVEL
 		else
 			LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -593,7 +587,6 @@ CHK_FILE () {
 			RETVAL=$?
 			if [ $RETVAL -ne 0 ];then
 				LOG_MSG "[WARN]:-Failed to obtain details of $FILENAME on $FILE_HOST"
-				EXIT_STATUS=1
 				EXISTS=1
 			fi
 		fi
@@ -613,7 +606,6 @@ CHK_DIR () {
 			RETVAL=$?
 			if [ $RETVAL -ne 0 ];then
 			LOG_MSG "[WARN]:-Failed to obtain details of $DIR_NAME on $DIR_HOST" 1
-			EXIT_STATUS=1
 			EXISTS=1
 			fi
 		fi
@@ -855,7 +847,6 @@ GET_PG_PID_ACTIVE () {
 				#Have a process but no lock file
 					LOG_MSG "[WARN]:-No lock file $PG_LOCK_FILE but process running on port $PORT" 1
 					PID=1
-					EXIT_STATUS=1
 				fi
 				if [ $PG_LOCK_TMP -eq 1 ] && [ x"" == x"$PG_LOCK_NETSTAT" ];then
 				#Have a lock file but no process
@@ -866,7 +857,6 @@ GET_PG_PID_ACTIVE () {
 						PID=1
 					fi
 					LOG_MSG "[WARN]:-Have lock file $PG_LOCK_FILE but no process running on port $PORT" 1
-					EXIT_STATUS=1
 				fi
 				if [ $PG_LOCK_TMP -eq 1 ] && [ x"" != x"$PG_LOCK_NETSTAT" ];then
 				#Have both a lock file and a netstat process
@@ -875,7 +865,6 @@ GET_PG_PID_ACTIVE () {
 					else
 						LOG_MSG "[WARN]:-Unable to access ${PG_LOCK_FILE}" 1
 						PID=1
-						EXIT_STATUS=1
 					fi
 					LOG_MSG "[INFO]:-Have lock file $PG_LOCK_FILE and a process running on port $PORT"
 				fi
@@ -884,7 +873,6 @@ GET_PG_PID_ACTIVE () {
 			PING_HOST $HOST 1
 			if [ $RETVAL -ne 0 ];then
 				PID=0
-				EXIT_STATUS=1
 			else
 				PORT_ARRAY=(`$TRUSTED_SHELL $HOST "$NETSTAT -an 2>/dev/null |$GREP ".s.PGSQL.${PORT}" 2>/dev/null"|$AWK '{print $NF}'|$AWK -F"." '{print $NF}'|$SORT -u`)
 				for P_CHK in ${PORT_ARRAY[@]}
@@ -902,7 +890,6 @@ GET_PG_PID_ACTIVE () {
 					#Have a process but no lock file
 						LOG_MSG "[WARN]:-No lock file $PG_LOCK_FILE but process running on port $PORT on $HOST" 1
 						PID=1
-						EXIT_STATUS=1
 					fi
 					if [ $PG_LOCK_TMP -eq 1 ] && [ x"" == x"$PG_LOCK_NETSTAT" ];then
 					#Have a lock file but no process
@@ -914,7 +901,6 @@ GET_PG_PID_ACTIVE () {
 						fi
 						LOG_MSG "[WARN]:-Have lock file $PG_LOCK_FILE but no process running on port $PORT on $HOST" 1
 						PID=1
-						EXIT_STATUS=1
 					fi
 					if [ $PG_LOCK_TMP -eq 1 ] && [ x"" != x"$PG_LOCK_NETSTAT" ];then
 					#Have both a lock file and a netstat process
@@ -923,7 +909,6 @@ GET_PG_PID_ACTIVE () {
 							PID=`$TRUSTED_SHELL $HOST "$CAT ${PG_LOCK_FILE}|$HEAD -1 2>/dev/null"|$AWK '{print $1}'`
 						else
 							LOG_MSG "[WARN]:-Unable to access ${PG_LOCK_FILE} on $HOST" 1
-							EXIT_STATUS=1
 						fi
 						LOG_MSG "[INFO]:-Have lock file $PG_LOCK_FILE and a process running on port $PORT on $HOST"
 					fi
