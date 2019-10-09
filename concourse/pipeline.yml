@@ -219,7 +219,7 @@ jobs:
 - name: orca_publish_tag
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: orca_src
       passed:
       - orca_centos5_release
@@ -262,17 +262,17 @@ jobs:
   - get: xerces_patch
     trigger: true
   - get: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
         dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
         src_root: build_xerces/install
-  - aggregate:
+  - in_parallel:
     - put: bin_xerces_centos5
       params:
         from: package_tarball/bin_xerces_centos5.tar.gz
@@ -283,17 +283,17 @@ jobs:
   - get: xerces_patch
     trigger: true
   - get: ubuntu18.04-build
-  - aggregate:
+  - in_parallel:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: ubuntu18.04-build
-  - aggregate:
+  - in_parallel:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
         dst_tarball: package_tarball/bin_xerces_ubuntu18.tar.gz
         src_root: build_xerces/install
-  - aggregate:
+  - in_parallel:
     - put: bin_xerces_ubuntu18
       params:
         from: package_tarball/bin_xerces_ubuntu18.tar.gz
@@ -513,7 +513,7 @@ jobs:
 
 - name: build_gpdb
   plan:
-  - aggregate:
+  - in_parallel:
     - &get_released_orca
       get: bin_orca
       resource: orca_github_release
@@ -549,7 +549,7 @@ jobs:
 
 - name: gpdb_icg_with_orca
   plan:
-  - aggregate:
+  - in_parallel:
     - <<: *get_released_orca
       passed:
       - build_gpdb
@@ -577,7 +577,7 @@ jobs:
       CONFIGURE_OPTION: "--configure-option=--disable-gpcloud --configure-option=--enable-debug-extensions"
       GPDB_BINARY: "--gpdb_name=bin_gpdb"
     on_failure:
-      aggregate:
+      in_parallel:
       - put: regression_diffs
         params:
           file: icg_output/regression.diffs
@@ -587,7 +587,7 @@ jobs:
 
 - name: gpdb_icg_with_planner
   plan:
-  - aggregate:
+  - in_parallel:
     - <<: *get_released_orca
       passed:
       - build_gpdb
@@ -615,7 +615,7 @@ jobs:
       CONFIGURE_OPTION: "--configure-option=--disable-gpcloud --configure-option=--enable-debug-extensions"
       GPDB_BINARY: "--gpdb_name=bin_gpdb"
     on_failure:
-      aggregate:
+      in_parallel:
       - put: regression_diffs
         params:
           file: icg_output/regression.diffs

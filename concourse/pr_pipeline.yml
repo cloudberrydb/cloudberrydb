@@ -50,17 +50,17 @@ jobs:
   - get: xerces_patch
     trigger: true
   - get: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
         dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
         src_root: build_xerces/install
-  - aggregate:
+  - in_parallel:
     - put: bin_xerces_centos5
       params:
         from: package_tarball/bin_xerces_centos5.tar.gz
@@ -82,7 +82,7 @@ jobs:
     params:
       path: orca_src
       status: pending
-  - aggregate:
+  - in_parallel:
     - task: build_and_test_release
       file: orca_src/concourse/build_and_test.yml
       image: centos5-build

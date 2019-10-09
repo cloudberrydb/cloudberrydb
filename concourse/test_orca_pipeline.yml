@@ -108,24 +108,24 @@ jobs:
   - get: xerces_patch
     trigger: true
   - get: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
         dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
         src_root: build_xerces/install
-  - aggregate:
+  - in_parallel:
     - put: bin_xerces_centos5
       params:
         from: package_tarball/bin_xerces_centos5.tar.gz
 - name: orca_centos5_release
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - clone_repos_to_test
@@ -156,7 +156,7 @@ jobs:
 - name: orca_centos5_debug
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - clone_repos_to_test
@@ -179,20 +179,20 @@ jobs:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ''
-  - aggregate:
+  - in_parallel:
     - put: bin_orca_centos5_debug
       params:
         from: package_tarball/bin_orca_centos5_debug.tar.gz
 - name: clone_repos_to_test
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       trigger: true
       version: every
     - get: orca_main_src
   - task: clone_repos_to_test
     file: orca_main_src/concourse/clone_remote_repo.yml
-  - aggregate:
+  - in_parallel:
     - put: orca_tarball
       params:
         from: package_tarball/orca_src.tar.gz
@@ -202,7 +202,7 @@ jobs:
 - name: build_gpdb
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - orca_centos5_release
@@ -236,7 +236,7 @@ jobs:
 - name: gpdb_icg_with_orca
   max_in_flight: 3
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - build_gpdb
@@ -269,7 +269,7 @@ jobs:
       BLDWRAP_POSTGRES_CONF_ADDONS: statement_mem=250MB
       CONFIGURE_OPTION: --disable-gpcloud --enable-debug-extensions
     on_failure:
-      aggregate:
+      in_parallel:
       - put: regression_diffs
         params:
           file: icg_output/regression.diffs
@@ -280,7 +280,7 @@ jobs:
 - name: gpdb_icg_with_planner
   max_in_flight: 3
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - build_gpdb
@@ -314,7 +314,7 @@ jobs:
       CONFIGURE_OPTION: --disable-gpcloud --enable-debug-extensions
 
     on_failure:
-      aggregate:
+      in_parallel:
       - put: regression_diffs
         params:
           file: icg_output/regression.diffs

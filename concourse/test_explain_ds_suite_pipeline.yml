@@ -153,24 +153,24 @@ jobs:
   - get: xerces_patch
     trigger: true
   - get: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: build
       file: xerces_patch/concourse/xerces-c/build_xerces.yml
       image: centos5-build
-  - aggregate:
+  - in_parallel:
     - task: package_tarball
       file: xerces_patch/concourse/xerces-c/package_tarball.yml
       params:
         dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
         src_root: build_xerces/install
-  - aggregate:
+  - in_parallel:
     - put: bin_xerces_centos5
       params:
         from: package_tarball/bin_xerces_centos5.tar.gz
 - name: orca_centos5_release
   max_in_flight: 2
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - clone_repos_to_test
@@ -200,14 +200,14 @@ jobs:
       from: package_tarball/bin_orca_centos5_release.tar.gz
 - name: clone_repos_to_test
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       trigger: true
       version: every
     - get: orca_main_src
   - task: clone_repos_to_test
     file: orca_main_src/concourse/clone_remote_repo.yml
-  - aggregate:
+  - in_parallel:
     - put: orca_tarball
       params:
         from: package_tarball/orca_src.tar.gz
@@ -217,7 +217,7 @@ jobs:
 - name: build_gpdb
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - orca_centos5_release
@@ -249,7 +249,7 @@ jobs:
 - name: orca_baseline_centos5_release
   max_in_flight: 2
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - clone_repos_to_test
@@ -283,7 +283,7 @@ jobs:
 
 - name: build_gpdb_baseline
   plan:
-  - aggregate:
+  - in_parallel:
     - get: bin_orca
       resource: bin_orca_baseline_centos5_release
       passed:
@@ -336,7 +336,7 @@ jobs:
 - name: test_explain_suite
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - build_gpdb
@@ -375,7 +375,7 @@ jobs:
       file: icg_output/explain_ouput.tar.gz
 - name: test_explain_suite_baseline
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - build_gpdb
@@ -419,7 +419,7 @@ jobs:
       file: icg_output/explain_ouput.tar.gz
 - name: diff_explain_results_with_baseline
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gporca-commits-to-test
       passed:
       - test_explain_suite
