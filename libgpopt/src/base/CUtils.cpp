@@ -3108,6 +3108,13 @@ CUtils::FScalarIdent
 	return (COperator::EopScalarIdent == pexpr->Pop()->Eopid());
 }
 
+BOOL
+CUtils::FScalarIdentIgnoreCast(CExpression *pexpr)
+{
+	return (COperator::EopScalarIdent == pexpr->Pop()->Eopid() ||
+			CScalarIdent::FCastedScId(pexpr));
+}
+
 // check if given expression is a scalar boolean identifier
 BOOL
 CUtils::FScalarIdentBoolType

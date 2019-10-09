@@ -69,6 +69,141 @@ CFilterStatsProcessor::MakeStatsFilterForScalarExpr
 	return result_stats;
 }
 
+// compute the selectivity of a predicate, applied to a base table,
+// making some simple default assumptions about outer refs
+CDouble
+CFilterStatsProcessor::SelectivityOfPredicate
+	(
+	 CMemoryPool *mp,
+	 CExpression *pred,
+	 CTableDescriptor *ptabdesc,
+	 CColRefSet *outer_refs
+	)
+{
+	// separate the outer refs
+	CExpression *local_expr = NULL;
+	CExpression *expr_with_outer_refs = NULL;
+
+	CColRefSet *used_col_refs = CDrvdPropScalar::GetDrvdScalarProps(pred->PdpDerive())->PcrsUsed();
+	CColRefSet *used_local_col_refs = GPOS_NEW(mp) CColRefSet(mp, *used_col_refs);
+	ULONG num_outer_ref_preds = 0;
+
+	if (NULL != outer_refs)
+	{
+		used_local_col_refs->Exclude(outer_refs);
+		CPredicateUtils::SeparateOuterRefs(mp, pred, outer_refs, &local_expr, &expr_with_outer_refs);
+	}
+	else
+	{
+		pred->AddRef();
+		local_expr = pred;
+	}
+
+	// extract local filter
+	CStatsPred *pred_stats = CStatsPredUtils::ExtractPredStats(mp, local_expr, outer_refs);
+
+	const COptCtxt *poctxt = COptCtxt::PoctxtFromTLS();
+	CMDAccessor *md_accessor = poctxt->Pmda();
+	// grab default stats config
+	CStatisticsConfig *stats_config = poctxt->GetOptimizerConfig()->GetStatsConf();
+	// we don't care about the width of the columns, just the row count
+	CColRefSet *dummy_width_set = GPOS_NEW(mp) CColRefSet(mp);
+
+	IStatistics *base_table_stats = md_accessor->Pstats
+					(
+					 mp,
+					 ptabdesc->MDId(),
+					 used_local_col_refs,
+					 dummy_width_set,
+					 stats_config
+					 );
+
+	// derive stats based on local filter
+	IStatistics *result_stats = CFilterStatsProcessor::MakeStatsFilter(mp, dynamic_cast<CStatistics *>(base_table_stats), pred_stats, false);
+
+	CDouble result = result_stats->Rows() / base_table_stats->Rows();
+	BOOL have_local_preds = (result < 1.0);
+	pred_stats->Release();
+	used_local_col_refs->Release();
+	base_table_stats->Release();
+	dummy_width_set->Release();
+
+	// handle outer_refs
+	if (NULL != expr_with_outer_refs)
+	{
+		CExpressionArray *outer_ref_exprs = CPredicateUtils::PdrgpexprConjuncts(mp, expr_with_outer_refs);
+
+		const ULONG size = outer_ref_exprs->Size();
+		for (ULONG ul = 0; ul < size; ul++)
+		{
+			CExpression *pexpr = (*outer_ref_exprs)[ul];
+			CColRef *local_col_ref = NULL;
+
+			if (CPredicateUtils::FIdentCompareOuterRefExprIgnoreCast(pexpr, outer_refs, &local_col_ref))
+			{
+				CScalarCmp *sc_cmp = CScalarCmp::PopConvert(pexpr->Pop());
+				// Use more accurate NDV calculation if the comparison is an equality type
+				if (IMDType::EcmptEq == sc_cmp->ParseCmpType())
+				{
+					GPOS_ASSERT(NULL != local_col_ref);
+					CDouble ndv = result_stats->GetNDVs(local_col_ref);
+
+					if (ndv < 1.0)
+					{
+						// An NDV of less than 1 means that we have no stats on this column
+						result = result * CHistogram::DefaultSelectivity;
+					}
+					else
+					{
+						result = result * (1/ndv);
+					}
+				}
+				else
+				{
+					// a comparison col op <outer ref> other than an equals
+					result = result * CHistogram::DefaultSelectivity;
+				}
+				num_outer_ref_preds++;
+			}
+			else
+			{
+				// if it is a true filter, then we had no expressions with outer refs
+				if (!CUtils::FScalarConstTrue(pexpr))
+				{
+					// some other expression, not of the form col op <outer ref>,
+					// e.g. an OR expression
+					result = result * CHistogram::DefaultSelectivity;
+					num_outer_ref_preds++;
+				}
+			}
+		}
+
+		expr_with_outer_refs->Release();
+		outer_ref_exprs->Release();
+	}
+
+	// apply damping factor to the outer ref predicates whose selectivities we multiplied above
+	if (have_local_preds)
+	{
+		// add one for the combined non-outer refs which were dampened internally,
+		// but not in combination with the preds on outer refs
+		num_outer_ref_preds++;
+	}
+	if (1 < num_outer_ref_preds)
+	{
+		CStatisticsConfig *stats_config = CStatisticsConfig::PstatsconfDefault(mp);
+
+		result = std::min(result.Get() / CScaleFactorUtils::DampedFilterScaleFactor(stats_config, num_outer_ref_preds).Get(),
+						  1.0);
+
+		stats_config->Release();
+	}
+	result_stats->Release();
+	local_expr->Release();
+
+	return result;
+}
+
 // create new structure from a list of statistics filters
 CStatistics *
 CFilterStatsProcessor::MakeStatsFilter

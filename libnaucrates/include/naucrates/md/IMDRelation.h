@@ -227,6 +227,13 @@ namespace gpmd
 			// name of storage type
 			static
 			const CWStringConst *GetStorageTypeStr(IMDRelation::Erelstoragetype rel_storage_type);
+
+			BOOL IsAORowOrColTable() const
+			{
+				Erelstoragetype st = RetrieveRelStorageType();
+				return st == ErelstorageAppendOnlyCols ||
+					   st == ErelstorageAppendOnlyRows;
+			}
 	};
 
 	// common structure over relation and external relation metadata for index info

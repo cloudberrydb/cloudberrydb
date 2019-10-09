@@ -723,6 +723,10 @@ namespace gpopt
 			static
 			BOOL FScalarIdent(CExpression *pexpr);
 
+			// check if expression is scalar identifier (with or without a cast)
+			static
+			BOOL FScalarIdentIgnoreCast(CExpression *pexpr);
+
 			static
 			BOOL FScalarConstAndScalarIdentArray(CExpression *pexprArray);
 

@@ -264,7 +264,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 10 AND f > 15;
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.001424" Rows="1.000000" Width="24"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.061424" Rows="1.000000" Width="24"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -290,7 +290,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 10 AND f > 15;
         <dxl:SortingColumnList/>
         <dxl:BitmapTableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.001320" Rows="1.000000" Width="24"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.061320" Rows="1.000000" Width="24"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -316,25 +316,16 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 10 AND f > 15;
           <dxl:RecheckCond>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                 <dxl:Ident ColId="5" ColName="f" TypeMdid="0.23.1.0"/>
                 <dxl:ConstValue TypeMdid="0.23.1.0" Value="15"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
+                <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:RecheckCond>
           <dxl:BitmapAnd TypeMdid="0.2283.1.0">
-            <dxl:BitmapIndexProbe>
-              <dxl:IndexCondList>
-                <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                  <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-                </dxl:Comparison>
-              </dxl:IndexCondList>
-              <dxl:IndexDescriptor Mdid="0.25116.1.0" IndexName="idx_root_cd_1_prt_p2"/>
-            </dxl:BitmapIndexProbe>
             <dxl:BitmapIndexProbe>
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
@@ -343,6 +334,15 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 10 AND f > 15;
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.25133.1.0" IndexName="idx_p2_fe"/>
+            </dxl:BitmapIndexProbe>
+            <dxl:BitmapIndexProbe>
+              <dxl:IndexCondList>
+                <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
+                  <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+                </dxl:Comparison>
+              </dxl:IndexCondList>
+              <dxl:IndexDescriptor Mdid="0.25116.1.0" IndexName="idx_root_cd_1_prt_p2"/>
             </dxl:BitmapIndexProbe>
           </dxl:BitmapAnd>
           <dxl:TableDescriptor Mdid="0.25049.1.0" TableName="foo_1_prt_p2">

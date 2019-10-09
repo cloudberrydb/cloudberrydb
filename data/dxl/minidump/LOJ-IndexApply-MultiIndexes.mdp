@@ -408,7 +408,7 @@ set optimizer_enable_hashjoin = off;
     <dxl:Plan Id="0" SpaceSize="6">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1299.002115" Rows="3.000000" Width="48"/>
+          <dxl:Cost StartupCost="0" TotalCost="868.122115" Rows="3.000000" Width="48"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -434,7 +434,7 @@ set optimizer_enable_hashjoin = off;
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="true">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1299.001579" Rows="3.000000" Width="48"/>
+            <dxl:Cost StartupCost="0" TotalCost="868.121579" Rows="3.000000" Width="48"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -591,7 +591,7 @@ set optimizer_enable_hashjoin = off;
           </dxl:NestedLoopJoin>
           <dxl:BitmapTableScan>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="862.000880" Rows="0.500000" Width="16"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.120880" Rows="0.500000" Width="16"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="18" Alias="a">

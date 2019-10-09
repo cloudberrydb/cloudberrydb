@@ -433,7 +433,7 @@ namespace gpopt
 			// construct a bitmap index path expression for the given predicate
 			// out of the children of the given expression
 			static
-			CExpression *PexprBitmapFromChildren
+			CExpression *PexprBitmapLookupWithPredicateBreakDown
 				(
 				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
@@ -471,7 +471,7 @@ namespace gpopt
 			// construct a bitmap index path expression for the given predicate coming
 			// from a condition without outer references
 			static
-			CExpression *PexprBitmap
+			CExpression *PexprBitmapSelectBestIndex
 				(
 				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
@@ -480,39 +480,9 @@ namespace gpopt
 				const IMDRelation *pmdrel,
 				CColRefArray *pdrgpcrOutput,
 				CColRefSet *pcrsReqd,
+				CColRefSet *pcrsOuterRefs,
 				CExpression **ppexprRecheck,
 				CExpression **ppexprResidual
-				);
-
-			// construct a bitmap index path expression for the given predicate coming
-			// from a condition with outer references that could potentially become
-			// an index lookup
-			static
-			CExpression *PexprBitmapForIndexLookup
-				(
-				CMemoryPool *mp,
-				CMDAccessor *md_accessor,
-				CExpression *pexprPred,
-				CTableDescriptor *ptabdesc,
-				const IMDRelation *pmdrel,
-				CColRefArray *pdrgpcrOutput,
-				CColRefSet *outer_refs,
-				CColRefSet *pcrsReqd,
-				CExpression **ppexprRecheck
-				);
-
-			// if there is already an index probe in pdrgpexprBitmap on the same
-			// index as the given pexprBitmap, modify the existing index probe and
-			// the corresponding recheck conditions to subsume pexprBitmap and
-			// pexprRecheck respectively
-			static
-			BOOL FMergeWithPreviousBitmapIndexProbe
-				(
-				CMemoryPool *mp,
-				CExpression *pexprBitmap,
-				CExpression *pexprRecheck,
-				CExpressionArray *pdrgpexprBitmap,
-				CExpressionArray *pdrgpexprRecheck
 				);
 
 			// iterate over given hash map and return array of arrays of project elements sorted by the column id of the first entries
@@ -950,7 +920,7 @@ namespace gpopt
 				);
 
 			static
-			void CreateBitmapIndexProbes
+			void CreateBitmapIndexProbesWithOrWithoutPredBreakdown
 				(
 				CMemoryPool *mp,
 				CMDAccessor *md_accessor,
@@ -961,29 +931,10 @@ namespace gpopt
 				CColRefArray *pdrgpcrOutput,
 				CColRefSet *outer_refs,
 				CColRefSet *pcrsReqd,
-				BOOL fConjunction,
-				CExpressionArray *pdrgpexprBitmap,
-				CExpressionArray *pdrgpexprRecheck,
-				CExpressionArray *pdrgpexprBitmapNew,
-				CExpressionArray *pdrgpexprRecheckNew,
-				CExpressionArray *pdrgpexprResidual
+				CExpression **pexprBitmapResult,
+				CExpression **pexprRecheckResult,
+				CExpressionArray *pdrgpexprResidualResult
 				);
-
-			static
-			CExpression *PexprBitmapLookupWithPredicateBreakDown
-						(
-						 CMemoryPool *pmp,
-						 CMDAccessor *pmda,
-						 CExpression *pexprOriginalPred,
-						 CExpression *pexprPred,
-						 CTableDescriptor *ptabdesc,
-						 const IMDRelation *pmdrel,
-						 CColRefArray *pdrgpcrOutput,
-						 CColRefSet *pcrsOuterRefs,
-						 CColRefSet *pcrsReqd,
-						 CExpression **ppexprRecheck,
-						 CExpression **ppexprResidual
-						 );
 
 			// check if expression has any scalar node with ambiguous return type
 			static

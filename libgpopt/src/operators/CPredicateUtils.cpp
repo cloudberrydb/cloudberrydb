@@ -165,6 +165,57 @@ CPredicateUtils::FComparison
 	return false;
 }
 
+BOOL
+CPredicateUtils::FIdentCompareOuterRefExprIgnoreCast
+(
+ CExpression *pexpr,
+ CColRefSet *pcrsOuterRefs, // other column references allowed in the comparison
+ CColRef **localColRef
+)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (COperator::EopScalarCmp != pexpr->Pop()->Eopid() || NULL == pcrsOuterRefs)
+	{
+		return false;
+	}
+
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	BOOL leftIsACol = CUtils::FScalarIdentIgnoreCast(pexprLeft);
+	BOOL rightIsACol = CUtils::FScalarIdentIgnoreCast(pexprRight);
+    CColRefSet *pcrsUsedLeft = CDrvdPropScalar::GetDrvdScalarProps(pexprLeft->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsUsedRight = CDrvdPropScalar::GetDrvdScalarProps(pexprRight->PdpDerive())->PcrsUsed();
+
+	// allow any expressions of the form
+	//  col = expr(outer refs)
+	//  expr(outer refs) = col
+	BOOL colOpOuterrefExpr = (leftIsACol && !pcrsOuterRefs->FIntersects(pcrsUsedLeft) && pcrsOuterRefs->ContainsAll(pcrsUsedRight));
+	BOOL outerRefExprOpCol = (rightIsACol && !pcrsOuterRefs->FIntersects(pcrsUsedRight) && pcrsOuterRefs->ContainsAll(pcrsUsedLeft));
+
+	if (NULL != localColRef)
+	{
+		if (colOpOuterrefExpr)
+		{
+			GPOS_ASSERT(pcrsUsedLeft->Size() == 1);
+			*localColRef = pcrsUsedLeft->PcrFirst();
+		}
+		else if (outerRefExprOpCol)
+		{
+			GPOS_ASSERT(pcrsUsedRight->Size() == 1);
+			*localColRef = pcrsUsedRight->PcrFirst();
+		}
+		else
+		{
+			// return value with be false, initialize the variable to be nice
+			*localColRef = NULL;
+		}
+	}
+
+	return colOpOuterrefExpr || outerRefExprOpCol;
+}
+
 // Check whether the given expression contains references to only the given
 // columns. If pcrsAllowedRefs is NULL, then check whether the expression has
 // no column references and no volatile functions
@@ -701,9 +752,7 @@ CPredicateUtils::PexprConjDisj
 		eboolop = CScalarBoolOp::EboolopOr;
 	}
 
-	CExpressionArray *pdrgpexprFinal = pdrgpexpr;
-
-	pdrgpexprFinal = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpressionArray *pdrgpexprFinal = GPOS_NEW(mp) CExpressionArray(mp);
 	ULONG size = 0;
 	if (NULL != pdrgpexpr)
 	{
@@ -1305,7 +1354,7 @@ CPredicateUtils::FArrayCompareIdentToConstIgnoreCast(CExpression *pexpr)
 	CExpression *pexprLeft = (*pexpr)[0];
 	CExpression *pexprRight = (*pexpr)[1];
 
-	if (CUtils::FScalarIdent(pexprLeft) || CScalarIdent::FCastedScId(pexprLeft))
+	if (CUtils::FScalarIdentIgnoreCast(pexprLeft))
 	{
 		if((CUtils::FScalarArray(pexprRight) || CUtils::FScalarArrayCoerce(pexprRight)))
 		{
@@ -2849,7 +2898,8 @@ CPredicateUtils::FCollapsibleChildUnionUnionAll
 BOOL
 CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct
 	(
-	CExpression *pexpr
+	CExpression *pexpr,
+	CColRefSet *outer_refs
 	)
 {
 	if (CPredicateUtils::FAnd(pexpr))
@@ -2858,13 +2908,15 @@ CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct
 		BOOL result = true;
 		for (ULONG ul = 0; ul < ulArity && result; ul++)
 		{
-			result = result && CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct((*pexpr)[ul]);
+			result = result && CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct((*pexpr)[ul], outer_refs);
 		}
 
 		return result;
 	}
 
+	// indexes allow ident cmp const and ident cmp outerref
 	if(CPredicateUtils::FIdentCompareConstIgnoreCast(pexpr, COperator::EopScalarCmp) ||
+	   CPredicateUtils::FIdentCompareOuterRefExprIgnoreCast(pexpr, outer_refs) ||
 	   CPredicateUtils::FArrayCompareIdentToConstIgnoreCast(pexpr) ||
 	   CUtils::FScalarIdentBoolType(pexpr) ||
 	   (!CUtils::FScalarIdentBoolType(pexpr) && CPredicateUtils::FNotIdent(pexpr)))

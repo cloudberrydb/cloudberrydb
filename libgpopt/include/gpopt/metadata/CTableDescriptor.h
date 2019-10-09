@@ -216,6 +216,12 @@ namespace gpopt
 				return m_fHasPartialIndexes;
 			}
 
+			BOOL IsAORowOrColTable() const
+			{
+				return m_erelstoragetype == IMDRelation::ErelstorageAppendOnlyCols ||
+					   m_erelstoragetype == IMDRelation::ErelstorageAppendOnlyRows;
+			}
+
 	}; // class CTableDescriptor
 }
 

@@ -64,10 +64,7 @@ namespace gpopt
 				(
 				CExpressionHandle &//exprhdl
 				)
-				const
-			{
-				return CXform::ExfpHigh;
-			}
+				const;
 
 			// actual transform
 			void Transform

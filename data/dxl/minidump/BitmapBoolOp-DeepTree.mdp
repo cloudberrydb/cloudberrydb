@@ -336,38 +336,40 @@
                   <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
                 </dxl:Comparison>
               </dxl:Or>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                <dxl:Ident ColId="3" ColName="d" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
-              </dxl:Comparison>
+              <dxl:And>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
+                </dxl:Comparison>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="3" ColName="d" TypeMdid="0.23.1.0"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
+                </dxl:Comparison>
+              </dxl:And>
             </dxl:And>
           </dxl:RecheckCond>
           <dxl:BitmapAnd TypeMdid="0.2283.1.0">
+            <dxl:BitmapOr TypeMdid="0.2283.1.0">
+              <dxl:BitmapIndexProbe>
+                <dxl:IndexCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                    <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                  </dxl:Comparison>
+                </dxl:IndexCondList>
+                <dxl:IndexDescriptor Mdid="0.145185.1.0" IndexName="r_a"/>
+              </dxl:BitmapIndexProbe>
+              <dxl:BitmapIndexProbe>
+                <dxl:IndexCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                    <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
+                  </dxl:Comparison>
+                </dxl:IndexCondList>
+                <dxl:IndexDescriptor Mdid="0.145206.1.0" IndexName="r_b"/>
+              </dxl:BitmapIndexProbe>
+            </dxl:BitmapOr>
             <dxl:BitmapAnd TypeMdid="0.2283.1.0">
-              <dxl:BitmapOr TypeMdid="0.2283.1.0">
-                <dxl:BitmapIndexProbe>
-                  <dxl:IndexCondList>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                      <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-                    </dxl:Comparison>
-                  </dxl:IndexCondList>
-                  <dxl:IndexDescriptor Mdid="0.145185.1.0" IndexName="r_a"/>
-                </dxl:BitmapIndexProbe>
-                <dxl:BitmapIndexProbe>
-                  <dxl:IndexCondList>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                      <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
-                    </dxl:Comparison>
-                  </dxl:IndexCondList>
-                  <dxl:IndexDescriptor Mdid="0.145206.1.0" IndexName="r_b"/>
-                </dxl:BitmapIndexProbe>
-              </dxl:BitmapOr>
               <dxl:BitmapIndexProbe>
                 <dxl:IndexCondList>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -377,16 +379,16 @@
                 </dxl:IndexCondList>
                 <dxl:IndexDescriptor Mdid="0.145227.1.0" IndexName="r_c"/>
               </dxl:BitmapIndexProbe>
+              <dxl:BitmapIndexProbe>
+                <dxl:IndexCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                    <dxl:Ident ColId="3" ColName="d" TypeMdid="0.23.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
+                  </dxl:Comparison>
+                </dxl:IndexCondList>
+                <dxl:IndexDescriptor Mdid="0.145248.1.0" IndexName="r_d"/>
+              </dxl:BitmapIndexProbe>
             </dxl:BitmapAnd>
-            <dxl:BitmapIndexProbe>
-              <dxl:IndexCondList>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                  <dxl:Ident ColId="3" ColName="d" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
-                </dxl:Comparison>
-              </dxl:IndexCondList>
-              <dxl:IndexDescriptor Mdid="0.145248.1.0" IndexName="r_d"/>
-            </dxl:BitmapIndexProbe>
           </dxl:BitmapAnd>
           <dxl:TableDescriptor Mdid="0.145159.1.1" TableName="r">
             <dxl:Columns>

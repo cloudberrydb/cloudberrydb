@@ -91,10 +91,14 @@ CTypeModifierTest:
 TypeModifierColumn TypeModifierCast TypeModifierConst TypeModifierDoubleMappableConst TypeModifierArrayRef;
 
 CIndexScanTest:
-IndexedNLJBitmap BTreeIndex-Against-InList BTreeIndex-Against-ScalarSubquery BitmapIndex-Against-InList
+BTreeIndex-Against-InList BTreeIndex-Against-ScalarSubquery
 IndexScan-AOTable IndexScan-DroppedColumns IndexScan-BoolTrue IndexScan-BoolFalse
-IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols NewBtreeIndexScanCost
-BitmapIndex-ChooseHashJoin;
+IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols NewBtreeIndexScanCost;
+
+CBitmapScanTest:
+IndexedNLJBitmap BitmapIndex-ChooseHashJoin BitmapTableScan-AO-Btree-PickOnlyHighNDV
+BitmapIndex-Against-InList BitmapTableScan-AO-Btree-PickIndexWithNoGap
+BitmapTableScan-ComplexConjDisj BitmapTableScan-ConjDisjWithOuterRefs;
 
 CIndexApplyTest:
 IndexNLJ-IndexGet-OuterRef IndexApply_NestLoopWithNestParamTrue IndexApply1

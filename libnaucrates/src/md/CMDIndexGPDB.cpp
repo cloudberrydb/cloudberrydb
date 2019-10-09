@@ -61,7 +61,7 @@ CMDIndexGPDB::CMDIndexGPDB
 	GPOS_ASSERT(NULL != index_key_cols_array);
 	GPOS_ASSERT(0 < index_key_cols_array->Size());
 	GPOS_ASSERT(NULL != included_cols_array);
-	GPOS_ASSERT_IMP(NULL != mdid_item_type, IMDIndex::EmdindBitmap == index_type || IMDIndex::EmdindGist == index_type || IMDIndex::EmdindGin == index_type);
+	GPOS_ASSERT_IMP(NULL != mdid_item_type, IMDIndex::EmdindBitmap == index_type || IMDIndex::EmdindBtree == index_type || IMDIndex::EmdindGist == index_type || IMDIndex::EmdindGin == index_type);
 	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == index_type, NULL != mdid_item_type && mdid_item_type->IsValid());
 	GPOS_ASSERT(NULL != mdid_op_classes_array);
 	

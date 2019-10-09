@@ -130,6 +130,15 @@ namespace gpnaucrates
 						CExpression *outer_refs_scalar_expr, // filter expression involving outer references
 						IStatisticsArray *all_outer_stats
 						);
+
+		static
+		CDouble SelectivityOfPredicate
+						(
+						 CMemoryPool *mp,
+						 CExpression *pred,
+						 CTableDescriptor *ptabdesc,
+						 CColRefSet *pcrsOuterRefs
+						);
 	};
 }
 

@@ -44,6 +44,26 @@ CXformIndexGet2IndexScan::CXformIndexGet2IndexScan
 		)
 {}
 
+CXform::EXformPromise CXformIndexGet2IndexScan::Exfp
+(
+ CExpressionHandle &exprhdl
+)
+const
+{
+	CLogicalIndexGet *popGet = CLogicalIndexGet::PopConvert(exprhdl.Pop());
+
+	CTableDescriptor *ptabdesc = popGet->Ptabdesc();
+	CIndexDescriptor *pindexdesc = popGet->Pindexdesc();
+
+	if (pindexdesc->IndexType() == IMDIndex::EmdindBtree && ptabdesc->IsAORowOrColTable())
+	{
+		// we don't support btree index scans on AO tables
+		return CXform::ExfpNone;
+	}
+
+	return CXform::ExfpHigh;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CXformIndexGet2IndexScan::Transform
@@ -67,11 +87,10 @@ CXformIndexGet2IndexScan::Transform
 
 	CLogicalIndexGet *pop = CLogicalIndexGet::PopConvert(pexpr->Pop());
 	CMemoryPool *mp = pxfctxt->Pmp();
-
 	CIndexDescriptor *pindexdesc = pop->Pindexdesc();
-	pindexdesc->AddRef();
-
 	CTableDescriptor *ptabdesc = pop->Ptabdesc();
+
+	pindexdesc->AddRef();
 	ptabdesc->AddRef();
 
 	CColRefArray *pdrgpcrOutput = pop->PdrgpcrOutput();
