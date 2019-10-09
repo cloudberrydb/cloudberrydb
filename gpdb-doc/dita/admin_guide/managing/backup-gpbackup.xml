@@ -27,8 +27,8 @@
       commands in parallel. The backup process acquires an <codeph>ACCESS SHARE</codeph> lock on
       each table that is backed up.</p>
     <p>For information about the <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> utility
-      options, see <xref href="../../utility_guide/admin_utilities/gpbackup.xml">gpbackup</xref> and
-        <xref href="../../utility_guide/admin_utilities/gprestore.xml">gprestore</xref>.</p>
+      options, see <xref href="../../utility_guide/ref/gpbackup.xml">gpbackup</xref> and
+        <xref href="../../utility_guide/ref/gprestore.xml">gprestore</xref>.</p>
   </body>
   <topic id="topic_vh5_1hd_tbb">
     <title>Requirements and Limitations</title>

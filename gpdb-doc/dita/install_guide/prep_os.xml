@@ -202,7 +202,7 @@ $ echo $(expr $(getconf _PHYS_PAGES) / 2 \* $(getconf PAGE_SIZE))</codeblock></p
                     <codeblock>PORT_BASE = 6000
 MIRROR_PORT_BASE = 7000</codeblock><p>For
                     information about the port ranges that are used by Greenplum Database, see <xref
-                      href="../utility_guide/admin_utilities/gpinitsystem.xml" format="dita"
+                      href="../utility_guide/ref/gpinitsystem.xml" format="dita"
                       scope="peer" type="topic">gpinitsystem</xref>.</p></li>
                 <li>Azure deployments require Greenplum Database to not use port 65330. Add the
                   following line to <filepath>sysctl.conf</filepath>:
@@ -425,7 +425,7 @@ server smdw</codeblock></li>
 server 10.6.220.20</codeblock></li>
           <li id="ji162612">On the master host, use the NTP daemon synchronize the system clocks on
             all Greenplum hosts. For example, using <codeph><xref
-                href="../utility_guide/admin_utilities/gpssh.xml" format="dita" scope="peer"
+                href="../utility_guide/ref/gpssh.xml" format="dita" scope="peer"
                 type="topic"
             >gpssh</xref></codeph>:<codeblock># gpssh -f hostfile_gpssh_allhosts -v -e 'ntpd'</codeblock></li>
         </ol>

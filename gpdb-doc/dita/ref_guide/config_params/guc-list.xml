@@ -9228,7 +9228,7 @@ statement_mem = rg_perseg_mem / max_expected_concurrent_queries</codeblock></li>
       <p>For information about the <codeph>gpfdists</codeph> protocol, see <xref
           href="../../admin_guide/external/g-gpfdists-protocol.xml">gpfdists:// Protocol</xref>. For
         information about running the <codeph>gpfdist</codeph> utility, see <xref
-          href="../../utility_guide/admin_utilities/gpfdist.xml"/>. </p>
+          href="../../utility_guide/ref/gpfdist.xml"/>. </p>
       <table id="table_ncx_n1h_ldb">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>

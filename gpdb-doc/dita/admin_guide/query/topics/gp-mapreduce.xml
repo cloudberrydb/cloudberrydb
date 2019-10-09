@@ -13,7 +13,7 @@
       for execution by the Greenplum Database parallel engine. The Greenplum Database system distributes
       the input data, executes the program across a set of machines, handles machine failures, and
       manages the required inter-machine communication.</p>
-    <p>Refer to <codeph><xref href="../../../utility_guide/admin_utilities/gpmapreduce.xml#topic1" type="topic" format="dita"/></codeph>
+    <p>Refer to <codeph><xref href="../../../utility_guide/ref/gpmapreduce.xml#topic1" type="topic" format="dita"/></codeph>
       for details about running the Greenplum MapReduce program.</p>
   </body>
   <topic id="topic2" xml:lang="en">
@@ -86,7 +86,7 @@ date: 1865
         to one another. The use of white space is significant. White space should not be used simply
         for formatting purposes, and tabs should not be used at all.</p>
       <p>Refer to
-        <codeph><xref href="../../../utility_guide/admin_utilities/gpmapreduce-yaml.xml#topic1" type="topic" format="dita"/></codeph>
+        <codeph><xref href="../../../utility_guide/ref/gpmapreduce-yaml.xml#topic1" type="topic" format="dita"/></codeph>
         for detailed information about the Greenplum MapReduce configuration file
 format
          and the keys and values supported.</p>
