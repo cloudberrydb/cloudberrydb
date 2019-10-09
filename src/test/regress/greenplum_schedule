@@ -79,11 +79,8 @@ test: zlib
 test: instr_in_shmem_verify
 
 test: workfile_limits
-# This test will change the gp_workfile_limit_per_segment and will need to restart the DB.
 # It will also use faultinjector - so it needs to be in a group by itself.
-test: segspace_setup
 test: segspace
-test: segspace_cleanup
 
 test: cursor
 
