@@ -9,15 +9,14 @@ DROP RESOURCE GROUP rg1_cpu_test;
 ERROR:  resource group "rg1_cpu_test" does not exist
 DROP RESOURCE GROUP rg2_cpu_test;
 ERROR:  resource group "rg2_cpu_test" does not exist
-DROP LANGUAGE IF EXISTS plpythonu;
-DROP
+
+CREATE LANGUAGE plpythonu;
+CREATE
 -- end_ignore
 
 --
 -- helper functions, tables and views
 --
-CREATE LANGUAGE plpythonu;
-CREATE
 
 DROP TABLE IF EXISTS cpu_usage_samples;
 DROP
@@ -27,18 +26,16 @@ CREATE
 -- fetch_sample: select cpu_usage from gp_toolkit.gp_resgroup_status
 -- and dump them into text in json format then save them in db for
 -- further analysis.
-CREATE OR REPLACE FUNCTION fetch_sample() RETURNS text AS $$ import pygresql.pg as pg import json 
-conn = pg.connect(dbname="isolation2resgrouptest") group_cpus = conn.query("select rsgname, cpu_usage from gp_toolkit.gp_resgroup_status")\ .getresult() json_text = json.dumps(dict([(name, json.loads(cpu)) for name, cpu in group_cpus])) sql = "insert into cpu_usage_samples values ('{value}')".format(value=json_text) conn.query(sql) return json_text $$ LANGUAGE plpythonu;
+CREATE OR REPLACE FUNCTION fetch_sample() RETURNS text AS $$ import json 
+group_cpus = plpy.execute(''' SELECT rsgname, cpu_usage FROM gp_toolkit.gp_resgroup_status ''') json_text = json.dumps(dict([(row['rsgname'], json.loads(row['cpu_usage'])) for row in group_cpus])) plpy.execute(''' INSERT INTO cpu_usage_samples VALUES ('{value}') '''.format(value=json_text)) return json_text $$ LANGUAGE plpythonu;
 CREATE
 
 -- verify_cpu_usage: calculate each QE's average cpu usage using all the data in
 -- the table cpu_usage_sample. And compare the average value to the expected value.
 -- return true if the practical value is close to the expected value.
-CREATE OR REPLACE FUNCTION verify_cpu_usage(groupname TEXT, expect_cpu_usage INT, err_rate INT) RETURNS BOOL AS $$ import pygresql.pg as pg import json 
-conn = pg.connect(dbname="isolation2resgrouptest") 
+CREATE OR REPLACE FUNCTION verify_cpu_usage(groupname TEXT, expect_cpu_usage INT, err_rate INT) RETURNS BOOL AS $$ import json 
 def add_vector(vec1, vec2): r = dict() for seg_id1, value1 in vec1.items(): r[seg_id1] = value1 + vec2[seg_id1] return r 
-
-def verify_cpu_usage(): all_info = conn.query("select sample from cpu_usage_samples").getresult() usage_sum = reduce(add_vector, [json.loads(info)[groupname] for info, in all_info]) usage = [(float(v) / len(all_info)) for k, v in usage_sum.items() if k != "-1"] avg = sum(usage) / len(usage) return abs(avg - expect_cpu_usage) <= err_rate 
+def verify_cpu_usage(): all_info = plpy.execute(''' SELECT sample::json->'{name}' AS cpu FROM cpu_usage_samples '''.format(name=groupname)) usage_sum = reduce(add_vector, [json.loads(row['cpu']) for row in all_info]) usage = [(float(v) / all_info.nrows()) for k, v in usage_sum.items() if k != "-1"] avg = sum(usage) / len(usage) return abs(avg - expect_cpu_usage) <= err_rate 
 return verify_cpu_usage() $$ LANGUAGE plpythonu;
 CREATE
 
@@ -51,54 +48,34 @@ CREATE
 CREATE VIEW cancel_all AS SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM % WHERE busy%';
 CREATE
 
---
--- check gpdb cgroup configuration
---
--- cfs_quota_us := cfs_period_us * ncores * gp_resource_group_cpu_limit
--- shares := 1024 * gp_resource_group_cpu_priority
---
-
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/cpu.cfs_quota_us) == int($(cat @cgroup_mnt_point@/cpu/gpdb/cpu.cfs_period_us) * $(nproc) * $(psql -d isolation2resgrouptest -Aqtc "SHOW gp_resource_group_cpu_limit"))";
-True
-
-
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/cpu.shares) == 1024 * $(psql -d isolation2resgrouptest -Aqtc "SHOW gp_resource_group_cpu_priority")";
-True
-
-
---
--- check default groups configuration
---
--- SUB/shares := TOP/shares * cpu_rate_limit
---
-
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='default_group'")/cpu.shares) == int($(cat @cgroup_mnt_point@/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='default_group'") / 100)";
-True
-
-
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='admin_group'")/cpu.shares) == int($(cat @cgroup_mnt_point@/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='admin_group'") / 100)";
-True
-
-
--- lower admin_group's cpu_rate_limit to minimize its side effect
-ALTER RESOURCE GROUP admin_group SET cpu_rate_limit 1;
-ALTER
-
 -- create two resource groups
 CREATE RESOURCE GROUP rg1_cpu_test WITH (concurrency=5, cpu_rate_limit=10, memory_limit=20);
 CREATE
 CREATE RESOURCE GROUP rg2_cpu_test WITH (concurrency=5, cpu_rate_limit=20, memory_limit=20);
 CREATE
 
--- check rg1_cpu_test configuration
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='rg1_cpu_test'")/cpu.shares) == int($(cat @cgroup_mnt_point@/cpu/gpdb/cpu.shares) * 0.1)";
-True
+--
+-- check gpdb cgroup configuration
+--
+DO LANGUAGE PLPYTHONU $$ import subprocess 
+cgroot = '@cgroup_mnt_point@' 
+def get_cgroup_prop(prop): fullpath = cgroot + '/' + prop return int(open(fullpath).readline()) 
+def run_command(cmd): return subprocess.check_output(cmd.split()) 
+def show_guc(guc): return plpy.execute('SHOW {}'.format(guc))[0][guc] 
+# # check gpdb top-level cgroup configuration # 
+# get top-level cgroup props cfs_quota_us = get_cgroup_prop('/cpu/gpdb/cpu.cfs_quota_us') cfs_period_us = get_cgroup_prop('/cpu/gpdb/cpu.cfs_period_us') shares = get_cgroup_prop('/cpu/gpdb/cpu.shares') 
+# get system props ncores = int(run_command('nproc')) 
+# get global gucs gp_resource_group_cpu_limit = float(show_guc('gp_resource_group_cpu_limit')) gp_resource_group_cpu_priority = int(show_guc('gp_resource_group_cpu_priority')) 
+# cfs_quota_us := cfs_period_us * ncores * gp_resource_group_cpu_limit assert cfs_quota_us == cfs_period_us * ncores * gp_resource_group_cpu_limit 
+# shares := 1024 * gp_resource_group_cpu_priority assert shares == 1024 * gp_resource_group_cpu_priority 
+# SUB/shares := TOP/shares * cpu_rate_limit def check_group_shares(name): cpu_rate_limit = int(plpy.execute(''' SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='{}' '''.format(name))[0]['value']) oid = int(plpy.execute(''' SELECT oid FROM pg_resgroup WHERE rsgname='{}' '''.format(name))[0]['oid']) sub_shares = get_cgroup_prop('/cpu/gpdb/{}/cpu.shares'.format(oid)) assert sub_shares == shares * cpu_rate_limit / 100 
+# check default groups check_group_shares('default_group') check_group_shares('admin_group') 
+# check user groups check_group_shares('rg1_cpu_test') check_group_shares('rg2_cpu_test') $$;
+DO
 
-
--- check rg2_cpu_test configuration
-! python -c "print $(cat @cgroup_mnt_point@/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='rg2_cpu_test'")/cpu.shares) == int($(cat @cgroup_mnt_point@/cpu/gpdb/cpu.shares) * 0.2)";
-True
-
+-- lower admin_group's cpu_rate_limit to minimize its side effect
+ALTER RESOURCE GROUP admin_group SET cpu_rate_limit 1;
+ALTER
 
 -- create two roles and assign them to above groups
 CREATE ROLE role1_cpu_test RESOURCE GROUP rg1_cpu_test;
