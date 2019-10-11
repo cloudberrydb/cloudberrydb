@@ -140,15 +140,7 @@ gpadmin --stdin'</codeblock></li>
       <p>Before initializing the system with the new segments, shut down the system with
           <codeph>gpstop</codeph> to prevent user activity from skewing performance test results.
         Then, repeat the performance tests using host files that include <i>all</i> hosts, existing
-        and new:</p>
-      <ul>
-        <li id="no158731">
-          <xref href="#topic19" type="topic" format="dita"/>
-        </li>
-        <li id="no160320">
-          <xref href="#topic20" type="topic" format="dita"/>
-        </li>
-      </ul>
+        and new.</p>
     </body>
   </topic>
 </topic>
