@@ -256,7 +256,7 @@ START_QE() {
 #******************************************************************************
 # Main Section
 #******************************************************************************
-trap '$ECHO "KILLED:$SEGMENT_TO_CREATE" >> $PARALLEL_STATUS_FILE;ERROR_EXIT "[FATAL]:-[$INST_COUNT]-Recieved INT or TERM signal" 2' INT TERM
+trap '$ECHO "KILLED:$SEGMENT_TO_CREATE" >> $PARALLEL_STATUS_FILE;ERROR_EXIT "[FATAL]:-[$INST_COUNT]-Recieved INT or TERM signal"' INT TERM
 while getopts ":qp:" opt
 do
 	case $opt in

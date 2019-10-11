@@ -21,7 +21,7 @@ Feature: gpinitsystem tests
         Given create demo cluster config
         # force a failure by passing no args
         When the user runs "gpinitsystem"
-        Then gpinitsystem should return a return code of 2
+        Then gpinitsystem should return a return code of 1
         When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
         Then gpinitsystem should return a return code of 0
 

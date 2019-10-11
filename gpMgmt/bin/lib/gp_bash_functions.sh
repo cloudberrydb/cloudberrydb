@@ -14,7 +14,7 @@
 #Check that SHELL is Bash
 if [ -z $BASH ]; then
 	echo "[FATAL]:-Scripts must be executed using the Bash shell"
-	exit 2
+	exit 1
 fi
 #CMDPATH is the list of locations to search for commands, in precedence order
 declare -a CMDPATH
@@ -27,7 +27,7 @@ if [ ${#GPPATH[@]} -eq 0 ];then
 	echo "[FATAL]:-GPHOME environment variable is required to run GPDB but could not be found."
 	echo "Please set it by sourcing the  greenplum_path.sh  in your GPDB installation directory."
 	echo "Example: ''. /usr/local/gpdb/greenplum_path.sh''"
-	exit 2
+	exit 1
 fi
 
 #GP_UNIQUE_COMMAND is used to identify the binary directory
@@ -114,7 +114,7 @@ PSQLBIN=`findMppPath`
 if [ x"$PSQLBIN" = x"" ];then
 		echo "Problem in gp_bash_functions, command '$GP_UNIQUE_COMMAND' not found in Greenplum path."
 		echo "Try setting GPHOME to the location of your Greenplum distribution."
-		exit 99
+		exit 1
 fi
 
 PSQLBIN=`$DIRNAME $PSQLBIN`
@@ -193,7 +193,7 @@ LOG_MSG () {
 		level=${1%%]*}
 		case "$level" in
 		*FATAL*)
-			EXIT_STATUS=2
+			EXIT_STATUS=1
 			;;
 		esac
 
@@ -252,11 +252,11 @@ ERROR_EXIT () {
 				if [ -s $BACKOUT_FILE ]; then
 						LOG_MSG "[WARN]:-Script has left Greenplum Database in an incomplete state"
 						LOG_MSG "[WARN]:-Run command bash $BACKOUT_FILE to remove these changes"
-						BACKOUT_COMMAND "if [ x$MASTER_HOSTNAME != x\`$HOSTNAME\` ];then $ECHO \"[FATAL]:-Not on original master host $MASTER_HOSTNAME, backout script exiting!\";exit 2;fi"
+						BACKOUT_COMMAND "if [ x$MASTER_HOSTNAME != x\`$HOSTNAME\` ];then $ECHO \"[FATAL]:-Not on original master host $MASTER_HOSTNAME, backout script exiting!\";exit 1;fi"
 						$ECHO "$RM -f $BACKOUT_FILE" >> $BACKOUT_FILE
 				fi
 		fi
-		exit $2
+		exit 1
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
 
@@ -281,7 +281,7 @@ ERROR_CHK () {
 			DEBUG_LEVEL=$INITIAL_LEVEL
 		else
 			LOG_MSG "[INFO]:-End Function $FUNCNAME"
-			ERROR_EXIT "[FATAL]:-Failed to complete $MSG_TXT " 2
+			ERROR_EXIT "[FATAL]:-Failed to complete $MSG_TXT "
 		fi
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -333,7 +333,7 @@ SED_PG_CONF () {
 				fi
 				RETVAL=$?
 				if [ $RETVAL -ne 0 ]; then
-					ERROR_EXIT "[FATAL]:-Failed to replace $SEARCH_TXT in $FILENAME" 2
+					ERROR_EXIT "[FATAL]:-Failed to replace $SEARCH_TXT in $FILENAME"
 				else
 					LOG_MSG "[INFO]:-Replaced line in $FILENAME"
 					$RM -f ${FILENAME}.bak1
@@ -341,7 +341,7 @@ SED_PG_CONF () {
 				$SED -i'.bak2' -e "s/^#${SEARCH_TXT}/${SEARCH_TXT}/" $FILENAME
 				RETVAL=$?
 				if [ $RETVAL -ne 0 ]; then
-					ERROR_EXIT "[FATAL]:-Failed to replace #$SEARCH_TXT in $FILENAME" 2
+					ERROR_EXIT "[FATAL]:-Failed to replace #$SEARCH_TXT in $FILENAME"
 				else
 					LOG_MSG "[INFO]:-Replaced line in $FILENAME"
 					$RM -f ${FILENAME}.bak2
@@ -363,7 +363,7 @@ SED_PG_CONF () {
 		if [ `$TRUSTED_SHELL $SED_HOST "$GREP -c \"${SEARCH_TXT}\" $FILENAME"` -eq 0 ] || [ $APPEND -eq 1 ]; then
 			$TRUSTED_SHELL $SED_HOST "$ECHO \"$SUB_TXT\" >> $FILENAME"
 			if [ $RETVAL -ne 0 ]; then
-				ERROR_EXIT "[FATAL]:-Failed to append line $SUB_TXT to $FILENAME on $SED_HOST" 2
+				ERROR_EXIT "[FATAL]:-Failed to append line $SUB_TXT to $FILENAME on $SED_HOST"
 			else
 				LOG_MSG "[INFO]:-Appended line $SUB_TXT to $FILENAME on $SED_HOST" 1
 			fi
@@ -375,7 +375,7 @@ SED_PG_CONF () {
 			fi
 			$TRUSTED_SHELL $SED_HOST sed -i'.bak1' -f /dev/stdin "$FILENAME" <<< "$SED_COMMAND" > /dev/null 2>&1
 			if [ $RETVAL -ne 0 ]; then
-				ERROR_EXIT "[FATAL]:-Failed to insert $SUB_TXT in $FILENAME on $SED_HOST" 2
+				ERROR_EXIT "[FATAL]:-Failed to insert $SUB_TXT in $FILENAME on $SED_HOST"
 			else
 				LOG_MSG "[INFO]:-Replaced line in $FILENAME on $SED_HOST"
 				$TRUSTED_SHELL $SED_HOST "$RM -f ${FILENAME}.bak1" > /dev/null 2>&1
@@ -384,7 +384,7 @@ SED_PG_CONF () {
 			SED_COMMAND="s/^#${SEARCH_TXT}/${SEARCH_TXT}/"
 			$TRUSTED_SHELL $SED_HOST sed -i'.bak2' -f /dev/stdin "$FILENAME" <<< "$SED_COMMAND" > /dev/null 2>&1
 			if [ $RETVAL -ne 0 ]; then
-				ERROR_EXIT "[FATAL]:-Failed to substitute #${SEARCH_TXT} in $FILENAME on $SED_HOST" 2
+				ERROR_EXIT "[FATAL]:-Failed to substitute #${SEARCH_TXT} in $FILENAME on $SED_HOST"
 			else
 				LOG_MSG "[INFO]:-Replaced line in $FILENAME on $SED_HOST"
 				$TRUSTED_SHELL $SED_HOST "$RM -f ${FILENAME}.bak2" > /dev/null 2>&1
@@ -400,7 +400,7 @@ POSTGRES_PORT_CHK () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	GET_PG_PID_ACTIVE $1 $2
 	if [ $PID -ne 0 ];then
-		ERROR_EXIT "[FATAL]:-Host $2 has an active database process on port = $1" 2
+		ERROR_EXIT "[FATAL]:-Host $2 has an active database process on port = $1"
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -618,9 +618,9 @@ GET_MASTER_PORT () {
 		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 		MASTER_DATA_DIRECTORY=$1
 		if [ x"" == x"$MASTER_DATA_DIRECTORY" ];then
-			ERROR_EXIT "[FATAL]:-MASTER_DATA_DIRECTORY variable not set" 2;fi
+			ERROR_EXIT "[FATAL]:-MASTER_DATA_DIRECTORY variable not set";fi
 		if [ ! -d $MASTER_DATA_DIRECTORY ]; then
-				ERROR_EXIT "[FATAL]:-No $MASTER_DATA_DIRECTORY directory" 2
+				ERROR_EXIT "[FATAL]:-No $MASTER_DATA_DIRECTORY directory"
 		fi
 		if [ -r $MASTER_DATA_DIRECTORY/$PG_CONF ];then
 			MASTER_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $MASTER_DATA_DIRECTORY/$PG_CONF | $AWK '$1=="port" {print $2}' | $TAIL -1`
@@ -634,11 +634,11 @@ GET_MASTER_PORT () {
                     fi
                 done
                 if [ x"" == x"$MASTER_PORT" ] ; then
-			        ERROR_EXIT "[FATAL]:-Failed to obtain master port number from $MASTER_DATA_DIRECTORY/$PG_CONF" 2
+			        ERROR_EXIT "[FATAL]:-Failed to obtain master port number from $MASTER_DATA_DIRECTORY/$PG_CONF"
                 fi
 			fi
 		else
-			ERROR_EXIT "[FATAL]:-Do not have read access to $MASTER_DATA_DIRECTORY/$PG_CONF" 2
+			ERROR_EXIT "[FATAL]:-Do not have read access to $MASTER_DATA_DIRECTORY/$PG_CONF"
 		fi
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -682,7 +682,7 @@ GET_CIDRADDR () {
 
 BUILD_MASTER_PG_HBA_FILE () {
         LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-	if [ $# -eq 0 ];then ERROR_EXIT "[FATAL]:-Passed zero parameters, expected at least 2" 2;fi
+	if [ $# -eq 0 ];then ERROR_EXIT "[FATAL]:-Passed zero parameters, expected at least 2";fi
 	GP_DIR=$1
 	HBA_HOSTNAMES=${2:-0}
         LOG_MSG "[INFO]:-Clearing values in Master $PG_HBA"
@@ -731,7 +731,7 @@ BUILD_MASTER_PG_HBA_FILE () {
 
 BUILD_GPSSH_CONF () {
         LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-        if [ $# -eq 0 ];then ERROR_EXIT "[FATAL]:-Passed zero parameters, expected at least 1" 2;fi
+        if [ $# -eq 0 ];then ERROR_EXIT "[FATAL]:-Passed zero parameters, expected at least 1";fi
         GP_DIR=$1
         $CAT <<_EOF_ >> $GP_DIR/gpssh.conf
 [gpssh]
@@ -972,19 +972,19 @@ PING_HOST () {
 		0) LOG_MSG "[INFO]:-$TARGET_HOST contact established"
                    ;;
 		1) if [ $PING_EXIT -eq 0 ];then
-			ERROR_EXIT "[FATAL]:-Unable to contact $TARGET_HOST: $OUTPUT" 2
+			ERROR_EXIT "[FATAL]:-Unable to contact $TARGET_HOST: $OUTPUT"
 		   else
 			LOG_MSG "[WARN]:-Unable to contact $TARGET_HOST: $OUTPUT" 1
 		   fi
                    ;;
 		2) if [ $PING_EXIT -eq 0 ];then
-			ERROR_EXIT "[FATAL]:-Unknown host $TARGET_HOST: $OUTPUT" 2
+			ERROR_EXIT "[FATAL]:-Unknown host $TARGET_HOST: $OUTPUT"
 		   else
 			LOG_MSG "[WARN]:-Unknown host $TARGET_HOST: $OUTPUT" 1
 		   fi
                    ;;
 		*) if [ $PING_EXIT -eq 0 ];then
-			ERROR_EXIT "[FATAL]:-Cannot ping host $TARGET_HOST: $OUTPUT" 2
+			ERROR_EXIT "[FATAL]:-Cannot ping host $TARGET_HOST: $OUTPUT"
 		   else
 			LOG_MSG "[WARN]:-Cannot ping host $TARGET_HOST: $OUTPUT" 1
 		   fi
@@ -1009,7 +1009,7 @@ PARALLEL_SETUP () {
 
 PARALLEL_COUNT () {
         LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-	if [ $# -ne 2 ];then ERROR_EXIT "[FATAL]:-Incorrect number of parameters passed to $FUNCNAME" 2;fi
+	if [ $# -ne 2 ];then ERROR_EXIT "[FATAL]:-Incorrect number of parameters passed to $FUNCNAME";fi
 	BATCH_LIMIT=$1
 	BATCH_DEFAULT=$2
 	((INST_COUNT=$INST_COUNT+1))
@@ -1040,7 +1040,7 @@ PARALLEL_WAIT () {
 			if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
 			LOG_MSG "[FATAL]:-Failed to process this batch of segments within $WAIT_LIMIT seconds" 1
 			LOG_MSG "[INFO]:-Review contents of $LOG_FILE" 1
-			ERROR_EXIT "[FATAL]:-Process timeout failure" 2
+			ERROR_EXIT "[FATAL]:-Process timeout failure"
 		fi
 	done
 	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
@@ -1073,7 +1073,7 @@ PARALLEL_SUMMARY_STATUS_REPORT () {
                 fi
                 LOG_MSG "[INFO]:------------------------------------------------" 1
 	else
-		 LOG_MSG "[WARN]:-Could not locate status file $1" 1
+		LOG_MSG "[WARN]:-Could not locate status file $1" 1
 		REPORT_FAIL=1
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"

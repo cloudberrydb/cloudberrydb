@@ -202,23 +202,23 @@ CHK_PARAMS () {
 		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 		LOG_MSG "[INFO]:-Checking configuration parameters, please wait..." 1
 		if [ $USER_NAME == "root" ]; then
-				ERROR_EXIT "[FATAL]:-Unable to run this script as $USER" 2
+				ERROR_EXIT "[FATAL]:-Unable to run this script as $USER"
 		fi
 		if [ x"" = x"$GPHOME" ]; then
 				LOG_MSG "[FATAL]:-Environment variable \$GPHOME not set" 1
-				ERROR_EXIT "[FATAL]:-Unable to continue" 2
+				ERROR_EXIT "[FATAL]:-Unable to continue"
 		fi
 		# Check that we can see initdb
 		if [ x"$INITDB" = x"" ] || [ ! -x $INITDB ];then
-			ERROR_EXIT "[FATAL]:-Unable to locate initdb" 2
+			ERROR_EXIT "[FATAL]:-Unable to locate initdb"
 		fi
 		# Make sure that script has been supplied a config file
 		if [ x"$CLUSTER_CONFIG" = x"" ] && [ x"$INPUT_CONFIG" = x"" ]; then
-			ERROR_EXIT "[FATAL]:-At least one of two options, [-c] or [-I], is required." 2
+			ERROR_EXIT "[FATAL]:-At least one of two options, [-c] or [-I], is required."
 		fi
 
 		if [ -n "$CLUSTER_CONFIG" ] && [ -n "$INPUT_CONFIG" ]; then
-			ERROR_EXIT "[FATAL]:-Options [-c] and [-I] cannot be used at the same time." 2
+			ERROR_EXIT "[FATAL]:-Options [-c] and [-I] cannot be used at the same time."
 		fi
 		
 		if [ x"" != x"$CLUSTER_CONFIG" ] ; then
@@ -226,7 +226,7 @@ CHK_PARAMS () {
 		    CHK_FILE $CLUSTER_CONFIG
 		    
 		    if [ $EXISTS -ne 0 ]; then
-		        ERROR_EXIT "[FATAL]:-Configuration file $CLUSTER_CONFIG does not exist." 2
+		        ERROR_EXIT "[FATAL]:-Configuration file $CLUSTER_CONFIG does not exist."
 		    fi
 		    
 		    # Make sure old CLUSTER_CONFIG settings are not hanging around.
@@ -243,11 +243,11 @@ CHK_PARAMS () {
 		    . $CLUSTER_CONFIG
 		    
 		    if [ x"" != x"$QD_PRIMARY_ARRAY" ] ; then
-			    ERROR_EXIT "[FATAL]:-Cannot specify QD_PRIMARY_ARRAY in '-c <config file>'.  Only valid with '-I <input file>'" 2
+			    ERROR_EXIT "[FATAL]:-Cannot specify QD_PRIMARY_ARRAY in '-c <config file>'.  Only valid with '-I <input file>'"
 		    fi
 
 		    if [ x"" = x"$PORT_BASE" ]; then
-			    ERROR_EXIT "[FATAL]:-PORT_BASE not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+			    ERROR_EXIT "[FATAL]:-PORT_BASE not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file."
 		    fi
 
 		    if [ $MIRROR_PORT_BASE ]; then
@@ -269,16 +269,16 @@ CHK_PARAMS () {
 		    # Now check to see if MACHINE_LIST_FILE is still empty
 		    if [ x"" == x"$MACHINE_LIST_FILE" ];then
 			LOG_MSG "[FATAL]:-MACHINE_LIST_FILE variable is unset, and -h option not supplied" 1
-			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+			ERROR_EXIT "[FATAL]:-Unable to continue"
 		    fi
 		fi
 
 		# Check for required definitions in the CLUSTER_CONFIG file
 		if [ x"" = x"$SEG_PREFIX" ]; then
-			ERROR_EXIT "[FATAL]:-SEG_PREFIX not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+			ERROR_EXIT "[FATAL]:-SEG_PREFIX not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file."
 		fi
 		if [ x"" = x"$DATA_DIRECTORY" ]; then
-			ERROR_EXIT "[FATAL]:-DATA_DIRECTORY not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+			ERROR_EXIT "[FATAL]:-DATA_DIRECTORY not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file."
 		fi
 
 		if [ x"" = x"$HEAP_CHECKSUM" ]; then
@@ -305,7 +305,7 @@ CHK_PARAMS () {
 		$LOCALE >> $LOG_FILE
 		LOG_MSG "[INFO]:-End of system locale dump"
 		if [ ! -f $GPCREATESEG ];then
-			ERROR_EXIT "[FATAL]:-No $GPCREATESEG exists" 2
+			ERROR_EXIT "[FATAL]:-No $GPCREATESEG exists"
 		fi
 
 		if [ x"" == x"$INPUT_CONFIG" ] ; then
@@ -315,7 +315,7 @@ CHK_PARAMS () {
 		    do
 			CHK_FILE $FILE
 			if [ $EXISTS -ne 0 ]; then
-			    ERROR_EXIT "[FATAL]:-Expected file \"$FILE\" not found" 2
+			    ERROR_EXIT "[FATAL]:-Expected file \"$FILE\" not found"
 			else
 			    LOG_MSG "[INFO]:-Completed check of file $FILE"
 			fi
@@ -333,7 +333,7 @@ CHK_PARAMS () {
 		export ARRAY_NAME
 
 		if [ x"" = x"$MASTER_HOSTNAME" ]; then
-			ERROR_EXIT "[FATAL]:MASTER_HOSTNAME variable not set" 2
+			ERROR_EXIT "[FATAL]:MASTER_HOSTNAME variable not set"
 		fi
 
 		# Make sure that this script is running on the QD host
@@ -349,24 +349,24 @@ CHK_PARAMS () {
 				LOG_MSG "[FATAL]:-Master hostname in configuration file is ${MASTER_HOSTNAME}" 1
 				LOG_MSG "[FATAL]:-Operating system command returns `$HOSTNAME`" 1
 				LOG_MSG "[FATAL]:-Unable to resolve $MASTER_HOSTNAME on this host" 1
-				ERROR_EXIT "[FATAL]:-Master hostname in gpinitsystem configuration file must be $MASTER_HOSTNAME" 2
+				ERROR_EXIT "[FATAL]:-Master hostname in gpinitsystem configuration file must be $MASTER_HOSTNAME"
 			fi
 		fi
 
 		# MASTER_PORT
 		if [ x"" = x"$MASTER_PORT" ]; then
-			ERROR_EXIT "[FATAL]:-MASTER_PORT variable not set" 2
+			ERROR_EXIT "[FATAL]:-MASTER_PORT variable not set"
 		fi
 
 		# DATA_DIRECTORY
 		((QE_PRIMARY_COUNT=${#DATA_DIRECTORY[@]}))
 		if [ $QE_PRIMARY_COUNT -eq 0 ]; then
-			ERROR_EXIT "[FATAL]:-Number of primary directories 0 (zero)" 2
+			ERROR_EXIT "[FATAL]:-Number of primary directories 0 (zero)"
 		fi
 
 		# MASTER_DIRECTORY
 		if [ x"" = x"$MASTER_DIRECTORY" ]; then
-			ERROR_EXIT "[FATAL]:-MASTER_DIRECTORY variable not set" 2
+			ERROR_EXIT "[FATAL]:-MASTER_DIRECTORY variable not set"
 		fi
 		# Check that we have write access to the proposed master data directory
 		W_DIR=$MASTER_DIRECTORY
@@ -374,14 +374,14 @@ CHK_PARAMS () {
 		$TOUCH ${W_DIR}/tmp_file_test
 		RETVAL=$?
 		if [ $RETVAL -ne 0 ];then
-			ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on master host " 2
+			ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on master host "
 		else
 			$RM -f ${W_DIR}/tmp_file_test
 			LOG_MSG "[INFO]:-Write test passed $W_DIR directory on master host"
 		fi	
 		# Check that the master segment directory does not exist
 		if [ -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 ];then
-			ERROR_EXIT "[FATAL]:-Master host data directory ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 already exists" 2
+			ERROR_EXIT "[FATAL]:-Master host data directory ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 already exists"
 		fi
 		# DATABASE_PREFIX
 		if [ x"" = x"$DATABASE_NAME" ]; then
@@ -390,7 +390,7 @@ CHK_PARAMS () {
 			LOG_MSG "[INFO]:-Will create database $DATABASE_NAME"
 		fi
 		if [ ! $TRUSTED_SHELL ]; then
-				ERROR_EXIT "[FATAL]:-TRUSTED_SHELL variable not set" 2
+				ERROR_EXIT "[FATAL]:-TRUSTED_SHELL variable not set"
 		fi
 		# ENCODING
 		if [ ! $ENCODING ]; then
@@ -398,7 +398,7 @@ CHK_PARAMS () {
 			ENCODING="UTF-8"
 		fi
 		if [ x"SQL_ASCII" = x"$ENCODING" ]; then
-			ERROR_EXIT "[FATAL]:-SQL_ASCII is no longer supported as a server encoding" 2
+			ERROR_EXIT "[FATAL]:-SQL_ASCII is no longer supported as a server encoding"
 		fi
 		# MASTER_MAX_CONNECT
 		if [ ! $MASTER_MAX_CONNECT ];then
@@ -406,7 +406,7 @@ CHK_PARAMS () {
 			MASTER_MAX_CONNECT=$DEFAULT_QD_MAX_CONNECT
 		else
 			if [ $MASTER_MAX_CONNECT -lt 1 ];then
-				ERROR_EXIT "[FATAL]:-MASTER_MAX_CONNECT less than 1" 2
+				ERROR_EXIT "[FATAL]:-MASTER_MAX_CONNECT less than 1"
 			fi
 		fi
 		((QE_MAX_CONNECT=$MASTER_MAX_CONNECT*$QE_CONNECT_FACTOR))
@@ -423,7 +423,7 @@ CHK_PARAMS () {
 		# Number of QE hosts in this configuration
 		((NUM_QES=${#MACHINE_LIST[*]}))
 		if [ $NUM_QES -eq 0 ]; then
-			ERROR_EXIT "[FATAL]:-Number of Segment instances's 0 (zero)" 2
+			ERROR_EXIT "[FATAL]:-Number of Segment instances's 0 (zero)"
 		else
 			LOG_MSG "[INFO]:-Number of segment instance hosts = $NUM_QES"
 			if [ $NUM_QES -eq 1 ];then
@@ -440,7 +440,7 @@ CHK_PARAMS () {
 			((NUM_MIRROR_DIRECTORY=${#MIRROR_DATA_DIRECTORY[@]}))
 			if [ x"" == x"$INPUT_CONFIG" ] ; then
 				if [ $NUM_MIRROR_DIRECTORY -ne $QE_PRIMARY_COUNT ]; then
-					ERROR_EXIT "[FATAL]:-Number of primary directories does not match number of mirror directories" 2
+					ERROR_EXIT "[FATAL]:-Number of primary directories does not match number of mirror directories"
 				fi
 			fi
 			
@@ -449,7 +449,7 @@ CHK_PARAMS () {
 				for mirrordir in "${MIRROR_DATA_DIRECTORY[@]}"
 				do
 					if [ $dir == $mirrordir ] ; then
-						ERROR_EXIT "[FATAL]:-Conflict between data directory and mirror data directory ($dir)." 2
+						ERROR_EXIT "[FATAL]:-Conflict between data directory and mirror data directory ($dir)."
 					fi
 				done
 			done
@@ -489,46 +489,46 @@ CHK_PARAMS () {
 		if [ x"" != x"$REQ_LOCALE_SETTING" ]; then
 			IN_ARRAY $REQ_LOCALE_SETTING "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $REQ_LOCALE_SETTING is not a valid value for --locale on this system." 2
+				ERROR_EXIT "[FATAL]-Value $REQ_LOCALE_SETTING is not a valid value for --locale on this system."
 			fi
 		fi
 		if [ x"" != x"$LCCOLLATE" ]; then
 			IN_ARRAY $LCCOLLATE "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCCOLLATE is not a valid value for --lc-collate on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCCOLLATE is not a valid value for --lc-collate on this system."
 			fi	
 		fi
 		if [ x"" != x"$LCCTYPE" ]; then
 			IN_ARRAY $LCCTYPE "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCCTYPE is not a valid value for --lc-ctype on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCCTYPE is not a valid value for --lc-ctype on this system."
 			fi
 		fi
 		if [ x"" != x"$LCMESSAGES" ]; then
 			IN_ARRAY $LCMESSAGES "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCMESSAGES is not a valid value for --lc-messages on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCMESSAGES is not a valid value for --lc-messages on this system."
 			fi
 		fi
 		
 		if [ x"" != x"$LCMONETARY" ]; then
 			IN_ARRAY $LCMONETARY "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCMONETARY is not a valid value for --lc-monetary on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCMONETARY is not a valid value for --lc-monetary on this system."
 			fi
 		fi
 		
 		if [ x"" != x"$LCNUMERIC" ]; then
 			IN_ARRAY $LCNUMERIC "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCNUMERIC is not a valid value for --lc-numeric on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCNUMERIC is not a valid value for --lc-numeric on this system."
 			fi
 		fi
 		
 		if [ x"" != x"$LCTIME" ]; then
 			IN_ARRAY $LCTIME "`locale -a`"
 			if [ $? -eq 0 ]; then
-				ERROR_EXIT "[FATAL]-Value $LCTIME is not a valid value for --lc-time on this system." 2
+				ERROR_EXIT "[FATAL]-Value $LCTIME is not a valid value for --lc-time on this system."
 			fi
 		fi
 		LOG_MSG "[INFO]:-Checking configuration parameters, Completed" 1
@@ -588,7 +588,7 @@ END_PYTHON_CODE
 			LOG_MSG "[FATAL]:-Check to see that you have setup trusted remote ssh on all hosts"
 			$ECHO "[FATAL]:-Check to see that you have setup trusted remote ssh on all hosts"
 
-			ERROR_EXIT "[FATAL]:-Unable to get hostname output for $MHOST" 2
+			ERROR_EXIT "[FATAL]:-Unable to get hostname output for $MHOST"
 		fi
 		if [ `$ECHO ${T_SEG_ARRAY[@]}|$TR ' ' '\n'|$GREP -c "^${SEG_HOSTNAME}$"` -eq 0 ];then
 			T_SEG_ARRAY=(${T_SEG_ARRAY[@]} $SEG_HOSTNAME)
@@ -618,7 +618,7 @@ END_PYTHON_CODE
                     LOG_MSG "[INFO]:-Have $NUM_DATADIR data directories and $NUM_MHOST_NODE multi-home hostnames for each host" 1
                     LOG_MSG "[INFO]:-For multi-home configuration, number of segment instance data directories per host must be multiple of" 1
                     LOG_MSG "[INFO]:-the number of multi-home hostnames within the GPDB array" 1
-                    ERROR_EXIT "[FATAL]:-Unable to continue" 2
+                    ERROR_EXIT "[FATAL]:-Unable to continue"
                 fi
 
 		if [ $MULTIPLE -gt 1 ] ; then
@@ -655,7 +655,7 @@ END_PYTHON_CODE
 		if [ $NUM_SEP_HOSTS -eq 1 ] || [ $NUM_SEP_HOSTS -le $NUM_DATADIR ];then
 			LOG_MSG "[FATAL]:-Request made for spread mirroring via --mirror-mode option, but insufficient hosts available" 1
 			LOG_MSG "[INFO]:-Number of separate hosts must be greater than number of segment instances per host" 1
-			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+			ERROR_EXIT "[FATAL]:-Unable to continue"
 		else
 			LOG_MSG "[INFO]:-Sufficient hosts for spread mirroring request" 1
 		fi 
@@ -678,7 +678,7 @@ CHK_LOCALE_KNOWN () {
 			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on this host" 1
 			LOG_MSG "[INFO]:-Select another locale value via -n option to this utility" 1
 			LOG_MSG "[INFO]:-Available locale values have been dumped to the log file" 1
-			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+			ERROR_EXIT "[FATAL]:-Unable to continue"
 		else
 			LOG_MSG "[INFO]:-Locale check passed on this host" 
 		fi
@@ -690,7 +690,7 @@ CHK_LOCALE_KNOWN () {
 			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on $1" 1
 			LOG_MSG "[INFO]:-Select another locale value via -n option to this utility" 1
 			LOG_MSG "[INFO]:-Available locale values have been dumped to the log file" 1 
-			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+			ERROR_EXIT "[FATAL]:-Unable to continue"
 		else
 			LOG_MSG "[INFO]:-Locale check passed on $1" 
 		fi
@@ -702,7 +702,7 @@ CHK_DUPLICATES () {
 		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 		if [ `$ECHO | $CAT $MACHINE_LIST_FILE - |$GREP -v $"^$"|$WC -l` -ne `$CAT $MACHINE_LIST_FILE|$GREP -v "^$"|$SORT -u|$WC -l` ]
 		then
-			ERROR_EXIT "[FATAL]:-Duplicate segment instance hostname exists in $MACHINE_LIST_FILE" 2
+			ERROR_EXIT "[FATAL]:-Duplicate segment instance hostname exists in $MACHINE_LIST_FILE"
 		fi
 		LOG_MSG "[INFO]:-No duplicate segment instance hostnames found, will proceed"
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -725,11 +725,11 @@ CHK_QES () {
 	SET_VAR $QD_PRIMARY_ARRAY
 	CHK_DIR $GP_DIR
 	if [ $EXISTS -eq 0 ]; then
-		ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists" 2
+		ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists"
 	fi
 	GET_PG_PID_ACTIVE $GP_PORT
 	if [ $PID -ne 0 ];then
-		ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host" 2
+		ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host"
 	fi
 	LOG_MSG "[INFO]:-Checking new segment hosts, please wait..." 1
 
@@ -740,7 +740,7 @@ CHK_QES () {
         CHK_OPEN_FILES $GP_HOSTADDRESS
         POSTGRES_VERSION_CHK $GP_HOSTADDRESS
         if [ $VERSION_MATCH -ne 1 ] ; then
-            ERROR_EXIT "Postgres version does not match" 2
+            ERROR_EXIT "Postgres version does not match"
         fi
 
         # Check to ensure have required QE directories
@@ -750,7 +750,7 @@ CHK_QES () {
             LOG_MSG "[INFO]:-Checking segment instance $QE_ID directory $DIR"
             CHK_DIR $DIR $QE_ID
             if [ $EXISTS -ne 0 ]; then
-                ERROR_EXIT "[FATAL]:-No $DIR on segment instance $QE_ID" 2
+                ERROR_EXIT "[FATAL]:-No $DIR on segment instance $QE_ID"
             else
                 LOG_MSG "[INFO]:-$QE_ID $DIR checked"
             fi
@@ -758,7 +758,7 @@ CHK_QES () {
         # Check that we have a GP_LIBRARY_PATH directory on the QE
         CHK_DIR $GP_LIBRARY_PATH $QE_ID
         if [ $EXISTS -ne 0 ]; then
-            ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment instance $QE_ID" 2
+            ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment instance $QE_ID"
         else
             LOG_MSG "[INFO]:-Segment instance $QE_ID $GP_LIBRARY_PATH checked"
         fi
@@ -773,7 +773,7 @@ CHK_QES () {
         LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS for dir $GP_DIR"
         CHK_DIR $GP_DIR $GP_HOSTADDRESS
         if [ $EXISTS -eq 0 ]; then
-            ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS" 2
+            ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS"
         fi
         # Check that the hostname is not associated with local host
         LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS $HOSTFILE for localhost set as $GP_HOSTADDRESS"
@@ -791,7 +791,7 @@ CHK_QES () {
         $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
         RETVAL=$?
         if [ $RETVAL -ne 0 ];then
-            ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+            ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS "
         else
             $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
             LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
@@ -808,7 +808,7 @@ CHK_QES () {
             LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS for dir $GP_DIR"
             CHK_DIR $GP_DIR $GP_HOSTADDRESS
             if [ $EXISTS -eq 0 ]; then
-                ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS" 2
+                ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS"
             fi
             # Check that we can write to the QE directory
             W_DIR=`$DIRNAME $GP_DIR`
@@ -816,7 +816,7 @@ CHK_QES () {
             $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
             RETVAL=$?
             if [ $RETVAL -ne 0 ];then
-                ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+                ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS "
             else
                 $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
                 LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
@@ -833,7 +833,7 @@ CHK_QES () {
         # Check standby host directory
         CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
         if [ $EXISTS -ne 0 ];then
-            ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist" 2
+            ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist"
         fi
     fi
 
@@ -853,7 +853,7 @@ CHK_SEG () {
 	CHK_OPEN_FILES $GP_HOSTADDRESS
 	POSTGRES_VERSION_CHK $GP_HOSTADDRESS
 	if [ $VERSION_MATCH -ne 1 ] ; then
-	   ERROR_EXIT "Postgres version does not match" 2
+	   ERROR_EXIT "Postgres version does not match"
 	fi
 	
 	#make sure we can write to it.
@@ -863,7 +863,7 @@ CHK_SEG () {
     $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
     RETVAL=$?
     if [ $RETVAL -ne 0 ];then
-         ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+         ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS "
     else
          $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
          LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
@@ -872,7 +872,7 @@ CHK_SEG () {
 	# Check that we have a GP_LIBRARY_PATH directory on the QE
 	CHK_DIR $GP_LIBRARY_PATH $GP_HOSTADDRESS
 	if [ $EXISTS -ne 0 ]; then
-		ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment $GP_HOSTADDRESS:$GP_DIR" 2
+		ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment $GP_HOSTADDRESS:$GP_DIR"
 	else
 		LOG_MSG "[INFO]:-Segment instance $GP_HOSTADDRESS:$GP_DIR $GP_LIBRARY_PATH checked"
 	fi
@@ -886,11 +886,11 @@ CHK_QES_FROM_INPUTFILE () {
 	SET_VAR $QD_PRIMARY_ARRAY
 	CHK_DIR $GP_DIR
 	if [ $EXISTS -eq 0 ]; then
-		ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists" 2
+		ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists"
 	fi
 	GET_PG_PID_ACTIVE $GP_PORT
 	if [ $PID -ne 0 ];then
-		ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host" 2
+		ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host"
 	fi
 	LOG_MSG "[INFO]:-Checking new segment hosts, please wait..." 1
 	
@@ -911,7 +911,7 @@ CHK_QES_FROM_INPUTFILE () {
 		#Check standby host directory
 		CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
 		if [ $EXISTS -ne 0 ];then
-			ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist" 2
+			ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist"
 		fi
 	fi
 	
@@ -924,7 +924,7 @@ POSTGRES_PORT_CHK () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	GET_PG_PID_ACTIVE $1 $2
 	if [ x"$PID" != x0 ];then
-		ERROR_EXIT "[FATAL]:-Host $2 has an active database process on port = $1" 2
+		ERROR_EXIT "[FATAL]:-Host $2 has an active database process on port = $1"
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1231,7 +1231,7 @@ CREATE_QD_DB () {
 		fi    
 		$RM -f ${GP_DIR}.initdb
 		if [ $RETVAL -ne 0 ]; then
-		    ERROR_EXIT "[FATAL]:- Command $cmd failed with error status $RETVAL, see log file $LOG_FILE for more detail" 2
+		    ERROR_EXIT "[FATAL]:- Command $cmd failed with error status $RETVAL, see log file $LOG_FILE for more detail"
 		fi
 
 		BACKOUT_COMMAND "if [ -d $GP_DIR ]; then $RM -Rf $GP_DIR; fi"
@@ -1284,7 +1284,7 @@ CREATE_QD_DB () {
 		RUNNING=`$ECHO $RET_TEXT|$EGREP -c "not running|neither"`
 		if [ $RUNNING -ne 0 ]; then
 				$CAT ${GP_DIR}.log|$TEE -a $LOG_FILE
-				ERROR_EXIT "[FATAL]:-Failed to start the Master database in admin mode" 2
+				ERROR_EXIT "[FATAL]:-Failed to start the Master database in admin mode"
 		fi
 		BACKOUT_COMMAND "$RM -f /tmp/.s.PGSQL.${GP_PORT}*"
 		BACKOUT_COMMAND "$ECHO \"Removing Master lock files\""
@@ -1295,12 +1295,12 @@ CREATE_QD_DB () {
 		LOG_MSG "[INFO]:-Completed starting the Master in admin mode"
 		GP_HOSTNAME=`HOST_LOOKUP $GP_HOSTADDRESS`
 		if [ x"$GP_HOSTNAME" = x"__lookup_of_hostname_failed__" ]; then
-			ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed." 2
+			ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed."
 		fi
 		PING_HOST $GP_HOSTNAME
 		RETVAL=$?
 		if [ $RETVAL -ne 0 ]; then
-			ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration." 2
+			ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration."
 		fi
 		UPDATE_GPCONFIG $GP_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p
 		LOAD_QE_SYSTEM_DATA $DEFAULTDB
@@ -1355,13 +1355,13 @@ LOAD_QE_SYSTEM_DATA () {
 				LOG_MSG "[INFO]:-Adding segment $GP_HOSTADDRESS to Master system tables"
 				GP_HOSTNAME=`HOST_LOOKUP $GP_HOSTADDRESS`
 				if [ x"$GP_HOSTNAME" = x"__lookup_of_hostname_failed__" ]; then
-					ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed." 2
+					ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed."
 				fi
 				PING_HOST $GP_HOSTNAME
 				RETVAL=$?
 				if [ $RETVAL -ne 0 ]; then
-					ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration." 2
-				fi				
+					ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration."
+				fi
 				UPDATE_GPCONFIG $MASTER_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p
 				LOG_MSG "[INFO]:-Successfully added segment $GP_HOSTADDRESS to Master system tables"
 		done
@@ -1469,10 +1469,10 @@ STOP_QD_PRODUCTION () {
 	case $RETVAL in
 	    0 ) LOG_MSG "[INFO]:-Successfully shutdown the new Greenplum instance" ;;
 	    1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown, check log files, will continue" ;;
-	    * ) ERROR_EXIT "[FATAL]:-Failed to stop new Greenplum instance, check log file" 2
+	    * ) ERROR_EXIT "[FATAL]:-Failed to stop new Greenplum instance, check log file"
 	esac
     else
-	ERROR_EXIT "[FATAL]:-$GPSTOP not located" 2
+	ERROR_EXIT "[FATAL]:-$GPSTOP not located"
     fi
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1539,7 +1539,7 @@ START_QD_PRODUCTION () {
                 case $RETVAL in
                     0 ) LOG_MSG "[INFO]:-Successfully shutdown the Greenplum instance" 1;;
                     1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown" 1;;
-                    * ) ERROR_EXIT "[WARN]:-Failed to stop new Greenplum instance" 2
+                    * ) ERROR_EXIT "[WARN]:-Failed to stop new Greenplum instance"
                 esac
             else
                 LOG_MSG "[WARN]:-$GPSTOP not located" 1
@@ -1552,10 +1552,10 @@ START_QD_PRODUCTION () {
             LOG_MSG "[WARN]:- issues.  Not all initialization tasks have completed so the cluster" 1
             LOG_MSG "[WARN]:- should not be used." 1
             LOG_MSG "[WARN]:" 1
-            ERROR_EXIT "[FATAL]: starting new instance failed;" 2
+            ERROR_EXIT "[FATAL]: starting new instance failed;"
         fi
     else
-	ERROR_EXIT "[FATAL]:-$GPSTART not located" 2
+	ERROR_EXIT "[FATAL]:-$GPSTART not located"
     fi
     LOG_MSG "[INFO]:-Completed restart of Greenplum instance in production mode" 1
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -1586,7 +1586,7 @@ FORCE_FTS_PROBE () {
             $PSQL -p $GP_PORT -d "$DEFAULTDB" -A -t -c "select * from gp_stat_replication where sync_error != 'none' or sync_state != 'sync';" >> $LOG_FILE 2>&1
             LOG_MSG "[WARN]:" 1
             LOG_MSG "[WARN]:-Failed to start Greenplum instance; please review gpinitsystem log to determine failure." 1
-            ERROR_EXIT "[FATAL]:-Some primary/mirror segment pairs were found to be not in sync" 2
+            ERROR_EXIT "[FATAL]:-Some primary/mirror segment pairs were found to be not in sync"
             break;
         fi
 
@@ -1664,7 +1664,7 @@ READ_INPUT_CONFIG () {
    # Check that we have a non-zero configuration file
     CHK_FILE $INPUT_CONFIG
     if [ $EXISTS -ne 0 ]; then
-        ERROR_EXIT "[FATAL]:-Problem with $INPUT_CONFIG file" 2
+        ERROR_EXIT "[FATAL]:-Problem with $INPUT_CONFIG file"
     fi
     
     # Make sure old CLUSTER_CONFIG settings are not hanging around.
@@ -1672,15 +1672,15 @@ READ_INPUT_CONFIG () {
 
     # Validation
     if [ x"" != x"${MASTER_PORT}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration. Cannot specify MASTER_PORT and QD_PRIMARY_ARRAY" 2             
+        ERROR_EXIT "[FATAL]:-Problem with configuration. Cannot specify MASTER_PORT and QD_PRIMARY_ARRAY"
     fi
 
     if [ x"" != x"${MASTER_HOSTNAME}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_HOSTNAME and QD_PRIMARY_ARRAY" 2                            
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_HOSTNAME and QD_PRIMARY_ARRAY"
     fi
 
     if [ x"" != x"${MASTER_DIRECTORY}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_DIRECTORY and QD_PRIMARY_ARRAY" 2                           
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_DIRECTORY and QD_PRIMARY_ARRAY"
     fi
 
     # Make sure it is not a dos file with CTRL M at end of each line
@@ -1742,7 +1742,7 @@ READ_INPUT_CONFIG () {
 
     if [ $TOTAL_MIRRORS -ne 0 ] ; then
         if [ $TOTAL_SEG -ne $TOTAL_MIRRORS ] ; then
-            ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify different number of primary and mirror segments." 2   
+            ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify different number of primary and mirror segments."
         fi
     fi
 }
@@ -1791,24 +1791,24 @@ CHK_QE_ARRAY_PORT_RANGES () {
     #
 
     if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_PORT $MAX_PORT; then
-	ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with PORT_BASE." 2
+	ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with PORT_BASE."
     fi
     
     # Mirror configuration
     if [ $MIRROR_PORT_BASE ]; then
 	
 	if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
-	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with MIRROR_PORT_BASE." 2
+	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with MIRROR_PORT_BASE."
 	fi
 	
 	if CHK_OVERLAP $MIN_PORT $MAX_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
-	    ERROR_EXIT "[FATAL]:-PORT_BASE AND MIRROR_PORT_BASE define overlapping ranges." 2
+	    ERROR_EXIT "[FATAL]:-PORT_BASE AND MIRROR_PORT_BASE define overlapping ranges."
 	fi
     fi
 
     # PORT_BASE
     if [ x"" = x"$PORT_BASE" ]; then
-	    ERROR_EXIT "[FATAL]:-PORT_BASE variable not set" 2
+	    ERROR_EXIT "[FATAL]:-PORT_BASE variable not set"
     fi
     QE_PORT=$PORT_BASE
 }
@@ -1845,14 +1845,14 @@ SET_MIRROR_MODE() {
 	elif [ "$mode" == 'spread' ]; then
 		MIRROR_TYPE=1
 	else
-		ERROR_EXIT "[FATAL]:-'$mode' is an invalid mirroring mode.  Valid options are 'group' and 'spread'." 2
+		ERROR_EXIT "[FATAL]:-'$mode' is an invalid mirroring mode.  Valid options are 'group' and 'spread'."
 	fi
 }
 
 #******************************************************************************
 # Main Section
 #******************************************************************************
-trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal" 2' INT TERM
+trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal"' INT TERM
 while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:" opt
 		do
 		case $opt in
@@ -1909,13 +1909,13 @@ done
 if [ x"" != x"$PG_CONF_ADD_FILE" ]; then
 	CHK_FILE $PG_CONF_ADD_FILE
 	if [ $EXISTS -ne 0 ]; then
-		ERROR_EXIT "[FATAL]:-Issue with postgres additions file $PG_CONF_ADD_FILE" 2
+		ERROR_EXIT "[FATAL]:-Issue with postgres additions file $PG_CONF_ADD_FILE"
 	fi
 fi
 if [ x"" != x"$LOG_DIR" ];then
         CHK_DIR $LOG_DIR "" 1
         if [ $EXISTS -eq 1 ]; then
-                ERROR_EXIT "[FATAL]:-Log directory $LOG_DIR does not exist!" 2
+                ERROR_EXIT "[FATAL]:-Log directory $LOG_DIR does not exist!"
         else
                 LOG_FILE=$LOG_DIR/${PROG_NAME}_${CUR_DATE}.log
                 BACKOUT_FILE=$LOG_DIR/backout_${PROG_NAME}_${USER_NAME}_${CUR_DATE}_$FILE_TIME
@@ -1974,7 +1974,7 @@ if [ $REPORT_FAIL -ne 0 ];then
 		$RM -f $I
 	done
 	$ECHO "$RM -f $BACKOUT_FILE" >> $BACKOUT_FILE
-	ERROR_EXIT "[FATAL]:-Failures detected, see log file $LOG_FILE for more detail" 2
+	ERROR_EXIT "[FATAL]:-Failures detected, see log file $LOG_FILE for more detail"
 else
 	LOG_MSG "[INFO]:-Deleting distributed backout files" 1
 	for I in ls /tmp/gpsegcreate.sh_backout*
