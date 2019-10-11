@@ -1430,16 +1430,6 @@ _readGrantRoleStmt(void)
 	READ_DONE();
 }
 
-static PlannerParamItem *
-_readPlannerParamItem(void)
-{
-	READ_LOCALS(PlannerParamItem);
-	READ_NODE_FIELD(item);
-	READ_INT_FIELD(paramId);
-
-	READ_DONE();
-}
-
 /*
  * _readPlannedStmt
  */
@@ -2304,8 +2294,7 @@ _readFlow(void)
 	READ_INT_FIELD(segindex);
 	READ_INT_FIELD(numsegments);
 
-	READ_NODE_FIELD(hashExprs);
-	READ_NODE_FIELD(hashOpfamilies);
+	/* hashExprs and hashOpfamilies are omitted */
 
 	READ_DONE();
 }
@@ -2783,34 +2772,6 @@ _readAlterTSDictionaryStmt(void)
 	READ_DONE();
 }
 
-static PlaceHolderVar *
-_readPlaceHolderVar(void)
-{
-	READ_LOCALS(PlaceHolderVar);
-
-	READ_NODE_FIELD(phexpr);
-	READ_BITMAPSET_FIELD(phrels);
-	READ_INT_FIELD(phid);
-	READ_INT_FIELD(phlevelsup);
-
-	READ_DONE();
-}
-
-static PlaceHolderInfo *
-_readPlaceHolderInfo(void)
-{
-	READ_LOCALS(PlaceHolderInfo);
-
-	READ_INT_FIELD(phid);
-	READ_NODE_FIELD(ph_var);
-	READ_BITMAPSET_FIELD(ph_eval_at);
-	READ_BITMAPSET_FIELD(ph_lateral);
-	READ_BITMAPSET_FIELD(ph_needed);
-	READ_INT_FIELD(ph_width);
-
-	READ_DONE();
-}
-
 static CookedConstraint *
 _readCookedConstraint(void)
 {
@@ -3165,10 +3126,7 @@ readNodeBinary(void)
 				return_value = _readOidAssignment();
 				break;
 			case T_Plan:
-					return_value = _readPlan();
-					break;
-			case T_PlannerParamItem:
-				return_value = _readPlannerParamItem();
+				return_value = _readPlan();
 				break;
 			case T_Result:
 				return_value = _readResult();
@@ -3933,12 +3891,6 @@ readNodeBinary(void)
 				break;
 			case T_AlterTSDictionaryStmt:
 				return_value = _readAlterTSDictionaryStmt();
-				break;
-			case T_PlaceHolderVar:
-				return_value = _readPlaceHolderVar();
-				break;
-			case T_PlaceHolderInfo:
-				return_value = _readPlaceHolderInfo();
 				break;
 
 			case T_CookedConstraint:
