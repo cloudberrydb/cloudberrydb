@@ -1462,17 +1462,17 @@ STOP_QD_PRODUCTION () {
     LOG_MSG "[INFO]:-Start Function $FUNCNAME"
     LOG_MSG "[INFO]:-Restarting the Greenplum instance in production mode" 1
     if [ -f $GPSTOP ]; then
-	GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
-	export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
-	$GPSTOP -a -l $LOG_DIR -m -d $MASTER_DATA_DIRECTORY $GPSTOP_OPTS
-	RETVAL=$?
-	case $RETVAL in
-	    0 ) LOG_MSG "[INFO]:-Successfully shutdown the new Greenplum instance" ;;
-	    1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown, check log files, will continue" ;;
-	    * ) ERROR_EXIT "[FATAL]:-Failed to stop new Greenplum instance, check log file"
-	esac
+        GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
+        export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+        $GPSTOP -a -l $LOG_DIR -m -d $MASTER_DATA_DIRECTORY $GPSTOP_OPTS
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]; then
+            LOG_MSG "[INFO]:-Successfully shutdown the new Greenplum instance"
+        else
+            ERROR_EXIT "[FATAL]:-Error from Greenplum instance shutdown, check log files"
+        fi
     else
-	ERROR_EXIT "[FATAL]:-$GPSTOP not located"
+        ERROR_EXIT "[FATAL]:-$GPSTOP not located"
     fi
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1536,11 +1536,11 @@ START_QD_PRODUCTION () {
                 $GPSTOP -a -l $LOG_DIR -i -d $MASTER_DATA_DIRECTORY $GPSTOP_OPTS
 
                 RETVAL=$?
-                case $RETVAL in
-                    0 ) LOG_MSG "[INFO]:-Successfully shutdown the Greenplum instance" 1;;
-                    1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown" 1;;
-                    * ) ERROR_EXIT "[WARN]:-Failed to stop new Greenplum instance"
-                esac
+                if [ $RETVAL -eq 0 ]; then
+                    LOG_MSG "[INFO]:-Successfully shutdown the Greenplum instance" 1
+                else
+                    ERROR_EXIT "[FATAL]:-Error from Greenplum instance shutdown, check log files"
+                fi
             else
                 LOG_MSG "[WARN]:-$GPSTOP not located" 1
             fi
