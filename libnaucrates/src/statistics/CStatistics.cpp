@@ -42,7 +42,7 @@ using namespace gpopt;
 const CDouble CStatistics::DefaultRelationRows(1000.0);
 
 // epsilon to be used for various computations
-const CDouble CStatistics::Epsilon(0.001);
+const CDouble CStatistics::Epsilon(0.00001);
 
 // minimum number of rows in relation
 const CDouble CStatistics::MinRows(1.0);
