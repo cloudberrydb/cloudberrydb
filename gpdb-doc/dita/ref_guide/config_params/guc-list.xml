@@ -6,9 +6,9 @@
   <abstract>Descriptions of the Greenplum Database server configuration parameters listed
     alphabetically.</abstract>
   <body>
-    <!--Table is HTML only op-help-->
+    <!--Table is PDF only-->
     <simpletable frame="all" relcolwidth="1.0* 1.09* 1.13*" id="simpletable_c53_rlx_wp"
-      otherprops="op-help">
+      otherprops="op-print">
       <strow>
         <stentry>
           <ul id="ul_tc3_nlx_wp">
