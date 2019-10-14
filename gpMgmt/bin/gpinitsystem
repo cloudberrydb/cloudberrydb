@@ -31,7 +31,7 @@ if [ -f $FUNCTIONS ]; then
     . $WORKDIR/lib/gp_bash_version.sh
 else
     echo "[FATAL]:-Cannot source $FUNCTIONS file, script Exits!"
-    exit 2
+    exit 1
 fi
 
 #******************************************************************************
@@ -56,7 +56,6 @@ GP_CONFIG_TBL=gp_segment_configuration
 unset PG_CONF_ADD_FILE
 #unset QD_PRIMARY_ARRAY QE_PRIMARY_ARRAY QE_MIRROR_ARRAY
 EXIT_STATUS=0
-STANDBY_FATAL_RET_CODE=2 # copied from gpinitstandby
 # SED_PG_CONF search text values
 PORT_TXT="#port"
 LOG_STATEMENT_TXT="#log_statement ="
@@ -162,8 +161,7 @@ USAGE () {
 		$ECHO
 		$ECHO "      Return codes:"
 		$ECHO "      0 - No problems encountered with requested operation"
-		$ECHO "      1 - Warning generated, but instance operational"
-		$ECHO "      2 - Fatal error, instance not created/started, or in an inconsistent state,"
+		$ECHO "      1 - Fatal error, instance not created/started, or in an inconsistent state,"
 		$ECHO "          see log file for failure reason."
 		$ECHO
 		exit $EXIT_STATUS
@@ -1481,8 +1479,7 @@ CREATE_STANDBY_QD () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	if [ ! -f $INIT_STANDBY_PROG ]; then
 		LOG_MSG "[WARN]:-Unable to locate $INIT_STANDBY_PROG, hence unable to initialize standby master $STANDBY_HOSTNAME"
-		STANDBY_RET_CODE=${STANDBY_FATAL_RET_CODE}
-		EXIT_STATUS=1
+		STANDBY_RET_CODE=1
 	else
 		LOG_MSG "[INFO]:-Starting initialization of standby master $STANDBY_HOSTNAME" 1
 		INIT_STANDBY_ARGS=""
@@ -1497,11 +1494,11 @@ CREATE_STANDBY_QD () {
 		fi
 		export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
 		STANDBY_RET_CODE=$?
-		case ${STANDBY_RET_CODE} in
-			0) LOG_MSG "[INFO]:-Successfully completed standby master initialization" 1 ;;
-			1) LOG_MSG "[WARN]:-Non-fatal issue with standby master initialization, check gpstate -f output" 1 ;;
-			*) LOG_MSG "[WARN]:-Failed to complete standby master initialization" 1
-		esac
+		if [ $STANDBY_RET_CODE -eq 0 ]; then
+			LOG_MSG "[INFO]:-Successfully completed standby master initialization" 1
+		else
+			LOG_MSG "[WARN]:-Failed to complete standby master initialization" 1
+		fi
 		BACKOUT_COMMAND "$TRUSTED_SHELL ${STANDBY_HOSTNAME} \"$RM -Rf ${QD_DIR}\""
 		BACKOUT_COMMAND "$ECHO \"Removing standby directory ${QD_DIR} on $STANDBY_HOSTNAME\""
 		BACKOUT_COMMAND "$TRUSTED_SHELL $STANDBY_HOSTNAME \"if [ -d $GP_DIR ]; then ${EXPORT_LIB_PATH};export PGPORT=${MASTER_PORT}; $PG_CTL -w -D ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 -o \"-i -p ${MASTER_PORT}\" -m immediate  stop; fi\""

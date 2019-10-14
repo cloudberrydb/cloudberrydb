@@ -17,22 +17,57 @@ Feature: gpinitsystem tests
         And gpconfig should print "Master  value: off" to stdout
         And gpconfig should print "Segment value: off" to stdout
 
-    Scenario: after a failed run of gpinitsystem, a re-run should return exit status 0
+    Scenario: gpinitsystem exits with status 1 when the user enters nothing for the confirmation
         Given create demo cluster config
-        # force a failure by passing no args
-        When the user runs "gpinitsystem"
+         When the user runs command "echo '' | gpinitsystem -c ../gpAux/gpdemo/clusterConfigFile" eok
+         Then gpinitsystem should return a return code of 1
+        Given the user runs "gpstate"
+         Then gpstate should return a return code of 2
+
+    Scenario: gpinitsystem exits with status 1 when the user enters no for the confirmation
+        Given create demo cluster config
+         When the user runs command "echo no | gpinitsystem -c ../gpAux/gpdemo/clusterConfigFile" eok
+         Then gpinitsystem should return a return code of 1
+        Given the user runs "gpstate"
+         Then gpstate should return a return code of 2
+
+    Scenario: gpinitsystem creates a cluster when the user confirms the dialog
+        Given create demo cluster config
+         When the user runs command "echo y | gpinitsystem -c ../gpAux/gpdemo/clusterConfigFile"
+         Then gpinitsystem should return a return code of 0
+        Given the user runs "gpstate"
+         Then gpstate should return a return code of 0
+
+    Scenario: gpinitsystem fails with exit code 1 when the functions file is not found
+       Given create demo cluster config
+           # force a load error when trying to source gp_bash_functions.sh
+        When the user runs command "ln -s -f `which gpinitsystem` /tmp/gpinitsystem-link; . /tmp/gpinitsystem-link" eok
         Then gpinitsystem should return a return code of 1
-        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile"
         Then gpinitsystem should return a return code of 0
 
-      Scenario: after gpinitsystem logs a warning, a re-run should return exit status 0
-        Given create demo cluster config
-        # log a warning
+    Scenario: gpinitsystem continues running when gpinitstandby fails
+       Given create demo cluster config
+           # force gpinitstandby to fail by specifying a directory that does not exist (gpinitsystem continues successfully)
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -S not-a-real-directory -P 21100 -h ../gpAux/gpdemo/hostfile"
+        Then gpinitsystem should return a return code of 0
+
+    Scenario: after a failed run of gpinitsystem, a re-run should return exit status 0
+       Given create demo cluster config
+           # force a failure by passing no args
+        When the user runs "gpinitsystem"
+        Then gpinitsystem should return a return code of 1
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile"
+        Then gpinitsystem should return a return code of 0
+
+    Scenario: after gpinitsystem logs a warning, a re-run should return exit status 0
+      Given create demo cluster config
+          # log a warning
         And the user runs command "echo 'ARRAY_NAME=' >> ../gpAux/gpdemo/clusterConfigFile"
-       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile"
        Then gpinitsystem should return a return code of 0
       Given create demo cluster config
-       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -s localhost -P 21100 -h ../gpAux/gpdemo/hostfile"
+       When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile"
        Then gpinitsystem should return a return code of 0
 
     Scenario: gpinitsystem should warn but not fail when standby cannot be instantiated

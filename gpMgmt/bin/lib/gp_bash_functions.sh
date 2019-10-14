@@ -561,11 +561,11 @@ GET_REPLY () {
 	$ECHO -n "> "
 	read REPLY
 	if [ -z $REPLY ]; then
-		LOG_MSG "[WARN]:-User abort requested, Script Exits!" 1
+		LOG_MSG "[FATAL]:-User abort requested, Script Exits!" 1
 		exit 1
 	fi
 	if [ $REPLY != Y ] && [ $REPLY != y ]; then
-		LOG_MSG "[WARN]:-User abort requested, Script Exits!" 1
+		LOG_MSG "[FATAL]:-User abort requested, Script Exits!" 1
 		exit 1
 	fi
 }
