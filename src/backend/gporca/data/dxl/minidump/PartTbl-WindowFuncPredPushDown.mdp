@@ -453,10 +453,10 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.1082.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="13" ColName="date" TypeMdid="0.1082.1.0"/>
                 </dxl:HashExpr>
-                <dxl:HashExpr TypeMdid="0.25.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="15" ColName="region" TypeMdid="0.25.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

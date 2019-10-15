@@ -4226,10 +4226,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1042.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="82" ColName="n_name" TypeMdid="0.1042.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.701.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="92" ColName="o_year" TypeMdid="0.701.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -4431,7 +4431,7 @@
                             <dxl:Filter/>
                             <dxl:SortingColumnList/>
                             <dxl:HashExprList>
-                              <dxl:HashExpr TypeMdid="0.23.1.0">
+                              <dxl:HashExpr>
                                 <dxl:Ident ColId="32" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
                               </dxl:HashExpr>
                             </dxl:HashExprList>
@@ -4696,7 +4696,7 @@
                           <dxl:Filter/>
                           <dxl:SortingColumnList/>
                           <dxl:HashExprList>
-                            <dxl:HashExpr TypeMdid="0.23.1.0">
+                            <dxl:HashExpr>
                               <dxl:Ident ColId="54" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
                             </dxl:HashExpr>
                           </dxl:HashExprList>

@@ -46,7 +46,7 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class IMDCacheObject : public IMDInterface
 	{	
-		protected:
+		public:
 			// Serialize a list of metadata id elements using pstrTokenList
 			// as the root XML element for the list, and each metadata id is
 			// serialized in the form of a pstrTokenListItem element.
@@ -62,8 +62,7 @@ namespace gpmd
 				const CWStringConst *strTokenList,
 				const CWStringConst *strTokenListItem
 				);
-		
-		public:
+
 			// type of md object
 			enum Emdtype
 			{

@@ -540,10 +540,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.27.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>

@@ -3927,16 +3927,16 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="27" ColName="year" TypeMdid="0.1042.1.0"/>
                 </dxl:HashExpr>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="29" ColName="month" TypeMdid="0.1042.1.0"/>
                 </dxl:HashExpr>
-                <dxl:HashExpr TypeMdid="0.1043.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="38" ColName="shop_code" TypeMdid="0.1043.1.0"/>
                 </dxl:HashExpr>
-                <dxl:HashExpr TypeMdid="0.1043.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="39" ColName="shop_name" TypeMdid="0.1043.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

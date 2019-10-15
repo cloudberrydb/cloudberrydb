@@ -340,7 +340,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.25.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="2" ColName="f3" TypeMdid="0.25.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

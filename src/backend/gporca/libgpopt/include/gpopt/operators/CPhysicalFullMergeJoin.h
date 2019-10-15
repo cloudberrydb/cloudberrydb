@@ -28,7 +28,8 @@ namespace gpopt
 			explicit
 			CPhysicalFullMergeJoin(CMemoryPool *mp,
 								   CExpressionArray *outer_merge_clauses,
-								   CExpressionArray *inner_merge_clauses);
+								   CExpressionArray *inner_merge_clauses,
+								   IMdIdArray *hash_opfamilies = NULL);
 
 			// dtor
 			virtual

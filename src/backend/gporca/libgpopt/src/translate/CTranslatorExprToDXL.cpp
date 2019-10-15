@@ -4241,7 +4241,7 @@ CTranslatorExprToDXL::PdxlnMotion
 		// construct a hash expr list node
 		CPhysicalMotionHashDistribute *popHashDistribute = CPhysicalMotionHashDistribute::PopConvert(pexprMotion->Pop());
 		CDistributionSpecHashed *pdsHashed = CDistributionSpecHashed::PdsConvert(popHashDistribute->Pds());
-		CDXLNode *hash_expr_list = PdxlnHashExprList(pdsHashed->Pdrgpexpr());
+		CDXLNode *hash_expr_list = PdxlnHashExprList(pdsHashed->Pdrgpexpr(), pdsHashed->Opfamilies());
 		pdxlnMotion->AddChild(hash_expr_list);
 	}
 
@@ -7919,10 +7919,12 @@ CTranslatorExprToDXL::GetSortColListDXL
 CDXLNode *
 CTranslatorExprToDXL::PdxlnHashExprList
 	(
-	const CExpressionArray *pdrgpexpr
+	const CExpressionArray *pdrgpexpr,
+	const IMdIdArray *opfamilies
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpexpr);
+	GPOS_ASSERT_IMP(GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution), NULL != opfamilies);
 	
 	CDXLNode *hash_expr_list = 
 			GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarHashExprList(m_mp));
@@ -7930,10 +7932,14 @@ CTranslatorExprToDXL::PdxlnHashExprList
 	for (ULONG ul = 0; ul < pdrgpexpr->Size(); ul++)
 	{
 		CExpression *pexpr = (*pdrgpexpr)[ul];
-		CScalar *popScalar = CScalar::PopConvert(pexpr->Pop());
-		IMDId *mdid_type = popScalar->MdidType();
-		mdid_type->AddRef();
-	
+
+		IMDId *opfamily = NULL;
+		if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+		{
+			opfamily = (*opfamilies)[ul];
+			opfamily->AddRef();
+		}
+
 		// constrct a hash expr node for the col ref
 		CDXLNode *pdxlnHashExpr = GPOS_NEW(m_mp) CDXLNode
 												(
@@ -7941,7 +7947,7 @@ CTranslatorExprToDXL::PdxlnHashExprList
 												GPOS_NEW(m_mp) CDXLScalarHashExpr
 															(
 															m_mp,
-															mdid_type
+															opfamily
 															)
 												);
 												

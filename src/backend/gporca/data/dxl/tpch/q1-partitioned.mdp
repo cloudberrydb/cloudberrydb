@@ -701,10 +701,10 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="8" ColName="l_returnflag" TypeMdid="0.1042.1.0"/>
                 </dxl:HashExpr>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="9" ColName="l_linestatus" TypeMdid="0.1042.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

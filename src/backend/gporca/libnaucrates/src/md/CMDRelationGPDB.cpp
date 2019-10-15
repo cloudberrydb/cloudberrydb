@@ -36,18 +36,19 @@ CMDRelationGPDB::CMDRelationGPDB
 	BOOL fTemporary,
 	Erelstoragetype rel_storage_type,
 	Ereldistrpolicy rel_distr_policy,
-								 CMDColumnArray *mdcol_array,
+	CMDColumnArray *mdcol_array,
 	ULongPtrArray *distr_col_array,
+	IMdIdArray *distr_opfamilies,
 	ULongPtrArray *partition_cols_array,
 	CharPtrArray *str_part_types_array,
 	ULONG num_of_partitions,
 	BOOL convert_hash_to_random,
 	ULongPtr2dArray *keyset_array,
-								 CMDIndexInfoArray *md_index_info_array,
-								 IMdIdArray *mdid_triggers_array,
-								 IMdIdArray *mdid_check_constraint_array,
- 	IMDPartConstraint *mdpart_constraint,
- 	BOOL has_oids
+	CMDIndexInfoArray *md_index_info_array,
+	IMdIdArray *mdid_triggers_array,
+	IMdIdArray *mdid_check_constraint_array,
+	IMDPartConstraint *mdpart_constraint,
+	BOOL has_oids
 	)
 	:
 	m_mp(mp),
@@ -59,6 +60,7 @@ CMDRelationGPDB::CMDRelationGPDB
 	m_md_col_array(mdcol_array),
 	m_dropped_cols(0),
 	m_distr_col_array(distr_col_array),
+	m_distr_opfamilies(distr_opfamilies),
 	m_convert_hash_to_random(convert_hash_to_random),
 	m_partition_cols_array(partition_cols_array),
 	m_str_part_types_array(str_part_types_array),
@@ -82,6 +84,7 @@ CMDRelationGPDB::CMDRelationGPDB
 	GPOS_ASSERT_IMP(convert_hash_to_random,
 			IMDRelation::EreldistrHash == rel_distr_policy &&
 			"Converting hash distributed table to random only possible for hash distributed tables");
+	GPOS_ASSERT(NULL == distr_opfamilies || distr_opfamilies->Size() == m_distr_col_array->Size());
 	
 	m_colpos_nondrop_colpos_map = GPOS_NEW(m_mp) UlongToUlongMap(m_mp);
 	m_attrno_nondrop_col_pos_map = GPOS_NEW(m_mp) IntToUlongMap(m_mp);
@@ -139,6 +142,7 @@ CMDRelationGPDB::~CMDRelationGPDB()
 	m_mdid->Release();
 	m_md_col_array->Release();
 	CRefCount::SafeRelease(m_distr_col_array);
+	CRefCount::SafeRelease(m_distr_opfamilies);
 	CRefCount::SafeRelease(m_partition_cols_array);
 	CRefCount::SafeRelease(m_str_part_types_array);
 	CRefCount::SafeRelease(m_keyset_array);
@@ -563,6 +567,19 @@ CMDRelationGPDB::GetDistrColAt
 	return GetMdCol(distr_key_pos);
 }
 
+IMDId *
+CMDRelationGPDB::GetDistrOpfamilyAt(ULONG pos) const
+{
+	if (m_distr_opfamilies == NULL)
+	{
+		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid,
+				   GPOS_WSZ_LIT("GetDistrOpfamilyAt() returning NULL."));
+	}
+
+	GPOS_ASSERT(pos < m_distr_opfamilies->Size());
+	return (*m_distr_opfamilies)[pos];
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDRelationGPDB::ConvertHashToRandom
@@ -792,6 +809,14 @@ CMDRelationGPDB::Serialize
 	SerializeMDIdList(xml_serializer, m_mdid_check_constraint_array,
 						CDXLTokens::GetDXLTokenStr(EdxltokenCheckConstraints),
 						CDXLTokens::GetDXLTokenStr(EdxltokenCheckConstraint));
+
+	// serialize operator class information, if present
+	if (EreldistrHash == m_rel_distr_policy && NULL != m_distr_opfamilies)
+	{
+		SerializeMDIdList(xml_serializer, m_distr_opfamilies,
+						  CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrOpfamilies),
+						  CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrOpfamily));
+	}
 
 	// serialize part constraint
 	if (NULL != m_mdpart_constraint)

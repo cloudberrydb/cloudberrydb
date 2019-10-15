@@ -56,10 +56,10 @@
           <dxl:Filter/>
           <dxl:SortingColumnList/>
           <dxl:HashExprList>
-            <dxl:HashExpr TypeMdid="0.23.1.0">
+            <dxl:HashExpr>
               <dxl:Ident ColId="0" ColName="t1.a" TypeMdid="0.23.1.0"/>
             </dxl:HashExpr>
-            <dxl:HashExpr TypeMdid="0.23.1.0">
+            <dxl:HashExpr>
               <dxl:Ident ColId="1" ColName="t1.b" TypeMdid="0.23.1.0"/>
             </dxl:HashExpr>
           </dxl:HashExprList>
@@ -122,10 +122,10 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="3" ColName="t2.a" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="4" ColName="t2.b" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

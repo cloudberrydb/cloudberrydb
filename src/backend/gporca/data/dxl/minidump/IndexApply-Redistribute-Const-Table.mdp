@@ -437,7 +437,7 @@ Table X (int i, int j) is distributed by i, column i has index
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="11" ColName="?column?" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

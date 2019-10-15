@@ -258,7 +258,7 @@
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.20.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="2" ColName="nextval" TypeMdid="0.20.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

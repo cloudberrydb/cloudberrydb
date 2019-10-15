@@ -38,6 +38,7 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	Ereldistrpolicy rel_distr_policy,
 										 CMDColumnArray *mdcol_array,
 	ULongPtrArray *distr_col_array,
+	IMdIdArray *distr_opfamiles,
 	ULongPtr2dArray *keyset_array,
 	CDXLCtasStorageOptions *dxl_ctas_storage_options,
 	IntPtrArray *vartypemod_array
@@ -53,6 +54,7 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	m_rel_distr_policy(rel_distr_policy),
 	m_md_col_array(mdcol_array),
 	m_distr_col_array(distr_col_array),
+	m_distr_opfamilies(distr_opfamiles),
 	m_keyset_array(keyset_array),
 	m_system_columns(0),
 	m_nondrop_col_pos_array(NULL),
@@ -294,6 +296,19 @@ CMDRelationCtasGPDB::GetDistrColAt
 	return GetMdCol(distr_key_pos);
 }
 
+IMDId *
+CMDRelationCtasGPDB::GetDistrOpfamilyAt(ULONG pos) const
+{
+	if (m_distr_opfamilies == NULL)
+	{
+		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid,
+				   GPOS_WSZ_LIT("GetDistrOpfamilyAt() returning NULL."));
+	}
+
+	GPOS_ASSERT(pos < m_distr_opfamilies->Size());
+	return (*m_distr_opfamilies)[pos];
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDRelationCtasGPDB::Serialize
@@ -355,6 +370,15 @@ CMDRelationCtasGPDB::Serialize
 						CDXLTokens::GetDXLTokenStr(EdxltokenColumns));
 
 	m_dxl_ctas_storage_option->Serialize(xml_serializer);
+
+	// serialize distribution opfamilies
+	if (EreldistrHash == m_rel_distr_policy && NULL != m_distr_opfamilies)
+	{
+		SerializeMDIdList(xml_serializer, m_distr_opfamilies,
+						  CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrOpfamilies),
+						  CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrOpfamily));
+	}
+
 	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
 						CDXLTokens::GetDXLTokenStr(EdxltokenRelationCTAS));
 }

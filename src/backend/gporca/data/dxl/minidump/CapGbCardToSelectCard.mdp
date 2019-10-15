@@ -10945,13 +10945,13 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.1042.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="1" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.1043.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="4" ColName="i_item_desc" TypeMdid="0.1043.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.1700.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="5" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

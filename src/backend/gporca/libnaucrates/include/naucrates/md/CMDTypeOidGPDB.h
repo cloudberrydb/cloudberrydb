@@ -15,8 +15,11 @@
 #include "gpos/base.h"
 
 #include "naucrates/md/IMDTypeOid.h"
+#include "naucrates/md/CGPDBTypeHelper.h"
 
 #define GPDB_OID_OID OID(26)
+#define GPDB_OID_OPFAMILY OID(1990)
+#define GPDB_OID_LEGACY_OPFAMILY OID(7109)
 #define GPDB_OID_LENGTH 4
 #define GPDB_OID_EQ_OP OID(607)
 #define GPDB_OID_NEQ_OP OID(608)
@@ -62,6 +65,7 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class CMDTypeOidGPDB : public IMDTypeOid
 	{
+		friend class CGPDBTypeHelper<CMDTypeOidGPDB>;
 		private:
 
 			// memory pool
@@ -69,6 +73,8 @@ namespace gpmd
 
 			// type id
 			IMDId *m_mdid;
+			IMDId *m_distr_opfamily;
+			IMDId *m_legacy_distr_opfamily;
 
 			// mdids of different comparison operators
 			IMDId *m_mdid_op_eq;
@@ -128,6 +134,9 @@ namespace gpmd
 
 			virtual
 			IMDId *MDId() const;
+
+			IMDId *
+			GetDistrOpfamilyMdid() const;
 
 			virtual
 			CMDName Mdname() const;

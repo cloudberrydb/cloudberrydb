@@ -476,7 +476,7 @@ with v as (select * from t1) select * from v v1, v v2 where v1.b=v2.b;
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

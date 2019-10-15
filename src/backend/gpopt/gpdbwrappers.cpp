@@ -1416,6 +1416,21 @@ gpdb::GetColumnDefOpclassForType
 }
 
 Oid
+gpdb::GetDefaultDistributionOpfamilyForType
+	(
+	Oid typid
+	)
+{
+	GP_WRAP_START;
+	{
+		/* catalog tables: pg_type, pg_opclass */
+		return cdb_default_distribution_opfamily_for_type(typid);
+	}
+	GP_WRAP_END;
+	return false;
+}
+
+Oid
 gpdb::GetHashProcInOpfamily
 	(
 	Oid opfamily,
@@ -2886,6 +2901,30 @@ gpdb::GetOpFamiliesForScOp
 	GP_WRAP_END;
 	
 	return NIL;
+}
+
+// get the OID of hash equality operator(s) compatible with the given op
+Oid
+gpdb::GetCompatibleHashOpFamily(Oid opno)
+{
+	GP_WRAP_START;
+	{
+		return get_compatible_hash_opfamily(opno);
+	}
+	GP_WRAP_END;
+	return InvalidOid;
+}
+
+// get the OID of hash equality operator(s) compatible with the given op
+Oid
+gpdb::GetCompatibleLegacyHashOpFamily(Oid opno)
+{
+	GP_WRAP_START;
+	{
+		return get_compatible_legacy_hash_opfamily(opno);
+	}
+	GP_WRAP_END;
+	return InvalidOid;
 }
 
 List *

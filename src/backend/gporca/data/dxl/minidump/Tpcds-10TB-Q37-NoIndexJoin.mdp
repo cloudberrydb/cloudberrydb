@@ -20624,13 +20624,13 @@ select  i_item_id
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1042.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="1" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="4" ColName="i_item_desc" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1700.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="5" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -20694,10 +20694,10 @@ select  i_item_id
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="30" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="30" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>
@@ -20937,10 +20937,10 @@ select  i_item_id
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="0" ColName="i_item_sk" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="90" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>

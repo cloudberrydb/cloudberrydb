@@ -5141,7 +5141,7 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.1043.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="72" ColName="quarter_desc" TypeMdid="0.1043.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>
@@ -5465,7 +5465,7 @@
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
                               <dxl:HashExprList>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="34" ColName="month_number" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
                               </dxl:HashExprList>
@@ -5601,7 +5601,7 @@
                                         <dxl:Filter/>
                                         <dxl:SortingColumnList/>
                                         <dxl:HashExprList>
-                                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                                          <dxl:HashExpr>
                                             <dxl:Ident ColId="49" ColName="?column?" TypeMdid="0.23.1.0"/>
                                           </dxl:HashExpr>
                                         </dxl:HashExprList>
@@ -5678,7 +5678,7 @@
                                       <dxl:Filter/>
                                       <dxl:SortingColumnList/>
                                       <dxl:HashExprList>
-                                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                                        <dxl:HashExpr>
                                           <dxl:Ident ColId="53" ColName="?column?" TypeMdid="0.23.1.0"/>
                                         </dxl:HashExpr>
                                       </dxl:HashExprList>
@@ -5721,7 +5721,7 @@
                                   <dxl:Filter/>
                                   <dxl:SortingColumnList/>
                                   <dxl:HashExprList>
-                                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                                    <dxl:HashExpr>
                                       <dxl:Ident ColId="55" ColName="?column?" TypeMdid="0.23.1.0"/>
                                     </dxl:HashExpr>
                                   </dxl:HashExprList>

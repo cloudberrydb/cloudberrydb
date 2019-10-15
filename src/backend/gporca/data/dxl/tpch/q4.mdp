@@ -2140,7 +2140,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="5" ColName="o_orderpriority" TypeMdid="0.1042.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

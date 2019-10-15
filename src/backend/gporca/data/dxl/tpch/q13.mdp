@@ -1481,7 +1481,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.20.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="31" ColName="count" TypeMdid="0.20.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -1579,7 +1579,7 @@
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="16" ColName="o_custkey" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>

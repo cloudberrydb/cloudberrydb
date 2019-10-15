@@ -310,7 +310,21 @@ CPhysical::PdsCompute
 			CExpressionArray *pdrgpexpr = CUtils::PdrgpexprScalarIdents(mp, colref_array);
 			colref_array->Release();
 
-			pds = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /*fNullsColocated*/);
+			IMdIdArray *opfamilies = NULL;
+			if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+			{
+				opfamilies = GPOS_NEW(mp) IMdIdArray(mp);
+				for (ULONG ul = 0; ul < size; ul++)
+				{
+					IMDId *opfamily = (*ptabdesc->DistrOpfamilies())[ul];
+					GPOS_ASSERT(NULL != opfamily && opfamily->IsValid());
+					opfamily->AddRef();
+					opfamilies->Append(opfamily);
+				}
+				GPOS_ASSERT(opfamilies->Size() == pdrgpexpr->Size());
+			}
+
+			pds = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /*fNullsColocated*/, opfamilies);
 			break;
 		}
 

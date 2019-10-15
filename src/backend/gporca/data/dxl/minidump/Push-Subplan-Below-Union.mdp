@@ -978,25 +978,25 @@ union
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="35" ColName="population" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="36" ColName="num_cities" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.25.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="37" ColName="district" TypeMdid="0.25.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.1042.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="38" ColName="countrycode" TypeMdid="0.1042.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.25.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="39" ColName="name" TypeMdid="0.25.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.25.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="93" ColName="name" TypeMdid="0.25.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="96" ColName="population" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

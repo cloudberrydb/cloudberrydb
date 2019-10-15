@@ -525,7 +525,7 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.20.1.0">
+              <dxl:HashExpr>
                 <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                   <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
                 </dxl:Cast>

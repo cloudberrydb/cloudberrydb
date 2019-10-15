@@ -1817,7 +1817,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="5" ColName="m2" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>
@@ -1865,7 +1865,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="9" ColName="m6" TypeMdid="0.23.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -1919,7 +1919,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                     <dxl:Filter/>
                     <dxl:SortingColumnList/>
                     <dxl:HashExprList>
-                      <dxl:HashExpr TypeMdid="0.23.1.0">
+                      <dxl:HashExpr>
                         <dxl:Ident ColId="12" ColName="m9" TypeMdid="0.23.1.0"/>
                       </dxl:HashExpr>
                     </dxl:HashExprList>
@@ -2044,7 +2044,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                     <dxl:Filter/>
                     <dxl:SortingColumnList/>
                     <dxl:HashExprList>
-                      <dxl:HashExpr TypeMdid="0.23.1.0">
+                      <dxl:HashExpr>
                         <dxl:Ident ColId="0" ColName="f1" TypeMdid="0.23.1.0"/>
                       </dxl:HashExpr>
                     </dxl:HashExprList>
@@ -2082,7 +2082,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="16" ColName="h1" TypeMdid="0.23.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -2120,7 +2120,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="20" ColName="g1" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

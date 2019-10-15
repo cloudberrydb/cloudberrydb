@@ -339,6 +339,9 @@ namespace gpdb {
 	// get the column-definition hash opclass for type
 	Oid GetColumnDefOpclassForType(List *opclassName, Oid typid);
 
+	// get the default hash opfamily for type
+	Oid GetDefaultDistributionOpfamilyForType(Oid typid);
+
 	// get the hash function in an opfamily for given datatype
 	Oid GetHashProcInOpfamily(Oid opfamily, Oid typid);
 
@@ -629,6 +632,12 @@ namespace gpdb {
 	
 	// get oids of families this operator belongs to
 	List *GetOpFamiliesForScOp(Oid opno);
+
+	// get the OID of hash equality operator(s) compatible with the given op
+	Oid GetCompatibleHashOpFamily(Oid opno);
+
+	// get the OID of legacy hash equality operator(s) compatible with the given op
+	Oid GetCompatibleLegacyHashOpFamily(Oid opno);
 	
 	// get oids of op classes for the index keys
 	List *GetIndexOpFamilies(Oid index_oid);

@@ -15,6 +15,8 @@
 #include "naucrates/dxl/parser/CParseHandlerColDescr.h"
 #include "naucrates/dxl/parser/CParseHandlerCtasStorageOptions.h"
 #include "naucrates/dxl/parser/CParseHandlerFactory.h"
+#include "naucrates/dxl/parser/CParseHandlerMetadataIdList.h"
+
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 
@@ -45,7 +47,8 @@ CParseHandlerLogicalCTAS::CParseHandlerLogicalCTAS
 	m_distr_column_pos_array(NULL),
 	m_src_colids_array(NULL),
 	m_vartypemod_array(NULL),
-	m_is_temp_table(false)
+	m_is_temp_table(false),
+	m_opfamilies_parse_handler(NULL)
 {
 }
 
@@ -60,12 +63,24 @@ CParseHandlerLogicalCTAS::CParseHandlerLogicalCTAS
 void
 CParseHandlerLogicalCTAS::StartElement
 	(
-	const XMLCh* const, // element_uri,
+	const XMLCh* const element_uri,
 	const XMLCh* const element_local_name,
-	const XMLCh* const, // element_qname
+	const XMLCh* const element_qname,
 	const Attributes &attrs
 	)
 {
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenRelDistrOpfamilies), element_local_name))
+	{
+		// parse handler for check constraints
+		m_opfamilies_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList),
+																		   m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(m_opfamilies_parse_handler);
+		this->Append(m_opfamilies_parse_handler);
+		m_opfamilies_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
+
+		return;
+	}
+
 	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalCTAS), element_local_name))
 	{
 		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
@@ -175,6 +190,13 @@ CParseHandlerLogicalCTAS::EndElement
 	
 	CDXLCtasStorageOptions *dxl_ctas_storage_opt = ctas_options_parse_handler->GetDxlCtasStorageOption();
 	dxl_ctas_storage_opt->AddRef();
+
+	IMdIdArray *distr_opfamilies = NULL;
+	if (m_opfamilies_parse_handler != NULL)
+	{
+		distr_opfamilies = dynamic_cast<CParseHandlerMetadataIdList*>(m_opfamilies_parse_handler)->GetMdIdArray();
+		distr_opfamilies->AddRef();
+	}
 	
 	m_dxl_node = GPOS_NEW(m_mp) CDXLNode
 							(
@@ -188,7 +210,8 @@ CParseHandlerLogicalCTAS::EndElement
 										dxl_column_descr_array,
 										dxl_ctas_storage_opt,
 										m_rel_distr_policy, 
-										m_distr_column_pos_array, 
+										m_distr_column_pos_array,
+										distr_opfamilies,
 										m_is_temp_table, 
 										m_has_oids, 
 										m_rel_storage_type, 

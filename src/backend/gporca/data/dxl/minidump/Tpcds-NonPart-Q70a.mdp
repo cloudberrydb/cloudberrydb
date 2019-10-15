@@ -15061,10 +15061,10 @@ with results as
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.1042.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="89" ColName="s_state" TypeMdid="0.1042.1.0"/>
                         </dxl:HashExpr>
-                        <dxl:HashExpr TypeMdid="0.1043.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="88" ColName="s_county" TypeMdid="0.1043.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>
@@ -15391,7 +15391,7 @@ with results as
                                             <dxl:Filter/>
                                             <dxl:SortingColumnList/>
                                             <dxl:HashExprList>
-                                              <dxl:HashExpr TypeMdid="0.1042.1.0">
+                                              <dxl:HashExpr>
                                                 <dxl:Ident ColId="155" ColName="s_state" TypeMdid="0.1042.1.0"/>
                                               </dxl:HashExpr>
                                             </dxl:HashExprList>
@@ -15720,10 +15720,10 @@ with results as
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="847" ColName="lochierarchy" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
-                        <dxl:HashExpr TypeMdid="0.1042.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="1477" ColName="?column?" TypeMdid="0.1042.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>
@@ -15840,22 +15840,22 @@ with results as
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
                               <dxl:HashExprList>
-                                <dxl:HashExpr TypeMdid="0.1700.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="842" ColName="sum" TypeMdid="0.1700.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.1042.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="843" ColName="s_state" TypeMdid="0.1042.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.1043.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="844" ColName="s_county" TypeMdid="0.1043.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="845" ColName="g_state" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="846" ColName="g_county" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="847" ColName="lochierarchy" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
                               </dxl:HashExprList>
@@ -16025,7 +16025,7 @@ with results as
                                         <dxl:Filter/>
                                         <dxl:SortingColumnList/>
                                         <dxl:HashExprList>
-                                          <dxl:HashExpr TypeMdid="0.1042.1.0">
+                                          <dxl:HashExpr>
                                             <dxl:Ident ColId="1053" ColName="s_state" TypeMdid="0.1042.1.0"/>
                                           </dxl:HashExpr>
                                         </dxl:HashExprList>

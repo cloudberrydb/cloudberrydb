@@ -91,7 +91,7 @@ CPhysicalUnionAll::CPhysicalUnionAll
 	m_pdrgpdrgpcrInput(pdrgpdrgpcrInput),
 	m_ulScanIdPartialIndex(ulScanIdPartialIndex),
 	m_pdrgpcrsInput(NULL),
-	m_pdrgpds(GPOS_NEW(mp) CHashedDistributions(mp, pdrgpcrOutput, pdrgpdrgpcrInput))
+	m_pdrgpds(NULL)
 {
 	GPOS_ASSERT(NULL != pdrgpcrOutput);
 	GPOS_ASSERT(NULL != pdrgpdrgpcrInput);
@@ -104,6 +104,48 @@ CPhysicalUnionAll::CPhysicalUnionAll
 		CColRefArray *colref_array = (*m_pdrgpdrgpcrInput)[ulChild];
 		m_pdrgpcrsInput->Append(GPOS_NEW(mp) CColRefSet(mp, colref_array));
 	}
+	PopulateDistrSpecs(mp, pdrgpcrOutput, pdrgpdrgpcrInput);
+}
+
+void
+CPhysicalUnionAll::PopulateDistrSpecs
+		(
+		CMemoryPool *mp,
+		CColRefArray *pdrgpcrOutput,
+		CColRef2dArray *pdrgpdrgpcrInput
+		)
+{
+	CDistributionSpecArray *pdrgpds = GPOS_NEW(mp) CDistributionSpecArray(mp);
+	const ULONG num_cols = pdrgpcrOutput->Size();
+	const ULONG arity = pdrgpdrgpcrInput->Size();
+	for (ULONG ulChild = 0; ulChild < arity; ulChild++)
+	{
+		CColRefArray *colref_array = (*pdrgpdrgpcrInput)[ulChild];
+		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ulCol = 0; ulCol < num_cols; ulCol++)
+		{
+			CColRef *colref = (*colref_array)[ulCol];
+			CExpression *pexpr = CUtils::PexprScalarIdent(mp, colref);
+			pdrgpexpr->Append(pexpr);
+		}
+
+		// create a hashed distribution on input columns of the current child
+		BOOL fNullsColocated = true;
+		CDistributionSpec *pdshashed =
+			CDistributionSpecHashed::MakeHashedDistrSpec(mp, pdrgpexpr, fNullsColocated, NULL, NULL);
+		if (NULL == pdshashed)
+		{
+			pdrgpexpr->Release();
+			pdrgpds->Release();
+			return;
+		}
+		else
+		{
+			pdrgpds->Append(pdshashed);
+		}
+	}
+
+	m_pdrgpds = pdrgpds;
 }
 
 CPhysicalUnionAll::~CPhysicalUnionAll()
@@ -111,7 +153,7 @@ CPhysicalUnionAll::~CPhysicalUnionAll()
 	m_pdrgpcrOutput->Release();
 	m_pdrgpdrgpcrInput->Release();
 	m_pdrgpcrsInput->Release();
-	m_pdrgpds->Release();
+	CRefCount::SafeRelease(m_pdrgpds);
 }
 
 // accessor of output column array
@@ -681,6 +723,11 @@ CPhysicalUnionAll::PdshashedDerive
 	)
 const
 {
+	if (m_pdrgpds == NULL)
+	{
+		return NULL;
+	}
+
 	BOOL fSuccess = true;
 	const ULONG arity = exprhdl.Arity();
 

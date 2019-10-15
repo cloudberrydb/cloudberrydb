@@ -478,7 +478,7 @@ SQL: select count(distinct a) over(partition by a), sum(distinct a) over(partiti
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -795,7 +795,7 @@ SQL: select count(distinct a) over(partition by a), sum(distinct a) over(partiti
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="44" ColName="b" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

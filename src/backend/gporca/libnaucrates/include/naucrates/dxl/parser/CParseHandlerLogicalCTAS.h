@@ -63,6 +63,9 @@ namespace gpdxl
 			
 			// storage type
 			IMDRelation::Erelstoragetype m_rel_storage_type;
+
+			// distribution opfamilies parse handler
+			CParseHandlerBase *m_opfamilies_parse_handler;
 		
 			// private copy ctor
 			CParseHandlerLogicalCTAS(const CParseHandlerLogicalCTAS &);

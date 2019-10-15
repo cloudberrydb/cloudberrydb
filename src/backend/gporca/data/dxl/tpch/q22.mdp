@@ -1620,7 +1620,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.25.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="47" ColName="cntrycode" TypeMdid="0.25.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -1764,7 +1764,7 @@
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="32" ColName="o_custkey" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>

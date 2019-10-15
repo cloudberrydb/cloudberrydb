@@ -1629,7 +1629,7 @@ WHERE
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="45" ColName="ws_bill_customer_sk" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>
@@ -1661,7 +1661,7 @@ WHERE
                             <dxl:Filter/>
                             <dxl:SortingColumnList/>
                             <dxl:HashExprList>
-                              <dxl:HashExpr TypeMdid="0.23.1.0">
+                              <dxl:HashExpr>
                                 <dxl:Ident ColId="41" ColName="ws_sold_date_sk" TypeMdid="0.23.1.0"/>
                               </dxl:HashExpr>
                             </dxl:HashExprList>
@@ -1819,7 +1819,7 @@ WHERE
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="124" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>

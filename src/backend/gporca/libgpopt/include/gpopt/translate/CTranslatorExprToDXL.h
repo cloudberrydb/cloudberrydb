@@ -694,7 +694,7 @@ namespace gpopt
 			CDXLNode *GetSortColListDXL(CExpression *pexprMotion);
 
 			// create a DXL hash expr list from an array of hash columns
-			CDXLNode *PdxlnHashExprList(const CExpressionArray *pdrgpexpr);
+			CDXLNode *PdxlnHashExprList(const CExpressionArray *pdrgpexpr, const IMdIdArray *opfamilies);
 			
 			// create a DXL filter node with the given scalar expression
 			CDXLNode *PdxlnFilter(CDXLNode *pdxlnCond);

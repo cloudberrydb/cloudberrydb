@@ -200,6 +200,12 @@ namespace gpos
 		// Consider non-equality predicates in Dynamic partition selection
 		EopttraceAllowGeneralPredicatesforDPE = 103037,
 
+		// Support Opfamilies in distribution specs
+		EopttraceConsiderOpfamiliesForDistribution = 103038,
+
+		// Use legacy (cdbhash) opfamilies for compatibility
+		EopttraceUseLegacyOpfamilies = 103039,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

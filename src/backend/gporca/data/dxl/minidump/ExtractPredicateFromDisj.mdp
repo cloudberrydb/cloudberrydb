@@ -14854,10 +14854,10 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="61" ColName="d_year" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="63" ColName="d_moy" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

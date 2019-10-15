@@ -17,6 +17,8 @@
 #include "gpopt/base/CDistributionSpecAny.h"
 #include "gpopt/base/CDistributionSpecReplicated.h"
 
+#include "naucrates/md/IMDScalarOp.h"
+
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CExpressionHandle.h"
 
@@ -532,16 +534,19 @@ CPhysicalJoin::FHashJoinCompatible
 
 	CExpression *pexprPredOuter = NULL;
 	CExpression *pexprPredInner = NULL;
+	IMDId *mdid_scop = NULL;
 	if (CPredicateUtils::IsEqualityOp(pexprPred))
 	{
 		pexprPredOuter = (*pexprPred)[0];
 		pexprPredInner = (*pexprPred)[1];
+		mdid_scop = CScalarCmp::PopConvert(pexprPred->Pop())->MdIdOp();
 	}
 	else if (CPredicateUtils::FINDF(pexprPred))
 	{
 		CExpression *pexpr = (*pexprPred)[0];
 		pexprPredOuter = (*pexpr)[0];
 		pexprPredInner = (*pexpr)[1];
+		mdid_scop = CScalarIsDistinctFrom::PopConvert(pexpr->Pop())->MdIdOp();
 	}
 	else
 	{
@@ -552,6 +557,13 @@ CPhysicalJoin::FHashJoinCompatible
 	IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	const IMDScalarOp *scop = md_accessor->RetrieveScOp(mdid_scop);
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
+		NULL == scop->HashOpfamilyMdid())
+	{
+		return false;
+	}
 
 	if (md_accessor->RetrieveType(pmdidTypeOuter)->IsHashable() &&
 		md_accessor->RetrieveType(pmdidTypeInner)->IsHashable())
@@ -578,11 +590,14 @@ CPhysicalJoin::FMergeJoinCompatible
 
 	CExpression *pexprPredOuter = NULL;
 	CExpression *pexprPredInner = NULL;
+	IMDId *mdid_scop = NULL;
+
 	// Only merge join between ScalarIdents of the same types is currently supported
 	if (CPredicateUtils::FEqIdentsOfSameType(pexprPred))
 	{
 		pexprPredOuter = (*pexprPred)[0];
 		pexprPredInner = (*pexprPred)[1];
+		mdid_scop = CScalarCmp::PopConvert(pexprPred->Pop())->MdIdOp();
 		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredOuter));
 		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredInner));
 	}
@@ -594,14 +609,34 @@ CPhysicalJoin::FMergeJoinCompatible
 	IMDId *pmdidTypeOuter = CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
 	IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
 
+	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		const IMDScalarOp *op = mda->RetrieveScOp(mdid_scop);
+		const IMDType *left_type = mda->RetrieveType(pmdidTypeOuter);
+		const IMDType *right_type = mda->RetrieveType(pmdidTypeInner);
+
+		// MJ sends Sort requests whose btree opclass must match that of the join
+		// clause. ORCA currently doesn't have support to retrive the information
+		// to send such requests.
+		// So, check that hash family used for distribution matches the default for
+		// its operands' types. This must match the operator using in
+		// CPhysicalFullMergeJoin::PosRequired().
+		if (!CUtils::Equals(op->HashOpfamilyMdid(), left_type->GetDistrOpfamilyMdid()) ||
+			!CUtils::Equals(op->HashOpfamilyMdid(), right_type->GetDistrOpfamilyMdid()))
+		{
+			return false;
+		}
+	}
+
 	// MJ sends a distribution request for merge clauses on both sides, they
 	// must, therefore, be hashable and merge joinable.
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
-	if (md_accessor->RetrieveType(pmdidTypeOuter)->IsHashable() &&
-		md_accessor->RetrieveType(pmdidTypeInner)->IsHashable() &&
-		md_accessor->RetrieveType(pmdidTypeOuter)->IsMergeJoinable() &&
-		md_accessor->RetrieveType(pmdidTypeInner)->IsMergeJoinable())
+	if (mda->RetrieveType(pmdidTypeOuter)->IsHashable() &&
+		mda->RetrieveType(pmdidTypeInner)->IsHashable() &&
+		mda->RetrieveType(pmdidTypeOuter)->IsMergeJoinable() &&
+		mda->RetrieveType(pmdidTypeInner)->IsMergeJoinable())
 	{
 		return FPredKeysSeparated(pexprInner, pexprOuter,
 								  pexprPredInner, pexprPredOuter);

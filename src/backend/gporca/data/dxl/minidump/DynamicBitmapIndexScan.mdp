@@ -518,10 +518,10 @@ see sql/DynamicBitmapIndexScan.sql
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.1700.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="24" ColName="fid" TypeMdid="0.1700.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.1700.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

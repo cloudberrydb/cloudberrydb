@@ -384,6 +384,9 @@ namespace gpdxl
 			static
 			IMdIdArray *RetrieveIndexOpFamilies(CMemoryPool *mp, IMDId *mdid_index);
 
+			static
+			IMdIdArray *RetrieveRelDistributionOpFamilies(CMemoryPool *mp, GpPolicy *policy);
+
             // for non-leaf partition tables return the number of child partitions
             // else return 1
             static

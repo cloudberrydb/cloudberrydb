@@ -16836,7 +16836,7 @@ group by	pa11.dcal_month_id,
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.20.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="0" ColName="dpg_program_key" TypeMdid="0.20.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -17502,7 +17502,7 @@ group by	pa11.dcal_month_id,
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="1" ColName="dcal_month_id" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>
@@ -39698,7 +39698,7 @@ group by	pa11.dcal_month_id,
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="1053" ColName="dcal_month_id" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

@@ -1802,7 +1802,20 @@ CTranslatorDXLToExpr::PexprLogicalSeqPr
 		if (0 < colref_array->Size())
 		{
 			CExpressionArray *pdrgpexprScalarIdents = CUtils::PdrgpexprScalarIdents(m_mp, colref_array);
-			pds = GPOS_NEW(m_mp) CDistributionSpecHashed(pdrgpexprScalarIdents, true /* fNullsCollocated */);
+			pds = CDistributionSpecHashed::MakeHashedDistrSpec(m_mp, pdrgpexprScalarIdents,
+															   true /* fNullsCollocated */,
+															   NULL /* pdshashedEquiv */,
+															   NULL  /* opfamilies */);
+			if (NULL == pds)
+			{
+				// FIXME: Handle PARTITION BY clauses that cannot be capture using CDistributionSpecHashed
+				// CScalarProjectList uses CDistributionSpecHashed to represent PARTITION BY clauses, even
+				// though the clause may use expressions that are not distributable. For now, ORCA falls
+				// back for such cases.
+				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+						   GPOS_WSZ_LIT("no default hash opclasses found in window function"));
+			}
+
 		}
 		else
 		{
@@ -2273,6 +2286,7 @@ CTranslatorDXLToExpr::RegisterMDRelationCtas
 			pdxlopCTAS->Ereldistrpolicy(),
 			mdcol_array,
 			pdxlopCTAS->GetDistrColPosArray(),
+			pdxlopCTAS->GetDistrOpfamilies(),
 			GPOS_NEW(m_mp) ULongPtr2dArray(m_mp), // keyset_array,
 			pdxlopCTAS->GetDxlCtasStorageOption(),
 			vartypemod_array
@@ -4033,8 +4047,16 @@ CTranslatorDXLToExpr::AddDistributionColumns
 		INT attno = pmdcol->AttrNum();
 		ULONG *pulPos = phmiulAttnoColMapping->Find(&attno);
 		GPOS_ASSERT(NULL != pulPos);
-		
-		ptabdesc->AddDistributionColumn(*pulPos);
+
+		IMDId *opfamily = NULL;
+		if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+		{
+			opfamily = pmdrel->GetDistrOpfamilyAt(ul);
+			GPOS_ASSERT(NULL != opfamily && opfamily->IsValid());
+			opfamily->AddRef();
+		}
+
+		ptabdesc->AddDistributionColumn(*pulPos, opfamily);
 	}
 }
 

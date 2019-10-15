@@ -205,10 +205,15 @@ CPhysicalScan::PdsDerive
 		{
 			CExpressionArray *pdrgpexprHashed = pdshashed->Pdrgpexpr();
 			pdrgpexprHashed->AddRef();
+			if (NULL != pdshashed->Opfamilies())
+			{
+				pdshashed->Opfamilies()->AddRef();
+			}
 			CDistributionSpecHashed *pdshashedResult =
 				GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprHashed,
 													 pdshashed->FNullsColocated(),
-													 pdshashedEquiv);
+													 pdshashedEquiv,
+													 pdshashed->Opfamilies());
 
 			return pdshashedResult;
 		}

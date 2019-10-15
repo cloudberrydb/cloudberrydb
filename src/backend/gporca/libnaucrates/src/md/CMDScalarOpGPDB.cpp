@@ -41,7 +41,9 @@ CMDScalarOpGPDB::CMDScalarOpGPDB
 	IMDId *m_mdid_inverse_opr,
 	IMDType::ECmpType cmp_type,
 	BOOL returns_null_on_null_input,
-	IMdIdArray *mdid_opfamilies_array
+	IMdIdArray *mdid_opfamilies_array,
+	IMDId *mdid_hash_opfamily,
+	IMDId *mdid_legacy_hash_opfamily
 	)
 	:
 	m_mp(mp),
@@ -55,7 +57,9 @@ CMDScalarOpGPDB::CMDScalarOpGPDB
 	m_mdid_inverse_opr(m_mdid_inverse_opr),
 	m_comparision_type(cmp_type),
 	m_returns_null_on_null_input(returns_null_on_null_input),
-	m_mdid_opfamilies_array(mdid_opfamilies_array)
+	m_mdid_opfamilies_array(mdid_opfamilies_array),
+	m_mdid_hash_opfamily(mdid_hash_opfamily),
+	m_mdid_legacy_hash_opfamily(mdid_legacy_hash_opfamily)
 {
 	GPOS_ASSERT(NULL != mdid_opfamilies_array);
 	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
@@ -80,6 +84,8 @@ CMDScalarOpGPDB::~CMDScalarOpGPDB()
 	CRefCount::SafeRelease(m_mdid_type_right);
 	CRefCount::SafeRelease(m_mdid_commute_opr);
 	CRefCount::SafeRelease(m_mdid_inverse_opr);
+	CRefCount::SafeRelease(m_mdid_hash_opfamily);
+	CRefCount::SafeRelease(m_mdid_legacy_hash_opfamily);
 	
 	GPOS_DELETE(m_mdname);
 	GPOS_DELETE(m_dxl_str);
@@ -267,14 +273,16 @@ CMDScalarOpGPDB::Serialize
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOpCmpType), IMDType::GetCmpTypeStr(m_comparision_type));
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenReturnsNullOnNullInput), m_returns_null_on_null_input);
 
-	Edxltoken dxl_token_array[6] = {
+	Edxltoken dxl_token_array[8] = {
 							EdxltokenGPDBScalarOpLeftTypeId, EdxltokenGPDBScalarOpRightTypeId, 
 							EdxltokenGPDBScalarOpResultTypeId, EdxltokenGPDBScalarOpFuncId, 
-							EdxltokenGPDBScalarOpCommOpId, EdxltokenGPDBScalarOpInverseOpId
+							EdxltokenGPDBScalarOpCommOpId, EdxltokenGPDBScalarOpInverseOpId,
+							EdxltokenGPDBScalarOpHashOpfamily, EdxltokenGPDBScalarOpLegacyHashOpfamily
 							};
 	
-	IMDId *mdid_array[6] = {m_mdid_type_left, m_mdid_type_right, m_mdid_type_result,
-						m_func_mdid, m_mdid_commute_opr, m_mdid_inverse_opr};
+	IMDId *mdid_array[8] = {m_mdid_type_left, m_mdid_type_right, m_mdid_type_result,
+						m_func_mdid, m_mdid_commute_opr, m_mdid_inverse_opr,
+						m_mdid_hash_opfamily, m_mdid_legacy_hash_opfamily};
 	
 	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(dxl_token_array); ul++)
 	{
@@ -327,6 +335,20 @@ CMDScalarOpGPDB::OpfamilyMdidAt
 	GPOS_ASSERT(pos < m_mdid_opfamilies_array->Size());
 	
 	return (*m_mdid_opfamilies_array)[pos];
+}
+
+// compatible hash opfamily
+IMDId *
+CMDScalarOpGPDB::HashOpfamilyMdid() const
+{
+	if (GPOS_FTRACE(EopttraceUseLegacyOpfamilies))
+	{
+		return m_mdid_legacy_hash_opfamily;
+	}
+	else
+	{
+		return m_mdid_hash_opfamily;
+	}
 }
 
 

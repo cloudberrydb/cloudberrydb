@@ -56,6 +56,9 @@ namespace gpmd
 
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeByValue), mdtype->IsPassedByValue());
 
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeDistrOpfamily), mdtype->m_distr_opfamily);
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLegacyDistrOpfamily), mdtype->m_legacy_distr_opfamily);
+
                 mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptEq));
                 mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeNEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptNEq));
                 mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLTOp), mdtype->GetMdidForCmpType(IMDType::EcmptL));

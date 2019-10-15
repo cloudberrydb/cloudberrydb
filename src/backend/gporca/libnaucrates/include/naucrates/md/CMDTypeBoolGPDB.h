@@ -18,8 +18,11 @@
 
 #include "naucrates/md/IMDTypeBool.h"
 #include "naucrates/base/IDatumBool.h"
+#include "naucrates/md/CGPDBTypeHelper.h"
 
 #define GPDB_BOOL_OID OID(16)
+#define GPDB_BOOL_OPFAMILY OID(2222)
+#define GPDB_BOOL_LEGACY_OPFAMILY OID(7124)
 #define GPDB_BOOL_LENGTH 1
 #define GPDB_BOOL_EQ_OP OID(91)
 #define GPDB_BOOL_NEQ_OP OID(85)
@@ -57,6 +60,8 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class CMDTypeBoolGPDB : public IMDTypeBool
 	{
+		friend class CGPDBTypeHelper<CMDTypeBoolGPDB>;
+
 	private:
 	
 		// memory pool
@@ -64,6 +69,8 @@ namespace gpmd
 		
 		// type id
 		IMDId *m_mdid;
+		IMDId *m_distr_opfamily;
+		IMDId *m_legacy_distr_opfamily;
 		
 		// mdids of different operators
 		IMDId *m_mdid_op_eq;
@@ -122,6 +129,9 @@ namespace gpmd
 		// type id
 		virtual 
 		IMDId *MDId() const;
+
+		IMDId *
+		GetDistrOpfamilyMdid() const;
 		
 		// type name
 		virtual 

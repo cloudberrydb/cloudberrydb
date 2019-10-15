@@ -4047,10 +4047,10 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                                 <dxl:Filter/>
                                                 <dxl:SortingColumnList/>
                                                 <dxl:HashExprList>
-                                                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                                                  <dxl:HashExpr>
                                                     <dxl:Ident ColId="94" ColName="element_id" TypeMdid="0.1043.1.0"/>
                                                   </dxl:HashExpr>
-                                                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                                                  <dxl:HashExpr>
                                                     <dxl:Ident ColId="119" ColName="?column?" TypeMdid="0.23.1.0"/>
                                                   </dxl:HashExpr>
                                                 </dxl:HashExprList>
@@ -4174,10 +4174,10 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.1043.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="41" ColName="element_id" TypeMdid="0.1043.1.0"/>
                           </dxl:HashExpr>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="66" ColName="?column?" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>
@@ -4480,10 +4480,10 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                                           <dxl:Filter/>
                                                           <dxl:SortingColumnList/>
                                                           <dxl:HashExprList>
-                                                            <dxl:HashExpr TypeMdid="0.1043.1.0">
+                                                            <dxl:HashExpr>
                                                               <dxl:Ident ColId="149" ColName="element_id" TypeMdid="0.1043.1.0"/>
                                                             </dxl:HashExpr>
-                                                            <dxl:HashExpr TypeMdid="0.23.1.0">
+                                                            <dxl:HashExpr>
                                                               <dxl:Ident ColId="174" ColName="?column?" TypeMdid="0.23.1.0"/>
                                                             </dxl:HashExpr>
                                                           </dxl:HashExprList>

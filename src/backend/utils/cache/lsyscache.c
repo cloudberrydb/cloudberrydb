@@ -57,6 +57,7 @@
 #include "utils/fmgroids.h"
 #include "utils/tqual.h"
 #include "funcapi.h"
+#include "cdb/cdbhash.h"
 
 #include "catalog/heap.h"                   /* SystemAttributeDefinition() */
 #include "catalog/pg_aggregate.h"
@@ -590,19 +591,47 @@ get_compatible_hash_opfamily(Oid opno)
 		HeapTuple	tuple = &catlist->members[i]->tuple;
 		Form_pg_amop aform = (Form_pg_amop) GETSTRUCT(tuple);
 
-		/*
-		 * The given operator should be an "=" operator with same input
-		 * types. So this shouldn't happen. But if it does, let's avoid
-		 * getting even more confused.
-		 */
-		if (aform->amoplefttype != aform->amoprighttype)
-			continue;
-
 		if (aform->amopmethod == HASH_AM_OID &&
 			aform->amopstrategy == HTEqualStrategyNumber)
 		{
 			result = aform->amopfamily;
 			break;
+		}
+	}
+
+	ReleaseSysCacheList(catlist);
+
+	return result;
+}
+
+Oid
+get_compatible_legacy_hash_opfamily(Oid opno)
+{
+	Oid			result = InvalidOid;
+	CatCList   *catlist;
+	int			i;
+
+	/*
+	 * Search pg_amop to see if the target operator is registered as the "="
+	 * operator of any hash opfamily.  If the operator is registered in
+	 * multiple opfamilies, assume we can use any one.
+	 */
+	catlist = SearchSysCacheList1(AMOPOPID, ObjectIdGetDatum(opno));
+
+	for (i = 0; i < catlist->n_members; i++)
+	{
+		HeapTuple	tuple = &catlist->members[i]->tuple;
+		Form_pg_amop aform = (Form_pg_amop) GETSTRUCT(tuple);
+
+		if (aform->amopmethod == HASH_AM_OID &&
+			aform->amopstrategy == HTEqualStrategyNumber)
+		{
+			Oid hashfunc = cdb_hashproc_in_opfamily(aform->amopfamily, aform->amoplefttype);
+			if (isLegacyCdbHashFunction(hashfunc))
+			{
+				result = aform->amopfamily;
+				break;
+			}
 		}
 	}
 

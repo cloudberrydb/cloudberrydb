@@ -4430,7 +4430,7 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.701.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="116" ColName="o_year" TypeMdid="0.701.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>

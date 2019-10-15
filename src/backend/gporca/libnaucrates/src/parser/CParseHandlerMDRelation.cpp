@@ -55,6 +55,7 @@ CParseHandlerMDRelation::CParseHandlerMDRelation
 	m_num_of_partitions(0),
 	m_key_sets_arrays(NULL),
 	m_part_constraint(NULL),
+	m_opfamilies_parse_handler(NULL),
 	m_level_with_default_part_array(NULL)
 {
 }
@@ -70,9 +71,9 @@ CParseHandlerMDRelation::CParseHandlerMDRelation
 void
 CParseHandlerMDRelation::StartElement
 	(
-	const XMLCh* const, // element_uri,
+	const XMLCh* const element_uri,
 	const XMLCh* const element_local_name,
-	const XMLCh* const, // element_qname
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
@@ -101,6 +102,17 @@ CParseHandlerMDRelation::StartElement
 			m_parse_handler_mgr->ActivateParseHandler(pphPartConstraint);
 			this->Append(pphPartConstraint);
 		}
+
+		return;
+	}
+
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenRelDistrOpfamilies), element_local_name))
+	{
+		// parse handler for check constraints
+		m_opfamilies_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(m_opfamilies_parse_handler);
+		this->Append(m_opfamilies_parse_handler);
+		m_opfamilies_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 
 		return;
 	}
@@ -251,11 +263,18 @@ CParseHandlerMDRelation::EndElement
 	CMDIndexInfoArray *md_index_info_array = pphMdlIndexInfo->GetMdIndexInfoArray();
 	IMdIdArray *mdid_triggers_array = pphMdidlTriggers->GetMdIdArray();
 	IMdIdArray *mdid_check_constraint_array = pphMdidlCheckConstraints->GetMdIdArray();
- 
+
 	md_col_array->AddRef();
 	md_index_info_array->AddRef();
  	mdid_triggers_array->AddRef();
  	mdid_check_constraint_array->AddRef();
+
+	IMdIdArray *distr_opfamilies = NULL;
+	if (m_rel_distr_policy == IMDRelation::EreldistrHash && m_opfamilies_parse_handler != NULL)
+	{
+		distr_opfamilies = dynamic_cast<CParseHandlerMetadataIdList*>(m_opfamilies_parse_handler)->GetMdIdArray();
+		distr_opfamilies->AddRef();
+	}
 
 	m_imd_obj = GPOS_NEW(m_mp) CMDRelationGPDB
 								(
@@ -267,6 +286,7 @@ CParseHandlerMDRelation::EndElement
 									m_rel_distr_policy,
 									md_col_array,
 									m_distr_col_array,
+									distr_opfamilies,
 									m_partition_cols_array,
 									m_str_part_types_array,
 									m_num_of_partitions,

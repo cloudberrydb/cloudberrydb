@@ -98,6 +98,7 @@ extern bool get_compatible_hash_operators_and_family(Oid opno,
 										 Oid *lhs_opno, Oid *rhs_opno,
 										 Oid *opfamily);
 extern Oid get_compatible_hash_opfamily(Oid opno);
+extern Oid get_compatible_legacy_hash_opfamily(Oid opno);
 extern bool get_op_hash_functions(Oid opno,
 					  RegProcedure *lhs_procno, RegProcedure *rhs_procno);
 extern List *get_op_btree_interpretation(Oid opno);

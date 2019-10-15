@@ -31,7 +31,9 @@ namespace gpopt
 			CColRefSetArray *m_pdrgpcrsInput;
 
 			// array of child hashed distributions -- used locally for distribution derivation
-			CDistributionSpecArray *const m_pdrgpds;
+			CDistributionSpecArray *m_pdrgpds;
+
+			void PopulateDistrSpecs(CMemoryPool *mp, CColRefArray *pdrgpcrOutput, CColRef2dArray *pdrgpdrgpcrInput);
 
 			// map given array of scalar ident expressions to positions of UnionAll input columns in the given child;
 			ULongPtrArray *PdrgpulMap(CMemoryPool *mp, CExpressionArray *pdrgpexpr, ULONG child_index) const;

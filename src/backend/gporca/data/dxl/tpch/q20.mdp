@@ -3570,7 +3570,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="3" ColName="s_nationkey" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -3647,7 +3647,7 @@
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="26" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>
@@ -3792,7 +3792,7 @@
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="54" ColName="l_partkey" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>
@@ -3873,10 +3873,10 @@
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
                               <dxl:HashExprList>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="54" ColName="l_partkey" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
-                                <dxl:HashExpr TypeMdid="0.23.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="55" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
                                 </dxl:HashExpr>
                               </dxl:HashExprList>

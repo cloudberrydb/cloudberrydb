@@ -59,6 +59,9 @@ namespace gpdxl
 
 			// list of distribution column positions		
 			ULongPtrArray *m_distr_column_pos_array;
+
+			// list of distribution column opfamilies
+			IMdIdArray *m_distr_opfamilies;
 			
 			// is this a temporary table
 			BOOL m_is_temp_table;
@@ -92,6 +95,7 @@ namespace gpdxl
 				CDXLCtasStorageOptions *dxl_ctas_storage_option,
 				IMDRelation::Ereldistrpolicy rel_distr_policy,
 				ULongPtrArray *distr_column_pos_array,
+				IMdIdArray *distr_opfamilies,
 				BOOL fTemporary, 
 				BOOL fHasOids, 
 				IMDRelation::Erelstoragetype rel_storage_type,
@@ -149,6 +153,12 @@ namespace gpdxl
 			ULongPtrArray *GetDistrColPosArray() const
 			{
 				return m_distr_column_pos_array;
+			}
+
+			// distribution column opfamilies
+			IMdIdArray *GetDistrOpfamilies() const
+			{
+				return m_distr_opfamilies;
 			}
 		
 			// source column ids

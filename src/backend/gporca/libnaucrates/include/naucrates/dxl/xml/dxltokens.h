@@ -472,6 +472,9 @@ namespace gpdxl
 		EdxltokenRelDistrRandom,
 		EdxltokenRelDistrReplicated,
 		EdxltokenConvertHashToRandom,
+
+		EdxltokenRelDistrOpfamilies,
+		EdxltokenRelDistrOpfamily,
 		
 		EdxltokenExtRelRejLimit,
 		EdxltokenExtRelRejLimitInRows,
@@ -528,6 +531,8 @@ namespace gpdxl
 		EdxltokenMDTypeFixedLength,
 		EdxltokenMDTypeLength,
 		EdxltokenMDTypeByValue,
+		EdxltokenMDTypeDistrOpfamily,
+		EdxltokenMDTypeLegacyDistrOpfamily,
 		EdxltokenMDTypeEqOp,
 		EdxltokenMDTypeNEqOp,
 		EdxltokenMDTypeLTOp,
@@ -555,6 +560,8 @@ namespace gpdxl
 		EdxltokenGPDBScalarOpLTOpId,
 		EdxltokenGPDBScalarOpGTOpId,
 		EdxltokenGPDBScalarOpCmpType,
+		EdxltokenGPDBScalarOpHashOpfamily,
+		EdxltokenGPDBScalarOpLegacyHashOpfamily,
 		
 		EdxltokenCmpEq, 
 		EdxltokenCmpNeq,	

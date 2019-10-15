@@ -60,12 +60,8 @@ INSERT INTO abstab_b VALUES (-1), (0), (1), (2);
 
 -- The default opclass isn't helpful with the |=| operator, so this needs
 -- a Motion.
--- FIXME: This is currently broken with ORCA, see
--- https://github.com/greenplum-db/gpdb/issues/6796
-set optimizer=off;
 EXPLAIN (COSTS OFF) SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
 SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
-reset optimizer;
 
 -- Change distribution key of abstab_a to use our fancy opclass.
 DROP TABLE abstab_a;

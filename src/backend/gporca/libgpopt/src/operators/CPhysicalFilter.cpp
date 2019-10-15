@@ -372,17 +372,22 @@ CPhysicalFilter::PdsDerive
 
 			CExpressionArray *pdrgpexprOriginal = pdshashedOriginal->Pdrgpexpr();
 			pdrgpexprOriginal->AddRef();
+			IMdIdArray *opfamiliesOriginal = pdshashedOriginal->Opfamilies();
+			if (NULL != opfamiliesOriginal)
+			{
+				opfamiliesOriginal->AddRef();
+			}
 
 			CDistributionSpecHashed *pdsResult;
 			if (NULL == pdshashedComplete)
 			{
 				// could not complete the spec, return the original without any equiv spec
-				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated());
+				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated(), opfamiliesOriginal);
 			}
 			else
 			{
 				// return the original with the completed equiv spec
-				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated(), pdshashedComplete);
+				pdsResult = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprOriginal, pdshashedOriginal->FNullsColocated(), pdshashedComplete, opfamiliesOriginal);
 			}
 
 			// in any case, returned distribution spec must be complete!

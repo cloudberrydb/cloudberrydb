@@ -170,6 +170,7 @@ CGroup::CGroup
 	m_fScalar(fScalar),
 	m_pdrgpexprJoinKeysOuter(NULL),
 	m_pdrgpexprJoinKeysInner(NULL),
+	m_join_opfamilies(NULL),
 	m_pdp(NULL),
 	m_pstats(NULL),
 	m_pexprScalar(NULL),
@@ -219,6 +220,7 @@ CGroup::~CGroup()
 {
 	CRefCount::SafeRelease(m_pdrgpexprJoinKeysOuter);
 	CRefCount::SafeRelease(m_pdrgpexprJoinKeysInner);
+	CRefCount::SafeRelease(m_join_opfamilies);
 	CRefCount::SafeRelease(m_pdp);
 	CRefCount::SafeRelease(m_pexprScalar);
 	CRefCount::SafeRelease(m_pccDummy);
@@ -558,7 +560,8 @@ void
 CGroup::SetJoinKeys
 	(
 	CExpressionArray *pdrgpexprOuter,
-	CExpressionArray *pdrgpexprInner
+	CExpressionArray *pdrgpexprInner,
+	IMdIdArray *join_opfamilies
 	)
 {
 	GPOS_ASSERT(m_fScalar);
@@ -578,6 +581,17 @@ CGroup::SetJoinKeys
 
 	pdrgpexprInner->AddRef();
 	m_pdrgpexprJoinKeysInner = pdrgpexprInner;
+
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		GPOS_ASSERT(join_opfamilies != NULL);
+		join_opfamilies->AddRef();
+	}
+	else
+	{
+		GPOS_ASSERT(NULL == join_opfamilies);
+	}
+	m_join_opfamilies = join_opfamilies;
 }
 
 
@@ -1776,6 +1790,21 @@ CGroup::OsPrintGrpScalarProps
 		for (ULONG ul = 0; ul < size; ul++)
 		{
 			os << szPrefix << *(*m_pdrgpexprJoinKeysInner)[ul]<< std::endl;
+		}
+	}
+
+	GPOS_CHECK_ABORT;
+
+	if (NULL != m_join_opfamilies)
+	{
+		os << szPrefix << "Inner Join Opfamilies: " << std::endl;
+
+		const ULONG size = m_join_opfamilies->Size();
+		for (ULONG ul = 0; ul < size; ul++)
+		{
+			os << szPrefix;
+			(*m_join_opfamilies)[ul]->OsPrint(os);
+			os << std::endl;
 		}
 	}
 

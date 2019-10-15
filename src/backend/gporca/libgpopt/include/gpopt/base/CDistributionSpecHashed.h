@@ -35,6 +35,8 @@ namespace gpopt
 
 			// array of distribution expressions
 			CExpressionArray *m_pdrgpexpr;
+
+			IMdIdArray *m_opfamilies;
 			
 			// are NULLS consistently distributed
 			BOOL m_fNullsColocated;
@@ -78,14 +80,31 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CDistributionSpecHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated);
+			CDistributionSpecHashed(CExpressionArray *pdrgpexpr,
+									BOOL fNullsColocated,
+									IMdIdArray *opfamilies=NULL);
 			
 			// ctor
-			CDistributionSpecHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated, CDistributionSpecHashed *pdshashedEquiv);
+			CDistributionSpecHashed(CExpressionArray *pdrgpexpr,
+									BOOL fNullsColocated,
+									CDistributionSpecHashed *pdshashedEquiv,
+									IMdIdArray *opfamilies=NULL
+									);
+
+			static CDistributionSpecHashed* MakeHashedDistrSpec
+				(
+				CMemoryPool *mp,
+				CExpressionArray *pdrgpexpr,
+				BOOL fNullsColocated,
+				CDistributionSpecHashed *pdshashedEquiv,
+				IMdIdArray *opfamilies
+				);
 
 			// dtor
 			virtual 
 			~CDistributionSpecHashed();
+
+			void PopulateDefaultOpfamilies();
 			
 			// distribution type accessor
 			virtual 
@@ -116,6 +135,11 @@ namespace gpopt
 			CDistributionSpecHashed *PdshashedEquiv() const
 			{
 				return m_pdshashedEquiv;
+			}
+
+			IMdIdArray *Opfamilies() const
+			{
+				return m_opfamilies;
 			}
 
 			// columns used by distribution expressions

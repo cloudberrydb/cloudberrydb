@@ -3066,10 +3066,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1042.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -3177,7 +3177,7 @@
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.1042.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>

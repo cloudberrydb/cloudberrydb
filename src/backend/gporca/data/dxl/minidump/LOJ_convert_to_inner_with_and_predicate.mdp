@@ -416,7 +416,7 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

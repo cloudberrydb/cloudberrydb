@@ -646,10 +646,10 @@ explain select f.k, f.subq from (select tab3.k, (select tab2.k from tab2 where t
                     <dxl:Filter/>
                     <dxl:SortingColumnList/>
                     <dxl:HashExprList>
-                      <dxl:HashExpr TypeMdid="0.23.1.0">
+                      <dxl:HashExpr>
                         <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
                       </dxl:HashExpr>
-                      <dxl:HashExpr TypeMdid="0.1043.1.0">
+                      <dxl:HashExpr>
                         <dxl:Ident ColId="2" ColName="k" TypeMdid="0.1043.1.0"/>
                       </dxl:HashExpr>
                     </dxl:HashExprList>

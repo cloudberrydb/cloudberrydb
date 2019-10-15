@@ -505,6 +505,9 @@ CDXLTokens::Init
 			{EdxltokenRelDistrRandom, GPOS_WSZ_LIT("Random")},
 			{EdxltokenRelDistrReplicated, GPOS_WSZ_LIT("Replicated")},
 			{EdxltokenConvertHashToRandom, GPOS_WSZ_LIT("ConvertHashToRandom")},
+
+			{EdxltokenRelDistrOpfamilies, GPOS_WSZ_LIT("DistrOpfamilies")},
+			{EdxltokenRelDistrOpfamily, GPOS_WSZ_LIT("DistrOpfamily")},
 			
 			{EdxltokenExtRelRejLimit, GPOS_WSZ_LIT("RejectLimit")},
 			{EdxltokenExtRelRejLimitInRows, GPOS_WSZ_LIT("RejectLimitInRows")},
@@ -568,6 +571,8 @@ CDXLTokens::Init
 			{EdxltokenMDTypeFixedLength, GPOS_WSZ_LIT("IsFixedLength")},
 			{EdxltokenMDTypeLength, GPOS_WSZ_LIT("Length")},
 			{EdxltokenMDTypeByValue, GPOS_WSZ_LIT("PassByValue")},
+			{EdxltokenMDTypeDistrOpfamily, GPOS_WSZ_LIT("DistrOpfamily")},
+			{EdxltokenMDTypeLegacyDistrOpfamily, GPOS_WSZ_LIT("LegacyDistrOpfamily")},
 			{EdxltokenMDTypeEqOp, GPOS_WSZ_LIT("EqualityOp")},
 			{EdxltokenMDTypeNEqOp, GPOS_WSZ_LIT("InequalityOp")},
 			{EdxltokenMDTypeLTOp, GPOS_WSZ_LIT("LessThanOp")},
@@ -595,6 +600,8 @@ CDXLTokens::Init
 			{EdxltokenGPDBScalarOpLTOpId, GPOS_WSZ_LIT("LessThanMergeOp")},
 			{EdxltokenGPDBScalarOpGTOpId, GPOS_WSZ_LIT("GreaterThanMergeOp")},
 			{EdxltokenGPDBScalarOpCmpType, GPOS_WSZ_LIT("ComparisonType")},
+			{EdxltokenGPDBScalarOpHashOpfamily, GPOS_WSZ_LIT("HashOpfamily")},
+			{EdxltokenGPDBScalarOpLegacyHashOpfamily, GPOS_WSZ_LIT("LegacyHashOpfamily")},
 			
 			{EdxltokenCmpEq, GPOS_WSZ_LIT("Eq")}, 
 			{EdxltokenCmpNeq, GPOS_WSZ_LIT("NEq")},	

@@ -17,8 +17,11 @@
 #include "gpos/base.h"
 
 #include "naucrates/md/IMDTypeInt4.h"
+#include "naucrates/md/CGPDBTypeHelper.h"
 
 #define GPDB_INT4_OID OID(23)
+#define GPDB_INT4_OPFAMILY OID(1977)
+#define GPDB_INT4_LEGACY_OPFAMILY OID(7100)
 #define GPDB_INT4_LENGTH 4
 #define GPDB_INT4_EQ_OP OID(96)
 #define GPDB_INT4_NEQ_OP OID(518)
@@ -63,6 +66,7 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class CMDTypeInt4GPDB : public IMDTypeInt4
 	{
+		friend class CGPDBTypeHelper<CMDTypeInt4GPDB>;
 		private:
 		
 			// memory pool
@@ -70,6 +74,8 @@ namespace gpmd
 			
 			// type id
 			IMDId *m_mdid;
+			IMDId *m_distr_opfamily;
+			IMDId *m_legacy_distr_opfamily;
 			
 			// mdids of different operators
 			IMDId *m_mdid_op_eq;
@@ -131,6 +137,9 @@ namespace gpmd
 			
 			virtual 
 			IMDId *MDId() const;
+
+			IMDId *
+			GetDistrOpfamilyMdid() const;
 			
 			virtual 
 			CMDName Mdname() const;

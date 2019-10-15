@@ -1721,7 +1721,7 @@
                     <dxl:Filter/>
                     <dxl:SortingColumnList/>
                     <dxl:HashExprList>
-                      <dxl:HashExpr TypeMdid="0.23.1.0">
+                      <dxl:HashExpr>
                         <dxl:FuncExpr FuncId="0.1381.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                           <dxl:Ident ColId="42" ColName="c598" TypeMdid="0.25.1.0"/>
                         </dxl:FuncExpr>
@@ -2171,7 +2171,7 @@
                     <dxl:Filter/>
                     <dxl:SortingColumnList/>
                     <dxl:HashExprList>
-                      <dxl:HashExpr TypeMdid="0.23.1.0">
+                      <dxl:HashExpr>
                         <dxl:FuncExpr FuncId="0.1381.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                           <dxl:Ident ColId="17" ColName="c920" TypeMdid="0.25.1.0"/>
                         </dxl:FuncExpr>

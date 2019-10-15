@@ -923,10 +923,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -1166,10 +1166,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="61" ColName="bookname" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="45" ColName="measurename" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -1409,10 +1409,10 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="94" ColName="bookname" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="78" ColName="measurename" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>

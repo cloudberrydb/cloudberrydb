@@ -18,6 +18,7 @@
 
 #include "naucrates/md/IMDTypeGeneric.h"
 #include "naucrates/md/CMDIdGPDB.h"
+#include "naucrates/md/CGPDBTypeHelper.h"
 
 // some metadata ids for types that don't have their specific header files (yet)
 // keep this in sync with Postgres file pg_operator.h
@@ -48,7 +49,9 @@ namespace gpmd
 	//
 	//---------------------------------------------------------------------------
 	class CMDTypeGenericGPDB : public IMDTypeGeneric
-	{		
+	{
+		friend class CGPDBTypeHelper<CMDTypeGenericGPDB>;
+
 		private:
 			// memory pool
 			CMemoryPool *m_mp;
@@ -73,6 +76,10 @@ namespace gpmd
 			
 		// is type passed by value or by reference
 			BOOL m_is_passed_by_value;
+
+			IMDId *m_distr_opfamily;
+
+			IMDId *m_legacy_distr_opfamily;
 			
 			// id of equality operator for type
 			IMDId *m_mdid_op_eq;
@@ -148,6 +155,8 @@ namespace gpmd
 				BOOL is_fixed_length,
 				ULONG length, 
 				BOOL is_passed_by_value,
+				IMDId *mdid_distr_opfamily,
+				IMDId *mdid_legacy_distr_opfamily,
 				IMDId *mdid_op_eq,
 				IMDId *mdid_op_neq,
 				IMDId *mdid_op_lt,
@@ -263,6 +272,9 @@ namespace gpmd
 			{
 				return m_mdid_type_array;
 			}
+
+			virtual
+			IMDId *GetDistrOpfamilyMdid() const;
 			
 			// serialize object in DXL format
 			virtual 

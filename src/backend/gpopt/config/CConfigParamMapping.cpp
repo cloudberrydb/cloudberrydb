@@ -583,6 +583,9 @@ CConfigParamMapping::PackConfigParamInBitset
 	// instead of outer reference as in the case with GPDB 4/5
 	traceflag_bitset->ExchangeSet(EopttraceIndexedNLJOuterRefAsParams);
 
+	// enable using opfamilies in distribution specs for GPDB 6
+	traceflag_bitset->ExchangeSet(EopttraceConsiderOpfamiliesForDistribution);
+
 	return traceflag_bitset;
 }
 

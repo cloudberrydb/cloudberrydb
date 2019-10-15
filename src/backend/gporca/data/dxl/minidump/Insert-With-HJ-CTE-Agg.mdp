@@ -598,7 +598,7 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.25.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="38" ColName="?column?" TypeMdid="0.25.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>
@@ -704,7 +704,7 @@
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.1042.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="21" ColName="countrycode" TypeMdid="0.1042.1.0" TypeModifier="7"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>

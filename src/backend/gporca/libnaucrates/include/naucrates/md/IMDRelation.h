@@ -155,6 +155,9 @@ namespace gpmd
 			// retrieve the column at the given position in the distribution key for the relation
 			virtual 
 			const IMDColumn *GetDistrColAt(ULONG pos) const = 0;
+
+			virtual
+			IMDId *GetDistrOpfamilyAt(ULONG pos) const = 0;
 			
 			// return true if a hash distributed table needs to be considered as random
 			virtual 

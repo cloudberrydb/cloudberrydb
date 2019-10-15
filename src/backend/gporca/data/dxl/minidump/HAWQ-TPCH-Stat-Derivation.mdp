@@ -6435,7 +6435,7 @@ ORDER BY s_name;
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="3" ColName="s_nationkey" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -6505,7 +6505,7 @@ ORDER BY s_name;
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.23.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="18" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>
@@ -6555,10 +6555,10 @@ ORDER BY s_name;
                       <dxl:Filter/>
                       <dxl:SortingColumnList/>
                       <dxl:HashExprList>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="17" ColName="ps_partkey" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
-                        <dxl:HashExpr TypeMdid="0.23.1.0">
+                        <dxl:HashExpr>
                           <dxl:Ident ColId="18" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
                         </dxl:HashExpr>
                       </dxl:HashExprList>
@@ -6693,10 +6693,10 @@ ORDER BY s_name;
                           <dxl:Filter/>
                           <dxl:SortingColumnList/>
                           <dxl:HashExprList>
-                            <dxl:HashExpr TypeMdid="0.23.1.0">
+                            <dxl:HashExpr>
                               <dxl:Ident ColId="38" ColName="l_partkey" TypeMdid="0.23.1.0"/>
                             </dxl:HashExpr>
-                            <dxl:HashExpr TypeMdid="0.23.1.0">
+                            <dxl:HashExpr>
                               <dxl:Ident ColId="39" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
                             </dxl:HashExpr>
                           </dxl:HashExprList>

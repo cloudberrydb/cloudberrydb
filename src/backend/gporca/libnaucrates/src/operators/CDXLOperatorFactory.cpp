@@ -1480,8 +1480,10 @@ CDXLOperatorFactory::MakeDXLHashExpr
 							(
 							dxl_memory_manager,
 							attrs,
-							EdxltokenTypeId,
-							EdxltokenScalarHashExpr
+							EdxltokenOpfamily,
+							EdxltokenScalarHashExpr,
+							true /* is_optional */,
+							NULL /* default_val */
 							);
 
 	return GPOS_NEW(mp) CDXLScalarHashExpr(mp, mdid_type);

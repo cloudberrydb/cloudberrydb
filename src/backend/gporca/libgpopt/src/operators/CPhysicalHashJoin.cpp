@@ -46,18 +46,27 @@ CPhysicalHashJoin::CPhysicalHashJoin
 	(
 	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprOuterKeys,
-	CExpressionArray *pdrgpexprInnerKeys
+	CExpressionArray *pdrgpexprInnerKeys,
+	IMdIdArray *hash_opfamilies
 	)
 	:
 	CPhysicalJoin(mp),
 	m_pdrgpexprOuterKeys(pdrgpexprOuterKeys),
 	m_pdrgpexprInnerKeys(pdrgpexprInnerKeys),
+	m_hash_opfamilies(NULL),
 	m_pdrgpdsRedistributeRequests(NULL)
 {
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pdrgpexprOuterKeys);
 	GPOS_ASSERT(NULL != pdrgpexprInnerKeys);
 	GPOS_ASSERT(pdrgpexprOuterKeys->Size() == pdrgpexprInnerKeys->Size());
+
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		GPOS_ASSERT(NULL != hash_opfamilies);
+		m_hash_opfamilies = hash_opfamilies;
+		GPOS_ASSERT(pdrgpexprOuterKeys->Size() == m_hash_opfamilies->Size());
+	}
 
 	CreateHashRedistributeRequests(mp);
 
@@ -107,6 +116,7 @@ CPhysicalHashJoin::~CPhysicalHashJoin()
 {
 	m_pdrgpexprOuterKeys->Release();
 	m_pdrgpexprInnerKeys->Release();
+	CRefCount::SafeRelease(m_hash_opfamilies);
 	CRefCount::SafeRelease(m_pdrgpdsRedistributeRequests);
 }
 
@@ -150,17 +160,34 @@ CPhysicalHashJoin::CreateHashRedistributeRequests
 			pexpr->AddRef();
 			pdrgpexprCurrent->Append(pexpr);
 
+			IMdIdArray *opfamilies = NULL;
+			if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+			{
+				GPOS_ASSERT(NULL != m_hash_opfamilies);
+				opfamilies = GPOS_NEW(mp) IMdIdArray(mp);
+				IMDId *opfamily = (*m_hash_opfamilies)[ul];
+				opfamily->AddRef();
+				opfamilies->Append(opfamily);
+			}
+
 			// add a separate request for each hash join key
 
 			// TODO:  - Dec 30, 2011; change fNullsColocated to false when our
 			// distribution matching can handle differences in NULL colocation
-			CDistributionSpecHashed *pdshashedCurrent = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprCurrent, true /* fNullsCollocated */);
+			CDistributionSpecHashed *pdshashedCurrent = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprCurrent,
+																							 true /* fNullsCollocated */,
+																							 opfamilies);
 			m_pdrgpdsRedistributeRequests->Append(pdshashedCurrent);
 		}
 	}
 	// add a request that contains all hash join keys
 	pdrgpexpr->AddRef();
-	CDistributionSpecHashed *pdshashed = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /* fNullsCollocated */);
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		GPOS_ASSERT(NULL != m_hash_opfamilies);
+		m_hash_opfamilies->AddRef();
+	}
+	CDistributionSpecHashed *pdshashed = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /* fNullsCollocated */, m_hash_opfamilies);
 	m_pdrgpdsRedistributeRequests->Append(pdshashed);
 }
 
@@ -335,6 +362,13 @@ CPhysicalHashJoin::PdshashedMatching
 	// construct an array of target key expressions matching source key expressions
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArrays *all_equiv_exprs = pdshashed->HashSpecEquivExprs();
+	IMdIdArray *opfamilies = NULL;
+
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		opfamilies = GPOS_NEW(mp) IMdIdArray(mp);
+	}
+
 	for (ULONG ulDlvrdIdx = 0; ulDlvrdIdx < ulDlvrdSize; ulDlvrdIdx++)
 	{
 		CExpression *pexprDlvrd = (*pdrgpexprDist)[ulDlvrdIdx];
@@ -360,6 +394,14 @@ CPhysicalHashJoin::PdshashedMatching
 				CExpression *pexprTarget = (*pdrgpexprTarget)[idx];
 				pexprTarget->AddRef();
 				pdrgpexpr->Append(pexprTarget);
+
+				if (NULL != opfamilies)
+				{
+					GPOS_ASSERT(NULL != m_hash_opfamilies);
+					IMDId *opfamily = (*m_hash_opfamilies)[idx];
+					opfamily->AddRef();
+					opfamilies->Append(opfamily);
+				}
 				break;
 			}
 		}
@@ -381,7 +423,7 @@ CPhysicalHashJoin::PdshashedMatching
 				   GPOS_WSZ_LIT("Unable to create matching hashed distribution."));
 	}
 
-	return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /* fNullsCollocated */);
+	return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, true /* fNullsCollocated */, opfamilies);
 }
 
 

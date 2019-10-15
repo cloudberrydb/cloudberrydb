@@ -32,7 +32,8 @@ CPhysicalFullMergeJoin::CPhysicalFullMergeJoin
 	(
 	CMemoryPool *mp,
 	CExpressionArray *outer_merge_clauses,
-	CExpressionArray *inner_merge_clauses
+	CExpressionArray *inner_merge_clauses,
+	IMdIdArray *
 	)
 	:
 	CPhysicalJoin(mp),
@@ -156,6 +157,13 @@ CPhysicalFullMergeJoin::PosRequired
 
 		// Make sure that the corresponding properties (mergeStrategies, mergeNullsFirst)
 		// in CTranslatorDXLToPlStmt::TranslateDXLMergeJoin() match.
+		//
+		// NB: The operator used for sorting here is the '<' operator in the
+		// default btree opfamily of the column's type. For this to work correctly,
+		// the '=' operator of the merge join clauses must also belong to the same
+		// opfamily, which in this case, is the default of the type.
+		// See FMergeJoinCompatible() where predicates using a different opfamily
+		// are rejected from merge clauses.
 		gpmd::IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(IMDType::EcmptL);
 		mdid->AddRef();
 		os->Append(mdid, colref, COrderSpec::EntLast);

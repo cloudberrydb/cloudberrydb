@@ -265,7 +265,7 @@ insert into constraints_tab values (NULL, -1);
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.25.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="1" ColName="notnullcol" TypeMdid="0.25.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

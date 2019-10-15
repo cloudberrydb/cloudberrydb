@@ -30,10 +30,11 @@ CPhysicalLeftAntiSemiHashJoin::CPhysicalLeftAntiSemiHashJoin
 	(
 	CMemoryPool *mp,
 	CExpressionArray *pdrgpexprOuterKeys,
-	CExpressionArray *pdrgpexprInnerKeys
+	CExpressionArray *pdrgpexprInnerKeys,
+	IMdIdArray *hash_opfamilies
 	)
 	:
-	CPhysicalHashJoin(mp, pdrgpexprOuterKeys, pdrgpexprInnerKeys)
+	CPhysicalHashJoin(mp, pdrgpexprOuterKeys, pdrgpexprInnerKeys, hash_opfamilies)
 {
 }
 

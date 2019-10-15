@@ -89,6 +89,11 @@ namespace gpmd
 			// operator class at given position
 			virtual
 			IMDId *OpfamilyMdidAt(ULONG pos) const = 0;
+
+			// compatible hash opfamily
+			virtual
+			IMDId *HashOpfamilyMdid() const = 0;
+
 	};
 }
 

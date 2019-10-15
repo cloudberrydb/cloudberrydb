@@ -5254,6 +5254,59 @@ CUtils::Equals
 	return equal;
 }
 
+BOOL
+CUtils::Equals
+	(
+	const IMdIdArray *mdids,
+	const IMdIdArray *other_mdids
+	)
+{
+	GPOS_CHECK_STACK_SIZE;
+
+	// NULL arrays are equal
+	if (NULL == mdids || NULL == other_mdids)
+	{
+		return NULL == mdids && NULL == other_mdids;
+	}
+
+	// do pointer comparision
+	if (mdids == other_mdids)
+	{
+		return true;
+	}
+
+	// if the size is not equal, the two arrays are not equal
+	if (mdids->Size() != other_mdids->Size())
+	{
+		return false;
+	}
+
+	// if all the elements are equal, then both the arrays are equal
+	for (ULONG id = 0; id < mdids->Size(); id++)
+	{
+		if (!CUtils::Equals((*mdids)[id], (*other_mdids)[id]))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+BOOL
+CUtils::Equals
+	(
+	const IMDId *mdid,
+	const IMDId *other_mdid
+	)
+{
+	if ((mdid == NULL) ^ (other_mdid == NULL))
+	{
+		return false;
+	}
+
+	return (mdid == other_mdid) || mdid->Equals(other_mdid);
+}
+
 // operators from which the inferred predicates can be removed
 // NB: currently, only inner join is included, but we can add more later.
 BOOL

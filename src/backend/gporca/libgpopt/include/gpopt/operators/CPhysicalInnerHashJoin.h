@@ -52,7 +52,8 @@ namespace gpopt
 				(
 				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprOuterKeys,
-				CExpressionArray *pdrgpexprInnerKeys
+				CExpressionArray *pdrgpexprInnerKeys,
+				IMdIdArray *hash_opfamilies = NULL
 				);
 
 			// dtor

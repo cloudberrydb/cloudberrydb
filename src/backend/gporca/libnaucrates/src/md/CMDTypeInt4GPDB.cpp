@@ -13,7 +13,6 @@
 #include "gpos/string/CWStringDynamic.h"
 
 #include "naucrates/md/CMDTypeInt4GPDB.h"
-#include "naucrates/md/CGPDBTypeHelper.h"
 
 #include "naucrates/dxl/operators/CDXLScalarConstValue.h"
 #include "naucrates/dxl/operators/CDXLDatum.h"
@@ -48,6 +47,16 @@ CMDTypeInt4GPDB::CMDTypeInt4GPDB
 	m_mp(mp)
 {
 	m_mdid = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_OID);
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
+	{
+		m_distr_opfamily = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_OPFAMILY);
+		m_legacy_distr_opfamily = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_LEGACY_OPFAMILY);
+	}
+	else
+	{
+		m_distr_opfamily = NULL;
+		m_legacy_distr_opfamily = NULL;
+	}
 	m_mdid_op_eq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_EQ_OP);
 	m_mdid_op_neq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_NEQ_OP);
 	m_mdid_op_lt = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_LT_OP);
@@ -80,6 +89,8 @@ CMDTypeInt4GPDB::CMDTypeInt4GPDB
 CMDTypeInt4GPDB::~CMDTypeInt4GPDB()
 {
 	m_mdid->Release();
+	CRefCount::SafeRelease(m_distr_opfamily);
+	CRefCount::SafeRelease(m_legacy_distr_opfamily);
 	m_mdid_op_eq->Release();
 	m_mdid_op_neq->Release();
 	m_mdid_op_lt->Release();
@@ -118,7 +129,6 @@ CMDTypeInt4GPDB::CreateInt4Datum
 	return GPOS_NEW(mp) CDatumInt4GPDB(m_mdid->Sysid(), value, is_null);
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDTypeInt4GPDB::MDId
@@ -131,6 +141,19 @@ IMDId *
 CMDTypeInt4GPDB::MDId() const
 {
 	return m_mdid;
+}
+
+IMDId *
+CMDTypeInt4GPDB::GetDistrOpfamilyMdid() const
+{
+	if (GPOS_FTRACE(EopttraceUseLegacyOpfamilies))
+	{
+		return m_legacy_distr_opfamily;
+	}
+	else
+	{
+		return m_distr_opfamily;
+	}
 }
 
 //---------------------------------------------------------------------------

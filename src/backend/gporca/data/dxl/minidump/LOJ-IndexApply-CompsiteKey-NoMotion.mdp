@@ -496,10 +496,10 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.1043.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

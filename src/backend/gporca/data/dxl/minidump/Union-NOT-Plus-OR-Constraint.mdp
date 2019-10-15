@@ -340,7 +340,7 @@ explain SELECT a.f3 FROM tb a JOIN tb b ON a.f1 = b.f1 AND NOT ( a.f2 = 0 OR a.f
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="2" ColName="f3" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -414,7 +414,7 @@ explain SELECT a.f3 FROM tb a JOIN tb b ON a.f1 = b.f1 AND NOT ( a.f2 = 0 OR a.f
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.21.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="0" ColName="f1" TypeMdid="0.21.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>
@@ -474,7 +474,7 @@ explain SELECT a.f3 FROM tb a JOIN tb b ON a.f1 = b.f1 AND NOT ( a.f2 = 0 OR a.f
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.21.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="10" ColName="f1" TypeMdid="0.21.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>

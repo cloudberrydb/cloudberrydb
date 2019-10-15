@@ -74,6 +74,8 @@ namespace gpmd
 			
 			// indices of distribution columns
 			ULongPtrArray *m_distr_col_array;
+
+			IMdIdArray *m_distr_opfamilies;
 			
 			// do we need to consider a hash distributed table as random distributed
 			BOOL m_convert_hash_to_random;
@@ -137,6 +139,7 @@ namespace gpmd
 				Ereldistrpolicy rel_distr_policy,
 						CMDColumnArray *mdcol_array,
 				ULongPtrArray *distr_col_array,
+				IMdIdArray *distr_opfamilies,
 				ULongPtrArray *partition_cols_array,
 				CharPtrArray *str_part_types_array,
 				ULONG num_of_partitions,
@@ -231,6 +234,9 @@ namespace gpmd
 			// retrieve the column at the given position in the distribution columns list for the relation
 			virtual 
 			const IMDColumn *GetDistrColAt(ULONG pos) const;
+
+			virtual
+			IMDId *GetDistrOpfamilyAt(ULONG pos) const;
 			
 			// return true if a hash distributed table needs to be considered as random
 			virtual 

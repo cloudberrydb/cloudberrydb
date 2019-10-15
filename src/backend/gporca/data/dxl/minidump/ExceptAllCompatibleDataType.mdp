@@ -553,7 +553,7 @@
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
                   <dxl:HashExprList>
-                    <dxl:HashExpr TypeMdid="0.20.1.0">
+                    <dxl:HashExpr>
                       <dxl:Ident ColId="11" ColName="a" TypeMdid="0.20.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>
@@ -624,10 +624,10 @@
                           <dxl:Filter/>
                           <dxl:SortingColumnList/>
                           <dxl:HashExprList>
-                            <dxl:HashExpr TypeMdid="0.20.1.0">
+                            <dxl:HashExpr>
                               <dxl:Ident ColId="11" ColName="a" TypeMdid="0.20.1.0"/>
                             </dxl:HashExpr>
-                            <dxl:HashExpr TypeMdid="0.26.1.0">
+                            <dxl:HashExpr>
                               <dxl:Ident ColId="12" ColName="b" TypeMdid="0.26.1.0"/>
                             </dxl:HashExpr>
                           </dxl:HashExprList>
@@ -782,7 +782,7 @@
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.20.1.0">
+              <dxl:HashExpr>
                 <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                   <dxl:Ident ColId="24" ColName="a" TypeMdid="0.23.1.0"/>
                 </dxl:Cast>

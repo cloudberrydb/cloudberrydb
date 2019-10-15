@@ -1104,6 +1104,12 @@ namespace gpopt
 			BOOL Equals(const CExpressionArrays *exprs_arr, const CExpressionArrays *other_exprs_arr);
 
 			static
+			BOOL Equals(const IMdIdArray *mdids, const IMdIdArray *other_mdids);
+
+			static
+			BOOL Equals(const IMDId *mdid, const IMDId *other_mdid);
+
+			static
 			BOOL CanRemoveInferredPredicates(COperator::EOperatorId op_id);
 
 			static

@@ -180,7 +180,7 @@
           <dxl:Filter/>
           <dxl:SortingColumnList/>
           <dxl:HashExprList>
-            <dxl:HashExpr TypeMdid="0.23.1.0">
+            <dxl:HashExpr>
               <dxl:Ident ColId="18" ColName="s.c" TypeMdid="0.23.1.0"/>
             </dxl:HashExpr>
           </dxl:HashExprList>
@@ -225,7 +225,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="19" ColName="s.d" TypeMdid="0.23.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

@@ -50,9 +50,6 @@ CREATE TABLE abstab_b (b int) DISTRIBUTED BY (b);
 INSERT INTO abstab_b VALUES (-1), (0), (1), (2);
 -- The default opclass isn't helpful with the |=| operator, so this needs
 -- a Motion.
--- FIXME: This is currently broken with ORCA, see
--- https://github.com/greenplum-db/gpdb/issues/6796
-set optimizer=off;
 EXPLAIN (COSTS OFF) SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
                             QUERY PLAN                            
 ------------------------------------------------------------------
@@ -79,7 +76,6 @@ SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
  -1 |  1
 (5 rows)
 
-reset optimizer;
 -- Change distribution key of abstab_a to use our fancy opclass.
 DROP TABLE abstab_a;
 CREATE TABLE abstab_a (a int) DISTRIBUTED BY (a abs_int_hash_ops);

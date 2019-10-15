@@ -543,7 +543,7 @@ GROUP BY b;
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="48" ColName="b" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>
@@ -656,7 +656,7 @@ GROUP BY b;
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="58" ColName="b" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>
@@ -823,7 +823,7 @@ GROUP BY b;
                         <dxl:Filter/>
                         <dxl:SortingColumnList/>
                         <dxl:HashExprList>
-                          <dxl:HashExpr TypeMdid="0.23.1.0">
+                          <dxl:HashExpr>
                             <dxl:Ident ColId="77" ColName="b" TypeMdid="0.23.1.0"/>
                           </dxl:HashExpr>
                         </dxl:HashExprList>

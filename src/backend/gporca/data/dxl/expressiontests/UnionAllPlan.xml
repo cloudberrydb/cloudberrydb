@@ -58,7 +58,7 @@
           <dxl:Filter/>
           <dxl:SortingColumnList/>
           <dxl:HashExprList>
-            <dxl:HashExpr TypeMdid="0.23.1.0">
+            <dxl:HashExpr>
               <dxl:Ident ColId="11" ColName="r.b" TypeMdid="0.23.1.0"/>
             </dxl:HashExpr>
           </dxl:HashExprList>

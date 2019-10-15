@@ -3693,10 +3693,10 @@ where foo.a=bar.a and bar.b=jazz.b and foo.c=jazz.c;
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>
@@ -3814,10 +3814,10 @@ where foo.a=bar.a and bar.b=jazz.b and foo.c=jazz.c;
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="21" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Ident ColId="22" ColName="c" TypeMdid="0.23.1.0"/>
               </dxl:HashExpr>
             </dxl:HashExprList>

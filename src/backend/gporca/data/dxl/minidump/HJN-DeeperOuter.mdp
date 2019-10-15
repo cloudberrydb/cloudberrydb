@@ -466,7 +466,7 @@ SELECT z.*,x.* FROM x,y,z WHERE x.i=y.i AND x.i=z.i;
             <dxl:Filter/>
             <dxl:SortingColumnList/>
             <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.23.1.0">
+              <dxl:HashExpr>
                 <dxl:Cast TypeMdid="0.23.1.0" FuncId="0.313.1.0">
                   <dxl:Ident ColId="9" ColName="i" TypeMdid="0.21.1.0"/>
                 </dxl:Cast>

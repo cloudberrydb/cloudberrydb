@@ -3719,7 +3719,7 @@
                             <dxl:Filter/>
                             <dxl:SortingColumnList/>
                             <dxl:HashExprList>
-                              <dxl:HashExpr TypeMdid="0.23.1.0">
+                              <dxl:HashExpr>
                                 <dxl:Ident ColId="0" ColName="p_partkey" TypeMdid="0.23.1.0"/>
                               </dxl:HashExpr>
                             </dxl:HashExprList>
@@ -4239,7 +4239,7 @@
                                 <dxl:Filter/>
                                 <dxl:SortingColumnList/>
                                 <dxl:HashExprList>
-                                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                                  <dxl:HashExpr>
                                     <dxl:Ident ColId="31" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
                                   </dxl:HashExpr>
                                 </dxl:HashExprList>

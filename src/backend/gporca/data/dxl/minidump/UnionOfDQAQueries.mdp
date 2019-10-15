@@ -445,7 +445,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.20.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="13" ColName="count" TypeMdid="0.20.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
@@ -536,7 +536,7 @@
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.20.1.0">
+                <dxl:HashExpr>
                   <dxl:Ident ColId="27" ColName="count" TypeMdid="0.20.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>

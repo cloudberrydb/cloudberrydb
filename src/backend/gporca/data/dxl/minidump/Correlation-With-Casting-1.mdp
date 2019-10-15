@@ -581,25 +581,25 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr = c.u_vt
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="0" ColName="u_vtgnr" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="1" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="2" ColName="u_folio" TypeMdid="0.1043.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.27.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.23.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.25.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="20" ColName="max" TypeMdid="0.25.1.0"/>
                   </dxl:HashExpr>
-                  <dxl:HashExpr TypeMdid="0.25.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="21" ColName="substr" TypeMdid="0.25.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>
@@ -869,7 +869,7 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr = c.u_vt
                                 <dxl:Filter/>
                                 <dxl:SortingColumnList/>
                                 <dxl:HashExprList>
-                                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                                  <dxl:HashExpr>
                                     <dxl:Ident ColId="10" ColName="u_vtgnr" TypeMdid="0.1043.1.0"/>
                                   </dxl:HashExpr>
                                 </dxl:HashExprList>
@@ -1003,7 +1003,7 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr = c.u_vt
                               <dxl:Filter/>
                               <dxl:SortingColumnList/>
                               <dxl:HashExprList>
-                                <dxl:HashExpr TypeMdid="0.1043.1.0">
+                                <dxl:HashExpr>
                                   <dxl:Ident ColId="0" ColName="u_vtgnr" TypeMdid="0.1043.1.0"/>
                                 </dxl:HashExpr>
                               </dxl:HashExprList>

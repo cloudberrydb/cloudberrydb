@@ -387,7 +387,7 @@
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:HashExprList>
-                  <dxl:HashExpr TypeMdid="0.25.1.0">
+                  <dxl:HashExpr>
                     <dxl:Ident ColId="6" ColName="message_id" TypeMdid="0.25.1.0"/>
                   </dxl:HashExpr>
                 </dxl:HashExprList>

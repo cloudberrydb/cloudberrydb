@@ -117,4 +117,7 @@ s/One-Time Filter: \(gp_execution_segment\(\) = \d+/One-Time Filter: \(gp_execut
 m/ERROR:  infinite recursion detected.*/
 s/ERROR:  infinite recursion detected.*/ERROR:  infinite recursion detected/
 
+m/ERROR:  could not find hash function for hash operator.*/
+s/ERROR:  could not find hash function for hash operator.*/ERROR:  could not find hash function for hash operator/
+
 -- end_matchsubs

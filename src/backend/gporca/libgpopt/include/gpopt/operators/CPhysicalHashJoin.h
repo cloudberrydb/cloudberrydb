@@ -42,6 +42,9 @@ namespace gpopt
 			// that are extracted from the hashing condition
 			CExpressionArray *m_pdrgpexprInnerKeys;
 
+			// Hash op families of the operators used in the join conditions
+			IMdIdArray *m_hash_opfamilies;
+
 			// array redistribute request sent to the first hash join child
 			CDistributionSpecArray *m_pdrgpdsRedistributeRequests;
 
@@ -123,7 +126,8 @@ namespace gpopt
 				(
 				CMemoryPool *mp,
 				CExpressionArray *pdrgpexprOuterKeys,
-				CExpressionArray *pdrgpexprInnerKeys
+				CExpressionArray *pdrgpexprInnerKeys,
+				IMdIdArray *hash_opfamilies = NULL
 				);
 
 			// dtor

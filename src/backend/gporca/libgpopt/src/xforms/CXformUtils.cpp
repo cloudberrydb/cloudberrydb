@@ -2551,7 +2551,8 @@ CXformUtils::LookupJoinKeys
 	CMemoryPool *mp,
 	CExpression *pexpr,
 	CExpressionArray **ppdrgpexprOuter,
-	CExpressionArray **ppdrgpexprInner
+	CExpressionArray **ppdrgpexprInner,
+	IMdIdArray **join_opfamilies
 	)
 {
 	GPOS_ASSERT(NULL != ppdrgpexprOuter);
@@ -2559,6 +2560,8 @@ CXformUtils::LookupJoinKeys
 
 	*ppdrgpexprOuter = NULL;
 	*ppdrgpexprInner = NULL;
+	*join_opfamilies = NULL;
+
 	CGroupExpression *pgexprScalarOrigin = (*pexpr)[2]->Pgexpr();
 	if (NULL == pgexprScalarOrigin)
 	{
@@ -2576,6 +2579,12 @@ CXformUtils::LookupJoinKeys
 	}
 
 	GPOS_ASSERT(NULL != pgroupScalar->PdrgpexprJoinKeysInner());
+
+	*join_opfamilies = pgroupScalar->JoinOpfamilies();
+	if (NULL != *join_opfamilies)
+	{
+		(*join_opfamilies)->AddRef();
+	}
 
 	// extract used columns by hash join keys
 	CColRefSet *pcrsUsedOuter = CUtils::PcrsExtractColumns(mp, pgroupScalar->PdrgpexprJoinKeysOuter());
@@ -2620,7 +2629,8 @@ CXformUtils::CacheJoinKeys
 	(
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprOuter,
-	CExpressionArray *pdrgpexprInner
+	CExpressionArray *pdrgpexprInner,
+	IMdIdArray *join_opfamilies
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpexprOuter);
@@ -2633,7 +2643,7 @@ CXformUtils::CacheJoinKeys
 
 		{	// scope of group proxy
 			CGroupProxy gp(pgroupScalar);
-			gp.SetJoinKeys(pdrgpexprOuter, pdrgpexprInner);
+			gp.SetJoinKeys(pdrgpexprOuter, pdrgpexprInner, join_opfamilies);
 		}
 	}
 }
