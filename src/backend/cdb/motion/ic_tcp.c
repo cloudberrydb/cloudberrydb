@@ -1279,10 +1279,6 @@ SetupTCPInterconnect(EState *estate)
 
 	gp_set_monotonic_begin_time(&startTime);
 
-	/* Initiate outgoing connections. */
-	if (mySlice->parentIndex != -1)
-		sendingChunkTransportState = startOutgoingConnections(interconnect_context, mySlice, &expectedTotalOutgoing);
-
 	/* now we'll do some setup for each of our Receiving Motion Nodes. */
 	foreach(cell, mySlice->children)
 	{
@@ -1311,6 +1307,17 @@ SetupTCPInterconnect(EState *estate)
 
 		(void) createChunkTransportState(interconnect_context, aSlice, mySlice, totalNumProcs);
 	}
+
+	/*
+	 * Initiate outgoing connections.
+	 *
+	 * startOutgoingConnections() and createChunkTransportState() must not be
+	 * called during the lifecycle of sendingChunkTransportState, they will
+	 * repalloc() interconnect_context->states so sendingChunkTransportState
+	 * points to invalid memory.
+	 */
+	if (mySlice->parentIndex != -1)
+		sendingChunkTransportState = startOutgoingConnections(interconnect_context, mySlice, &expectedTotalOutgoing);
 
 	if (expectedTotalIncoming > listenerBacklog)
 		ereport(WARNING, (errmsg("SetupTCPInterconnect: too many expected incoming connections(%d), Interconnect setup might possibly fail", expectedTotalIncoming),
