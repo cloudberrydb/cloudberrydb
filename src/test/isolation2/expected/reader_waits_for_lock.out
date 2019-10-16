@@ -18,6 +18,14 @@ CREATE 1
 BEGIN
 0U: LOCK reader_waits_for_lock_table IN ACCESS EXCLUSIVE MODE;
 LOCK
+-- A utility mode connection should not have valid gp_session_id, else
+-- locks aquired by it may not confict with locks requested by a
+-- normal mode backend.
+0U: show gp_session_id;
+ gp_session_id 
+---------------
+ -1            
+(1 row)
 -- creates reader and writer gang
 1&: SELECT t1.* FROM reader_waits_for_lock_table t1 INNER JOIN reader_waits_for_lock_table t2 ON t1.b = t2.b;  <waiting ...>
 -- all processes in the session 1 should be blocked

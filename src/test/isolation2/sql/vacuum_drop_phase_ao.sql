@@ -14,6 +14,10 @@
 -- an access shared lock that would exist on the QE but not on the QD.
 0U: BEGIN;
 0U: SELECT COUNT(*) FROM ao_test_drop_phase;
+-- A utility mode connection should not have valid gp_session_id, else
+-- locks aquired by it may not confict with locks requested by a
+-- normal mode backend.
+0U: show gp_session_id;
 
 -- And we delete 4/5 rows to trigger vacuum's compaction phase.
 1: DELETE FROM ao_test_drop_phase where b != 5;

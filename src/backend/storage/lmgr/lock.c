@@ -1469,7 +1469,7 @@ LockCheckConflicts(LockMethod lockMethodTable,
 		 * If I'm not part of MPP session, consider I am only one process
 		 * in a session.
 		 */
-		if (mppSessionId <= 0)
+		if (mppSessionId == InvalidGpSessionId)
 		{
 			LOCKMASK	myLocks = proclock->holdMask;
 			if (myLocks & LOCKBIT_ON(i))
