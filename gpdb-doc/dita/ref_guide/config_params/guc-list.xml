@@ -275,8 +275,13 @@
             </li>
             <li>
               <xref href="#gp_use_legacy_hashops"/></li>
-            <li><xref href="#gp_vmem_protect_limit"/></li>
             <li><xref href="#gp_vmem_idle_resource_timeout"/></li>
+            <li><xref href="#gp_vmem_protect_limit"/></li>
+            <li><xref href="#gp_vmem_protect_segworker_cache_limit"/></li>
+            <li><xref href="#gp_workfile_compression"/></li>
+            <li><xref href="#gp_workfile_limit_files_per_query"/></li>
+            <li><xref href="#gp_workfile_limit_per_query"/></li>
+            <li><xref href="#gp_workfile_limit_per_segment"/></li>
             <li>
               <xref href="#gpperfmon_log_alert_level"/>
             </li>
@@ -320,13 +325,13 @@
             <li>
               <xref href="#lc_time"/>
             </li>
-            <li>
-              <xref href="#listen_addresses"/>
-            </li>
           </ul>
         </stentry>
         <stentry>
           <ul id="ul_wwy_bmx_wp">
+            <li>
+              <xref href="#listen_addresses"/>
+            </li>
             <li>
               <xref href="#log_planner_stats"/>
             </li>
