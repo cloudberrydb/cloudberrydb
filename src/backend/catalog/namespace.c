@@ -3749,6 +3749,7 @@ InitTempTableNamespace(void)
 	Oid			namespaceId;
 	Oid			toastspaceId;
 	int			session_suffix;
+	const char *session_infix;
 
 	/*
 	 * First, do permission check to see if we are authorized to make temp
@@ -3776,16 +3777,34 @@ InitTempTableNamespace(void)
 		case GP_ROLE_DISPATCH:
 		case GP_ROLE_EXECUTE:
 			session_suffix = gp_session_id;
+			session_infix = "";
 			break;
 
 		case GP_ROLE_UTILITY:
 			session_suffix = MyBackendId;
+
+			/*
+			 * Backend id is used as the suffix of schema name in utility mode
+			 * while session id is used in normal mode.  It is possible for a
+			 * utility-mode session's backend id to be equal to a normal-mode
+			 * session's session id at runtime, if we use the same name pattern
+			 * for them then they would conflict with each other and corrupt
+			 * the catalog on the segment.  So a different name pattern must be
+			 * used in utility mode.  However a temp schema name is expected to
+			 * match the pattern "pg_temp_[0-9]+", so we put a 0 before the
+			 * backend id in utility mode to distinct with normal mode:
+			 *
+			 * - utility mode: pg_temp_0[0-9]+
+			 * - normal mode:  pg_temp_[1-9][0-9]*
+			 */
+			session_infix = "0";
 			break;
 
 		default:
 			/* Should never hit this */
 			elog(ERROR, "invalid backend temp schema creation");
 			session_suffix = -1;	/* keep compiler quiet */
+			session_infix = NULL;	/* keep compiler quiet */
 			break;
 	}
 
@@ -3810,7 +3829,8 @@ InitTempTableNamespace(void)
 				(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
 				 errmsg("cannot create temporary tables in parallel mode")));
 
-	snprintf(namespaceName, sizeof(namespaceName), "pg_temp_%d", session_suffix);
+	snprintf(namespaceName, sizeof(namespaceName),
+			 "pg_temp_%s%d", session_infix, session_suffix);
 
 	namespaceId = get_namespace_oid(namespaceName, true);
 
@@ -3857,8 +3877,8 @@ InitTempTableNamespace(void)
 	 * (in GPDB, though, we drop and recreate it anyway, to make sure it has
 	 * the same OID on master and segments.)
 	 */
-	snprintf(namespaceName, sizeof(namespaceName), "pg_toast_temp_%d",
-			 session_suffix);
+	snprintf(namespaceName, sizeof(namespaceName),
+			 "pg_toast_temp_%s%d", session_infix, session_suffix);
 
 	toastspaceId = get_namespace_oid(namespaceName, true);
 	if (OidIsValid(toastspaceId))
