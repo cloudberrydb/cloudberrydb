@@ -50,29 +50,35 @@ class ReplicaCheck(threading.Thread):
         self.datname = datname
         self.relation_types = relation_types;
         self.result = False
+        self.lock = threading.Lock()
 
     def __str__(self):
-        return 'Host: %s, Port: %s, Database: %s\n\
+        return '(%s) Host: %s, Port: %s, Database: %s\n\
 Primary Data Directory Location: %s\n\
-Mirror Data Directory Location: %s' % (self.host, self.port, self.datname,
+Mirror Data Directory Location: %s' % (self.getName(), self.host, self.port, self.datname,
                                           self.ploc, self.mloc)
 
     def run(self):
-        print(self)
         cmd = '''PGOPTIONS='-c gp_session_role=utility' psql -h %s -p %s -c "select * from gp_replica_check('%s', '%s', '%s')" %s''' % (self.host, self.port,
                                                                                                                                         self.ploc, self.mloc,
                                                                                                                                         self.relation_types,
                                                                                                                                         pipes.quote(self.datname))
-
         if self.primary_status.strip() == 'd':
             print "Primary segment for content %d is down" % self.content
         else:
             try:
                 res = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-                print res
                 self.result = True if res.strip().split('\n')[-2].strip() == 't' else False
+                with self.lock:
+                    print self
+                    print res
+                    if not self.result:
+                        print "replica check failed"
+
             except subprocess.CalledProcessError, e:
-                print 'returncode: (%s), cmd: (%s), output: (%s)' % (e.returncode, e.cmd, e.output)
+                with self.lock:
+                    print self
+                    print 'returncode: (%s), cmd: (%s), output: (%s)' % (e.returncode, e.cmd, e.output)
 
 def create_restartpoint_on_ckpt_record_replay(set):
     if set:
@@ -148,18 +154,22 @@ SELECT datname FROM pg_catalog.pg_database WHERE datname != 'template0'
 
 def start_verification(segmap, dblist, relation_types):
     replica_check_list = []
+    failed = False
     for content, seglist in segmap.items():
         for segrow in seglist:
             for dbname in dblist:
                 replica_check = ReplicaCheck(segrow, dbname, relation_types)
                 replica_check_list.append(replica_check)
                 replica_check.start()
-                replica_check.join()
 
     for replica_check in replica_check_list:
+        replica_check.join()
         if not replica_check.result:
-            print "replica check failed"
-            sys.exit(1)
+            failed = True
+
+    if failed:
+        print "replica check failed for one or more segments. Please check above logs for details."
+        sys.exit(1)
 
     print "replica check succeeded"
 
