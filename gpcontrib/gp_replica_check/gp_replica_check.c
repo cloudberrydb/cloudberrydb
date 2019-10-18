@@ -429,12 +429,12 @@ retry:
 			 */
 			if (!PageIsVerified(primaryFileBuf, blockno))
 			{
-				elog(NOTICE, "invalid page header or checksum in heap file \"%s\", block %u: %m", primaryfilepath, blockno);
+				elog(NOTICE, "invalid page header or checksum in heap file \"%s\", block %u", primaryfilepath, blockno);
 				goto retry;
 			}
 			if (!PageIsVerified(mirrorFileBuf, blockno))
 			{
-				elog(NOTICE, "invalid page header or checksum in heap file \"%s\", block %u: %m", mirrorfilepath, blockno);
+				elog(NOTICE, "invalid page header or checksum in heap file \"%s\", block %u", mirrorfilepath, blockno);
 				goto retry;
 			}
 
