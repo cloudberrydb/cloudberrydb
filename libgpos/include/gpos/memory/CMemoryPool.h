@@ -8,12 +8,18 @@
 //
 //	@doc:
 //		Abstraction of memory pool management. Memory pool types are derived
-//		from this interface class as drop-in replacements. The interface
-//		defines New() operator that is used for dynamic memory allocation.
-//
-//	@owner: 
-//
-//	@test:
+//		from this class as drop-in replacements. This acts as an abstract class,
+//		concrete memory pools such as CMemoryPoolTracker and CMemoryPoolPalloc are
+//		derived from this.
+//		Some things to note:
+//		1. When allocating memory, we have the mp pointer that we are allocating into.
+//			However, when deleting memory, we no longer have that pointer. How we free
+//			this memory is dependent on the memory pool used, which we get from the
+//			memory pool manager.
+//		2. When deleting an array, we need to iterate through each element of the array.
+//			To calculate this, we calculate the length by calling UserSizeOfAlloc(). This
+//			is only done for allocations of type EatArray and thus we do not store the
+//			allocation length for non-array allocations.
 //
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMemoryPool_H
@@ -48,7 +54,6 @@ GPOS_CPL_ASSERT(GPOS_MEM_ALIGNED_STRUCT_SIZE(gpos::ULONG) == GPOS_MEM_ARCH);
 
 // max allocation per request: 1GB
 #define GPOS_MEM_ALLOC_MAX			(0x40000000)
-#define GPOS_MEM_GUARD_SIZE			(GPOS_SIZEOF(BYTE))
 
 #define GPOS_MEM_OFFSET_POS(p,ullOffset) ((void *)((BYTE*)(p) + ullOffset))
 
@@ -73,16 +78,6 @@ namespace gpos
 
 		private:
 
-			// common header for each allocation
-			struct AllocHeader
-			{
-				// pointer to pool
-				CMemoryPool *m_mp;
-
-				// allocation request size
-				ULONG m_alloc;
-			};
-
 			// hash key is only set by pool manager
 			ULONG_PTR m_hash_key;
 
@@ -104,6 +99,7 @@ namespace gpos
 
 			enum EAllocationType
 			{
+				EatUnknown = 0x00,
 				EatSingleton = 0x7f,
 				EatArray = 0x7e
 			};
@@ -123,44 +119,10 @@ namespace gpos
 				return m_hash_key;
 			}
 
-			// get allocation size
-			static
-			ULONG GetAllocSize
-				(
-				ULONG requested
-				)
-			{
-				return GPOS_SIZEOF(AllocHeader) +
-				       GPOS_MEM_ALIGNED_SIZE(requested + GPOS_MEM_GUARD_SIZE);
-			}
-
-			// set allocation header and footer, return pointer to user data
-			void *FinalizeAlloc(void *ptr, ULONG alloc, EAllocationType eat);
-
-			// return allocation to owning memory pool
-			inline static void
-			FreeAlloc
-				(
-				void *ptr,
-				EAllocationType eat
-				)
-			{
-				GPOS_ASSERT(ptr != NULL);
-
-				AllocHeader *header = static_cast<AllocHeader*>(ptr) - 1;
-				BYTE *alloc_type = static_cast<BYTE*>(ptr) + header->m_alloc;
-				GPOS_RTL_ASSERT(*alloc_type == eat);
-				header->m_mp->Free(header);
-			}
-
 			// implementation of placement new with memory pool
-			void *NewImpl
-				(
-				SIZE_T size,
-				const CHAR *filename,
-				ULONG line,
-				EAllocationType type
-				);
+			virtual
+			void *NewImpl(const ULONG bytes, const CHAR *file, const ULONG line,
+						  CMemoryPool::EAllocationType eat) = 0;
 
 			// implementation of array-new with memory pool
 			template <typename T>
@@ -192,28 +154,6 @@ namespace gpos
 				return array;
 			}
 
-			// delete implementation
-			static
-			void DeleteImpl
-				(
-				void *ptr,
-				EAllocationType type
-				);
-
-			// allocate memory; return NULL if the memory could not be allocated
-			virtual
-			void *Allocate
-				(
-				const ULONG num_bytes,
-				const CHAR *filename,
-				const ULONG line
-				) = 0;
-
-			// free memory previously allocated by a call to pvAllocate; NULL may be passed
-			virtual
-			void Free(void *memory) = 0;
-
-
 			// return total allocated size
 			virtual
 			ULLONG TotalAllocatedSize() const
@@ -222,10 +162,13 @@ namespace gpos
 				return 0;
 			}
 
-			// determine the size (in bytes) of an allocation that
-			// was made from a CMemoryPool
+			// requested size of allocation
 			static
-			ULONG SizeOfAlloc(const void *ptr);
+			ULONG UserSizeOfAlloc(const void *ptr);
+
+			// free allocation
+			static
+			void DeleteImpl(void *ptr, EAllocationType eat);
 
 #ifdef GPOS_DEBUG
 
@@ -307,7 +250,7 @@ namespace gpos
 
 				// Invoke destructor on each array element in reverse
 				// order from construction.
-				const SIZE_T  num_elements = CMemoryPool::SizeOfAlloc(object_array) / sizeof(T);
+				const SIZE_T  num_elements = CMemoryPool::UserSizeOfAlloc(object_array) / sizeof(T);
 				for (SIZE_T idx = num_elements - 1; idx < num_elements; --idx) {
 					object_array[idx].~T();
 				}

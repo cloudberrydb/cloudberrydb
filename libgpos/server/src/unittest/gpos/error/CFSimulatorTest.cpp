@@ -104,7 +104,6 @@ CFSimulatorTest::EresUnittest_BasicTracking()
 }
 
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CFSimulatorTest::EresOOM
@@ -137,7 +136,7 @@ CFSimulatorTest::EresUnittest_OOM()
 		{
 			eres = GPOS_OK;
 		}
-		
+
 		GPOS_RESET_EX;
 	}
 	GPOS_CATCH_END;

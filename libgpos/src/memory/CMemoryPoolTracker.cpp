@@ -24,22 +24,16 @@
 
 using namespace gpos;
 
+#define GPOS_MEM_GUARD_SIZE			(GPOS_SIZEOF(BYTE))
 
 #define GPOS_MEM_ALLOC_HEADER_SIZE \
 	GPOS_MEM_ALIGNED_STRUCT_SIZE(SAllocHeader)
 
 #define GPOS_MEM_BYTES_TOTAL(ulNumBytes) \
-	(GPOS_MEM_ALLOC_HEADER_SIZE + GPOS_MEM_ALIGNED_SIZE(ulNumBytes))
+	(GPOS_MEM_ALLOC_HEADER_SIZE + GPOS_MEM_ALIGNED_SIZE((ulNumBytes) + GPOS_MEM_GUARD_SIZE))
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::CMemoryPoolTracker
-//
-//	@doc:
-//		Ctor.
-//
-//---------------------------------------------------------------------------
+// ctor
 CMemoryPoolTracker::CMemoryPoolTracker
 	(
 	)
@@ -51,42 +45,48 @@ CMemoryPoolTracker::CMemoryPoolTracker
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::~CMemoryPoolTracker
-//
-//	@doc:
-//		Dtor.
-//
-//---------------------------------------------------------------------------
+// dtor
 CMemoryPoolTracker::~CMemoryPoolTracker()
 {
 	GPOS_ASSERT(m_allocations_list.IsEmpty());
 }
 
+void
+CMemoryPoolTracker::RecordAllocation(SAllocHeader *header)
+{
+	m_memory_pool_statistics.RecordAllocation(header->m_user_size, header->m_alloc_size);
+	m_allocations_list.Prepend(header);
+}
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::Allocate
-//
-//	@doc:
-//		Allocate memory.
-//
-//---------------------------------------------------------------------------
+void
+CMemoryPoolTracker::RecordFree(SAllocHeader *header)
+{
+	m_memory_pool_statistics.RecordFree(header->m_user_size, header->m_alloc_size);
+	m_allocations_list.Remove(header);
+}
+
+
 void *
-CMemoryPoolTracker::Allocate
+CMemoryPoolTracker::NewImpl
 	(
 	const ULONG bytes,
 	const CHAR *file,
-	const ULONG line
+	const ULONG line,
+	CMemoryPool::EAllocationType eat
 	)
 {
-	GPOS_ASSERT(GPOS_MEM_ALLOC_MAX >= bytes);
+	GPOS_ASSERT(bytes <= GPOS_MEM_ALLOC_MAX);
+	GPOS_ASSERT(bytes <= gpos::ulong_max);
+	GPOS_ASSERT_IMP
+	(
+	 	(NULL != CMemoryPoolManager::GetMemoryPoolMgr()) && (this == CMemoryPoolManager::GetMemoryPoolMgr()->GetGlobalMemoryPool()),
+	 	CMemoryPoolManager::GetMemoryPoolMgr()->IsGlobalNewAllowed() &&
+	 	"Use of new operator without target memory pool is prohibited, use New(...) instead"
+	);
 
-	ULONG alloc = GPOS_MEM_BYTES_TOTAL(bytes);
+	ULONG alloc_size = GPOS_MEM_BYTES_TOTAL(bytes);
 
-	void *ptr;
-	ptr = clib::Malloc(alloc);
+	void *ptr = clib::Malloc(alloc_size);
 
 	// check if allocation failed
 	if (NULL == ptr)
@@ -94,17 +94,20 @@ CMemoryPoolTracker::Allocate
 		return NULL;
 	}
 
+	GPOS_OOM_CHECK(ptr);
+
 	// successful allocation: update header information and any memory pool data
 	SAllocHeader *header = static_cast<SAllocHeader*>(ptr);
-
-	m_memory_pool_statistics.RecordAllocation(bytes, alloc);
-	m_allocations_list.Prepend(header);
 	header->m_serial = m_alloc_sequence;
 	++m_alloc_sequence;
 
+	header->m_alloc_size = alloc_size;
+	header->m_mp = this;
 	header->m_filename = file;
 	header->m_line = line;
-	header->m_size = bytes;
+	header->m_user_size = bytes;
+
+	RecordAllocation(header);
 
 	void *ptr_result = header + 1;
 
@@ -114,50 +117,52 @@ CMemoryPoolTracker::Allocate
 	clib::Memset(ptr_result, GPOS_MEM_INIT_PATTERN_CHAR, bytes);
 #endif // GPOS_DEBUG
 
+	// add a footer with the allocation type (singleton/array)
+	BYTE *alloc_type = reinterpret_cast<BYTE*>(ptr_result) + bytes;
+	*alloc_type = eat;
+
 	return ptr_result;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::Free
-//
-//	@doc:
-//		Free memory.
-//
-//---------------------------------------------------------------------------
+// free memory allocation
 void
-CMemoryPoolTracker::Free
+CMemoryPoolTracker::DeleteImpl
 	(
-	void *ptr
+	void *ptr,
+	EAllocationType eat
 	)
 {
 	SAllocHeader *header = static_cast<SAllocHeader*>(ptr) - 1;
-	ULONG user_size = header->m_size;
+
+	ULONG user_size = header->m_user_size;
+	BYTE *alloc_type = static_cast<BYTE*>(ptr) + user_size;
+
+	// this assert ensures we aren't writing past allocated memory
+	GPOS_RTL_ASSERT(eat == EatUnknown || *alloc_type == eat);
+
+	// update stats and allocation list
+	GPOS_ASSERT(NULL != header->m_mp);
+	header->m_mp->RecordFree(header);
 
 #ifdef GPOS_DEBUG
 	// mark user memory as unused in debug mode
 	clib::Memset(ptr, GPOS_MEM_FREED_PATTERN_CHAR, user_size);
 #endif // GPOS_DEBUG
 
-	ULONG total_size = GPOS_MEM_BYTES_TOTAL(user_size);
-
-	// update stats and allocation list
-	m_memory_pool_statistics.RecordFree(user_size, total_size);
-	m_allocations_list.Remove(header);
-
 	clib::Free(header);
 }
 
+// get user requested size of allocation
+ULONG
+CMemoryPoolTracker::UserSizeOfAlloc(const void *ptr)
+{
+	const SAllocHeader *header = static_cast<const SAllocHeader*>(ptr) - 1;
+	return header->m_user_size;
+}
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::TearDown
-//
-//	@doc:
-//		Prepare the memory pool to be deleted;
-// 		this function is called only once so locking is not required;
-//
-//---------------------------------------------------------------------------
+
+// Prepare the memory pool to be deleted;
+// this function is called only once so locking is not required;
 void
 CMemoryPoolTracker::TearDown()
 {
@@ -165,21 +170,13 @@ CMemoryPoolTracker::TearDown()
 	{
 		SAllocHeader *header = m_allocations_list.First();
 		void *user_data = header + 1;
-		Free(user_data);
+		DeleteImpl(user_data, EatUnknown);
 	}
 }
 
 
 #ifdef GPOS_DEBUG
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPoolTracker::WalkLiveObjects
-//
-//	@doc:
-//		Walk live objects.
-//
-//---------------------------------------------------------------------------
 void
 CMemoryPoolTracker::WalkLiveObjects
 	(
@@ -191,15 +188,14 @@ CMemoryPoolTracker::WalkLiveObjects
 	SAllocHeader *header = m_allocations_list.First();
 	while (NULL != header)
 	{
-		SIZE_T total_size = GPOS_MEM_BYTES_TOTAL(header->m_size);
 		void *user = header + 1;
 
 		visitor->Visit
 			(
 			user,
-			header->m_size,
+			header->m_user_size,
 			header,
-			total_size,
+			header->m_alloc_size,
 			header->m_filename,
 			header->m_line,
 			header->m_serial,
@@ -216,6 +212,3 @@ CMemoryPoolTracker::WalkLiveObjects
 
 
 #endif // GPOS_DEBUG
-
-// EOF
-

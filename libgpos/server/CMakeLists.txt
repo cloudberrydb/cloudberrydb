@@ -94,15 +94,12 @@ add_gpos_test(COstreamFileTest)
 add_gpos_test(CFileTest)
 
 # memory
-add_gpos_test(CMemoryPoolTest)
 add_gpos_test(CMemoryPoolBasicTest)
 add_gpos_test(CCacheTest)
 
 # custom allocator
-add_gpos_custom_alloc_test(CMemoryPoolTest)
 add_gpos_custom_alloc_test(CMemoryPoolBasicTest)
 add_gpos_custom_alloc_test(CCacheTest)
-add_gpos_custom_alloc_test(CMemoryPoolCustomAllocTest)
 
 # string
 add_gpos_test(CWStringTest)

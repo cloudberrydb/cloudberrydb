@@ -25,24 +25,8 @@
 
 #include "unittest/gpos/memory/CMemoryPoolBasicTest.h"
 
-#define GPOS_MEM_TEST_STRESS_TASKS	(8)
 #define GPOS_MEM_TEST_ALLOC_SMALL	(8)
 #define GPOS_MEM_TEST_ALLOC_LARGE	(256)
-#define GPOS_MEM_TEST_ALLOC_MAX     (1024 * 1024)
-
-#ifdef GPOS_DEBUG
-#define GPOS_MEM_TEST_CFA           (10)
-#define GPOS_MEM_TEST_LOOP_SHORT	(10)
-#define GPOS_MEM_TEST_LOOP_STRESS	(100)
-#define GPOS_MEM_TEST_LOOP_LONG 	(1000)
-#else
-#define GPOS_MEM_TEST_CFA           (100)
-#define GPOS_MEM_TEST_LOOP_SHORT	(100)
-#define GPOS_MEM_TEST_LOOP_STRESS	(1000)
-#define GPOS_MEM_TEST_LOOP_LONG 	(100000)
-#endif // GPOS_DEBUG
-
-#define GPOS_MEM_TEST_REPEAT_SHORT	(GPOS_MEM_TEST_LOOP_LONG / GPOS_MEM_TEST_LOOP_SHORT)
 
 using namespace gpos;
 

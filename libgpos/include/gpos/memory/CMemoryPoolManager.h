@@ -103,34 +103,35 @@ namespace gpos
 				return m_internal_memory_pool;
 			}
 
-		template<typename ManagerType, typename PoolType>
-		static
-		GPOS_RESULT SetupMemoryPoolManager()
-		{
-			// raw allocation of memory for internal memory pools
-			void *alloc_internal = gpos::clib::Malloc(sizeof(PoolType));
-
-			// create internal memory pool
-			CMemoryPool *internal = new(alloc_internal) PoolType();
-
-			// instantiate manager
-			GPOS_TRY
+			// Initialize global memory pool manager using given types
+			template<typename ManagerType, typename PoolType>
+			static
+			GPOS_RESULT SetupGlobalMemoryPoolManager()
 			{
-				m_memory_pool_mgr = GPOS_NEW(internal) ManagerType(internal, EMemoryPoolTracker);
-				m_memory_pool_mgr->Setup();
-			}
-			GPOS_CATCH_EX(ex)
-			{
-				if (GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM))
+				// raw allocation of memory for internal memory pools
+				void *alloc_internal = gpos::clib::Malloc(sizeof(PoolType));
+
+				// create internal memory pool
+				CMemoryPool *internal = new(alloc_internal) PoolType();
+
+				// instantiate manager
+				GPOS_TRY
 				{
-					gpos::clib::Free(alloc_internal);
-
-					return GPOS_OOM;
+					m_memory_pool_mgr = GPOS_NEW(internal) ManagerType(internal, EMemoryPoolTracker);
+					m_memory_pool_mgr->Setup();
 				}
+				GPOS_CATCH_EX(ex)
+				{
+					if (GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM))
+					{
+						gpos::clib::Free(alloc_internal);
+
+						return GPOS_OOM;
+					}
+				}
+				GPOS_CATCH_END;
+				return GPOS_OK;
 			}
-			GPOS_CATCH_END;
-			return GPOS_OK;
-		}
 
 		public:
 
@@ -183,7 +184,15 @@ namespace gpos
 			// return total allocated size in bytes
 			ULLONG TotalAllocatedSize();
 
-			// Initialize global memory pool manager using given types
+			// free memory allocation
+			virtual
+			void DeleteImpl(void* ptr, CMemoryPool::EAllocationType eat);
+
+			// get user requested size of allocation
+			virtual
+			ULONG UserSizeOfAlloc(const void* ptr);
+
+			// initialize global instance
 			static
 			GPOS_RESULT Init();
 

@@ -16,6 +16,7 @@
 #include "gpos/error/CFSimulator.h"
 #endif // GPOS_DEBUG
 #include "gpos/memory/CMemoryPool.h"
+#include "gpos/memory/CMemoryPoolTracker.h"
 #include "gpos/memory/CMemoryPoolManager.h"
 #include "gpos/memory/CMemoryVisitorPrint.h"
 #include "gpos/task/ITask.h"
@@ -26,109 +27,21 @@ using namespace gpos;
 // invalid exception
 const ULONG_PTR CMemoryPool::m_invalid = ULONG_PTR_MAX;
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPool::FinalizeAlloc
-//
-//	@doc:
-//		Set allocation header and footer, return pointer to user data
-//
-//---------------------------------------------------------------------------
-void *
-CMemoryPool::FinalizeAlloc
-	(
-	void *ptr,
-	ULONG alloc,
-	EAllocationType eat
-	)
-{
-	GPOS_ASSERT(NULL != ptr);
-
-	AllocHeader *header = static_cast<AllocHeader*>(ptr);
-	header->m_mp = this;
-	header->m_alloc = alloc;
-
-	BYTE *alloc_type = reinterpret_cast<BYTE*>(header + 1) + alloc;
-	*alloc_type = eat;
-
-	return header + 1;
-}
-
-
+// get user requested size of allocation
 ULONG
-CMemoryPool::SizeOfAlloc
-	(
-	const void *ptr
-	)
+CMemoryPool::UserSizeOfAlloc(const void *ptr)
 {
 	GPOS_ASSERT(NULL != ptr);
 
-	const AllocHeader *header = static_cast<const AllocHeader*>(ptr) - 1;
-	return header->m_alloc;
+	return CMemoryPoolManager::GetMemoryPoolMgr()->UserSizeOfAlloc(ptr);
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMemoryPool::NewImpl
-//
-//	@doc:
-//		Implementation of New that can be used by "operator new" functions
-////
-//---------------------------------------------------------------------------
-void*
-CMemoryPool::NewImpl
-	(
-	SIZE_T size,
-	const CHAR *filename,
-	ULONG line,
-	CMemoryPool::EAllocationType eat
-	)
-{
-	GPOS_ASSERT(gpos::ulong_max >= size);
-	GPOS_ASSERT_IMP
-	(
-	(NULL != CMemoryPoolManager::GetMemoryPoolMgr()) && (this == CMemoryPoolManager::GetMemoryPoolMgr()->GetGlobalMemoryPool()),
-	 CMemoryPoolManager::GetMemoryPoolMgr()->IsGlobalNewAllowed() &&
-	 "Use of new operator without target memory pool is prohibited, use New(...) instead"
-	);
-
-	ULONG alloc_size = CMemoryPool::GetAllocSize((ULONG) size);
-	void *ptr = Allocate(alloc_size, filename, line);
-
-	GPOS_OOM_CHECK(ptr);
-	
-	return this->FinalizeAlloc(ptr, (ULONG) size, eat);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		DeleteImpl
-//
-//	@doc:
-//		implementation of Delete that can be used by operator new functions
-//
-//---------------------------------------------------------------------------
 void
-CMemoryPool::DeleteImpl
-	(
-	void *ptr,
-	EAllocationType eat
-	)
+CMemoryPool::DeleteImpl(void *ptr, EAllocationType eat)
 {
-	// deletion of NULL pointers is legal
-	if (NULL == ptr)
-	{
-		return;
-	}
-
-	// release allocation
-	FreeAlloc(ptr, eat);
-
-}  // namespace gpos
-
-// EOF
+	CMemoryPoolManager::GetMemoryPoolMgr()->DeleteImpl(ptr, eat);
+}
 
 #ifdef GPOS_DEBUG
 
@@ -168,7 +81,6 @@ CMemoryPool::OsPrint
 	return os;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMemoryPool::AssertEmpty
@@ -207,7 +119,3 @@ CMemoryPool::AssertEmpty
 }
 
 #endif // GPOS_DEBUG
-
-
-// EOF
-

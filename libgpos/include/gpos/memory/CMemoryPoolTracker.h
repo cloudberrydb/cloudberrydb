@@ -32,22 +32,22 @@ namespace gpos
 	{
 		private:
 
-			//---------------------------------------------------------------------------
-			//	@struct:
-			//		AllocHeader
-			//
-			//	@doc:
-			//		Defines memory block header layout for all allocations;
-			//	 	does not include the pointer to the pool;
-			//
-			//---------------------------------------------------------------------------
+
+			// Defines memory block header layout for all allocations;
+			// does not include the pointer to the pool;
 			struct SAllocHeader
 			{
+				// pointer to pool
+				CMemoryPoolTracker *m_mp;
+
+				// total allocation size (including headers)
+				ULONG m_alloc_size;
+
+				// user requested size
+				ULONG m_user_size;
+
 				// sequence number
 				ULLONG m_serial;
-
-				// user-visible size
-				ULONG m_size;
 
 				// file name
 				const CHAR *m_filename;
@@ -76,6 +76,12 @@ namespace gpos
 			// private copy ctor
 			CMemoryPoolTracker(CMemoryPoolTracker &);
 
+			// record a successful allocation
+			void RecordAllocation(SAllocHeader *header);
+
+			// record a successful free
+			void RecordFree(SAllocHeader *header);
+
 		protected:
 
 			// dtor
@@ -87,22 +93,21 @@ namespace gpos
 			// ctor
 			CMemoryPoolTracker();
 
-			// allocate memory
-			virtual
-			void *Allocate
-				(
-				const ULONG bytes,
-				const CHAR *file,
-				const ULONG line
-				);
-
-			// free memory
-			virtual
-			void Free(void *ptr);
-
 			// prepare the memory pool to be deleted
 			virtual
 			void TearDown();
+
+			// allocate memory
+			void *NewImpl(const ULONG bytes, const CHAR *file, const ULONG line,
+						  CMemoryPool::EAllocationType eat);
+
+			// free memory allocation
+			static
+			void DeleteImpl(void *ptr, EAllocationType eat);
+
+			// get user requested size of allocation
+			static
+			ULONG UserSizeOfAlloc(const void *ptr);
 
 			// return total allocated size
 			virtual
