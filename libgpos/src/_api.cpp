@@ -23,6 +23,7 @@
 #include "gpos/task/CWorkerPoolManager.h"
 
 #include "gpos/common/CMainArgs.h"
+#include "gpos/common/CDebugCounter.h"
 
 #include "gpopt/exception.h"
 #include "naucrates/exception.h"
@@ -147,6 +148,10 @@ void gpos_init(struct gpos_init_params* params) {
 		CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 	}
 #endif // GPOS_FPSIMULATOR
+
+#ifdef GPOS_DEBUG_COUNTERS
+	CDebugCounter::Init();
+#endif
 }
 
 //---------------------------------------------------------------------------

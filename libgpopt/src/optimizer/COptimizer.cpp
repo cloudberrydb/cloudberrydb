@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CBitSet.h"
+#include "gpos/common/CDebugCounter.h"
 #include "gpos/error/CErrorHandlerStandard.h"
 #include "gpos/io/CFileDescriptor.h"
 
@@ -160,6 +161,51 @@ COptimizer::PrintQueryOrPlan
 	}
 	else
 	{
+#ifdef GPOS_DEBUG_COUNTERS
+		// code for debug counters, extract name of the next query, if applicable
+		// and prepare for logging the existing query and initializing state for
+		// the next one
+		std::string query_name = "";
+
+		// try to recognize statements of the type select 'query name: <some name>' and
+		// extract the name as the name for the next query
+		if (NULL != pexpr &&
+			COperator::EopPhysicalComputeScalar == pexpr->Pop()->Eopid() &&
+			COperator::EopPhysicalConstTableGet == (*pexpr)[0]->Pop()->Eopid() &&
+			COperator::EopScalarProjectList == (*pexpr)[1]->Pop()->Eopid() &&
+			1 == (*pexpr)[1]->Arity())
+		{
+			// the query is of the form select <const>, now look at the <const>
+			COperator *pop = (*((*((*pexpr)[1]))[0]))[0]->Pop();
+
+			if (COperator::EopScalarConst == pop->Eopid())
+			{
+				CScalarConst *popScalarConst = CScalarConst::PopConvert(pop);
+				const char *select_element_bytes = (const char *) popScalarConst->GetDatum()->GetByteArrayValue();
+				ULONG select_element_len = clib::Strlen(select_element_bytes);
+				const char *query_name_prefix = "query name: ";
+				ULONG query_name_prefix_len = clib::Strlen(query_name_prefix);
+
+				if (0 == clib::Strncmp((const char *) select_element_bytes,
+									   query_name_prefix,
+									   query_name_prefix_len))
+				{
+					// the constant in the select starts with "query_name: "
+					for (ULONG i=query_name_prefix_len; i<select_element_len; i++)
+					{
+						if (select_element_bytes[i] > 0)
+						{
+							// the query name should contain ASCII characters,
+							// we skip all other characters
+							query_name.append(1, select_element_bytes[i]);
+						}
+					}
+				}
+			}
+		}
+		CDebugCounter::NextQry(query_name.c_str());
+#endif
+
 		if (GPOS_FTRACE(EopttracePrintPlan))
 		{
 			PrintPlan(mp, pexpr);
