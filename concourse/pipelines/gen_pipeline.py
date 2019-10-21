@@ -80,6 +80,7 @@ JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE = (
         'MADlib_Test_orca_centos6',
         'MADlib_Test_planner_centos7',
         'MADlib_Test_orca_centos7',
+        'Publish Server Builds',
     ] + RELEASE_VALIDATOR_JOB + JOBS_THAT_ARE_GATES
 )
 

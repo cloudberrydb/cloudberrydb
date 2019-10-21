@@ -141,6 +141,7 @@ groups:
   jobs:
   - gate_release_candidate_start
   - Release_Candidate
+  - Publish Server Builds
 
 {% endif %}
 ## ======================================================================
@@ -922,9 +923,6 @@ jobs:
     - put: bin_gpdb_clients_centos6
       params:
         file: gpdb_artifacts/gpdb-clients-centos6.tar.gz
-    - put: server-build-centos6
-      params:
-        file: gpdb_artifacts/server-build-*-rhel6*.tar.gz
 
 {% endif %}
 {% if "centos7" in os_types %}
@@ -960,9 +958,6 @@ jobs:
     - put: bin_gpdb_clients_centos7
       params:
         file: gpdb_artifacts/gpdb-clients-centos7.tar.gz
-    - put: server-build-centos7
-      params:
-        file: gpdb_artifacts/server-build-*-rhel7*.tar.gz
 
 {% endif %}
 {% if "centos6" in os_types %}
@@ -1029,9 +1024,6 @@ jobs:
         - put: bin_gpdb_clients_ubuntu18.04
           params:
             file: gpdb_artifacts/gpdb-clients-ubuntu18.04.tar.gz
-        - put: server-build-ubuntu18.04
-          params:
-            file: gpdb_artifacts/server-build-*-ubuntu18.04*.tar.gz
 
 {% endif %}
 
@@ -2106,6 +2098,36 @@ jobs:
     - get: bin_gpdb_clients_windows
       passed:
       - test_gpdb_clients_windows
+
+- name: Publish Server Builds
+  plan:
+  - in_parallel:
+    - get: gpdb_src
+      trigger: true
+      passed:
+      - compile_gpdb_centos6
+      - compile_gpdb_centos7
+      - compile_gpdb_ubuntu18.04
+    - get: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb_centos7
+      passed: [compile_gpdb_centos7]
+    - get: bin_gpdb_ubuntu18.04
+      passed: [compile_gpdb_ubuntu18.04]
+  - task: rename server build artifacts
+    file: gpdb_src/concourse/tasks/rename-server-build.yml
+    params:
+      RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
+  - in_parallel:
+    - put: server-build-centos6
+      params:
+        file: output/server-build-*-rhel6*.tar.gz
+    - put: server-build-centos7
+      params:
+        file: output/server-build-*-rhel7*.tar.gz
+    - put: server-build-ubuntu18.04
+      params:
+        file: output/server-build-*-ubuntu18.04*.tar.gz
 
 - name: Release_Candidate
   plan:
