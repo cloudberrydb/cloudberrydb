@@ -68,8 +68,13 @@ SELinuxstatus: disabled</codeblock></li>
               <codeph>/etc/selinux/config</codeph> file. As root, change the value of the
               <codeph>SELINUX</codeph> parameter in the <codeph>config</codeph> file as
             follows:<codeblock>SELINUX=disabled</codeblock></li>
-          <li>Reboot the system to apply any changes that you made to
-              <codeph>/etc/selinux/config</codeph> and verify that SELinux is disabled.</li>
+          <li>If the System Security Services Daemon (SSSD) is installed on your systems, edit the
+            SSSD configuration file and set the <codeph>selinux_provider</codeph> parameter to
+              <codeph>none</codeph> to prevent SELinux-related SSH authentication denials that could
+            occur even with SELinux disabled. As root, edit <codeph>/etc/sssd/sssd.conf</codeph> and
+            add this parameter:<codeblock>selinux_provider=none</codeblock></li>
+          <li>Reboot the system to apply any changes that you made and verify that SELinux is
+            disabled.</li>
         </ol></p>
       <p>For information about disabling SELinux, see the SELinux documentation.</p>
       <p>You should also disable firewall software such as <codeph>iptables</codeph> (on systems
