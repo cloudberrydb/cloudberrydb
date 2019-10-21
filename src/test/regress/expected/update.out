@@ -419,15 +419,14 @@ SELECT gp_segment_id, * FROM tab5;
 (10 rows)
 
 EXPLAIN (COSTS OFF ) UPDATE tab3 SET C1 = C1 + 1, C5 = C5+1;
-                      QUERY PLAN
-------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Update on tab3
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)
-         Hash Key: ((c1 + 1)), c2, c3
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
          ->  Split
                ->  Seq Scan on tab3
  Optimizer: Postgres query optimizer
-(6 rows)
+(5 rows)
 
 -- clean up
 drop table tab3;

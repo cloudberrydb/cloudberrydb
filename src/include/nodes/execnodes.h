@@ -2954,6 +2954,12 @@ typedef struct SplitUpdateState
 								 * action. */
 	TupleTableSlot *insertTuple;	/* tuple to Insert */
 	TupleTableSlot *deleteTuple;	/* tuple to Delete */
+
+	AttrNumber	input_segid_attno;		/* attribute number of "gp_segment_id" in subplan's target list */
+	AttrNumber	output_segid_attno;		/* attribute number of "gp_segment_id" in output target list */
+
+	struct CdbHash *cdbhash;	/* hash api object */
+
 } SplitUpdateState;
 
 /*

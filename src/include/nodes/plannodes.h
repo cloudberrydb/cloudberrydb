@@ -1333,6 +1333,10 @@ typedef struct SplitUpdate
 	AttrNumber	tupleoidColIdx;		/* index of tuple oid column into the target list */
 	List		*insertColIdx;		/* list of columns to INSERT into the target list */
 	List		*deleteColIdx;		/* list of columns to DELETE into the target list */
+
+	int			numHashAttrs;
+	AttrNumber *hashAttnos;
+	Oid		   *hashFuncs;			/* corresponding hash functions */
 } SplitUpdate;
 
 /*

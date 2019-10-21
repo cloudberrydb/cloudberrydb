@@ -35,15 +35,14 @@ set optimizer_enable_dml_constraints=off;
 explain update constr_tab set a = 10;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: UPDATE with constraints
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Update on constr_tab  (cost=0.00..1.01 rows=1 width=22)
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.01 rows=1 width=22)
-         Hash Key: a
-         ->  Split  (cost=0.00..1.01 rows=1 width=22)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Update on constr_tab  (cost=0.00..1.03 rows=1 width=22)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=22)
+         ->  Split  (cost=0.00..1.03 rows=1 width=22)
                ->  Seq Scan on constr_tab  (cost=0.00..1.01 rows=1 width=22)
  Optimizer: Postgres query optimizer
-(6 rows)
+(5 rows)
 
 explain update constr_tab set b = 10;
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -75,15 +74,14 @@ set optimizer_enable_dml_constraints=off;
 explain update constr_tab set a = 10;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: UPDATE with constraints
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Update on constr_tab  (cost=0.00..1.01 rows=1 width=22)
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.01 rows=1 width=22)
-         Hash Key: a
-         ->  Split  (cost=0.00..1.01 rows=1 width=22)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Update on constr_tab  (cost=0.00..1.03 rows=1 width=22)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=22)
+         ->  Split  (cost=0.00..1.03 rows=1 width=22)
                ->  Seq Scan on constr_tab  (cost=0.00..1.01 rows=1 width=22)
  Optimizer: Postgres query optimizer
-(6 rows)
+(5 rows)
 
 DROP TABLE IF EXISTS constr_tab;
 CREATE TABLE constr_tab ( a int NOT NULL, b int NOT NULL, c int NOT NULL, d int NOT NULL) DISTRIBUTED BY (a,b);
@@ -97,15 +95,14 @@ set optimizer_enable_dml_constraints=off;
 explain update constr_tab set b = 10;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: UPDATE with constraints
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Update on constr_tab  (cost=0.00..1.01 rows=1 width=22)
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.01 rows=1 width=22)
-         Hash Key: a, b
-         ->  Split  (cost=0.00..1.01 rows=1 width=22)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Update on constr_tab  (cost=0.00..1.03 rows=1 width=22)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=22)
+         ->  Split  (cost=0.00..1.03 rows=1 width=22)
                ->  Seq Scan on constr_tab  (cost=0.00..1.01 rows=1 width=22)
  Optimizer: Postgres query optimizer
-(6 rows)
+(5 rows)
 
 DROP TABLE IF EXISTS constr_tab;
 CREATE TABLE constr_tab ( a int, b int, c int, d int) DISTRIBUTED BY (a);

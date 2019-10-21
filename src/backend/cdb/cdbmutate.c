@@ -1034,6 +1034,9 @@ make_broadcast_motion(Plan *lefttree, int numsegments)
  * Motion has no Motions underneath it, then the row to update must originate
  * from the same segment, and no Motion is needed.
  *
+ * A SplitUpdate also computes the target segment ID, based on other columns,
+ * so we treat it the same as a Motion node for this purpose.
+ *
  * Note that this does not take InitPlans containing Motion nodes into
  * account. InitPlans are executed as a separate step before the main plan,
  * and hence any Motion nodes in them don't need to affect the way the main
@@ -1045,7 +1048,7 @@ contain_motions_walker(Node *node, void *context)
 	if (node == NULL)
 		return false;
 
-	if (IsA(node, Motion))
+	if (IsA(node, Motion) || IsA(node, SplitUpdate))
 		return true;
 	else
 		return plan_tree_walker(node, contain_motions_walker, context, true);
@@ -1206,147 +1209,6 @@ find_oid_attribute_check(List *targetList)
 }
 
 /*
- * Copy all junk attributes into dest
- */
-static void
-copy_junk_attributes(List *src, List **dest, AttrNumber startAttrIdx)
-{
-	ListCell	*currAppendCell;
-	ListCell	*lct;
-	TargetEntry	*newTargetEntry;
-
-	/* There should be at least ctid exist */
-	Assert(startAttrIdx < list_length(src));
-
-	currAppendCell = list_nth_cell(src, startAttrIdx);
-
-	for_each_cell(lct, currAppendCell)
-	{
-		Assert(IsA(lfirst(lct), TargetEntry));
-
-		if(IsA(((TargetEntry *) lfirst(lct))->expr, Var))
-		{
-			Var			*var;
-			var = copyObject(((TargetEntry *) lfirst(lct))->expr);
-			var->varno = OUTER_VAR;
-			var->varattno = ((TargetEntry *) lfirst(lct))->resno;
-
-			newTargetEntry = makeTargetEntry((Expr *) var,
-											 startAttrIdx + 1,
-											 ((TargetEntry *) lfirst(lct))->resname,
-											 true);
-			*dest = lappend(*dest, newTargetEntry);
-			++startAttrIdx;
-		}
-		else
-		{
-			Expr *ex;
-			ex            = copyObject(((TargetEntry *) lfirst(lct))->expr);
-			newTargetEntry = makeTargetEntry((Expr *) ex,
-											 startAttrIdx + 1,
-											 ((TargetEntry *) lfirst(lct))->resname,
-											 true);
-			*dest = lappend(*dest, newTargetEntry);
-			++startAttrIdx;
-		}
-
-	}
-}
-
-/*
- * Find attributes in the targetlist of top plan.
- *
- * We generates informations as following:
- *
- * splitUpdateTargetList which should be a simple var list used by SplitUpdate
- * insertColIdx which point to resno of corresponding attributes in targetlist
- * deleteColIdx which contains placeholder, and value will be corrected later
- */
-static void
-process_targetlist_for_splitupdate(Relation resultRel, List *targetlist,
-								   List **splitUpdateTargetList, List **insertColIdx, List **deleteColIdx)
-{
-	TupleDesc	resultDesc = RelationGetDescr(resultRel);
-	GpPolicy   *cdbpolicy = resultRel->rd_cdbpolicy;
-	int			attrIdx;
-	Var		   *splitVar;
-	TargetEntry	*splitTargetEntry;
-	ListCell   *lc;
-
-	lc = list_head(targetlist);
-	for (attrIdx = 1; attrIdx <= resultDesc->natts; ++attrIdx)
-	{
-		TargetEntry			*tle;
-		Form_pg_attribute	attr;
-		int			oldAttrIdx = -1;
-
-		tle = (TargetEntry *) lfirst(lc);
-		lc = lnext(lc);
-		Assert(tle);
-
-		attr = resultDesc->attrs[attrIdx - 1];
-		if (attr->attisdropped)
-		{
-			Assert(IsA(tle->expr, Const) && ((Const *) tle->expr)->constisnull);
-
-			splitTargetEntry = makeTargetEntry((Expr *) copyObject(tle->expr), tle->resno, tle->resname, tle->resjunk);
-			*splitUpdateTargetList = lappend(*splitUpdateTargetList, splitTargetEntry);
-		}
-		else
-		{
-			int			i;
-
-			Assert(exprType((Node *) tle->expr) == attr->atttypid);
-
-			splitVar = (Var *) makeVar(OUTER_VAR,
-									   attrIdx,
-									   attr->atttypid,
-									   attr->atttypmod,
-									   attr->attcollation,
-									   0);
-			splitVar->varnoold = attrIdx;
-
-			splitTargetEntry = makeTargetEntry((Expr *) splitVar, tle->resno, tle->resname, tle->resjunk);
-			*splitUpdateTargetList = lappend(*splitUpdateTargetList, splitTargetEntry);
-
-			/*
-			 * Is this a distribution key column? If so, we will need its old value.
-			 * expand_targetlist() put the old values for distribution key columns in
-			 * the target list after the new column values.
-			 */
-			for (i = 0; i < cdbpolicy->nattrs; i++)
-			{
-				AttrNumber	keyattno = cdbpolicy->attrs[i];
-
-				if (keyattno == attrIdx)
-				{
-					TargetEntry *oldtle;
-
-					oldAttrIdx = resultDesc->natts + i + 1;
-
-					/* sanity checks. */
-					if (oldAttrIdx > list_length(targetlist))
-						elog(ERROR, "old value for attribute \"%s\" missing from split update input target list",
-							 NameStr(attr->attname));
-					oldtle = list_nth(targetlist, oldAttrIdx - 1);
-					if (exprType((Node *) oldtle->expr) != attr->atttypid)
-						elog(ERROR, "datatype mismatch for old value for attribute \"%s\" in split update input target list",
-							 NameStr(attr->attname));
-
-					break;
-				}
-			}
-			/*
-			 * If oldAttrIdx is still -1, this is not a distribution key column.
-			 */
-		}
-
-		*insertColIdx = lappend_int(*insertColIdx, attrIdx);
-		*deleteColIdx = lappend_int(*deleteColIdx, oldAttrIdx);
-	}
-}
-
-/*
  * In Postgres planner, we add a SplitUpdate node at top so that updating on distribution
  * columns could be handled. The SplitUpdate will split each update into delete + insert.
  *
@@ -1401,11 +1263,13 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 	DMLActionExpr	*actionExpr;
 	Relation		resultRelation;
 	TupleDesc		resultDesc;
+	GpPolicy	   *resultPolicy;
 
 	Assert(IsA(mt, ModifyTable));
 
 	/* Suppose we already hold locks before caller */
 	resultRelation = relation_open(rte->relid, NoLock);
+	resultPolicy = resultRelation->rd_cdbpolicy;
 
 	failIfUpdateTriggers(resultRelation);
 
@@ -1413,25 +1277,38 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 
 	/*
 	 * insertColIdx/deleteColIdx: In split update mode, we have to form two tuples,
-	 * one is for deleting and the other is for inserting. Find the old and new
-	 * values in the subplan's target list, and store their column indexes in
-	 * insertColIdx and deleteColIdx.
+	 * one is for deleting and the other is for inserting. The insertColIdx array
+	 * indicates the input columns to use to form the INSERT rows, and deleteColIdx
+	 * the inputs for DELETE rows.
+	 *
+	 * The first natts columns of the input contain the new values, which are needed
+	 * for INSERT rows. And for DELETE rows, we just need the 'gp_segment_id' and
+	 * 'ctid' of the row to delete. They are both junk attributes, and don't need to
+	 * be included in the deleteColIdx array.
+	 *
+	 * Because the mapping is so straightforward, there isn't really much need for
+	 * the insertColIdx/deleteColIdx arrays, but ORCA creates slightly different
+	 * plans which need them.
 	 */
-	process_targetlist_for_splitupdate(resultRelation,
-									   subplan->targetlist,
-									   &splitUpdateTargetList, &insertColIdx, &deleteColIdx);
-	if (resultRelation->rd_rel->relhasoids)
-		oidColIdx = find_oid_attribute_check(subplan->targetlist);
+	for (int attrIdx = 1; attrIdx <= resultDesc->natts; attrIdx++)
+	{
+		insertColIdx = lappend_int(insertColIdx, attrIdx);
+		deleteColIdx = lappend_int(deleteColIdx, -1);
+	}
 
-	copy_junk_attributes(subplan->targetlist, &splitUpdateTargetList, resultDesc->natts);
-
-	relation_close(resultRelation, NoLock);
-
-	/* finally, we should add action column at the end of targetlist */
+	/*
+	 * The targetlist of the Split Update is the same as the subplan's, with the
+	 * additional DMLActionExpr column. The Split Update doesn't evaluate any
+	 * target list expressions.
+	 */
+	splitUpdateTargetList = list_copy(subplan->targetlist);
 	actionExpr = makeNode(DMLActionExpr);
 	actionColIdx = list_length(splitUpdateTargetList) + 1;
 	newTargetEntry = makeTargetEntry((Expr *) actionExpr, actionColIdx, "ColRef", true);
 	splitUpdateTargetList = lappend(splitUpdateTargetList, newTargetEntry);
+
+	if (resultRelation->rd_rel->relhasoids)
+		oidColIdx = find_oid_attribute_check(subplan->targetlist);
 
 	splitupdate = makeNode(SplitUpdate);
 	splitupdate->actionColIdx = actionColIdx;
@@ -1455,18 +1332,39 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 	splitupdate->plan.total_cost += (splitupdate->plan.plan_rows * cpu_tuple_cost);
 	splitupdate->plan.plan_width = subplan->plan_width;
 
+	splitupdate->numHashAttrs = resultPolicy->nattrs;
+	splitupdate->hashAttnos = palloc(resultPolicy->nattrs * sizeof(AttrNumber));
+	splitupdate->hashFuncs = palloc(resultPolicy->nattrs * sizeof(Oid));
+
 	/*
-	 * A redistributed-motion has to be added above	the split node in
-	 * the plan and this can be achieved by marking the split node strewn.
-	 * However, if the subplan is an entry, we should not mark it strewn.
+	 * Look up the right hash functions for the hash expressions, like in
+	 * make_hashed_motion()
+	 */
+	for (int i = 0; i < resultPolicy->nattrs; i++)
+	{
+		AttrNumber	attnum = resultPolicy->attrs[i];
+		Oid			typeoid = resultDesc->attrs[attnum - 1]->atttypid;
+		Oid			opfamily = get_opclass_family(resultPolicy->opclasses[i]);
+
+		splitupdate->hashAttnos[i] = attnum;
+		splitupdate->hashFuncs[i] = cdb_hashproc_in_opfamily(opfamily, typeoid);
+	}
+
+	/*
+	 * An Explicit Motion will be added above the split node in the plan, and
+	 * the SplitUpdate will emit an explicit gp_segment_id column to tell the
+	 * Explicit Motion where to send each row. Mark the split node as strewn
+	 * (or entry) to represent that.
 	 */
 	if (subplan->flow->locustype != CdbLocusType_Entry)
-		mark_plan_strewn((Plan *) splitupdate, subplan->flow->numsegments);
+		mark_plan_strewn((Plan *) splitupdate, resultPolicy->numsegments);
 	else
 		mark_plan_entry((Plan *) splitupdate);
 
 	mt->action_col_idxes = lappend_int(mt->action_col_idxes, actionColIdx);
 	mt->oid_col_idxes = lappend_int(mt->oid_col_idxes, oidColIdx);
+
+	relation_close(resultRelation, NoLock);
 
 	return splitupdate;
 }

@@ -88,17 +88,15 @@ explain (costs off) update base_tbl set a=a+1;
    Update on base_tbl
    Update on child_a
    Update on child_b
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)
-         Hash Key: ((base_tbl.a + 1))
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
          ->  Split
                ->  Seq Scan on base_tbl
-   ->  Redistribute Motion 3:3  (slice2; segments: 3)
-         Hash Key: ((child_a.a + 1))
+   ->  Explicit Redistribute Motion 3:3  (slice2; segments: 3)
          ->  Split
                ->  Seq Scan on child_a
    ->  Seq Scan on child_b
  Optimizer: Postgres query optimizer
-(14 rows)
+(12 rows)
 
 update base_tbl set a = 5;
 --
@@ -515,8 +513,7 @@ explain update tsplit_entry set c = s.a from (select count(*) as a from gp_segme
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
  Update on tsplit_entry  (cost=10000000001.00..10000000003.18 rows=3 width=54)
-   ->  Redistribute Motion 1:3  (slice2)  (cost=10000000001.00..10000000003.18 rows=7 width=54)
-         Hash Key: ((s.a)::integer)
+   ->  Explicit Redistribute Motion 1:3  (slice2)  (cost=10000000001.00..10000000003.18 rows=7 width=54)
          ->  Split  (cost=10000000001.00..10000000003.18 rows=7 width=54)
                ->  Nested Loop  (cost=10000000001.00..10000000003.12 rows=4 width=54)
                      ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.06 rows=2 width=14)
@@ -525,9 +522,8 @@ explain update tsplit_entry set c = s.a from (select count(*) as a from gp_segme
                            ->  Subquery Scan on s  (cost=1.00..1.02 rows=1 width=40)
                                  ->  Aggregate  (cost=1.00..1.01 rows=1 width=8)
                                        ->  Seq Scan on gp_segment_configuration  (cost=0.00..1.00 rows=1 width=0)
- Planning time: 1.088 ms
  Optimizer: Postgres query optimizer
-(13 rows)
+(11 rows)
 
 update tsplit_entry set c = s.a from (select count(*) as a from gp_segment_configuration) s;
 CREATE TABLE update_gp_foo (

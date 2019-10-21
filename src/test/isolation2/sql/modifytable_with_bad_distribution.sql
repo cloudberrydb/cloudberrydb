@@ -27,7 +27,20 @@ analyze bad_distribution1;
 analyze pbad_distribution1;
 analyze help_distribution;
 
--- Test update on distribution key. Expect error.
+-- Test update on distribution key.
+--
+-- This used throw an error, because the old row is in wrong segment. But we
+-- no longer check that, because there's no particular reason why an UPDATE
+-- in particular should care about whether the old row was on the right
+-- segment; the old row is deleted, and the new row is inserted to the
+-- correct segment, in any case. A misplaced row is no worse for an UPDATE,
+-- than it is for other queries or DML commands.
+--
+-- This still throws an error with ORCA, however, because ORCA generates a
+-- slightly different Split Update plan. It uses a Redistribute Motion on top
+-- of the Split Update, which computes the old segment based on the old
+-- values, instead of an Explicit Motion. With a Redistribute Motion, if the
+-- old row is not on the correct segment, the deletion would fail to find it.
 update bad_distribution1 set a=a+1;
 update pbad_distribution1 set a=a+1;
 

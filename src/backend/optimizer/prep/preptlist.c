@@ -390,12 +390,13 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 	/*
 	 * If an UPDATE can move the tuples from one segment to another, we will
 	 * need to create a Split Update node for it. The node is created later
-	 * in the planning, but if it's needed, we must ensure that the target
-	 * list contains all the original values of each distribution key column,
-	 * because the Split Update needs them as input. The old distribution
-	 * key columns come in the target list after all the new values, and
-	 * before the 'ctid' and other resjunk columns. (The logic in
-	 * process_targetlist_for_splitupdate() relies on that order.)
+	 * in the planning, but if it's needed, and the table has OIDs, we must
+	 * ensure that the target list contains the old OID so that the Split
+	 * Update can copy it to the new tuple.
+	 *
+	 * GPDB_96_MERGE_FIXME: we used to copy all old distribution key columns,
+	 * but we only need this for the OID now. Can we desupport Split Updates
+	 * on tables with OIDs, and get rid of this?
 	 */
 	if (command_type == CMD_UPDATE)
 	{
@@ -424,32 +425,8 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 			 * Yes, this is a split update.
 			 * Updating a hash column is a split update, of course.
 			 *
-			 * For each column that was changed, add the original column value
-			 * to the target list, if it's not there already.
+			 * Add the old OID to the tlist, if the table has OIDs.
 			 */
-			int			i;
-
-			for (i = 0; i < targetPolicy->nattrs; i++)
-			{
-				AttrNumber	keycolidx = targetPolicy->attrs[i];
-				Var		   *origvar;
-				Form_pg_attribute att_tup = rel->rd_att->attrs[keycolidx - 1];
-
-				origvar = makeVar(result_relation,
-								  keycolidx,
-								  att_tup->atttypid,
-								  att_tup->atttypmod,
-								  att_tup->attcollation,
-								  0);
-				TargetEntry *new_tle = makeTargetEntry((Expr *) origvar,
-													   attrno,
-													   NameStr(att_tup->attname),
-													   true);
-				new_tlist = lappend(new_tlist, new_tle);
-				attrno++;
-			}
-
-			/* Also add the old OID to the tlist, if the table has OIDs. */
 			if (rel->rd_rel->relhasoids)
 			{
 				TargetEntry *new_tle;

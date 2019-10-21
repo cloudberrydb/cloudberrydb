@@ -2364,6 +2364,10 @@ _readSplitUpdate(void)
 	READ_NODE_FIELD(insertColIdx);
 	READ_NODE_FIELD(deleteColIdx);
 
+	READ_INT_FIELD(numHashAttrs);
+	READ_INT_ARRAY(hashAttnos, local_node->numHashAttrs, AttrNumber);
+	READ_OID_ARRAY(hashFuncs, local_node->numHashAttrs);
+
 	readPlanInfo((Plan *)local_node);
 
 	READ_DONE();

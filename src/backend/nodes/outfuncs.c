@@ -1250,6 +1250,19 @@ _outSplitUpdate(StringInfo str, const SplitUpdate *node)
 	WRITE_NODE_FIELD(insertColIdx);
 	WRITE_NODE_FIELD(deleteColIdx);
 
+	WRITE_INT_FIELD(numHashAttrs);
+#ifdef COMPILING_BINARY_FUNCS
+	WRITE_INT_ARRAY(hashAttnos, node->numHashAttrs, AttrNumber);
+	WRITE_OID_ARRAY(hashFuncs, node->numHashAttrs);
+#else
+	appendStringInfoLiteral(str, " :hashAttnos");
+	for (int i = 0; i < node->numHashAttrs; i++)
+		appendStringInfo(str, " %d", node->hashAttnos[i]);
+	appendStringInfoLiteral(str, " :hashFuncs");
+	for (int i = 0; i < node->numHashAttrs; i++)
+		appendStringInfo(str, " %u", node->hashFuncs[i]);
+#endif
+
 	_outPlanInfo(str, (Plan *) node);
 }
 

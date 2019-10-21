@@ -6869,55 +6869,44 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 				 * e.g. because the input was eliminated by constraint
 				 * exclusion, we can skip it.
 				 */
-				if (is_split_update && !is_dummy_plan(subplan))
-				{
-					List	   *hashExprs;
-					List	   *hashOpfamilies;
-					int			i;
-					Plan	*new_subplan;
-
-					Assert(node->operation == CMD_UPDATE);
-
-					if (Gp_role == GP_ROLE_UTILITY)
-					{
-						ereport(ERROR,
-								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("cannot update distribution key columns in utility mode")));
-					}
-
-					new_subplan = (Plan *) make_splitupdate(root, (ModifyTable *) node, subplan, rte);
-
-					hashExprs = getExprListFromTargetList(new_subplan->targetlist,
-														  targetPolicy->nattrs,
-														  targetPolicy->attrs);
-					hashOpfamilies = NIL;
-					for (i = 0; i < targetPolicy->nattrs; i++)
-					{
-						hashOpfamilies = lappend_oid(hashOpfamilies,
-													 get_opclass_family(targetPolicy->opclasses[i]));
-					}
-					new_subplan = repartitionPlan(new_subplan, false,
-												  hashExprs, hashOpfamilies,
-												  targetPolicy->numsegments);
-					lfirst(lcp) = new_subplan;
-				}
-				else
+				if (is_dummy_plan(subplan))
 				{
 					node->action_col_idxes = lappend_int(node->action_col_idxes, -1);
 					node->oid_col_idxes = lappend_int(node->oid_col_idxes, 0);
+				}
+				else
+				{
+					Plan	*new_subplan;
+					AttrNumber	segidColIdx;
 
-					if (!is_dummy_plan(subplan))
+					if (is_split_update)
 					{
-						/* find segid column in target list */
-						AttrNumber	segidColIdx = ExecFindJunkAttributeInTlist(subplan->targetlist, "gp_segment_id");
-						if (segidColIdx == InvalidAttrNumber)
-							elog(ERROR, "could not find gp_segment_id column in target list");
+						Assert(node->operation == CMD_UPDATE);
 
-						subplan = (Plan *) make_explicit_motion(root,
+						if (Gp_role == GP_ROLE_UTILITY)
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 errmsg("cannot update distribution key columns in utility mode")));
+						}
+
+						subplan = (Plan *) make_splitupdate(root, (ModifyTable *) node, subplan, rte);
+					}
+					else
+					{
+						node->action_col_idxes = lappend_int(node->action_col_idxes, -1);
+						node->oid_col_idxes = lappend_int(node->oid_col_idxes, 0);
+					}
+
+					/* find segid column in target list */
+					segidColIdx = ExecFindJunkAttributeInTlist(subplan->targetlist, "gp_segment_id");
+					if (segidColIdx == InvalidAttrNumber)
+						elog(ERROR, "could not find gp_segment_id column in target list");
+
+					new_subplan = (Plan *) make_explicit_motion(root,
 																subplan,
 																segidColIdx);
-						lfirst(lcp) = subplan;
-					}
+					lfirst(lcp) = new_subplan;
 				}
 			}
 			else if (targetPolicyType == POLICYTYPE_ENTRY)
