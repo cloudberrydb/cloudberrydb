@@ -219,7 +219,7 @@ CScalarOp::Eber
 		return EberNullOnAnyNullChild(pdrgpulChildren);
 	}
 
-	return EberUnknown;
+	return EberAny;
 }
 
 // EOF

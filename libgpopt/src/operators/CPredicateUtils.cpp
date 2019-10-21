@@ -2581,7 +2581,7 @@ CPredicateUtils::FNullRejecting
 	// return TRUE if expression evaluation  result is (NOT TRUE), which means we need to
 	// check if result is NULL or result is False,
 	// in these two cases, a predicate will filter out incoming tuple, which means it is Null-Rejecting
-	return (CScalar::EberNull == eber || CScalar::EberFalse == eber);
+	return (CScalar::EberNull == eber || CScalar::EberFalse == eber || CScalar::EberNotTrue == eber);
 }
 
 // returns true iff the given expression is a Not operator whose child is an identifier

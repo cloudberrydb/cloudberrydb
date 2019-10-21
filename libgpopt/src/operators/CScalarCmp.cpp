@@ -177,7 +177,7 @@ CScalarCmp::Eber
 		return EberNullOnAnyNullChild(pdrgpulChildren);
 	}
 
-	return EberUnknown;
+	return EberAny;
 }
 
 // get metadata id of the commuted operator

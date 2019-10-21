@@ -87,8 +87,9 @@ CScalarNullTest::Eber
 		case EberTrue:
 			return EberFalse;
 
+		case EberNotTrue:
 		default:
-			return EberUnknown;
+			return EberAny;
 	}
 }
 

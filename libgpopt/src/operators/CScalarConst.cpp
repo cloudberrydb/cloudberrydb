@@ -234,7 +234,7 @@ CScalarConst::Eber
 		return EberFalse;
 	}
 
-	return EberUnknown;
+	return EberAny;
 }
 
 INT

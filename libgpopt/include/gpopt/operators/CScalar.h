@@ -47,7 +47,8 @@ namespace gpopt
 				EberTrue = 1,	// TRUE
 				EberFalse,		// FALSE
 				EberNull,		// NULL
-				EberUnknown,	// Unknown
+				EberNotTrue,	// FALSE or NULL
+				EberAny,		// Any result is possible
 
 				EerSentinel
 				};
@@ -198,8 +199,8 @@ namespace gpopt
 				)
 				const
 			{
-				// by default, evaluation result is unknown
-				return EberUnknown;
+				// by default, evaluation result can be false, true or NULL
+				return EberAny;
 			}
 
 			// perform boolean evaluation of the given expression tree

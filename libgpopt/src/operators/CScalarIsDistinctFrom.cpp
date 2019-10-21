@@ -43,10 +43,10 @@ CScalarIsDistinctFrom::Eber(ULongPtrArray *pdrgpulChildren) const
 	EBoolEvalResult firstResult = (EBoolEvalResult) *(*pdrgpulChildren)[0];
 	EBoolEvalResult secondResult = (EBoolEvalResult) *(*pdrgpulChildren)[1];
 
-	if (firstResult == EberUnknown || secondResult == EberUnknown)
+	if (firstResult == EberAny || secondResult == EberAny ||
+		firstResult == EberNotTrue || secondResult == EberNotTrue)
 	{
-		return CScalar::EberUnknown;
-
+		return CScalar::EberAny;
 	}
 	else if (firstResult != secondResult)
 	{

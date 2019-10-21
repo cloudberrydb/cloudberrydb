@@ -159,8 +159,9 @@ CScalarBoolOp::Eber
 		case EberNull:
 			return EberNull;
 
+		case EberNotTrue:
 		default:
-			return EberUnknown;
+			return EberAny;
 	}
 }
 
