@@ -80,24 +80,28 @@ VM Protect failed to allocate 4096 bytes, 0 MB available</codeblock></p>
         <li>Do not configure the OS to use huge pages. </li>
         <li>
           <b>vm.overcommit_memory</b>
-          <p>This is a Linux kernel parameter, set in <codeph>/etc/sysctl.conf</codeph>. It should
-            always be set to 2. It determines the method the OS uses for determining how much memory
-            can be allocated to processes and 2 is the only safe setting for Greenplum Database.
-          </p>
+          <p>This is a Linux kernel parameter, set in <codeph>/etc/sysctl.conf</codeph> and it
+            should always be set to 2. It determines the method the OS uses for determining how much
+            memory can be allocated to processes and 2 is the only safe setting for Greenplum
+            Database. Please review the sysctl parameters in the <xref
+              href="../install_guide/prep_os.xml#topic3__sysctl_file" scope="peer" format="dita"
+              >Greenplum Database Installation Guide</xref>.</p>
         </li>
         <li>
           <b>vm.overcommit_ratio</b>
-          <p>This is a Linux kernel parameter, set in <codeph>/etc/sysctl.conf</codeph>. It is the
-            percentage of RAM that is used for application processes. The remainder is reserved for
-            the operating system. The default on Red Hat is 50. </p><p>Setting
-              <codeph>vm.overcommit_ratio</codeph> too high may result in not enough memory being
-            reserved for the operating system, which can result in segment host failure or database
-            failure. Setting the value too low reduces the amount of concurrency and query
-            complexity that can be run by reducing the amount of memory available to Greenplum
-            Database. When increasing the setting it is important to remember to always reserve some
-            memory for operating system activities. </p><p>See <xref
-              href="sysconfig.xml#topic_dt3_fkv_r4/segment_mem_config"/> for instructions to
-            calculate a value for <codeph>vm.overcommit_ratio</codeph>.</p></li>
+          <p>This is a Linux kernel parameter, set in <xref
+              href="../install_guide/prep_os.xml#topic3__sysctl_file" format="dita" scope="peer"
+                ><codeph>/etc/sysctl.conf</codeph></xref>. It is the percentage of RAM that is used
+            for application processes. The remainder is reserved for the operating system. The
+            default on Red Hat is 50. </p><p>Setting <codeph>vm.overcommit_ratio</codeph> too high
+            may result in not enough memory being reserved for the operating system, which can
+            result in segment host failure or database failure. Setting the value too low reduces
+            the amount of concurrency and query complexity that can be run by reducing the amount of
+            memory available to Greenplum Database. When increasing the setting it is important to
+            remember to always reserve some memory for operating system activities. </p><p>See <xref
+              href="../admin_guide/wlmgmt_intro.xml" scope="peer" format="dita">Greenplum Database
+              Memory Overview</xref> for instructions to calculate a value for
+              <codeph>vm.overcommit_ratio</codeph>.</p></li>
         <li>
           <b>gp_vmem_protect_limit</b>
           <p>Use <codeph>gp_vmem_protect_limit</codeph> to set the maximum memory that the instance
@@ -117,7 +121,7 @@ VM Protect failed to allocate 4096 bytes, 0 MB available</codeblock></p>
             memory conditions. The <codeph>runaway_detector_activation_percent</codeph> system
             parameter controls the percentage of <codeph>gp_vmem_protect_limit</codeph> memory
             utilized that triggers termination of queries. It is set on by default at 90%. If the
-            percentage of <codeph>gp_vmem_protect_limit memory</codeph> that is utilized for a
+            percentage of <codeph>gp_vmem_protect_limit</codeph> memory that is utilized for a
             segment exceeds the specified value, Greenplum Database terminates queries based on
             memory usage, beginning with the query consuming the largest amount of memory. Queries
             are terminated until the utilized percentage of <codeph> gp_vmem_protect_limit</codeph>
