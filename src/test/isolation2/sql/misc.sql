@@ -7,3 +7,5 @@
 -1U: create table utilitymode_primary_key_tab (c1 int);
 -1U: create unique index idx_utilitymode_c1 on utilitymode_primary_key_tab (c1);
 -1U: drop table utilitymode_primary_key_tab;
+
+0U: explain analyze select * from gp_segment_configuration order by dbid;

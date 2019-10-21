@@ -10,3 +10,16 @@ CREATE
 CREATE
 -1U: drop table utilitymode_primary_key_tab;
 DROP
+
+0U: explain analyze select * from gp_segment_configuration order by dbid;
+ QUERY PLAN                                                                                                               
+--------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=1 width=108) (actual time=0.255..0.255 rows=0 loops=1)                                       
+   Sort Key: dbid                                                                                                         
+   Sort Method:  quicksort  Memory: 33kB                                                                                  
+   ->  Seq Scan on gp_segment_configuration  (cost=0.00..0.00 rows=1 width=108) (actual time=0.000..0.000 rows=0 loops=1) 
+ Planning time: 2.111 ms                                                                                                  
+   (slice0)    Executor memory: 89K bytes (seg0).  Work_mem: 65K bytes max.                                               
+ Optimizer: Postgres query optimizer                                                                                      
+ Execution time: 0.357 ms                                                                                                 
+(8 rows)
