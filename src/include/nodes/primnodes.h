@@ -1520,16 +1520,6 @@ typedef struct OnConflictExpr
 	List	   *exclRelTlist;	/* tlist of the EXCLUDED pseudo relation */
 } OnConflictExpr;
 
-typedef enum Movement
-{
-	MOVEMENT_NONE,			/* No motion required. */
-	MOVEMENT_FOCUS,			/* Fixed motion to a single segment. */
-	MOVEMENT_BROADCAST,		/* Broadcast motion. */
-	MOVEMENT_REPARTITION,	/* Hash motion */
-	MOVEMENT_LIM_RESTRUCT,	/* Restructure a Limit node into three stages */
-	MOVEMENT_EXPLICIT		/* Move tuples to the segments specified in the segid column */
-} Movement;
-
 /*----------
  * Flow - describes a tuple flow in a parallelized plan
  *

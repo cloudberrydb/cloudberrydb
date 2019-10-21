@@ -80,7 +80,6 @@ typedef struct ApplyMotionState
 								 * plan_tree_walker/mutator */
 	int			nextMotionID;
 	int			sliceDepth;
-	bool		containMotionNodes;
 
 	ApplyMotionSubPlanState *subplans;
 
@@ -378,7 +377,6 @@ apply_motion(PlannerInfo *root, Plan *plan, bool *needToAssignDirectDispatchCont
 													 * plan */
 	state.nextMotionID = 1;		/* Start at 1 so zero will mean "unassigned". */
 	state.sliceDepth = 0;
-	state.containMotionNodes = false;
 	state.subplan_workingQueue = NIL;
 
 	nsubplans = list_length(root->glob->subplans);
@@ -897,16 +895,6 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		{
 			/* Assign unique node number to the new node. */
 			motion->motionID = context->nextMotionID++;
-
-			/*
-			 * Remember if this was a Motion node. This is used at the top of the
-			 * tree, with MOVEMENT_EXPLICIT, to avoid adding an explicit motion, if
-			 * there were no Motion in the subtree. Note that this does not take
-			 * InitPlans containing Motion nodes into account. InitPlans are executed
-			 * as a separate step before the main plan, and hence any Motion nodes in
-			 * them don't need to affect the way the main plan is executed.
-			 */
-			context->containMotionNodes = true;
 			newnode = (Node *) motion;
 		}
 	}
@@ -1038,6 +1026,19 @@ make_broadcast_motion(Plan *lefttree, int numsegments)
 	return motion;
 }
 
+/*
+ * Returns true, if the given subtree contains any motion nodes.
+ *
+ * This is used at an Explicit Motion node, to omit the Explicit Motion, if
+ * there were no other Motions in the subtree. The idea is that if an Explicit
+ * Motion has no Motions underneath it, then the row to update must originate
+ * from the same segment, and no Motion is needed.
+ *
+ * Note that this does not take InitPlans containing Motion nodes into
+ * account. InitPlans are executed as a separate step before the main plan,
+ * and hence any Motion nodes in them don't need to affect the way the main
+ * plan is executed.
+ */
 static bool
 contain_motions_walker(Node *node, void *context)
 {
