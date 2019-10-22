@@ -66,7 +66,7 @@
 
 
 /* GUC variables */
-int			wal_receiver_status_interval = 10;
+int			wal_receiver_status_interval;
 int			wal_receiver_timeout;
 bool		hot_standby_feedback;
 
@@ -128,8 +128,6 @@ static void WalRcvSigHupHandler(SIGNAL_ARGS);
 static void WalRcvSigUsr1Handler(SIGNAL_ARGS);
 static void WalRcvShutdownHandler(SIGNAL_ARGS);
 static void WalRcvQuickDieHandler(SIGNAL_ARGS);
-static void WalRcvCrashHandler(SIGNAL_ARGS);
-
 
 /*
  * Process any interrupts the walreceiver process may have received.
@@ -179,7 +177,6 @@ WalReceiverMain(void)
 	TimestampTz last_recv_timestamp;
 	TimestampTz now;
 	bool		ping_sent;
-	sigjmp_buf	local_sigjmp_buf;
 
 	/*
 	 * WalRcv should be set up already (if we are a backend, we inherit this
@@ -265,16 +262,6 @@ WalReceiverMain(void)
 	pqsignal(SIGCONT, SIG_DFL);
 	pqsignal(SIGWINCH, SIG_DFL);
 
-#ifdef SIGILL
-	pqsignal(SIGILL, WalRcvCrashHandler);
-#endif
-#ifdef SIGSEGV
-	pqsignal(SIGSEGV, WalRcvCrashHandler);
-#endif
-#ifdef SIGBUS
-	pqsignal(SIGBUS, WalRcvCrashHandler);
-#endif
-
 	/* We allow SIGQUIT (quickdie) at all times */
 	sigdelset(&BlockSig, SIGQUIT);
 
@@ -293,20 +280,6 @@ WalReceiverMain(void)
 	 * we need this, but may as well have one).
 	 */
 	CurrentResourceOwner = ResourceOwnerCreate(NULL, "Wal Receiver");
-
-	/*
-	 * In case of ERROR, walreceiver just dies cleanly. Startup process
-	 * will invoke another one if necessary.
-	 */
-	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
-	{
-		EmitErrorReport();
-
-		proc_exit(0);
-	}
-
-	/* We can now handle ereport(ERROR) */
-	PG_exception_stack = &local_sigjmp_buf;
 
 	/* Unblock signals (they were blocked when the postmaster forked us) */
 	PG_SETMASK(&UnBlockSig);
@@ -786,13 +759,6 @@ WalRcvQuickDieHandler(SIGNAL_ARGS)
 	 * no harm in being doubly sure.)
 	 */
 	_exit(2);
-}
-
-static void
-WalRcvCrashHandler(SIGNAL_ARGS)
-{
-	StandardHandlerForSigillSigsegvSigbus_OnMainThread("walreceiver",
-														PASS_SIGNAL_ARGS);
 }
 
 /*
