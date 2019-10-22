@@ -314,8 +314,8 @@ CMDIdGPDB::Equals
 	{
 		return false;
 	}
-	
-	const CMDIdGPDB *mdidGPDB = CMDIdGPDB::CastMdid(const_cast<IMDId *>(mdid));
+
+	const CMDIdGPDB *mdidGPDB = static_cast<CMDIdGPDB *>(const_cast<IMDId *>(mdid));
 	
 	return (m_oid == mdidGPDB->Oid() && m_major_version == mdidGPDB->VersionMajor() &&
 			m_minor_version == mdidGPDB->VersionMinor());
