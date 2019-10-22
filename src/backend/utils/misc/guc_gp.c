@@ -3504,15 +3504,6 @@ struct config_int ConfigureNamesInt_gp[] =
 
 
 	{
-#ifdef USE_ASSERT_CHECKING
-		{"gp_debug_linger", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Number of seconds for QD/QE process to linger upon fatal internal error."),
-			gettext_noop("Allows an opportunity to debug the backend process before it terminates."),
-			GUC_NOT_IN_SAMPLE | GUC_NO_RESET_ALL | GUC_UNIT_S
-		},
-		&gp_debug_linger,
-		120, 0, 3600,
-#else
 		{"gp_debug_linger", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Number of seconds for QD/QE process to linger upon fatal internal error."),
 			gettext_noop("Allows an opportunity to debug the backend process before it terminates."),
@@ -3520,7 +3511,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_debug_linger,
 		0, 0, 3600,
-#endif
 		NULL, NULL, NULL
 	},
 
