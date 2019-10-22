@@ -15,7 +15,7 @@
 //
 //---------------------------------------------------------------------------
 
-#include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/base/IDatum.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/IMDType.h"
 
@@ -52,15 +52,13 @@ CConstExprEvaluatorForDates::PexprEval
 	CScalarConst *popScalarLeft = dynamic_cast<CScalarConst *>((*pexpr)[0]->Pop());
 
 	GPOS_ASSERT(CMDIdGPDB::m_mdid_date.Equals(popScalarLeft->GetDatum()->MDId()));
-	IDatumStatisticsMappable *pdatumLeft = dynamic_cast<IDatumStatisticsMappable *>(popScalarLeft->GetDatum());
 	CScalarConst *popScalarRight = dynamic_cast<CScalarConst *>((*pexpr)[1]->Pop());
 
 	GPOS_ASSERT(CMDIdGPDB::m_mdid_date.Equals(popScalarRight->GetDatum()->MDId()));
-	IDatumStatisticsMappable *pdatumRight = dynamic_cast<IDatumStatisticsMappable *>(popScalarRight->GetDatum());
 
 	CScalarCmp *popScCmp = dynamic_cast<CScalarCmp *>(pexpr->Pop());
-	CDouble dLeft = pdatumLeft->GetDoubleMapping();
-	CDouble dRight = pdatumRight->GetDoubleMapping();
+	CDouble dLeft = popScalarLeft->GetDatum()->GetDoubleMapping();
+	CDouble dRight = popScalarRight->GetDatum()->GetDoubleMapping();
 	BOOL result = false;
 	switch (popScCmp->ParseCmpType())
 	{

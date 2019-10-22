@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include "gpos/base.h"
 
-#include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/base/IDatum.h"
 #include "naucrates/statistics/CBucket.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "naucrates/statistics/CStatistics.h"
@@ -1050,16 +1050,13 @@ CBucket::GetSample
 {
 	GPOS_ASSERT(CanSample());
 
-	IDatumStatisticsMappable *stats_mappable_lower = dynamic_cast<IDatumStatisticsMappable *>(m_bucket_lower_bound->GetDatum());
-	IDatumStatisticsMappable *stats_mappable_upper = dynamic_cast<IDatumStatisticsMappable *>(m_bucket_upper_bound->GetDatum());
-
-	DOUBLE lower_val = stats_mappable_lower->GetValAsDouble().Get();
+	DOUBLE lower_val = m_bucket_lower_bound->GetDatum()->GetValAsDouble().Get();
 	if (IsSingleton())
 	{
 		return CDouble(lower_val);
 	}
 
-	DOUBLE upper_val = stats_mappable_upper->GetValAsDouble().Get();
+	DOUBLE upper_val = m_bucket_upper_bound->GetDatum()->GetValAsDouble().Get();
 	DOUBLE rand_val = ((DOUBLE) clib::Rand(seed)) / RAND_MAX;
 
 	return CDouble(lower_val + rand_val * (upper_val - lower_val));

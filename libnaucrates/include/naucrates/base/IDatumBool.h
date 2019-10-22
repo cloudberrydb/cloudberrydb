@@ -12,7 +12,7 @@
 #define GPNAUCRATES_IDatumBool_H
 
 #include "gpos/base.h"
-#include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/base/IDatum.h"
 
 namespace gpnaucrates
 {
@@ -24,7 +24,7 @@ namespace gpnaucrates
 	//		Base abstract class for bool representation
 	//
 	//---------------------------------------------------------------------------
-	class IDatumBool : public IDatumStatisticsMappable
+	class IDatumBool : public IDatum
 	{
 
 		private:

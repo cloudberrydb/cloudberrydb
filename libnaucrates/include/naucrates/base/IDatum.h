@@ -6,7 +6,7 @@
 //		IDatum.h
 //
 //	@doc:
-//		Base abstract class for datum representation inside optimizer
+//		Base class for datum representation inside optimizer
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatum_H
 #define GPNAUCRATES_IDatum_H
@@ -44,6 +44,7 @@ namespace gpnaucrates
 
 			// private copy ctor
 			IDatum(const IDatum &);
+
 
 		public:
 
@@ -97,27 +98,6 @@ namespace gpnaucrates
 			virtual
 			IOstream &OsPrint(IOstream &os) const = 0;
 
-			// statistics related APIs
-
-			// is datum mappable to a base type for stats purposes
-			virtual 
-			BOOL StatsMappable() 
-			{
-				// not mappable by default
-				return false;
-			}
-			
-			virtual
-			BOOL StatsAreEqual(const IDatum *datum) const = 0;
-
-			// stats less than
-			virtual
-			BOOL StatsAreLessThan(const IDatum *datum) const = 0;
-
-			// check if the given pair of datums are stats comparable
-			virtual
-			BOOL StatsAreComparable(const IDatum *datum) const = 0;
-
 			// stats greater than
 			virtual
 			BOOL StatsAreGreaterThan
@@ -130,10 +110,6 @@ namespace gpnaucrates
 				GPOS_ASSERT(stats_are_comparable && "Invalid invocation of StatsAreGreaterThan");
 				return stats_are_comparable && datum->StatsAreLessThan(this);
 			}
-
-			// distance function
-			virtual
-			CDouble GetStatsDistanceFrom(const IDatum *) const = 0;
 
 			// does the datum need to be padded before statistical derivation
 			virtual
@@ -155,33 +131,49 @@ namespace gpnaucrates
 			virtual
 			const BYTE *GetByteArrayValue() const = 0;
 
-			// comparison function sorting idatums
-			static
-			inline INT StatsCmp(const void *val1, const void *val2);
+			// is datum mappable to a base type for statistics purposes
+			virtual
+			BOOL StatsMappable()
+			{
+				return this->StatsAreComparable(this);
+			}
+
+			// can datum be mapped to a double
+			virtual
+			BOOL IsDatumMappableToDouble() const = 0;
+
+			// map to double for statistics computation
+			virtual
+			CDouble GetDoubleMapping() const = 0;
+
+			// can datum be mapped to LINT
+			virtual
+			BOOL IsDatumMappableToLINT() const = 0;
+
+			// map to LINT for statistics computation
+			virtual
+			LINT GetLINTMapping() const = 0;
+
+			// equality based on mapping to LINT or CDouble
+			virtual
+			BOOL StatsAreEqual(const IDatum *datum) const;
+
+			// stats less than
+			virtual
+			BOOL StatsAreLessThan(const IDatum *datum) const;
+
+			// distance function
+			virtual
+			CDouble GetStatsDistanceFrom(const IDatum *datum) const;
+
+			// return double representation of mapping value
+			CDouble GetValAsDouble() const;
+
+			// check if the given pair of datums are stats comparable
+			virtual
+			BOOL StatsAreComparable(const IDatum *datum) const;
 
 	}; // class IDatum
-
-	// comparison function for statistics operations
-	INT IDatum::StatsCmp
-		(
-		const void *val1,
-		const void *val2
-		)
-	{
-		const IDatum *datum1 = *(const IDatum **) (val1);
-		const IDatum *datum2 = *(const IDatum **) (val2);
-
-		if (datum1->StatsAreEqual(datum2))
-		{
-			return 0;
-		}
-		
-		if (datum1->StatsAreComparable(datum2) && datum1->StatsAreLessThan(datum2))
-		{
-			return -1;
-		}
-		return 1;
-	}
 
 	// array of idatums
 	typedef CDynamicPtrArray<IDatum, CleanupRelease> IDatumArray;

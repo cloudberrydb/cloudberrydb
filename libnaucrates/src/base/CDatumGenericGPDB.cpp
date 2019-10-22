@@ -358,7 +358,7 @@ CDatumGenericGPDB::StatsAreEqual
 	if (IsDatumMappableToLINT()
 			|| IsDatumMappableToDouble())
 	{
-		return IDatumStatisticsMappable::StatsAreEqual(datum);
+		return IDatum::StatsAreEqual(datum);
 	}
 
 	// take special care of nulls

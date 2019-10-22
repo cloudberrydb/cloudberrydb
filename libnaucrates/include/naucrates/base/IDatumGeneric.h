@@ -15,7 +15,7 @@
 
 #include "naucrates/base/IDatum.h"
 #include "gpos/common/CDouble.h"
-#include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/base/IDatum.h"
 
 namespace gpnaucrates
 {
@@ -28,7 +28,7 @@ namespace gpnaucrates
 	//		Base abstract class for generic datum representation
 	//
 	//---------------------------------------------------------------------------
-	class IDatumGeneric : public IDatumStatisticsMappable
+	class IDatumGeneric : public IDatum
 	{
 
 		private:

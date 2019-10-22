@@ -2094,14 +2094,9 @@ CHistogram::DoNDVBasedCardEstimation
 	}
 
 	BOOL result = true;
-	if (datum->StatsMappable())
+	if (datum->StatsMappable() && datum->IsDatumMappableToDouble())
 	{
-		IDatumStatisticsMappable *mappable_datum = (IDatumStatisticsMappable *) datum;
-
-		if (mappable_datum->IsDatumMappableToDouble())
-		{
-			result = false;
-		}
+		result = false;
 	}
 
 	return result;

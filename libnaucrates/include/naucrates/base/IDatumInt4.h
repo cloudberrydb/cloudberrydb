@@ -12,7 +12,7 @@
 #define GPNAUCRATES_IDatumInt4_H
 
 #include "gpos/base.h"
-#include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/base/IDatum.h"
 
 namespace gpnaucrates
 {
@@ -24,7 +24,7 @@ namespace gpnaucrates
 	//		Base abstract class for int4 representation
 	//
 	//---------------------------------------------------------------------------
-	class IDatumInt4 : public IDatumStatisticsMappable
+	class IDatumInt4 : public IDatum
 	{
 
 		private:

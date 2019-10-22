@@ -501,10 +501,9 @@ CStatisticsUtils::IsValidBucket
 
 	// datum has statsDistance, so must be statsMappable
 	const IDatum *datum = bucket_lower_bound->GetDatum();
-	const IDatumStatisticsMappable *stats_mappable_datum = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
 	// for types which have integer mapping for stats purposes, e.g. int2,int4, etc.
-	if (stats_mappable_datum->IsDatumMappableToLINT())
+	if (datum->IsDatumMappableToLINT())
 	{
 		// test if this integer bucket is well-defined
 		CDouble bound_diff = bucket_upper_bound->Distance(bucket_lower_bound);
