@@ -287,35 +287,6 @@ CPredicateUtils::FHasNegatedChild
 	return false;
 }
 
-// append logical and scalar children of the given expression to the given arrays
-void
-CPredicateUtils::CollectChildren
-	(
-	CExpression *pexpr,
-	CExpressionArray *pdrgpexprLogical,
-	CExpressionArray *pdrgpexprScalar
-	)
-{
-	GPOS_ASSERT(pexpr->Pop()->FLogical());
-
-	const ULONG arity = pexpr->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
-	{
-		CExpression *pexprChild = (*pexpr) [ul];
-		pexprChild->AddRef();
-		if (pexprChild->Pop()->FLogical())
-		{
-			pdrgpexprLogical->Append(pexprChild);
-		}
-		else
-		{
-			GPOS_ASSERT(pexprChild->Pop()->FScalar());
-
-			pdrgpexprScalar->Append(pexprChild);
-		}
-	}
-}
-
 // recursively collect conjuncts
 void
 CPredicateUtils::CollectConjuncts

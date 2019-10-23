@@ -3208,7 +3208,8 @@ CUtils::FPredicate
 		CPredicateUtils::FIDF(pexpr) ||
 		FScalarArrayCmp(pexpr) ||
 		FScalarBoolOp(pexpr) ||
-		FScalarNullTest(pexpr));
+		FScalarNullTest(pexpr) ||
+		CLogical::EopScalarNAryJoinPredList == pop->Eopid());
 }
 
 // checks that the given type has all the comparisons: Eq, NEq, L, LEq, G, GEq.

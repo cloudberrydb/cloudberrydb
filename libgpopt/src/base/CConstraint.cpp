@@ -230,6 +230,10 @@ CConstraint::PcnstrFromScalarExpr
 		case COperator::EopScalarCmp:
 			return PcnstrFromScalarCmp(mp, pexpr, ppdrgpcrs, infer_nulls_as);
 
+		case COperator::EopScalarNAryJoinPredList:
+			// return the constraints of the inner join predicates
+			return PcnstrFromScalarExpr(mp, (*pexpr)[0], ppdrgpcrs, infer_nulls_as);
+
 		default:
 			return NULL;
 	}

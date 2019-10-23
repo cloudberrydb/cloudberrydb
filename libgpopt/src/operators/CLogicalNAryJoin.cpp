@@ -32,7 +32,20 @@ CLogicalNAryJoin::CLogicalNAryJoin
 	CMemoryPool *mp
 	)
 	:
-	CLogicalJoin(mp)
+	CLogicalJoin(mp),
+	m_lojChildPredIndexes(NULL)
+{
+	GPOS_ASSERT(NULL != mp);
+}
+
+CLogicalNAryJoin::CLogicalNAryJoin
+	(
+	CMemoryPool *mp,
+	ULongPtrArray *lojChildIndexes
+	)
+	:
+	CLogicalJoin(mp),
+	m_lojChildPredIndexes(lojChildIndexes)
 {
 	GPOS_ASSERT(NULL != mp);
 }
@@ -54,7 +67,21 @@ CLogicalNAryJoin::DeriveMaxCard
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, exprhdl.Arity() - 1, MaxcardDef(exprhdl));
+	CMaxCard maxCard(1);
+	const ULONG arity = exprhdl.Arity();
+
+	// loop over the inner join logical children only
+	for (ULONG ul = 0; ul < arity - 1; ul++)
+	{
+		CMaxCard childMaxCard = exprhdl.DeriveMaxCard(ul);
+
+		if (IsInnerJoinChild(ul) || 1 <= childMaxCard.Ull())
+		{
+			maxCard *= childMaxCard;
+		}
+	}
+
+	return CLogical::Maxcard(exprhdl, exprhdl.Arity() - 1, maxCard);
 }
 
 //---------------------------------------------------------------------------
@@ -83,6 +110,44 @@ CLogicalNAryJoin::PxfsCandidates
 
 	return xform_set;
 }
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CLogicalNAryJoin::OsPrint
+//
+//	@doc:
+//		debug print
+//
+//---------------------------------------------------------------------------
+IOstream &
+CLogicalNAryJoin::OsPrint
+(
+ IOstream &os
+ )
+const
+{
+	os	<< SzId();
+
+	if (NULL != m_lojChildPredIndexes)
+	{
+		// print out the indexes of the logical children that correspond to
+		// the scalar child entries below the CScalarNAryJoinPredList
+		os << " [";
+		ULONG size = m_lojChildPredIndexes->Size();
+		for (ULONG ul=0; ul < size; ul++)
+		{
+			if (0 < ul)
+			{
+				os << ", ";
+			}
+			os << *((*m_lojChildPredIndexes)[ul]);
+		}
+		os	<< "]";
+	}
+
+	return os;
+}
+
 
 
 // EOF

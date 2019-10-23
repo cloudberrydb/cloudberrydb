@@ -55,7 +55,17 @@ CLogicalLeftOuterJoin::DeriveMaxCard
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.DeriveMaxCard(0));
+	CMaxCard maxCard = exprhdl.DeriveMaxCard(0);
+	CMaxCard maxCardInner = exprhdl.DeriveMaxCard(1);
+
+	// if the inner has a max card of 0, that will not make the LOJ's
+	// max card go to 0
+	if (0 < maxCardInner.Ull())
+	{
+		maxCard *= maxCardInner;
+	}
+
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, maxCard);
 }
 
 //---------------------------------------------------------------------------

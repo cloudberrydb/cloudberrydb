@@ -167,6 +167,7 @@ namespace gpopt
 				EopScalarIdent,
 				EopScalarProjectElement,
 				EopScalarProjectList,
+				EopScalarNAryJoinPredList,
 				EopScalarConst,
 				EopScalarBoolOp,
 				EopScalarFunc,

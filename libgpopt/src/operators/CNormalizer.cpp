@@ -15,6 +15,7 @@
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/operators/CScalarNAryJoinPredList.h"
 #include "gpopt/operators/ops.h"
 
 using namespace gpopt;
@@ -888,6 +889,7 @@ CNormalizer::PushThruJoin
 	GPOS_ASSERT(NULL != ppexprResult);
 
 	COperator *pop = pexprJoin->Pop();
+	CLogicalNAryJoin *popNAryJoin = CLogicalNAryJoin::PopConvert(pop);
 	const ULONG arity = pexprJoin->Arity();
 	BOOL fLASApply = CUtils::FLeftAntiSemiApply(pop);
 	COperator::EOperatorId op_id = pop->Eopid();
@@ -895,6 +897,7 @@ CNormalizer::PushThruJoin
 		COperator::EopLogicalLeftOuterJoin == op_id ||
 		COperator::EopLogicalLeftOuterApply == op_id ||
 		COperator::EopLogicalLeftOuterCorrelatedApply == op_id;
+	BOOL fMixedInnerOuterJoin = (popNAryJoin && popNAryJoin->HasOuterJoinChildren());
 
 	if (fOuterJoin && !CUtils::FScalarConstTrue(pexprConj))
 	{
@@ -907,6 +910,16 @@ CNormalizer::PushThruJoin
 
 	// combine conjunct with join predicate
 	CExpression *pexprScalar = (*pexprJoin)[arity - 1];
+	if (fMixedInnerOuterJoin)
+	{
+		GPOS_ASSERT(COperator::EopScalarNAryJoinPredList == pexprScalar->Pop()->Eopid());
+		pexprScalar = (*pexprScalar)[0];
+
+		if (COperator::EopScalarNAryJoinPredList == pexprConj->Pop()->Eopid())
+		{
+			pexprConj = (*pexprConj)[0];
+		}
+	}
 	CExpression *pexprPred =  CPredicateUtils::PexprConjunction(mp, pexprScalar, pexprConj);
 
 	// break predicate to conjuncts
@@ -938,6 +951,15 @@ CNormalizer::PushThruJoin
 			continue;
 		}
 
+		if (fMixedInnerOuterJoin && !popNAryJoin->IsInnerJoinChild(ul))
+		{
+			// this is similar to what PushThruOuterChild does, only push the
+			// preds to those children that are using an inner join
+			pexprNewChild = PexprNormalize(mp, pexprChild);
+			pdrgpexprChildren->Append(pexprNewChild);
+			continue;
+		}
+
 		CExpressionArray *pdrgpexprRemaining = NULL;
 		PushThru(mp, pexprChild, pdrgpexprConjuncts, &pexprNewChild, &pdrgpexprRemaining);
 		pdrgpexprChildren->Append(pexprNewChild);
@@ -948,7 +970,33 @@ CNormalizer::PushThruJoin
 
 	// remaining conjuncts become the new join predicate
 	CExpression *pexprNewScalar = CPredicateUtils::PexprConjunction(mp, pdrgpexprConjuncts);
-	pdrgpexprChildren->Append(pexprNewScalar);
+	if (fMixedInnerOuterJoin)
+	{
+		CExpressionArray *naryJoinPredicates = GPOS_NEW(mp) CExpressionArray(mp);
+		naryJoinPredicates->Append(pexprNewScalar);
+		CExpression *pexprScalar = (*pexprJoin)[arity - 1];
+		ULONG scalar_arity = pexprScalar->Arity();
+
+		for (ULONG count = 1; count < scalar_arity; count ++)
+		{
+			CExpression *pexprChild = (*pexprScalar)[count];
+			pexprChild->AddRef();
+			naryJoinPredicates->Append(pexprChild);
+		}
+
+		CExpression *nAryJoinPredicateList = GPOS_NEW(mp) CExpression
+		(
+		 mp,
+		 GPOS_NEW(mp) CScalarNAryJoinPredList(mp),
+		 naryJoinPredicates
+		 );
+		pdrgpexprChildren->Append(nAryJoinPredicateList);
+
+	}
+	else
+	{
+		pdrgpexprChildren->Append(pexprNewScalar);
+	}
 
 	// create a new join expression
 	pop->AddRef();

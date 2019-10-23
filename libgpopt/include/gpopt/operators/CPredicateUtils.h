@@ -303,9 +303,14 @@ namespace gpopt
 						COperator::EopLogicalNAryJoin == pexpr->Pop()->Eopid();
 			}
 
-			//	append logical and scalar children of the given expression to
 			static
-			void CollectChildren(CExpression *pexpr, CExpressionArray *pdrgpexprLogical, CExpressionArray *pdrgpexprScalar);
+			BOOL FLeftOuterJoin
+				(
+				 CExpression *pexpr
+				)
+			{
+				return COperator::EopLogicalLeftOuterJoin == pexpr->Pop()->Eopid();
+			}
 
 			// is the given expression either a union or union all operator
 			static

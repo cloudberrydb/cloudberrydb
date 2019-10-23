@@ -26,6 +26,7 @@
 #include "gpopt/operators/CExpressionUtils.h"
 #include "gpopt/operators/CExpressionFactorizer.h"
 #include "gpopt/operators/CExpressionPreprocessor.h"
+#include "gpopt/operators/CScalarNAryJoinPredList.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 
 #include "gpopt/mdcache/CMDAccessor.h"
@@ -814,9 +815,9 @@ CExpressionPreprocessor::PexprConvert2In
 
 }
 
-// collapse cascaded inner joins into NAry-joins
+// collapse cascaded inner and left outer joins into NAry-joins
 CExpression *
-CExpressionPreprocessor::PexprCollapseInnerJoins
+CExpressionPreprocessor::PexprCollapseJoins
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr
@@ -830,65 +831,183 @@ CExpressionPreprocessor::PexprCollapseInnerJoins
 	COperator *pop = pexpr->Pop();
 	const ULONG arity = pexpr->Arity();
 
-	if (CPredicateUtils::FInnerJoin(pexpr))
+	if (CPredicateUtils::FInnerJoin(pexpr) ||
+		(GPOS_FTRACE(EopttraceEnableLOJInNAryJoin) && CPredicateUtils::FLeftOuterJoin(pexpr)))
 	{
-		BOOL fCollapsed = false;
-		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-		CExpressionArray *pdrgpexprPred = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < arity - 1; ul++)
-		{
-			CExpression *pexprChild = (*pexpr)[ul];
-			if (CPredicateUtils::FInnerJoin(pexprChild))
-			{
-				fCollapsed = true;
-				CPredicateUtils::CollectChildren(pexprChild, pdrgpexpr, pdrgpexprPred);
-			}
-			else
-			{
-				// recursively process child expression
-				CExpression *pexprNewChild = PexprCollapseInnerJoins(mp, pexprChild);
-				pdrgpexpr->Append(pexprNewChild);
-			}
-		}
-		CExpression *pexprScalar = (*pexpr) [arity - 1];
-		pexprScalar->AddRef();
-		pdrgpexprPred->Append(pexprScalar);
+		CExpressionArray *newChildNodes = GPOS_NEW(mp) CExpressionArray(mp);
+		ULongPtrArray *lojChildPredIndexes = GPOS_NEW(mp) ULongPtrArray(mp);
+		CExpressionArray *innerJoinPredicates = GPOS_NEW(mp) CExpressionArray(mp);
+		CExpressionArray *lojPredicates = GPOS_NEW(mp) CExpressionArray(mp);
 
-		pdrgpexpr->Append(CPredicateUtils::PexprConjunction(mp, pdrgpexprPred));
+		CollectJoinChildrenRecursively(mp, pexpr, newChildNodes, lojChildPredIndexes, innerJoinPredicates, lojPredicates);
 
-		CExpression *pexprNAryJoin = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalNAryJoin(mp), pdrgpexpr);
-		CExpression *pexprResult = pexprNAryJoin;
-		if (fCollapsed)
+		if (lojPredicates->Size() > 0)
 		{
-			// a join was collapsed with its children into NAry-Join, we need to recursively
-			// process the created NAry join
-			pexprResult = PexprCollapseInnerJoins(mp, pexprNAryJoin);
-			pexprNAryJoin->Release();
+			// each logical child must have an associated predicate index
+			GPOS_ASSERT(newChildNodes->Size() == lojChildPredIndexes->Size());
+
+			// this NAry join involves LOJs; create a CScalarNAryJoinPredList to hold
+			// the information which predicates are inner join preds and which ON predicates
+			// are associated with the LOJs' right children
+			CExpressionArray *naryJoinPredicates = GPOS_NEW(mp) CExpressionArray(mp);
+
+			// create a new CScalarNAryJoinPredList as the last child of the NAry join
+			// the first child are all the inner join predicates
+			naryJoinPredicates->Append(CPredicateUtils::PexprConjunction(mp, innerJoinPredicates));
+			// the remaining children are the LOJ predicates, one by one
+			naryJoinPredicates->AppendArray(lojPredicates);
+
+			CExpression *nAryJoinPredicateList = GPOS_NEW(mp) CExpression
+					(
+					 mp,
+					 GPOS_NEW(mp) CScalarNAryJoinPredList(mp),
+					 naryJoinPredicates
+					);
+			newChildNodes->Append(nAryJoinPredicateList);
+
+			// some sanity checks
+
+			// Example:  t1 join t2 on p12 left outer join t3 on p23 join t4 on p24 left outer join t5 on p35
+			// results from this call:
+			//    newChildNodes:       [ t1, t2, t3, t4, t5 ]
+			//    lojChildPredIndexes: [  0,  0,  1,  0,  2 ] (one entry per logical leaf node)
+			//    innerjoinPredicates: [ p12, p24 ]  (all correspond to child pred index 0 (GPOPT_ZERO_INNER_JOIN_PRED_INDEX))
+			//    lojPredicates:       [ p23, p35 ]  (p23 corresponds to child pred index 1, p35 corresponds to child pred index 2)
+
+			// the leftmost child must have a predicate index of
+			// GPOPT_ZERO_INNER_JOIN_PRED_INDEX, since it cannot be the right child of an LOJ
+			GPOS_ASSERT(GPOPT_ZERO_INNER_JOIN_PRED_INDEX == *(*lojChildPredIndexes)[0]);
+
+#ifdef GPOS_DEBUG
+			// lojChildPredIndexes must contain the numbers 1 ... lojPredicates->Size()
+			// in ascending order, each number exactly once, with optional additional
+			// GPOPT_ZERO_INNER_JOIN_PRED_INDEX (0) entries in-between entries
+			ULONG highestNumberSeen = 0;
+
+			for (ULONG ix=1; ix<lojChildPredIndexes->Size(); ix++)
+			{
+				ULONG nextNumber = *((*lojChildPredIndexes)[ix]);
+
+				if (nextNumber == highestNumberSeen+1)
+				{
+					// child is right child of an LOJ
+					highestNumberSeen = nextNumber;
+				}
+				else
+				{
+					// if we don't see the next number for a child, it must
+					// be associated with the collective inner join predicates
+					GPOS_ASSERT(GPOPT_ZERO_INNER_JOIN_PRED_INDEX == nextNumber);
+				}
+			}
+			GPOS_ASSERT(highestNumberSeen == lojPredicates->Size());
+#endif
 		}
+		else
+		{
+			// no LOJs involved, just add the ANDed preds as the scalar child
+			newChildNodes->Append(CPredicateUtils::PexprConjunction(mp, innerJoinPredicates));
+			lojPredicates->Release();
+			lojChildPredIndexes->Release();
+			lojChildPredIndexes = NULL;
+		}
+
+		CExpression *pexprNAryJoin = GPOS_NEW(mp) CExpression
+			(
+			 mp,
+			 GPOS_NEW(mp) CLogicalNAryJoin(mp, lojChildPredIndexes),
+			 newChildNodes
+			);
 
 		COptimizerConfig *optimizer_config = COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
 		ULONG ulJoinArityLimit = optimizer_config->GetHint()->UlJoinArityForAssociativityCommutativity();
 
 		// The last child of an n-ary join expression is the scalar expression
-		if (pexprResult->Arity() - 1 > ulJoinArityLimit)
+		if (pexprNAryJoin->Arity() - 1 > ulJoinArityLimit)
 		{
 			GPOPT_DISABLE_XFORM(CXform::ExfJoinCommutativity);
 			GPOPT_DISABLE_XFORM(CXform::ExfJoinAssociativity);
 		}
-		return pexprResult;
-	}
 
-	// current operator is not an inner-join, recursively process children
+		return pexprNAryJoin;
+	}
+	// current operator is not an inner-join or supported LOJ, recursively process children
 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		CExpression *pexprChild = PexprCollapseInnerJoins(mp, (*pexpr)[ul]);
+		CExpression *pexprChild = PexprCollapseJoins(mp, (*pexpr)[ul]);
 		pdrgpexprChildren->Append(pexprChild);
 	}
 
 	pop->AddRef();
 	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 }
+
+// collect the children of a join backbone into an array of logical leaf
+// nodes (leaves of the backbone, that is) and arrays of predicates, such
+// that we can still associate the correct ON predicates to the children
+void
+CExpressionPreprocessor::CollectJoinChildrenRecursively
+	(
+	CMemoryPool *mp,
+	CExpression *pexpr,
+	CExpressionArray *logicalLeafNodes,
+	ULongPtrArray *lojChildPredIndexes,
+	CExpressionArray *innerJoinPredicates,
+	CExpressionArray *lojPredicates
+	)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(pexpr->Pop()->FLogical());
+
+	if (CPredicateUtils::FInnerJoin(pexpr))
+	{
+		const ULONG arity = pexpr->Arity();
+		for (ULONG ul = 0; ul < arity - 1; ul++)
+		{
+			CExpression *child = (*pexpr)[ul];
+			CollectJoinChildrenRecursively(mp, child, logicalLeafNodes, lojChildPredIndexes, innerJoinPredicates, lojPredicates);
+		}
+
+		CExpression *pexprScalar = (*pexpr) [arity - 1];
+
+		innerJoinPredicates->Append(PexprCollapseJoins(mp, pexprScalar));
+	}
+	else if (GPOS_FTRACE(EopttraceEnableLOJInNAryJoin) &&
+			 CPredicateUtils::FLeftOuterJoin(pexpr))
+	{
+		GPOS_ASSERT(3 == pexpr->Arity());
+
+		CExpression *leftChild = (*pexpr)[0];
+		CExpression *rightChild = (*pexpr)[1];
+		CExpression *pexprScalar = (*pexpr)[2];
+
+		CollectJoinChildrenRecursively(mp, leftChild, logicalLeafNodes, lojChildPredIndexes, innerJoinPredicates, lojPredicates);
+
+		// stop collecting join children at the right child of the LOJ,
+		// just add the child, regardless of whether it is a join or not
+		logicalLeafNodes->Append(PexprCollapseJoins(mp, rightChild));
+
+		// create an entry in lojPredicates...
+		lojPredicates->Append(PexprCollapseJoins(mp, pexprScalar));
+
+		// ... and point to this new entry in lojChildPredIndexes
+		ULONG *indexOfThisLOJInTheArray = GPOS_NEW(mp)ULONG(lojPredicates->Size());
+		lojChildPredIndexes->Append(indexOfThisLOJInTheArray);
+	}
+	else
+	{
+		// pexpr is not the right child of a supported LOJ and is not a supported join
+		logicalLeafNodes->Append(PexprCollapseJoins(mp, pexpr));
+
+		// this logical "leaf" node is a child of an inner join or it is the left child
+		// of an LOJ, either way it is associated with the inner join predicates
+		ULONG *innerJoinPredIndex = GPOS_NEW(mp)ULONG(GPOPT_ZERO_INNER_JOIN_PRED_INDEX);
+		lojChildPredIndexes->Append(innerJoinPredIndex);
+	}
+}
+
 
 // collapse cascaded logical project operators
 CExpression *
@@ -1161,7 +1280,7 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 					CExpression *pexprNewInner = PexprOuterJoinToInnerJoin(mp, (*pexprChild)[1]);
 					CExpression *pexprNewScalar = PexprOuterJoinToInnerJoin(mp, (*pexprChild)[2]);
 					CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, pexprNewOuter, pexprNewInner, pexprNewScalar);
-					pexprChild = PexprCollapseInnerJoins(mp, pexprJoin);
+					pexprChild = PexprCollapseJoins(mp, pexprJoin);
 					pexprJoin->Release();
 					fNewChild = true;
 				}
@@ -2426,8 +2545,8 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprNormalized1->Release();
 
-	// (19) collapse cascaded inner joins
-	CExpression *pexprCollapsed = PexprCollapseInnerJoins(mp, pexprLOJToIJ);
+	// (19) collapse cascaded inner and left outer joins
+	CExpression *pexprCollapsed = PexprCollapseJoins(mp, pexprLOJToIJ);
 	GPOS_CHECK_ABORT;
 	pexprLOJToIJ->Release();
 
