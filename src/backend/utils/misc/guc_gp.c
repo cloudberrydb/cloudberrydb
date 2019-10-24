@@ -2608,6 +2608,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 	{
 		{"optimizer_analyze_enable_merge_of_leaf_stats", PGC_USERSET, STATS_ANALYZE,
 			gettext_noop("Enable merging of leaf stats into the root stats during ANALYZE when analyzing partitions"),
+			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_analyze_enable_merge_of_leaf_stats,
