@@ -40,6 +40,7 @@ EXECNAME = 'analyzedb'
 STATEFILE_DIR = 'db_analyze'
 logger = gplog.get_default_logger()
 WRITE_LOCK_FILE_NAME = "write_lock_semaphore"
+ANALYZE_GUCS = "set optimizer_analyze_enable_merge_of_leaf_stats=off; "
 ANALYZE_SQL = """analyze %s"""
 ANALYZE_ROOT_SQL = """analyze rootpartition %s"""
 
@@ -264,6 +265,7 @@ class AnalyzeDb(Operation):
         self.clean_last = options.clean_last
         self.clean_all = options.clean_all
         self.gen_profile_only = options.gen_profile_only
+        self.analyze_gucs = ANALYZE_GUCS
 
         self.success_list = []
 
@@ -464,7 +466,7 @@ class AnalyzeDb(Operation):
             can_schema, can_table = can[0], can[1]
             if can in candidates:
                 target = self._get_tablename_with_cols(can_schema, can_table, input_col_dict)
-                cmd = create_psql_command(self.dbname, ANALYZE_SQL % target)
+                cmd = create_psql_command(self.dbname, self.analyze_gucs + ANALYZE_SQL % target)
 
             else:  # can in root_partition_col_dict
                 target = self._get_tablename_with_cols(can_schema, can_table, root_partition_col_dict)

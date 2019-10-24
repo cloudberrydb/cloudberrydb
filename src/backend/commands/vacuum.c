@@ -1217,7 +1217,9 @@ get_rel_oids(Oid relid, const RangeVar *vacrel,
 				{
 					int		elevel = ((options & VACOPT_VERBOSE) ? LOG : DEBUG2);
 
-					if (leaf_parts_analyzed(root_rel_oid, relationOid, va_root_attnums, elevel))
+					if (optimizer_analyze_enable_merge_of_leaf_stats &&
+						leaf_parts_analyzed(root_rel_oid, relationOid, va_root_attnums, elevel))
+						/* remember to merge the partition stats into the root partition */
 						oid_list = lappend_oid(oid_list, root_rel_oid);
 				}
 			}
