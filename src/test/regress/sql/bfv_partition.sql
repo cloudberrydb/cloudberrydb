@@ -615,13 +615,6 @@ create table mpp3754b ( i int, d date, constraint prim_tr primary key (d)) parti
 drop table mpp3754a;
 drop table mpp3754b;
 
-create table mpp4172 (a char(1), b int)
-distributed by (b)
-partition by range(a)
-(
-partition aa start ('2006') end ('2009'), partition bb start ('2007') end ('2008')
-);
-
 CREATE TABLE mpp4582 (id int,
 mpp4582 int, year date, gender char(1))
 DISTRIBUTED BY (id, gender, year)
