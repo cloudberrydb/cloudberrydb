@@ -14,7 +14,7 @@ create or replace language plpythonu;
 create or replace function pg_basebackup(host text, dbid int, port int, slotname text, datadir text, force_overwrite boolean, xlog_method text) returns text as $$
     import subprocess
     import os
-    cmd = 'pg_basebackup -h %s -p %d -R -D %s --target-gp-dbid %d' % (host, port, datadir, dbid)
+    cmd = 'pg_basebackup --checkpoint=fast -h %s -p %d -R -D %s --target-gp-dbid %d' % (host, port, datadir, dbid)
 
     if slotname is not None:
         cmd += ' --slot %s' % (slotname)
