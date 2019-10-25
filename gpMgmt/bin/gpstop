@@ -569,10 +569,10 @@ class GpStop:
         if self.gparray.standbyMaster:
             standby = self.gparray.standbyMaster
 
-            logger.info("Stopping master standby host %s mode=fast" % standby.hostname)
+            logger.info("Stopping master standby host %s mode=%s" % (standby.hostname, self.mode))
             try:
                 cmd = SegmentStop("stopping master standby",
-                                     standby.datadir, mode='fast',
+                                     standby.datadir, mode=self.mode,
                                      timeout=self.timeout,
                                      ctxt=base.REMOTE,
                                      remoteHost=standby.hostname)
