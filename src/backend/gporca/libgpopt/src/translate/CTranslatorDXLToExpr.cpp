@@ -33,7 +33,6 @@
 #include "gpopt/base/CEnfdDistribution.h"
 #include "gpopt/base/CDistributionSpecAny.h"
 #include "gpopt/base/CUtils.h"
-#include "gpopt/base/CCastUtils.h"
 #include "gpopt/mdcache/CMDAccessorUtils.h"
 #include "gpopt/metadata/CColumnDescriptor.h"
 #include "gpopt/metadata/CTableDescriptor.h"
@@ -2042,54 +2041,7 @@ CTranslatorDXLToExpr::PexprLogicalJoin
 	CExpression *pexprCond = PexprScalar(pdxlnCond);
 	pdrgpexprChildren->Append(pexprCond);
 
-	// TODO: Remove this check once opfamily handling is fully implemented
-	if (ContainsHeterogenousCitextPredicate(pexprCond))
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   GPOS_WSZ_LIT("Citext comparison in join."));
-	}
-
 	return CUtils::PexprLogicalJoin(m_mp, join_type, pdrgpexprChildren);
-}
-
-// checks for presense of citext op non-citext predicates.
-bool
-CTranslatorDXLToExpr::ContainsHeterogenousCitextPredicate(CExpression *pexprScalar)
-{
-	// protect against stack overflow during recursion
-	GPOS_CHECK_STACK_SIZE;
-	GPOS_ASSERT(NULL != pexprScalar);
-
-	if (CUtils::FScalarCmp(pexprScalar))
-	{
-		CExpression *pexprLeft = CCastUtils::PexprWithoutBinaryCoercibleCasts((*pexprScalar)[0]);
-		CExpression *pexprRight = CCastUtils::PexprWithoutBinaryCoercibleCasts((*pexprScalar)[1]);
-
-		IMDId *mdidLeft = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
-		IMDId *mdidRight = CScalar::PopConvert(pexprRight->Pop())->MdidType();
-
-		const CWStringConst *left_typename = m_pmda->RetrieveType(mdidLeft)->Mdname().GetMDName();
-		const CWStringConst *right_typename = m_pmda->RetrieveType(mdidRight)->Mdname().GetMDName();
-
-		const CWStringConst citext_typename = CWStringConst(GPOS_WSZ_LIT("citext"));
-
-		// Allow "citext op citext" & "non-citext op non-citext"
-		if (left_typename->Equals(&citext_typename) ^ right_typename->Equals(&citext_typename))
-		{
-			return true;
-		}
-	}
-
-	// recursively process children
-	const ULONG arity = pexprScalar->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
-	{
-		if (ContainsHeterogenousCitextPredicate((*pexprScalar)[ul]))
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 //---------------------------------------------------------------------------

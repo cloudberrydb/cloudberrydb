@@ -429,9 +429,6 @@ namespace gpopt
 				GPOS_ASSERT(NULL != m_pdrgpmdname);
 				return m_pdrgpmdname;
 			}
-
-			// checks for presense of citext op non-citext predicates.
-			bool ContainsHeterogenousCitextPredicate(CExpression *expr);
 	};
 }
 
