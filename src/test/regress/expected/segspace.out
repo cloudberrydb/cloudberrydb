@@ -372,6 +372,7 @@ select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used
    0 |   0
 (1 row)
 
+drop table testsort;
 ------------ workfile_limit_per_segment leak check during UPDATE of SHARE_SORT_XSLICE -------------------
 drop table if exists testsisc;
 create table testsisc (i1 int, i2 int, i3 int, i4 int);
@@ -467,3 +468,4 @@ NOTICE:  caught exception: invalid input syntax for integer: "bogus"
  t
 (1 row)
 
+drop table segspace_test_hj_skew;

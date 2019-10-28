@@ -80,5 +80,6 @@ select gp_inject_fault('workfile_creation_failure', 'status', 2);
 drop function FuncA();
 drop table test_zlib;
 drop table test_zlib_t1;
+drop table test_zlib_hashjoin;
 
 select gp_inject_fault('workfile_creation_failure', 'reset', 2);

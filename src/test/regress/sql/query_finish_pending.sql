@@ -84,3 +84,4 @@ select gp_inject_fault('fts_probe', 'reset', 1);
 
 drop table _tmp_table1;
 drop table _tmp_table2;
+drop table testsisc;

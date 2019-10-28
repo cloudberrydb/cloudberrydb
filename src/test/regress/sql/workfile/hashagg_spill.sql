@@ -55,6 +55,7 @@ select * from hashagg_spill.is_workfile_created('explain (analyze, verbose) sele
 -- Test HashAgg with increasing amount of overflows
 
 reset all;
+set search_path to hashagg_spill;
 
 -- Returns the number of overflows from EXPLAIN ANALYZE output
 create or replace function hashagg_spill.num_hashagg_overflows(explain_query text)
@@ -77,7 +78,6 @@ $$
 language plpythonu;
 
 -- Test agg spilling scenarios
-drop table if exists aggspill;
 create table aggspill (i int, j int, t text) distributed by (i);
 insert into aggspill select i, i*2, i::text from generate_series(1, 10000) i;
 insert into aggspill select i, i*2, i::text from generate_series(1, 100000) i;

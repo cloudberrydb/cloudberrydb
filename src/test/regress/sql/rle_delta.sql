@@ -352,6 +352,10 @@ Insert into delta_blocks select
 Select a1,a2,a6 from delta_blocks where a4 = '20:13:11.232421' order by a1 limit 10;
 
 
+-- The dl_bt_ix index is quite large, over 600 MB. Let's drop the table, along
+-- with the indexes, to keep the regression database size in check.
+drop table delta_blocks;
+
 --
 -- Table with  delta + none compression on some columns
 --
