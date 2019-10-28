@@ -656,6 +656,7 @@ window w as (partition by product order by year*12+month
 order by year, product, sales; -- mvd 1,2->4
 
 drop table qp_misc_jiras.tbl5223_sales_fact;
+
 CREATE VIEW qp_misc_jiras.tbl4255_simple_v as SELECT 1 as value;
 CREATE VIEW qp_misc_jiras.tbl4255_union_v as SELECT 1 as value UNION ALL SELECT 2;
 
@@ -666,6 +667,7 @@ SELECT generate_series(1,3), * from qp_misc_jiras.tbl4255_union_v;
 
 drop view qp_misc_jiras.tbl4255_simple_v;
 drop view qp_misc_jiras.tbl4255_union_v;
+
 create table qp_misc_jiras.tbl5246_sale
 (       
         cn int not null,
@@ -692,8 +694,6 @@ insert into qp_misc_jiras.tbl5246_sale values
   ( 3, 30, 600, '1401-6-1', 12, 5),
   ( 4, 40, 700, '1401-6-1', 1, 1),
   ( 4, 40, 800, '1401-6-1', 1, 1);
-
-
 
 explain select cn, count(*) over (order by dt range between '2 day'::interval preceding and 2 preceding) from qp_misc_jiras.tbl5246_sale;
 
@@ -759,9 +759,9 @@ WHERE sale.cn=customer.cn
 GROUP BY CUBE((sale.dt),(newalias1,newalias2,newalias1),(sale.cn,sale.cn,sale.cn,newalias1),
 (sale.qty),(sale.pn,newalias3,sale.vn),(sale.vn,sale.vn,sale.prc),(sale.cn,newalias2)),sale.cn,sale.vn;
 
-
 drop table qp_misc_jiras.tbl4896_sale;
 drop table qp_misc_jiras.tbl4896_customer;
+
 create table qp_misc_jiras.tbl4703_test (i int, j int);
 insert into qp_misc_jiras.tbl4703_test select i, i%10 from generate_series(0, 9999) i;
 create index test_j on qp_misc_jiras.tbl4703_test(j);
@@ -773,9 +773,6 @@ drop table qp_misc_jiras.tbl4703_test;
 create table qp_misc_jiras.tbl_694_1(c1 int, b1 box);
 select * from qp_misc_jiras.tbl_694_1;
 create table qp_misc_jiras.tbl_694_2 (like qp_misc_jiras.tbl_694_1);
-
-
-
 
 select * from qp_misc_jiras.tbl_694_2;
 insert into qp_misc_jiras.tbl_694_2 values(2,'(2,2),(2,2)');
@@ -2346,12 +2343,8 @@ set gp_enable_explain_allstat=on;
 insert into qp_misc_jiras.test_heap select i, i from generate_series(0, 99999) i;
 explain analyze select count(*) from qp_misc_jiras.test_heap;
 
--- start_ignore
 -- This is to verify MPP-8946
 -- ramans2 : Modifying queries to add filter on schema name to remove diffs in multi-node cdbfast runs
--- end_ignore
-
-
 create schema schema1;
 create schema schema2;
 create schema schema3;
@@ -2460,33 +2453,21 @@ alter table qp_misc_jiras.tbl13409_test set with (reorganize=foo) distributed by
 
 --Invalid integer value. def->arg
 alter table qp_misc_jiras.tbl13409_test set with (reorganize=123) distributed by (j);
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize="true");
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize="TRUE");
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize="FALSE");
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize="false");
 
-
 --Valid strings
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize=true);
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize=TRUE);
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize=FALSE);
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize=false);
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='false');
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='FALSE');
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='TRUE');
-
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='true');
+
 create table qp_misc_jiras.tbl13879_1 (a int) distributed by (a);
 insert into qp_misc_jiras.tbl13879_1 select generate_series(1,10);
 select * from qp_misc_jiras.tbl13879_1;
@@ -2498,6 +2479,7 @@ select * from qp_misc_jiras.tbl13879_2;
 select a, max(a) over (order by a range between current row and 2 following) as max from qp_misc_jiras.tbl13879_2;
 drop table qp_misc_jiras.tbl13879_1;
 drop table qp_misc_jiras.tbl13879_2;
+
 create table qp_misc_jiras.esc176_1 (id integer, seq integer, val double precision, clickdate timestamp without time zone) distributed by (id);
 insert into qp_misc_jiras.esc176_1 values (1,1,0.2,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,2,0.1,CURRENT_TIMESTAMP);
@@ -2522,6 +2504,7 @@ select id, seq, sum (val) over (partition by id order by clickdate range between
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 0 following and 10 following), val from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 10 preceding and 0 preceding), val from qp_misc_jiras.esc176_1;
 drop table qp_misc_jiras.esc176_1;
+
 create table qp_misc_jiras.tbl13491_h(a int,str varchar)distributed by (a);
 alter table qp_misc_jiras.tbl13491_h alter column str set storage external;
 insert into qp_misc_jiras.tbl13491_h values (1, lpad('a', 100000, 'b'));
@@ -2532,28 +2515,6 @@ select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
 drop table qp_misc_jiras.tbl13491_h;
 select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
 drop table qp_misc_jiras.tbl13491_aocol;
--- start_ignore
-drop function if exists test();
-create table qp_misc_jiras._tbl10050_test (id int) distributed randomly;
--- end_ignore
-create function test()
-returns void
-as
-$$
-begin
-drop table if exists qp_misc_jiras._tbl10050_test;
-create table qp_misc_jiras._tbl10050_test (id int) distributed randomly;
-insert into qp_misc_jiras._tbl10050_test values (1);
-end;
-$$
-language plpgsql
-;
-
-select test();
-select test();
-select test();
-select test();
-
 
 --
 -- Test that rules with functions can be serialized correctly

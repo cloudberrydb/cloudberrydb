@@ -5157,10 +5157,8 @@ explain analyze select count(*) from qp_misc_jiras.test_heap;
  Execution time: 16.835 ms
 (10 rows)
 
--- start_ignore
 -- This is to verify MPP-8946
 -- ramans2 : Modifying queries to add filter on schema name to remove diffs in multi-node cdbfast runs
--- end_ignore
 create schema schema1;
 create schema schema2;
 create schema schema3;
@@ -5813,47 +5811,6 @@ select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
 (1 row)
 
 drop table qp_misc_jiras.tbl13491_aocol;
--- start_ignore
-drop function if exists test();
-NOTICE:  function test() does not exist, skipping
-create table qp_misc_jiras._tbl10050_test (id int) distributed randomly;
--- end_ignore
-create function test()
-returns void
-as
-$$
-begin
-drop table if exists qp_misc_jiras._tbl10050_test;
-create table qp_misc_jiras._tbl10050_test (id int) distributed randomly;
-insert into qp_misc_jiras._tbl10050_test values (1);
-end;
-$$
-language plpgsql
-;
-select test();
- test 
-------
- 
-(1 row)
-
-select test();
- test 
-------
- 
-(1 row)
-
-select test();
- test 
-------
- 
-(1 row)
-
-select test();
- test 
-------
- 
-(1 row)
-
 --
 -- Test that rules with functions can be serialized correctly
 -- This is tested here because the rules tests are not enabled
