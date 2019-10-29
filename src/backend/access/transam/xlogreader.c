@@ -857,7 +857,13 @@ XLogReaderValidatePageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	return true;
 }
 
-#ifdef FRONTEND
+/*
+ * In GPDB, this is used in in the test in src/test/walrep, so we need it in the
+ * backend, too.
+ */
+/* #ifdef FRONTEND */
+#if 1
+
 /*
  * Functions that are currently not needed in the backend, but are better
  * implemented inside xlogreader.c because of the internal facilities available

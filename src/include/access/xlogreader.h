@@ -194,7 +194,9 @@ extern struct XLogRecord *XLogReadRecord(XLogReaderState *state,
 extern bool XLogReaderValidatePageHeader(XLogReaderState *state,
 					XLogRecPtr recptr, char *phdr);
 
-#ifdef FRONTEND
+/* In GPDB, this is needed in the backend, too, for WAL replication tests. */
+/* #ifdef FRONTEND */
+#if 1
 extern XLogRecPtr XLogFindNextRecord(XLogReaderState *state, XLogRecPtr RecPtr);
 #endif   /* FRONTEND */
 

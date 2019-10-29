@@ -442,6 +442,17 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 
 	xlogreader = XLogReaderAllocate(&read_local_xlog_page, NULL);
 
+	/*
+	 * Find the first valid record at or after the given starting point.
+	 *
+	 * XLogReadRecord() trips an assertion if it's given an invalid location,
+	 * and in the tests, we might be given a WAL position that points to the
+	 * beginning of a page, rather than a valid record.
+	 */
+	dataStart = XLogFindNextRecord(xlogreader, dataStart);
+	if (dataStart == InvalidXLogRecPtr)
+		return 0;
+
 	/* process the xlog records one at a time and check if it is an AO/AOCO record */
 	do
 	{
