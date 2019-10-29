@@ -225,9 +225,3 @@ ignore: restore_memory_accounting_default
 test: setup_startup_memory_accounting
 test: oom_startup_memory
 test: restore_memory_accounting_default
-
-# Too many exec accounts test start
-test: setup_too_many_exec_accounts
-test: oom_too_many_accounts
-test: restore_memory_accounting_default
-#Too many exec account tests end
