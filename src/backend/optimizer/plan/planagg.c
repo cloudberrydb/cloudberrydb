@@ -245,7 +245,7 @@ optimize_minmax_aggregates(PlannerInfo *root, List *tlist,
 	cost_agg(&agg_p, root, AGG_PLAIN, aggcosts,
 			 0, 0,
 			 best_path->startup_cost, best_path->total_cost,
-			 best_path->parent->rows, 0.0, 0.0, 0.0, false);
+			 best_path->parent->rows, NULL, false);
 
 	if (total_cost > agg_p.total_cost)
 		return NULL;			/* too expensive */

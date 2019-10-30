@@ -14,7 +14,7 @@
 -- m/DETAIL:  Failing row contains \(.*\)/
 -- s/DETAIL:  Failing row contains \(.*\)/DETAIL:  Failing row contains (#####)/
 -- end_matchsubs
-SET statement_mem='250 MB';
+SET statement_mem='300 MB';
 
 CREATE TABLE dml_ao_check_r (
 	a int default 100 CHECK( a between 1 and 105),

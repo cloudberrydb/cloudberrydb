@@ -964,6 +964,17 @@ choose_hashed_setop(PlannerInfo *root, List *groupClauses,
 	/*
 	 * Don't do it if it doesn't look like the hashtable will fit into
 	 * work_mem.
+	 *
+	 * GPDB: In other places where we are building a Hash Aggregate, we use
+	 * calcHashAggTableSizes(), which takes into account that in GPDB, a Hash
+	 * Aggregate can spill to disk. We must *not* do that here, because we
+	 * might be building a Hashed SetOp, not a Hash Aggregate. A Hashed SetOp
+	 * uses the upstream hash table implementation unmodified, and cannot
+	 * spill.
+	 * FIXME: It's a bit lame that Hashed SetOp cannot spill to disk. And it's
+	 * even more lame that we don't account the spilling correctly, if we are
+	 * in fact constructing a Hash Aggregate. A UNION is implemented with a
+	 * Hash Aggregate, only INTERSECT and EXCEPT use Hashed SetOp.
 	 */
 	hashentrysize = MAXALIGN(input_plan->plan_width) + MAXALIGN(SizeofMinimalTupleHeader);
 
@@ -985,9 +996,8 @@ choose_hashed_setop(PlannerInfo *root, List *groupClauses,
 			 numGroupCols, dNumGroups / planner_segment_count(NULL),
 			 input_plan->startup_cost, input_plan->total_cost,
 			 input_plan->plan_rows,
-			 hashentrysize, /* input_width */
-			 0, /* hash_batches - so spilling expected with TupleHashTable */
-			 hashentrysize, /* hashentry_width */
+			 NULL, /* GPDB: We are using the upstream hash table implementation,
+					* which does not spill. */
 			 false /* hash_streaming */);
 
 	/*

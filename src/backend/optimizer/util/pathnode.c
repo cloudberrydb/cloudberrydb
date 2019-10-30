@@ -36,6 +36,7 @@
 #include "cdb/cdbmutate.h"
 #include "cdb/cdbpath.h"        /* cdb_create_motion_path() etc */
 #include "cdb/cdbutil.h"		/* getgpsegmentCount() */
+#include "executor/execHHashagg.h"
 #include "executor/nodeHash.h"
 
 typedef enum
@@ -1884,9 +1885,13 @@ create_unique_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 		 * Estimate the overhead per hashtable entry at 64 bytes (same as in
 		 * planner.c).
 		 */
-		int			hashentrysize = rel->width + 64;
+		HashAggTableSizes hash_info;
 
-		if (hashentrysize * pathnode->path.rows > work_mem * 1024L)
+		if (!calcHashAggTableSizes(work_mem * 1024L,
+								   pathnode->path.rows,
+								   rel->width,
+								   true,
+								   &hash_info))
 		{
 			/*
 			 * We should not try to hash.  Hack the SpecialJoinInfo to
@@ -1901,9 +1906,7 @@ create_unique_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 					 subpath->startup_cost,
 					 subpath->total_cost,
 					 rel->rows,
-					 0, /* input_width */
-					 0, /* hash_batches */
-					 0, /* hashentry_width */
+					 &hash_info,
 					 false /* streaming */
 				);
 	}
@@ -2126,9 +2129,13 @@ create_unique_rowid_path(PlannerInfo *root,
 		 * Estimate the overhead per hashtable entry at 64 bytes (same as in
 		 * planner.c).
 		 */
-		int			hashentrysize = rel->width + 64;
+		HashAggTableSizes hash_info;
 
-		if (hashentrysize * ((Path*)pathnode)->rows > work_mem * 1024L)
+		if (!calcHashAggTableSizes(work_mem * 1024L,
+								   ((Path *)pathnode)->rows,
+								   rel->width,
+								   false,	/* force */
+								   &hash_info))
 			all_hash = false;	/* don't try to hash */
 		else
 			cost_agg(&agg_path, root,
@@ -2137,9 +2144,7 @@ create_unique_rowid_path(PlannerInfo *root,
 					 subpath->startup_cost,
 					 subpath->total_cost,
 					 rel->rows,
-					 0, /* input_width */
-					 0, /* hash_batches */
-					 0, /* hashentry_width */
+					 &hash_info,
 					 false /* streaming */
 				);
 	}

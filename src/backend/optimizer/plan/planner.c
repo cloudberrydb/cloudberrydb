@@ -4956,8 +4956,9 @@ choose_hashed_grouping(PlannerInfo *root,
 	cost_agg(&hashed_p, root, AGG_HASHED, agg_costs,
 			 numGroupCols, dNumGroups / planner_segment_count(NULL),
 			 cheapest_path->startup_cost, cheapest_path->total_cost,
-			 path_rows, hash_info.workmem_per_entry,
-			 hash_info.nbatches, hash_info.hashentry_width, false);
+			 path_rows,
+			 &hash_info,
+			 false);
 	/* Result of hashed agg is always unsorted */
 	if (target_pathkeys)
 		cost_sort(&hashed_p, root, target_pathkeys, hashed_p.total_cost,
@@ -4988,7 +4989,7 @@ choose_hashed_grouping(PlannerInfo *root,
 		cost_agg(&sorted_p, root, AGG_SORTED, agg_costs,
 				 numGroupCols, dNumGroups / planner_segment_count(NULL),
 				 sorted_p.startup_cost, sorted_p.total_cost,
-				 path_rows, 0.0, 0.0, 0.0, false);
+				 path_rows, NULL, false);
 	else
 		cost_group(&sorted_p, root, numGroupCols, dNumGroups,
 				   sorted_p.startup_cost, sorted_p.total_cost,
@@ -5123,9 +5124,7 @@ choose_hashed_distinct(PlannerInfo *root,
 			 numDistinctCols, dNumDistinctRows / planner_segment_count(NULL),
 			 cheapest_startup_cost, cheapest_total_cost,
 			 path_rows,
-			 hash_info.workmem_per_entry,
-			 hash_info.nbatches,
-			 hash_info.hashentry_width,
+			 &hash_info,
 			 false /* hash_streaming */);
 
 	/*

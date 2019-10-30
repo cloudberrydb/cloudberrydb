@@ -6110,8 +6110,9 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 				 numGroupCols, numGroups,
 				 plan->startup_cost,
 				 plan->total_cost,
-				 plan->plan_rows, hash_info.workmem_per_entry,
-				 hash_info.nbatches, hash_info.hashentry_width, streaming);
+				 plan->plan_rows,
+				 &hash_info,
+				 streaming);
 	}
 	else
 		cost_agg(&agg_path, root,
@@ -6119,8 +6120,9 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 				 numGroupCols, numGroups,
 				 plan->startup_cost,
 				 plan->total_cost,
-				 plan->plan_rows, 0.0, 0.0,
-				 0.0, false);
+				 plan->plan_rows,
+				 NULL,
+				 false);
 
 	plan->startup_cost = agg_path.startup_cost;
 	plan->total_cost = agg_path.total_cost;

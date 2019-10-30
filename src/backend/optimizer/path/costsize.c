@@ -97,6 +97,7 @@
 
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
+#include "executor/execHHashagg.h"
 
 #define LOG2(x)  (log(x) / 0.693147180559945)
 
@@ -1841,14 +1842,21 @@ spilledTupleNumber(double hashTableCapacity, double numGroups, double rows)
  *
  * Note: when aggstrategy == AGG_SORTED, caller must ensure that input costs
  * are for appropriately-sorted input.
+ *
+ * GPDB: 'hash_info' contains extra estimates about the hash table size.
+ * Passing NULL means that you are using the upstream implementation that
+ * can not spill to disk. An example of that is constructing a Hashed Setop
+ * node. But most callers are constructing a Hash Aggregate node, which can
+ * spill, and should call calcHashAggTableSizes() to get correct estimates.
+ * If aggstrategy != AGG_HASHED, 'hash_info' is ignored.
  */
 void
 cost_agg(Path *path, PlannerInfo *root,
 		 AggStrategy aggstrategy, const AggClauseCosts *aggcosts,
 		 int numGroupCols, double numGroups,
 		 Cost input_startup_cost, Cost input_total_cost,
-		 double input_tuples, double input_width,
-		 double hash_batches, double hashentry_width,
+		 double input_tuples,
+		 HashAggTableSizes *hash_info,
 		 bool hash_streaming)
 {
 	double		output_tuples;
@@ -1922,21 +1930,21 @@ cost_agg(Path *path, PlannerInfo *root,
 		startup_cost += (cpu_operator_cost * numGroupCols) * input_tuples;
 
 		/* account for some disk I/O if we expect to spill */
-		if (hash_batches > 0)
+		if (hash_info && hash_info->nbatches > 0)
 		{
-			hash_table_capacity = planner_work_mem * 1024L / hashentry_width;
+			hash_table_capacity = planner_work_mem * 1024L / hash_info->workmem_per_entry;
 			spilled_groups = spilledTupleNumber(hash_table_capacity, numGroups, input_tuples);
 
 			if (!hash_streaming)
 			{
 				double spilled_bytes_for_batch =
-					(spilled_groups * hashentry_width) / hash_batches;
+					(spilled_groups * hash_info->workmem_per_entry) / hash_info->nbatches;
 				double partitions = spilled_bytes_for_batch / (global_work_mem(root));
 				double tree_depth = 1;
 				if (partitions != 0)
 					tree_depth += ceil(log(partitions) / log(gp_hashagg_default_nbatches));
 
-				spilled_bytes = tree_depth * spilled_groups * hashentry_width;
+				spilled_bytes = tree_depth * spilled_groups * hash_info->workmem_per_entry;
 
 				/* startup gets charged the write-cost */
 				startup_cost += seq_page_cost * (spilled_bytes / BLCKSZ);
@@ -1957,7 +1965,7 @@ cost_agg(Path *path, PlannerInfo *root,
 		total_cost += aggcosts->finalCost * output_tuples;
 		total_cost += cpu_tuple_cost * output_tuples;
 
-		if (hash_batches > 2 && !hash_streaming)
+		if (hash_info && hash_info->nbatches > 2 && !hash_streaming)
 		{
 			/* total gets charged the read-cost */
 			total_cost += seq_page_cost * (spilled_bytes / BLCKSZ);
