@@ -178,6 +178,12 @@ public.lineitem -i l_shipdate, l_receiptdate </codeblock></pd>
           <pd>For information about how statistics are collected for partitioned tables, see
                 <codeph><xref href="../../ref_guide/sql_commands/ANALYZE.xml"
               >ANALYZE</xref></codeph>.</pd>
+          <pd>GPORCA uses root partition statistics. If you use
+              <codeph>--skip-root-partition</codeph> option, you should ensure that root partition
+            statistics are up to date so that GPORCA does not produce inferior query plans due to
+            stale root partition statistics.
+            <note>The <codeph>--skip-root-partition</codeph> option is deprecated and will be
+              removed in a future release.</note></pd>
         </plentry>
         <plentry>
           <pt>-s <varname>schema</varname></pt>
