@@ -1928,8 +1928,8 @@ class gpload:
               WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum AND a.atthasdef) as has_sequence
           from pg_catalog.pg_class c join pg_catalog.pg_namespace nt on (c.relnamespace = nt.oid)
              join pg_attribute a on (a.attrelid = c.oid)
-         where c.relname = '%s' and nt.nspname = '%s'
-         and a.attnum > 0 and a.attisdropped = 'f'
+         where a.attnum > 0 and a.attisdropped = 'f'
+         and a.attrelid = (select c.oid from pg_catalog.pg_class c join pg_catalog.pg_namespace nt on (c.relnamespace = nt.oid) where c.relname = '%s' and nt.nspname = '%s')
          order by a.attnum """ % (quote_unident(self.table), quote_unident(self.schema))
 
         count = 0
