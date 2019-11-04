@@ -611,12 +611,11 @@ if test "$GCC" = yes -a "$ICC" = no; then
   # Disable FP optimizations that cause various errors on gcc 4.5+ or maybe 4.6+
   PGAC_PROG_CC_CFLAGS_OPT([-fexcess-precision=standard])
 
-  # Silence compiler warnings that you get with modern versions of GCC.
-  # All of these warnings have been fixed in later versions of PostgreSQL,
-  # but GPDB is based on 8.2, so you get these. TODO: Remove when we catch up
-  # with later PostgreSQL releases.
+  # Silence compiler warnings about variables that are set, but otherwise
+  # unused. All of these warnings have been fixed in PostgreSQL, but there is
+  # still someGPDB added code that emit these. TODO: Fix the GPDB code and
+  # remove this.
   PGAC_PROG_CC_CFLAGS_OPT([-Wno-unused-but-set-variable])
-  PGAC_PROG_CC_CFLAGS_OPT([-Wno-address])
 
   PGAC_PROG_CC_CFLAGS_OPT([-Wimplicit-fallthrough])
   PGAC_PROG_CC_CFLAGS_OPT([-Werror=implicit-fallthrough])

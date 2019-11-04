@@ -622,7 +622,7 @@ MPPnoticeReceiver(void *arg, const PGresult *res)
 
 /* helper macro for computing the total allocation size */
 #define SIZE_VARLEN_FIELD(fldname) \
-		if (fldname) \
+		if (fldname != NULL) \
 		{ \
 			fldname##_len = strlen(fldname) + 1; \
 			size += fldname##_len; \
@@ -659,7 +659,7 @@ MPPnoticeReceiver(void *arg, const PGresult *res)
 		bufptr = notice->buf;
 
 #define COPY_VARLEN_FIELD(fldname) \
-		if (fldname) \
+		if (fldname != NULL) \
 		{ \
 			notice->fldname = bufptr; \
 			memcpy(bufptr, fldname, fldname##_len); \
