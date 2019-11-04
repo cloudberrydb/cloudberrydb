@@ -1868,9 +1868,6 @@ PGAC_FUNC_WCSTOMBS_L
 LIBS_including_readline="$LIBS"
 LIBS=`echo "$LIBS" | sed -e 's/-ledit//g' -e 's/-lreadline//g'`
 
-# net-snmp has the same problem..
-LIBS=`echo "$LIBS" | sed -e 's/-lnetsnmp//g'`
-
 AC_CHECK_FUNCS(m4_normalize([
 	backtrace_symbols
 	cbrt
