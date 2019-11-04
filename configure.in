@@ -681,15 +681,6 @@ if test "$enable_coverage" = yes; then
   fi
 fi
 
-# enable code coverage if --enable-coverage
-if test "$enable_coverage" = yes; then
-  if test "$GCC" = yes; then
-    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-  else
-    AC_MSG_ERROR([--enable-coverage is supported only when using GCC])
-  fi
-fi
-
 # enable profiling if --enable-profiling
 if test "$enable_profiling" = yes && test "$ac_cv_prog_cc_g" = yes; then
   if test "$GCC" = yes; then
