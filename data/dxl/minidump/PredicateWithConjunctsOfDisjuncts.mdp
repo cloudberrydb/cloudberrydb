@@ -108,9 +108,9 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.16662.1.0" Name="t1_b" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.96.1.0"/>
@@ -590,11 +590,11 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.16679.1.0" Name="t1_b_c_d" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1,2,3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.16648.1.0.4" Name="e" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.010000" DistinctValues="100.000000">
@@ -999,10 +999,10 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Index Mdid="0.16696.1.0" Name="t1_g_h" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="6,7" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.23.1.0"/>
@@ -1011,11 +1011,11 @@
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.16648.1.0.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.010000" DistinctValues="100.000000">

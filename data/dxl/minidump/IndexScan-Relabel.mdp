@@ -615,9 +615,9 @@
       </dxl:Relation>
       <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0"/>
       <dxl:Index Mdid="0.603018.1.0" Name="r_idx" IsClustered="false" IndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.2003.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.2003.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.602992.1.1.7" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.602992.1.1.6" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -628,14 +628,14 @@
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.2003.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2004.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-          <dxl:OpClass Mdid="0.3040.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.2003.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2004.1.0"/>
+          <dxl:Opfamily Mdid="0.3035.1.0"/>
+          <dxl:Opfamily Mdid="0.3040.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.602992.1.1.5" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.602992.1.1.4" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

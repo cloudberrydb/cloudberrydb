@@ -84,11 +84,11 @@ namespace gpmd
 			
 			// number of classes this operator belongs to
 			virtual
-			ULONG OpClassesCount() const = 0;
+			ULONG OpfamiliesCount() const = 0;
 			
 			// operator class at given position
 			virtual
-			IMDId *OpClassMdidAt(ULONG pos) const = 0;
+			IMDId *OpfamilyMdidAt(ULONG pos) const = 0;
 	};
 }
 

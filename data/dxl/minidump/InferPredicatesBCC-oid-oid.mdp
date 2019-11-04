@@ -171,11 +171,11 @@
         <dxl:OpFunc Mdid="0.184.1.0"/>
         <dxl:Commutator Mdid="0.607.1.0"/>
         <dxl:InverseOp Mdid="0.608.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1989.1.0"/>
-          <dxl:OpClass Mdid="0.1990.1.0"/>
-          <dxl:OpClass Mdid="0.7033.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1989.1.0"/>
+          <dxl:Opfamily Mdid="0.1990.1.0"/>
+          <dxl:Opfamily Mdid="0.7033.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

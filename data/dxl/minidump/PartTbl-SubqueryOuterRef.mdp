@@ -98,11 +98,11 @@ explain select * from t1 where a = 1 and b in (select b from t2);
         <dxl:OpFunc Mdid="0.467.1.0"/>
         <dxl:Commutator Mdid="0.410.1.0"/>
         <dxl:InverseOp Mdid="0.411.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.1981.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.1981.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
@@ -141,10 +141,10 @@ explain select * from t1 where a = 1 and b in (select b from t2);
         <dxl:OpFunc Mdid="0.470.1.0"/>
         <dxl:Commutator Mdid="0.412.1.0"/>
         <dxl:InverseOp Mdid="0.414.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.284979.1.1.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.110000" DistinctValues="1.000000">
@@ -360,11 +360,11 @@ explain select * from t1 where a = 1 and b in (select b from t2);
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-          <dxl:OpClass Mdid="0.1979.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+          <dxl:Opfamily Mdid="0.1979.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.285165.1.1" Name="t2" Rows="10.000000" EmptyRelation="false"/>
       <dxl:ColumnStatistics Mdid="1.284979.1.1.4" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>

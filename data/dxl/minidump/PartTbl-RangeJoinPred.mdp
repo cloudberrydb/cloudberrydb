@@ -1688,10 +1688,10 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:OpFunc Mdid="0.1154.1.0"/>
         <dxl:Commutator Mdid="0.1324.1.0"/>
         <dxl:InverseOp Mdid="0.1325.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1998.1.0"/>
-          <dxl:OpClass Mdid="0.3037.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1998.1.0"/>
+          <dxl:Opfamily Mdid="0.3037.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1324.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1184.1.0"/>
@@ -1700,10 +1700,10 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:OpFunc Mdid="0.1157.1.0"/>
         <dxl:Commutator Mdid="0.1322.1.0"/>
         <dxl:InverseOp Mdid="0.1323.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1998.1.0"/>
-          <dxl:OpClass Mdid="0.3037.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1998.1.0"/>
+          <dxl:Opfamily Mdid="0.3037.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1325.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1184.1.0"/>
@@ -1712,10 +1712,10 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:OpFunc Mdid="0.1156.1.0"/>
         <dxl:Commutator Mdid="0.1323.1.0"/>
         <dxl:InverseOp Mdid="0.1322.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1998.1.0"/>
-          <dxl:OpClass Mdid="0.3037.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1998.1.0"/>
+          <dxl:Opfamily Mdid="0.3037.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.25.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.25.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0"/>
       <dxl:GPDBScalarOp Mdid="0.1209.1.0" Name="~~" ComparisonType="Other" ReturnsNullOnNullInput="true">
@@ -3722,14 +3722,14 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2003.1.0"/>
-          <dxl:OpClass Mdid="0.2004.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-          <dxl:OpClass Mdid="0.3040.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2003.1.0"/>
+          <dxl:Opfamily Mdid="0.2004.1.0"/>
+          <dxl:Opfamily Mdid="0.3035.1.0"/>
+          <dxl:Opfamily Mdid="0.3040.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.2278.1.0" Name="void" IsRedistributable="false" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.0.0.0"/>

@@ -158,10 +158,10 @@
         <dxl:OpFunc Mdid="0.474.1.0"/>
         <dxl:Commutator Mdid="0.15.1.0"/>
         <dxl:InverseOp Mdid="0.417.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.254025.1.1.5" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.254025.1.1.4" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -268,14 +268,14 @@
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2003.1.0"/>
-          <dxl:OpClass Mdid="0.2004.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-          <dxl:OpClass Mdid="0.3040.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2003.1.0"/>
+          <dxl:Opfamily Mdid="0.2004.1.0"/>
+          <dxl:Opfamily Mdid="0.3035.1.0"/>
+          <dxl:Opfamily Mdid="0.3040.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.254025.1.1.8" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.254025.1.1.1" Name="cost" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">

@@ -221,10 +221,10 @@ explain select * from foo, testhstore where foo.b = testhstore.h;
         <dxl:OpFunc Mdid="0.32829.1.0"/>
         <dxl:Commutator Mdid="0.32837.1.0"/>
         <dxl:InverseOp Mdid="0.32836.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.32842.1.0"/>
-          <dxl:OpClass Mdid="0.32851.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.32842.1.0"/>
+          <dxl:Opfamily Mdid="0.32851.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

@@ -41,7 +41,7 @@ CMDIndexGPDB::CMDIndexGPDB
 	IMDId *mdid_item_type,
 	ULongPtrArray *index_key_cols_array,
 	ULongPtrArray *included_cols_array,
-	IMdIdArray *mdid_op_classes_array,
+	IMdIdArray *mdid_opfamilies_array,
 	IMDPartConstraint *mdpart_constraint
 	)
 	:
@@ -53,7 +53,7 @@ CMDIndexGPDB::CMDIndexGPDB
 	m_mdid_item_type(mdid_item_type),
 	m_index_key_cols_array(index_key_cols_array),
 	m_included_cols_array(included_cols_array),
-	m_mdid_op_classes_array(mdid_op_classes_array),
+	m_mdid_opfamilies_array(mdid_opfamilies_array),
 	m_mdpart_constraint(mdpart_constraint)
 {
 	GPOS_ASSERT(mdid->IsValid());
@@ -63,7 +63,7 @@ CMDIndexGPDB::CMDIndexGPDB
 	GPOS_ASSERT(NULL != included_cols_array);
 	GPOS_ASSERT_IMP(NULL != mdid_item_type, IMDIndex::EmdindBitmap == index_type || IMDIndex::EmdindBtree == index_type || IMDIndex::EmdindGist == index_type || IMDIndex::EmdindGin == index_type);
 	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == index_type, NULL != mdid_item_type && mdid_item_type->IsValid());
-	GPOS_ASSERT(NULL != mdid_op_classes_array);
+	GPOS_ASSERT(NULL != mdid_opfamilies_array);
 	
 	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
@@ -84,7 +84,7 @@ CMDIndexGPDB::~CMDIndexGPDB()
 	CRefCount::SafeRelease(m_mdid_item_type);
 	m_index_key_cols_array->Release();
 	m_included_cols_array->Release();
-	m_mdid_op_classes_array->Release();
+	m_mdid_opfamilies_array->Release();
 	CRefCount::SafeRelease(m_mdpart_constraint);
 }
 
@@ -317,9 +317,9 @@ CMDIndexGPDB::Serialize
 	GPOS_DELETE(available_cols_str);
 		
 	// serialize operator class information
-	SerializeMDIdList(xml_serializer, m_mdid_op_classes_array, 
-						CDXLTokens::GetDXLTokenStr(EdxltokenOpClasses), 
-						CDXLTokens::GetDXLTokenStr(EdxltokenOpClass));
+	SerializeMDIdList(xml_serializer, m_mdid_opfamilies_array, 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpfamilies), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpfamily));
 	
 	if (NULL != m_mdpart_constraint)
 	{
@@ -412,17 +412,17 @@ CMDIndexGPDB::IsCompatible
 	const
 {
 	GPOS_ASSERT(NULL != md_scalar_op);
-	GPOS_ASSERT(key_pos < m_mdid_op_classes_array->Size());
+	GPOS_ASSERT(key_pos < m_mdid_opfamilies_array->Size());
 	
-	// check if the index opclass for the key at the given position is one of 
-	// the classes the scalar comparison belongs to
-	const IMDId *mdid_op_class = (*m_mdid_op_classes_array)[key_pos];
+	// check if the index opfamily for the key at the given position is one of 
+	// the families the scalar comparison belongs to
+	const IMDId *mdid_opfamily = (*m_mdid_opfamilies_array)[key_pos];
 	
-	const ULONG op_classes_count = md_scalar_op->OpClassesCount();
+	const ULONG opfamilies_count = md_scalar_op->OpfamiliesCount();
 	
-	for (ULONG ul = 0; ul < op_classes_count; ul++)
+	for (ULONG ul = 0; ul < opfamilies_count; ul++)
 	{
-		if (mdid_op_class->Equals(md_scalar_op->OpClassMdidAt(ul)))
+		if (mdid_opfamily->Equals(md_scalar_op->OpfamilyMdidAt(ul)))
 		{
 			return true;
 		}

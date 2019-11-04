@@ -167,11 +167,11 @@
         <dxl:OpFunc Mdid="0.1086.1.0"/>
         <dxl:Commutator Mdid="0.1093.1.0"/>
         <dxl:InverseOp Mdid="0.1094.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.435.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.435.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.23.1.0;23.1.0" Name="int4" BinaryCoercible="true" SourceTypeId="0.23.1.0" DestinationTypeId="0.23.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
       <dxl:Type Mdid="0.1114.1.0" Name="timestamp" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
@@ -196,11 +196,11 @@
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.63862.1.0" Name="jazz" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.63862.1.0" Name="jazz" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" NumberLeafPartitions="0">
@@ -281,9 +281,9 @@
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:Index Mdid="0.63865.1.0" Name="jazz_ix" IsClustered="false" IndexType="B-tree" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
     </dxl:Metadata>
     <dxl:Query>

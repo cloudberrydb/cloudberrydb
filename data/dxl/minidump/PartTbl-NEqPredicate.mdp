@@ -61,10 +61,10 @@
         <dxl:OpFunc Mdid="0.147.1.0"/>
         <dxl:Commutator Mdid="0.97.1.0"/>
         <dxl:InverseOp Mdid="0.523.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.518.1.0" Name="&lt;&gt;" ComparisonType="NEq">
         <dxl:LeftType Mdid="0.23.1.0"/>
@@ -192,9 +192,9 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Index Mdid="0.310609.1.0" Name="p_1_prt_3_ab" IsClustered="false" IsPartial="true" KeyColumns="0,1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
@@ -209,9 +209,9 @@
         </dxl:PartConstraint>
       </dxl:Index>
       <dxl:Index Mdid="0.327405.1.0" Name="p_1_prt_extra_a_key" IsClustered="false" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
           <dxl:Or>
             <dxl:Or>

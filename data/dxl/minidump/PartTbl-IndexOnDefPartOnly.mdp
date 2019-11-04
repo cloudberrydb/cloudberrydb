@@ -451,12 +451,12 @@ SELECT * FROM pt_lt_tab WHERE col2 = 15 ORDER BY col2,col3 LIMIT 5;
         <dxl:OpFunc Mdid="0.740.1.0"/>
         <dxl:Commutator Mdid="0.666.1.0"/>
         <dxl:InverseOp Mdid="0.667.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.2003.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-          <dxl:OpClass Mdid="0.3040.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.2003.1.0"/>
+          <dxl:Opfamily Mdid="0.3035.1.0"/>
+          <dxl:Opfamily Mdid="0.3040.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Relation Mdid="0.8685596.1.1" Name="pt_lt_tab" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,10,4" PartitionColumns="1" PartitionTypes="l">
         <dxl:Columns>
@@ -876,9 +876,9 @@ SELECT * FROM pt_lt_tab WHERE col2 = 15 ORDER BY col2,col3 LIMIT 5;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.8685870.1.0" Name="idx1" IsClustered="false" IndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="false">
           <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
         </dxl:PartConstraint>
@@ -1098,11 +1098,11 @@ SELECT * FROM pt_lt_tab WHERE col2 = 15 ORDER BY col2,col3 LIMIT 5;
         <dxl:OpFunc Mdid="0.1718.1.0"/>
         <dxl:Commutator Mdid="0.1752.1.0"/>
         <dxl:InverseOp Mdid="0.1753.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-          <dxl:OpClass Mdid="0.7676.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+          <dxl:Opfamily Mdid="0.7676.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1754.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1700.1.0"/>
@@ -1111,10 +1111,10 @@ SELECT * FROM pt_lt_tab WHERE col2 = 15 ORDER BY col2,col3 LIMIT 5;
         <dxl:OpFunc Mdid="0.1722.1.0"/>
         <dxl:Commutator Mdid="0.1756.1.0"/>
         <dxl:InverseOp Mdid="0.1757.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.8685596.1.1.10" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.8685596.1.1.3" Name="col4" Width="1.000000" NullFreq="0.009891" NdvRemain="0.000000" FreqRemain="0.000000">

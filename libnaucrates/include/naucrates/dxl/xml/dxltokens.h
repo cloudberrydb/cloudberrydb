@@ -496,8 +496,8 @@ namespace gpdxl
 		EdxltokenIndexTypeGin,
 		EdxltokenIndexItemType,
 		
-		EdxltokenOpClass,
-		EdxltokenOpClasses,
+		EdxltokenOpfamily,
+		EdxltokenOpfamilies,
 		
 		EdxltokenTypeInt4,
 		EdxltokenTypeBool,

@@ -3537,17 +3537,17 @@
         <dxl:OpFunc Mdid="0.1048.1.0"/>
         <dxl:Commutator Mdid="0.1054.1.0"/>
         <dxl:InverseOp Mdid="0.1057.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.426.1.0"/>
-          <dxl:OpClass Mdid="0.427.1.0"/>
-          <dxl:OpClass Mdid="0.3018.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.426.1.0"/>
+          <dxl:Opfamily Mdid="0.427.1.0"/>
+          <dxl:Opfamily Mdid="0.3018.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Index Mdid="0.33052642.1.0" Name="store_sales_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="2,9" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
@@ -8559,10 +8559,10 @@
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:Index Mdid="0.33052182.1.0" Name="store_returns_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="2,9" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Relation Mdid="0.33051926.1.1" Name="item" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0;28,22">
         <dxl:Columns>
@@ -12123,11 +12123,11 @@
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-          <dxl:OpClass Mdid="0.1979.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+          <dxl:Opfamily Mdid="0.1979.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.33051926.1.1.28" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.33051926.1.1.21" Name="i_product_name" Width="51.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
@@ -13343,9 +13343,9 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Index Mdid="0.33051952.1.0" Name="item_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1978.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>

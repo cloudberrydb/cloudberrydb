@@ -233,10 +233,10 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
       <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
       <dxl:RelationStatistics Mdid="2.65603.1.0" Name="zoo" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Index Mdid="0.65602.1.0" Name="bar_idx_ab" IsClustered="false" IndexType="B-tree" KeyColumns="1,0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Relation Mdid="0.65603.1.0" Name="zoo" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0,1" Keys="5,3" NumberLeafPartitions="0">
         <dxl:Columns>
@@ -268,10 +268,10 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
       <dxl:ColumnStatistics Mdid="1.65577.1.0.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.65577.1.0.0" Name="a" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:Index Mdid="0.65626.1.0" Name="zoo_idx_ab" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1,0" IncludedColumns="0,1,2,3,4,5">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.23.1.0"/>
@@ -280,11 +280,11 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.98.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.25.1.0"/>
@@ -293,14 +293,14 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2095.1.0"/>
-          <dxl:OpClass Mdid="0.2229.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-          <dxl:OpClass Mdid="0.7042.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2095.1.0"/>
+          <dxl:Opfamily Mdid="0.2229.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+          <dxl:Opfamily Mdid="0.7042.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

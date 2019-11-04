@@ -97,10 +97,10 @@ explain select * from foo left join bar on foo.a=bar.b and foo.b>bar.a left oute
         <dxl:OpFunc Mdid="0.740.1.0"/>
         <dxl:Commutator Mdid="0.666.1.0"/>
         <dxl:InverseOp Mdid="0.667.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
@@ -139,10 +139,10 @@ explain select * from foo left join bar on foo.a=bar.b and foo.b>bar.a left oute
         <dxl:OpFunc Mdid="0.742.1.0"/>
         <dxl:Commutator Mdid="0.664.1.0"/>
         <dxl:InverseOp Mdid="0.665.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.385.1.0"/>
@@ -186,14 +186,14 @@ explain select * from foo left join bar on foo.a=bar.b and foo.b>bar.a left oute
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2095.1.0"/>
-          <dxl:OpClass Mdid="0.2229.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-          <dxl:OpClass Mdid="0.7042.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2095.1.0"/>
+          <dxl:Opfamily Mdid="0.2229.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+          <dxl:Opfamily Mdid="0.7042.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.2031667.1.0" Name="foo" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.2031667.1.0" Name="foo" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,2" NumberLeafPartitions="0">

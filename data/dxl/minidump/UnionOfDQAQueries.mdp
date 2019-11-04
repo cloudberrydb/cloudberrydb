@@ -151,9 +151,9 @@
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg>
       <dxl:Index Mdid="0.471042.1.0" Name="sale_pkey" IsClustered="false" KeyColumns="0,1,2" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.471019.1.1.12" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.471019.1.1.5" Name="prc" Width="8.000000"/>

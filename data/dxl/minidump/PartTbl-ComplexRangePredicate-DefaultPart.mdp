@@ -175,9 +175,9 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Index Mdid="0.310609.1.0" Name="p_1_prt_3_ab" IsClustered="false" KeyColumns="0,1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
@@ -192,9 +192,9 @@
         </dxl:PartConstraint>
       </dxl:Index>
       <dxl:Index Mdid="0.327405.1.0" Name="p_1_prt_extra_a_key" IsClustered="false" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
           <dxl:Or>
             <dxl:Or>

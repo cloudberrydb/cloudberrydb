@@ -610,16 +610,16 @@ inferred from the second operator (c4 = 'f')
         <dxl:OpFunc Mdid="0.60.1.0"/>
         <dxl:Commutator Mdid="0.91.1.0"/>
         <dxl:InverseOp Mdid="0.85.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.424.1.0"/>
-          <dxl:OpClass Mdid="0.2222.1.0"/>
-          <dxl:OpClass Mdid="0.3017.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.424.1.0"/>
+          <dxl:Opfamily Mdid="0.2222.1.0"/>
+          <dxl:Opfamily Mdid="0.3017.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Index Mdid="0.22226547.1.0" Name="idx_t_1" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3017.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3017.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.22226519.1.1.13" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.22226519.1.1.12" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

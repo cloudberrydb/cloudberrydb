@@ -50,10 +50,10 @@ EXPLAIN SELECT * FROM foo_1_prt_p3 WHERE c > 10;
         <dxl:OpFunc Mdid="0.147.1.0"/>
         <dxl:Commutator Mdid="0.97.1.0"/>
         <dxl:InverseOp Mdid="0.523.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.523.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.23.1.0"/>
@@ -62,10 +62,10 @@ EXPLAIN SELECT * FROM foo_1_prt_p3 WHERE c > 10;
         <dxl:OpFunc Mdid="0.149.1.0"/>
         <dxl:Commutator Mdid="0.525.1.0"/>
         <dxl:InverseOp Mdid="0.521.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.829513.1.0" Name="foo_1_prt_p3" Rows="0.000000" EmptyRelation="true"/>
       <dxl:GPDBScalarOp Mdid="0.525.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
@@ -75,10 +75,10 @@ EXPLAIN SELECT * FROM foo_1_prt_p3 WHERE c > 10;
         <dxl:OpFunc Mdid="0.150.1.0"/>
         <dxl:Commutator Mdid="0.523.1.0"/>
         <dxl:InverseOp Mdid="0.97.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Relation Mdid="0.829513.1.0" Name="foo_1_prt_p3" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,4" NumberLeafPartitions="0">
         <dxl:Columns>
@@ -217,9 +217,9 @@ EXPLAIN SELECT * FROM foo_1_prt_p3 WHERE c > 10;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.829540.1.0" Name="foo_1_prt_p3_c_key" IsClustered="false" IndexType="B-tree" KeyColumns="2" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Relation Mdid="0.829410.1.0" Name="foo" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,10,4" PartitionColumns="1" PartitionTypes="r" NumberLeafPartitions="3">
         <dxl:Columns>
@@ -312,10 +312,10 @@ EXPLAIN SELECT * FROM foo_1_prt_p3 WHERE c > 10;
         <dxl:OpFunc Mdid="0.66.1.0"/>
         <dxl:Commutator Mdid="0.521.1.0"/>
         <dxl:InverseOp Mdid="0.525.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.829513.1.0.9" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.829513.1.0.8" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

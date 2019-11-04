@@ -46,9 +46,9 @@ explain select * from R1 inner join S1 on a = b union all select * from R2 inner
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Index Mdid="0.130052.1.0" Name="r1_a_idx" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
@@ -66,9 +66,9 @@ explain select * from R1 inner join S1 on a = b union all select * from R2 inner
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.130069.1.0" Name="s1_b_idx" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
@@ -244,17 +244,17 @@ explain select * from R1 inner join S1 on a = b union all select * from R2 inner
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:Index Mdid="0.130092.1.0" Name="r2_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:MDCast Mdid="3.25.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.25.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
       <dxl:ColumnStatistics Mdid="1.122064.1.0.0" Name="a" Width="2.000000" NullFreq="0.000000" NdvRemain="11.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
       <dxl:Index Mdid="0.130113.1.0" Name="s2_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.130094.1.0.0" Name="b" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.122064.1.0" Name="r1" Rows="11.000000" EmptyRelation="false"/>
@@ -308,14 +308,14 @@ explain select * from R1 inner join S1 on a = b union all select * from R2 inner
         <dxl:OpFunc Mdid="0.67.1.0"/>
         <dxl:Commutator Mdid="0.98.1.0"/>
         <dxl:InverseOp Mdid="0.531.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.1995.1.0"/>
-          <dxl:OpClass Mdid="0.2095.1.0"/>
-          <dxl:OpClass Mdid="0.2229.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-          <dxl:OpClass Mdid="0.7042.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.1995.1.0"/>
+          <dxl:Opfamily Mdid="0.2095.1.0"/>
+          <dxl:Opfamily Mdid="0.2229.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+          <dxl:Opfamily Mdid="0.7042.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.122074.1.0.0" Name="b" Width="2.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.130073.1.0.0" Name="a" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

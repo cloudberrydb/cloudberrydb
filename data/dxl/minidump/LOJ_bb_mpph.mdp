@@ -150,11 +150,11 @@
         <dxl:OpFunc Mdid="0.740.1.0"/>
         <dxl:Commutator Mdid="0.666.1.0"/>
         <dxl:InverseOp Mdid="0.667.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.4017.1.0"/>
-          <dxl:OpClass Mdid="0.7035.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1994.1.0"/>
+          <dxl:Opfamily Mdid="0.4017.1.0"/>
+          <dxl:Opfamily Mdid="0.7035.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.31259.1.0" Name="heap_nation" Rows="25.000000" EmptyRelation="false"/>
       <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
@@ -1452,11 +1452,11 @@
         <dxl:OpFunc Mdid="0.467.1.0"/>
         <dxl:Commutator Mdid="0.410.1.0"/>
         <dxl:InverseOp Mdid="0.411.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.7028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.7028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Relation Mdid="0.31256.1.0" Name="heap_lineitem" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="22,16" NumberLeafPartitions="0">
         <dxl:Columns>
@@ -1572,10 +1572,10 @@
         <dxl:OpFunc Mdid="0.470.1.0"/>
         <dxl:Commutator Mdid="0.412.1.0"/>
         <dxl:InverseOp Mdid="0.414.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.7028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.7028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Relation Mdid="0.31262.1.0" Name="heap_orders" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="15,9" NumberLeafPartitions="0">
         <dxl:Columns>
@@ -1639,14 +1639,14 @@
         <dxl:OpFunc Mdid="0.1048.1.0"/>
         <dxl:Commutator Mdid="0.1054.1.0"/>
         <dxl:InverseOp Mdid="0.1057.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.426.1.0"/>
-          <dxl:OpClass Mdid="0.427.1.0"/>
-          <dxl:OpClass Mdid="0.2097.1.0"/>
-          <dxl:OpClass Mdid="0.2231.1.0"/>
-          <dxl:OpClass Mdid="0.7018.1.0"/>
-          <dxl:OpClass Mdid="0.7044.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.426.1.0"/>
+          <dxl:Opfamily Mdid="0.427.1.0"/>
+          <dxl:Opfamily Mdid="0.2097.1.0"/>
+          <dxl:Opfamily Mdid="0.2231.1.0"/>
+          <dxl:Opfamily Mdid="0.7018.1.0"/>
+          <dxl:Opfamily Mdid="0.7044.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1058.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1042.1.0"/>
@@ -1655,10 +1655,10 @@
         <dxl:OpFunc Mdid="0.1049.1.0"/>
         <dxl:Commutator Mdid="0.1060.1.0"/>
         <dxl:InverseOp Mdid="0.1061.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.426.1.0"/>
-          <dxl:OpClass Mdid="0.7018.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.426.1.0"/>
+          <dxl:Opfamily Mdid="0.7018.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
@@ -1762,10 +1762,10 @@
         <dxl:OpFunc Mdid="0.1089.1.0"/>
         <dxl:Commutator Mdid="0.1095.1.0"/>
         <dxl:InverseOp Mdid="0.1096.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.7022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.7022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.31274.1.0.1" Name="s_name" Width="26.000000" NullFreq="0.000000" NdvRemain="100.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.31259.1.0.1" Name="n_name" Width="26.000000" NullFreq="0.000000" NdvRemain="25.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
@@ -3365,11 +3365,11 @@
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.7027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.7027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>

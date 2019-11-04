@@ -40,11 +40,11 @@
         <dxl:OpFunc Mdid="0.744.1.0"/>
         <dxl:Commutator Mdid="0.1070.1.0"/>
         <dxl:InverseOp Mdid="0.1071.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.397.1.0"/>
-          <dxl:OpClass Mdid="0.2745.1.0"/>
-          <dxl:OpClass Mdid="0.3015.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.397.1.0"/>
+          <dxl:Opfamily Mdid="0.2745.1.0"/>
+          <dxl:Opfamily Mdid="0.3015.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.1231.1.0" Name="_numeric" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>

@@ -83,11 +83,11 @@
         <dxl:OpFunc Mdid="0.1086.1.0"/>
         <dxl:Commutator Mdid="0.1093.1.0"/>
         <dxl:InverseOp Mdid="0.1094.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.435.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.435.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1095.1.0" Name="&lt;" ComparisonType="LT">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -138,9 +138,9 @@
       <dxl:ColumnStatistics Mdid="1.310650.1.1.7" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.310650.1.1.6" Name="xmax" Width="4.000000"/>
       <dxl:Index Mdid="0.310765.1.0" Name="ord_ind_1_prt_orders_1" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
           <dxl:Or>
             <dxl:And>
@@ -217,10 +217,10 @@
         <dxl:ResultType Mdid="0.2278.1.0"/>
       </dxl:GPDBFunc>
       <dxl:Index Mdid="0.318839.1.0" Name="ord_1_ind_1_prt_orders_1" IsClustered="false" KeyColumns="1,2" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
           <dxl:Or>
             <dxl:And>

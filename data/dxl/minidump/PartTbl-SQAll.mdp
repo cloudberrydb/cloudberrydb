@@ -147,10 +147,10 @@
         <dxl:OpFunc Mdid="0.471.1.0"/>
         <dxl:Commutator Mdid="0.415.1.0"/>
         <dxl:InverseOp Mdid="0.413.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.410.1.0" Name="=" ComparisonType="Eq">
         <dxl:LeftType Mdid="0.20.1.0"/>

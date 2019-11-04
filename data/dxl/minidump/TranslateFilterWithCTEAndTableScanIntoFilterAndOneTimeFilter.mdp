@@ -339,11 +339,11 @@
         <dxl:OpFunc Mdid="0.293.1.0"/>
         <dxl:Commutator Mdid="0.670.1.0"/>
         <dxl:InverseOp Mdid="0.671.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1970.1.0"/>
-          <dxl:OpClass Mdid="0.1971.1.0"/>
-          <dxl:OpClass Mdid="0.3024.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1970.1.0"/>
+          <dxl:Opfamily Mdid="0.1971.1.0"/>
+          <dxl:Opfamily Mdid="0.3024.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.16388.1.0.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
@@ -450,11 +450,11 @@
         <dxl:OpFunc Mdid="0.65.1.0"/>
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1977.1.0"/>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1976.1.0"/>
+          <dxl:Opfamily Mdid="0.1977.1.0"/>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.23.1.0;701.1.0" Name="float8" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.701.1.0" CastFuncId="0.316.1.0" CoercePathType="1"/>
     </dxl:Metadata>

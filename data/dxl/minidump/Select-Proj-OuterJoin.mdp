@@ -330,14 +330,14 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.2690.1.0" Name="pg_proc_oid_index" IsClustered="false" KeyColumns="24" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Index Mdid="0.2684.1.0" Name="pg_namespace_nspname_index" IsClustered="false" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1986.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1986.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.2615.1.1.5" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.2615.1.1.4" Name="oid" Width="8.000000"/>
@@ -348,11 +348,11 @@
         <dxl:OpFunc Mdid="0.62.1.0"/>
         <dxl:Commutator Mdid="0.93.1.0"/>
         <dxl:InverseOp Mdid="0.643.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1986.1.0"/>
-          <dxl:OpClass Mdid="0.1987.1.0"/>
-          <dxl:OpClass Mdid="0.3031.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1986.1.0"/>
+          <dxl:Opfamily Mdid="0.1987.1.0"/>
+          <dxl:Opfamily Mdid="0.3031.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.96.1.0"/>
@@ -508,16 +508,16 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.2691.1.0" Name="pg_proc_proname_args_nsp_index" IsClustered="false" KeyColumns="0,12,1" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1986.1.0"/>
-          <dxl:OpClass Mdid="0.1991.1.0"/>
-          <dxl:OpClass Mdid="0.1989.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1986.1.0"/>
+          <dxl:Opfamily Mdid="0.1991.1.0"/>
+          <dxl:Opfamily Mdid="0.1989.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Index Mdid="0.2685.1.0" Name="pg_namespace_oid_index" IsClustered="false" KeyColumns="4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1089.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1089.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count">
         <dxl:ResultType Mdid="0.20.1.0"/>

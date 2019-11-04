@@ -93,9 +93,9 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.17952.1.0" Name="index_17952" IsClustered="false" KeyColumns="1" IncludedColumns="1">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.17929.1.1.19" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17929.1.1.18" Name="ctid" Width="6.000000"/>

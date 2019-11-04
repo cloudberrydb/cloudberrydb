@@ -70,14 +70,14 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.67041.1.0" Name="index_67041" IsClustered="false" KeyColumns="1" IncludedColumns="1">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:Index Mdid="0.66697.1.0" Name="index_66697" IsClustered="false" KeyColumns="1" IncludedColumns="1">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3027.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.19" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.18" Name="tableoid" Width="4.000000"/>

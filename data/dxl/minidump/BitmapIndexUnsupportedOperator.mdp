@@ -718,9 +718,9 @@ c4 = 'f'
         <dxl:InverseOp Mdid="0.91.1.0"/>
       </dxl:GPDBScalarOp>
       <dxl:Index Mdid="0.22226400.1.0" Name="idx_t_1" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.3017.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.3017.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.22226372.1.1.7" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.22226372.1.1.6" Name="c7" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">

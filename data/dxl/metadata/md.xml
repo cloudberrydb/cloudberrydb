@@ -109,14 +109,14 @@
       <dxl:CheckConstraints/>
     </dxl:Relation>
     <dxl:Index Mdid="0.2345.2.1" Name="T_a" IsClustered="false" KeyColumns="1" IncludedColumns="0,1">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.1978.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.1978.1.0"/>
+      </dxl:Opfamilies>
     </dxl:Index>
     <dxl:Index Mdid="0.2347.1.1" Name="T_a" IsClustered="false" KeyColumns="0" IncludedColumns="0,1">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
     </dxl:Index>
     <dxl:Relation Mdid="0.1607123.1.1" Name="r" IsTemporary="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="1">
       <dxl:Columns>
@@ -1107,9 +1107,9 @@
       </dxl:PartConstraint>
     </dxl:Relation>
     <dxl:Index Mdid="0.13144342.1.0" Name="idx_p1_j_1_prt_p11" IsClustered="false" KeyColumns="1" IncludedColumns="0,1">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
       <dxl:PartConstraint DefaultPartition="" Unbounded="false">
         <dxl:Or>
           <dxl:And>
@@ -1136,9 +1136,9 @@
       </dxl:PartConstraint>
     </dxl:Index>
     <dxl:Index Mdid="0.13144285.1.0" Name="idx_p1_i_1_prt_p11" IsClustered="false" KeyColumns="0" IncludedColumns="0,1">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
       <dxl:PartConstraint DefaultPartition="" Unbounded="false">
         <dxl:Or>
           <dxl:And>
@@ -2793,15 +2793,15 @@
       <dxl:CountAgg Mdid="0.2147.1.0"/>
     </dxl:Type>
     <dxl:Index Mdid="0.197454.1.1" Name="foo_ab" IsClustered="false" KeyColumns="0,1" IncludedColumns="0,1,2,3,4">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
     </dxl:Index>
     <dxl:Index Mdid="0.197514.1.1" Name="foo_bitmap_c" IsClustered="false" KeyColumns="2" IncludedColumns="0,1,2,3,4">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
     </dxl:Index>
     <dxl:Relation Mdid="0.17026.1.1" Name="foo" IsTemporary="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0">
       <dxl:Columns>
@@ -3637,9 +3637,9 @@
       <dxl:CheckConstraints/>
     </dxl:Relation>
     <dxl:Index Mdid="0.27324.1.0" Name="p_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
-      <dxl:OpClasses>
-        <dxl:OpClass Mdid="0.434.1.0"/>
-      </dxl:OpClasses>
+      <dxl:Opfamilies>
+        <dxl:Opfamily Mdid="0.434.1.0"/>
+      </dxl:Opfamilies>
       <dxl:PartConstraint Unbounded="false" DefaultPartition="">
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">

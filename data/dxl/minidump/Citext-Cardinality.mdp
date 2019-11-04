@@ -142,10 +142,10 @@
         <dxl:OpFunc Mdid="0.24594.1.0"/>
         <dxl:Commutator Mdid="0.24601.1.0"/>
         <dxl:InverseOp Mdid="0.24600.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.24608.1.0"/>
-          <dxl:OpClass Mdid="0.24616.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.24608.1.0"/>
+          <dxl:Opfamily Mdid="0.24616.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsTextRelated="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.385.1.0"/>

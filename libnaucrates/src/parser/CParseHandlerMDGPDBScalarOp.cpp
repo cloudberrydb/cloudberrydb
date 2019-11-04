@@ -199,13 +199,13 @@ CParseHandlerMDGPDBScalarOp::StartElement
 													EdxltokenGPDBScalarOpInverseOpId
 													);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenOpClasses), element_local_name))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenOpfamilies), element_local_name))
 	{
 		// parse handler for operator class list
-		CParseHandlerBase *op_class_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_parse_handler_mgr, this);
-		m_parse_handler_mgr->ActivateParseHandler(op_class_list_parse_handler);
-		this->Append(op_class_list_parse_handler);
-		op_class_list_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
+		CParseHandlerBase *opfamilies_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(opfamilies_list_parse_handler);
+		this->Append(opfamilies_list_parse_handler);
+		opfamilies_list_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
@@ -238,16 +238,16 @@ CParseHandlerMDGPDBScalarOp::EndElement
 		
 		GPOS_ASSERT(0 == this->Length() || 1 == this->Length());
 		
-		IMdIdArray *mdid_op_classes_array = NULL;
+		IMdIdArray *mdid_opfamilies_array = NULL;
 		if (0 < this->Length())
 		{
 			CParseHandlerMetadataIdList *mdid_list_parse_handler = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[0]);
-			mdid_op_classes_array = mdid_list_parse_handler->GetMdIdArray();
-			mdid_op_classes_array->AddRef();
+			mdid_opfamilies_array = mdid_list_parse_handler->GetMdIdArray();
+			mdid_opfamilies_array->AddRef();
 		}
 		else 
 		{
-			mdid_op_classes_array = GPOS_NEW(m_mp) IMdIdArray(m_mp);
+			mdid_opfamilies_array = GPOS_NEW(m_mp) IMdIdArray(m_mp);
 		}
 		m_imd_obj = GPOS_NEW(m_mp) CMDScalarOpGPDB
 				(
@@ -262,7 +262,7 @@ CParseHandlerMDGPDBScalarOp::EndElement
 				m_mdid_inverse_opr,
 				m_comparision_type,
 				m_returns_null_on_null_input,
-				mdid_op_classes_array
+				mdid_opfamilies_array
 				)
 				;
 		

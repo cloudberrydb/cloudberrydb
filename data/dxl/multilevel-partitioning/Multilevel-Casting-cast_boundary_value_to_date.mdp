@@ -222,11 +222,11 @@ explain select * from TestPartitionFilterCasting where p1 = 'a';
         <dxl:OpFunc Mdid="0.1086.1.0"/>
         <dxl:Commutator Mdid="0.1093.1.0"/>
         <dxl:InverseOp Mdid="0.1094.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.435.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.435.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1095.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -235,10 +235,10 @@ explain select * from TestPartitionFilterCasting where p1 = 'a';
         <dxl:OpFunc Mdid="0.1087.1.0"/>
         <dxl:Commutator Mdid="0.1097.1.0"/>
         <dxl:InverseOp Mdid="0.1098.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1097.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -247,10 +247,10 @@ explain select * from TestPartitionFilterCasting where p1 = 'a';
         <dxl:OpFunc Mdid="0.1089.1.0"/>
         <dxl:Commutator Mdid="0.1095.1.0"/>
         <dxl:InverseOp Mdid="0.1096.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1096.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -259,10 +259,10 @@ explain select * from TestPartitionFilterCasting where p1 = 'a';
         <dxl:OpFunc Mdid="0.1088.1.0"/>
         <dxl:Commutator Mdid="0.1098.1.0"/>
         <dxl:InverseOp Mdid="0.1097.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1098.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -271,10 +271,10 @@ explain select * from TestPartitionFilterCasting where p1 = 'a';
         <dxl:OpFunc Mdid="0.1090.1.0"/>
         <dxl:Commutator Mdid="0.1096.1.0"/>
         <dxl:InverseOp Mdid="0.1095.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3022.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.651256.1.1.9" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.651256.1.1.8" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

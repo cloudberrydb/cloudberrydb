@@ -186,11 +186,11 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
         <dxl:OpFunc Mdid="0.1718.1.0"/>
         <dxl:Commutator Mdid="0.1752.1.0"/>
         <dxl:InverseOp Mdid="0.1753.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.1998.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.1998.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.23.1.0;1700.1.0" Name="numeric" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.1700.1.0" CastFuncId="0.1740.1.0" CoercePathType="1"/>
     </dxl:Metadata>

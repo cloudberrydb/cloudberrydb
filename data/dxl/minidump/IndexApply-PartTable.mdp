@@ -281,10 +281,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.470.1.0"/>
         <dxl:Commutator Mdid="0.412.1.0"/>
         <dxl:InverseOp Mdid="0.414.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.16166659.1.1.11" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.16166659.1.1.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -805,10 +805,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.469.1.0"/>
         <dxl:Commutator Mdid="0.413.1.0"/>
         <dxl:InverseOp Mdid="0.415.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.414.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.20.1.0"/>
@@ -817,10 +817,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.471.1.0"/>
         <dxl:Commutator Mdid="0.415.1.0"/>
         <dxl:InverseOp Mdid="0.413.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.415.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.20.1.0"/>
@@ -829,10 +829,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.472.1.0"/>
         <dxl:Commutator Mdid="0.414.1.0"/>
         <dxl:InverseOp Mdid="0.412.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.3028.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.3028.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1054.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1042.1.0"/>
@@ -841,11 +841,11 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.1048.1.0"/>
         <dxl:Commutator Mdid="0.1054.1.0"/>
         <dxl:InverseOp Mdid="0.1057.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.426.1.0"/>
-          <dxl:OpClass Mdid="0.427.1.0"/>
-          <dxl:OpClass Mdid="0.3018.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.426.1.0"/>
+          <dxl:Opfamily Mdid="0.427.1.0"/>
+          <dxl:Opfamily Mdid="0.3018.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
@@ -863,10 +863,10 @@ ORDER BY 1 asc ;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Index Mdid="0.16166830.1.0" Name="my_tq_agg_small_ets_end_ts_ix_1_prt_p1" IsClustered="false" IndexType="B-tree" KeyColumns="0,4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-          <dxl:OpClass Mdid="0.1980.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+          <dxl:Opfamily Mdid="0.1980.1.0"/>
+        </dxl:Opfamilies>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1757.1.0">
@@ -1228,10 +1228,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.1722.1.0"/>
         <dxl:Commutator Mdid="0.1756.1.0"/>
         <dxl:InverseOp Mdid="0.1757.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.16166659.1.1.7" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.16166659.1.1.6" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -1244,10 +1244,10 @@ ORDER BY 1 asc ;
         <dxl:OpFunc Mdid="0.1721.1.0"/>
         <dxl:Commutator Mdid="0.1755.1.0"/>
         <dxl:InverseOp Mdid="0.1754.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.16166631.1.1" Name="my_tt_agg_small" Rows="420.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.16166631.1.1" Name="my_tt_agg_small" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,4">

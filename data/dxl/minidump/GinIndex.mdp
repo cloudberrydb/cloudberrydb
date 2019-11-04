@@ -173,9 +173,9 @@
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:Index Mdid="0.20130.1.0" Name="jidx" IsClustered="false" IndexType="Gin" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.4036.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.4036.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:GPDBScalarOp Mdid="0.3246.1.0" Name="@&gt;" ComparisonType="Other" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.3802.1.0"/>
@@ -183,10 +183,10 @@
         <dxl:ResultType Mdid="0.16.1.0"/>
         <dxl:OpFunc Mdid="0.4046.1.0"/>
         <dxl:Commutator Mdid="0.3250.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.4036.1.0"/>
-          <dxl:OpClass Mdid="0.4037.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.4036.1.0"/>
+          <dxl:Opfamily Mdid="0.4037.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.3802.1.0" Name="jsonb" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.3240.1.0"/>

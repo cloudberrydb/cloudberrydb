@@ -221,11 +221,11 @@ explain select * from t_numeric where c5 in (10, 11);
         <dxl:OpFunc Mdid="0.1718.1.0"/>
         <dxl:Commutator Mdid="0.1752.1.0"/>
         <dxl:InverseOp Mdid="0.1753.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-          <dxl:OpClass Mdid="0.7676.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+          <dxl:Opfamily Mdid="0.7676.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1754.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1700.1.0"/>
@@ -234,10 +234,10 @@ explain select * from t_numeric where c5 in (10, 11);
         <dxl:OpFunc Mdid="0.1722.1.0"/>
         <dxl:Commutator Mdid="0.1756.1.0"/>
         <dxl:InverseOp Mdid="0.1757.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1756.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.1700.1.0"/>
@@ -246,10 +246,10 @@ explain select * from t_numeric where c5 in (10, 11);
         <dxl:OpFunc Mdid="0.1720.1.0"/>
         <dxl:Commutator Mdid="0.1754.1.0"/>
         <dxl:InverseOp Mdid="0.1755.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1988.1.0"/>
-          <dxl:OpClass Mdid="0.3032.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1988.1.0"/>
+          <dxl:Opfamily Mdid="0.3032.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.4025183.1.1.8" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.4025183.1.1.1" Name="c5" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

@@ -41,7 +41,7 @@ CMDScalarOpGPDB::CMDScalarOpGPDB
 	IMDId *m_mdid_inverse_opr,
 	IMDType::ECmpType cmp_type,
 	BOOL returns_null_on_null_input,
-	IMdIdArray *mdid_op_classes_array
+	IMdIdArray *mdid_opfamilies_array
 	)
 	:
 	m_mp(mp),
@@ -55,9 +55,9 @@ CMDScalarOpGPDB::CMDScalarOpGPDB
 	m_mdid_inverse_opr(m_mdid_inverse_opr),
 	m_comparision_type(cmp_type),
 	m_returns_null_on_null_input(returns_null_on_null_input),
-	m_mdid_op_classes_array(mdid_op_classes_array)
+	m_mdid_opfamilies_array(mdid_opfamilies_array)
 {
-	GPOS_ASSERT(NULL != mdid_op_classes_array);
+	GPOS_ASSERT(NULL != mdid_opfamilies_array);
 	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
@@ -83,7 +83,7 @@ CMDScalarOpGPDB::~CMDScalarOpGPDB()
 	
 	GPOS_DELETE(m_mdname);
 	GPOS_DELETE(m_dxl_str);
-	m_mdid_op_classes_array->Release();
+	m_mdid_opfamilies_array->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -283,12 +283,12 @@ CMDScalarOpGPDB::Serialize
 		GPOS_CHECK_ABORT;
 	}	
 	
-	// serialize operator class information
-	if (0 < m_mdid_op_classes_array->Size())
+	// serialize opfamilies information
+	if (0 < m_mdid_opfamilies_array->Size())
 	{
-		SerializeMDIdList(xml_serializer, m_mdid_op_classes_array, 
-						CDXLTokens::GetDXLTokenStr(EdxltokenOpClasses), 
-						CDXLTokens::GetDXLTokenStr(EdxltokenOpClass));
+		SerializeMDIdList(xml_serializer, m_mdid_opfamilies_array, 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpfamilies), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpfamily));
 	}
 	
 	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
@@ -297,36 +297,36 @@ CMDScalarOpGPDB::Serialize
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::OpClassesCount
+//		CMDScalarOpGPDB::OpfamiliesCount
 //
 //	@doc:
-//		Number of classes this operator belongs to
+//		Number of opfamilies this operator belongs to
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDScalarOpGPDB::OpClassesCount() const
+CMDScalarOpGPDB::OpfamiliesCount() const
 {
-	return m_mdid_op_classes_array->Size();
+	return m_mdid_opfamilies_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::OpClassMdidAt
+//		CMDScalarOpGPDB::OpfamilyMdidAt
 //
 //	@doc:
-//		Operator class at given position
+//		Operator family at given position
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::OpClassMdidAt
+CMDScalarOpGPDB::OpfamilyMdidAt
 	(
 	ULONG pos
 	) 
 	const
 {
-	GPOS_ASSERT(pos < m_mdid_op_classes_array->Size());
+	GPOS_ASSERT(pos < m_mdid_opfamilies_array->Size());
 	
-	return (*m_mdid_op_classes_array)[pos];
+	return (*m_mdid_opfamilies_array)[pos];
 }
 
 

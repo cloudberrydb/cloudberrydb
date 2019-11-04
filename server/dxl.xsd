@@ -236,7 +236,7 @@
 	
 	<xsd:complexType name="MDIndexType">
 		<xsd:sequence>
-			<xsd:element name="OpClasses" type="dxl:OpClassRefListType"/>
+			<xsd:element name="Opfamilies" type="dxl:OpfamilyRefListType"/>
 		</xsd:sequence>
 		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
 		<xsd:attribute name="Name" type="xsd:string" use="required"/>
@@ -326,9 +326,9 @@
 		<xsd:attribute name="TypeMdids" type="xsd:string" use="required"/>
 	</xsd:complexType>
 		
-	<xsd:complexType name="dxl:OpClassRefListType">
+	<xsd:complexType name="dxl:OpfamilyRefListType">
 		<xsd:sequence>
-			<xsd:element name="OpClass" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+			<xsd:element name="Opfamily" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
@@ -368,7 +368,7 @@
 			<xsd:element name="OpFunc" type="dxl:MDIdRefType"/>
 			<xsd:element name="Commutator" type="dxl:MDIdRefType" minOccurs="0"/>
 			<xsd:element name="InverseOp" type="dxl:MDIdRefType" minOccurs="0"/>
-			<xsd:element name="OpClasses" type="dxl:OpClassRefListType"/>
+			<xsd:element name="Opfamilies" type="dxl:OpfamilyRefListType"/>
 		</xsd:sequence>
 		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
 		<xsd:attribute name="Name" type="xsd:string" use="required"/>

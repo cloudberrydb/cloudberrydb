@@ -543,8 +543,8 @@ CDXLTokens::Init
 			{EdxltokenIndexTypeGin, GPOS_WSZ_LIT("Gin")},
 			{EdxltokenIndexItemType, GPOS_WSZ_LIT("IndexItemType")},
 
-			{EdxltokenOpClass, GPOS_WSZ_LIT("OpClass")},
-			{EdxltokenOpClasses, GPOS_WSZ_LIT("OpClasses")},
+			{EdxltokenOpfamily, GPOS_WSZ_LIT("Opfamily")},
+			{EdxltokenOpfamilies, GPOS_WSZ_LIT("Opfamilies")},
 
 			{EdxltokenPartitions, GPOS_WSZ_LIT("Partitions")},
 			{EdxltokenPartition, GPOS_WSZ_LIT("Partition")},

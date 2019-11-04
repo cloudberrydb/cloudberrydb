@@ -120,10 +120,10 @@ select b from foo_bool group by b;
         <dxl:OpFunc Mdid="0.56.1.0"/>
         <dxl:Commutator Mdid="0.59.1.0"/>
         <dxl:InverseOp Mdid="0.1695.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.424.1.0"/>
-          <dxl:OpClass Mdid="0.3017.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.424.1.0"/>
+          <dxl:Opfamily Mdid="0.3017.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.1474154.1.1.7" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="0.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.1474154.1.1.6" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

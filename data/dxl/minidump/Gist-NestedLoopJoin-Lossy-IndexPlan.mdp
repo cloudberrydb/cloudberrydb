@@ -97,9 +97,9 @@
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:Index Mdid="0.16406.1.0" Name="poly_index" IsClustered="false" IndexType="Gist" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.2594.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.2594.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:RelationStatistics Mdid="2.16407.1.0" Name="gist_tbl2" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.16407.1.0" Name="gist_tbl2" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" NumberLeafPartitions="0">
@@ -268,9 +268,9 @@
         <dxl:ResultType Mdid="0.16.1.0"/>
         <dxl:OpFunc Mdid="0.339.1.0"/>
         <dxl:Commutator Mdid="0.491.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.2594.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.2594.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

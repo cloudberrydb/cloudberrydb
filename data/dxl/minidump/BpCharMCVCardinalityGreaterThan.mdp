@@ -167,10 +167,10 @@
         <dxl:OpFunc Mdid="0.1051.1.0"/>
         <dxl:Commutator Mdid="0.1058.1.0"/>
         <dxl:InverseOp Mdid="0.1059.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.426.1.0"/>
-          <dxl:OpClass Mdid="0.7018.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.426.1.0"/>
+          <dxl:Opfamily Mdid="0.7018.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.19598.1.0.0" Name="a" Width="3.000000" NullFreq="0.000000" NdvRemain="992.000000" FreqRemain="0.495500" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.050500" DistinctValues="1.000000">

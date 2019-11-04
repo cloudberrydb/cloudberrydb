@@ -4179,10 +4179,10 @@
                 <dxl:OpFunc Mdid="0.66.1.0"/>
                 <dxl:Commutator Mdid="0.521.1.0"/>
                 <dxl:InverseOp Mdid="0.525.1.0"/>
-                <dxl:OpClasses>
-                    <dxl:OpClass Mdid="0.1976.1.0"/>
-                    <dxl:OpClass Mdid="0.7027.1.0"/>
-                </dxl:OpClasses>
+                <dxl:Opfamilies>
+                    <dxl:Opfamily Mdid="0.1976.1.0"/>
+                    <dxl:Opfamily Mdid="0.7027.1.0"/>
+                </dxl:Opfamilies>
             </dxl:GPDBScalarOp>
             <dxl:GPDBScalarOp ComparisonType="Eq" Mdid="0.96.1.0" Name="=" ReturnsNullOnNullInput="true">
                 <dxl:LeftType Mdid="0.23.1.0"/>
@@ -4191,11 +4191,11 @@
                 <dxl:OpFunc Mdid="0.65.1.0"/>
                 <dxl:Commutator Mdid="0.96.1.0"/>
                 <dxl:InverseOp Mdid="0.518.1.0"/>
-                <dxl:OpClasses>
-                    <dxl:OpClass Mdid="0.1976.1.0"/>
-                    <dxl:OpClass Mdid="0.1977.1.0"/>
-                    <dxl:OpClass Mdid="0.7027.1.0"/>
-                </dxl:OpClasses>
+                <dxl:Opfamilies>
+                    <dxl:Opfamily Mdid="0.1976.1.0"/>
+                    <dxl:Opfamily Mdid="0.1977.1.0"/>
+                    <dxl:Opfamily Mdid="0.7027.1.0"/>
+                </dxl:Opfamilies>
             </dxl:GPDBScalarOp>
         </dxl:Metadata>
         <dxl:Query>

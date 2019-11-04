@@ -148,9 +148,9 @@ CParseHandlerMDIndex::StartElement
 													);
 	
 	// parse handler for operator class list
-	CParseHandlerBase *op_class_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_parse_handler_mgr, this);
-	this->Append(op_class_list_parse_handler);
-	m_parse_handler_mgr->ActivateParseHandler(op_class_list_parse_handler);
+	CParseHandlerBase *opfamilies_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_parse_handler_mgr, this);
+	this->Append(opfamilies_list_parse_handler);
+	m_parse_handler_mgr->ActivateParseHandler(opfamilies_list_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -186,9 +186,9 @@ CParseHandlerMDIndex::EndElement
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 	
-	CParseHandlerMetadataIdList *pphMdidOpClasses = dynamic_cast<CParseHandlerMetadataIdList *>((*this)[0]);
-	IMdIdArray *mdid_op_classes_array = pphMdidOpClasses->GetMdIdArray();
-	mdid_op_classes_array->AddRef();
+	CParseHandlerMetadataIdList *pphMdidOpfamilies = dynamic_cast<CParseHandlerMetadataIdList *>((*this)[0]);
+	IMdIdArray *mdid_opfamilies_array = pphMdidOpfamilies->GetMdIdArray();
+	mdid_opfamilies_array->AddRef();
 
 	m_imd_obj = GPOS_NEW(m_mp) CMDIndexGPDB
 							(
@@ -200,7 +200,7 @@ CParseHandlerMDIndex::EndElement
 							m_mdid_item_type,
 							m_index_key_cols_array, 
 							m_included_cols_array, 
-							mdid_op_classes_array,
+							mdid_opfamilies_array,
 							m_part_constraint
 							);
 	

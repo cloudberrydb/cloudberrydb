@@ -174,13 +174,13 @@
         <dxl:OpFunc Mdid="0.61.1.0"/>
         <dxl:Commutator Mdid="0.92.1.0"/>
         <dxl:InverseOp Mdid="0.630.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.429.1.0"/>
-          <dxl:OpClass Mdid="0.431.1.0"/>
-          <dxl:OpClass Mdid="0.4062.1.0"/>
-          <dxl:OpClass Mdid="0.7104.1.0"/>
-          <dxl:OpClass Mdid="0.12625.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.429.1.0"/>
+          <dxl:Opfamily Mdid="0.431.1.0"/>
+          <dxl:Opfamily Mdid="0.4062.1.0"/>
+          <dxl:Opfamily Mdid="0.7104.1.0"/>
+          <dxl:Opfamily Mdid="0.12625.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

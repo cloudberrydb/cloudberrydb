@@ -195,9 +195,9 @@ explain select count(distinct h) from testhstore;
         <dxl:OpFunc Mdid="0.32833.1.0"/>
         <dxl:Commutator Mdid="0.32838.1.0"/>
         <dxl:InverseOp Mdid="0.32839.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.32842.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.32842.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>

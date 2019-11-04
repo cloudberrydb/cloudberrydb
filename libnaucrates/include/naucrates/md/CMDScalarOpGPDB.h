@@ -73,7 +73,7 @@ namespace gpmd
 			BOOL m_returns_null_on_null_input;
 			
 			// operator classes this operator belongs to
-		IMdIdArray *m_mdid_op_classes_array;
+		IMdIdArray *m_mdid_opfamilies_array;
 
 			CMDScalarOpGPDB(const CMDScalarOpGPDB &);
 			
@@ -93,7 +93,7 @@ namespace gpmd
 				IMDId *m_mdid_inverse_opr,
 				IMDType::ECmpType cmp_type,
 				BOOL returns_null_on_null_input,
-				IMdIdArray *mdid_op_classes_array
+				IMdIdArray *mdid_opfamilies_array
 				);
 			
 			~CMDScalarOpGPDB();
@@ -157,11 +157,11 @@ namespace gpmd
 			
 			// number of classes this operator belongs to
 			virtual
-			ULONG OpClassesCount() const;
+			ULONG OpfamiliesCount() const;
 			
 			// operator class at given position
 			virtual
-			IMDId *OpClassMdidAt(ULONG pos) const;
+			IMDId *OpfamilyMdidAt(ULONG pos) const;
 			
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

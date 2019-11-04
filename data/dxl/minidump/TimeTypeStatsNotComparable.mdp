@@ -138,16 +138,16 @@
         <dxl:OpFunc Mdid="0.1152.1.0"/>
         <dxl:Commutator Mdid="0.1320.1.0"/>
         <dxl:InverseOp Mdid="0.1321.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.1999.1.0"/>
-          <dxl:OpClass Mdid="0.3037.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.1999.1.0"/>
+          <dxl:Opfamily Mdid="0.3037.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:Index Mdid="0.16955.1.0" Name="foo_idx" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+        </dxl:Opfamilies>
       </dxl:Index>
       <dxl:RelationStatistics Mdid="2.16952.1.0" Name="foo" Rows="100.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.16952.1.0" Name="foo" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1" NumberLeafPartitions="0">
@@ -211,10 +211,10 @@
         <dxl:OpFunc Mdid="0.2522.1.0"/>
         <dxl:Commutator Mdid="0.2542.1.0"/>
         <dxl:InverseOp Mdid="0.2539.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3041.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.434.1.0"/>
+          <dxl:Opfamily Mdid="0.3041.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
     </dxl:Metadata>
     <dxl:Query>

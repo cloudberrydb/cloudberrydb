@@ -133,10 +133,10 @@ explain with t as (select * from foo) select count(*) from t where random() < 0.
         <dxl:OpFunc Mdid="0.295.1.0"/>
         <dxl:Commutator Mdid="0.674.1.0"/>
         <dxl:InverseOp Mdid="0.675.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1970.1.0"/>
-          <dxl:OpClass Mdid="0.3024.1.0"/>
-        </dxl:OpClasses>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1970.1.0"/>
+          <dxl:Opfamily Mdid="0.3024.1.0"/>
+        </dxl:Opfamilies>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.729127.1.1.1" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="100.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.729127.1.1.0" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
