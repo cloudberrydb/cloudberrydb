@@ -6,7 +6,6 @@
 	<topicref href="../../6-0/homenav.html" scope="external"
 		navtitle="Pivotal Greenplum® 6.0 Documentation" format="html" otherprops="pivotal"/>
 	<topicref href="ref_guide.xml">
-		<topicref href="000-temp.ditamap" format="ditamap"/>
 		<topicref href="sql_commands/sql_ref.xml">
 			<topicref href="GPReferenceSQLSummaryLOP.xml"/>
 			<topicref href="sql_commands/ABORT.xml"/>
