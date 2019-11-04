@@ -758,6 +758,7 @@ fi
 AC_PROG_CPP
 AC_SUBST(GCC)
 
+
 #
 # Set up TAS assembly code if needed; the template file has now had its
 # chance to request this.
@@ -1141,7 +1142,7 @@ AC_SUBST(with_apu_config)
 #
 
 # Assume system is ELF if it predefines __ELF__ as 1,
-# otherwise believe host_os based default.PostgreSQL
+# otherwise believe host_os based default.
 case $host_os in
     freebsd1*|freebsd2*) elf=no;;
     freebsd3*|freebsd4*) elf=yes;;
@@ -1225,6 +1226,12 @@ if test "$with_perl" = yes; then
     AC_MSG_ERROR([Perl not found])
   fi
   PGAC_CHECK_PERL_CONFIGS([archlibexp,privlibexp,useshrplib])
+  if test "$perl_useshrplib" != yes && test "$perl_useshrplib" != true; then
+    AC_MSG_ERROR([cannot build PL/Perl because libperl is not a shared library
+You might have to rebuild your Perl installation.  Refer to the
+documentation for details.  Use --without-perl to disable building
+PL/Perl.])
+  fi
   # On most platforms, archlibexp is also where the Perl include files live ...
   perl_includespec="-I$perl_archlibexp/CORE"
   # ... but on newer macOS versions, we must use -iwithsysroot to look
@@ -1236,12 +1243,6 @@ if test "$with_perl" = yes; then
   fi
   AC_SUBST(perl_includespec)dnl
   PGAC_CHECK_PERL_EMBED_CCFLAGS
-  if test "$perl_useshrplib" != yes && test "$perl_useshrplib" != true; then
-    AC_MSG_ERROR([cannot build PL/Perl because libperl is not a shared library
-You might have to rebuild your Perl installation.  Refer to the
-documentation for details.  Use --without-perl to disable building
-PL/Perl.])
-  fi
   PGAC_CHECK_PERL_EMBED_LDFLAGS
 fi
 
@@ -1870,7 +1871,33 @@ LIBS=`echo "$LIBS" | sed -e 's/-ledit//g' -e 's/-lreadline//g'`
 # net-snmp has the same problem..
 LIBS=`echo "$LIBS" | sed -e 's/-lnetsnmp//g'`
 
-AC_CHECK_FUNCS([backtrace_symbols cbrt dlopen fdatasync getifaddrs getpeerucred getrlimit mbstowcs_l memmove poll posix_fallocate pstat pthread_is_threaded_np readlink setproctitle setsid shm_open sigprocmask symlink sync_file_range towlower utime utimes wcstombs wcstombs_l])
+AC_CHECK_FUNCS(m4_normalize([
+	backtrace_symbols
+	cbrt
+	dlopen
+	fdatasync
+	getifaddrs
+	getpeerucred
+	getrlimit
+	mbstowcs_l
+	memmove
+	poll
+	posix_fallocate
+	pstat
+	pthread_is_threaded_np
+	readlink
+	setproctitle
+	setsid
+	shm_open
+	sigprocmask
+	symlink
+	sync_file_range
+	towlower
+	utime
+	utimes
+	wcstombs
+	wcstombs_l
+]))
 
 AC_REPLACE_FUNCS(fseeko)
 case $host_os in
@@ -2500,8 +2527,8 @@ if test "$PORTNAME" != "win32"; then
       AC_DEFINE(USE_UNNAMED_POSIX_SEMAPHORES, 1, [Define to select unnamed POSIX semaphores.])
       SEMA_IMPLEMENTATION="src/backend/port/posix_sema.c"
     else
-  AC_DEFINE(USE_SYSV_SEMAPHORES, 1, [Define to select SysV-style semaphores.])
-  SEMA_IMPLEMENTATION="src/backend/port/sysv_sema.c"
+      AC_DEFINE(USE_SYSV_SEMAPHORES, 1, [Define to select SysV-style semaphores.])
+      SEMA_IMPLEMENTATION="src/backend/port/sysv_sema.c"
     fi
   fi
 else

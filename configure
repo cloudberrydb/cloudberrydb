@@ -6437,6 +6437,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
 #
 # Set up TAS assembly code if needed; the template file has now had its
 # chance to request this.
@@ -8292,7 +8293,7 @@ fi
 #
 
 # Assume system is ELF if it predefines __ELF__ as 1,
-# otherwise believe host_os based default.PostgreSQL
+# otherwise believe host_os based default.
 case $host_os in
     freebsd1*|freebsd2*) elf=no;;
     freebsd3*|freebsd4*) elf=yes;;
@@ -9687,6 +9688,12 @@ perl_useshrplib=`$PERL -MConfig -e 'print $Config{useshrplib}'`
 test "$PORTNAME" = "win32" && perl_useshrplib=`echo $perl_useshrplib | sed 's,\\\\,/,g'`
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $perl_useshrplib" >&5
 $as_echo "$perl_useshrplib" >&6; }
+  if test "$perl_useshrplib" != yes && test "$perl_useshrplib" != true; then
+    as_fn_error $? "cannot build PL/Perl because libperl is not a shared library
+You might have to rebuild your Perl installation.  Refer to the
+documentation for details.  Use --without-perl to disable building
+PL/Perl." "$LINENO" 5
+  fi
   # On most platforms, archlibexp is also where the Perl include files live ...
   perl_includespec="-I$perl_archlibexp/CORE"
   # ... but on newer macOS versions, we must use -iwithsysroot to look
@@ -9708,12 +9715,6 @@ perl_embed_ccflags=`$PERL -MConfig -e 'foreach $f (split(" ",$Config{ccflags})) 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $perl_embed_ccflags" >&5
 $as_echo "$perl_embed_ccflags" >&6; }
 
-  if test "$perl_useshrplib" != yes && test "$perl_useshrplib" != true; then
-    as_fn_error $? "cannot build PL/Perl because libperl is not a shared library
-You might have to rebuild your Perl installation.  Refer to the
-documentation for details.  Use --without-perl to disable building
-PL/Perl." "$LINENO" 5
-  fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for flags to link embedded Perl" >&5
 $as_echo_n "checking for flags to link embedded Perl... " >&6; }
@@ -19180,7 +19181,7 @@ $as_echo "#define USE_UNNAMED_POSIX_SEMAPHORES 1" >>confdefs.h
 
 $as_echo "#define USE_SYSV_SEMAPHORES 1" >>confdefs.h
 
-  SEMA_IMPLEMENTATION="src/backend/port/sysv_sema.c"
+      SEMA_IMPLEMENTATION="src/backend/port/sysv_sema.c"
     fi
   fi
 else
