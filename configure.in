@@ -788,11 +788,6 @@ PGAC_ARG_BOOL(enable, cassert, no, [enable assertion checks (for debugging)],
               [AC_DEFINE([USE_ASSERT_CHECKING], 1,
                          [Define to 1 to build with assertion checks. (--enable-cassert)])])
 
-# Enable debug ntuplestore
-PGAC_ARG_BOOL(enable, debugntuplestore, no, [enable debug_ntuplestore (for debugging)],
-              [AC_DEFINE([USE_DEBUG_NTUPLESTORE], 1,
-                         [Define to 1 to build with debug_ntuplestore. (--enable-ntuplestore)])])
-
 #
 # Enable GPORCA optimizer
 #

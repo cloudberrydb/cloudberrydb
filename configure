@@ -864,7 +864,6 @@ with_wal_segsize
 with_CC
 enable_depend
 enable_cassert
-enable_debugntuplestore
 enable_orca
 enable_mapreduce
 enable_gpcloud
@@ -1548,8 +1547,6 @@ Optional Features:
   --enable-tap-tests      enable TAP tests (requires Perl and IPC::Run)
   --enable-depend         turn on automatic dependency tracking
   --enable-cassert        enable assertion checks (for debugging)
-  --enable-debugntuplestore
-                          enable debug_ntuplestore (for debugging)
   --disable-orca          disable ORCA optimizer
   --enable-mapreduce      enable Greenplum Mapreduce support
   --disable-gpcloud       disable gpcloud support
@@ -6506,33 +6503,6 @@ $as_echo "#define USE_ASSERT_CHECKING 1" >>confdefs.h
 
 else
   enable_cassert=no
-
-fi
-
-
-
-# Enable debug ntuplestore
-
-
-# Check whether --enable-debugntuplestore was given.
-if test "${enable_debugntuplestore+set}" = set; then :
-  enableval=$enable_debugntuplestore;
-  case $enableval in
-    yes)
-
-$as_echo "#define USE_DEBUG_NTUPLESTORE 1" >>confdefs.h
-
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --enable-debugntuplestore option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  enable_debugntuplestore=no
 
 fi
 

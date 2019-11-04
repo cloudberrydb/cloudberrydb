@@ -912,9 +912,6 @@
 /* Define to 1 to build with libcurl support. (--with-libcurl) */
 #undef USE_CURL
 
-/* Define to 1 to build with debug_ntuplestore. (--enable-ntuplestore) */
-#undef USE_DEBUG_NTUPLESTORE
-
 /* Define to use /dev/urandom for random number generation */
 #undef USE_DEV_URANDOM
 
