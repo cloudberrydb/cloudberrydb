@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-      Objective: Max card for full outer join should be the multiplication of max card
-      of left and right child, given both of them are non-zeor.  
-      We cannot collapse the below query to a Const Table Get with False filter
-      as both the child has non-zero max card.
-      
-      Query:
-      WITH cte1 AS (SELECT a FROM (VALUES (1),(2)) AS x(a)),                                                                                                                                                                                             cte2 AS (SELECT b FROM (VALUES (2)) AS x(b))
-      SELECT a, b FROM cte1 FULL JOIN cte2 ON true; 
-       a | b
-      ---+---
-       1 | 2
-       2 | 2
+  <dxl:Comment><![CDATA[
+    Objective: Max card for full outer join should be the multiplication of max card
+    of left and right child, given both of them are non-zeor.
+    We cannot collapse the below query to a Const Table Get with False filter
+    as both the child has non-zero max card.
+
+    Query:
+    WITH cte1 AS (SELECT a FROM (VALUES (1),(2)) AS x(a)), cte2 AS (SELECT b FROM (VALUES (2)) AS x(b))
+    SELECT a, b FROM cte1 FULL JOIN cte2 ON true;
+     a | b
+    ---+---
+     1 | 2
+     2 | 2
+  ]]></dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>

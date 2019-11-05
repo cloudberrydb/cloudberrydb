@@ -1012,7 +1012,7 @@
                   <dxl:IndexCondList>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                       <dxl:Ident ColId="31" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.19.1.0" Value="dGlkeWNhdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                      <dxl:ConstValue TypeMdid="0.19.1.0" Value="dGlkeWNhdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                     </dxl:Comparison>
                   </dxl:IndexCondList>
                   <dxl:IndexDescriptor Mdid="0.2684.1.0" IndexName="pg_namespace_nspname_index"/>
@@ -1128,7 +1128,7 @@
                   <dxl:IndexCondList>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                       <dxl:Ident ColId="73" ColName="nspname" TypeMdid="0.19.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.19.1.0" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                      <dxl:ConstValue TypeMdid="0.19.1.0" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                     </dxl:Comparison>
                   </dxl:IndexCondList>
                   <dxl:IndexDescriptor Mdid="0.2684.1.0" IndexName="pg_namespace_nspname_index"/>

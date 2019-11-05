@@ -2019,7 +2019,7 @@ SELECT * FROM information_schema.tables;
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                         <dxl:Ident ColId="55" ColName="nspname" TypeMdid="0.19.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.19.1.0" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                        <dxl:ConstValue TypeMdid="0.19.1.0" Value="cGdfY2F0YWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                       </dxl:Comparison>
                       <dxl:Or>
                         <dxl:Comparison ComparisonOperator="~~" OperatorMdid="0.1207.1.0">
@@ -2028,7 +2028,7 @@ SELECT * FROM information_schema.tables;
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                           <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.19.1.0" Value="Z3BfZ2xvYmFsX3NlcXVlbmNlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                          <dxl:ConstValue TypeMdid="0.19.1.0" Value="Z3BfZ2xvYmFsX3NlcXVlbmNlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                         </dxl:Comparison>
                       </dxl:Or>
                     </dxl:And>
@@ -2058,7 +2058,7 @@ SELECT * FROM information_schema.tables;
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.93.1.0">
                         <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.19.1.0" Value="Z3BfZ2xvYmFsX3NlcXVlbmNlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
+                        <dxl:ConstValue TypeMdid="0.19.1.0" Value="Z3BfZ2xvYmFsX3NlcXVlbmNlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAA=="/>
                       </dxl:Comparison>
                     </dxl:Or>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.92.1.0">

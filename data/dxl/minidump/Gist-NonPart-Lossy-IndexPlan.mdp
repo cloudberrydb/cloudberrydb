@@ -280,13 +280,13 @@ Optimizer status: PQO version 2.65.1
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;@" OperatorMdid="0.489.1.0">
               <dxl:Ident ColId="1" ColName="p" TypeMdid="0.604.1.0"/>
-              <dxl:ConstValue TypeMdid="0.604.1.0" Value="AAAAaAQAAAAAAAAAAAAUQAAAAAAAABRAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRAAAAAAAAAFEAAAAAAAAAUQAAA&#xA;AAAAABRAAAAAAAAAAAA="/>
+              <dxl:ConstValue TypeMdid="0.604.1.0" Value="AAAAaAQAAAAAAAAAAAAUQAAAAAAAABRAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRAAAAAAAAAFEAAAAAAAAAUQAAA&#10;AAAAABRAAAAAAAAAAAA="/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:IndexCondList>
             <dxl:Comparison ComparisonOperator="&lt;@" OperatorMdid="0.489.1.0">
               <dxl:Ident ColId="1" ColName="p" TypeMdid="0.604.1.0"/>
-              <dxl:ConstValue TypeMdid="0.604.1.0" Value="AAAAaAQAAAAAAAAAAAAUQAAAAAAAABRAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#xA;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRAAAAAAAAAFEAAAAAAAAAUQAAA&#xA;AAAAABRAAAAAAAAAAAA="/>
+              <dxl:ConstValue TypeMdid="0.604.1.0" Value="AAAAaAQAAAAAAAAAAAAUQAAAAAAAABRAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&#10;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRAAAAAAAAAFEAAAAAAAAAUQAAA&#10;AAAAABRAAAAAAAAAAAA="/>
             </dxl:Comparison>
           </dxl:IndexCondList>
           <dxl:IndexDescriptor Mdid="0.573703.1.0" IndexName="gist_tbl_point_index"/>
