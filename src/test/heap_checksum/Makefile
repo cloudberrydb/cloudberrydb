@@ -9,7 +9,6 @@ top_builddir = ../../..
 
 include $(top_builddir)/src/Makefile.global
 
-USE_MODULE_DB=1
 NO_PGXS = 1
 include $(top_srcdir)/src/makefiles/pgxs.mk
 
