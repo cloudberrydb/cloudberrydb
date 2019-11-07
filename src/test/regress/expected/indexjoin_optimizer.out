@@ -31,14 +31,14 @@ ORDER BY 1 asc ;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..878.47 rows=413 width=16)
    Merge Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
-   ->  GroupAggregate  (cost=0.00..878.44 rows=138 width=16)
+   ->  Finalize GroupAggregate  (cost=0.00..878.44 rows=138 width=16)
          Group Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
          ->  Sort  (cost=0.00..878.44 rows=138 width=16)
                Sort Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..878.35 rows=138 width=16)
                      Hash Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
                      ->  Result  (cost=0.00..878.34 rows=138 width=16)
-                           ->  HashAggregate  (cost=0.00..878.34 rows=138 width=16)
+                           ->  Streaming Partial HashAggregate  (cost=0.00..878.34 rows=138 width=16)
                                  Group Key: (((my_tt_agg_small.event_ts / 100000) / 5) * 5)
                                  ->  Result  (cost=0.00..866.40 rows=94594 width=8)
                                        ->  Hash Join  (cost=0.00..865.64 rows=94594 width=8)
@@ -51,7 +51,6 @@ ORDER BY 1 asc ;
  Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0
 (20 rows)
 
-  
 SELECT (tt.event_ts / 100000) / 5 * 5 as fivemin, COUNT(*)
 FROM my_tt_agg_small tt, my_tq_agg_small tq
 WHERE tq.sym = tt.symbol AND
@@ -95,14 +94,14 @@ ORDER BY 1 asc ;
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1359.12 rows=413 width=16)
    Merge Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
-   ->  GroupAggregate  (cost=0.00..1359.09 rows=138 width=16)
+   ->  Finalize GroupAggregate  (cost=0.00..1359.09 rows=138 width=16)
          Group Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
          ->  Sort  (cost=0.00..1359.08 rows=138 width=16)
                Sort Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1358.94 rows=138 width=16)
                      Hash Key: ((((my_tt_agg_small.event_ts / 100000) / 5) * 5))
                      ->  Result  (cost=0.00..1358.93 rows=138 width=16)
-                           ->  HashAggregate  (cost=0.00..1358.93 rows=138 width=16)
+                           ->  Streaming Partial HashAggregate  (cost=0.00..1358.93 rows=138 width=16)
                                  Group Key: (((my_tt_agg_small.event_ts / 100000) / 5) * 5)
                                  ->  Result  (cost=0.00..1341.01 rows=94594 width=8)
                                        ->  Nested Loop  (cost=0.00..1339.87 rows=94594 width=8)

@@ -27,9 +27,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.447..4.447 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.447..4.447 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=0.00..1293.00 rows=1 width=8) (actual time=3.563..4.437 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.334..4.334 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.334..4.334 rows=1 loops=1)
                ->  Hash Join  (cost=0.00..1293.00 rows=1 width=1) (never executed)
                      Hash Cond: (test_gang_reuse_t1.c2 = test_gang_reuse_t1_1.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..431.00 rows=1 width=4) (never executed)
@@ -62,9 +62,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=4.706..4.706 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=4.706..4.706 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=0.00..862.00 rows=1 width=8) (actual time=4.697..4.700 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=3.688..3.688 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=3.688..3.688 rows=1 loops=1)
                ->  Hash Join  (cost=0.00..862.00 rows=1 width=1) (never executed)
                      Hash Cond: (test_gang_reuse_t1.c2 = test_gang_reuse_t1_1.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..431.00 rows=1 width=4) (never executed)
@@ -91,9 +91,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=3.645..3.645 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=3.645..3.645 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=0.00..1293.00 rows=1 width=8) (actual time=2.705..3.632 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.024..4.024 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..1293.00 rows=1 width=8) (actual time=4.024..4.024 rows=1 loops=1)
                ->  Hash Join  (cost=0.00..1293.00 rows=1 width=1) (never executed)
                      Hash Cond: (test_gang_reuse_t1.c2 = test_gang_reuse_t1_1.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..431.00 rows=1 width=4) (never executed)
@@ -126,9 +126,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=3.480..3.480 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=3.480..3.480 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=0.00..862.00 rows=1 width=8) (actual time=3.201..3.473 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=2.975..2.976 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8) (actual time=2.975..2.976 rows=1 loops=1)
                ->  Hash Join  (cost=0.00..862.00 rows=1 width=1) (never executed)
                      Hash Cond: (test_gang_reuse_t1.c2 = test_gang_reuse_t1_1.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..431.00 rows=1 width=4) (never executed)

@@ -11,7 +11,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -40,6 +40,7 @@
 #include "access/aocs_compaction.h"
 #include "catalog/catalog.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_index.h"
@@ -272,7 +273,19 @@ vacuum(int options, RangeVar *relation, Oid relid, VacuumParams *params,
 	 * calls a hostile index expression that itself calls ANALYZE.
 	 */
 	if (in_vacuum)
-		elog(ERROR, "%s cannot be executed from VACUUM or ANALYZE", stmttype);
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("%s cannot be executed from VACUUM or ANALYZE",
+						stmttype)));
+
+	/*
+	 * Sanity check DISABLE_PAGE_SKIPPING option.
+	 */
+	if ((options & VACOPT_FULL) != 0 &&
+		(options & VACOPT_DISABLE_PAGE_SKIPPING) != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("VACUUM option DISABLE_PAGE_SKIPPING cannot be used with FULL")));
 
 	/*
 	 * Send info about dead objects to the statistics collector, unless we are
@@ -1376,7 +1389,8 @@ vacuum_set_xid_limits(Relation rel,
 	 * working on a particular table at any time, and that each vacuum is
 	 * always an independent transaction.
 	 */
-	*oldestXmin = GetOldestXmin(rel, true);
+	*oldestXmin =
+		TransactionIdLimitedForOldSnapshots(GetOldestXmin(rel, true), rel);
 
 	Assert(TransactionIdIsNormal(*oldestXmin));
 
@@ -2191,11 +2205,11 @@ vac_truncate_clog(TransactionId frozenXID,
 		return;
 
 	/*
-	 * Truncate CLOG and CommitTs to the oldest computed value. Note we don't
-	 * truncate multixacts; that will be done by the next checkpoint.
+	 * Truncate CLOG, multixact and CommitTs to the oldest computed value.
 	 */
 	TruncateCLOG(frozenXID);
-	TruncateCommitTs(frozenXID, true);
+	TruncateCommitTs(frozenXID);
+	TruncateMultiXact(minMulti, minmulti_datoid);
 
 	/*
 	 * Update the wrap limit for GetNewTransactionId and creation of new
@@ -2205,7 +2219,7 @@ vac_truncate_clog(TransactionId frozenXID,
 	 */
 	SetTransactionIdLimit(frozenXID, oldestxid_datoid);
 	SetMultiXactIdLimit(minMulti, minmulti_datoid);
-	AdvanceOldestCommitTs(frozenXID);
+	AdvanceOldestCommitTsXid(frozenXID);
 }
 
 static void
@@ -2792,6 +2806,7 @@ scan_index(Relation indrel, double num_tuples, bool check_stats, int elevel)
 	IndexBulkDeleteResult *stats;
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
+	BlockNumber relallvisible;
 
 	pg_rusage_init(&ru0);
 
@@ -2807,6 +2822,11 @@ scan_index(Relation indrel, double num_tuples, bool check_stats, int elevel)
 	if (!stats)
 		return;
 
+	if (RelationIsAppendOptimized(indrel))
+		relallvisible = 0;
+	else
+		visibilitymap_count(indrel, &relallvisible, NULL);
+
 	/*
 	 * Now update statistics in pg_class, but only if the index says the count
 	 * is accurate.
@@ -2814,7 +2834,7 @@ scan_index(Relation indrel, double num_tuples, bool check_stats, int elevel)
 	if (!stats->estimated_count)
 		vac_update_relstats(indrel,
 							stats->num_pages, stats->num_index_tuples,
-							visibilitymap_count(indrel),
+							relallvisible,
 							false,
 							InvalidTransactionId,
 							InvalidMultiXactId,
@@ -2878,7 +2898,7 @@ vacuum_appendonly_index(Relation indexRelation,
 	if (!stats->estimated_count)
 		vac_update_relstats(indexRelation,
 							stats->num_pages, stats->num_index_tuples,
-							visibilitymap_count(indexRelation),
+							0, /* relallvisible */
 							false,
 							InvalidTransactionId,
 							InvalidMultiXactId,

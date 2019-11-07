@@ -3,7 +3,7 @@
  * nodeFuncs.c
  *		Various general-purpose manipulations of Node trees
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,6 +18,7 @@
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
+#include "nodes/execnodes.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/relation.h"
 #include "utils/builtins.h"
@@ -26,6 +27,11 @@
 
 static bool expression_returns_set_walker(Node *node, void *context);
 static int	leftmostLoc(int loc1, int loc2);
+static bool fix_opfuncids_walker(Node *node, void *context);
+static bool planstate_walk_subplans(List *plans, bool (*walker) (),
+												void *context);
+static bool planstate_walk_members(List *plans, PlanState **planstates,
+					   bool (*walker) (), void *context);
 
 
 /*
@@ -1549,6 +1555,9 @@ exprLocation(const Node *expr)
 		case T_WindowDef:
 			loc = ((const WindowDef *) expr)->location;
 			break;
+		case T_RangeTableSample:
+			loc = ((const RangeTableSample *) expr)->location;
+			break;
 		case T_TypeName:
 			loc = ((const TypeName *) expr)->location;
 			break;
@@ -1612,6 +1621,183 @@ leftmostLoc(int loc1, int loc2)
 		return loc1;
 	else
 		return Min(loc1, loc2);
+}
+
+
+/*
+ * fix_opfuncids
+ *	  Calculate opfuncid field from opno for each OpExpr node in given tree.
+ *	  The given tree can be anything expression_tree_walker handles.
+ *
+ * The argument is modified in-place.  (This is OK since we'd want the
+ * same change for any node, even if it gets visited more than once due to
+ * shared structure.)
+ */
+void
+fix_opfuncids(Node *node)
+{
+	/* This tree walk requires no special setup, so away we go... */
+	fix_opfuncids_walker(node, NULL);
+}
+
+static bool
+fix_opfuncids_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, OpExpr))
+		set_opfuncid((OpExpr *) node);
+	else if (IsA(node, DistinctExpr))
+		set_opfuncid((OpExpr *) node);	/* rely on struct equivalence */
+	else if (IsA(node, NullIfExpr))
+		set_opfuncid((OpExpr *) node);	/* rely on struct equivalence */
+	else if (IsA(node, ScalarArrayOpExpr))
+		set_sa_opfuncid((ScalarArrayOpExpr *) node);
+	return expression_tree_walker(node, fix_opfuncids_walker, context);
+}
+
+/*
+ * set_opfuncid
+ *		Set the opfuncid (procedure OID) in an OpExpr node,
+ *		if it hasn't been set already.
+ *
+ * Because of struct equivalence, this can also be used for
+ * DistinctExpr and NullIfExpr nodes.
+ */
+void
+set_opfuncid(OpExpr *opexpr)
+{
+	if (opexpr->opfuncid == InvalidOid)
+		opexpr->opfuncid = get_opcode(opexpr->opno);
+}
+
+/*
+ * set_sa_opfuncid
+ *		As above, for ScalarArrayOpExpr nodes.
+ */
+void
+set_sa_opfuncid(ScalarArrayOpExpr *opexpr)
+{
+	if (opexpr->opfuncid == InvalidOid)
+		opexpr->opfuncid = get_opcode(opexpr->opno);
+}
+
+
+/*
+ *	check_functions_in_node -
+ *	  apply checker() to each function OID contained in given expression node
+ *
+ * Returns TRUE if the checker() function does; for nodes representing more
+ * than one function call, returns TRUE if the checker() function does so
+ * for any of those functions.  Returns FALSE if node does not invoke any
+ * SQL-visible function.  Caller must not pass node == NULL.
+ *
+ * This function examines only the given node; it does not recurse into any
+ * sub-expressions.  Callers typically prefer to keep control of the recursion
+ * for themselves, in case additional checks should be made, or because they
+ * have special rules about which parts of the tree need to be visited.
+ *
+ * Note: we ignore MinMaxExpr, XmlExpr, and CoerceToDomain nodes, because they
+ * do not contain SQL function OIDs.  However, they can invoke SQL-visible
+ * functions, so callers should take thought about how to treat them.
+ */
+bool
+check_functions_in_node(Node *node, check_function_callback checker,
+						void *context)
+{
+	switch (nodeTag(node))
+	{
+		case T_Aggref:
+			{
+				Aggref	   *expr = (Aggref *) node;
+
+				if (checker(expr->aggfnoid, context))
+					return true;
+			}
+			break;
+		case T_WindowFunc:
+			{
+				WindowFunc *expr = (WindowFunc *) node;
+
+				if (checker(expr->winfnoid, context))
+					return true;
+			}
+			break;
+		case T_FuncExpr:
+			{
+				FuncExpr   *expr = (FuncExpr *) node;
+
+				if (checker(expr->funcid, context))
+					return true;
+			}
+			break;
+		case T_OpExpr:
+		case T_DistinctExpr:	/* struct-equivalent to OpExpr */
+		case T_NullIfExpr:		/* struct-equivalent to OpExpr */
+			{
+				OpExpr	   *expr = (OpExpr *) node;
+
+				/* Set opfuncid if it wasn't set already */
+				set_opfuncid(expr);
+				if (checker(expr->opfuncid, context))
+					return true;
+			}
+			break;
+		case T_ScalarArrayOpExpr:
+			{
+				ScalarArrayOpExpr *expr = (ScalarArrayOpExpr *) node;
+
+				set_sa_opfuncid(expr);
+				if (checker(expr->opfuncid, context))
+					return true;
+			}
+			break;
+		case T_CoerceViaIO:
+			{
+				CoerceViaIO *expr = (CoerceViaIO *) node;
+				Oid			iofunc;
+				Oid			typioparam;
+				bool		typisvarlena;
+
+				/* check the result type's input function */
+				getTypeInputInfo(expr->resulttype,
+								 &iofunc, &typioparam);
+				if (checker(iofunc, context))
+					return true;
+				/* check the input type's output function */
+				getTypeOutputInfo(exprType((Node *) expr->arg),
+								  &iofunc, &typisvarlena);
+				if (checker(iofunc, context))
+					return true;
+			}
+			break;
+		case T_ArrayCoerceExpr:
+			{
+				ArrayCoerceExpr *expr = (ArrayCoerceExpr *) node;
+
+				if (OidIsValid(expr->elemfuncid) &&
+					checker(expr->elemfuncid, context))
+					return true;
+			}
+			break;
+		case T_RowCompareExpr:
+			{
+				RowCompareExpr *rcexpr = (RowCompareExpr *) node;
+				ListCell   *opid;
+
+				foreach(opid, rcexpr->opnos)
+				{
+					Oid			opfuncid = get_opcode(lfirst_oid(opid));
+
+					if (checker(opfuncid, context))
+						return true;
+				}
+			}
+			break;
+		default:
+			break;
+	}
+	return false;
 }
 
 
@@ -2105,6 +2291,17 @@ expression_tree_walker(Node *node,
 			}
 			break;
 
+		case T_TableSampleClause:
+			{
+				TableSampleClause *tsc = (TableSampleClause *) node;
+
+				if (expression_tree_walker((Node *) tsc->args,
+										   walker, context))
+					return true;
+				if (walker((Node *) tsc->repeatable, context))
+					return true;
+			}
+			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
 				 (int) nodeTag(node));
@@ -2228,13 +2425,8 @@ range_table_walker(List *rtable,
 		switch (rte->rtekind)
 		{
 			case RTE_RELATION:
-				if (rte->tablesample)
-				{
-					if (walker(rte->tablesample->args, context))
-						return true;
-					if (walker(rte->tablesample->repeatable, context))
-						return true;
-				}
+				if (walker(rte->tablesample, context))
+					return true;
 				break;
 			case RTE_VOID:
 			case RTE_CTE:
@@ -2422,6 +2614,8 @@ expression_tree_mutator(Node *node,
 				Aggref	   *newnode;
 
 				FLATCOPY(newnode, aggref, Aggref);
+				/* assume mutation doesn't change types of arguments */
+				newnode->aggargtypes = list_copy(aggref->aggargtypes);
 				MUTATE(newnode->aggdirectargs, aggref->aggdirectargs, List *);
 				MUTATE(newnode->args, aggref->args, List *);
 				MUTATE(newnode->aggorder, aggref->aggorder, List *);
@@ -2968,7 +3162,6 @@ expression_tree_mutator(Node *node,
 				return (Node *) newnode;
 			}
 			break;
-
 		case T_TableFunctionScan:
 			{
 				TableFunctionScan *tablefunc = (TableFunctionScan *) node;
@@ -2993,6 +3186,7 @@ expression_tree_mutator(Node *node,
 				return (Node *) newnode;
 
 			}
+			break;
 		case T_SortGroupClause:
 			{
 				SortGroupClause *sortcl = (SortGroupClause *) node;
@@ -3002,6 +3196,7 @@ expression_tree_mutator(Node *node,
 
 				return (Node *) newnode;
 			}
+			break;
 		case T_DMLActionExpr:
 			{
 				DMLActionExpr *action_expr = (DMLActionExpr *) node;
@@ -3010,6 +3205,18 @@ expression_tree_mutator(Node *node,
 				FLATCOPY(new_action_expr, action_expr, DMLActionExpr);
 				return (Node *)new_action_expr;
 			}
+			break;
+		case T_TableSampleClause:
+			{
+				TableSampleClause *tsc = (TableSampleClause *) node;
+				TableSampleClause *newnode;
+
+				FLATCOPY(newnode, tsc, TableSampleClause);
+				MUTATE(newnode->args, tsc->args, List *);
+				MUTATE(newnode->repeatable, tsc->repeatable, Expr *);
+				return (Node *) newnode;
+			}
+			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
 				 (int) nodeTag(node));
@@ -3099,21 +3306,13 @@ range_table_mutator(List *rtable,
 		switch (rte->rtekind)
 		{
 			case RTE_RELATION:
-				if (rte->tablesample)
-				{
-					CHECKFLATCOPY(newrte->tablesample, rte->tablesample,
-								  TableSampleClause);
-					MUTATE(newrte->tablesample->args,
-						   newrte->tablesample->args,
-						   List *);
-					MUTATE(newrte->tablesample->repeatable,
-						   newrte->tablesample->repeatable,
-						   Node *);
-				}
+				MUTATE(newrte->tablesample, rte->tablesample,
+					   TableSampleClause *);
+				/* we don't bother to copy eref, aliases, etc; OK? */
 				break;
 			case RTE_VOID:
 			case RTE_CTE:
-				/* we don't bother to copy eref, aliases, etc; OK? */
+				/* nothing to do */
 				break;
 			case RTE_SUBQUERY:
 				if (!(flags & QTW_IGNORE_RT_SUBQUERIES))
@@ -3210,8 +3409,10 @@ query_or_expression_tree_mutator(Node *node,
  * Unlike expression_tree_walker, there is no special rule about query
  * boundaries: we descend to everything that's possibly interesting.
  *
- * Currently, the node type coverage extends to SelectStmt and everything
- * that could appear under it, but not other statement types.
+ * Currently, the node type coverage here extends only to DML statements
+ * (SELECT/INSERT/UPDATE/DELETE) and nodes that can appear in them, because
+ * this is used mainly during analysis of CTEs, and only DML statements can
+ * appear in CTEs.
  */
 bool
 raw_expression_tree_walker(Node *node,
@@ -3554,6 +3755,19 @@ raw_expression_tree_walker(Node *node,
 					return true;
 			}
 			break;
+		case T_RangeTableSample:
+			{
+				RangeTableSample *rts = (RangeTableSample *) node;
+
+				if (walker(rts->relation, context))
+					return true;
+				/* method name is deemed uninteresting */
+				if (walker(rts->args, context))
+					return true;
+				if (walker(rts->repeatable, context))
+					return true;
+			}
+			break;
 		case T_TypeName:
 			{
 				TypeName   *tn = (TypeName *) node;
@@ -3576,6 +3790,15 @@ raw_expression_tree_walker(Node *node,
 				if (walker(coldef->collClause, context))
 					return true;
 				/* for now, constraints are ignored */
+			}
+			break;
+		case T_IndexElem:
+			{
+				IndexElem  *indelem = (IndexElem *) node;
+
+				if (walker(indelem->expr, context))
+					return true;
+				/* collation and opclass names are deemed uninteresting */
 			}
 			break;
 		case T_GroupingSet:
@@ -3618,22 +3841,149 @@ raw_expression_tree_walker(Node *node,
 			break;
 		case T_CommonTableExpr:
 			return walker(((CommonTableExpr *) node)->ctequery, context);
-		case T_RangeTableSample:
-			{
-				RangeTableSample *rts = (RangeTableSample *) node;
-
-				if (walker(rts->relation, context))
-					return true;
-				if (walker(rts->repeatable, context))
-					return true;
-				if (walker(rts->args, context))
-					return true;
-			}
-			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
 				 (int) nodeTag(node));
 			break;
 	}
+	return false;
+}
+
+/*
+ * planstate_tree_walker --- walk plan state trees
+ *
+ * The walker has already visited the current node, and so we need only
+ * recurse into any sub-nodes it has.
+ */
+bool
+planstate_tree_walker(PlanState *planstate,
+					  bool (*walker) (),
+					  void *context)
+{
+	Plan	   *plan = planstate->plan;
+	ListCell   *lc;
+
+	/* initPlan-s */
+	if (planstate_walk_subplans(planstate->initPlan, walker, context))
+		return true;
+
+	/* lefttree */
+	if (outerPlanState(planstate))
+	{
+		if (walker(outerPlanState(planstate), context))
+			return true;
+	}
+
+	/* righttree */
+	if (innerPlanState(planstate))
+	{
+		if (walker(innerPlanState(planstate), context))
+			return true;
+	}
+
+	/* special child plans */
+	switch (nodeTag(plan))
+	{
+		case T_ModifyTable:
+			if (planstate_walk_members(((ModifyTable *) plan)->plans,
+								  ((ModifyTableState *) planstate)->mt_plans,
+									   walker, context))
+				return true;
+			break;
+		case T_Append:
+			if (planstate_walk_members(((Append *) plan)->appendplans,
+									((AppendState *) planstate)->appendplans,
+									   walker, context))
+				return true;
+			break;
+		case T_MergeAppend:
+			if (planstate_walk_members(((MergeAppend *) plan)->mergeplans,
+								((MergeAppendState *) planstate)->mergeplans,
+									   walker, context))
+				return true;
+			break;
+		case T_BitmapAnd:
+			if (planstate_walk_members(((BitmapAnd *) plan)->bitmapplans,
+								 ((BitmapAndState *) planstate)->bitmapplans,
+									   walker, context))
+				return true;
+			break;
+		case T_BitmapOr:
+			if (planstate_walk_members(((BitmapOr *) plan)->bitmapplans,
+								  ((BitmapOrState *) planstate)->bitmapplans,
+									   walker, context))
+				return true;
+			break;
+		/* GPDB_96_MERGE_FIXME: verify walker works on Sequence node */
+		case T_Sequence:
+			if (planstate_walk_members(((Sequence *) plan)->subplans,
+								  ((SequenceState *) planstate)->subplans,
+									   walker, context))
+				return true;
+			break;
+		case T_SubqueryScan:
+			if (walker(((SubqueryScanState *) planstate)->subplan, context))
+				return true;
+			break;
+		case T_CustomScan:
+			foreach(lc, ((CustomScanState *) planstate)->custom_ps)
+			{
+				if (walker((PlanState *) lfirst(lc), context))
+					return true;
+			}
+			break;
+		default:
+			break;
+	}
+
+	/* subPlan-s */
+	if (planstate_walk_subplans(planstate->subPlan, walker, context))
+		return true;
+
+	return false;
+}
+
+/*
+ * Walk a list of SubPlans (or initPlans, which also use SubPlan nodes).
+ */
+static bool
+planstate_walk_subplans(List *plans,
+						bool (*walker) (),
+						void *context)
+{
+	ListCell   *lc;
+
+	foreach(lc, plans)
+	{
+		SubPlanState *sps = (SubPlanState *) lfirst(lc);
+
+		Assert(IsA(sps, SubPlanState));
+		if (walker(sps->planstate, context))
+			return true;
+	}
+
+	return false;
+}
+
+/*
+ * Walk the constituent plans of a ModifyTable, Append, MergeAppend,
+ * BitmapAnd, or BitmapOr node.
+ *
+ * Note: we don't actually need to examine the Plan list members, but
+ * we need the list in order to determine the length of the PlanState array.
+ */
+static bool
+planstate_walk_members(List *plans, PlanState **planstates,
+					   bool (*walker) (), void *context)
+{
+	int			nplans = list_length(plans);
+	int			j;
+
+	for (j = 0; j < nplans; j++)
+	{
+		if (walker(planstates[j], context))
+			return true;
+	}
+
 	return false;
 }

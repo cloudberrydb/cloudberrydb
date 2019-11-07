@@ -4,7 +4,7 @@
  *
  * See src/backend/access/brin/README for details.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -16,22 +16,21 @@
 #include "postgres.h"
 
 #include "access/brin.h"
-#include "access/brin_internal.h"
 #include "access/brin_page.h"
 #include "access/brin_pageops.h"
 #include "access/brin_xlog.h"
 #include "access/reloptions.h"
 #include "access/relscan.h"
-#include "access/xact.h"
 #include "access/xloginsert.h"
 #include "catalog/index.h"
+#include "catalog/pg_am.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
 #include "storage/freespace.h"
+#include "utils/index_selfuncs.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
-#include "utils/snapmgr.h"
 
 /* GPDB includes */
 #include "executor/executor.h"
@@ -72,7 +71,53 @@ static void brinsummarize(Relation index, Relation heapRel,
 static void form_and_insert_tuple(BrinBuildState *state);
 static void union_tuples(BrinDesc *bdesc, BrinMemTuple *a,
 			 BrinTuple *b);
+static void brin_vacuum_scan(Relation idxrel, BufferAccessStrategy strategy);
 
+
+/*
+ * BRIN handler function: return IndexAmRoutine with access method parameters
+ * and callbacks.
+ */
+Datum
+brinhandler(PG_FUNCTION_ARGS)
+{
+	IndexAmRoutine *amroutine = makeNode(IndexAmRoutine);
+
+	amroutine->amstrategies = 0;
+	amroutine->amsupport = BRIN_LAST_OPTIONAL_PROCNUM;
+	amroutine->amcanorder = false;
+	amroutine->amcanorderbyop = false;
+	amroutine->amcanbackward = false;
+	amroutine->amcanunique = false;
+	amroutine->amcanmulticol = true;
+	amroutine->amoptionalkey = true;
+	amroutine->amsearcharray = false;
+	amroutine->amsearchnulls = true;
+	amroutine->amstorage = true;
+	amroutine->amclusterable = false;
+	amroutine->ampredlocks = false;
+	amroutine->amkeytype = InvalidOid;
+
+	amroutine->ambuild = brinbuild;
+	amroutine->ambuildempty = brinbuildempty;
+	amroutine->aminsert = brininsert;
+	amroutine->ambulkdelete = brinbulkdelete;
+	amroutine->amvacuumcleanup = brinvacuumcleanup;
+	amroutine->amcanreturn = NULL;
+	amroutine->amcostestimate = brincostestimate;
+	amroutine->amoptions = brinoptions;
+	amroutine->amproperty = NULL;
+	amroutine->amvalidate = brinvalidate;
+	amroutine->ambeginscan = brinbeginscan;
+	amroutine->amrescan = brinrescan;
+	amroutine->amgettuple = NULL;
+	amroutine->amgetbitmap = bringetbitmap;
+	amroutine->amendscan = brinendscan;
+	amroutine->ammarkpos = NULL;
+	amroutine->amrestrpos = NULL;
+
+	PG_RETURN_POINTER(amroutine);
+}
 
 /*
  * A tuple in the heap is being inserted.  To keep a brin index up to date,
@@ -83,15 +128,11 @@ static void union_tuples(BrinDesc *bdesc, BrinMemTuple *a,
  * If the range is not currently summarized (i.e. the revmap returns NULL for
  * it), there's nothing to do.
  */
-Datum
-brininsert(PG_FUNCTION_ARGS)
+bool
+brininsert(Relation idxRel, Datum *values, bool *nulls,
+		   ItemPointer heaptid, Relation heapRel,
+		   IndexUniqueCheck checkUnique)
 {
-	Relation	idxRel = (Relation) PG_GETARG_POINTER(0);
-	Datum	   *values = (Datum *) PG_GETARG_POINTER(1);
-	bool	   *nulls = (bool *) PG_GETARG_POINTER(2);
-	ItemPointer heaptid = (ItemPointer) PG_GETARG_POINTER(3);
-
-	/* we ignore the rest of our arguments */
 	BlockNumber pagesPerRange;
 	BrinDesc   *bdesc = NULL;
 	BrinRevmap *revmap;
@@ -99,7 +140,7 @@ brininsert(PG_FUNCTION_ARGS)
 	MemoryContext tupcxt = NULL;
 	MemoryContext oldcxt = NULL;
 
-	revmap = brinRevmapInitialize(idxRel, &pagesPerRange);
+	revmap = brinRevmapInitialize(idxRel, &pagesPerRange, NULL);
 
 	for (;;)
 	{
@@ -116,7 +157,7 @@ brininsert(PG_FUNCTION_ARGS)
 		/* normalize the block number to be the first block in the range */
 		heapBlk = (heapBlk / pagesPerRange) * pagesPerRange;
 		brtup = brinGetTupleForHeapBlock(revmap, heapBlk, &buf, &off, NULL,
-										 BUFFER_LOCK_SHARE);
+										 BUFFER_LOCK_SHARE, NULL);
 
 		/* if range is unsummarized, there's nothing to do */
 		if (!brtup)
@@ -229,7 +270,7 @@ brininsert(PG_FUNCTION_ARGS)
 		MemoryContextDelete(tupcxt);
 	}
 
-	return BoolGetDatum(false);
+	return false;
 }
 
 /*
@@ -239,23 +280,21 @@ brininsert(PG_FUNCTION_ARGS)
  * index was built with.  Note that since this cannot be changed while we're
  * holding lock on index, it's not necessary to recompute it during brinrescan.
  */
-Datum
-brinbeginscan(PG_FUNCTION_ARGS)
+IndexScanDesc
+brinbeginscan(Relation r, int nkeys, int norderbys)
 {
-	Relation	r = (Relation) PG_GETARG_POINTER(0);
-	int			nkeys = PG_GETARG_INT32(1);
-	int			norderbys = PG_GETARG_INT32(2);
 	IndexScanDesc scan;
 	BrinOpaque *opaque;
 
 	scan = RelationGetIndexScan(r, nkeys, norderbys);
 
 	opaque = (BrinOpaque *) palloc(sizeof(BrinOpaque));
-	opaque->bo_rmAccess = brinRevmapInitialize(r, &opaque->bo_pagesPerRange);
+	opaque->bo_rmAccess = brinRevmapInitialize(r, &opaque->bo_pagesPerRange,
+											   scan->xs_snapshot);
 	opaque->bo_bdesc = brin_build_desc(r);
 	scan->opaque = opaque;
 
-	PG_RETURN_POINTER(scan);
+	return scan;
 }
 
 /*
@@ -270,11 +309,9 @@ brinbeginscan(PG_FUNCTION_ARGS)
  * unsummarized.  Pages in those ranges need to be returned regardless of scan
  * keys.
  */
-Datum
-bringetbitmap(PG_FUNCTION_ARGS)
+Node *
+bringetbitmap(IndexScanDesc scan, Node *n)
 {
-	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
-	Node	   *n = (Node *) PG_GETARG_POINTER(1);
 	TIDBitmap  *tbm;
 	Relation	idxRel = scan->indexRelation;
 	Buffer		buf = InvalidBuffer;
@@ -351,7 +388,8 @@ bringetbitmap(PG_FUNCTION_ARGS)
 		MemoryContextResetAndDeleteChildren(perRangeCxt);
 
 		tup = brinGetTupleForHeapBlock(opaque->bo_rmAccess, heapBlk, &buf,
-									   &off, &size, BUFFER_LOCK_SHARE);
+									   &off, &size, BUFFER_LOCK_SHARE,
+									   scan->xs_snapshot);
 		if (tup)
 		{
 			tup = brin_copy_tuple(tup, size);
@@ -469,55 +507,40 @@ bringetbitmap(PG_FUNCTION_ARGS)
 	 * returns, but we don't have a precise idea of the number of heap tuples
 	 * involved.
 	 */
-	PG_RETURN_POINTER(tbm);
+	return (Node *) tbm;
 }
 
 /*
  * Re-initialize state for a BRIN index scan
  */
-Datum
-brinrescan(PG_FUNCTION_ARGS)
+void
+brinrescan(IndexScanDesc scan, ScanKey scankey, int nscankeys,
+		   ScanKey orderbys, int norderbys)
 {
-	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
-	ScanKey		scankey = (ScanKey) PG_GETARG_POINTER(1);
-
-	/* other arguments ignored */
+	/*
+	 * Other index AMs preprocess the scan keys at this point, or sometime
+	 * early during the scan; this lets them optimize by removing redundant
+	 * keys, or doing early returns when they are impossible to satisfy; see
+	 * _bt_preprocess_keys for an example.  Something like that could be added
+	 * here someday, too.
+	 */
 
 	if (scankey && scan->numberOfKeys > 0)
 		memmove(scan->keyData, scankey,
 				scan->numberOfKeys * sizeof(ScanKeyData));
-
-	PG_RETURN_VOID();
 }
 
 /*
  * Close down a BRIN index scan
  */
-Datum
-brinendscan(PG_FUNCTION_ARGS)
+void
+brinendscan(IndexScanDesc scan)
 {
-	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	BrinOpaque *opaque = (BrinOpaque *) scan->opaque;
 
 	brinRevmapTerminate(opaque->bo_rmAccess);
 	brin_free_desc(opaque->bo_bdesc);
 	pfree(opaque);
-
-	PG_RETURN_VOID();
-}
-
-Datum
-brinmarkpos(PG_FUNCTION_ARGS)
-{
-	elog(ERROR, "BRIN does not support mark/restore");
-	PG_RETURN_VOID();
-}
-
-Datum
-brinrestrpos(PG_FUNCTION_ARGS)
-{
-	elog(ERROR, "BRIN does not support mark/restore");
-	PG_RETURN_VOID();
 }
 
 /*
@@ -589,12 +612,9 @@ brinbuildCallback(Relation index,
 /*
  * brinbuild() -- build a new BRIN index.
  */
-Datum
-brinbuild(PG_FUNCTION_ARGS)
+IndexBuildResult *
+brinbuild(Relation heap, Relation index, IndexInfo *indexInfo)
 {
-	Relation	heap = (Relation) PG_GETARG_POINTER(0);
-	Relation	index = (Relation) PG_GETARG_POINTER(1);
-	IndexInfo  *indexInfo = (IndexInfo *) PG_GETARG_POINTER(2);
 	IndexBuildResult *result;
 	double		reltuples;
 	double		idxtuples;
@@ -647,7 +667,7 @@ brinbuild(PG_FUNCTION_ARGS)
 	/*
 	 * Initialize our state, including the deformed tuple state.
 	 */
-	revmap = brinRevmapInitialize(index, &pagesPerRange);
+	revmap = brinRevmapInitialize(index, &pagesPerRange, NULL);
 	state = initialize_brin_buildstate(index, revmap, pagesPerRange);
 
 	/*
@@ -673,13 +693,12 @@ brinbuild(PG_FUNCTION_ARGS)
 	result->heap_tuples = reltuples;
 	result->index_tuples = idxtuples;
 
-	PG_RETURN_POINTER(result);
+	return result;
 }
 
-Datum
-brinbuildempty(PG_FUNCTION_ARGS)
+void
+brinbuildempty(Relation index)
 {
-	Relation	index = (Relation) PG_GETARG_POINTER(0);
 	Buffer		metabuf;
 
 	/* An empty BRIN index has a metapage only. */
@@ -696,8 +715,6 @@ brinbuildempty(PG_FUNCTION_ARGS)
 	END_CRIT_SECTION();
 
 	UnlockReleaseBuffer(metabuf);
-
-	PG_RETURN_VOID();
 }
 
 /*
@@ -707,37 +724,31 @@ brinbuildempty(PG_FUNCTION_ARGS)
  *
  * XXX we could mark item tuples as "dirty" (when a minimum or maximum heap
  * tuple is deleted), meaning the need to re-run summarization on the affected
- * range.  Need to an extra flag in mmtuples for that.
+ * range.  Would need to add an extra flag in brintuples for that.
  */
-Datum
-brinbulkdelete(PG_FUNCTION_ARGS)
+IndexBulkDeleteResult *
+brinbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+			   IndexBulkDeleteCallback callback, void *callback_state)
 {
-	/* other arguments are not currently used */
-	IndexBulkDeleteResult *stats =
-	(IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
-
 	/* allocate stats if first time through, else re-use existing struct */
 	if (stats == NULL)
 		stats = (IndexBulkDeleteResult *) palloc0(sizeof(IndexBulkDeleteResult));
 
-	PG_RETURN_POINTER(stats);
+	return stats;
 }
 
 /*
  * This routine is in charge of "vacuuming" a BRIN index: we just summarize
  * ranges that are currently unsummarized.
  */
-Datum
-brinvacuumcleanup(PG_FUNCTION_ARGS)
+IndexBulkDeleteResult *
+brinvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
 {
-	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
-	IndexBulkDeleteResult *stats =
-	(IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	heapRel;
 
 	/* No-op in ANALYZE ONLY mode */
 	if (info->analyze_only)
-		PG_RETURN_POINTER(stats);
+		return stats;
 
 	if (!stats)
 		stats = (IndexBulkDeleteResult *) palloc0(sizeof(IndexBulkDeleteResult));
@@ -747,22 +758,22 @@ brinvacuumcleanup(PG_FUNCTION_ARGS)
 	heapRel = heap_open(IndexGetRelation(RelationGetRelid(info->index), false),
 						AccessShareLock);
 
+	brin_vacuum_scan(info->index, info->strategy);
+
 	brinsummarize(info->index, heapRel,
 				  &stats->num_index_tuples, &stats->num_index_tuples);
 
 	heap_close(heapRel, AccessShareLock);
 
-	PG_RETURN_POINTER(stats);
+	return stats;
 }
 
 /*
  * reloptions processor for BRIN indexes
  */
-Datum
-brinoptions(PG_FUNCTION_ARGS)
+bytea *
+brinoptions(Datum reloptions, bool validate)
 {
-	Datum		reloptions = PG_GETARG_DATUM(0);
-	bool		validate = PG_GETARG_BOOL(1);
 	relopt_value *options;
 	BrinOptions *rdopts;
 	int			numoptions;
@@ -775,7 +786,7 @@ brinoptions(PG_FUNCTION_ARGS)
 
 	/* if none set, we're done */
 	if (numoptions == 0)
-		PG_RETURN_NULL();
+		return NULL;
 
 	rdopts = allocateReloptStruct(sizeof(BrinOptions), options, numoptions);
 
@@ -784,7 +795,7 @@ brinoptions(PG_FUNCTION_ARGS)
 
 	pfree(options);
 
-	PG_RETURN_BYTEA_P(rdopts);
+	return (bytea *) rdopts;
 }
 
 /*
@@ -795,14 +806,50 @@ Datum
 brin_summarize_new_values(PG_FUNCTION_ARGS)
 {
 	Oid			indexoid = PG_GETARG_OID(0);
+	Oid			heapoid;
 	Relation	indexRel;
 	Relation	heapRel;
 	double		numSummarized = 0;
 
-	heapRel = heap_open(IndexGetRelation(indexoid, false),
-						ShareUpdateExclusiveLock);
+	/*
+	 * We must lock table before index to avoid deadlocks.  However, if the
+	 * passed indexoid isn't an index then IndexGetRelation() will fail.
+	 * Rather than emitting a not-very-helpful error message, postpone
+	 * complaining, expecting that the is-it-an-index test below will fail.
+	 */
+	heapoid = IndexGetRelation(indexoid, true);
+	if (OidIsValid(heapoid))
+		heapRel = heap_open(heapoid, ShareUpdateExclusiveLock);
+	else
+		heapRel = NULL;
+
 	indexRel = index_open(indexoid, ShareUpdateExclusiveLock);
 
+	/* Must be a BRIN index */
+	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
+		indexRel->rd_rel->relam != BRIN_AM_OID)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" is not a BRIN index",
+						RelationGetRelationName(indexRel))));
+
+	/* User must own the index (comparable to privileges needed for VACUUM) */
+	if (!pg_class_ownercheck(indexoid, GetUserId()))
+		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS,
+					   RelationGetRelationName(indexRel));
+
+	/*
+	 * Since we did the IndexGetRelation call above without any lock, it's
+	 * barely possible that a race against an index drop/recreation could have
+	 * netted us the wrong table.  Recheck.
+	 */
+	if (heapRel == NULL || heapoid != IndexGetRelation(indexoid, false))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_TABLE),
+				 errmsg("could not open parent table of index %s",
+						RelationGetRelationName(indexRel))));
+
+	/* OK, do it */
 	brinsummarize(indexRel, heapRel, &numSummarized, NULL);
 
 	relation_close(indexRel, ShareUpdateExclusiveLock);
@@ -942,12 +989,13 @@ terminate_brin_buildstate(BrinBuildState *state)
  */
 static void
 summarize_range(IndexInfo *indexInfo, BrinBuildState *state, Relation heapRel,
-				BlockNumber heapBlk)
+				BlockNumber heapBlk, BlockNumber heapNumBlks)
 {
 	Buffer		phbuf;
 	BrinTuple  *phtup;
 	Size		phsz;
 	OffsetNumber offset;
+	BlockNumber scanNumBlks;
 
 	/*
 	 * GPDB: We need to create our own estate, snapshot, and OldestXmin here
@@ -996,10 +1044,16 @@ summarize_range(IndexInfo *indexInfo, BrinBuildState *state, Relation heapRel,
 	 * Execute the partial heap scan covering the heap blocks in the specified
 	 * page range, summarizing the heap tuples in it.  This scan stops just
 	 * short of brinbuildCallback creating the new index entry.
+	 *
+	 * Note that it is critical we use the "any visible" mode of
+	 * IndexBuildHeapRangeScan here: otherwise, we would miss tuples inserted
+	 * by transactions that are still in progress, among other corner cases.
 	 */
 	state->bs_currRangeStart = heapBlk;
-	IndexBuildHeapRangeScan(heapRel, state->bs_irel, indexInfo, false,
-							heapBlk, state->bs_pagesPerRange,
+	scanNumBlks = heapBlk + state->bs_pagesPerRange <= heapNumBlks ?
+		state->bs_pagesPerRange : heapNumBlks - heapBlk;
+	IndexBuildHeapRangeScan(heapRel, state->bs_irel, indexInfo, false, true,
+							heapBlk, scanNumBlks,
 							brinbuildCallback, (void *) state,
 							estate, snapshot, OldestXmin);
 
@@ -1043,7 +1097,8 @@ summarize_range(IndexInfo *indexInfo, BrinBuildState *state, Relation heapRel,
 		 * the same.)
 		 */
 		phtup = brinGetTupleForHeapBlock(state->bs_rmAccess, heapBlk, &phbuf,
-										 &offset, &phsz, BUFFER_LOCK_SHARE);
+										 &offset, &phsz, BUFFER_LOCK_SHARE,
+										 NULL);
 		/* the placeholder tuple must exist */
 		if (phtup == NULL)
 			elog(ERROR, "missing placeholder tuple");
@@ -1084,7 +1139,7 @@ brinsummarize(Relation index, Relation heapRel, double *numSummarized,
 	BlockNumber pagesPerRange;
 	Buffer		buf;
 
-	revmap = brinRevmapInitialize(index, &pagesPerRange);
+	revmap = brinRevmapInitialize(index, &pagesPerRange, NULL);
 
 	/*
 	 * Scan the revmap to find unsummarized items.
@@ -1099,7 +1154,7 @@ brinsummarize(Relation index, Relation heapRel, double *numSummarized,
 		CHECK_FOR_INTERRUPTS();
 
 		tup = brinGetTupleForHeapBlock(revmap, heapBlk, &buf, &off, NULL,
-									   BUFFER_LOCK_SHARE);
+									   BUFFER_LOCK_SHARE, NULL);
 		if (tup == NULL)
 		{
 			/* no revmap entry for this heap range. Summarize it. */
@@ -1110,38 +1165,8 @@ brinsummarize(Relation index, Relation heapRel, double *numSummarized,
 				state = initialize_brin_buildstate(index, revmap,
 												   pagesPerRange);
 				indexInfo = BuildIndexInfo(index);
-
-				/*
-				 * We only have ShareUpdateExclusiveLock on the table, and
-				 * therefore other sessions may insert tuples into the range
-				 * we're going to scan.  This is okay, because we take
-				 * additional precautions to avoid losing the additional
-				 * tuples; see comments in summarize_range.  Set the
-				 * concurrent flag, which causes IndexBuildHeapRangeScan to
-				 * use a snapshot other than SnapshotAny, and silences
-				 * warnings emitted there.
-				 */
-				indexInfo->ii_Concurrent = true;
-
-				/*
-				 * If using transaction-snapshot mode, it would be possible
-				 * for another transaction to insert a tuple that's not
-				 * visible to our snapshot if we have already acquired one,
-				 * when in snapshot-isolation mode; therefore, disallow this
-				 * from running in such a transaction unless a snapshot hasn't
-				 * been acquired yet.
-				 *
-				 * This code is called by VACUUM and
-				 * brin_summarize_new_values. Have the error message mention
-				 * the latter because VACUUM cannot run in a transaction and
-				 * thus cannot cause this issue.
-				 */
-				if (IsolationUsesXactSnapshot() && FirstSnapshotSet)
-					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_TRANSACTION_STATE),
-							 errmsg("brin_summarize_new_values() cannot run in a transaction that has already obtained a snapshot")));
 			}
-			summarize_range(indexInfo, state, heapRel, heapBlk);
+			summarize_range(indexInfo, state, heapRel, heapBlk, heapNumBlocks);
 
 			/* and re-initialize state for the next range */
 			brin_memtuple_initialize(state->bs_dtuple, state->bs_bdesc);
@@ -1163,7 +1188,10 @@ brinsummarize(Relation index, Relation heapRel, double *numSummarized,
 	/* free resources */
 	brinRevmapTerminate(revmap);
 	if (state)
+	{
 		terminate_brin_buildstate(state);
+		pfree(indexInfo);
+	}
 }
 
 /*
@@ -1224,4 +1252,44 @@ union_tuples(BrinDesc *bdesc, BrinMemTuple *a, BrinTuple *b)
 	}
 
 	MemoryContextDelete(cxt);
+}
+
+/*
+ * brin_vacuum_scan
+ *		Do a complete scan of the index during VACUUM.
+ *
+ * This routine scans the complete index looking for uncatalogued index pages,
+ * i.e. those that might have been lost due to a crash after index extension
+ * and such.
+ */
+static void
+brin_vacuum_scan(Relation idxrel, BufferAccessStrategy strategy)
+{
+	bool		vacuum_fsm = false;
+	BlockNumber blkno;
+
+	/*
+	 * Scan the index in physical order, and clean up any possible mess in
+	 * each page.
+	 */
+	for (blkno = 0; blkno < RelationGetNumberOfBlocks(idxrel); blkno++)
+	{
+		Buffer		buf;
+
+		CHECK_FOR_INTERRUPTS();
+
+		buf = ReadBufferExtended(idxrel, MAIN_FORKNUM, blkno,
+								 RBM_NORMAL, strategy);
+
+		vacuum_fsm |= brin_page_cleanup(idxrel, buf);
+
+		ReleaseBuffer(buf);
+	}
+
+	/*
+	 * If we made any change to the FSM, make sure the new info is visible all
+	 * the way to the top.
+	 */
+	if (vacuum_fsm)
+		FreeSpaceMapVacuum(idxrel);
 }

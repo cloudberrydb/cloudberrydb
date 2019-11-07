@@ -7,7 +7,7 @@
  * This is a modified version of src/backend/parser/scan.l
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -358,7 +358,7 @@ cppinclude_next		{space}*#{include_next}{space}*
 /* first a general line for all commands not starting with "i" */
 /* and then the other commands starting with "i", we have to add these
  * separately because the cppline production would match on "include" too */
-cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})(.*\\{space})*.*{newline}
+cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+\/)|.)*{newline}
 
 /*
  * Dollar quoted strings are totally opaque, and no escaping is done on them.

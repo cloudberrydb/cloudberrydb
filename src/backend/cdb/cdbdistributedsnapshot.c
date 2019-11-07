@@ -28,9 +28,6 @@
  *		Is the given XID still-in-progress according to the
  *      distributed snapshot?  Or, is the transaction strictly local
  *      and needs to be tested with the local snapshot?
- *
- * The caller should've checked that the XID is committed (in clog),
- * otherwise the result of this function is undefined.
  */
 DistributedSnapshotCommitted
 DistributedSnapshotWithLocalMapping_CommittedTest(
@@ -141,15 +138,11 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 		else
 		{
 			/*
-			 * Since the local xid is committed (as determined by the
-			 * visibility routine) and distributedlog doesn't know of the
-			 * transaction, it must be local-only.
+			 * The distributedlog doesn't know of the transaction. It can be
+			 * local-only, or still in-progress. The caller will proceed to do
+			 * a local visibility check, which will determine which it is.
 			 */
-			LocalDistribXactCache_AddCommitted(localXid,
-											   ds->distribTransactionTimeStamp,
-											    /* distribXid */ InvalidDistributedTransactionId);
-
-			return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
+			return DISTRIBUTEDSNAPSHOT_COMMITTED_UNKNOWN;
 		}
 	}
 

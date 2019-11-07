@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * pgstatapproc.c
+ * pgstatapprox.c
  *		  Bloat estimation functions
  *
- * Copyright (c) 2014-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2014-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgstattuple/pgstatapprox.c
@@ -87,7 +87,7 @@ statapprox_heap(Relation rel, output_type *stat)
 		 * If the page has only visible tuples, then we can find out the free
 		 * space from the FSM and move on.
 		 */
-		if (visibilitymap_test(rel, blkno, &vmbuffer))
+		if (VM_ALL_VISIBLE(rel, blkno, &vmbuffer))
 		{
 			freespace = GetRecordedFreeSpace(rel, blkno);
 			stat->tuple_len += BLCKSZ - freespace;
@@ -147,13 +147,15 @@ statapprox_heap(Relation rel, output_type *stat)
 
 			tuple.t_data = (HeapTupleHeader) PageGetItem(page, itemid);
 			tuple.t_len = ItemIdGetLength(itemid);
+#if 0
 			tuple.t_tableOid = RelationGetRelid(rel);
+#endif
 
 			/*
 			 * We count live and dead tuples, but we also need to add up
 			 * others in order to feed vac_estimate_reltuples.
 			 */
-			switch (HeapTupleSatisfiesVacuum(&tuple, OldestXmin, buf))
+			switch (HeapTupleSatisfiesVacuum(rel, &tuple, OldestXmin, buf))
 			{
 				case HEAPTUPLE_RECENTLY_DEAD:
 					misc_count++;

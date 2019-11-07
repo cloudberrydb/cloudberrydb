@@ -12,7 +12,7 @@
  * the metapage.  When the revmap needs to be expanded, all tuples on the
  * regular BRIN page at that block (if any) are moved out of the way.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -68,15 +68,19 @@ static void revmap_physical_extend(BrinRevmap *revmap);
  * brinRevmapTerminate when caller is done with it.
  */
 BrinRevmap *
-brinRevmapInitialize(Relation idxrel, BlockNumber *pagesPerRange)
+brinRevmapInitialize(Relation idxrel, BlockNumber *pagesPerRange,
+					 Snapshot snapshot)
 {
 	BrinRevmap *revmap;
 	Buffer		meta;
 	BrinMetaPageData *metadata;
+	Page		page;
 
 	meta = ReadBuffer(idxrel, BRIN_METAPAGE_BLKNO);
 	LockBuffer(meta, BUFFER_LOCK_SHARE);
-	metadata = (BrinMetaPageData *) PageGetContents(BufferGetPage(meta));
+	page = BufferGetPage(meta);
+	TestForOldSnapshot(snapshot, idxrel, page);
+	metadata = (BrinMetaPageData *) PageGetContents(page);
 
 	revmap = palloc(sizeof(BrinRevmap));
 	revmap->rm_irel = idxrel;
@@ -127,7 +131,7 @@ brinRevmapExtend(BrinRevmap *revmap, BlockNumber heapBlk)
  * it's not long enough.
  *
  * The returned buffer is also recorded in the revmap struct; finishing that
- * releases the buffer, therefore the caller needn't do it explicitely.
+ * releases the buffer, therefore the caller needn't do it explicitly.
  */
 Buffer
 brinLockRevmapPageForUpdate(BrinRevmap *revmap, BlockNumber heapBlk)
@@ -185,7 +189,8 @@ brinSetHeapBlockItemptr(Buffer buf, BlockNumber pagesPerRange,
  */
 BrinTuple *
 brinGetTupleForHeapBlock(BrinRevmap *revmap, BlockNumber heapBlk,
-						 Buffer *buf, OffsetNumber *off, Size *size, int mode)
+						 Buffer *buf, OffsetNumber *off, Size *size, int mode,
+						 Snapshot snapshot)
 {
 	Relation	idxRel = revmap->rm_irel;
 	BlockNumber mapBlk;
@@ -262,10 +267,15 @@ brinGetTupleForHeapBlock(BrinRevmap *revmap, BlockNumber heapBlk,
 		}
 		LockBuffer(*buf, mode);
 		page = BufferGetPage(*buf);
+		TestForOldSnapshot(snapshot, idxRel, page);
 
 		/* If we land on a revmap page, start over */
 		if (BRIN_IS_REGULAR_PAGE(page))
 		{
+			if (*off > PageGetMaxOffsetNumber(page))
+				ereport(ERROR,
+						(errcode(ERRCODE_INDEX_CORRUPTED),
+						 errmsg_internal("corrupted BRIN index: inconsistent range map")));
 			lp = PageGetItemId(page, *off);
 			if (ItemIdIsUsed(lp))
 			{
@@ -314,7 +324,7 @@ revmap_get_blkno(BrinRevmap *revmap, BlockNumber heapBlk)
  * Obtain and return a buffer containing the revmap page for the given heap
  * page.  The revmap must have been previously extended to cover that page.
  * The returned buffer is also recorded in the revmap struct; finishing that
- * releases the buffer, therefore the caller needn't do it explicitely.
+ * releases the buffer, therefore the caller needn't do it explicitly.
  */
 static Buffer
 revmap_get_buffer(BrinRevmap *revmap, BlockNumber heapBlk)
@@ -432,6 +442,7 @@ revmap_physical_extend(BrinRevmap *revmap)
 			if (needLock)
 				UnlockRelationForExtension(irel, ExclusiveLock);
 			LockBuffer(revmap->rm_metaBuf, BUFFER_LOCK_UNLOCK);
+			ReleaseBuffer(buf);
 			return;
 		}
 		LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);

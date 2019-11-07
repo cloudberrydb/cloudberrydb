@@ -29,6 +29,7 @@
 #include "access/nbtree.h"
 #include "access/relscan.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_am.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
@@ -151,7 +152,6 @@ build_pgstattuple_type(pgstattuple_type *stat, FunctionCallInfo fcinfo)
  *
  * C FUNCTION definition
  * pgstattuple(text) returns pgstattuple_type
- * see pgstattuple.sql for pgstattuple_type
  * ----------
  */
 
@@ -233,6 +233,9 @@ pgstat_relation(Relation rel, FunctionCallInfo fcinfo)
 					break;
 				case SPGIST_AM_OID:
 					err = "spgist index";
+					break;
+				case BRIN_AM_OID:
+					err = "brin index";
 					break;
 				default:
 					err = "unknown index";

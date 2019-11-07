@@ -13,7 +13,7 @@
  *	plan --- consider improving this someday.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  * src/backend/utils/adt/ri_triggers.c
  *
@@ -2944,7 +2944,6 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 	Relation	query_rel;
 	Oid			save_userid;
 	int			save_sec_context;
-	int			temp_sec_context;
 
 	/*
 	 * Use the query type code to determine whether the query is run against
@@ -2957,22 +2956,9 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 
 	/* Switch to proper UID to perform check as */
 	GetUserIdAndSecContext(&save_userid, &save_sec_context);
-
-	/*
-	 * Row-level security should be disabled in the case where a foreign-key
-	 * relation is queried to check existence of tuples that references the
-	 * primary-key being modified.
-	 */
-	temp_sec_context = save_sec_context | SECURITY_LOCAL_USERID_CHANGE;
-	if (qkey->constr_queryno == RI_PLAN_CHECK_LOOKUPPK
-		|| qkey->constr_queryno == RI_PLAN_CHECK_LOOKUPPK_FROM_PK
-		|| qkey->constr_queryno == RI_PLAN_RESTRICT_DEL_CHECKREF
-		|| qkey->constr_queryno == RI_PLAN_RESTRICT_UPD_CHECKREF)
-		temp_sec_context |= SECURITY_ROW_LEVEL_DISABLED;
-
-
 	SetUserIdAndSecContext(RelationGetForm(query_rel)->relowner,
-						   temp_sec_context);
+						   save_sec_context | SECURITY_LOCAL_USERID_CHANGE |
+						   SECURITY_NOFORCE_RLS);
 
 	/* Create the plan */
 	qplan = SPI_prepare(querystr, nargs, argtypes);
@@ -3092,7 +3078,8 @@ ri_PerformCheck(const RI_ConstraintInfo *riinfo,
 	/* Switch to proper UID to perform check as */
 	GetUserIdAndSecContext(&save_userid, &save_sec_context);
 	SetUserIdAndSecContext(RelationGetForm(query_rel)->relowner,
-						   save_sec_context | SECURITY_LOCAL_USERID_CHANGE);
+						   save_sec_context | SECURITY_LOCAL_USERID_CHANGE |
+						   SECURITY_NOFORCE_RLS);
 
 	/* Finally we can run the query. */
 	spi_result = SPI_execute_snapshot(qplan,
@@ -3217,7 +3204,7 @@ ri_ReportViolation(const RI_ConstraintInfo *riinfo,
 	 * privileges.
 	 */
 
-	if (check_enable_rls(rel_oid, GetUserId(), true) != RLS_ENABLED)
+	if (check_enable_rls(rel_oid, InvalidOid, true) != RLS_ENABLED)
 	{
 		aclresult = pg_class_aclcheck(rel_oid, GetUserId(), ACL_SELECT);
 		if (aclresult != ACLCHECK_OK)
@@ -3238,6 +3225,8 @@ ri_ReportViolation(const RI_ConstraintInfo *riinfo,
 			}
 		}
 	}
+	else
+		has_perm = false;
 
 	if (has_perm)
 	{

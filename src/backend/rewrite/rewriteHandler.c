@@ -5,11 +5,18 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
  *	  src/backend/rewrite/rewriteHandler.c
+ *
+ * NOTES
+ *	  Some of the terms used in this file are of historic nature: "retrieve"
+ *	  was the PostQUEL keyword for what today is SELECT. "RIR" stands for
+ *	  "Retrieve-Instead-Retrieve", that is an ON SELECT DO INSTEAD SELECT rule
+ *	  (which has to be unconditional and where only one rule can exist on each
+ *	  relation).
  *
  *-------------------------------------------------------------------------
  */
@@ -464,6 +471,10 @@ rewriteRuleAction(Query *parsetree,
 
 			switch (rte->rtekind)
 			{
+				case RTE_RELATION:
+					sub_action->hasSubLinks =
+						checkExprHasSubLink((Node *) rte->tablesample);
+					break;
 				case RTE_TABLEFUNCTION:
 					sub_action->hasSubLinks =
 						checkExprHasSubLink((Node *) rte->functions);
@@ -1370,6 +1381,24 @@ rewriteTargetListUD(Query *parsetree, RangeTblEntry *target_rte,
 							  0,
 							  false);
 
+		/*
+		 * GPDB also needs gp_segment_id. ctid is only unique in the same
+		 * segment.
+		 */
+		Oid			reloid;
+		Oid			vartypeid;
+		int32		type_mod;
+		Oid			type_coll;
+
+		reloid = RelationGetRelid(target_relation);
+		get_atttypetypmodcoll(reloid, GpSegmentIdAttributeNumber, &vartypeid, &type_mod, &type_coll);
+		varSegid = makeVar(parsetree->resultRelation,
+						   GpSegmentIdAttributeNumber,
+						   vartypeid,
+						   type_mod,
+						   type_coll,
+						   0);
+
 		attrname = "wholerow";
 	}
 
@@ -1885,14 +1914,16 @@ fireRIRrules(Query *parsetree, List *activeRIRs, bool forUpdatePushedDown)
 		/*
 		 * Fetch any new security quals that must be applied to this RTE.
 		 */
-		get_row_security_policies(parsetree, parsetree->commandType, rte,
-								  rt_index, &securityQuals, &withCheckOptions,
+		get_row_security_policies(parsetree, rte, rt_index,
+								  &securityQuals, &withCheckOptions,
 								  &hasRowSecurity, &hasSubLinks);
 
 		if (securityQuals != NIL || withCheckOptions != NIL)
 		{
 			if (hasSubLinks)
 			{
+				acquireLocksOnSubLinks_context context;
+
 				/*
 				 * Recursively process the new quals, checking for infinite
 				 * recursion.
@@ -1905,6 +1936,23 @@ fireRIRrules(Query *parsetree, List *activeRIRs, bool forUpdatePushedDown)
 
 				activeRIRs = lcons_oid(RelationGetRelid(rel), activeRIRs);
 
+				/*
+				 * get_row_security_policies just passed back securityQuals
+				 * and/or withCheckOptions, and there were SubLinks, make sure
+				 * we lock any relations which are referenced.
+				 *
+				 * These locks would normally be acquired by the parser, but
+				 * securityQuals and withCheckOptions are added post-parsing.
+				 */
+				context.for_execute = true;
+				(void) acquireLocksOnSubLinks((Node *) securityQuals, &context);
+				(void) acquireLocksOnSubLinks((Node *) withCheckOptions,
+											  &context);
+
+				/*
+				 * Now that we have the locks on anything added by
+				 * get_row_security_policies, fire any RIR rules for them.
+				 */
 				expression_tree_walker((Node *) securityQuals,
 									   fireRIRonSubLink, (void *) activeRIRs);
 
@@ -2999,7 +3047,16 @@ rewriteTargetView(Query *parsetree, Relation view)
 		Assert(tle->resjunk);
 		Assert(IsA(tle->expr, Var) &&
 			   ((Var *) tle->expr)->varno == parsetree->resultRelation &&
+			   ((Var *) tle->expr)->varattno == GpSegmentIdAttributeNumber);
+		Assert(strcmp(tle->resname, "gp_segment_id") == 0);
+		parsetree->targetList = list_delete_ptr(parsetree->targetList, tle);
+
+		tle = (TargetEntry *) llast(parsetree->targetList);
+		Assert(tle->resjunk);
+		Assert(IsA(tle->expr, Var) &&
+			   ((Var *) tle->expr)->varno == parsetree->resultRelation &&
 			   ((Var *) tle->expr)->varattno == 0);
+		Assert(strcmp(tle->resname, "wholerow") == 0);
 		parsetree->targetList = list_delete_ptr(parsetree->targetList, tle);
 	}
 
@@ -3149,6 +3206,7 @@ rewriteTargetView(Query *parsetree, Relation view)
 			wco = makeNode(WithCheckOption);
 			wco->kind = WCO_VIEW_CHECK;
 			wco->relname = pstrdup(RelationGetRelationName(view));
+			wco->polname = NULL;
 			wco->qual = NULL;
 			wco->cascaded = cascaded;
 

@@ -903,8 +903,9 @@ WITH aa AS (SELECT 1 a, 2 b)
 INSERT INTO z VALUES(1, (SELECT b || ' insert' FROM aa WHERE a = 1 ))
 ON CONFLICT (k) DO UPDATE SET v = (SELECT b || ' update' FROM aa WHERE a = 1 LIMIT 1);
 
--- This shows an attempt to update an invisible row, which should really be
--- reported as a cardinality violation, but it doesn't seem worth fixing:
+-- Update a row more than once, in different parts of a wCTE. That is
+-- an allowed, presumably very rare, edge case, but since it was
+-- broken in the past, having a test seems worthwhile.
 WITH simpletup AS (
   SELECT 2 k, 'Green' v),
 upsert_cte AS (
@@ -1028,14 +1029,10 @@ INSERT INTO parent VALUES ( 1, 'p1' );
 INSERT INTO child1 VALUES ( 11, 'c11' ),( 12, 'c12' );
 INSERT INTO child2 VALUES ( 23, 'c21' ),( 24, 'c22' );
 
--- start_ignore
--- This query fails due to the 2 stage agg having issues with inherited tables:
--- ERROR:  incompatible loci in target inheritance set (planner.c:1426)
 WITH rcte AS ( SELECT sum(id) AS totalid FROM parent )
 UPDATE parent SET id = id + totalid FROM rcte;
 
 SELECT * FROM parent;
--- end_ignore
 
 WITH wcte AS ( INSERT INTO child1 VALUES ( 42, 'new' ) RETURNING id AS newid )
 UPDATE parent SET id = id + newid FROM wcte;

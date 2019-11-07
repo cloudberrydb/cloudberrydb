@@ -20,12 +20,12 @@ DROP TABLE tmp1;
 -- SELECT INTO and INSERT permission, if owner is not allowed to insert.
 --
 CREATE SCHEMA selinto_schema;
-CREATE USER selinto_user;
-ALTER DEFAULT PRIVILEGES FOR ROLE selinto_user
-	  REVOKE INSERT ON TABLES FROM selinto_user;
+CREATE USER regress_selinto_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_selinto_user
+	  REVOKE INSERT ON TABLES FROM regress_selinto_user;
 GRANT ALL ON SCHEMA selinto_schema TO public;
 
-SET SESSION AUTHORIZATION selinto_user;
+SET SESSION AUTHORIZATION regress_selinto_user;
 SELECT * INTO TABLE selinto_schema.tmp1
 	  FROM pg_class WHERE relname like '%a%';	-- Error
 SELECT oid AS clsoid, relname, relnatts + 10 AS x
@@ -36,10 +36,10 @@ CREATE TABLE selinto_schema.tmp3 (a,b,c)
 	   WHERE relname like '%c%';	-- Error
 RESET SESSION AUTHORIZATION;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE selinto_user
-	  GRANT INSERT ON TABLES TO selinto_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_selinto_user
+	  GRANT INSERT ON TABLES TO regress_selinto_user;
 
-SET SESSION AUTHORIZATION selinto_user;
+SET SESSION AUTHORIZATION regress_selinto_user;
 SELECT * INTO TABLE selinto_schema.tmp1
 	  FROM pg_class WHERE relname like '%a%';	-- OK
 SELECT oid AS clsoid, relname, relnatts + 10 AS x
@@ -51,7 +51,7 @@ CREATE TABLE selinto_schema.tmp3 (a,b,c)
 RESET SESSION AUTHORIZATION;
 
 DROP SCHEMA selinto_schema CASCADE;
-DROP USER selinto_user;
+DROP USER regress_selinto_user;
 
 -- Tests for WITH NO DATA and column name consistency
 CREATE TABLE ctas_base (i int, j int);
@@ -71,6 +71,7 @@ DROP TABLE ctas_nodata;
 DROP TABLE ctas_nodata_2;
 DROP TABLE ctas_nodata_3;
 DROP TABLE ctas_nodata_4;
+
 -- Test for WITH NO DATA on toast column
 CREATE TABLE ctas_base (i text);
 INSERT INTO ctas_base VALUES ('a');
@@ -92,7 +93,15 @@ SELECT make_table();
 
 SELECT * FROM created_table;
 
+-- Try EXPLAIN ANALYZE SELECT INTO, but hide the output since it won't
+-- be stable.
+DO $$
+BEGIN
+	EXECUTE 'EXPLAIN ANALYZE SELECT * INTO TABLE easi FROM int8_tbl';
+END$$;
+
 DROP TABLE created_table;
+DROP TABLE easi;
 
 --
 -- Disallowed uses of SELECT ... INTO.  All should fail

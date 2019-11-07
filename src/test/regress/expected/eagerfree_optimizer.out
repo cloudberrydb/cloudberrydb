@@ -10,6 +10,7 @@ create table smallt2 (i int, t text, d date) distributed by (i);
 insert into smallt2 select i%5, 'text ' || (i%10), '2011-01-01'::date + ((i%15) || ' days')::interval
 from generate_series(0, 49) i;
 set optimizer_segments = 3;
+set gp_motion_cost_per_row = 0.1;
 -- HashAgg, Agg
 select d, count(*) from smallt group by d;
      d      | count 
@@ -67,9 +68,9 @@ select count(*) from (select i, t, d, count(*) from bigt group by i, t, d) tmp;
 explain analyze select count(*) from (select i, t, d, count(*) from bigt group by i, t, d) tmp;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..571.36 rows=1 width=8) (actual time=362.957..362.957 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..571.36 rows=1 width=8) (actual time=362.957..362.957 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..571.36 rows=1 width=8) (actual time=265.826..362.941 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..571.36 rows=1 width=8) (actual time=265.338..265.338 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..571.36 rows=1 width=8) (actual time=265.338..265.338 rows=1 loops=1)
                ->  HashAggregate  (cost=0.00..571.36 rows=333580 width=1) (actual time=338.390..356.986 rows=44572 loops=1)
                      Group Key: i, t, d
                      (seg0)   44435 groups total in 32 batches; 1 overflows; 44435 spill groups.
@@ -87,6 +88,7 @@ set statement_mem=128000;
 -- DQA
 set gp_enable_agg_distinct=off;
 set gp_eager_one_phase_agg=on;
+set gp_enable_multiphase_agg=off;
 select count(distinct d) from smallt;
  count 
 -------
@@ -96,9 +98,9 @@ select count(distinct d) from smallt;
 explain analyze select count(distinct d) from smallt;
                                                                     QUERY PLAN                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=1.637..1.637 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=1.637..1.637 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8) (actual time=1.631..1.633 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=1.408..1.408 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=1.408..1.408 rows=1 loops=1)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=34 width=4) (actual time=1.396..1.402 rows=35 loops=1)
                      Hash Key: d
                      ->  Seq Scan on smallt  (cost=0.00..431.00 rows=34 width=4) (actual time=0.002..0.006 rows=50 loops=1)
@@ -121,9 +123,9 @@ select count(distinct d) from bigt;
 explain analyze select count(distinct d) from bigt;
                                                                          QUERY PLAN                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..446.60 rows=1 width=8) (actual time=394.139..394.139 rows=1 loops=1)
+ Finalize Aggregate  (cost=0.00..446.60 rows=1 width=8) (actual time=394.139..394.139 rows=1 loops=1)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..446.60 rows=1 width=8) (actual time=388.126..394.130 rows=3 loops=1)
-         ->  Aggregate  (cost=0.00..446.60 rows=1 width=8) (actual time=393.902..393.903 rows=1 loops=1)
+         ->  Partial Aggregate  (cost=0.00..446.60 rows=1 width=8) (actual time=393.902..393.903 rows=1 loops=1)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..446.45 rows=333334 width=4) (actual time=0.670..118.334 rows=334920 loops=1)
                      Hash Key: d
                      ->  Seq Scan on bigt  (cost=0.00..439.80 rows=333334 width=4) (actual time=0.013..46.779 rows=334620 loops=1)
@@ -140,6 +142,7 @@ explain analyze select count(distinct d) from bigt;
 set statement_mem=128000;
 set gp_enable_agg_distinct=on;
 set gp_eager_one_phase_agg=off;
+set gp_enable_multiphase_agg=on;
 -- Rescan on Agg (with Material in the inner side of nestloop)
 -- start_ignore
 -- Known_opt_diff: This test is only here for the planner. It doesn't exercise eagerfree in ORCA plans

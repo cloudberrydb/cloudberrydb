@@ -4,7 +4,7 @@
  *	  header file for postgres btree access method implementation.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/nbtree.h
@@ -14,7 +14,7 @@
 #ifndef NBTREE_H
 #define NBTREE_H
 
-#include "access/genam.h"
+#include "access/amapi.h"
 #include "access/itup.h"
 #include "access/sdir.h"
 #include "access/xlogreader.h"
@@ -453,6 +453,7 @@ typedef struct xl_btree_newroot
 
 #define BTORDER_PROC		1
 #define BTSORTSUPPORT_PROC	2
+#define BTNProcs			2
 
 /*
  *	We need to be able to tell the difference between read and write
@@ -520,7 +521,7 @@ typedef struct BTScanPosData
 	Buffer		buf;			/* if valid, the buffer is pinned */
 
 	XLogRecPtr	lsn;			/* pos in the WAL stream when page was read */
-	BlockNumber currPage;		/* page we've referencd by items array */
+	BlockNumber currPage;		/* page referenced by items array */
 	BlockNumber nextPage;		/* page's right link when we scanned it */
 
 	/*
@@ -645,7 +646,6 @@ typedef BTScanOpaqueData *BTScanOpaque;
  */
 #define SK_BT_REQFWD	0x00010000		/* required to continue forward scan */
 #define SK_BT_REQBKWD	0x00020000		/* required to continue backward scan */
-#define SK_BT_MATCHED	0x00040000		/* required to skip further key match */
 #define SK_BT_INDOPTION_SHIFT  24		/* must clear the above bits */
 #define SK_BT_DESC			(INDOPTION_DESC << SK_BT_INDOPTION_SHIFT)
 #define SK_BT_NULLS_FIRST	(INDOPTION_NULLS_FIRST << SK_BT_INDOPTION_SHIFT)
@@ -653,20 +653,28 @@ typedef BTScanOpaqueData *BTScanOpaque;
 /*
  * prototypes for functions in nbtree.c (external entry points for btree)
  */
-extern Datum btbuild(PG_FUNCTION_ARGS);
-extern Datum btbuildempty(PG_FUNCTION_ARGS);
-extern Datum btinsert(PG_FUNCTION_ARGS);
-extern Datum btbeginscan(PG_FUNCTION_ARGS);
-extern Datum btgettuple(PG_FUNCTION_ARGS);
-extern Datum btgetbitmap(PG_FUNCTION_ARGS);
-extern Datum btrescan(PG_FUNCTION_ARGS);
-extern Datum btendscan(PG_FUNCTION_ARGS);
-extern Datum btmarkpos(PG_FUNCTION_ARGS);
-extern Datum btrestrpos(PG_FUNCTION_ARGS);
-extern Datum btbulkdelete(PG_FUNCTION_ARGS);
-extern Datum btvacuumcleanup(PG_FUNCTION_ARGS);
-extern Datum btcanreturn(PG_FUNCTION_ARGS);
-extern Datum btoptions(PG_FUNCTION_ARGS);
+extern Datum bthandler(PG_FUNCTION_ARGS);
+extern IndexBuildResult *btbuild(Relation heap, Relation index,
+		struct IndexInfo *indexInfo);
+extern void btbuildempty(Relation index);
+extern bool btinsert(Relation rel, Datum *values, bool *isnull,
+		 ItemPointer ht_ctid, Relation heapRel,
+		 IndexUniqueCheck checkUnique);
+extern IndexScanDesc btbeginscan(Relation rel, int nkeys, int norderbys);
+extern bool btgettuple(IndexScanDesc scan, ScanDirection dir);
+extern Node *btgetbitmap(IndexScanDesc scan, Node *tbm);
+extern void btrescan(IndexScanDesc scan, ScanKey scankey, int nscankeys,
+		 ScanKey orderbys, int norderbys);
+extern void btendscan(IndexScanDesc scan);
+extern void btmarkpos(IndexScanDesc scan);
+extern void btrestrpos(IndexScanDesc scan);
+extern IndexBulkDeleteResult *btbulkdelete(IndexVacuumInfo *info,
+			 IndexBulkDeleteResult *stats,
+			 IndexBulkDeleteCallback callback,
+			 void *callback_state);
+extern IndexBulkDeleteResult *btvacuumcleanup(IndexVacuumInfo *info,
+				IndexBulkDeleteResult *stats);
+extern bool btcanreturn(Relation index, int attno);
 
 /*
  * prototypes for functions in nbtinsert.c
@@ -702,17 +710,18 @@ extern int	_bt_pagedel(Relation rel, Buffer buf);
  */
 extern BTStack _bt_search(Relation rel,
 		   int keysz, ScanKey scankey, bool nextkey,
-		   Buffer *bufP, int access);
+		   Buffer *bufP, int access, Snapshot snapshot);
 extern Buffer _bt_moveright(Relation rel, Buffer buf, int keysz,
 			  ScanKey scankey, bool nextkey, bool forupdate, BTStack stack,
-			  int access);
+			  int access, Snapshot snapshot);
 extern OffsetNumber _bt_binsrch(Relation rel, Buffer buf, int keysz,
 			ScanKey scankey, bool nextkey);
 extern int32 _bt_compare(Relation rel, int keysz, ScanKey scankey,
 			Page page, OffsetNumber offnum);
 extern bool _bt_first(IndexScanDesc scan, ScanDirection dir);
 extern bool _bt_next(IndexScanDesc scan, ScanDirection dir);
-extern Buffer _bt_get_endpoint(Relation rel, uint32 level, bool rightmost);
+extern Buffer _bt_get_endpoint(Relation rel, uint32 level, bool rightmost,
+				 Snapshot snapshot);
 
 /*
  * prototypes for functions in nbtutils.c
@@ -738,6 +747,16 @@ extern void _bt_end_vacuum_callback(int code, Datum arg);
 extern void _bt_validate_vacuum(Relation irel, Relation hrel, TransactionId oldest_xmin);
 extern Size BTreeShmemSize(void);
 extern void BTreeShmemInit(void);
+extern bytea *btoptions(Datum reloptions, bool validate);
+extern bool btproperty(Oid index_oid, int attno,
+		   IndexAMProperty prop, const char *propname,
+		   bool *res, bool *isnull);
+
+/*
+ * prototypes for functions in nbtvalidate.c
+ */
+extern bool btvalidate(Oid opclassoid);
+extern bool btree_or_bitmap_validate(Oid opclassoid, const char *amname);
 
 /*
  * prototypes for functions in nbtsort.c

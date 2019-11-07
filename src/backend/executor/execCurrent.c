@@ -3,7 +3,7 @@
  * execCurrent.c
  *	  executor support for WHERE CURRENT OF cursor
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/executor/execCurrent.c
@@ -24,9 +24,11 @@
 #include "parser/parse_relation.h"
 #include "parser/parsetree.h"
 #include "cdb/cdbvars.h"
+#include "cdb/cdbpartition.h"
 
 
 static char *fetch_cursor_param_value(ExprContext *econtext, int paramId);
+static ScanState *search_plan_tree(PlanState *node, Oid table_oid);
 #ifdef NOT_USED
 static ScanState *search_plan_tree(PlanState *node, Oid table_oid,
 				 bool *pending_rescan);
@@ -186,31 +188,55 @@ getCurrentOf(CurrentOfExpr *cexpr,
 						cursor_name)));
 
 	/*
-	 * The referenced cursor must be simply updatable. This has already
-	 * been discerned by parse/analyze for the DECLARE CURSOR of the given
-	 * cursor. This flag assures us that gp_segment_id, ctid, and tableoid (if necessary)
-	 * will be available as junk metadata, courtesy of preprocess_targetlist.
+	 * gpdb partition table routine is different with upstream
+	 * so we hold private updatable check method.
 	 */
-	if (!queryDesc->plannedstmt->simplyUpdatable)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_CURSOR_STATE),
-				 errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
-						cursor_name, table_name)));
+	if(rel_is_partitioned(table_oid)
+	|| rel_is_leaf_partition(table_oid)
+	|| get_rel_persistence(table_oid) == RELPERSISTENCE_TEMP)
+	{
+		/*
+		 * The referenced cursor must be simply updatable. This has already
+		 * been discerned by parse/analyze for the DECLARE CURSOR of the given
+		 * cursor. This flag assures us that gp_segment_id, ctid, and tableoid (if necessary)
+		 * will be available as junk metadata, courtesy of preprocess_targetlist.
+		 */
+		if (!queryDesc->plannedstmt->simplyUpdatable)
+			ereport(ERROR,
+			        (errcode(ERRCODE_INVALID_CURSOR_STATE),
+					        errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
+					               cursor_name, table_name)));
 
-	/*
-	 * The target relation must directly match the cursor's relation. This throws out
-	 * the simple case in which a cursor is declared against table X and the update is
-	 * issued against Y. Moreover, this disallows some subtler inheritance cases where
-	 * Y inherits from X. While such cases could be implemented, it seems wiser to
-	 * simply error out cleanly.
-	 */
-	Index varno = extractSimplyUpdatableRTEIndex(queryDesc->plannedstmt->rtable);
-	Oid cursor_relid = getrelid(varno, queryDesc->plannedstmt->rtable);
-	if (table_oid != cursor_relid)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_CURSOR_STATE),
-				 errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
-						cursor_name, table_name)));
+		/*
+		 * The target relation must directly match the cursor's relation. This throws out
+		 * the simple case in which a cursor is declared against table X and the update is
+		 * issued against Y. Moreover, this disallows some subtler inheritance cases where
+		 * Y inherits from X. While such cases could be implemented, it seems wiser to
+		 * simply error out cleanly.
+		 */
+		Index varno = extractSimplyUpdatableRTEIndex(queryDesc->plannedstmt->rtable);
+		Oid cursor_relid = getrelid(varno, queryDesc->plannedstmt->rtable);
+		if (table_oid != cursor_relid)
+			ereport(ERROR,
+			        (errcode(ERRCODE_INVALID_CURSOR_STATE),
+					        errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
+					               cursor_name, table_name)));
+	}
+	else
+	{
+		ScanState  *scanstate;
+		/*
+		 * Without FOR UPDATE, we dig through the cursor's plan to find the
+		 * scan node.  Fail if it's not there or buried underneath
+		 * aggregation.
+		 */
+		scanstate = search_plan_tree(queryDesc->planstate, table_oid);
+		if (!scanstate)
+			ereport(ERROR,
+			        (errcode(ERRCODE_INVALID_CURSOR_STATE),
+					        errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
+					               cursor_name, table_name)));
+	}
 
 	/*
 	 * The cursor must have a current result row: per the SQL spec, it's an
@@ -506,93 +532,79 @@ fetch_cursor_param_value(ExprContext *econtext, int paramId)
  *
  * Search through a PlanState tree for a scan node on the specified table.
  * Return NULL if not found or multiple candidates.
- *
- * If a candidate is found, set *pending_rescan to true if that candidate
- * or any node above it has a pending rescan action, i.e. chgParam != NULL.
- * That indicates that we shouldn't consider the node to be positioned on a
- * valid tuple, even if its own state would indicate that it is.  (Caller
- * must initialize *pending_rescan to false, and should not trust its state
- * if multiple candidates are found.)
  */
-#ifdef NOT_USED
 static ScanState *
-search_plan_tree(PlanState *node, Oid table_oid,
-				 bool *pending_rescan)
+search_plan_tree(PlanState *node, Oid table_oid)
 {
-	ScanState  *result = NULL;
-
 	if (node == NULL)
 		return NULL;
 	switch (nodeTag(node))
 	{
-			/*
-			 * Relation scan nodes can all be treated alike
-			 */
+		/*
+		 * Relation scan nodes can all be treated alike
+		 */
 		case T_SeqScanState:
-		case T_DynamicSeqScanState:
 		case T_SampleScanState:
 		case T_IndexScanState:
-		case T_DynamicIndexScanState:
 		case T_IndexOnlyScanState:
 		case T_BitmapHeapScanState:
-		case T_DynamicBitmapHeapScanState:
 		case T_TidScanState:
 		case T_ForeignScanState:
 		case T_CustomScanState:
-			{
-				ScanState  *sstate = (ScanState *) node;
+		{
+			ScanState  *sstate = (ScanState *) node;
 
-				if (RelationGetRelid(sstate->ss_currentRelation) == table_oid)
-					result = sstate;
-				break;
-			}
+			if (RelationGetRelid(sstate->ss_currentRelation) == table_oid)
+				return sstate;
+			break;
+		}
 
 			/*
 			 * For Append, we must look through the members; watch out for
 			 * multiple matches (possible if it was from UNION ALL)
 			 */
 		case T_AppendState:
+		{
+			AppendState *astate = (AppendState *) node;
+			ScanState  *result = NULL;
+			int			i;
+
+			for (i = 0; i < astate->as_nplans; i++)
 			{
-				AppendState *astate = (AppendState *) node;
-				int			i;
+				ScanState  *elem = search_plan_tree(astate->appendplans[i],
+				                                    table_oid);
 
-				for (i = 0; i < astate->as_nplans; i++)
-				{
-					ScanState  *elem = search_plan_tree(astate->appendplans[i],
-														table_oid,
-														pending_rescan);
-
-					if (!elem)
-						continue;
-					if (result)
-						return NULL;	/* multiple matches */
-					result = elem;
-				}
-				break;
+				if (!elem)
+					continue;
+				if (result)
+					return NULL;	/* multiple matches */
+				result = elem;
 			}
+			return result;
+		}
 
 			/*
 			 * Similarly for MergeAppend
 			 */
 		case T_MergeAppendState:
+		{
+			MergeAppendState *mstate = (MergeAppendState *) node;
+			ScanState  *result = NULL;
+			int			i;
+
+			for (i = 0; i < mstate->ms_nplans; i++)
 			{
-				MergeAppendState *mstate = (MergeAppendState *) node;
-				int			i;
+				ScanState  *elem = search_plan_tree(mstate->mergeplans[i],
+				                                    table_oid);
 
-				for (i = 0; i < mstate->ms_nplans; i++)
-				{
-					ScanState  *elem = search_plan_tree(mstate->mergeplans[i],
-														table_oid,
-														pending_rescan);
-
-					if (!elem)
-						continue;
-					if (result)
-						return NULL;	/* multiple matches */
-					result = elem;
-				}
-				break;
+				if (!elem)
+					continue;
+				if (result)
+					return NULL;	/* multiple matches */
+				result = elem;
 			}
+			return result;
+		}
 
 			/*
 			 * Result and Limit can be descended through (these are safe
@@ -600,33 +612,21 @@ search_plan_tree(PlanState *node, Oid table_oid,
 			 */
 		case T_ResultState:
 		case T_LimitState:
-		case T_MotionState:
-			result = search_plan_tree(node->lefttree,
-									  table_oid,
-									  pending_rescan);
-			break;
+			return search_plan_tree(node->lefttree, table_oid);
 
 			/*
 			 * SubqueryScan too, but it keeps the child in a different place
 			 */
 		case T_SubqueryScanState:
-			result = search_plan_tree(((SubqueryScanState *) node)->subplan,
-									  table_oid,
-									  pending_rescan);
-			break;
+			return search_plan_tree(((SubqueryScanState *) node)->subplan,
+			                        table_oid);
+
+		case T_MotionState:
+			return search_plan_tree(node->lefttree, table_oid);
 
 		default:
 			/* Otherwise, assume we can't descend through it */
 			break;
 	}
-
-	/*
-	 * If we found a candidate at or below this node, then this node's
-	 * chgParam indicates a pending rescan that will affect the candidate.
-	 */
-	if (result && node->chgParam != NULL)
-		*pending_rescan = true;
-
-	return result;
+	return NULL;
 }
-#endif /* NOT_USED */

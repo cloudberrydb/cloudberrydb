@@ -9,7 +9,7 @@
  * exist, though, because mmap'd shmem provides no way to find out how
  * many processes are attached, which we need for interlocking purposes.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -778,7 +778,7 @@ PGSharedMemoryNoReAttach(void)
  *
  * Detach from the shared memory segment, if still attached.  This is not
  * intended to be called explicitly by the process that originally created the
- * segment (it will have on_shmem_exit callback(s) registered to do that).
+ * segment (it will have an on_shmem_exit callback registered to do that).
  * Rather, this is for subprocesses that have inherited an attachment and want
  * to get rid of it.
  *

@@ -4,7 +4,7 @@
  *	  prototypes for catalog/index.c.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/index.h
@@ -24,6 +24,8 @@ struct EState;                  /* #include "nodes/execnodes.h" */
 #define DEFAULT_INDEX_TYPE	"btree"
 
 /* Typedef for callback function for IndexBuildScan */
+/* GPDB: This takes an ItemPointer, rather than HeapTuple, because this is also
+ * used with AO/AOCO tables */
 typedef void (*IndexBuildCallback) (Relation index,
 									ItemPointer tupleId,
 									Datum *values,
@@ -122,6 +124,7 @@ extern double IndexBuildHeapRangeScan(Relation heapRelation,
 						Relation indexRelation,
 						IndexInfo *indexInfo,
 						bool allow_sync,
+						bool anyvisible,
 						BlockNumber start_blockno,
 						BlockNumber end_blockno,
 						IndexBuildCallback callback,

@@ -1841,18 +1841,20 @@ reset enable_seqscan;
 reset gp_enable_agg_distinct; 
 reset gp_enable_agg_distinct_pruning;
 
-
-set enable_groupagg=off;
 -- both queries should use hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
 
+-- Try same two queries, with group agg.
 set enable_groupagg=on;
--- first query should use groupagg, and second one - hashagg
+set enable_hashagg=off;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
 
+reset enable_groupagg;
+reset enable_hashagg;
 drop table qp_misc_jiras.tbl5994_test;
+
 CREATE TABLE qp_misc_jiras.tbl_8205 (
 text_col text,
 bigint_col bigint,
@@ -1871,6 +1873,9 @@ explain analyze select reltablespace  from pg_class where oid = (select reltoast
 select reltablespace from pg_class where oid = (select reltoastrelid from pg_class where relname='tbl_8205');
 
 drop table qp_misc_jiras.tbl_8205;
+reset enable_seqscan;
+reset enable_bitmapscan;
+reset enable_indexscan;
 
 -- create sample table
 create table qp_misc_jiras.tbl2976(x int);
@@ -1983,6 +1988,8 @@ CREATE TABLE qp_misc_jiras.bar_6325 (
   bar_6325_attr text
 )
 DISTRIBUTED RANDOMLY;
+
+set enable_nestloop=on;
 
 -- force_explain
 
@@ -2174,6 +2181,7 @@ drop index qp_misc_jiras.bmap2_index;
 drop table qp_misc_jiras.badbitmapindex;
 drop table qp_misc_jiras.bmap2;
 
+-- Test for ancient bug that led to a crash in EXPLAIN (MPP-9957)
 CREATE TABLE qp_misc_jiras.ir_voice_sms_and_data (
     imsi_number character varying(35),
     ir_call_country_name character varying(35),
@@ -2186,7 +2194,7 @@ CREATE TABLE qp_misc_jiras.ir_voice_sms_and_data (
     ir_call_charged_item_code character(1)
 ) distributed randomly;
 
-
+set gp_motion_cost_per_row =0.1; -- to get a two-stage agg
 explain select
 case when ir_call_type_group_code in ('H', 'VH', 'PCB') then 'Thailland'
 else 'Unidentify' end || 'a'
@@ -2199,6 +2207,7 @@ case when ir_call_type_group_code in ('H', 'VH', 'PCB') then 'Thailland'
 else 'Unidentify' end
 ;
 DROP TABLE qp_misc_jiras.ir_voice_sms_and_data;
+reset gp_motion_cost_per_row;
 
 create table qp_misc_jiras.r
     (a int, b int, c int)

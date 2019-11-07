@@ -5,7 +5,7 @@
  *	  Routines for CREATE and DROP FUNCTION commands and CREATE and DROP
  *	  CAST commands.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -511,6 +511,7 @@ compute_common_attribute(DefElem *defel,
 						 List **set_items,
 						 DefElem **cost_item,
 						 DefElem **rows_item,
+						 DefElem **parallel_item,
 						 DefElem **data_access_item,
 						 DefElem **exec_location_item)
 {
@@ -559,6 +560,13 @@ compute_common_attribute(DefElem *defel,
 			goto duplicate_error;
 
 		*rows_item = defel;
+	}
+	else if (strcmp(defel->defname, "parallel") == 0)
+	{
+		if (*parallel_item)
+			goto duplicate_error;
+
+		*parallel_item = defel;
 	}
 	else if (strcmp(defel->defname, "data_access") == 0)
 	{
@@ -712,6 +720,26 @@ validate_sql_exec_location(char exec_location, bool proretset)
 	}
 }
 
+static char
+interpret_func_parallel(DefElem *defel)
+{
+	char	   *str = strVal(defel->arg);
+
+	if (strcmp(str, "safe") == 0)
+		return PROPARALLEL_SAFE;
+	else if (strcmp(str, "unsafe") == 0)
+		return PROPARALLEL_UNSAFE;
+	else if (strcmp(str, "restricted") == 0)
+		return PROPARALLEL_RESTRICTED;
+	else
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("parameter \"parallel\" must be SAFE, RESTRICTED, or UNSAFE")));
+		return PROPARALLEL_UNSAFE;		/* keep compiler quiet */
+	}
+}
+
 /*
  * Update a proconfig value according to a list of VariableSetStmt items.
  *
@@ -761,6 +789,7 @@ compute_attributes_sql_style(List *options,
 							 ArrayType **proconfig,
 							 float4 *procost,
 							 float4 *prorows,
+							 char *parallel_p,
 							 char *data_access,
 							 char *exec_location)
 {
@@ -776,6 +805,7 @@ compute_attributes_sql_style(List *options,
 	List	   *set_items = NIL;
 	DefElem    *cost_item = NULL;
 	DefElem    *rows_item = NULL;
+	DefElem    *parallel_item = NULL;
 	DefElem    *data_access_item = NULL;
 	DefElem    *exec_location_item = NULL;
 
@@ -823,6 +853,7 @@ compute_attributes_sql_style(List *options,
 										  &set_items,
 										  &cost_item,
 										  &rows_item,
+										  &parallel_item,
 										  &data_access_item,
 										  &exec_location_item))
 		{
@@ -886,7 +917,8 @@ compute_attributes_sql_style(List *options,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("ROWS must be positive")));
 	}
-
+	if (parallel_item)
+		*parallel_p = interpret_func_parallel(parallel_item);
 	if (data_access_item)
 		*data_access = interpret_data_access(data_access_item);
 	if (exec_location_item)
@@ -1186,6 +1218,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	HeapTuple	languageTuple;
 	Form_pg_language languageStruct;
 	List	   *as_clause;
+	char		parallel;
 	List       *describeQualName = NIL;
 	Oid         describeFuncOid  = InvalidOid;
 	char		dataAccess;
@@ -1211,6 +1244,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	proconfig = NULL;
 	procost = -1;				/* indicates not set */
 	prorows = -1;				/* indicates not set */
+	parallel = PROPARALLEL_UNSAFE;
 	dataAccess = '\0';			/* indicates not set */
 	execLocation = '\0';		/* indicates not set */
 
@@ -1219,7 +1253,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 								 &as_clause, &language, &transformDefElem,
 								 &isWindowFunc, &volatility,
 								 &isStrict, &security, &isLeakProof,
-								 &proconfig, &procost, &prorows,
+								 &proconfig, &procost, &prorows, &parallel,
 								 &dataAccess, &execLocation);
 
 	/* Look up the language and validate permissions */
@@ -1423,6 +1457,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 						   isLeakProof,
 						   isStrict,
 						   volatility,
+						   parallel,
 						   parameterTypes,
 						   PointerGetDatum(allParameterTypes),
 						   PointerGetDatum(parameterModes),
@@ -1520,6 +1555,7 @@ AlterFunction(AlterFunctionStmt *stmt)
 	List	   *set_items = NIL;
 	DefElem    *cost_item = NULL;
 	DefElem    *rows_item = NULL;
+	DefElem    *parallel_item = NULL;
 	ObjectAddress address;
 	DefElem    *data_access_item = NULL;
 	DefElem    *exec_location_item = NULL;
@@ -1566,6 +1602,7 @@ AlterFunction(AlterFunctionStmt *stmt)
 									 &set_items,
 									 &cost_item,
 									 &rows_item,
+									 &parallel_item,
 									 &data_access_item,
 									 &exec_location_item) == false)
 			elog(ERROR, "option \"%s\" not recognized", defel->defname);
@@ -1639,6 +1676,8 @@ AlterFunction(AlterFunctionStmt *stmt)
 		tup = heap_modify_tuple(tup, RelationGetDescr(rel),
 								repl_val, repl_null, repl_repl);
 	}
+	if (parallel_item)
+		procForm->proparallel = interpret_func_parallel(parallel_item);
 	if (data_access_item)
 	{
 		Datum		repl_val[Natts_pg_proc];

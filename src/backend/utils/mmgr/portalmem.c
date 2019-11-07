@@ -10,7 +10,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -26,11 +26,12 @@
 #include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
-#include "utils/resource_manager.h"
-#include "utils/resscheduler.h"
+#include "utils/snapmgr.h"
+#include "utils/timestamp.h"
 
 #include "cdb/ml_ipc.h"
-#include "utils/timestamp.h"
+#include "utils/resource_manager.h"
+#include "utils/resscheduler.h"
 
 /*
  * Estimate of the maximum number of open portals a user would have,
@@ -372,6 +373,7 @@ PortalCreateHoldStore(Portal portal)
 
 	Assert(portal->holdContext == NULL);
 	Assert(portal->holdStore == NULL);
+	Assert(portal->holdSnapshot == NULL);
 
 	/*
 	 * Create the memory context that is used for storage of the tuple set.
@@ -551,6 +553,20 @@ PortalDrop(Portal portal, bool isTopCommit)
 
 	/* drop cached plan reference, if any */
 	PortalReleaseCachedPlan(portal);
+
+	/*
+	 * If portal has a snapshot protecting its data, release that.  This needs
+	 * a little care since the registration will be attached to the portal's
+	 * resowner; if the portal failed, we will already have released the
+	 * resowner (and the snapshot) during transaction abort.
+	 */
+	if (portal->holdSnapshot)
+	{
+		if (portal->resowner)
+			UnregisterSnapshotFromOwner(portal->holdSnapshot,
+										portal->resowner);
+		portal->holdSnapshot = NULL;
+	}
 
 	/*
 	 * Release any resources still attached to the portal.  There are several
@@ -791,7 +807,14 @@ AtAbort_Portals(void)
 	{
 		Portal		portal = hentry->portal;
 
-		/* Any portal that was actually running has to be considered broken */
+		/*
+		 * See similar code in AtSubAbort_Portals().  This would fire if code
+		 * orchestrating multiple top-level transactions within a portal, such
+		 * as VACUUM, caught errors and continued under the same portal with a
+		 * fresh transaction.  No part of core PostgreSQL functions that way.
+		 * XXX Such code would wish the portal to remain ACTIVE, as in
+		 * PreCommit_Portals().
+		 */
 		if (portal->status == PORTAL_ACTIVE)
 			MarkPortalFailed(portal);
 
@@ -969,9 +992,17 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 				portal->activeSubid = parentSubid;
 
 				/*
+				 * GPDB_96_MERGE_FIXME: We had this different comment here in GPDB.
+				 * Does this scenario happen in GPDB for some reason?
+				 *
 				 * Upper-level portals that failed while running in this
 				 * subtransaction must be forced into FAILED state, for the
 				 * same reasons discussed below.
+				 *
+				 * A MarkPortalActive() caller ran an upper-level portal in
+				 * this subtransaction and left the portal ACTIVE.  This can't
+				 * happen, but force the portal into FAILED state for the same
+				 * reasons discussed below.
 				 *
 				 * We assume we can get away without forcing upper-level READY
 				 * portals to fail, even if they were run and then suspended.
@@ -1011,6 +1042,10 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 		 * We have to do this because they might refer to objects created or
 		 * changed in the failed subtransaction, leading to crashes within
 		 * ExecutorEnd when portalcmds.c tries to close down the portal.
+		 * Currently, every MarkPortalActive() caller ensures it updates the
+		 * portal status again before relinquishing control, so ACTIVE can't
+		 * happen here.  If it does happen, dispose the portal like existing
+		 * MarkPortalActive() callers would.
 		 */
 		// GPDB_90_MERGE_FIXME: Not in READY portals. See comment in AtAbort_Portals.
 		if (//portal->status == PORTAL_READY ||

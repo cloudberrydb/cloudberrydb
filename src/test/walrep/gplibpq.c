@@ -96,10 +96,11 @@ test_disconnect(PG_FUNCTION_ARGS)
 Datum
 test_receive(PG_FUNCTION_ARGS)
 {
-	int		result;
+	int			result;
 	char	   *buf;
+	pgsocket	wait_fd;
 
-	result = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
+	result = walrcv_receive(&buf, &wait_fd);
 
 	PG_RETURN_INT32(result);
 }
@@ -120,6 +121,7 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 	XLogRecPtr startpoint = PG_GETARG_LSN(0);
 	XLogRecPtr endpoint = PG_GETARG_LSN(1);
 	char   *buf;
+	pgsocket wait_fd;
 	int     len;
 	TimeLineID  startpointTLI;
 
@@ -129,7 +131,7 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 
 	for (int i=0; i < NUM_RETRIES; i++)
 	{
-		len = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
+		len = walrcv_receive(&buf, &wait_fd);
 		if (len > 0)
 		{
 			XLogRecPtr logStreamStart = InvalidXLogRecPtr;
@@ -137,7 +139,7 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 			/* Accept the received data, and process it */
 			test_XLogWalRcvProcessMsg(buf[0], &buf[1], len-1, &logStreamStart);
 
-			/* Compare received everthing from start */
+			/* Compare received everything from start */
 			if (startpoint != logStreamStart)
 			{
 				elog(ERROR, "Start point (%X/%X) differs from expected (%X/%X)",
@@ -157,6 +159,7 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 		}
 
 		elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
+		pg_usleep(NAPTIME_PER_CYCLE * 1000);
 	}
 
 	PG_RETURN_BOOL(false);
@@ -340,6 +343,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 		XLogRecPtr    startpoint = PG_GETARG_LSN(1);
 		TimeLineID  startpointTLI;
 		char         *buf;
+		pgsocket	  wait_fd;
 		int           len;
 		uint32        xrecoff;
 
@@ -352,7 +356,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 
 		for (int i = 0; i < NUM_RETRIES; i++)
 		{
-			len = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
+			len = walrcv_receive(&buf, &wait_fd);
 			if (len > 0)
 			{
 				funcctx->max_calls = check_ao_record_present(buf[0], &buf[1],
@@ -361,7 +365,10 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 				break;
 			}
 			else
+			{
 				elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
+				pg_usleep(NAPTIME_PER_CYCLE * 1000);
+			}
 		}
 
 		walrcv_disconnect();

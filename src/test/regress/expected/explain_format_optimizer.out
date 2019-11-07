@@ -125,6 +125,7 @@ QUERY PLAN
     Slice: 3
     Segments: 3
     Gang Type: "primary reader"
+    Parallel Aware: false
     Startup Cost: 0.00
     Total Cost: 449.00
     Plan Rows: 3
@@ -135,6 +136,7 @@ QUERY PLAN
         Slice: 3
         Segments: 3
         Gang Type: "primary reader"
+        Parallel Aware: false
         Join Type: "Left"
         Startup Cost: 0.00
         Total Cost: 449.00
@@ -149,6 +151,7 @@ QUERY PLAN
             Slice: 2
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 0.00
             Total Cost: 437.00
             Plan Rows: 2
@@ -160,6 +163,7 @@ QUERY PLAN
                 Slice: 2
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Join Type: "Left"
                 Startup Cost: 0.00
                 Total Cost: 437.00
@@ -174,6 +178,7 @@ QUERY PLAN
                     Slice: 1
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Startup Cost: 0.00
                     Total Cost: 431.00
                     Plan Rows: 1
@@ -185,6 +190,7 @@ QUERY PLAN
                         Slice: 1
                         Segments: 3
                         Gang Type: "primary reader"
+                        Parallel Aware: false
                         Relation Name: "boxes"
                         Alias: "boxes"
                         Startup Cost: 0.00
@@ -196,6 +202,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Scan Direction: "Forward"
                     Index Name: "apples_pkey"
                     Relation Name: "apples"
@@ -210,6 +217,7 @@ QUERY PLAN
             Slice: 3
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Scan Direction: "Forward"
             Index Name: "box_locations_pkey"
             Relation Name: "box_locations"
@@ -233,6 +241,7 @@ QUERY PLAN
     Slice: 3
     Segments: 3
     Gang Type: "primary reader"
+    Parallel Aware: false
     Startup Cost: 0.00
     Total Cost: 449.00
     Plan Rows: 3
@@ -247,6 +256,7 @@ QUERY PLAN
         Slice: 3
         Segments: 3
         Gang Type: "primary reader"
+        Parallel Aware: false
         Join Type: "Left"
         Startup Cost: 0.00
         Total Cost: 449.00
@@ -266,6 +276,7 @@ QUERY PLAN
             Slice: 2
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 0.00
             Total Cost: 437.00
             Plan Rows: 2
@@ -281,6 +292,7 @@ QUERY PLAN
                 Slice: 2
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Join Type: "Left"
                 Startup Cost: 0.00
                 Total Cost: 437.00
@@ -300,6 +312,7 @@ QUERY PLAN
                     Slice: 1
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Startup Cost: 0.00
                     Total Cost: 431.00
                     Plan Rows: 1
@@ -315,6 +328,7 @@ QUERY PLAN
                         Slice: 1
                         Segments: 3
                         Gang Type: "primary reader"
+                        Parallel Aware: false
                         Relation Name: "boxes"
                         Alias: "boxes"
                         Startup Cost: 0.00
@@ -330,6 +344,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Scan Direction: "Forward"
                     Index Name: "apples_pkey"
                     Relation Name: "apples"
@@ -349,6 +364,7 @@ QUERY PLAN
             Slice: 3
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Scan Direction: "Forward"
             Index Name: "box_locations_pkey"
             Relation Name: "box_locations"
@@ -410,6 +426,7 @@ QUERY PLAN
   {
     "Plan": {
       "Node Type": "Function Scan",
+      "Parallel Aware": false,
       "Function Name": "generate_series",
       "Alias": "generate_series"
     },
@@ -425,6 +442,7 @@ QUERY PLAN
   <Query>
     <Plan>
       <Node-Type>Function Scan</Node-Type>
+      <Parallel-Aware>false</Parallel-Aware>
       <Function-Name>generate_series</Function-Name>
       <Alias>generate_series</Alias>
     </Plan>

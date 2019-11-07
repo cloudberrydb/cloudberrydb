@@ -279,6 +279,7 @@ cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist)
 		foreach(lc_tle, targetlist)
 		{
 			Node	   *tlexpr = lfirst(lc_tle);
+			Node	   *naked_tlexpr;
 
 			/*
 			 * Check if targetlist is a List of TargetEntry. (Planner's
@@ -288,30 +289,27 @@ cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist)
 				tlexpr = (Node *) ((TargetEntry *) tlexpr)->expr;
 
 			/* ignore RelabelType nodes on both sides */
-			while (tlexpr && IsA(tlexpr, RelabelType))
-				tlexpr = (Node *) ((RelabelType *) tlexpr)->arg;
+			naked_tlexpr = tlexpr;
+			while (naked_tlexpr && IsA(naked_tlexpr, RelabelType))
+				naked_tlexpr = (Node *) ((RelabelType *) naked_tlexpr)->arg;
 
 			if (IsA(key, Var))
 			{
-				if (IsA(tlexpr, Var))
+				if (IsA(naked_tlexpr, Var))
 				{
 					Var		   *keyvar = (Var *) key;
-					Var		   *tlvar = (Var *) tlexpr;
+					Var		   *tlvar = (Var *) naked_tlexpr;
 
 					if (keyvar->varno == tlvar->varno &&
 						keyvar->varattno == tlvar->varattno &&
 						keyvar->varlevelsup == tlvar->varlevelsup)
-						return key;
+						return (Expr *) tlexpr;
 				}
 			}
 			else
 			{
-				/* ignore RelabelType nodes on both sides */
-				while (key && IsA(key, RelabelType))
-					key = (Expr *) ((RelabelType *) key)->arg;
-
-				if (equal(tlexpr, key))
-					return key;
+				if (equal(naked_tlexpr, key))
+					return (Expr *) tlexpr;
 			}
 		}
 

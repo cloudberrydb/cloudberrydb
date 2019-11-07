@@ -4,7 +4,7 @@
  *	  POSTGRES buffer manager definitions.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/bufmgr.h
@@ -14,14 +14,13 @@
 #ifndef BUFMGR_H
 #define BUFMGR_H
 
-#include "miscadmin.h"
 #include "storage/block.h"
 #include "storage/buf.h"
-#include "storage/buf_internals.h"
 #include "storage/bufpage.h"
 #include "storage/relfilenode.h"
-#include "storage/smgr.h"
 #include "utils/relcache.h"
+#include "utils/snapmgr.h"
+#include "utils/tqual.h"
 
 typedef void *Block;
 
@@ -39,35 +38,56 @@ typedef enum BufferAccessStrategyType
 typedef enum
 {
 	RBM_NORMAL,					/* Normal read */
-	RBM_DO_NOT_USE,				/* This used to be RBM_ZERO. Only kept for
-								 * binary compatibility with 3rd party
-								 * extensions. */
-	RBM_ZERO_ON_ERROR,			/* Read, but return an all-zeros page on error */
-	RBM_NORMAL_NO_LOG,			/* Don't log page as invalid during WAL
-								 * replay; otherwise same as RBM_NORMAL */
 	RBM_ZERO_AND_LOCK,			/* Don't read from disk, caller will
 								 * initialize. Also locks the page. */
-	RBM_ZERO_AND_CLEANUP_LOCK	/* Like RBM_ZERO_AND_LOCK, but locks the page
+	RBM_ZERO_AND_CLEANUP_LOCK,	/* Like RBM_ZERO_AND_LOCK, but locks the page
 								 * in "cleanup" mode */
+	RBM_ZERO_ON_ERROR,			/* Read, but return an all-zeros page on error */
+	RBM_NORMAL_NO_LOG			/* Don't log page as invalid during WAL
+								 * replay; otherwise same as RBM_NORMAL */
 } ReadBufferMode;
+
+/* forward declared, to avoid having to expose buf_internals.h here */
+struct WritebackContext;
 
 /* in globals.c ... this duplicates miscadmin.h */
 extern PGDLLIMPORT int NBuffers;
 
 /* in bufmgr.c */
+#define WRITEBACK_MAX_PENDING_FLUSHES 256
+
+/* FIXME: Also default to on for mmap && msync(MS_ASYNC)? */
+#ifdef HAVE_SYNC_FILE_RANGE
+#define DEFAULT_CHECKPOINT_FLUSH_AFTER 32
+#define DEFAULT_BGWRITER_FLUSH_AFTER 64
+#else
+#define DEFAULT_CHECKPOINT_FLUSH_AFTER 0
+#define DEFAULT_BGWRITER_FLUSH_AFTER 0
+#endif   /* HAVE_SYNC_FILE_RANGE */
+
 extern bool zero_damaged_pages;
 extern int	bgwriter_lru_maxpages;
 extern double bgwriter_lru_multiplier;
 extern bool track_io_timing;
 extern int	target_prefetch_pages;
 
+extern int	checkpoint_flush_after;
+extern int	backend_flush_after;
+extern int	bgwriter_flush_after;
+
 /* in buf_init.c */
 extern PGDLLIMPORT char *BufferBlocks;
+
+/* in guc.c */
+extern int	effective_io_concurrency;
 
 /* in localbuf.c */
 extern PGDLLIMPORT int NLocBuffer;
 extern PGDLLIMPORT Block *LocalBufferBlockPointers;
 extern PGDLLIMPORT int32 *LocalRefCount;
+
+/* upper limit for effective_io_concurrency */
+#define MAX_IO_CONCURRENCY 1000
 
 /* special block number for ReadBuffer() */
 #define P_NEW	InvalidBlockNumber		/* grow the file to get a new page */
@@ -144,12 +164,16 @@ extern PGDLLIMPORT int32 *LocalRefCount;
 /*
  * BufferGetPage
  *		Returns the page associated with a buffer.
+ *
+ * When this is called as part of a scan, there may be a need for a nearby
+ * call to TestForOldSnapshot().  See the definition of that for details.
  */
 #define BufferGetPage(buffer) ((Page)BufferGetBlock(buffer))
 
 /*
  * prototypes for functions in bufmgr.c
  */
+extern bool ComputeIoConcurrency(int io_concurrency, double *target);
 extern void PrefetchBuffer(Relation reln, ForkNumber forkNum,
 			   BlockNumber blockNum);
 extern Buffer ReadBuffer(Relation reln, BlockNumber blockNum);
@@ -182,7 +206,6 @@ extern void DropRelFileNodeBuffers(RelFileNodeBackend rnode,
 					   ForkNumber forkNum, BlockNumber firstDelBlock);
 extern void DropRelFileNodesAllBuffers(RelFileNodeBackend *rnodes, int nnodes);
 extern void DropDatabaseBuffers(Oid dbid);
-extern XLogRecPtr BufferGetLSNAtomic(Buffer buffer);
 
 #define RelationGetNumberOfBlocks(reln) \
 	RelationGetNumberOfBlocksInFork(reln, MAIN_FORKNUM)
@@ -209,12 +232,59 @@ extern bool HoldingBufferPinThatDelaysRecovery(void);
 extern void AbortBufferIO(void);
 
 extern void BufmgrCommit(void);
-extern bool BgBufferSync(void);
+extern bool BgBufferSync(struct WritebackContext *wb_context);
 
 extern void AtProcExit_LocalBuffers(void);
+
+extern void TestForOldSnapshot_impl(Snapshot snapshot, Relation relation);
 
 /* in freelist.c */
 extern BufferAccessStrategy GetAccessStrategy(BufferAccessStrategyType btype);
 extern void FreeAccessStrategy(BufferAccessStrategy strategy);
 
-#endif
+
+/* inline functions */
+
+/*
+ * Although this header file is nominally backend-only, certain frontend
+ * programs like pg_xlogdump include it.  For compilers that emit static
+ * inline functions even when they're unused, that leads to unsatisfied
+ * external references; hence hide these with #ifndef FRONTEND.
+ */
+
+#ifndef FRONTEND
+
+/*
+ * Check whether the given snapshot is too old to have safely read the given
+ * page from the given table.  If so, throw a "snapshot too old" error.
+ *
+ * This test generally needs to be performed after every BufferGetPage() call
+ * that is executed as part of a scan.  It is not needed for calls made for
+ * modifying the page (for example, to position to the right place to insert a
+ * new index tuple or for vacuuming).  It may also be omitted where calls to
+ * lower-level functions will have already performed the test.
+ *
+ * Note that a NULL snapshot argument is allowed and causes a fast return
+ * without error; this is to support call sites which can be called from
+ * either scans or index modification areas.
+ *
+ * For best performance, keep the tests that are fastest and/or most likely to
+ * exclude a page from old snapshot testing near the front.
+ */
+static inline void
+TestForOldSnapshot(Snapshot snapshot, Relation relation, Page page)
+{
+	Assert(relation != NULL);
+
+	if (old_snapshot_threshold >= 0
+		&& (snapshot) != NULL
+		&& ((snapshot)->satisfies == HeapTupleSatisfiesMVCC
+			|| (snapshot)->satisfies == HeapTupleSatisfiesToast)
+		&& !XLogRecPtrIsInvalid((snapshot)->lsn)
+		&& PageGetLSN(page) > (snapshot)->lsn)
+		TestForOldSnapshot_impl(snapshot, relation);
+}
+
+#endif   /* FRONTEND */
+
+#endif   /* BUFMGR_H */

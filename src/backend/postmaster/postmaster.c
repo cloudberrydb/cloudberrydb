@@ -34,7 +34,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -93,6 +93,10 @@
 
 #ifdef USE_BONJOUR
 #include <dns_sd.h>
+#endif
+
+#ifdef USE_SYSTEMD
+#include <systemd/sd-daemon.h>
 #endif
 
 #ifdef HAVE_PTHREAD_IS_THREADED_NP
@@ -373,42 +377,42 @@ static BackgroundWorker PMAuxProcList[MaxPMAuxProc] =
 	 BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
 	 BgWorkerStart_DtxRecovering, /* no need to wait dtx recovery */
 	 0, /* restart immediately if ftsprobe exits with non-zero code */
-	 FtsProbeMain, {0}, {0}, 0, 0,
+	 FtsProbeMain, {0}, {0}, 0, {0}, 0,
 	 FtsProbeStartRule},
 
 	{"global deadlock detector process",
 	 BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
 	 BgWorkerStart_RecoveryFinished,
 	 0, /* restart immediately if gdd exits with non-zero code */
-	 GlobalDeadLockDetectorMain, {0}, {0}, 0, 0,
+	 GlobalDeadLockDetectorMain, {0}, {0}, 0, {0}, 0,
 	 GlobalDeadLockDetectorStartRule},
 
 	{"dtx recovery process",
 	 BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
 	 BgWorkerStart_DtxRecovering, /* no need to wait dtx recovery */
 	 0, /* restart immediately if dtx recovery process exits with non-zero code */
-	 DtxRecoveryMain, {0}, {0}, 0, 0,
+	 DtxRecoveryMain, {0}, {0}, 0, {0}, 0,
 	 DtxRecoveryStartRule},
 
 	{"stats sender process",
 	 BGWORKER_SHMEM_ACCESS,
 	 BgWorkerStart_RecoveryFinished,
 	 0, /* restart immediately if stats sender exits with non-zero code */
-	 SegmentInfoSenderMain, {0}, {0}, 0, 0,
+	 SegmentInfoSenderMain, {0}, {0}, 0, {0}, 0,
 	 SegmentInfoSenderStartRule},
 
 	{"sweeper process",
 	 BGWORKER_SHMEM_ACCESS,
 	 BgWorkerStart_RecoveryFinished,
 	 0, /* restart immediately if sweeper process exits with non-zero code */
-	 BackoffSweeperMain, {0}, {0}, 0, 0,
+	 BackoffSweeperMain, {0}, {0}, 0, {0}, 0,
 	 BackoffSweeperStartRule},
 
 	{"perfmon process",
 	 BGWORKER_SHMEM_ACCESS,
 	 BgWorkerStart_RecoveryFinished,
 	 0, /* restart immediately if perfmon process exits with non-zero code */
-	 PerfmonMain, {0}, {0}, 0, 0,
+	 PerfmonMain, {0}, {0}, 0, {0}, 0,
 	 PerfmonStartRule},
 };
 
@@ -576,6 +580,8 @@ typedef struct
 #ifndef HAVE_SPINLOCKS
 	PGSemaphore SpinlockSemaArray;
 #endif
+	int			NamedLWLockTrancheRequests;
+	NamedLWLockTranche *NamedLWLockTrancheArray;
 	LWLockPadded *MainLWLockArray;
 	slock_t    *ProcStructLock;
 	PROC_HDR   *ProcGlobal;
@@ -1034,7 +1040,7 @@ PostmasterMain(int argc, char *argv[])
 				(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
 	if (max_wal_senders > 0 && wal_level == WAL_LEVEL_MINIMAL)
 		ereport(ERROR,
-				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"archive\", \"hot_standby\", or \"logical\"")));
+				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
 
     if ( GpIdentity.dbid == -1 && Gp_role == GP_ROLE_UTILITY)
     {
@@ -1395,23 +1401,22 @@ PostmasterMain(int argc, char *argv[])
 	RemovePgTempFiles();
 
 	/*
-	 * Forcibly remove the files signaling a standby promotion
-	 * request. Otherwise, the existence of those files triggers
-	 * a promotion too early, whether a user wants that or not.
+	 * Forcibly remove the files signaling a standby promotion request.
+	 * Otherwise, the existence of those files triggers a promotion too early,
+	 * whether a user wants that or not.
 	 *
-	 * This removal of files is usually unnecessary because they
-	 * can exist only during a few moments during a standby
-	 * promotion. However there is a race condition: if pg_ctl promote
-	 * is executed and creates the files during a promotion,
-	 * the files can stay around even after the server is brought up
-	 * to new master. Then, if new standby starts by using the backup
-	 * taken from that master, the files can exist at the server
+	 * This removal of files is usually unnecessary because they can exist
+	 * only during a few moments during a standby promotion. However there is
+	 * a race condition: if pg_ctl promote is executed and creates the files
+	 * during a promotion, the files can stay around even after the server is
+	 * brought up to new master. Then, if new standby starts by using the
+	 * backup taken from that master, the files can exist at the server
 	 * startup and should be removed in order to avoid an unexpected
 	 * promotion.
 	 *
-	 * Note that promotion signal files need to be removed before
-	 * the startup process is invoked. Because, after that, they can
-	 * be used by postmaster's SIGUSR1 signal handler.
+	 * Note that promotion signal files need to be removed before the startup
+	 * process is invoked. Because, after that, they can be used by
+	 * postmaster's SIGUSR1 signal handler.
 	 */
 	RemovePromoteSignalFiles();
 
@@ -2000,7 +2005,7 @@ ServerLoop(void)
 
 		/* If we have lost the archiver, try to start a new one. */
 		if (PgArchPID == 0 && PgArchStartupAllowed())
-				PgArchPID = pgarch_start();
+			PgArchPID = pgarch_start();
 
 		/* If we need to signal the autovacuum launcher, do so now */
 		if (avlauncher_needs_signal)
@@ -2036,15 +2041,6 @@ ServerLoop(void)
 		 * special-case logic there.
 		 */
 		now = time(NULL);
-
-#ifdef HAVE_PTHREAD_IS_THREADED_NP
-
-		/*
-		 * With assertions enabled, check regularly for appearance of
-		 * additional threads.  All builds check at start and exit.
-		 */
-		Assert(pthread_is_threaded_np() == 0);
-#endif
 
 		/*
 		 * If we already sent SIGQUIT to children and they are slow to shut
@@ -2347,8 +2343,10 @@ retry1:
 				else if (!parse_bool(valptr, &am_walsender))
 					ereport(FATAL,
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					   errmsg("invalid value for parameter \"replication\""),
-							 errhint("Valid values are: false, 0, true, 1, database.")));
+						 errmsg("invalid value for parameter \"%s\": \"%s\"",
+								"replication",
+								valptr),
+							 errhint("Valid values are: \"false\", 0, \"true\", 1, \"database\".")));
 			}
 			else if (strncmp(nameptr, "_pq_.", 5) == 0)
 			{
@@ -3002,6 +3000,9 @@ pmdie(SIGNAL_ARGS)
 			Shutdown = SmartShutdown;
 			ereport(LOG,
 					(errmsg("received smart shutdown request")));
+#ifdef USE_SYSTEMD
+			sd_notify(0, "STOPPING=1");
+#endif
 
 			if (pmState == PM_STARTUP)
 			{
@@ -3071,6 +3072,9 @@ pmdie(SIGNAL_ARGS)
 			Shutdown = FastShutdown;
 			ereport(LOG,
 					(errmsg("received fast shutdown request")));
+#ifdef USE_SYSTEMD
+			sd_notify(0, "STOPPING=1");
+#endif
 
 			if (StartupPID != 0)
 				signal_child(StartupPID, SIGTERM);
@@ -3081,6 +3085,7 @@ pmdie(SIGNAL_ARGS)
 			if (pmState == PM_RECOVERY)
 			{
 				SignalSomeChildren(SIGTERM, BACKEND_TYPE_BGWORKER);
+
 				/*
 				 * Only startup, bgwriter, walreceiver, possibly bgworkers,
 				 * and/or checkpointer should be active in this state; we just
@@ -3134,6 +3139,9 @@ pmdie(SIGNAL_ARGS)
 			Shutdown = ImmediateShutdown;
 			ereport(LOG,
 					(errmsg("received immediate shutdown request")));
+#ifdef USE_SYSTEMD
+			sd_notify(0, "STOPPING=1");
+#endif
 
 			TerminateChildren(SIGQUIT);
 			pmState = PM_WAIT_BACKENDS;
@@ -3195,6 +3203,7 @@ reaper(SIGNAL_ARGS)
 			{
 				ereport(LOG,
 						(errmsg("shutdown at recovery target")));
+				StartupStatus = STARTUP_NOT_RUNNING;
 				Shutdown = SmartShutdown;
 				TerminateChildren(SIGTERM);
 				pmState = PM_WAIT_BACKENDS;
@@ -3289,6 +3298,10 @@ reaper(SIGNAL_ARGS)
 
 				PMAcceptingConnectionsStartTime = (pg_time_t) time(NULL);
 			}
+
+#ifdef USE_SYSTEMD
+			sd_notify(0, "READY=1");
+#endif
 
 			continue;
 		}
@@ -3559,9 +3572,9 @@ CleanupBackgroundWorker(int pid,
 
 		/*
 		 * It's possible that this background worker started some OTHER
-		 * background worker and asked to be notified when that worker
-		 * started or stopped.  If so, cancel any notifications destined
-		 * for the now-dead backend.
+		 * background worker and asked to be notified when that worker started
+		 * or stopped.  If so, cancel any notifications destined for the
+		 * now-dead backend.
 		 */
 		if (rw->rw_backend->bgworker_notify)
 			BackgroundWorkerStopNotifications(rw->rw_pid);
@@ -3572,7 +3585,7 @@ CleanupBackgroundWorker(int pid,
 		ReportBackgroundWorkerPID(rw);	/* report child death */
 
 		LogChildExit(EXIT_STATUS_0(exitstatus) ? DEBUG1 : LOG,
-							    namebuf, pid, exitstatus);
+					 namebuf, pid, exitstatus);
 
 		return true;
 	}
@@ -5329,8 +5342,10 @@ SubPostmasterMain(int argc, char *argv[])
 		/* Attach process to shared data structures */
 		CreateSharedMemoryAndSemaphores(false, 0);
 
+		/* Fetch MyBgworkerEntry from shared memory */
 		shmem_slot = atoi(argv[1] + 15);
 		MyBgworkerEntry = BackgroundWorkerEntry(shmem_slot);
+
 		StartBackgroundWorker();
 	}
 	if (strcmp(argv[1], "--forkarch") == 0)
@@ -5449,6 +5464,11 @@ sigusr1_handler(SIGNAL_ARGS)
 		if (XLogArchivingAlways())
 			PgArchPID = pgarch_start();
 
+#ifdef USE_SYSTEMD
+		if (!EnableHotStandby)
+			sd_notify(0, "READY=1");
+#endif
+
 		pmState = PM_RECOVERY;
 	}
 	if (CheckPostmasterSignal(PMSIGNAL_BEGIN_HOT_STANDBY) &&
@@ -5462,6 +5482,10 @@ sigusr1_handler(SIGNAL_ARGS)
 
 		ereport(LOG,
 		(errmsg("database system is ready to accept read only connections")));
+
+#ifdef USE_SYSTEMD
+		sd_notify(0, "READY=1");
+#endif
 
 		pmState = PM_HOT_STANDBY;
 		/* Some workers may be scheduled to start now */
@@ -5689,7 +5713,7 @@ CountChildren(int target)
 /*
  * StartChildProcess -- start an auxiliary process for the postmaster
  *
- * xlop determines what kind of child will be started.  All child types
+ * "type" determines what kind of child will be started.  All child types
  * initially go to AuxiliaryProcessMain, which will handle common setup.
  *
  * Return value of StartChildProcess is subprocess' PID, or 0 if failed
@@ -6086,9 +6110,19 @@ do_start_bgworker(RegisteredBgWorker *rw)
 			/* Close the postmaster's sockets */
 			ClosePostmasterPorts(false);
 
-			/* Do NOT release postmaster's working memory context */
+			/*
+			 * Before blowing away PostmasterContext, save this bgworker's
+			 * data where it can find it.
+			 */
+			MyBgworkerEntry = (BackgroundWorker *)
+				MemoryContextAlloc(TopMemoryContext, sizeof(BackgroundWorker));
+			memcpy(MyBgworkerEntry, &rw->rw_worker, sizeof(BackgroundWorker));
 
-			MyBgworkerEntry = &rw->rw_worker;
+			/* Release postmaster's working memory context */
+			MemoryContextSwitchTo(TopMemoryContext);
+			MemoryContextDelete(PostmasterContext);
+			PostmasterContext = NULL;
+
 			StartBackgroundWorker();
 
 			exit(1);			/* should not get here */
@@ -6420,6 +6454,8 @@ save_backend_variables(BackendParameters *param, Port *port,
 #ifndef HAVE_SPINLOCKS
 	param->SpinlockSemaArray = SpinlockSemaArray;
 #endif
+	param->NamedLWLockTrancheRequests = NamedLWLockTrancheRequests;
+	param->NamedLWLockTrancheArray = NamedLWLockTrancheArray;
 	param->MainLWLockArray = MainLWLockArray;
 	param->ProcStructLock = ProcStructLock;
 	param->ProcGlobal = ProcGlobal;
@@ -6652,6 +6688,8 @@ restore_backend_variables(BackendParameters *param, Port *port)
 #ifndef HAVE_SPINLOCKS
 	SpinlockSemaArray = param->SpinlockSemaArray;
 #endif
+	NamedLWLockTrancheRequests = param->NamedLWLockTrancheRequests;
+	NamedLWLockTrancheArray = param->NamedLWLockTrancheArray;
 	MainLWLockArray = param->MainLWLockArray;
 	ProcStructLock = param->ProcStructLock;
 	ProcGlobal = param->ProcGlobal;

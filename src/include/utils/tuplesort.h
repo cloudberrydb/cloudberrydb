@@ -30,7 +30,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/tuplesort.h
@@ -162,13 +162,13 @@ extern void tuplesort_putdatum(Tuplesortstate *state, Datum val,
 extern void tuplesort_performsort(Tuplesortstate *state);
 
 extern bool tuplesort_gettupleslot(Tuplesortstate *state, bool forward,
-					   TupleTableSlot *slot);
+					   TupleTableSlot *slot, Datum *abbrev);
 extern HeapTuple tuplesort_getheaptuple(Tuplesortstate *state, bool forward,
 					   bool *should_free);
 extern IndexTuple tuplesort_getindextuple(Tuplesortstate *state, bool forward,
 						bool *should_free);
 extern bool tuplesort_getdatum(Tuplesortstate *state, bool forward,
-				   Datum *val, bool *isNull);
+				   Datum *val, bool *isNull, Datum *abbrev);
 
 extern bool tuplesort_skiptuples(Tuplesortstate *state, int64 ntuples,
 					 bool forward);
@@ -428,12 +428,12 @@ switcheroo_tuplesort_performsort(switcheroo_Tuplesortstate *state)
 
 static inline bool
 switcheroo_tuplesort_gettupleslot(switcheroo_Tuplesortstate *state, bool forward,
-								   TupleTableSlot *slot)
+								   TupleTableSlot *slot, Datum *abbrev)
 {
 	if (state->is_mk_tuplesortstate)
-		return tuplesort_gettupleslot_mk((Tuplesortstate_mk *) state, forward, slot);
+		return tuplesort_gettupleslot_mk((Tuplesortstate_mk *) state, forward, slot, abbrev);
 	else
-		return tuplesort_gettupleslot_pg((Tuplesortstate_pg *) state, forward, slot);
+		return tuplesort_gettupleslot_pg((Tuplesortstate_pg *) state, forward, slot, abbrev);
 }
 
 static inline HeapTuple
@@ -455,12 +455,12 @@ switcheroo_tuplesort_getindextuple(switcheroo_Tuplesortstate *state, bool forwar
 }
 
 static inline bool
-switcheroo_tuplesort_getdatum(switcheroo_Tuplesortstate *state, bool forward, Datum *val, bool *isNull)
+switcheroo_tuplesort_getdatum(switcheroo_Tuplesortstate *state, bool forward, Datum *val, bool *isNull, Datum *abbrev)
 {
 	if (state->is_mk_tuplesortstate)
-		return tuplesort_getdatum_mk((Tuplesortstate_mk *) state, forward, val, isNull);
+		return tuplesort_getdatum_mk((Tuplesortstate_mk *) state, forward, val, isNull, abbrev);
 	else
-		return tuplesort_getdatum_pg((Tuplesortstate_pg *) state, forward, val, isNull);
+		return tuplesort_getdatum_pg((Tuplesortstate_pg *) state, forward, val, isNull, abbrev);
 }
 
 static inline bool
@@ -566,12 +566,12 @@ switcheroo_tuplesort_begin_pos(switcheroo_Tuplesortstate *state, TuplesortPos **
 
 static inline bool
 switcheroo_tuplesort_gettupleslot_pos(switcheroo_Tuplesortstate *state, TuplesortPos *pos,
-                          bool forward, TupleTableSlot *slot, MemoryContext mcontext)
+                          bool forward, TupleTableSlot *slot, Datum *abbrev, MemoryContext mcontext)
 {
 	if (state->is_mk_tuplesortstate)
-		return tuplesort_gettupleslot_pos_mk((Tuplesortstate_mk *) state, (TuplesortPos_mk *) pos, forward, slot, mcontext);
+		return tuplesort_gettupleslot_pos_mk((Tuplesortstate_mk *) state, (TuplesortPos_mk *) pos, forward, slot, abbrev, mcontext);
 	else
-		return tuplesort_gettupleslot_pos_pg((Tuplesortstate_pg *) state, pos, forward, slot, mcontext);
+		return tuplesort_gettupleslot_pos_pg((Tuplesortstate_pg *) state, pos, forward, slot, abbrev, mcontext);
 }
 
 static inline void

@@ -371,15 +371,15 @@ explain select * from csq_m1 where x not in (select x from csq_d1) or x < -100; 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..1293.00 rows=3 width=4)
    ->  Result  (cost=0.00..1293.00 rows=1 width=4)
-         Filter: (CASE WHEN ((count((count("inner".ColRef_0016)))) > 0::bigint) THEN CASE WHEN ((pg_catalog.sum((sum((CASE WHEN ((csq_m1.x = csq_d1.x) IS NULL) THEN 1 ELSE 0 END))))) = (count((count("inner".ColRef_0016))))) THEN NULL::boolean ELSE false END ELSE true END OR (csq_m1.x < (-100)))
-         ->  GroupAggregate  (cost=0.00..1293.00 rows=1 width=20)
+         Filter: (CASE WHEN ((count((true))) > '0'::bigint) THEN CASE WHEN ((sum((CASE WHEN ((csq_m1.x = csq_d1.x) IS NULL) THEN 1 ELSE 0 END))) = (count((true)))) THEN NULL::boolean ELSE false END ELSE true END OR (csq_m1.x < '-100'::integer))
+         ->  Finalize GroupAggregate  (cost=0.00..1293.00 rows=1 width=20)
                Group Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
                ->  Sort  (cost=0.00..1293.00 rows=1 width=30)
                      Sort Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
                      ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..1293.00 rows=1 width=30)
                            Hash Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
                            ->  Result  (cost=0.00..1293.00 rows=1 width=30)
-                                 ->  GroupAggregate  (cost=0.00..1293.00 rows=1 width=30)
+                                 ->  Partial GroupAggregate  (cost=0.00..1293.00 rows=1 width=30)
                                        Group Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
                                        ->  Result  (cost=0.00..1293.00 rows=2 width=19)
                                              ->  Sort  (cost=0.00..1293.00 rows=2 width=19)
@@ -1622,9 +1622,9 @@ EXPLAIN select count(*) from
    where unique1 IN (select hundred from tenk1 b)) ss;
                                                           QUERY PLAN                                                           
 -------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..864.07 rows=1 width=8)
+ Finalize Aggregate  (cost=0.00..864.07 rows=1 width=8)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..864.07 rows=1 width=8)
-         ->  Aggregate  (cost=0.00..864.07 rows=1 width=8)
+         ->  Partial Aggregate  (cost=0.00..864.07 rows=1 width=8)
                ->  Hash Join  (cost=0.00..864.07 rows=34 width=1)
                      Hash Cond: tenk1.unique1 = tenk1_1.hundred
                      ->  Seq Scan on tenk1  (cost=0.00..431.51 rows=3334 width=4)
@@ -1635,7 +1635,7 @@ EXPLAIN select count(*) from
                                        Sort Key: tenk1_1.hundred
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.94 rows=34 width=4)
                                              Hash Key: tenk1_1.hundred
-                                             ->  HashAggregate  (cost=0.00..431.94 rows=34 width=4)
+                                             ->  Streaming HashAggregate  (cost=0.00..431.94 rows=34 width=4)
                                                    Group Key: tenk1_1.hundred
                                                    ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..431.51 rows=3334 width=4)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.75.0
@@ -1646,9 +1646,9 @@ EXPLAIN select count(distinct ss.ten) from
    where unique1 IN (select hundred from tenk1 b)) ss;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..864.11 rows=1 width=8)
+ Finalize Aggregate  (cost=0.00..864.11 rows=1 width=8)
    ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..864.11 rows=1 width=8)
-         ->  Aggregate  (cost=0.00..864.11 rows=1 width=8)
+         ->  Partial Aggregate  (cost=0.00..864.11 rows=1 width=8)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..864.11 rows=34 width=4)
                      Hash Key: tenk1.ten
                      ->  Hash Join  (cost=0.00..864.11 rows=34 width=4)
@@ -1661,7 +1661,7 @@ EXPLAIN select count(distinct ss.ten) from
                                              Sort Key: tenk1_1.hundred
                                              ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.94 rows=34 width=4)
                                                    Hash Key: tenk1_1.hundred
-                                                   ->  HashAggregate  (cost=0.00..431.94 rows=34 width=4)
+                                                   ->  Streaming HashAggregate  (cost=0.00..431.94 rows=34 width=4)
                                                          Group Key: tenk1_1.hundred
                                                          ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..431.51 rows=3334 width=4)
  Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0
@@ -1672,9 +1672,9 @@ EXPLAIN select count(*) from
    where unique1 IN (select distinct hundred from tenk1 b)) ss;
                                                           QUERY PLAN                                                           
 -------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..864.07 rows=1 width=8)
+ Finalize Aggregate  (cost=0.00..864.07 rows=1 width=8)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..864.07 rows=1 width=8)
-         ->  Aggregate  (cost=0.00..864.07 rows=1 width=8)
+         ->  Partial Aggregate  (cost=0.00..864.07 rows=1 width=8)
                ->  Hash Semi Join  (cost=0.00..864.07 rows=34 width=1)
                      Hash Cond: tenk1.unique1 = tenk1_1.hundred
                      ->  Seq Scan on tenk1  (cost=0.00..431.51 rows=3334 width=4)
@@ -1685,7 +1685,7 @@ EXPLAIN select count(*) from
                                        Sort Key: tenk1_1.hundred
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.94 rows=34 width=4)
                                              Hash Key: tenk1_1.hundred
-                                             ->  HashAggregate  (cost=0.00..431.94 rows=34 width=4)
+                                             ->  Streaming HashAggregate  (cost=0.00..431.94 rows=34 width=4)
                                                    Group Key: tenk1_1.hundred
                                                    ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..431.51 rows=3334 width=4)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.75.0
@@ -1696,9 +1696,9 @@ EXPLAIN select count(distinct ss.ten) from
    where unique1 IN (select distinct hundred from tenk1 b)) ss;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..864.11 rows=1 width=8)
+ Finalize Aggregate  (cost=0.00..864.11 rows=1 width=8)
    ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..864.11 rows=1 width=8)
-         ->  Aggregate  (cost=0.00..864.11 rows=1 width=8)
+         ->  Partial Aggregate  (cost=0.00..864.11 rows=1 width=8)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..864.11 rows=34 width=4)
                      Hash Key: tenk1.ten
                      ->  Hash Semi Join  (cost=0.00..864.11 rows=34 width=4)
@@ -1711,7 +1711,7 @@ EXPLAIN select count(distinct ss.ten) from
                                              Sort Key: tenk1_1.hundred
                                              ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.94 rows=34 width=4)
                                                    Hash Key: tenk1_1.hundred
-                                                   ->  HashAggregate  (cost=0.00..431.94 rows=34 width=4)
+                                                   ->  Streaming HashAggregate  (cost=0.00..431.94 rows=34 width=4)
                                                          Group Key: tenk1_1.hundred
                                                          ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..431.51 rows=3334 width=4)
  Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0

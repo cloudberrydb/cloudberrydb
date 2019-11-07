@@ -46,6 +46,11 @@ set Test_print_direct_dispatch_info = true;
 -- join and aggregation so they have many slices. We are not interested in their
 -- results, so we redirect the output to /dev/null.
 
+-- Some of the queries are only possible with Nested Loop Joins. Enable them, to
+-- avoid the really high cost estimates on such plans, which skew the planners
+-- decisions.
+set enable_nestloop=on;
+
 select replicate_2_1.c, hash_2_3_4.c, avg(hash_3_3_2.d), max(replicate_3_3.c) from ((random_2_0 right join replicate_2_1 on random_2_0.b = replicate_2_1.c) left join (hash_3_3_2 inner join replicate_3_3 on hash_3_3_2.c >= replicate_3_3.b) on replicate_2_1.d >= hash_3_3_2.a) inner join (hash_2_3_4 inner join replicate_2_5 on hash_2_3_4.c = replicate_2_5.d) on hash_3_3_2.a <> hash_2_3_4.a group by replicate_2_1.c, hash_2_3_4.c order by 1,2;
 
 select hash_3_3_2.b, replicate_2_5.d, sum(replicate_2_1.d), sum(replicate_3_3.a) from (((random_2_0 left join replicate_2_1 on random_2_0.b <> replicate_2_1.d) left join hash_3_3_2 on random_2_0.c = hash_3_3_2.b) inner join (replicate_3_3 inner join hash_2_3_4 on replicate_3_3.d = hash_2_3_4.d) on hash_3_3_2.a <> hash_2_3_4.a) right join replicate_2_5 on random_2_0.d <> replicate_2_5.c group by hash_3_3_2.b, replicate_2_5.d order by 1,2;

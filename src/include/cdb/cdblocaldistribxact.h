@@ -14,8 +14,6 @@
 #ifndef CDBLOCALDISTRIBXACT_H
 #define CDBLOCALDISTRIBXACT_H
 
-#include "storage/lock.h"
-
 typedef enum
 {
 	LOCALDISTRIBXACT_STATE_NONE = 0,

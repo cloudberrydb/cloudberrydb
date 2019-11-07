@@ -25,13 +25,12 @@ test_xactdescprepareCommit(void **state)
 	TwoPhaseFileHeader* tpfh = (TwoPhaseFileHeader*) XLogRecGetData(record);
 
 	tpfh->prepared_at = 617826371830030;
-	strcpy(tpfh->gid, "4242424242-0000000042");
 	tpfh->tablespace_oid_to_delete_on_commit = 42;
 	tpfh->tablespace_oid_to_delete_on_abort = InvalidOid;
 
 	xact_desc(buf, record);
 
-	assert_string_equal("at = 2019-07-30 18:26:11.83003+00; gid = 4242424242-0000000042; tablespace_oid_to_delete_on_commit = 42", buf->data);
+	assert_string_equal("at = 2019-07-30 18:26:11.83003+00; tablespace_oid_to_delete_on_commit = 42", buf->data);
 }
 
 static void
@@ -47,13 +46,12 @@ test_xactdescprepareAbort(void **state)
 	TwoPhaseFileHeader* tpfh = (TwoPhaseFileHeader*) XLogRecGetData(record);
 
 	tpfh->prepared_at = 617826371830030;
-	strcpy(tpfh->gid, "4242424242-0000000042");
 	tpfh->tablespace_oid_to_delete_on_commit = InvalidOid;
 	tpfh->tablespace_oid_to_delete_on_abort = 42;
 
 	xact_desc(buf, record);
 
-	assert_string_equal("at = 2019-07-30 18:26:11.83003+00; gid = 4242424242-0000000042; tablespace_oid_to_delete_on_abort = 42", buf->data);
+	assert_string_equal("at = 2019-07-30 18:26:11.83003+00; tablespace_oid_to_delete_on_abort = 42", buf->data);
 }
 
 static void
@@ -69,13 +67,12 @@ test_xactdescprepareNone(void **state)
 	TwoPhaseFileHeader* tpfh = (TwoPhaseFileHeader*) XLogRecGetData(record);
 
 	tpfh->prepared_at = 617826371830030;
-	strcpy(tpfh->gid, "4242424242-0000000042");
 	tpfh->tablespace_oid_to_delete_on_commit = InvalidOid;
 	tpfh->tablespace_oid_to_delete_on_abort = InvalidOid;
 
 	xact_desc(buf, record);
 
-	assert_string_equal("at = 2019-07-30 18:26:11.83003+00; gid = 4242424242-0000000042", buf->data);
+	assert_string_equal("at = 2019-07-30 18:26:11.83003+00", buf->data);
 }
 
 int

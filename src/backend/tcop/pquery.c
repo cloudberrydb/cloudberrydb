@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -59,9 +59,11 @@ static uint64 RunFromStore(Portal portal, ScanDirection direction, uint64 count,
 			 DestReceiver *dest);
 static uint64 PortalRunSelect(Portal portal, bool forward, int64 count,
 				DestReceiver *dest);
-static void PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
+static void PortalRunUtility(Portal portal, Node *utilityStmt,
+				 bool isTopLevel, bool setHoldSnapshot,
 				 DestReceiver *dest, char *completionTag);
-static void PortalRunMulti(Portal portal, bool isTopLevel,
+static void PortalRunMulti(Portal portal,
+			   bool isTopLevel, bool setHoldSnapshot,
 			   DestReceiver *dest, DestReceiver *altdest,
 			   char *completionTag);
 static uint64 DoPortalRunFetch(Portal portal,
@@ -306,7 +308,8 @@ ProcessQuery(Portal portal,
 		{
 			case CMD_SELECT:
 				snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-						 "SELECT " UINT64_FORMAT "", queryDesc->es_processed);
+						 "SELECT " UINT64_FORMAT,
+						 queryDesc->es_processed);
 				break;
 			case CMD_INSERT:
 				if (queryDesc->es_processed == 1)
@@ -314,15 +317,18 @@ ProcessQuery(Portal portal,
 				else
 					lastOid = InvalidOid;
 				snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-						 "INSERT %u " UINT64_FORMAT "", lastOid, queryDesc->es_processed);
+						 "INSERT %u " UINT64_FORMAT,
+						 lastOid, queryDesc->es_processed);
 				break;
 			case CMD_UPDATE:
 				snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-						 "UPDATE " UINT64_FORMAT "", queryDesc->es_processed);
+						 "UPDATE " UINT64_FORMAT,
+						 queryDesc->es_processed);
 				break;
 			case CMD_DELETE:
 				snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-						 "DELETE " UINT64_FORMAT "", queryDesc->es_processed);
+						 "DELETE " UINT64_FORMAT,
+						 queryDesc->es_processed);
 				break;
 			default:
 				strcpy(completionTag, "???");
@@ -908,7 +914,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 		  char *completionTag)
 {
 	bool		result = false;
-	uint32		nprocessed;
+	uint64		nprocessed;
 	ResourceOwner saveTopTransactionResourceOwner;
 	MemoryContext saveTopTransactionContext;
 	Portal		saveActivePortal;
@@ -934,13 +940,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 	/*
 	 * Check for improper portal use, and mark portal active.
 	 */
-	if (portal->status != PORTAL_READY && portal->status != PORTAL_QUEUE)
-		ereport(ERROR,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("portal \"%s\" cannot be run", portal->name)));
-	/* Perform the state transition */
-	portal->status = PORTAL_ACTIVE;
-	portal->activeSubid = GetCurrentSubTransactionId();
+	MarkPortalActive(portal);
 
 	/*
 	 * Set up global portal context pointers.
@@ -1000,7 +1000,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 				{
 					if (strcmp(portal->commandTag, "SELECT") == 0)
 						snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-								 "SELECT %u", nprocessed);
+								 "SELECT " UINT64_FORMAT, nprocessed);
 					else
 						strcpy(completionTag, portal->commandTag);
 				}
@@ -1015,7 +1015,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 				break;
 
 			case PORTAL_MULTI_QUERY:
-				PortalRunMulti(portal, isTopLevel,
+				PortalRunMulti(portal, isTopLevel, false,
 							   dest, altdest, completionTag);
 
 				/* Prevent portal's commands from being re-executed */
@@ -1086,7 +1086,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
  *
  * count <= 0 is interpreted as a no-op: the destination gets started up
  * and shut down, but nothing else happens.  Also, count == FETCH_ALL is
- * interpreted as "all rows".
+ * interpreted as "all rows".  (cf FetchStmt.howMany)
  *
  * Caller must already have validated the Portal and done appropriate
  * setup (cf. PortalRun).
@@ -1135,7 +1135,10 @@ PortalRunSelect(Portal portal,
 	if (forward)
 	{
 		if (portal->atEnd || count <= 0)
+		{
 			direction = NoMovementScanDirection;
+			count = 0;			/* don't pass negative count to executor */
+		}
 		else
 			direction = ForwardScanDirection;
 
@@ -1148,7 +1151,7 @@ PortalRunSelect(Portal portal,
 		else
 		{
 			PushActiveSnapshot(queryDesc->snapshot);
-			ExecutorRun(queryDesc, direction, count);
+			ExecutorRun(queryDesc, direction, (uint64) count);
 			nprocessed = queryDesc->estate->es_processed;
 			PopActiveSnapshot();
 		}
@@ -1157,7 +1160,7 @@ PortalRunSelect(Portal portal,
 		{
 			if (nprocessed > 0)
 				portal->atStart = false;		/* OK to go backward now */
-			if (count == 0 || nprocessed < count)
+			if (count == 0 || nprocessed < (uint64) count)
 				portal->atEnd = true;	/* we retrieved 'em all */
 			portal->portalPos += nprocessed;
 		}
@@ -1171,7 +1174,10 @@ PortalRunSelect(Portal portal,
 					 errhint("Declare it with SCROLL option to enable backward scan.")));
 
 		if (portal->atStart || count <= 0)
+		{
 			direction = NoMovementScanDirection;
+			count = 0;			/* don't pass negative count to executor */
+		}
 		else
 			direction = BackwardScanDirection;
 
@@ -1184,7 +1190,7 @@ PortalRunSelect(Portal portal,
 		else
 		{
 			PushActiveSnapshot(queryDesc->snapshot);
-			ExecutorRun(queryDesc, direction, count);
+			ExecutorRun(queryDesc, direction, (uint64) count);
 			nprocessed = queryDesc->estate->es_processed;
 			PopActiveSnapshot();
 		}
@@ -1196,7 +1202,7 @@ PortalRunSelect(Portal portal,
 				portal->atEnd = false;	/* OK to go forward now */
 				portal->portalPos++;	/* adjust for endpoint case */
 			}
-			if (count == 0 || nprocessed < count)
+			if (count == 0 || nprocessed < (uint64) count)
 			{
 				portal->atStart = true; /* we retrieved 'em all */
 				portal->portalPos = 0;
@@ -1241,15 +1247,16 @@ FillPortalStore(Portal portal, bool isTopLevel)
 			/*
 			 * Run the portal to completion just as for the default
 			 * MULTI_QUERY case, but send the primary query's output to the
-			 * tuplestore. Auxiliary query outputs are discarded.
+			 * tuplestore.  Auxiliary query outputs are discarded.  Set the
+			 * portal's holdSnapshot to the snapshot used (or a copy of it).
 			 */
-			PortalRunMulti(portal, isTopLevel,
+			PortalRunMulti(portal, isTopLevel, true,
 						   treceiver, None_Receiver, completionTag);
 			break;
 
 		case PORTAL_UTIL_SELECT:
 			PortalRunUtility(portal, (Node *) linitial(portal->stmts),
-							 isTopLevel, treceiver, completionTag);
+							 isTopLevel, true, treceiver, completionTag);
 			break;
 
 		default:
@@ -1311,7 +1318,13 @@ RunFromStore(Portal portal, ScanDirection direction, uint64 count,
 			if (!ok)
 				break;
 
-			(*dest->receiveSlot) (slot, dest);
+			/*
+			 * If we are not able to send the tuple, we assume the destination
+			 * has closed and no more tuples can be sent. If that's the case,
+			 * end the loop.
+			 */
+			if (!((*dest->receiveSlot) (slot, dest)))
+				break;
 
 			ExecClearTuple(slot);
 
@@ -1338,10 +1351,11 @@ RunFromStore(Portal portal, ScanDirection direction, uint64 count,
  *		Execute a utility statement inside a portal.
  */
 static void
-PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
+PortalRunUtility(Portal portal, Node *utilityStmt,
+				 bool isTopLevel, bool setHoldSnapshot,
 				 DestReceiver *dest, char *completionTag)
 {
-	bool		active_snapshot_set;
+	Snapshot	snapshot;
 
 	elog(DEBUG3, "ProcessUtility");
 
@@ -1368,11 +1382,19 @@ PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
 		  IsA(utilityStmt, UnlistenStmt) ||
 		  IsA(utilityStmt, CheckPointStmt)))
 	{
-		PushActiveSnapshot(GetTransactionSnapshot());
-		active_snapshot_set = true;
+		snapshot = GetTransactionSnapshot();
+		/* If told to, register the snapshot we're using and save in portal */
+		if (setHoldSnapshot)
+		{
+			snapshot = RegisterSnapshot(snapshot);
+			portal->holdSnapshot = snapshot;
+		}
+		PushActiveSnapshot(snapshot);
+		/* PushActiveSnapshot might have copied the snapshot */
+		snapshot = GetActiveSnapshot();
 	}
 	else
-		active_snapshot_set = false;
+		snapshot = NULL;
 
 	/* check if this utility statement need to be involved into resource queue
 	 * mgmt */
@@ -1390,12 +1412,11 @@ PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
 
 	/*
 	 * Some utility commands may pop the ActiveSnapshot stack from under us,
-	 * so we only pop the stack if we actually see a snapshot set.  Note that
-	 * the set of utility commands that do this must be the same set
-	 * disallowed to run inside a transaction; otherwise, we could be popping
-	 * a snapshot that belongs to some other operation.
+	 * so be careful to only pop the stack if our snapshot is still at the
+	 * top.
 	 */
-	if (active_snapshot_set && ActiveSnapshotSet())
+	if (snapshot != NULL && ActiveSnapshotSet() &&
+		snapshot == GetActiveSnapshot())
 		PopActiveSnapshot();
 }
 
@@ -1405,7 +1426,8 @@ PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
  *		or non-SELECT-like queries)
  */
 static void
-PortalRunMulti(Portal portal, bool isTopLevel,
+PortalRunMulti(Portal portal,
+			   bool isTopLevel, bool setHoldSnapshot,
 			   DestReceiver *dest, DestReceiver *altdest,
 			   char *completionTag)
 {
@@ -1461,7 +1483,25 @@ PortalRunMulti(Portal portal, bool isTopLevel,
 			 */
 			if (!active_snapshot_set)
 			{
-				PushActiveSnapshot(GetTransactionSnapshot());
+				Snapshot	snapshot = GetTransactionSnapshot();
+
+				/* If told to, register the snapshot and save in portal */
+				if (setHoldSnapshot)
+				{
+					snapshot = RegisterSnapshot(snapshot);
+					portal->holdSnapshot = snapshot;
+				}
+
+				/*
+				 * We can't have the holdSnapshot also be the active one,
+				 * because UpdateActiveSnapshotCommandId would complain.  So
+				 * force an extra snapshot copy.  Plain PushActiveSnapshot
+				 * would have copied the transaction snapshot anyway, so this
+				 * only adds a copy step when setHoldSnapshot is true.  (It's
+				 * okay for the command ID of the active snapshot to diverge
+				 * from what holdSnapshot has.)
+				 */
+				PushCopiedSnapshot(snapshot);
 				active_snapshot_set = true;
 			}
 			else
@@ -1509,14 +1549,14 @@ PortalRunMulti(Portal portal, bool isTopLevel,
 			{
 				Assert(!active_snapshot_set);
 				/* statement can set tag string */
-				PortalRunUtility(portal, stmt, isTopLevel,
+				PortalRunUtility(portal, stmt, isTopLevel, false,
 								 dest, completionTag);
 			}
 			else
 			{
 				Assert(IsA(stmt, NotifyStmt));
 				/* stmt added by rewrite cannot set tag */
-				PortalRunUtility(portal, stmt, isTopLevel,
+				PortalRunUtility(portal, stmt, isTopLevel, false,
 								 altdest, NULL);
 			}
 		}
@@ -1572,6 +1612,10 @@ PortalRunMulti(Portal portal, bool isTopLevel,
  *		Variant form of PortalRun that supports SQL FETCH directions.
  *
  * Note: we presently assume that no callers of this want isTopLevel = true.
+ *
+ * count <= 0 is interpreted as a no-op: the destination gets started up
+ * and shut down, but nothing else happens.  Also, count == FETCH_ALL is
+ * interpreted as "all rows".  (cf FetchStmt.howMany)
  *
  * Returns number of rows processed (suitable for use in result tag)
  */
@@ -1674,7 +1718,7 @@ PortalRunFetch(Portal portal,
  * count <= 0 is interpreted as a no-op: the destination gets started up
  * and shut down, but nothing else happens.  Also, count == FETCH_ALL is
  * interpreted as "all rows".  (cf FetchStmt.howMany)
- * 
+ *
  * Returns number of rows processed (suitable for use in result tag)
  */
 static uint64
@@ -1725,10 +1769,18 @@ DoPortalRunFetch(Portal portal,
 			{
 				/*
 				 * Definition: Rewind to start, advance count-1 rows, return
-				 * next row (if any).  In practice, if the goal is less than
-				 * halfway back to the start, it's better to scan from where
-				 * we are.  In any case, we arrange to fetch the target row
-				 * going forwards.
+				 * next row (if any).
+				 *
+				 * In practice, if the goal is less than halfway back to the
+				 * start, it's better to scan from where we are.
+				 *
+				 * Also, if current portalPos is outside the range of "long",
+				 * do it the hard way to avoid possible overflow of the count
+				 * argument to PortalRunSelect.  We must exclude exactly
+				 * LONG_MAX, as well, lest the count look like FETCH_ALL.
+				 *
+				 * In any case, we arrange to fetch the target row going
+				 * forwards.
 				 */
 				if ((uint64) (count - 1) <= portal->portalPos / 2 ||
 					portal->portalPos >= (uint64) LONG_MAX)

@@ -276,6 +276,7 @@ sub get_fnoptlist
 
 	my $rex = 'called\s+on\s+null\s+input|'.
 		'returns\s+null\s+on\s+null\s+input|strict|immutable|stable|volatile|leakproof|'.
+		'parallel\s+\S+|'.
 		'external\s+security\s+definer|external\s+security\s+invoker|' .
 		'security\s+definer|security\s+invoker|' .
 		'cost\s+(\d+)|' .
@@ -321,6 +322,7 @@ sub make_opt
 
 	my $proname		= $fndef->{name};
 	my $proleakproof;
+	my $proparallel;
 	my $prolang;
 	my $procost;
 	my $prorows;
@@ -347,7 +349,7 @@ sub make_opt
 				die ("conflicting or redundant options: $opt") 
 					if (defined($provolatile));
 				
-				# provolatile is first char of option ([i]mmmutble, [s]table,
+				# provolatile is first char of option ([i]mmutable, [s]table,
 				# [v]olatile).
 				$provolatile = lc(substr($opt, 0, 1));
 			}
@@ -358,6 +360,18 @@ sub make_opt
 					if (defined($proleakproof));
 
 				$proleakproof = 1;
+			}
+
+			if ($opt =~ m/^parallel\s+(unsafe|restricted|safe)/i)
+			{
+				die ("conflicting or redundant options: $opt")
+					if (defined($proparallel));
+
+				# proparallel is first char of option ([u]nsafe, [r]estricted,
+				# [s]afe).
+				my $l1 = lc($opt);
+				$l1 =~ s/^parallel\s+//;
+				$proparallel = lc(substr($l1, 0, 1));
 			}
 
 			if ($opt =~ m/^language\s+(internal|c|sql|plpgsql)$/i)
@@ -459,6 +473,7 @@ sub make_opt
 			proisstrict	 => $proisstrict,
 #			proretset
 			provolatile	 => $provolatile,
+			proparallel  => $proparallel,
 #			pronargs
 #			prorettype
 			proiswindow	 => 0,
@@ -541,6 +556,13 @@ sub make_opt
 			{
 				die ("conflicting options: IMMUTABLE conflicts with MODIFIES SQL DATA");
 			}
+		}
+
+		if (!defined($proparallel))
+		{
+			# Default to 'unsafe', if not specificed.
+			$proparallel = 'u';
+			$tdef->{proparallel} = $proparallel;
 		}
 
 	} # end if exists
@@ -884,6 +906,7 @@ sub printfndef
 		($tup->{proisstrict} ? "t" : "f") . " " .
 		($tup->{proretset} ? "t" : "f") . " " .
 		($tup->{provolatile} ? $tup->{provolatile} : "_null_" ) . " " .
+		$tup->{proparallel} . " " .
 		($tup->{pronargs} ? $tup->{pronargs} : 0) . " " .
 		($tup->{pronargdefaults} ? $tup->{pronargdefaults} : 0) . " " .
 		($tup->{prorettype} ? $tup->{prorettype} : '""') . " " .

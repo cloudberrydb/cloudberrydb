@@ -48,7 +48,8 @@ static relopt_bool boolRelOpts_gp[] =
 		{
 			SOPT_APPENDONLY,
 			"Append only storage parameter",
-			RELOPT_KIND_HEAP
+			RELOPT_KIND_HEAP,
+			AccessExclusiveLock
 		},
 		AO_DEFAULT_APPENDONLY,
 	},
@@ -56,7 +57,8 @@ static relopt_bool boolRelOpts_gp[] =
 		{
 			SOPT_CHECKSUM,
 			"Append table checksum",
-			RELOPT_KIND_HEAP
+			RELOPT_KIND_HEAP,
+			AccessExclusiveLock
 		},
 		AO_DEFAULT_CHECKSUM
 	},
@@ -70,7 +72,9 @@ static relopt_int intRelOpts_gp[] =
 		{
 			SOPT_FILLFACTOR,
 			"Packs bitmap index pages only to this percentage",
-			RELOPT_KIND_BITMAP
+			RELOPT_KIND_BITMAP,
+			ShareUpdateExclusiveLock	/* since it applies only to later
+										 * inserts */
 		},
 		BITMAP_DEFAULT_FILLFACTOR, BITMAP_MIN_FILLFACTOR, 100
 	},
@@ -78,7 +82,8 @@ static relopt_int intRelOpts_gp[] =
 		{
 			SOPT_BLOCKSIZE,
 			"AO tables block size in bytes",
-			RELOPT_KIND_HEAP
+			RELOPT_KIND_HEAP,
+			AccessExclusiveLock
 		},
 		AO_DEFAULT_BLOCKSIZE, MIN_APPENDONLY_BLOCK_SIZE, MAX_APPENDONLY_BLOCK_SIZE
 	},
@@ -86,17 +91,11 @@ static relopt_int intRelOpts_gp[] =
 		{
 			SOPT_COMPLEVEL,
 			"AO table compression level",
-			RELOPT_KIND_HEAP
+			RELOPT_KIND_HEAP,
+			ShareUpdateExclusiveLock	/* since it applies only to later
+										 * inserts */
 		},
 		AO_DEFAULT_COMPRESSLEVEL, AO_MIN_COMPRESSLEVEL, AO_MAX_COMPRESSLEVEL
-	},
-	{
-		{
-			SOPT_FILLFACTOR,
-			"Packs bitmap index pages only to this percentage",
-			RELOPT_KIND_BITMAP
-		},
-		HEAP_DEFAULT_FILLFACTOR, HEAP_MIN_FILLFACTOR, 100
 	},
 	/* list terminator */
 	{{NULL}}
@@ -114,15 +113,17 @@ static relopt_string stringRelOpts_gp[] =
 		{
 			SOPT_COMPTYPE,
 			"AO tables compression type",
-			RELOPT_KIND_HEAP
+			RELOPT_KIND_HEAP,
+			AccessExclusiveLock
 		},
 		0, true, NULL, ""
 	},
 	{
 		{
 			SOPT_ORIENTATION,
-				"AO tables orientation",
-				RELOPT_KIND_HEAP
+			"AO tables orientation",
+			RELOPT_KIND_HEAP,
+			AccessExclusiveLock
 		},
 		0, false, NULL, ""
 	},
@@ -157,6 +158,7 @@ initialize_reloptions_gp(void)
 						   (char *) boolRelOpts_gp[i].gen.name,
 						   (char *) boolRelOpts_gp[i].gen.desc,
 						   boolRelOpts_gp[i].default_val);
+		set_reloption_lockmode(boolRelOpts_gp[i].gen.name, boolRelOpts_gp[i].gen.lockmode);
 	}
 
 	for (i = 0; intRelOpts_gp[i].gen.name; i++)
@@ -167,6 +169,7 @@ initialize_reloptions_gp(void)
 						  intRelOpts_gp[i].default_val,
 						  intRelOpts_gp[i].min,
 						  intRelOpts_gp[i].max);
+		set_reloption_lockmode(intRelOpts_gp[i].gen.name, intRelOpts_gp[i].gen.lockmode);
 	}
 
 	for (i = 0; realRelOpts_gp[i].gen.name; i++)
@@ -176,6 +179,7 @@ initialize_reloptions_gp(void)
 						   (char *) realRelOpts_gp[i].gen.desc,
 						   realRelOpts_gp[i].default_val,
 						   realRelOpts_gp[i].min, realRelOpts_gp[i].max);
+		set_reloption_lockmode(realRelOpts_gp[i].gen.name, realRelOpts_gp[i].gen.lockmode);
 	}
 
 	for (i = 0; stringRelOpts_gp[i].gen.name; i++)
@@ -185,6 +189,7 @@ initialize_reloptions_gp(void)
 							 (char *) stringRelOpts_gp[i].gen.desc,
 							 NULL,
 							 stringRelOpts_gp[i].validate_cb);
+		set_reloption_lockmode(stringRelOpts_gp[i].gen.name, stringRelOpts_gp[i].gen.lockmode);
 	}
 }
 

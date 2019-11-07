@@ -1,0 +1,141 @@
+--
+-- PARALLEL
+--
+-- GPDB_96_MERGE_FIXME: We don't support parallel query. These tests won't actually
+-- generate any parallel plans. Should we pay attention to the parallel restrictions
+-- when creating MPP plans? For example, should we force parallel restricted functions
+-- to run in the QD?
+create or replace function parallel_restricted(int) returns int as
+  $$begin return $1; end$$ language plpgsql parallel restricted;
+-- Serializable isolation would disable parallel query, so explicitly use an
+-- arbitrary other level.
+begin isolation level repeatable read;
+-- encourage use of parallel plans
+set parallel_setup_cost=0;
+set parallel_tuple_cost=0;
+set min_parallel_relation_size=0;
+set max_parallel_workers_per_gather=4;
+explain (costs off)
+  select count(*) from a_star;
+                   QUERY PLAN                   
+------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  Append
+                     ->  Seq Scan on a_star
+                     ->  Seq Scan on b_star
+                     ->  Seq Scan on c_star
+                     ->  Seq Scan on d_star
+                     ->  Seq Scan on e_star
+                     ->  Seq Scan on f_star
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(*) from a_star;
+ count 
+-------
+    50
+(1 row)
+
+-- test that parallel_restricted function doesn't run in worker
+alter table tenk1 set (parallel_workers = 4);
+explain (verbose, costs off)
+select parallel_restricted(unique1) from tenk1
+  where stringu1 = 'GRAAAA' order by 1;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: (parallel_restricted(unique1))
+   Merge Key: (parallel_restricted(unique1))
+   ->  Sort
+         Output: (parallel_restricted(unique1))
+         Sort Key: (parallel_restricted(tenk1.unique1))
+         ->  Result
+               Output: parallel_restricted(unique1)
+               ->  Seq Scan on public.tenk1
+                     Output: unique1
+                     Filter: (tenk1.stringu1 = 'GRAAAA'::name)
+ Settings: min_parallel_relation_size=0, parallel_setup_cost=0, parallel_tuple_cost=0
+(13 rows)
+
+-- test parallel plan when group by expression is in target list.
+explain (costs off)
+	select length(stringu1) from tenk1 group by length(stringu1);
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)
+   ->  HashAggregate
+         Group Key: (length((stringu1)::text))
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               Hash Key: (length((stringu1)::text))
+               ->  Streaming HashAggregate
+                     Group Key: length((stringu1)::text)
+                     ->  Result
+                           ->  Seq Scan on tenk1
+(10 rows)
+
+select length(stringu1) from tenk1 group by length(stringu1);
+ length 
+--------
+      6
+(1 row)
+
+explain (costs off)
+	select stringu1, count(*) from tenk1 group by stringu1 order by stringu1;
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)
+   Merge Key: stringu1
+   ->  Finalize GroupAggregate
+         Group Key: stringu1
+         ->  Sort
+               Sort Key: stringu1
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: stringu1
+                     ->  Result
+                           ->  Streaming Partial HashAggregate
+                                 Group Key: stringu1
+                                 ->  Seq Scan on tenk1
+(13 rows)
+
+-- test that parallel plan for aggregates is not selected when
+-- target list contains parallel restricted clause.
+explain (costs off)
+	select  sum(parallel_restricted(unique1)) from tenk1
+	group by(parallel_restricted(unique1));
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)
+   ->  Result
+         ->  HashAggregate
+               Group Key: (parallel_restricted(unique1))
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: (parallel_restricted(unique1))
+                     ->  Result
+                           ->  Result
+                                 ->  Seq Scan on tenk1
+(10 rows)
+
+set force_parallel_mode=1;
+explain (costs off)
+  select stringu1::int2 from tenk1 where unique1 = 1;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   ->  Result
+         ->  Index Scan using tenk1_unique1 on tenk1
+               Index Cond: (unique1 = 1)
+(5 rows)
+
+do $$begin
+  -- Provoke error, possibly in worker.  If this error happens to occur in
+  -- the worker, there will be a CONTEXT line which must be hidden.
+  perform stringu1::int2 from tenk1 where unique1 = 1;
+  exception
+	when others then
+		raise 'SQLERRM: %', sqlerrm;
+end$$;
+ERROR:  SQLERRM: invalid input syntax for integer: "BAAAAA"  (seg1 slice1 127.0.0.1:30435 pid=89930)
+CONTEXT:  PL/pgSQL function inline_code_block line 7 at RAISE
+rollback;

@@ -4,7 +4,7 @@
  *	  Private declarations for SP-GiST access method.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/spgist_private.h
@@ -465,7 +465,7 @@ typedef struct spgxlogAddNode
 	 * -1: parent not updated
 	 *----
 	 */
-	char		parentBlk;
+	int8		parentBlk;
 	OffsetNumber offnumParent;	/* offset within the parent page */
 
 	uint16		nodeI;

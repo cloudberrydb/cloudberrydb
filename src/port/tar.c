@@ -110,7 +110,7 @@ tarChecksum(char *header)
  */
 enum tarError
 tarCreateHeader(char *h, const char *filename, const char *linktarget,
-				size_t size, mode_t mode, uid_t uid, gid_t gid, time_t mtime)
+				pgoff_t size, mode_t mode, uid_t uid, gid_t gid, time_t mtime)
 {
 	if (strlen(filename) > 99)
 		return TAR_NAME_TOO_LONG;

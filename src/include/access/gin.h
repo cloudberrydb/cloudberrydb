@@ -2,7 +2,7 @@
  * gin.h
  *	  Public header file for Generalized Inverted Index access method.
  *
- *	Copyright (c) 2006-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2016, PostgreSQL Global Development Group
  *
  *	src/include/access/gin.h
  *--------------------------------------------------------------------------
@@ -10,15 +10,6 @@
 #ifndef GIN_H
 #define GIN_H
 
-#include "access/relscan.h"
-#include "access/sdir.h"
-#include "access/xlogdefs.h"
-#include "storage/bufpage.h"
-#include "storage/off.h"
-#include "utils/rel.h"
-#include "access/genam.h"
-#include "access/itup.h"
-#include "access/xlog.h"
 #include "access/xlogreader.h"
 #include "lib/stringinfo.h"
 #include "storage/block.h"

@@ -29,13 +29,16 @@ ALTER FUNCTION <replaceable>name</replaceable> ( [ [ <replaceable class="paramet
     OWNER TO { <replaceable>new_owner</replaceable> | CURRENT_USER | SESSION_USER }
 ALTER FUNCTION <replaceable>name</replaceable> ( [ [ <replaceable class="parameter">argmode</replaceable> ] [ <replaceable class="parameter">argname</replaceable> ] <replaceable class="parameter">argtype</replaceable> [, ...] ] )
     SET SCHEMA <replaceable>new_schema</replaceable>
+ALTER FUNCTION <replaceable>name</replaceable> ( [ [ <replaceable class="parameter">argmode</replaceable> ] [ <replaceable class="parameter">argname</replaceable> ] <replaceable class="parameter">argtype</replaceable> [, ...] ] )
+    DEPENDS ON EXTENSION <replaceable>extension_name</replaceable>
 
 <phrase>where <replaceable class="PARAMETER">action</replaceable> is one of:</phrase>
 
     CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
     IMMUTABLE | STABLE | VOLATILE | [ NOT ] LEAKPROOF
     [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER
-    | EXECUTE ON { ANY | MASTER | ALL SEGMENTS }
+    PARALLEL { UNSAFE | RESTRICTED | SAFE }
+    EXECUTE ON { ANY | MASTER | ALL SEGMENTS }
     COST <replaceable class="parameter">execution_cost</replaceable>
     ROWS <replaceable class="parameter">result_rows</replaceable>
     SET <replaceable class="parameter">configuration_parameter</replaceable> { TO | = } { <replaceable class="parameter">value</replaceable> | DEFAULT }
@@ -148,6 +151,15 @@ ALTER FUNCTION <replaceable>name</replaceable> ( [ [ <replaceable class="paramet
     </listitem>
    </varlistentry>
 
+   <varlistentry>
+    <term><replaceable class="parameter">extension_name</replaceable></term>
+    <listitem>
+     <para>
+      The name of the extension that the function is to depend on.
+     </para>
+    </listitem>
+   </varlistentry>
+
     <varlistentry>
      <term><literal>CALLED ON NULL INPUT</literal></term>
      <term><literal>RETURNS NULL ON NULL INPUT</literal></term>
@@ -188,6 +200,17 @@ ALTER FUNCTION <replaceable>name</replaceable> ( [ [ <replaceable class="paramet
       key word <literal>EXTERNAL</literal> is ignored for SQL
       conformance. See <xref linkend="sql-createfunction"> for more information about
       this capability.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>PARALLEL</literal></term>
+
+    <listitem>
+     <para>
+      Change whether the function is deemed safe for parallelism.
+      See <xref linkend="sql-createfunction"> for details.
      </para>
     </listitem>
    </varlistentry>
@@ -286,6 +309,15 @@ ALTER FUNCTION sqrt(integer) OWNER TO joe;
    <type>integer</type> to <literal>maths</literal>:
 <programlisting>
 ALTER FUNCTION sqrt(integer) SET SCHEMA maths;
+</programlisting>
+  </para>
+
+  <para>
+   To mark the function <literal>sqrt</literal> for type
+   <type>integer</type> as being dependent on the extension
+   <literal>mathlib</literal>:
+<programlisting>
+ALTER FUNCTION sqrt(integer) DEPENDS ON EXTENSION mathlib;
 </programlisting>
   </para>
 

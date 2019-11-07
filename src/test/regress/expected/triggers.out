@@ -977,14 +977,14 @@ INSERT INTO main_view VALUES (21, 31) RETURNING a, b;
 INSERT 0 1
 -- Table trigger will prevent updates
 UPDATE main_view SET b = 31 WHERE a = 20;
-NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW
 UPDATE 2
 UPDATE main_view SET b = 32 WHERE a = 21 AND b = 31 RETURNING a, b;
-NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg0 slice1 127.0.0.1:25432 pid=18626)
-NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg0 slice1 127.0.0.1:25432 pid=18626)
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW
  a  | b  
 ----+----
  21 | 32
@@ -995,10 +995,10 @@ UPDATE 1
 DROP TRIGGER before_upd_a_row_trig ON main_table;
 DROP TRIGGER
 UPDATE main_view SET b = 31 WHERE a = 20;
-NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
-NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW
 UPDATE 2
 UPDATE main_view SET b = 32 WHERE a = 21 AND b = 31 RETURNING a, b;
  a | b 
@@ -1163,62 +1163,62 @@ ERROR:  INSTEAD OF triggers are not supported in Greenplum
 INSERT INTO city_view(city_name) VALUES('Tokyo') RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 INSERT INTO city_view(city_name, population) VALUES('London', 7556900) RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 INSERT INTO city_view(city_name, country_name) VALUES('Washington DC', 'USA') RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 INSERT INTO city_view(city_id, city_name) VALUES(123456, 'New York') RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 INSERT INTO city_view VALUES(234567, 'Birmingham', 1016800, 'UK', 'EU') RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 -- UPDATE .. RETURNING
 UPDATE city_view SET country_name = 'Japon' WHERE city_name = 'Tokyo'; -- error
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET country_name = 'Japan' WHERE city_name = 'Takyo'; -- no match
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET country_name = 'Japan' WHERE city_name = 'Tokyo' RETURNING *; -- OK
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET population = 13010279 WHERE city_name = 'Tokyo' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET country_name = 'UK' WHERE city_name = 'New York' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET country_name = 'USA', population = 8391881 WHERE city_name = 'New York' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view SET continent = 'EU' WHERE continent = 'Europe' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE city_view v1 SET country_name = v2.country_name FROM city_view v2
     WHERE v2.city_name = 'Birmingham' AND v1.city_name = 'London' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 -- DELETE .. RETURNING
 DELETE FROM city_view WHERE city_name = 'Birmingham' RETURNING *;
 ERROR:  cannot delete from view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 \set QUIET true
 -- read-only view with WHERE clause
 CREATE VIEW european_city_view AS
@@ -1238,15 +1238,15 @@ ERROR:  INSTEAD OF triggers are not supported in Greenplum
 INSERT INTO european_city_view VALUES (0, 'x', 10000, 'y', 'z');
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 UPDATE european_city_view SET population = 10000;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 DELETE FROM european_city_view;
 ERROR:  cannot delete from view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 \set QUIET true
 -- rules bypassing no-op triggers
 CREATE RULE european_city_insert_rule AS ON INSERT TO european_city_view
@@ -1268,31 +1268,31 @@ INSERT INTO european_city_view(city_name, country_name)
     VALUES ('Cambridge', 'USA') RETURNING *;
 ERROR:  cannot insert into view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 UPDATE european_city_view SET country_name = 'UK'
     WHERE city_name = 'Cambridge';
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 DELETE FROM european_city_view WHERE city_name = 'Cambridge';
 ERROR:  cannot delete from view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 -- UPDATE and DELETE via rule and trigger
 UPDATE city_view SET country_name = 'UK'
     WHERE city_name = 'Cambridge' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 UPDATE european_city_view SET population = 122800
     WHERE city_name = 'Cambridge' RETURNING *;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 DELETE FROM european_city_view WHERE city_name = 'Cambridge' RETURNING *;
 ERROR:  cannot delete from view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 -- join UPDATE test
 UPDATE city_view v SET population = 599657
     FROM city_table ci, country_table co
@@ -1302,7 +1302,7 @@ UPDATE city_view v SET population = 599657
               v.city_id, v.city_name, v.population;
 ERROR:  cannot update view "city_view"
 DETAIL:  Views that do not select from a single table or view are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 \set QUIET true
 SELECT * FROM city_view;
  city_id | city_name | population | country_name | continent 
@@ -1454,7 +1454,7 @@ create trigger child_del_trig after delete on child
   for each row execute procedure child_del_func();
 insert into parent values (1, 'a', 'a', 'a', 'a', 0);
 insert into child values (10, 1, 'b');
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg2 127.0.0.1:25434 pid=8568)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "update parent set bcnt = bcnt + 1 where aid = new.aid"
 PL/pgSQL function child_ins_func() line 3 at SQL statement
 select * from parent; select * from child;
@@ -1468,7 +1468,7 @@ select * from parent; select * from child;
 (0 rows)
 
 update parent set val1 = 'b' where aid = 1; -- should fail
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg1 127.0.0.1:25433 pid=8567)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "delete from child where child.aid = new.aid and child.val1 = new.val1"
 PL/pgSQL function parent_upd_func() line 5 at SQL statement
 select * from parent; select * from child;
@@ -1482,7 +1482,7 @@ select * from parent; select * from child;
 (0 rows)
 
 delete from parent where aid = 1; -- should fail
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg1 127.0.0.1:25433 pid=8567)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "delete from child where aid = old.aid"
 PL/pgSQL function parent_del_func() line 3 at SQL statement
 select * from parent; select * from child;
@@ -1510,7 +1510,7 @@ begin
 end;
 $$;
 delete from parent where aid = 1;
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg1 127.0.0.1:25433 pid=8567)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "delete from child where aid = old.aid"
 PL/pgSQL function parent_del_func() line 3 at SQL statement
 select * from parent; select * from child;
@@ -1536,6 +1536,7 @@ create temp table self_ref_trigger (
     data text,
     nchildren int not null default 0
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
 create function self_ref_trigger_ins_func()
   returns trigger language plpgsql as
 $$
@@ -1564,22 +1565,22 @@ create trigger self_ref_trigger_del_trig before delete on self_ref_trigger
   for each row execute procedure self_ref_trigger_del_func();
 insert into self_ref_trigger values (1, null, 'root');
 insert into self_ref_trigger values (2, 1, 'root child A');
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg0 127.0.0.1:25432 pid=8566)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "update self_ref_trigger set nchildren = nchildren + 1
       where id = new.parent"
 PL/pgSQL function self_ref_trigger_ins_func() line 4 at SQL statement
 insert into self_ref_trigger values (3, 1, 'root child B');
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg0 127.0.0.1:25432 pid=8566)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "update self_ref_trigger set nchildren = nchildren + 1
       where id = new.parent"
 PL/pgSQL function self_ref_trigger_ins_func() line 4 at SQL statement
 insert into self_ref_trigger values (4, 2, 'grandchild 1');
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg0 127.0.0.1:25432 pid=8566)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "update self_ref_trigger set nchildren = nchildren + 1
       where id = new.parent"
 PL/pgSQL function self_ref_trigger_ins_func() line 4 at SQL statement
 insert into self_ref_trigger values (5, 3, 'grandchild 2');
-ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (seg2 127.0.0.1:25434 pid=8568)
+ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement
 CONTEXT:  SQL statement "update self_ref_trigger set nchildren = nchildren + 1
       where id = new.parent"
 PL/pgSQL function self_ref_trigger_ins_func() line 4 at SQL statement
@@ -1629,7 +1630,7 @@ create function upsert_after_func()
 $$
 begin
   if (TG_OP = 'UPDATE') then
-    raise warning 'after update (old): %', new.*::text;
+    raise warning 'after update (old): %', old.*::text;
     raise warning 'after update (new): %', new.*::text;
   elsif (TG_OP = 'INSERT') then
     raise warning 'after insert (new): %', new.*::text;
@@ -1640,36 +1641,36 @@ $$;
 create trigger upsert_after_trig after insert or update on upsert
   for each row execute procedure upsert_after_func();
 insert into upsert values(1, 'black') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (1,black)  (seg1 127.0.0.1:25433 pid=8567)
-WARNING:  after insert (new): (1,black)  (seg1 127.0.0.1:25433 pid=8567)
+WARNING:  before insert (new): (1,black)
+WARNING:  after insert (new): (1,black)
 insert into upsert values(2, 'red') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (2,red)  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  before insert (new, modified): (3,"red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after insert (new): (3,"red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
+WARNING:  before insert (new): (2,red)
+WARNING:  before insert (new, modified): (3,"red trig modified")
+WARNING:  after insert (new): (3,"red trig modified")
 insert into upsert values(3, 'orange') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (3,orange)  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  before update (old): (3,"red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  before update (new): (3,"updated red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after update (old): (3,"updated red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after update (new): (3,"updated red trig modified")  (seg0 127.0.0.1:25432 pid=8566)
+WARNING:  before insert (new): (3,orange)
+WARNING:  before update (old): (3,"red trig modified")
+WARNING:  before update (new): (3,"updated red trig modified")
+WARNING:  after update (old): (3,"red trig modified")
+WARNING:  after update (new): (3,"updated red trig modified")
 insert into upsert values(4, 'green') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (4,green)  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  before insert (new, modified): (5,"green trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after insert (new): (5,"green trig modified")  (seg0 127.0.0.1:25432 pid=8566)
+WARNING:  before insert (new): (4,green)
+WARNING:  before insert (new, modified): (5,"green trig modified")
+WARNING:  after insert (new): (5,"green trig modified")
 insert into upsert values(5, 'purple') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (5,purple)  (seg2 127.0.0.1:25434 pid=8568)
-WARNING:  after insert (new): (5,purple)  (seg2 127.0.0.1:25434 pid=8568)
+WARNING:  before insert (new): (5,purple)
+WARNING:  after insert (new): (5,purple)
 insert into upsert values(6, 'white') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (6,white)  (seg2 127.0.0.1:25434 pid=8568)
-WARNING:  before insert (new, modified): (7,"white trig modified")  (seg2 127.0.0.1:25434 pid=8568)
-WARNING:  after insert (new): (7,"white trig modified")  (seg2 127.0.0.1:25434 pid=8568)
+WARNING:  before insert (new): (6,white)
+WARNING:  before insert (new, modified): (7,"white trig modified")
+WARNING:  after insert (new): (7,"white trig modified")
 insert into upsert values(7, 'pink') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (7,pink)  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after insert (new): (7,pink)  (seg0 127.0.0.1:25432 pid=8566)
+WARNING:  before insert (new): (7,pink)
+WARNING:  after insert (new): (7,pink)
 insert into upsert values(8, 'yellow') on conflict (key) do update set color = 'updated ' || upsert.color;
-WARNING:  before insert (new): (8,yellow)  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  before insert (new, modified): (9,"yellow trig modified")  (seg0 127.0.0.1:25432 pid=8566)
-WARNING:  after insert (new): (9,"yellow trig modified")  (seg0 127.0.0.1:25432 pid=8566)
+WARNING:  before insert (new): (8,yellow)
+WARNING:  before insert (new, modified): (9,"yellow trig modified")
+WARNING:  after insert (new): (9,"yellow trig modified")
 select * from upsert;
  key |           color           
 -----+---------------------------

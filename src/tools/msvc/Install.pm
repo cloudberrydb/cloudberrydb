@@ -98,6 +98,9 @@ sub Install
 		{   wanted => sub {
 				/^.*\.sample\z/s
 				  && push(@$sample_files, $File::Find::name);
+
+				# Don't find files of in-tree temporary installations.
+				$_ eq 'share' and $File::Find::prune = 1;
 			  }
 		},
 		@top_dir);
@@ -153,7 +156,7 @@ sub Install
 			$target . '/share/tsearch_data/');
 		CopySetOfFiles(
 			'Dictionaries sample files',
-			[ glob("src\\backend\\tsearch\\*_sample.*") ],
+			[ glob("src\\backend\\tsearch\\dicts\\*_sample*") ],
 			$target . '/share/tsearch_data/');
 
 		my $pl_extension_files = [];
@@ -165,6 +168,9 @@ sub Install
 			{   wanted => sub {
 					/^(.*--.*\.sql|.*\.control)\z/s
 					  && push(@$pl_extension_files, $File::Find::name);
+
+					# Don't find files of in-tree temporary installations.
+					$_ eq 'share' and $File::Find::prune = 1;
 				  }
 			},
 			@pldirs);
@@ -212,8 +218,6 @@ sub CopySetOfFiles
 	print "Copying $what" if $what;
 	foreach (@$flist)
 	{
-		next if /regress/;      # Skip temporary install in regression subdir
-		next if /ecpg.test/;    # Skip temporary install in regression subdir
 		my $tgt = $target . basename($_);
 		print ".";
 		lcopy($_, $tgt) || croak "Could not copy $_: $!\n";
@@ -374,7 +378,7 @@ sub GenerateConversionScript
 		$sql .=
 "CREATE DEFAULT CONVERSION pg_catalog.$name FOR '$se' TO '$de' FROM $func;\n";
 		$sql .=
-"COMMENT ON CONVERSION pg_catalog.$name IS 'conversion for $se to $de';\n";
+"COMMENT ON CONVERSION pg_catalog.$name IS 'conversion for $se to $de';\n\n";
 	}
 	open($F, ">$target/share/conversion_create.sql")
 	  || die "Could not write to conversion_create.sql\n";
@@ -606,7 +610,8 @@ sub CopyIncludeFiles
 		'Public headers', $target . '/include/',
 		'src/include/',   'postgres_ext.h',
 		'pg_config.h',    'pg_config_ext.h',
-		'pg_config_os.h', 'dynloader.h', 'pg_config_manual.h');
+		'pg_config_os.h', 'dynloader.h',
+		'pg_config_manual.h');
 	lcopy('src/include/libpq/libpq-fs.h', $target . '/include/libpq/')
 	  || croak 'Could not copy libpq-fs.h';
 
@@ -659,9 +664,9 @@ sub CopyIncludeFiles
 		next unless (-d "src/include/$d");
 
 		EnsureDirectories("$target/include/server/$d");
-		my @args = ('xcopy', '/s', '/i', '/q', '/r', '/y',
-				 "src\\include\\$d\\*.h",
-				 "$ctarget\\include\\server\\$d\\");
+		my @args = (
+			'xcopy', '/s', '/i', '/q', '/r', '/y', "src\\include\\$d\\*.h",
+			"$ctarget\\include\\server\\$d\\");
 		system(@args) && croak("Failed to copy include directory $d\n");
 	}
 	closedir($D);
@@ -716,10 +721,11 @@ sub GenerateNLSFiles
 
 			EnsureDirectories($target, "share/locale/$lang",
 				"share/locale/$lang/LC_MESSAGES");
-			my @args = ("$nlspath\\bin\\msgfmt",
-			   '-o',
-			   "$target\\share\\locale\\$lang\\LC_MESSAGES\\$prgm-$majorver.mo",
-			   $_);
+			my @args = (
+				"$nlspath\\bin\\msgfmt",
+				'-o',
+"$target\\share\\locale\\$lang\\LC_MESSAGES\\$prgm-$majorver.mo",
+				$_);
 			system(@args) && croak("Could not run msgfmt on $dir\\$_");
 			print ".";
 		}

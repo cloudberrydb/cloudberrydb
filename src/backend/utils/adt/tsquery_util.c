@@ -3,7 +3,7 @@
  * tsquery_util.c
  *	  Utilities for tsquery datatype
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -120,6 +120,10 @@ QTNodeCompare(QTNode *an, QTNode *bn)
 				if ((res = QTNodeCompare(an->child[i], bn->child[i])) != 0)
 					return res;
 		}
+
+		if (ao->oper == OP_PHRASE && ao->distance != bo->distance)
+			return (ao->distance > bo->distance) ? -1 : 1;
+
 		return 0;
 	}
 	else if (an->valnode->type == QI_VAL)
@@ -167,7 +171,7 @@ QTNSort(QTNode *in)
 
 	for (i = 0; i < in->nchild; i++)
 		QTNSort(in->child[i]);
-	if (in->nchild > 1)
+	if (in->nchild > 1 && in->valnode->qoperator.oper != OP_PHRASE)
 		qsort((void *) in->child, in->nchild, sizeof(QTNode *), cmpQTN);
 }
 

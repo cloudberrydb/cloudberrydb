@@ -25,6 +25,7 @@
 
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h" /* for is_projection_capable_plan() */
+#include "optimizer/var.h"
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "nodes/makefuncs.h"	/* for makeTargetEntry() */
 #include "utils/guc.h"			/* for Debug_pretty_print */
@@ -330,7 +331,7 @@ parallelize_subplans(Plan *plan, PlanProfile *context)
 			 * subplans).
 			 */
 			pfree(subplan_plan);
-			subplan_plan = (Plan *) make_result(root, NIL,
+			subplan_plan = (Plan *) make_result(NIL,
 												(Node *) list_make1(makeBoolConst(false, false)),
 												NULL);
 		}
@@ -534,8 +535,8 @@ pull_up_Flow(Plan *plan, Plan *subplan)
 	Insist(subplan);
 
 	model_flow = subplan->flow;
-
-	Insist(model_flow);
+	if (!model_flow)
+		elog(ERROR, "subplan is missing flow information");
 
 	/* SubqueryScan always has manifest Flow, so we shouldn't see one here. */
 	Assert(!IsA(plan, SubqueryScan));

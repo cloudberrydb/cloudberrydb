@@ -72,11 +72,46 @@ create table all_legacy_types(
   complex_col
 );
 -- Verify that all columns are using the legacy hashops
-select distkey, distclass from gp_distribution_policy where localoid='all_legacy_types'::regclass;
-                                       distkey                                       |                                                                                         distclass                                                                                         
--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 | 10161 10162 10163 10164 10165 10166 10167 10170 10168 10168 10171 10172 10173 10174 10175 10176 10177 10178 10179 10180 10181 10183 10184 10184 10185 10186 10186 10188 10190 10191 10192
-(1 row)
+select attno, opc.opcname from
+  (select unnest(distkey) as attno, unnest(distclass) as distclass from gp_distribution_policy
+   where localoid='all_legacy_types'::regclass) as d,
+  pg_opclass opc
+where opc.oid=distclass
+order by attno;
+ attno |         opcname         
+-------+-------------------------
+     1 | cdbhash_int2_ops
+     2 | cdbhash_int4_ops
+     3 | cdbhash_int8_ops
+     4 | cdbhash_float4_ops
+     5 | cdbhash_float8_ops
+     6 | cdbhash_numeric_ops
+     7 | cdbhash_char_ops
+     8 | cdbhash_bpchar_ops
+     9 | cdbhash_text_ops
+    10 | cdbhash_text_ops
+    11 | cdbhash_bytea_ops
+    12 | cdbhash_name_ops
+    13 | cdbhash_oid_ops
+    14 | cdbhash_tid_ops
+    15 | cdbhash_timestamp_ops
+    16 | cdbhash_timestamptz_ops
+    17 | cdbhash_date_ops
+    18 | cdbhash_time_ops
+    19 | cdbhash_timetz_ops
+    20 | cdbhash_interval_ops
+    21 | cdbhash_abstime_ops
+    22 | cdbhash_tinterval_ops
+    23 | cdbhash_inet_ops
+    24 | cdbhash_inet_ops
+    25 | cdbhash_macaddr_ops
+    26 | cdbhash_bit_ops
+    27 | cdbhash_bit_ops
+    28 | cdbhash_bool_ops
+    29 | cdbhash_oidvector_ops
+    30 | cdbhash_cash_ops
+    31 | cdbhash_complex_ops
+(31 rows)
 
 insert into all_legacy_types values (
   '12345',          -- int2
@@ -115,11 +150,11 @@ insert into all_legacy_types values (
 -- Test that CTAS honors the gp_use_legacy_hashops GUC
 -- Note: When ORCA is on, the distribution is RANDOM.
 create table legacy_hashops_ctas as select 1;
-select gpdp.distkey, gpdp.distclass, pgopc.opcname
+select gpdp.distkey, pgopc.opcname
   from gp_distribution_policy gpdp, pg_opclass pgopc
   where gpdp.localoid='legacy_hashops_ctas'::regclass and pgopc.oid::text = gpdp.distclass::text;
- distkey | distclass | opcname 
----------+-----------+---------
+ distkey | opcname 
+---------+---------
 (0 rows)
 
 set gp_use_legacy_hashops=off;

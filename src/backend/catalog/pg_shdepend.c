@@ -3,7 +3,7 @@
  * pg_shdepend.c
  *	  routines to support manipulation of the pg_shdepend relation
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -51,6 +51,7 @@
 #include "commands/defrem.h"
 #include "commands/event_trigger.h"
 #include "commands/extension.h"
+#include "commands/policy.h"
 #include "commands/proclang.h"
 #include "commands/schemacmds.h"
 #include "commands/tablecmds.h"
@@ -1084,6 +1085,8 @@ storeObjectDescription(StringInfo descs,
 				appendStringInfo(descs, _("owner of %s"), objdesc);
 			else if (deptype == SHARED_DEPENDENCY_ACL)
 				appendStringInfo(descs, _("privileges for %s"), objdesc);
+			else if (deptype == SHARED_DEPENDENCY_POLICY)
+				appendStringInfo(descs, _("target of %s"), objdesc);
 			else
 				elog(ERROR, "unrecognized dependency type: %d",
 					 (int) deptype);
@@ -1243,6 +1246,18 @@ shdepDropOwned(List *roleids, DropBehavior behavior)
 					RemoveRoleFromObjectACL(roleid,
 											sdepForm->classid,
 											sdepForm->objid);
+					break;
+				case SHARED_DEPENDENCY_POLICY:
+					/* If unable to remove role from policy, remove policy. */
+					if (!RemoveRoleFromObjectPolicy(roleid,
+													sdepForm->classid,
+													sdepForm->objid))
+					{
+						obj.classId = sdepForm->classid;
+						obj.objectId = sdepForm->objid;
+						obj.objectSubId = sdepForm->objsubid;
+						add_exact_object_address(&obj, deleteobjs);
+					}
 					break;
 				case SHARED_DEPENDENCY_OWNER:
 					/* If a local object, save it for deletion below */

@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/rel.h
@@ -17,7 +17,7 @@
 #define REL_H
 
 #include "access/tupdesc.h"
-#include "catalog/pg_am.h"
+#include "access/xlog.h"
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
@@ -48,23 +48,6 @@ typedef struct LockInfoData
 
 typedef LockInfoData *LockInfo;
 
-
-/*
- * Cached lookup information for the frequently used index access method
- * functions, defined by the pg_am row associated with an index relation.
- */
-typedef struct RelationAmInfo
-{
-	FmgrInfo	aminsert;
-	FmgrInfo	ambeginscan;
-	FmgrInfo	amgettuple;
-	FmgrInfo	amgetbitmap;
-	FmgrInfo	amrescan;
-	FmgrInfo	amendscan;
-	FmgrInfo	ammarkpos;
-	FmgrInfo	amrestrpos;
-	FmgrInfo	amcanreturn;
-} RelationAmInfo;
 
 /*
  * Here are the contents of a relation cache entry.
@@ -112,6 +95,10 @@ typedef struct RelationData
 	/* use "struct" here to avoid needing to include rowsecurity.h: */
 	struct RowSecurityDesc *rd_rsdesc;	/* row security policies, or NULL */
 
+	/* data managed by RelationGetFKeyList: */
+	List	   *rd_fkeylist;	/* list of ForeignKeyCacheInfo (see below) */
+	bool		rd_fkeyvalid;	/* true if list has been computed */
+
 	/* data managed by RelationGetIndexList: */
 	List	   *rd_indexlist;	/* list of OIDs of indexes on relation */
 	Oid			rd_oidindex;	/* OID of unique index on OID, if any */
@@ -133,7 +120,6 @@ typedef struct RelationData
 	Form_pg_index rd_index;		/* pg_index tuple describing this index */
 	/* use "struct" here to avoid needing to include htup.h: */
 	struct HeapTupleData *rd_indextuple;		/* all of pg_index tuple */
-	Form_pg_am	rd_am;			/* pg_am tuple for index's AM */
 
 	/*
 	 * index access support info (used only for an index relation)
@@ -150,8 +136,10 @@ typedef struct RelationData
 	 * rd_indexcxt.  A relcache reset will include freeing that chunk and
 	 * setting rd_amcache = NULL.
 	 */
+	Oid			rd_amhandler;	/* OID of index AM's handler function */
 	MemoryContext rd_indexcxt;	/* private memory cxt for this stuff */
-	RelationAmInfo *rd_aminfo;	/* lookup info for funcs found in pg_am */
+	/* use "struct" here to avoid needing to include amapi.h: */
+	struct IndexAmRoutine *rd_amroutine;		/* index AM's API struct */
 	Oid		   *rd_opfamily;	/* OIDs of op families for each index col */
 	Oid		   *rd_opcintype;	/* OIDs of opclass declared input data types */
 	RegProcedure *rd_support;	/* OIDs of support procedures */
@@ -197,6 +185,34 @@ typedef struct RelationData
 	struct PgStat_TableStatus *pgstat_info;		/* statistics collection area */
 } RelationData;
 
+
+/*
+ * ForeignKeyCacheInfo
+ *		Information the relcache can cache about foreign key constraints
+ *
+ * This is basically just an image of relevant columns from pg_constraint.
+ * We make it a subclass of Node so that copyObject() can be used on a list
+ * of these, but we also ensure it is a "flat" object without substructure,
+ * so that list_free_deep() is sufficient to free such a list.
+ * The per-FK-column arrays can be fixed-size because we allow at most
+ * INDEX_MAX_KEYS columns in a foreign key constraint.
+ *
+ * Currently, we only cache fields of interest to the planner, but the
+ * set of fields could be expanded in future.
+ */
+typedef struct ForeignKeyCacheInfo
+{
+	NodeTag		type;
+	Oid			conrelid;		/* relation constrained by the foreign key */
+	Oid			confrelid;		/* relation referenced by the foreign key */
+	int			nkeys;			/* number of columns in the foreign key */
+	/* these arrays each have nkeys valid entries: */
+	AttrNumber	conkey[INDEX_MAX_KEYS]; /* cols in referencing table */
+	AttrNumber	confkey[INDEX_MAX_KEYS];		/* cols in referenced table */
+	Oid			conpfeqop[INDEX_MAX_KEYS];		/* PK = FK operator OIDs */
+} ForeignKeyCacheInfo;
+
+
 /*
  * StdRdOptions
  *		Standard contents of rd_options for heaps and generic indexes.
@@ -239,6 +255,7 @@ typedef struct StdRdOptions
 	char		orientation[NAMEDATALEN]; /* orientation (AO only) */
 	bool		user_catalog_table;		/* use as an additional catalog
 										 * relation */
+	int			parallel_workers;		/* max number of parallel workers */
 } StdRdOptions;
 
 #define HEAP_MIN_FILLFACTOR			10
@@ -269,11 +286,20 @@ typedef struct StdRdOptions
 /*
  * RelationIsUsedAsCatalogTable
  *		Returns whether the relation should be treated as a catalog table
- *		from the pov of logical decoding.  Note multiple eval or argument!
+ *		from the pov of logical decoding.  Note multiple eval of argument!
  */
 #define RelationIsUsedAsCatalogTable(relation)	\
 	((relation)->rd_options ?				\
 	 ((StdRdOptions *) (relation)->rd_options)->user_catalog_table : false)
+
+/*
+ * RelationGetParallelWorkers
+ *		Returns the relation's parallel_workers reloption setting.
+ *		Note multiple eval of argument!
+ */
+#define RelationGetParallelWorkers(relation, defaultpw) \
+	((relation)->rd_options ? \
+	 ((StdRdOptions *) (relation)->rd_options)->parallel_workers : (defaultpw))
 
 
 /*
@@ -587,5 +613,6 @@ typedef struct ViewOptions
 /* routines in utils/cache/relcache.c */
 extern void RelationIncrementReferenceCount(Relation rel);
 extern void RelationDecrementReferenceCount(Relation rel);
+extern bool RelationHasUnloggedIndex(Relation rel);
 
 #endif   /* REL_H */

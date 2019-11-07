@@ -3,7 +3,7 @@
  * trigger.c
  *	  PostgreSQL TRIGGERs support code.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,6 +23,7 @@
 #include "catalog/indexing.h"
 #include "catalog/objectaccess.h"
 #include "catalog/pg_constraint.h"
+#include "catalog/pg_constraint_fn.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
@@ -355,9 +356,7 @@ CreateTrigger(CreateTrigStmt *stmt, const char *queryString,
 		 * subselects in WHEN clauses; it would fail to examine the contents
 		 * of subselects.
 		 */
-		varList = pull_var_clause(whenClause,
-								  PVC_REJECT_AGGREGATES,
-								  PVC_REJECT_PLACEHOLDERS);
+		varList = pull_var_clause(whenClause, 0);
 		foreach(lc, varList)
 		{
 			Var		   *var = (Var *) lfirst(lc);
@@ -444,8 +443,8 @@ CreateTrigger(CreateTrigStmt *stmt, const char *queryString,
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-					 errmsg("function %s must return type \"trigger\"",
-							NameListToString(stmt->funcname))));
+					 errmsg("function %s must return type %s",
+							NameListToString(stmt->funcname), "trigger")));
 	}
 
 	/* Check GPDB limitations */
@@ -564,8 +563,8 @@ CreateTrigger(CreateTrigStmt *stmt, const char *queryString,
 	 * can skip this for internally generated triggers, since the name
 	 * modification above should be sufficient.
 	 *
-	 * NOTE that this is cool only because we have AccessExclusiveLock on the
-	 * relation, so the trigger set won't be changing underneath us.
+	 * NOTE that this is cool only because we have ShareRowExclusiveLock on
+	 * the relation, so the trigger set won't be changing underneath us.
 	 */
 	if (!isInternal)
 	{
@@ -3316,7 +3315,7 @@ static SetConstraintState SetConstraintStateAddItem(SetConstraintState state,
  * Gets the current query fdw tuplestore and initializes it if necessary
  */
 static Tuplestorestate *
-GetCurrentFDWTuplestore()
+GetCurrentFDWTuplestore(void)
 {
 	Tuplestorestate *ret;
 
@@ -4255,7 +4254,7 @@ AfterTriggerEndXact(bool isCommit)
 
 
 	/*
-	 * Forget the query stack and constrant-related state information.  As
+	 * Forget the query stack and constraint-related state information.  As
 	 * with the subtransaction state information, we don't bother freeing the
 	 * memory here.
 	 */

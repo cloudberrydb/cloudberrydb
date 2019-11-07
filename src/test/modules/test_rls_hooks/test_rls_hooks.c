@@ -3,7 +3,7 @@
  * test_rls_hooks.c
  *		Code for testing RLS hooks.
  *
- * Copyright (C) 2015, PostgreSQL Global Development Group
+ * Copyright (c) 2015-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/test/modules/test_rls_hooks/test_rls_hooks.c
@@ -87,7 +87,6 @@ test_rls_hooks_permissive(CmdType cmdtype, Relation relation)
 	role = ObjectIdGetDatum(ACL_ID_PUBLIC);
 
 	policy->policy_name = pstrdup("extension policy");
-	policy->policy_id = InvalidOid;
 	policy->polcmd = '*';
 	policy->roles = construct_array(&role, 1, OIDOID, sizeof(Oid), true, 'i');
 
@@ -106,7 +105,7 @@ test_rls_hooks_permissive(CmdType cmdtype, Relation relation)
 	e = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", (Node *) n, (Node *) c, 0);
 
 	policy->qual = (Expr *) transformWhereClause(qual_pstate, copyObject(e),
-												 EXPR_KIND_WHERE,
+												 EXPR_KIND_POLICY,
 												 "POLICY");
 
 	policy->with_check_qual = copyObject(policy->qual);
@@ -119,6 +118,11 @@ test_rls_hooks_permissive(CmdType cmdtype, Relation relation)
 
 /*
  * Return restrictive policies to be added
+ *
+ * Note that a permissive policy must exist or the default-deny policy
+ * will be included and nothing will be visible.  If no filtering should
+ * be done except for the restrictive policy, then a single "USING (true)"
+ * permissive policy can be used; see the regression tests.
  */
 List *
 test_rls_hooks_restrictive(CmdType cmdtype, Relation relation)
@@ -146,7 +150,6 @@ test_rls_hooks_restrictive(CmdType cmdtype, Relation relation)
 	role = ObjectIdGetDatum(ACL_ID_PUBLIC);
 
 	policy->policy_name = pstrdup("extension policy");
-	policy->policy_id = InvalidOid;
 	policy->polcmd = '*';
 	policy->roles = construct_array(&role, 1, OIDOID, sizeof(Oid), true, 'i');
 
@@ -160,7 +163,7 @@ test_rls_hooks_restrictive(CmdType cmdtype, Relation relation)
 	e = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", (Node *) n, (Node *) c, 0);
 
 	policy->qual = (Expr *) transformWhereClause(qual_pstate, copyObject(e),
-												 EXPR_KIND_WHERE,
+												 EXPR_KIND_POLICY,
 												 "POLICY");
 
 	policy->with_check_qual = copyObject(policy->qual);

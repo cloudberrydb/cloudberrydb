@@ -17,6 +17,7 @@
 #include "nodes/parsenodes.h"
 #include "nodes/primnodes.h"
 #include "nodes/makefuncs.h"
+#include "nodes/nodes.h"
 #include "catalog/pg_collation.h"
 #include "utils/datum.h"
 
@@ -461,6 +462,8 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar
 	aggref->agglevelsup = 0;
 	aggref->aggkind = 'n';
 	aggref->location = -1;
+	aggref->aggtranstype = InvalidOid;
+	aggref->aggargtypes = NIL;
 
 	CMDIdGPDB *agg_mdid = GPOS_NEW(m_mp) CMDIdGPDB(aggref->aggfnoid);
 	const IMDAggregate *pmdagg = m_md_accessor->RetrieveAgg(agg_mdid);
@@ -484,24 +487,21 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar
 	switch(dxlop->GetDXLAggStage())
 	{
 		case EdxlaggstageNormal:
-					aggref->aggstage = AGGSTAGE_NORMAL;
-					break;
+			aggref->aggsplit = AGGSPLIT_SIMPLE;
+			break;
 		case EdxlaggstagePartial:
-					aggref->aggstage = AGGSTAGE_PARTIAL;
-					break;
+			aggref->aggsplit = AGGSPLIT_INITIAL_SERIAL;
+			break;
 		case EdxlaggstageIntermediate:
-					aggref->aggstage = AGGSTAGE_INTERMEDIATE;
-					break;
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+				   GPOS_WSZ_LIT("GPDB_96_MERGE_FIXME: Intermediate aggregate stage not implemented"));
+			break;
 		case EdxlaggstageFinal:
-					aggref->aggstage = AGGSTAGE_FINAL;
-					break;
+			aggref->aggsplit = AGGSPLIT_FINAL_DESERIAL;
+			break;
 		default:
-				GPOS_RAISE
-					(
-					gpdxl::ExmaDXL,
-					gpdxl::ExmiPlStmt2DXLConversion,
-					GPOS_WSZ_LIT("AGGREF: Specified AggStage value is invalid")
-					);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+				   GPOS_WSZ_LIT("AGGREF: Specified AggStage value is invalid"));
 	}
 
 	// translate each DXL argument
@@ -514,6 +514,7 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar
 	ForEachWithCount (lc, exprs, attno)
 	{
 		TargetEntry *new_target_entry = gpdb::MakeTargetEntry((Expr *) lfirst(lc), attno + 1, NULL, false);
+		Oid aggargtype = gpdb::ExprType((Node *) lfirst(lc));
 		/*
 		 * Translate the aggdistinct bool set to true (in ORCA),
 		 * to a List of SortGroupClause in the PLNSTMT
@@ -536,7 +537,27 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar
 			sortgrpindex++;
 		}
 		aggref->args = gpdb::LAppend(aggref->args, new_target_entry);
+		aggref->aggargtypes = gpdb::LAppendOid(aggref->aggargtypes, aggargtype);
 	}
+
+	/*
+	 * Resolve the possibly-polymorphic aggregate transition type.
+	 */
+	Oid			aggtranstype;
+	Oid			inputTypes[FUNC_MAX_ARGS];
+	int			numArguments;
+
+	aggtranstype = gpdb::GetAggIntermediateResultType(aggref->aggfnoid);
+
+	/* extract argument types (ignoring any ORDER BY expressions) */
+	numArguments = gpdb::GetAggregateArgTypes(aggref, inputTypes);
+
+	/* resolve actual type of transition state, if polymorphic */
+	aggtranstype = gpdb::ResolveAggregateTransType(aggref->aggfnoid,
+						       aggtranstype,
+						       inputTypes,
+						       numArguments);
+	aggref->aggtranstype = aggtranstype;
 
 	// GPDB_91_MERGE_FIXME: collation
 	aggref->inputcollid = gpdb::ExprCollation((Node *) exprs);

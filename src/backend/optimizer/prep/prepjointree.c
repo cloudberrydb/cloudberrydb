@@ -19,7 +19,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -38,6 +38,7 @@
 #include "optimizer/prep.h"
 #include "optimizer/subselect.h"
 #include "optimizer/tlist.h"
+#include "optimizer/var.h"
 #include "parser/parse_relation.h"
 #include "parser/parsetree.h"
 #include "parser/parse_relation.h"
@@ -1069,6 +1070,7 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	subroot->query_level = root->query_level;
 	subroot->parent_root = root->parent_root;
 	subroot->plan_params = NIL;
+	subroot->outer_params = NULL;
 	subroot->planner_cxt = CurrentMemoryContext;
 	subroot->init_plans = NIL;
 	subroot->cte_plan_ids = NIL;
@@ -1077,9 +1079,15 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	subroot->non_eq_clauses = NIL;
 	subroot->append_rel_list = NIL;
 	subroot->rowMarks = NIL;
+	memset(subroot->upper_rels, 0, sizeof(subroot->upper_rels));
+	memset(subroot->upper_targets, 0, sizeof(subroot->upper_targets));
+	subroot->processed_tlist = NIL;
+	subroot->grouping_map = NULL;
+	subroot->minmax_aggs = NIL;
+	subroot->hasInheritedTarget = false;
 	subroot->hasRecursion = false;
 	subroot->wt_param_id = -1;
-	subroot->non_recursive_plan = NULL;
+	subroot->non_recursive_path = NULL;
 
 	/* No CTEs to worry about */
 	Assert(subquery->cteList == NIL);
@@ -1221,8 +1229,19 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	parse->returningList = (List *)
 		pullup_replace_vars((Node *) parse->returningList, &rvcontext);
 	if (parse->onConflict)
+	{
 		parse->onConflict->onConflictSet = (List *)
-			pullup_replace_vars((Node *) parse->onConflict->onConflictSet, &rvcontext);
+			pullup_replace_vars((Node *) parse->onConflict->onConflictSet,
+								&rvcontext);
+		parse->onConflict->onConflictWhere =
+			pullup_replace_vars(parse->onConflict->onConflictWhere,
+								&rvcontext);
+
+		/*
+		 * We assume ON CONFLICT's arbiterElems, arbiterWhere, exclRelTlist
+		 * can't contain any references to a subquery
+		 */
+	}
 	replace_vars_in_jointree((Node *) parse->jointree, &rvcontext,
 							 lowest_nulling_outer_join);
 	Assert(parse->setOperations == NULL);
@@ -1311,13 +1330,16 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 
 			switch (child_rte->rtekind)
 			{
+				case RTE_RELATION:
+					if (child_rte->tablesample)
+						child_rte->lateral = true;
+					break;
 				case RTE_SUBQUERY:
 				case RTE_FUNCTION:
 				case RTE_TABLEFUNCTION:
 				case RTE_VALUES:
 					child_rte->lateral = true;
 					break;
-				case RTE_RELATION:
 				case RTE_JOIN:
 				case RTE_CTE:
 				case RTE_VOID:
@@ -1368,14 +1390,11 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 										subroot->append_rel_list);
 
 	/*
-	 * We don't have to do the equivalent bookkeeping for outer-join or
-	 * LATERAL info, because that hasn't been set up yet.  placeholder_list
-	 * likewise.
+	 * We don't have to do the equivalent bookkeeping for outer-join info,
+	 * because that hasn't been set up yet.  placeholder_list likewise.
 	 */
 	Assert(root->join_info_list == NIL);
 	Assert(subroot->join_info_list == NIL);
-	Assert(root->lateral_info_list == NIL);
-	Assert(subroot->lateral_info_list == NIL);
 	Assert(root->placeholder_list == NIL);
 	Assert(subroot->placeholder_list == NIL);
 
@@ -1667,25 +1686,40 @@ is_simple_subquery(PlannerInfo *root, Query *subquery, RangeTblEntry *rte,
 
 	/*
 	 * Don't pull up a subquery with an empty jointree, unless it has no quals
-	 * and deletion_ok is TRUE.  query_planner() will correctly generate a
-	 * Result plan for a jointree that's totally empty, but we can't cope with
-	 * an empty FromExpr appearing lower down in a jointree: we identify join
-	 * rels via baserelid sets, so we couldn't distinguish a join containing
-	 * such a FromExpr from one without it.  This would for example break the
-	 * PlaceHolderVar mechanism, since we'd have no way to identify where to
-	 * evaluate a PHV coming out of the subquery.  We can only handle such
-	 * cases if the place where the subquery is linked is a FromExpr or inner
-	 * JOIN that would still be nonempty after removal of the subquery, so
-	 * that it's still identifiable via its contained baserelids.  Safe
-	 * contexts are signaled by deletion_ok.  But even in a safe context, we
-	 * must keep the subquery if it has any quals, because it's unclear where
-	 * to put them in the upper query.  (Note that deletion of a subquery is
-	 * also dependent on the check below that its targetlist contains no
-	 * set-returning functions.  Deletion from a FROM list or inner JOIN is
-	 * okay only if the subquery must return exactly one row.)
+	 * and deletion_ok is TRUE and we're not underneath an outer join.
+	 *
+	 * query_planner() will correctly generate a Result plan for a jointree
+	 * that's totally empty, but we can't cope with an empty FromExpr
+	 * appearing lower down in a jointree: we identify join rels via baserelid
+	 * sets, so we couldn't distinguish a join containing such a FromExpr from
+	 * one without it.  We can only handle such cases if the place where the
+	 * subquery is linked is a FromExpr or inner JOIN that would still be
+	 * nonempty after removal of the subquery, so that it's still identifiable
+	 * via its contained baserelids.  Safe contexts are signaled by
+	 * deletion_ok.
+	 *
+	 * But even in a safe context, we must keep the subquery if it has any
+	 * quals, because it's unclear where to put them in the upper query.
+	 *
+	 * Also, we must forbid pullup if such a subquery is underneath an outer
+	 * join, because then we might need to wrap its output columns with
+	 * PlaceHolderVars, and the PHVs would then have empty relid sets meaning
+	 * we couldn't tell where to evaluate them.  (This test is separate from
+	 * the deletion_ok flag for possible future expansion: deletion_ok tells
+	 * whether the immediate parent site in the jointree could cope, not
+	 * whether we'd have PHV issues.  It's possible this restriction could be
+	 * fixed by letting the PHVs use the relids of the parent jointree item,
+	 * but that complication is for another day.)
+	 *
+	 * Note that deletion of a subquery is also dependent on the check below
+	 * that its targetlist contains no set-returning functions.  Deletion from
+	 * a FROM list or inner JOIN is okay only if the subquery must return
+	 * exactly one row.
 	 */
 	if (subquery->jointree->fromlist == NIL &&
-		(subquery->jointree->quals || !deletion_ok))
+		(subquery->jointree->quals != NULL ||
+		 !deletion_ok ||
+		 lowest_outer_join != NULL))
 		return false;
 
 	/*
@@ -1845,8 +1879,19 @@ pull_up_simple_values(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte)
 	parse->returningList = (List *)
 		pullup_replace_vars((Node *) parse->returningList, &rvcontext);
 	if (parse->onConflict)
+	{
 		parse->onConflict->onConflictSet = (List *)
-			pullup_replace_vars((Node *) parse->onConflict->onConflictSet, &rvcontext);
+			pullup_replace_vars((Node *) parse->onConflict->onConflictSet,
+								&rvcontext);
+		parse->onConflict->onConflictWhere =
+			pullup_replace_vars(parse->onConflict->onConflictWhere,
+								&rvcontext);
+
+		/*
+		 * We assume ON CONFLICT's arbiterElems, arbiterWhere, exclRelTlist
+		 * can't contain any references to a subquery
+		 */
+	}
 	replace_vars_in_jointree((Node *) parse->jointree, &rvcontext, NULL);
 	Assert(parse->setOperations == NULL);
 	parse->havingQual = pullup_replace_vars(parse->havingQual, &rvcontext);
@@ -1858,7 +1903,6 @@ pull_up_simple_values(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte)
 	Assert(root->append_rel_list == NIL);
 	Assert(list_length(parse->rtable) == 1);
 	Assert(root->join_info_list == NIL);
-	Assert(root->lateral_info_list == NIL);
 	Assert(root->placeholder_list == NIL);
 
 	/*
@@ -1899,7 +1943,8 @@ is_simple_values(PlannerInfo *root, RangeTblEntry *rte, bool deletion_ok)
 
 	/*
 	 * Because VALUES can't appear under an outer join (or at least, we won't
-	 * try to pull it up if it does), we need not worry about LATERAL.
+	 * try to pull it up if it does), we need not worry about LATERAL, nor
+	 * about validity of PHVs for the VALUES' outputs.
 	 */
 
 	/*
@@ -2144,6 +2189,13 @@ replace_vars_in_jointree(Node *jtnode,
 			{
 				switch (rte->rtekind)
 				{
+					case RTE_RELATION:
+						/* shouldn't be marked LATERAL unless tablesample */
+						Assert(rte->tablesample);
+						rte->tablesample = (TableSampleClause *)
+							pullup_replace_vars((Node *) rte->tablesample,
+												context);
+						break;
 					case RTE_SUBQUERY:
 						rte->subquery =
 							pullup_replace_vars_subquery(rte->subquery,
@@ -2160,7 +2212,6 @@ replace_vars_in_jointree(Node *jtnode,
 							pullup_replace_vars((Node *) rte->values_lists,
 												context);
 						break;
-					case RTE_RELATION:
 					case RTE_JOIN:
 					case RTE_CTE:
 					case RTE_VOID:
@@ -3060,7 +3111,6 @@ substitute_multiple_relids_walker(Node *node,
 	}
 	/* Shouldn't need to handle planner auxiliary nodes here */
 	Assert(!IsA(node, SpecialJoinInfo));
-	Assert(!IsA(node, LateralJoinInfo));
 	Assert(!IsA(node, AppendRelInfo));
 	Assert(!IsA(node, PlaceHolderInfo));
 	Assert(!IsA(node, MinMaxAggInfo));

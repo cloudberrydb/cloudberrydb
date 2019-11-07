@@ -3,7 +3,7 @@
  * xlogdesc.c
  *	  rmgr descriptor routines for access/transam/xlog.c
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,8 +28,9 @@
  */
 const struct config_enum_entry wal_level_options[] = {
 	{"minimal", WAL_LEVEL_MINIMAL, false},
-	{"archive", WAL_LEVEL_ARCHIVE, false},
-	{"hot_standby", WAL_LEVEL_HOT_STANDBY, false},
+	{"replica", WAL_LEVEL_REPLICA, false},
+	{"archive", WAL_LEVEL_REPLICA, true},		/* deprecated */
+	{"hot_standby", WAL_LEVEL_REPLICA, true},	/* deprecated */
 	{"logical", WAL_LEVEL_LOGICAL, false},
 	{NULL, 0, false}
 };
@@ -50,7 +51,6 @@ UnpackCheckPointRecord(XLogReaderState *record, CheckpointExtendedRecord *ckptEx
 		/* Special (for bootstrap, xlog switch, maybe others) */
 		ckptExtended->dtxCheckpoint = NULL;
 		ckptExtended->dtxCheckpointLen = 0;
-		ckptExtended->ptas = NULL;
 		return;
 	}
 
@@ -65,24 +65,7 @@ UnpackCheckPointRecord(XLogReaderState *record, CheckpointExtendedRecord *ckptEx
 	ckptExtended->dtxCheckpointLen =
 		TMGXACT_CHECKPOINT_BYTES((ckptExtended->dtxCheckpoint)->committedCount);
 
-	/*
-	 * The master prepared transaction aggregate state (ptas) will be skipped
-	 * when gp_before_filespace_setup is ON.
-	 */
-	if (remainderLen > ckptExtended->dtxCheckpointLen)
-	{
-		current_record_ptr = current_record_ptr + ckptExtended->dtxCheckpointLen;
-		remainderLen -= ckptExtended->dtxCheckpointLen;
-
-		/* Finally, point to prepared transaction information */
-		ckptExtended->ptas = (prepared_transaction_agg_state *) current_record_ptr;
-		Assert(remainderLen == PREPARED_TRANSACTION_CHECKPOINT_BYTES(ckptExtended->ptas->count));
-	}
-	else
-	{
-		Assert(remainderLen == ckptExtended->dtxCheckpointLen);
-		ckptExtended->ptas = NULL;
-	}
+	Assert(remainderLen == ckptExtended->dtxCheckpointLen);
 }
 
 void
@@ -99,7 +82,7 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 		CheckpointExtendedRecord ckptExtended;
 
 		appendStringInfo(buf, "redo %X/%X; "
-						 "tli %u; prev tli %u; fpw %s; xid %u/%u; oid %u; relfilenode %u; multi %u; offset %u; "
+						 "tli %u; prev tli %u; fpw %s; xid %u:%u; oid %u; relfilenode %u; multi %u; offset %u; "
 						 "oldest xid %u in DB %u; oldest multi %u in DB %u; "
 						 "oldest/newest commit timestamp xid: %u/%u; "
 						 "oldest running xid %u; %s",
@@ -116,8 +99,8 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 						 checkpoint->oldestXidDB,
 						 checkpoint->oldestMulti,
 						 checkpoint->oldestMultiDB,
-						 checkpoint->oldestCommitTs,
-						 checkpoint->newestCommitTs,
+						 checkpoint->oldestCommitTsXid,
+						 checkpoint->newestCommitTsXid,
 						 checkpoint->oldestActiveXid,
 				 (info == XLOG_CHECKPOINT_SHUTDOWN) ? "shutdown" : "online");
 
@@ -130,10 +113,6 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 							 XLogRecGetDataLen(record),
 							 ckptExtended.dtxCheckpoint->committedCount,
 							 ckptExtended.dtxCheckpointLen);
-			if (ckptExtended.ptas != NULL)
-				appendStringInfo(buf,
-								 ", prepared transaction agg state count = %d",
-								 ckptExtended.ptas->count);
 		}
 	}
 	else if (info == XLOG_NEXTOID)
@@ -190,7 +169,7 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 		appendStringInfo(buf, "max_connections=%d max_worker_processes=%d "
 						 "max_prepared_xacts=%d max_locks_per_xact=%d "
 						 "wal_level=%s wal_log_hints=%s "
-						 "track_commit_timestamps=%s",
+						 "track_commit_timestamp=%s",
 						 xlrec.MaxConnections,
 						 xlrec.max_worker_processes,
 						 xlrec.max_prepared_xacts,

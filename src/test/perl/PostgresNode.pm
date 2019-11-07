@@ -651,7 +651,7 @@ sub start
 	BAIL_OUT("node \"$name\" is already running") if defined $self->{_pid};
 	print("### Starting node \"$name\"\n");
 	my $ret = TestLib::system_log('pg_ctl', '-w', '-D', $self->data_dir, '-l',
-		$self->logfile, '-o', "-c gp_role=utility --gp_dbid=-1 --gp_contentid=-1 --logging-collector=off",
+		$self->logfile, '-o', "-c gp_role=utility --gp_dbid=1 --gp_contentid=-1 --logging-collector=off",
 		'start');
 
 	if ($ret != 0)
@@ -662,6 +662,8 @@ sub start
 	}
 
 	$self->_update_pid(1);
+
+	$ENV{PGOPTIONS}      = '-c gp_session_role=utility';
 }
 
 =pod
@@ -1335,6 +1337,24 @@ sub issues_sql_like
 	ok($result, "@$cmd exit code 0");
 	my $log = TestLib::slurp_file($self->logfile);
 	like($log, $expected_sql, "$test_name: SQL found in server log");
+}
+
+sub command_warns_like
+{
+	my $self = shift;
+
+	local $ENV{PGPORT} = $self->port;
+
+	TestLib::command_warns_like(@_);
+}
+
+sub command_fails_like
+{
+	my $self = shift;
+
+	local $ENV{PGPORT} = $self->port;
+
+	TestLib::command_fails_like(@_);
 }
 
 =pod

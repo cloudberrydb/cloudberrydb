@@ -3,7 +3,7 @@
  * nbtutils.c
  *	  Utility code for Postgres btree implementation.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -1414,13 +1414,6 @@ _bt_checkkeys(IndexScanDesc scan,
 		bool		isNull;
 		Datum		test;
 
-		/*
-		 * If the scan key has already matched we can skip this key, as long
-		 * as the index tuple does not contain NULL values.
-		 */
-		if (key->sk_flags & SK_BT_MATCHED && !IndexTupleHasNulls(tuple))
-			continue;
-
 		/* row-comparison keys need special processing */
 		if (key->sk_flags & SK_ROW_HEADER)
 		{
@@ -2043,15 +2036,34 @@ BTreeShmemInit(void)
 		Assert(found);
 }
 
-Datum
-btoptions(PG_FUNCTION_ARGS)
+bytea *
+btoptions(Datum reloptions, bool validate)
 {
-	Datum		reloptions = PG_GETARG_DATUM(0);
-	bool		validate = PG_GETARG_BOOL(1);
-	bytea	   *result;
+	return default_reloptions(reloptions, validate, RELOPT_KIND_BTREE);
+}
 
-	result = default_reloptions(reloptions, validate, RELOPT_KIND_BTREE);
-	if (result)
-		PG_RETURN_BYTEA_P(result);
-	PG_RETURN_NULL();
+/*
+ *	btproperty() -- Check boolean properties of indexes.
+ *
+ * This is optional, but handling AMPROP_RETURNABLE here saves opening the rel
+ * to call btcanreturn.
+ */
+bool
+btproperty(Oid index_oid, int attno,
+		   IndexAMProperty prop, const char *propname,
+		   bool *res, bool *isnull)
+{
+	switch (prop)
+	{
+		case AMPROP_RETURNABLE:
+			/* answer only for columns, not AM or whole index */
+			if (attno == 0)
+				return false;
+			/* otherwise, btree can always return data */
+			*res = true;
+			return true;
+
+		default:
+			return false;		/* punt to generic code */
+	}
 }

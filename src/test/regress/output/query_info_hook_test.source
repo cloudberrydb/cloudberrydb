@@ -29,6 +29,7 @@ WARNING:  Plan node initializing
 WARNING:  Plan node executing node_type: FUNCTIONSCAN
 WARNING:  Query Error
 ERROR:  error in function execution
+CONTEXT:  PL/pgSQL function error_in_execution() line 3 at RAISE
 -- Test Error case: Error out in planner.
 SELECT * FROM generate_series(1, 3/0);
 ERROR:  division by zero
@@ -92,19 +93,12 @@ WARNING:  Plan node initializing
 WARNING:  Plan node executing node_type: SORT
 WARNING:  Plan node executing node_type: FUNCTIONSCAN
 WARNING:  SPI inner query submit
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  SPI inner query start
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Plan node of SPI inner query initializing
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Plan node of SPI inner query executing node_type: MOTION
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Plan node of SPI inner query finished
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Plan node of SPI inner query finished
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Inner query done
-CONTEXT:  PL/pgSQL function spi_func() line 5 at FOR over SELECT rows
 WARNING:  Plan node finished
 WARNING:  Plan node finished
 WARNING:  Query done
@@ -138,17 +132,11 @@ WARNING:  Plan node executing node_type: MATERIAL
 WARNING:  Plan node executing node_type: LIMIT
 WARNING:  Plan node executing node_type: SEQSCAN
 WARNING:  function inner query submit
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  function inner query start
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  Plan node of function inner query initializing
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  Plan node of function inner query executing node_type: RESULT
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  Plan node of function inner query finished
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  Inner query done
-CONTEXT:  SQL function "_pg_truetypmod" statement 1
 WARNING:  Plan node finished
 WARNING:  Plan node finished
 WARNING:  Plan node finished

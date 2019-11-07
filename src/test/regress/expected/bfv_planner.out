@@ -340,8 +340,6 @@ INSERT INTO oneoffplantest VALUES (0), (0), (0);
 -- regardless of the number of tuples in the table.
 select volatilefunc(a) from oneoffplantest;
 NOTICE:  immutablefunc executed  (seg0 slice1 127.0.1.1:25432 pid=6257)
-CONTEXT:  SQL statement "SELECT stablenow(immutablefunc())"
-PL/pgSQL function volatilefunc(integer) line 5 at assignment
  volatilefunc 
 --------------
             0

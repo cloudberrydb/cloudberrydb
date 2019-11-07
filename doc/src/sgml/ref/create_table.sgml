@@ -981,14 +981,14 @@ Where column_reference_storage_directive is:
     Storage parameters for
     indexes are documented in <xref linkend="SQL-CREATEINDEX">.
     The storage parameters currently
-    available for tables are listed below.  For each parameter, unless noted,
-    there is an additional parameter with the same name prefixed with
-    <literal>toast.</literal>, which can be used to control the behavior of the
+    available for tables are listed below.  For many of these parameters, as
+    shown, there is an additional parameter with the same name prefixed with
+    <literal>toast.</literal>, which controls the behavior of the
     table's secondary <acronym>TOAST</> table, if any
     (see <xref linkend="storage-toast"> for more information about TOAST).
-    Note that the TOAST table uses the parameter values defined for
-    the main table, for each parameter applicable to TOAST tables and
-    for which no value is set in the TOAST table itself.
+    If a table parameter value is set and the
+    equivalent <literal>toast.</literal> parameter is not, the TOAST table
+    will use the table's parameter value.
    </para>
 
    <variablelist>
@@ -1012,25 +1012,35 @@ Where column_reference_storage_directive is:
    </varlistentry>
 
    <varlistentry>
+    <term><literal>parallel_workers</> (<type>integer</>)</term>
+    <listitem>
+     <para>
+      This sets the number of workers that should be used to assist a parallel
+      scan of this table.  If not set, the system will determine a value based
+      on the relation size.  The actual number of workers chosen by the planner
+      may be less, for example due to
+      the setting of <xref linkend="guc-max-worker-processes">.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
     <term><literal>autovacuum_enabled</>, <literal>toast.autovacuum_enabled</literal> (<type>boolean</>)</term>
     <listitem>
      <para>
-     Enables or disables the autovacuum daemon on a particular table.
-     If true, the autovacuum daemon will initiate a <command>VACUUM</> operation
-     on a particular table when the number of updated or deleted tuples exceeds
-     <literal>autovacuum_vacuum_threshold</> plus
-     <literal>autovacuum_vacuum_scale_factor</> times the number of live tuples
-     currently estimated to be in the relation.
-     Similarly, it will initiate an <command>ANALYZE</> operation when the
-     number of inserted, updated or deleted tuples exceeds
-     <literal>autovacuum_analyze_threshold</> plus
-     <literal>autovacuum_analyze_scale_factor</> times the number of live tuples
-     currently estimated to be in the relation.
+     Enables or disables the autovacuum daemon for a particular table.
+     If true, the autovacuum daemon will perform automatic <command>VACUUM</>
+     and/or <command>ANALYZE</> operations on this table following the rules
+     discussed in <xref linkend="autovacuum">.
      If false, this table will not be autovacuumed, except to prevent
-     transaction Id wraparound. See <xref linkend="vacuum-for-wraparound"> for
+     transaction ID wraparound. See <xref linkend="vacuum-for-wraparound"> for
      more about wraparound prevention.
-     Observe that this variable inherits its value from the <xref
-     linkend="guc-autovacuum"> setting.
+     Note that the autovacuum daemon does not run at all (except to prevent
+     transaction ID wraparound) if the <xref linkend="guc-autovacuum">
+     parameter is false; setting individual tables' storage parameters does
+     not override that.  Therefore there is seldom much point in explicitly
+     setting this storage parameter to <literal>true</>, only
+     to <literal>false</>.
      </para>
     </listitem>
    </varlistentry>
@@ -1039,8 +1049,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_vacuum_threshold</>, <literal>toast.autovacuum_vacuum_threshold</literal> (<type>integer</>)</term>
     <listitem>
      <para>
-     Minimum number of updated or deleted tuples before initiate a
-     <command>VACUUM</> operation on a particular table.
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-threshold">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1049,8 +1059,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_vacuum_scale_factor</>, <literal>toast.autovacuum_vacuum_scale_factor</literal> (<type>float4</>)</term>
     <listitem>
      <para>
-     Multiplier for <structfield>reltuples</> to add to
-     <literal>autovacuum_vacuum_threshold</>.
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-scale-factor">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1059,8 +1069,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_analyze_threshold</> (<type>integer</>)</term>
     <listitem>
      <para>
-     Minimum number of inserted, updated, or deleted tuples before initiate an
-     <command>ANALYZE</> operation on a particular table.
+      Per-table value for <xref linkend="guc-autovacuum-analyze-threshold">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1069,8 +1079,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_analyze_scale_factor</> (<type>float4</>)</term>
     <listitem>
      <para>
-     Multiplier for <structfield>reltuples</> to add to
-     <literal>autovacuum_analyze_threshold</>.
+      Per-table value for <xref linkend="guc-autovacuum-analyze-scale-factor">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1079,7 +1089,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_vacuum_cost_delay</>, <literal>toast.autovacuum_vacuum_cost_delay</literal> (<type>integer</>)</term>
     <listitem>
      <para>
-     Custom <xref linkend="guc-autovacuum-vacuum-cost-delay"> parameter.
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-cost-delay">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1088,7 +1099,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_vacuum_cost_limit</>, <literal>toast.autovacuum_vacuum_cost_limit</literal> (<type>integer</>)</term>
     <listitem>
      <para>
-     Custom <xref linkend="guc-autovacuum-vacuum-cost-limit"> parameter.
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-cost-limit">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1097,10 +1109,11 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_freeze_min_age</>, <literal>toast.autovacuum_freeze_min_age</literal> (<type>integer</>)</term>
     <listitem>
      <para>
-     Custom <xref linkend="guc-vacuum-freeze-min-age"> parameter. Note that
-     autovacuum will ignore attempts to set a per-table
-     <literal>autovacuum_freeze_min_age</> larger than half the system-wide
-     <xref linkend="guc-autovacuum-freeze-max-age"> setting.
+      Per-table value for <xref linkend="guc-vacuum-freeze-min-age">
+      parameter.  Note that autovacuum will ignore
+      per-table <literal>autovacuum_freeze_min_age</> parameters that are
+      larger than half the
+      system-wide <xref linkend="guc-autovacuum-freeze-max-age"> setting.
      </para>
     </listitem>
    </varlistentry>
@@ -1109,10 +1122,10 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_freeze_max_age</>, <literal>toast.autovacuum_freeze_max_age</literal> (<type>integer</>)</term>
     <listitem>
      <para>
-     Custom <xref linkend="guc-autovacuum-freeze-max-age"> parameter. Note that
-     autovacuum will ignore attempts to set a per-table
-     <literal>autovacuum_freeze_max_age</> larger than the system-wide setting
-     (it can only be set smaller).
+      Per-table value for <xref linkend="guc-autovacuum-freeze-max-age">
+      parameter.  Note that autovacuum will ignore
+      per-table <literal>autovacuum_freeze_max_age</> parameters that are
+      larger than the system-wide setting (it can only be set smaller).
      </para>
     </listitem>
    </varlistentry>
@@ -1121,7 +1134,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_freeze_table_age</literal>, <literal>toast.autovacuum_freeze_table_age</literal> (<type>integer</type>)</term>
     <listitem>
      <para>
-      Custom <xref linkend="guc-vacuum-freeze-table-age"> parameter.
+      Per-table value for <xref linkend="guc-vacuum-freeze-table-age">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1130,9 +1144,10 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_multixact_freeze_min_age</literal>, <literal>toast.autovacuum_multixact_freeze_min_age</literal> (<type>integer</type>)</term>
     <listitem>
      <para>
-      Custom <xref linkend="guc-vacuum-multixact-freeze-min-age"> parameter.
-      Note that autovacuum will ignore attempts to set a per-table
-      <literal>autovacuum_multixact_freeze_min_age</> larger than half the
+      Per-table value for <xref linkend="guc-vacuum-multixact-freeze-min-age">
+      parameter.  Note that autovacuum will ignore
+      per-table <literal>autovacuum_multixact_freeze_min_age</> parameters
+      that are larger than half the
       system-wide <xref linkend="guc-autovacuum-multixact-freeze-max-age">
       setting.
      </para>
@@ -1143,10 +1158,12 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_multixact_freeze_max_age</literal>, <literal>toast.autovacuum_multixact_freeze_max_age</literal> (<type>integer</type>)</term>
     <listitem>
      <para>
-      Custom <xref linkend="guc-autovacuum-multixact-freeze-max-age"> parameter. Note
-      that autovacuum will ignore attempts to set a per-table
-      <literal>autovacuum_multixact_freeze_max_age</> larger than the
-      system-wide setting (it can only be set smaller).
+      Per-table value
+      for <xref linkend="guc-autovacuum-multixact-freeze-max-age"> parameter.
+      Note that autovacuum will ignore
+      per-table <literal>autovacuum_multixact_freeze_max_age</> parameters
+      that are larger than the system-wide setting (it can only be set
+      smaller).
      </para>
     </listitem>
    </varlistentry>
@@ -1155,7 +1172,8 @@ Where column_reference_storage_directive is:
     <term><literal>autovacuum_multixact_freeze_table_age</literal>, <literal>toast.autovacuum_multixact_freeze_table_age</literal> (<type>integer</type>)</term>
     <listitem>
      <para>
-      Custom <xref linkend="guc-vacuum-multixact-freeze-table-age"> parameter.
+      Per-table value
+      for <xref linkend="guc-vacuum-multixact-freeze-table-age"> parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1164,7 +1182,8 @@ Where column_reference_storage_directive is:
     <term><literal>log_autovacuum_min_duration</literal>, <literal>toast.log_autovacuum_min_duration</literal> (<type>integer</type>)</term>
     <listitem>
      <para>
-      Custom <xref linkend="guc-log-autovacuum-min-duration"> parameter.
+      Per-table value for <xref linkend="guc-log-autovacuum-min-duration">
+      parameter.
      </para>
     </listitem>
    </varlistentry>
@@ -1173,7 +1192,7 @@ Where column_reference_storage_directive is:
     <term><literal>user_catalog_table</literal> (<type>boolean</type>)</term>
     <listitem>
      <para>
-      Declare a table as an additional catalog table, e.g. for the purpose of
+      Declare the table as an additional catalog table for purposes of
       logical replication. See
       <xref linkend="logicaldecoding-capabilities"> for details.
       This parameter cannot be set for TOAST tables.

@@ -2,7 +2,7 @@
  *
  * clusterdb
  *
- * Portions Copyright (c) 2002-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2002-2016, PostgreSQL Global Development Group
  *
  * src/bin/scripts/clusterdb.c
  *
@@ -11,7 +11,8 @@
 
 #include "postgres_fe.h"
 #include "common.h"
-#include "dumputils.h"
+#include "fe_utils/simple_list.h"
+#include "fe_utils/string_utils.h"
 
 
 static void cluster_one_database(const char *dbname, bool verbose, const char *table,
@@ -195,7 +196,7 @@ cluster_one_database(const char *dbname, bool verbose, const char *table,
 	PGconn	   *conn;
 
 	conn = connectDatabase(dbname, host, port, username, prompt_password,
-						   progname, echo, false);
+						   progname, echo, false, false);
 
 	initPQExpBuffer(&sql);
 

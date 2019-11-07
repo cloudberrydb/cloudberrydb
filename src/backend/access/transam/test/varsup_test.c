@@ -56,7 +56,7 @@ test_GetNewTransactionId_xid_stop_limit(void **state)
 
 	will_return(RecoveryInProgress, false);
 
-	expect_any(LWLockAcquire, l);
+	expect_any(LWLockAcquire, lock);
 	expect_any(LWLockAcquire, mode);
 	will_return(LWLockAcquire, true);
 
@@ -102,7 +102,7 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 
 	will_return(RecoveryInProgress, false);
 
-	expect_any(LWLockAcquire, l);
+	expect_any(LWLockAcquire, lock);
 	expect_any(LWLockAcquire, mode);
 	will_return(LWLockAcquire, true);
 
@@ -117,12 +117,14 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 	/*
 	 * verify rest of function logic, including assign MyProc->xid
 	 */
-	expect_any(LWLockAcquire, l);
+	expect_any(LWLockAcquire, lock);
 	expect_any(LWLockAcquire, mode);
 	will_return(LWLockAcquire, true);
 
 	expect_any(ExtendCLOG, newestXact);
 	will_be_called(ExtendCLOG);
+	expect_any(ExtendCommitTs, newestXact);
+	will_be_called(ExtendCommitTs);
 	expect_any(ExtendSUBTRANS, newestXact);
 	will_be_called(ExtendSUBTRANS);
 	expect_any(DistributedLog_Extend, newestXact);
@@ -146,7 +148,7 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 static void
 should_acquire_and_release_oid_gen_lock()
 {
-	expect_value(LWLockAcquire, l, OidGenLock);
+	expect_value(LWLockAcquire, lock, OidGenLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_be_called(LWLockAcquire);
 

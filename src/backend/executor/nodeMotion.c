@@ -940,7 +940,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 			{
 				/* sanity checks */
 				if (recvSlice->gangSize != 1)
-					elog(ERROR, "unexpected gang size: %d", recvSlice->gangSize);
+					elog(WARNING, "unexpected gang size: %d", recvSlice->gangSize);
 			}
 		}
 

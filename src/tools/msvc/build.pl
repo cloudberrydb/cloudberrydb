@@ -57,7 +57,8 @@ my $vcver = Mkvcbuild::mkvcbuild($config, $buildclient);
 if ($buildwhat and $vcver >= 10.00)
 {
 	system(
-"msbuild $buildwhat.vcxproj /verbosity:normal /p:Configuration=$bconf");
+		"msbuild $buildwhat.vcxproj /verbosity:normal /p:Configuration=$bconf"
+	);
 }
 elsif ($buildwhat)
 {

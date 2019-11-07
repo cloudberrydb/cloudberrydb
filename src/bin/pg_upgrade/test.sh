@@ -6,7 +6,7 @@
 # runs the regression tests (to put in some data), runs pg_dumpall,
 # runs pg_upgrade, runs pg_dumpall again, compares the dumps.
 #
-# Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 
 set -e
@@ -75,7 +75,6 @@ if [ "$1" = '--install' ]; then
 	libdir=$temp_install/$libdir
 
 	"$MAKE" -s -C ../.. install DESTDIR="$temp_install"
-	"$MAKE" -s -C . install DESTDIR="$temp_install"
 
 	# platform-specific magic to find the shared libraries; see pg_regress.c
 	LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH
@@ -171,7 +170,7 @@ createdb "$dbname3" || createdb_status=$?
 if "$MAKE" -C "$oldsrc" installcheck; then
 	pg_dumpall -f "$temp_root"/dump1.sql || pg_dumpall1_status=$?
 	if [ "$newsrc" != "$oldsrc" ]; then
-		oldpgversion=`psql -A -t -d regression -c "SHOW server_version_num"`
+		oldpgversion=`psql -X -A -t -d regression -c "SHOW server_version_num"`
 		fix_sql=""
 		case $oldpgversion in
 			804??)
@@ -184,7 +183,7 @@ if "$MAKE" -C "$oldsrc" installcheck; then
 				fix_sql="UPDATE pg_proc SET probin = replace(probin, '$oldsrc', '$newsrc') WHERE probin LIKE '$oldsrc%';"
 				;;
 		esac
-		psql -d regression -c "$fix_sql;" || psql_fix_sql_status=$?
+		psql -X -d regression -c "$fix_sql;" || psql_fix_sql_status=$?
 
 		mv "$temp_root"/dump1.sql "$temp_root"/dump1.sql.orig
 		sed "s;$oldsrc;$newsrc;g" "$temp_root"/dump1.sql.orig >"$temp_root"/dump1.sql

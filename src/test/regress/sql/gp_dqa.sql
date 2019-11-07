@@ -22,6 +22,9 @@ explain (costs off) select count(distinct d) from dqa_t1;
 select count(distinct d) from dqa_t1 group by i;
 explain (costs off) select count(distinct d) from dqa_t1 group by i;
 
+select count(distinct d), sum(distinct d) from dqa_t1 group by i;
+explain (costs off) select count(distinct d), sum(distinct d) from dqa_t1 group by i;
+
 select count(distinct d), count(distinct dt) from dqa_t1;
 explain (costs off) select count(distinct d), count(distinct dt) from dqa_t1;
 select count(distinct d), count(distinct c), count(distinct dt) from dqa_t1;
@@ -44,6 +47,9 @@ select count(distinct c) from dqa_t1 group by dt;
 explain (costs off) select count(distinct c) from dqa_t1 group by dt;
 select count(distinct c) from dqa_t1 group by d;
 explain (costs off) select count(distinct c) from dqa_t1 group by d;
+
+select count(distinct i), sum(distinct i) from dqa_t1 group by c;
+explain (costs off) select count(distinct i), sum(distinct i) from dqa_t1 group by c;
 
 select count(distinct c), count(distinct dt) from dqa_t1;
 explain (costs off) select count(distinct c), count(distinct dt) from dqa_t1;
@@ -212,6 +218,9 @@ select distinct A.a, sum(distinct A.b), count(distinct B.c) from gp_dqa_t1 A rig
 -- a few of them as group aggregates
 set enable_hashagg=off;
 set enable_groupagg=on;
+
+select count(distinct d) from dqa_t1 group by i;
+explain (costs off) select count(distinct d) from dqa_t1 group by i;
 
 select count(distinct d), count(distinct c), count(distinct dt) from dqa_t1;
 select count(distinct c), count(distinct dt), i from dqa_t1 group by i;

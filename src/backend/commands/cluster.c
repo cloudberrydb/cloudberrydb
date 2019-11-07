@@ -8,7 +8,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
@@ -19,6 +19,7 @@
  */
 #include "postgres.h"
 
+#include "access/amapi.h"
 #include "access/multixact.h"
 #include "access/relscan.h"
 #include "access/rewriteheap.h"
@@ -26,6 +27,7 @@
 #include "access/tuptoaster.h"
 #include "access/xact.h"
 #include "access/xlog.h"
+#include "catalog/pg_am.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
@@ -286,7 +288,7 @@ cluster(ClusterStmt *stmt, bool isTopLevel)
  * swapping the relfilenodes of the new table and the old table, so
  * the OID of the original table is preserved.  Thus we do not lose
  * GRANT, inheritance nor references to this table (this was a bug
- * in releases thru 7.3).
+ * in releases through 7.3).
  *
  * Indexes are rebuilt too, via REINDEX. Since we are effectively bulk-loading
  * the new table, it's better to create the indexes afterwards than to fill
@@ -493,7 +495,7 @@ check_index_is_clusterable(Relation OldHeap, Oid indexOid, bool recheck, LOCKMOD
 						RelationGetRelationName(OldHeap))));
 
 	/* Index AM must allow clustering */
-	if (!OldIndex->rd_am->amclusterable)
+	if (!OldIndex->rd_amroutine->amclusterable)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot cluster on index \"%s\" because access method does not support clustering",

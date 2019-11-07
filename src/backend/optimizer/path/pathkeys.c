@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -38,9 +38,6 @@
 #include "cdb/cdbhash.h"
 #include "cdb/cdbpullup.h"		/* cdbpullup_expr(), cdbpullup_make_var() */
 
-static PathKey *make_canonical_pathkey(PlannerInfo *root,
-					   EquivalenceClass *eclass, Oid opfamily,
-					   int strategy, bool nulls_first);
 static bool pathkey_is_redundant(PathKey *new_pathkey, List *pathkeys);
 static bool right_merge_direction(PlannerInfo *root, PathKey *pathkey);
 
@@ -188,7 +185,7 @@ gen_implied_qual(PlannerInfo *root,
 	if (bms_membership(new_qualscope) == BMS_MULTIPLE)
 	{
 		List	   *vars = pull_var_clause(new_clause,
-										   PVC_RECURSE_AGGREGATES,
+										   PVC_RECURSE_AGGREGATES |
 										   PVC_INCLUDE_PLACEHOLDERS);
 
 		add_vars_to_targetlist(root, vars, new_qualscope, false);
@@ -377,7 +374,7 @@ generate_implied_quals(PlannerInfo *root)
  * equivclass.c will complain if a merge occurs after root->canon_pathkeys
  * has become nonempty.)
  */
-static PathKey *
+PathKey *
 make_canonical_pathkey(PlannerInfo *root,
 					   EquivalenceClass *eclass, Oid opfamily,
 					   int strategy, bool nulls_first)
@@ -829,42 +826,6 @@ build_index_pathkeys(PlannerInfo *root,
 }
 
 /*
- * Find or make a Var node for the specified attribute of the rel.
- *
- * We first look for the var in the rel's target list, because that's
- * easy and fast.  But the var might not be there (this should normally
- * only happen for vars that are used in WHERE restriction clauses,
- * but not in join clauses or in the SELECT target list).  In that case,
- * gin up a Var node the hard way.
- */
-Var *
-find_indexkey_var(PlannerInfo *root, RelOptInfo *rel, AttrNumber varattno)
-{
-	ListCell   *temp;
-	Index		relid;
-	Oid			reloid,
-				vartypeid,
-				varcollid;
-	int32		type_mod;
-
-	foreach(temp, rel->reltargetlist)
-	{
-		Var		   *var = (Var *) lfirst(temp);
-
-		if (IsA(var, Var) &&
-			var->varattno == varattno)
-			return var;
-	}
-
-	relid = rel->relid;
-	reloid = getrelid(relid, root->parse->rtable);
-	get_atttypetypmodcoll(reloid, varattno, &vartypeid, &type_mod, &varcollid);
-
-	return makeVar(relid, varattno, vartypeid, type_mod, varcollid, 0);
-}
-
-
-/*
  * build_expression_pathkey
  *	  Build a pathkeys list that describes an ordering by a single expression
  *	  using the given sort operator.
@@ -923,6 +884,7 @@ build_expression_pathkey(PlannerInfo *root,
  *
  * 'rel': outer query's RelOptInfo for the subquery relation.
  * 'subquery_pathkeys': the subquery's output pathkeys, in its terms.
+ * 'subquery_tlist': the subquery's output targetlist, in its terms.
  *
  * It is not necessary for caller to do truncate_useless_pathkeys(),
  * because we select keys in a way that takes usefulness of the keys into
@@ -930,12 +892,12 @@ build_expression_pathkey(PlannerInfo *root,
  */
 List *
 convert_subquery_pathkeys(PlannerInfo *root, RelOptInfo *rel,
-						  List *subquery_pathkeys)
+						  List *subquery_pathkeys,
+						  List *subquery_tlist)
 {
 	List	   *retval = NIL;
 	int			retvallen = 0;
 	int			outer_query_keys = list_length(root->query_pathkeys);
-	List	   *sub_tlist = rel->subplan->targetlist;
 	ListCell   *i;
 
 	foreach(i, subquery_pathkeys)
@@ -955,7 +917,7 @@ convert_subquery_pathkeys(PlannerInfo *root, RelOptInfo *rel,
 
 			if (sub_eclass->ec_sortref == 0)	/* can't happen */
 				elog(ERROR, "volatile EquivalenceClass has no sortref");
-			tle = get_sortgroupref_tle(sub_eclass->ec_sortref, sub_tlist);
+			tle = get_sortgroupref_tle(sub_eclass->ec_sortref, subquery_tlist);
 			Assert(tle);
 			/* resjunk items aren't visible to outer query */
 			if (!tle->resjunk)
@@ -1035,7 +997,7 @@ convert_subquery_pathkeys(PlannerInfo *root, RelOptInfo *rel,
 				if (sub_member->em_is_child)
 					continue;	/* ignore children here */
 
-				foreach(k, sub_tlist)
+				foreach(k, subquery_tlist)
 				{
 					TargetEntry *tle = (TargetEntry *) lfirst(k);
 					Expr	   *tle_expr;
@@ -1204,7 +1166,8 @@ build_join_pathkeys(PlannerInfo *root,
 DistributionKey *
 cdb_make_distkey_for_expr(PlannerInfo *root,
 						  Node *expr,
-						  Oid opfamily /* hash opfamily */)
+						  Oid opfamily /* hash opfamily */,
+						  int sortref)
 {
 	Oid			typeoid;
 	Oid			eqopoid;
@@ -1255,7 +1218,7 @@ cdb_make_distkey_for_expr(PlannerInfo *root,
 									  mergeopfamilies,
 									  lefttype,
 									  exprCollation(expr),
-									  0,
+									  sortref,
 									  NULL,
 									  true);
 
@@ -1440,11 +1403,13 @@ void
 make_distribution_exprs_for_groupclause(PlannerInfo *root, List *groupclause, List *tlist,
 										List **partition_dist_pathkeys,
 										List **partition_dist_exprs,
-										List **partition_dist_opfamilies)
+										List **partition_dist_opfamilies,
+										List **partition_dist_sortrefs)
 {
 	List	   *pathkeys = NIL;
 	List	   *exprs = NIL;
 	List	   *opfamilies = NIL;
+	List	   *sortrefs = NIL;
 	ListCell   *l;
 
 	foreach(l, groupclause)
@@ -1472,11 +1437,13 @@ make_distribution_exprs_for_groupclause(PlannerInfo *root, List *groupclause, Li
 		pathkeys = lappend(pathkeys, pathkey);
 		exprs = lappend(exprs, expr);
 		opfamilies = lappend_oid(opfamilies, opfamily);
+		sortrefs = lappend_int(sortrefs, sortcl->tleSortGroupRef);
 	}
 
 	*partition_dist_pathkeys = pathkeys;
 	*partition_dist_exprs = exprs;
 	*partition_dist_opfamilies = opfamilies;
+	*partition_dist_sortrefs = sortrefs;
 }
 
 /****************************************************************************

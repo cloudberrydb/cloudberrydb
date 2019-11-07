@@ -3,13 +3,14 @@
  *
  *	Postgres-version-specific routines
  *
- *	Copyright (c) 2010-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2016, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/version.c
  */
 
 #include "postgres_fe.h"
 
 #include "pg_upgrade.h"
+#include "fe_utils/string_utils.h"
 
 
 

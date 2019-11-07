@@ -16,6 +16,7 @@
  */
 #include "postgres.h"
 
+#include "catalog/pg_am.h"
 #include "catalog/pg_operator.h"
 #include "catalog/gp_policy.h"
 #include "catalog/namespace.h"
@@ -40,6 +41,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
+#include "access/stratnum.h"	/* BTLessStrategyNumber */
 
 typedef struct
 {

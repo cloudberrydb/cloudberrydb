@@ -48,7 +48,7 @@
  * in the file to be read or written while holding only shared lock.
  *
  *
- * Copyright (c) 2008-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2008-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/pg_stat_statements/pg_stat_statements.c
@@ -289,7 +289,7 @@ static void pgss_post_parse_analyze(ParseState *pstate, Query *query);
 static void pgss_ExecutorStart(QueryDesc *queryDesc, int eflags);
 static void pgss_ExecutorRun(QueryDesc *queryDesc,
 				 ScanDirection direction,
-				 long count);
+				 uint64 count);
 static void pgss_ExecutorFinish(QueryDesc *queryDesc);
 static void pgss_ExecutorEnd(QueryDesc *queryDesc);
 static void pgss_ProcessUtility(Node *parsetree, const char *queryString,
@@ -404,7 +404,7 @@ _PG_init(void)
 	 * resources in pgss_shmem_startup().
 	 */
 	RequestAddinShmemSpace(pgss_memsize());
-	RequestAddinLWLocks(1);
+	RequestNamedLWLockTranche("pg_stat_statements", 1);
 
 	/*
 	 * Install hooks.
@@ -480,7 +480,7 @@ pgss_shmem_startup(void)
 	if (!found)
 	{
 		/* First time through ... */
-		pgss->lock = LWLockAssign();
+		pgss->lock = &(GetNamedLWLockTranche("pg_stat_statements"))->lock;
 		pgss->cur_median_usage = ASSUMED_MEDIAN_INIT;
 		pgss->mean_query_len = ASSUMED_LENGTH_INIT;
 		SpinLockInit(&pgss->mutex);
@@ -866,7 +866,7 @@ pgss_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, long count)
+pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count)
 {
 	nested_level++;
 	PG_TRY();
@@ -1001,13 +1001,7 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 		/* parse command tag to retrieve the number of affected rows. */
 		if (completionTag &&
 			strncmp(completionTag, "COPY ", 5) == 0)
-		{
-#ifdef HAVE_STRTOULL
-			rows = strtoull(completionTag + 5, NULL, 10);
-#else
-			rows = strtoul(completionTag + 5, NULL, 10);
-#endif
-		}
+			rows = pg_strtouint64(completionTag + 5, NULL, 10);
 		else
 			rows = 0;
 
@@ -2350,6 +2344,7 @@ JumbleRangeTable(pgssJumbleState *jstate, List *rtable)
 		{
 			case RTE_RELATION:
 				APP_JUMB(rte->relid);
+				JumbleExpr(jstate, (Node *) rte->tablesample);
 				break;
 			case RTE_SUBQUERY:
 				JumbleQuery(jstate, rte->subquery);
@@ -2818,6 +2813,15 @@ JumbleExpr(pgssJumbleState *jstate, Node *node)
 				RangeTblFunction *rtfunc = (RangeTblFunction *) node;
 
 				JumbleExpr(jstate, rtfunc->funcexpr);
+			}
+			break;
+		case T_TableSampleClause:
+			{
+				TableSampleClause *tsc = (TableSampleClause *) node;
+
+				APP_JUMB(tsc->tsmhandler);
+				JumbleExpr(jstate, (Node *) tsc->args);
+				JumbleExpr(jstate, (Node *) tsc->repeatable);
 			}
 			break;
 		default:

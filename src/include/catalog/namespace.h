@@ -4,7 +4,7 @@
  *	  prototypes for functions in backend/catalog/namespace.c
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/namespace.h
@@ -119,8 +119,7 @@ extern bool TempNamespaceOidIsValid(void);  /* GPDB only:  used by cdbgang.c */
 extern void InitTempTableNamespace(void);
 
 extern Oid	LookupCreationNamespace(const char *nspname);
-extern void CheckSetNamespace(Oid oldNspOid, Oid nspOid, Oid classid,
-				  Oid objid);
+extern void CheckSetNamespace(Oid oldNspOid, Oid nspOid);
 extern Oid	QualifiedNameGetCreationNamespace(List *names, char **objname_p);
 extern RangeVar *makeRangeVarFromNameList(List *names);
 extern char *NameListToString(List *names);
@@ -133,6 +132,10 @@ extern bool isAnyTempNamespace(Oid namespaceId);
 extern bool isOtherTempNamespace(Oid namespaceId);
 extern int	GetTempNamespaceBackendId(Oid namespaceId);
 extern Oid	GetTempToastNamespace(void);
+extern void GetTempNamespaceState(Oid *tempNamespaceId,
+					  Oid *tempToastNamespaceId);
+extern void SetTempNamespaceState(Oid tempNamespaceId,
+					  Oid tempToastNamespaceId);
 extern void ResetTempTableNamespace(void);
 
 extern OverrideSearchPath *GetOverrideSearchPath(MemoryContext context);

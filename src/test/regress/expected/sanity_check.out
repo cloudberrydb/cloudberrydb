@@ -117,6 +117,7 @@ pg_foreign_server|t
 pg_foreign_table|t
 pg_index|t
 pg_inherits|t
+pg_init_privs|t
 pg_language|t
 pg_largeobject|t
 pg_largeobject_metadata|t
@@ -135,7 +136,6 @@ pg_shdepend|t
 pg_shdescription|t
 pg_shseclabel|t
 pg_statistic|t
-pg_tablesample_method|t
 pg_tablespace|t
 pg_transform|t
 pg_trigger|t

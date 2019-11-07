@@ -40,20 +40,6 @@ static bool isGranted(LockInstanceData *lock);
 static bool lockEqual(LockInstanceData *lock1, LockInstanceData *lock2);
 static bool lockIsHoldTillEndXact(LockInstanceData *lock);
 
-static const char *const LockTagTypeNames[] = {
-	"relation",
-	"extend",
-	"page",
-	"tuple",
-	"transactionid",
-	"virtualxid",
-	"append-only segment file",
-	"object",
-	"resource queue",
-	"userlock",
-	"advisory"
-};
-
 static bool
 isGranted(LockInstanceData *lock)
 {

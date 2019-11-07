@@ -408,7 +408,7 @@ create_partition_selector_plan(PlannerInfo *root, PartitionSelectorPath *best_pa
 	int			attno;
 	Expr	  **partKeyExprs;
 
-	subplan = create_plan_recurse(root, best_path->subpath);
+	subplan = create_plan_recurse(root, best_path->subpath, 0);
 
 	max_attr = find_base_rel(root, best_path->dsinfo->rtindex)->max_attr;
 	partKeyExprs = palloc0((max_attr + 1) * sizeof(Expr *));

@@ -1658,9 +1658,7 @@ create trigger tnoticetrigger after insert on tt for each row
 execute procedure noticetrigger();
 select insert_tt2('foolme','barme') limit 1;
 NOTICE:  noticetrigger 11 foolme
-CONTEXT:  SQL function "insert_tt2" statement 1
 NOTICE:  noticetrigger 12 barme
-CONTEXT:  SQL function "insert_tt2" statement 1
  insert_tt2 
 ------------
          11
@@ -1689,9 +1687,7 @@ create rule insert_tt_rule as on insert to tt do also
   insert into tt_log values(new.*);
 select insert_tt2('foollog','barlog') limit 1;
 NOTICE:  noticetrigger 13 foollog
-CONTEXT:  SQL function "insert_tt2" statement 1
 NOTICE:  noticetrigger 14 barlog
-CONTEXT:  SQL function "insert_tt2" statement 1
  insert_tt2 
 ------------
          13
@@ -2054,39 +2050,47 @@ create function extractq2_append(t int8_tbl) returns table(ret1 int8) as $$
   select extractq2(t) union all select extractq2(t)
 $$ language sql immutable;
 explain (verbose, costs off)
-select x from int8_tbl, extractq2_append(int8_tbl) f(x);
-                    QUERY PLAN                     
----------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   Output: ((int8_tbl.*).q2)
-   ->  Nested Loop
-         Output: ((int8_tbl.*).q2)
-         ->  Seq Scan on public.int8_tbl
-               Output: int8_tbl.*
-         ->  Materialize
-               Output: ((int8_tbl.*).q2)
-               ->  Append
-                     ->  Result
-                           Output: (int8_tbl.*).q2
-                     ->  Result
-                           Output: (int8_tbl.*).q2
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Nested Loop
+   Output: (int8_tbl.q2)
+   ->  Limit
+         Output: int8_tbl.q1, int8_tbl.q2
+         ->  Gather Motion 3:1  (slice1; segments: 3)
+               Output: int8_tbl.q1, int8_tbl.q2
+               Merge Key: int8_tbl.q1
+               ->  Limit
+                     Output: int8_tbl.q1, int8_tbl.q2
+                     ->  Sort
+                           Output: int8_tbl.q1, int8_tbl.q2
+                           Sort Key: int8_tbl.q1
+                           ->  Seq Scan on public.int8_tbl
+                                 Output: int8_tbl.q1, int8_tbl.q2
+   ->  Materialize
+         Output: (int8_tbl.q2)
+         ->  Append
+               ->  Result
+                     Output: int8_tbl.q2
+               ->  Result
+                     Output: int8_tbl.q2
  Optimizer: Postgres query optimizer
  Settings: optimizer=off
-(15 rows)
+(23 rows)
 
-select x from int8_tbl, extractq2_append(int8_tbl) f(x);
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
          x         
 -------------------
-               123
-               123
   4567890123456789
   4567890123456789
- -4567890123456789
- -4567890123456789
                456
                456
   4567890123456789
   4567890123456789
+ -4567890123456789
+ -4567890123456789
+               123
+               123
 (10 rows)
 
 create function extractq2_wapper(t int8_tbl) returns table(ret1 int8) as $$      
@@ -2115,3 +2119,33 @@ select x from int8_tbl, extractq2_wapper(int8_tbl) f(x);
   4567890123456789
 (5 rows)
 
+-- check handling of nulls in SRF results (bug #7808)
+create type foo2 as (a integer, b text);
+select *, row_to_json(u) from unnest(array[(1,'foo')::foo2, null::foo2]) u;
+ a |  b  |     row_to_json     
+---+-----+---------------------
+ 1 | foo | {"a":1,"b":"foo"}
+   |     | {"a":null,"b":null}
+(2 rows)
+
+select *, row_to_json(u) from unnest(array[null::foo2, null::foo2]) u;
+ a | b |     row_to_json     
+---+---+---------------------
+   |   | {"a":null,"b":null}
+   |   | {"a":null,"b":null}
+(2 rows)
+
+select *, row_to_json(u) from unnest(array[null::foo2, (1,'foo')::foo2, null::foo2]) u;
+ a |  b  |     row_to_json     
+---+-----+---------------------
+   |     | {"a":null,"b":null}
+ 1 | foo | {"a":1,"b":"foo"}
+   |     | {"a":null,"b":null}
+(3 rows)
+
+select *, row_to_json(u) from unnest(array[]::foo2[]) u;
+ a | b | row_to_json 
+---+---+-------------
+(0 rows)
+
+drop type foo2;

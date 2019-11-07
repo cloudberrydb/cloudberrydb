@@ -3,7 +3,7 @@
  * spi.c
  *				Server Programming Interface
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -48,12 +48,7 @@
 #include "cdb/memquota.h"
 #include "parser/analyze.h"
 
-/*
- * These global variables are part of the API for various SPI functions
- * (a horrible API choice, but it's too late now).  To reduce the risk of
- * interference between different SPI callers, we save and restore them
- * when entering/exiting a SPI nesting level.
- */
+
 uint64		SPI_processed = 0;
 Oid			SPI_lastoid = InvalidOid;
 SPITupleTable *SPI_tuptable = NULL;
@@ -74,14 +69,14 @@ static void _SPI_prepare_oneshot_plan(const char *src, SPIPlanPtr plan);
 
 static int _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 				  Snapshot snapshot, Snapshot crosscheck_snapshot,
-				  bool read_only, bool fire_triggers, int64 tcount);
+				  bool read_only, bool fire_triggers, uint64 tcount);
 
 static ParamListInfo _SPI_convert_params(int nargs, Oid *argtypes,
 					Datum *Values, const char *Nulls);
 
 static void _SPI_assign_query_mem(QueryDesc *queryDesc);
 
-static int	_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, int64 tcount);
+static int	_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, uint64 tcount);
 
 static void _SPI_error_callback(void *arg);
 
@@ -1856,7 +1851,7 @@ spi_dest_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
  *		store tuple retrieved by Executor into SPITupleTable
  *		of current SPI procedure
  */
-void
+bool
 spi_printtup(TupleTableSlot *slot, DestReceiver *self)
 {
 	SPITupleTable *tuptable;
@@ -1882,11 +1877,7 @@ spi_printtup(TupleTableSlot *slot, DestReceiver *self)
 		/* Double the size of the pointer array */
 		tuptable->free = tuptable->alloced;
 		tuptable->alloced += tuptable->free;
-		/* 
-		 * 74a379b984d4df91acec2436a16c51caee3526af uses repalloc_huge(),
-		 * but this is not yet backported from PG
-		 */
-		tuptable->vals = (HeapTuple *) repalloc(tuptable->vals,
+		tuptable->vals = (HeapTuple *) repalloc_huge(tuptable->vals,
 									  tuptable->alloced * sizeof(HeapTuple));
 	}
 
@@ -1902,6 +1893,8 @@ spi_printtup(TupleTableSlot *slot, DestReceiver *self)
 	(tuptable->free)--;
 
 	MemoryContextSwitchTo(oldcxt);
+
+	return true;
 }
 
 /*
@@ -2100,7 +2093,7 @@ _SPI_prepare_oneshot_plan(const char *src, SPIPlanPtr plan)
 static int
 _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 				  Snapshot snapshot, Snapshot crosscheck_snapshot,
-				  bool read_only, bool fire_triggers, int64 tcount)
+				  bool read_only, bool fire_triggers, uint64 tcount)
 {
 	int			my_res = 0;
 	uint64		my_processed = 0;
@@ -2371,11 +2364,15 @@ _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 
 					if (strncmp(completionTag, "SELECT ", 7) == 0)
 						_SPI_current->processed =
-							strtoul(completionTag + 7, NULL, 10);
+							pg_strtouint64(completionTag + 7, NULL, 10);
 					else
 					{
-						/* Must be a CREATE ... WITH NO DATA */
-						Assert(ctastmt->into->skipData);
+						/*
+						 * Must be an IF NOT EXISTS that did nothing, or a
+						 * CREATE ... WITH NO DATA.
+						 */
+						Assert(ctastmt->if_not_exists ||
+							   ctastmt->into->skipData);
 						_SPI_current->processed = 0;
 					}
 
@@ -2389,8 +2386,8 @@ _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 				else if (IsA(stmt, CopyStmt))
 				{
 					Assert(strncmp(completionTag, "COPY ", 5) == 0);
-					_SPI_current->processed = strtoul(completionTag + 5,
-													  NULL, 10);
+					_SPI_current->processed = pg_strtouint64(completionTag + 5,
+															 NULL, 10);
 				}
 			}
 
@@ -2489,6 +2486,7 @@ _SPI_convert_params(int nargs, Oid *argtypes,
 		paramLI->parserSetup = NULL;
 		paramLI->parserSetupArg = NULL;
 		paramLI->numParams = nargs;
+		paramLI->paramMask = NULL;
 
 		for (i = 0; i < nargs; i++)
 		{
@@ -2538,7 +2536,7 @@ _SPI_assign_query_mem(QueryDesc * queryDesc)
 }
 
 static int
-_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, int64 tcount)
+_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, uint64 tcount)
 {
 	int			operation = queryDesc->operation;
 	int			eflags;

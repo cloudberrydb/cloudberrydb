@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_func.h
@@ -32,11 +32,6 @@ typedef enum
 
 extern Node *ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 				  FuncCall *fn, int location);
-
-extern TableSampleClause *ParseTableSample(ParseState *pstate,
-				 char *samplemethod,
-				 Node *repeatable, List *args,
-				 int location);
 
 extern FuncDetailCode func_get_detail(List *funcname,
 				List *fargs, List *fargnames,

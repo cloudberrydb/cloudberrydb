@@ -613,7 +613,7 @@ explain (costs off)
                One-Time Filter: false
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Result
-               Filter: (t = 2)
+               Filter: ((2) = 2)
                ->  Result
                      ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
@@ -630,7 +630,7 @@ WHERE x < 4;
 --------------------------------------
  Append
    ->  Result
-         Filter: (x < 4)
+         Filter: ((2) < 4)
          ->  Result
                ->  Result
    ->  Result
@@ -661,9 +661,9 @@ ORDER BY x;
  Sort
    Sort Key: (generate_series(1, 10))
    ->  GroupAggregate
-         Group Key: t, (generate_series(1, 10))
+         Group Key: (1), (generate_series(1, 10))
          ->  Sort
-               Sort Key: t, (generate_series(1, 10))
+               Sort Key: (1), (generate_series(1, 10))
                ->  Append
                      ->  Result
                            Filter: ((generate_series(1, 10)) < 4)
@@ -698,15 +698,13 @@ WHERE x > 3;
 ---------------------------------------------------------------------------------------
  Subquery Scan on ss
    Filter: (ss.x > 3)
-   ->  Unique
-         Group Key: "outer".t, ((($0 * '3'::double precision))::integer)
-         ->  Sort
-               Sort Key (Distinct): "outer".t, ((($0 * '3'::double precision))::integer)
-               ->  Append
-                     ->  Result
-                           InitPlan 1 (returns $0)
-                             ->  Result
-                     ->  Result
+   ->  HashAggregate
+         Group Key: (1), ((($0 * '3'::double precision))::integer)
+         ->  Append
+               ->  Result
+                     InitPlan 1 (returns $0)
+                       ->  Result
+               ->  Result
  Optimizer: Postgres query optimizer
 (12 rows)
 

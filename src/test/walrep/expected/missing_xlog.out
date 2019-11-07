@@ -124,8 +124,6 @@ $$ language plpgsql;
 -- checkpoint to ensure clean xlog replication before bring down mirror
 select checkpoint_and_wait_for_replication_replay(500);
 NOTICE:  table "dummy" does not exist, skipping
-CONTEXT:  SQL statement "drop table if exists dummy"
-PL/pgSQL function checkpoint_and_wait_for_replication_replay(integer) line 27 at SQL statement
  checkpoint_and_wait_for_replication_replay 
 --------------------------------------------
  t

@@ -31,6 +31,7 @@
 #include "catalog/gp_policy.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_type.h"
 #include "catalog/namespace.h"
 #include "catalog/catalog.h"

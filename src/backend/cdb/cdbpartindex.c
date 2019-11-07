@@ -19,6 +19,7 @@
 #include "access/hash.h"
 #include "catalog/index.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_partition_rule.h"
 #include "cdb/cdbpartition.h"

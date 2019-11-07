@@ -4,7 +4,7 @@
  *	  private declarations for GiST -- declarations related to the
  *	  internal implementation of GiST, not the public API
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/gist_private.h
@@ -14,6 +14,8 @@
 #ifndef GIST_PRIVATE_H
 #define GIST_PRIVATE_H
 
+#include "access/amapi.h"
+#include "access/genam.h"
 #include "access/gist.h"
 #include "access/itup.h"
 #include "access/xlogreader.h"
@@ -124,6 +126,8 @@ typedef struct GISTSearchHeapItem
 	bool		recheckDistances;		/* T if distances must be rechecked */
 	IndexTuple	ftup;			/* data fetched back from the index, used in
 								 * index-only scans */
+	OffsetNumber offnum;		/* track offset in page to mark tuple as
+								 * LP_DEAD */
 } GISTSearchHeapItem;
 
 /* Unvisited item, either index page or heap tuple */
@@ -160,6 +164,12 @@ typedef struct GISTScanOpaqueData
 
 	/* pre-allocated workspace arrays */
 	double	   *distances;		/* output area for gistindex_keytest */
+
+	/* info about killed items if any (killedItems is NULL if never used) */
+	OffsetNumber *killedItems;	/* offset numbers of killed items */
+	int			numKilled;		/* number of currently stored items */
+	BlockNumber curBlkno;		/* current number of block */
+	GistNSN		curPageLSN;		/* pos in the WAL stream when page was read */
 
 	/* In a non-ordered search, returnable heap items are stored here: */
 	GISTSearchHeapItem pageData[BLCKSZ / sizeof(IndexTupleData)];
@@ -417,9 +427,11 @@ typedef struct GiSTOptions
 } GiSTOptions;
 
 /* gist.c */
-extern Datum gistbuildempty(PG_FUNCTION_ARGS);
-extern Datum gistinsert(PG_FUNCTION_ARGS);
-extern Datum gistcanreturn(PG_FUNCTION_ARGS);
+extern Datum gisthandler(PG_FUNCTION_ARGS);
+extern void gistbuildempty(Relation index);
+extern bool gistinsert(Relation r, Datum *values, bool *isnull,
+		   ItemPointer ht_ctid, Relation heapRel,
+		   IndexUniqueCheck checkUnique);
 extern MemoryContext createTempGistContext(void);
 extern GISTSTATE *initGISTstate(Relation index);
 extern void freeGISTstate(GISTSTATE *giststate);
@@ -454,20 +466,23 @@ extern void gist_xlog_startup(void);
 extern void gist_xlog_cleanup(void);
 extern void gist_mask(char *pagedata, BlockNumber blkno);
 
-extern XLogRecPtr gistXLogUpdate(RelFileNode node, Buffer buffer,
+extern XLogRecPtr gistXLogUpdate(Buffer buffer,
 			   OffsetNumber *todelete, int ntodelete,
 			   IndexTuple *itup, int ntup,
 			   Buffer leftchild);
 
-extern XLogRecPtr gistXLogSplit(RelFileNode node,
-			  BlockNumber blkno, bool page_is_leaf,
+extern XLogRecPtr gistXLogSplit(bool page_is_leaf,
 			  SplitedPageLayout *dist,
 			  BlockNumber origrlink, GistNSN oldnsn,
 			  Buffer leftchild, bool markfollowright);
 
 /* gistget.c */
-extern Datum gistgettuple(PG_FUNCTION_ARGS);
-extern Datum gistgetbitmap(PG_FUNCTION_ARGS);
+extern bool gistgettuple(IndexScanDesc scan, ScanDirection dir);
+extern Node *gistgetbitmap(IndexScanDesc scan, Node *tbm);
+extern bool gistcanreturn(Relation index, int attno);
+
+/* gistvalidate.c */
+extern bool gistvalidate(Oid opclassoid);
 
 /* gistutil.c */
 
@@ -477,7 +492,10 @@ extern Datum gistgetbitmap(PG_FUNCTION_ARGS);
 #define GIST_MIN_FILLFACTOR			10
 #define GIST_DEFAULT_FILLFACTOR		90
 
-extern Datum gistoptions(PG_FUNCTION_ARGS);
+extern bytea *gistoptions(Datum reloptions, bool validate);
+extern bool gistproperty(Oid index_oid, int attno,
+			 IndexAMProperty prop, const char *propname,
+			 bool *res, bool *isnull);
 extern bool gistfitpage(IndexTuple *itvec, int len);
 extern bool gistnospace(Page page, IndexTuple *itvec, int len, OffsetNumber todelete, Size freespace);
 extern void gistcheckpage(Relation rel, Buffer buf);
@@ -526,8 +544,12 @@ extern void gistMakeUnionKey(GISTSTATE *giststate, int attno,
 extern XLogRecPtr gistGetFakeLSN(Relation rel);
 
 /* gistvacuum.c */
-extern Datum gistbulkdelete(PG_FUNCTION_ARGS);
-extern Datum gistvacuumcleanup(PG_FUNCTION_ARGS);
+extern IndexBulkDeleteResult *gistbulkdelete(IndexVacuumInfo *info,
+			   IndexBulkDeleteResult *stats,
+			   IndexBulkDeleteCallback callback,
+			   void *callback_state);
+extern IndexBulkDeleteResult *gistvacuumcleanup(IndexVacuumInfo *info,
+				  IndexBulkDeleteResult *stats);
 
 /* gistsplit.c */
 extern void gistSplitByKey(Relation r, Page page, IndexTuple *itup,
@@ -536,7 +558,8 @@ extern void gistSplitByKey(Relation r, Page page, IndexTuple *itup,
 			   int attno);
 
 /* gistbuild.c */
-extern Datum gistbuild(PG_FUNCTION_ARGS);
+extern IndexBuildResult *gistbuild(Relation heap, Relation index,
+		  struct IndexInfo *indexInfo);
 extern void gistValidateBufferingOption(char *value);
 
 /* gistbuildbuffers.c */

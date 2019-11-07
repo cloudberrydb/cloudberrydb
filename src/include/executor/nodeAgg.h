@@ -4,7 +4,7 @@
  *	  prototypes for nodeAgg.c
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/nodeAgg.h
@@ -32,17 +32,28 @@ extern Datum aggregate_dummy(PG_FUNCTION_ARGS);
 /* MPP needs to see these in execHHashAgg.c */
 
 /*
- * AggStatePerAggData - per-aggregate working state for the Agg scan
+ * AggStatePerTransData - per aggregate state value information
+ *
+ * Working state for updating the aggregate's state value, by calling the
+ * transition function with an input row. This struct does not store the
+ * information needed to produce the final aggregate result from the transition
+ * state, that's stored in AggStatePerAggData instead. This separation allows
+ * multiple aggregate results to be produced from a single state value.
  */
-typedef struct AggStatePerAggData
+typedef struct AggStatePerTransData
 {
 	/*
 	 * These values are set up during ExecInitAgg() and do not change
 	 * thereafter:
 	 */
 
-	/* Links to Aggref expr and state nodes this working state is for */
-	AggrefExprState *aggrefstate;
+	/*
+	 * Link to an Aggref expr this state value is for.
+	 *
+	 * There can be multiple Aggref's sharing the same state value, as long as
+	 * the inputs and transition function are identical. This points to the
+	 * first one of them.
+	 */
 	Aggref	   *aggref;
 
 	/*
@@ -66,31 +77,40 @@ typedef struct AggStatePerAggData
 	 */
 	int			numTransInputs;
 
-	/*
-	 * Number of arguments to pass to the finalfn.  This is always at least 1
-	 * (the transition state value) plus any ordered-set direct args. If the
-	 * finalfn wants extra args then we pass nulls corresponding to the
-	 * aggregated input columns.
-	 */
-	int			numFinalArgs;
-
 	/* Oids of transfer functions */
 	Oid			transfn_oid;
+
+	/* Oids of combine functions, for spilling */
+	Oid			combinefn_oid;
+
+	/* Oid of the serialization function or InvalidOid */
 	Oid			serialfn_oid;
+
+	/* Oid of the deserialization function or InvalidOid */
 	Oid			deserialfn_oid;
-	Oid         combinefn_oid;
-	Oid			finalfn_oid;	/* may be InvalidOid */
+
+	/* Oid of state value's datatype */
+	Oid			aggtranstype;
+
+	/* ExprStates of the FILTER and argument expressions. */
+	ExprState  *aggfilter;		/* state of FILTER expression, if any */
+	List	   *args;			/* states of aggregated-argument expressions */
+	List	   *aggdirectargs;	/* states of direct-argument expressions */
 
 	/*
-	 * fmgr lookup data for transfer functions --- only valid when
-	 * corresponding oid is not InvalidOid.  Note in particular that fn_strict
-	 * flags are kept here.
+	 * fmgr lookup data for transition function or combine function.  Note in
+	 * particular that the fn_strict flag is kept here.
 	 */
 	FmgrInfo	transfn;
+
+	/* fmgr lookup data for combine function */
+	FmgrInfo	combinefn;
+
+	/* fmgr lookup data for serialization function */
 	FmgrInfo	serialfn;
+
+	/* fmgr lookup data for deserialization function */
 	FmgrInfo	deserialfn;
-	FmgrInfo    combinefn;
-	FmgrInfo	finalfn;
 
 	/* Input collation derived for aggregate */
 	Oid			aggCollation;
@@ -122,17 +142,15 @@ typedef struct AggStatePerAggData
 	bool		initValueIsNull;
 
 	/*
-	 * We need the len and byval info for the agg's input, result, and
-	 * transition data types in order to know how to copy/delete values.
+	 * We need the len and byval info for the agg's input and transition data
+	 * types in order to know how to copy/delete values.
 	 *
 	 * Note that the info for the input type is used only when handling
 	 * DISTINCT aggs with just one argument, so there is only one input type.
 	 */
 	int16		inputtypeLen,
-				resulttypeLen,
 				transtypeLen;
 	bool		inputtypeByVal,
-				resulttypeByVal,
 				transtypeByVal;
 
 	/*
@@ -143,9 +161,9 @@ typedef struct AggStatePerAggData
 	 */
 	TupleDesc	evaldesc;		/* descriptor of input tuples */
 	ProjectionInfo *evalproj;	/* projection machinery */
-	
+
 	/*
-	 * Slot for holding the evaluated input arguments.  This is set up
+	 * Slots for holding the evaluated input arguments.  These are set up
 	 * during ExecInitAgg() and then used for each input row.
 	 */
 	TupleTableSlot *evalslot;	/* current input tuple */
@@ -162,7 +180,7 @@ typedef struct AggStatePerAggData
 	 * eliminate duplicates if needed, and run the transition function on the
 	 * rest.
 	 *
- 	 * We need a separate tuplesort for each grouping set.
+	 * We need a separate tuplesort for each grouping set.
 	 */
 
 	Tuplesortstate **sortstates;	/* sort objects, if DISTINCT or ORDER BY */
@@ -174,7 +192,69 @@ typedef struct AggStatePerAggData
 	 * worth the extra space consumption.
 	 */
 	FunctionCallInfoData transfn_fcinfo;
-} AggStatePerAggData;
+
+	/* Likewise for serialization and deserialization functions */
+	FunctionCallInfoData serialfn_fcinfo;
+
+	FunctionCallInfoData deserialfn_fcinfo;
+
+	/* in GPDB, we need to call both trans and combine functions if the hash
+	 * table spills, so we need this separately from transfn_fcinfo. Like
+	 * in upstream, if this is the final stage of an aggregate, transfn
+	 * actually points to the combine function, but this one points to the
+	 * combine function in all cases.
+	 */
+	FunctionCallInfoData combinefn_fcinfo;
+
+}	AggStatePerTransData;
+
+/*
+ * AggStatePerAggData - per-aggregate information
+ *
+ * This contains the information needed to call the final function, to produce
+ * a final aggregate result from the state value. If there are multiple
+ * identical Aggrefs in the query, they can all share the same per-agg data.
+ *
+ * These values are set up during ExecInitAgg() and do not change thereafter.
+ */
+typedef struct AggStatePerAggData
+{
+	/*
+	 * Link to an Aggref expr this state value is for.
+	 *
+	 * There can be multiple identical Aggref's sharing the same per-agg. This
+	 * points to the first one of them.
+	 */
+	Aggref	   *aggref;
+
+	/* index to the state value which this agg should use */
+	int			transno;
+
+	/* Optional Oid of final function (may be InvalidOid) */
+	Oid			finalfn_oid;
+
+	/*
+	 * fmgr lookup data for final function --- only valid when finalfn_oid oid
+	 * is not InvalidOid.
+	 */
+	FmgrInfo	finalfn;
+
+	/*
+	 * Number of arguments to pass to the finalfn.  This is always at least 1
+	 * (the transition state value) plus any ordered-set direct args. If the
+	 * finalfn wants extra args then we pass nulls corresponding to the
+	 * aggregated input columns.
+	 */
+	int			numFinalArgs;
+
+	/*
+	 * We need the len and byval info for the agg's result data type in order
+	 * to know how to copy/delete values.
+	 */
+	int16		resulttypeLen;
+	bool		resulttypeByVal;
+
+}	AggStatePerAggData;
 
 /*
  * AggStatePerGroupData - per-aggregate-per-group working state
@@ -208,28 +288,19 @@ typedef struct AggStatePerGroupData
 	 */
 } AggStatePerGroupData;
 
-extern void 
-initialize_aggregates(AggState *aggstate,
-					  AggStatePerAgg peragg,
+extern void initialize_aggregates(AggState *aggstate,
 					  AggStatePerGroup pergroup,
 					  int numReset);
-extern void 
-advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup);
-TupleTableSlot *fetch_input_tuple(AggState *aggstate);
-
-extern Oid resolve_polymorphic_transtype(Oid aggtranstype, Oid aggfnoid,
-										 Oid *inputTypes);
+extern void advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup);
+extern void combine_aggregates(AggState *aggstate, AggStatePerGroup pergroup);
+extern TupleTableSlot *fetch_input_tuple(AggState *aggstate);
 
 extern Datum GetAggInitVal(Datum textInitVal, Oid transtype);
 
-extern Datum invoke_agg_trans_func(AggState *aggstate,
-								   AggStatePerAgg peraggstate,
-								   FmgrInfo *transfn, int numargs, 
-								   Datum transValue, bool *noTransvalue, 
-								   bool *transValueIsNull, bool transtypeByVal,
-								   int16 transtypeLen,
-								   FunctionCallInfoData *fcinfo, void *funcctx,
-								   MemoryContext tuplecontext);
+extern void advance_combine_function(AggState *aggstate,
+						 AggStatePerTrans pertrans,
+						 AggStatePerGroup pergroupstate,
+						 FunctionCallInfo fcinfo);
 
 extern Datum datumCopyWithMemManager(Datum oldvalue, Datum value, bool typByVal, int typLen,
 									 MemoryManagerContainer *mem_manager);

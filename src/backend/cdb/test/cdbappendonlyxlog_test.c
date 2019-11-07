@@ -50,12 +50,12 @@ ao_invalid_segment_file_test(uint8 xl_info)
 	if (xl_info == XLOG_APPENDONLY_INSERT)
 	{
 		xlaoinsert.target = xlaotarget;
-		mockrecord->main_data = &xlaoinsert;
+		mockrecord->main_data = (char *) &xlaoinsert;
 	}
 	else if (xl_info == XLOG_APPENDONLY_TRUNCATE)
 	{
 		xlaotruncate.target = xlaotarget;
-		mockrecord->main_data = &xlaotruncate;
+		mockrecord->main_data = (char *) &xlaotruncate;
 	}
 
 	/* mock to not find AO segment file */

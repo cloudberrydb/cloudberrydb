@@ -4,7 +4,7 @@
  *		Internal definitions for parser
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_node.h
@@ -65,6 +65,7 @@ typedef enum ParseExprKind
 	EXPR_KIND_ALTER_COL_TRANSFORM,	/* transform expr in ALTER COLUMN TYPE */
 	EXPR_KIND_EXECUTE_PARAMETER,	/* parameter value in EXECUTE */
 	EXPR_KIND_TRIGGER_WHEN,		/* WHEN condition in CREATE TRIGGER */
+	EXPR_KIND_POLICY,			/* USING or WITH CHECK expr in policy */
 	EXPR_KIND_PARTITION_EXPRESSION, /* PARTITION BY expression */
 
 	/* GPDB additions */
@@ -157,9 +158,9 @@ struct ParseState
 	bool		p_hasSubLinks;
 	bool		p_hasModifyingCTE;
 	bool		p_is_insert;
-	bool		p_is_update;
 	bool        p_canOptSelectLockingClause; /* Whether can do some optimization on select with locking clause */
 	LockingClause *p_lockclause_from_parent;
+	bool		p_locked_from_parent;
 	Relation	p_target_relation;
 	RangeTblEntry *p_target_rangetblentry;
 

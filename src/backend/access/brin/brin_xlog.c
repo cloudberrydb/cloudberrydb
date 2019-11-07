@@ -2,7 +2,7 @@
  * brin_xlog.c
  *		XLog replay routines for BRIN indexes
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -47,7 +47,7 @@ brin_xlog_insert_update(XLogReaderState *record,
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
-	BlockNumber	regpgno;
+	BlockNumber regpgno;
 	Page		page;
 	XLogRedoAction action;
 
@@ -180,11 +180,11 @@ brin_xlog_samepage_update(XLogReaderState *record)
 	if (action == BLK_NEEDS_REDO)
 	{
 		Size		tuplen;
-		BrinTuple  *mmtuple;
+		BrinTuple  *brintuple;
 		Page		page;
 		OffsetNumber offnum;
 
-		mmtuple = (BrinTuple *) XLogRecGetBlockData(record, 0, &tuplen);
+		brintuple = (BrinTuple *) XLogRecGetBlockData(record, 0, &tuplen);
 
 		page = (Page) BufferGetPage(buffer);
 
@@ -193,7 +193,8 @@ brin_xlog_samepage_update(XLogReaderState *record)
 			elog(PANIC, "brin_xlog_samepage_update: invalid max offset number");
 
 		PageIndexDeleteNoCompact(page, &offnum, 1);
-		offnum = PageAddItem(page, (Item) mmtuple, tuplen, offnum, true, false);
+		offnum = PageAddItemExtended(page, (Item) brintuple, tuplen, offnum,
+									 PAI_OVERWRITE | PAI_ALLOW_FAR_OFFSET);
 		if (offnum == InvalidOffsetNumber)
 			elog(PANIC, "brin_xlog_samepage_update: failed to add tuple");
 

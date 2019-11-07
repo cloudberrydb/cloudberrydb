@@ -27,6 +27,10 @@ test__ExecEagerFreeShareInputScan_SHARE_NOTSHARED(void **state)
 	sisc->ts_state = (void*)FIXED_POINTER_VAL;
 	sisc->freed = false;
 
+	List *mock_tuptable = NIL;
+	sisc->ss.ss_ScanTupleSlot = ExecAllocTableSlot(&mock_tuptable);
+	sisc->ss.ps.ps_ResultTupleSlot = ExecAllocTableSlot(&mock_tuptable);
+
 	plan->share_type = SHARE_NOTSHARED;
 
 	ExecEagerFreeShareInputScan(sisc);
@@ -57,6 +61,10 @@ test__ExecEagerFreeShareInputScan_SHARE_MATERIAL(void **state)
 	sisc->ts_state = (GenericTupStore *) palloc0(sizeof(GenericTupStore));
 	sisc->ts_state->matstore = (void *) FIXED_POINTER_VAL;
 	sisc->freed = false;
+
+	List *mock_tuptable = NIL;
+	sisc->ss.ss_ScanTupleSlot = ExecAllocTableSlot(&mock_tuptable);
+	sisc->ss.ps.ps_ResultTupleSlot = ExecAllocTableSlot(&mock_tuptable);
 
 	plan->share_type = SHARE_MATERIAL;
 

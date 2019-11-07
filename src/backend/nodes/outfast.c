@@ -104,11 +104,14 @@
 		char b = node->fldname ? 1 : 0; \
 		appendBinaryStringInfo(str, (const char *)&b, 1); }
 
-/* Write a character-string (possibly NULL) field */
-#define WRITE_STRING_FIELD(fldname) \
-	{ int slen = node->fldname != NULL ? strlen(node->fldname) : 0; \
+/* Write a character-string (possibly NULL) varable */
+#define WRITE_STRING_VAR(var) \
+	{ int slen = var != NULL ? strlen(var) : 0; \
 		appendBinaryStringInfo(str, (const char *)&slen, sizeof(int)); \
-		if (slen>0) appendBinaryStringInfo(str, node->fldname, strlen(node->fldname));}
+		if (slen>0) appendBinaryStringInfo(str, var, slen);}
+
+/* Write a character-string (possibly NULL) field */
+#define WRITE_STRING_FIELD(fldname)  WRITE_STRING_VAR(node->fldname)
 
 /* Write a parse location field (actually same as INT case) */
 #define WRITE_LOCATION_FIELD(fldname) \
@@ -244,7 +247,7 @@ _outList(StringInfo str, List *node)
  * rules, so there is no support in readfast.c for reading this format.
  */
 static void
-_outBitmapset(StringInfo str, Bitmapset *bms)
+_outBitmapset(StringInfo str, const Bitmapset *bms)
 {
 	int i;
 	int nwords = 0;
@@ -310,37 +313,6 @@ _outDatum(StringInfo str, Datum value, int typlen, bool typbyval)
  *	Stuff from plannodes.h
  */
 
-/*
- * print the basic stuff of all nodes that inherit from Plan
- */
-static void
-_outPlanInfo(StringInfo str, const Plan *node)
-{
-	WRITE_INT_FIELD(plan_node_id);
-
-	WRITE_FLOAT_FIELD(startup_cost, "%.2f");
-	WRITE_FLOAT_FIELD(total_cost, "%.2f");
-	WRITE_FLOAT_FIELD(plan_rows, "%.0f");
-	WRITE_INT_FIELD(plan_width);
-
-	WRITE_NODE_FIELD(targetlist);
-	WRITE_NODE_FIELD(qual);
-
-	WRITE_BITMAPSET_FIELD(extParam);
-	WRITE_BITMAPSET_FIELD(allParam);
-
-	WRITE_NODE_FIELD(flow);
-	WRITE_INT_FIELD(dispatch);
-	WRITE_BOOL_FIELD(directDispatch.isDirectDispatch);
-	WRITE_NODE_FIELD(directDispatch.contentIds);
-
-    WRITE_NODE_FIELD(lefttree);
-    WRITE_NODE_FIELD(righttree);
-    WRITE_NODE_FIELD(initPlan);
-
-	WRITE_UINT64_FIELD(operatorMemKB);
-}
-
 static void
 _outResult(StringInfo str, const Result *node)
 {
@@ -369,65 +341,6 @@ _outRecursiveUnion(StringInfo str, RecursiveUnion *node)
 	WRITE_OID_ARRAY(dupOperators, node->numCols);
 
 	WRITE_LONG_FIELD(numGroups);
-}
-
-static void
-_outPlannedStmt(StringInfo str, PlannedStmt *node)
-{
-	WRITE_NODE_TYPE("PLANNEDSTMT");
-
-	WRITE_ENUM_FIELD(commandType, CmdType);
-	WRITE_ENUM_FIELD(planGen, PlanGenerator);
-	WRITE_BOOL_FIELD(hasReturning);
-	WRITE_BOOL_FIELD(hasModifyingCTE);
-	WRITE_BOOL_FIELD(canSetTag);
-	WRITE_BOOL_FIELD(transientPlan);
-	WRITE_BOOL_FIELD(oneoffPlan);
-	WRITE_BOOL_FIELD(simplyUpdatable);
-	WRITE_NODE_FIELD(planTree);
-	WRITE_NODE_FIELD(rtable);
-	WRITE_NODE_FIELD(resultRelations);
-	WRITE_NODE_FIELD(utilityStmt);
-	WRITE_NODE_FIELD(subplans);
-	WRITE_INT_ARRAY(subplan_sliceIds, list_length(node->subplans) + 1, int);
-	WRITE_INT_ARRAY(subplan_initPlanParallel, list_length(node->subplans) + 1, bool);
-	WRITE_BITMAPSET_FIELD(rewindPlanIDs);
-
-	WRITE_NODE_FIELD(result_partitions);
-	WRITE_NODE_FIELD(result_aosegnos);
-	WRITE_NODE_FIELD(queryPartOids);
-	WRITE_NODE_FIELD(queryPartsMetadata);
-	WRITE_NODE_FIELD(numSelectorsPerScanId);
-	WRITE_NODE_FIELD(rowMarks);
-	WRITE_NODE_FIELD(relationOids);
-	/*
-	 * Don't serialize invalItems. The TIDs of the invalidated items wouldn't
-	 * make sense in segments.
-	 */
-	WRITE_INT_FIELD(nParamExec);
-	WRITE_BOOL_FIELD(hasRowSecurity);
-	WRITE_INT_FIELD(nMotionNodes);
-	WRITE_INT_FIELD(nInitPlans);
-	WRITE_NODE_FIELD(intoPolicy);
-	WRITE_UINT64_FIELD(query_mem);
-	WRITE_NODE_FIELD(intoClause);
-	WRITE_NODE_FIELD(copyIntoClause);
-	WRITE_NODE_FIELD(refreshClause);
-	WRITE_INT8_FIELD(metricsQueryType);
-}
-
-static void
-outLogicalIndexInfo(StringInfo str, const LogicalIndexInfo *node)
-{
-	WRITE_OID_FIELD(logicalIndexOid);
-	WRITE_INT_FIELD(nColumns);
-	WRITE_INT_ARRAY(indexKeys, node->nColumns, AttrNumber);
-	WRITE_NODE_FIELD(indPred);
-	WRITE_NODE_FIELD(indExprs);
-	WRITE_BOOL_FIELD(indIsUnique);
-	WRITE_ENUM_FIELD(indType, LogicalIndexType);
-	WRITE_NODE_FIELD(partCons);
-	WRITE_NODE_FIELD(defaultLevels);
 }
 
 static void
@@ -485,6 +398,7 @@ _outAgg(StringInfo str, Agg *node)
 	_outPlanInfo(str, (Plan *) node);
 
 	WRITE_ENUM_FIELD(aggstrategy, AggStrategy);
+	WRITE_ENUM_FIELD(aggsplit, AggSplit);
 	WRITE_INT_FIELD(numCols);
 
 	WRITE_INT_ARRAY(grpColIdx, node->numCols, AttrNumber);
@@ -673,6 +587,31 @@ _outJoinExpr(StringInfo str, JoinExpr *node)
 	WRITE_NODE_FIELD(quals);
 	WRITE_NODE_FIELD(alias);
 	WRITE_INT_FIELD(rtindex);
+}
+
+/*****************************************************************************
+ *
+ *	Stuff from extensible.h
+ *
+ *****************************************************************************/
+
+static void
+_outExtensibleNode(StringInfo str, const ExtensibleNode *node)
+{
+	const ExtensibleNodeMethods *methods;
+	StringInfoData buf;
+	initStringInfo(&buf);
+
+	methods = GetExtensibleNodeMethods(node->extnodename, false);
+
+	WRITE_NODE_TYPE("EXTENSIBLENODE");
+
+	WRITE_STRING_FIELD(extnodename);
+
+	/* serialize the private fields */
+	methods->nodeOut(&buf, node);
+
+	WRITE_STRING_VAR(buf.data);
 }
 
 /*****************************************************************************
@@ -1043,6 +982,7 @@ _outConstraint(StringInfo str, Constraint *node)
 			 * ALTER TABLE constraint_rename_test ADD CONSTRAINT con2 CHECK NO INHERIT (b > 0);
 			 */
 			WRITE_BOOL_FIELD(skip_validation);
+			WRITE_BOOL_FIELD(initially_valid);
 			WRITE_BOOL_FIELD(is_no_inherit);
 			/* fallthrough */
 		case CONSTR_DEFAULT:
@@ -1177,6 +1117,7 @@ _outCookedConstraint(StringInfo str, CookedConstraint *node)
 	WRITE_NODE_FIELD(expr);
 	WRITE_BOOL_FIELD(is_local);
 	WRITE_INT_FIELD(inhcount);
+	WRITE_BOOL_FIELD(is_no_inherit);
 }
 
 static void
@@ -1252,6 +1193,18 @@ _outAlterUserMappingStmt(StringInfo str, AlterUserMappingStmt *node)
 	WRITE_NODE_FIELD(user);
 	WRITE_STRING_FIELD(servername);
 	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterObjectDependsStmt(StringInfo str, const AlterObjectDependsStmt *node)
+{
+	WRITE_NODE_TYPE("ALTEROBJECTDEPENDSSTMT");
+
+	WRITE_ENUM_FIELD(objectType,ObjectType);
+	WRITE_NODE_FIELD(relation);
+	WRITE_NODE_FIELD(objname);
+	WRITE_NODE_FIELD(objargs);
+	WRITE_NODE_FIELD(extname);
 }
 
 static void
@@ -1332,6 +1285,16 @@ _outAlterTableSpaceOptionsStmt(StringInfo str, AlterTableSpaceOptionsStmt *node)
 	WRITE_BOOL_FIELD(isReset);
 }
 
+static void
+_outCreateAmStmt(StringInfo str, const CreateAmStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEAMSTMT");
+
+	WRITE_STRING_FIELD(amname);
+	WRITE_NODE_FIELD(handler_name);
+	WRITE_INT_FIELD(amtype);
+}
+
 /*
  * _outNode -
  *	  converts a Node into binary string and append it to 'str'
@@ -1397,6 +1360,9 @@ _outNode(StringInfo str, void *obj)
 			case T_BitmapOr:
 				_outBitmapOr(str, obj);
 				break;
+			case T_Gather:
+				_outGather(str, obj);
+				break;
 			case T_Scan:
 				_outScan(str, obj);
 				break;
@@ -1405,6 +1371,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_DynamicSeqScan:
 				_outDynamicSeqScan(str, obj);
+				break;
+			case T_SampleScan:
+				_outSampleScan(str, obj);
 				break;
 			case T_CteScan:
 				_outCteScan(str, obj);
@@ -1417,9 +1386,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_CustomScan:
 				_outCustomScan(str, obj);
-				break;
-			case T_SampleScan:
-				_outSampleScan(str, obj);
 				break;
 			case T_ExternalScan:
 				_outExternalScan(str, obj);
@@ -1670,9 +1636,6 @@ _outNode(StringInfo str, void *obj)
 			case T_RangeTblRef:
 				_outRangeTblRef(str, obj);
 				break;
-			case T_RangeTblFunction:
-				_outRangeTblFunction(str, obj);
-				break;
 			case T_JoinExpr:
 				_outJoinExpr(str, obj);
 				break;
@@ -1703,6 +1666,10 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_LockStmt:
 				_outLockStmt(str, obj);
+				break;
+
+			case T_ExtensibleNode:
+				_outExtensibleNode(str, obj);
 				break;
 
 			case T_CreateStmt:
@@ -1781,6 +1748,10 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_AlterFunctionStmt:
 				_outAlterFunctionStmt(str, obj);
+				break;
+
+			case T_AlterObjectDependsStmt:
+				_outAlterObjectDependsStmt(str, obj);
 				break;
 
 			case T_DefineStmt:
@@ -1981,17 +1952,17 @@ _outNode(StringInfo str, void *obj)
 			case T_CommonTableExpr:
 				_outCommonTableExpr(str, obj);
 				break;
-			case T_RangeTableSample:
-				_outRangeTableSample(str, obj);
-				break;
-			case T_TableSampleClause:
-				_outTableSampleClause(str, obj);
-				break;
 			case T_SetOperationStmt:
 				_outSetOperationStmt(str, obj);
 				break;
 			case T_RangeTblEntry:
 				_outRangeTblEntry(str, obj);
+				break;
+			case T_RangeTblFunction:
+				_outRangeTblFunction(str, obj);
+				break;
+			case T_TableSampleClause:
+				_outTableSampleClause(str, obj);
 				break;
 			case T_A_Expr:
 				_outAExpr(str, obj);
@@ -2220,6 +2191,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_CreateTransformStmt:
 				_outCreateTransformStmt(str, obj);
+				break;
+			case T_CreateAmStmt:
+				_outCreateAmStmt(str, obj);
 				break;
 
 			default:

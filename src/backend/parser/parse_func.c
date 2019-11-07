@@ -3,7 +3,7 @@
  * parse_func.c
  *		handle function calls in parser
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,7 +22,6 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_proc_callback.h"
 #include "catalog/pg_type.h"
-#include "catalog/pg_tablesample_method.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "lib/stringinfo.h"
@@ -32,7 +31,6 @@
 #include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
-#include "parser/parse_expr.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_type.h"
@@ -671,6 +669,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		aggref->aggfnoid = funcid;
 		aggref->aggtype = rettype;
 		/* aggcollid and inputcollid will be set by parse_collate.c */
+		aggref->aggtranstype = InvalidOid;		/* will be set by planner */
+		/* aggargtypes will be set by transformAggregateCall */
 		/* aggdirectargs and args will be set by transformAggregateCall */
 		/* aggorder and aggdistinct will be set by transformAggregateCall */
 		aggref->aggfilter = agg_filter;
@@ -678,6 +678,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		aggref->aggvariadic = func_variadic;
 		aggref->aggkind = aggkind;
 		/* agglevelsup will be set by transformAggregateCall */
+		aggref->aggsplit = AGGSPLIT_SIMPLE;		/* planner might change this */
 		aggref->location = location;
 
 		/*
@@ -834,148 +835,6 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	return retval;
 }
 
-
-/*
- * ParseTableSample
- *
- * Parse TABLESAMPLE clause and process the arguments
- */
-TableSampleClause *
-ParseTableSample(ParseState *pstate, char *samplemethod, Node *repeatable,
-				 List *sampleargs, int location)
-{
-	HeapTuple	tuple;
-	Form_pg_tablesample_method tsm;
-	Form_pg_proc procform;
-	TableSampleClause *tablesample;
-	List	   *fargs;
-	ListCell   *larg;
-	int			nargs,
-				initnargs;
-	Oid			init_arg_types[FUNC_MAX_ARGS];
-
-	/* Load the tablesample method */
-	tuple = SearchSysCache1(TABLESAMPLEMETHODNAME, PointerGetDatum(samplemethod));
-	if (!HeapTupleIsValid(tuple))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				 errmsg("tablesample method \"%s\" does not exist",
-						samplemethod),
-				 parser_errposition(pstate, location)));
-
-	tablesample = makeNode(TableSampleClause);
-	tablesample->tsmid = HeapTupleGetOid(tuple);
-
-	tsm = (Form_pg_tablesample_method) GETSTRUCT(tuple);
-
-	tablesample->tsmseqscan = tsm->tsmseqscan;
-	tablesample->tsmpagemode = tsm->tsmpagemode;
-	tablesample->tsminit = tsm->tsminit;
-	tablesample->tsmnextblock = tsm->tsmnextblock;
-	tablesample->tsmnexttuple = tsm->tsmnexttuple;
-	tablesample->tsmexaminetuple = tsm->tsmexaminetuple;
-	tablesample->tsmend = tsm->tsmend;
-	tablesample->tsmreset = tsm->tsmreset;
-	tablesample->tsmcost = tsm->tsmcost;
-
-	ReleaseSysCache(tuple);
-
-	/* Validate the parameters against init function definition. */
-	tuple = SearchSysCache1(PROCOID,
-							ObjectIdGetDatum(tablesample->tsminit));
-
-	if (!HeapTupleIsValid(tuple))		/* should not happen */
-		elog(ERROR, "cache lookup failed for function %u",
-			 tablesample->tsminit);
-
-	procform = (Form_pg_proc) GETSTRUCT(tuple);
-	initnargs = procform->pronargs;
-	Assert(initnargs >= 3);
-
-	/*
-	 * First parameter is used to pass the SampleScanState, second is seed
-	 * (REPEATABLE), skip the processing for them here, just assert that the
-	 * types are correct.
-	 */
-	Assert(procform->proargtypes.values[0] == INTERNALOID);
-	Assert(procform->proargtypes.values[1] == INT4OID);
-	initnargs -= 2;
-	memcpy(init_arg_types, procform->proargtypes.values + 2,
-		   initnargs * sizeof(Oid));
-
-	/* Now we are done with the catalog */
-	ReleaseSysCache(tuple);
-
-	/* Process repeatable (seed) */
-	if (repeatable != NULL)
-	{
-		Node	   *arg = repeatable;
-
-		if (arg && IsA(arg, A_Const))
-		{
-			A_Const    *con = (A_Const *) arg;
-
-			if (con->val.type == T_Null)
-				ereport(ERROR,
-						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				  errmsg("REPEATABLE clause must be NOT NULL numeric value"),
-						 parser_errposition(pstate, con->location)));
-
-		}
-
-		arg = transformExpr(pstate, arg, EXPR_KIND_FROM_FUNCTION);
-		arg = coerce_to_specific_type(pstate, arg, INT4OID, "REPEATABLE");
-		tablesample->repeatable = arg;
-	}
-	else
-		tablesample->repeatable = NULL;
-
-	/* Check user provided expected number of arguments. */
-	if (list_length(sampleargs) != initnargs)
-		ereport(ERROR,
-				(errcode(ERRCODE_TOO_MANY_ARGUMENTS),
-		errmsg_plural("tablesample method \"%s\" expects %d argument got %d",
-					  "tablesample method \"%s\" expects %d arguments got %d",
-					  initnargs,
-					  samplemethod,
-					  initnargs, list_length(sampleargs)),
-				 parser_errposition(pstate, location)));
-
-	/* Transform the arguments, typecasting them as needed. */
-	fargs = NIL;
-	nargs = 0;
-	foreach(larg, sampleargs)
-	{
-		Node	   *inarg = (Node *) lfirst(larg);
-		Node	   *arg = transformExpr(pstate, inarg, EXPR_KIND_FROM_FUNCTION);
-		Oid			argtype = exprType(arg);
-
-		if (argtype != init_arg_types[nargs])
-		{
-			if (!can_coerce_type(1, &argtype, &init_arg_types[nargs],
-								 COERCION_IMPLICIT))
-				ereport(ERROR,
-						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				   errmsg("wrong parameter %d for tablesample method \"%s\"",
-						  nargs + 1, samplemethod),
-						 errdetail("Expected type %s got %s.",
-								   format_type_be(init_arg_types[nargs]),
-								   format_type_be(argtype)),
-						 parser_errposition(pstate, exprLocation(inarg))));
-
-			arg = coerce_type(pstate, arg, argtype, init_arg_types[nargs], -1,
-							  COERCION_IMPLICIT, COERCE_IMPLICIT_CAST, -1);
-		}
-
-		fargs = lappend(fargs, arg);
-		nargs++;
-	}
-
-	/* Pass the arguments down */
-	tablesample->args = fargs;
-
-	return tablesample;
-}
 
 /* func_match_argtypes()
  *

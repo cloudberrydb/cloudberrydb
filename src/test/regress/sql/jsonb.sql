@@ -76,8 +76,11 @@ COMMIT;
 select to_jsonb(date '2014-05-28');
 
 select to_jsonb(date 'Infinity');
+select to_jsonb(date '-Infinity');
 select to_jsonb(timestamp 'Infinity');
+select to_jsonb(timestamp '-Infinity');
 select to_jsonb(timestamptz 'Infinity');
+select to_jsonb(timestamptz '-Infinity');
 
 --jsonb_agg
 
@@ -93,6 +96,11 @@ SELECT jsonb_agg(q)
               generate_series(4,5) y) q;
 
 SELECT jsonb_agg(q ORDER BY x, y)
+  FROM rows q;
+
+UPDATE rows SET x = NULL WHERE x = 1;
+
+SELECT jsonb_agg(q ORDER BY x NULLS FIRST, y)
   FROM rows q;
 
 -- jsonb extraction functions
@@ -325,6 +333,10 @@ SELECT jsonb_build_object(json '{"a":1,"b":2}', 3);
 
 SELECT jsonb_build_object('{1,2,3}'::int[], 3);
 
+-- handling of NULL values
+SELECT jsonb_object_agg(1, NULL::jsonb);
+SELECT jsonb_object_agg(NULL, '{"a":1}');
+
 CREATE TEMP TABLE foo (serial_num int, name text, type text);
 INSERT INTO foo VALUES (847001,'t15','GE1043');
 INSERT INTO foo VALUES (847002,'t16','GE1043');
@@ -333,7 +345,18 @@ INSERT INTO foo VALUES (847003,'sub-alpha','GESS90');
 SELECT jsonb_build_object('turbines',jsonb_object_agg(serial_num,jsonb_build_object('name',name,'type',type)))
 FROM foo;
 
+SELECT jsonb_object_agg(name, type) FROM foo;
+
+INSERT INTO foo VALUES (999999, NULL, 'bar');
+SELECT jsonb_object_agg(name, type) FROM foo;
+
 -- jsonb_object
+
+-- empty object, one dimension
+SELECT jsonb_object('{}');
+
+-- empty object, two dimensions
+SELECT jsonb_object('{}', '{}');
 
 -- one dimension
 SELECT jsonb_object('{a,1,b,2,3,NULL,"d e f","a b c"}');
@@ -653,6 +676,8 @@ SELECT '["a","b","c",[1,2],null]'::jsonb -> 3 -> 1;
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 4;
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 5;
 SELECT '["a","b","c",[1,2],null]'::jsonb -> -1;
+SELECT '["a","b","c",[1,2],null]'::jsonb -> -5;
+SELECT '["a","b","c",[1,2],null]'::jsonb -> -6;
 
 --nested path extraction
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{0}';
@@ -663,6 +688,8 @@ SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,1}';
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,2}';
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,3}';
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-1}';
+SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-3}';
+SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-4}';
 
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{0}';
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{3}';
@@ -714,6 +741,13 @@ select '["c"]' || '["a", "b"]'::jsonb;
 
 select '["a", "b"]'::jsonb || '"c"';
 select '"c"' || '["a", "b"]'::jsonb;
+
+select '[]'::jsonb || '["a"]'::jsonb;
+select '[]'::jsonb || '"a"'::jsonb;
+select '"b"'::jsonb || '"a"'::jsonb;
+select '{}'::jsonb || '{"a":"b"}'::jsonb;
+select '[]'::jsonb || '{"a":"b"}'::jsonb;
+select '{"a":"b"}'::jsonb || '[]'::jsonb;
 
 select '"a"'::jsonb || '{"a":1}';
 select '{"a":1}' || '"a"'::jsonb;
@@ -768,6 +802,7 @@ select jsonb_delete_path('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,
 
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{n}';
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{b,-1}';
+select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{b,-1e}'; -- invalid array subscript
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{d,1,0}';
 
 
@@ -805,3 +840,36 @@ select jsonb_set('{}','{x}','{"foo":123}');
 select jsonb_set('[]','{0}','{"foo":123}');
 select jsonb_set('[]','{99}','{"foo":123}');
 select jsonb_set('[]','{-99}','{"foo":123}');
+select jsonb_set('{"a": [1, 2, 3]}', '{a, non_integer}', '"new_value"');
+select jsonb_set('{"a": {"b": [1, 2, 3]}}', '{a, b, non_integer}', '"new_value"');
+select jsonb_set('{"a": {"b": [1, 2, 3]}}', '{a, b, NULL}', '"new_value"');
+
+
+-- jsonb_insert
+select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"');
+select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"', true);
+select jsonb_insert('{"a": {"b": {"c": [0, 1, "test1", "test2"]}}}', '{a, b, c, 2}', '"new_value"');
+select jsonb_insert('{"a": {"b": {"c": [0, 1, "test1", "test2"]}}}', '{a, b, c, 2}', '"new_value"', true);
+select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '{"b": "value"}');
+select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '["value1", "value2"]');
+
+-- edge cases
+select jsonb_insert('{"a": [0,1,2]}', '{a, 0}', '"new_value"');
+select jsonb_insert('{"a": [0,1,2]}', '{a, 0}', '"new_value"', true);
+select jsonb_insert('{"a": [0,1,2]}', '{a, 2}', '"new_value"');
+select jsonb_insert('{"a": [0,1,2]}', '{a, 2}', '"new_value"', true);
+select jsonb_insert('{"a": [0,1,2]}', '{a, -1}', '"new_value"');
+select jsonb_insert('{"a": [0,1,2]}', '{a, -1}', '"new_value"', true);
+select jsonb_insert('[]', '{1}', '"new_value"');
+select jsonb_insert('[]', '{1}', '"new_value"', true);
+select jsonb_insert('{"a": []}', '{a, 1}', '"new_value"');
+select jsonb_insert('{"a": []}', '{a, 1}', '"new_value"', true);
+select jsonb_insert('{"a": [0,1,2]}', '{a, 10}', '"new_value"');
+select jsonb_insert('{"a": [0,1,2]}', '{a, -10}', '"new_value"');
+
+-- jsonb_insert should be able to insert new value for objects, but not to replace
+select jsonb_insert('{"a": {"b": "value"}}', '{a, c}', '"new_value"');
+select jsonb_insert('{"a": {"b": "value"}}', '{a, c}', '"new_value"', true);
+
+select jsonb_insert('{"a": {"b": "value"}}', '{a, b}', '"new_value"');
+select jsonb_insert('{"a": {"b": "value"}}', '{a, b}', '"new_value"', true);

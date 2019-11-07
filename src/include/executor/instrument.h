@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Copyright (c) 2001-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2001-2016, PostgreSQL Global Development Group
  *
  * src/include/executor/instrument.h
  *
@@ -84,12 +84,23 @@ typedef struct Instrumentation
 	struct CdbExplain_NodeSummary *cdbNodeSummary;	/* stats from all qExecs */
 } Instrumentation;
 
+typedef struct WorkerInstrumentation
+{
+	int			num_workers;	/* # of structures that follow */
+	Instrumentation instrument[FLEXIBLE_ARRAY_MEMBER];
+} WorkerInstrumentation;
+
 extern PGDLLIMPORT BufferUsage pgBufferUsage;
 
 extern Instrumentation *InstrAlloc(int n, int instrument_options);
+extern void InstrInit(Instrumentation *instr, int instrument_options);
 extern void InstrStartNode(Instrumentation *instr);
 extern void InstrStopNode(Instrumentation *instr, uint64 nTuples);
 extern void InstrEndLoop(Instrumentation *instr);
+extern void InstrAggNode(Instrumentation *dst, Instrumentation *add);
+extern void InstrStartParallelQuery(void);
+extern void InstrEndParallelQuery(BufferUsage *result);
+extern void InstrAccumParallelQuery(BufferUsage *result);
 
 #define GP_INSTRUMENT_OPTS (gp_enable_query_metrics ? INSTRUMENT_ROWS : INSTRUMENT_NONE)
 

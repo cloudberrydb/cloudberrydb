@@ -123,6 +123,7 @@ QUERY PLAN
     Slice: 3
     Segments: 3
     Gang Type: "primary reader"
+    Parallel Aware: false
     Startup Cost: 4626.75
     Total Cost: 9520.88
     Plan Rows: 77900
@@ -133,6 +134,7 @@ QUERY PLAN
         Slice: 3
         Segments: 3
         Gang Type: "primary reader"
+        Parallel Aware: false
         Join Type: "Left"
         Startup Cost: 4626.75
         Total Cost: 9520.88
@@ -147,6 +149,7 @@ QUERY PLAN
             Slice: 2
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 3410.75
             Total Cost: 7233.75
             Plan Rows: 77900
@@ -158,6 +161,7 @@ QUERY PLAN
                 Slice: 2
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Join Type: "Right"
                 Startup Cost: 3410.75
                 Total Cost: 5675.75
@@ -170,6 +174,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Relation Name: "apples"
                     Alias: "apples"
                     Startup Cost: 0.00
@@ -181,6 +186,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Startup Cost: 2437.00
                     Total Cost: 2437.00
                     Plan Rows: 77900
@@ -193,6 +199,7 @@ QUERY PLAN
                         Slice: 1
                         Segments: 3
                         Gang Type: "primary reader"
+                        Parallel Aware: false
                         Startup Cost: 0.00
                         Total Cost: 2437.00
                         Plan Rows: 77900
@@ -204,6 +211,7 @@ QUERY PLAN
                             Slice: 1
                             Segments: 3
                             Gang Type: "primary reader"
+                            Parallel Aware: false
                             Relation Name: "boxes"
                             Alias: "boxes"
                             Startup Cost: 0.00
@@ -215,6 +223,7 @@ QUERY PLAN
             Slice: 3
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 596.00
             Total Cost: 596.00
             Plan Rows: 49600
@@ -225,6 +234,7 @@ QUERY PLAN
                 Slice: 3
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Relation Name: "box_locations"
                 Alias: "box_locations"
                 Startup Cost: 0.00
@@ -245,6 +255,7 @@ QUERY PLAN
     Slice: 3
     Segments: 3
     Gang Type: "primary reader"
+    Parallel Aware: false
     Startup Cost: 4626.75
     Total Cost: 9520.88
     Plan Rows: 77900
@@ -259,6 +270,7 @@ QUERY PLAN
         Slice: 3
         Segments: 3
         Gang Type: "primary reader"
+        Parallel Aware: false
         Join Type: "Left"
         Startup Cost: 4626.75
         Total Cost: 9520.88
@@ -277,6 +289,7 @@ QUERY PLAN
             Slice: 2
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 3410.75
             Total Cost: 7233.75
             Plan Rows: 77900
@@ -292,6 +305,7 @@ QUERY PLAN
                 Slice: 2
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Join Type: "Right"
                 Startup Cost: 3410.75
                 Total Cost: 5675.75
@@ -308,6 +322,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Relation Name: "apples"
                     Alias: "apples"
                     Startup Cost: 0.00
@@ -323,6 +338,7 @@ QUERY PLAN
                     Slice: 2
                     Segments: 3
                     Gang Type: "primary reader"
+                    Parallel Aware: false
                     Startup Cost: 2437.00
                     Total Cost: 2437.00
                     Plan Rows: 77900
@@ -339,6 +355,7 @@ QUERY PLAN
                         Slice: 1
                         Segments: 3
                         Gang Type: "primary reader"
+                        Parallel Aware: false
                         Startup Cost: 0.00
                         Total Cost: 2437.00
                         Plan Rows: 77900
@@ -354,6 +371,7 @@ QUERY PLAN
                             Slice: 1
                             Segments: 3
                             Gang Type: "primary reader"
+                            Parallel Aware: false
                             Relation Name: "boxes"
                             Alias: "boxes"
                             Startup Cost: 0.00
@@ -369,6 +387,7 @@ QUERY PLAN
             Slice: 3
             Segments: 3
             Gang Type: "primary reader"
+            Parallel Aware: false
             Startup Cost: 596.00
             Total Cost: 596.00
             Plan Rows: 49600
@@ -383,6 +402,7 @@ QUERY PLAN
                 Slice: 3
                 Segments: 3
                 Gang Type: "primary reader"
+                Parallel Aware: false
                 Relation Name: "box_locations"
                 Alias: "box_locations"
                 Startup Cost: 0.00
@@ -440,6 +460,7 @@ QUERY PLAN
   {
     "Plan": {
       "Node Type": "Function Scan",
+      "Parallel Aware": false,
       "Function Name": "generate_series",
       "Alias": "generate_series"
     },
@@ -455,6 +476,7 @@ QUERY PLAN
   <Query>
     <Plan>
       <Node-Type>Function Scan</Node-Type>
+      <Parallel-Aware>false</Parallel-Aware>
       <Function-Name>generate_series</Function-Name>
       <Alias>generate_series</Alias>
     </Plan>

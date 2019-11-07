@@ -16,7 +16,8 @@
  * if it has one.  When (and if) the next demand for a cached plan occurs,
  * parse analysis and rewrite is repeated to build a new valid query tree,
  * and then planning is performed as normal.  We also force re-analysis and
- * re-planning if the active search_path is different from the previous time.
+ * re-planning if the active search_path is different from the previous time
+ * or, if RLS is involved, if the user changes or the RLS environment changes.
  *
  * Note that if the sinval was a result of user DDL actions, parse analysis
  * could throw an error, for example if a column referenced by the query is
@@ -37,7 +38,7 @@
  * be infrequent enough that more-detailed tracking is not worth the effort.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -101,7 +102,6 @@ static void AcquireExecutorLocks(List *stmt_list, bool acquire);
 static void AcquirePlannerLocks(List *stmt_list, bool acquire);
 static void ScanQueryForLocks(Query *parsetree, bool acquire);
 static bool ScanQueryWalker(Node *node, bool *acquire);
-static bool plan_list_is_transient(List *stmt_list);
 static bool plan_list_is_oneoff(List *stmt_list);
 static TupleDesc PlanCacheComputeResultDesc(List *stmt_list);
 static void PlanCacheRelCallback(Datum arg, Oid relid);
@@ -159,8 +159,6 @@ CreateCachedPlan(Node *raw_parse_tree,
 	CachedPlanSource *plansource;
 	MemoryContext source_context;
 	MemoryContext oldcxt;
-	Oid			user_id;
-	int			security_context;
 
 	Assert(query_string != NULL);		/* required as of 8.4 */
 
@@ -183,8 +181,6 @@ CreateCachedPlan(Node *raw_parse_tree,
 	 */
 	oldcxt = MemoryContextSwitchTo(source_context);
 
-	GetUserIdAndSecContext(&user_id, &security_context);
-
 	plansource = (CachedPlanSource *) palloc0(sizeof(CachedPlanSource));
 	plansource->magic = CACHEDPLANSOURCE_MAGIC;
 	plansource->raw_parse_tree = copyObject(raw_parse_tree);
@@ -204,6 +200,9 @@ CreateCachedPlan(Node *raw_parse_tree,
 	plansource->invalItems = NIL;
 	plansource->search_path = NULL;
 	plansource->query_context = NULL;
+	plansource->rewriteRoleId = InvalidOid;
+	plansource->rewriteRowSecurity = false;
+	plansource->dependsOnRLS = false;
 	plansource->gplan = NULL;
 	plansource->is_oneshot = false;
 	plansource->is_complete = false;
@@ -214,11 +213,6 @@ CreateCachedPlan(Node *raw_parse_tree,
 	plansource->generic_cost = -1;
 	plansource->total_custom_cost = 0;
 	plansource->num_custom_plans = 0;
-	plansource->hasRowSecurity = false;
-	plansource->rowSecurityDisabled
-		= (security_context & SECURITY_ROW_LEVEL_DISABLED) != 0;
-	plansource->row_security_env = row_security;
-	plansource->planUserId = InvalidOid;
 
 	MemoryContextSwitchTo(oldcxt);
 
@@ -274,6 +268,9 @@ CreateOneShotCachedPlan(Node *raw_parse_tree,
 	plansource->invalItems = NIL;
 	plansource->search_path = NULL;
 	plansource->query_context = NULL;
+	plansource->rewriteRoleId = InvalidOid;
+	plansource->rewriteRowSecurity = false;
+	plansource->dependsOnRLS = false;
 	plansource->gplan = NULL;
 	plansource->is_oneshot = true;
 	plansource->is_complete = false;
@@ -391,7 +388,11 @@ CompleteCachedPlan(CachedPlanSource *plansource,
 		extract_query_dependencies((Node *) querytree_list,
 								   &plansource->relationOids,
 								   &plansource->invalItems,
-								   &plansource->hasRowSecurity);
+								   &plansource->dependsOnRLS);
+
+		/* Update RLS info as well. */
+		plansource->rewriteRoleId = GetUserId();
+		plansource->rewriteRowSecurity = row_security;
 
 		/*
 		 * Also save the current search_path in the query_context.  (This
@@ -589,17 +590,6 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	}
 
 	/*
-	 * If this is a new cached plan, then set the user id it was planned by
-	 * and under what row security settings; these are needed to determine
-	 * plan invalidation when RLS is involved.
-	 */
-	if (!OidIsValid(plansource->planUserId))
-	{
-		plansource->planUserId = GetUserId();
-		plansource->row_security_env = row_security;
-	}
-
-	/*
 	 * If the query is currently valid, we should have a saved search_path ---
 	 * check to see if that matches the current environment.  If not, we want
 	 * to force replan.
@@ -617,20 +607,12 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	}
 
 	/*
-	 * Check if row security is enabled for this query and things have changed
-	 * such that we need to invalidate this plan and rebuild it.  Note that if
-	 * row security was explicitly disabled (eg: this is a FK check plan) then
-	 * we don't invalidate due to RLS.
-	 *
-	 * Otherwise, if the plan has a possible RLS dependency, force a replan if
-	 * either the role under which the plan was planned or the row_security
-	 * setting has been changed.
+	 * If the query rewrite phase had a possible RLS dependency, we must redo
+	 * it if either the role or the row_security setting has changed.
 	 */
-	if (plansource->is_valid
-		&& !plansource->rowSecurityDisabled
-		&& plansource->hasRowSecurity
-		&& (plansource->planUserId != GetUserId()
-			|| plansource->row_security_env != row_security))
+	if (plansource->is_valid && plansource->dependsOnRLS &&
+		(plansource->rewriteRoleId != GetUserId() ||
+		 plansource->rewriteRowSecurity != row_security))
 		plansource->is_valid = false;
 
 	/*
@@ -789,7 +771,11 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	extract_query_dependencies((Node *) qlist,
 							   &plansource->relationOids,
 							   &plansource->invalItems,
-							   &plansource->hasRowSecurity);
+							   &plansource->dependsOnRLS);
+
+	/* Update RLS info as well. */
+	plansource->rewriteRoleId = GetUserId();
+	plansource->rewriteRowSecurity = row_security;
 
 	/*
 	 * Also save the current search_path in the query_context.  (This should
@@ -845,6 +831,13 @@ CheckCachedPlan(CachedPlanSource *plansource)
 	Assert(plan->magic == CACHEDPLAN_MAGIC);
 	/* Generic plans are never one-shot */
 	Assert(!plan->is_oneshot);
+
+	/*
+	 * If plan isn't valid for current role, we can't use it.
+	 */
+	if (plan->is_valid && plan->dependsOnRole &&
+		plan->planRoleId != GetUserId())
+		plan->is_valid = false;
 
 	/*
 	 * If it appears valid, acquire locks and recheck; this is much the same
@@ -918,8 +911,10 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	List	   *plist;
 	bool		snapshot_set;
 	bool		spi_pushed;
+	bool		is_transient;
 	MemoryContext plan_context;
 	MemoryContext oldcxt = CurrentMemoryContext;
+	ListCell   *lc;
 
 	/*
 	 * Normally the querytree should be valid already, but if it's not,
@@ -1016,6 +1011,26 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	plan->stmt_list = plist;
 
 	/*
+	 * CachedPlan is dependent on role either if RLS affected the rewrite
+	 * phase or if a role dependency was injected during planning.  And it's
+	 * transient if any plan is marked so.
+	 */
+	plan->planRoleId = GetUserId();
+	plan->dependsOnRole = plansource->dependsOnRLS;
+	is_transient = false;
+	foreach(lc, plist)
+	{
+		PlannedStmt *plannedstmt = (PlannedStmt *) lfirst(lc);
+
+		if (!IsA(plannedstmt, PlannedStmt))
+			continue;			/* Ignore utility statements */
+
+		if (plannedstmt->transientPlan)
+			is_transient = true;
+		if (plannedstmt->dependsOnRole)
+			plan->dependsOnRole = true;
+	}
+	/*
 	 * In GPDB, the planner is more aggressive, and e.g. eagerly evaluates
 	 * stable functions in the planner already. Such plans are marked as
 	 * 'one-off', and mustn't be reused. Likewise, plans for CTAS are not
@@ -1025,7 +1040,7 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	{
 		plan->saved_xmin = BootstrapTransactionId;
 	}
-	else if (plan_list_is_transient(plist))
+	else if (is_transient)
 	{
 		Assert(TransactionIdIsNormal(TransactionXmin));
 		plan->saved_xmin = TransactionXmin;
@@ -1463,6 +1478,9 @@ CopyCachedPlan(CachedPlanSource *plansource)
 	if (plansource->search_path)
 		newsource->search_path = CopyOverrideSearchPath(plansource->search_path);
 	newsource->query_context = querytree_context;
+	newsource->rewriteRoleId = plansource->rewriteRoleId;
+	newsource->rewriteRowSecurity = plansource->rewriteRowSecurity;
+	newsource->dependsOnRLS = plansource->dependsOnRLS;
 
 	newsource->gplan = NULL;
 
@@ -1788,29 +1806,12 @@ ScanQueryWalker(Node *node, bool *acquire)
 }
 
 /*
- * plan_list_is_transient: check if any of the plans in the list are transient.
- */
-static bool
-plan_list_is_transient(List *stmt_list)
-{
-	ListCell   *lc;
-
-	foreach(lc, stmt_list)
-	{
-		PlannedStmt *plannedstmt = (PlannedStmt *) lfirst(lc);
-
-		if (!IsA(plannedstmt, PlannedStmt))
-			continue;			/* Ignore utility statements */
-
-		if (plannedstmt->transientPlan)
-			return true;
-	}
-
-	return false;
-}
-
-/*
  * plan_list_is_oneoff: check if any of the plans in the list are one-off plans
+ *
+ *
+ * GPDB_96_MERGE_FIXME: This GPDB-specific function was inspired by upstream
+ * plan_list_is_transient() function. But that one was removed in PostgreSQL
+ * 9.6. Should we reconsider this one too?
  */
 static bool
 plan_list_is_oneoff(List *stmt_list)

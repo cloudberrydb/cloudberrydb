@@ -370,11 +370,11 @@ group by segid = -1, relname, classify_age(age);
 -----------+--------------------+--------------
  t         | pg_aovisimap_<oid> | very young
  t         | pg_aoblkdir_<oid>  | very young
- f         | pg_aoblkdir_<oid>  | zero
- f         | pg_aocsseg_<oid>   | zero
+ f         | pg_aoblkdir_<oid>  | very young
+ f         | pg_aocsseg_<oid>   | very young
  t         | pg_toast_<oid>     | very young
- f         | pg_toast_<oid>     | zero
- f         | pg_aovisimap_<oid> | zero
  t         | pg_aocsseg_<oid>   | very young
+ f         | pg_toast_<oid>     | very young
+ f         | pg_aovisimap_<oid> | very young
 (8 rows)
 

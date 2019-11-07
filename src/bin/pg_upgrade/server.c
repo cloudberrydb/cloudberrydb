@@ -3,7 +3,7 @@
  *
  *	database server functions
  *
- *	Copyright (c) 2010-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2016, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/server.c
  */
 
@@ -19,6 +19,7 @@
 #if 0
 #include "fe_utils/connect.h"
 #endif
+#include "fe_utils/string_utils.h"
 #include "pg_upgrade.h"
 
 

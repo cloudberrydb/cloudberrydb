@@ -631,12 +631,12 @@ select first_value(max(x)) over (), y
  WindowAgg
    ->  Gather Motion 3:1  (slice2; segments: 3)
          ->  Result
-               ->  HashAggregate
+               ->  Finalize HashAggregate
                      Group Key: ((ten + four))
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)
                            Hash Key: ((ten + four))
                            ->  Result
-                                 ->  HashAggregate
+                                 ->  Streaming Partial HashAggregate
                                        Group Key: (ten + four)
                                        ->  Result
                                              ->  Seq Scan on tenk1

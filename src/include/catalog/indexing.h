@@ -7,7 +7,7 @@
  *
  * Portions Copyright (c) 2007-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/indexing.h
@@ -170,6 +170,9 @@ DECLARE_UNIQUE_INDEX(pg_inherits_relid_seqno_index, 2680, on pg_inherits using b
 #define InheritsRelidSeqnoIndexId  2680
 DECLARE_INDEX(pg_inherits_parent_index, 2187, on pg_inherits using btree(inhparent oid_ops));
 #define InheritsParentIndexId  2187
+
+DECLARE_UNIQUE_INDEX(pg_init_privs_o_c_o_index, 3395, on pg_init_privs using btree(objoid oid_ops, classoid oid_ops, objsubid int4_ops));
+#define InitPrivsObjIndexId  3395
 
 DECLARE_UNIQUE_INDEX(pg_language_lanname_index, 2681, on pg_language using btree(lanname name_ops));
 #define LanguageNameIndexId  2681
@@ -362,21 +365,21 @@ DECLARE_UNIQUE_INDEX(pg_resgroupcapability_resgroupid_reslimittype_index, 6445, 
 DECLARE_INDEX(pg_resgroupcapability_resgroupid_index, 6446, on pg_resgroupcapability using btree(resgroupid oid_ops));
 #define ResGroupCapabilityResgroupidIndexId	6446
 
-DECLARE_UNIQUE_INDEX(pg_partition_oid_index, 5012, on pg_partition using btree(oid oid_ops));
-#define PartitionOidIndexId	5012
-DECLARE_INDEX(pg_partition_parrelid_index, 5013, on pg_partition using btree(parrelid oid_ops));
-#define PartitionParrelidIndexId	5013
-DECLARE_INDEX(pg_partition_parrelid_parlevel_istemplate_index, 5017, on pg_partition using btree(parrelid oid_ops, parlevel int2_ops, paristemplate bool_ops));
-#define PartitionParrelidParlevelParistemplateIndexId	5017
+DECLARE_UNIQUE_INDEX(pg_partition_oid_index, 5112, on pg_partition using btree(oid oid_ops));
+#define PartitionOidIndexId	5112
+DECLARE_INDEX(pg_partition_parrelid_index, 5113, on pg_partition using btree(parrelid oid_ops));
+#define PartitionParrelidIndexId	5113
+DECLARE_INDEX(pg_partition_parrelid_parlevel_istemplate_index, 5117, on pg_partition using btree(parrelid oid_ops, parlevel int2_ops, paristemplate bool_ops));
+#define PartitionParrelidParlevelParistemplateIndexId	5117
 
-DECLARE_UNIQUE_INDEX(pg_partition_rule_oid_index, 5014, on pg_partition_rule using btree(oid oid_ops));
-#define PartitionRuleOidIndexId	5014
-DECLARE_INDEX(pg_partition_rule_parchildrelid_index, 5016, on pg_partition_rule using btree(parchildrelid oid_ops));
-#define PartitionRuleParchildrelidIndexId	5016
-DECLARE_INDEX(pg_partition_rule_parchildrelid_parparentrule_parruleord_index, 5015, on pg_partition_rule using btree(parchildrelid oid_ops, parparentrule oid_ops, parruleord int2_ops));
-#define PartitionRuleParchildrelidParparentruleParruleordIndexId	5015
-DECLARE_INDEX(pg_partition_rule_paroid_parentrule_ruleord_index, 5026, on pg_partition_rule using btree(paroid oid_ops, parparentrule oid_ops, parruleord int2_ops));
-#define PartitionRuleParoidParparentruleParruleordIndexId	5026
+DECLARE_UNIQUE_INDEX(pg_partition_rule_oid_index, 5114, on pg_partition_rule using btree(oid oid_ops));
+#define PartitionRuleOidIndexId	5114
+DECLARE_INDEX(pg_partition_rule_parchildrelid_index, 5116, on pg_partition_rule using btree(parchildrelid oid_ops));
+#define PartitionRuleParchildrelidIndexId	5116
+DECLARE_INDEX(pg_partition_rule_parchildrelid_parparentrule_parruleord_index, 5115, on pg_partition_rule using btree(parchildrelid oid_ops, parparentrule oid_ops, parruleord int2_ops));
+#define PartitionRuleParchildrelidParparentruleParruleordIndexId	5115
+DECLARE_INDEX(pg_partition_rule_paroid_parentrule_ruleord_index, 5126, on pg_partition_rule using btree(paroid oid_ops, parparentrule oid_ops, parruleord int2_ops));
+#define PartitionRuleParoidParparentruleParruleordIndexId	5126
 
 DECLARE_UNIQUE_INDEX(pg_exttable_reloid_index, 6041, on pg_exttable using btree(reloid oid_ops));
 #define ExtTableReloidIndexId	6041
@@ -426,11 +429,6 @@ DECLARE_UNIQUE_INDEX(pg_replication_origin_roiident_index, 6001, on pg_replicati
 
 DECLARE_UNIQUE_INDEX(pg_replication_origin_roname_index, 6002, on pg_replication_origin using btree(roname text_pattern_ops));
 #define ReplicationOriginNameIndex 6002
-
-DECLARE_UNIQUE_INDEX(pg_tablesample_method_name_index, 3331, on pg_tablesample_method using btree(tsmname name_ops));
-#define TableSampleMethodNameIndexId  3331
-DECLARE_UNIQUE_INDEX(pg_tablesample_method_oid_index, 3332, on pg_tablesample_method using btree(oid oid_ops));
-#define TableSampleMethodOidIndexId  3332
 
 /* last step of initialization script: build the indexes declared above */
 BUILD_INDICES

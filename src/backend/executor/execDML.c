@@ -50,6 +50,44 @@ reconstructTupleValues(AttrMap *map,
 }
 
 /*
+ * Are two TupleDescs physically compatible?
+ *
+ * They are assumed to be "logically" the same. That means that columns
+ * are in the same order, and there might be dropped columns.
+ */
+static bool
+physicalEqualTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
+{
+	if (tupdesc1->natts != tupdesc2->natts)
+		return false;
+	if (tupdesc1->tdhasoid != tupdesc2->tdhasoid)
+		return false;
+
+	for (int i = 0; i < tupdesc1->natts; i++)
+	{
+		Form_pg_attribute attr1 = tupdesc1->attrs[i];
+		Form_pg_attribute attr2 = tupdesc2->attrs[i];
+
+		if (attr1->attisdropped != attr2->attisdropped)
+			return false;
+
+		/* ignore dropped columns */
+		if (attr1->attisdropped)
+			continue;
+
+		if (attr1->atttypid != attr2->atttypid)
+			return false;
+
+		/* these should all be equal, if the type OID is equal */
+		Assert(attr1->attlen == attr2->attlen);
+		Assert(attr1->attbyval == attr2->attbyval);
+		Assert(attr1->attalign == attr2->attalign);
+	}
+
+	return true;
+}
+
+/*
  * Use the supplied ResultRelInfo to create an appropriately restructured
  * version of the tuple in the supplied slot, if necessary.
  *
@@ -78,7 +116,7 @@ reconstructMatchingTupleSlot(TupleTableSlot *slot, ResultRelInfo *resultRelInfo)
 	bool tupleDescMatch = (resultRelInfo->tupdesc_match == 1);
 	if (resultRelInfo->tupdesc_match == 0)
 	{
-		tupleDescMatch = equalTupleDescs(inputTupDesc, resultTupDesc, false);
+		tupleDescMatch = physicalEqualTupleDescs(inputTupDesc, resultTupDesc);
 
 		if (tupleDescMatch)
 		{

@@ -4,7 +4,7 @@
  *
  * Author: Magnus Hagander <magnus@hagander.net>
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/pg_basebackup.c
@@ -381,10 +381,20 @@ typedef struct
 static int
 LogStreamerMain(logstreamer_param *param)
 {
-	if (!ReceiveXlogStream(param->bgconn, param->startptr, param->timeline,
-						   param->sysidentifier, param->xlogdir,
-						   reached_end_position, standby_message_timeout,
-						   NULL, false, true))
+	StreamCtl	stream;
+
+	MemSet(&stream, 0, sizeof(stream));
+	stream.startpos = param->startptr;
+	stream.timeline = param->timeline;
+	stream.sysidentifier = param->sysidentifier;
+	stream.stream_stop = reached_end_position;
+	stream.standby_message_timeout = standby_message_timeout;
+	stream.synchronous = false;
+	stream.mark_done = true;
+	stream.basedir = param->xlogdir;
+	stream.partial_suffix = NULL;
+
+	if (!ReceiveXlogStream(param->bgconn, &stream))
 
 		/*
 		 * Any errors will already have been reported in the function process,
@@ -1615,7 +1625,7 @@ GenerateRecoveryConf(PGconn *conn)
 
 		/* Separate key-value pairs with spaces */
 		if (conninfo_buf.len != 0)
-			appendPQExpBufferStr(&conninfo_buf, " ");
+			appendPQExpBufferChar(&conninfo_buf, ' ');
 
 		/*
 		 * Write "keyword=value" pieces, the value string is escaped and/or
@@ -1792,7 +1802,7 @@ BaseBackup(void)
 	 */
 	if (replication_slot)
 	{
-		CreateReplicationSlot(conn, replication_slot, NULL, NULL, true);
+		CreateReplicationSlot(conn, replication_slot, NULL, true, false);
 	}
 
 	/*
@@ -2009,6 +2019,7 @@ BaseBackup(void)
 		int			r;
 #else
 		DWORD		status;
+
 		/*
 		 * get a pointer sized version of bgchild to avoid warnings about
 		 * casting to a different size on WIN64.
@@ -2391,7 +2402,7 @@ main(int argc, char **argv)
 	if (replication_slot && !streamwal)
 	{
 		fprintf(stderr,
-				_("%s: replication slots can only be used with WAL streaming\n"),
+			_("%s: replication slots can only be used with WAL streaming\n"),
 				progname);
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 				progname);

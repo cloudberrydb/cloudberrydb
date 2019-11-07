@@ -8,7 +8,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Copyright (c) 2000-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2016, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * IDENTIFICATION
@@ -358,12 +358,13 @@ static const struct config_enum_entry constraint_exclusion_options[] = {
 };
 
 /*
- * Although only "on", "off", "remote_write", and "local" are documented, we
- * accept all the likely variants of "on" and "off".
+ * Although only "on", "off", "remote_apply", "remote_write", and "local" are
+ * documented, we accept all the likely variants of "on" and "off".
  */
 static const struct config_enum_entry synchronous_commit_options[] = {
 	{"local", SYNCHRONOUS_COMMIT_LOCAL_FLUSH, false},
 	{"remote_write", SYNCHRONOUS_COMMIT_REMOTE_WRITE, false},
+	{"remote_apply", SYNCHRONOUS_COMMIT_REMOTE_APPLY, false},
 	{"on", SYNCHRONOUS_COMMIT_ON, false},
 	{"off", SYNCHRONOUS_COMMIT_OFF, false},
 	{"true", SYNCHRONOUS_COMMIT_ON, true},
@@ -392,20 +393,16 @@ static const struct config_enum_entry huge_pages_options[] = {
 	{NULL, 0, false}
 };
 
-/*
- * Although only "on", "off", and "force" are documented, we
- * accept all the likely variants of "on" and "off".
- */
-static const struct config_enum_entry row_security_options[] = {
-	{"on", ROW_SECURITY_ON, false},
-	{"off", ROW_SECURITY_OFF, false},
-	{"force", ROW_SECURITY_FORCE, false},
-	{"true", ROW_SECURITY_ON, true},
-	{"false", ROW_SECURITY_OFF, true},
-	{"yes", ROW_SECURITY_ON, true},
-	{"no", ROW_SECURITY_OFF, true},
-	{"1", ROW_SECURITY_ON, true},
-	{"0", ROW_SECURITY_OFF, true},
+static const struct config_enum_entry force_parallel_mode_options[] = {
+	{"off", FORCE_PARALLEL_OFF, false},
+	{"on", FORCE_PARALLEL_ON, false},
+	{"regress", FORCE_PARALLEL_REGRESS, false},
+	{"true", FORCE_PARALLEL_ON, true},
+	{"false", FORCE_PARALLEL_OFF, true},
+	{"yes", FORCE_PARALLEL_ON, true},
+	{"no", FORCE_PARALLEL_OFF, true},
+	{"1", FORCE_PARALLEL_ON, true},
+	{"0", FORCE_PARALLEL_OFF, true},
 	{NULL, 0, false}
 };
 
@@ -434,6 +431,7 @@ bool		log_statement_stats = false;		/* this is sort of all three
 bool		log_btree_build_stats = false;
 char	   *event_source;
 
+bool		row_security;
 bool		check_function_bodies = true;
 bool		default_with_oids = false;
 bool		SQL_inheritance = true;
@@ -465,7 +463,13 @@ int			tcp_keepalives_idle;
 int			tcp_keepalives_interval;
 int			tcp_keepalives_count;
 
-int			row_security;
+/*
+ * SSL renegotiation was been removed in PostgreSQL 9.5, but we tolerate it
+ * being set to zero (meaning never renegotiate) for backward compatibility.
+ * This avoids breaking compatibility with clients that have never supported
+ * renegotiation and therefore always try to zero it.
+ */
+int			ssl_renegotiation_limit;
 
 /*
  * This really belongs in pg_shmem.c, but is defined here so that it doesn't
@@ -503,7 +507,6 @@ static bool data_checksums;
 static int	wal_segment_size;
 static bool	data_checksums;
 static bool integer_datetimes;
-static int	effective_io_concurrency;
 static bool assert_enabled;
 
 /* should be static, but commands/variable.c needs to get at this */
@@ -617,6 +620,8 @@ const char *const config_group_names[] =
 	gettext_noop("Reporting and Logging / When to Log"),
 	/* LOGGING_WHAT */
 	gettext_noop("Reporting and Logging / What to Log"),
+	/* PROCESS_TITLE */
+	gettext_noop("Process Title"),
 	/* STATS */
 	gettext_noop("Statistics"),
 	/* STATS_ANALYZE */
@@ -912,6 +917,7 @@ static struct config_bool ConfigureNamesBool[] =
 		true,
 		NULL, NULL, NULL
 	},
+
 	{
 		{"geqo", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Unused. Syntax check only for PostgreSQL compatibility."),
@@ -1038,7 +1044,7 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 
 	{
-		{"wal_compression", PGC_USERSET, WAL_SETTINGS,
+		{"wal_compression", PGC_SUSET, WAL_SETTINGS,
 			gettext_noop("Compresses full-page writes written in WAL file."),
 			NULL
 		},
@@ -1242,7 +1248,7 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 
 	{
-		{"update_process_title", PGC_SUSET, STATS_COLLECTOR,
+		{"update_process_title", PGC_SUSET, PROCESS_TITLE,
 			gettext_noop("Updates the process title to show the active SQL command."),
 			gettext_noop("Enables updating of the process title every time a new SQL command is received by the server.")
 		},
@@ -1432,6 +1438,15 @@ static struct config_bool ConfigureNamesBool[] =
 		&XactDeferrable,
 		false,
 		check_transaction_deferrable, NULL, NULL
+	},
+	{
+		{"row_security", PGC_USERSET, CONN_AUTH_SECURITY,
+			gettext_noop("Enable row security."),
+			gettext_noop("When enabled, row security will be applied to all users.")
+		},
+		&row_security,
+		true,
+		NULL, NULL, NULL
 	},
 	{
 		{"check_function_bodies", PGC_USERSET, CLIENT_CONN_STATEMENT,
@@ -1673,6 +1688,26 @@ static struct config_bool ConfigureNamesBool[] =
 		},
 		&data_checksums,
 		false,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"syslog_sequence_numbers", PGC_SIGHUP, LOGGING_WHERE,
+			gettext_noop("Add sequence number to syslog messages to avoid duplicate suppression."),
+			NULL
+		},
+		&syslog_sequence_numbers,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"syslog_split_messages", PGC_SIGHUP, LOGGING_WHERE,
+			gettext_noop("Split messages sent to syslog by lines and to fit into 1024 bytes."),
+			NULL
+		},
+		&syslog_split_messages,
+		true,
 		NULL, NULL, NULL
 	},
 
@@ -1948,6 +1983,16 @@ static struct config_int ConfigureNamesInt[] =
 		NULL, NULL, NULL
 	},
 
+	{
+		{"replacement_sort_tuples", PGC_USERSET, RESOURCES_MEM,
+			gettext_noop("Sets the maximum number of tuples to be sorted using replacement selection."),
+			gettext_noop("When more tuples than this are present, quicksort will be used.")
+		},
+		&replacement_sort_tuples,
+		150000, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
 	/*
 	 * We use the hopefully-safely-small value of 100kB as the compiled-in
 	 * default for max_stack_depth.  InitializeGUCOptions will increase it if
@@ -1966,7 +2011,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"temp_file_limit", PGC_SUSET, RESOURCES_DISK,
-			gettext_noop("Limits the total size of all temporary files used by each session."),
+			gettext_noop("Limits the total size of all temporary files used by each process."),
 			gettext_noop("-1 means no limit."),
 			GUC_UNIT_KB
 		},
@@ -2112,6 +2157,17 @@ static struct config_int ConfigureNamesInt[] =
 			GUC_UNIT_MS
 		},
 		&LockTimeout,
+		0, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"idle_in_transaction_session_timeout", PGC_USERSET, CLIENT_CONN_STATEMENT,
+			gettext_noop("Sets the maximum allowed duration of any idling transaction."),
+			gettext_noop("A value of 0 turns off the timeout."),
+			GUC_UNIT_MS
+		},
+		&IdleInTransactionSessionTimeout,
 		0, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
@@ -2273,6 +2329,18 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
+		{"checkpoint_flush_after", PGC_SIGHUP, WAL_CHECKPOINTS,
+			gettext_noop("Number of pages after which previously performed writes are flushed to disk."),
+			NULL,
+			GUC_UNIT_BLOCKS
+		},
+		&checkpoint_flush_after,
+		/* see bufmgr.h: OS dependent default */
+		DEFAULT_CHECKPOINT_FLUSH_AFTER, 0, WRITEBACK_MAX_PENDING_FLUSHES,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"wal_buffers", PGC_POSTMASTER, WAL_SETTINGS,
 			gettext_noop("Sets the number of disk-page buffers in shared memory for WAL."),
 			NULL,
@@ -2285,12 +2353,23 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"wal_writer_delay", PGC_SIGHUP, WAL_SETTINGS,
-			gettext_noop("WAL writer sleep time between WAL flushes."),
+			gettext_noop("Time between WAL flushes performed in the WAL writer."),
 			NULL,
 			GUC_UNIT_MS
 		},
 		&WalWriterDelay,
 		200, 1, 10000,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"wal_writer_flush_after", PGC_SIGHUP, WAL_SETTINGS,
+			gettext_noop("Amount of WAL written out by WAL writer triggering a flush."),
+			NULL,
+			GUC_UNIT_XBLOCKS
+		},
+		&WalWriterFlushAfter,
+		128, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 
@@ -2418,6 +2497,18 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
+		{"bgwriter_flush_after", PGC_SIGHUP, RESOURCES_BGWRITER,
+			gettext_noop("Number of pages after which previously performed writes are flushed to disk."),
+			NULL,
+			GUC_UNIT_BLOCKS
+		},
+		&bgwriter_flush_after,
+		/* see bufmgr.h: OS dependent default */
+		DEFAULT_BGWRITER_FLUSH_AFTER, 0, WRITEBACK_MAX_PENDING_FLUSHES,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"effective_io_concurrency",
 			PGC_USERSET,
 			RESOURCES_ASYNCHRONOUS,
@@ -2426,11 +2517,22 @@ static struct config_int ConfigureNamesInt[] =
 		},
 		&effective_io_concurrency,
 #ifdef USE_PREFETCH
-		1, 0, 1000,
+		1, 0, MAX_IO_CONCURRENCY,
 #else
 		0, 0, 0,
 #endif
 		check_effective_io_concurrency, assign_effective_io_concurrency, NULL
+	},
+
+	{
+		{"backend_flush_after", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+			gettext_noop("Number of pages after which previously performed writes are flushed to disk."),
+			NULL,
+			GUC_UNIT_BLOCKS
+		},
+		&backend_flush_after,
+		0, 0, WRITEBACK_MAX_PENDING_FLUSHES,
+		NULL, NULL, NULL
 	},
 
 	{
@@ -2535,7 +2637,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"wal_retrieve_retry_interval", PGC_SIGHUP, REPLICATION_STANDBY,
-			gettext_noop("Sets the time to wait before retrying to retrieve WAL"
+			gettext_noop("Sets the time to wait before retrying to retrieve WAL "
 						 "after a failed attempt."),
 			NULL,
 			GUC_UNIT_MS
@@ -2622,6 +2724,16 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
+		{"max_parallel_workers_per_gather", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+			gettext_noop("Sets the maximum number of parallel processes per executor node."),
+			NULL
+		},
+		&max_parallel_workers_per_gather,
+		2, 0, 1024,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"autovacuum_work_mem", PGC_SIGHUP, RESOURCES_MEM,
 			gettext_noop("Sets the maximum memory to be used by each autovacuum worker process."),
 			NULL,
@@ -2630,6 +2742,17 @@ static struct config_int ConfigureNamesInt[] =
 		&autovacuum_work_mem,
 		-1, -1, MAX_KILOBYTES,
 		check_autovacuum_work_mem, NULL, NULL
+	},
+
+	{
+		{"old_snapshot_threshold", PGC_POSTMASTER, RESOURCES_ASYNCHRONOUS,
+			gettext_noop("Time before a snapshot is too old to read pages changed after the snapshot was taken."),
+			gettext_noop("A value of -1 disables this feature."),
+			GUC_UNIT_MIN
+		},
+		&old_snapshot_threshold,
+		-1, -1, MINS_PER_HOUR * HOURS_PER_DAY * 60,
+		NULL, NULL, NULL
 	},
 
 	{
@@ -2652,6 +2775,17 @@ static struct config_int ConfigureNamesInt[] =
 		&tcp_keepalives_interval,
 		0, 0, INT_MAX,
 		NULL, assign_tcp_keepalives_interval, show_tcp_keepalives_interval
+	},
+
+	{
+		{"ssl_renegotiation_limit", PGC_USERSET, CONN_AUTH_SECURITY,
+			gettext_noop("SSL renegotiation is no longer supported; this can only be 0."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE,
+		},
+		&ssl_renegotiation_limit,
+		0, 0, 0,
+		NULL, NULL, NULL
 	},
 
 	{
@@ -2685,6 +2819,17 @@ static struct config_int ConfigureNamesInt[] =
 		},
 		&effective_cache_size,
 		DEFAULT_EFFECTIVE_CACHE_SIZE, 1, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"min_parallel_relation_size", PGC_USERSET, QUERY_TUNING_COST,
+			gettext_noop("Sets the minimum size of relations to be considered for parallel scan."),
+			NULL,
+			GUC_UNIT_BLOCKS,
+		},
+		&min_parallel_relation_size,
+		1024, 0, INT_MAX / 3,
 		NULL, NULL, NULL
 	},
 
@@ -2794,6 +2939,26 @@ static struct config_real ConfigureNamesReal[] =
 		},
 		&cpu_operator_cost,
 		DEFAULT_CPU_OPERATOR_COST, 0, DBL_MAX,
+		NULL, NULL, NULL
+	},
+	{
+		{"parallel_tuple_cost", PGC_USERSET, QUERY_TUNING_COST,
+			gettext_noop("Sets the planner's estimate of the cost of "
+				  "passing each tuple (row) from worker to master backend."),
+			NULL
+		},
+		&parallel_tuple_cost,
+		DEFAULT_PARALLEL_TUPLE_COST, 0, DBL_MAX,
+		NULL, NULL, NULL
+	},
+	{
+		{"parallel_setup_cost", PGC_USERSET, QUERY_TUNING_COST,
+			gettext_noop("Sets the planner's estimate of the cost of "
+						 "starting up worker processes for parallel query."),
+			NULL
+		},
+		&parallel_setup_cost,
+		DEFAULT_PARALLEL_SETUP_COST, 0, DBL_MAX,
 		NULL, NULL, NULL
 	},
 
@@ -3395,13 +3560,13 @@ static struct config_string ConfigureNamesString[] =
 
 	{
 		{"synchronous_standby_names", PGC_SIGHUP, REPLICATION_MASTER,
-			gettext_noop("List of names of potential synchronous standbys."),
+			gettext_noop("Number of synchronous standbys and list of names of potential synchronous ones."),
 			NULL,
 			GUC_LIST_INPUT
 		},
 		&SyncRepStandbyNames,
 		"",
-		check_synchronous_standby_names, NULL, NULL
+		check_synchronous_standby_names, assign_synchronous_standby_names, NULL
 	},
 
 	{
@@ -3456,8 +3621,8 @@ static struct config_string ConfigureNamesString[] =
 	},
 
 	{
-		{"cluster_name", PGC_POSTMASTER, LOGGING_WHAT,
-			gettext_noop("Sets the name of the cluster which is included in the process title."),
+		{"cluster_name", PGC_POSTMASTER, PROCESS_TITLE,
+			gettext_noop("Sets the name of the cluster, which is included in the process title."),
 			NULL,
 			GUC_IS_NAME
 		},
@@ -3671,7 +3836,7 @@ static struct config_enum ConfigureNamesEnum[] =
 			NULL
 		},
 		&wal_level,
-		WAL_LEVEL_ARCHIVE, wal_level_options,
+		WAL_LEVEL_REPLICA, wal_level_options,
 		NULL, NULL, NULL
 	},
 
@@ -3728,12 +3893,12 @@ static struct config_enum ConfigureNamesEnum[] =
 	},
 
 	{
-		{"row_security", PGC_USERSET, CONN_AUTH_SECURITY,
-			gettext_noop("Enable row security."),
-			gettext_noop("When enabled, row security will be applied to all users.")
+		{"force_parallel_mode", PGC_USERSET, QUERY_TUNING_OTHER,
+			gettext_noop("Forces use of parallel query facilities."),
+			gettext_noop("If possible, run query using a parallel worker and with parallel restrictions.")
 		},
-		&row_security,
-		ROW_SECURITY_ON, row_security_options,
+		&force_parallel_mode,
+		FORCE_PARALLEL_OFF, force_parallel_mode_options,
 		NULL, NULL, NULL
 	},
 
@@ -4120,7 +4285,7 @@ gp_guc_list_show(GucSource excluding, List *guclist)
 
 /*
  * Build the sorted array.  This is split out so that it could be
- * re-executed after startup (eg, we could allow loadable modules to
+ * re-executed after startup (e.g., we could allow loadable modules to
  * add vars, and then we'd need to re-sort).
  */
 void
@@ -4690,6 +4855,17 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	else
 		configdir = make_absolute_path(getenv("PGDATA"));
 
+	if (configdir && stat(configdir, &stat_buf) != 0)
+	{
+		write_stderr("%s: could not access directory \"%s\": %s\n",
+					 progname,
+					 configdir,
+					 strerror(errno));
+		if (errno == ENOENT)
+			write_stderr("Run initdb or pg_basebackup to initialize a PostgreSQL data directory.\n");
+		return false;
+	}
+
 	/*
 	 * Find the configuration file: if config_file was specified on the
 	 * command line, use it, else use configdir/postgresql.conf.  In any case
@@ -4725,7 +4901,7 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	 */
 	if (stat(ConfigFileName, &stat_buf) != 0)
 	{
-		write_stderr("%s cannot access the server configuration file \"%s\": %s\n",
+		write_stderr("%s: could not access the server configuration file \"%s\": %s\n",
 					 progname, ConfigFileName, strerror(errno));
 		free(configdir);
 		return false;
@@ -6048,13 +6224,14 @@ set_config_option(const char *name, const char *value,
 				 * don't re-read the config file during backend start.
 				 *
 				 * In EXEC_BACKEND builds, this works differently: we load all
-				 * nondefault settings from the CONFIG_EXEC_PARAMS file during
-				 * backend start.  In that case we must accept PGC_SIGHUP
-				 * settings, so as to have the same value as if we'd forked
-				 * from the postmaster.  This can also happen when using
-				 * RestoreGUCState() within a background worker that needs to
-				 * have the same settings as the user backend that started it.
-				 * is_reload will be true when either situation applies.
+				 * non-default settings from the CONFIG_EXEC_PARAMS file
+				 * during backend start.  In that case we must accept
+				 * PGC_SIGHUP settings, so as to have the same value as if
+				 * we'd forked from the postmaster.  This can also happen when
+				 * using RestoreGUCState() within a background worker that
+				 * needs to have the same settings as the user backend that
+				 * started it. is_reload will be true when either situation
+				 * applies.
 				 */
 				if (IsUnderPostmaster && !is_reload)
 					return -1;
@@ -6850,7 +7027,7 @@ GetConfigOptionFlags(const char *name, bool missing_ok)
  * We need to be told the name of the variable the args are for, because
  * the flattening rules vary (ugh).
  *
- * The result is NULL if args is NIL (ie, SET ... TO DEFAULT), otherwise
+ * The result is NULL if args is NIL (i.e., SET ... TO DEFAULT), otherwise
  * a palloc'd string.
  */
 static char *
@@ -7492,7 +7669,7 @@ ExtractSetVariableArgs(VariableSetStmt *stmt)
 		case VAR_SET_VALUE:
 			return flatten_set_variable_args(stmt->name, stmt->args);
 		case VAR_SET_CURRENT:
-			return GetConfigOptionByName(stmt->name, NULL);
+			return GetConfigOptionByName(stmt->name, NULL, false);
 		default:
 			return NULL;
 	}
@@ -7670,7 +7847,7 @@ set_config_by_name(PG_FUNCTION_ARGS)
 	}
 
 	/* get the new current value */
-	new_value = GetConfigOptionByName(name, NULL);
+	new_value = GetConfigOptionByName(name, NULL, false);
 
 	/* Convert return string to text */
 	PG_RETURN_TEXT_P(cstring_to_text(new_value));
@@ -8109,7 +8286,7 @@ GetPGVariableResultDesc(const char *name)
 		const char *varname;
 
 		/* Get the canonical spelling of name */
-		(void) GetConfigOptionByName(name, &varname);
+		(void) GetConfigOptionByName(name, &varname, false);
 
 		/* need a tuple descriptor representing a single TEXT column */
 		tupdesc = CreateTemplateTupleDesc(1, false);
@@ -8132,7 +8309,7 @@ ShowGUCConfigOption(const char *name, DestReceiver *dest)
 	char	   *value;
 
 	/* Get the value and canonical spelling of name */
-	value = GetConfigOptionByName(name, &varname);
+	value = GetConfigOptionByName(name, &varname, false);
 
 	/* need a tuple descriptor representing a single TEXT column */
 	tupdesc = CreateTemplateTupleDesc(1, false);
@@ -8216,19 +8393,30 @@ ShowAllGUCConfig(DestReceiver *dest)
 }
 
 /*
- * Return GUC variable value by name; optionally return canonical
- * form of name.  Return value is palloc'd.
+ * Return GUC variable value by name; optionally return canonical form of
+ * name.  If the GUC is unset, then throw an error unless missing_ok is true,
+ * in which case return NULL.  Return value is palloc'd (but *varname isn't).
  */
 char *
-GetConfigOptionByName(const char *name, const char **varname)
+GetConfigOptionByName(const char *name, const char **varname, bool missing_ok)
 {
 	struct config_generic *record;
 
 	record = find_option(name, false, ERROR);
 	if (record == NULL)
+	{
+		if (missing_ok)
+		{
+			if (varname)
+				*varname = NULL;
+			return NULL;
+		}
+
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 			   errmsg("unrecognized configuration parameter \"%s\"", name)));
+	}
+
 	if ((record->flags & GUC_SUPERUSER_ONLY) && !superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
@@ -8325,7 +8513,7 @@ GetConfigOptionByNum(int varnum, const char **values, bool *noshow)
 	/* source */
 	values[8] = GucSource_Names[conf->source];
 
-	/* now get the type specifc attributes */
+	/* now get the type specific attributes */
 	switch (conf->vartype)
 	{
 		case PGC_BOOL:
@@ -8515,14 +8703,34 @@ GetNumConfigOptions(void)
 Datum
 show_config_by_name(PG_FUNCTION_ARGS)
 {
-	char	   *varname;
+	char	   *varname = TextDatumGetCString(PG_GETARG_DATUM(0));
 	char	   *varval;
 
-	/* Get the GUC variable name */
-	varname = TextDatumGetCString(PG_GETARG_DATUM(0));
+	/* Get the value */
+	varval = GetConfigOptionByName(varname, NULL, false);
+
+	/* Convert to text */
+	PG_RETURN_TEXT_P(cstring_to_text(varval));
+}
+
+/*
+ * show_config_by_name_missing_ok - equiv to SHOW X command but implemented as
+ * a function.  If X does not exist, suppress the error and just return NULL
+ * if missing_ok is TRUE.
+ */
+Datum
+show_config_by_name_missing_ok(PG_FUNCTION_ARGS)
+{
+	char	   *varname = TextDatumGetCString(PG_GETARG_DATUM(0));
+	bool		missing_ok = PG_GETARG_BOOL(1);
+	char	   *varval;
 
 	/* Get the value */
-	varval = GetConfigOptionByName(varname, NULL);
+	varval = GetConfigOptionByName(varname, NULL, missing_ok);
+
+	/* return NULL if no such variable */
+	if (varval == NULL)
+		PG_RETURN_NULL();
 
 	/* Convert to text */
 	PG_RETURN_TEXT_P(cstring_to_text(varval));
@@ -9844,7 +10052,7 @@ validate_option_array_item(const char *name, const char *value,
 	 * There are three cases to consider:
 	 *
 	 * name is a known GUC variable.  Check the value normally, check
-	 * permissions normally (ie, allow if variable is USERSET, or if it's
+	 * permissions normally (i.e., allow if variable is USERSET, or if it's
 	 * SUSET and user is superuser).
 	 *
 	 * name is not known, but exists or can be created as a placeholder (i.e.,
@@ -10459,47 +10667,9 @@ static bool
 check_effective_io_concurrency(int *newval, void **extra, GucSource source)
 {
 #ifdef USE_PREFETCH
-	double		new_prefetch_pages = 0.0;
-	int			i;
+	double		new_prefetch_pages;
 
-	/*----------
-	 * The user-visible GUC parameter is the number of drives (spindles),
-	 * which we need to translate to a number-of-pages-to-prefetch target.
-	 * The target value is stashed in *extra and then assigned to the actual
-	 * variable by assign_effective_io_concurrency.
-	 *
-	 * The expected number of prefetch pages needed to keep N drives busy is:
-	 *
-	 * drives |   I/O requests
-	 * -------+----------------
-	 *		1 |   1
-	 *		2 |   2/1 + 2/2 = 3
-	 *		3 |   3/1 + 3/2 + 3/3 = 5 1/2
-	 *		4 |   4/1 + 4/2 + 4/3 + 4/4 = 8 1/3
-	 *		n |   n * H(n)
-	 *
-	 * This is called the "coupon collector problem" and H(n) is called the
-	 * harmonic series.  This could be approximated by n * ln(n), but for
-	 * reasonable numbers of drives we might as well just compute the series.
-	 *
-	 * Alternatively we could set the target to the number of pages necessary
-	 * so that the expected number of active spindles is some arbitrary
-	 * percentage of the total.  This sounds the same but is actually slightly
-	 * different.  The result ends up being ln(1-P)/ln((n-1)/n) where P is
-	 * that desired fraction.
-	 *
-	 * Experimental results show that both of these formulas aren't aggressive
-	 * enough, but we don't really have any better proposals.
-	 *
-	 * Note that if *newval = 0 (disabled), we must set target = 0.
-	 *----------
-	 */
-
-	for (i = 1; i <= *newval; i++)
-		new_prefetch_pages += (double) *newval / (double) i;
-
-	/* This range check shouldn't fail, but let's be paranoid */
-	if (new_prefetch_pages >= 0.0 && new_prefetch_pages < (double) INT_MAX)
+	if (ComputeIoConcurrency(*newval, &new_prefetch_pages))
 	{
 		int		   *myextra = (int *) guc_malloc(ERROR, sizeof(int));
 

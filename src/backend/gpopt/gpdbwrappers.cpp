@@ -32,6 +32,7 @@
 #include "catalog/pg_collation.h"
 extern "C" {
 	#include "utils/memutils.h"
+	#include "parser/parse_agg.h"
 }
 #define GP_WRAP_START	\
 	sigjmp_buf local_sigjmp_buf;	\
@@ -707,6 +708,38 @@ gpdb::GetAggIntermediateResultType
 	{
 		/* catalog tables: pg_aggregate */
 		return get_agg_transtype(aggid);
+	}
+	GP_WRAP_END;
+	return 0;
+}
+
+int
+gpdb::GetAggregateArgTypes
+	(
+	Aggref *aggref,
+	Oid *inputTypes
+	)
+{
+	GP_WRAP_START;
+	{
+		return get_aggregate_argtypes(aggref, inputTypes);
+	}
+	GP_WRAP_END;
+	return 0;
+}
+
+Oid
+gpdb::ResolveAggregateTransType
+	(
+	Oid aggfnoid,
+	Oid aggtranstype,
+	Oid *inputTypes,
+	int numArguments
+	)
+{
+	GP_WRAP_START;
+	{
+		return resolve_aggregate_transtype(aggfnoid, aggtranstype, inputTypes, numArguments);
 	}
 	GP_WRAP_END;
 	return 0;

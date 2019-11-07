@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,7 +30,6 @@
 #include "access/sysattr.h"
 #include "access/xact.h"
 #include "access/xlog.h"
-#include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/copy.h"
 #include "commands/defrem.h"
@@ -42,12 +41,10 @@
 #include "miscadmin.h"
 #include "optimizer/clauses.h"
 #include "optimizer/planner.h"
-#include "parser/parse_relation.h"
 #include "nodes/makefuncs.h"
 #include "rewrite/rewriteHandler.h"
 #include "storage/fd.h"
 #include "tcop/tcopprot.h"
-#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
@@ -58,6 +55,7 @@
 
 #include "access/appendonlywriter.h"
 #include "access/fileam.h"
+#include "catalog/namespace.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbconn.h"
@@ -77,8 +75,6 @@
 
 #define ISOCTAL(c) (((c) >= '0') && ((c) <= '7'))
 #define OCTVALUE(c) ((c) - '0')
-
-
 
 
 /*
@@ -912,8 +908,9 @@ CopyLoadRawBuf(CopyState cstate)
  *	 DoCopy executes the SQL COPY statement
  *
  * Either unload or reload contents of table <relation>, depending on <from>.
- * (<from> = TRUE means we are inserting into the table.) In the "TO" case
- * we also support copying the output of an arbitrary SELECT query.
+ * (<from> = TRUE means we are inserting into the table.)  In the "TO" case
+ * we also support copying the output of an arbitrary SELECT, INSERT, UPDATE
+ * or DELETE query.
  *
  * If <pipe> is false, transfer is between the table and the file named
  * <filename>.  Otherwise, transfer is between the table and our regular
@@ -1046,8 +1043,8 @@ DoCopy(const CopyStmt *stmt, const char *queryString, uint64 *processed)
 			if (is_from)
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				  errmsg("COPY FROM not supported with row level security."),
-						 errhint("Use direct INSERT statements instead.")));
+				   errmsg("COPY FROM not supported with row-level security"),
+						 errhint("Use INSERT statements instead.")));
 
 			/* Build target list */
 			cr = makeNode(ColumnRef);
@@ -1065,8 +1062,13 @@ DoCopy(const CopyStmt *stmt, const char *queryString, uint64 *processed)
 			target->val = (Node *) cr;
 			target->location = 1;
 
-			/* Build FROM clause */
-			from = stmt->relation;
+			/*
+			 * Build RangeVar for from clause, fully qualified based on the
+			 * relation which we have opened and locked.
+			 */
+			from = makeRangeVar(get_namespace_name(RelationGetNamespace(rel)),
+								pstrdup(RelationGetRelationName(rel)),
+								-1);
 
 			/* Build query */
 			select = makeNode(SelectStmt);
@@ -1075,8 +1077,13 @@ DoCopy(const CopyStmt *stmt, const char *queryString, uint64 *processed)
 
 			query = (Node *) select;
 
-			/* Close the handle to the relation as it is no longer needed. */
-			heap_close(rel, (is_from ? RowExclusiveLock : AccessShareLock));
+			/*
+			 * Close the relation for now, but keep the lock on it to prevent
+			 * changes between now and when we start the query-based COPY.
+			 *
+			 * We'll reopen it later as part of the query-based COPY.
+			 */
+			heap_close(rel, NoLock);
 			rel = NULL;
 		}
 	}
@@ -1860,11 +1867,11 @@ BeginCopy(bool is_from,
 		Assert(!is_from);
 		cstate->rel = NULL;
 
-		/* Don't allow COPY w/ OIDs from a select */
+		/* Don't allow COPY w/ OIDs from a query */
 		if (cstate->oids)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("COPY (SELECT) WITH OIDS is not supported")));
+					 errmsg("COPY (query) WITH OIDS is not supported")));
 
 		/*
 		 * Run parse analysis and rewrite.  Note this also acquires sufficient
@@ -1879,9 +1886,36 @@ BeginCopy(bool is_from,
 		rewritten = pg_analyze_and_rewrite((Node *) copyObject(raw_query),
 										   queryString, NULL, 0);
 
-		/* We don't expect more or less than one result query */
-		if (list_length(rewritten) != 1)
-			elog(ERROR, "unexpected rewrite result");
+		/* check that we got back something we can work with */
+		if (rewritten == NIL)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("DO INSTEAD NOTHING rules are not supported for COPY")));
+		}
+		else if (list_length(rewritten) > 1)
+		{
+			ListCell   *lc;
+
+			/* examine queries to determine which error message to issue */
+			foreach(lc, rewritten)
+			{
+				Query	   *q = (Query *) lfirst(lc);
+
+				if (q->querySource == QSRC_QUAL_INSTEAD_RULE)
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("conditional DO INSTEAD rules are not supported for COPY")));
+				if (q->querySource == QSRC_NON_INSTEAD_RULE)
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("DO ALSO rules are not supported for the COPY")));
+			}
+
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("multi-statement DO INSTEAD rules are not supported for COPY")));
+		}
 
 		query = (Query *) linitial(rewritten);
 
@@ -1897,32 +1931,47 @@ BeginCopy(bool is_from,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("COPY (SELECT INTO) is not supported")));
 
-		Assert(query->commandType == CMD_SELECT);
 		Assert(query->utilityStmt == NULL);
 
+		/*
+		 * Similarly the grammar doesn't enforce the presence of a RETURNING
+		 * clause, but this is required here.
+		 */
+		if (query->commandType != CMD_SELECT &&
+			query->returningList == NIL)
+		{
+			Assert(query->commandType == CMD_INSERT ||
+				   query->commandType == CMD_UPDATE ||
+				   query->commandType == CMD_DELETE);
+
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("COPY query must have a RETURNING clause")));
+		}
+
 		/* plan the query */
-		plan = planner(query, 0, NULL);
+		plan = pg_plan_query(query, 0, NULL);
 
 		/*
-		 * If we were passed in a relid, make sure we got the same one back
-		 * after planning out the query.  It's possible that it changed
-		 * between when we checked the policies on the table and decided to
-		 * use a query and now.
+		 * With row level security and a user using "COPY relation TO", we
+		 * have to convert the "COPY relation TO" to a query-based COPY (eg:
+		 * "COPY (SELECT * FROM relation) TO"), to allow the rewriter to add
+		 * in any RLS clauses.
+		 *
+		 * When this happens, we are passed in the relid of the originally
+		 * found relation (which we have locked).  As the planner will look up
+		 * the relation again, we double-check here to make sure it found the
+		 * same one that we have locked.
 		 */
 		if (queryRelId != InvalidOid)
 		{
-			Oid			relid = linitial_oid(plan->relationOids);
-
 			/*
-			 * There should only be one relationOid in this case, since we
-			 * will only get here when we have changed the command for the
-			 * user from a "COPY relation TO" to "COPY (SELECT * FROM
-			 * relation) TO", to allow row level security policies to be
-			 * applied.
+			 * Note that with RLS involved there may be multiple relations,
+			 * and while the one we need is almost certainly first, we don't
+			 * make any guarantees of that in the planner, so check the whole
+			 * list and make sure we find the original relation.
 			 */
-			Assert(list_length(plan->relationOids) == 1);
-
-			if (relid != queryRelId)
+			if (!list_member_oid(plan->relationOids, queryRelId))
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				errmsg("relation referenced by COPY statement has changed")));
@@ -1980,7 +2029,7 @@ BeginCopy(bool is_from,
 
 	num_phys_attrs = tupDesc->natts;
 
-	/* Convert FORCE QUOTE name list to per-column flags, check validity */
+	/* Convert FORCE_QUOTE name list to per-column flags, check validity */
 	cstate->force_quote_flags = (bool *) palloc0(num_phys_attrs * sizeof(bool));
 	if (cstate->force_quote_all)
 	{
@@ -2003,13 +2052,13 @@ BeginCopy(bool is_from,
 			if (!list_member_int(cstate->attnumlist, attnum))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-				   errmsg("FORCE QUOTE column \"%s\" not referenced by COPY",
+				   errmsg("FORCE_QUOTE column \"%s\" not referenced by COPY",
 						  NameStr(tupDesc->attrs[attnum - 1]->attname))));
 			cstate->force_quote_flags[attnum - 1] = true;
 		}
 	}
 
-	/* Convert FORCE NOT NULL name list to per-column flags, check validity */
+	/* Convert FORCE_NOT_NULL name list to per-column flags, check validity */
 	cstate->force_notnull_flags = (bool *) palloc0(num_phys_attrs * sizeof(bool));
 	if (cstate->force_notnull)
 	{
@@ -2025,13 +2074,13 @@ BeginCopy(bool is_from,
 			if (!list_member_int(cstate->attnumlist, attnum))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-				errmsg("FORCE NOT NULL column \"%s\" not referenced by COPY",
+				errmsg("FORCE_NOT_NULL column \"%s\" not referenced by COPY",
 					   NameStr(tupDesc->attrs[attnum - 1]->attname))));
 			cstate->force_notnull_flags[attnum - 1] = true;
 		}
 	}
 
-	/* Convert FORCE NULL name list to per-column flags, check validity */
+	/* Convert FORCE_NULL name list to per-column flags, check validity */
 	cstate->force_null_flags = (bool *) palloc0(num_phys_attrs * sizeof(bool));
 	if (cstate->force_null)
 	{
@@ -2047,7 +2096,7 @@ BeginCopy(bool is_from,
 			if (!list_member_int(cstate->attnumlist, attnum))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-					errmsg("FORCE NULL column \"%s\" not referenced by COPY",
+					errmsg("FORCE_NULL column \"%s\" not referenced by COPY",
 						   NameStr(tupDesc->attrs[attnum - 1]->attname))));
 			cstate->force_null_flags[attnum - 1] = true;
 		}
@@ -2527,7 +2576,8 @@ BeginCopyTo(Relation rel,
 
 			if (cstate->copy_file == NULL)
 				ereport(ERROR,
-						(errmsg("could not execute command \"%s\": %m",
+						(errcode_for_file_access(),
+						 errmsg("could not execute command \"%s\": %m",
 								cstate->filename)));
 		}
 		else
@@ -2565,7 +2615,10 @@ BeginCopyTo(Relation rel,
 			setvbuf(cstate->copy_file, NULL, _IOFBF, 393216); // 384 Kbytes
 
 			if (fstat(fileno(cstate->copy_file), &st))
-				elog(ERROR, "could not stat file \"%s\": %m", cstate->filename);
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not stat file \"%s\": %m",
+								cstate->filename)));
 
 			if (S_ISDIR(st.st_mode))
 				ereport(ERROR,
@@ -4672,7 +4725,8 @@ BeginCopyFrom(Relation rel,
 			cstate->copy_file = fdopen(cstate->program_pipes->pipes[0], PG_BINARY_R);
 			if (cstate->copy_file == NULL)
 				ereport(ERROR,
-						(errmsg("could not execute command \"%s\": %m",
+						(errcode_for_file_access(),
+						 errmsg("could not execute command \"%s\": %m",
 								cstate->filename)));
 		}
 		else
@@ -4691,7 +4745,10 @@ BeginCopyFrom(Relation rel,
 			setvbuf(cstate->copy_file, NULL, _IOFBF, 393216); // 384 Kbytes
 
 			if (fstat(fileno(cstate->copy_file), &st))
-				elog(ERROR, "could not stat file \"%s\": %m", cstate->filename);
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not stat file \"%s\": %m",
+								cstate->filename)));
 
 			if (S_ISDIR(st.st_mode))
 				ereport(ERROR,
@@ -7182,7 +7239,7 @@ copy_dest_startup(DestReceiver *self pg_attribute_unused(), int operation pg_att
 /*
  * copy_dest_receive --- receive one tuple
  */
-static void
+static bool
 copy_dest_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_copy    *myState = (DR_copy *) self;
@@ -7194,6 +7251,8 @@ copy_dest_receive(TupleTableSlot *slot, DestReceiver *self)
 	/* And send the data */
 	CopyOneRowTo(cstate, InvalidOid, slot_get_values(slot), slot_get_isnull(slot));
 	myState->processed++;
+
+	return true;
 }
 
 /*

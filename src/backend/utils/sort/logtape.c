@@ -71,7 +71,7 @@
  * care that all calls for a single LogicalTapeSet are made in the same
  * palloc context.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -700,10 +700,22 @@ LogicalTapeBackspace(LogicalTapeSet *lts, LogicalTape *lt, size_t size)
 }
 
 /* Get a logical tape given tape number */
-LogicalTape *LogicalTapeSetGetTape(LogicalTapeSet *lts, int tapenum)
+LogicalTape *
+LogicalTapeSetGetTape(LogicalTapeSet *lts, int tapenum)
 {
 	Assert(tapenum >= 0 && tapenum < lts->nTapes);
 	return &lts->tapes[tapenum];
+}
+
+
+/* Get tape number, given a pointer to a tape */
+int
+LogicalTapeGetTapeNum(LogicalTapeSet *lts, LogicalTape *lt)
+{
+	int			tapenum = lt - lts->tapes;
+
+	Assert(lt >= lts->tapes && tapenum < lts->nTapes);
+	return tapenum;
 }
 
 /*

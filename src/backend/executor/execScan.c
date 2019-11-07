@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2006 - present, EMC/Greenplum
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -51,8 +51,21 @@ ExecScanFetch(ScanState *node,
 		 */
 		Index		scanrelid = ((Scan *) node->ps.plan)->scanrelid;
 
-		Assert(scanrelid > 0);
-		if (estate->es_epqTupleSet[scanrelid - 1])
+		if (scanrelid == 0)
+		{
+			TupleTableSlot *slot = node->ss_ScanTupleSlot;
+
+			/*
+			 * This is a ForeignScan or CustomScan which has pushed down a
+			 * join to the remote side.  The recheck method is responsible not
+			 * only for rechecking the scan/join quals but also for storing
+			 * the correct tuple in the slot.
+			 */
+			if (!(*recheckMtd) (node, slot))
+				ExecClearTuple(slot);	/* would not be returned by scan */
+			return slot;
+		}
+		else if (estate->es_epqTupleSet[scanrelid - 1])
 		{
 			TupleTableSlot *slot = node->ss_ScanTupleSlot;
 
@@ -346,8 +359,31 @@ ExecScanReScan(ScanState *node)
 	{
 		Index		scanrelid = ((Scan *) node->ps.plan)->scanrelid;
 
-		Assert(scanrelid > 0);
+		if (scanrelid > 0)
+			estate->es_epqScanDone[scanrelid - 1] = false;
+		else
+		{
+			Bitmapset  *relids;
+			int			rtindex = -1;
 
-		estate->es_epqScanDone[scanrelid - 1] = false;
+			/*
+			 * If an FDW or custom scan provider has replaced the join with a
+			 * scan, there are multiple RTIs; reset the epqScanDone flag for
+			 * all of them.
+			 */
+			if (IsA(node->ps.plan, ForeignScan))
+				relids = ((ForeignScan *) node->ps.plan)->fs_relids;
+			else if (IsA(node->ps.plan, CustomScan))
+				relids = ((CustomScan *) node->ps.plan)->custom_relids;
+			else
+				elog(ERROR, "unexpected scan node: %d",
+					 (int) nodeTag(node->ps.plan));
+
+			while ((rtindex = bms_next_member(relids, rtindex)) >= 0)
+			{
+				Assert(rtindex > 0);
+				estate->es_epqScanDone[rtindex - 1] = false;
+			}
+		}
 	}
 }

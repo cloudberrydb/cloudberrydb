@@ -80,7 +80,7 @@ explain select c1 from t1 where c1 not in
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=5 width=4)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
@@ -110,14 +110,14 @@ explain select c1 from t1 where c1 not in
 ---------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..1293.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=862.00..862.00 rows=1 width=4)
                ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
                      ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                           Hash Cond: t2.c2 = t3.c3
+                           Hash Cond: (t2.c2 = t3.c3)
                            ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
-                                 Filter: c2 > 2
+                                 Filter: (c2 > 2)
                            ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
                                        ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
@@ -152,17 +152,17 @@ explain select c1 from t1 where c1 not in
 ---------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..1724.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..1724.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=1293.00..1293.00 rows=2 width=4)
                ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..1293.00 rows=2 width=4)
                      ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..1293.00 rows=1 width=4)
-                           Hash Cond: t2.c2 = t3.c3
+                           Hash Cond: (t2.c2 = t3.c3)
                            ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
                            ->  Hash  (cost=862.00..862.00 rows=2 width=4)
                                  ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
                                        ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                             Hash Cond: t3.c3 = t4.c4
+                                             Hash Cond: (t3.c3 = t4.c4)
                                              ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
                                              ->  Hash  (cost=431.00..431.00 rows=2 width=4)
                                                    ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
@@ -196,11 +196,11 @@ explain select c1 from t1,
 ---------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1293.00 rows=2 width=4)
    ->  Hash Join  (cost=0.00..1293.00 rows=1 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=862.00..862.00 rows=1 width=4)
                ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                     Hash Cond: t2.c2 = t3.c3
+                     Hash Cond: (t2.c2 = t3.c3)
                      ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
                      ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                            ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
@@ -263,9 +263,9 @@ explain select c1 from t1 where c1 not in
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=3 width=4)
-               Filter: c1 > 1
+               Filter: (c1 > 1)
          ->  Hash  (cost=431.00..431.00 rows=5 width=4)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
@@ -293,9 +293,9 @@ explain select c1 from t1 where c1 > 6 and c1 not in
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=2 width=4)
-               Filter: c1 > 6 AND c1 < 10
+               Filter: ((c1 > 6) AND (c1 < 10))
          ->  Hash  (cost=431.00..431.00 rows=5 width=4)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
@@ -321,11 +321,11 @@ explain select c1 from t1,t2 where c1 not in
 ---------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1293.00 rows=2 width=4)
    ->  Hash Join  (cost=0.00..1293.00 rows=1 width=4)
-         Hash Cond: t2.c2 = t1.c1
+         Hash Cond: (t2.c2 = t1.c1)
          ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
          ->  Hash  (cost=862.00..862.00 rows=2 width=4)
                ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-                     Hash Cond: t1.c1 = t3.c3
+                     Hash Cond: (t1.c1 = t3.c3)
                      ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
                      ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                            ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
@@ -401,26 +401,24 @@ select a,b from g1 where (a,b) not in
 --
 explain select x,y from l1 where (x,y) not in
 	(select distinct y, sum(x) from l1 group by y having y < 4 order by y) order by 1,2;
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000008.02..10000000008.03 rows=4 width=8)
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000008.14..10000000008.22 rows=4 width=8)
    Merge Key: l1.x, l1.y
-   ->  Sort  (cost=10000000008.02..10000000008.03 rows=2 width=8)
+   ->  Sort  (cost=10000000008.14..10000000008.15 rows=2 width=8)
          Sort Key: l1.x, l1.y
-         ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=10000000003.25..10000000007.99 rows=2 width=8)
-               Join Filter: l1.x = "NotIn_SUBQUERY".y AND l1.y = "NotIn_SUBQUERY".sum
+         ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=10000000003.19..10000000008.11 rows=2 width=8)
+               Join Filter: ((l1.x = "NotIn_SUBQUERY".y) AND (l1.y = "NotIn_SUBQUERY".sum))
                ->  Seq Scan on l1  (cost=0.00..3.10 rows=4 width=8)
-               ->  Materialize  (cost=3.25..3.47 rows=3 width=12)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=3.25..3.43 rows=3 width=12)
-                           ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=3.25..3.31 rows=1 width=12)
-                                 ->  HashAggregate  (cost=3.25..3.28 rows=1 width=16)
+               ->  Materialize  (cost=3.19..3.44 rows=4 width=12)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=3.19..3.39 rows=4 width=12)
+                           ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=3.19..3.25 rows=2 width=12)
+                                 ->  HashAggregate  (cost=3.19..3.22 rows=2 width=16)
                                        Group Key: l1_1.y
-                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=3.14..3.20 rows=1 width=12)
+                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.19 rows=2 width=8)
                                              Hash Key: l1_1.y
-                                             ->  HashAggregate  (cost=3.14..3.14 rows=1 width=12)
-                                                   Group Key: l1_1.y
-                                                   ->  Seq Scan on l1 l1_1  (cost=0.00..3.12 rows=2 width=8)
-                                                         Filter: y < 4
+                                             ->  Seq Scan on l1 l1_1  (cost=0.00..3.12 rows=2 width=8)
+                                                   Filter: (y < 4)
  Optimizer: Postgres query optimizer
 (19 rows)
 
@@ -442,11 +440,11 @@ select x,y from l1 where (x,y) not in
 --
 explain select * from g1 where (a,b,c) not in 
 	(select x,y,z from l1);
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.53..14.71 rows=11 width=12)
-   ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=3.53..14.71 rows=4 width=12)
-         Join Filter: g1.a = l1.x AND g1.b = l1.y AND g1.c = l1.z
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000011.78 rows=4 width=12)
+   ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=10000000000.00..10000000011.78 rows=2 width=12)
+         Join Filter: ((g1.a = l1.x) AND (g1.b = l1.y) AND (g1.c = l1.z))
          ->  Seq Scan on g1  (cost=0.00..2.11 rows=4 width=12)
          ->  Materialize  (cost=3.53..3.83 rows=10 width=12)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.50 rows=10 width=12)
@@ -475,18 +473,18 @@ explain select c1 from t1, t2 where c1 not in
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324465.54 rows=6 width=4)
    ->  Hash Join  (cost=0.00..1324465.54 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..1324034.54 rows=4 width=4)
-               Filter: (subplan)
+               Filter: (SubPlan 1)
                SubPlan 1
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
                        ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                             Filter: (CASE WHEN (sum((CASE WHEN $0 = t3.c3 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t3.c3 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 = t3.c3 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                             Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                              ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                    ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
                                          ->  Result  (cost=0.00..431.00 rows=1 width=8)
                                                ->  Result  (cost=0.00..431.00 rows=1 width=4)
-                                                     Filter: t3.c3 = $0
+                                                     Filter: (t3.c3 = t1.c1)
                                                      ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
                                                            ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
                                                                  ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
@@ -551,20 +549,19 @@ explain select c1 from t1 where c1 not in
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-         Hash Cond: t1.c1::bigint = (sum(t2.c2))
+         Hash Cond: ((t1.c1)::bigint = (sum(t2.c2)))
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=2 width=8)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=8)
                      ->  Result  (cost=0.00..431.00 rows=1 width=8)
                            ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=8)
-                                 Group By: t2.c2
+                                 Group Key: t2.c2
                                  ->  Sort  (cost=0.00..431.00 rows=1 width=4)
                                        Sort Key: t2.c2
                                        ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
-                                             Filter: c2 > 2 AND c2 > 3
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(15 rows)
+                                             Filter: ((c2 > 2) AND (c2 > 3))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
+(14 rows)
 
 select c1 from t1 where c1 not in 
 	(select sum(c2) as s from t2 where c2 > 2 group by c2 having c2 > 3);
@@ -666,22 +663,22 @@ explain select (case when c1%2 = 0
                      ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
                      ->  Materialize  (cost=0.00..862.00 rows=1 width=8)
                            ->  Broadcast Motion 1:3  (slice6)  (cost=0.00..862.00 rows=3 width=8)
-                                 ->  Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                                 ->  Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8)
                                        ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-                                             ->  Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                                             ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8)
                                                    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                         Hash Cond: t2.c2 = t3_1.c3
+                                                         Hash Cond: (t2.c2 = t3_1.c3)
                                                          ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
                                                          ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                                                                ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
                                                                      ->  Seq Scan on t3 t3_1  (cost=0.00..431.00 rows=1 width=4)
                ->  Materialize  (cost=0.00..862.00 rows=1 width=8)
                      ->  Broadcast Motion 1:3  (slice3)  (cost=0.00..862.00 rows=3 width=8)
-                           ->  Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                           ->  Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8)
                                  ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-                                       ->  Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                                       ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8)
                                              ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: t3.c3 = t4.c4
+                                                   Hash Cond: (t3.c3 = t4.c4)
                                                    ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
                                                    ->  Hash  (cost=431.00..431.00 rows=2 width=4)
                                                          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
@@ -713,13 +710,13 @@ explain select c1 from t1 where not c1 >= some (select c2 from t2);
                                                                                                                                                              QUERY PLAN                                                                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.00..1324032.88 rows=2 width=4)
-   Filter: (subplan)
+   Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
    SubPlan 1
      ->  Result  (cost=0.00..431.00 rows=1 width=1)
            ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                 Filter: (CASE WHEN (sum((CASE WHEN $0 >= t2.c2 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t2.c2 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 >= t2.c2 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                 Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
                        ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
                              ->  Result  (cost=0.00..431.00 rows=2 width=8)
@@ -744,7 +741,7 @@ explain select c2 from t2 where not c2 < all (select c2 from t2);
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324033.39 rows=5 width=4)
    ->  Seq Scan on t2  (cost=0.00..1324033.39 rows=2 width=4)
          Filter: (SubPlan 1)
-         SubPlan
+         SubPlan 1
            ->  Materialize  (cost=0.00..431.00 rows=5 width=4)
                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
                        ->  Seq Scan on t2 t2_1  (cost=0.00..431.00 rows=2 width=4)
@@ -768,13 +765,13 @@ explain select c3 from t3 where not c3 <> any (select c4 from t4);
                                                                                                                                                              QUERY PLAN                                                                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.00..1324032.31 rows=1 width=4)
-   Filter: (subplan)
+   Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
          ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
    SubPlan 1
      ->  Result  (cost=0.00..431.00 rows=1 width=1)
            ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                 Filter: (CASE WHEN (sum((CASE WHEN $0 <> t4.c4 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t4.c4 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 <> t4.c4 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                 Filter: ((CASE WHEN ((sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t4.c4 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t3.c3 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
                        ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
                              ->  Result  (cost=0.00..431.00 rows=1 width=8)
@@ -801,7 +798,7 @@ explain select c1 from t1 where c1 not in (select c2 from t2 order by c2 limit 3
    ->  Sort  (cost=0.00..862.00 rows=2 width=4)
          Sort Key: t1.c1
          ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-               Hash Cond: t1.c1 = t2.c2
+               Hash Cond: (t1.c1 = t2.c2)
                ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
                ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                      ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=9 width=4)
@@ -837,11 +834,11 @@ explain select c1 from t1 where c1 =all (select c2 from t2 where c2 > -1 and c2 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.79 rows=4 width=4)
    ->  Seq Scan on t1  (cost=0.00..1324032.79 rows=2 width=4)
-         Filter: (subplan)
+         Filter: (SubPlan 1)
          SubPlan 1
            ->  Result  (cost=0.00..431.00 rows=1 width=1)
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                       Filter: (CASE WHEN (sum((CASE WHEN $0 <> t2.c2 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t2.c2 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 <> t2.c2 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                       Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                        ->  Result  (cost=0.00..431.00 rows=1 width=1)
                              ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
                                    ->  Result  (cost=0.00..431.00 rows=1 width=8)
@@ -867,7 +864,7 @@ explain select c1 from t1 where c1 <>all (select c2 from t2);
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=5 width=4)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
@@ -894,18 +891,18 @@ explain select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (sel
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1765379.01 rows=4 width=4)
    ->  Seq Scan on t1  (cost=0.00..1765379.01 rows=2 width=4)
-         Filter: (subplan)
+         Filter: (SubPlan 1)
          SubPlan 1
            ->  Result  (cost=0.00..862.00 rows=1 width=1)
                  ->  Result  (cost=0.00..862.00 rows=1 width=1)
-                       Filter: (CASE WHEN (sum((CASE WHEN $0 > t2.c2 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t2.c2 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 > t2.c2 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                       Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                        ->  Result  (cost=0.00..862.00 rows=1 width=1)
                              ->  Aggregate  (cost=0.00..862.00 rows=1 width=16)
                                    ->  Result  (cost=0.00..862.00 rows=2 width=8)
                                          ->  Materialize  (cost=0.00..862.00 rows=2 width=4)
                                                ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
                                                      ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                           Hash Cond: t2.c2 = t1n.c1n
+                                                           Hash Cond: (t2.c2 = t1n.c1n)
                                                            ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
                                                            ->  Hash  (cost=431.00..431.00 rows=7 width=4)
                                                                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
@@ -937,12 +934,12 @@ explain select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all
 -------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1356692471.20 rows=10 width=4)
    ->  Seq Scan on t1  (cost=0.00..1356692471.20 rows=4 width=4)
-         Filter: (subplan)
+         Filter: (SubPlan 2)
          SubPlan 2
            ->  Materialize  (cost=0.00..1324032.99 rows=5 width=4)
                  ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1324032.99 rows=5 width=4)
                        ->  Seq Scan on t2  (cost=0.00..1324032.99 rows=2 width=4)
-                             Filter: (subplan)
+                             Filter: (SubPlan 1)
                              SubPlan 1
                                ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
                                      ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
@@ -970,24 +967,24 @@ select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all (select
 --q36
 --
 explain select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all (select c3 from t3 where c3 = c1n));
-                                                                                                                                                                      QUERY PLAN                                                                                                                                                                      
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324464.88 rows=8 width=4)
-   ->  Hash Semi Join  (cost=0.00..1324464.88 rows=3 width=4)
-         Hash Cond: t1.c1 = t1n.c1n
+                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324464.89 rows=8 width=4)
+   ->  Hash Semi Join  (cost=0.00..1324464.89 rows=3 width=4)
+         Hash Cond: (t1.c1 = t1n.c1n)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
-         ->  Hash  (cost=1324033.87..1324033.87 rows=3 width=4)
-               ->  Seq Scan on t1n  (cost=0.00..1324033.87 rows=3 width=4)
-                     Filter: (subplan)
+         ->  Hash  (cost=1324033.89..1324033.89 rows=3 width=4)
+               ->  Seq Scan on t1n  (cost=0.00..1324033.89 rows=3 width=4)
+                     Filter: (SubPlan 1)
                      SubPlan 1
                        ->  Result  (cost=0.00..431.00 rows=1 width=1)
                              ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                                   Filter: (CASE WHEN (sum((CASE WHEN $0 >= t3.c3 THEN 1 ELSE 0 END))) IS NULL THEN true WHEN (sum((CASE WHEN t3.c3 IS NULL THEN 1 ELSE 0 END))) > 0::bigint THEN NULL::boolean WHEN $0 IS NULL THEN NULL::boolean WHEN (sum((CASE WHEN $0 >= t3.c3 THEN 1 ELSE 0 END))) = 0::bigint THEN true ELSE false END) = true
+                                   Filter: ((CASE WHEN ((sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1n.c1n IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
                                    ->  Result  (cost=0.00..431.00 rows=1 width=1)
                                          ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
                                                ->  Result  (cost=0.00..431.00 rows=1 width=8)
                                                      ->  Result  (cost=0.00..431.00 rows=1 width=4)
-                                                           Filter: t3.c3 = $0
+                                                           Filter: (t3.c3 = t1n.c1n)
                                                            ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
                                                                  ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
                                                                        ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
@@ -1011,8 +1008,8 @@ explain select c1 from t1 where not c1 >=all (select c2 from t2 where c2 = c1);
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=6 width=4)
    ->  Hash Semi Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
-         Join Filter: t1.c1 < t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
+         Join Filter: (t1.c1 < t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=2 width=4)
                ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
@@ -1033,7 +1030,7 @@ explain select c1 from t1 where not exists (select c2 from t2 where c2 = c1);
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=4 width=4)
    ->  Hash Anti Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=2 width=4)
                ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
@@ -1059,11 +1056,11 @@ explain select c1 from t1 where not exists (select c2 from t2 where c2 not in (s
 ---------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1293.00 rows=4 width=4)
    ->  Hash Anti Join  (cost=0.00..1293.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=862.00..862.00 rows=1 width=4)
                ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                     Hash Cond: t2.c2 = t3.c3
+                     Hash Cond: (t2.c2 = t3.c3)
                      ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
                      ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                            ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
@@ -1094,11 +1091,11 @@ explain select c1 from t1 where not exists (select c2 from t2 where exists (sele
 ------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..1324894.16 rows=4 width=4)
    ->  Hash Anti Join  (cost=0.00..1324894.16 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=1324463.16..1324463.16 rows=1 width=4)
                ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..1324463.16 rows=1 width=4)
-                     Hash Cond: t2.c2 = t3_1.c3
+                     Hash Cond: (t2.c2 = t3_1.c3)
                      ->  Nested Loop Semi Join  (cost=0.00..1324032.16 rows=2 width=4)
                            Join Filter: true
                            ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
@@ -1161,16 +1158,15 @@ explain select c1 from t1 where c1 not in (select c2 from t2 where c2 > 4) and c
 ---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
+         Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
-               Filter: NOT c1 IS NULL
+               Filter: (NOT (c1 IS NULL))
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                      ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
-                           Filter: c2 > 4
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(11 rows)
+                           Filter: (c2 > 4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
+(10 rows)
 
 select c1 from t1 where c1 not in (select c2 from t2 where c2 > 4) and c1 is not null;
  c1 
@@ -1215,7 +1211,7 @@ explain select c1 from t1 where c1::absint not in
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324035.89 rows=10 width=4)
    ->  Result  (cost=0.00..1324035.89 rows=4 width=4)
-         Filter: (NOT CASE WHEN ((count("inner".ColRef_0017)) > 0::bigint) THEN CASE WHEN ((sum((CASE WHEN (((t1.c1)::absint = ((t1n.c1n)::absint)) IS NULL) THEN 1 ELSE 0 END))) = (count("inner".ColRef_0017))) THEN NULL::boolean ELSE true END ELSE false END)
+         Filter: (NOT CASE WHEN ((count((true))) > '0'::bigint) THEN CASE WHEN ((sum((CASE WHEN (((t1.c1)::absint = ((t1n.c1n)::absint)) IS NULL) THEN 1 ELSE 0 END))) = (count((true)))) THEN NULL::boolean ELSE true END ELSE false END)
          ->  HashAggregate  (cost=0.00..1324035.89 rows=4 width=20)
                Group Key: t1.c1, t1.ctid, t1.gp_segment_id
                ->  Result  (cost=0.00..1324035.88 rows=11 width=19)

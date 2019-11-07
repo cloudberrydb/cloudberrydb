@@ -416,8 +416,6 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: SIRV functions
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  No plan has been computed for required properties
-CONTEXT:  SQL statement "EXPLAIN SELECT owner, property FROM GistTable1 WHERE property IS NULL ORDER BY id;"
-PL/Python function "count_index_scans"
  count_index_scans 
 -------------------
                  1
@@ -463,8 +461,6 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: SIRV functions
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  No plan has been computed for required properties
-CONTEXT:  SQL statement "EXPLAIN SELECT id, property FROM GistTable1 WHERE property IS NULL ORDER BY id;"
-PL/Python function "count_index_scans"
  count_index_scans 
 -------------------
                  1
@@ -1106,7 +1102,6 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
 (9 rows)
 
@@ -1732,7 +1727,6 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
 (9 rows)
 
@@ -2358,7 +2352,6 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
 (9 rows)
 
@@ -2984,7 +2977,6 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
 (9 rows)
 

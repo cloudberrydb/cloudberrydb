@@ -4,7 +4,7 @@
  *	  Two-phase-commit related declarations.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/twophase.h
@@ -16,37 +16,9 @@
 
 #include "access/xlogdefs.h"
 #include "datatype/timestamp.h"
-#include "storage/lock.h"
+#include "storage/backendid.h"
 
 #include "cdb/cdblocaldistribxact.h"
-
-/*
- * Directory where two phase commit files reside within PGDATA
- */
-#define TWOPHASE_DIR "pg_twophase"
-
-/*
- * <KAS fill in comment here>
- */
-
-typedef struct prpt_map
-{
-  TransactionId xid;
-  XLogRecPtr    xlogrecptr;
-} prpt_map;
-
-typedef struct prepared_transaction_agg_state
-{
-    union
-    {
-      int count;
-      int64 dummy;
-    };
-  prpt_map maps[0]; /* variable length */
-} prepared_transaction_agg_state;
-
-#define PREPARED_TRANSACTION_CHECKPOINT_BYTES(count) \
-	(offsetof(prepared_transaction_agg_state, maps) + sizeof(prpt_map) * (count))
 
 /*
  * GlobalTransactionData is defined in twophase.c; other places have no
@@ -79,7 +51,7 @@ typedef struct TwoPhaseFileHeader
 	bool		initfileinval;	/* does relcache init file need invalidation? */
 	Oid			tablespace_oid_to_delete_on_abort;
 	Oid			tablespace_oid_to_delete_on_commit;
-	char		gid[GIDSIZE];	/* GID for transaction */
+	uint16		gidlen;			/* length of the GID - GID follows the header */
 } TwoPhaseFileHeader;
 
 /* GPDB-specific end */
@@ -93,15 +65,15 @@ extern void TwoPhaseShmemInit(void);
 extern void AtAbort_Twophase(void);
 extern void PostPrepare_Twophase(void);
 
-extern PGPROC *TwoPhaseGetDummyProc(TransactionId xid);
+struct PGPROC;
+extern struct PGPROC *TwoPhaseGetDummyProc(TransactionId xid);
 extern BackendId TwoPhaseGetDummyBackendId(TransactionId xid);
 
-extern GlobalTransaction MarkAsPreparing(TransactionId xid, 
+extern GlobalTransaction MarkAsPreparing(TransactionId xid,
 				LocalDistribXactData *localDistribXactRef,
 				const char *gid,
 				TimestampTz prepared_at,
-				Oid owner, Oid databaseid
-			      , XLogRecPtr xlogrecptr);
+				Oid owner, Oid databaseid);
 
 extern void StartPrepare(GlobalTransaction gxact);
 extern void EndPrepare(GlobalTransaction gxact);
@@ -112,28 +84,11 @@ extern TransactionId PrescanPreparedTransactions(TransactionId **xids_p,
 extern void StandbyRecoverPreparedTransactions(bool overwriteOK);
 extern void RecoverPreparedTransactions(void);
 
-extern void RecreateTwoPhaseFile(TransactionId xid, void *content, int len, XLogRecPtr *xlogrecptr);
+extern void RecreateTwoPhaseFile(TransactionId xid, void *content, int len);
 extern void RemoveTwoPhaseFile(TransactionId xid, bool giveWarning);
 
 extern void CheckPointTwoPhase(XLogRecPtr redo_horizon);
 
 extern bool FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFound);
-
-extern void TwoPhaseAddPreparedTransactionInit(
-					        prepared_transaction_agg_state **ptas
-					      , int                             *maxCount);
-
-struct XLogRecData;
-extern XLogRecPtr *getTwoPhaseOldestPreparedTransactionXLogRecPtr(prepared_transaction_agg_state *ptas);
-
-extern void TwoPhaseAddPreparedTransaction(
-                 prepared_transaction_agg_state **ptas
-		 , int                           *maxCount
-                 , TransactionId                  xid
-		 , XLogRecPtr                    *xlogPtr);
-
-extern void getTwoPhasePreparedTransactionData(prepared_transaction_agg_state **ptas);
-
-extern void SetupCheckpointPreparedTransactionList(prepared_transaction_agg_state *ptas);
 
 #endif   /* TWOPHASE_H */

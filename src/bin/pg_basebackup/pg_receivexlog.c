@@ -5,7 +5,7 @@
  *
  * Author: Magnus Hagander <magnus@hagander.net>
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/pg_receivexlog.c
@@ -38,6 +38,7 @@ static int	noloop = 0;
 static int	standby_message_timeout = 10 * 1000;		/* 10 sec = default */
 static volatile bool time_to_abort = false;
 static bool do_create_slot = false;
+static bool slot_exists_ok = false;
 static bool do_drop_slot = false;
 static bool synchronous = false;
 
@@ -66,6 +67,7 @@ usage(void)
 	printf(_("  %s [OPTION]...\n"), progname);
 	printf(_("\nOptions:\n"));
 	printf(_("  -D, --directory=DIR    receive transaction log files into this directory\n"));
+	printf(_("      --if-not-exists    do not error if slot already exists when creating a slot\n"));
 	printf(_("  -n, --no-loop          do not loop on connection lost\n"));
 	printf(_("  -s, --status-interval=SECS\n"
 			 "                         time between status packets sent to server (default: %d)\n"), (standby_message_timeout / 1000));
@@ -274,10 +276,11 @@ FindStreamingStart(uint32 *tli)
 static void
 StreamLog(void)
 {
-	XLogRecPtr	startpos,
-				serverpos;
-	TimeLineID	starttli,
-				servertli;
+	XLogRecPtr	serverpos;
+	TimeLineID	servertli;
+	StreamCtl	stream;
+
+	MemSet(&stream, 0, sizeof(stream));
 
 	/*
 	 * Connect in replication mode to the server
@@ -309,17 +312,17 @@ StreamLog(void)
 	/*
 	 * Figure out where to start streaming.
 	 */
-	startpos = FindStreamingStart(&starttli);
-	if (startpos == InvalidXLogRecPtr)
+	stream.startpos = FindStreamingStart(&stream.timeline);
+	if (stream.startpos == InvalidXLogRecPtr)
 	{
-		startpos = serverpos;
-		starttli = servertli;
+		stream.startpos = serverpos;
+		stream.timeline = servertli;
 	}
 
 	/*
 	 * Always start streaming at the beginning of a segment
 	 */
-	startpos -= startpos % XLOG_SEG_SIZE;
+	stream.startpos -= stream.startpos % XLOG_SEG_SIZE;
 
 	/*
 	 * Start the replication
@@ -327,12 +330,17 @@ StreamLog(void)
 	if (verbose)
 		fprintf(stderr,
 				_("%s: starting log streaming at %X/%X (timeline %u)\n"),
-				progname, (uint32) (startpos >> 32), (uint32) startpos,
-				starttli);
+		progname, (uint32) (stream.startpos >> 32), (uint32) stream.startpos,
+				stream.timeline);
 
-	ReceiveXlogStream(conn, startpos, starttli, NULL, basedir,
-					  stop_streaming, standby_message_timeout, ".partial",
-					  synchronous, false);
+	stream.stream_stop = stop_streaming;
+	stream.standby_message_timeout = standby_message_timeout;
+	stream.synchronous = synchronous;
+	stream.mark_done = false;
+	stream.basedir = basedir;
+	stream.partial_suffix = ".partial";
+
+	ReceiveXlogStream(conn, &stream);
 
 	PQfinish(conn);
 	conn = NULL;
@@ -371,7 +379,8 @@ main(int argc, char **argv)
 /* action */
 		{"create-slot", no_argument, NULL, 1},
 		{"drop-slot", no_argument, NULL, 2},
-		{"synchronous", no_argument, NULL, 3},
+		{"if-not-exists", no_argument, NULL, 3},
+		{"synchronous", no_argument, NULL, 4},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -455,6 +464,9 @@ main(int argc, char **argv)
 				do_drop_slot = true;
 				break;
 			case 3:
+				slot_exists_ok = true;
+				break;
+			case 4:
 				synchronous = true;
 				break;
 			default:
@@ -502,7 +514,7 @@ main(int argc, char **argv)
 	/*
 	 * Required arguments
 	 */
-	if (basedir == NULL && !do_drop_slot)
+	if (basedir == NULL && !do_drop_slot && !do_create_slot)
 	{
 		fprintf(stderr, _("%s: no target directory specified\n"), progname);
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
@@ -513,7 +525,7 @@ main(int argc, char **argv)
 	/*
 	 * Check existence of destination folder.
 	 */
-	if (!do_drop_slot)
+	if (!do_drop_slot && !do_create_slot)
 	{
 		DIR		   *dir = get_destination_dir(basedir);
 
@@ -575,8 +587,10 @@ main(int argc, char **argv)
 					_("%s: creating replication slot \"%s\"\n"),
 					progname, replication_slot);
 
-		if (!CreateReplicationSlot(conn, replication_slot, NULL, NULL, true))
+		if (!CreateReplicationSlot(conn, replication_slot, NULL, true,
+								   slot_exists_ok))
 			disconnect_and_exit(1);
+		disconnect_and_exit(0);
 	}
 
 	/*

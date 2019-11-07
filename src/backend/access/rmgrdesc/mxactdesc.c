@@ -3,7 +3,7 @@
  * mxactdesc.c
  *	  rmgr descriptor routines for access/transam/multixact.c
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -70,6 +70,14 @@ multixact_desc(StringInfo buf, XLogReaderState *record)
 		for (i = 0; i < xlrec->nmembers; i++)
 			out_member(buf, &xlrec->members[i]);
 	}
+	else if (info == XLOG_MULTIXACT_TRUNCATE_ID)
+	{
+		xl_multixact_truncate *xlrec = (xl_multixact_truncate *) rec;
+
+		appendStringInfo(buf, "offsets [%u, %u), members [%u, %u)",
+						 xlrec->startTruncOff, xlrec->endTruncOff,
+						 xlrec->startTruncMemb, xlrec->endTruncMemb);
+	}
 }
 
 const char *
@@ -87,6 +95,9 @@ multixact_identify(uint8 info)
 			break;
 		case XLOG_MULTIXACT_CREATE_ID:
 			id = "CREATE_ID";
+			break;
+		case XLOG_MULTIXACT_TRUNCATE_ID:
+			id = "TRUNCATE_ID";
 			break;
 	}
 

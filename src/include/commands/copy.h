@@ -4,7 +4,7 @@
  *	  Definitions for using the POSTGRES copy command.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/copy.h
@@ -129,11 +129,11 @@ typedef struct CopyStateData
 	List	   *attnamelist;	/* list of attributes by name */
 	char	   *filename;		/* filename, or NULL for STDIN/STDOUT */
 	bool		is_program;		/* is 'filename' a program to popen? */
+	bool		binary;			/* binary format? */
 	copy_data_source_cb data_source_cb; /* function for reading data */
 	void	   *data_source_cb_extra;
 	bool		oids;			/* include OIDs? */
 	bool		freeze;			/* freeze rows on loading? */
-	bool        binary;         /* binary format */
 	bool		csv_mode;		/* Comma Separated Value format? */
 	bool		header_line;	/* CSV header line? */
 	char	   *null_print;		/* NULL marker string (server encoding!) */
@@ -143,7 +143,7 @@ typedef struct CopyStateData
 	char	   *quote;			/* CSV quote char (must be 1 byte) */
 	char	   *escape;			/* CSV escape char (must be 1 byte) */
 	List	   *force_quote;	/* list of column names */
-	bool		force_quote_all;	/* FORCE QUOTE *? */
+	bool		force_quote_all;	/* FORCE_QUOTE *? */
 	bool	   *force_quote_flags;		/* per-column CSV FQ flags */
 	List	   *force_notnull;	/* list of column names */
 	bool	   *force_notnull_flags;	/* per-column CSV FNN flags */
@@ -219,18 +219,16 @@ typedef struct CopyStateData
 	 * can display it in error messages if appropriate.
 	 */
 	StringInfoData line_buf;
-
 	bool		line_buf_converted;		/* converted to server encoding? */
 	bool		line_buf_valid; /* contains the row being processed? */
 
 	/*
 	 * Finally, raw_buf holds raw data read from the data source (file or
-	 * client connection). CopyReadLine parses this data sufficiently to
+	 * client connection).  CopyReadLine parses this data sufficiently to
 	 * locate line boundaries, then transfers the data to line_buf and
 	 * converts it.  Note: we guarantee that there is a \0 at
 	 * raw_buf[raw_buf_len].
 	 */
-
 #define RAW_BUF_SIZE 65536		/* we palloc RAW_BUF_SIZE+1 bytes */
 	char	   *raw_buf;
 	int			raw_buf_index;	/* next byte to process */
@@ -257,12 +255,12 @@ typedef struct CopyStateData
 
 typedef struct CopyStateData *CopyState;
 
-/* DestReceiver for COPY (SELECT) TO */
+/* DestReceiver for COPY (query) TO */
 typedef struct
 {
 	DestReceiver pub;			/* publicly-known function pointers */
 	CopyState	cstate;			/* CopyStateData for the command */
-	QueryDesc  *queryDesc;		/* QueryDesc for the copy*/
+	QueryDesc	*queryDesc;		/* QueryDesc for the copy*/
 	uint64		processed;		/* # of tuples processed */
 } DR_copy;
 

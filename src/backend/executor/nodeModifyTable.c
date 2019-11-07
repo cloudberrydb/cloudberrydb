@@ -3,7 +3,7 @@
  * nodeModifyTable.c
  *	  routines to handle ModifyTable nodes.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -142,10 +142,9 @@ ExecCheckPlanOutput(Relation resultRel, List *targetList)
 			 * In any case the planner has most likely inserted an INT4 null.
 			 * What we insist on is just *some* NULL constant.
 			 */
-			// GPDB_96_MERGE_FIXME: currently, the planner puts the NULL constant *below* the Motion
-			// node, if Motion is needed. Not optimal, but doesn't seem worth fixing
-			// until 9.6, where the upper planner is pathified, and we'll have to rework
-			// this anyway.
+			/* GPDB_96_MERGE_FIXME: the subplan can be a Motion, so that the NULLs
+			 * are transferred through the Motion node.
+			 */
 #if 0
 			if (!IsA(tle->expr, Const) ||
 				!((Const *) tle->expr)->constisnull)
@@ -171,6 +170,9 @@ ExecCheckPlanOutput(Relation resultRel, List *targetList)
  * tupleSlot: slot holding tuple actually inserted/updated/deleted
  * planSlot: slot holding tuple returned by top subplan node
  *
+ * Note: If tupleSlot is NULL, the FDW should have already provided econtext's
+ * scan tuple.
+ *
  * Returns a slot holding the result tuple
  */
 static TupleTableSlot *
@@ -187,7 +189,22 @@ ExecProcessReturning(ProjectionInfo *projectReturning,
 	ResetExprContext(econtext);
 
 	/* Make tuple and any needed join variables available to ExecProject */
-	econtext->ecxt_scantuple = tupleSlot;
+	if (tupleSlot)
+		econtext->ecxt_scantuple = tupleSlot;
+	else
+	{
+		HeapTuple	tuple;
+
+		/*
+		 * RETURNING expressions might reference the tableoid column, so
+		 * initialize t_tableOid before evaluating them.
+		 */
+		Assert(!TupIsNull(econtext->ecxt_scantuple));
+		tuple = ExecMaterializeSlot(econtext->ecxt_scantuple);
+#if 0
+		tuple->t_tableOid = RelationGetRelid(resultRelInfo->ri_RelationDesc);
+#endif
+	}
 	econtext->ecxt_outertuple = planSlot;
 
 	/* Compute the RETURNING expressions */
@@ -519,8 +536,7 @@ ExecInsert(ModifyTableState *mtstate,
 			 *
 			 * We loop back here if we find a conflict below, either during
 			 * the pre-check, or when we re-check after inserting the tuple
-			 * speculatively.  See the executor README for a full discussion
-			 * of speculative insertion.
+			 * speculatively.
 			 */
 	vlock:
 			specConflict = false;
@@ -667,8 +683,7 @@ ExecInsert(ModifyTableState *mtstate,
 
 	/* Process RETURNING if present */
 	if (projectReturning)
-		return ExecProcessReturning(projectReturning,
-									parentslot, planSlot);
+		return ExecProcessReturning(projectReturning, parentslot, planSlot);
 
 	return NULL;
 }
@@ -777,6 +792,11 @@ ExecDelete(ItemPointer tupleid,
 	}
 	else if (resultRelInfo->ri_FdwRoutine)
 	{
+#if 0
+		/* See comment regarding t_tableOid bellow */
+		HeapTuple	tuple;
+#endif
+
 		/*
 		 * delete from foreign table: let the FDW do it
 		 *
@@ -1044,8 +1064,7 @@ ldelete:;
 			ExecStoreHeapTuple(&deltuple, slot, InvalidBuffer, false);
 		}
 
-		rslot = ExecProcessReturning(resultRelInfo->ri_projectReturning,
-									 slot, planSlot);
+		rslot = ExecProcessReturning(resultRelInfo->ri_projectReturning, slot, planSlot);
 
 		/*
 		 * Before releasing the target tuple again, make sure rslot has a
@@ -1552,8 +1571,7 @@ ExecUpdate(ItemPointer tupleid,
 
 	/* Process RETURNING if present */
 	if (resultRelInfo->ri_projectReturning)
-		return ExecProcessReturning(resultRelInfo->ri_projectReturning,
-									slot, planSlot);
+		return ExecProcessReturning(resultRelInfo->ri_projectReturning, slot, planSlot);
 
 	return NULL;
 }
@@ -1734,8 +1752,17 @@ ExecOnConflictUpdate(ModifyTableState *mtstate,
 	/* Project the new tuple version */
 	ExecProject(resultRelInfo->ri_onConflictSetProj, NULL);
 
+	/*
+	 * Note that it is possible that the target tuple has been modified in
+	 * this session, after the above heap_lock_tuple. We choose to not error
+	 * out in that case, in line with ExecUpdate's treatment of similar cases.
+	 * This can happen if an UPDATE is triggered from within ExecQual(),
+	 * ExecWithCheckOptions() or ExecProject() above, e.g. by selecting from a
+	 * wCTE in the ON CONFLICT's SET.
+	 */
+
 	/* Execute UPDATE with projection */
-	*returning = ExecUpdate(&tuple.t_data->t_ctid, NULL,
+	*returning = ExecUpdate(&tuple.t_self, NULL,
 							mtstate->mt_conflproj, planSlot,
 							&mtstate->mt_epqstate, mtstate->ps.state,
 							canSetTag);
@@ -1907,6 +1934,26 @@ ExecModifyTable(ModifyTableState *node)
 			}
 			else
 				break;
+		}
+
+		/*
+		 * If resultRelInfo->ri_usesFdwDirectModify is true, all we need to do
+		 * here is compute the RETURNING expressions.
+		 */
+		if (resultRelInfo->ri_usesFdwDirectModify)
+		{
+			Assert(resultRelInfo->ri_projectReturning);
+
+			/*
+			 * A scan slot containing the data that was actually inserted,
+			 * updated or deleted has already been made available to
+			 * ExecProcessReturning by IterateDirectModify, so no need to
+			 * provide it here.
+			 */
+			slot = ExecProcessReturning(resultRelInfo->ri_projectReturning, NULL, planSlot);
+
+			estate->es_result_relation_info = saved_resultRelInfo;
+			return slot;
 		}
 
 		EvalPlanQualSetSlot(&node->mt_epqstate, planSlot);
@@ -2177,11 +2224,13 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 
 	if (CMD_UPDATE == operation)
 	{
-		Assert(list_length(node->action_col_idxes) == nplans);
-		Assert(list_length(node->oid_col_idxes) == nplans);
+		if (list_length(node->action_col_idxes) != nplans)
+			elog(ERROR, "ModifyTable node is missing action column information");
+		if (list_length(node->oid_col_idxes) != nplans)
+			elog(ERROR, "ModifyTable node is missing tuple OID information");
 
-		mtstate->mt_action_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * list_length(node->action_col_idxes));
-		mtstate->mt_oid_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * list_length(node->oid_col_idxes));
+		mtstate->mt_action_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * nplans);
+		mtstate->mt_oid_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * nplans);
 
 		i = 0;
 		foreach(l, node->action_col_idxes)
@@ -2212,6 +2261,10 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	{
 		subplan = (Plan *) lfirst(l);
 
+		/* Initialize the usesFdwDirectModify flag */
+		resultRelInfo->ri_usesFdwDirectModify = bms_is_member(i,
+												 node->fdwDirectModifyPlans);
+
 		/*
 		 * Verify result relation is a valid target for the current operation
 		 */
@@ -2236,7 +2289,8 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 		mtstate->mt_plans[i] = ExecInitNode(subplan, estate, eflags);
 
 		/* Also let FDWs init themselves for foreign-table result rels */
-		if (resultRelInfo->ri_FdwRoutine != NULL &&
+		if (!resultRelInfo->ri_usesFdwDirectModify &&
+			resultRelInfo->ri_FdwRoutine != NULL &&
 			resultRelInfo->ri_FdwRoutine->BeginForeignModify != NULL)
 		{
 			List	   *fdw_private = (List *) list_nth(node->fdwPrivLists, i);
@@ -2363,7 +2417,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 
 		/* create target slot for UPDATE SET projection */
 		tupDesc = ExecTypeFromTL((List *) node->onConflictSet,
-								 false);
+						 resultRelInfo->ri_RelationDesc->rd_rel->relhasoids);
 		mtstate->mt_conflproj = ExecInitExtraTupleSlot(mtstate->ps.state);
 		ExecSetSlotDescriptor(mtstate->mt_conflproj, tupDesc);
 
@@ -2605,7 +2659,8 @@ ExecEndModifyTable(ModifyTableState *node)
 	{
 		ResultRelInfo *resultRelInfo = node->resultRelInfo + i;
 
-		if (resultRelInfo->ri_FdwRoutine != NULL &&
+		if (!resultRelInfo->ri_usesFdwDirectModify &&
+			resultRelInfo->ri_FdwRoutine != NULL &&
 			resultRelInfo->ri_FdwRoutine->EndForeignModify != NULL)
 			resultRelInfo->ri_FdwRoutine->EndForeignModify(node->ps.state,
 														   resultRelInfo);

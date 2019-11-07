@@ -30,7 +30,7 @@
  * destroyed at the end of each transaction.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -314,22 +314,7 @@ GetComboCommandId(TransactionId xmin, CommandId cmin, CommandId cmax)
 		return entry->combocid;
 	}
 
-	/*
-	 * We have to create a new combo cid. Check that there's room for it in
-	 * the array, and grow it if there isn't.
-	 */
-	if (usedComboCids >= sizeComboCids)
-	{
-		/* We need to grow the array */
-		int			newsize = sizeComboCids * 2;
-
-		comboCids = (ComboCidKeyData *)
-			repalloc(comboCids, sizeof(ComboCidKeyData) * newsize);
-		sizeComboCids = newsize;
-	}
-
-	/* We are about to create a new combocid */
-
+	/* We have to create a new combo cid; we already made room in the array */
 	combocid = usedComboCids;
 
 	comboCids[combocid].cmin = cmin;
@@ -483,8 +468,9 @@ SerializeComboCIDState(Size maxsize, char *start_address)
 		elog(ERROR, "not enough space to serialize ComboCID state");
 
 	/* Now, copy the actual cmin/cmax pairs. */
-	memcpy(start_address + sizeof(int), comboCids,
-		   (sizeof(ComboCidKeyData) * usedComboCids));
+	if (usedComboCids > 0)
+		memcpy(start_address + sizeof(int), comboCids,
+			   (sizeof(ComboCidKeyData) * usedComboCids));
 }
 
 /*

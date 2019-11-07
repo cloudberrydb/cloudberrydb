@@ -5,7 +5,7 @@
  *	to control oid and relfilenode assignment, and do other special
  *	hacks needed for pg_upgrade.
  *
- *	Copyright (c) 2010-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2016, PostgreSQL Global Development Group
  *	src/backend/utils/adt/pg_upgrade_support.c
  */
 
@@ -36,6 +36,7 @@ Datum		binary_upgrade_set_next_toast_pg_class_oid(PG_FUNCTION_ARGS);
 Datum		binary_upgrade_set_next_pg_enum_oid(PG_FUNCTION_ARGS);
 Datum		binary_upgrade_set_next_pg_authid_oid(PG_FUNCTION_ARGS);
 Datum		binary_upgrade_create_empty_extension(PG_FUNCTION_ARGS);
+Datum		binary_upgrade_set_record_init_privs(PG_FUNCTION_ARGS);
 Datum		binary_upgrade_set_next_pg_namespace_oid(PG_FUNCTION_ARGS);
 Datum		binary_upgrade_set_preassigned_oids(PG_FUNCTION_ARGS);
 
@@ -170,15 +171,27 @@ binary_upgrade_set_next_pg_authid_oid(PG_FUNCTION_ARGS)
 Datum
 binary_upgrade_create_empty_extension(PG_FUNCTION_ARGS)
 {
-	text	   *extName = PG_GETARG_TEXT_PP(0);
-	text	   *schemaName = PG_GETARG_TEXT_PP(1);
-	bool		relocatable = PG_GETARG_BOOL(2);
-	text	   *extVersion = PG_GETARG_TEXT_PP(3);
+	text	   *extName;
+	text	   *schemaName;
+	bool		relocatable;
+	text	   *extVersion;
 	Datum		extConfig;
 	Datum		extCondition;
 	List	   *requiredExtensions;
 
 	CHECK_IS_BINARY_UPGRADE;
+
+	/* We must check these things before dereferencing the arguments */
+	if (PG_ARGISNULL(0) ||
+		PG_ARGISNULL(1) ||
+		PG_ARGISNULL(2) ||
+		PG_ARGISNULL(3))
+		elog(ERROR, "null argument to binary_upgrade_create_empty_extension is not allowed");
+
+	extName = PG_GETARG_TEXT_PP(0);
+	schemaName = PG_GETARG_TEXT_PP(1);
+	relocatable = PG_GETARG_BOOL(2);
+	extVersion = PG_GETARG_TEXT_PP(3);
 
 	if (PG_ARGISNULL(4))
 		extConfig = PointerGetDatum(NULL);
@@ -219,6 +232,17 @@ binary_upgrade_create_empty_extension(PG_FUNCTION_ARGS)
 						 extConfig,
 						 extCondition,
 						 requiredExtensions);
+
+	PG_RETURN_VOID();
+}
+
+Datum
+binary_upgrade_set_record_init_privs(PG_FUNCTION_ARGS)
+{
+	bool		record_init_privs = PG_GETARG_BOOL(0);
+
+	CHECK_IS_BINARY_UPGRADE;
+	binary_upgrade_record_init_privs = record_init_privs;
 
 	PG_RETURN_VOID();
 }

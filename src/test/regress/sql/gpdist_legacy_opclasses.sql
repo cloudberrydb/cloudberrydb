@@ -74,7 +74,12 @@ create table all_legacy_types(
 );
 
 -- Verify that all columns are using the legacy hashops
-select distkey, distclass from gp_distribution_policy where localoid='all_legacy_types'::regclass;
+select attno, opc.opcname from
+  (select unnest(distkey) as attno, unnest(distclass) as distclass from gp_distribution_policy
+   where localoid='all_legacy_types'::regclass) as d,
+  pg_opclass opc
+where opc.oid=distclass
+order by attno;
 
 insert into all_legacy_types values (
   '12345',          -- int2
@@ -114,7 +119,7 @@ insert into all_legacy_types values (
 -- Test that CTAS honors the gp_use_legacy_hashops GUC
 -- Note: When ORCA is on, the distribution is RANDOM.
 create table legacy_hashops_ctas as select 1;
-select gpdp.distkey, gpdp.distclass, pgopc.opcname
+select gpdp.distkey, pgopc.opcname
   from gp_distribution_policy gpdp, pg_opclass pgopc
   where gpdp.localoid='legacy_hashops_ctas'::regclass and pgopc.oid::text = gpdp.distclass::text;
 

@@ -11,7 +11,7 @@
  *
  * Portions Copyright (c) 2006-2011, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/c.h
@@ -252,6 +252,18 @@ extern "C" {
 #define dummyret	char
 #endif
 
+/* Which __func__ symbol do we have, if any? */
+#ifdef HAVE_FUNCNAME__FUNC
+#define PG_FUNCNAME_MACRO	__func__
+#else
+#ifdef HAVE_FUNCNAME__FUNCTION
+#define PG_FUNCNAME_MACRO	__FUNCTION__
+#else
+#define PG_FUNCNAME_MACRO	NULL
+#endif
+#endif
+
+
 /* ----------------------------------------------------------------
  *				Section 2:	bool, true, false, TRUE, FALSE, NULL
  * ----------------------------------------------------------------
@@ -376,37 +388,6 @@ typedef unsigned long long int uint64;
 #error must have a working 64-bit integer datatype
 #endif
 
-/* Max value of size_t might be missing if we don't have stdint.h */
-#ifndef SIZE_MAX
-#if SIZEOF_SIZE_T == 8
-#define SIZE_MAX UINT64CONST(0xFFFFFFFFFFFFFFFF)
-#else
-#define SIZE_MAX (0xFFFFFFFFU)
-#endif
-#endif
-
-/*
- * stdint.h limits aren't guaranteed to be present and aren't guaranteed to
- * have compatible types with our fixed width types. So just define our own.
- */
-#define PG_INT8_MIN		(-0x7F-1)
-#define PG_INT8_MAX		(0x7F)
-#define PG_UINT8_MAX	(0xFF)
-#define PG_INT16_MIN	(-0x7FFF-1)
-#define PG_INT16_MAX	(0x7FFF)
-#define PG_UINT16_MAX	(0xFFFF)
-#define PG_INT32_MIN	(-0x7FFFFFFF-1)
-#define PG_INT32_MAX	(0x7FFFFFFF)
-#define PG_UINT32_MAX	(0xFFFFFFFF)
-#define PG_INT64_MIN	(-INT64CONST(0x7FFFFFFFFFFFFFFF) - 1)
-#define PG_INT64_MAX	INT64CONST(0x7FFFFFFFFFFFFFFF)
-#define PG_UINT64_MAX	UINT64CONST(0xFFFFFFFFFFFFFFFF)
-
-/* Select timestamp representation (float8 or int64) */
-#ifdef USE_INTEGER_DATETIMES
-#define HAVE_INT64_TIMESTAMP
-#endif
-
 /* snprintf format strings to use for 64-bit integers */
 #define INT64_FORMAT "%" INT64_MODIFIER "d"
 #define UINT64_FORMAT "%" INT64_MODIFIER "u"
@@ -438,9 +419,35 @@ pg_attribute_aligned(MAXIMUM_ALIGNOF)
 #endif
 #endif
 
-/* sig_atomic_t is required by ANSI C, but may be missing on old platforms */
-#ifndef HAVE_SIG_ATOMIC_T
-typedef int sig_atomic_t;
+/*
+ * stdint.h limits aren't guaranteed to be present and aren't guaranteed to
+ * have compatible types with our fixed width types. So just define our own.
+ */
+#define PG_INT8_MIN		(-0x7F-1)
+#define PG_INT8_MAX		(0x7F)
+#define PG_UINT8_MAX	(0xFF)
+#define PG_INT16_MIN	(-0x7FFF-1)
+#define PG_INT16_MAX	(0x7FFF)
+#define PG_UINT16_MAX	(0xFFFF)
+#define PG_INT32_MIN	(-0x7FFFFFFF-1)
+#define PG_INT32_MAX	(0x7FFFFFFF)
+#define PG_UINT32_MAX	(0xFFFFFFFFU)
+#define PG_INT64_MIN	(-INT64CONST(0x7FFFFFFFFFFFFFFF) - 1)
+#define PG_INT64_MAX	INT64CONST(0x7FFFFFFFFFFFFFFF)
+#define PG_UINT64_MAX	UINT64CONST(0xFFFFFFFFFFFFFFFF)
+
+/* Max value of size_t might also be missing if we don't have stdint.h */
+#ifndef SIZE_MAX
+#if SIZEOF_SIZE_T == 8
+#define SIZE_MAX PG_UINT64_MAX
+#else
+#define SIZE_MAX PG_UINT32_MAX
+#endif
+#endif
+
+/* Select timestamp representation (float8 or int64) */
+#ifdef USE_INTEGER_DATETIMES
+#define HAVE_INT64_TIMESTAMP
 #endif
 
 /*
@@ -1019,34 +1026,6 @@ typedef NameData *Name;
  */
 #define UnusedArg(arg)    ((void)(arg))
 
-/*
- * Function inlining support -- Allow modules to define functions that may be
- * inlined, if the compiler supports it.
- *
- * The function bodies must be defined in the module header prefixed by
- * STATIC_IF_INLINE, protected by a cpp symbol that the module's .c file must
- * define.  If the compiler doesn't support inline functions, the function
- * definitions are pulled in by the .c file as regular (not inline) symbols.
- *
- * The header must also declare the functions' prototypes, protected by
- * !PG_USE_INLINE.
- */
-
-/* declarations which are only visible when not inlining and in the .c file */
-#ifdef PG_USE_INLINE
-#define STATIC_IF_INLINE static inline
-#else
-#define STATIC_IF_INLINE
-#endif   /* PG_USE_INLINE */
-
-/* declarations which are marked inline when inlining, extern otherwise */
-#ifdef PG_USE_INLINE
-#define STATIC_IF_INLINE_DECLARE static inline
-#else
-#define STATIC_IF_INLINE_DECLARE extern
-#endif   /* PG_USE_INLINE */
-
-
 /* ----------------------------------------------------------------
  *				Section 8:	random stuff
  * ----------------------------------------------------------------
@@ -1264,9 +1243,9 @@ extern unsigned long long strtoull(const char *str, char **endptr, int base);
 /*
  * When there is no sigsetjmp, its functionality is provided by plain
  * setjmp. Incidentally, nothing provides setjmp's functionality in
- * that case.
+ * that case.  We now support the case only on Windows.
  */
-#ifndef HAVE_SIGSETJMP
+#ifdef WIN32
 #define sigjmp_buf jmp_buf
 #define sigsetjmp(x,y) setjmp(x)
 #define siglongjmp longjmp

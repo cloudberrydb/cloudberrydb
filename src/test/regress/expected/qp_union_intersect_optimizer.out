@@ -1790,6 +1790,7 @@ order by 1,2;
 (7 rows)
 
 -- Check that it's using a MergeAppend
+set enable_hashagg=off;
 explain (costs off)
 select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
 union all

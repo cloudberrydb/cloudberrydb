@@ -89,10 +89,6 @@ begin
 end;
 $$;
 NOTICE:  table "t_ext_r" does not exist, skipping
-CONTEXT:  SQL statement "DROP EXTERNAL TABLE IF EXISTS t_ext_r"
-PL/pgSQL function drop_and_recreate_external_table() line 4 at SQL statement
-SQL statement "SELECT drop_and_recreate_external_table()"
-PL/pgSQL function inline_code_block line 4 at PERFORM
 -- Verify created tables
 SELECT
 	c.relname,

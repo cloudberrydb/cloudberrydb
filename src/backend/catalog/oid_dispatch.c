@@ -69,6 +69,7 @@
 
 #include "postgres.h"
 
+#include "catalog/pg_am.h"
 #include "catalog/pg_amop.h"
 #include "catalog/pg_amproc.h"
 #include "catalog/pg_attrdef.h"
@@ -186,6 +187,13 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 
 	switch(catalogrel->rd_id)
 	{
+		case AccessMethodRelationId:
+			{
+				Form_pg_am amForm = (Form_pg_am) GETSTRUCT(tuple);
+
+				key.objname = NameStr(amForm->amname);
+				break;
+			}
 		case AccessMethodOperatorRelationId:
 			{
 				Form_pg_amop amopForm = (Form_pg_amop) GETSTRUCT(tuple);

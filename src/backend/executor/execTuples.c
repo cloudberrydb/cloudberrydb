@@ -12,7 +12,7 @@
  *	  This information is needed by routines manipulating tuples
  *	  (getattribute, formtuple, etc.).
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -92,7 +92,6 @@
 #include "parser/parsetree.h"               /* rt_fetch() */
 #include "storage/bufmgr.h"
 #include "utils/builtins.h"
-#include "utils/expandeddatum.h"
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 
@@ -988,51 +987,6 @@ void ExecModifyMemTuple(TupleTableSlot *slot, Datum *values, bool *isnull, bool 
 	slot->PRIVATE_tts_nvalid = 0;
 }
 
-/* --------------------------------
- *		ExecMakeSlotContentsReadOnly
- *			Mark any R/W expanded datums in the slot as read-only.
- *
- * This is needed when a slot that might contain R/W datum references is to be
- * used as input for general expression evaluation.  Since the expression(s)
- * might contain more than one Var referencing the same R/W datum, we could
- * get wrong answers if functions acting on those Vars thought they could
- * modify the expanded value in-place.
- *
- * For notational reasons, we return the same slot passed in.
- * --------------------------------
- */
-TupleTableSlot *
-ExecMakeSlotContentsReadOnly(TupleTableSlot *slot)
-{
-	/*
-	 * sanity checks
-	 */
-	Assert(!TupIsNull(slot));
-	Assert(slot->tts_tupleDescriptor != NULL);
-
-	/*
-	 * If the slot contains a physical tuple, it can't contain any expanded
-	 * datums, because we flatten those when making a physical tuple.  This
-	 * might change later; but for now, we need do nothing unless the slot is
-	 * virtual.
-	 */
-	if (slot->PRIVATE_tts_heaptuple == NULL && slot->PRIVATE_tts_memtuple == NULL)
-	{
-		Form_pg_attribute *att = slot->tts_tupleDescriptor->attrs;
-		int			attnum;
-
-		for (attnum = 0; attnum < slot->PRIVATE_tts_nvalid; attnum++)
-		{
-			slot->PRIVATE_tts_values[attnum] =
-				MakeExpandedObjectReadOnly(slot->PRIVATE_tts_values[attnum],
-										   slot->PRIVATE_tts_isnull[attnum],
-										   att[attnum]->attlen);
-		}
-	}
-
-	return slot;
-}
-
 
 /* ----------------------------------------------------------------
  *				convenience initialization routines
@@ -1521,7 +1475,7 @@ do_tup_output(TupOutputState *tstate, Datum *values, bool *isnull)
 	ExecStoreVirtualTuple(slot);
 
 	/* send the tuple to the receiver */
-	(*tstate->dest->receiveSlot) (slot, tstate->dest);
+	(void) (*tstate->dest->receiveSlot) (slot, tstate->dest);
 
 	/* clean up */
 	ExecClearTuple(slot);

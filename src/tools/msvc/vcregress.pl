@@ -36,7 +36,7 @@ if (-e "src/tools/msvc/buildenv.pl")
 
 my $what = shift || "";
 if ($what =~
-/^(check|installcheck|plcheck|contribcheck|modulescheck|ecpgcheck|isolationcheck|upgradecheck|bincheck|taptest)$/i
+/^(check|installcheck|plcheck|contribcheck|modulescheck|ecpgcheck|isolationcheck|upgradecheck|bincheck|recoverycheck|taptest)$/i
   )
 {
 	$what = uc $what;
@@ -54,7 +54,7 @@ copy("$Config/autoinc/autoinc.dll",               "src/test/regress");
 copy("$Config/regress/regress.dll",               "src/test/regress");
 copy("$Config/dummy_seclabel/dummy_seclabel.dll", "src/test/regress");
 
-$ENV{PATH} = "$topdir/$Config/libpq;$topdir/$Config/libpq;$ENV{PATH}";
+$ENV{PATH} = "$topdir/$Config/libpq;$ENV{PATH}";
 
 if ($ENV{PERL5LIB})
 {
@@ -84,6 +84,7 @@ my %command = (
 	MODULESCHECK   => \&modulescheck,
 	ISOLATIONCHECK => \&isolationcheck,
 	BINCHECK       => \&bincheck,
+	RECOVERYCHECK  => \&recoverycheck,
 	UPGRADECHECK   => \&upgradecheck,
 	TAPTEST        => \&taptest,);
 
@@ -116,13 +117,12 @@ sub installcheck
 sub check
 {
 	my $schedule = shift || 'parallel';
-	chdir $startdir;
 	InstallTemp();
 	chdir "${topdir}/src/test/regress";
 	my @args = (
-		"${tmp_installdir}/bin/pg_regress",
+		"../../../$Config/pg_regress/pg_regress",
 		"--dlpath=.",
-		"--bindir=${tmp_installdir}/bin",
+		"--bindir=",
 		"--schedule=${schedule}_schedule",
 		"--encoding=SQL_ASCII",
 		"--no-locale",
@@ -143,10 +143,10 @@ sub ecpgcheck
 	InstallTemp();
 	chdir "$topdir/src/interfaces/ecpg/test";
 	my $schedule = "ecpg";
-	my @args     = (
 		"../../../../$Config/pg_regress_ecpg/pg_regress_ecpg",
-		"--dbname=regress1,connectdb",
-		"--create-role=connectuser,connectdb",
+		"--bindir=",
+		"--dbname=ecpg1_regression,ecpg2_regression",
+		"--create-role=regress_ecpg_user1,regress_ecpg_user2",
 		"--schedule=${schedule}_schedule",
 		"--encoding=SQL_ASCII",
 		"--no-locale",
@@ -159,14 +159,12 @@ sub ecpgcheck
 
 sub isolationcheck
 {
-	chdir $startdir;
-
-	InstallTemp();
-	chdir "${topdir}/src/test/isolation";
-
+	chdir "../isolation";
+	copy("../../../$Config/isolationtester/isolationtester.exe",
+		"../../../$Config/pg_isolation_regress");
 	my @args = (
-		"${tmp_installdir}/bin/pg_isolation_regress",
-		"--bindir=${tmp_installdir}/bin",
+		"../../../$Config/pg_isolation_regress/pg_isolation_regress",
+		"--bindir=../../../$Config/psql",
 		"--inputdir=.",
 		"--schedule=./isolation_schedule");
 	push(@args, $maxconn) if $maxconn;
@@ -294,10 +292,7 @@ sub mangle_plpython3
 
 sub plcheck
 {
-	chdir $startdir;
-
-	InstallTemp();
-	chdir "${topdir}/src/pl";
+	chdir "../../pl";
 
 	foreach my $pl (glob("*"))
 	{
@@ -341,8 +336,8 @@ sub plcheck
 		  "============================================================\n";
 		print "Checking $lang\n";
 		my @args = (
-			"${tmp_installdir}/bin/pg_regress",
-			"--bindir=${tmp_installdir}/bin",
+			"../../../$Config/pg_regress/pg_regress",
+			"--bindir=../../../$Config/psql",
 			"--dbname=pl_regression", @lang_args, @tests);
 		system(@args);
 		my $status = $? >> 8;
@@ -357,7 +352,6 @@ sub subdircheck
 {
 	my $subdir = shift;
 	my $module = shift;
-	my $mstat  = 0;
 
 	if (   !-d "$module/sql"
 		|| !-d "$module/expected"
@@ -404,20 +398,17 @@ sub subdircheck
 	print "============================================================\n";
 	print "Checking $module\n";
 	my @args = (
-		"${tmp_installdir}/bin/pg_regress",
-		"--bindir=${tmp_installdir}/bin",
+		"$topdir/$Config/pg_regress/pg_regress",
+		"--bindir=${topdir}/${Config}/psql",
 		"--dbname=contrib_regression", @opts, @tests);
 	system(@args);
-	my $status = $? >> 8;
-	$mstat ||= $status;
 	chdir "..";
-
-	exit $mstat if $mstat;
 }
 
 sub contribcheck
 {
-	chdir "$topdir/contrib";
+	chdir "../../../contrib";
+	my $mstat = 0;
 	foreach my $module (glob("*"))
 	{
 
@@ -431,25 +422,41 @@ sub contribcheck
 		next if ($module eq "sepgsql");
 
 		subdircheck("$topdir/contrib", $module);
+		my $status = $? >> 8;
+		$mstat ||= $status;
 	}
+	exit $mstat if $mstat;
 }
 
 sub modulescheck
 {
-	chdir "$topdir/src/test/modules";
+	chdir "../../../src/test/modules";
+	my $mstat = 0;
 	foreach my $module (glob("*"))
 	{
 		subdircheck("$topdir/src/test/modules", $module);
+		my $status = $? >> 8;
+		$mstat ||= $status;
 	}
+	exit $mstat if $mstat;
 }
 
+sub recoverycheck
+{
+	InstallTemp();
+
+	my $mstat  = 0;
+	my $dir    = "$topdir/src/test/recovery";
+	my $status = tap_check($dir);
+	exit $status if $status;
+}
 
 # Run "initdb", then reconfigure authentication.
 sub standard_initdb
 {
 	return (
-		system("${tmp_installdir}/bin/initdb", '-N') == 0 and system(
-			"${tmp_installdir}/bin/pg_regress", '--config-auth',
+		system('initdb', '-N') == 0 and system(
+			"$topdir/$Config/pg_regress/pg_regress", '--config-auth',
 			$ENV{PGDATA}) == 0);
 }
 
@@ -512,13 +519,14 @@ sub upgradecheck
 	$ENV{PGPORT} ||= 50432;
 	my $tmp_root = "$topdir/src/bin/pg_upgrade/tmp_check";
 	(mkdir $tmp_root || die $!) unless -d $tmp_root;
-
-	InstallTemp();
+	my $upg_tmp_install = "$tmp_root/install";    # unshared temp install
+	print "Setting up temp install\n\n";
+	Install($upg_tmp_install, "all", $config);
 
 	# Install does a chdir, so change back after that
 	chdir $cwd;
 	my ($bindir, $libdir, $oldsrc, $newsrc) =
-	  ("$tmp_installdir/bin", "$tmp_installdir/lib", $topdir, $topdir);
+	  ("$upg_tmp_install/bin", "$upg_tmp_install/lib", $topdir, $topdir);
 	$ENV{PATH} = "$bindir;$ENV{PATH}";
 	my $data = "$tmp_root/data";
 	$ENV{PGDATA} = "$data.old";
@@ -549,8 +557,9 @@ sub upgradecheck
 	print "\nSetting up new cluster\n\n";
 	standard_initdb() or exit 1;
 	print "\nRunning pg_upgrade\n\n";
-	@args = ('pg_upgrade', '-d', "$data.old", '-D', $data, '-b', $bindir,
-			 '-B', $bindir);
+	@args = (
+		'pg_upgrade', '-d', "$data.old", '-D', $data, '-b',
+		$bindir,      '-B', $bindir);
 	system(@args) == 0 or exit 1;
 	print "\nStarting new cluster\n\n";
 	@args = ('pg_ctl', '-l', "$logdir/postmaster2.log", '-w', 'start');
@@ -686,13 +695,13 @@ sub usage
 	  "  ecpgcheck      run regression tests of ECPG\n",
 	  "  installcheck   run regression tests on existing instance\n",
 	  "  isolationcheck run isolation tests\n",
+	  "  modulescheck   run tests of modules in src/test/modules/\n",
 	  "  plcheck        run tests of PL languages\n",
+	  "  recoverycheck  run recovery test suite\n",
 	  "  taptest        run an arbitrary TAP test set\n",
 	  "  upgradecheck   run tests of pg_upgrade\n",
-	  "\nOptions for <arg>: (used by check and installcheck)\n",
+	  "\nOptions for <schedule>:\n",
 	  "  serial         serial mode\n",
-	  "  parallel       parallel mode\n",
-	  "\nOption for <arg>: for taptest\n",
-	  "  TEST_DIR       (required) directory where tests reside\n";
+	  "  parallel       parallel mode\n";
 	exit(1);
 }

@@ -667,9 +667,9 @@ create function extractq2_append(t int8_tbl) returns table(ret1 int8) as $$
 $$ language sql immutable;
 
 explain (verbose, costs off)
-select x from int8_tbl, extractq2_append(int8_tbl) f(x);
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
 
-select x from int8_tbl, extractq2_append(int8_tbl) f(x);
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
 
 create function extractq2_wapper(t int8_tbl) returns table(ret1 int8) as $$      
   select (select extractq2(t))                                                  
@@ -678,3 +678,14 @@ $$ language sql immutable;
 explain (verbose, costs off) select x from int8_tbl, extractq2_wapper(int8_tbl) f(x);
 
 select x from int8_tbl, extractq2_wapper(int8_tbl) f(x);
+
+-- check handling of nulls in SRF results (bug #7808)
+
+create type foo2 as (a integer, b text);
+
+select *, row_to_json(u) from unnest(array[(1,'foo')::foo2, null::foo2]) u;
+select *, row_to_json(u) from unnest(array[null::foo2, null::foo2]) u;
+select *, row_to_json(u) from unnest(array[null::foo2, (1,'foo')::foo2, null::foo2]) u;
+select *, row_to_json(u) from unnest(array[]::foo2[]) u;
+
+drop type foo2;

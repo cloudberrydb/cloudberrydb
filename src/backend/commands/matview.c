@@ -3,7 +3,7 @@
  * matview.c
  *	  materialized view support
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -69,7 +69,7 @@ static int	matview_maintenance_depth = 0;
 
 static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation);
 static void transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
-static void transientrel_receive(TupleTableSlot *slot, DestReceiver *self);
+static bool transientrel_receive(TupleTableSlot *slot, DestReceiver *self);
 static void transientrel_shutdown(DestReceiver *self);
 static void transientrel_destroy(DestReceiver *self);
 static void refresh_matview_datafill(DestReceiver *dest, Query *query,
@@ -242,6 +242,49 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 			 "the rule for materialized view \"%s\" is not a single action",
 			 RelationGetRelationName(matviewRel));
 
+	/*
+	 * Check that there is a unique index with no WHERE clause on one or more
+	 * columns of the materialized view if CONCURRENTLY is specified.
+	 */
+	if (concurrent)
+	{
+		List	   *indexoidlist = RelationGetIndexList(matviewRel);
+		ListCell   *indexoidscan;
+		bool		hasUniqueIndex = false;
+
+		foreach(indexoidscan, indexoidlist)
+		{
+			Oid			indexoid = lfirst_oid(indexoidscan);
+			Relation	indexRel;
+			Form_pg_index indexStruct;
+
+			indexRel = index_open(indexoid, AccessShareLock);
+			indexStruct = indexRel->rd_index;
+
+			if (indexStruct->indisunique &&
+				IndexIsValid(indexStruct) &&
+				RelationGetIndexExpressions(indexRel) == NIL &&
+				RelationGetIndexPredicate(indexRel) == NIL &&
+				indexStruct->indnatts > 0)
+			{
+				hasUniqueIndex = true;
+				index_close(indexRel, AccessShareLock);
+				break;
+			}
+
+			index_close(indexRel, AccessShareLock);
+		}
+
+		list_free(indexoidlist);
+
+		if (!hasUniqueIndex)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+			   errmsg("cannot refresh materialized view \"%s\" concurrently",
+					  quote_qualified_identifier(get_namespace_name(RelationGetNamespace(matviewRel)),
+									   RelationGetRelationName(matviewRel))),
+					 errhint("Create a unique index with no WHERE clause on one or more columns of the materialized view.")));
+	}
 
 	/*
 	 * Check for active uses of the relation in the current transaction, such
@@ -497,7 +540,6 @@ transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 	if (myState->skipData)
 		return;
 
-
 	transientrel = heap_open(myState->transientoid, NoLock);
 
 	/*
@@ -522,13 +564,13 @@ transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 /*
  * transientrel_receive --- receive one tuple
  */
-static void
+static bool
 transientrel_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_transientrel *myState = (DR_transientrel *) self;
 
 	if (myState->skipData)
-		return;
+		return true;
 
 	/*
 	 * get the heap tuple out of the tuple table slot, making sure we have a
@@ -582,6 +624,8 @@ transientrel_receive(TupleTableSlot *slot, DestReceiver *self)
 
 
 	/* We know this is a newly created relation, so there are no indexes */
+
+	return true;
 }
 
 /*
@@ -638,7 +682,7 @@ make_temptable_name_n(char *tempname, int n)
 
 	initStringInfo(&namebuf);
 	appendStringInfoString(&namebuf, tempname);
-	appendStringInfo(&namebuf, "_%i", n);
+	appendStringInfo(&namebuf, "_%d", n);
 	return namebuf.data;
 }
 
@@ -742,7 +786,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 		 */
 		ereport(ERROR,
 				(errcode(ERRCODE_CARDINALITY_VIOLATION),
-				 errmsg("new data for \"%s\" contains duplicate rows without any null columns",
+				 errmsg("new data for materialized view \"%s\" contains duplicate rows without any null columns",
 						RelationGetRelationName(matviewRel)),
 				 errdetail("Row: %s",
 			SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1))));
@@ -874,12 +918,14 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 
 	list_free(indexoidlist);
 
-	if (!foundUniqueIndex)
-		ereport(ERROR,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-			   errmsg("cannot refresh materialized view \"%s\" concurrently",
-					  matviewname),
-				 errhint("Create a unique index with no WHERE clause on one or more columns of the materialized view.")));
+	/*
+	 * There must be at least one unique index on the matview.
+	 *
+	 * ExecRefreshMatView() checks that after taking the exclusive lock on the
+	 * matview. So at least one unique index is guaranteed to exist here
+	 * because the lock is still being held.
+	 */
+	Assert(foundUniqueIndex);
 
 
 

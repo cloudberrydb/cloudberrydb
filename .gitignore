@@ -10,6 +10,7 @@
 *.swp
 *.dylib
 *.dll
+*.exp
 *.a
 *.mo
 *.pot

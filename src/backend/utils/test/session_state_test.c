@@ -92,7 +92,7 @@ AcquireSessionState(int sessionId, int loglevel)
 {
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -114,7 +114,7 @@ ReleaseSessionState(int sessionId)
 	will_be_called_count(LWLockAcquire, 2);
 	will_be_called_count(LWLockRelease, 2);
 
-	expect_any_count(LWLockAcquire, l, 2);
+	expect_any_count(LWLockAcquire, lock, 2);
 	expect_any_count(LWLockAcquire, mode, 2);
 	expect_any_count(LWLockRelease, lock, 2);
 
@@ -310,7 +310,7 @@ test__SessionState_Init__TestSideffects(void **state)
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -477,7 +477,7 @@ test__SessionState_Shutdown__MarksSessionCleanUponRelease(void **state)
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 

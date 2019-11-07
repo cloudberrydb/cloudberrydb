@@ -4,7 +4,7 @@
  *	  functions for OpenSSL support in the backend.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -214,8 +214,30 @@ be_tls_init(void)
 					 errmsg("could not access private key file \"%s\": %m",
 							ssl_key_file)));
 
+		if (!S_ISREG(buf.st_mode))
+			ereport(FATAL,
+					(errcode(ERRCODE_CONFIG_FILE_ERROR),
+					 errmsg("private key file \"%s\" is not a regular file",
+							ssl_key_file)));
+
 		/*
-		 * Require no public access to key file.
+		 * Refuse to load files owned by users other than us or root.
+		 *
+		 * XXX surely we can check this on Windows somehow, too.
+		 */
+#if !defined(WIN32) && !defined(__CYGWIN__)
+		if (buf.st_uid != geteuid() && buf.st_uid != 0)
+			ereport(FATAL,
+					(errcode(ERRCODE_CONFIG_FILE_ERROR),
+					 errmsg("private key file \"%s\" must be owned by the database user or root",
+							ssl_key_file)));
+#endif
+
+		/*
+		 * Require no public access to key file. If the file is owned by us,
+		 * require mode 0600 or less. If owned by root, require 0640 or less
+		 * to allow read access through our gid, or a supplementary gid that
+		 * allows to read system-wide certificates.
 		 *
 		 * XXX temporarily suppress check when on Windows, because there may
 		 * not be proper support for Unix-y file permissions.  Need to think
@@ -223,12 +245,13 @@ be_tls_init(void)
 		 * directory permission check in postmaster.c)
 		 */
 #if !defined(WIN32) && !defined(__CYGWIN__)
-		if (!S_ISREG(buf.st_mode) || buf.st_mode & (S_IRWXG | S_IRWXO))
+		if ((buf.st_uid == geteuid() && buf.st_mode & (S_IRWXG | S_IRWXO)) ||
+			(buf.st_uid == 0 && buf.st_mode & (S_IWGRP | S_IXGRP | S_IRWXO)))
 			ereport(FATAL,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
 				  errmsg("private key file \"%s\" has group or world access",
 						 ssl_key_file),
-				   errdetail("Permissions should be u=rw (0600) or less.")));
+					 errdetail("File must have permissions u=rw (0600) or less if owned by the database user, or permissions u=rw,g=r (0640) or less if owned by root.")));
 #endif
 
 		if (SSL_CTX_use_PrivateKey_file(SSL_context,
@@ -309,7 +332,7 @@ be_tls_init(void)
 			else
 				ereport(FATAL,
 						(errmsg("could not load SSL certificate revocation list file \"%s\": %s",
-								ssl_crl_file, SSLerrmessage(ERR_get_error()))));
+							 ssl_crl_file, SSLerrmessage(ERR_get_error()))));
 		}
 	}
 
@@ -370,11 +393,12 @@ be_tls_open_server(Port *port)
 	port->ssl_in_use = true;
 
 aloop:
+
 	/*
 	 * Prepare to call SSL_get_error() by clearing thread's OpenSSL error
 	 * queue.  In general, the current thread's error queue must be empty
-	 * before the TLS/SSL I/O operation is attempted, or SSL_get_error()
-	 * will not work reliably.  An extension may have failed to clear the
+	 * before the TLS/SSL I/O operation is attempted, or SSL_get_error() will
+	 * not work reliably.  An extension may have failed to clear the
 	 * per-thread error queue following another call to an OpenSSL I/O
 	 * routine.
 	 */
@@ -386,12 +410,11 @@ aloop:
 
 		/*
 		 * Other clients of OpenSSL in the backend may fail to call
-		 * ERR_get_error(), but we always do, so as to not cause problems
-		 * for OpenSSL clients that don't call ERR_clear_error()
-		 * defensively.  Be sure that this happens by calling now.
-		 * SSL_get_error() relies on the OpenSSL per-thread error queue
-		 * being intact, so this is the earliest possible point
-		 * ERR_get_error() may be called.
+		 * ERR_get_error(), but we always do, so as to not cause problems for
+		 * OpenSSL clients that don't call ERR_clear_error() defensively.  Be
+		 * sure that this happens by calling now. SSL_get_error() relies on
+		 * the OpenSSL per-thread error queue being intact, so this is the
+		 * earliest possible point ERR_get_error() may be called.
 		 */
 		ecode = ERR_get_error();
 		switch (err)

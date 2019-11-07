@@ -366,6 +366,18 @@ select aa, bb, unique1, unique1
   where bb < bb and bb is null;
 
 --
+-- regression test: check handling of empty-FROM subquery underneath outer join
+--
+explain (costs off)
+select * from int8_tbl i1 left join (int8_tbl i2 join
+  (select 123 as x) ss on i2.q1 = x) on i1.q2 = i2.q2
+order by 1, 2;
+
+select * from int8_tbl i1 left join (int8_tbl i2 join
+  (select 123 as x) ss on i2.q1 = x) on i1.q2 = i2.q2
+order by 1, 2;
+
+--
 -- regression test: check a case where join_clause_is_movable_into() gives
 -- an imprecise result, causing an assertion failure
 --
@@ -514,6 +526,22 @@ select tt1.*, tt2.* from tt2 right join tt1 on tt1.joincol = tt2.joincol;
 
 reset enable_hashjoin;
 reset enable_nestloop;
+
+--
+-- regression test for bug #13908 (hash join with skew tuples & nbatch increase)
+--
+
+set work_mem to '64kB';
+set enable_mergejoin to off;
+
+explain (costs off)
+select count(*) from tenk1 a, tenk1 b
+  where a.hundred = b.thousand and (b.fivethous % 10) < 10;
+select count(*) from tenk1 a, tenk1 b
+  where a.hundred = b.thousand and (b.fivethous % 10) < 10;
+
+reset work_mem;
+reset enable_mergejoin;
 
 --
 -- regression test for 8.2 bug with improper re-ordering of left joins
@@ -881,18 +909,6 @@ select * from int4_tbl a full join int4_tbl b on true;
 select * from int4_tbl a full join int4_tbl b on false;
 
 --
--- test handling of potential equivalence clauses above outer joins
---
-
-select q1, unique2, thousand, hundred
-  from int8_tbl a left join tenk1 b on q1 = unique2
-  where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
-
-select f1, unique2, case when unique2 is null then f1 else 0 end
-  from int4_tbl a left join tenk1 b on f1 = unique2
-  where (case when unique2 is null then f1 else 0 end) = 0;
-
---
 -- test for ability to use a cartesian join when necessary
 --
 
@@ -1229,7 +1245,7 @@ select * from
 -- and the queries below are failing at the moment (The first one fails with
 -- error and the other two fail with panic). Comment them off temporarily.
 /*
- explain (verbose, costs off)
+explain (verbose, costs off)
 select * from
   text_tbl t1
   left join int8_tbl i8
@@ -1399,7 +1415,9 @@ select d.* from d left join (select distinct * from b) s
   on d.a = s.id and d.b = s.c_id;
 
 -- join removal is not possible when the GROUP BY contains a column that is
--- not in the join condition
+-- not in the join condition.  (Note: as of 9.6, we notice that b.id is a
+-- primary key and so drop b.c_id from the GROUP BY of the resulting plan;
+-- but this happens too late for join removal in the outer plan level.)
 explain (costs off)
 select d.* from d left join (select * from b group by b.id, b.c_id) s
   on d.a = s.id;
@@ -1555,6 +1573,7 @@ select atts.relid::regclass, s.* from pg_stats s join
     a.attrelid::regclass::text join (select unnest(indkey) attnum,
     indexrelid from pg_index i) atts on atts.attnum = a.attnum where
     schemaname != 'pg_catalog';
+
 --
 -- Test LATERAL
 --
@@ -1713,10 +1732,9 @@ select * from int4_tbl a,
   ) ss;
 
 -- lateral reference in a PlaceHolderVar evaluated at join level
--- GPDB_94_STABLE_MERGE_FIXME: The query below gives wrong results. The change
--- is related to upstream commit acfcd4. Disable this case temporarily and will
--- come back to fix it when understanding more about that commit.
---start_ignore
+-- GPDB_94_STABLE_MERGE_FIXME: The query fails. The change is related to
+-- upstream commit acfcd4. Need to come back to fix it when understanding more
+-- about that commit.
 explain (verbose, costs off)
 select * from
   int8_tbl a left join lateral
@@ -1728,7 +1746,6 @@ select * from
   (select b.q1 as bq1, c.q1 as cq1, least(a.q1,b.q1,c.q1) from
    int8_tbl b cross join int8_tbl c) ss
   on a.q2 = ss.bq1;
---end_ignore
 
 -- case requiring nested PlaceHolderVars
 explain (verbose, costs off)
@@ -1773,10 +1790,6 @@ select * from
   ) as q2;
 
 -- check we don't try to do a unique-ified semijoin with LATERAL
--- start_ignore
--- GPDB_94_STABLE_MERGE_FIXME: The query below is 'deeply' correlated
--- and GPDB would not pull up the sublink into a semijoin (why?), while
--- PostgreSQL will do. So the following test is meaningless in GPDB.
 explain (verbose, costs off)
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -1788,7 +1801,27 @@ select * from
   lateral (select f1 from int4_tbl
            where f1 = any (select unique1 from tenk1
                            where unique2 = v.x offset 0)) ss;
---end_ignore
+
+-- check proper extParam/allParam handling (this isn't exactly a LATERAL issue,
+-- but we can make the test case much more compact with LATERAL)
+explain (verbose, costs off)
+select * from (values (0), (1)) v(id),
+lateral (select * from int8_tbl t1,
+         lateral (select * from
+                    (select * from int8_tbl t2
+                     where q1 = any (select q2 from int8_tbl t3
+                                     where q2 = (select greatest(t1.q1,t2.q2))
+                                       and (select v.id=0)) offset 0) ss2) ss
+         where t1.q1 = ss.q2) ss0;
+
+select * from (values (0), (1)) v(id),
+lateral (select * from int8_tbl t1,
+         lateral (select * from
+                    (select * from int8_tbl t2
+                     where q1 = any (select q2 from int8_tbl t3
+                                     where q2 = (select greatest(t1.q1,t2.q2))
+                                       and (select v.id=0)) offset 0) ss2) ss
+         where t1.q1 = ss.q2) ss0;
 
 -- test some error cases where LATERAL should have been used but wasn't
 select f1,g from int4_tbl a, (select f1 as g) ss;

@@ -20,12 +20,30 @@
 void
 cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath);
 
-Path *
-cdbpath_create_motion_path(PlannerInfo     *root,
+extern Path *cdbpath_create_motion_path(PlannerInfo     *root,
                            Path            *subpath,
                            List            *pathkeys,
                            bool             require_existing_order,
                            CdbPathLocus     locus);
+
+extern Path *cdbpath_create_explicit_motion_path(PlannerInfo *root,
+									Path *subpath,
+									CdbPathLocus locus);
+
+extern Path *cdbpath_create_broadcast_motion_path(PlannerInfo *root,
+									 Path *subpath,
+									 int numsegments);
+
+extern Path *cdbpath_create_redistribute_motion_path_for_exprs(PlannerInfo *root,
+												  Path *subpath,
+												  int numsegments,
+												  List *hashExprs,
+												  List *hashFamilies);
+
+extern Path *create_motion_path_for_insert(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPolicy *targetPolicy, Path *subpath);
+extern Path *create_motion_path_for_delete(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPolicy *targetPolicy, Path *subpath);
+extern Path *create_motion_path_for_update(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPolicy *targetPolicy, Path *subpath);
+extern Path *create_split_update_path(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPolicy *targetPolicy, Path *subpath);
 
 CdbPathLocus
 cdbpath_motion_for_join(PlannerInfo    *root,

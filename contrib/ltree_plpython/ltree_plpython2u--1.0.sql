@@ -1,5 +1,10 @@
+/* contrib/ltree_plpython/ltree_plpython2u--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION ltree_plpython2u" to load this file. \quit
+
 -- make sure the prerequisite libraries are loaded
-DO '1' LANGUAGE plpython2u;
+LOAD 'plpython2';
 SELECT NULL::ltree;
 
 

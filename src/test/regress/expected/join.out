@@ -2187,6 +2187,47 @@ select aa, bb, unique1, unique1
 (0 rows)
 
 --
+-- regression test: check handling of empty-FROM subquery underneath outer join
+--
+explain (costs off)
+select * from int8_tbl i1 left join (int8_tbl i2 join
+  (select 123 as x) ss on i2.q1 = x) on i1.q2 = i2.q2
+order by 1, 2;
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)
+   Merge Key: i1.q1, i1.q2
+   ->  Sort
+         Sort Key: i1.q1, i1.q2
+         ->  Hash Right Join
+               Hash Cond: (i2.q2 = i1.q2)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: i2.q2
+                     ->  Hash Join
+                           Hash Cond: (i2.q1 = (123))
+                           ->  Seq Scan on int8_tbl i2
+                           ->  Hash
+                                 ->  Result
+               ->  Hash
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: i1.q2
+                           ->  Seq Scan on int8_tbl i1
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+select * from int8_tbl i1 left join (int8_tbl i2 join
+  (select 123 as x) ss on i2.q1 = x) on i1.q2 = i2.q2
+order by 1, 2;
+        q1        |        q2         | q1  |        q2        |  x  
+------------------+-------------------+-----+------------------+-----
+              123 |               456 | 123 |              456 | 123
+              123 |  4567890123456789 | 123 | 4567890123456789 | 123
+ 4567890123456789 | -4567890123456789 |     |                  |    
+ 4567890123456789 |               123 |     |                  |    
+ 4567890123456789 |  4567890123456789 | 123 | 4567890123456789 | 123
+(5 rows)
+
+--
 -- regression test: check a case where join_clause_is_movable_into() gives
 -- an imprecise result, causing an assertion failure
 --
@@ -2218,27 +2259,25 @@ select a.f1, b.f1, t.thousand, t.tenthous from
   (select sum(f1)+1 as f1 from int4_tbl i4a) a,
   (select sum(f1) as f1 from int4_tbl i4b) b
 where b.f1 = t.thousand and a.f1 = b.f1 and (a.f1+b.f1+999) = t.tenthous;
-                                                                                 QUERY PLAN                                                                                 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice5; segments: 3)
    ->  Nested Loop
-         Join Filter: ((t.thousand = (pg_catalog.sum((sum(i4b.f1))))) AND (((((pg_catalog.sum((sum(i4a.f1))) + 1)) + (pg_catalog.sum((sum(i4b.f1))))) + 999) = t.tenthous))
+         Join Filter: ((t.thousand = (sum(i4b.f1))) AND (((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999) = t.tenthous))
          ->  Nested Loop
                ->  Broadcast Motion 1:3  (slice2; segments: 1)
                      ->  Aggregate
                            ->  Gather Motion 3:1  (slice1; segments: 3)
-                                 ->  Aggregate
-                                       ->  Seq Scan on int4_tbl i4a
+                                 ->  Seq Scan on int4_tbl i4a
                ->  Index Only Scan using tenk1_thous_tenthous on tenk1 t
-                     Index Cond: (thousand = ((pg_catalog.sum((sum(i4a.f1))) + 1)))
+                     Index Cond: (thousand = ((sum(i4a.f1) + 1)))
          ->  Materialize
                ->  Broadcast Motion 1:3  (slice4; segments: 1)
                      ->  Aggregate
                            ->  Gather Motion 3:1  (slice3; segments: 3)
-                                 ->  Aggregate
-                                       ->  Seq Scan on int4_tbl i4b
+                                 ->  Seq Scan on int4_tbl i4b
  Optimizer: Postgres query optimizer
-(18 rows)
+(16 rows)
 
 select a.f1, b.f1, t.thousand, t.tenthous from
   tenk1 t,
@@ -2414,7 +2453,7 @@ select t1.x from t1 join t3 on (t1.a = t3.x);
 ERROR:  column t1.x does not exist
 LINE 1: select t1.x from t1 join t3 on (t1.a = t3.x);
                ^
-HINT:  Perhaps you meant to reference the column "t3"."x".
+HINT:  Perhaps you meant to reference the column "t3.x".
 --
 -- regression test for 8.1 merge right join bug
 --
@@ -2445,6 +2484,44 @@ select tt1.*, tt2.* from tt2 right join tt1 on tt1.joincol = tt2.joincol;
 
 reset enable_hashjoin;
 reset enable_nestloop;
+--
+-- regression test for bug #13908 (hash join with skew tuples & nbatch increase)
+--
+-- start_ignore
+-- GPDB_96_MERGE_FIXME: does the plan exercise the nbatch increase in GPDB
+-- like it does on PostgreSQL?
+-- end_ignore
+set work_mem to '64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
+set enable_mergejoin to off;
+explain (costs off)
+select count(*) from tenk1 a, tenk1 b
+  where a.hundred = b.thousand and (b.fivethous % 10) < 10;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice2; segments: 3)
+         ->  Partial Aggregate
+               ->  Hash Join
+                     Hash Cond: (a.hundred = b.thousand)
+                     ->  Seq Scan on tenk1 a
+                     ->  Hash
+                           ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                 ->  Seq Scan on tenk1 b
+                                       Filter: ((fivethous % 10) < 10)
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(*) from tenk1 a, tenk1 b
+  where a.hundred = b.thousand and (b.fivethous % 10) < 10;
+ count  
+--------
+ 100000
+(1 row)
+
+reset work_mem;
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
+reset enable_mergejoin;
 --
 -- regression test for 8.2 bug with improper re-ordering of left joins
 --
@@ -3034,24 +3111,6 @@ select * from int4_tbl a full join int4_tbl b on false;
 (10 rows)
 
 --
--- test handling of potential equivalence clauses above outer joins
---
-select q1, unique2, thousand, hundred
-  from int8_tbl a left join tenk1 b on q1 = unique2
-  where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
- q1 | unique2 | thousand | hundred 
-----+---------+----------+---------
-(0 rows)
-
-select f1, unique2, case when unique2 is null then f1 else 0 end
-  from int4_tbl a left join tenk1 b on f1 = unique2
-  where (case when unique2 is null then f1 else 0 end) = 0;
- f1 | unique2 | case 
-----+---------+------
-  0 |       0 |    0
-(1 row)
-
---
 -- test for ability to use a cartesian join when necessary
 --
 explain (costs off)
@@ -3325,9 +3384,9 @@ select count(*) from
   join int4_tbl on b.thousand = f1;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice5; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Hash Right Join
                      Hash Cond: (c.thousand = a.thousand)
                      Join Filter: (a.unique2 = b.unique1)
@@ -3832,7 +3891,7 @@ select t1.* from
                                                    Output: i8b2.q1, NULL::integer
                                                    Hash Cond: (i8b2.q1 = i4b2.f1)
                                                    ->  Seq Scan on public.int8_tbl i8b2
-                                                         Output: i8b2.q1
+                                                         Output: i8b2.q1, i8b2.q2
                                                    ->  Hash
                                                          Output: i4b2.f1
                                                          ->  Seq Scan on public.int4_tbl i4b2
@@ -4070,6 +4129,7 @@ where tt1.f1 = ss1.c0;
  ?column? 
 ----------
 (0 rows)
+
 --end_ignore
 --
 -- check a case in which a PlaceHolderVar forces join order
@@ -4351,45 +4411,43 @@ select d.* from d left join (select distinct * from b) s
 (3 rows)
 
 -- join removal is not possible when the GROUP BY contains a column that is
--- not in the join condition
+-- not in the join condition.  (Note: as of 9.6, we notice that b.id is a
+-- primary key and so drop b.c_id from the GROUP BY of the resulting plan;
+-- but this happens too late for join removal in the outer plan level.)
 explain (costs off)
 select d.* from d left join (select * from b group by b.id, b.c_id) s
   on d.a = s.id;
-                       QUERY PLAN                       
---------------------------------------------------------
+                 QUERY PLAN                  
+---------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Left Join
          Hash Cond: (d.a = s.id)
          ->  Seq Scan on d
          ->  Hash
                ->  Subquery Scan on s
-                     ->  GroupAggregate
-                           Group Key: b.id, b.c_id
-                           ->  Sort
-                                 Sort Key: b.id, b.c_id
-                                 ->  Seq Scan on b
+                     ->  HashAggregate
+                           Group Key: b.id
+                           ->  Seq Scan on b
  Optimizer: Postgres query optimizer
-(16 rows)
+(10 rows)
 
 -- similarly, but keying off a DISTINCT clause
 explain (costs off)
 select d.* from d left join (select distinct * from b) s
   on d.a = s.id;
-                       QUERY PLAN                       
---------------------------------------------------------
+                 QUERY PLAN                  
+---------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Left Join
          Hash Cond: (d.a = s.id)
          ->  Seq Scan on d
          ->  Hash
                ->  Subquery Scan on s
-                     ->  GroupAggregate
-                           Group Key: b.id, b.c_id
-                           ->  Sort
-                                 Sort Key: b.id, b.c_id
-                                 ->  Seq Scan on b
+                     ->  HashAggregate
+                           Group Key: b.id
+                           ->  Seq Scan on b
  Optimizer: Postgres query optimizer
-(16 rows)
+(10 rows)
 
 -- check join removal works when uniqueness of the join condition is enforced
 -- by a UNION
@@ -4629,19 +4687,19 @@ select t1.uunique1 from
 ERROR:  column t1.uunique1 does not exist
 LINE 1: select t1.uunique1 from
                ^
-HINT:  Perhaps you meant to reference the column "t1"."unique1".
+HINT:  Perhaps you meant to reference the column "t1.unique1".
 select t2.uunique1 from
   tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, prefer "t2" suggestion
 ERROR:  column t2.uunique1 does not exist
 LINE 1: select t2.uunique1 from
                ^
-HINT:  Perhaps you meant to reference the column "t2"."unique1".
+HINT:  Perhaps you meant to reference the column "t2.unique1".
 select uunique1 from
   tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, suggest both at once
 ERROR:  column "uunique1" does not exist
 LINE 1: select uunique1 from
                ^
-HINT:  Perhaps you meant to reference the column "t1"."unique1" or the column "t2"."unique1".
+HINT:  Perhaps you meant to reference the column "t1.unique1" or the column "t2.unique1".
 --
 -- Take care to reference the correct RTE
 --
@@ -4770,9 +4828,9 @@ explain (costs off)
   select count(*) from tenk1 a, lateral generate_series(1,two) g;
                          QUERY PLAN                         
 ------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
                      ->  Function Scan on generate_series g
@@ -4783,9 +4841,9 @@ explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
                          QUERY PLAN                         
 ------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
                      ->  Function Scan on generate_series g
@@ -4797,9 +4855,9 @@ explain (costs off)
   select count(*) from tenk1 a, generate_series(1,two) g;
                          QUERY PLAN                         
 ------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
                      ->  Function Scan on generate_series g
@@ -4851,9 +4909,9 @@ explain (costs off)
     tenk1 b join lateral (values(a.unique1)) ss(x) on b.unique2 = ss.x;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice2; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Hash Join
                      Hash Cond: (b.unique2 = a.unique1)
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)
@@ -4875,11 +4933,11 @@ select count(*) from tenk1 a,
 explain (costs off)
   select count(*) from tenk1 a,
     tenk1 b join lateral (values(a.unique1),(-1)) ss(x) on b.unique2 = ss.x;
-                            QUERY PLAN                            
-------------------------------------------------------------------
- Aggregate
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice3; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Hash Join
                      Hash Cond: ("*VALUES*".column1 = b.unique2)
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)
@@ -5159,24 +5217,24 @@ select v.* from
   lateral (select x.q1,y.q1 union all select x.q2,y.q2) v(vx,vy);
         vx         |        vy         
 -------------------+-------------------
-               123 |                  
-               456 |                  
-               123 |  4567890123456789
-  4567890123456789 | -4567890123456789
-               123 |  4567890123456789
-  4567890123456789 |  4567890123456789
-               123 |  4567890123456789
-  4567890123456789 |               123
-  4567890123456789 |               123
-               123 |  4567890123456789
   4567890123456789 |               123
                123 |               456
-  4567890123456789 |  4567890123456789
-  4567890123456789 | -4567890123456789
-  4567890123456789 |  4567890123456789
-  4567890123456789 |  4567890123456789
+  4567890123456789 |               123
+               123 |  4567890123456789
   4567890123456789 |  4567890123456789
   4567890123456789 |               123
+               123 |  4567890123456789
+  4567890123456789 |               123
+  4567890123456789 |  4567890123456789
+  4567890123456789 |  4567890123456789
+               123 |  4567890123456789
+  4567890123456789 |  4567890123456789
+  4567890123456789 |  4567890123456789
+  4567890123456789 | -4567890123456789
+               123 |  4567890123456789
+  4567890123456789 | -4567890123456789
+               123 |                  
+               456 |                  
   4567890123456789 |                  
  -4567890123456789 |                  
 (20 rows)
@@ -5190,24 +5248,24 @@ select v.* from
   lateral (select x.q1,y.q1 from dual union all select x.q2,y.q2 from dual) v(vx,vy);
         vx         |        vy         
 -------------------+-------------------
-               123 |                  
-               456 |                  
-               123 |  4567890123456789
-  4567890123456789 | -4567890123456789
-               123 |  4567890123456789
-  4567890123456789 |  4567890123456789
-               123 |  4567890123456789
-  4567890123456789 |               123
-  4567890123456789 |               123
-               123 |  4567890123456789
   4567890123456789 |               123
                123 |               456
-  4567890123456789 |  4567890123456789
-  4567890123456789 | -4567890123456789
-  4567890123456789 |  4567890123456789
-  4567890123456789 |  4567890123456789
+  4567890123456789 |               123
+               123 |  4567890123456789
   4567890123456789 |  4567890123456789
   4567890123456789 |               123
+               123 |  4567890123456789
+  4567890123456789 |               123
+  4567890123456789 |  4567890123456789
+  4567890123456789 |  4567890123456789
+               123 |  4567890123456789
+  4567890123456789 |  4567890123456789
+  4567890123456789 |  4567890123456789
+  4567890123456789 | -4567890123456789
+               123 |  4567890123456789
+  4567890123456789 | -4567890123456789
+               123 |                  
+               456 |                  
   4567890123456789 |                  
  -4567890123456789 |                  
 (20 rows)
@@ -5357,39 +5415,41 @@ select * from int4_tbl a,
   lateral (
     select * from int4_tbl b left join int8_tbl c on (b.f1 = q1 and a.f1 = q2)
   ) ss;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Nested Loop
    Output: a.f1, b.f1, c.q1, c.q2
-   ->  Gather Motion 3:1  (slice1; segments: 3)
+   ->  Materialize
          Output: a.f1
-         ->  Seq Scan on public.int4_tbl a
+         ->  Gather Motion 3:1  (slice1; segments: 3)
                Output: a.f1
+               ->  Seq Scan on public.int4_tbl a
+                     Output: a.f1
    ->  Materialize
          Output: b.f1, c.q1, c.q2
-         ->  Hash Left Join
+         ->  Hash Right Join
                Output: b.f1, c.q1, c.q2
-               Hash Cond: (b.f1 = c.q1)
-               ->  Materialize
-                     Output: b.f1
-                     ->  Gather Motion 3:1  (slice2; segments: 3)
-                           Output: b.f1
-                           ->  Seq Scan on public.int4_tbl b
-                                 Output: b.f1
-               ->  Hash
+               Hash Cond: (c.q1 = b.f1)
+               ->  Result
                      Output: c.q1, c.q2
-                     ->  Result
+                     Filter: (a.f1 = c.q2)
+                     ->  Materialize
                            Output: c.q1, c.q2
-                           Filter: (a.f1 = c.q2)
-                           ->  Materialize
+                           ->  Gather Motion 3:1  (slice2; segments: 3)
                                  Output: c.q1, c.q2
-                                 ->  Gather Motion 3:1  (slice3; segments: 3)
+                                 ->  Seq Scan on public.int8_tbl c
                                        Output: c.q1, c.q2
-                                       ->  Seq Scan on public.int8_tbl c
-                                             Output: c.q1, c.q2
+               ->  Hash
+                     Output: b.f1
+                     ->  Materialize
+                           Output: b.f1
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
+                                 Output: b.f1
+                                 ->  Seq Scan on public.int4_tbl b
+                                       Output: b.f1
  Optimizer: Postgres query optimizer
  Settings: optimizer=off
-(30 rows)
+(32 rows)
 
 select * from int4_tbl a,
   lateral (
@@ -5425,95 +5485,22 @@ select * from int4_tbl a,
 (25 rows)
 
 -- lateral reference in a PlaceHolderVar evaluated at join level
--- GPDB_94_STABLE_MERGE_FIXME: The query below gives wrong results. The change
--- is related to upstream commit acfcd4. Disable this case temporarily and will
--- come back to fix it when understanding more about that commit.
---start_ignore
+-- GPDB_94_STABLE_MERGE_FIXME: The query fails. The change is related to
+-- upstream commit acfcd4. Need to come back to fix it when understanding more
+-- about that commit.
 explain (verbose, costs off)
 select * from
   int8_tbl a left join lateral
   (select b.q1 as bq1, c.q1 as cq1, least(a.q1,b.q1,c.q1) from
    int8_tbl b cross join int8_tbl c) ss
   on a.q2 = ss.bq1;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
-   Output: a.q1, a.q2, b.q1, c.q1, (LEAST(a.q1, b.q1, c.q1))
-   ->  Nested Loop Left Join
-         Output: a.q1, a.q2, b.q1, c.q1, (LEAST(a.q1, b.q1, c.q1))
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
-               Output: a.q1, a.q2
-               Hash Key: a.q2
-               ->  Seq Scan on public.int8_tbl a
-                     Output: a.q1, a.q2
-         ->  Materialize
-               Output: b.q1, c.q1, (LEAST(a.q1, b.q1, c.q1))
-               ->  Nested Loop
-                     Output: b.q1, c.q1, LEAST(a.q1, b.q1, c.q1)
-                     ->  Seq Scan on public.int8_tbl b
-                           Output: b.q1, b.q2
-                           Filter: (a.q2 = b.q1)
-                     ->  Materialize
-                           Output: c.q1
-                           ->  Broadcast Motion 3:3  (slice2; segments: 3)
-                                 Output: c.q1
-                                 ->  Seq Scan on public.int8_tbl c
-                                       Output: c.q1
- Optimizer: Postgres query optimizer
-(23 rows)
-
+ERROR:  could not devise a query plan for the given query (pathnode.c:465)
 select * from
   int8_tbl a left join lateral
   (select b.q1 as bq1, c.q1 as cq1, least(a.q1,b.q1,c.q1) from
    int8_tbl b cross join int8_tbl c) ss
   on a.q2 = ss.bq1;
-        q1        |        q2         |       bq1        |       cq1        |      least       
-------------------+-------------------+------------------+------------------+------------------
-              123 |               456 |                  |                  |                 
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 |              123 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
-              123 |  4567890123456789 | 4567890123456789 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 |              123 |              123
- 4567890123456789 |               123 |              123 |              123 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 |              123 |              123
- 4567890123456789 |               123 |              123 |              123 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |               123 |              123 | 4567890123456789 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 |              123 |              123
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 |  4567890123456789 | 4567890123456789 | 4567890123456789 | 4567890123456789
- 4567890123456789 | -4567890123456789 |                  |                  |                 
-(42 rows)
-
---end_ignore
+ERROR:  could not devise a query plan for the given query (pathnode.c:465)
 -- case requiring nested PlaceHolderVars
 explain (verbose, costs off)
 select * from
@@ -5680,10 +5667,6 @@ select * from
 (6 rows)
 
 -- check we don't try to do a unique-ified semijoin with LATERAL
--- start_ignore
--- GPDB_94_STABLE_MERGE_FIXME: The query below is 'deeply' correlated
--- and GPDB would not pull up the sublink into a semijoin (why?), while
--- PostgreSQL will do. So the following test is meaningless in GPDB.
 explain (verbose, costs off)
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -5694,19 +5677,26 @@ select * from
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Output: "*VALUES*".column1, "*VALUES*".column2, int4_tbl.f1
-   ->  Values Scan on "*VALUES*"
-         Output: "*VALUES*".column1, "*VALUES*".column2
-   ->  Hash Semi Join
-         Output: int4_tbl.f1
-         Hash Cond: (int4_tbl.f1 = tenk1.unique1)
+   ->  Nested Loop
+         Output: "*VALUES*".column1, "*VALUES*".column2, int4_tbl.f1
+         ->  Values Scan on "*VALUES*"
+               Output: "*VALUES*".column1, "*VALUES*".column2
          ->  Seq Scan on public.int4_tbl
                Output: int4_tbl.f1
-         ->  Hash
-               Output: tenk1.unique1
-               ->  Index Scan using tenk1_unique2 on public.tenk1
-                     Output: tenk1.unique1
-                     Index Cond: (tenk1.unique2 = "*VALUES*".column2)
-(14 rows)
+               Filter: (SubPlan 1)
+               SubPlan 1
+                 ->  Result
+                       Output: tenk1.unique1
+                       Filter: (tenk1.unique2 = "*VALUES*".column2)
+                       ->  Materialize
+                             Output: tenk1.unique1, tenk1.unique2
+                             ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                   Output: tenk1.unique1, tenk1.unique2
+                                   ->  Seq Scan on public.tenk1
+                                         Output: tenk1.unique1, tenk1.unique2
+ Optimizer: Postgres query optimizer
+ Settings: optimizer=off
+(21 rows)
 
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -5718,7 +5708,27 @@ select * from
   0 | 9998 |  0
 (1 row)
 
---end_ignore
+-- check proper extParam/allParam handling (this isn't exactly a LATERAL issue,
+-- but we can make the test case much more compact with LATERAL)
+explain (verbose, costs off)
+select * from (values (0), (1)) v(id),
+lateral (select * from int8_tbl t1,
+         lateral (select * from
+                    (select * from int8_tbl t2
+                     where q1 = any (select q2 from int8_tbl t3
+                                     where q2 = (select greatest(t1.q1,t2.q2))
+                                       and (select v.id=0)) offset 0) ss2) ss
+         where t1.q1 = ss.q2) ss0;
+ERROR:  correlated subquery with skip-level correlations is not supported
+select * from (values (0), (1)) v(id),
+lateral (select * from int8_tbl t1,
+         lateral (select * from
+                    (select * from int8_tbl t2
+                     where q1 = any (select q2 from int8_tbl t3
+                                     where q2 = (select greatest(t1.q1,t2.q2))
+                                       and (select v.id=0)) offset 0) ss2) ss
+         where t1.q1 = ss.q2) ss0;
+ERROR:  correlated subquery with skip-level correlations is not supported
 -- test some error cases where LATERAL should have been used but wasn't
 select f1,g from int4_tbl a, (select f1 as g) ss;
 ERROR:  column "f1" does not exist

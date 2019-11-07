@@ -20,6 +20,7 @@
 #include "access/genam.h"
 #include "access/tupdesc.h"
 #include "access/bitmap.h"
+#include "access/relscan.h"
 #include "storage/lmgr.h"
 #include "parser/parse_oper.h"
 #include "utils/lsyscache.h"

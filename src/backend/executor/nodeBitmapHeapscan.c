@@ -20,7 +20,7 @@
  *
  * This can also be used in "Dynamic" mode.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  * Portions Copyright (c) 2008-2009, Greenplum Inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
@@ -52,6 +52,7 @@
 #include "parser/parsetree.h"
 #include "nodes/tidbitmap.h"
 #include "utils/rel.h"
+#include "utils/spccache.h"
 #include "utils/snapmgr.h"
 #include "utils/tqual.h"
 
@@ -281,9 +282,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 	 * prefetching.  node->prefetch_pages tracks exactly how many pages ahead
 	 * the prefetch iterator is.  Also, node->prefetch_target tracks the
 	 * desired prefetch distance, which starts small and increases up to the
-	 * GUC-controlled maximum, target_prefetch_pages.  This is to avoid doing
-	 * a lot of prefetching in a scan that stops after a few tuples because of
-	 * a LIMIT.
+	 * node->prefetch_maximum.  This is to avoid doing a lot of prefetching in
+	 * a scan that stops after a few tuples because of a LIMIT.
 	 */
 	if (tbm == NULL)
 	{
@@ -297,7 +297,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
 		node->tbmres = tbmres = NULL;
 
 #ifdef USE_PREFETCH
-		if (target_prefetch_pages > 0)
+		if (node->prefetch_maximum > 0)
 		{
 			node->prefetch_iterator = prefetch_iterator = tbm_generic_begin_iterate(tbm);
 			node->prefetch_pages = 0;
@@ -383,10 +383,10 @@ BitmapHeapNext(BitmapHeapScanState *node)
 			 * page/tuple, then to one after the second tuple is fetched, then
 			 * it doubles as later pages are fetched.
 			 */
-			if (node->prefetch_target >= target_prefetch_pages)
+			if (node->prefetch_target >= node->prefetch_maximum)
 				 /* don't increase any further */ ;
-			else if (node->prefetch_target >= target_prefetch_pages / 2)
-				node->prefetch_target = target_prefetch_pages;
+			else if (node->prefetch_target >= node->prefetch_maximum / 2)
+				node->prefetch_target = node->prefetch_maximum;
 			else if (node->prefetch_target > 0)
 				node->prefetch_target *= 2;
 			else
@@ -407,7 +407,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
 			 * Try to prefetch at least a few pages even before we get to the
 			 * second page if we don't stop reading after the first tuple.
 			 */
-			if (node->prefetch_target < target_prefetch_pages)
+			if (node->prefetch_target < node->prefetch_maximum)
 				node->prefetch_target++;
 #endif   /* USE_PREFETCH */
 		}
@@ -977,6 +977,7 @@ ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int efl
 {
 
 	BitmapHeapScanState *scanstate;
+	int			io_concurrency;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
@@ -1005,6 +1006,8 @@ ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int efl
 	scanstate->prefetch_iterator = NULL;
 	scanstate->prefetch_pages = 0;
 	scanstate->prefetch_target = 0;
+	/* may be updated below */
+	scanstate->prefetch_maximum = target_prefetch_pages;
 
 	scanstate->baos_gotpage = false;
 	scanstate->baos_lossy = false;
@@ -1038,6 +1041,22 @@ ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int efl
 	 */
 	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
 	ExecInitScanTupleSlot(estate, &scanstate->ss);
+
+	/*
+	 * Determine the maximum for prefetch_target.  If the tablespace has a
+	 * specific IO concurrency set, use that to compute the corresponding
+	 * maximum value; otherwise, we already initialized to the value computed
+	 * by the GUC machinery.
+	 */
+	io_concurrency =
+		get_tablespace_io_concurrency(currentRelation->rd_rel->reltablespace);
+	if (io_concurrency != effective_io_concurrency)
+	{
+		double		maximum;
+
+		if (ComputeIoConcurrency(io_concurrency, &maximum))
+			scanstate->prefetch_maximum = rint(maximum);
+	}
 
 	scanstate->ss.ss_currentRelation = currentRelation;
 

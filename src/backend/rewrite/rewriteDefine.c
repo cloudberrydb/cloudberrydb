@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -29,6 +29,7 @@
 #include "catalog/objectaccess.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/storage.h"
+#include "commands/policy.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "parser/parse_utilcmd.h"
@@ -440,11 +441,12 @@ DefineQueryRewrite(char *rulename,
 		 *
 		 * If so, check that the relation is empty because the storage for the
 		 * relation is going to be deleted.  Also insist that the rel not have
-		 * any triggers, indexes, or child tables.  (Note: these tests are too
-		 * strict, because they will reject relations that once had such but
-		 * don't anymore.  But we don't really care, because this whole
-		 * business of converting relations to views is just a kluge to allow
-		 * dump/reload of views that participate in circular dependencies.)
+		 * any triggers, indexes, child tables, policies, or RLS enabled.
+		 * (Note: these tests are too strict, because they will reject
+		 * relations that once had such but don't anymore.  But we don't
+		 * really care, because this whole business of converting relations to
+		 * views is just a kluge to allow dump/reload of views that
+		 * participate in circular dependencies.)
 		 */
 		if (event_relation->rd_rel->relkind != RELKIND_VIEW &&
 			event_relation->rd_rel->relkind != RELKIND_MATVIEW)
@@ -485,6 +487,18 @@ DefineQueryRewrite(char *rulename,
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						 errmsg("could not convert table \"%s\" to a view because it has child tables",
+								RelationGetRelationName(event_relation))));
+
+			if (event_relation->rd_rel->relrowsecurity)
+				ereport(ERROR,
+						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+						 errmsg("could not convert table \"%s\" to a view because it has row security enabled",
+								RelationGetRelationName(event_relation))));
+
+			if (relation_has_policies(event_relation))
+				ereport(ERROR,
+						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+						 errmsg("could not convert table \"%s\" to a view because it has row security policies",
 								RelationGetRelationName(event_relation))));
 
 			RelisBecomingView = true;

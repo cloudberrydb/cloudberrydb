@@ -36,8 +36,7 @@ $$ LANGUAGE plpythonu;
 
 select module_contents();
 
-
-CREATE FUNCTION elog_test() RETURNS void
+CREATE FUNCTION elog_test_basic() RETURNS void
 AS $$
 plpy.debug('debug')
 plpy.log('log')
@@ -50,4 +49,4 @@ plpy.warning('warning')
 plpy.error('error')
 $$ LANGUAGE plpythonu;
 
-SELECT elog_test();
+SELECT elog_test_basic();

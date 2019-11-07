@@ -23,6 +23,7 @@ OBJS = cdbappendonlystorageformat.o \
 	   cdbdtxcontextinfo.o \
 	   cdbfts.o \
 	   cdbgroup.o \
+	   cdbgroupingpaths.o \
 	   cdbhash.o \
 	   cdblegacyhash.o \
 	   cdbllize.o cdblocaldistribxact.o \

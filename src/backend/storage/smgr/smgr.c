@@ -8,7 +8,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -586,6 +586,18 @@ smgrwrite(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 		  char *buffer, bool skipFsync)
 {
 	mdwrite(reln, forknum, blocknum, buffer, skipFsync);
+}
+
+
+/*
+ *	smgrwriteback() -- Trigger kernel writeback for the supplied range of
+ *					   blocks.
+ */
+void
+smgrwriteback(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
+			  BlockNumber nblocks)
+{
+	mdwriteback(reln, forknum, blocknum, nblocks);
 }
 
 /*

@@ -2,7 +2,7 @@
  * gin_private.h
  *	  header file for postgres inverted index access method implementation.
  *
- *	Copyright (c) 2006-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2016, PostgreSQL Global Development Group
  *
  *	src/include/access/gin_private.h
  *--------------------------------------------------------------------------
@@ -10,7 +10,7 @@
 #ifndef GIN_PRIVATE_H
 #define GIN_PRIVATE_H
 
-#include "access/genam.h"
+#include "access/amapi.h"
 #include "access/gin.h"
 #include "access/itup.h"
 #include "fmgr.h"
@@ -591,7 +591,8 @@ typedef struct ginxlogDeleteListPages
 
 
 /* ginutil.c */
-extern Datum ginoptions(PG_FUNCTION_ARGS);
+extern Datum ginhandler(PG_FUNCTION_ARGS);
+extern bytea *ginoptions(Datum reloptions, bool validate);
 extern void initGinState(GinState *state, Relation index);
 extern Buffer GinNewBuffer(Relation index);
 extern void GinInitBuffer(Buffer b, uint32 f);
@@ -612,9 +613,12 @@ extern Datum gintuple_get_key(GinState *ginstate, IndexTuple tuple,
 				 GinNullCategory *category);
 
 /* gininsert.c */
-extern Datum ginbuild(PG_FUNCTION_ARGS);
-extern Datum ginbuildempty(PG_FUNCTION_ARGS);
-extern Datum gininsert(PG_FUNCTION_ARGS);
+extern IndexBuildResult *ginbuild(Relation heap, Relation index,
+		 struct IndexInfo *indexInfo);
+extern void ginbuildempty(Relation index);
+extern bool gininsert(Relation index, Datum *values, bool *isnull,
+		  ItemPointer ht_ctid, Relation heapRel,
+		  IndexUniqueCheck checkUnique);
 extern void ginEntryInsert(GinState *ginstate,
 			   OffsetNumber attnum, Datum key, GinNullCategory category,
 			   ItemPointerData *items, uint32 nitem,
@@ -698,7 +702,7 @@ typedef struct
  * PostingItem
  */
 
-extern GinBtreeStack *ginFindLeafPage(GinBtree btree, bool searchMode);
+extern GinBtreeStack *ginFindLeafPage(GinBtree btree, bool searchMode, Snapshot snapshot);
 extern Buffer ginStepRight(Buffer buffer, Relation index, int lockmode);
 extern void freeGinBtreeStack(GinBtreeStack *stack);
 extern void ginInsertValue(GinBtree btree, GinBtreeStack *stack,
@@ -726,7 +730,7 @@ extern void GinPageDeletePostingItem(Page page, OffsetNumber offset);
 extern void ginInsertItemPointers(Relation index, BlockNumber rootBlkno,
 					  ItemPointerData *items, uint32 nitem,
 					  GinStatsData *buildStats);
-extern GinBtreeStack *ginScanBeginPostingTree(GinBtree btree, Relation index, BlockNumber rootBlkno);
+extern GinBtreeStack *ginScanBeginPostingTree(GinBtree btree, Relation index, BlockNumber rootBlkno, Snapshot snapshot);
 extern void ginDataFillRoot(GinBtree btree, Page root, BlockNumber lblkno, Page lpage, BlockNumber rblkno, Page rpage);
 extern void ginPrepareDataScan(GinBtree btree, Relation index, BlockNumber rootBlkno);
 
@@ -866,25 +870,34 @@ typedef struct GinScanOpaqueData
 
 typedef GinScanOpaqueData *GinScanOpaque;
 
-extern Datum ginbeginscan(PG_FUNCTION_ARGS);
-extern Datum ginendscan(PG_FUNCTION_ARGS);
-extern Datum ginrescan(PG_FUNCTION_ARGS);
-extern Datum ginmarkpos(PG_FUNCTION_ARGS);
-extern Datum ginrestrpos(PG_FUNCTION_ARGS);
+extern IndexScanDesc ginbeginscan(Relation rel, int nkeys, int norderbys);
+extern void ginendscan(IndexScanDesc scan);
+extern void ginrescan(IndexScanDesc scan, ScanKey key, int nscankeys,
+		  ScanKey orderbys, int norderbys);
 extern void ginNewScanKey(IndexScanDesc scan);
 extern void ginFreeScanKeys(GinScanOpaque so);
 
 /* ginget.c */
-extern Datum gingetbitmap(PG_FUNCTION_ARGS);
+extern Node *gingetbitmap(IndexScanDesc scan, Node *tbm);
+
+/* ginfast.c */
+extern Datum gin_clean_pending_list(PG_FUNCTION_ARGS);
 
 /* ginlogic.c */
 extern void ginInitConsistentFunction(GinState *ginstate, GinScanKey key);
 
 /* ginvacuum.c */
-extern Datum ginbulkdelete(PG_FUNCTION_ARGS);
-extern Datum ginvacuumcleanup(PG_FUNCTION_ARGS);
+extern IndexBulkDeleteResult *ginbulkdelete(IndexVacuumInfo *info,
+			  IndexBulkDeleteResult *stats,
+			  IndexBulkDeleteCallback callback,
+			  void *callback_state);
+extern IndexBulkDeleteResult *ginvacuumcleanup(IndexVacuumInfo *info,
+				 IndexBulkDeleteResult *stats);
 extern ItemPointer ginVacuumItemPointers(GinVacuumState *gvs,
 					  ItemPointerData *items, int nitem, int *nremaining);
+
+/* ginvalidate.c */
+extern bool ginvalidate(Oid opclassoid);
 
 /* ginbulk.c */
 typedef struct GinEntryAccumulator
@@ -902,7 +915,7 @@ typedef struct GinEntryAccumulator
 typedef struct
 {
 	GinState   *ginstate;
-	long		allocatedMemory;
+	Size		allocatedMemory;
 	GinEntryAccumulator *entryallocator;
 	uint32		eas_used;
 	RBTree	   *tree;
@@ -934,8 +947,8 @@ extern void ginHeapTupleFastCollect(GinState *ginstate,
 						GinTupleCollector *collector,
 						OffsetNumber attnum, Datum value, bool isNull,
 						ItemPointer ht_ctid);
-extern void ginInsertCleanup(GinState *ginstate,
-				 bool vac_delay, IndexBulkDeleteResult *stats);
+extern void ginInsertCleanup(GinState *ginstate, bool full_clean,
+				 bool fill_fsm, IndexBulkDeleteResult *stats);
 
 /* ginpostinglist.c */
 
@@ -951,11 +964,8 @@ extern ItemPointer ginMergeItemPointers(ItemPointerData *a, uint32 na,
 
 /*
  * Merging the results of several gin scans compares item pointers a lot,
- * so we want this to be inlined. But if the compiler doesn't support that,
- * fall back on the non-inline version from itemptr.c. See STATIC_IF_INLINE in
- * c.h.
+ * so we want this to be inlined.
  */
-#ifdef PG_USE_INLINE
 static inline int
 ginCompareItemPointers(ItemPointer a, ItemPointer b)
 {
@@ -969,8 +979,5 @@ ginCompareItemPointers(ItemPointer a, ItemPointer b)
 	else
 		return -1;
 }
-#else
-#define ginCompareItemPointers(a, b) ItemPointerCompare(a, b)
-#endif   /* PG_USE_INLINE */
 
 #endif   /* GIN_PRIVATE_H */

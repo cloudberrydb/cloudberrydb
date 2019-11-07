@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -164,17 +164,7 @@ MultiExecHash(HashState *node)
 
 	/* resize the hash table if needed (NTUP_PER_BUCKET exceeded) */
 	if (hashtable->nbuckets != hashtable->nbuckets_optimal)
-	{
-		/* We never decrease the number of buckets. */
-		Assert(hashtable->nbuckets_optimal > hashtable->nbuckets);
-
-#ifdef HJDEBUG
-		printf("Increasing nbuckets %d => %d\n",
-			   hashtable->nbuckets, hashtable->nbuckets_optimal);
-#endif
-
 		ExecHashIncreaseNumBuckets(hashtable);
-	}
 
 	/* Account for the buckets in spaceUsed (reported in EXPLAIN ANALYZE) */
 	hashtable->spaceUsed += hashtable->nbuckets * sizeof(HashJoinTuple);
@@ -317,10 +307,6 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 							operatorMemKB,
 							&nbuckets, &nbatch, &num_skew_mcvs);
 
-#ifdef HJDEBUG
-	printf("nbatch = %d, nbuckets = %d\n", nbatch, nbuckets);
-#endif
-
 	/* nbuckets must be a power of 2 */
 	log2_nbuckets = my_log2(nbuckets);
 	Assert(nbuckets == (1 << log2_nbuckets));
@@ -393,6 +379,11 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 
 	oldcxt = MemoryContextSwitchTo(hashtable->hashCxt);
 	hashtable->chunks = NULL;
+
+#ifdef HJDEBUG
+	printf("Hashjoin %p: initial nbatch = %d, nbuckets = %d\n",
+		   hashtable, nbatch, nbuckets);
+#endif
 
 	/*
 	 * Get info about the hash functions to be used for each hash key. Also
@@ -480,7 +471,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 	long		skew_table_bytes;
 	long		max_pointers;
 	long		mppow2;
-	int			nbatch;
+	int			nbatch = 1;
 	int			nbuckets;
 	double		dbuckets;
 
@@ -543,11 +534,15 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 	else
 		*num_skew_mcvs = 0;
 
+
 	/*
 	 * Set nbuckets to achieve an average bucket load of gp_hashjoin_tuples_per_bucket when
-	 * memory is filled.  Set nbatch to the smallest power of 2 that appears
-	 * sufficient.  The Min() steps limit the results so that the pointer
-	 * arrays we'll try to allocate do not exceed work_mem nor MaxAllocSize.
+	 * memory is filled, assuming a single batch; but limit the value so that
+	 * the pointer arrays we'll try to allocate do not exceed work_mem nor
+	 * MaxAllocSize.
+	 *
+	 * Note that both nbuckets and nbatch must be powers of 2 to make
+	 * ExecHashGetBucketAndBatch fast.
 	 */
 	max_pointers = (operatorMemKB * 1024L) / sizeof(HashJoinTuple);
 	max_pointers = Min(max_pointers, MaxAllocSize / sizeof(HashJoinTuple));
@@ -562,7 +557,10 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 
 	dbuckets = ceil(ntuples / gp_hashjoin_tuples_per_bucket);
 	dbuckets = Min(dbuckets, max_pointers);
-	nbuckets = Max((int) dbuckets, 1024);
+	nbuckets = (int) dbuckets;
+	/* don't let nbuckets be really small, though ... */
+	nbuckets = Max(nbuckets, 1024);
+	/* ... and force it to be a power of 2. */
 	nbuckets = 1 << my_log2(nbuckets);
 
 	/*
@@ -585,7 +583,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 		 * overhead for the hash code, pointer to the next tuple, etc.
 		 */
 		bucket_size = (tupsize * gp_hashjoin_tuples_per_bucket + sizeof(HashJoinTuple));
-		lbuckets = 1 << my_log2(hash_table_bytes / bucket_size);
+		lbuckets = 1L << my_log2(hash_table_bytes / bucket_size);
 		lbuckets = Min(lbuckets, max_pointers);
 		nbuckets = (int) lbuckets;
 		nbuckets = 1 << my_log2(nbuckets);
@@ -682,6 +680,9 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 	Assert(nbuckets > 0);
 	Assert(nbatch > 0);
 
+	Assert(nbuckets > 0);
+	Assert(nbatch > 0);
+
 	*numbuckets = nbuckets;
 	*numbatches = nbatch;
 }
@@ -766,8 +767,8 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	Assert(nbatch > 1);
 
 #ifdef HJDEBUG
-	printf("Increasing nbatch to %d because space = %lu\n",
-		   nbatch, (unsigned long) hashtable->spaceUsed);
+	printf("Hashjoin %p: increasing nbatch to %d because space = %zu\n",
+		   hashtable, nbatch, hashtable->spaceUsed);
 #endif
 
 	oldcxt = MemoryContextSwitchTo(hashtable->hashCxt);
@@ -896,8 +897,8 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	}
 
 #ifdef HJDEBUG
-	printf("Freed %ld of %ld tuples, space now %lu\n",
-		   nfreed, ninmemory, (unsigned long) hashtable->spaceUsed);
+	printf("Hashjoin %p: freed %ld of %ld tuples, space now %zu\n",
+		   hashtable, nfreed, ninmemory, hashtable->spaceUsed);
 #endif
 
 	/* Update work_mem high-water mark and amount spilled. */
@@ -919,7 +920,10 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	if (nfreed == 0 || nfreed == ninmemory)
 	{
 		hashtable->growEnabled = false;
-		elog(LOG, "HJ: Disabling further increase of nbatch");
+#ifdef HJDEBUG
+		printf("Hashjoin %p: disabling further increase of nbatch\n",
+			   hashtable);
+#endif
 	}
 
 }
@@ -938,20 +942,17 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
 	if (hashtable->nbuckets >= hashtable->nbuckets_optimal)
 		return;
 
-	/*
-	 * We already know the optimal number of buckets, so let's just compute
-	 * the log2_nbuckets for it.
-	 */
+#ifdef HJDEBUG
+	printf("Hashjoin %p: increasing nbuckets %d => %d\n",
+		   hashtable, hashtable->nbuckets, hashtable->nbuckets_optimal);
+#endif
+
 	hashtable->nbuckets = hashtable->nbuckets_optimal;
-	hashtable->log2_nbuckets = my_log2(hashtable->nbuckets_optimal);
+	hashtable->log2_nbuckets = hashtable->log2_nbuckets_optimal;
 
 	Assert(hashtable->nbuckets > 1);
 	Assert(hashtable->nbuckets <= (INT_MAX / 2));
 	Assert(hashtable->nbuckets == (1 << hashtable->log2_nbuckets));
-
-#ifdef HJDEBUG
-	printf("Increasing nbuckets to %d\n", hashtable->nbuckets);
-#endif
 
 	/*
 	 * Just reallocate the proper number of buckets - we don't need to walk
@@ -963,7 +964,7 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
 		(HashJoinTuple *) repalloc(hashtable->buckets,
 								hashtable->nbuckets * sizeof(HashJoinTuple));
 
-	memset(hashtable->buckets, 0, sizeof(void *) * hashtable->nbuckets);
+	memset(hashtable->buckets, 0, hashtable->nbuckets * sizeof(HashJoinTuple));
 
 	/* scan through all tuples in all chunks to rebuild the hash table */
 	for (chunk = hashtable->chunks; chunk != NULL; chunk = chunk->next)
@@ -989,11 +990,6 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
 							memtuple_get_size(HJTUPLE_MINTUPLE(hashTuple)));
 		}
 	}
-
-#ifdef HJDEBUG
-	printf("Nbuckets increased to %d, average items per bucket %.1f\n",
-		   hashtable->nbuckets, batchTuples / hashtable->nbuckets);
-#endif
 }
 
 
@@ -1064,12 +1060,16 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 		 * NTUP_PER_BUCKET threshold, but only when there's still a single
 		 * batch.
 		 */
-		if ((hashtable->nbatch == 1) &&
-			(hashtable->nbuckets_optimal <= INT_MAX / 2) &&		/* overflow protection */
-			(ntuples >= (hashtable->nbuckets_optimal * gp_hashjoin_tuples_per_bucket)))
+		if (hashtable->nbatch == 1 &&
+			ntuples > (hashtable->nbuckets_optimal * gp_hashjoin_tuples_per_bucket))
 		{
-			hashtable->nbuckets_optimal *= 2;
-			hashtable->log2_nbuckets_optimal += 1;
+			/* Guard against integer overflow and alloc size overflow */
+			if (hashtable->nbuckets_optimal <= INT_MAX / 2 &&
+				hashtable->nbuckets_optimal * 2 <= MaxAllocSize / sizeof(HashJoinTuple))
+			{
+				hashtable->nbuckets_optimal *= 2;
+				hashtable->log2_nbuckets_optimal += 1;
+			}
 		}
 
 		/* Account for space used, and back off if we've used too much */
@@ -1342,12 +1342,13 @@ ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
 void
 ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
 {
-	/*
-	 * ---------- During this scan we use the HashJoinState fields as follows:
+	/*----------
+	 * During this scan we use the HashJoinState fields as follows:
 	 *
-	 * hj_CurBucketNo: next regular bucket to scan hj_CurSkewBucketNo: next
-	 * skew bucket (an index into skewBucketNums) hj_CurTuple: last tuple
-	 * returned, or NULL to start next bucket ----------
+	 * hj_CurBucketNo: next regular bucket to scan
+	 * hj_CurSkewBucketNo: next skew bucket (an index into skewBucketNums)
+	 * hj_CurTuple: last tuple returned, or NULL to start next bucket
+	 *----------
 	 */
 	hjstate->hj_CurBucketNo = 0;
 	hjstate->hj_CurSkewBucketNo = 0;
@@ -2177,8 +2178,19 @@ ExecHashRemoveNextSkewBucket(HashState *hashState, HashJoinTable hashtable)
 		if (batchno == hashtable->curbatch)
 		{
 			/* Move the tuple to the main hash table */
-			hashTuple->next = hashtable->buckets[bucketno];
-			hashtable->buckets[bucketno] = hashTuple;
+			HashJoinTuple copyTuple;
+
+			/*
+			 * We must copy the tuple into the dense storage, else it will not
+			 * be found by, eg, ExecHashIncreaseNumBatches.
+			 */
+			copyTuple = (HashJoinTuple) dense_alloc(hashtable, tupleSize);
+			memcpy(copyTuple, hashTuple, tupleSize);
+			pfree(hashTuple);
+
+			copyTuple->next = hashtable->buckets[bucketno];
+			hashtable->buckets[bucketno] = copyTuple;
+
 			/* We have reduced skew space, but overall space doesn't change */
 			hashtable->spaceUsedSkew -= tupleSize;
 		}

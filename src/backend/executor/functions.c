@@ -3,7 +3,7 @@
  * functions.c
  *	  Execution of SQL-language functions
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -179,7 +179,7 @@ static void sql_exec_error_callback(void *arg);
 static void ShutdownSQLFunction(Datum arg);
 static bool querytree_safe_for_qe_walker(Node *expr, void *context);
 static void sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
-static void sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self);
+static bool sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self);
 static void sqlfunction_shutdown(DestReceiver *self);
 static void sqlfunction_destroy(DestReceiver *self);
 
@@ -588,7 +588,9 @@ init_execution_state(List *queryTree_list,
 			if (queryTree->commandType == CMD_UTILITY)
 				stmt = queryTree->utilityStmt;
 			else
-				stmt = (Node *) pg_plan_query(queryTree, 0, NULL);
+				stmt = (Node *) pg_plan_query(queryTree,
+						  fcache->readonly_func ? CURSOR_OPT_PARALLEL_OK : 0,
+											  NULL);
 
 	 		if (IsA(stmt, PlannedStmt))
 				((PlannedStmt*)stmt)->metricsQueryType = FUNCTION_INNER_QUERY;
@@ -1008,7 +1010,7 @@ postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache)
 	else
 	{
 		/* Run regular commands to completion unless lazyEval */
-		long		count = (es->lazyEval) ? 1L : 0L;
+		uint64		count = (es->lazyEval) ? 1 : 0;
 
 		ExecutorRun(es->qd, ForwardScanDirection, count);
 
@@ -1016,7 +1018,7 @@ postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache)
 		 * If we requested run to completion OR there was no tuple returned,
 		 * command must be complete.
 		 */
-		result = (count == 0L || es->qd->estate->es_processed == 0);
+		result = (count == 0 || es->qd->estate->es_processed == 0);
 	}
 
 	return result;
@@ -1075,6 +1077,7 @@ postquel_sub_params(SQLFunctionCachePtr fcache,
 			paramLI->parserSetup = NULL;
 			paramLI->parserSetupArg = NULL;
 			paramLI->numParams = nargs;
+			paramLI->paramMask = NULL;
 			fcache->paramLI = paramLI;
 		}
 		else
@@ -2092,7 +2095,7 @@ sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 /*
  * sqlfunction_receive --- receive one tuple
  */
-static void
+static bool
 sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_sqlfunction *myState = (DR_sqlfunction *) self;
@@ -2102,6 +2105,8 @@ sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self)
 
 	/* Store the filtered tuple into the tuplestore */
 	tuplestore_puttupleslot(myState->tstore, slot);
+
+	return true;
 }
 
 /*

@@ -203,9 +203,9 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		{
 			FdwRoutine *fdwroutine;
 			fdwroutine = GetFdwRoutineForRelation(onerel, false);
-			numrows = fdwroutine->AcquireSampleRows(onerel, DEBUG1,
-													rows, targrows,
-													&totalrows, &totaldeadrows);
+			numrows = fdwroutine->AcquireSampleRowsOnSegment(onerel, DEBUG1,
+			                                                 rows, targrows,
+			                                                 &totalrows, &totaldeadrows);
 
 		}
 		else if (inherited)

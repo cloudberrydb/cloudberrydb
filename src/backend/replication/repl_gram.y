@@ -3,7 +3,7 @@
  *
  * repl_gram.y				- Parser for the replication commands
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -77,6 +77,7 @@ Node *replication_parse_result;
 %token K_PHYSICAL
 %token K_LOGICAL
 %token K_SLOT
+%token K_RESERVE_WAL
 
 %type <node>	command
 %type <node>	base_backup start_replication start_logical_replication
@@ -89,6 +90,7 @@ Node *replication_parse_result;
 %type <defelt>	plugin_opt_elem
 %type <node>	plugin_opt_arg
 %type <str>		opt_slot
+%type <boolval>	opt_reserve_wal
 
 %%
 
@@ -187,13 +189,14 @@ base_backup_opt:
 			;
 
 create_replication_slot:
-			/* CREATE_REPLICATION_SLOT slot PHYSICAL */
-			K_CREATE_REPLICATION_SLOT IDENT K_PHYSICAL
+			/* CREATE_REPLICATION_SLOT slot PHYSICAL RESERVE_WAL */
+			K_CREATE_REPLICATION_SLOT IDENT K_PHYSICAL opt_reserve_wal
 				{
 					CreateReplicationSlotCmd *cmd;
 					cmd = makeNode(CreateReplicationSlotCmd);
 					cmd->kind = REPLICATION_KIND_PHYSICAL;
 					cmd->slotname = $2;
+					cmd->reserve_wal = $4;
 					$$ = (Node *) cmd;
 				}
 			/* CREATE_REPLICATION_SLOT slot LOGICAL plugin */
@@ -272,6 +275,11 @@ timeline_history:
 opt_physical:
 			K_PHYSICAL
 			| /* EMPTY */
+			;
+
+opt_reserve_wal:
+			K_RESERVE_WAL					{ $$ = true; }
+			| /* EMPTY */					{ $$ = false; }
 			;
 
 opt_slot:

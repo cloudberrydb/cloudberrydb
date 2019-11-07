@@ -25,7 +25,7 @@ begin
   i := 0; /* in func */
   while c < 1 and i < timeout_secs*2 loop
     select count(*) into c from pg_stat_activity
-    where waiting_reason = 'replication'; /* in func */
+    where wait_event_type = 'Replication'; /* in func */
     perform pg_sleep(0.5); /* in func */
     perform pg_stat_clear_snapshot(); /* in func */
     i := i + 1; /* in func */
@@ -49,8 +49,8 @@ from gp_segment_configuration where content=-1 and role='m';
 -- The create table command should be seen as blocked.  Wait until
 -- that happens.
 select wait_for_pg_stat_activity(60);
-select datname, waiting_reason, query from pg_stat_activity
-where waiting_reason = 'replication';
+select datname, wait_event_type, query from pg_stat_activity
+where wait_event_type = 'Replication';
 
 select gp_inject_fault('walrecv_skip_flush', 'reset', dbid)
 from gp_segment_configuration where content=-1 and role='m';
@@ -144,8 +144,8 @@ select gp_wait_until_triggered_fault(
 
 -- The create table command should be seen as blocked.
 select wait_for_pg_stat_activity(60);
-select datname, waiting_reason, query from pg_stat_activity
-where waiting_reason = 'replication';
+select datname, wait_event_type, query from pg_stat_activity
+where wait_event_type = 'Replication';
 
 -- Reset faults on primary as well as mirror.
 select gp_inject_fault('all', 'reset', dbid)

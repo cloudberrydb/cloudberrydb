@@ -438,9 +438,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using grect2ind on fast_emp4000
                      Index Cond: (home_base && '(1000,1000),(0,0)'::box)
                      Filter: (home_base && '(1000,1000),(0,0)'::box)
@@ -455,11 +455,11 @@ SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM fast_emp4000 WHERE home_base IS NULL;
-                          QUERY PLAN                          
---------------------------------------------------------------
- Aggregate
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using grect2ind on fast_emp4000
                      Index Cond: (home_base IS NULL)
  Optimizer: Postgres query optimizer
@@ -525,9 +525,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM gpolygon_tbl WHERE f1 && '(1000,1000,0,0)'::polygon;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using ggpolygonind on gpolygon_tbl
                      Index Cond: (f1 && '((1000,1000),(0,0))'::polygon)
                      Filter: (f1 && '((1000,1000),(0,0))'::polygon)
@@ -544,9 +544,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM gcircle_tbl WHERE f1 && '<(500,500),500>'::circle;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using ggcircleind on gcircle_tbl
                      Index Cond: (f1 && '<(500,500),500>'::circle)
                      Filter: (f1 && '<(500,500),500>'::circle)
@@ -822,9 +822,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
 -----------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
-               ->  Index Only Scan using sp_quad_ind on quad_point_tbl
-                     Index Cond: (p IS NULL)
+         ->  Index Only Scan using sp_quad_ind on quad_point_tbl
+               Index Cond: (p IS NULL)
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -838,9 +837,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p IS NOT NULL)
  Optimizer: Postgres query optimizer
@@ -856,9 +855,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
  Optimizer: Postgres query optimizer
 (5 rows)
@@ -873,9 +872,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p <@ '(1000,1000),(200,200)'::box)
  Optimizer: Postgres query optimizer
@@ -891,9 +890,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p <@ '(1000,1000),(200,200)'::box)
  Optimizer: Postgres query optimizer
@@ -909,9 +908,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p << '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -927,9 +926,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p >> '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -945,9 +944,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p <^ '(5000, 4000)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p <^ '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -963,9 +962,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p >^ '(5000, 4000)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p >^ '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -981,9 +980,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_quad_ind on quad_point_tbl
                      Index Cond: (p ~= '(4585,365)'::point)
  Optimizer: Postgres query optimizer
@@ -999,9 +998,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                              QUERY PLAN                              
 ---------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p <@ '(1000,1000),(200,200)'::box)
  Optimizer: Postgres query optimizer
@@ -1017,9 +1016,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
                              QUERY PLAN                              
 ---------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p <@ '(1000,1000),(200,200)'::box)
  Optimizer: Postgres query optimizer
@@ -1035,9 +1034,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p << '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -1053,9 +1052,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p >> '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -1071,9 +1070,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p <^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p <^ '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -1089,9 +1088,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p >^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p >^ '(5000,4000)'::point)
  Optimizer: Postgres query optimizer
@@ -1107,9 +1106,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_kd_ind on kd_point_tbl
                      Index Cond: (p ~= '(4585,365)'::point)
  Optimizer: Postgres query optimizer
@@ -1123,15 +1122,14 @@ SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Index Only Scan using sp_radix_ind on radix_text_tbl
-                     Index Cond: (t = 'P0123456789abcdef'::text)
+         ->  Index Only Scan using sp_radix_ind on radix_text_tbl
+               Index Cond: (t = 'P0123456789abcdef'::text)
  Optimizer: Postgres query optimizer
-(6 rows)
+(5 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
  count 
@@ -1145,9 +1143,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
 ------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Index Only Scan using sp_radix_ind on radix_text_tbl
-                     Index Cond: (t = 'P0123456789abcde'::text)
+         ->  Index Only Scan using sp_radix_ind on radix_text_tbl
+               Index Cond: (t = 'P0123456789abcde'::text)
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -1163,9 +1160,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
 ------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Index Only Scan using sp_radix_ind on radix_text_tbl
-                     Index Cond: (t = 'P0123456789abcdefF'::text)
+         ->  Index Only Scan using sp_radix_ind on radix_text_tbl
+               Index Cond: (t = 'P0123456789abcdefF'::text)
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -1179,9 +1175,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t < 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
@@ -1197,9 +1193,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t ~<~ 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
@@ -1215,9 +1211,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t <= 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
@@ -1233,9 +1229,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t ~<=~ 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
@@ -1253,9 +1249,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         
 ----------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Index Only Scan using sp_radix_ind on radix_text_tbl
-                     Index Cond: (t = 'Aztec                         Ct  '::text)
+         ->  Index Only Scan using sp_radix_ind on radix_text_tbl
+               Index Cond: (t = 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -1271,9 +1266,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         
 ----------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Index Only Scan using sp_radix_ind on radix_text_tbl
-                     Index Cond: (t = 'Worth                         St  '::text)
+         ->  Index Only Scan using sp_radix_ind on radix_text_tbl
+               Index Cond: (t = 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -1287,9 +1281,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t >= 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
@@ -1305,9 +1299,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t ~>=~ 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
@@ -1323,9 +1317,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t > 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
@@ -1341,9 +1335,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Only Scan using sp_radix_ind on radix_text_tbl
                      Index Cond: (t ~>~ 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
@@ -1445,11 +1439,10 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
 ----------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on quad_point_tbl
-                     Recheck Cond: (p IS NULL)
-                     ->  Bitmap Index Scan on sp_quad_ind
-                           Index Cond: (p IS NULL)
+         ->  Bitmap Heap Scan on quad_point_tbl
+               Recheck Cond: (p IS NULL)
+               ->  Bitmap Index Scan on sp_quad_ind
+                     Index Cond: (p IS NULL)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1463,9 +1456,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
                         QUERY PLAN                        
 ----------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p IS NOT NULL)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1483,9 +1476,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl;
                         QUERY PLAN                        
 ----------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      ->  Bitmap Index Scan on sp_quad_ind
  Optimizer: Postgres query optimizer
@@ -1501,9 +1494,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p <@ '(1000,1000),(200,200)'::box)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1521,9 +1514,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: ('(1000,1000),(200,200)'::box @> p)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1541,9 +1534,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p << '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1561,9 +1554,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p >> '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1581,9 +1574,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p <^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p <^ '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1601,9 +1594,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p >^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p >^ '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1621,9 +1614,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on quad_point_tbl
                      Recheck Cond: (p ~= '(4585,365)'::point)
                      ->  Bitmap Index Scan on sp_quad_ind
@@ -1641,9 +1634,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p <@ '(1000,1000),(200,200)'::box)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1661,9 +1654,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: ('(1000,1000),(200,200)'::box @> p)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1681,9 +1674,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p << '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1701,9 +1694,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p >> '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1721,9 +1714,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p <^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p <^ '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1741,9 +1734,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p >^ '(5000, 4000)';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p >^ '(5000,4000)'::point)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1761,9 +1754,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on kd_point_tbl
                      Recheck Cond: (p ~= '(4585,365)'::point)
                      ->  Bitmap Index Scan on sp_kd_ind
@@ -1783,11 +1776,10 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
 -----------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on radix_text_tbl
-                     Recheck Cond: (t = 'P0123456789abcdef'::text)
-                     ->  Bitmap Index Scan on sp_radix_ind
-                           Index Cond: (t = 'P0123456789abcdef'::text)
+         ->  Bitmap Heap Scan on radix_text_tbl
+               Recheck Cond: (t = 'P0123456789abcdef'::text)
+               ->  Bitmap Index Scan on sp_radix_ind
+                     Index Cond: (t = 'P0123456789abcdef'::text)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1803,11 +1795,10 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
 ----------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on radix_text_tbl
-                     Recheck Cond: (t = 'P0123456789abcde'::text)
-                     ->  Bitmap Index Scan on sp_radix_ind
-                           Index Cond: (t = 'P0123456789abcde'::text)
+         ->  Bitmap Heap Scan on radix_text_tbl
+               Recheck Cond: (t = 'P0123456789abcde'::text)
+               ->  Bitmap Index Scan on sp_radix_ind
+                     Index Cond: (t = 'P0123456789abcde'::text)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1823,11 +1814,10 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
 ------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on radix_text_tbl
-                     Recheck Cond: (t = 'P0123456789abcdefF'::text)
-                     ->  Bitmap Index Scan on sp_radix_ind
-                           Index Cond: (t = 'P0123456789abcdefF'::text)
+         ->  Bitmap Heap Scan on radix_text_tbl
+               Recheck Cond: (t = 'P0123456789abcdefF'::text)
+               ->  Bitmap Index Scan on sp_radix_ind
+                     Index Cond: (t = 'P0123456789abcdefF'::text)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1841,9 +1831,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t < 'Aztec                         Ct  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -1861,9 +1851,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t ~<~ 'Aztec                         Ct  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -1881,9 +1871,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t <= 'Aztec                         Ct  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -1901,9 +1891,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t ~<=~ 'Aztec                         Ct  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -1923,11 +1913,10 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         
 ----------------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on radix_text_tbl
-                     Recheck Cond: (t = 'Aztec                         Ct  '::text)
-                     ->  Bitmap Index Scan on sp_radix_ind
-                           Index Cond: (t = 'Aztec                         Ct  '::text)
+         ->  Bitmap Heap Scan on radix_text_tbl
+               Recheck Cond: (t = 'Aztec                         Ct  '::text)
+               ->  Bitmap Index Scan on sp_radix_ind
+                     Index Cond: (t = 'Aztec                         Ct  '::text)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1943,11 +1932,10 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         
 ----------------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 1:1  (slice1; segments: 1)
-         ->  Aggregate
-               ->  Bitmap Heap Scan on radix_text_tbl
-                     Recheck Cond: (t = 'Worth                         St  '::text)
-                     ->  Bitmap Index Scan on sp_radix_ind
-                           Index Cond: (t = 'Worth                         St  '::text)
+         ->  Bitmap Heap Scan on radix_text_tbl
+               Recheck Cond: (t = 'Worth                         St  '::text)
+               ->  Bitmap Index Scan on sp_radix_ind
+                     Index Cond: (t = 'Worth                         St  '::text)
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -1961,9 +1949,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t >= 'Worth                         St  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -1981,9 +1969,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t ~>=~ 'Worth                         St  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -2001,9 +1989,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t > 'Worth                         St  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -2021,9 +2009,9 @@ EXPLAIN (COSTS OFF)
 SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Bitmap Heap Scan on radix_text_tbl
                      Recheck Cond: (t ~>~ 'Worth                         St  '::text)
                      ->  Bitmap Index Scan on sp_radix_ind
@@ -2063,7 +2051,7 @@ SELECT * FROM array_index_op_test WHERE i @> '{32}' ORDER BY seqno;
                Recheck Cond: (i @> '{32}'::integer[])
                ->  Bitmap Index Scan on intarrayidx
                      Index Cond: (i @> '{32}'::integer[])
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
 (9 rows)
 
 SELECT * FROM array_index_op_test WHERE i @> '{32}' ORDER BY seqno;
@@ -2312,7 +2300,7 @@ SELECT * FROM array_index_op_test WHERE t @> '{AAAAAAAA72908}' ORDER BY seqno;
                Recheck Cond: (t @> '{AAAAAAAA72908}'::text[])
                ->  Bitmap Index Scan on textarrayidx
                      Index Cond: (t @> '{AAAAAAAA72908}'::text[])
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
 (9 rows)
 
 SELECT * FROM array_index_op_test WHERE t @> '{AAAAAAAA72908}' ORDER BY seqno;
@@ -2617,6 +2605,8 @@ Options: fastupdate=on, gin_pending_list_limit=128
 --
 -- HASH
 --
+-- GPDB: does not support hash indexes
+-- start_ignore
 CREATE INDEX hash_i4_index ON hash_i4_heap USING hash (random int4_ops);
 ERROR:  hash indexes are not supported
 CREATE INDEX hash_name_index ON hash_name_heap USING hash (random name_ops);
@@ -2632,6 +2622,33 @@ CREATE INDEX unlogged_hash_index ON unlogged_hash_table USING hash (id int4_ops)
 ERROR:  hash indexes are not supported
 DROP TABLE unlogged_hash_table;
 -- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops);
+-- Test hash index build tuplesorting.  Force hash tuplesort using low
+-- maintenance_work_mem setting and fillfactor:
+SET maintenance_work_mem = '1MB';
+CREATE INDEX hash_tuplesort_idx ON tenk1 USING hash (stringu1 name_ops) WITH (fillfactor = 10);
+ERROR:  hash indexes are not supported
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM tenk1 WHERE stringu1 = 'TVAAAA';
+                       QUERY PLAN                        
+---------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  Seq Scan on tenk1
+                     Filter: (stringu1 = 'TVAAAA'::name)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
+(6 rows)
+
+SELECT count(*) FROM tenk1 WHERE stringu1 = 'TVAAAA';
+ count 
+-------
+    14
+(1 row)
+
+DROP INDEX hash_tuplesort_idx;
+ERROR:  index "hash_tuplesort_idx" does not exist
+-- end_ignore
+RESET maintenance_work_mem;
 --
 -- Test functional index
 --
@@ -2868,6 +2885,26 @@ DROP INDEX cwi_replaced_pkey;	-- Should fail; a constraint depends on it
 ERROR:  cannot drop index cwi_replaced_pkey because constraint cwi_replaced_pkey on table cwi_test requires it
 HINT:  You can drop constraint cwi_replaced_pkey on table cwi_test instead.
 DROP TABLE cwi_test;
+--
+-- Check handling of indexes on system columns
+--
+CREATE TABLE oid_table (a INT) WITH OIDS;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  OIDS=TRUE is not recommended for user-created tables
+HINT:  Use OIDS=FALSE to prevent wrap-around of the OID counter.
+-- An index on the OID column should be allowed
+CREATE INDEX ON oid_table (oid);
+-- Other system columns cannot be indexed
+CREATE INDEX ON oid_table (ctid);
+ERROR:  index creation on system columns is not supported
+-- nor used in expressions
+CREATE INDEX ON oid_table ((ctid >= '(1000,0)'));
+ERROR:  index creation on system columns is not supported
+-- nor used in predicates
+CREATE INDEX ON oid_table (a) WHERE ctid >= '(1000,0)';
+ERROR:  index creation on system columns is not supported
+DROP TABLE oid_table;
 --
 -- Tests for IS NULL/IS NOT NULL with b-tree indexes
 --
@@ -3150,9 +3187,9 @@ EXPLAIN (COSTS OFF)
     WHERE f1 BETWEEN 'WA' AND 'ZZZ' and id < 1000 and f1 ~<~ 'YX';
                                           QUERY PLAN                                          
 ----------------------------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using dupindexcols_i on dupindexcols
                      Index Cond: ((f1 >= 'WA'::text) AND (f1 <= 'ZZZ'::text) AND (id < 1000))
                      Filter: (f1 ~<~ 'YX'::text)
@@ -3330,13 +3367,14 @@ REINDEX SCHEMA schema_to_reindex; -- failure, cannot run in a transaction
 ERROR:  REINDEX SCHEMA cannot run inside a transaction block
 END;
 -- Failure for unauthorized user
-CREATE ROLE regression_reindexuser NOLOGIN;
-SET SESSION ROLE regression_reindexuser;
+CREATE ROLE regress_reindexuser NOLOGIN;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+SET SESSION ROLE regress_reindexuser;
 REINDEX SCHEMA schema_to_reindex;
 ERROR:  must be owner of schema schema_to_reindex
 -- Clean up
 RESET ROLE;
-DROP ROLE regression_reindexuser;
+DROP ROLE regress_reindexuser;
 SET client_min_messages TO 'warning';
 DROP SCHEMA schema_to_reindex CASCADE;
 RESET client_min_messages;

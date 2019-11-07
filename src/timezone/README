@@ -55,7 +55,7 @@ match properly on the old version.
 Time Zone code
 ==============
 
-The code in this directory is currently synced with tzcode release 2018h.
+The code in this directory is currently synced with tzcode release 2019b.
 There are many cosmetic (and not so cosmetic) differences from the
 original tzcode library, but diffs in the upstream version should usually
 be propagated to our version.  Here are some notes about that.
@@ -111,10 +111,14 @@ to first run the tzcode source files through a sed filter like this:
         -e 's/^([ \t]*)\*\*$/\1 */' \
         -e 's|^\*/| */|' \
         -e 's/\bregister[ \t]//g' \
+        -e 's/\bATTRIBUTE_PURE[ \t]//g' \
         -e 's/int_fast32_t/int32/g' \
         -e 's/int_fast64_t/int64/g' \
+        -e 's/intmax_t/int64/g' \
         -e 's/INT32_MIN/PG_INT32_MIN/g' \
         -e 's/INT32_MAX/PG_INT32_MAX/g' \
+        -e 's/INTMAX_MIN/PG_INT64_MIN/g' \
+        -e 's/INTMAX_MAX/PG_INT64_MAX/g' \
         -e 's/struct[ \t]+tm\b/struct pg_tm/g' \
         -e 's/\btime_t\b/pg_time_t/g' \
         -e 's/lineno/lineno_t/g' \
@@ -123,4 +127,7 @@ and then run them through pgindent.  (The first three sed patterns deal
 with conversion of their block comment style to something pgindent
 won't make a hash of; the remainder address other points noted above.)
 After that, the files can be diff'd directly against our corresponding
-files.
+files.  Also, it's typically helpful to diff against the previous tzcode
+release (after processing that the same way), and then try to apply the
+diff to our files.  This will take care of most of the changes
+mechanically.

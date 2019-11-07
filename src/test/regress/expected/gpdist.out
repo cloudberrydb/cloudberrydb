@@ -664,15 +664,13 @@ explain (costs off) select even.i from even right outer join odd on (even.i = od
          Group Key: even.i
          ->  Redistribute Motion 3:3  (slice1; segments: 3)
                Hash Key: even.i
-               ->  HashAggregate
-                     Group Key: even.i
-                     ->  Hash Left Join
-                           Hash Cond: (odd.i = even.i)
-                           ->  Seq Scan on odd
-                           ->  Hash
-                                 ->  Seq Scan on even
+               ->  Hash Left Join
+                     Hash Cond: (odd.i = even.i)
+                     ->  Seq Scan on odd
+                     ->  Hash
+                           ->  Seq Scan on even
  Optimizer: Postgres query optimizer
-(13 rows)
+(11 rows)
 
 -- Check that we can track the distribution through multiple FULL OUTER JOINs.
 -- This query should not need Redistribute Motion.

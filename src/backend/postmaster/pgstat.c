@@ -11,7 +11,7 @@
  *			- Add a pgstat config column to pg_database, so this
  *			  entire thing can be enabled/disabled on a per db basis.
  *
- *	Copyright (c) 2001-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2001-2016, PostgreSQL Global Development Group
  *
  *	src/backend/postmaster/pgstat.c
  * ----------
@@ -51,12 +51,12 @@
 #include "postmaster/autovacuum.h"
 #include "postmaster/fork_process.h"
 #include "postmaster/postmaster.h"
-#include "storage/proc.h"
 #include "storage/backendid.h"
 #include "storage/dsm.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/latch.h"
+#include "storage/lmgr.h"
 #include "storage/pg_shmem.h"
 #include "storage/procsignal.h"
 #include "storage/sinvaladt.h"
@@ -69,6 +69,7 @@
 #include "utils/timestamp.h"
 #include "utils/tqual.h"
 #include "cdb/cdbvars.h"
+#include "commands/resgroupcmds.h"
 
 
 /* ----------
@@ -1269,6 +1270,9 @@ pgstat_drop_relation(Oid relid)
  * pgstat_reset_counters() -
  *
  *	Tell the statistics collector to reset counters for our database.
+ *
+ *	Permission checking for this function is managed through the normal
+ *	GRANT system.
  * ----------
  */
 void
@@ -1279,11 +1283,6 @@ pgstat_reset_counters(void)
 	if (pgStatSock == PGINVALID_SOCKET)
 		return;
 
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to reset statistics counters")));
-
 	pgstat_setheader(&msg.m_hdr, PGSTAT_MTYPE_RESETCOUNTER);
 	msg.m_databaseid = MyDatabaseId;
 	pgstat_send(&msg, sizeof(msg));
@@ -1293,6 +1292,9 @@ pgstat_reset_counters(void)
  * pgstat_reset_shared_counters() -
  *
  *	Tell the statistics collector to reset cluster-wide shared counters.
+ *
+ *	Permission checking for this function is managed through the normal
+ *	GRANT system.
  * ----------
  */
 void
@@ -1302,11 +1304,6 @@ pgstat_reset_shared_counters(const char *target)
 
 	if (pgStatSock == PGINVALID_SOCKET)
 		return;
-
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to reset statistics counters")));
 
 	if (strcmp(target, "archiver") == 0)
 		msg.m_resettarget = RESET_ARCHIVER;
@@ -1326,6 +1323,9 @@ pgstat_reset_shared_counters(const char *target)
  * pgstat_reset_single_counter() -
  *
  *	Tell the statistics collector to reset a single counter.
+ *
+ *	Permission checking for this function is managed through the normal
+ *	GRANT system.
  * ----------
  */
 void
@@ -1335,11 +1335,6 @@ pgstat_reset_single_counter(Oid objoid, PgStat_Single_Reset_Type type)
 
 	if (pgStatSock == PGINVALID_SOCKET)
 		return;
-
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to reset statistics counters")));
 
 	pgstat_setheader(&msg.m_hdr, PGSTAT_MTYPE_RESETSINGLECOUNTER);
 	msg.m_databaseid = MyDatabaseId;
@@ -2535,8 +2530,8 @@ pgstat_fetch_global(void)
 
 static PgBackendStatus *BackendStatusArray = NULL;
 static PgBackendStatus *MyBEEntry = NULL;
-static char *BackendClientHostnameBuffer = NULL;
 static char *BackendAppnameBuffer = NULL;
+static char *BackendClientHostnameBuffer = NULL;
 static char *BackendActivityBuffer = NULL;
 static Size BackendActivityBufferSize = 0;
 #ifdef USE_SSL
@@ -2552,13 +2547,22 @@ BackendStatusShmemSize(void)
 {
 	Size		size;
 
+	/* BackendStatusArray: */
 	size = mul_size(sizeof(PgBackendStatus), MaxBackends);
+	/* BackendAppnameBuffer: */
 	size = add_size(size,
 					mul_size(NAMEDATALEN, MaxBackends));
+	/* BackendClientHostnameBuffer: */
+	size = add_size(size,
+					mul_size(NAMEDATALEN, MaxBackends));
+	/* BackendActivityBuffer: */
 	size = add_size(size,
 					mul_size(pgstat_track_activity_query_size, MaxBackends));
+#ifdef USE_SSL
+	/* BackendSslStatusBuffer: */
 	size = add_size(size,
-					mul_size(NAMEDATALEN, MaxBackends));
+					mul_size(sizeof(PgBackendSSLStatus), MaxBackends));
+#endif
 	return size;
 }
 
@@ -2623,26 +2627,6 @@ CreateSharedBackendStatus(void)
 		}
 	}
 
-#ifdef USE_SSL
-	/* Create or attach to the shared SSL status buffer */
-	size = mul_size(sizeof(PgBackendSSLStatus), MaxBackends);
-	BackendSslStatusBuffer = (PgBackendSSLStatus *)
-		ShmemInitStruct("Backend SSL Status Buffer", size, &found);
-
-	if (!found)
-	{
-		MemSet(BackendSslStatusBuffer, 0, size);
-
-		/* Initialize st_sslstatus pointers. */
-		buffer = (char *) BackendSslStatusBuffer;
-		for (i = 0; i < MaxBackends; i++)
-		{
-			BackendStatusArray[i].st_sslstatus = (PgBackendSSLStatus *) buffer;
-			buffer += sizeof(PgBackendSSLStatus);
-		}
-	}
-#endif
-
 	/* Create or attach to the shared activity buffer */
 	BackendActivityBufferSize = mul_size(pgstat_track_activity_query_size,
 										 MaxBackends);
@@ -2663,6 +2647,28 @@ CreateSharedBackendStatus(void)
 			buffer += pgstat_track_activity_query_size;
 		}
 	}
+
+#ifdef USE_SSL
+	/* Create or attach to the shared SSL status buffer */
+	size = mul_size(sizeof(PgBackendSSLStatus), MaxBackends);
+	BackendSslStatusBuffer = (PgBackendSSLStatus *)
+		ShmemInitStruct("Backend SSL Status Buffer", size, &found);
+
+	if (!found)
+	{
+		PgBackendSSLStatus *ptr;
+
+		MemSet(BackendSslStatusBuffer, 0, size);
+
+		/* Initialize st_sslstatus pointers. */
+		ptr = BackendSslStatusBuffer;
+		for (i = 0; i < MaxBackends; i++)
+		{
+			BackendStatusArray[i].st_sslstatus = ptr;
+			ptr++;
+		}
+	}
+#endif
 }
 
 
@@ -2744,7 +2750,6 @@ pgstat_bestart(void)
 	beentry->st_activity_start_timestamp = 0;
 	beentry->st_state_start_timestamp = 0;
 	beentry->st_xact_start_timestamp = 0;
-	beentry->st_resgroup_queue_start_timestamp = 0;
 	beentry->st_databaseid = MyDatabaseId;
 	beentry->st_userid = userid;
 	beentry->st_session_id = gp_session_id;  /* GPDB only */
@@ -2771,7 +2776,6 @@ pgstat_bestart(void)
 #else
 	beentry->st_ssl = false;
 #endif
-	beentry->st_waiting = false;
 	beentry->st_state = STATE_UNDEFINED;
 	beentry->st_appname[0] = '\0';
 	beentry->st_activity[0] = '\0';
@@ -2780,6 +2784,14 @@ pgstat_bestart(void)
 	beentry->st_appname[NAMEDATALEN - 1] = '\0';
 	beentry->st_activity[pgstat_track_activity_query_size - 1] = '\0';
 	beentry->st_rsgid = InvalidOid;
+	beentry->st_progress_command = PROGRESS_COMMAND_INVALID;
+	beentry->st_progress_command_target = InvalidOid;
+
+	/*
+	 * we don't zero st_progress_param here to save cycles; nobody should
+	 * examine it until st_progress_command has been set to something other
+	 * than PROGRESS_COMMAND_INVALID
+	 */
 
 	pgstat_increment_changecount_after(beentry);
 
@@ -2858,6 +2870,8 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 	{
 		if (beentry->st_state != STATE_DISABLED)
 		{
+			volatile PGPROC *proc = MyProc;
+
 			/*
 			 * track_activities is disabled, but we last reported a
 			 * non-disabled state.  As our final update, change the state and
@@ -2868,9 +2882,9 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 			beentry->st_state_start_timestamp = 0;
 			beentry->st_activity[0] = '\0';
 			beentry->st_activity_start_timestamp = 0;
-			/* st_xact_start_timestamp and st_waiting are also disabled */
+			/* st_xact_start_timestamp and wait_event_info are also disabled */
 			beentry->st_xact_start_timestamp = 0;
-			beentry->st_waiting = false;
+			proc->wait_event_info = 0;
 			pgstat_increment_changecount_after(beentry);
 		}
 		return;
@@ -2903,6 +2917,102 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 		beentry->st_activity_start_timestamp = start_timestamp;
 	}
 
+	pgstat_increment_changecount_after(beentry);
+}
+
+/*-----------
+ * pgstat_progress_start_command() -
+ *
+ * Set st_progress_command (and st_progress_command_target) in own backend
+ * entry.  Also, zero-initialize st_progress_param array.
+ *-----------
+ */
+void
+pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid)
+{
+	volatile PgBackendStatus *beentry = MyBEEntry;
+
+	if (!beentry || !pgstat_track_activities)
+		return;
+
+	pgstat_increment_changecount_before(beentry);
+	beentry->st_progress_command = cmdtype;
+	beentry->st_progress_command_target = relid;
+	MemSet(&beentry->st_progress_param, 0, sizeof(beentry->st_progress_param));
+	pgstat_increment_changecount_after(beentry);
+}
+
+/*-----------
+ * pgstat_progress_update_param() -
+ *
+ * Update index'th member in st_progress_param[] of own backend entry.
+ *-----------
+ */
+void
+pgstat_progress_update_param(int index, int64 val)
+{
+	volatile PgBackendStatus *beentry = MyBEEntry;
+
+	Assert(index >= 0 && index < PGSTAT_NUM_PROGRESS_PARAM);
+
+	if (!beentry || !pgstat_track_activities)
+		return;
+
+	pgstat_increment_changecount_before(beentry);
+	beentry->st_progress_param[index] = val;
+	pgstat_increment_changecount_after(beentry);
+}
+
+/*-----------
+ * pgstat_progress_update_multi_param() -
+ *
+ * Update multiple members in st_progress_param[] of own backend entry.
+ * This is atomic; readers won't see intermediate states.
+ *-----------
+ */
+void
+pgstat_progress_update_multi_param(int nparam, const int *index,
+								   const int64 *val)
+{
+	volatile PgBackendStatus *beentry = MyBEEntry;
+	int			i;
+
+	if (!beentry || !pgstat_track_activities || nparam == 0)
+		return;
+
+	pgstat_increment_changecount_before(beentry);
+
+	for (i = 0; i < nparam; ++i)
+	{
+		Assert(index[i] >= 0 && index[i] < PGSTAT_NUM_PROGRESS_PARAM);
+
+		beentry->st_progress_param[index[i]] = val[i];
+	}
+
+	pgstat_increment_changecount_after(beentry);
+}
+
+/*-----------
+ * pgstat_progress_end_command() -
+ *
+ * Reset st_progress_command (and st_progress_command_target) in own backend
+ * entry.  This signals the end of the command.
+ *-----------
+ */
+void
+pgstat_progress_end_command(void)
+{
+	volatile PgBackendStatus *beentry = MyBEEntry;
+
+	if (!beentry)
+		return;
+	if (!pgstat_track_activities
+		&& beentry->st_progress_command == PROGRESS_COMMAND_INVALID)
+		return;
+
+	pgstat_increment_changecount_before(beentry);
+	beentry->st_progress_command = PROGRESS_COMMAND_INVALID;
+	beentry->st_progress_command_target = InvalidOid;
 	pgstat_increment_changecount_after(beentry);
 }
 
@@ -2963,7 +3073,7 @@ pgstat_report_xact_timestamp(TimestampTz tstamp)
  * Report the timestamp of transaction start queueing on the resource group.
  */
 void
-pgstat_report_resgroup(TimestampTz queueStart, Oid groupid)
+pgstat_report_resgroup(Oid groupid)
 {
 	volatile PgBackendStatus *beentry = MyBEEntry;
 
@@ -2976,69 +3086,11 @@ pgstat_report_resgroup(TimestampTz queueStart, Oid groupid)
 	 * ensure the compiler doesn't try to get cute.
 	 */
 	beentry->st_changecount++;
-	if (queueStart != 0)
-	{
-		beentry->st_resgroup_queue_start_timestamp = queueStart;
-		beentry->st_waiting = PGBE_WAITING_RESGROUP;
-	}
 
 	beentry->st_rsgid = groupid;
 	beentry->st_changecount++;
 	Assert((beentry->st_changecount & 1) == 0);
 }
-
-/*
- * Fetch the timestamp of transaction start queueing on the resource group.
- */
-TimestampTz
-pgstat_fetch_resgroup_queue_timestamp(void)
-{
-	volatile PgBackendStatus *beentry = MyBEEntry;
-
-	if (!beentry)
-		return 0;
-
-	return beentry->st_resgroup_queue_start_timestamp;
-}
-
-/* ----------
- * pgstat_report_waiting() -
- *
- *	Called from lock manager to report beginning or end of a lock wait.
- *
- * NB: this *must* be able to survive being called before MyBEEntry has been
- * initialized.
- * ----------
- *
- * In GPDB, this interface is modified to accept a reason for waiting while in
- * upstream, it just accepts a boolean value.  The interface is renamed in GPDB
- * to "gpstat_report_waiting(char waiting)" in order to catch future uses of
- * the interface when merged from upstream.
- */
-#if 0
-void
-pgstat_report_waiting(bool waiting)
-{
-	Assert(false);
-}
-#endif
-
-void
-gpstat_report_waiting(char reason)
-{
-	volatile PgBackendStatus *beentry = MyBEEntry;
-
-	if (!pgstat_track_activities || !beentry)
-		return;
-
-	/*
-	 * Since this is a single-byte field in a struct that only this process
-	 * may modify, there seems no need to bother with the st_changecount
-	 * protocol.  The update must appear atomic in any case.
-	 */
-	beentry->st_waiting = reason;
-}
-
 
 /* ----------
  * pgstat_report_sessionid() -
@@ -3074,12 +3126,12 @@ pgstat_read_current_status(void)
 	volatile PgBackendStatus *beentry;
 	LocalPgBackendStatus *localtable;
 	LocalPgBackendStatus *localentry;
-#ifdef USE_SSL
-	PgBackendSSLStatus *localsslstatus;
-#endif
 	char	   *localappname,
 			   *localclienthostname,
 			   *localactivity;
+#ifdef USE_SSL
+	PgBackendSSLStatus *localsslstatus;
+#endif
 	int			i;
 
 	Assert(!pgStatRunningInCollector);
@@ -3173,7 +3225,7 @@ pgstat_read_current_status(void)
 			localclienthostname += NAMEDATALEN;
 			localactivity += pgstat_track_activity_query_size;
 #ifdef USE_SSL
-			localsslstatus += sizeof(PgBackendSSLStatus);
+			localsslstatus++;
 #endif
 			localNumBackends++;
 		}
@@ -3183,6 +3235,111 @@ pgstat_read_current_status(void)
 	localBackendStatusTable = localtable;
 }
 
+/* ----------
+ * pgstat_get_wait_event_type() -
+ *
+ *	Return a string representing the current wait event type, backend is
+ *	waiting on.
+ */
+const char *
+pgstat_get_wait_event_type(uint32 wait_event_info)
+{
+	uint8		classId;
+	const char *event_type;
+
+	/* report process as not waiting. */
+	if (wait_event_info == 0)
+		return NULL;
+
+	wait_event_info = wait_event_info >> 24;
+	classId = wait_event_info & 0XFF;
+
+	switch (classId)
+	{
+		case WAIT_LWLOCK_NAMED:
+			event_type = "LWLockNamed";
+			break;
+		case WAIT_LWLOCK_TRANCHE:
+			event_type = "LWLockTranche";
+			break;
+		case WAIT_LOCK:
+			event_type = "Lock";
+			break;
+		case WAIT_BUFFER_PIN:
+			event_type = "BufferPin";
+			break;
+		case WAIT_RESOURCE_GROUP:
+			event_type = "ResourceGroup";
+			break;
+		case WAIT_RESOURCE_QUEUE:
+			event_type = "ResourceQueue";
+			break;
+		case WAIT_REPLICATION:
+			event_type = "Replication";
+			break;
+		default:
+			event_type = "???";
+			break;
+	}
+
+	return event_type;
+}
+
+/* ----------
+ * pgstat_get_wait_event() -
+ *
+ *	Return a string representing the current wait event, backend is
+ *	waiting on.
+ */
+const char *
+pgstat_get_wait_event(uint32 wait_event_info)
+{
+	uint8		classId;
+	uint16		eventId;
+	const char *event_name;
+
+	/* report process as not waiting. */
+	if (wait_event_info == 0)
+		return NULL;
+
+	eventId = wait_event_info & ((1 << 24) - 1);
+	wait_event_info = wait_event_info >> 24;
+	classId = wait_event_info & 0XFF;
+
+	switch (classId)
+	{
+		case WAIT_LWLOCK_NAMED:
+		case WAIT_LWLOCK_TRANCHE:
+			event_name = GetLWLockIdentifier(classId, eventId);
+			break;
+		case WAIT_LOCK:
+			event_name = GetLockNameFromTagType(eventId);
+			break;
+		case WAIT_BUFFER_PIN:
+			event_name = "BufferPin";
+			break;
+		case WAIT_RESOURCE_GROUP:
+			{
+				/* GPDB_96_MERGE_FIXME: this is broken: eventId is only 16 bits wide */
+				char *groupName = GetResGroupNameForId(eventId);
+
+				event_name = groupName ? groupName : "unknown resource group";
+			}
+			event_name = "ResourceGroup";
+			break;
+		case WAIT_RESOURCE_QUEUE:
+			event_name = "ResourceQueue";
+			break;
+		case WAIT_REPLICATION:
+			event_name = "Replication";
+			break;
+		default:
+			event_name = "unknown wait event";
+			break;
+	}
+
+	return event_name;
+}
 
 /* ----------
  * pgstat_get_backend_current_activity() -

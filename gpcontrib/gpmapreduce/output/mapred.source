@@ -530,7 +530,7 @@ STDERR> CONTEXT:  compilation of PL/Perl function "mapreduce_52431_mymap"
 STDERR> Error: Object creation Failure
 STDERR> WARNING: unset parameter - myMap(key => NULL)
 STDERR> mapreduce_PID_run_1
-STDERR> ERROR:  }GABLECK!{ at line 85. (plperl.c:2118)
+STDERR> ERROR:  }GABLECK!{ at line 85.
 STDERR> CONTEXT:  PL/Perl function "mapreduce_52435_mymap"
 STDERR> Error: Execution Failure
 STDERR> 

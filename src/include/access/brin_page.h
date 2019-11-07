@@ -2,7 +2,7 @@
  * brin_page.h
  *		Prototypes and definitions for BRIN page layouts
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -52,6 +52,7 @@ typedef struct BrinSpecialSpace
 #define		BRIN_PAGETYPE_REVMAP		0xF092
 #define		BRIN_PAGETYPE_REGULAR		0xF093
 
+#define BRIN_IS_META_PAGE(page) (BrinPageType(page) == BRIN_PAGETYPE_META)
 #define BRIN_IS_REVMAP_PAGE(page) (BrinPageType(page) == BRIN_PAGETYPE_REVMAP)
 #define BRIN_IS_REGULAR_PAGE(page) (BrinPageType(page) == BRIN_PAGETYPE_REGULAR)
 

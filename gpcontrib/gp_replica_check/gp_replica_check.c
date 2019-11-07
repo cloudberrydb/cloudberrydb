@@ -9,7 +9,7 @@
 #include "postmaster/bgwriter.h"
 #include "replication/walsender_private.h"
 #include "replication/walsender.h"
-#include "catalog/catalog.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_tablespace.h"
 #include "storage/fd.h"
 #include "utils/builtins.h"

@@ -42,6 +42,28 @@ select 10 as test01, 20 as test02 from generate_series(1,0) \gset
 
 \unset FETCH_COUNT
 
+-- \gexec
+
+create temporary table gexec_test(a int, b text, c date, d float);
+select format('create index on gexec_test(%I)', attname)
+from pg_attribute
+where attrelid = 'gexec_test'::regclass and attnum > 0
+order by attnum
+\gexec
+
+-- \gexec should work in FETCH_COUNT mode too
+-- (though the fetch limit applies to the executed queries not the meta query)
+\set FETCH_COUNT 1
+
+select 'select 1 as ones', 'select x.y, x.y*2 as double from generate_series(1,4) as x(y)'
+union all
+select 'drop table gexec_test', NULL
+union all
+select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
+\gexec
+
+\unset FETCH_COUNT
+
 -- show all pset options
 \pset
 
@@ -49,7 +71,7 @@ select 10 as test01, 20 as test02 from generate_series(1,0) \gset
 prepare q as select array_to_string(array_agg(repeat('x',2*n)),E'\n') as "ab
 
 c", array_to_string(array_agg(repeat('y',20-2*n)),E'\n') as "a
-bc" from generate_series(1,10) as n(n) group by n>1 ;
+bc" from generate_series(1,10) as n(n) group by n>1 order by n>1;
 
 \pset linestyle ascii
 
@@ -198,6 +220,33 @@ execute q;
 execute q;
 
 \pset expanded on
+\pset columns 30
+
+\pset border 0
+\pset format unaligned
+execute q;
+\pset format aligned
+execute q;
+\pset format wrapped
+execute q;
+
+\pset border 1
+\pset format unaligned
+execute q;
+\pset format aligned
+execute q;
+\pset format wrapped
+execute q;
+
+\pset border 2
+\pset format unaligned
+execute q;
+\pset format aligned
+execute q;
+\pset format wrapped
+execute q;
+
+\pset expanded on
 \pset columns 20
 
 \pset border 0
@@ -281,6 +330,8 @@ execute q;
 
 deallocate q;
 
+\pset linestyle ascii
+
 prepare q as select ' | = | lkjsafi\\/ /oeu rio)(!@&*#)*(!&@*) \ (&' as " | -- | 012345678 9abc def!*@#&!@(*&*~~_+-=\ \", '11' as "0123456789", 11 as int from generate_series(1,10) as n;
 
 \pset format asciidoc
@@ -305,3 +356,30 @@ execute q;
 execute q;
 
 deallocate q;
+
+\pset format aligned
+\pset expanded off
+\pset border 1
+
+-- SHOW_CONTEXT
+
+\set SHOW_CONTEXT never
+do $$
+begin
+  raise notice 'foo';
+  raise exception 'bar';
+end $$;
+
+\set SHOW_CONTEXT errors
+do $$
+begin
+  raise notice 'foo';
+  raise exception 'bar';
+end $$;
+
+\set SHOW_CONTEXT always
+do $$
+begin
+  raise notice 'foo';
+  raise exception 'bar';
+end $$;

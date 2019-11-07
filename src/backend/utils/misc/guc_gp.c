@@ -774,6 +774,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 
+	/* GPDB_96_MERGE_FIXME: This doesn't do anything anymore. Do we need to resurrect it? How? */
 	{
 		{"gp_eager_one_phase_agg", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Prefer 1-phase aggregation."),

@@ -892,11 +892,11 @@ SELECT table_name, column_name, is_updatable
 INSERT INTO rw_view2 VALUES (3, 'Row 3') RETURNING *;
 ERROR:  cannot insert into view "rw_view1"
 DETAIL:  Views containing LIMIT or OFFSET are not automatically updatable.
-HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
+HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger or an unconditional ON INSERT DO INSTEAD rule.
 UPDATE rw_view2 SET b='Row three' WHERE a=3 RETURNING *;
 ERROR:  cannot update view "rw_view1"
 DETAIL:  Views containing LIMIT or OFFSET are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 SELECT * FROM rw_view2;
  a |   b   
 ---+-------
@@ -907,7 +907,7 @@ SELECT * FROM rw_view2;
 DELETE FROM rw_view2 WHERE a=3 RETURNING *;
 ERROR:  cannot delete from view "rw_view1"
 DETAIL:  Views containing LIMIT or OFFSET are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 SELECT * FROM rw_view2;
  a |   b   
 ---+-------
@@ -918,11 +918,11 @@ SELECT * FROM rw_view2;
 EXPLAIN (costs off) UPDATE rw_view2 SET a=3 WHERE a=2;
 ERROR:  cannot update view "rw_view1"
 DETAIL:  Views containing LIMIT or OFFSET are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
+HINT:  To enable updating the view, provide an INSTEAD OF UPDATE trigger or an unconditional ON UPDATE DO INSTEAD rule.
 EXPLAIN (costs off) DELETE FROM rw_view2 WHERE a=2;
 ERROR:  cannot delete from view "rw_view1"
 DETAIL:  Views containing LIMIT or OFFSET are not automatically updatable.
-HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
+HINT:  To enable deleting from the view, provide an INSTEAD OF DELETE trigger or an unconditional ON DELETE DO INSTEAD rule.
 DROP TABLE base_tbl CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to view rw_view1
@@ -968,19 +968,21 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to view rw_view1
 drop cascades to function rw_view1_aa(rw_view1)
 -- permissions checks
-CREATE USER view_user1;
-CREATE USER view_user2;
-SET SESSION AUTHORIZATION view_user1;
+CREATE USER regress_view_user1;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+CREATE USER regress_view_user2;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+SET SESSION AUTHORIZATION regress_view_user1;
 CREATE TABLE base_tbl(a int, b text, c float);
 INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
 CREATE VIEW rw_view1 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
 INSERT INTO rw_view1 VALUES ('Row 2', 2.0, 2);
-GRANT SELECT ON base_tbl TO view_user2;
-GRANT SELECT ON rw_view1 TO view_user2;
-GRANT UPDATE (a,c) ON base_tbl TO view_user2;
-GRANT UPDATE (bb,cc) ON rw_view1 TO view_user2;
+GRANT SELECT ON base_tbl TO regress_view_user2;
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+GRANT UPDATE (a,c) ON base_tbl TO regress_view_user2;
+GRANT UPDATE (bb,cc) ON rw_view1 TO regress_view_user2;
 RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION view_user2;
+SET SESSION AUTHORIZATION regress_view_user2;
 CREATE VIEW rw_view2 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
 SELECT * FROM base_tbl; -- ok
  a |   b   | c 
@@ -1025,10 +1027,10 @@ ERROR:  permission denied for relation rw_view1
 DELETE FROM rw_view2; -- not allowed
 ERROR:  permission denied for relation base_tbl
 RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION view_user1;
-GRANT INSERT, DELETE ON base_tbl TO view_user2;
+SET SESSION AUTHORIZATION regress_view_user1;
+GRANT INSERT, DELETE ON base_tbl TO regress_view_user2;
 RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION view_user2;
+SET SESSION AUTHORIZATION regress_view_user2;
 INSERT INTO base_tbl VALUES (3, 'Row 3', 3.0); -- ok
 INSERT INTO rw_view1 VALUES ('Row 4', 4.0, 4); -- not allowed
 ERROR:  permission denied for relation rw_view1
@@ -1045,11 +1047,11 @@ SELECT * FROM base_tbl;
 (2 rows)
 
 RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION view_user1;
-REVOKE INSERT, DELETE ON base_tbl FROM view_user2;
-GRANT INSERT, DELETE ON rw_view1 TO view_user2;
+SET SESSION AUTHORIZATION regress_view_user1;
+REVOKE INSERT, DELETE ON base_tbl FROM regress_view_user2;
+GRANT INSERT, DELETE ON rw_view1 TO regress_view_user2;
 RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION view_user2;
+SET SESSION AUTHORIZATION regress_view_user2;
 INSERT INTO base_tbl VALUES (5, 'Row 5', 5.0); -- not allowed
 ERROR:  permission denied for relation base_tbl
 INSERT INTO rw_view1 VALUES ('Row 5', 5.0, 5); -- ok
@@ -1072,8 +1074,8 @@ DROP TABLE base_tbl CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to view rw_view1
 drop cascades to view rw_view2
-DROP USER view_user1;
-DROP USER view_user2;
+DROP USER regress_view_user1;
+DROP USER regress_view_user2;
 -- column defaults
 CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified', c serial);
 INSERT INTO base_tbl VALUES (1, 'Row 1');
@@ -1469,18 +1471,18 @@ SELECT * FROM information_schema.views WHERE table_name = 'rw_view1';
 
 INSERT INTO rw_view1 VALUES(3,4); -- ok
 INSERT INTO rw_view1 VALUES(4,3); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg0 127.0.0.1:7002 pid=87690)
 DETAIL:  Failing row contains (4, 3).
 INSERT INTO rw_view1 VALUES(5,null); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (5, null).
 UPDATE rw_view1 SET b = 5 WHERE a = 3; -- ok
 UPDATE rw_view1 SET b = -5 WHERE a = 3; -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg0 127.0.0.1:7002 pid=87690)
 DETAIL:  Failing row contains (3, -5).
 INSERT INTO rw_view1(a) VALUES (9); -- ok
 INSERT INTO rw_view1(a) VALUES (10); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (10, 10).
 SELECT * FROM base_tbl;
  a | b  
@@ -1519,11 +1521,11 @@ SELECT * FROM information_schema.views WHERE table_name = 'rw_view2';
 (1 row)
 
 INSERT INTO rw_view2 VALUES (-5); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-5).
 INSERT INTO rw_view2 VALUES (5); -- ok
 INSERT INTO rw_view2 VALUES (15); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (15).
 SELECT * FROM base_tbl;
  a 
@@ -1532,10 +1534,10 @@ SELECT * FROM base_tbl;
 (1 row)
 
 UPDATE rw_view2 SET a = a - 10; -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-5).
 UPDATE rw_view2 SET a = a + 10; -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (15).
 CREATE OR REPLACE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a < 10
   WITH LOCAL CHECK OPTION;
@@ -1560,7 +1562,7 @@ SELECT * FROM information_schema.views WHERE table_name = 'rw_view2';
 
 INSERT INTO rw_view2 VALUES (-10); -- ok, but not in view
 INSERT INTO rw_view2 VALUES (20); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (20).
 SELECT * FROM base_tbl;
   a  
@@ -1574,10 +1576,10 @@ ERROR:  invalid value for "check_option" option
 DETAIL:  Valid values are "local" and "cascaded".
 ALTER VIEW rw_view1 SET (check_option=local);
 INSERT INTO rw_view2 VALUES (-20); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-20).
 INSERT INTO rw_view2 VALUES (30); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (30).
 ALTER VIEW rw_view2 RESET (check_option);
 \d+ rw_view2
@@ -1633,7 +1635,7 @@ INSERT INTO rw_view1 VALUES (1); -- ok
 INSERT INTO rw_view2 VALUES (-2); -- ok, but not in view
 INSERT INTO rw_view2 VALUES (2); -- ok
 INSERT INTO rw_view3 VALUES (-3); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-3).
 INSERT INTO rw_view3 VALUES (3); -- ok
 DROP TABLE base_tbl CASCADE;
@@ -1649,16 +1651,16 @@ CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a = ANY (b)
   WITH CHECK OPTION;
 INSERT INTO rw_view1 VALUES (1, ARRAY[1,2,3]); -- ok
 INSERT INTO rw_view1 VALUES (10, ARRAY[4,5]); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (10, {4,5}).
 UPDATE rw_view1 SET b[2] = -b[2] WHERE a = 1; -- ok
 UPDATE rw_view1 SET b[1] = -b[1] WHERE a = 1; -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (1, {-1,-2,3}).
 PREPARE ins(int, int[]) AS INSERT INTO rw_view1 VALUES($1, $2);
 EXECUTE ins(2, ARRAY[1,2,3]); -- ok
 EXECUTE ins(10, ARRAY[4,5]); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (10, {4,5}).
 DEALLOCATE PREPARE ins;
 DROP TABLE base_tbl CASCADE;
@@ -1673,11 +1675,11 @@ CREATE VIEW rw_view1 AS
   WITH CHECK OPTION;
 INSERT INTO rw_view1 VALUES (5); -- ok
 INSERT INTO rw_view1 VALUES (15); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (15).
 UPDATE rw_view1 SET a = a + 5; -- ok
 UPDATE rw_view1 SET a = a + 5; -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (15).
 EXPLAIN (costs off) INSERT INTO rw_view1 VALUES (5);
                               QUERY PLAN                               
@@ -1737,7 +1739,7 @@ CREATE TRIGGER base_tbl_trig BEFORE INSERT OR UPDATE ON base_tbl
 CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a < b WITH CHECK OPTION;
 INSERT INTO rw_view1 VALUES (5,0); -- ok
 INSERT INTO rw_view1 VALUES (15, 20); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (15, 10).
 UPDATE rw_view1 SET a = 20, b = 30; -- should fail
 ERROR:  UPDATE on distributed key column not allowed on relation with update triggers
@@ -1771,11 +1773,13 @@ ERROR:  INSTEAD OF triggers are not supported in Greenplum
 CREATE VIEW rw_view2 AS
   SELECT * FROM rw_view1 WHERE a > 0 WITH LOCAL CHECK OPTION;
 INSERT INTO rw_view2 VALUES (-5); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "rw_view2"
+ERROR:  new row violates check option for view "rw_view2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-5, null).
 INSERT INTO rw_view2 VALUES (5); -- ok
 INSERT INTO rw_view2 VALUES (50); -- ok, but not in view
 UPDATE rw_view2 SET a = a - 10; -- should fail
+-- Greenplum doesn't fail because nothing was inserted into view, which is
+-- because Greenplum doesn't support INSTEAD OF triggers.
 SELECT * FROM base_tbl;
  a  | b 
 ----+---
@@ -1786,7 +1790,7 @@ SELECT * FROM base_tbl;
 -- Check option won't cascade down to base view with INSTEAD OF triggers
 ALTER VIEW rw_view2 SET (check_option=cascaded);
 INSERT INTO rw_view2 VALUES (100); -- ok, but not in view (doesn't fail rw_view1's check)
-ERROR:  new row violates WITH CHECK OPTION for "rw_view1"
+ERROR:  new row violates check option for view "rw_view1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (100, null).
 UPDATE rw_view2 SET a = 200 WHERE a = 5; -- ok, but not in view (doesn't fail rw_view1's check)
 SELECT * FROM base_tbl;
@@ -2091,14 +2095,14 @@ EXPLAIN (costs off) INSERT INTO rw_view1 VALUES (2, 'New row 2');
 ------------------------------------------------------------------------------------------------------------------------------
  Insert
    ->  Redistribute Motion 1:3  (slice2; segments: 1)
-         Hash Key: "outer".id
+         Hash Key: (2)
          ->  Result
                ->  GroupAggregate
-                     Group Key: "outer"., "outer".ColRef_0015
+                     Group Key: (true), (true)
                      ->  Sort
-                           Sort Key: "outer"., "outer".ColRef_0015
+                           Sort Key: (true), (true)
                            ->  Result
-                                 Filter: (CASE WHEN (NOT ("outer".ColRef_0015 IS NULL)) THEN true ELSE false END IS NOT TRUE)
+                                 Filter: (CASE WHEN (NOT ((true) IS NULL)) THEN true ELSE false END IS NOT TRUE)
                                  ->  Nested Loop Left Join
                                        Join Filter: true
                                        ->  Result
@@ -2186,7 +2190,6 @@ UPDATE v1 SET a=100 WHERE snoop(a) AND leakproof(a) AND a = 3;
                       QUERY PLAN                      
 ------------------------------------------------------
  Result
-   Output: 100, t1.b, t1.c, t1.ctid, t1.gp_segment_id
    One-Time Filter: false
  Optimizer: Postgres query optimizer
  Settings: optimizer=off
@@ -2458,17 +2461,17 @@ CREATE VIEW v2 WITH (security_barrier = true) AS
   WITH CHECK OPTION;
 INSERT INTO v2 VALUES (2, 'two', 20); -- ok
 INSERT INTO v2 VALUES (-2, 'minus two', 20); -- not allowed
-ERROR:  new row violates WITH CHECK OPTION for "v1"
+ERROR:  new row violates check option for view "v1"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (-2, minus two, 20).
 INSERT INTO v2 VALUES (3, 'three', 30); -- not allowed
-ERROR:  new row violates WITH CHECK OPTION for "v2"
+ERROR:  new row violates check option for view "v2"  (seg0 127.0.0.1:7002 pid=87690)
 DETAIL:  Failing row contains (3, three, 30).
 UPDATE v2 SET b = 'ONE' WHERE a = 1; -- ok
 UPDATE v2 SET a = -1 WHERE a = 1; -- not allowed
-ERROR:  new row violates WITH CHECK OPTION for "v1"
+ERROR:  new row violates check option for view "v1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (-1, ONE, 10).
 UPDATE v2 SET c = 30 WHERE a = 1; -- not allowed
-ERROR:  new row violates WITH CHECK OPTION for "v2"  (seg1 127.0.0.1:25433 pid=1771)
+ERROR:  new row violates check option for view "v2"  (seg1 127.0.0.1:7003 pid=87691)
 DETAIL:  Failing row contains (1, ONE, 30).
 DELETE FROM v2 WHERE a = 2; -- ok
 SELECT * FROM v2;
@@ -2490,7 +2493,7 @@ CREATE VIEW v1 AS SELECT null::int AS a;
 CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1 WHERE a > 0 WITH CHECK OPTION;
 INSERT INTO v1 VALUES (1, 'ok'); -- ok
 INSERT INTO v1 VALUES (-1, 'invalid'); -- should fail
-ERROR:  new row violates WITH CHECK OPTION for "v1"
+ERROR:  new row violates check option for view "v1"  (seg2 127.0.0.1:7004 pid=87692)
 DETAIL:  Failing row contains (-1, invalid).
 DROP VIEW v1;
 DROP TABLE t1;

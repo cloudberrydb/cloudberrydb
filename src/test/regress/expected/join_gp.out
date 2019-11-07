@@ -102,20 +102,19 @@ analyze t2;
 -- infer over equalities
 --
 explain select count(*) from t1,t2 where t1.x = 100 and t1.x = t2.x;
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- Aggregate  (cost=6.60..6.61 rows=1 width=8)
-   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=6.54..6.58 rows=1 width=8)
-         ->  Aggregate  (cost=6.54..6.55 rows=1 width=8)
-               ->  Nested Loop  (cost=0.00..6.53 rows=2 width=0)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.27 rows=1 width=4)
-                           Hash Key: t1.x
-                           ->  Seq Scan on t1  (cost=0.00..3.25 rows=1 width=4)
-                                 Filter: (x = 100)
-                     ->  Seq Scan on t2  (cost=0.00..3.25 rows=1 width=4)
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=10000000008.60..10000000008.61 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000008.60 rows=4 width=0)
+         ->  Nested Loop  (cost=10000000000.00..10000000008.53 rows=2 width=0)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..4.27 rows=1 width=4)
+                     Hash Key: t1.x
+                     ->  Seq Scan on t1  (cost=0.00..4.25 rows=1 width=4)
                            Filter: (x = 100)
- Settings:  enable_hashjoin=on; enable_mergejoin=off; enable_nestloop=off
-(11 rows)
+               ->  Seq Scan on t2  (cost=0.00..4.25 rows=1 width=4)
+                     Filter: (x = 100)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select count(*) from t1,t2 where t1.x = 100 and t1.x = t2.x;
  count 

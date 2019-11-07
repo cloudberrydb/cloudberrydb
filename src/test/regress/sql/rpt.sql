@@ -335,6 +335,13 @@ declare c1 cursor for select * from cursor_update order by c2 for update;
 fetch next from c1;
 end;
 
+-- Test MinMax path on replicated table
+create table minmaxtest (x int, y int) distributed replicated;
+create index on minmaxtest (x);
+insert into minmaxtest select generate_series(1, 10);
+set enable_seqscan=off;
+select min(x) from minmaxtest;
+
 -- start_ignore
 drop schema rpt cascade;
 -- end_ignore

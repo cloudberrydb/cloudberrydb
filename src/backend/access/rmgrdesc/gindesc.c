@@ -3,7 +3,7 @@
  * gindesc.c
  *	  rmgr descriptor routines for access/transam/gin/ginxlog.c
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -113,7 +113,7 @@ gin_desc(StringInfo buf, XLogReaderState *record)
 					(ginxlogRecompressDataLeaf *) payload;
 
 					if (XLogRecHasBlockImage(record, 0))
-						appendStringInfo(buf, " (full page image)");
+						appendStringInfoString(buf, " (full page image)");
 					else
 						desc_recompress_leaf(buf, insertData);
 				}
@@ -147,7 +147,7 @@ gin_desc(StringInfo buf, XLogReaderState *record)
 				ginxlogVacuumDataLeafPage *xlrec = (ginxlogVacuumDataLeafPage *) rec;
 
 				if (XLogRecHasBlockImage(record, 0))
-					appendStringInfo(buf, " (full page image)");
+					appendStringInfoString(buf, " (full page image)");
 				else
 					desc_recompress_leaf(buf, &xlrec->data);
 			}

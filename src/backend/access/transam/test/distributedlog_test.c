@@ -54,7 +54,7 @@ MPP_20426(void **state, TransactionId nextXid)
 	memset(pages, 0x7f, sizeof(pages));
 	memset(zeros, 0, sizeof(zeros));
 
-	expect_value(LWLockAcquire, l, DistributedLogControlLock);
+	expect_value(LWLockAcquire, lock, DistributedLogControlLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_return(LWLockAcquire, true);
 
@@ -110,7 +110,7 @@ setup(TransactionId nextXid)
 	DistributedLogCtl->shared->page_buffer[0] = &pages[0];
 	memset(pages, 0x7f, sizeof(char) * BLCKSZ);
 
-	expect_value(LWLockAcquire, l, DistributedLogControlLock);
+	expect_value(LWLockAcquire, lock, DistributedLogControlLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_be_called(LWLockAcquire);
 

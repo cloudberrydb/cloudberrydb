@@ -64,14 +64,14 @@ select p from gist_tbl where p <@ box(point(0,0), point(0.5, 0.5));
 -- Also test an index-only knn-search
 explain (costs off)
 select p from gist_tbl where p <@ box(point(0,0), point(0.5, 0.5))
-order by p <-> point(0.2, 0.2);
-                          QUERY PLAN                          
---------------------------------------------------------------
+order by p <-> point(0.201, 0.201);
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: ((p <-> '(0.2,0.2)'::point))
+         Merge Key: ((p <-> '(0.201,0.201)'::point))
          ->  Sort
-               Sort Key: ((p <-> '(0.2,0.2)'::point))
+               Sort Key: ((p <-> '(0.201,0.201)'::point))
                ->  Result
                      ->  Index Scan using gist_tbl_point_index on gist_tbl
                            Index Cond: (p <@ '(0.5,0.5),(0,0)'::box)
@@ -80,7 +80,7 @@ order by p <-> point(0.2, 0.2);
 (6 rows)
 
 select p from gist_tbl where p <@ box(point(0,0), point(0.5, 0.5))
-order by p <-> point(0.2, 0.2);
+order by p <-> point(0.201, 0.201);
       p      
 -------------
  (0.2,0.2)
@@ -99,14 +99,14 @@ order by p <-> point(0.2, 0.2);
 -- Check commuted case as well
 explain (costs off)
 select p from gist_tbl where p <@ box(point(0,0), point(0.5, 0.5))
-order by point(0.1, 0.1) <-> p;
-                          QUERY PLAN                          
---------------------------------------------------------------
+order by point(0.101, 0.101) <-> p;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: (('(0.1,0.1)'::point <-> p))
+         Merge Key: (('(0.101,0.101)'::point <-> p))
          ->  Sort
-               Sort Key: (('(0.1,0.1)'::point <-> p))
+               Sort Key: (('(0.101,0.101)'::point <-> p))
                ->  Result
                      ->  Index Scan using gist_tbl_point_index on gist_tbl
                            Index Cond: (p <@ '(0.5,0.5),(0,0)'::box)
@@ -115,7 +115,7 @@ order by point(0.1, 0.1) <-> p;
 (6 rows)
 
 select p from gist_tbl where p <@ box(point(0,0), point(0.5, 0.5))
-order by point(0.1, 0.1) <-> p;
+order by point(0.101, 0.101) <-> p;
       p      
 -------------
  (0.1,0.1)

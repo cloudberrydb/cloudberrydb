@@ -27,9 +27,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=88792873.08..88792873.09 rows=1 width=8) (actual time=6.019..6.019 rows=1 loops=1)
-   ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=88792873.01..88792873.06 rows=1 width=8) (actual time=5.614..6.010 rows=3 loops=1)
-         ->  Aggregate  (cost=88792873.01..88792873.02 rows=1 width=8) (actual time=3.621..3.621 rows=1 loops=1)
+ Finalize Aggregate  (cost=88792873.05..88792873.06 rows=1 width=8) (actual time=5.433..5.433 rows=1 loops=1)
+   ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=88792873.01..88792873.04 rows=1 width=8) (actual time=3.770..5.415 rows=3 loops=1)
+         ->  Partial Aggregate  (cost=88792873.01..88792873.02 rows=1 width=8) (actual time=2.072..2.073 rows=1 loops=1)
                ->  Hash Join  (cost=7518.50..87197179.56 rows=212759127 width=0) (never executed)
                      Hash Cond: (a.c2 = c.c2)
                      ->  Hash Join  (cost=3759.25..1007440.85 rows=2471070 width=8) (never executed)
@@ -45,15 +45,15 @@ explain analyze select count(*) from test_gang_reuse_t1 a
                            ->  Redistribute Motion 3:3  (slice3; gang9; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
                                  Hash Key: c.c2
                                  ->  Seq Scan on test_gang_reuse_t1 c  (cost=0.00..961.00 rows=28700 width=4) (never executed)
- Planning time: 3.415 ms
+ Planning time: 3.610 ms
    (slice0)    Executor memory: 127K bytes.
-   (slice1)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
-   (slice2)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
-   (slice3)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
-   (slice4)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).
+   (slice1)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
+   (slice2)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
+   (slice3)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
+   (slice4)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).  Work_mem: 2048K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 19.418 ms
+ Execution time: 19.113 ms
 (27 rows)
 
 -- so in this query the gangs C and D should be used
@@ -62,9 +62,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                   QUERY PLAN                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=1025973.94..1025973.95 rows=1 width=8) (actual time=4.816..4.816 rows=1 loops=1)
-   ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=1025973.88..1025973.93 rows=1 width=8) (actual time=3.549..4.806 rows=3 loops=1)
-         ->  Aggregate  (cost=1025973.88..1025973.89 rows=1 width=8) (actual time=3.772..3.772 rows=1 loops=1)
+ Finalize Aggregate  (cost=1025973.91..1025973.92 rows=1 width=8) (actual time=4.834..4.834 rows=1 loops=1)
+   ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=1025973.88..1025973.91 rows=1 width=8) (actual time=3.844..4.821 rows=3 loops=1)
+         ->  Partial Aggregate  (cost=1025973.88..1025973.89 rows=1 width=8) (actual time=3.683..3.684 rows=1 loops=1)
                ->  Hash Join  (cost=3759.25..1007440.85 rows=2471070 width=0) (never executed)
                      Hash Cond: (a.c2 = b.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
@@ -74,14 +74,14 @@ explain analyze select count(*) from test_gang_reuse_t1 a
                            ->  Redistribute Motion 3:3  (slice2; gang6; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
                                  Hash Key: b.c2
                                  ->  Seq Scan on test_gang_reuse_t1 b  (cost=0.00..961.00 rows=28700 width=4) (never executed)
- Planning time: 1.300 ms
+ Planning time: 0.919 ms
    (slice0)    Executor memory: 127K bytes.
    (slice1)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
    (slice2)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
-   (slice3)    Executor memory: 4176K bytes avg x 3 workers, 4176K bytes max (seg0).
+   (slice3)    Executor memory: 4176K bytes avg x 3 workers, 4176K bytes max (seg0).  Work_mem: 4096K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 8.568 ms
+ Execution time: 6.135 ms
 (20 rows)
 
 -- so in this query the gangs C, D and E should be used
@@ -91,9 +91,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=88792873.08..88792873.09 rows=1 width=8) (actual time=4.357..4.357 rows=1 loops=1)
-   ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=88792873.01..88792873.06 rows=1 width=8) (actual time=3.881..4.346 rows=3 loops=1)
-         ->  Aggregate  (cost=88792873.01..88792873.02 rows=1 width=8) (actual time=2.066..2.066 rows=1 loops=1)
+ Finalize Aggregate  (cost=88792873.05..88792873.06 rows=1 width=8) (actual time=6.331..6.331 rows=1 loops=1)
+   ->  Gather Motion 3:1  (slice4; gang0; segments: 3)  (cost=88792873.01..88792873.04 rows=1 width=8) (actual time=3.501..6.319 rows=3 loops=1)
+         ->  Partial Aggregate  (cost=88792873.01..88792873.02 rows=1 width=8) (actual time=4.949..4.950 rows=1 loops=1)
                ->  Hash Join  (cost=7518.50..87197179.56 rows=212759127 width=0) (never executed)
                      Hash Cond: (a.c2 = c.c2)
                      ->  Hash Join  (cost=3759.25..1007440.85 rows=2471070 width=8) (never executed)
@@ -109,15 +109,15 @@ explain analyze select count(*) from test_gang_reuse_t1 a
                            ->  Redistribute Motion 3:3  (slice3; gang9; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
                                  Hash Key: c.c2
                                  ->  Seq Scan on test_gang_reuse_t1 c  (cost=0.00..961.00 rows=28700 width=4) (never executed)
- Planning time: 1.931 ms
+ Planning time: 2.334 ms
    (slice0)    Executor memory: 127K bytes.
    (slice1)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
    (slice2)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
    (slice3)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
-   (slice4)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).
+   (slice4)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).  Work_mem: 2048K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 5.753 ms
+ Execution time: 8.067 ms
 (27 rows)
 
 -- so in this query the gangs C and D should be used
@@ -126,9 +126,9 @@ explain analyze select count(*) from test_gang_reuse_t1 a
 ;
                                                                   QUERY PLAN                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=1025973.94..1025973.95 rows=1 width=8) (actual time=5.047..5.047 rows=1 loops=1)
-   ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=1025973.88..1025973.93 rows=1 width=8) (actual time=4.225..5.010 rows=3 loops=1)
-         ->  Aggregate  (cost=1025973.88..1025973.89 rows=1 width=8) (actual time=3.209..3.210 rows=1 loops=1)
+ Finalize Aggregate  (cost=1025973.91..1025973.92 rows=1 width=8) (actual time=5.098..5.099 rows=1 loops=1)
+   ->  Gather Motion 3:1  (slice3; gang0; segments: 3)  (cost=1025973.88..1025973.91 rows=1 width=8) (actual time=4.104..5.083 rows=3 loops=1)
+         ->  Partial Aggregate  (cost=1025973.88..1025973.89 rows=1 width=8) (actual time=3.642..3.642 rows=1 loops=1)
                ->  Hash Join  (cost=3759.25..1007440.85 rows=2471070 width=0) (never executed)
                      Hash Cond: (a.c2 = b.c2)
                      ->  Redistribute Motion 3:3  (slice1; gang3; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
@@ -138,14 +138,14 @@ explain analyze select count(*) from test_gang_reuse_t1 a
                            ->  Redistribute Motion 3:3  (slice2; gang6; segments: 3)  (cost=0.00..2683.00 rows=28700 width=4) (never executed)
                                  Hash Key: b.c2
                                  ->  Seq Scan on test_gang_reuse_t1 b  (cost=0.00..961.00 rows=28700 width=4) (never executed)
- Planning time: 1.231 ms
+ Planning time: 1.039 ms
    (slice0)    Executor memory: 127K bytes.
    (slice1)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
    (slice2)    Executor memory: 44K bytes avg x 3 workers, 44K bytes max (seg0).
-   (slice3)    Executor memory: 4176K bytes avg x 3 workers, 4176K bytes max (seg0).
+   (slice3)    Executor memory: 4176K bytes avg x 3 workers, 4176K bytes max (seg0).  Work_mem: 4096K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 6.223 ms
+ Execution time: 6.273 ms
 (20 rows)
 
 reset optimizer_force_multistage_agg;

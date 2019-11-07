@@ -1,7 +1,7 @@
 --
 -- OPR_SANITY
 -- Sanity checks for common errors in making operator/procedure system tables:
--- pg_operator, pg_proc, pg_cast, pg_aggregate, pg_am,
+-- pg_operator, pg_proc, pg_cast, pg_conversion, pg_aggregate, pg_am,
 -- pg_amop, pg_amproc, pg_opclass, pg_opfamily, pg_index.
 --
 -- Every test failure in this file should be closely inspected.
@@ -50,6 +50,7 @@ SELECT ($1 = $2) OR
   (select typtype from pg_catalog.pg_type where oid = $1) = 'r')
 $$ language sql strict stable READS SQL DATA;
 
+
 -- **************** pg_proc ****************
 
 -- Look for illegal values in pg_proc fields.
@@ -64,7 +65,9 @@ WHERE p1.prolang = 0 OR p1.prorettype = 0 OR
        array_upper(p1.proargtypes, 1) != p1.pronargs-1 OR
        0::oid = ANY (p1.proargtypes) OR
        procost <= 0 OR
-       CASE WHEN proretset THEN prorows <= 0 ELSE prorows != 0 END;
+       CASE WHEN proretset THEN prorows <= 0 ELSE prorows != 0 END OR
+       provolatile NOT IN ('i', 's', 'v') OR
+       proparallel NOT IN ('s', 'r', 'u');
 
 -- prosrc should never be null or empty
 SELECT p1.oid, p1.proname
@@ -276,8 +279,8 @@ WHERE p1.prorettype = 'internal'::regtype AND NOT
 
 -- Look for functions that return a polymorphic type and do not have any
 -- polymorphic argument.  Calls of such functions would be unresolvable
--- at parse time.  As of 9.4 this query should find only some input functions
--- associated with these pseudotypes.
+-- at parse time.  As of 9.6 this query should find only some input functions
+-- and GiST support functions associated with these pseudotypes.
 
 SELECT p1.oid, p1.proname
 FROM pg_proc as p1
@@ -291,6 +294,36 @@ WHERE p1.prorettype IN
      'anyenum'::regtype = ANY (p1.proargtypes) OR
      'anyrange'::regtype = ANY (p1.proargtypes))
 ORDER BY 2;
+
+-- Look for functions that accept cstring and are neither datatype input
+-- functions nor encoding conversion functions.  It's almost never a good
+-- idea to use cstring input for a function meant to be called from SQL;
+-- text should be used instead, because cstring lacks suitable casts.
+-- As of 9.6 this query should find only cstring_out and cstring_send.
+-- However, we must manually exclude shell_in, which might or might not be
+-- rejected by the EXISTS clause depending on whether there are currently
+-- any shell types.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE 'cstring'::regtype = ANY (p1.proargtypes)
+    AND NOT EXISTS(SELECT 1 FROM pg_type WHERE typinput = p1.oid)
+    AND NOT EXISTS(SELECT 1 FROM pg_conversion WHERE conproc = p1.oid)
+    AND p1.oid != 'shell_in(cstring)'::regprocedure
+ORDER BY 1;
+
+-- Likewise, look for functions that return cstring and aren't datatype output
+-- functions nor typmod output functions.
+-- As of 9.6 this query should find only cstring_in and cstring_recv.
+-- However, we must manually exclude shell_out.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE  p1.prorettype = 'cstring'::regtype
+    AND NOT EXISTS(SELECT 1 FROM pg_type WHERE typoutput = p1.oid)
+    AND NOT EXISTS(SELECT 1 FROM pg_type WHERE typmodout = p1.oid)
+    AND p1.oid != 'shell_out(opaque)'::regprocedure
+ORDER BY 1;
 
 -- Check for length inconsistencies between the various argument-info arrays.
 
@@ -467,6 +500,47 @@ WHERE c.castmethod = 'b' AND
                 WHERE k.castmethod = 'b' AND
                     k.castsource = c.casttarget AND
                     k.casttarget = c.castsource);
+
+
+-- **************** pg_conversion ****************
+
+-- Look for illegal values in pg_conversion fields.
+
+SELECT p1.oid, p1.conname
+FROM pg_conversion as p1
+WHERE p1.conproc = 0 OR
+    pg_encoding_to_char(conforencoding) = '' OR
+    pg_encoding_to_char(contoencoding) = '';
+
+-- Look for conprocs that don't have the expected signature.
+
+SELECT p.oid, p.proname, c.oid, c.conname
+FROM pg_proc p, pg_conversion c
+WHERE p.oid = c.conproc AND
+    (p.prorettype != 'void'::regtype OR p.proretset OR
+     p.pronargs != 5 OR
+     p.proargtypes[0] != 'int4'::regtype OR
+     p.proargtypes[1] != 'int4'::regtype OR
+     p.proargtypes[2] != 'cstring'::regtype OR
+     p.proargtypes[3] != 'internal'::regtype OR
+     p.proargtypes[4] != 'int4'::regtype);
+
+-- Check for conprocs that don't perform the specific conversion that
+-- pg_conversion alleges they do, by trying to invoke each conversion
+-- on some simple ASCII data.  (The conproc should throw an error if
+-- it doesn't accept the encodings that are passed to it.)
+-- Unfortunately, we can't test non-default conprocs this way, because
+-- there is no way to ask convert() to invoke them, and we cannot call
+-- them directly from SQL.  But there are no non-default built-in
+-- conversions anyway.
+-- (Similarly, this doesn't cope with any search path issues.)
+
+SELECT p1.oid, p1.conname
+FROM pg_conversion as p1
+WHERE condefault AND
+    convert('ABC'::bytea, pg_encoding_to_char(conforencoding),
+            pg_encoding_to_char(contoencoding)) != 'ABC';
+
 
 -- **************** pg_operator ****************
 
@@ -1036,6 +1110,7 @@ SELECT p.oid, proname
 FROM pg_proc AS p JOIN pg_aggregate AS a ON a.aggfnoid = p.oid
 WHERE proisagg AND provariadic != 0 AND a.aggkind = 'n';
 
+
 -- **************** pg_opfamily ****************
 
 -- Look for illegal values in pg_opfamily fields
@@ -1043,6 +1118,7 @@ WHERE proisagg AND provariadic != 0 AND a.aggkind = 'n';
 SELECT p1.oid
 FROM pg_opfamily as p1
 WHERE p1.opfmethod = 0 OR p1.opfnamespace = 0;
+
 
 -- **************** pg_opclass ****************
 
@@ -1068,6 +1144,30 @@ WHERE p1.oid != p2.oid AND
     p1.opcmethod = p2.opcmethod AND p1.opcintype = p2.opcintype AND
     p1.opcdefault AND p2.opcdefault;
 
+-- Ask access methods to validate opclasses
+-- (this replaces a lot of SQL-level checks that used to be done in this file)
+
+SELECT oid, opcname FROM pg_opclass WHERE NOT amvalidate(oid);
+
+
+-- **************** pg_am ****************
+
+-- Look for illegal values in pg_am fields
+
+SELECT p1.oid, p1.amname
+FROM pg_am AS p1
+WHERE p1.amhandler = 0;
+
+-- Check for amhandler functions with the wrong signature
+
+SELECT p1.oid, p1.amname, p2.oid, p2.proname
+FROM pg_am AS p1, pg_proc AS p2
+WHERE p2.oid = p1.amhandler AND
+    (p2.prorettype != 'index_am_handler'::regtype OR p2.proretset
+     OR p2.pronargs != 1
+     OR p2.proargtypes[0] != 'internal'::regtype);
+
+
 -- **************** pg_amop ****************
 
 -- Look for illegal values in pg_amop fields
@@ -1082,81 +1182,11 @@ FROM pg_amop as p1
 WHERE NOT ((p1.amoppurpose = 's' AND p1.amopsortfamily = 0) OR
            (p1.amoppurpose = 'o' AND p1.amopsortfamily <> 0));
 
--- amoplefttype/amoprighttype must match the operator
-
-SELECT p1.oid, p2.oid
-FROM pg_amop AS p1, pg_operator AS p2
-WHERE p1.amopopr = p2.oid AND NOT
-    (p1.amoplefttype = p2.oprleft AND p1.amoprighttype = p2.oprright);
-
 -- amopmethod must match owning opfamily's opfmethod
 
 SELECT p1.oid, p2.oid
 FROM pg_amop AS p1, pg_opfamily AS p2
 WHERE p1.amopfamily = p2.oid AND p1.amopmethod != p2.opfmethod;
-
--- amopsortfamily, if present, must reference a btree family
-
-SELECT p1.amopfamily, p1.amopstrategy
-FROM pg_amop AS p1
-WHERE p1.amopsortfamily <> 0 AND NOT EXISTS
-    (SELECT 1 from pg_opfamily op WHERE op.oid = p1.amopsortfamily
-     AND op.opfmethod = (SELECT oid FROM pg_am WHERE amname = 'btree'));
-
--- check for ordering operators not supported by parent AM
-
-SELECT p1.amopfamily, p1.amopopr, p2.oid, p2.amname
-FROM pg_amop AS p1, pg_am AS p2
-WHERE p1.amopmethod = p2.oid AND
-    p1.amoppurpose = 'o' AND NOT p2.amcanorderbyop;
-
--- Cross-check amopstrategy index against parent AM
-
-SELECT p1.amopfamily, p1.amopopr, p2.oid, p2.amname
-FROM pg_amop AS p1, pg_am AS p2
-WHERE p1.amopmethod = p2.oid AND
-    p1.amopstrategy > p2.amstrategies AND p2.amstrategies <> 0;
-
--- Detect missing pg_amop entries: should have as many strategy operators
--- as AM expects for each datatype combination supported by the opfamily.
--- We can't check this for AMs with variable strategy sets.
-
-SELECT p1.amname, p2.amoplefttype, p2.amoprighttype
-FROM pg_am AS p1, pg_amop AS p2
-WHERE p2.amopmethod = p1.oid AND
-    p1.amstrategies <> 0 AND
-    p1.amstrategies != (SELECT count(*) FROM pg_amop AS p3
-                        WHERE p3.amopfamily = p2.amopfamily AND
-                              p3.amoplefttype = p2.amoplefttype AND
-                              p3.amoprighttype = p2.amoprighttype AND
-                              p3.amoppurpose = 's');
-
--- Currently, none of the AMs with fixed strategy sets support ordering ops.
-
-SELECT p1.amname, p2.amopfamily, p2.amopstrategy
-FROM pg_am AS p1, pg_amop AS p2
-WHERE p2.amopmethod = p1.oid AND
-    p1.amstrategies <> 0 AND p2.amoppurpose <> 's';
-
--- Check that amopopr points at a reasonable-looking operator, ie a binary
--- operator.  If it's a search operator it had better yield boolean,
--- otherwise an input type of its sort opfamily.
-
-SELECT p1.amopfamily, p1.amopopr, p2.oid, p2.oprname
-FROM pg_amop AS p1, pg_operator AS p2
-WHERE p1.amopopr = p2.oid AND
-    p2.oprkind != 'b';
-
-SELECT p1.amopfamily, p1.amopopr, p2.oid, p2.oprname
-FROM pg_amop AS p1, pg_operator AS p2
-WHERE p1.amopopr = p2.oid AND p1.amoppurpose = 's' AND
-    p2.oprresult != 'bool'::regtype;
-
-SELECT p1.amopfamily, p1.amopopr, p2.oid, p2.oprname
-FROM pg_amop AS p1, pg_operator AS p2
-WHERE p1.amopopr = p2.oid AND p1.amoppurpose = 'o' AND NOT EXISTS
-    (SELECT 1 FROM pg_opclass op
-     WHERE opcfamily = p1.amopsortfamily AND opcintype = p2.oprresult);
 
 -- Make a list of all the distinct operator names being used in particular
 -- strategy slots.  This is a bit hokey, since the list might need to change
@@ -1215,65 +1245,6 @@ WHERE p1.amopopr = p2.oid AND p2.oprcode = p3.oid AND
     p1.amoplefttype != p1.amoprighttype AND
     p3.provolatile = 'v';
 
--- Multiple-datatype btree opfamilies should provide closed sets of equality
--- operators; that is if you provide int2 = int4 and int4 = int8 then you
--- should also provide int2 = int8 (and commutators of all these).  This is
--- important because the planner tries to deduce additional qual clauses from
--- transitivity of mergejoinable operators.  If there are clauses
--- int2var = int4var and int4var = int8var, the planner will want to deduce
--- int2var = int8var ... so there should be a way to represent that.  While
--- a missing cross-type operator is now only an efficiency loss rather than
--- an error condition, it still seems reasonable to insist that all built-in
--- opfamilies be complete.
-
--- check commutative closure
-SELECT p1.amoplefttype, p1.amoprighttype
-FROM pg_amop AS p1
-WHERE p1.amopmethod = (SELECT oid FROM pg_am WHERE amname = 'btree') AND
-    p1.amopstrategy = 3 AND
-    p1.amoplefttype != p1.amoprighttype AND
-    NOT EXISTS(SELECT 1 FROM pg_amop p2 WHERE
-                 p2.amopfamily = p1.amopfamily AND
-                 p2.amoplefttype = p1.amoprighttype AND
-                 p2.amoprighttype = p1.amoplefttype AND
-                 p2.amopstrategy = 3);
-
--- check transitive closure
-SELECT p1.amoplefttype, p1.amoprighttype, p2.amoprighttype
-FROM pg_amop AS p1, pg_amop AS p2
-WHERE p1.amopfamily = p2.amopfamily AND
-    p1.amoprighttype = p2.amoplefttype AND
-    p1.amopmethod = (SELECT oid FROM pg_am WHERE amname = 'btree') AND
-    p2.amopmethod = (SELECT oid FROM pg_am WHERE amname = 'btree') AND
-    p1.amopstrategy = 3 AND p2.amopstrategy = 3 AND
-    p1.amoplefttype != p1.amoprighttype AND
-    p2.amoplefttype != p2.amoprighttype AND
-    NOT EXISTS(SELECT 1 FROM pg_amop p3 WHERE
-                 p3.amopfamily = p1.amopfamily AND
-                 p3.amoplefttype = p1.amoplefttype AND
-                 p3.amoprighttype = p2.amoprighttype AND
-                 p3.amopstrategy = 3);
-
--- We also expect that built-in multiple-datatype hash opfamilies provide
--- complete sets of cross-type operators.  Again, this isn't required, but
--- it is reasonable to expect it for built-in opfamilies.
-
--- if same family has x=x and y=y, it should have x=y
-SELECT p1.amoplefttype, p2.amoplefttype
-FROM pg_amop AS p1, pg_amop AS p2
-WHERE p1.amopfamily = p2.amopfamily AND
-    p1.amoplefttype = p1.amoprighttype AND
-    p2.amoplefttype = p2.amoprighttype AND
-    p1.amopmethod = (SELECT oid FROM pg_am WHERE amname = 'hash') AND
-    p2.amopmethod = (SELECT oid FROM pg_am WHERE amname = 'hash') AND
-    p1.amopstrategy = 1 AND p2.amopstrategy = 1 AND
-    p1.amoplefttype != p2.amoplefttype AND
-    NOT EXISTS(SELECT 1 FROM pg_amop p3 WHERE
-                 p3.amopfamily = p1.amopfamily AND
-                 p3.amoplefttype = p1.amoplefttype AND
-                 p3.amoprighttype = p2.amoplefttype AND
-                 p3.amopstrategy = 1);
-
 
 -- **************** pg_amproc ****************
 
@@ -1283,13 +1254,6 @@ SELECT p1.amprocfamily, p1.amprocnum
 FROM pg_amproc as p1
 WHERE p1.amprocfamily = 0 OR p1.amproclefttype = 0 OR p1.amprocrighttype = 0
     OR p1.amprocnum < 1 OR p1.amproc = 0;
-
--- Cross-check amprocnum index against parent AM
-
-SELECT p1.amprocfamily, p1.amprocnum, p2.oid, p2.amname
-FROM pg_amproc AS p1, pg_am AS p2, pg_opfamily AS p3
-WHERE p1.amprocfamily = p3.oid AND p3.opfmethod = p2.oid AND
-    p1.amprocnum > p2.amsupport;
 
 -- Detect missing pg_amproc entries: should have as many support functions
 -- as AM expects for each datatype combination supported by the opfamily.

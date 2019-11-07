@@ -125,6 +125,42 @@ SELECT DISTINCT p.age FROM person* p ORDER BY age using >;
 (20 rows)
 
 --
+-- Check mentioning same column more than once
+--
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Finalize Aggregate
+   Output: count(*)
+   ->  Gather Motion 3:1  (slice2; segments: 3)
+         Output: (PARTIAL count(*))
+         ->  Partial Aggregate
+               Output: PARTIAL count(*)
+               ->  Finalize HashAggregate
+                     Output: tenk1.two, tenk1.four, tenk1.two
+                     Group Key: tenk1.two, tenk1.four, tenk1.two
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           Output: tenk1.two, tenk1.four, tenk1.two
+                           Hash Key: tenk1.two, tenk1.four, tenk1.two
+                           ->  Partial HashAggregate
+                                 Output: tenk1.two, tenk1.four, tenk1.two
+                                 Group Key: tenk1.two, tenk1.four, tenk1.two
+                                 ->  Seq Scan on public.tenk1
+                                       Output: tenk1.two, tenk1.four, tenk1.two
+ Optimizer: Postgres query optimizer
+ Settings: optimizer=off
+(19 rows)
+
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss;
+ count 
+-------
+     4
+(1 row)
+
+--
 -- Also, some tests of IS DISTINCT FROM, which doesn't quite deserve its
 -- very own regression file.
 --

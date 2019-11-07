@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/relation.h
@@ -62,7 +62,8 @@ typedef struct QualCost
  * Costing aggregate function execution requires these statistics about
  * the aggregates to be executed by a given Agg node.  Note that the costs
  * include the execution costs of the aggregates' argument expressions as
- * well as the aggregate functions themselves.
+ * well as the aggregate functions themselves.  Also, the fields must be
+ * defined so that initializing the struct to zeroes with memset is correct.
  */
 typedef struct AggClauseCosts
 {
@@ -70,13 +71,29 @@ typedef struct AggClauseCosts
 	int			numOrderedAggs; /* number w/ DISTINCT/ORDER BY/WITHIN GROUP */
 	int			numPureOrderedAggs; /* CDB: number that use ORDER BY/WITHIN GROUP, not counting DISTINCT */
 	bool		hasNonCombine;	/* CDB: any agg func w/o a combine func? */
-	bool		hasNonSerial;	/* CDB: is any partial agg non-serializable? */
+	bool		hasNonPartial;	/* does any agg not support partial mode? */
+	bool		hasNonSerial;	/* is any partial agg non-serializable? */
 	QualCost	transCost;		/* total per-input-row execution costs */
 	Cost		finalCost;		/* total per-aggregated-row costs */
 	Size		transitionSpace;	/* space for pass-by-ref transition data */
 
-	List   *dqaArgs;	/* CDB: List of distinct DQA argument exprs. */
+	List	   *distinctAggrefs;	/* CDB: List of Aggrfefs with aggdistinct */
 } AggClauseCosts;
+
+/*
+ * This enum identifies the different types of "upper" (post-scan/join)
+ * relations that we might deal with during planning.
+ */
+typedef enum UpperRelationKind
+{
+	UPPERREL_SETOP,				/* result of UNION/INTERSECT/EXCEPT, if any */
+	UPPERREL_GROUP_AGG,			/* result of grouping/aggregation, if any */
+	UPPERREL_WINDOW,			/* result of window functions, if any */
+	UPPERREL_DISTINCT,			/* result of "SELECT DISTINCT", if any */
+	UPPERREL_ORDERED,			/* result of ORDER BY, if any */
+	UPPERREL_FINAL				/* result of any remaining top-level actions */
+	/* NB: UPPERREL_FINAL must be last enum entry; it's used to size arrays */
+} UpperRelationKind;
 
 
 /*
@@ -139,13 +156,19 @@ typedef struct PlannerGlobal
 
 	Index		lastRowMarkId;	/* highest PlanRowMark ID assigned */
 
+	int			lastPlanNodeId; /* highest plan node ID assigned */
+
 	bool		transientPlan;	/* redo plan when TransactionXmin changes? */
 	bool		oneoffPlan;		/* redo plan on every execution? */
 	bool		simplyUpdatable; /* can be used with CURRENT OF? */
 
 	ApplyShareInputContext share;	/* workspace for GPDB plan sharing */
 
-	bool		hasRowSecurity; /* row security applied? */
+	bool		dependsOnRole;	/* is plan specific to current role? */
+
+	bool		parallelModeOK; /* parallel mode potentially OK? */
+
+	bool		parallelModeNeeded;		/* parallel mode actually required? */
 
 	int			nMotionNodes;
 	int			nInitPlans;
@@ -174,7 +197,14 @@ typedef struct PlannerInfo
 
 	struct PlannerInfo *parent_root;	/* NULL at outermost Query */
 
+	/*
+	 * plan_params contains the expressions that this query level needs to
+	 * make available to a lower query level that is currently being planned.
+	 * outer_params contains the paramIds of PARAM_EXEC Params that outer
+	 * query levels will make available to this query level.
+	 */
 	List	   *plan_params;	/* list of PlannerParamItems, see below */
+	Bitmapset  *outer_params;
 
 	/*
 	 * simple_rel_array holds pointers to "base rels" and "other rels" (see
@@ -266,25 +296,39 @@ typedef struct PlannerInfo
 
 	List	   *join_info_list; /* list of SpecialJoinInfos */
 
-	List	   *lateral_info_list;		/* list of LateralJoinInfos */
-
 	List	   *append_rel_list;	/* list of AppendRelInfos */
 
 	List	   *rowMarks;		/* list of PlanRowMarks */
 
 	List	   *placeholder_list;		/* list of PlaceHolderInfos */
 
-	List	   *query_pathkeys; /* desired pathkeys for query_planner(), and
-								 * actual pathkeys after planning */
+	List	   *fkey_list;		/* list of ForeignKeyOptInfos */
+
+	List	   *query_pathkeys; /* desired pathkeys for query_planner() */
 
 	List	   *group_pathkeys; /* groupClause pathkeys, if any */
 	List	   *window_pathkeys;	/* pathkeys of bottom window, if any */
 	List	   *distinct_pathkeys;		/* distinctClause pathkeys, if any */
 	List	   *sort_pathkeys;	/* sortClause pathkeys, if any */
 
-	List	   *minmax_aggs;	/* List of MinMaxAggInfos */
-
 	List	   *initial_rels;	/* RelOptInfos we are now trying to join */
+
+	/* Use fetch_upper_rel() to get any particular upper rel */
+	List	   *upper_rels[UPPERREL_FINAL + 1]; /* upper-rel RelOptInfos */
+
+	/* Result tlists chosen by grouping_planner for upper-stage processing */
+	struct PathTarget *upper_targets[UPPERREL_FINAL + 1];
+
+	/*
+	 * grouping_planner passes back its final processed targetlist here, for
+	 * use in relabeling the topmost tlist of the finished Plan.
+	 */
+	List	   *processed_tlist;
+
+	/* Fields filled during create_plan() for use in setrefs.c */
+	AttrNumber *grouping_map;	/* for GroupingFunc fixup */
+	int			grouping_map_size;
+	List	   *minmax_aggs;	/* List of MinMaxAggInfos */
 
 	MemoryContext planner_cxt;	/* context holding PlannerInfo */
 
@@ -305,11 +349,12 @@ typedef struct PlannerInfo
 
 	/* These fields are used only when hasRecursion is true: */
 	int			wt_param_id;	/* PARAM_EXEC ID for the work table */
-	struct Plan *non_recursive_plan;	/* plan for non-recursive term */
+	struct Path *non_recursive_path;	/* a path for non-recursive term */
 
 	/* These fields are workspace for createplan.c */
 	Relids		curOuterRels;	/* outer rels above current node */
 	List	   *curOuterParams; /* not-yet-assigned NestLoopParams */
+	int			numMotions;
 
 	PlannerConfig *config;		/* Planner configuration */
 
@@ -322,10 +367,6 @@ typedef struct PlannerInfo
 	bool		is_split_update;	/* true if UPDATE that modifies
 									 * distribution key columns */
 	bool		is_correlated_subplan; /* true for correlated subqueries nested within subplans */
-
-	/* for GroupingFunc fixup in setrefs */
-	AttrNumber *grouping_map;
-	int			grouping_map_size;
 } PlannerInfo;
 
 /*
@@ -431,10 +472,7 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *
  * We also have "other rels", which are like base rels in that they refer to
  * single RT indexes; but they are not part of the join tree, and are given
- * a different RelOptKind to identify them.  Lastly, there is a RelOptKind
- * for "dead" relations, which are base rels that we have proven we don't
- * need to join after all.
- *
+ * a different RelOptKind to identify them.
  * Currently the only kind of otherrels are those made for member relations
  * of an "append relation", that is an inheritance set or UNION ALL subquery.
  * An append relation has a parent RTE that is a base rel, which represents
@@ -449,6 +487,14 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  * handling join alias Vars.  Currently this is not needed because all join
  * alias Vars are expanded to non-aliased form during preprocess_expression.
  *
+ * There is also a RelOptKind for "upper" relations, which are RelOptInfos
+ * that describe post-scan/join processing steps, such as aggregation.
+ * Many of the fields in these RelOptInfos are meaningless, but their Path
+ * fields always hold Paths showing ways to do that processing step.
+ *
+ * Lastly, there is a RelOptKind for "dead" relations, which are base rels
+ * that we have proven we don't need to join after all.
+ *
  * Parts of this data structure are specific to various scan and join
  * mechanisms.  It didn't seem worth creating new node types for them.
  *
@@ -456,17 +502,16 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *				if there is just one, a join relation if more than one
  *		rows - estimated number of tuples in the relation after restriction
  *			   clauses have been applied (ie, output rows of a plan for it)
- *		width - avg. number of bytes per tuple in the relation after the
- *				appropriate projections have been done (ie, output width)
  *		consider_startup - true if there is any value in keeping plain paths for
  *						   this rel on the basis of having cheap startup cost
  *		consider_param_startup - the same for parameterized paths
- *		reltargetlist - List of Var and PlaceHolderVar nodes for the values
- *						we need to output from this relation.
- *						List is in no particular order, but all rels of an
- *						appendrel set must use corresponding orders.
- *						NOTE: in an appendrel child relation, may contain
- *						arbitrary expressions pulled up from a subquery!
+ *		reltarget - Default Path output tlist for this rel; normally contains
+ *					Var and PlaceHolderVar nodes for the values we need to
+ *					output from this relation.
+ *					List is in no particular order, but all rels of an
+ *					appendrel set must use corresponding orders.
+ *					NOTE: in an appendrel child relation, may contain
+ *					arbitrary expressions pulled up from a subquery!
  *		pathlist - List of Path nodes, one for each potentially useful
  *				   method of generating the relation
  *		ppilist - ParamPathInfo nodes for parameterized Paths, if any
@@ -481,6 +526,9 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *			(no duplicates) output from relation; NULL if not yet requested
  *		cheapest_parameterized_paths - best paths for their parameterizations;
  *			always includes cheapest_total_path, even if that's unparameterized
+ *		direct_lateral_relids - rels this rel has direct LATERAL references to
+ *		lateral_relids - required outer rels for LATERAL, as a Relids set
+ *			(includes both direct and indirect lateral references)
  *
  * If the relation is a base relation it will have these fields set:
  *
@@ -495,9 +543,6 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *					  zero means not computed yet
  *		lateral_vars - lateral cross-references of rel, if any (list of
  *					   Vars and PlaceHolderVars)
- *		lateral_relids - required outer rels for LATERAL, as a Relids set
- *			(includes both direct and indirect lateral references)
- *			(this is now used for join rels too, but we won't move it till 9.5)
  *		lateral_referencers - relids of rels that reference this one laterally
  *				(includes both direct and indirect lateral references)
  *		indexlist - list of IndexOptInfo nodes for relation's indexes
@@ -505,11 +550,10 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *		pages - number of disk pages in relation (zero if not a table)
  *		tuples - number of tuples in relation (not considering restrictions)
  *		allvisfrac - fraction of disk pages that are marked all-visible
- *		subplan - plan for subquery (NULL if it's not a subquery)
  *		subroot - PlannerInfo for subquery (NULL if it's not a subquery)
  *		subplan_params - list of PlannerParamItems to be passed to subquery
  *
- *		Note: for a subquery, tuples, subplan, subroot are not set immediately
+ *		Note: for a subquery, tuples and subroot are not set immediately
  *		upon creation of the RelOptInfo object; they are filled in when
  *		set_subquery_pathlist processes the object.
  *
@@ -517,9 +561,12 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
  *		in just as for a baserel, except we don't bother with lateral_vars.
  *
  * If the relation is either a foreign table or a join of foreign tables that
- * all belong to the same foreign server, these fields will be set:
+ * all belong to the same foreign server and are assigned to the same user to
+ * check access permissions as (cf checkAsUser), these fields will be set:
  *
  *		serverid - OID of foreign server, if foreign table (else InvalidOid)
+ *		userid - OID of user to check access as (InvalidOid means current user)
+ *		useridiscurrent - we've assumed that userid equals current user
  *		fdwroutine - function hooks for FDW, if foreign table (else NULL)
  *		fdw_private - private state for FDW, if foreign table (else NULL)
  *
@@ -559,6 +606,7 @@ typedef enum RelOptKind
 	RELOPT_BASEREL,
 	RELOPT_JOINREL,
 	RELOPT_OTHER_MEMBER_REL,
+	RELOPT_UPPER_REL,
 	RELOPT_DEADREL
 } RelOptKind;
 
@@ -573,21 +621,29 @@ typedef struct RelOptInfo
 
 	/* size estimates generated by planner */
 	double		rows;			/* estimated number of result tuples */
-	int			width;			/* estimated avg width of result tuples */
 	bool		onerow;			/* true => rel is inherently 1 row or empty */
 
 	/* per-relation planner control flags */
 	bool		consider_startup;		/* keep cheap-startup-cost paths? */
 	bool		consider_param_startup; /* ditto, for parameterized paths? */
+	bool		consider_parallel;		/* consider parallel paths? */
+
+	/* default result targetlist for Paths scanning this relation */
+	struct PathTarget *reltarget;		/* list of Vars/Exprs, cost, width */
 
 	/* materialization information */
-	List	   *reltargetlist;	/* Vars to be output by scan of relation */
 	List	   *pathlist;		/* Path structures */
 	List	   *ppilist;		/* ParamPathInfos used in pathlist */
+	List	   *partial_pathlist;		/* partial Paths */
 	struct Path *cheapest_startup_path;
 	struct Path *cheapest_total_path;
 	struct Path *cheapest_unique_path;
 	List	   *cheapest_parameterized_paths;
+
+	/* parameterization information needed for both base rels and join rels */
+	/* (see also lateral_vars and lateral_referencers) */
+	Relids		direct_lateral_relids;	/* rels directly laterally referenced */
+	Relids		lateral_relids; /* minimum parameterization of rel */
 
 	/* information about a base rel (not set for join rels!) */
 	Index		relid;
@@ -598,7 +654,6 @@ typedef struct RelOptInfo
 	Relids	   *attr_needed;	/* array indexed [min_attr .. max_attr] */
 	int32	   *attr_widths;	/* array indexed [min_attr .. max_attr] */
 	List	   *lateral_vars;	/* LATERAL Vars and PHVs referenced by rel */
-	Relids		lateral_relids; /* minimum parameterization of rel */
 	Relids		lateral_referencers;	/* rels that reference me laterally */
 	List	   *indexlist;		/* list of IndexOptInfo */
 	BlockNumber pages;			/* size estimates derived from pg_class */
@@ -606,13 +661,14 @@ typedef struct RelOptInfo
     struct GpPolicy   *cdbpolicy;      /* distribution of stored tuples */
 	char		relstorage;		/* from pg_class.relstorage */
 	double		allvisfrac;
-	/* use "struct Plan" to avoid including plannodes.h here */
-	struct Plan *subplan;		/* if subquery (in GPDB: or CTE) */
 	PlannerInfo *subroot;		/* if subquery (in GPDB: or CTE) */
 	List	   *subplan_params; /* if subquery */
+	int			rel_parallel_workers;	/* wanted number of parallel workers */
 
 	/* Information about foreign tables and foreign joins */
 	Oid			serverid;		/* identifies server for the table or join */
+	Oid			userid;			/* identifies user to check access as */
+	bool		useridiscurrent;	/* join is only valid for current user */
 	/* use "struct FdwRoutine" to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_private;
@@ -666,6 +722,10 @@ typedef struct RelOptInfo
  *		indextlist is a TargetEntry list representing the index columns.
  *		It provides an equivalent base-relation Var for each simple column,
  *		and links to the matching indexprs element for each expression column.
+ *
+ *		While most of these fields are filled when the IndexOptInfo is created
+ *		(by plancat.c), indrestrictinfo and predOK are set later, in
+ *		check_index_predicates().
  */
 typedef struct IndexOptInfo
 {
@@ -693,17 +753,22 @@ typedef struct IndexOptInfo
 								 * index-only scan? */
 	Oid			relam;			/* OID of the access method (in pg_am) */
 
-	RegProcedure amcostestimate;	/* OID of the access method's cost fcn */
-
 	List	   *indexprs;		/* expressions for non-simple index columns */
 	List	   *indpred;		/* predicate if a partial index, else NIL */
 
 	List	   *indextlist;		/* targetlist representing index columns */
 
-	bool		predOK;			/* true if predicate matches query */
+	List	   *indrestrictinfo;/* parent relation's baserestrictinfo list,
+								 * less any conditions implied by the index's
+								 * predicate (unless it's a target rel, see
+								 * comments in check_index_predicates()) */
+
+	bool		predOK;			/* true if index predicate matches query */
 	bool		unique;			/* true if a unique index */
 	bool		immediate;		/* is uniqueness enforced immediately? */
 	bool		hypothetical;	/* true if index doesn't really exist */
+
+	/* Remaining fields are copied from the index AM's API struct: */
 	bool		amcanorderbyop; /* does AM support order by operator result? */
 	bool		amoptionalkey;	/* can query omit key for the first column? */
 	bool		amsearcharray;	/* can AM handle ScalarArrayOpExpr quals? */
@@ -714,7 +779,40 @@ typedef struct IndexOptInfo
                                  * set it briefly; it is transferred forthwith
                                  * to the IndexPath (q.v.), then reset. Kludge.
                                  */
+
+	/* Rather than include amapi.h here, we declare amcostestimate like this */
+	void		(*amcostestimate) ();	/* AM's cost estimator */
 } IndexOptInfo;
+
+/*
+ * ForeignKeyOptInfo
+ *		Per-foreign-key information for planning/optimization
+ *
+ * The per-FK-column arrays can be fixed-size because we allow at most
+ * INDEX_MAX_KEYS columns in a foreign key constraint.  Each array has
+ * nkeys valid entries.
+ */
+typedef struct ForeignKeyOptInfo
+{
+	NodeTag		type;
+
+	/* Basic data about the foreign key (fetched from catalogs): */
+	Index		con_relid;		/* RT index of the referencing table */
+	Index		ref_relid;		/* RT index of the referenced table */
+	int			nkeys;			/* number of columns in the foreign key */
+	AttrNumber	conkey[INDEX_MAX_KEYS]; /* cols in referencing table */
+	AttrNumber	confkey[INDEX_MAX_KEYS];		/* cols in referenced table */
+	Oid			conpfeqop[INDEX_MAX_KEYS];		/* PK = FK operator OIDs */
+
+	/* Derived info about whether FK's equality conditions match the query: */
+	int			nmatched_ec;	/* # of FK cols matched by ECs */
+	int			nmatched_rcols; /* # of FK cols matched by non-EC rinfos */
+	int			nmatched_ri;	/* total # of non-EC rinfos matched to FK */
+	/* Pointer to eclass matching each column's condition, if there is one */
+	struct EquivalenceClass *eclass[INDEX_MAX_KEYS];
+	/* List of non-EC RestrictInfos matching each column's condition */
+	List	   *rinfos[INDEX_MAX_KEYS];
+} ForeignKeyOptInfo;
 
 
 /*
@@ -894,6 +992,43 @@ typedef struct DistributionKey
 	((eclass)->ec_has_const && !(eclass)->ec_below_outer_join)
 
 /*
+ * PathTarget
+ *
+ * This struct contains what we need to know during planning about the
+ * targetlist (output columns) that a Path will compute.  Each RelOptInfo
+ * includes a default PathTarget, which its individual Paths may simply
+ * reference.  However, in some cases a Path may compute outputs different
+ * from other Paths, and in that case we make a custom PathTarget for it.
+ * For example, an indexscan might return index expressions that would
+ * otherwise need to be explicitly calculated.  (Note also that "upper"
+ * relations generally don't have useful default PathTargets.)
+ *
+ * exprs contains bare expressions; they do not have TargetEntry nodes on top,
+ * though those will appear in finished Plans.
+ *
+ * sortgrouprefs[] is an array of the same length as exprs, containing the
+ * corresponding sort/group refnos, or zeroes for expressions not referenced
+ * by sort/group clauses.  If sortgrouprefs is NULL (which it generally is in
+ * RelOptInfo.reltarget targets; only upper-level Paths contain this info),
+ * we have not identified sort/group columns in this tlist.  This allows us to
+ * deal with sort/group refnos when needed with less expense than including
+ * TargetEntry nodes in the exprs list.
+ */
+typedef struct PathTarget
+{
+	NodeTag		type;
+	List	   *exprs;			/* list of expressions to be computed */
+	Index	   *sortgrouprefs;	/* corresponding sort/group refnos, or 0 */
+	QualCost	cost;			/* cost of evaluating the expressions */
+	int			width;			/* estimated avg width of result tuples */
+} PathTarget;
+
+/* Convenience macro to get a sort/group refno from a PathTarget */
+#define get_pathtarget_sortgroupref(target, colno) \
+	((target)->sortgrouprefs ? (target)->sortgrouprefs[colno] : (Index) 0)
+
+
+/*
  * ParamPathInfo
  *
  * All parameterized paths for a given relation with given required outer rels
@@ -927,6 +1062,11 @@ typedef struct ParamPathInfo
  * the same Path type for multiple Plan types when there is no need to
  * distinguish the Plan type during path processing.
  *
+ * "parent" identifies the relation this Path scans, and "pathtarget"
+ * describes the precise set of output columns the Path would compute.
+ * In simple cases all Paths for a given rel share the same targetlist,
+ * which we represent by having path->pathtarget equal to parent->reltarget.
+ *
  * "param_info", if not NULL, links to a ParamPathInfo that identifies outer
  * relation(s) that provide parameter values to each scan of this path.
  * That means this path can only be joined to those rels by means of nestloop
@@ -948,20 +1088,27 @@ typedef struct Path
 	NodeTag		pathtype;		/* tag identifying scan/join method */
 
 	RelOptInfo *parent;			/* the relation this path can build */
+	PathTarget *pathtarget;		/* list of Vars/Exprs, cost, width */
+
 	ParamPathInfo *param_info;	/* parameterization info, or NULL if none */
+
+	bool		parallel_aware; /* engage parallel-aware logic? */
+	bool		parallel_safe;	/* OK to use as part of parallel plan? */
+	int			parallel_workers;		/* desired # of workers; 0 = not
+										 * parallel */
 
 	/* estimated size/costs for path (see costsize.c for more info) */
 	double		rows;			/* estimated number of result tuples */
 	Cost		startup_cost;	/* cost expended before fetching any tuples */
 	Cost		total_cost;		/* total cost (assuming all tuples fetched) */
 
-    EstimatedBytes  memory;     /* executor RAM needed for Path + kids */
+	EstimatedBytes  memory;     /* executor RAM needed for Path + kids */
 
-    CdbPathLocus    locus;      /* distribution of the result tuples */
+	CdbPathLocus    locus;      /* distribution of the result tuples */
 
-    bool        motionHazard;   /* true => path contains a CdbMotion operator
-                                 *    without a slackening operator above it */
-	
+	bool        motionHazard;   /* true => path contains a CdbMotion operator
+					without a slackening operator above it */
+
 	bool		rescannable;    /* CDB: true => path can accept ExecRescan call
                                  */
 	List	   *pathkeys;		/* sort ordering of path's output */
@@ -1029,6 +1176,17 @@ typedef struct PartitionSelectorPath
 /* Macro for extracting a path's parameterization relids; beware double eval */
 #define PATH_REQ_OUTER(path)  \
 	((path)->param_info ? (path)->param_info->ppi_req_outer : (Relids) NULL)
+
+/*
+ * GPDB: CTEs are planned differently from upstream.
+ */
+typedef struct CtePath
+{
+	Path		path;
+
+	Path	   *subpath; /* if NULL, this is a shared CTE reference;
+						  * get the plan from the CtePlanInfo */
+} CtePath;
 
 /*----------
  * IndexPath represents an index scan over a single index.
@@ -1168,15 +1326,51 @@ typedef struct TidPath
 /*
  * CdbMotionPath represents transmission of the child Path results
  * from a set of sending processes to a set of receiving processes.
+ *
+ * Normally, the distribution is determined by the 'locus' of the path.
+ * However, if the distribution cannot be represented by a DistributionKeys,
+ * an alternative representation is to mark the locus as Strewn, and list
+ * the hash expressions explicitly in hashExprs/hashFamilies. In the normal
+ * case, they are not used.
  */
 typedef struct CdbMotionPath
 {
 	Path		path;
     Path	   *subpath;
+	bool		is_explicit_motion;
+
+	GpPolicy   *policy;
 } CdbMotionPath;
 
 /*
- * ForeignPath represents a potential scan of a foreign table
+ * SubqueryScanPath represents a scan of an unflattened subquery-in-FROM
+ *
+ * Note that the subpath comes from a different planning domain; for example
+ * RTE indexes within it mean something different from those known to the
+ * SubqueryScanPath.  path.parent->subroot is the planning context needed to
+ * interpret the subpath.
+ */
+typedef struct SubqueryScanPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing subquery execution */
+} SubqueryScanPath;
+
+/*
+ * TableFunctionScanPath represents a scan of an unflattened subquery-in-FROM
+ *
+ * Note that the subpath comes from a different planning domain, like in
+ * SubqueryScanPath.
+ */
+typedef struct TableFunctionScanPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing subquery execution */
+} TableFunctionScanPath;
+
+/*
+ * ForeignPath represents a potential scan of a foreign table, foreign join
+ * or foreign upper-relation.
  *
  * fdw_private stores FDW private data about the scan.  While fdw_private is
  * not actually touched by the core code during normal operations, it's
@@ -1187,6 +1381,7 @@ typedef struct CdbMotionPath
 typedef struct ForeignPath
 {
 	Path		path;
+	Path	   *fdw_outerpath;
 	List	   *fdw_private;
 } ForeignPath;
 
@@ -1208,26 +1403,8 @@ typedef struct ForeignPath
  * FDW case, we provide a "custom_private" field in CustomPath; providers
  * may prefer to use that rather than define another struct type.
  */
-struct CustomPath;
 
-#define CUSTOMPATH_SUPPORT_BACKWARD_SCAN	0x0001
-#define CUSTOMPATH_SUPPORT_MARK_RESTORE		0x0002
-
-typedef struct CustomPathMethods
-{
-	const char *CustomName;
-
-	/* Convert Path to a Plan */
-	struct Plan *(*PlanCustomPath) (PlannerInfo *root,
-												RelOptInfo *rel,
-												struct CustomPath *best_path,
-												List *tlist,
-												List *clauses,
-												List *custom_plans);
-	/* Optional: print additional fields besides "private" */
-	void		(*TextOutCustomPath) (StringInfo str,
-											  const struct CustomPath *node);
-} CustomPathMethods;
+struct CustomPathMethods;
 
 typedef struct CustomPath
 {
@@ -1235,7 +1412,7 @@ typedef struct CustomPath
 	uint32		flags;			/* mask of CUSTOMPATH_* flags, see above */
 	List	   *custom_paths;	/* list of child Path nodes, if any */
 	List	   *custom_private;
-	const CustomPathMethods *methods;
+	const struct CustomPathMethods *methods;
 } CustomPath;
 
 /*
@@ -1313,14 +1490,13 @@ typedef struct MaterialPath
  * UniquePath represents elimination of distinct rows from the output of
  * its subpath.
  *
- * This is unlike the other Path nodes in that it can actually generate
- * different plans: either hash-based or sort-based implementation, or a
- * no-op if the input path can be proven distinct already.  The decision
- * is sufficiently localized that it's not worth having separate Path node
- * types.  (Note: in the no-op case, we could eliminate the UniquePath node
- * entirely and just return the subpath; but it's convenient to have a
- * UniquePath in the path tree to signal upper-level routines that the input
- * is known distinct.)
+ * This can represent significantly different plans: either hash-based or
+ * sort-based implementation, or a no-op if the input path can be proven
+ * distinct already.  The decision is sufficiently localized that it's not
+ * worth having separate Path node types.  (Note: in the no-op case, we could
+ * eliminate the UniquePath node entirely and just return the subpath; but
+ * it's convenient to have a UniquePath in the path tree to signal upper-level
+ * routines that the input is known distinct.)
  */
 typedef enum
 {
@@ -1343,6 +1519,18 @@ typedef struct UniquePath
     bool        must_repartition;
                                 /* CDB: true => add Motion atop subpath  */
 } UniquePath;
+
+/*
+ * GatherPath runs several copies of a plan in parallel and collects the
+ * results.  The parallel leader may also execute the plan, unless the
+ * single_copy flag is set.
+ */
+typedef struct GatherPath
+{
+	Path		path;
+	Path	   *subpath;		/* path for each worker */
+	bool		single_copy;	/* path must not be executed >1x */
+} GatherPath;
 
 /*
  * All join-type paths share these fields.
@@ -1456,6 +1644,193 @@ typedef struct ProjectionPath
 
 	List	   *cdb_restrict_clauses;
 } ProjectionPath;
+
+/*
+ * SortPath represents an explicit sort step
+ *
+ * The sort keys are, by definition, the same as path.pathkeys.
+ *
+ * Note: the Sort plan node cannot project, so path.pathtarget must be the
+ * same as the input's pathtarget.
+ */
+typedef struct SortPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+} SortPath;
+
+/*
+ * GroupPath represents grouping (of presorted input)
+ *
+ * groupClause represents the columns to be grouped on; the input path
+ * must be at least that well sorted.
+ *
+ * We can also apply a qual to the grouped rows (equivalent of HAVING)
+ */
+typedef struct GroupPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	List	   *groupClause;	/* a list of SortGroupClause's */
+	List	   *qual;			/* quals (HAVING quals), if any */
+} GroupPath;
+
+/*
+ * UpperUniquePath represents adjacent-duplicate removal (in presorted input)
+ *
+ * The columns to be compared are the first numkeys columns of the path's
+ * pathkeys.  The input is presumed already sorted that way.
+ */
+typedef struct UpperUniquePath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	int			numkeys;		/* number of pathkey columns to compare */
+} UpperUniquePath;
+
+/*
+ * AggPath represents generic computation of aggregate functions
+ *
+ * This may involve plain grouping (but not grouping sets), using either
+ * sorted or hashed grouping; for the AGG_SORTED case, the input must be
+ * appropriately presorted.
+ */
+typedef struct AggPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	AggStrategy aggstrategy;	/* basic strategy, see nodes.h */
+	AggSplit	aggsplit;		/* agg-splitting mode, see nodes.h */
+	double		numGroups;		/* estimated number of groups in input */
+	List	   *groupClause;	/* a list of SortGroupClause's */
+	List	   *qual;			/* quals (HAVING quals), if any */
+	bool		streaming;
+} AggPath;
+
+/*
+ * GroupingSetsPath represents a GROUPING SETS aggregation
+ *
+ * Currently we only support this in sorted not hashed form, so the input
+ * must always be appropriately presorted.
+ */
+typedef struct GroupingSetsPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	List	   *rollup_groupclauses;	/* list of lists of SortGroupClause's */
+	List	   *rollup_lists;	/* parallel list of lists of grouping sets */
+	List	   *qual;			/* quals (HAVING quals), if any */
+} GroupingSetsPath;
+
+/*
+ * MinMaxAggPath represents computation of MIN/MAX aggregates from indexes
+ */
+typedef struct MinMaxAggPath
+{
+	Path		path;
+	List	   *mmaggregates;	/* list of MinMaxAggInfo */
+	List	   *quals;			/* HAVING quals, if any */
+} MinMaxAggPath;
+
+/*
+ * WindowAggPath represents generic computation of window functions
+ *
+ * Note: winpathkeys is separate from path.pathkeys because the actual sort
+ * order might be an extension of winpathkeys; but createplan.c needs to
+ * know exactly how many pathkeys match the window clause.
+ */
+typedef struct WindowAggPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	WindowClause *winclause;	/* WindowClause we'll be using */
+	List	   *winpathkeys;	/* PathKeys for PARTITION keys + ORDER keys */
+} WindowAggPath;
+
+/*
+ * SetOpPath represents a set-operation, that is INTERSECT or EXCEPT
+ */
+typedef struct SetOpPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	SetOpCmd	cmd;			/* what to do, see nodes.h */
+	SetOpStrategy strategy;		/* how to do it, see nodes.h */
+	List	   *distinctList;	/* SortGroupClauses identifying target cols */
+	AttrNumber	flagColIdx;		/* where is the flag column, if any */
+	int			firstFlag;		/* flag value for first input relation */
+	double		numGroups;		/* estimated number of groups in input */
+} SetOpPath;
+
+/*
+ * RecursiveUnionPath represents a recursive UNION node
+ */
+typedef struct RecursiveUnionPath
+{
+	Path		path;
+	Path	   *leftpath;		/* paths representing input sources */
+	Path	   *rightpath;
+	List	   *distinctList;	/* SortGroupClauses identifying target cols */
+	int			wtParam;		/* ID of Param representing work table */
+	double		numGroups;		/* estimated number of groups in input */
+} RecursiveUnionPath;
+
+/*
+ * LockRowsPath represents acquiring row locks for SELECT FOR UPDATE/SHARE
+ */
+typedef struct LockRowsPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	List	   *rowMarks;		/* a list of PlanRowMark's */
+	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
+} LockRowsPath;
+
+/*
+ * SplitUpdatePath
+ */
+typedef struct SplitUpdatePath
+{
+	Path		path;
+	Path	   *subpath;
+	Index		resultRelation;
+} SplitUpdatePath;
+
+/*
+ * ModifyTablePath represents performing INSERT/UPDATE/DELETE modifications
+ *
+ * We represent most things that will be in the ModifyTable plan node
+ * literally, except we have child Path(s) not Plan(s).  But analysis of the
+ * OnConflictExpr is deferred to createplan.c, as is collection of FDW data.
+ */
+typedef struct ModifyTablePath
+{
+	Path		path;
+	CmdType		operation;		/* INSERT, UPDATE, or DELETE */
+	bool		canSetTag;		/* do we set the command tag/es_processed? */
+	Index		nominalRelation;	/* Parent RT index for use of EXPLAIN */
+	List	   *resultRelations;	/* integer list of RT indexes */
+	List	   *is_split_updates;
+	List	   *subpaths;		/* Path(s) producing source data */
+	List	   *subroots;		/* per-target-table PlannerInfos */
+	List	   *withCheckOptionLists;	/* per-target-table WCO lists */
+	List	   *returningLists; /* per-target-table RETURNING tlists */
+	List	   *rowMarks;		/* PlanRowMarks (non-locking only) */
+	OnConflictExpr *onconflict; /* ON CONFLICT clause, or NULL */
+	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
+} ModifyTablePath;
+
+/*
+ * LimitPath represents applying LIMIT/OFFSET restrictions
+ */
+typedef struct LimitPath
+{
+	Path		path;
+	Path	   *subpath;		/* path representing input source */
+	Node	   *limitOffset;	/* OFFSET parameter, or NULL if none */
+	Node	   *limitCount;		/* COUNT parameter, or NULL if none */
+} LimitPath;
+
 
 /*
  * Restriction clause info.
@@ -1793,43 +2168,6 @@ typedef struct SpecialJoinInfo
 } SpecialJoinInfo;
 
 /*
- * "Lateral join" info.
- *
- * Lateral references constrain the join order in a way that's somewhat like
- * outer joins, though different in detail.  We construct a LateralJoinInfo
- * for each lateral cross-reference, placing them in the PlannerInfo node's
- * lateral_info_list.
- *
- * For unflattened LATERAL RTEs, we generate LateralJoinInfo(s) in which
- * lateral_rhs is the relid of the LATERAL baserel, and lateral_lhs is a set
- * of relids of baserels it references, all of which must be present on the
- * LHS to compute a parameter needed by the RHS.  Typically, lateral_lhs is
- * a singleton, but it can include multiple rels if the RHS references a
- * PlaceHolderVar with a multi-rel ph_eval_at level.  We disallow joining to
- * only part of the LHS in such cases, since that would result in a join tree
- * with no convenient place to compute the PHV.
- *
- * When an appendrel contains lateral references (eg "LATERAL (SELECT x.col1
- * UNION ALL SELECT y.col2)"), the LateralJoinInfos reference the parent
- * baserel not the member otherrels, since it is the parent relid that is
- * considered for joining purposes.
- *
- * If any LATERAL RTEs were flattened into the parent query, it is possible
- * that the query now contains PlaceHolderVars containing lateral references,
- * representing expressions that need to be evaluated at particular spots in
- * the jointree but contain lateral references to Vars from elsewhere.  These
- * give rise to LateralJoinInfos in which lateral_rhs is the evaluation point
- * of a PlaceHolderVar and lateral_lhs is the set of lateral rels it needs.
- */
-
-typedef struct LateralJoinInfo
-{
-	NodeTag		type;
-	Relids		lateral_lhs;	/* rels needed to compute a lateral value */
-	Relids		lateral_rhs;	/* rel where lateral value is needed */
-} LateralJoinInfo;
-
-/*
  * Append-relation info.
  *
  * When we expand an inheritable table or a UNION-ALL subselect into an
@@ -1962,8 +2300,9 @@ typedef struct PlaceHolderInfo
 } PlaceHolderInfo;
 
 /*
- * For each potentially index-optimizable MIN/MAX aggregate function,
- * root->minmax_aggs stores a MinMaxAggInfo describing it.
+ * This struct describes one potentially index-optimizable MIN/MAX aggregate
+ * function.  MinMaxAggPath contains a list of these, and if we accept that
+ * path, the list is stored into root->minmax_aggs for use during setrefs.c.
  */
 typedef struct MinMaxAggInfo
 {
@@ -2147,7 +2486,6 @@ typedef struct SemiAntiJoinFactors
  * sjinfo is extra info about special joins for selectivity estimation
  * semifactors is as shown above (only valid for SEMI or ANTI joins)
  * param_source_rels are OK targets for parameterization of result paths
- * extra_lateral_rels are additional parameterization for result paths
  */
 typedef struct JoinPathExtraData
 {
@@ -2156,7 +2494,6 @@ typedef struct JoinPathExtraData
 	SpecialJoinInfo *sjinfo;
 	SemiAntiJoinFactors semifactors;
 	Relids		param_source_rels;
-	Relids		extra_lateral_rels;
 	List	   *redistribution_clauses;
 } JoinPathExtraData;
 

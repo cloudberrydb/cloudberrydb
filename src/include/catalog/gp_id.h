@@ -39,9 +39,9 @@
  */
 #define GpIdRelationName			"gp_id"
 
-#define GpIdRelationId	5001
+#define GpIdRelationId	5101
 
-CATALOG(gp_id,5001) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
+CATALOG(gp_id,5101) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
 	NameData	gpname;
 	int16		numsegments;

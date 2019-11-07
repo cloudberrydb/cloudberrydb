@@ -57,7 +57,7 @@ test_write_read_shared_snapshot_for_cursor(void **state)
 	Gp_role = GP_ROLE_EXECUTE;
 	Gp_is_writer = true;
 
-	expect_any(LWLockAcquire, l);
+	expect_any(LWLockAcquire, lock);
 	expect_any(LWLockAcquire, mode);
 	will_be_called(LWLockAcquire);
 
@@ -110,8 +110,12 @@ test_boundaries_of_CreateSharedSnapshotArray(void **state)
 	 */
 	max_prepared_xacts = 2;
 
-	SharedSnapshotStruct *fakeSharedSnapshotArray = NULL;
+	SharedSnapshotStruct 	*fakeSharedSnapshotArray = NULL;
+	LWLockPadded 			*fakeLockBase = NULL;
 
+	expect_string(RequestNamedLWLockTranche, tranche_name, "SharedSnapshotLocks");
+	expect_value(RequestNamedLWLockTranche, num_lwlocks, NUM_SHARED_SNAPSHOT_SLOTS);
+	will_be_called(RequestNamedLWLockTranche);
 	Size sharedSnapshotShmemSize = SharedSnapshotShmemSize();
 	fakeSharedSnapshotArray = malloc(sharedSnapshotShmemSize);
 
@@ -121,11 +125,12 @@ test_boundaries_of_CreateSharedSnapshotArray(void **state)
 	expect_any_count(ShmemInitStruct, size, 1);
 	expect_any_count(ShmemInitStruct, foundPtr, 1);
 
-	/*
-	 * Each slot in SharedSnapshotStrut has an associated dynamically allocated
-	 * LWLock, so LWLockAssign should be called for each slot.
-	 */
-	will_be_called_count(LWLockAssign, NUM_SHARED_SNAPSHOT_SLOTS);
+	expect_string(RequestNamedLWLockTranche, tranche_name, "SharedSnapshotLocks");
+	expect_value(RequestNamedLWLockTranche, num_lwlocks, NUM_SHARED_SNAPSHOT_SLOTS);
+	will_be_called(RequestNamedLWLockTranche);
+	fakeLockBase = malloc(NUM_SHARED_SNAPSHOT_SLOTS * sizeof(LWLockPadded));
+	will_return(GetNamedLWLockTranche, fakeLockBase);
+	expect_any(GetNamedLWLockTranche, tranche_name);
 
 	CreateSharedSnapshotArray();
 
@@ -133,6 +138,11 @@ test_boundaries_of_CreateSharedSnapshotArray(void **state)
 	{
 		SharedSnapshotSlot *s = &sharedSnapshotArray->slots[i];
 
+		/*
+		 * Assert that each slot in SharedSnapshotStruct has an associated
+		 * dynamically allocated LWLock.
+		 */
+		assert_true(s->slotLock == &fakeLockBase[i].lock);
 		/*
 		 * Assert that every slot xip array falls inside the boundaries of the
 		 * allocated shared snapshot.

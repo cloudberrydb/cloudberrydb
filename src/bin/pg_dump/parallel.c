@@ -4,7 +4,7 @@
  *
  *	Parallel support for pg_dump and pg_restore
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -66,6 +66,7 @@
 #include "pg_backup_utils.h"
 #include "parallel.h"
 #include "pg_backup_utils.h"
+#include "fe_utils/string_utils.h"
 
 #ifndef WIN32
 #include <sys/types.h>
@@ -87,9 +88,8 @@
  */
 typedef struct
 {
-	ArchiveHandle *AH;
-	ParallelSlot *slot;
-	RestoreOptions *ropt;
+	ArchiveHandle *AH;			/* master database connection */
+	ParallelSlot *slot;			/* this worker's parallel slot */
 } WorkerInfo;
 
 /* Windows implementation of pipe access */
@@ -178,7 +178,6 @@ static void set_cancel_slot_archive(ParallelSlot *slot, ArchiveHandle *AH);
 static void RunWorker(ArchiveHandle *AH, ParallelSlot *slot);
 static bool HasEveryWorkerTerminated(ParallelState *pstate);
 static void lockTableForWorker(ArchiveHandle *AH, TocEntry *te);
-
 static void WaitForCommands(ArchiveHandle *AH, int pipefd[2]);
 static char *getMessageFromMaster(int pipefd[2]);
 static void sendMessageToMaster(int pipefd[2], const char *str);

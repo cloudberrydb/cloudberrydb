@@ -14,6 +14,7 @@ insert into smallt2 select i%5, 'text ' || (i%10), '2011-01-01'::date + ((i%15) 
 from generate_series(0, 49) i;
 
 set optimizer_segments = 3;
+set gp_motion_cost_per_row = 0.1;
 
 -- HashAgg, Agg
 select d, count(*) from smallt group by d;
@@ -27,6 +28,7 @@ set statement_mem=128000;
 -- DQA
 set gp_enable_agg_distinct=off;
 set gp_eager_one_phase_agg=on;
+set gp_enable_multiphase_agg=off;
 select count(distinct d) from smallt;
 explain analyze select count(distinct d) from smallt;
 
@@ -37,6 +39,7 @@ set statement_mem=128000;
 
 set gp_enable_agg_distinct=on;
 set gp_eager_one_phase_agg=off;
+set gp_enable_multiphase_agg=on;
 
 -- Rescan on Agg (with Material in the inner side of nestloop)
 -- start_ignore

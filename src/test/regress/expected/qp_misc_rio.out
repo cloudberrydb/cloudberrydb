@@ -585,8 +585,6 @@ AS $$
  $$ LANGUAGE plpythonu;
 SELECT func_plpythonu2(200);
 NOTICE:  table "tbl_plpythonu" does not exist, skipping
-CONTEXT:  SQL statement "DROP TABLE IF EXISTS tbl_plpythonu;"
-PL/Python function "func_plpythonu2"
  func_plpythonu2 
 -----------------
              200

@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/primnodes.h
@@ -191,6 +191,11 @@ typedef struct Var
 
 /*
  * Const
+ *
+ * Note: for varlena data types, we make a rule that a Const node's value
+ * must be in non-extended form (4-byte header, no compression or external
+ * references).  This ensures that the Const node is self-contained and makes
+ * it more likely that equal() will see logically identical values as equal.
  */
 typedef struct Const
 {
@@ -256,21 +261,6 @@ typedef struct Param
 	int			location;		/* token location, or -1 if unknown */
 } Param;
 
-/* AggStage enumeration indicates how the executor should handle an
- * Aggref node.
- */
-typedef enum AggStage
-{
-	AGGSTAGE_NORMAL = 0,
-	AGGSTAGE_PARTIAL, /* First (lower, earlier) stage of 2-stage aggregation. */
-	AGGSTAGE_INTERMEDIATE, /* The intermediate stage between AGGSTAGE_PARTIAL and
-							* AGGSTAGE_FINAL that handles the higher aggregation
-							* level in a (partial) ROLLUP grouping extension
-							* query.
-							*/
-	AGGSTAGE_FINAL /* Second (upper, later) stage of 2-stage aggregation. */
-} AggStage;
-
 
 /*
  * Aggref
@@ -293,6 +283,23 @@ typedef enum AggStage
  * DISTINCT is not supported in this case, so aggdistinct will be NIL.
  * The direct arguments appear in aggdirectargs (as a list of plain
  * expressions, not TargetEntry nodes).
+ *
+ * aggtranstype is the data type of the state transition values for this
+ * aggregate (resolved to an actual type, if agg's transtype is polymorphic).
+ * This is determined during planning and is InvalidOid before that.
+ *
+ * aggargtypes is an OID list of the data types of the direct and regular
+ * arguments.  Normally it's redundant with the aggdirectargs and args lists,
+ * but in a combining aggregate, it's not because the args list has been
+ * replaced with a single argument representing the partial-aggregate
+ * transition values.
+ *
+ * aggsplit indicates the expected partial-aggregation mode for the Aggref's
+ * parent plan node.  It's always set to AGGSPLIT_SIMPLE in the parser, but
+ * the planner might change it to something else.  We use this mainly as
+ * a crosscheck that the Aggrefs match the plan; but note that when aggsplit
+ * indicates a non-final mode, aggtype reflects the transition data type
+ * not the SQL-level output type of the aggregate.
  */
 typedef struct Aggref
 {
@@ -301,6 +308,8 @@ typedef struct Aggref
 	Oid			aggtype;		/* type Oid of result of the aggregate */
 	Oid			aggcollid;		/* OID of collation of result */
 	Oid			inputcollid;	/* OID of collation that function should use */
+	Oid			aggtranstype;	/* type Oid of aggregate's transition value */
+	List	   *aggargtypes;	/* type Oids of direct and aggregated args */
 	List	   *aggdirectargs;	/* direct arguments, if an ordered-set agg */
 	List	   *args;			/* aggregated arguments and sort expressions */
 	List	   *aggorder;		/* ORDER BY (list of SortGroupClause) */
@@ -311,7 +320,7 @@ typedef struct Aggref
 								 * combined into an array last argument */
 	char		aggkind;		/* aggregate kind (see pg_aggregate.h) */
 	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
-	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
+	AggSplit	aggsplit;		/* expected agg-splitting mode of parent Agg */
 	int			location;		/* token location, or -1 if unknown */
 } Aggref;
 
@@ -432,6 +441,9 @@ typedef struct WindowFunc
  * reflowerindexpr must be the same length as refupperindexpr when it
  * is not NIL.
  *
+ * In the slice case, individual expressions in the subscript lists can be
+ * NULL, meaning "substitute the array's current lower or upper bound".
+ *
  * Note: the result datatype is the element type when fetching a single
  * element; but it is the array type when doing subarray fetch or either
  * type of store.
@@ -451,7 +463,7 @@ typedef struct ArrayRef
 	List	   *refupperindexpr;/* expressions that evaluate to upper array
 								 * indexes */
 	List	   *reflowerindexpr;/* expressions that evaluate to lower array
-								 * indexes */
+								 * indexes, or NIL for single array element */
 	Expr	   *refexpr;		/* the expression that evaluates to an array
 								 * value */
 	Expr	   *refassgnexpr;	/* expression for the source value, or NULL if

@@ -35,7 +35,7 @@ typedef struct SharedSnapshotSlot
 	uint32			combocidcnt;
 	ComboCidKeyData combocids[MaxComboCids];
 	SnapshotData	snapshot;
-	LWLockId        slotLock;
+	LWLock		   *slotLock;
 } SharedSnapshotSlot;
 
 extern volatile SharedSnapshotSlot *SharedLocalSnapshotSlot;

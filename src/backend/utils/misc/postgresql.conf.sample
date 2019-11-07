@@ -131,6 +131,7 @@ max_prepared_transactions = 250		# can be 0 or more
 # you actively intend to use prepared transactions.
 #work_mem = 32MB				# min 64kB
 #maintenance_work_mem = 64MB		# min 1MB
+#replacement_sort_tuples = 150000	# limits use of replacement selection sort
 #autovacuum_work_mem = -1		# min 1MB, or -1 to use maintenance_work_mem
 #max_stack_depth = 2MB			# min 100kB
 #dynamic_shared_memory_type = posix	# the default is the first option
@@ -144,7 +145,7 @@ max_prepared_transactions = 250		# can be 0 or more
 
 # - Disk -
 
-#temp_file_limit = -1			# limits per-session temp file space
+#temp_file_limit = -1			# limits per-process temp file space
 					# in kB, or -1 for no limit
 
 # - Kernel Resource Usage -
@@ -164,7 +165,11 @@ max_prepared_transactions = 250		# can be 0 or more
 # - Asynchronous Behavior -
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
-#max_worker_processes = 8
+#max_worker_processes = 8		# (change requires restart)
+#max_parallel_workers_per_gather = 2	# taken from max_worker_processes
+#old_snapshot_threshold = -1		# 1min-60d; -1 disables; 0 is immediate
+									# (change requires restart)
+#backend_flush_after = 0		# 0 disables, default is 0
 
 
 #------------------------------------------------------------------------------
@@ -173,11 +178,13 @@ max_prepared_transactions = 250		# can be 0 or more
 
 # - Settings -
 
-#wal_level = minimal			# minimal, archive, hot_standby, or logical
+#wal_level = minimal			# minimal, replica, or logical
 					# (change requires restart)
-#fsync = on				# turns forced synchronization on or off
+#fsync = on				# flush data to disk for crash safety
+						# (turning this off can cause
+						# unrecoverable data corruption)
 #synchronous_commit = on		# synchronization level;
-					# off, local, remote_write, or on
+					# off, local, remote_write, remote_apply, or on
 #wal_sync_method = fsync		# the default is the first option
 					# supported by the operating system:
 					#   open_datasync
@@ -192,6 +199,7 @@ max_prepared_transactions = 250		# can be 0 or more
 #wal_buffers = -1			# min 32kB, -1 sets based on shared_buffers
 					# (change requires restart)
 #wal_writer_delay = 200ms		# 1-10000 milliseconds
+#wal_writer_flush_after = 1MB		# 0 disables
 
 #commit_delay = 0			# range 0-100000, in microseconds
 #commit_siblings = 5			# range 1-1000
@@ -202,6 +210,8 @@ max_prepared_transactions = 250		# can be 0 or more
 #max_wal_size = 1GB
 #min_wal_size = 80MB
 #checkpoint_completion_target = 0.5	# checkpoint target duration, 0.0 - 1.0
+#checkpoint_flush_after = 0		# 0 disables,
+					# default is 256kB on linux, 0 otherwise
 #checkpoint_warning = 30s		# 0 disables
 
 # - Archiving -
@@ -239,7 +249,7 @@ max_prepared_transactions = 250		# can be 0 or more
 # These settings are ignored on a standby server.
 
 #synchronous_standby_names = ''	# standby servers that provide sync rep
-				# comma-separated list of application_name
+				# number of sync standbys and comma-separated list of application_name
 				# from standby(s); '*' = all
 #vacuum_defer_cleanup_age = 0	# number of xacts by which cleanup is delayed
 
@@ -304,9 +314,13 @@ max_prepared_transactions = 250		# can be 0 or more
 #cpu_tuple_cost = 0.01			# same scale as above
 #cpu_index_tuple_cost = 0.005		# same scale as above
 #cpu_operator_cost = 0.0025		# same scale as above
-#gp_motion_cost_per_row = 0.0  # (same) (if 0, 2*cpu_tuple_cost is used)
-
+# GPDB_96_MERGE_FIXME: figure out the appropriate values for the parallel gucs
+#parallel_tuple_cost = 0.1		# same scale as above
+#parallel_setup_cost = 1000.0	# same scale as above
+#min_parallel_relation_size = 8MB
 #effective_cache_size = 16GB
+
+#gp_motion_cost_per_row = 0.0  # (same) (if 0, 2*cpu_tuple_cost is used)
 
 # - Other Planner Options -
 
@@ -314,6 +328,8 @@ max_prepared_transactions = 250		# can be 0 or more
 #from_collapse_limit = 20
 #join_collapse_limit = 20		# 1 disables collapsing of explicit
 					# JOIN clauses
+#force_parallel_mode = off
+
 #gp_segments_for_planner = 0     # if 0, actual number of segments is used
 
 #gp_enable_direct_dispatch = on
@@ -416,6 +432,7 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 					#   %p = process ID
 					#   %t = timestamp without milliseconds
 					#   %m = timestamp with milliseconds
+					#   %n = timestamp with milliseconds (as a Unix epoch)
 					#   %i = command tag
 					#   %e = SQL state
 					#   %c = session ID
@@ -435,8 +452,14 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 					# -1 disables, 0 logs all temp files
 #log_timezone = 'GMT'			# actually, defaults to TZ environment
 					# setting
+
+
+# - Process Title -
+
 #cluster_name = ''			# added to process titles if nonempty
 					# (change requires restart)
+#update_process_title = on
+
 
 #------------------------------------------------------------------------------
 # PL/JAVA
@@ -471,7 +494,6 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 #track_io_timing = off
 #track_functions = none			# none, pl, all
 #track_activity_query_size = 1024	# (change requires restart)
-#update_process_title = on
 #stats_temp_directory = 'pg_stat_tmp'
 
 #stats_queue_level = off
@@ -536,6 +558,7 @@ log_autostats=off	# print additional autostats information
 #gp_vmem_idle_resource_timeout = 18s 	# in milliseconds, 0 is disabled
 #statement_timeout = 0			# in milliseconds, 0 is disabled
 #lock_timeout = 0			# in milliseconds, 0 is disabled
+#idle_in_transaction_session_timeout = 0		# in milliseconds, 0 is disabled
 #vacuum_freeze_min_age = 50000000
 #vacuum_freeze_table_age = 150000000
 #vacuum_multixact_freeze_min_age = 5000000

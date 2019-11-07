@@ -149,7 +149,7 @@ INSERT INTO brinopers VALUES
 	 '{100, 100, 1, 100, 100}'),
 	('textcol', 'text',
 	 '{>, >=, =, <=, <}',
-	 '{AAAAAA, AAAAAA, BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA, ZZAAAA, ZZAAAA}',
+	 '{ABABAB, ABABAB, BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA, ZZAAAA, ZZAAAA}',
 	 '{100, 100, 1, 100, 100}'),
 	('oidcol', 'oid',
 	 '{>, >=, =, <=, <}',
@@ -448,9 +448,6 @@ WARNING:  did not get bitmap indexscan plan for (boxcol,<<|,box,"((1000,2000),(3
 WARNING:  did not get bitmap indexscan plan for (boxcol,&<|,box,"((1,2000),(3,4000))",100)
 WARNING:  did not get bitmap indexscan plan for (boxcol,|&>,box,"((1000,2),(3000,4))",99)
 WARNING:  did not get bitmap indexscan plan for (boxcol,|>>,box,"((1,2),(3,4))",96)
-WARNING:  did not get bitmap indexscan plan for (boxcol,@>,box,"((1,2),(300,400))",1)
-WARNING:  did not get bitmap indexscan plan for (boxcol,<@,box,"((1,2),(3000,4000))",99)
-WARNING:  did not get bitmap indexscan plan for (boxcol,~=,box,"((222,1222),(44,45))",1)
 WARNING:  did not get bitmap indexscan plan for (byteacol,>,bytea,AAAAAA,100)
 WARNING:  did not get bitmap indexscan plan for (byteacol,>=,bytea,AAAAAA,100)
 WARNING:  did not get bitmap indexscan plan for (byteacol,=,bytea,BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA,1)
@@ -530,15 +527,6 @@ WARNING:  did not get bitmap indexscan plan for (int4rangecol,<@,int4range,"[3,4
 WARNING:  did not get bitmap indexscan plan for (int4rangecol,=,int4range,"[222,1222)",1)
 WARNING:  did not get bitmap indexscan plan for (int4rangecol,<,int4range,"[36,44)",74)
 WARNING:  did not get bitmap indexscan plan for (int4rangecol,<=,int4range,"[43,1043)",75)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,>,int4range,"[367,4466)",34)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,>=,int4range,"[519,)",21)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,@>,int4range,empty,125)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,<@,int4range,empty,72)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,=,int4range,empty,72)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,<=,int4range,empty,72)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,>,int4range,empty,53)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,>=,int4range,empty,125)
-WARNING:  did not get bitmap indexscan plan for (int4rangecol,@>,int4,1500,22)
 WARNING:  did not get bitmap indexscan plan for (namecol,>,name,AAAAAA,100)
 WARNING:  did not get bitmap indexscan plan for (namecol,>=,name,AAAAAA,100)
 WARNING:  did not get bitmap indexscan plan for (namecol,=,name,MAAAAA,2)
@@ -559,8 +547,8 @@ WARNING:  did not get bitmap indexscan plan for (int4col,>=,int8,0,100)
 WARNING:  did not get bitmap indexscan plan for (int4col,=,int8,800,1)
 WARNING:  did not get bitmap indexscan plan for (int4col,<=,int8,1999,100)
 WARNING:  did not get bitmap indexscan plan for (int4col,<,int8,1428427143,100)
-WARNING:  did not get bitmap indexscan plan for (textcol,>,text,AAAAAA,100)
-WARNING:  did not get bitmap indexscan plan for (textcol,>=,text,AAAAAA,100)
+WARNING:  did not get bitmap indexscan plan for (textcol,>,text,ABABAB,100)
+WARNING:  did not get bitmap indexscan plan for (textcol,>=,text,ABABAB,100)
 WARNING:  did not get bitmap indexscan plan for (textcol,=,text,BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA,1)
 WARNING:  did not get bitmap indexscan plan for (textcol,<=,text,ZZAAAA,100)
 WARNING:  did not get bitmap indexscan plan for (textcol,<,text,ZZAAAA,100)
@@ -615,6 +603,18 @@ WARNING:  did not get bitmap indexscan plan for (timetzcol,>,timetz,01:30:20+02,
 WARNING:  did not get bitmap indexscan plan for (timetzcol,>=,timetz,01:30:20+02,100)
 WARNING:  did not get bitmap indexscan plan for (timetzcol,=,timetz,01:35:50+02,2)
 WARNING:  did not get bitmap indexscan plan for (timetzcol,<=,timetz,23:55:05+02,100)
+WARNING:  did not get bitmap indexscan plan for (boxcol,@>,box,"((1,2),(300,400))",1)
+WARNING:  did not get bitmap indexscan plan for (boxcol,<@,box,"((1,2),(3000,4000))",99)
+WARNING:  did not get bitmap indexscan plan for (boxcol,~=,box,"((222,1222),(44,45))",1)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,>,int4range,"[367,4466)",34)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,>=,int4range,"[519,)",21)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,@>,int4range,empty,125)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,<@,int4range,empty,72)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,=,int4range,empty,72)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,<=,int4range,empty,72)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,>,int4range,empty,53)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,>=,int4range,empty,125)
+WARNING:  did not get bitmap indexscan plan for (int4rangecol,@>,int4,1500,22)
 WARNING:  did not get bitmap indexscan plan for (timetzcol,<,timetz,23:55:05+02,100)
 WARNING:  did not get bitmap indexscan plan for (lsncol,>,pg_lsn,0/1200,100)
 WARNING:  did not get bitmap indexscan plan for (lsncol,>=,pg_lsn,0/1200,100)
@@ -655,3 +655,14 @@ FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
 VACUUM brintest;  -- force a summarization cycle in brinidx
 UPDATE brintest SET int8col = int8col * int4col;
 UPDATE brintest SET textcol = '' WHERE textcol IS NOT NULL;
+-- Tests for brin_summarize_new_values
+SELECT brin_summarize_new_values('brintest'); -- error, not an index
+ERROR:  "brintest" is not an index
+SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
+ERROR:  "tenk1_unique1" is not a BRIN index
+SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected
+ brin_summarize_new_values 
+---------------------------
+                         0
+(1 row)
+

@@ -16,7 +16,7 @@
  * a quick copyObject() call before manipulating the query tree.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/parser/parse_utilcmd.c
@@ -26,21 +26,20 @@
 
 #include "postgres.h"
 
+#include "access/amapi.h"
 #include "access/htup_details.h"
 #include "access/reloptions.h"
-#include "catalog/pg_compression.h"
-#include "catalog/pg_constraint.h"
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_constraint.h"
-#include "catalog/pg_inherits_fn.h"
+#include "catalog/pg_constraint_fn.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
-#include "catalog/pg_type_encoding.h"
 #include "commands/comment.h"
 #include "commands/defrem.h"
 #include "commands/tablecmds.h"
@@ -52,7 +51,6 @@
 #include "parser/parse_clause.h"
 #include "parser/parse_collate.h"
 #include "parser/parse_expr.h"
-#include "parser/parse_partition.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_type.h"
@@ -61,20 +59,22 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
-#include "utils/fmgroids.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
-#include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
+#include "catalog/pg_compression.h"
+#include "catalog/pg_type_encoding.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/partitionselection.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
-#include "utils/guc.h"
-#include "utils/tqual.h"
+#include "parser/parse_partition.h"
+#include "utils/fmgroids.h"
+#include "utils/memutils.h"
 
 /* State shared by transformCreateSchemaStmt and its subroutines */
 typedef struct
@@ -111,6 +111,8 @@ static IndexStmt *transformIndexConstraint(Constraint *constraint,
 static void transformFKConstraints(CreateStmtContext *cxt,
 					   bool skipValidation,
 					   bool isAddConstraint);
+static void transformCheckConstraints(CreateStmtContext *cxt,
+						  bool skipValidation);
 static void transformConstraintAttrs(CreateStmtContext *cxt,
 						 List *constraintList);
 static void transformColumnType(CreateStmtContext *cxt, ColumnDef *column);
@@ -156,6 +158,8 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	Oid			namespaceid;
 	Oid			existing_relid;
 	ParseCallbackState pcbstate;
+	bool		like_found = false;
+
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
 	List	   *stenc = NIL;		/* column reference storage encoding clauses */
@@ -319,19 +323,20 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 				break;
 
 			case T_TableLikeClause:
+			{
+				bool            isBeginning = (cxt.columns == NIL);
+				like_found = true;
+
+				transformTableLikeClause(&cxt, (TableLikeClause *) element, false, stmt, &stenc);
+
+				if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
+					stmt->distributedBy == NULL &&
+					stmt->inhRelations == NIL)
 				{
-					bool            isBeginning = (cxt.columns == NIL);
-
-					transformTableLikeClause(&cxt, (TableLikeClause *) element, false, stmt, &stenc);
-
-					if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
-						stmt->distributedBy == NULL &&
-						stmt->inhRelations == NIL)
-					{
-						likeDistributedBy = getLikeDistributionPolicy((TableLikeClause*) element);
-					}
+					likeDistributedBy = getLikeDistributionPolicy((TableLikeClause*) element);
 				}
 				break;
+			}
 
 			case T_ColumnReferenceStorageDirective:
 				/* processed below in transformAttributeEncoding() */
@@ -344,6 +349,20 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 				break;
 		}
 	}
+
+	/*
+	 * If we had any LIKE tables, they may require creation of an OID column
+	 * even though the command's own WITH clause didn't ask for one (or,
+	 * perhaps, even specifically rejected having one).  Insert a WITH option
+	 * to ensure that happens.  We prepend to the list because the first oid
+	 * option will be honored, and we want to override anything already there.
+	 * (But note that DefineRelation will override this again to add an OID
+	 * column if one appears in an inheritance parent table.)
+	 */
+	if (like_found && cxt.hasoids)
+		stmt->options = lcons(makeDefElem("oids",
+										  (Node *) makeInteger(true)),
+							  stmt->options);
 
 	/*
 	 * transformIndexConstraints wants cxt.alist to contain only index
@@ -482,6 +501,11 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	 * Process table partitioning clause
 	 */
 	transformPartitionBy(&cxt, stmt, stmt->partitionBy);
+
+	/*
+	 * Postprocess check constraints.
+	 */
+	transformCheckConstraints(&cxt, true);
 
 	/*
 	 * Output results.
@@ -1073,6 +1097,9 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 		}
 	}
 
+	/* We use oids if at least one LIKE'ed table has oids. */
+	cxt->hasoids |= relation->rd_rel->relhasoids;
+
 	/*
 	 * Copy CHECK constraints if requested, being careful to adjust attribute
 	 * numbers so they match the child.
@@ -1276,6 +1303,7 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 	Form_pg_attribute *attrs = RelationGetDescr(source_idx)->attrs;
 	HeapTuple	ht_idxrel;
 	HeapTuple	ht_idx;
+	HeapTuple	ht_am;
 	Form_pg_class idxrelrec;
 	Form_pg_index idxrec;
 	Form_pg_am	amrec;
@@ -1305,8 +1333,12 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 	idxrec = (Form_pg_index) GETSTRUCT(ht_idx);
 	indrelid = idxrec->indrelid;
 
-	/* Fetch pg_am tuple for source index from relcache entry */
-	amrec = source_idx->rd_am;
+	/* Fetch the pg_am tuple of the index' access method */
+	ht_am = SearchSysCache1(AMOID, ObjectIdGetDatum(idxrelrec->relam));
+	if (!HeapTupleIsValid(ht_am))
+		elog(ERROR, "cache lookup failed for access method %u",
+			 idxrelrec->relam);
+	amrec = (Form_pg_am) GETSTRUCT(ht_am);
 
 	/* Extract indcollation from the pg_index tuple */
 	datum = SysCacheGetAttr(INDEXRELID, ht_idx,
@@ -1517,7 +1549,7 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 		iparam->nulls_ordering = SORTBY_NULLS_DEFAULT;
 
 		/* Adjust options if necessary */
-		if (amrec->amcanorder)
+		if (source_idx->rd_amroutine->amcanorder)
 		{
 			/*
 			 * If it supports sort ordering, copy DESC and NULLS opts. Don't
@@ -1581,6 +1613,7 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 
 	/* Clean up */
 	ReleaseSysCache(ht_idxrel);
+	ReleaseSysCache(ht_am);
 
 	return index;
 }
@@ -2882,7 +2915,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 		 * else dump and reload will produce a different index (breaking
 		 * pg_upgrade in particular).
 		 */
-		if (index_rel->rd_rel->relam != get_am_oid(DEFAULT_INDEX_TYPE, false))
+		if (index_rel->rd_rel->relam != get_index_am_oid(DEFAULT_INDEX_TYPE, false))
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("index \"%s\" is not a btree", index_name),
@@ -3101,6 +3134,40 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 	}
 
 	return index;
+}
+
+/*
+ * transformCheckConstraints
+ *		handle CHECK constraints
+ *
+ * Right now, there's nothing to do here when called from ALTER TABLE,
+ * but the other constraint-transformation functions are called in both
+ * the CREATE TABLE and ALTER TABLE paths, so do the same here, and just
+ * don't do anything if we're not authorized to skip validation.
+ */
+static void
+transformCheckConstraints(CreateStmtContext *cxt, bool skipValidation)
+{
+	ListCell   *ckclist;
+
+	if (cxt->ckconstraints == NIL)
+		return;
+
+	/*
+	 * If creating a new table, we can safely skip validation of check
+	 * constraints, and nonetheless mark them valid.  (This will override any
+	 * user-supplied NOT VALID flag.)
+	 */
+	if (skipValidation)
+	{
+		foreach(ckclist, cxt->ckconstraints)
+		{
+			Constraint *constraint = (Constraint *) lfirst(ckclist);
+
+			constraint->skip_validation = true;
+			constraint->initially_valid = true;
+		}
+	}
 }
 
 /*
@@ -3833,10 +3900,10 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 	save_alist = cxt.alist;
 	cxt.alist = NIL;
 
-	/* Postprocess index and FK constraints */
+	/* Postprocess constraints */
 	transformIndexConstraints(&cxt, false);
-
 	transformFKConstraints(&cxt, skipValidation, true);
+	transformCheckConstraints(&cxt, false);
 
 	/*
 	 * Push any index-creation commands into the ALTER, so that they can be

@@ -266,6 +266,11 @@ CREATE TABLE as_select1 AS SELECT * FROM pg_class WHERE relkind = 'r';
 CREATE TABLE IF NOT EXISTS as_select1 AS SELECT * FROM pg_class WHERE relkind = 'r';
 DROP TABLE as_select1;
 
+-- check that the oid column is added before the primary key is checked
+-- Greenplum could not support this since OID can't be unique across segments.
+--CREATE TABLE oid_pk (f1 INT, PRIMARY KEY(oid)) WITH OIDS;
+--DROP TABLE oid_pk;
+
 -- Test github issue #7340. truncating a toast unlogged table fails.
 CREATE UNLOGGED TABLE unlogged_toast (a text);
 TRUNCATE unlogged_toast;

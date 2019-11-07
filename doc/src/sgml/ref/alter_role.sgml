@@ -144,7 +144,7 @@ ALTER ROLE <replaceable class="PARAMETER">name</replaceable> RESOURCE GROUP {<re
       <term>CURRENT_USER</term>
       <listitem>
        <para>
-        Alter the current user instead of an explicitely identified role.
+        Alter the current user instead of an explicitly identified role.
        </para>
       </listitem>
      </varlistentry>
@@ -153,7 +153,7 @@ ALTER ROLE <replaceable class="PARAMETER">name</replaceable> RESOURCE GROUP {<re
       <term>SESSION_USER</term>
       <listitem>
        <para>
-        Alter the current session user instead of an explicitely identified
+        Alter the current session user instead of an explicitly identified
         role.
        </para>
       </listitem>
@@ -166,8 +166,6 @@ ALTER ROLE <replaceable class="PARAMETER">name</replaceable> RESOURCE GROUP {<re
       <term><literal>NOCREATEDB</></term>
       <term><literal>CREATEROLE</literal></term>
       <term><literal>NOCREATEROLE</literal></term>
-      <term><literal>CREATEUSER</literal></term>
-      <term><literal>NOCREATEUSER</literal></term>
       <term><literal>INHERIT</literal></term>
       <term><literal>NOINHERIT</literal></term>
       <term><literal>LOGIN</literal></term>

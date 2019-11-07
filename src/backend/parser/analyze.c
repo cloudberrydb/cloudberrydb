@@ -16,7 +16,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/parser/analyze.c
@@ -27,6 +27,7 @@
 #include "postgres.h"
 
 #include "access/sysattr.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -105,7 +106,8 @@ post_parse_analyze_hook_type post_parse_analyze_hook = NULL;
 static Query *transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt);
 static Query *transformInsertStmt(ParseState *pstate, InsertStmt *stmt);
 static List *transformInsertRow(ParseState *pstate, List *exprlist,
-				   List *stmtcols, List *icolumns, List *attrnos);
+				   List *stmtcols, List *icolumns, List *attrnos,
+				   bool strip_indirection);
 static OnConflictExpr *transformOnConflictClause(ParseState *pstate,
 						  OnConflictClause *onConflictClause);
 static int	count_rowexpr_columns(ParseState *pstate, Node *expr);
@@ -134,7 +136,11 @@ static Query *transformCreateTableAsStmt(ParseState *pstate,
 						   CreateTableAsStmt *stmt);
 static void transformLockingClause(ParseState *pstate, Query *qry,
 					   LockingClause *lc, bool pushedDown);
+#ifdef RAW_EXPRESSION_COVERAGE_TEST
+static bool test_raw_expression_coverage(Node *node, void *context);
+#endif
 
+/* GPDB definitions follow */
 static int get_distkey_by_name(char *key, IntoClause *into, Query *qry, bool *found);
 static void setQryDistributionPolicy(IntoClause *into, Query *qry);
 
@@ -318,6 +324,25 @@ Query *
 transformStmt(ParseState *pstate, Node *parseTree)
 {
 	Query	   *result;
+
+	/*
+	 * We apply RAW_EXPRESSION_COVERAGE_TEST testing to basic DML statements;
+	 * we can't just run it on everything because raw_expression_tree_walker()
+	 * doesn't claim to handle utility statements.
+	 */
+#ifdef RAW_EXPRESSION_COVERAGE_TEST
+	switch (nodeTag(parseTree))
+	{
+		case T_SelectStmt:
+		case T_InsertStmt:
+		case T_UpdateStmt:
+		case T_DeleteStmt:
+			(void) test_raw_expression_coverage(parseTree, NULL);
+			break;
+		default:
+			break;
+	}
+#endif   /* RAW_EXPRESSION_COVERAGE_TEST */
 
 	switch (nodeTag(parseTree))
 	{
@@ -707,7 +732,8 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		/* Prepare row for assignment to target table */
 		exprList = transformInsertRow(pstate, exprList,
 									  stmt->cols,
-									  icolumns, attrnos);
+									  icolumns, attrnos,
+									  false);
 	}
 	else if (list_length(selectStmt->valuesLists) > 1)
 	{
@@ -751,10 +777,20 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 											exprLocation((Node *) sublist))));
 			}
 
-			/* Prepare row for assignment to target table */
+			/*
+			 * Prepare row for assignment to target table.  We process any
+			 * indirection on the target column specs normally but then strip
+			 * off the resulting field/array assignment nodes, since we don't
+			 * want the parsed statement to contain copies of those in each
+			 * VALUES row.  (It's annoying to have to transform the
+			 * indirection specs over and over like this, but avoiding it
+			 * would take some really messy refactoring of
+			 * transformAssignmentIndirection.)
+			 */
 			sublist = transformInsertRow(pstate, sublist,
 										 stmt->cols,
-										 icolumns, attrnos);
+										 icolumns, attrnos,
+										 true);
 
 			/*
 			 * We must assign collations now because assign_query_collations
@@ -805,6 +841,14 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		 * Generate list of Vars referencing the RTE
 		 */
 		expandRTE(rte, rtr->rtindex, 0, -1, false, NULL, &exprList);
+
+		/*
+		 * Re-apply any indirection on the target column specs to the Vars
+		 */
+		exprList = transformInsertRow(pstate, exprList,
+									  stmt->cols,
+									  icolumns, attrnos,
+									  false);
 	}
 	else
 	{
@@ -827,7 +871,8 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		/* Prepare row for assignment to target table */
 		exprList = transformInsertRow(pstate, exprList,
 									  stmt->cols,
-									  icolumns, attrnos);
+									  icolumns, attrnos,
+									  false);
 	}
 
 	/*
@@ -897,12 +942,17 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 /*
  * Prepare an INSERT row for assignment to the target table.
  *
- * The row might be either a VALUES row, or variables referencing a
- * sub-SELECT output.
+ * exprlist: transformed expressions for source values; these might come from
+ * a VALUES row, or be Vars referencing a sub-SELECT or VALUES RTE output.
+ * stmtcols: original target-columns spec for INSERT (we just test for NIL)
+ * icolumns: effective target-columns spec (list of ResTarget)
+ * attrnos: integer column numbers (must be same length as icolumns)
+ * strip_indirection: if true, remove any field/array assignment nodes
  */
 static List *
 transformInsertRow(ParseState *pstate, List *exprlist,
-				   List *stmtcols, List *icolumns, List *attrnos)
+				   List *stmtcols, List *icolumns, List *attrnos,
+				   bool strip_indirection)
 {
 	List	   *result;
 	ListCell   *lc;
@@ -967,6 +1017,29 @@ transformInsertRow(ParseState *pstate, List *exprlist,
 									 lfirst_int(attnos),
 									 col->indirection,
 									 col->location);
+
+		if (strip_indirection)
+		{
+			while (expr)
+			{
+				if (IsA(expr, FieldStore))
+				{
+					FieldStore *fstore = (FieldStore *) expr;
+
+					expr = (Expr *) linitial(fstore->newvals);
+				}
+				else if (IsA(expr, ArrayRef))
+				{
+					ArrayRef   *aref = (ArrayRef *) expr;
+
+					if (aref->refassgnexpr == NULL)
+						break;
+					expr = aref->refassgnexpr;
+				}
+				else
+					break;
+			}
+		}
 
 		result = lappend(result, expr);
 
@@ -1661,27 +1734,81 @@ transformOnConflictClause(ParseState *pstate,
 	/* Process DO UPDATE */
 	if (onConflictClause->action == ONCONFLICT_UPDATE)
 	{
+		Relation	targetrel = pstate->p_target_relation;
+		Var		   *var;
+		TargetEntry *te;
+		int			attno;
+
+		/*
+		 * All INSERT expressions have been parsed, get ready for potentially
+		 * existing SET statements that need to be processed like an UPDATE.
+		 */
+		pstate->p_is_insert = false;
+
+		/*
+		 * Add range table entry for the EXCLUDED pseudo relation; relkind is
+		 * set to composite to signal that we're not dealing with an actual
+		 * relation.
+		 */
 		exclRte = addRangeTableEntryForRelation(pstate,
-												pstate->p_target_relation,
+												targetrel,
 												makeAlias("excluded", NIL),
 												false, false);
+		exclRte->relkind = RELKIND_COMPOSITE_TYPE;
 		exclRelIndex = list_length(pstate->p_rtable);
 
 		/*
-		 * Build a targetlist for the EXCLUDED pseudo relation. Out of
-		 * simplicity we do that here, because expandRelAttrs() happens to
-		 * nearly do the right thing; specifically it also works with views.
-		 * It'd be more proper to instead scan some pseudo scan node, but it
-		 * doesn't seem worth the amount of code required.
-		 *
-		 * The only caveat of this hack is that the permissions expandRelAttrs
-		 * adds have to be reset. markVarForSelectPriv() will add the exact
-		 * required permissions back.
+		 * Build a targetlist for the EXCLUDED pseudo relation. Have to be
+		 * careful to use resnos that correspond to attnos of the underlying
+		 * relation.
 		 */
-		exclRelTlist = expandRelAttrs(pstate, exclRte,
-									  exclRelIndex, 0, -1);
-		exclRte->requiredPerms = 0;
-		exclRte->selectedCols = NULL;
+		Assert(pstate->p_next_resno == 1);
+		for (attno = 0; attno < targetrel->rd_rel->relnatts; attno++)
+		{
+			Form_pg_attribute attr = targetrel->rd_att->attrs[attno];
+			char	   *name;
+
+			if (attr->attisdropped)
+			{
+				/*
+				 * can't use atttypid here, but it doesn't really matter what
+				 * type the Const claims to be.
+				 */
+				var = (Var *) makeNullConst(INT4OID, -1, InvalidOid);
+				name = "";
+			}
+			else
+			{
+				var = makeVar(exclRelIndex, attno + 1,
+							  attr->atttypid, attr->atttypmod,
+							  attr->attcollation,
+							  0);
+				var->location = -1;
+
+				name = NameStr(attr->attname);
+			}
+
+			Assert(pstate->p_next_resno == attno + 1);
+			te = makeTargetEntry((Expr *) var,
+								 pstate->p_next_resno++,
+								 name,
+								 false);
+
+			/* don't require select access yet */
+			exclRelTlist = lappend(exclRelTlist, te);
+		}
+
+		/*
+		 * Additionally add a whole row tlist entry for EXCLUDED. That's
+		 * really only needed for ruleutils' benefit, which expects to find
+		 * corresponding entries in child tlists. Alternatively we could do
+		 * this only when required, but that doesn't seem worth the trouble.
+		 */
+		var = makeVar(exclRelIndex, InvalidAttrNumber,
+					  RelationGetRelid(targetrel),
+					  -1, InvalidOid, 0);
+		te = makeTargetEntry((Expr *) var, 0, NULL, true);
+		exclRelTlist = lappend(exclRelTlist, te);
 
 		/*
 		 * Add EXCLUDED and the target RTE to the namespace, so that they can
@@ -3137,7 +3264,7 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	Node	   *qual;
 
 	qry->commandType = CMD_UPDATE;
-	pstate->p_is_update = true;
+	pstate->p_is_insert = false;
 
 	/* process the WITH clause independently of all else */
 	if (stmt->withClause)
@@ -3846,6 +3973,29 @@ applyLockingClause(Query *qry, Index rtindex,
 	qry->rowMarks = lappend(qry->rowMarks, rc);
 }
 
+/*
+ * Coverage testing for raw_expression_tree_walker().
+ *
+ * When enabled, we run raw_expression_tree_walker() over every DML statement
+ * submitted to parse analysis.  Without this provision, that function is only
+ * applied in limited cases involving CTEs, and we don't really want to have
+ * to test everything inside as well as outside a CTE.
+ */
+#ifdef RAW_EXPRESSION_COVERAGE_TEST
+
+static bool
+test_raw_expression_coverage(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+	return raw_expression_tree_walker(node,
+									  test_raw_expression_coverage,
+									  context);
+}
+
+#endif   /* RAW_EXPRESSION_COVERAGE_TEST */
+
+/* GPDB statics follow */
 /*
  * Get distribute key by name.
  *

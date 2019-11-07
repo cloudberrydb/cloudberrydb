@@ -3,7 +3,7 @@
  * auth.c
  *	  Routines to handle network authentication
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -25,6 +25,7 @@
 #endif
 
 #include "access/genam.h"
+#include "access/heapam.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_auth_time_constraint.h"
@@ -112,6 +113,17 @@ static Port *pam_port_cludge;	/* Workaround for passing "Port *port" into
 
 
 /*----------------------------------------------------------------
+ * BSD authentication
+ *----------------------------------------------------------------
+ */
+#ifdef USE_BSD_AUTH
+#include <bsd_auth.h>
+
+static int	CheckBSDAuth(Port *port, char *user);
+#endif   /* USE_BSD_AUTH */
+
+
+/*----------------------------------------------------------------
  * LDAP authentication
  *----------------------------------------------------------------
  */
@@ -179,6 +191,11 @@ typedef SECURITY_STATUS
 			(WINAPI * QUERY_SECURITY_CONTEXT_TOKEN_FN) (
 													   PCtxtHandle, void **);
 static int	pg_SSPI_recvauth(Port *port);
+static int pg_SSPI_make_upn(char *accountname,
+				 size_t accountnamesize,
+				 char *domainname,
+				 size_t domainnamesize,
+				 bool update_accountname);
 #endif
 
 /*----------------------------------------------------------------
@@ -289,6 +306,9 @@ auth_failed(Port *port, int status, char *logdetail)
 			break;
 		case uaPAM:
 			errstr = gettext_noop("PAM authentication failed for user \"%s\"");
+			break;
+		case uaBSD:
+			errstr = gettext_noop("BSD authentication failed for user \"%s\"");
 			break;
 		case uaLDAP:
 			errstr = gettext_noop("LDAP authentication failed for user \"%s\"");
@@ -683,6 +703,14 @@ ClientAuthentication(Port *port)
 #endif   /* USE_PAM */
 			break;
 
+		case uaBSD:
+#ifdef USE_BSD_AUTH
+			status = CheckBSDAuth(port, port->user_name);
+#else
+			Assert(false);
+#endif   /* USE_BSD_AUTH */
+			break;
+
 		case uaLDAP:
 #ifdef USE_LDAP
 			status = CheckLDAPAuth(port);
@@ -850,8 +878,7 @@ recv_password_packet(Port *port)
 				 errmsg("empty password returned by client")));
 
 	/* Do not echo password to logs, for security. */
-	ereport(DEBUG5,
-			(errmsg("received password packet")));
+	elog(DEBUG5, "received password packet");
 
 	/*
 	 * Return the received string.  Note we do not attempt to do any
@@ -1068,7 +1095,7 @@ pg_GSS_recvauth(Port *port)
 
 	/*
 	 * Loop through GSSAPI message exchange. This exchange can consist of
-	 * multiple messags sent in both directions. First message is always from
+	 * multiple messages sent in both directions. First message is always from
 	 * the client. All messages from client to server are password packets
 	 * (type 'p').
 	 */
@@ -1315,7 +1342,7 @@ pg_SSPI_recvauth(Port *port)
 
 	/*
 	 * Loop through SSPI message exchange. This exchange can consist of
-	 * multiple messags sent in both directions. First message is always from
+	 * multiple messages sent in both directions. First message is always from
 	 * the client. All messages from client to server are password packets
 	 * (type 'p').
 	 */
@@ -1477,8 +1504,8 @@ pg_SSPI_recvauth(Port *port)
 
 	if (!GetTokenInformation(token, TokenUser, NULL, 0, &retlen) && GetLastError() != 122)
 		ereport(ERROR,
-			(errmsg_internal("could not get token user size: error code %lu",
-							 GetLastError())));
+				(errmsg_internal("could not get token information buffer size: error code %lu",
+								 GetLastError())));
 
 	tokenuser = malloc(retlen);
 	if (tokenuser == NULL)
@@ -1487,8 +1514,10 @@ pg_SSPI_recvauth(Port *port)
 
 	if (!GetTokenInformation(token, TokenUser, tokenuser, retlen, &retlen))
 		ereport(ERROR,
-				(errmsg_internal("could not get user token: error code %lu",
-								 GetLastError())));
+		  (errmsg_internal("could not get token information: error code %lu",
+						   GetLastError())));
+
+	CloseHandle(token);
 
 	CloseHandle(token);
 
@@ -1499,6 +1528,17 @@ pg_SSPI_recvauth(Port *port)
 							 GetLastError())));
 
 	free(tokenuser);
+
+	if (!port->hba->compat_realm)
+	{
+		int			status = pg_SSPI_make_upn(accountname, sizeof(accountname),
+											  domainname, sizeof(domainname),
+											  port->hba->upn_username);
+
+		if (status != STATUS_OK)
+			/* Error already reported from pg_SSPI_make_upn */
+			return status;
+	}
 
 	/*
 	 * Compare realm/domain if requested. In SSPI, always compare case
@@ -1534,6 +1574,100 @@ pg_SSPI_recvauth(Port *port)
 	}
 	else
 		return check_usermap(port->hba->usermap, port->user_name, accountname, true);
+}
+
+/*
+ * Replaces the domainname with the Kerberos realm name,
+ * and optionally the accountname with the Kerberos user name.
+ */
+static int
+pg_SSPI_make_upn(char *accountname,
+				 size_t accountnamesize,
+				 char *domainname,
+				 size_t domainnamesize,
+				 bool update_accountname)
+{
+	char	   *samname;
+	char	   *upname = NULL;
+	char	   *p = NULL;
+	ULONG		upnamesize = 0;
+	size_t		upnamerealmsize;
+	BOOLEAN		res;
+
+	/*
+	 * Build SAM name (DOMAIN\user), then translate to UPN
+	 * (user@kerberos.realm). The realm name is returned in lower case, but
+	 * that is fine because in SSPI auth, string comparisons are always
+	 * case-insensitive.
+	 */
+
+	samname = psprintf("%s\\%s", domainname, accountname);
+	res = TranslateName(samname, NameSamCompatible, NameUserPrincipal,
+						NULL, &upnamesize);
+
+	if ((!res && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+		|| upnamesize == 0)
+	{
+		pfree(samname);
+		ereport(LOG,
+				(errcode(ERRCODE_INVALID_ROLE_SPECIFICATION),
+				 errmsg("could not translate name")));
+		return STATUS_ERROR;
+	}
+
+	/* upnamesize includes the terminating NUL. */
+	upname = palloc(upnamesize);
+
+	res = TranslateName(samname, NameSamCompatible, NameUserPrincipal,
+						upname, &upnamesize);
+
+	pfree(samname);
+	if (res)
+		p = strchr(upname, '@');
+
+	if (!res || p == NULL)
+	{
+		pfree(upname);
+		ereport(LOG,
+				(errcode(ERRCODE_INVALID_ROLE_SPECIFICATION),
+				 errmsg("could not translate name")));
+		return STATUS_ERROR;
+	}
+
+	/* Length of realm name after the '@', including the NUL. */
+	upnamerealmsize = upnamesize - (p - upname + 1);
+
+	/* Replace domainname with realm name. */
+	if (upnamerealmsize > domainnamesize)
+	{
+		pfree(upname);
+		ereport(LOG,
+				(errcode(ERRCODE_INVALID_ROLE_SPECIFICATION),
+				 errmsg("realm name too long")));
+		return STATUS_ERROR;
+	}
+
+	/* Length is now safe. */
+	strcpy(domainname, p + 1);
+
+	/* Replace account name as well (in case UPN != SAM)? */
+	if (update_accountname)
+	{
+		if ((p - upname + 1) > accountnamesize)
+		{
+			pfree(upname);
+			ereport(LOG,
+					(errcode(ERRCODE_INVALID_ROLE_SPECIFICATION),
+					 errmsg("translated account name too long")));
+			return STATUS_ERROR;
+		}
+
+		*p = 0;
+		strcpy(accountname, upname);
+	}
+
+	pfree(upname);
+	return STATUS_OK;
 }
 #endif   /* ENABLE_SSPI */
 
@@ -1982,6 +2116,18 @@ CheckPAMAuth(Port *port, char *user, char *password)
 {
 	int			retval;
 	pam_handle_t *pamh = NULL;
+	char		hostinfo[NI_MAXHOST];
+
+	retval = pg_getnameinfo_all(&port->raddr.addr, port->raddr.salen,
+								hostinfo, sizeof(hostinfo), NULL, 0,
+		  port->hba->pam_use_hostname ? 0 : NI_NUMERICHOST | NI_NUMERICSERV);
+	if (retval != 0)
+	{
+		ereport(WARNING,
+				(errmsg_internal("pg_getnameinfo_all() failed: %s",
+								 gai_strerror(retval))));
+		return STATUS_ERROR;
+	}
 
 	/*
 	 * We can't entirely rely on PAM to pass through appdata --- it appears
@@ -2024,6 +2170,17 @@ CheckPAMAuth(Port *port, char *user, char *password)
 				(errmsg("pam_set_item(PAM_USER) failed: %s",
 						pam_strerror(pamh, retval))));
 		pam_passwd = NULL;		/* Unset pam_passwd */
+		return STATUS_ERROR;
+	}
+
+	retval = pam_set_item(pamh, PAM_RHOST, hostinfo);
+
+	if (retval != PAM_SUCCESS)
+	{
+		ereport(LOG,
+				(errmsg("pam_set_item(PAM_RHOST) failed: %s",
+						pam_strerror(pamh, retval))));
+		pam_passwd = NULL;
 		return STATUS_ERROR;
 	}
 
@@ -2075,6 +2232,38 @@ CheckPAMAuth(Port *port, char *user, char *password)
 }
 #endif   /* USE_PAM */
 
+
+/*----------------------------------------------------------------
+ * BSD authentication system
+ *----------------------------------------------------------------
+ */
+#ifdef USE_BSD_AUTH
+static int
+CheckBSDAuth(Port *port, char *user)
+{
+	char	   *passwd;
+	int			retval;
+
+	/* Send regular password request to client, and get the response */
+	sendAuthRequest(port, AUTH_REQ_PASSWORD);
+
+	passwd = recv_password_packet(port);
+	if (passwd == NULL)
+		return STATUS_EOF;
+
+	/*
+	 * Ask the BSD auth system to verify password.  Note that auth_userokay
+	 * will overwrite the password string with zeroes, but it's just a
+	 * temporary string so we don't care.
+	 */
+	retval = auth_userokay(user, NULL, "auth-postgresql", passwd);
+
+	if (!retval)
+		return STATUS_ERROR;
+
+	return STATUS_OK;
+}
+#endif   /* USE_BSD_AUTH */
 
 
 /*----------------------------------------------------------------
@@ -2426,6 +2615,7 @@ CheckCertAuth(Port *port)
 
 #define RADIUS_VECTOR_LENGTH 16
 #define RADIUS_HEADER_LENGTH 20
+#define RADIUS_MAX_PASSWORD_LENGTH 128
 
 /* Maximum size of a RADIUS packet we will create or accept */
 #define RADIUS_BUFFER_SIZE 1024
@@ -2503,7 +2693,9 @@ CheckRADIUSAuth(Port *port)
 	char	   *receive_buffer = (char *) &radius_recv_pack;
 	int32		service = htonl(RADIUS_AUTHENTICATE_ONLY);
 	uint8	   *cryptvector;
-	uint8		encryptedpassword[RADIUS_VECTOR_LENGTH];
+	int			encryptedpasswordlen;
+	uint8		encryptedpassword[RADIUS_MAX_PASSWORD_LENGTH];
+	uint8	   *md5trailer;
 	int			packetlength;
 	pgsocket	sock;
 
@@ -2521,6 +2713,7 @@ CheckRADIUSAuth(Port *port)
 	fd_set		fdset;
 	struct timeval endtime;
 	int			i,
+				j,
 				r;
 
 	/* Make sure struct alignment is correct */
@@ -2571,12 +2764,20 @@ CheckRADIUSAuth(Port *port)
 	if (passwd == NULL)
 		return STATUS_EOF;		/* client wouldn't send password */
 
-	if (strlen(passwd) > RADIUS_VECTOR_LENGTH)
+	if (strlen(passwd) == 0)
 	{
 		ereport(LOG,
-				(errmsg("RADIUS authentication does not support passwords longer than 16 characters")));
+				(errmsg("empty password returned by client")));
 		return STATUS_ERROR;
 	}
+
+	if (strlen(passwd) > RADIUS_MAX_PASSWORD_LENGTH)
+	{
+		ereport(LOG,
+				(errmsg("RADIUS authentication does not support passwords longer than %d characters", RADIUS_MAX_PASSWORD_LENGTH)));
+		return STATUS_ERROR;
+	}
+
 
 	/* Construct RADIUS packet */
 	packet->code = RADIUS_ACCESS_REQUEST;
@@ -2600,27 +2801,45 @@ CheckRADIUSAuth(Port *port)
 
 	/*
 	 * RADIUS password attributes are calculated as: e[0] = p[0] XOR
-	 * MD5(secret + vector)
+	 * MD5(secret + Request Authenticator) for the first group of 16 octets,
+	 * and then: e[i] = p[i] XOR MD5(secret + e[i-1]) for the following ones
+	 * (if necessary)
 	 */
-	cryptvector = palloc(RADIUS_VECTOR_LENGTH + strlen(port->hba->radiussecret));
+	encryptedpasswordlen = ((strlen(passwd) + RADIUS_VECTOR_LENGTH - 1) / RADIUS_VECTOR_LENGTH) * RADIUS_VECTOR_LENGTH;
+	cryptvector = palloc(strlen(port->hba->radiussecret) + RADIUS_VECTOR_LENGTH);
 	memcpy(cryptvector, port->hba->radiussecret, strlen(port->hba->radiussecret));
-	memcpy(cryptvector + strlen(port->hba->radiussecret), packet->vector, RADIUS_VECTOR_LENGTH);
-	if (!pg_md5_binary(cryptvector, RADIUS_VECTOR_LENGTH + strlen(port->hba->radiussecret), encryptedpassword))
+
+	/* for the first iteration, we use the Request Authenticator vector */
+	md5trailer = packet->vector;
+	for (i = 0; i < encryptedpasswordlen; i += RADIUS_VECTOR_LENGTH)
 	{
-		ereport(LOG,
-				(errmsg("could not perform MD5 encryption of password")));
-		pfree(cryptvector);
-		return STATUS_ERROR;
+		memcpy(cryptvector + strlen(port->hba->radiussecret), md5trailer, RADIUS_VECTOR_LENGTH);
+
+		/*
+		 * .. and for subsequent iterations the result of the previous XOR
+		 * (calculated below)
+		 */
+		md5trailer = encryptedpassword + i;
+
+		if (!pg_md5_binary(cryptvector, strlen(port->hba->radiussecret) + RADIUS_VECTOR_LENGTH, encryptedpassword + i))
+		{
+			ereport(LOG,
+					(errmsg("could not perform MD5 encryption of password")));
+			pfree(cryptvector);
+			return STATUS_ERROR;
+		}
+
+		for (j = i; j < i + RADIUS_VECTOR_LENGTH; j++)
+		{
+			if (j < strlen(passwd))
+				encryptedpassword[j] = passwd[j] ^ encryptedpassword[j];
+			else
+				encryptedpassword[j] = '\0' ^ encryptedpassword[j];
+		}
 	}
 	pfree(cryptvector);
-	for (i = 0; i < RADIUS_VECTOR_LENGTH; i++)
-	{
-		if (i < strlen(passwd))
-			encryptedpassword[i] = passwd[i] ^ encryptedpassword[i];
-		else
-			encryptedpassword[i] = '\0' ^ encryptedpassword[i];
-	}
-	radius_add_attribute(packet, RADIUS_PASSWORD, encryptedpassword, RADIUS_VECTOR_LENGTH);
+
+	radius_add_attribute(packet, RADIUS_PASSWORD, encryptedpassword, encryptedpasswordlen);
 
 	/* Length need to be in network order on the wire */
 	packetlength = packet->length;

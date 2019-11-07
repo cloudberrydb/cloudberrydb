@@ -165,6 +165,12 @@ namespace gpdb {
 	// intermediate result type of given aggregate
 	Oid GetAggIntermediateResultType(Oid aggid);
 
+	// Identify the specific datatypes passed to an aggregate call.
+	int GetAggregateArgTypes(Aggref *aggref, Oid *inputTypes);
+
+	// Identify the transition state value's datatype for an aggregate call.
+	Oid ResolveAggregateTransType(Oid aggfnoid, Oid aggtranstype, Oid *inputTypes, int numArguments);
+
 	// replace Vars that reference JOIN outputs with references to the original
 	// relation variables instead
 	Query *FlattenJoinAliasVar(Query *query, gpos::ULONG query_level);

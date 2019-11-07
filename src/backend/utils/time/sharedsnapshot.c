@@ -236,6 +236,8 @@ SharedSnapshotShmemSize(void)
 	size = offsetof(SharedSnapshotStruct, xips);
 	size = add_size(size, mul_size(slotSize, slotCount));
 
+	RequestNamedLWLockTranche("SharedSnapshotLocks", slotCount);
+
 	return MAXALIGN(size);
 }
 
@@ -262,6 +264,8 @@ CreateSharedSnapshotArray(void)
 		/*
 		 * We're the first - initialize.
 		 */
+		LWLockPadded *lock_base;
+
 		sharedSnapshotArray->numSlots = 0;
 
 		/* TODO:  MaxBackends is only somewhat right.  What we really want here
@@ -289,13 +293,14 @@ CreateSharedSnapshotArray(void)
 		/* xips start just after the last slot structure */
 		xip_base = (TransactionId *)&sharedSnapshotArray->slots[sharedSnapshotArray->maxSlots];
 
+		lock_base = GetNamedLWLockTranche("SharedSnapshotLocks");
 		for (i=0; i < sharedSnapshotArray->maxSlots; i++)
 		{
 			SharedSnapshotSlot *tmpSlot = &sharedSnapshotArray->slots[i];
 
 			tmpSlot->slotid = -1;
 			tmpSlot->slotindex = i;
-			tmpSlot->slotLock = LWLockAssign();
+			tmpSlot->slotLock = &lock_base[i].lock;
 
 			/*
 			 * Fixup xip array pointer reference space allocated after slot structs:

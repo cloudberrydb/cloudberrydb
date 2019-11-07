@@ -3,7 +3,7 @@
  * parsexlog.c
  *	  Functions for reading Write-Ahead-Log
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 2013-2014 VMware, Inc. All Rights Reserved.
  * Portions Copyright (c) 1996-2008, Nippon Telegraph and Telephone Corporation
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -54,7 +54,7 @@ static char xlogfpath[MAXPGPATH];
 typedef struct XLogPageReadPrivate
 {
 	const char *datadir;
-	TimeLineID	tli;
+	int			tliIndex;
 } XLogPageReadPrivate;
 
 static int SimpleXLogPageRead(XLogReaderState *xlogreader,
@@ -64,11 +64,11 @@ static int SimpleXLogPageRead(XLogReaderState *xlogreader,
 
 /*
  * Read WAL from the datadir/pg_xlog, starting from 'startpoint' on timeline
- * 'tli', until 'endpoint'. Make note of the data blocks touched by the WAL
- * records, and return them in a page map.
+ * index 'tliIndex' in target timeline history, until 'endpoint'. Make note of
+ * the data blocks touched by the WAL records, and return them in a page map.
  */
 void
-extractPageMap(const char *datadir, XLogRecPtr startpoint, TimeLineID tli,
+extractPageMap(const char *datadir, XLogRecPtr startpoint, int tliIndex,
 			   XLogRecPtr endpoint)
 {
 	XLogRecord *record;
@@ -77,7 +77,7 @@ extractPageMap(const char *datadir, XLogRecPtr startpoint, TimeLineID tli,
 	XLogPageReadPrivate private;
 
 	private.datadir = datadir;
-	private.tli = tli;
+	private.tliIndex = tliIndex;
 	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
@@ -121,7 +121,7 @@ extractPageMap(const char *datadir, XLogRecPtr startpoint, TimeLineID tli,
  * doing anything with the record itself.
  */
 XLogRecPtr
-readOneRecord(const char *datadir, XLogRecPtr ptr, TimeLineID tli)
+readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex)
 {
 	XLogRecord *record;
 	XLogReaderState *xlogreader;
@@ -130,7 +130,7 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, TimeLineID tli)
 	XLogRecPtr	endptr;
 
 	private.datadir = datadir;
-	private.tli = tli;
+	private.tliIndex = tliIndex;
 	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
@@ -161,7 +161,7 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, TimeLineID tli)
  * Find the previous checkpoint preceding given WAL position.
  */
 void
-findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, TimeLineID tli,
+findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 				   XLogRecPtr *lastchkptrec, TimeLineID *lastchkpttli,
 				   XLogRecPtr *lastchkptredo)
 {
@@ -182,7 +182,7 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, TimeLineID tli,
 		forkptr += (forkptr % XLogSegSize == 0) ? SizeOfXLogLongPHD : SizeOfXLogShortPHD;
 
 	private.datadir = datadir;
-	private.tli = tli;
+	private.tliIndex = tliIndex;
 	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
@@ -245,9 +245,11 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 {
 	XLogPageReadPrivate *private = (XLogPageReadPrivate *) xlogreader->private_data;
 	uint32		targetPageOff;
-	XLogSegNo targetSegNo PG_USED_FOR_ASSERTS_ONLY;
+	XLogRecPtr	targetSegEnd;
+	XLogSegNo	targetSegNo;
 
 	XLByteToSeg(targetPagePtr, targetSegNo);
+	XLogSegNoOffsetToRecPtr(targetSegNo + 1, 0, targetSegEnd);
 	targetPageOff = targetPagePtr % XLogSegSize;
 
 	/*
@@ -266,7 +268,20 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 	{
 		char		xlogfname[MAXFNAMELEN];
 
-		XLogFileName(xlogfname, private->tli, xlogreadsegno);
+		/*
+		 * Since incomplete segments are copied into next timelines, switch to
+		 * the timeline holding the required segment. Assuming this scan can
+		 * be done both forward and backward, consider also switching timeline
+		 * accordingly.
+		 */
+		while (private->tliIndex < targetNentries - 1 &&
+			   targetHistory[private->tliIndex].end < targetSegEnd)
+			private->tliIndex++;
+		while (private->tliIndex > 0 &&
+			   targetHistory[private->tliIndex].begin >= targetSegEnd)
+			private->tliIndex--;
+
+		XLogFileName(xlogfname, targetHistory[private->tliIndex].tli, xlogreadsegno);
 
 		snprintf(xlogfpath, MAXPGPATH, "%s/" XLOGDIR "/%s", private->datadir, xlogfname);
 
@@ -302,7 +317,7 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 
 	Assert(targetSegNo == xlogreadsegno);
 
-	*pageTLI = private->tli;
+	*pageTLI = targetHistory[private->tliIndex].tli;
 	return XLOG_BLCKSZ;
 }
 

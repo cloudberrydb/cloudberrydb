@@ -292,6 +292,8 @@ group by ten order by ten;
 
 select ten, count(four), sum(DISTINCT four) from onek
 group by ten order by ten;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: GPDB_96_MERGE_FIXME: Intermediate aggregate stage not implemented not supported in DXL
  ten | count | sum 
 -----+-------+-----
    0 |   100 |   2
@@ -616,9 +618,9 @@ explain (costs off)
   select min(unique1) from tenk1;
                    QUERY PLAN                   
 ------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (5 rows)
@@ -633,9 +635,9 @@ explain (costs off)
   select max(unique1) from tenk1;
                    QUERY PLAN                   
 ------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (5 rows)
@@ -650,9 +652,9 @@ explain (costs off)
   select max(unique1) from tenk1 where unique1 < 42;
                         QUERY PLAN                         
 -----------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
                      Index Cond: (unique1 < 42)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -668,9 +670,9 @@ explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42;
                    QUERY PLAN                   
 ------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
                      Index Cond: (unique1 > 42)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -682,15 +684,22 @@ select max(unique1) from tenk1 where unique1 > 42;
  9999
 (1 row)
 
-set enable_seqscan=off;
-set enable_bitmapscan=off;
+-- the planner may choose a generic aggregate here if parallel query is
+-- enabled, since that plan will be parallel safe and the "optimized"
+-- plan, which has almost identical cost, will not be.  we want to test
+-- the optimized plan, so temporarily disable parallel query.
+begin;
+set local max_parallel_workers_per_gather = 0;
+-- In GPDB, we also need to disable seqscans and bitmap scans.
+set local enable_seqscan=off;
+set local enable_bitmapscan=off;
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42000;
                         QUERY PLAN                         
 -----------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
                      Index Cond: (unique1 > 42000)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -702,15 +711,15 @@ select max(unique1) from tenk1 where unique1 > 42000;
     
 (1 row)
 
-reset enable_seqscan;
+rollback;
 -- multi-column index (uses tenk1_thous_tenthous)
 explain (costs off)
   select max(tenthous) from tenk1 where thousand = 33;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using tenk1_thous_tenthous on tenk1
                      Index Cond: (thousand = 33)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -726,9 +735,9 @@ explain (costs off)
   select min(tenthous) from tenk1 where thousand = 33;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Index Scan using tenk1_thous_tenthous on tenk1
                      Index Cond: (thousand = 33)
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
@@ -777,9 +786,9 @@ explain (costs off)
   select distinct max(unique2) from tenk1;
                    QUERY PLAN                   
 ------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (5 rows)
@@ -795,10 +804,10 @@ explain (costs off)
                       QUERY PLAN                      
 ------------------------------------------------------
  Sort
-   Sort Key: (max((max(unique2))))
-   ->  Aggregate
+   Sort Key: (max(unique2))
+   ->  Finalize Aggregate
          ->  Gather Motion 3:1  (slice1; segments: 3)
-               ->  Aggregate
+               ->  Partial Aggregate
                      ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (7 rows)
@@ -814,10 +823,10 @@ explain (costs off)
                       QUERY PLAN                      
 ------------------------------------------------------
  Sort
-   Sort Key: (max((max(unique2))))
-   ->  Aggregate
+   Sort Key: (max(unique2))
+   ->  Finalize Aggregate
          ->  Gather Motion 3:1  (slice1; segments: 3)
-               ->  Aggregate
+               ->  Partial Aggregate
                      ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (7 rows)
@@ -834,11 +843,11 @@ explain (costs off)
 ------------------------------------------------------------------
  Result
    ->  Sort
-         Sort Key: (((max((max(unique2)))) + 1))
+         Sort Key: (((max(unique2)) + 1))
          ->  Result
-               ->  Aggregate
+               ->  Finalize Aggregate
                      ->  Gather Motion 3:1  (slice1; segments: 3)
-                           ->  Aggregate
+                           ->  Partial Aggregate
                                  ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (9 rows)
@@ -856,9 +865,9 @@ explain (costs off)
  Sort
    Sort Key: (generate_series(1, 3)) DESC
    ->  Result
-         ->  Aggregate
+         ->  Finalize Aggregate
                ->  Gather Motion 3:1  (slice1; segments: 3)
-                     ->  Aggregate
+                     ->  Partial Aggregate
                            ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
 (8 rows)
@@ -870,6 +879,24 @@ select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
  9999 | 2
  9999 | 1
 (3 rows)
+
+-- interesting corner case: constant gets optimized into a seqscan
+explain (costs off)
+  select max(100) from tenk1;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(5 rows)
+
+select max(100) from tenk1;
+ max 
+-----
+ 100
+(1 row)
 
 -- try it on an inheritance tree
 create table minmaxtest(f1 int);
@@ -912,7 +939,6 @@ DETAIL:  Feature not supported: Inherited tables
                        ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2
                              Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest3i on minmaxtest3
-                             Index Cond: (f1 IS NOT NULL)
    InitPlan 2 (returns $1)  (slice4)
      ->  Limit
            ->  Gather Motion 3:1  (slice2; segments: 3)
@@ -926,7 +952,6 @@ DETAIL:  Feature not supported: Inherited tables
                        ->  Index Only Scan using minmaxtest2i on minmaxtest2 minmaxtest2_1
                              Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest3i on minmaxtest3 minmaxtest3_1
-                             Index Cond: (f1 IS NOT NULL)
  Optimizer: Postgres query optimizer
 (30 rows)
 
@@ -944,20 +969,22 @@ explain (costs off)
   select distinct min(f1), max(f1) from minmaxtest;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: Inherited tables
-                            QUERY PLAN                             
--------------------------------------------------------------------
- HashAggregate
-   Group Key: min((min(minmaxtest.f1))), max((max(minmaxtest.f1)))
-   ->  Aggregate
-         ->  Gather Motion 3:1  (slice1; segments: 3)
-               ->  Aggregate
-                     ->  Append
-                           ->  Seq Scan on minmaxtest
-                           ->  Seq Scan on minmaxtest1
-                           ->  Seq Scan on minmaxtest2
-                           ->  Seq Scan on minmaxtest3
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Unique
+   Group Key: (min(minmaxtest.f1)), (max(minmaxtest.f1))
+   ->  Sort
+         Sort Key: (min(minmaxtest.f1)), (max(minmaxtest.f1))
+         ->  Finalize Aggregate
+               ->  Gather Motion 3:1  (slice1; segments: 3)
+                     ->  Partial Aggregate
+                           ->  Append
+                                 ->  Seq Scan on minmaxtest
+                                 ->  Seq Scan on minmaxtest1
+                                 ->  Seq Scan on minmaxtest2
+                                 ->  Seq Scan on minmaxtest3
  Optimizer: Postgres query optimizer
-(11 rows)
+(13 rows)
 
 select distinct min(f1), max(f1) from minmaxtest;
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -981,6 +1008,82 @@ select (select max(min(unique1)) from int8_tbl) from tenk1;
 ERROR:  aggregate function calls cannot be nested
 LINE 1: select (select max(min(unique1)) from int8_tbl) from tenk1;
                            ^
+--
+-- Test removal of redundant GROUP BY columns
+--
+create temp table t1 (a int, b int, c int, d int, primary key (a, b));
+create temp table t2 (x int, y int, z int, primary key (x, y));
+create temp table t3 (a int, b int, c int, primary key(a, b) deferrable);
+-- Non-primary-key columns can be removed from GROUP BY
+explain (costs off) select * from t1 group by a,b,c,d;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Seq Scan on t1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(3 rows)
+
+-- No removal can happen if the complete PK is not present in GROUP BY
+explain (costs off) select a,c from t1 group by a,c,d;
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)
+   ->  Result
+         ->  GroupAggregate
+               Group Key: a, c, d
+               ->  Sort
+                     Sort Key: a, c, d
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           Hash Key: a, c, d
+                           ->  Seq Scan on t1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(10 rows)
+
+-- Test removal across multiple relations
+explain (costs off) select *
+from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
+group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
+                      QUERY PLAN                       
+-------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Nested Loop
+         Join Filter: true
+         ->  Seq Scan on t2
+         ->  Index Scan using t1_pkey on t1
+               Index Cond: ((a = t2.x) AND (b = t2.y))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(7 rows)
+
+-- Test case where t1 can be optimized but not t2
+explain (costs off) select t1.*,t2.x,t2.z
+from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
+group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
+                      QUERY PLAN                       
+-------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Nested Loop
+         Join Filter: true
+         ->  Seq Scan on t2
+         ->  Index Scan using t1_pkey on t1
+               Index Cond: ((a = t2.x) AND (b = t2.y))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(7 rows)
+
+-- Cannot optimize when PK is deferrable
+-- start_ignore
+-- GPDB_96_MERGE_FIXME: ORCA does it anyway.
+-- end_ignore
+explain (costs off) select * from t3 group by a,b,c;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Seq Scan on t3
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
+(3 rows)
+
+drop table t1;
+drop table t2;
+drop table t3;
 --
 -- Test combinations of DISTINCT and/or ORDER BY
 --
@@ -1796,7 +1899,6 @@ CONTEXT:  SQL function "least_accum" during startup
 select least_agg(variadic array[q1,q2]) from int8_tbl;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
-CONTEXT:  SQL function "least_accum" during startup
      least_agg     
 -------------------
  -4567890123456789
@@ -2268,12 +2370,285 @@ CONTEXT:  SQL function "least_accum" during startup
 select least_agg(variadic array[q1,q2]) from int8_tbl;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
-CONTEXT:  SQL function "least_accum" during startup
      least_agg     
 -------------------
  -4567890123456789
 (1 row)
 
+-- test aggregates with common transition functions share the same states
+begin work;
+create type avg_state as (total bigint, count bigint);
+create or replace function avg_transfn(state avg_state, n int) returns avg_state as
+$$
+declare new_state avg_state;
+begin
+	raise notice 'avg_transfn called with %', n;
+	if state is null then
+		if n is not null then
+			new_state.total := n;
+			new_state.count := 1;
+			return new_state;
+		end if;
+		return null;
+	elsif n is not null then
+		state.total := state.total + n;
+		state.count := state.count + 1;
+		return state;
+	end if;
+
+	return null;
+end
+$$ language plpgsql;
+create function avg_finalfn(state avg_state) returns int4 as
+$$
+begin
+	if state is null then
+		return NULL;
+	else
+		return state.total / state.count;
+	end if;
+end
+$$ language plpgsql;
+create function sum_finalfn(state avg_state) returns int4 as
+$$
+begin
+	if state is null then
+		return NULL;
+	else
+		return state.total;
+	end if;
+end
+$$ language plpgsql;
+create aggregate my_avg(int4)
+(
+   stype = avg_state,
+   sfunc = avg_transfn,
+   finalfunc = avg_finalfn
+);
+create aggregate my_sum(int4)
+(
+   stype = avg_state,
+   sfunc = avg_transfn,
+   finalfunc = sum_finalfn
+);
+-- aggregate state should be shared as aggs are the same.
+select my_avg(one),my_avg(one) from (values(1),(3)) t(one);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+NOTICE:  avg_transfn called with 1
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+NOTICE:  avg_transfn called with 3
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+ my_avg | my_avg 
+--------+--------
+      2 |      2
+(1 row)
+
+-- aggregate state should be shared as transfn is the same for both aggs.
+select my_avg(one),my_sum(one) from (values(1),(3)) t(one);
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+ my_avg | my_sum 
+--------+--------
+      2 |      4
+(1 row)
+
+-- same as previous one, but with DISTINCT, which requires sorting the input.
+select my_avg(distinct one),my_sum(distinct one) from (values(1),(3),(1)) t(one);
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+ my_avg | my_sum 
+--------+--------
+      2 |      4
+(1 row)
+
+-- shouldn't share states due to the distinctness not matching.
+select my_avg(distinct one),my_sum(one) from (values(1),(3)) t(one);
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+ my_avg | my_sum 
+--------+--------
+      2 |      4
+(1 row)
+
+-- shouldn't share states due to the filter clause not matching.
+select my_avg(one) filter (where one > 1),my_sum(one) from (values(1),(3)) t(one);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Aggregate functions with FILTER
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+NOTICE:  avg_transfn called with 3
+ my_avg | my_sum 
+--------+--------
+      3 |      4
+(1 row)
+
+-- this should not share the state due to different input columns.
+select my_avg(one),my_sum(two) from (values(1,2),(3,4)) t(one,two);
+NOTICE:  avg_transfn called with 2
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 4
+NOTICE:  avg_transfn called with 3
+ my_avg | my_sum 
+--------+--------
+      2 |      6
+(1 row)
+
+-- ideally these would share state, but we have to fix the OSAs first.
+select
+  percentile_cont(0.5) within group (order by a),
+  percentile_disc(0.5) within group (order by a)
+from (values(1::float8),(3),(5),(7)) t(a);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Ordered aggregates not supported in DXL
+ percentile_cont | percentile_disc 
+-----------------+-----------------
+               4 |               3
+(1 row)
+
+select
+  rank(4) within group (order by a),
+  dense_rank(4) within group (order by a)
+from (values(1),(3),(5),(7)) t(a);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Ordered aggregates not supported in DXL
+ rank | dense_rank 
+------+------------
+    3 |          3
+(1 row)
+
+-- test that aggs with the same sfunc and initcond share the same agg state
+create aggregate my_sum_init(int4)
+(
+   stype = avg_state,
+   sfunc = avg_transfn,
+   finalfunc = sum_finalfn,
+   initcond = '(10,0)'
+);
+create aggregate my_avg_init(int4)
+(
+   stype = avg_state,
+   sfunc = avg_transfn,
+   finalfunc = avg_finalfn,
+   initcond = '(10,0)'
+);
+create aggregate my_avg_init2(int4)
+(
+   stype = avg_state,
+   sfunc = avg_transfn,
+   finalfunc = avg_finalfn,
+   initcond = '(4,0)'
+);
+-- state should be shared if INITCONDs are matching
+select my_sum_init(one),my_avg_init(one) from (values(1),(3)) t(one);
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+ my_sum_init | my_avg_init 
+-------------+-------------
+          14 |           7
+(1 row)
+
+-- Varying INITCONDs should cause the states not to be shared.
+select my_sum_init(one),my_avg_init2(one) from (values(1),(3)) t(one);
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 1
+NOTICE:  avg_transfn called with 3
+NOTICE:  avg_transfn called with 3
+ my_sum_init | my_avg_init2 
+-------------+--------------
+          14 |            4
+(1 row)
+
+rollback;
+-- test aggregate state sharing to ensure it works if one aggregate has a
+-- finalfn and the other one has none.
+begin work;
+create or replace function sum_transfn(state int4, n int4) returns int4 as
+$$
+declare new_state int4;
+begin
+	raise notice 'sum_transfn called with %', n;
+	if state is null then
+		if n is not null then
+			new_state := n;
+			return new_state;
+		end if;
+		return null;
+	elsif n is not null then
+		state := state + n;
+		return state;
+	end if;
+
+	return null;
+end
+$$ language plpgsql;
+create function halfsum_finalfn(state int4) returns int4 as
+$$
+begin
+	if state is null then
+		return NULL;
+	else
+		return state / 2;
+	end if;
+end
+$$ language plpgsql;
+create aggregate my_sum(int4)
+(
+   stype = int4,
+   sfunc = sum_transfn
+);
+create aggregate my_half_sum(int4)
+(
+   stype = int4,
+   sfunc = sum_transfn,
+   finalfunc = halfsum_finalfn
+);
+-- Agg state should be shared even though my_sum has no finalfn
+select my_sum(one),my_half_sum(one) from (values(1),(2),(3),(4)) t(one);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+NOTICE:  sum_transfn called with 1
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+NOTICE:  sum_transfn called with 2
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+NOTICE:  sum_transfn called with 3
+NOTICE:  sum_transfn called with 4
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
+ my_sum | my_half_sum 
+--------+-------------
+     10 |           5
+(1 row)
+
+rollback;
 -- check collation-sensitive matching between grouping expressions
 select v||'a', case v||'a' when 'aa' then 1 else 0 end, count(*)
   from unnest(array['a','b']) u(v)

@@ -7,7 +7,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  *	  src/include/utils/guc_tables.h
  *
@@ -90,6 +90,7 @@ enum config_group
 	LOGGING_WHERE,
 	LOGGING_WHEN,
 	LOGGING_WHAT,
+	PROCESS_TITLE,
 	STATS,
 
     STATS_ANALYZE,                      /*CDB*/

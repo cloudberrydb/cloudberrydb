@@ -26,7 +26,7 @@
  * restart needs to be forced.)
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -52,17 +52,13 @@
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/lwlock.h"
-#include "storage/pmsignal.h"
 #include "storage/proc.h"
 #include "storage/shmem.h"
 #include "storage/smgr.h"
 #include "storage/spin.h"
-#include "tcop/tcopprot.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/resowner.h"
-#include "postmaster/fork_process.h"
-#include "postmaster/postmaster.h"
 
 
 /*----------
@@ -198,7 +194,6 @@ CheckpointerMain(void)
 	sigjmp_buf	local_sigjmp_buf;
 	MemoryContext checkpointer_context;
 
-	Assert(CheckpointerShmem != NULL);
 	CheckpointerShmem->checkpointer_pid = MyProcPid;
 
 	/*
@@ -229,11 +224,7 @@ CheckpointerMain(void)
 	pqsignal(SIGWINCH, SIG_DFL);
 
 	/* We allow SIGQUIT (quickdie) at all times */
-#ifdef HAVE_SIGPROCMASK
 	sigdelset(&BlockSig, SIGQUIT);
-#else
-	BlockSig &= ~(sigmask(SIGQUIT));
-#endif
 
 	/*
 	 * Initialize so that first time-driven event happens at the correct time.
@@ -282,6 +273,7 @@ CheckpointerMain(void)
 		 * files.
 		 */
 		LWLockReleaseAll();
+		pgstat_report_wait_end();
 		AbortBufferIO();
 		UnlockBuffers();
 		/* buffer pins are released here: */
@@ -297,13 +289,10 @@ CheckpointerMain(void)
 		/* Warn any waiting backends that the checkpoint failed. */
 		if (ckpt_active)
 		{
-			/* use volatile pointer to prevent code rearrangement */
-			volatile CheckpointerShmemStruct *cps = CheckpointerShmem;
-
-			SpinLockAcquire(&cps->ckpt_lck);
-			cps->ckpt_failed++;
-			cps->ckpt_done = cps->ckpt_started;
-			SpinLockRelease(&cps->ckpt_lck);
+			SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+			CheckpointerShmem->ckpt_failed++;
+			CheckpointerShmem->ckpt_done = CheckpointerShmem->ckpt_started;
+			SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 			ckpt_active = false;
 		}
@@ -437,9 +426,6 @@ CheckpointerMain(void)
 			bool		ckpt_performed = false;
 			bool		do_restartpoint;
 
-			/* use volatile pointer to prevent code rearrangement */
-			volatile CheckpointerShmemStruct *cps = CheckpointerShmem;
-
 			/*
 			 * Check if we should perform a checkpoint or a restartpoint. As a
 			 * side-effect, RecoveryInProgress() initializes TimeLineID if
@@ -452,11 +438,11 @@ CheckpointerMain(void)
 			 * checkpoint we should perform, and increase the started-counter
 			 * to acknowledge that we've started a new checkpoint.
 			 */
-			SpinLockAcquire(&cps->ckpt_lck);
-			flags |= cps->ckpt_flags;
-			cps->ckpt_flags = 0;
-			cps->ckpt_started++;
-			SpinLockRelease(&cps->ckpt_lck);
+			SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+			flags |= CheckpointerShmem->ckpt_flags;
+			CheckpointerShmem->ckpt_flags = 0;
+			CheckpointerShmem->ckpt_started++;
+			SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 			/*
 			 * The end-of-recovery checkpoint is a real checkpoint that's
@@ -514,9 +500,9 @@ CheckpointerMain(void)
 			/*
 			 * Indicate checkpoint completion to any waiting backends.
 			 */
-			SpinLockAcquire(&cps->ckpt_lck);
-			cps->ckpt_done = cps->ckpt_started;
-			SpinLockRelease(&cps->ckpt_lck);
+			SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+			CheckpointerShmem->ckpt_done = CheckpointerShmem->ckpt_started;
+			SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 			if (ckpt_performed)
 			{
@@ -960,8 +946,6 @@ CheckpointerShmemInit(void)
 void
 RequestCheckpoint(int flags)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile CheckpointerShmemStruct *cps = CheckpointerShmem;
 	int			ntries;
 	int			old_failed,
 				old_started;
@@ -995,13 +979,13 @@ RequestCheckpoint(int flags)
 	 * a "stronger" request by another backend.  The flag senses must be
 	 * chosen to make this work!
 	 */
-	SpinLockAcquire(&cps->ckpt_lck);
+	SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
 
-	old_failed = cps->ckpt_failed;
-	old_started = cps->ckpt_started;
-	cps->ckpt_flags |= flags;
+	old_failed = CheckpointerShmem->ckpt_failed;
+	old_started = CheckpointerShmem->ckpt_started;
+	CheckpointerShmem->ckpt_flags |= flags;
 
-	SpinLockRelease(&cps->ckpt_lck);
+	SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 	/*
 	 * Send signal to request checkpoint.  It's possible that the checkpointer
@@ -1049,9 +1033,9 @@ RequestCheckpoint(int flags)
 		/* Wait for a new checkpoint to start. */
 		for (;;)
 		{
-			SpinLockAcquire(&cps->ckpt_lck);
-			new_started = cps->ckpt_started;
-			SpinLockRelease(&cps->ckpt_lck);
+			SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+			new_started = CheckpointerShmem->ckpt_started;
+			SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 			if (new_started != old_started)
 				break;
@@ -1067,10 +1051,10 @@ RequestCheckpoint(int flags)
 		{
 			int			new_done;
 
-			SpinLockAcquire(&cps->ckpt_lck);
-			new_done = cps->ckpt_done;
-			new_failed = cps->ckpt_failed;
-			SpinLockRelease(&cps->ckpt_lck);
+			SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+			new_done = CheckpointerShmem->ckpt_done;
+			new_failed = CheckpointerShmem->ckpt_failed;
+			SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 			if (new_done - new_started >= 0)
 				break;
@@ -1372,15 +1356,13 @@ UpdateSharedMemoryConfig(void)
 bool
 FirstCallSinceLastCheckpoint(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile CheckpointerShmemStruct *cps = CheckpointerShmem;
 	static int	ckpt_done = 0;
 	int			new_done;
 	bool		FirstCall = false;
 
-	SpinLockAcquire(&cps->ckpt_lck);
-	new_done = cps->ckpt_done;
-	SpinLockRelease(&cps->ckpt_lck);
+	SpinLockAcquire(&CheckpointerShmem->ckpt_lck);
+	new_done = CheckpointerShmem->ckpt_done;
+	SpinLockRelease(&CheckpointerShmem->ckpt_lck);
 
 	if (new_done != ckpt_done)
 		FirstCall = true;

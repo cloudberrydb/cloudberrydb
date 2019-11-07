@@ -12,7 +12,7 @@ CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 -- we might still see this session with query '<IDLE>'.
 -- A filter is put to filter out this kind of quitted sessions.
 CREATE OR REPLACE VIEW rg_activity_status AS
-	SELECT rsgname, waiting_reason, state, query
+	SELECT rsgname, wait_event_type, state, query
 	FROM pg_stat_activity
 	WHERE rsgname='rg_concurrency_test'
 	  AND query <> '<IDLE>';
@@ -357,7 +357,7 @@ SELECT * FROM rg_activity_status;
 SELECT * FROM rg_activity_status;
 
 SELECT pg_cancel_backend(pid) FROM pg_stat_activity
-WHERE waiting_reason='resgroup' AND rsgname='rg_concurrency_test';
+WHERE wait_event_type='ResourceGroup' AND rsgname='rg_concurrency_test';
 12<:
 12q:
 SELECT * FROM rg_activity_status;

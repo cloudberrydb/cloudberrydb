@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2007-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -63,6 +63,10 @@
 #include <sys/file.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#ifndef WIN32
+#include <sys/mman.h>
+#endif
+#include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
 #ifdef HAVE_SYS_RESOURCE_H
@@ -76,6 +80,7 @@
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbvars.h"
 #include "pgstat.h"
+#include "portability/mem.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "utils/guc.h"
@@ -97,6 +102,8 @@
 
 /* Define PG_FLUSH_DATA_WORKS if we have an implementation for pg_flush_data */
 #if defined(HAVE_SYNC_FILE_RANGE)
+#define PG_FLUSH_DATA_WORKS 1
+#elif !defined(WIN32) && defined(MS_ASYNC)
 #define PG_FLUSH_DATA_WORKS 1
 #elif defined(USE_POSIX_FADVISE) && defined(POSIX_FADV_DONTNEED)
 #define PG_FLUSH_DATA_WORKS 1
@@ -412,29 +419,163 @@ pg_fdatasync(int fd)
 }
 
 /*
- * pg_flush_data --- advise OS that the data described won't be needed soon
+ * pg_flush_data --- advise OS that the described dirty data should be flushed
  *
- * Not all platforms have sync_file_range or posix_fadvise; treat as no-op
- * if not available.  Also, treat as no-op if enableFsync is off; this is
- * because the call isn't free, and some platforms such as Linux will actually
- * block the requestor until the write is scheduled.
+ * offset of 0 with nbytes 0 means that the entire file should be flushed;
+ * in this case, this function may have side-effects on the file's
+ * seek position!
  */
-int
-pg_flush_data(int fd, off_t offset, off_t amount)
+void
+pg_flush_data(int fd, off_t offset, off_t nbytes)
 {
-#ifdef PG_FLUSH_DATA_WORKS
-	if (enableFsync)
-	{
+	/*
+	 * Right now file flushing is primarily used to avoid making later
+	 * fsync()/fdatasync() calls have less impact. Thus don't trigger flushes
+	 * if fsyncs are disabled - that's a decision we might want to make
+	 * configurable at some point.
+	 */
+	if (!enableFsync)
+		return;
+
+	/*
+	 * We compile all alternatives that are supported on the current platform,
+	 * to find portability problems more easily.
+	 */
 #if defined(HAVE_SYNC_FILE_RANGE)
-		return sync_file_range(fd, offset, amount, SYNC_FILE_RANGE_WRITE);
-#elif defined(USE_POSIX_FADVISE) && defined(POSIX_FADV_DONTNEED)
-		return posix_fadvise(fd, offset, amount, POSIX_FADV_DONTNEED);
-#else
-#error PG_FLUSH_DATA_WORKS should not have been defined
-#endif
+	{
+		int			rc;
+
+		/*
+		 * sync_file_range(SYNC_FILE_RANGE_WRITE), currently linux specific,
+		 * tells the OS that writeback for the specified blocks should be
+		 * started, but that we don't want to wait for completion.  Note that
+		 * this call might block if too much dirty data exists in the range.
+		 * This is the preferable method on OSs supporting it, as it works
+		 * reliably when available (contrast to msync()) and doesn't flush out
+		 * clean data (like FADV_DONTNEED).
+		 */
+		rc = sync_file_range(fd, offset, nbytes,
+							 SYNC_FILE_RANGE_WRITE);
+
+		/* don't error out, this is just a performance optimization */
+		if (rc != 0)
+		{
+			ereport(WARNING,
+					(errcode_for_file_access(),
+					 errmsg("could not flush dirty data: %m")));
+		}
+
+		return;
 	}
 #endif
-	return 0;
+#if !defined(WIN32) && defined(MS_ASYNC)
+	{
+		void	   *p;
+		static int	pagesize = 0;
+
+		/*
+		 * On several OSs msync(MS_ASYNC) on a mmap'ed file triggers
+		 * writeback. On linux it only does so if MS_SYNC is specified, but
+		 * then it does the writeback synchronously. Luckily all common linux
+		 * systems have sync_file_range().  This is preferable over
+		 * FADV_DONTNEED because it doesn't flush out clean data.
+		 *
+		 * We map the file (mmap()), tell the kernel to sync back the contents
+		 * (msync()), and then remove the mapping again (munmap()).
+		 */
+
+		/* mmap() needs actual length if we want to map whole file */
+		if (offset == 0 && nbytes == 0)
+		{
+			nbytes = lseek(fd, 0, SEEK_END);
+			if (nbytes < 0)
+			{
+				ereport(WARNING,
+						(errcode_for_file_access(),
+						 errmsg("could not determine dirty data size: %m")));
+				return;
+			}
+		}
+
+		/*
+		 * Some platforms reject partial-page mmap() attempts.  To deal with
+		 * that, just truncate the request to a page boundary.  If any extra
+		 * bytes don't get flushed, well, it's only a hint anyway.
+		 */
+
+		/* fetch pagesize only once */
+		if (pagesize == 0)
+			pagesize = sysconf(_SC_PAGESIZE);
+
+		/* align length to pagesize, dropping any fractional page */
+		if (pagesize > 0)
+			nbytes = (nbytes / pagesize) * pagesize;
+
+		/* fractional-page request is a no-op */
+		if (nbytes <= 0)
+			return;
+
+		/*
+		 * mmap could well fail, particularly on 32-bit platforms where there
+		 * may simply not be enough address space.  If so, silently fall
+		 * through to the next implementation.
+		 */
+		if (nbytes <= (off_t) SSIZE_MAX)
+			p = mmap(NULL, nbytes, PROT_READ, MAP_SHARED, fd, offset);
+		else
+			p = MAP_FAILED;
+
+		if (p != MAP_FAILED)
+		{
+			int			rc;
+
+			rc = msync(p, (size_t) nbytes, MS_ASYNC);
+			if (rc != 0)
+			{
+				ereport(WARNING,
+						(errcode_for_file_access(),
+						 errmsg("could not flush dirty data: %m")));
+				/* NB: need to fall through to munmap()! */
+			}
+
+			rc = munmap(p, (size_t) nbytes);
+			if (rc != 0)
+			{
+				/* FATAL error because mapping would remain */
+				ereport(FATAL,
+						(errcode_for_file_access(),
+					  errmsg("could not munmap() while flushing data: %m")));
+			}
+
+			return;
+		}
+	}
+#endif
+#if defined(USE_POSIX_FADVISE) && defined(POSIX_FADV_DONTNEED)
+	{
+		int			rc;
+
+		/*
+		 * Signal the kernel that the passed in range should not be cached
+		 * anymore. This has the, desired, side effect of writing out dirty
+		 * data, and the, undesired, side effect of likely discarding useful
+		 * clean cached blocks.  For the latter reason this is the least
+		 * preferable method.
+		 */
+
+		rc = posix_fadvise(fd, offset, nbytes, POSIX_FADV_DONTNEED);
+
+		if (rc != 0)
+		{
+			/* don't error out, this is just a performance optimization */
+			ereport(WARNING,
+					(errcode_for_file_access(),
+					 errmsg("could not flush dirty data: %m")));
+		}
+
+		return;
+	}
+#endif
 }
 
 /*
@@ -1642,6 +1783,31 @@ FilePrefetch(File file, off_t offset, int amount)
 #endif
 }
 
+void
+FileWriteback(File file, off_t offset, off_t nbytes)
+{
+	int			returnCode;
+
+	Assert(FileIsValid(file));
+
+	DO_DB(elog(LOG, "FileWriteback: %d (%s) " INT64_FORMAT " " INT64_FORMAT,
+			   file, VfdCache[file].fileName,
+			   (int64) offset, (int64) nbytes));
+
+	/*
+	 * Caution: do not call pg_flush_data with nbytes = 0, it could trash the
+	 * file's seek position.  We prefer to define that as a no-op here.
+	 */
+	if (nbytes <= 0)
+		return;
+
+	returnCode = FileAccess(file);
+	if (returnCode < 0)
+		return;
+
+	pg_flush_data(VfdCache[file].fd, offset, nbytes);
+}
+
 int
 FileRead(File file, char *buffer, int amount)
 {
@@ -2037,6 +2203,40 @@ FilePathName(File file)
 	return VfdCache[file].fileName;
 }
 
+/*
+ * Return the raw file descriptor of an opened file.
+ *
+ * The returned file descriptor will be valid until the file is closed, but
+ * there are a lot of things that can make that happen.  So the caller should
+ * be careful not to do much of anything else before it finishes using the
+ * returned file descriptor.
+ */
+int
+FileGetRawDesc(File file)
+{
+	Assert(FileIsValid(file));
+	return VfdCache[file].fd;
+}
+
+/*
+ * FileGetRawFlags - returns the file flags on open(2)
+ */
+int
+FileGetRawFlags(File file)
+{
+	Assert(FileIsValid(file));
+	return VfdCache[file].fileFlags;
+}
+
+/*
+ * FileGetRawMode - returns the mode bitmask passed to open(2)
+ */
+int
+FileGetRawMode(File file)
+{
+	Assert(FileIsValid(file));
+	return VfdCache[file].fileMode;
+}
 
 /*
  * Make room for another allocatedDescs[] array entry if needed and possible.
@@ -3184,11 +3384,15 @@ pre_sync_fname(const char *fname, bool isdir, int elevel)
 {
 	int			fd;
 
+	/* Don't try to flush directories, it'll likely just fail */
+	if (isdir)
+		return;
+
 	fd = OpenTransientFile((char *) fname, O_RDONLY | PG_BINARY, 0);
 
 	if (fd < 0)
 	{
-		if (errno == EACCES || (isdir && errno == EISDIR))
+		if (errno == EACCES)
 			return;
 		ereport(elevel,
 				(errcode_for_file_access(),
@@ -3197,9 +3401,10 @@ pre_sync_fname(const char *fname, bool isdir, int elevel)
 	}
 
 	/*
-	 * We ignore errors from pg_flush_data() because this is only a hint.
+	 * pg_flush_data() ignores errors, which is ok because this is only a
+	 * hint.
 	 */
-	(void) pg_flush_data(fd, 0, 0);
+	pg_flush_data(fd, 0, 0);
 
 	(void) CloseTransientFile(fd);
 }

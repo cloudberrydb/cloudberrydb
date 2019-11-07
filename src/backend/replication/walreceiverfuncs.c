@@ -6,7 +6,7 @@
  * with the walreceiver process. Functions implementing walreceiver itself
  * are in walreceiver.c.
  *
- * Portions Copyright (c) 2010-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2016, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -73,8 +73,7 @@ WalRcvShmemInit(void)
 bool
 WalRcvRunning(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 	WalRcvState state;
 	pg_time_t	startTime;
 
@@ -126,8 +125,7 @@ WalRcvRunning(void)
 bool
 WalRcvStreaming(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 	WalRcvState state;
 	pg_time_t	startTime;
 
@@ -173,8 +171,7 @@ WalRcvStreaming(void)
 void
 ShutdownWalRcv(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 	pid_t		walrcvpid = 0;
 
 	elogif(debug_xlog_record_read, LOG,
@@ -243,8 +240,7 @@ void
 RequestXLogStreaming(TimeLineID tli, XLogRecPtr recptr, const char *conninfo,
 					 const char *slotname)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 	bool		launch = false;
 	pg_time_t	now = (pg_time_t) time(NULL);
 
@@ -314,8 +310,7 @@ RequestXLogStreaming(TimeLineID tli, XLogRecPtr recptr, const char *conninfo,
 XLogRecPtr
 GetWalRcvWriteRecPtr(XLogRecPtr *latestChunkStart, TimeLineID *receiveTLI)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 	XLogRecPtr	recptr;
 
 	SpinLockAcquire(&walrcv->mutex);
@@ -336,9 +331,7 @@ GetWalRcvWriteRecPtr(XLogRecPtr *latestChunkStart, TimeLineID *receiveTLI)
 int
 GetReplicationApplyDelay(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
-
+	WalRcvData *walrcv = WalRcv;
 	XLogRecPtr	receivePtr;
 	XLogRecPtr	replayPtr;
 
@@ -375,8 +368,7 @@ GetReplicationApplyDelay(void)
 int
 GetReplicationTransferLatency(void)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile WalRcvData *walrcv = WalRcv;
+	WalRcvData *walrcv = WalRcv;
 
 	TimestampTz lastMsgSendTime;
 	TimestampTz lastMsgReceiptTime;

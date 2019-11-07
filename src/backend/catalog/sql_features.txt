@@ -229,7 +229,7 @@ F311	Schema definition statement	02	CREATE TABLE for persistent base tables	YES
 F311	Schema definition statement	03	CREATE VIEW	YES	
 F311	Schema definition statement	04	CREATE VIEW: WITH CHECK OPTION	YES	
 F311	Schema definition statement	05	GRANT statement	YES	
-F312	MERGE statement			NO	Consider INSERT ... ON CONFLICT DO UPDATE
+F312	MERGE statement			NO	consider INSERT ... ON CONFLICT DO UPDATE
 F313	Enhanced MERGE statement			NO	
 F314	MERGE statement with DELETE branch			NO	
 F321	User authorization			YES	
@@ -316,7 +316,7 @@ F831	Full cursor update			NO
 F831	Full cursor update	01	Updatable scrollable cursors	NO	
 F831	Full cursor update	02	Updatable ordered cursors	NO	
 F841	LIKE_REGEX predicate			NO	
-F842	OCCURENCES_REGEX function			NO	
+F842	OCCURRENCES_REGEX function			NO	
 F843	POSITION_REGEX function			NO	
 F844	SUBSTRING_REGEX function			NO	
 F845	TRANSLATE_REGEX function			NO	
@@ -383,7 +383,7 @@ S274	Multisets of reference types			NO
 S275	Advanced multiset support			NO	
 S281	Nested collection types			NO	
 S291	Unique constraint on entire row			NO	
-S301	Enhanced UNNEST			NO	
+S301	Enhanced UNNEST			YES	
 S401	Distinct types based on array types			NO	
 S402	Distinct types based on distinct types			NO	
 S403	ARRAY_MAX_CARDINALITY			NO	
@@ -481,8 +481,7 @@ T501	Enhanced EXISTS predicate			NO
 T502	Period predicates			NO	
 T511	Transaction counts			NO	
 T521	Named arguments in CALL statement			NO	
-T522	Default values for IN parameters of SQL-invoked procedures			NO	
-T541	Updatable table references			NO	
+T522	Default values for IN parameters of SQL-invoked procedures			NO	supported except DEFAULT key word in invocation
 T551	Optional key words for default syntax			YES	
 T561	Holdable locators			NO	
 T571	Array-returning external SQL-invoked functions			NO	
@@ -657,10 +656,10 @@ X271	XMLValidate: data-driven case			NO
 X272	XMLValidate: ACCORDING TO clause			NO	
 X273	XMLValidate: ELEMENT clause			NO	
 X274	XMLValidate: schema location			NO	
-X281	XMLValidate: with DOCUMENT option			NO	
+X281	XMLValidate with DOCUMENT option			NO	
 X282	XMLValidate with CONTENT option			NO	
 X283	XMLValidate with SEQUENCE option			NO	
-X284	XMLValidate NAMESPACE without ELEMENT clause			NO	
+X284	XMLValidate: NAMESPACE without ELEMENT clause			NO	
 X286	XMLValidate: NO NAMESPACE with ELEMENT clause			NO	
 X300	XMLTable			NO	
 X301	XMLTable: derived column list option			NO	

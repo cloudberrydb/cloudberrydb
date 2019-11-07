@@ -3,7 +3,7 @@
  * unaccent.c
  *	  Text search unaccent dictionary
  *
- * Copyright (c) 2009-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2009-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/unaccent/unaccent.c
@@ -319,12 +319,10 @@ unaccent_lexize(PG_FUNCTION_ARGS)
 	/* we allocate storage for the buffer only if needed */
 	buf.data = NULL;
 
-	while (srcchar - srcstart < len)
+	while (len > 0)
 	{
 		TrieChar   *node;
-		int			charlen;
-
-		charlen = pg_mblen(srcchar);
+		int			matchlen;
 
 		node = findReplaceTo(rootTrie, (unsigned char *) srcchar, len,
 							 &matchlen);
@@ -340,8 +338,12 @@ unaccent_lexize(PG_FUNCTION_ARGS)
 			}
 			appendBinaryStringInfo(&buf, node->replaceTo, node->replacelen);
 		}
-		else if (buf.data != NULL)
-			appendBinaryStringInfo(&buf, srcchar, charlen);
+		else
+		{
+			matchlen = pg_mblen(srcchar);
+			if (buf.data != NULL)
+				appendBinaryStringInfo(&buf, srcchar, matchlen);
+		}
 
 		srcchar += matchlen;
 		len -= matchlen;

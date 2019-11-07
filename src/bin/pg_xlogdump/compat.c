@@ -3,7 +3,7 @@
  * compat.c
  *		Reimplementations of various backend functions.
  *
- * Portions Copyright (c) 2013-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2013-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/bin/pg_xlogdump/compat.c
@@ -22,12 +22,6 @@
 
 #include "utils/datetime.h"
 #include "lib/stringinfo.h"
-
-#include "access/twophase.h"
-#include "access/xlog.h"
-#include "catalog/catalog.h"
-#include "catalog/pg_tablespace.h"
-#include "common/relpath.h"
 
 /* copied from timestamp.c */
 pg_time_t
@@ -105,4 +99,3 @@ appendStringInfoChar(StringInfo str, char ch)
 {
 	appendStringInfo(str, "%c", ch);
 }
-

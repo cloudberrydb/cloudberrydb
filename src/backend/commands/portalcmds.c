@@ -11,7 +11,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -380,10 +380,11 @@ PersistHoldablePortal(Portal portal)
 	Assert(queryDesc != NULL);
 
 	/*
-	 * Caller must have created the tuplestore already.
+	 * Caller must have created the tuplestore already ... but not a snapshot.
 	 */
 	Assert(portal->holdContext != NULL);
 	Assert(portal->holdStore != NULL);
+	Assert(portal->holdSnapshot == NULL);
 
 	/*
 	 * Before closing down the executor, we must copy the tupdesc into
@@ -430,7 +431,8 @@ PersistHoldablePortal(Portal portal)
 
 		/*
 		 * Change the destination to output to the tuplestore.  Note we tell
-		 * the tuplestore receiver to detoast all data passed through it.
+		 * the tuplestore receiver to detoast all data passed through it; this
+		 * makes it safe to not keep a snapshot associated with the data.
 		 */
 		queryDesc->dest = CreateDestReceiver(DestTuplestore);
 		SetTuplestoreDestReceiverParams(queryDesc->dest,

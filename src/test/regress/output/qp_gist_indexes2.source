@@ -557,13 +557,15 @@ SELECT id, property AS "ProperTee" FROM GistTable13
 
 EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                          QUERY PLAN                          
---------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Index Scan using gistindex13 on gisttable13
-         Index Cond: (property ~= '(999,999),(998,998)'::box)
+   ->  Bitmap Heap Scan on gisttable13
+         Recheck Cond: (property ~= '(999,999),(998,998)'::box)
+         ->  Bitmap Index Scan on gistindex13
+               Index Cond: (property ~= '(999,999),(998,998)'::box)
  Optimizer: Postgres query optimizer
-(4 rows)
+(6 rows)
 
 VACUUM GistTable13;
 ANALYZE GistTable13;
@@ -576,13 +578,15 @@ SELECT id, property AS "ProperTee" FROM GistTable13
 
 EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                          QUERY PLAN                          
---------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Index Scan using gistindex13 on gisttable13
-         Index Cond: (property ~= '(999,999),(998,998)'::box)
+   ->  Bitmap Heap Scan on gisttable13
+         Recheck Cond: (property ~= '(999,999),(998,998)'::box)
+         ->  Bitmap Index Scan on gistindex13
+               Index Cond: (property ~= '(999,999),(998,998)'::box)
  Optimizer: Postgres query optimizer
-(4 rows)
+(6 rows)
 
 TRUNCATE TABLE GistTable13;
 -- Add some rows.
@@ -1079,9 +1083,8 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
-(9 rows)
+(8 rows)
 
 -- ----------------------------------------------------------------------
 -- Test: test13Vacuum.sql
@@ -1702,9 +1705,8 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
-(9 rows)
+(8 rows)
 
 -- ----------------------------------------------------------------------
 -- Test: test13Vacuum.sql
@@ -2316,8 +2318,8 @@ SELECT owner, property FROM GistTable1
  WHERE property IS NULL
  ORDER BY id
  ;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
    ->  Sort
@@ -2325,9 +2327,8 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
-(9 rows)
+(8 rows)
 
 -- ----------------------------------------------------------------------
 -- Test: test13Vacuum.sql
@@ -2939,8 +2940,8 @@ SELECT owner, property FROM GistTable1
  WHERE property IS NULL
  ORDER BY id
  ;
-                         QUERY PLAN                          
--------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
    ->  Sort
@@ -2948,9 +2949,8 @@ SELECT owner, property FROM GistTable1
          ->  Bitmap Heap Scan on gisttable1
                Recheck Cond: (property IS NULL)
                ->  Bitmap Index Scan on propertyisnullindex
-                     Index Cond: (property IS NULL)
  Optimizer: Postgres query optimizer
-(9 rows)
+(8 rows)
 
 -- ----------------------------------------------------------------------
 -- Test: test13Vacuum.sql

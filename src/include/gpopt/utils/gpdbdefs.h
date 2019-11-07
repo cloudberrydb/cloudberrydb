@@ -93,7 +93,7 @@ extern
 void ExecutorStart(QueryDesc *pqueryDesc, int iEFlags);
 
 extern
-void ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long lCount);
+void ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count);
 
 extern
 void ExecutorEnd(QueryDesc *pqueryDesc);

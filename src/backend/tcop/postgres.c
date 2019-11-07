@@ -3,7 +3,7 @@
  * postgres.c
  *	  POSTGRES C Backend Interface
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -194,8 +194,8 @@ static CachedPlanSource *unnamed_stmt_psrc = NULL;
 
 /* assorted command-line switches */
 static const char *userDoption = NULL;	/* -D switch */
-
 static bool EchoQuery = false;	/* -E switch */
+static bool UseSemiNewlineNewline = false;		/* -j switch */
 
 #ifndef _WIN32
 pthread_t main_tid = (pthread_t)0;
@@ -205,16 +205,6 @@ pthread_t main_tid = {0,0};
 
 /* if we're in the middle of dying, let our threads exit with some dignity */
 static volatile sig_atomic_t in_quickdie = false;
-
-/*
- * people who want to use EOF should #define DONTUSENEWLINE in
- * tcop/tcopdebug.h
- */
-#ifndef TCOP_DONTUSENEWLINE
-static int	UseNewLine = 1;		/* Use newlines query delimiters (the default) */
-#else
-static int	UseNewLine = 0;		/* Use EOF as query delimiters */
-#endif   /* TCOP_DONTUSENEWLINE */
 
 /* whether or not, and why, we were canceled by conflict with recovery */
 static bool RecoveryConflictPending = false;
@@ -305,8 +295,6 @@ static int
 InteractiveBackend(StringInfo inBuf)
 {
 	int			c;				/* character read from getc() */
-	bool		end = false;	/* end-of-input flag */
-	bool		backslashSeen = false;	/* have we seen a \ ? */
 
 	/*
 	 * display a prompt and obtain input from the user
@@ -316,55 +304,56 @@ InteractiveBackend(StringInfo inBuf)
 
 	resetStringInfo(inBuf);
 
-	if (UseNewLine)
+	/*
+	 * Read characters until EOF or the appropriate delimiter is seen.
+	 */
+	while ((c = interactive_getc()) != EOF)
 	{
-		/*
-		 * if we are using \n as a delimiter, then read characters until the
-		 * \n.
-		 */
-		while ((c = interactive_getc()) != EOF)
+		if (c == '\n')
 		{
-			if (c == '\n')
+			if (UseSemiNewlineNewline)
 			{
-				if (backslashSeen)
+				/*
+				 * In -j mode, semicolon followed by two newlines ends the
+				 * command; otherwise treat newline as regular character.
+				 */
+				if (inBuf->len > 1 &&
+					inBuf->data[inBuf->len - 1] == '\n' &&
+					inBuf->data[inBuf->len - 2] == ';')
+				{
+					/* might as well drop the second newline */
+					break;
+				}
+			}
+			else
+			{
+				/*
+				 * In plain mode, newline ends the command unless preceded by
+				 * backslash.
+				 */
+				if (inBuf->len > 0 &&
+					inBuf->data[inBuf->len - 1] == '\\')
 				{
 					/* discard backslash from inBuf */
 					inBuf->data[--inBuf->len] = '\0';
-					backslashSeen = false;
+					/* discard newline too */
 					continue;
 				}
 				else
 				{
-					/* keep the newline character */
+					/* keep the newline character, but end the command */
 					appendStringInfoChar(inBuf, '\n');
 					break;
 				}
 			}
-			else if (c == '\\')
-				backslashSeen = true;
-			else
-				backslashSeen = false;
-
-			appendStringInfoChar(inBuf, (char) c);
 		}
 
-		if (c == EOF)
-			end = true;
-	}
-	else
-	{
-		/*
-		 * otherwise read characters until EOF.
-		 */
-		while ((c = interactive_getc()) != EOF)
-			appendStringInfoChar(inBuf, (char) c);
-
-		/* No input before EOF signal means time to quit. */
-		if (inBuf->len == 0)
-			end = true;
+		/* Not newline, or newline treated as regular character */
+		appendStringInfoChar(inBuf, (char) c);
 	}
 
-	if (end)
+	/* No input before EOF signal means time to quit. */
+	if (c == EOF && inBuf->len == 0)
 		return EOF;
 
 	/*
@@ -1719,7 +1708,8 @@ exec_simple_query(const char *query_string)
 		querytree_list = pg_analyze_and_rewrite(parsetree, query_string,
 												NULL, 0);
 
-		plantree_list = pg_plan_queries(querytree_list, 0, NULL);
+		plantree_list = pg_plan_queries(querytree_list,
+										CURSOR_OPT_PARALLEL_OK, NULL);
 
 		/* Done with the snapshot used for parsing/planning */
 		if (snapshot_set)
@@ -2113,7 +2103,7 @@ exec_parse_message(const char *query_string,	/* string to execute */
 					   numParams,
 					   NULL,
 					   NULL,
-					   0,		/* default cursor options */
+					   CURSOR_OPT_PARALLEL_OK,	/* allow parallel mode */
 					   true);	/* fixed result */
 
 	/* If we got a cancel signal during analysis, quit */
@@ -2354,6 +2344,7 @@ exec_bind_message(StringInfo input_message)
 		params->parserSetup = NULL;
 		params->parserSetupArg = NULL;
 		params->numParams = numParams;
+		params->paramMask = NULL;
 
 		for (paramno = 0; paramno < numParams; paramno++)
 		{
@@ -3640,9 +3631,7 @@ RecoveryConflictInterrupt(ProcSignalReason reason)
 	/*
 	 * Set the process latch. This function essentially emulates signal
 	 * handlers like die() and StatementCancelHandler() and it seems prudent
-	 * to behave similarly as they do. Alternatively all plain backend code
-	 * waiting on that latch, expecting to get interrupted by query cancels et
-	 * al., would also need to set set_latch_on_sigusr1.
+	 * to behave similarly as they do.
 	 */
 	SetLatch(MyLatch);
 
@@ -3854,6 +3843,18 @@ ProcessInterrupts(const char* filename, int lineno)
 		}
 	}
 
+	if (IdleInTransactionSessionTimeoutPending)
+	{
+		/* Has the timeout setting changed since last we looked? */
+		if (IdleInTransactionSessionTimeout > 0)
+			ereport(FATAL,
+					(errcode(ERRCODE_IDLE_IN_TRANSACTION_SESSION_TIMEOUT),
+					 errmsg("terminating connection due to idle-in-transaction timeout")));
+		else
+			IdleInTransactionSessionTimeoutPending = false;
+
+	}
+
 	if (ParallelMessagePending)
 		HandleParallelMessages();
 }
@@ -3861,33 +3862,35 @@ ProcessInterrupts(const char* filename, int lineno)
 /*
  * IA64-specific code to fetch the AR.BSP register for stack depth checks.
  *
- * We currently support gcc, icc, and HP-UX inline assembly here.
+ * We currently support gcc, icc, and HP-UX's native compiler here.
+ *
+ * Note: while icc accepts gcc asm blocks on x86[_64], this is not true on
+ * ia64 (at least not in icc versions before 12.x).  So we have to carry a
+ * separate implementation for it.
  */
 #if defined(__ia64__) || defined(__ia64)
 
-#if defined(__hpux) && !defined(__GNUC__) && !defined __INTEL_COMPILER
+#if defined(__hpux) && !defined(__GNUC__) && !defined(__INTEL_COMPILER)
+/* Assume it's HP-UX native compiler */
 #include <ia64/sys/inline.h>
 #define ia64_get_bsp() ((char *) (_Asm_mov_from_ar(_AREG_BSP, _NO_FENCE)))
-#else
-
-#ifdef __INTEL_COMPILER
+#elif defined(__INTEL_COMPILER)
+/* icc */
 #include <asm/ia64regs.h>
-#endif
-
+#define ia64_get_bsp() ((char *) __getReg(_IA64_REG_AR_BSP))
+#else
+/* gcc */
 static __inline__ char *
 ia64_get_bsp(void)
 {
 	char	   *ret;
 
-#ifndef __INTEL_COMPILER
 	/* the ;; is a "stop", seems to be required before fetching BSP */
 	__asm__		__volatile__(
 										 ";;\n"
 										 "	mov	%0=ar.bsp	\n"
 							 :			 "=r"(ret));
-#else
-	ret = (char *) __getReg(_IA64_REG_AR_BSP);
-#endif
+
 	return ret;
 }
 #endif
@@ -4252,7 +4255,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 
 			case 'j':
 				if (secure)
-					UseNewLine = 0;
+					UseSemiNewlineNewline = true;
 				break;
 
 			case 'k':
@@ -4476,6 +4479,7 @@ PostgresMain(int argc, char *argv[],
 	StringInfoData input_message;
 	sigjmp_buf	local_sigjmp_buf;
 	volatile bool send_ready_for_query = true;
+	bool		disable_idle_in_transaction_timeout = false;
 
 	MemoryAccountIdType postgresMainMemoryAccountId = MEMORY_OWNER_TYPE_Undefined;
 
@@ -4883,7 +4887,7 @@ PostgresMain(int argc, char *argv[],
 		if (pq_is_reading_msg())
 			ereport(FATAL,
 					(errcode(ERRCODE_PROTOCOL_VIOLATION),
-			errmsg("terminating connection because protocol sync was lost")));
+					 errmsg("terminating connection because protocol synchronization was lost")));
 
 		/* Now we can allow interrupts again */
 		RESUME_INTERRUPTS();
@@ -4974,11 +4978,27 @@ PostgresMain(int argc, char *argv[],
 			{
 				set_ps_display("idle in transaction (aborted)", false);
 				pgstat_report_activity(STATE_IDLEINTRANSACTION_ABORTED, NULL);
+
+				/* Start the idle-in-transaction timer */
+				if (IdleInTransactionSessionTimeout > 0)
+				{
+					disable_idle_in_transaction_timeout = true;
+					enable_timeout_after(IDLE_IN_TRANSACTION_SESSION_TIMEOUT,
+										 IdleInTransactionSessionTimeout);
+				}
 			}
 			else if (IsTransactionOrTransactionBlock())
 			{
 				set_ps_display("idle in transaction", false);
 				pgstat_report_activity(STATE_IDLEINTRANSACTION, NULL);
+
+				/* Start the idle-in-transaction timer */
+				if (IdleInTransactionSessionTimeout > 0)
+				{
+					disable_idle_in_transaction_timeout = true;
+					enable_timeout_after(IDLE_IN_TRANSACTION_SESSION_TIMEOUT,
+										 IdleInTransactionSessionTimeout);
+				}
 			}
 			else
 			{
@@ -5043,7 +5063,16 @@ PostgresMain(int argc, char *argv[],
 		DoingCommandRead = false;
 
 		/*
-		 * (5) check for any other interesting events that happened while we
+		 * (5) turn off the idle-in-transaction timeout
+		 */
+		if (disable_idle_in_transaction_timeout)
+		{
+			disable_timeout(IDLE_IN_TRANSACTION_SESSION_TIMEOUT, false);
+			disable_idle_in_transaction_timeout = false;
+		}
+
+		/*
+		 * (6) check for any other interesting events that happened while we
 		 * slept.
 		 */
 		if (ConfigReloadPending)
@@ -5053,7 +5082,7 @@ PostgresMain(int argc, char *argv[],
 		}
 
 		/*
-		 * (6) process the command.  But ignore it if we're skipping till
+		 * (7) process the command.  But ignore it if we're skipping till
 		 * Sync.
 		 */
 		if (ignore_till_sync && firstchar != EOF)

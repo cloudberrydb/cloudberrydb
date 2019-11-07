@@ -117,8 +117,12 @@ create aggregate mysum_prefunc(int4) (
   stype=bigint,
   prefunc=int8pl_with_notice
 );
+
+-- tweak settings to force multistage agg to be used
+set gp_motion_cost_per_row = 1000;
 set optimizer_force_multistage_agg = on;
 select mysum_prefunc(a::int4) from aggtest;
+reset gp_motion_cost_per_row;
 reset optimizer_force_multistage_agg;
 
 

@@ -2271,6 +2271,19 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg
 		output_context
 		);
 
+	// Set the aggsplit for the agg node
+	ListCell *lc;
+	foreach(lc, plan->targetlist)
+	{
+		TargetEntry *te = (TargetEntry *) lfirst(lc);
+		if (IsA(te->expr, Aggref))
+		{
+			Aggref *aggref = (Aggref *)te->expr;
+			agg->aggsplit = aggref->aggsplit;
+			break;
+		}
+	}
+
 	plan->lefttree = child_plan;
 
 	// translate aggregation strategy

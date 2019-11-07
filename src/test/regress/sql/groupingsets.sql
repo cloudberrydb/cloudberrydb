@@ -73,6 +73,35 @@ select grouping(a), a, array_agg(b),
 select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
   from gstest2 group by rollup (a,b) order by rsum, a, b;
 
+-- nesting with grouping sets
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(())))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(((a, b)))))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(rollup(c), grouping sets(cube(c))))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(a, grouping sets(a, cube(b)))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, (b))))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, b)))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a), a))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a, grouping sets(a), ((a)), a, grouping sets(a), (a)), a))
+  order by 1 desc;
+select sum(c) from gstest2
+  group by grouping sets((a,(a,b)), grouping sets((a,(a,b)),a))
+  order by 1 desc;
+
 -- empty input: first is 0 rows, second 1, third 3 etc.
 select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
 select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),());
@@ -153,6 +182,35 @@ select a, b, sum(c), count(*) from gstest2 group by grouping sets (rollup(a,b),a
 select ten, sum(distinct four) from onek a
 group by grouping sets((ten,four),(ten))
 having exists (select 1 from onek b where sum(distinct a.four) = b.four);
+
+-- Tests around pushdown of HAVING clauses, partially testing against previous bugs
+select a,count(*) from gstest2 group by rollup(a) order by a;
+select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+explain (costs off)
+  select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+
+select v.c, (select count(*) from gstest2 group by () having v.c)
+  from (values (false),(true)) v(c) order by v.c;
+explain (costs off)
+  select v.c, (select count(*) from gstest2 group by () having v.c)
+    from (values (false),(true)) v(c) order by v.c;
+
+-- HAVING with GROUPING queries
+select ten, grouping(ten) from onek
+group by grouping sets(ten) having grouping(ten) >= 0
+order by 2,1;
+select ten, grouping(ten) from onek
+group by grouping sets(ten, four) having grouping(ten) > 0
+order by 2,1;
+select ten, grouping(ten) from onek
+group by rollup(ten) having grouping(ten) > 0
+order by 2,1;
+select ten, grouping(ten) from onek
+group by cube(ten) having grouping(ten) > 0
+order by 2,1;
+select ten, grouping(ten) from onek
+group by (ten) having grouping(ten) >= 0
+order by 2,1;
 
 -- FILTER queries
 select ten, sum(distinct four) filter (where four::text ~ '123') from onek a

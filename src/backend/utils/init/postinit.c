@@ -3,7 +3,7 @@
  * postinit.c
  *	  postgres initialization utilities
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -66,6 +66,7 @@
 #include "utils/faultinjector.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
+#include "utils/memutils.h"
 #include "utils/pg_locale.h"
 #include "utils/portal.h"
 #include "utils/ps_status.h"
@@ -90,6 +91,7 @@ static void InitCommunication(void);
 static void ShutdownPostgres(int code, Datum arg);
 static void StatementTimeoutHandler(void);
 static void LockTimeoutHandler(void);
+static void IdleInTransactionSessionTimeoutHandler(void);
 static bool ThereIsAtLeastOneRole(void);
 static void process_startup_options(Port *port, bool am_superuser);
 static void process_settings(Oid databaseid, Oid roleid);
@@ -245,6 +247,19 @@ PerformAuthentication(Port *port)
 	 * FIXME: [fork/exec] Ugh.  Is there a way around this overhead?
 	 */
 #ifdef EXEC_BACKEND
+
+	/*
+	 * load_hba() and load_ident() want to work within the PostmasterContext,
+	 * so create that if it doesn't exist (which it won't).  We'll delete it
+	 * again later, in PostgresMain.
+	 */
+	if (PostmasterContext == NULL)
+		PostmasterContext = AllocSetContextCreate(TopMemoryContext,
+												  "Postmaster",
+												  ALLOCSET_DEFAULT_MINSIZE,
+												  ALLOCSET_DEFAULT_INITSIZE,
+												  ALLOCSET_DEFAULT_MAXSIZE);
+
 	if (!load_hba())
 	{
 		/*
@@ -432,6 +447,8 @@ CheckMyDatabase(const char *name, bool am_superuser)
 	/* Make the locale settings visible as GUC variables, too */
 	SetConfigOption("lc_collate", collate, PGC_INTERNAL, PGC_S_OVERRIDE);
 	SetConfigOption("lc_ctype", ctype, PGC_INTERNAL, PGC_S_OVERRIDE);
+
+	check_strxfrm_bug();
 
 	ReleaseSysCache(tup);
 }
@@ -674,6 +691,8 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 		RegisterTimeout(DEADLOCK_TIMEOUT, CheckDeadLockAlert);
 		RegisterTimeout(STATEMENT_TIMEOUT, StatementTimeoutHandler);
 		RegisterTimeout(LOCK_TIMEOUT, LockTimeoutHandler);
+		RegisterTimeout(IDLE_IN_TRANSACTION_SESSION_TIMEOUT,
+						IdleInTransactionSessionTimeoutHandler);
 		RegisterTimeout(GANG_TIMEOUT, IdleGangTimeoutHandler);
 	}
 
@@ -987,9 +1006,9 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	{
 		/*
 		 * If this is a background worker not bound to any particular
-		 * database, we're done now.  Everything that follows only makes
-		 * sense if we are bound to a specific database.  We do need to
-		 * close the transaction we started before returning.
+		 * database, we're done now.  Everything that follows only makes sense
+		 * if we are bound to a specific database.  We do need to close the
+		 * transaction we started before returning.
 		 */
 		if (!bootstrap)
 			CommitTransactionCommand();
@@ -1403,6 +1422,13 @@ LockTimeoutHandler(void)
 	kill(MyProcPid, SIGINT);
 }
 
+static void
+IdleInTransactionSessionTimeoutHandler(void)
+{
+	IdleInTransactionSessionTimeoutPending = true;
+	InterruptPending = true;
+	SetLatch(MyLatch);
+}
 
 /*
  * Returns true if at least one role is defined in this database cluster.

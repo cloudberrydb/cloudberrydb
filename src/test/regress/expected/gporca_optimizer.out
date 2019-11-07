@@ -10873,14 +10873,14 @@ explain (costs off) select count(*), t2.c from input_tab1 t1 left join input_tab
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
-   ->  GroupAggregate
+   ->  Finalize GroupAggregate
          Group Key: input_tab2.c
          ->  Sort
                Sort Key: input_tab2.c
                ->  Redistribute Motion 3:3  (slice1; segments: 3)
                      Hash Key: input_tab2.c
                      ->  Result
-                           ->  GroupAggregate
+                           ->  Partial GroupAggregate
                                  Group Key: input_tab2.c
                                  ->  Sort
                                        Sort Key: input_tab2.c

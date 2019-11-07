@@ -231,7 +231,6 @@ return "you''ve been warned"
 	LANGUAGE plpythonu;
 SELECT nested_warning();
 WARNING:  boom
-CONTEXT:  PL/Python function "nested_warning"
    nested_warning   
 --------------------
  you've been warned
@@ -335,7 +334,6 @@ SELECT specific_exception(2);
 
 SELECT specific_exception(NULL);
 NOTICE:  Violated the NOT NULL constraint, sqlstate 23502
-CONTEXT:  PL/Python function "specific_exception"
  specific_exception 
 --------------------
  
@@ -343,7 +341,6 @@ CONTEXT:  PL/Python function "specific_exception"
 
 SELECT specific_exception(2);
 NOTICE:  Violated the UNIQUE constraint, sqlstate 23505
-CONTEXT:  PL/Python function "specific_exception"
  specific_exception 
 --------------------
  

@@ -3,7 +3,7 @@
  * miscinit.c
  *	  miscellaneous initialization support stuff
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,6 +34,7 @@
 #include "access/htup_details.h"
 #include "catalog/pg_authid.h"
 #include "cdb/cdbvars.h"
+#include "libpq/libpq.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "postmaster/autovacuum.h"
@@ -208,8 +209,8 @@ InitPostmasterChild(void)
 	/*
 	 * If possible, make this process a group leader, so that the postmaster
 	 * can signal any child processes too. Not all processes will have
-	 * children, but for consistency we , but for consistency we make all
-	 * postmaster child processes do this.
+	 * children, but for consistency we make all postmaster child processes do
+	 * this.
 	 */
 #ifdef HAVE_SETSID
 	if (setsid() < 0)
@@ -256,6 +257,9 @@ SwitchToSharedLatch(void)
 
 	MyLatch = &MyProc->procLatch;
 
+	if (FeBeWaitSet)
+		ModifyWaitEvent(FeBeWaitSet, 1, WL_LATCH_SET, MyLatch);
+
 	/*
 	 * Set the shared latch as the local one might have been set. This
 	 * shouldn't normally be necessary as code is supposed to check the
@@ -271,6 +275,10 @@ SwitchBackToLocalLatch(void)
 	Assert(MyProc != NULL && MyLatch == &MyProc->procLatch);
 
 	MyLatch = &LocalLatchData;
+
+	if (FeBeWaitSet)
+		ModifyWaitEvent(FeBeWaitSet, 1, WL_LATCH_SET, MyLatch);
+
 	SetLatch(MyLatch);
 }
 
@@ -357,7 +365,7 @@ GetAuthenticatedUserId(void)
  * GetUserIdAndSecContext/SetUserIdAndSecContext - get/set the current user ID
  * and the SecurityRestrictionContext flags.
  *
- * Currently there are two valid bits in SecurityRestrictionContext:
+ * Currently there are three valid bits in SecurityRestrictionContext:
  *
  * SECURITY_LOCAL_USERID_CHANGE indicates that we are inside an operation
  * that is temporarily changing CurrentUserId via these functions.  This is
@@ -374,6 +382,13 @@ GetAuthenticatedUserId(void)
  * these restrictions are fairly draconian, we apply them only in contexts
  * where the called functions are really supposed to be side-effect-free
  * anyway, such as VACUUM/ANALYZE/REINDEX.
+ *
+ * SECURITY_NOFORCE_RLS indicates that we are inside an operation which should
+ * ignore the FORCE ROW LEVEL SECURITY per-table indication.  This is used to
+ * ensure that FORCE RLS does not mistakenly break referential integrity
+ * checks.  Note that this is intentionally only checked when running as the
+ * owner of the table (which should always be the case for referential
+ * integrity checks).
  *
  * Unlike GetUserId, GetUserIdAndSecContext does *not* Assert that the current
  * value of CurrentUserId is valid; nor does SetUserIdAndSecContext require
@@ -415,6 +430,15 @@ bool
 InSecurityRestrictedOperation(void)
 {
 	return (SecurityRestrictionContext & SECURITY_RESTRICTED_OPERATION) != 0;
+}
+
+/*
+ * InNoForceRLSOperation - are we ignoring FORCE ROW LEVEL SECURITY ?
+ */
+bool
+InNoForceRLSOperation(void)
+{
+	return (SecurityRestrictionContext & SECURITY_NOFORCE_RLS) != 0;
 }
 
 
@@ -474,6 +498,7 @@ InitializeSessionUserId(const char *rolename, Oid roleid)
 {
 	HeapTuple	roleTup;
 	Form_pg_authid rform;
+	char	   *rname;
 
 	/*
 	 * Don't do scans if we're bootstrapping, none of the system catalogs
@@ -485,16 +510,25 @@ InitializeSessionUserId(const char *rolename, Oid roleid)
 	AssertState(!OidIsValid(AuthenticatedUserId));
 
 	if (rolename != NULL)
+	{
 		roleTup = SearchSysCache1(AUTHNAME, PointerGetDatum(rolename));
+		if (!HeapTupleIsValid(roleTup))
+			ereport(FATAL,
+					(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
+					 errmsg("role \"%s\" does not exist", rolename)));
+	}
 	else
+	{
 		roleTup = SearchSysCache1(AUTHOID, ObjectIdGetDatum(roleid));
-	if (!HeapTupleIsValid(roleTup))
-		ereport(FATAL,
-				(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
-				 errmsg("role \"%s\" does not exist", rolename)));
+		if (!HeapTupleIsValid(roleTup))
+			ereport(FATAL,
+					(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
+					 errmsg("role with OID %u does not exist", roleid)));
+	}
 
 	rform = (Form_pg_authid) GETSTRUCT(roleTup);
 	roleid = HeapTupleGetOid(roleTup);
+	rname = NameStr(rform->rolname);
 
 	AuthenticatedUserId = roleid;
 	AuthenticatedUserIsSuperuser = rform->rolsuper;
@@ -520,7 +554,7 @@ InitializeSessionUserId(const char *rolename, Oid roleid)
 			ereport(FATAL,
 					(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
 					 errmsg("role \"%s\" is not permitted to log in",
-							rolename)));
+							rname)));
 
 		/*
 		 * Check connection limit for this role.
@@ -542,7 +576,7 @@ InitializeSessionUserId(const char *rolename, Oid roleid)
 			ereport(FATAL,
 					(errcode(ERRCODE_TOO_MANY_CONNECTIONS),
 					 errmsg("too many connections for role \"%s\"",
-							rolename)));
+							rname)));
 	}
 
 	/*
@@ -556,7 +590,7 @@ InitializeSessionUserId(const char *rolename, Oid roleid)
 	}
 
 	/* Record username and superuser status as GUC settings too */
-	SetConfigOption("session_authorization", rolename,
+	SetConfigOption("session_authorization", rname,
 					PGC_BACKEND, PGC_S_OVERRIDE);
 	SetConfigOption("is_superuser",
 					AuthenticatedUserIsSuperuser ? "on" : "off",
@@ -753,6 +787,17 @@ UnlinkLockFiles(int status, Datum arg)
 	}
 	/* Since we're about to exit, no need to reclaim storage */
 	lock_files = NIL;
+
+	/*
+	 * Lock file removal should always be the last externally visible action
+	 * of a postmaster or standalone backend, while we won't come here at all
+	 * when exiting postmaster child processes.  Therefore, this is a good
+	 * place to log completion of shutdown.  We could alternatively teach
+	 * proc_exit() to do it, but that seems uglier.  In a standalone backend,
+	 * use NOTICE elevel to be less chatty.
+	 */
+	ereport(IsPostmasterEnvironment ? LOG : NOTICE,
+			(errmsg("database system is shut down")));
 }
 
 /*

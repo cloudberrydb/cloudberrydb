@@ -13,7 +13,7 @@
  * we must return a tuples-processed count in the completionTag.  (We no
  * longer do that for CTAS ... WITH NO DATA, however.)
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -84,7 +84,7 @@ static ObjectAddress create_ctas_internal(List *attrList, IntoClause *into,
 static ObjectAddress create_ctas_nodata(List *tlist, IntoClause *into, QueryDesc *queryDesc);
 
 /* DestReceiver routines for collecting data */
-static void intorel_receive(TupleTableSlot *slot, DestReceiver *self);
+static bool intorel_receive(TupleTableSlot *slot, DestReceiver *self);
 static void intorel_shutdown(DestReceiver *self);
 static void intorel_destroy(DestReceiver *self);
 
@@ -228,6 +228,7 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 		StoreViewQuery(intoRelationAddr.objectId, query, false);
 		CommandCounterIncrement();
 	}
+
 	if (Gp_role == GP_ROLE_DISPATCH && dispatch)
 		CdbDispatchUtilityStatement((Node *) create,
 									DF_CANCEL_ON_ERROR |
@@ -328,7 +329,7 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 	ObjectAddress address;
 	List	   *rewritten;
 	PlannedStmt *plan;
-	QueryDesc  *queryDesc = NULL;
+	QueryDesc  *queryDesc;
 	Oid         relationOid = InvalidOid;   /* relation that is modified */
 	AutoStatsCmdType cmdType = AUTOSTATS_CMDTYPE_SENTINEL;  /* command type */
 
@@ -390,52 +391,44 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 		save_nestlevel = NewGUCNestLevel();
 	}
 
-	/*
-	 * Parse analysis was done already, but we still have to run the rule
-	 * rewriter.  We do not do AcquireRewriteLocks: we assume the query either
-	 * came straight from the parser, or suitable locks were acquired by
-	 * plancache.c.
-	 *
-	 * Because the rewriter and planner tend to scribble on the input, we make
-	 * a preliminary copy of the source querytree.  This prevents problems in
-	 * the case that CTAS is in a portal or plpgsql function and is executed
-	 * repeatedly.  (See also the same hack in EXPLAIN and PREPARE.)
-	 */
-	rewritten = QueryRewrite((Query *) copyObject(query));
+	{
+		/*
+		 * Parse analysis was done already, but we still have to run the rule
+		 * rewriter.  We do not do AcquireRewriteLocks: we assume the query
+		 * either came straight from the parser, or suitable locks were
+		 * acquired by plancache.c.
+		 *
+		 * Because the rewriter and planner tend to scribble on the input, we
+		 * make a preliminary copy of the source querytree.  This prevents
+		 * problems in the case that CTAS is in a portal or plpgsql function
+		 * and is executed repeatedly.  (See also the same hack in EXPLAIN and
+		 * PREPARE.)
+		 */
+		rewritten = QueryRewrite((Query *) copyObject(query));
 
-	/* SELECT should never rewrite to more or less than one SELECT query */
-	if (list_length(rewritten) != 1)
-		elog(ERROR, "unexpected rewrite result for %s",
-			 is_matview ? "CREATE MATERIALIZED VIEW" :
-			 "CREATE TABLE AS SELECT");
-	query = (Query *) linitial(rewritten);
-	Assert(query->commandType == CMD_SELECT);
+		/* SELECT should never rewrite to more or less than one SELECT query */
+		if (list_length(rewritten) != 1)
+			elog(ERROR, "unexpected rewrite result for %s",
+				 is_matview ? "CREATE MATERIALIZED VIEW" :
+				 "CREATE TABLE AS SELECT");
+		query = (Query *) linitial(rewritten);
+		Assert(query->commandType == CMD_SELECT);
 
-	/* plan the query */
-	plan = pg_plan_query(query, 0, params);
+		/* plan the query */
+		plan = pg_plan_query(query, 0, params);
 
-	/*GPDB: Save the target information in PlannedStmt */
-	/*
-	 * GPDB_92_MERGE_FIXME: it really should be an optimizer's responsibility
-	 * to correctly set the into-clause and into-policy of the PlannedStmt.
-	 */
-	plan->intoClause = copyObject(stmt->into);
+		/*GPDB: Save the target information in PlannedStmt */
+		/*
+		 * GPDB_92_MERGE_FIXME: it really should be an optimizer's responsibility
+		 * to correctly set the into-clause and into-policy of the PlannedStmt.
+		 */
+		plan->intoClause = copyObject(stmt->into);
 
-	/*
-	 * Use a snapshot with an updated command ID to ensure this query sees
-	 * results of any previously executed queries.  (This could only
-	 * matter if the planner executed an allegedly-stable function that
-	 * changed the database contents, but let's do it anyway to be
-	 * parallel to the EXPLAIN code path.)
-	 */
-	PushCopiedSnapshot(GetActiveSnapshot());
-	UpdateActiveSnapshotCommandId();
-
-	/* Create a QueryDesc, redirecting output to our tuple receiver */
-	queryDesc = CreateQueryDesc(plan, queryString,
-								GetActiveSnapshot(), InvalidSnapshot,
-								dest, params, 0);
-
+		/* Create a QueryDesc, redirecting output to our tuple receiver */
+		queryDesc = CreateQueryDesc(plan, queryString,
+									GetActiveSnapshot(), InvalidSnapshot,
+									dest, params, 0);
+	}
 
 	if (into->skipData && !is_matview)
 	{
@@ -449,6 +442,16 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 	}
 	else
 	{
+		/*
+		 * Use a snapshot with an updated command ID to ensure this query sees
+		 * results of any previously executed queries.  (This could only
+		 * matter if the planner executed an allegedly-stable function that
+		 * changed the database contents, but let's do it anyway to be
+		 * parallel to the EXPLAIN code path.)
+		 */
+		PushCopiedSnapshot(GetActiveSnapshot());
+		UpdateActiveSnapshotCommandId();
+
 		queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 		/* call ExecutorStart to prepare the plan for execution */
@@ -464,34 +467,37 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 		ExecutorFinish(queryDesc);
 		ExecutorEnd(queryDesc);
 
+		/*
+		 * In GPDB, computing the row count needs to happen after ExecutorEnd()
+		 * because that is where it gets the row count from dispatch. There's
+		 * also some special processing if the relation was a replicated table.
+		 * In upstream Postgres, the rowcount is saved before ExecutorFinish().
+		 */
 		if (into->distributedBy &&
 			((DistributedBy *)(into->distributedBy))->ptype == POLICYTYPE_REPLICATED)
 			queryDesc->es_processed /= ((DistributedBy *)(into->distributedBy))->numsegments;
 
-		/* MPP-14001: Running auto_stats */
-		if (Gp_role == GP_ROLE_DISPATCH)
-			auto_stats(cmdType, relationOid, queryDesc->es_processed, false /* inFunction */);
+		/* get object address that intorel_startup saved for us */
+		address = ((DR_intorel *) dest)->reladdr;
 
-		/*
-		 * GPDB: Saving the rowcount happens after ExecutorEnd() because that
-		 * is where it gets the row count from dispatch. There's also some
-		 * special processing if the relation was a replicated table. In
-		 * upstream Postgres, the rowcount is saved before ExecutorFinish().
-		 */
 		/* save the rowcount if we're given a completionTag to fill */
 		if (completionTag)
 			snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
-					 "SELECT " UINT64_FORMAT, queryDesc->es_processed);
+					 "SELECT " UINT64_FORMAT,
+					 queryDesc->es_processed);
 
-		/* get object address that intorel_startup saved for us */
-		address = ((DR_intorel *) dest)->reladdr;
+		/* MPP-14001: Running auto_stats */
+		if (Gp_role == GP_ROLE_DISPATCH)
+			auto_stats(cmdType, relationOid, queryDesc->es_processed, false /* inFunction */);
 	}
 
-	dest->rDestroy(dest);
+	{
+		dest->rDestroy(dest);
 
-	FreeQueryDesc(queryDesc);
+		FreeQueryDesc(queryDesc);
 
-	PopActiveSnapshot();
+		PopActiveSnapshot();
+	}
 
 	if (is_matview)
 	{
@@ -744,7 +750,7 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 /*
  * intorel_receive --- receive one tuple
  */
-static void
+static bool
 intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_intorel *myState = (DR_intorel *) self;
@@ -791,9 +797,11 @@ intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 					myState->hi_options,
 					myState->bistate,
 					GetCurrentTransactionId());
-
-		/* We know this is a newly created relation, so there are no indexes */
 	}
+
+	/* We know this is a newly created relation, so there are no indexes */
+
+	return true;
 }
 
 /*

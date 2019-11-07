@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/plancat.h
@@ -64,6 +64,8 @@ extern Selectivity join_selectivity(PlannerInfo *root,
 				 Oid inputcollid,
 				 JoinType jointype,
 				 SpecialJoinInfo *sjinfo);
+
+extern bool has_row_triggers(PlannerInfo *root, Index rti, CmdType event);
 
 #define DEFAULT_EXTERNAL_TABLE_PAGES 1000
 #define DEFAULT_INTERNAL_TABLE_PAGES 100

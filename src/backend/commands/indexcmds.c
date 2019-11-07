@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -17,14 +17,18 @@
 
 #include "postgres.h"
 
+#include "access/amapi.h"
 #include "access/htup_details.h"
 #include "access/reloptions.h"
+#include "access/sysattr.h"
 #include "access/tupconvert.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/index.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_constraint.h"
+#include "catalog/pg_constraint_fn.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_inherits_fn.h"
 #include "catalog/pg_opclass.h"
@@ -42,6 +46,7 @@
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/planner.h"
+#include "optimizer/var.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
@@ -226,6 +231,7 @@ CheckIndexCompatible(Oid oldId,
 	HeapTuple	tuple;
 	Form_pg_index indexForm;
 	Form_pg_am	accessMethodForm;
+	IndexAmRoutine *amRoutine;
 	bool		amcanorder;
 	int16	   *coloptions;
 	IndexInfo  *indexInfo;
@@ -261,8 +267,10 @@ CheckIndexCompatible(Oid oldId,
 						accessMethodName)));
 	accessMethodId = HeapTupleGetOid(tuple);
 	accessMethodForm = (Form_pg_am) GETSTRUCT(tuple);
-	amcanorder = accessMethodForm->amcanorder;
+	amRoutine = GetIndexAmRoutine(accessMethodForm->amhandler);
 	ReleaseSysCache(tuple);
+
+	amcanorder = amRoutine->amcanorder;
 
 	/*
 	 * Compute the operator classes, collations, and exclusion operators for
@@ -417,8 +425,9 @@ DefineIndex(Oid relationId,
 	Relation	indexRelation;
 	HeapTuple	tuple;
 	Form_pg_am	accessMethodForm;
+	IndexAmRoutine *amRoutine;
 	bool		amcanorder;
-	RegProcedure amoptions;
+	amoptions_function amoptions;
 	bool		partitioned;
 	Datum		reloptions;
 	int16	   *coloptions;
@@ -647,6 +656,7 @@ DefineIndex(Oid relationId,
 	}
 	accessMethodId = HeapTupleGetOid(tuple);
 	accessMethodForm = (Form_pg_am) GETSTRUCT(tuple);
+	amRoutine = GetIndexAmRoutine(accessMethodForm->amhandler);
 
 	if (accessMethodId == HASH_AM_OID)
 		ereport(ERROR,
@@ -657,17 +667,17 @@ DefineIndex(Oid relationId,
 		ereport(WARNING,
 				(errmsg("hash indexes are not WAL-logged and their use is discouraged")));
 
-	if (stmt->unique && !accessMethodForm->amcanunique)
+	if (stmt->unique && !amRoutine->amcanunique)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			   errmsg("access method \"%s\" does not support unique indexes",
 					  accessMethodName)));
-	if (numberOfAttributes > 1 && !accessMethodForm->amcanmulticol)
+	if (numberOfAttributes > 1 && !amRoutine->amcanmulticol)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 		  errmsg("access method \"%s\" does not support multicolumn indexes",
 				 accessMethodName)));
-	if (stmt->excludeOpNames && !OidIsValid(accessMethodForm->amgettuple))
+	if (stmt->excludeOpNames && amRoutine->amgettuple == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 		errmsg("access method \"%s\" does not support exclusion constraints",
@@ -687,9 +697,10 @@ DefineIndex(Oid relationId,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                  errmsg("append-only tables do not support unique indexes")));
 
-	amcanorder = accessMethodForm->amcanorder;
-	amoptions = accessMethodForm->amoptions;
+	amcanorder = amRoutine->amcanorder;
+	amoptions = amRoutine->amoptions;
 
+	pfree(amRoutine);
 	ReleaseSysCache(tuple);
 
 	/*
@@ -761,6 +772,41 @@ DefineIndex(Oid relationId,
 
 	if (Gp_role == GP_ROLE_EXECUTE && stmt)
 		quiet = true;
+
+	/*
+	 * We disallow indexes on system columns other than OID.  They would not
+	 * necessarily get updated correctly, and they don't seem useful anyway.
+	 */
+	for (i = 0; i < indexInfo->ii_NumIndexAttrs; i++)
+	{
+		AttrNumber	attno = indexInfo->ii_KeyAttrNumbers[i];
+
+		if (attno < 0 && attno != ObjectIdAttributeNumber)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			   errmsg("index creation on system columns is not supported")));
+	}
+
+	/*
+	 * Also check for system columns used in expressions or predicates.
+	 */
+	if (indexInfo->ii_Expressions || indexInfo->ii_Predicate)
+	{
+		Bitmapset  *indexattrs = NULL;
+
+		pull_varattnos((Node *) indexInfo->ii_Expressions, 1, &indexattrs);
+		pull_varattnos((Node *) indexInfo->ii_Predicate, 1, &indexattrs);
+
+		for (i = FirstLowInvalidHeapAttributeNumber + 1; i < 0; i++)
+		{
+			if (i != ObjectIdAttributeNumber &&
+				bms_is_member(i - FirstLowInvalidHeapAttributeNumber,
+							  indexattrs))
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				errmsg("index creation on system columns is not supported")));
+		}
+	}
 
 	/*
 	 * Report index creation if appropriate (delay this till after most of the

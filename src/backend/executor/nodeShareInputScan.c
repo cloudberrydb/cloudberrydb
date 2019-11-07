@@ -185,7 +185,9 @@ ExecShareInputScan(ShareInputScanState *node)
 		}
 		else
 		{
-			gotOK = tuplesort_gettupleslot_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos, forward, slot, CurrentMemoryContext);
+			gotOK = tuplesort_gettupleslot_pos(node->ts_state->sortstore,
+											   (TuplesortPos *) node->ts_pos, forward, slot, NULL,
+											   CurrentMemoryContext);
 		}
 
 		if(!gotOK)
@@ -868,6 +870,10 @@ shareinput_writer_waitdone(void *ctxt, int share_id, int nsharer_xslice)
 static void
 ExecEagerFreeShareInputScan(ShareInputScanState *node)
 {
+	/* clean up tuple table */
+	ExecClearTuple(node->ss.ss_ScanTupleSlot);
+	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+
 	/*
 	 * no need to call tuplestore end.  Underlying ShareInput will take
 	 * care of releasing tuplestore resources

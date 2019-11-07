@@ -4,7 +4,7 @@
  *
  *	Parallel support header file for the pg_dump archiver
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	The author is not responsible for loss or damages that may
@@ -82,7 +82,7 @@ extern void DispatchJobForTocEntry(ArchiveHandle *AH,
 					   TocEntry *te, T_Action act);
 extern void ParallelBackupEnd(ArchiveHandle *AH, ParallelState *pstate);
 
-extern void set_archive_cancel_info(struct _archiveHandle * AH, PGconn *conn);
+extern void set_archive_cancel_info(ArchiveHandle *AH, PGconn *conn);
 
 extern void
 exit_horribly(const char *modulename, const char *fmt,...)

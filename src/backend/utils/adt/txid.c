@@ -10,7 +10,7 @@
  * via functions such as SubTransGetTopmostTransaction().
  *
  *
- *	Copyright (c) 2003-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2003-2016, PostgreSQL Global Development Group
  *	Author: Jan Wieck, Afilias USA INC.
  *	64-bit txids: Marko Kreen, Skype Technologies
  *
@@ -336,8 +336,9 @@ parse_snapshot(const char *str)
 bad_format:
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-			 errmsg("invalid input for txid_snapshot: \"%s\"", str_start)));
-	return NULL;
+			 errmsg("invalid input syntax for type txid_snapshot: \"%s\"",
+					str_start)));
+	return NULL;				/* keep compiler quiet */
 }
 
 /*
@@ -528,8 +529,10 @@ txid_snapshot_recv(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(snap);
 
 bad_format:
-	elog(ERROR, "invalid snapshot data");
-	return (Datum) NULL;
+	ereport(ERROR,
+			(errcode(ERRCODE_INVALID_BINARY_REPRESENTATION),
+			 errmsg("invalid external txid_snapshot data")));
+	PG_RETURN_POINTER(NULL);	/* keep compiler quiet */
 }
 
 /*

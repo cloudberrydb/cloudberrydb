@@ -20,7 +20,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/palloc.h
@@ -161,10 +161,6 @@ extern void *MemoryContextAllocHuge(MemoryContext context, Size size);
 extern void *repalloc_huge(void *pointer, Size size);
 
 /*
- * MemoryContextSwitchTo can't be a macro in standard C compilers.
- * But we can make it an inline function if the compiler supports it.
- * See STATIC_IF_INLINE in c.h.
- *
  * Although this header file is nominally backend-only, certain frontend
  * programs like pg_controldata include it via postgres.h.  For some compilers
  * it's necessary to hide the inline definition of MemoryContextSwitchTo in
@@ -172,11 +168,7 @@ extern void *repalloc_huge(void *pointer, Size size);
  */
 
 #ifndef FRONTEND
-#ifndef PG_USE_INLINE
-extern MemoryContext MemoryContextSwitchTo(MemoryContext context);
-#endif   /* !PG_USE_INLINE */
-#if defined(PG_USE_INLINE) || defined(MCXT_INCLUDE_DEFINITIONS)
-STATIC_IF_INLINE MemoryContext
+static inline MemoryContext
 MemoryContextSwitchTo(MemoryContext context)
 {
 	MemoryContext old = CurrentMemoryContext;
@@ -184,7 +176,6 @@ MemoryContextSwitchTo(MemoryContext context)
 	CurrentMemoryContext = context;
 	return old;
 }
-#endif   /* PG_USE_INLINE || MCXT_INCLUDE_DEFINITIONS */
 #endif   /* FRONTEND */
 
 /* Registration of memory context reset/delete callbacks */

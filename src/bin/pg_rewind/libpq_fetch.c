@@ -3,7 +3,7 @@
  * libpq_fetch.c
  *	  Functions for fetching files from a remote server.
  *
- * Copyright (c) 2013-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2016, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -82,7 +82,7 @@ libpqConnect(const char *connstr)
 	pg_free(str);
 
 	/*
-	 * Also check that full_page_writes is enabled. We can get torn pages if
+	 * Also check that full_page_writes is enabled.  We can get torn pages if
 	 * a page is modified while we read it with pg_read_binary_file(), and we
 	 * rely on full page images to fix them.
 	 */
@@ -352,7 +352,7 @@ receiveFileChunks(const char *sql)
 		if (PQgetisnull(res, 0, 2))
 		{
 			pg_log(PG_DEBUG,
-			  "received null value for chunk for file \"%s\", file has been deleted\n",
+				   "received null value for chunk for file \"%s\", file has been deleted\n",
 				   filename);
 			remove_target_file(filename, true);
 			pg_free(filename);

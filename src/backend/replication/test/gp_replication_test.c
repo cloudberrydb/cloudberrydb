@@ -12,7 +12,7 @@
 static void
 expect_lwlock(LWLockMode lockmode)
 {
-	expect_value(LWLockAcquire, l, SyncRepLock);
+	expect_value(LWLockAcquire, lock, SyncRepLock);
 	expect_value(LWLockAcquire, mode, lockmode);
 	will_return(LWLockAcquire, true);
 

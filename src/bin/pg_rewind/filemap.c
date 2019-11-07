@@ -3,7 +3,7 @@
  * filemap.c
  *	  A data structure for keeping track of files that have changed.
  *
- * Copyright (c) 2013-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2016, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -174,6 +174,14 @@ process_source_file(const char *path, file_type_t type, size_t newsize,
 	/*
 	 * Pretend that pg_xlog is a directory, even if it's really a symlink.
 	 * We don't want to mess with the symlink itself, nor complain if it's a
+	 * symlink in source but not in target or vice versa.
+	 */
+	if (strcmp(path, "pg_xlog") == 0 && type == FILE_TYPE_SYMLINK)
+		type = FILE_TYPE_DIRECTORY;
+
+	/*
+	 * Pretend that pg_xlog is a directory, even if it's really a symlink. We
+	 * don't want to mess with the symlink itself, nor complain if it's a
 	 * symlink in source but not in target or vice versa.
 	 */
 	if (strcmp(path, "pg_xlog") == 0 && type == FILE_TYPE_SYMLINK)
@@ -394,6 +402,12 @@ process_target_file(const char *path, file_type_t type, size_t oldsize,
 
 		qsort(map->array, map->narray, sizeof(file_entry_t *), path_cmp);
 	}
+
+	/*
+	 * Like in process_source_file, pretend that xlog is always a  directory.
+	 */
+	if (strcmp(path, "pg_xlog") == 0 && type == FILE_TYPE_SYMLINK)
+		type = FILE_TYPE_DIRECTORY;
 
 	/*
 	 * Like in process_source_file, pretend that xlog is always a  directory.
@@ -753,7 +767,11 @@ print_filemap(void)
 		if (entry->action != FILE_ACTION_NONE ||
 			entry->pagemap.bitmapsize > 0)
 		{
-			printf("%s (%s)\n", entry->path, action_to_str(entry->action));
+			pg_log(PG_DEBUG,
+			/*------
+			   translator: first %s is a file path, second is a keyword such as COPY */
+				   "%s (%s)\n", entry->path,
+				   action_to_str(entry->action));
 
 			if (entry->pagemap.bitmapsize > 0)
 				datapagemap_print(&entry->pagemap);

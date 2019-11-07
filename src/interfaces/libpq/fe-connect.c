@@ -4,7 +4,7 @@
  *	  functions related to setting up a connection to the backend
  *
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -471,11 +471,9 @@ pqDropConnection(PGconn *conn, bool flushInput)
 	if (conn->sock != PGINVALID_SOCKET)
 		closesocket(conn->sock);
 	conn->sock = PGINVALID_SOCKET;
-
 	/* Optionally discard any unread data */
 	if (flushInput)
 		conn->inStart = conn->inCursor = conn->inEnd = 0;
-
 	/* Always discard any unsent data */
 	conn->outCount = 0;
 
@@ -3008,6 +3006,7 @@ makeEmptyPGconn(void)
 	conn->client_encoding = PG_SQL_ASCII;
 	conn->std_strings = false;	/* unless server says differently */
 	conn->verbosity = PQERRORS_DEFAULT;
+	conn->show_context = PQSHOW_CONTEXT_ERRORS;
 	conn->sock = PGINVALID_SOCKET;
 	conn->dot_pgpass_used = false;
 
@@ -3346,7 +3345,7 @@ PQresetPoll(PGconn *conn)
 }
 
 /*
- * PQcancelGet: get a PGcancel structure corresponding to a connection.
+ * PQgetCancel: get a PGcancel structure corresponding to a connection.
  *
  * A copy is needed to be able to cancel a running query from a different
  * thread. If the same structure is used all structure members would have
@@ -5637,7 +5636,10 @@ PQhost(const PGconn *conn)
 	else
 	{
 #ifdef HAVE_UNIX_SOCKETS
-		return conn->pgunixsocket;
+		if (conn->pgunixsocket != NULL && conn->pgunixsocket[0] != '\0')
+			return conn->pgunixsocket;
+		else
+			return DEFAULT_PGSOCKET_DIR;
 #else
 		return DefaultHost;
 #endif
@@ -5841,6 +5843,18 @@ PQsetErrorVerbosity(PGconn *conn, PGVerbosity verbosity)
 		return PQERRORS_DEFAULT;
 	old = conn->verbosity;
 	conn->verbosity = verbosity;
+	return old;
+}
+
+PGContextVisibility
+PQsetErrorContextVisibility(PGconn *conn, PGContextVisibility show_context)
+{
+	PGContextVisibility old;
+
+	if (!conn)
+		return PQSHOW_CONTEXT_ERRORS;
+	old = conn->show_context;
+	conn->show_context = show_context;
 	return old;
 }
 

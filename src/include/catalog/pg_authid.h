@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2006-2010, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_authid.h
@@ -53,7 +53,7 @@ CATALOG(pg_authid,1260) BKI_SHARED_RELATION BKI_ROWTYPE_OID(2842) BKI_SCHEMA_MAC
 	bool		rolcreatedb;	/* allowed to create databases? */
 	bool		rolcanlogin;	/* allowed to log in as session user? */
 	bool		rolreplication; /* role used for streaming replication */
-	bool		rolbypassrls;	/* allowed to bypass row level security? */
+	bool		rolbypassrls;	/* bypasses row level security? */
 	int32		rolconnlimit;	/* max connections allowed (-1=no limit) */
 
 	/* remaining fields may be null; use heap_getattr to read them! */
@@ -113,12 +113,18 @@ typedef FormData_pg_authid *Form_pg_authid;
  * The uppercase quantities will be replaced at initdb time with
  * user choices.
  *
+ * If adding new default roles or changing the OIDs below, be sure to add or
+ * update the #defines which follow as appropriate.
+ *
  * add default queue DEFAULTRESQUEUE_OID 6055
  * add default group ADMINRESGROUP_OID 6438
  * ----------------
  */
 DATA(insert OID = 10 ( "POSTGRES" t t t t t t t -1 _null_ _null_ 6055 t t t 6438 ));
+DATA(insert OID = 4200 ( "pg_signal_backend" f t f f f f f -1 _null_ _null_ 6055 t t t 6438 ));
 
-#define BOOTSTRAP_SUPERUSERID 10
+#define BOOTSTRAP_SUPERUSERID			10
+
+#define DEFAULT_ROLE_SIGNAL_BACKENDID	4200
 
 #endif   /* PG_AUTHID_H */

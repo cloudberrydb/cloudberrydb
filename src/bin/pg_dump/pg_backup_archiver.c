@@ -25,6 +25,8 @@
 #include "pg_backup_archiver.h"
 #include "pg_backup_db.h"
 #include "pg_backup_utils.h"
+#include "dumputils.h"
+#include "fe_utils/string_utils.h"
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -110,6 +112,9 @@ static void reduce_dependencies(ArchiveHandle *AH, TocEntry *te,
 					TocEntry *ready_list);
 static void mark_create_done(ArchiveHandle *AH, TocEntry *te);
 static void inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te);
+
+static void StrictNamesCheck(RestoreOptions *ropt);
+
 
 /*
  * Allocate a new DumpOptions block containing all default values.
@@ -298,6 +303,10 @@ ProcessArchiveRestoreOptions(Archive *AHX)
 
 		te->reqs = _tocEntryRequired(te, curSection, ropt);
 	}
+
+	/* Enforce strict names checking */
+	if (ropt->strict_names)
+		StrictNamesCheck(ropt);
 }
 
 /* Public */
@@ -767,7 +776,7 @@ restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
 	{
 		/* Show namespace if available */
 		if (te->namespace)
-			ahlog(AH, 1, "creating %s \"%s\".\"%s\"\n",
+			ahlog(AH, 1, "creating %s \"%s.%s\"\n",
 				  te->desc, te->namespace, te->tag);
 		else
 			ahlog(AH, 1, "creating %s \"%s\"\n", te->desc, te->tag);
@@ -872,7 +881,7 @@ restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
 					_becomeOwner(AH, te);
 					_selectOutputSchema(AH, te->namespace);
 
-					ahlog(AH, 1, "processing data for table \"%s\".\"%s\"\n",
+					ahlog(AH, 1, "processing data for table \"%s.%s\"\n",
 						  te->namespace, te->tag);
 
 					/*
@@ -1247,6 +1256,10 @@ PrintTOCSummary(Archive *AHX)
 			ahprintf(AH, "\n");
 		}
 	}
+
+	/* Enforce strict names checking */
+	if (ropt->strict_names)
+		StrictNamesCheck(ropt);
 
 	if (ropt->filename)
 		RestoreOutput(AH, sav);
@@ -2781,6 +2794,49 @@ processSearchPathEntry(ArchiveHandle *AH, TocEntry *te)
 	AH->public.searchpath = pg_strdup(te->defn);
 }
 
+static void
+StrictNamesCheck(RestoreOptions *ropt)
+{
+	const char *missing_name;
+
+	Assert(ropt->strict_names);
+
+	if (ropt->schemaNames.head != NULL)
+	{
+		missing_name = simple_string_list_not_touched(&ropt->schemaNames);
+		if (missing_name != NULL)
+			exit_horribly(modulename, "schema \"%s\" not found\n", missing_name);
+	}
+
+	if (ropt->tableNames.head != NULL)
+	{
+		missing_name = simple_string_list_not_touched(&ropt->tableNames);
+		if (missing_name != NULL)
+			exit_horribly(modulename, "table \"%s\" not found\n", missing_name);
+	}
+
+	if (ropt->indexNames.head != NULL)
+	{
+		missing_name = simple_string_list_not_touched(&ropt->indexNames);
+		if (missing_name != NULL)
+			exit_horribly(modulename, "index \"%s\" not found\n", missing_name);
+	}
+
+	if (ropt->functionNames.head != NULL)
+	{
+		missing_name = simple_string_list_not_touched(&ropt->functionNames);
+		if (missing_name != NULL)
+			exit_horribly(modulename, "function \"%s\" not found\n", missing_name);
+	}
+
+	if (ropt->triggerNames.head != NULL)
+	{
+		missing_name = simple_string_list_not_touched(&ropt->triggerNames);
+		if (missing_name != NULL)
+			exit_horribly(modulename, "trigger \"%s\" not found\n", missing_name);
+	}
+}
+
 static teReqs
 _tocEntryRequired(TocEntry *te, teSection curSection, RestoreOptions *ropt)
 {
@@ -2834,8 +2890,13 @@ _tocEntryRequired(TocEntry *te, teSection curSection, RestoreOptions *ropt)
 	{
 		if (strcmp(te->desc, "TABLE") == 0 ||
 			strcmp(te->desc, "EXTERNAL TABLE") == 0 ||
+			strcmp(te->desc, "TABLE DATA") == 0 ||
+			strcmp(te->desc, "VIEW") == 0 ||
 			strcmp(te->desc, "FOREIGN TABLE") == 0 ||
-			strcmp(te->desc, "TABLE DATA") == 0)
+			strcmp(te->desc, "MATERIALIZED VIEW") == 0 ||
+			strcmp(te->desc, "MATERIALIZED VIEW DATA") == 0 ||
+			strcmp(te->desc, "SEQUENCE") == 0 ||
+			strcmp(te->desc, "SEQUENCE SET") == 0)
 		{
 			if (!ropt->selTable)
 				return 0;
@@ -2989,11 +3050,12 @@ _doSetFixedOutputState(ArchiveHandle *AH)
 
 	RestoreOptions *ropt = AH->public.ropt;
 
-	/* Disable statement_timeout since restore is probably slow */
+	/*
+	 * Disable timeouts to allow for slow commands, idle parallel workers, etc
+	 */
 	ahprintf(AH, "SET statement_timeout = 0;\n");
-
-	/* Likewise for lock_timeout */
 	ahprintf(AH, "SET lock_timeout = 0;\n");
+	ahprintf(AH, "SET idle_in_transaction_session_timeout = 0;\n");
 
 	/* Select the correct character set encoding */
 	ahprintf(AH, "SET client_encoding = '%s';\n",

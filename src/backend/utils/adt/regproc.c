@@ -8,7 +8,7 @@
  * special I/O conversion routines.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -162,7 +162,7 @@ regprocin(PG_FUNCTION_ARGS)
 Datum
 to_regproc(PG_FUNCTION_ARGS)
 {
-	char	   *pro_name = PG_GETARG_CSTRING(0);
+	char	   *pro_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	List	   *names;
 	FuncCandidateList clist;
 
@@ -332,7 +332,7 @@ regprocedurein(PG_FUNCTION_ARGS)
 Datum
 to_regprocedure(PG_FUNCTION_ARGS)
 {
-	char	   *pro_name = PG_GETARG_CSTRING(0);
+	char	   *pro_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	List	   *names;
 	int			nargs;
 	Oid			argtypes[FUNC_MAX_ARGS];
@@ -617,7 +617,7 @@ regoperin(PG_FUNCTION_ARGS)
 Datum
 to_regoper(PG_FUNCTION_ARGS)
 {
-	char	   *opr_name = PG_GETARG_CSTRING(0);
+	char	   *opr_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	List	   *names;
 	FuncCandidateList clist;
 
@@ -794,7 +794,7 @@ regoperatorin(PG_FUNCTION_ARGS)
 Datum
 to_regoperator(PG_FUNCTION_ARGS)
 {
-	char	   *opr_name_or_oid = PG_GETARG_CSTRING(0);
+	char	   *opr_name_or_oid = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	Oid			result;
 	List	   *names;
 	int			nargs;
@@ -852,8 +852,7 @@ format_operator_internal(Oid operator_oid, bool force_qualify)
 
 		/*
 		 * Would this oper be found (given the right args) by regoperatorin?
-		 * If not, or if caller explicitly requests it, we need to qualify
-		 * it.
+		 * If not, or if caller explicitly requests it, we need to qualify it.
 		 */
 		if (force_qualify || !OperatorIsVisible(operator_oid))
 		{
@@ -1059,7 +1058,7 @@ regclassin(PG_FUNCTION_ARGS)
 Datum
 to_regclass(PG_FUNCTION_ARGS)
 {
-	char	   *class_name = PG_GETARG_CSTRING(0);
+	char	   *class_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	Oid			result;
 	List	   *names;
 
@@ -1247,7 +1246,7 @@ regtypein(PG_FUNCTION_ARGS)
 Datum
 to_regtype(PG_FUNCTION_ARGS)
 {
-	char	   *typ_name = PG_GETARG_CSTRING(0);
+	char	   *typ_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	Oid			result;
 	int32		typmod;
 
@@ -1567,6 +1566,7 @@ regrolein(PG_FUNCTION_ARGS)
 {
 	char	   *role_name_or_oid = PG_GETARG_CSTRING(0);
 	Oid			result;
+	List	   *names;
 
 	/* '-' ? */
 	if (strcmp(role_name_or_oid, "-") == 0)
@@ -1583,7 +1583,14 @@ regrolein(PG_FUNCTION_ARGS)
 	}
 
 	/* Normal case: see if the name matches any pg_authid entry. */
-	result = get_role_oid(role_name_or_oid, false);
+	names = stringToQualifiedNameList(role_name_or_oid);
+
+	if (list_length(names) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_NAME),
+				 errmsg("invalid name syntax")));
+
+	result = get_role_oid(strVal(linitial(names)), false);
 
 	PG_RETURN_OID(result);
 }
@@ -1596,10 +1603,18 @@ regrolein(PG_FUNCTION_ARGS)
 Datum
 to_regrole(PG_FUNCTION_ARGS)
 {
-	char	   *role_name = PG_GETARG_CSTRING(0);
+	char	   *role_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	Oid			result;
+	List	   *names;
 
-	result = get_role_oid(role_name, true);
+	names = stringToQualifiedNameList(role_name);
+
+	if (list_length(names) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_NAME),
+				 errmsg("invalid name syntax")));
+
+	result = get_role_oid(strVal(linitial(names)), true);
 
 	if (OidIsValid(result))
 		PG_RETURN_OID(result);
@@ -1616,7 +1631,6 @@ regroleout(PG_FUNCTION_ARGS)
 	Oid			roleoid = PG_GETARG_OID(0);
 	char	   *result;
 
-
 	if (roleoid == InvalidOid)
 	{
 		result = pstrdup("-");
@@ -1624,12 +1638,19 @@ regroleout(PG_FUNCTION_ARGS)
 	}
 
 	result = GetUserNameFromId(roleoid, true);
-	if (!result)
+
+	if (result)
+	{
+		/* pstrdup is not really necessary, but it avoids a compiler warning */
+		result = pstrdup(quote_identifier(result));
+	}
+	else
 	{
 		/* If OID doesn't match any role, return it numerically */
 		result = (char *) palloc(NAMEDATALEN);
 		snprintf(result, NAMEDATALEN, "%u", roleoid);
 	}
+
 	PG_RETURN_CSTRING(result);
 }
 
@@ -1665,7 +1686,8 @@ Datum
 regnamespacein(PG_FUNCTION_ARGS)
 {
 	char	   *nsp_name_or_oid = PG_GETARG_CSTRING(0);
-	Oid			result = InvalidOid;
+	Oid			result;
+	List	   *names;
 
 	/* '-' ? */
 	if (strcmp(nsp_name_or_oid, "-") == 0)
@@ -1682,7 +1704,14 @@ regnamespacein(PG_FUNCTION_ARGS)
 	}
 
 	/* Normal case: see if the name matches any pg_namespace entry. */
-	result = get_namespace_oid(nsp_name_or_oid, false);
+	names = stringToQualifiedNameList(nsp_name_or_oid);
+
+	if (list_length(names) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_NAME),
+				 errmsg("invalid name syntax")));
+
+	result = get_namespace_oid(strVal(linitial(names)), false);
 
 	PG_RETURN_OID(result);
 }
@@ -1695,10 +1724,18 @@ regnamespacein(PG_FUNCTION_ARGS)
 Datum
 to_regnamespace(PG_FUNCTION_ARGS)
 {
-	char	   *nsp_name = PG_GETARG_CSTRING(0);
+	char	   *nsp_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	Oid			result;
+	List	   *names;
 
-	result = get_namespace_oid(nsp_name, true);
+	names = stringToQualifiedNameList(nsp_name);
+
+	if (list_length(names) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_NAME),
+				 errmsg("invalid name syntax")));
+
+	result = get_namespace_oid(strVal(linitial(names)), true);
 
 	if (OidIsValid(result))
 		PG_RETURN_OID(result);
@@ -1722,12 +1759,19 @@ regnamespaceout(PG_FUNCTION_ARGS)
 	}
 
 	result = get_namespace_name(nspid);
-	if (!result)
+
+	if (result)
+	{
+		/* pstrdup is not really necessary, but it avoids a compiler warning */
+		result = pstrdup(quote_identifier(result));
+	}
+	else
 	{
 		/* If OID doesn't match any namespace, return it numerically */
 		result = (char *) palloc(NAMEDATALEN);
 		snprintf(result, NAMEDATALEN, "%u", nspid);
 	}
+
 	PG_RETURN_CSTRING(result);
 }
 

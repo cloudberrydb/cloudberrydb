@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/nodes.h
@@ -71,6 +71,7 @@ typedef enum NodeTag
 	T_SeqScan,
 	T_DynamicSeqScan,
 	T_ExternalScan,
+	T_SampleScan,
 	T_IndexScan,
 	T_DynamicIndexScan,
 	T_IndexOnlyScan,
@@ -85,7 +86,6 @@ typedef enum NodeTag
 	T_ValuesScan,
 	T_CteScan,
 	T_WorkTableScan,
-	T_SampleScan,
 	T_ForeignScan,
 	T_CustomScan,
 	T_NestLoop,
@@ -96,6 +96,7 @@ typedef enum NodeTag
 	T_Agg,
 	T_WindowAgg,
 	T_Unique,
+	T_Gather,
 	T_Hash,
 	T_SetOp,
 	T_LockRows,
@@ -162,6 +163,7 @@ typedef enum NodeTag
 	T_AggState,
 	T_WindowAggState,
 	T_UniqueState,
+	T_GatherState,
 	T_HashState,
 	T_SetOpState,
 	T_LockRowsState,
@@ -299,34 +301,52 @@ typedef enum NodeTag
 	T_PlannerGlobal,
 	T_RelOptInfo,
 	T_IndexOptInfo,
+	T_ForeignKeyOptInfo,
 	T_ParamPathInfo,
 	T_Path,
 	T_AppendOnlyPath,
 	T_AOCSPath,
 	T_ExternalPath,
+	T_CtePath,
 	T_IndexPath,
 	T_BitmapHeapPath,
 	T_BitmapAndPath,
 	T_BitmapOrPath,
+	T_TidPath,
+	T_SubqueryScanPath,
+	T_TableFunctionScanPath,
+	T_ForeignPath,
+	T_CustomPath,
 	T_NestPath,
 	T_MergePath,
 	T_HashPath,
-	T_TidPath,
-	T_ForeignPath,
-	T_CustomPath,
 	T_AppendPath,
 	T_MergeAppendPath,
 	T_ResultPath,
 	T_MaterialPath,
 	T_UniquePath,
+	T_GatherPath,
 	T_ProjectionPath,
+	T_SortPath,
+	T_GroupPath,
+	T_UpperUniquePath,
+	T_AggPath,
+	T_GroupingSetsPath,
+	T_MinMaxAggPath,
+	T_WindowAggPath,
+	T_SetOpPath,
+	T_RecursiveUnionPath,
+	T_LockRowsPath,
+	T_ModifyTablePath,
+	T_LimitPath,
+	/* these aren't subclasses of Path: */
 	T_EquivalenceClass,
 	T_EquivalenceMember,
 	T_PathKey,
+	T_PathTarget,
 	T_RestrictInfo,
 	T_PlaceHolderVar,
 	T_SpecialJoinInfo,
-	T_LateralJoinInfo,
 	T_AppendRelInfo,
 	T_PlaceHolderInfo,
 	T_MinMaxAggInfo,
@@ -340,6 +360,7 @@ typedef enum NodeTag
     /* Tags for MPP planner nodes (relation.h) */
     T_CdbMotionPath = 580,
 	T_PartitionSelectorPath,
+	T_SplitUpdatePath,
     T_CdbRelColumnInfo,
 	T_DistributionKey,
 
@@ -366,6 +387,11 @@ typedef enum NodeTag
 	T_List,
 	T_IntList,
 	T_OidList,
+
+	/*
+	 * TAGS FOR EXTENSIBLE NODES (extensible.h)
+	 */
+	T_ExtensibleNode,
 
 	/*
 	 * TAGS FOR STATEMENT NODES (mostly in parsenodes.h)
@@ -448,8 +474,10 @@ typedef enum NodeTag
 	T_DeclareCursorStmt,
 	T_CreateTableSpaceStmt,
 	T_DropTableSpaceStmt,
+	T_AlterObjectDependsStmt,
 	T_AlterObjectSchemaStmt,
 	T_AlterOwnerStmt,
+	T_AlterOperatorStmt,
 	T_DropOwnedStmt,
 	T_ReassignOwnedStmt,
 	T_CompositeTypeStmt,
@@ -481,6 +509,7 @@ typedef enum NodeTag
 	T_CreatePolicyStmt,
 	T_AlterPolicyStmt,
 	T_CreateTransformStmt,
+	T_CreateAmStmt,
 
 	/* GPDB additions */
 	T_PartitionBy,
@@ -523,6 +552,7 @@ typedef enum NodeTag
 	T_WindowDef,
 	T_RangeSubselect,
 	T_RangeFunction,
+	T_RangeTableSample,
 	T_TypeName,
 	T_ColumnDef,
 	T_IndexElem,
@@ -530,6 +560,7 @@ typedef enum NodeTag
 	T_DefElem,
 	T_RangeTblEntry,
 	T_RangeTblFunction,
+	T_TableSampleClause,
 	T_WithCheckOption,
 	T_SortGroupClause,
 	T_GroupingSet,
@@ -548,8 +579,6 @@ typedef enum NodeTag
 	T_CommonTableExpr,
 	T_ColumnReferenceStorageDirective,
 	T_RoleSpec,
-	T_RangeTableSample,
-	T_TableSampleClause,
 
 	/*
 	 * TAGS FOR REPLICATION GRAMMAR PARSE NODES (replnodes.h)
@@ -576,6 +605,10 @@ typedef enum NodeTag
 	T_TIDBitmap,				/* in nodes/tidbitmap.h */
 	T_InlineCodeBlock,			/* in nodes/parsenodes.h */
 	T_FdwRoutine,				/* in foreign/fdwapi.h */
+	T_TsmRoutine,				/* in access/tsmapi.h */
+	T_IndexAmRoutine,			/* in access/amapi.h */
+	T_ForeignKeyCacheInfo,		/* in utils/rel.h */
+
     T_StreamBitmap,             /* in nodes/tidbitmap.h */
 	T_FormatterData,            /* in access/formatter.h */
 	T_ExtProtocolData,          /* in access/extprotocol.h */
@@ -680,6 +713,15 @@ castNodeImpl(NodeTag type, void *ptr)
  */
 extern char *nodeToString(const void *obj);
 
+struct Bitmapset;				/* not to include bitmapset.h here */
+struct StringInfoData;			/* not to include stringinfo.h here */
+extern void outNode(struct StringInfoData *str, const void *obj);
+extern void outToken(struct StringInfoData *str, const char *s);
+extern void outBitmapset(struct StringInfoData *str,
+			 const struct Bitmapset *bms);
+extern void outDatum(struct StringInfoData *str, int64 value,
+		 int typlen, bool typbyval);
+
 /*
  * nodes/outfast.c. This special version of nodeToString is only used by serializeNode.
  * It's a quick hack that allocates 8K buffer for StringInfo struct through initStringIinfoSizeOf
@@ -691,7 +733,15 @@ extern Node *readNodeFromBinaryString(const char *str, int len);
 /*
  * nodes/{readfuncs.c,read.c}
  */
+extern void save_strtok_states(char **save_ptr, char **save_begin);
+extern void set_strtok_states(char *ptr, char *begin);
 extern void *stringToNode(char *str);
+extern struct Bitmapset *readBitmapset(void);
+extern int64 readDatum(bool typbyval);
+extern bool *readBoolCols(int numCols);
+extern int *readIntCols(int numCols);
+extern Oid *readOidCols(int numCols);
+extern int16 *readAttrNumberCols(int numCols);
 
 /*
  * nodes/copyfuncs.c
@@ -844,6 +894,80 @@ typedef enum DispatchMethod
 	DISPATCH_PARALLEL			/* Dispatch on query executor and entry processes. */
 
 } DispatchMethod;
+
+/*
+ * AggStrategy -
+ *	  overall execution strategies for Agg plan nodes
+ *
+ * This is needed in both plannodes.h and relation.h, so put it here...
+ */
+typedef enum AggStrategy
+{
+	AGG_PLAIN,					/* simple agg across all input rows */
+	AGG_SORTED,					/* grouped agg, input must be sorted */
+	AGG_HASHED					/* grouped agg, use internal hashtable */
+} AggStrategy;
+
+/*
+ * AggSplit -
+ *	  splitting (partial aggregation) modes for Agg plan nodes
+ *
+ * This is needed in both plannodes.h and relation.h, so put it here...
+ */
+
+/* Primitive options supported by nodeAgg.c: */
+#define AGGSPLITOP_COMBINE		0x01	/* substitute combinefn for transfn */
+#define AGGSPLITOP_SKIPFINAL	0x02	/* skip finalfn, return state as-is */
+#define AGGSPLITOP_SERIALIZE	0x04	/* apply serializefn to output */
+#define AGGSPLITOP_DESERIALIZE	0x08	/* apply deserializefn to input */
+
+#define AGGSPLITOP_DEDUPLICATED	0x100
+
+/* Supported operating modes (i.e., useful combinations of these options): */
+typedef enum AggSplit
+{
+	/* Basic, non-split aggregation: */
+	AGGSPLIT_SIMPLE = 0,
+	/* Initial phase of partial aggregation, with serialization: */
+	AGGSPLIT_INITIAL_SERIAL = AGGSPLITOP_SKIPFINAL | AGGSPLITOP_SERIALIZE,
+	/* Final phase of partial aggregation, with deserialization: */
+	AGGSPLIT_FINAL_DESERIAL = AGGSPLITOP_COMBINE | AGGSPLITOP_DESERIALIZE,
+
+	/*
+	 * The inputs have already been deduplicated for DISTINCT.
+	 * This is internal to the planner, it is never set on Aggrefs, and is
+	 * stripped away from Aggs in setrefs.c.
+	 */
+	AGGSPLIT_DEDUPLICATED = AGGSPLITOP_DEDUPLICATED,
+} AggSplit;
+
+/* Test whether an AggSplit value selects each primitive option: */
+#define DO_AGGSPLIT_COMBINE(as)		(((as) & AGGSPLITOP_COMBINE) != 0)
+#define DO_AGGSPLIT_SKIPFINAL(as)	(((as) & AGGSPLITOP_SKIPFINAL) != 0)
+#define DO_AGGSPLIT_SERIALIZE(as)	(((as) & AGGSPLITOP_SERIALIZE) != 0)
+#define DO_AGGSPLIT_DESERIALIZE(as) (((as) & AGGSPLITOP_DESERIALIZE) != 0)
+
+#define DO_AGGSPLIT_DEDUPLICATED(as) (((as) & AGGSPLITOP_DEDUPLICATED) != 0)
+
+/*
+ * SetOpCmd and SetOpStrategy -
+ *	  overall semantics and execution strategies for SetOp plan nodes
+ *
+ * This is needed in both plannodes.h and relation.h, so put it here...
+ */
+typedef enum SetOpCmd
+{
+	SETOPCMD_INTERSECT,
+	SETOPCMD_INTERSECT_ALL,
+	SETOPCMD_EXCEPT,
+	SETOPCMD_EXCEPT_ALL
+} SetOpCmd;
+
+typedef enum SetOpStrategy
+{
+	SETOP_SORTED,				/* input must be sorted */
+	SETOP_HASHED				/* use internal hashtable */
+} SetOpStrategy;
 
 /*
  * OnConflictAction -

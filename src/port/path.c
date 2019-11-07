@@ -3,7 +3,7 @@
  * path.c
  *	  portable path handling routines
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -175,6 +175,36 @@ make_native_path(char *filename)
 			*p = '\\';
 #else
 	UnusedArg(filename);
+#endif
+}
+
+
+/*
+ * This function cleans up the paths for use with either cmd.exe or Msys
+ * on Windows. We need them to use filenames without spaces, for which a
+ * short filename is the safest equivalent, eg:
+ *		C:/Progra~1/
+ */
+void
+cleanup_path(char *path)
+{
+#ifdef WIN32
+	char	   *ptr;
+
+	/*
+	 * GetShortPathName() will fail if the path does not exist, or short names
+	 * are disabled on this file system.  In both cases, we just return the
+	 * original path.  This is particularly useful for --sysconfdir, which
+	 * might not exist.
+	 */
+	GetShortPathName(path, path, MAXPGPATH - 1);
+
+	/* Replace '\' with '/' */
+	for (ptr = path; *ptr; ptr++)
+	{
+		if (*ptr == '\\')
+			*ptr = '/';
+	}
 #endif
 }
 

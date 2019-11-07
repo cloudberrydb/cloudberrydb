@@ -40,6 +40,7 @@
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "catalog/gp_policy.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
 
@@ -101,41 +102,10 @@ typedef struct
 /*
  * Forward Declarations
  */
-static Node *planner_make_plan_constant(struct PlannerInfo *root, Node *n, bool is_SRI);
 static Node *pre_dispatch_function_evaluation_mutator(Node *node,
 										 pre_dispatch_function_evaluation_context *context);
 static Node *apply_motion_mutator(Node *node, ApplyMotionState *context);
 static bool replace_shareinput_targetlists_walker(Node *node, PlannerInfo *root, bool fPop);
-
-/*
- * Is target list of a Result node all-constant?
- *
- * That means that there is no subplan, and the elements of the
- * targetlist are Const nodes.
- */
-static bool
-allConstantValuesClause(Plan *node)
-{
-	ListCell   *cell;
-	TargetEntry *tle;
-
-	Assert(IsA(node, Result));
-
-	if (node->lefttree != NULL)
-		return false;
-
-	foreach(cell, node->targetlist)
-	{
-		tle = (TargetEntry *) lfirst(cell);
-
-		Assert(tle->expr);
-
-		if (!IsA(tle->expr, Const))
-			return false;
-	}
-
-	return true;
-}
 
 static void
 directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy, Oid *hashfuncs)
@@ -738,6 +708,8 @@ apply_motion(PlannerInfo *root, Plan *plan, bool *needToAssignDirectDispatchCont
 	{
 		ApplyMotionSubPlanState *sstate = &state.subplans[plan_id];
 
+		Assert(plan_id <= list_length(root->glob->subplans));
+
 		if (sstate->is_initplan)
 		{
 			root->glob->subplan_sliceIds[plan_id] = state.nextMotionID++;
@@ -1026,34 +998,6 @@ make_broadcast_motion(Plan *lefttree, int numsegments)
 	return motion;
 }
 
-/*
- * Returns true, if the given subtree contains any motion nodes.
- *
- * This is used at an Explicit Motion node, to omit the Explicit Motion, if
- * there were no other Motions in the subtree. The idea is that if an Explicit
- * Motion has no Motions underneath it, then the row to update must originate
- * from the same segment, and no Motion is needed.
- *
- * A SplitUpdate also computes the target segment ID, based on other columns,
- * so we treat it the same as a Motion node for this purpose.
- *
- * Note that this does not take InitPlans containing Motion nodes into
- * account. InitPlans are executed as a separate step before the main plan,
- * and hence any Motion nodes in them don't need to affect the way the main
- * plan is executed.
- */
-static bool
-contain_motions_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-
-	if (IsA(node, Motion) || IsA(node, SplitUpdate))
-		return true;
-	else
-		return plan_tree_walker(node, contain_motions_walker, context, true);
-}
-
 Plan *
 make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx)
 {
@@ -1062,13 +1006,6 @@ make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx)
 	plan_tree_base_prefix base;
 
 	base.node = (Node *) root;
-
-	/*
-	 * add an ExplicitRedistribute motion node only if child plan
-	 * has a motion node
-	 */
-	if (!contain_motions_walker((Node *) lefttree, &base))
-		return lefttree;
 
 	/*
 	 * For explicit motion data come back to the source segments,
@@ -1137,236 +1074,6 @@ getExprListFromTargetList(List *tlist,
 	}
 
 	return elist;
-}
-
-static void
-failIfUpdateTriggers(Relation relation)
-{
-	bool	found = false;
-
-	if (relation->rd_rel->relhastriggers && NULL == relation->trigdesc)
-		RelationBuildTriggers(relation);
-
-	if (!relation->trigdesc)
-		return;
-
-	if (relation->rd_rel->relhastriggers)
-	{
-		for (int i = 0; i < relation->trigdesc->numtriggers && !found; i++)
-		{
-			Trigger trigger = relation->trigdesc->triggers[i];
-			found = trigger_enabled(trigger.tgoid) &&
-					(get_trigger_type(trigger.tgoid) & TRIGGER_TYPE_UPDATE) == TRIGGER_TYPE_UPDATE;
-			if (found)
-				break;
-		}
-	}
-
-	if (found || child_triggers(relation->rd_id, TRIGGER_TYPE_UPDATE))
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
-				 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
-}
-
-static TargetEntry *
-find_junk_tle(List *targetList, const char *junkAttrName)
-{
-	ListCell	*lct;
-
-	foreach(lct, targetList)
-	{
-		TargetEntry	*tle = (TargetEntry*) lfirst(lct);
-
-		if (!tle->resjunk)
-			continue;
-
-		if (!tle->resname)
-			continue;
-
-		if (strcmp(tle->resname, junkAttrName) == 0)
-			return tle;
-	}
-	elog(ERROR, "could not find junk tle \"%s\"", junkAttrName);
-}
-
-static AttrNumber
-find_oid_attribute_check(List *targetList)
-{
-	TargetEntry	*tle;
-	Var			*var;
-
-	tle = find_junk_tle(targetList, "oid");
-	if (!tle)
-		elog(ERROR, "could not find \"oid\" column in input to UPDATE");
-	Assert(IsA(tle->expr, Var));
-
-	var = (Var *) (tle->expr);
-
-	/* OID should follow after normal attributes */
-	Assert(var->vartype == OIDOID);
-
-	return tle->resno;
-}
-
-/*
- * In Postgres planner, we add a SplitUpdate node at top so that updating on distribution
- * columns could be handled. The SplitUpdate will split each update into delete + insert.
- *
- * There are several important points should be highlighted:
- *
- * First, in order to split each update operation into two operations: delete + insert,
- * we add several columns into targetlist:
- *
- * ctid: the tuple id used for deletion
- * action: which is generated by SplitUpdate node, and can be value of delete or insert
- * oid: if result relation has oids, we need to add oid to targetlist
- *
- * Second, current GPDB executor don't support statement-level update triggers and will
- * skip row-level update triggers because a split-update is actually consist of a delete
- * and insert. So, if the result relation has update triggers, we should reject and error
- * out because it's not functional.
- *
- * Third, to support deletion, and hash delete operation to correct segment,
- * we need to get attributes of OLD tuple. The old attributes must therefore
- * be present in the subplan's target list. That is handled earlier in the
- * planner, in expand_targetlist().
- *
- * For example, a typical plan would be as following for statement:
- * update foo set id = l.v + 1 from dep l where foo.v = l.id:
- *
- * |-- join ( targetlist: [ l.v + 1, foo.v, foo.id, foo.ctid, foo.gp_segment_id ] )
- *       |
- *       |-- motion ( targetlist: [l.id, l.v] )
- *       |    |
- *       |    |-- seqscan on dep ....
- *       |
- *       |-- hash (targetlist [ v, foo.ctid, foo.gp_segment_id ] )
- *            |
- *            |-- seqscan on foo (targetlist: [ v, foo.id, foo.ctid, foo.gp_segment_id ] )
- *
- * From the plan above, the target foo.id is assigned as l.v + 1, and expand_targetlist()
- * ensured that the old value of id, is also available, even though it would not otherwise
- * be needed.
- *
- * 'result_relation' is the RTI of the UPDATE target relation.
- */
-SplitUpdate *
-make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntry *rte)
-{
-	List			*deleteColIdx = NIL;
-	List			*insertColIdx = NIL;
-	int				actionColIdx;
-	AttrNumber		oidColIdx = 0;
-	List			*splitUpdateTargetList = NIL;
-	TargetEntry		*newTargetEntry;
-	SplitUpdate		*splitupdate;
-	DMLActionExpr	*actionExpr;
-	Relation		resultRelation;
-	TupleDesc		resultDesc;
-	GpPolicy	   *resultPolicy;
-
-	Assert(IsA(mt, ModifyTable));
-
-	/* Suppose we already hold locks before caller */
-	resultRelation = relation_open(rte->relid, NoLock);
-	resultPolicy = resultRelation->rd_cdbpolicy;
-
-	failIfUpdateTriggers(resultRelation);
-
-	resultDesc = RelationGetDescr(resultRelation);
-
-	/*
-	 * insertColIdx/deleteColIdx: In split update mode, we have to form two tuples,
-	 * one is for deleting and the other is for inserting. The insertColIdx array
-	 * indicates the input columns to use to form the INSERT rows, and deleteColIdx
-	 * the inputs for DELETE rows.
-	 *
-	 * The first natts columns of the input contain the new values, which are needed
-	 * for INSERT rows. And for DELETE rows, we just need the 'gp_segment_id' and
-	 * 'ctid' of the row to delete. They are both junk attributes, and don't need to
-	 * be included in the deleteColIdx array.
-	 *
-	 * Because the mapping is so straightforward, there isn't really much need for
-	 * the insertColIdx/deleteColIdx arrays, but ORCA creates slightly different
-	 * plans which need them.
-	 */
-	for (int attrIdx = 1; attrIdx <= resultDesc->natts; attrIdx++)
-	{
-		insertColIdx = lappend_int(insertColIdx, attrIdx);
-		deleteColIdx = lappend_int(deleteColIdx, -1);
-	}
-
-	/*
-	 * The targetlist of the Split Update is the same as the subplan's, with the
-	 * additional DMLActionExpr column. The Split Update doesn't evaluate any
-	 * target list expressions.
-	 */
-	splitUpdateTargetList = list_copy(subplan->targetlist);
-	actionExpr = makeNode(DMLActionExpr);
-	actionColIdx = list_length(splitUpdateTargetList) + 1;
-	newTargetEntry = makeTargetEntry((Expr *) actionExpr, actionColIdx, "ColRef", true);
-	splitUpdateTargetList = lappend(splitUpdateTargetList, newTargetEntry);
-
-	if (resultRelation->rd_rel->relhasoids)
-		oidColIdx = find_oid_attribute_check(subplan->targetlist);
-
-	splitupdate = makeNode(SplitUpdate);
-	splitupdate->actionColIdx = actionColIdx;
-
-	/* populate information generated above into splitupdate node */
-	splitupdate->tupleoidColIdx = oidColIdx;
-	splitupdate->insertColIdx = insertColIdx;
-	splitupdate->deleteColIdx = deleteColIdx;
-	splitupdate->plan.targetlist = splitUpdateTargetList;
-	splitupdate->plan.lefttree = subplan;
-
-	/*
-	 * Now the plan tree has been determined, we have no choice, so use the
-	 * cost of lower plan node directly, plus the cpu_tuple_cost of each row.
-	 * GPDB_96_MERGE_FIXME: width here is incorrect, until we merge
-	 * upstream commit 3fc6e2d
-	 */
-	splitupdate->plan.startup_cost = subplan->startup_cost;
-	splitupdate->plan.total_cost = subplan->total_cost;
-	splitupdate->plan.plan_rows = 2 * subplan->plan_rows;
-	splitupdate->plan.total_cost += (splitupdate->plan.plan_rows * cpu_tuple_cost);
-	splitupdate->plan.plan_width = subplan->plan_width;
-
-	splitupdate->numHashAttrs = resultPolicy->nattrs;
-	splitupdate->hashAttnos = palloc(resultPolicy->nattrs * sizeof(AttrNumber));
-	splitupdate->hashFuncs = palloc(resultPolicy->nattrs * sizeof(Oid));
-
-	/*
-	 * Look up the right hash functions for the hash expressions, like in
-	 * make_hashed_motion()
-	 */
-	for (int i = 0; i < resultPolicy->nattrs; i++)
-	{
-		AttrNumber	attnum = resultPolicy->attrs[i];
-		Oid			typeoid = resultDesc->attrs[attnum - 1]->atttypid;
-		Oid			opfamily = get_opclass_family(resultPolicy->opclasses[i]);
-
-		splitupdate->hashAttnos[i] = attnum;
-		splitupdate->hashFuncs[i] = cdb_hashproc_in_opfamily(opfamily, typeoid);
-	}
-
-	/*
-	 * An Explicit Motion will be added above the split node in the plan, and
-	 * the SplitUpdate will emit an explicit gp_segment_id column to tell the
-	 * Explicit Motion where to send each row. Mark the split node as strewn
-	 * (or entry) to represent that.
-	 */
-	if (subplan->flow->locustype != CdbLocusType_Entry)
-		mark_plan_strewn((Plan *) splitupdate, resultPolicy->numsegments);
-	else
-		mark_plan_entry((Plan *) splitupdate);
-
-	mt->action_col_idxes = lappend_int(mt->action_col_idxes, actionColIdx);
-	mt->oid_col_idxes = lappend_int(mt->oid_col_idxes, oidColIdx);
-
-	relation_close(resultRelation, NoLock);
-
-	return splitupdate;
 }
 
 /* ----------------------------------------------------------------------- *
@@ -2508,7 +2215,9 @@ typedef struct ParamWalkerContext
 static bool
 param_walker(Node *node, ParamWalkerContext *context)
 {
+	PlannerInfo *root = (PlannerInfo *) context->base.node;
 	Param	   *param;
+	Aggref	   *aggref;
 	Scan	   *scan;
 	ListCell   *lc;
 
@@ -2527,7 +2236,54 @@ param_walker(Node *node, ParamWalkerContext *context)
 			}
 			return false;
 
+		case T_Aggref:
+			/*
+			 * See if it's an Aggref that will be replaced by a Param in
+			 * set_plan_references()
+			 */
+			aggref = (Aggref *) node;
+			if (root->minmax_aggs != NIL &&
+				list_length(aggref->args) == 1)
+			{
+				TargetEntry *curTarget = (TargetEntry *) linitial(aggref->args);
+				ListCell   *lc;
+
+				foreach(lc, root->minmax_aggs)
+				{
+					MinMaxAggInfo *mminfo = (MinMaxAggInfo *) lfirst(lc);
+
+					if (mminfo->aggfnoid == aggref->aggfnoid &&
+						equal(mminfo->target, curTarget->expr))
+						param_walker((Node *) mminfo->param, context);
+				}
+			}
+			break;
+
 		case T_SubqueryScan:
+			{
+				SubqueryScan *sscan = (SubqueryScan *) node;
+				RelOptInfo *rel;
+				Node	   *save_root;
+
+				/* Need to look up the subquery's RelOptInfo, since we need its subroot */
+				rel = find_base_rel(root, sscan->scan.scanrelid);
+
+				/* Recurse into any expressions on the SubqueryScan node itself. */
+				if (walk_plan_node_fields(&sscan->scan.plan, param_walker, context))
+					return true;
+
+				/* recurse into the subquery, with the new 'root' */
+				save_root = context->base.node;
+				context->base.node = (Node *) rel->subroot;
+
+				if (param_walker((Node *) sscan->subplan, context))
+					return true;
+
+				context->base.node = save_root;
+				return false;
+			}
+			break;
+
 		case T_ValuesScan:
 		case T_FunctionScan:
 		case T_TableFunctionScan:
@@ -2539,7 +2295,11 @@ param_walker(Node *node, ParamWalkerContext *context)
 
 		case T_SubPlan:
 			{
+				PlannerInfo *root = (PlannerInfo *) context->base.node;
 				SubPlan	   *spexpr = (SubPlan *) node;
+				Plan	   *subplan_plan = planner_subplan_get_plan(root, spexpr);
+				PlannerInfo *subplan_root = planner_subplan_get_root(root, spexpr);
+				Node	   *save_root;
 
 				if (spexpr->subLinkType == MULTIEXPR_SUBLINK &&
 					spexpr->is_initplan)
@@ -2553,6 +2313,19 @@ param_walker(Node *node, ParamWalkerContext *context)
 															   paramid);
 					}
 				}
+
+				/* recurse into the subplan */
+				save_root = context->base.node;
+				context->base.node = (Node *) subplan_root;
+				if (param_walker((Node *) subplan_plan, context))
+					return true;
+
+				context->base.node = save_root;
+
+				/*
+				 * fall through to let plan_tree_walker() handle any expressions in
+				 * testexpr and args
+				 */
 			}
 			break;
 
@@ -2560,7 +2333,7 @@ param_walker(Node *node, ParamWalkerContext *context)
 			break;
 	}
 
-	return plan_tree_walker(node, param_walker, context, true);
+	return plan_tree_walker(node, param_walker, context, false);
 }
 
 /*
@@ -2669,7 +2442,7 @@ initplan_walker(Node *node, ParamWalkerContext *context)
 				 * global list, because that would screw up the plan_id
 				 * numbering of the subplans).
 				 */
-				Result	   *dummy = make_result(root, NIL,
+				Result	   *dummy = make_result(NIL,
 												(Node *) list_make1(makeBoolConst(false, false)),
 												NULL);
 
@@ -2719,19 +2492,6 @@ remove_unused_initplans(Plan *top_plan, PlannerInfo *root)
 
 	bms_free(context.paramids);
 	bms_free(context.scanrelids);
-}
-
-static Node *
-planner_make_plan_constant(struct PlannerInfo *root, Node *n, bool is_SRI)
-{
-	pre_dispatch_function_evaluation_context pcontext;
-
-	planner_init_plan_tree_base(&pcontext.base, root);
-	pcontext.single_row_insert = is_SRI;
-	pcontext.cursorPositions = NIL;
-	pcontext.estate = NULL;
-
-	return plan_tree_mutator(n, pre_dispatch_function_evaluation_mutator, &pcontext, true);
 }
 
 /*
@@ -3077,9 +2837,8 @@ pre_dispatch_function_evaluation_mutator(Node *node,
 	return new_node;
 }
 
-
 /*
- * sri_optimize_for_result
+ * cdbpathtoplan_create_sri_path
  *
  * Optimize for single-row-insertion for const result. If result is const, and
  * result relation is partitioned, we could decide partition relation during
@@ -3100,134 +2859,137 @@ pre_dispatch_function_evaluation_mutator(Node *node,
  * hashExpr is distribution expression of target relation, and would be
  * replaced by partition relation.
  */
-void
-sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
-						GpPolicy **targetPolicy, List **hashExprs_p, List **hashOpfamilies_p)
+Plan *
+cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *subpath,
+							  int createplan_flags)
 {
-	ListCell   *cell;
-	bool		typesOK = true;
-	PartitionNode *pn;
+	CdbMotionPath *motionpath;
+	ResultPath *resultpath;
+	Result	   *resultplan;
 	Relation	rel;
+	PartitionNode *pn;
+	GpPolicy   *targetPolicy;
+	List	   *hashExprs;
+	List	   *hashOpfamilies;
+	int			numHashAttrs;
+	AttrNumber *hashAttrs;
+	Oid		   *hashFuncs;
+	int			i;
+	ListCell   *cell;
 
-	Insist(gp_enable_fast_sri && IsA(plan, Result));
+	if (!gp_enable_fast_sri)
+		return NULL;
+
+	if (!IsA(subpath, CdbMotionPath))
+		return NULL;
+	motionpath = (CdbMotionPath *) subpath;
+
+	if (!IsA(motionpath->subpath, ResultPath))
+		return NULL;
+
+	resultpath = (ResultPath *) motionpath->subpath;
+
+	if (contain_mutable_functions((Node *) resultpath->path.pathtarget->exprs))
+		return NULL;
+
+	resultplan = (Result *) create_plan_recurse(subroot, (Path *) resultpath, createplan_flags);
+	if (!IsA(resultplan, Result))
+		return NULL;
 
 	/* Suppose caller already hold proper locks for relation. */
 	rel = relation_open(rte->relid, NoLock);
+	targetPolicy = rel->rd_cdbpolicy;
 
 	/* 1: See if it's partitioned */
 	pn = RelationBuildPartitionDesc(rel, false);
 
-	if (pn && !partition_policies_equal(*targetPolicy, pn))
+	/* Look up the distribution policy for the target partition. */
+	if (pn && !partition_policies_equal(targetPolicy, pn))
 	{
 		/*
 		 * 2: See if partitioning columns are constant
 		 */
 		List	   *partatts = get_partition_attrs(pn);
 		ListCell   *lc;
-		bool		all_const = true;
+		bool	   *nulls;
+		Datum	   *values;
+		EState	   *estate = CreateExecutorState();
+		ResultRelInfo *rri;
+
+		/*
+		 * 4: build tuple, look up partitioning key
+		 */
+		nulls = palloc0(sizeof(bool) * rel->rd_att->natts);
+		values = palloc(sizeof(Datum) * rel->rd_att->natts);
 
 		foreach(lc, partatts)
 		{
-			List	   *tl = plan->targetlist;
-			ListCell   *cell;
 			AttrNumber	attnum = lfirst_int(lc);
-			bool		found = false;
+			List	   *tl = resultplan->plan.targetlist;
+			ListCell   *cell;
 
 			foreach(cell, tl)
 			{
 				TargetEntry *tle = (TargetEntry *) lfirst(cell);
 
 				Assert(tle->expr);
+
 				if (tle->resno == attnum)
 				{
-					found = true;
-					if (!IsA(tle->expr, Const))
-						all_const = false;
-					break;
+					/*
+					 * GPDB_96_MERGE_FIXME: it's bogus to assume that the
+					 * entries are all Consts. We used to verify that explicitly,
+					 * but now we just call contain_mutable_functions(), which
+					 * will return true also for more complicated expressions
+					 * that only contain immutable functions. The right way would
+					 * be to evaluate the expression here, with ExecPrepareExpr() +
+					 * ExecEvalExpr(). In practice this works, because the planner
+					 * has already "preprocessed" the target list, which does
+					 * replace more complicated expressions with Consts.
+					 */
+					Assert(IsA(tle->expr, Const));
+
+					nulls[attnum - 1] = ((Const *) tle->expr)->constisnull;
+					if (!nulls[attnum - 1])
+						values[attnum - 1] = ((Const *) tle->expr)->constvalue;
 				}
 			}
-			Assert(found);
 		}
+		estate->es_result_partitions = pn;
+		estate->es_partition_state =
+			createPartitionState(estate->es_result_partitions, 1 /* resultPartSize */ );
 
-		/* 3: if not, mutate plan to make constant */
-		if (!all_const)
-			plan->targetlist = (List *)
-				planner_make_plan_constant(root, (Node *) plan->targetlist, true);
+		rri = makeNode(ResultRelInfo);
+		rri->ri_RangeTableIndex = 1;	/* dummy */
+		rri->ri_RelationDesc = rel;
 
-		/* better be constant now */
-		if (allConstantValuesClause(plan))
-		{
-			bool	   *nulls;
-			Datum	   *values;
-			EState	   *estate = CreateExecutorState();
-			ResultRelInfo *rri;
+		estate->es_result_relations = rri;
+		estate->es_num_result_relations = 1;
+		estate->es_result_relation_info = rri;
+		rri = values_get_partition(values, nulls, RelationGetDescr(rel),
+								   estate, false);
 
-			/*
-			 * 4: build tuple, look up partitioning key
-			 */
-			nulls = palloc0(sizeof(bool) * rel->rd_att->natts);
-			values = palloc(sizeof(Datum) * rel->rd_att->natts);
+		/*
+		 * 5: get target policy for destination table
+		 */
+		targetPolicy = RelationGetPartitioningKey(rri->ri_RelationDesc);
 
-			foreach(lc, partatts)
-			{
-				AttrNumber	attnum = lfirst_int(lc);
-				List	   *tl = plan->targetlist;
-				ListCell   *cell;
+		if (targetPolicy->ptype != POLICYTYPE_PARTITIONED)
+			elog(ERROR, "policy must be partitioned");
 
-				foreach(cell, tl)
-				{
-					TargetEntry *tle = (TargetEntry *) lfirst(cell);
-
-					Assert(tle->expr);
-
-					if (tle->resno == attnum)
-					{
-						Assert(IsA(tle->expr, Const));
-
-						nulls[attnum - 1] = ((Const *) tle->expr)->constisnull;
-						if (!nulls[attnum - 1])
-							values[attnum - 1] = ((Const *) tle->expr)->constvalue;
-					}
-				}
-			}
-			estate->es_result_partitions = pn;
-			estate->es_partition_state =
-				createPartitionState(estate->es_result_partitions, 1 /* resultPartSize */ );
-
-			rri = makeNode(ResultRelInfo);
-			rri->ri_RangeTableIndex = 1;	/* dummy */
-			rri->ri_RelationDesc = rel;
-
-			estate->es_result_relations = rri;
-			estate->es_num_result_relations = 1;
-			estate->es_result_relation_info = rri;
-			rri = values_get_partition(values, nulls, RelationGetDescr(rel),
-									   estate, false);
-
-			/*
-			 * 5: get target policy for destination table
-			 */
-			*targetPolicy = RelationGetPartitioningKey(rri->ri_RelationDesc);
-
-			if ((*targetPolicy)->ptype != POLICYTYPE_PARTITIONED)
-				elog(ERROR, "policy must be partitioned");
-
-			heap_close(rri->ri_RelationDesc, NoLock);
-			FreeExecutorState(estate);
-		}
-
+		heap_close(rri->ri_RelationDesc, NoLock);
+		FreeExecutorState(estate);
 	}
-	relation_close(rel, NoLock);
 
-	*hashExprs_p = getExprListFromTargetList(plan->targetlist,
-										   (*targetPolicy)->nattrs,
-										   (*targetPolicy)->attrs);
-	*hashOpfamilies_p = NIL;
-	for (int i = 0; i < (*targetPolicy)->nattrs; i++)
+	hashExprs = getExprListFromTargetList(resultplan->plan.targetlist,
+										  targetPolicy->nattrs,
+										  targetPolicy->attrs);
+	hashOpfamilies = NIL;
+	for (int i = 0; i < targetPolicy->nattrs; i++)
 	{
-		Oid			opfamily = get_opclass_family((*targetPolicy)->opclasses[i]);
+		Oid			opfamily = get_opclass_family(targetPolicy->opclasses[i]);
 
-		*hashOpfamilies_p = lappend_oid(*hashOpfamilies_p, opfamily);
+		hashOpfamilies = lappend_oid(hashOpfamilies, opfamily);
 	}
 
 	/*
@@ -3236,26 +2998,18 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 	 * GPDB_90_MERGE_FIXME: Is that the right thing to do? Couldn't we
 	 * direct dispatch to any arbitrarily chosen segment, in that case?
 	 */
-	if (allConstantValuesClause(plan))
+	numHashAttrs = targetPolicy->nattrs;
+
+	if (numHashAttrs > 0)
 	{
-		int			numHashAttrs;
-		AttrNumber *hashAttrs;
-		Oid		   *hashFuncs;
-		int			i;
-
-		numHashAttrs = (*targetPolicy)->nattrs;
-
-		if (numHashAttrs == 0)
-			typesOK = false;
-
 		/* Get hash functions for the columns. */
 		hashFuncs = palloc(numHashAttrs * sizeof(Oid));
 		i = 0;
-		foreach(cell, *hashExprs_p)
+		foreach(cell, hashExprs)
 		{
 			Expr	   *elem = (Expr *) lfirst(cell);
 			Oid			att_type = exprType((Node *) elem);
-			Oid			opclass = (*targetPolicy)->opclasses[i];
+			Oid			opclass = targetPolicy->opclasses[i];
 
 			hashFuncs[i++] =
 				cdb_hashproc_in_opfamily(get_opclass_family(opclass),
@@ -3265,44 +3019,38 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 		/*
 		 * all constants in values clause -- no need to repartition.
 		 */
-		if (typesOK)
+
+		/* copy the attributes array */
+		hashAttrs = palloc(numHashAttrs * sizeof(AttrNumber));
+		for (i = 0; i < numHashAttrs; i++)
+			hashAttrs[i] = targetPolicy->attrs[i];
+
+		if (subroot->config->gp_enable_direct_dispatch)
 		{
-			Result	   *rNode = (Result *) plan;
-			int			i;
+			directDispatchCalculateHash(&resultplan->plan, targetPolicy, hashFuncs);
 
 			/*
-			 * If this table has child tables, we need to find out destination
-			 * partition.
-			 *
-			 * See partition check above.
+			 * we now either have a hash-code, or we've marked the plan
+			 * non-directed.
 			 */
-
-			/* copy the attributes array */
-			hashAttrs = palloc(numHashAttrs * sizeof(AttrNumber));
-			for (i = 0; i < numHashAttrs; i++)
-				hashAttrs[i] = (*targetPolicy)->attrs[i];
-
-			if (root->config->gp_enable_direct_dispatch)
-			{
-				directDispatchCalculateHash(plan, *targetPolicy, hashFuncs);
-
-				/*
-				 * we now either have a hash-code, or we've marked the plan
-				 * non-directed.
-				 */
-			}
-
-			rNode->numHashFilterCols = numHashAttrs;
-			rNode->hashFilterColIdx = hashAttrs;
-			rNode->hashFilterFuncs = hashFuncs;
-
-			/* Build a partitioned flow */
-			plan->flow->flotype = FLOW_PARTITIONED;
-			plan->flow->locustype = CdbLocusType_Hashed;
-			plan->flow->hashExprs = *hashExprs_p;
-			plan->flow->hashOpfamilies = *hashOpfamilies_p;
 		}
+
+		resultplan->numHashFilterCols = numHashAttrs;
+		resultplan->hashFilterColIdx = hashAttrs;
+		resultplan->hashFilterFuncs = hashFuncs;
+
+		/* Build a partitioned flow */
+		resultplan->plan.flow->flotype = FLOW_PARTITIONED;
+		resultplan->plan.flow->locustype = CdbLocusType_Hashed;
+		resultplan->plan.flow->hashExprs = hashExprs;
+		resultplan->plan.flow->hashOpfamilies = hashOpfamilies;
 	}
+	else
+		resultplan = NULL;
+
+	relation_close(rel, NoLock);
+
+	return (Plan *) resultplan;
 }
 
 /*

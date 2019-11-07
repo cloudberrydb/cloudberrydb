@@ -415,11 +415,11 @@ select * from pt where exists (select 1 from t where tid = ptid and t1 = 'hello'
 explain select count(*) from t, pt where tid = ptid;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=21.67..21.68 rows=1 width=8)
-   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=21.62..21.66 rows=1 width=8)
-         ->  Aggregate  (cost=21.62..21.63 rows=1 width=8)
-               ->  Hash Join  (cost=2.13..21.48 rows=18 width=0)
-                     Hash Cond: pt_1_prt_junk_data.ptid = t.tid
+ Finalize Aggregate  (cost=20.17..20.18 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=20.14..20.17 rows=1 width=8)
+         ->  Partial Aggregate  (cost=20.14..20.15 rows=1 width=8)
+               ->  Hash Join  (cost=1.18..20.10 rows=6 width=0)
+                     Hash Cond: (pt_1_prt_junk_data.ptid = t.tid)
                      ->  Append  (cost=0.00..18.54 rows=18 width=4)
                            ->  Result  (cost=0.00..3.09 rows=3 width=4)
                                  One-Time Filter: PartSelected
@@ -439,11 +439,11 @@ explain select count(*) from t, pt where tid = ptid;
                            ->  Result  (cost=0.00..3.09 rows=3 width=4)
                                  One-Time Filter: PartSelected
                                  ->  Seq Scan on pt_1_prt_6  (cost=0.00..3.09 rows=3 width=4)
-                     ->  Hash  (cost=2.08..2.08 rows=2 width=4)
-                           ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..2.08 rows=2 width=4)
+                     ->  Hash  (cost=1.10..1.10 rows=2 width=4)
+                           ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..1.10 rows=2 width=4)
                                  Filter: t.tid
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.08 rows=2 width=4)
-                                       ->  Seq Scan on t  (cost=0.00..2.02 rows=1 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
+                                       ->  Seq Scan on t  (cost=0.00..1.02 rows=1 width=4)
  Optimizer: Postgres query optimizer
 (30 rows)
 
@@ -633,67 +633,66 @@ explain select count(*) from
 	  union all
 	  select * from t, pt where tid + 2 = ptid
 	  ) foo;
-                                                               QUERY PLAN                                                               
-----------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=45.58..45.59 rows=1 width=8)
-   ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=45.52..45.56 rows=1 width=8)
-         ->  Aggregate  (cost=45.52..45.53 rows=1 width=8)
-               ->  Subquery Scan on foo  (cost=2.13..45.25 rows=36 width=0)
-                     ->  Append  (cost=2.13..44.17 rows=36 width=50)
-                           ->  Hash Join  (cost=2.13..21.48 rows=18 width=50)
-                                 Hash Cond: pt_1_prt_junk_data.ptid = t.tid
-                                 ->  Append  (cost=0.00..18.54 rows=18 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_junk_data  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_2  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_3  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_4  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_5  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_6  (cost=0.00..3.09 rows=3 width=31)
-                                 ->  Hash  (cost=2.08..2.08 rows=2 width=19)
-                                       ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..2.08 rows=2 width=19)
-                                             Filter: t.tid
-                                             ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.08 rows=2 width=19)
-                                                   ->  Seq Scan on t  (cost=0.00..2.02 rows=1 width=19)
-                           ->  Hash Join  (cost=2.13..21.61 rows=18 width=50)
-                                 Hash Cond: pt_1_prt_junk_data_1.ptid = (t_1.tid + 2)
-                                 ->  Append  (cost=0.00..18.54 rows=18 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_junk_data pt_1_prt_junk_data_1  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_2 pt_1_prt_2_1  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_3 pt_1_prt_3_1  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_4 pt_1_prt_4_1  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_5 pt_1_prt_5_1  (cost=0.00..3.09 rows=3 width=31)
-                                       ->  Result  (cost=0.00..3.09 rows=3 width=31)
-                                             One-Time Filter: PartSelected
-                                             ->  Seq Scan on pt_1_prt_6 pt_1_prt_6_1  (cost=0.00..3.09 rows=3 width=31)
-                                 ->  Hash  (cost=2.08..2.08 rows=2 width=19)
-                                       ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..2.08 rows=2 width=19)
-                                             Filter: t_1.tid + 2
-                                             ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.08 rows=2 width=19)
-                                                   ->  Seq Scan on t t_1  (cost=0.00..2.02 rows=1 width=19)
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=41.10..41.11 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=41.07..41.10 rows=1 width=8)
+         ->  Partial Aggregate  (cost=41.07..41.08 rows=1 width=8)
+               ->  Append  (cost=1.18..40.62 rows=12 width=50)
+                     ->  Hash Join  (cost=1.18..20.10 rows=6 width=50)
+                           Hash Cond: (pt_1_prt_junk_data.ptid = t.tid)
+                           ->  Append  (cost=0.00..18.54 rows=18 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_junk_data  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_2  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_3  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_4  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_5  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_6  (cost=0.00..3.09 rows=3 width=31)
+                           ->  Hash  (cost=1.10..1.10 rows=2 width=19)
+                                 ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..1.10 rows=2 width=19)
+                                       Filter: t.tid
+                                       ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.10 rows=2 width=19)
+                                             ->  Seq Scan on t  (cost=0.00..1.02 rows=1 width=19)
+                     ->  Hash Join  (cost=1.18..20.16 rows=6 width=50)
+                           Hash Cond: (pt_1_prt_junk_data_1.ptid = (t_1.tid + 2))
+                           ->  Append  (cost=0.00..18.54 rows=18 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_junk_data pt_1_prt_junk_data_1  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_2 pt_1_prt_2_1  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_3 pt_1_prt_3_1  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_4 pt_1_prt_4_1  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_5 pt_1_prt_5_1  (cost=0.00..3.09 rows=3 width=31)
+                                 ->  Result  (cost=0.00..3.09 rows=3 width=31)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on pt_1_prt_6 pt_1_prt_6_1  (cost=0.00..3.09 rows=3 width=31)
+                           ->  Hash  (cost=1.10..1.10 rows=2 width=19)
+                                 ->  Partition Selector for pt (dynamic scan id: 1)  (cost=0.00..1.10 rows=2 width=19)
+                                       Filter: (t_1.tid + 2)
+                                       ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1.10 rows=2 width=19)
+                                             ->  Seq Scan on t t_1  (cost=0.00..1.02 rows=1 width=19)
  Optimizer: Postgres query optimizer
-(58 rows)
+(57 rows)
 
 select count(*) from
 	( select * from t, pt where tid = ptid
@@ -1187,10 +1186,10 @@ select * from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0' order by pt
 explain select count(*) from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0';
                                                      QUERY PLAN                                                     
 --------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=39.04..39.05 rows=1 width=8)
-   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=38.98..39.03 rows=1 width=8)
-         ->  Aggregate  (cost=38.98..38.99 rows=1 width=8)
-               ->  Hash Join  (cost=19.14..38.96 rows=3 width=0)
+ Finalize Aggregate  (cost=40.01..40.02 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=39.98..40.01 rows=1 width=8)
+         ->  Partial Aggregate  (cost=39.98..39.99 rows=1 width=8)
+               ->  Hash Join  (cost=19.14..39.84 rows=19 width=0)
                      Hash Cond: (pt1_1_prt_junk_data.ptid = pt_1_prt_junk_data.ptid)
                      ->  Append  (cost=0.00..19.08 rows=36 width=4)
                            ->  Result  (cost=0.00..3.63 rows=21 width=4)
@@ -2072,42 +2071,36 @@ select * from dim1 inner join fact1 on (dim1.pid=fact1.pid) and fact1.code = 'OH
 --
 set gp_dynamic_partition_pruning=off;
 explain select fact1.code, count(*) from dim1 inner join fact1 on (dim1.pid=fact1.pid) group by 1 order by 1;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=9268.79..9270.11 rows=530 width=40)
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=8534.00..8546.82 rows=354 width=40)
    Merge Key: fact1_1_prt_1_2_prt_ca.code
-   ->  Sort  (cost=9268.79..9270.11 rows=177 width=40)
-         Sort Key: fact1_1_prt_1_2_prt_ca.code
-         ->  GroupAggregate  (cost=9230.23..9244.81 rows=177 width=40)
-               Group Key: fact1_1_prt_1_2_prt_ca.code
-               ->  Sort  (cost=9230.23..9231.56 rows=177 width=40)
-                     Sort Key: fact1_1_prt_1_2_prt_ca.code
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=9186.37..9206.25 rows=177 width=40)
-                           Hash Key: fact1_1_prt_1_2_prt_ca.code
-                           ->  GroupAggregate  (cost=9186.37..9195.65 rows=177 width=40)
-                                 Group Key: fact1_1_prt_1_2_prt_ca.code
-                                 ->  Sort  (cost=9186.37..9187.70 rows=177 width=32)
-                                       Sort Key: fact1_1_prt_1_2_prt_ca.code
-                                       ->  Hash Join  (cost=1.06..9162.37 rows=177 width=32)
-                                             Hash Cond: fact1_1_prt_1_2_prt_ca.pid = dim1.pid
-                                             ->  Append  (cost=0.00..6504.00 rows=176800 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_1_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_1_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_1_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_2_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_2_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_2_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_3_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_3_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_3_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_4_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_4_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Seq Scan on fact1_1_prt_4_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                             ->  Hash  (cost=1.04..1.04 rows=1 width=4)
-                                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.04 rows=1 width=4)
-                                                         ->  Seq Scan on dim1  (cost=0.00..1.01 rows=1 width=4)
+   ->  GroupAggregate  (cost=8534.00..8539.75 rows=118 width=40)
+         Group Key: fact1_1_prt_1_2_prt_ca.code
+         ->  Sort  (cost=8534.00..8535.33 rows=177 width=32)
+               Sort Key: fact1_1_prt_1_2_prt_ca.code
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=1.09..8510.00 rows=177 width=32)
+                     Hash Key: fact1_1_prt_1_2_prt_ca.code
+                     ->  Hash Join  (cost=1.09..8499.39 rows=177 width=32)
+                           Hash Cond: (fact1_1_prt_1_2_prt_ca.pid = dim1.pid)
+                           ->  Append  (cost=0.00..6504.00 rows=176800 width=36)
+                                 ->  Seq Scan on fact1_1_prt_1_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_1_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_1_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_2_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_2_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_2_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_3_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_3_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_3_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_4_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_4_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Seq Scan on fact1_1_prt_4_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                           ->  Hash  (cost=1.05..1.05 rows=1 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.05 rows=1 width=4)
+                                       ->  Seq Scan on dim1  (cost=0.00..1.01 rows=1 width=4)
  Optimizer: Postgres query optimizer
-(33 rows)
+(27 rows)
 
 select fact1.code, count(*) from dim1 inner join fact1 on (dim1.pid=fact1.pid) group by 1 order by 1;
  code | count 
@@ -2118,68 +2111,62 @@ select fact1.code, count(*) from dim1 inner join fact1 on (dim1.pid=fact1.pid) g
 
 set gp_dynamic_partition_pruning=on;
 explain select fact1.code, count(*) from dim1 inner join fact1 on (dim1.pid=fact1.pid) group by 1 order by 1;
-                                                                QUERY PLAN                                                                 
--------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=9268.79..9270.11 rows=530 width=40)
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=8534.00..8546.82 rows=354 width=40)
    Merge Key: fact1_1_prt_1_2_prt_ca.code
-   ->  Sort  (cost=9268.79..9270.11 rows=177 width=40)
-         Sort Key: fact1_1_prt_1_2_prt_ca.code
-         ->  GroupAggregate  (cost=9230.23..9244.81 rows=177 width=40)
-               Group Key: fact1_1_prt_1_2_prt_ca.code
-               ->  Sort  (cost=9230.23..9231.56 rows=177 width=40)
-                     Sort Key: fact1_1_prt_1_2_prt_ca.code
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=9186.37..9206.25 rows=177 width=40)
-                           Hash Key: fact1_1_prt_1_2_prt_ca.code
-                           ->  GroupAggregate  (cost=9186.37..9195.65 rows=177 width=40)
-                                 Group Key: fact1_1_prt_1_2_prt_ca.code
-                                 ->  Sort  (cost=9186.37..9187.70 rows=177 width=32)
-                                       Sort Key: fact1_1_prt_1_2_prt_ca.code
-                                       ->  Hash Join  (cost=1.06..9162.37 rows=177 width=32)
-                                             Hash Cond: fact1_1_prt_1_2_prt_ca.pid = dim1.pid
-                                             ->  Append  (cost=0.00..6504.00 rows=176800 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_1_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_1_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_1_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_2_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_2_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_2_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_3_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_3_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_3_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_4_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_4_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
-                                                   ->  Result  (cost=0.00..542.00 rows=14734 width=36)
-                                                         One-Time Filter: PartSelected
-                                                         ->  Seq Scan on fact1_1_prt_4_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
-                                             ->  Hash  (cost=1.04..1.04 rows=1 width=4)
-                                                   ->  Partition Selector for fact1 (dynamic scan id: 1)  (cost=0.00..1.04 rows=1 width=4)
-                                                         Filter: dim1.pid
-                                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.04 rows=1 width=4)
-                                                               ->  Seq Scan on dim1  (cost=0.00..1.01 rows=1 width=4)
+   ->  GroupAggregate  (cost=8534.00..8539.75 rows=118 width=40)
+         Group Key: fact1_1_prt_1_2_prt_ca.code
+         ->  Sort  (cost=8534.00..8535.33 rows=177 width=32)
+               Sort Key: fact1_1_prt_1_2_prt_ca.code
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=1.09..8510.00 rows=177 width=32)
+                     Hash Key: fact1_1_prt_1_2_prt_ca.code
+                     ->  Hash Join  (cost=1.09..8499.39 rows=177 width=32)
+                           Hash Cond: (fact1_1_prt_1_2_prt_ca.pid = dim1.pid)
+                           ->  Append  (cost=0.00..6504.00 rows=176800 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_1_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_1_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_1_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_2_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_2_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_2_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_3_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_3_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_3_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_4_2_prt_ca  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_4_2_prt_oh  (cost=0.00..542.00 rows=14734 width=36)
+                                 ->  Result  (cost=0.00..542.00 rows=14734 width=36)
+                                       One-Time Filter: PartSelected
+                                       ->  Seq Scan on fact1_1_prt_4_2_prt_wa  (cost=0.00..542.00 rows=14734 width=36)
+                           ->  Hash  (cost=1.05..1.05 rows=1 width=4)
+                                 ->  Partition Selector for fact1 (dynamic scan id: 1)  (cost=0.00..1.05 rows=1 width=4)
+                                       Filter: dim1.pid
+                                       ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.05 rows=1 width=4)
+                                             ->  Seq Scan on dim1  (cost=0.00..1.01 rows=1 width=4)
  Optimizer: Postgres query optimizer
-(59 rows)
+(53 rows)
 
 select fact1.code, count(*) from dim1 inner join fact1 on (dim1.pid=fact1.pid) group by 1 order by 1;
  code | count 

@@ -2,7 +2,7 @@
  *
  * createuser
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/scripts/createuser.c
@@ -12,7 +12,8 @@
 
 #include "postgres_fe.h"
 #include "common.h"
-#include "dumputils.h"
+#include "fe_utils/simple_list.h"
+#include "fe_utils/string_utils.h"
 
 
 static void help(const char *progname);
@@ -251,7 +252,7 @@ main(int argc, char *argv[])
 		login = TRI_YES;
 
 	conn = connectDatabase("postgres", host, port, username, prompt_password,
-						   progname, echo, false);
+						   progname, echo, false, false);
 
 	initPQExpBuffer(&sql);
 
@@ -321,7 +322,7 @@ main(int argc, char *argv[])
 				appendPQExpBuffer(&sql, "%s", fmtId(cell->val));
 		}
 	}
-	appendPQExpBufferStr(&sql, ";");
+	appendPQExpBufferChar(&sql, ';');
 
 	if (echo)
 		printf("%s\n", sql.data);

@@ -36,7 +36,7 @@
  * to look like NO SCROLL cursors.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/portal.h
@@ -129,6 +129,7 @@ typedef struct PortalData
 	 * in which we ran the portal.
 	 */
 	SubTransactionId createSubid;		/* the creating subxact */
+	SubTransactionId activeSubid;		/* the last subxact with activity */
 
 	/*
 	 * if Resource Scheduling is enabled, we need to save the original
@@ -175,6 +176,16 @@ typedef struct PortalData
 	MemoryContext holdContext;	/* memory containing holdStore */
 
 	/*
+	 * Snapshot under which tuples in the holdStore were read.  We must keep a
+	 * reference to this snapshot if there is any possibility that the tuples
+	 * contain TOAST references, because releasing the snapshot could allow
+	 * recently-dead rows to be vacuumed away, along with any toast data
+	 * belonging to them.  In the case of a held cursor, we avoid needing to
+	 * keep such a snapshot by forcibly detoasting the data.
+	 */
+	Snapshot	holdSnapshot;	/* registered snapshot, or NULL if none */
+
+	/*
 	 * atStart, atEnd and portalPos indicate the current cursor position.
 	 * portalPos is zero before the first row, N after fetching N'th row of
 	 * query.  After we run off the end, portalPos = # of rows in query, and
@@ -193,12 +204,6 @@ typedef struct PortalData
 
 	/* MPP: is this portal a CURSOR, or protocol level portal? */
 	bool		is_extended_query; /* simple or extended query protocol? */
-	/*
-	 * This field belongs with createSubid, but in pre-9.5 branches, add it
-	 * at the end to avoid creating an ABI break for extensions that examine
-	 * Portal structs.
-	 */
-	SubTransactionId activeSubid;		/* the last subxact with activity */
 }	PortalData;
 
 /*

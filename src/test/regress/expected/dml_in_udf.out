@@ -215,35 +215,15 @@ LANGUAGE PLPGSQL;
 CREATE TABLE dml_plpgsql_t1(a char) distributed by (a);
 SELECT dml_indata(1,10);
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
-PL/pgSQL function dml_indata(integer,integer) line 7 at PERFORM
  dml_indata 
 ------------
  
@@ -307,11 +287,7 @@ SELECT * FROM volatilefn_dml_int8 ORDER BY 1,2,3;
 
 UPDATE volatilefn_dml_int8 SET col3 = (SELECT dml_in_udf_func(1));
 NOTICE:  table "udftest_foo" does not exist, skipping
-CONTEXT:  SQL statement "DROP TABLE IF EXISTS udftest_foo"
-PL/pgSQL function dml_in_udf_func(integer) line 3 at SQL statement
 NOTICE:  table "udftest_bar" does not exist, skipping
-CONTEXT:  SQL statement "DROP TABLE IF EXISTS udftest_bar"
-PL/pgSQL function dml_in_udf_func(integer) line 7 at SQL statement
 SELECT * FROM volatilefn_dml_int8 ORDER BY 1,2,3;
  col1 | col2 | col3 | col4 
 ------+------+------+------

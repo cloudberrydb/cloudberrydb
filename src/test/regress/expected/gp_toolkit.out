@@ -605,8 +605,8 @@ select * from gp_toolkit.gp_resq_role where rrrolname like 'toolkit%';
 -- gp_locks_on_resqueue
 -- Should be empty because there is no one in the queue
 select * from gp_toolkit.gp_locks_on_resqueue;
- lorusename | lorrsqname | lorlocktype | lorobjid | lortransaction | lorpid | lormode | lorgranted | lorwaiting 
-------------+------------+-------------+----------+----------------+--------+---------+------------+------------
+ lorusename | lorrsqname | lorlocktype | lorobjid | lortransaction | lorpid | lormode | lorgranted | lorwaitevent | lorwaiteventtype 
+------------+------------+-------------+----------+----------------+--------+---------+------------+--------------+------------------
 (0 rows)
 
 -- GP Resource Queue Activity for User

@@ -4,7 +4,7 @@
  *	  XML data type support.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/utils/adt/xml.c
@@ -2276,7 +2276,7 @@ _SPI_strdup(const char *s)
 static List *
 query_to_oid_list(const char *query)
 {
-	uint64			i;
+	uint64		i;
 	List	   *list = NIL;
 
 	SPI_execute(query, true, 0);
@@ -2395,7 +2395,7 @@ cursor_to_xml(PG_FUNCTION_ARGS)
 
 	StringInfoData result;
 	Portal		portal;
-	uint64			i;
+	uint64		i;
 
 	initStringInfo(&result);
 
@@ -2479,7 +2479,7 @@ query_to_xml_internal(const char *query, char *tablename,
 {
 	StringInfo	result;
 	char	   *xmltn;
-	uint64			i;
+	uint64		i;
 
 	if (tablename)
 		xmltn = map_sql_identifier_to_xml_name(tablename, true, false);
@@ -2498,7 +2498,7 @@ query_to_xml_internal(const char *query, char *tablename,
 	{
 		xmldata_root_element_start(result, xmltn, xmlschema,
 								   targetns, top_level);
-		appendStringInfoString(result, "\n");
+		appendStringInfoChar(result, '\n');
 	}
 
 	if (xmlschema)
@@ -2662,7 +2662,7 @@ schema_to_xml_internal(Oid nspid, const char *xmlschema, bool nulls,
 	result = makeStringInfo();
 
 	xmldata_root_element_start(result, xmlsn, xmlschema, targetns, top_level);
-	appendStringInfoString(result, "\n");
+	appendStringInfoChar(result, '\n');
 
 	if (xmlschema)
 		appendStringInfo(result, "%s\n\n", xmlschema);
@@ -2840,7 +2840,7 @@ database_to_xml_internal(const char *xmlschema, bool nulls,
 	result = makeStringInfo();
 
 	xmldata_root_element_start(result, xmlcn, xmlschema, targetns, true);
-	appendStringInfoString(result, "\n");
+	appendStringInfoChar(result, '\n');
 
 	if (xmlschema)
 		appendStringInfo(result, "%s\n\n", xmlschema);

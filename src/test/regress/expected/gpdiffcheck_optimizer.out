@@ -213,12 +213,12 @@ explain select a.* from gpd1 as a, gpd1 as b where b.c1 in (select max(c1) from 
 -----------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..1724.00 rows=1 width=12)
    ->  Hash Join  (cost=0.00..1724.00 rows=1 width=12)
-         Hash Cond: (max((max(gpd1.c1)))) = gpd1_1.c1
+         Hash Cond: ((max(gpd1.c1)) = gpd1_1.c1)
          ->  Redistribute Motion 1:3  (slice2)  (cost=0.00..431.00 rows=1 width=8)
-               Hash Key: (max((max(gpd1.c1))))
-               ->  Aggregate  (cost=0.00..431.00 rows=1 width=8)
+               Hash Key: (max(gpd1.c1))
+               ->  Finalize Aggregate  (cost=0.00..431.00 rows=1 width=8)
                      ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-                           ->  Aggregate  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Partial Aggregate  (cost=0.00..431.00 rows=1 width=8)
                                  ->  Seq Scan on gpd1  (cost=0.00..431.00 rows=1 width=2)
          ->  Hash  (cost=1293.00..1293.00 rows=1 width=14)
                ->  Nested Loop  (cost=0.00..1293.00 rows=1 width=14)
@@ -260,9 +260,9 @@ explain analyze select a.* from gpd1 as a, gpd1 as b where b.c1 in (select max(c
  
          ->  Redistribute Motion 1:3  (slice2)  (cost=0.00..431.00 rows=1 width=8) (actual time=0.002..0.002 rows=0 loops=2)
                Hash Key: (max((max(gpd1.c1))))
-               ->  Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=0.222..0.222 rows=0 loops=2)
+               ->  Finalize Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=0.222..0.222 rows=0 loops=2)
                      ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8) (actual time=0.008..0.208 rows=2 loops=2)
-                           ->  Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=0.015..0.015 rows=0 loops=2)
+                           ->  Partial Aggregate  (cost=0.00..431.00 rows=1 width=8) (actual time=0.015..0.015 rows=0 loops=2)
                                  ->  Seq Scan on gpd1  (cost=0.00..431.00 rows=1 width=2) (actual time=0.007..0.009 rows=2 loops=2)
          ->  Hash  (cost=1293.00..1293.00 rows=1 width=14) (actual time=0.060..0.060 rows=16 loops=2)
                ->  Nested Loop  (cost=0.00..1293.00 rows=1 width=14) (actual time=0.029..0.051 rows=16 loops=2)

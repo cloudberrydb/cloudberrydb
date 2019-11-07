@@ -123,8 +123,8 @@ CREATE FUNCTION base_fn_out(opaque) RETURNS opaque AS 'boolout'
     LANGUAGE internal IMMUTABLE STRICT;
 CREATE TYPE base_type(INPUT = base_fn_in, OUTPUT = base_fn_out);
 WARNING:  changing argument type of function base_fn_out from "opaque" to base_type
-WARNING:  changing return type of function base_fn_in from "opaque" to base_type
-WARNING:  changing return type of function base_fn_out from "opaque" to "cstring"
+WARNING:  changing return type of function base_fn_in from opaque to base_type
+WARNING:  changing return type of function base_fn_out from opaque to cstring
 DROP FUNCTION base_fn_in(cstring); -- error
 ERROR:  cannot drop function base_fn_in(cstring) because other objects depend on it
 DETAIL:  type base_type depends on function base_fn_in(cstring)

@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/prep.h
@@ -58,8 +58,7 @@ extern PlanRowMark *get_plan_rowmark(List *rowmarks, Index rtindex);
 /*
  * prototypes for prepunion.c
  */
-extern Plan *plan_set_operations(PlannerInfo *root, double tuple_fraction,
-					List **sortClauses);
+extern RelOptInfo *plan_set_operations(PlannerInfo *root);
 
 extern void expand_inherited_tables(PlannerInfo *root);
 

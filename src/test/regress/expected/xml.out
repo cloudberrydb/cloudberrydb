@@ -959,7 +959,6 @@ WARNING:  line 1: xmlns: URI relative is not absolute
 DETAIL:  
 <relativens xmlns='relative'/>
                             ^
-CONTEXT:  SQL function "xpath" statement 1
                 xpath                 
 --------------------------------------
  {"<relativens xmlns=\"relative\"/>"}

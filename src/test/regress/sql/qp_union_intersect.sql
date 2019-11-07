@@ -671,6 +671,7 @@ select null, null, array_dims(array_agg(x)) from mergeappend_test r
 order by 1,2;
 
 -- Check that it's using a MergeAppend
+set enable_hashagg=off;
 explain (costs off)
 select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
 union all

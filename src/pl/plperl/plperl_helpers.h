@@ -63,8 +63,8 @@ sv2cstr(SV *sv)
 	 * SvPVutf8() croaks nastily on certain things, like typeglobs and
 	 * readonly objects such as $^V. That's a perl bug - it's not supposed to
 	 * happen. To avoid crashing the backend, we make a copy of the sv before
-	 * passing it to SvPVutf8(). The copy is garbage collected 
-	 * when we're done with it.
+	 * passing it to SvPVutf8(). The copy is garbage collected when we're done
+	 * with it.
 	 */
 	if (SvREADONLY(sv) ||
 		isGV_with_GP(sv) ||

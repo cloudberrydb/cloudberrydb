@@ -60,7 +60,7 @@ extern void cdb_tuplesort_init(struct Tuplesortstate *state, int unique,
 
 extern void tuplesort_begin_pos(struct Tuplesortstate *state, TuplesortPos **pos);
 extern bool tuplesort_gettupleslot_pos(struct Tuplesortstate *state, TuplesortPos *pos,
-                          bool forward, TupleTableSlot *slot, MemoryContext mcontext);
+                          bool forward, TupleTableSlot *slot, Datum *abbrev, MemoryContext mcontext);
 
 extern void tuplesort_flush(struct Tuplesortstate *state);
 extern void tuplesort_finalize_stats(struct Tuplesortstate *state);

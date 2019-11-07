@@ -268,6 +268,15 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 	 */
 	if (!found)
 	{
+		/*
+		 * Resource queues don't participate in "group locking", used to share
+		 * locks between leader process and parallel worker processes in
+		 * PostgreSQL. But we better still set 'groupLeader', it is assumed
+		 * to be valid on all PROCLOCKs, and is accessed e.g. by
+		 * GetLockStatusData().
+		 */
+		proclock->groupLeader = MyProc->lockGroupLeader != NULL ?
+			MyProc->lockGroupLeader : MyProc;
 		proclock->holdMask = 0;
 		proclock->releaseMask = 0;
 		/* Add proclock to appropriate lists */
@@ -1036,7 +1045,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 		set_ps_display(new_status, false);		/* truncate off " queuing" */
 		new_status[len] = '\0';
 	}
-	gpstat_report_waiting(PGBE_WAITING_LOCK);
+	pgstat_report_wait_start(WAIT_RESOURCE_QUEUE, 0);
 
 	awaitedLock = locallock;
 	awaitedOwner = owner;
@@ -1054,6 +1063,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 		LWLockRelease(partitionLock);
 		DeadLockReport();
 	}
+	pgstat_report_wait_end();
 
 	awaitedLock = NULL;
 
@@ -1063,7 +1073,6 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 		set_ps_display(new_status, false);
 		pfree(new_status);
 	}
-	gpstat_report_waiting(PGBE_WAITING_NONE);
 
 	return;
 }
@@ -1145,11 +1154,11 @@ ResProcLockRemoveSelfAndWakeup(LOCK *lock)
 		 * See if it is ok to wake this guy. (note that the wakeup writes to
 		 * the wait list, and gives back a *new* next proc).
 		 */
-		status = ResLockCheckLimit(lock, (PROCLOCK *) proc->waitProcLock, incrementSet, true);
+		status = ResLockCheckLimit(lock, proc->waitProcLock, incrementSet, true);
 		if (status == STATUS_OK)
 		{
-			ResGrantLock(lock, (PROCLOCK *) proc->waitProcLock);
-			ResLockUpdateLimit(lock, (PROCLOCK *) proc->waitProcLock, incrementSet, true, false);
+			ResGrantLock(lock, proc->waitProcLock);
+			ResLockUpdateLimit(lock, proc->waitProcLock, incrementSet, true, false);
 
 			proc = ResProcWakeup(proc, STATUS_OK);
 		}
@@ -1260,7 +1269,7 @@ ResRemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
 	 * LockRelease expects there to be no remaining proclocks.) Then see if
 	 * any other waiters for the lock can be woken up now.
 	 */
-	ResCleanUpLock(waitLock, (PROCLOCK *) proclock, hashcode, true);
+	ResCleanUpLock(waitLock, proclock, hashcode, true);
 	LWLockRelease(ResQueueLock);
 
 }
@@ -1368,7 +1377,7 @@ ResCheckSelfDeadLock(LOCK *lock, PROCLOCK *proclock, ResPortalIncrement *increme
 		if (lock->nRequested > lock->nGranted)
 		{
 			/* we're no longer waiting. */
-			gpstat_report_waiting(PGBE_WAITING_NONE);
+			pgstat_report_wait_end();
 			ResGrantLock(lock, proclock);
 			ResLockUpdateLimit(lock, proclock, incrementSet, true, true);
 		}

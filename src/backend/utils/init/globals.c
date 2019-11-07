@@ -3,7 +3,7 @@
  * globals.c
  *	  global variable declarations
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,6 +33,7 @@ volatile bool QueryCancelCleanup = false;
 volatile bool QueryFinishPending = false;
 volatile bool ProcDiePending = false;
 volatile bool ClientConnectionLost = false;
+volatile bool IdleInTransactionSessionTimeoutPending = false;
 volatile sig_atomic_t ConfigReloadPending = false;
 /*
  * GPDB: Make these signed integers (instead of uint32) to detect garbage
@@ -77,6 +78,8 @@ char		postgres_exec_path[MAXPGPATH];		/* full path to backend */
 #endif
 
 BackendId	MyBackendId = InvalidBackendId;
+
+BackendId	ParallelMasterBackendId = InvalidBackendId;
 
 Oid			MyDatabaseId = InvalidOid;
 
@@ -131,6 +134,7 @@ int			max_statement_mem = 2048000;
  */
 int			gp_vmem_limit_per_query = 0;
 int			maintenance_work_mem = 65536;
+int			replacement_sort_tuples = 150000;
 
 /*
  * Primary determinants of sizes of shared-memory structures.

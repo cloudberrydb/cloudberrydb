@@ -131,7 +131,12 @@ SELECT json_agg(q)
          FROM generate_series(1,2) x,
               generate_series(4,5) y) q;
 
-SELECT json_agg(q order by q)
+SELECT json_agg(q ORDER BY x, y)
+  FROM rows q;
+
+UPDATE rows SET x = NULL WHERE x = 1;
+
+SELECT json_agg(q ORDER BY x NULLS FIRST, y)
   FROM rows q;
 
 -- non-numeric output
@@ -186,6 +191,10 @@ FROM test_json
 WHERE json_type = 'scalar';
 
 SELECT test_json -> 2
+FROM test_json
+WHERE json_type = 'array';
+
+SELECT test_json -> -1
 FROM test_json
 WHERE json_type = 'array';
 
@@ -246,6 +255,7 @@ where json_type = 'array';
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::text;
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::int;
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 1;
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> -1;
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 'z';
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> '';
 select '[{"b": "c"}, {"b": "cc"}]'::json -> 1;
@@ -447,7 +457,6 @@ SELECT json_build_object(VARIADIC '{1,2,3,4}'::text[]); -- ok
 SELECT json_build_object(VARIADIC '{1,2,3,4}'::int[]); -- ok
 SELECT json_build_object(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][]); -- ok
 
-
 -- empty objects/arrays
 SELECT json_build_array();
 
@@ -473,7 +482,18 @@ INSERT INTO foo VALUES (847003,'sub-alpha','GESS90');
 SELECT json_build_object('turbines',json_object_agg(serial_num,json_build_object('name',name,'type',type) order by serial_num))
 FROM foo;
 
+SELECT json_object_agg(name, type order by type) FROM foo;
+
+INSERT INTO foo VALUES (999999, NULL, 'bar');
+SELECT json_object_agg(name, type) FROM foo;
+
 -- json_object
+
+-- empty object, one dimension
+SELECT json_object('{}');
+
+-- empty object, two dimensions
+SELECT json_object('{}', '{}');
 
 -- one dimension
 SELECT json_object('{a,1,b,2,3,NULL,"d e f","a b c"}');

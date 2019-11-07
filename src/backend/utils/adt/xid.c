@@ -3,7 +3,7 @@
  * xid.c
  *	  POSTGRES transaction identifier and command identifier datatypes.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -85,15 +85,6 @@ xideq(PG_FUNCTION_ARGS)
 }
 
 Datum
-xidne(PG_FUNCTION_ARGS)
-{
-	TransactionId xid1 = PG_GETARG_TRANSACTIONID(0);
-	TransactionId xid2 = PG_GETARG_TRANSACTIONID(1);
-
-	PG_RETURN_BOOL(xid1 != xid2);
-}
-
-Datum
 xidlt(PG_FUNCTION_ARGS)
 {
 	TransactionId xid1 = PG_GETARG_TRANSACTIONID(0);
@@ -145,12 +136,27 @@ btxidcmp(PG_FUNCTION_ARGS)
 
 
 /*
- * xid_age - compute age of an XID (relative to latest transaction id
- * allocated in system)
+ *		xidneq			- are two xids different?
+ */
+Datum
+xidneq(PG_FUNCTION_ARGS)
+{
+	TransactionId xid1 = PG_GETARG_TRANSACTIONID(0);
+	TransactionId xid2 = PG_GETARG_TRANSACTIONID(1);
+
+	PG_RETURN_BOOL(!TransactionIdEquals(xid1, xid2));
+}
+
+/*
+ *		xid_age			- compute age of an XID (relative to latest stable xid)
  *
  * ReadNewTransactionId() is used here instead of GetTopTransactionId(), as
  * this function may be called on QE Reader and with laxy XID try to allocate
  * XID as QE Reader which is not allowed.
+ *
+ * GPDB_96_MERGE_FIXME: Upstream uses GetStableLatestTransactionId() nowadays,
+ * and looking at what it does, I think it should work. Try reverting this to
+ * upstream version and see if it works.
  */
 Datum
 xid_age(PG_FUNCTION_ARGS)

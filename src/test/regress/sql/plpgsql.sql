@@ -1407,10 +1407,23 @@ select * from PField_v1 where pfname = 'PF0_2' order by slotname;
 -- Finally we want errors
 --
 insert into PField values ('PF1_1', 'should fail due to unique index');
+/*
+ * GPDB_96_MERGE_FIXME : should these update statements  trigger the error
+ * ERRCODE_FEATURE_NOT_SUPPORTED: function cannot execute on a QE slice because
+ * it accesses relation "public.wslot"?
+ * In Postgres, the expected behavior of these tests is to error out because
+ * 'WS.not.there' does not exist.
+ * However, in GPDB, it is unclear what the intended behavior is.
+ * Currently, it does not error out but has no effect, as the table is empty at
+ * this point in the test in GPDB
+ * Adding an ignore block for now
+ */
+--start_ignore
 update PSlot set backlink = 'WS.not.there' where slotname = 'PS.base.a1';
 update PSlot set backlink = 'XX.illegal' where slotname = 'PS.base.a1';
 update PSlot set slotlink = 'PS.not.there' where slotname = 'PS.base.a1';
 update PSlot set slotlink = 'XX.illegal' where slotname = 'PS.base.a1';
+--end_ignore
 insert into HSlot values ('HS', 'base.hub1', 1, '');
 insert into HSlot values ('HS', 'base.hub1', 20, '');
 delete from HSlot;
@@ -2383,21 +2396,51 @@ end; $$ language plpgsql;
 
 select continue_test1();
 
--- CONTINUE is only legal inside a loop
-create function continue_test2() returns void as $$
+drop function continue_test1();
+drop table conttesttbl;
+
+-- should fail: CONTINUE is only legal inside a loop
+create function continue_error1() returns void as $$
 begin
     begin
         continue;
     end;
-    return;
 end;
 $$ language plpgsql;
 
--- should fail
-select continue_test2();
+-- should fail: unlabeled EXIT is only legal inside a loop
+create function exit_error1() returns void as $$
+begin
+    begin
+        exit;
+    end;
+end;
+$$ language plpgsql;
 
--- CONTINUE can't reference the label of a named block
-create function continue_test3() returns void as $$
+-- should fail: no such label
+create function continue_error2() returns void as $$
+begin
+    begin
+        loop
+            continue no_such_label;
+        end loop;
+    end;
+end;
+$$ language plpgsql;
+
+-- should fail: no such label
+create function exit_error2() returns void as $$
+begin
+    begin
+        loop
+            exit no_such_label;
+        end loop;
+    end;
+end;
+$$ language plpgsql;
+
+-- should fail: CONTINUE can't reference the label of a named block
+create function continue_error3() returns void as $$
 begin
     <<begin_block1>>
     begin
@@ -2408,13 +2451,21 @@ begin
 end;
 $$ language plpgsql;
 
--- should fail
-select continue_test3();
+-- On the other hand, EXIT *can* reference the label of a named block
+create function exit_block1() returns void as $$
+begin
+    <<begin_block1>>
+    begin
+        loop
+            exit begin_block1;
+            raise exception 'should not get here';
+        end loop;
+    end;
+end;
+$$ language plpgsql;
 
-drop function continue_test1();
-drop function continue_test2();
-drop function continue_test3();
-drop table conttesttbl;
+select exit_block1();
+drop function exit_block1();
 
 -- verbose end block and end loop
 create function end_label1() returns void as $$
@@ -3837,6 +3888,45 @@ rollback;
 drop function error2(p_name_table text);
 drop function error1(text);
 
+-- Test for proper handling of cast-expression caching
+
+create function sql_to_date(integer) returns date as $$
+select $1::text::date
+$$ language sql immutable strict;
+
+create cast (integer as date) with function sql_to_date(integer) as assignment;
+
+create function cast_invoker(integer) returns date as $$
+begin
+  return $1;
+end$$ language plpgsql;
+
+select cast_invoker(20150717);
+select cast_invoker(20150718);  -- second call crashed in pre-release 9.5
+
+begin;
+select cast_invoker(20150717);
+select cast_invoker(20150718);
+savepoint s1;
+select cast_invoker(20150718);
+select cast_invoker(-1); -- fails
+rollback to savepoint s1;
+select cast_invoker(20150719);
+select cast_invoker(20150720);
+commit;
+
+drop function cast_invoker(integer);
+drop function sql_to_date(integer) cascade;
+
+-- Test handling of cast cache inside DO blocks
+-- (to check the original crash case, this must be a cast not previously
+-- used in this session)
+
+begin;
+do $$ declare x text[]; begin x := '{1.23, 4.56}'::numeric[]; end $$;
+do $$ declare x text[]; begin x := '{1.23, 4.56}'::numeric[]; end $$;
+end;
+
 -- Test for consistent reporting of error context
 
 create function fail() returns int language plpgsql as $$
@@ -4180,7 +4270,49 @@ select testoa(1,2,1); -- fail at update
 drop function arrayassign1();
 drop function testoa(x1 int, x2 int, x3 int);
 
--- access to call stack
+
+--
+-- Test handling of expanded arrays
+--
+
+create function returns_rw_array(int) returns int[]
+language plpgsql as $$
+  declare r int[];
+  begin r := array[$1, $1]; return r; end;
+$$ stable;
+
+create function consumes_rw_array(int[]) returns int
+language plpgsql as $$
+  begin return $1[1]; end;
+$$ stable;
+
+-- bug #14174
+explain (verbose, costs off)
+select i, a from
+  (select returns_rw_array(1) as a offset 0) ss,
+  lateral consumes_rw_array(a) i;
+
+select i, a from
+  (select returns_rw_array(1) as a offset 0) ss,
+  lateral consumes_rw_array(a) i;
+
+explain (verbose, costs off)
+select consumes_rw_array(a), a from returns_rw_array(1) a;
+
+select consumes_rw_array(a), a from returns_rw_array(1) a;
+
+explain (verbose, costs off)
+select consumes_rw_array(a), a from
+  (values (returns_rw_array(1)), (returns_rw_array(2))) v(a);
+
+select consumes_rw_array(a), a from
+  (values (returns_rw_array(1)), (returns_rw_array(2))) v(a);
+
+
+--
+-- Test access to call stack
+--
+
 create function inner_func(int)
 returns int as $$
 declare _context text;

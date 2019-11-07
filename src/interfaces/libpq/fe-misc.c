@@ -20,7 +20,7 @@
  *
  *
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -1161,7 +1161,7 @@ pqSocketCheck(PGconn *conn, int forRead, int forWrite, time_t end_time)
 	if (conn->sock == PGINVALID_SOCKET)
 	{
 		printfPQExpBuffer(&conn->errorMessage,
-						  libpq_gettext("socket not open\n"));
+						  libpq_gettext("invalid socket\n"));
 		return -1;
 	}
 
@@ -1283,7 +1283,7 @@ pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time)
  */
 
 /*
- * returns the byte length of the word beginning s, using the
+ * returns the byte length of the character beginning at s, using the
  * specified encoding.
  */
 int
@@ -1293,7 +1293,7 @@ PQmblen(const char *s, int encoding)
 }
 
 /*
- * returns the display length of the word beginning s, using the
+ * returns the display length of the character beginning at s, using the
  * specified encoding.
  */
 int

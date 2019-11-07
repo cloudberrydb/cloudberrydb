@@ -7,9 +7,9 @@
  */
 #define GpVersionRelationName		"gp_version_at_initdb"
 
-#define GpVersionRelationId 5003
+#define GpVersionRelationId 5103
 
-CATALOG(gp_version_at_initdb,5003) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
+CATALOG(gp_version_at_initdb,5103) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
 	int16		schemaversion;
 	text		productversion;

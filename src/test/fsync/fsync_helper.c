@@ -38,15 +38,18 @@ dirty_buffers(PG_FUNCTION_ARGS)
 		dirty_tags = NIL;
 		for (i = 0; i < NBuffers; i++)
 		{
-			volatile BufferDesc *bufHdr = GetBufferDescriptor(i);
-			LockBufHdr(bufHdr);
-			if (bufHdr->flags & (BM_DIRTY | BM_JUST_DIRTIED))
+			BufferDesc *bufHdr = GetBufferDescriptor(i);
+
+			if ((pg_atomic_read_u32(&bufHdr->state) & (BM_DIRTY | BM_JUST_DIRTIED)) != 0)
 			{
 				tag = (BufferTag *) palloc(sizeof(BufferTag));
+				/*
+				 * XXX: this reads the tag without a lock. That's not cool, but it
+				 * works enough for our test.
+				 */
 				*tag = bufHdr->tag;
 				dirty_tags = lappend(dirty_tags, tag);
 			}
-			UnlockBufHdr(bufHdr);
 		}
 
 		funcctx->user_fctx = (void *) dirty_tags;

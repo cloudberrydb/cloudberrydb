@@ -7,7 +7,6 @@
 #ifndef CDBTM_H
 #define CDBTM_H
 
-#include "storage/lwlock.h"
 #include "lib/stringinfo.h"
 #include "access/xlogdefs.h"
 #include "cdb/cdbdistributedsnapshot.h"
@@ -15,7 +14,6 @@
 #include "cdb/cdbdtxcontextinfo.h"
 #include "cdb/cdbpublic.h"
 #include "nodes/plannodes.h"
-#include "storage/s_lock.h"
 
 struct Gang;
 

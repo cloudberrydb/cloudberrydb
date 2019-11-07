@@ -4,7 +4,7 @@
  *	  tuple table support stuff
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/tuptable.h
@@ -16,7 +16,6 @@
 
 #include "access/htup.h"
 #include "access/htup_details.h"
-#include "access/heapam.h"
 #include "access/memtup.h"
 #include "access/tupdesc.h"
 #include "storage/buf.h"
@@ -437,7 +436,6 @@ ExecCopyGenericTuple(TupleTableSlot *slot)
 extern HeapTuple ExecMaterializeSlot(TupleTableSlot *slot);
 extern TupleTableSlot *ExecCopySlot(TupleTableSlot *dstslot,
 			 TupleTableSlot *srcslot);
-extern TupleTableSlot *ExecMakeSlotContentsReadOnly(TupleTableSlot *slot);
 
 extern void ExecModifyMemTuple(TupleTableSlot *slot, Datum *values, bool *isnull, bool *doRepl);
 

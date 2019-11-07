@@ -21,9 +21,11 @@
 #include "nodes/nodeFuncs.h"	/* exprType() and exprTypmod() */
 #include "nodes/plannodes.h"	/* Plan */
 #include "nodes/relation.h"		/* RelOptInfo */
+#include "optimizer/clauses.h"
 #include "optimizer/pathnode.h" /* Path */
 #include "optimizer/paths.h"	/* cdb_make_distkey_for_expr() */
 #include "optimizer/tlist.h"	/* tlist_member() */
+#include "parser/parsetree.h"	/* rt_fetch() */
 #include "utils/lsyscache.h"
 
 #include "cdb/cdbpath.h"
@@ -32,8 +34,8 @@
 #include "cdb/cdbpathlocus.h"	/* me */
 
 static List *cdb_build_distribution_keys(PlannerInfo *root,
-								RelOptInfo *rel,
-								GpPolicy *policy);
+										 Index rti,
+										 GpPolicy *policy);
 
 /*
  * cdbpathlocus_equal
@@ -109,10 +111,10 @@ cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b)
  * cdb_build_distribution_keys
  *	  Build DistributionKeys that match the policy of the given relation.
  */
-static List *
-cdb_build_distribution_keys(PlannerInfo *root, RelOptInfo *rel,
-							GpPolicy *policy)
+List *
+cdb_build_distribution_keys(PlannerInfo *root, Index rti, GpPolicy *policy)
 {
+	RangeTblEntry *rte = planner_rt_fetch(rti, root);
 	List	   *retval = NIL;
 	int			i;
 
@@ -121,13 +123,18 @@ cdb_build_distribution_keys(PlannerInfo *root, RelOptInfo *rel,
 		DistributionKey *cdistkey;
 
 		/* Find or create a Var node that references the specified column. */
-		Var		   *expr = find_indexkey_var(root, rel, policy->attrs[i]);
+		Var		   *expr;
+		Oid			typeoid;
+		int32		type_mod;
+		Oid			varcollid;
 		Oid			eqopoid;
 		Oid			opfamily = get_opclass_family(policy->opclasses[i]);
 		Oid			opcintype = get_opclass_input_type(policy->opclasses[i]);
-		Oid			typeoid = expr->vartype;
 		List	   *mergeopfamilies;
 		EquivalenceClass *eclass;
+
+		get_atttypetypmodcoll(rte->relid, policy->attrs[i], &typeoid, &type_mod, &varcollid);
+		expr = makeVar(rti, policy->attrs[i], typeoid, type_mod, varcollid, 0);
 
 		/*
 		 * Look up the equality operator corresponding to the distribution
@@ -174,6 +181,133 @@ cdb_build_distribution_keys(PlannerInfo *root, RelOptInfo *rel,
 }
 
 /*
+ * cdbpathlocus_for_insert
+ *	  Build DistributionKeys that match the policy of the given relation.
+ *
+ * This is used for INSERT or split UPDATE, where 'pathtarget' the target list of
+ * subpath that's producing the rows to be inserted/updated.
+ *
+ * As a side-effect, this assigns sortgrouprefs to any volatile expressions
+ * that are used in the distribution keys.
+ *
+ * If the target table is distributed, but the distribution keys cannot be
+ * represented as Equivalence Classes (because a datatype is missing merge
+ * opfamilies), returns a NULL locus.
+ */
+CdbPathLocus
+cdbpathlocus_for_insert(PlannerInfo *root, Index rti, GpPolicy *policy,
+						PathTarget *pathtarget)
+{
+	CdbPathLocus targetLocus;
+
+	if (policy->ptype == POLICYTYPE_PARTITIONED)
+	{
+		/* rows are distributed by hashing on specified columns */
+		RangeTblEntry *rte = planner_rt_fetch(rti, root);
+		List	   *distkeys = NIL;
+		Index		maxRef = 0;
+		bool		failed = false;
+
+		for (int i = 0; i < list_length(pathtarget->exprs); i++)
+			maxRef = Max(maxRef, pathtarget->sortgrouprefs[i]);
+
+		for (int i = 0; i < policy->nattrs; ++i)
+		{
+			AttrNumber	attno = policy->attrs[i];
+			DistributionKey *cdistkey;
+			Expr	   *expr;
+			Oid			typeoid;
+			int32		type_mod;
+			Oid			varcollid;
+			Oid			eqopoid;
+			Oid			opfamily = get_opclass_family(policy->opclasses[i]);
+			Oid			opcintype = get_opclass_input_type(policy->opclasses[i]);
+			List	   *mergeopfamilies;
+			EquivalenceClass *eclass;
+
+			get_atttypetypmodcoll(rte->relid, attno, &typeoid, &type_mod, &varcollid);
+
+			expr = list_nth(pathtarget->exprs, attno - 1);
+
+			/*
+			 * Look up the equality operator corresponding to the distribution
+			 * opclass.
+			 */
+			eqopoid = get_opfamily_member(opfamily, opcintype, opcintype, 1);
+
+			if (pathtarget->sortgrouprefs[attno - 1] == 0 &&
+				contain_volatile_functions((Node *) expr))
+			{
+				/*
+				 * GPDB_96_MERGE_FIXME: this modifies the subpath's targetlist in place.
+				 * That's a bit ugly.
+				 */
+				pathtarget->sortgrouprefs[attno - 1] = ++maxRef;
+			}
+
+			/*
+			 * Get Oid of the sort operator that would be used for a sort-merge
+			 * equijoin on a pair of exprs of the same type.
+			 */
+			if (failed || eqopoid == InvalidOid || !op_mergejoinable(eqopoid, typeoid))
+			{
+				/*
+				 * It's in principle possible that there is no b-tree operator family
+				 * that's compatible with the hash opclass's equality operator. However,
+				 * we cannot construct an EquivalenceClass without the b-tree operator
+				 * family, and therefore cannot build a DistributionKey to represent it.
+				 * Bail out. (That makes the distribution key rather useless.)
+				 */
+				failed = true;
+				continue;
+			}
+
+			mergeopfamilies = get_mergejoin_opfamilies(eqopoid);
+
+			eclass = get_eclass_for_sort_expr(root, (Expr *) expr,
+											  NULL, /* nullable_relids */ /* GPDB_94_MERGE_FIXME: is NULL ok here? */
+											  mergeopfamilies,
+											  opcintype,
+											  exprCollation((Node *) expr),
+											  pathtarget->sortgrouprefs[attno - 1],
+											  NULL,
+											  true);
+
+			/* Create a distribution key for it. */
+			cdistkey = makeNode(DistributionKey);
+			cdistkey->dk_opfamily = opfamily;
+			cdistkey->dk_eclasses = list_make1(eclass);
+
+			distkeys = lappend(distkeys, cdistkey);
+		}
+
+		if (failed)
+		{
+			CdbPathLocus_MakeNull(&targetLocus, policy->numsegments);
+		}
+		else if (distkeys)
+			CdbPathLocus_MakeHashed(&targetLocus, distkeys, policy->numsegments);
+		else
+		{
+			/* DISTRIBUTED RANDOMLY */
+			CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+		}
+	}
+	else if (policy->ptype == POLICYTYPE_ENTRY)
+	{
+		CdbPathLocus_MakeEntry(&targetLocus);
+	}
+	else if (policy->ptype == POLICYTYPE_REPLICATED)
+	{
+		CdbPathLocus_MakeReplicated(&targetLocus, policy->numsegments);
+	}
+	else
+		elog(ERROR, "unrecognized policy type %u", policy->ptype);
+
+	return targetLocus;
+}
+
+/*
  * cdbpathlocus_from_baserel
  *
  * Returns a locus describing the distribution of a base relation.
@@ -197,7 +331,7 @@ cdbpathlocus_from_baserel(struct PlannerInfo *root,
 		if (policy->nattrs > 0)
 		{
 			List	   *distkeys = cdb_build_distribution_keys(root,
-															   rel,
+															   rel->relid,
 															   policy);
 
 			if (distkeys)
@@ -237,26 +371,27 @@ CdbPathLocus
 cdbpathlocus_from_exprs(struct PlannerInfo *root,
 						List *hash_on_exprs,
 						List *hash_opfamilies,
+						List *hash_sortrefs,
 						int numsegments)
 {
 	CdbPathLocus locus;
 	List	   *distkeys = NIL;
-	ListCell   *le, *lof;
+	ListCell   *le, *lof, *lsr;
 
-	forboth(le, hash_on_exprs, lof, hash_opfamilies)
+	forthree(le, hash_on_exprs, lof, hash_opfamilies, lsr, hash_sortrefs)
 	{
 		Node	   *expr = (Node *) lfirst(le);
 		Oid			opfamily = lfirst_oid(lof);
+		int			sortref = lfirst_int(lsr);
 		DistributionKey *distkey;
 
-		distkey = cdb_make_distkey_for_expr(root, expr, opfamily);
+		distkey = cdb_make_distkey_for_expr(root, expr, opfamily, sortref);
 		distkeys = lappend(distkeys, distkey);
 	}
 
 	CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
 	return locus;
 }								/* cdbpathlocus_from_exprs */
-
 
 /*
  * cdbpathlocus_from_subquery
@@ -270,93 +405,89 @@ cdbpathlocus_from_exprs(struct PlannerInfo *root,
  */
 CdbPathLocus
 cdbpathlocus_from_subquery(struct PlannerInfo *root,
-						   struct Plan *subqplan,
-						   Index subqrelid)
+						   RelOptInfo *rel,
+						   Path *subpath)
 {
 	CdbPathLocus locus;
-	Flow	   *flow = subqplan->flow;
-	int			numsegments;
 
-	Insist(flow);
-
-	/*
-	 * We want to create a locus representing the subquery, so numsegments
-	 * should be the same with the subquery.
-	 */
-	numsegments = flow->numsegments;
-
-	/* Flow node was made from CdbPathLocus by cdbpathtoplan_create_flow() */
-	switch (flow->flotype)
+	if (CdbPathLocus_IsHashed(subpath->locus) ||
+		CdbPathLocus_IsHashedOJ(subpath->locus))
 	{
-		case FLOW_SINGLETON:
-			if (flow->segindex == -1)
-				CdbPathLocus_MakeEntry(&locus);
-			else
+		bool		failed = false;
+		List	   *distkeys = NIL;
+		int			numsegments = subpath->locus.numsegments;
+		ListCell   *dk_cell;
+		List	   *usable_subtlist = NIL;
+		List	   *new_vars = NIL;
+		ListCell   *lc;
+
+		foreach (lc, rel->reltarget->exprs)
+		{
+			Var		   *var = (Var *) lfirst(lc);
+			Node	   *subexpr;
+
+			if (!IsA(var, Var))
+				continue;
+
+			/* ignore whole-row vars */
+			if (var->varattno == 0)
+				continue;
+
+			subexpr = list_nth(subpath->pathtarget->exprs, var->varattno - 1);
+			usable_subtlist = lappend(usable_subtlist,
+									  makeTargetEntry((Expr *) subexpr,
+													  list_length(usable_subtlist) + 1,
+													  NULL,
+													  false));
+			new_vars = lappend(new_vars, var);
+		}
+
+		foreach (dk_cell, subpath->locus.distkey)
+		{
+			DistributionKey *sub_dk = (DistributionKey *) lfirst(dk_cell);
+			ListCell *ec_cell;
+			DistributionKey *outer_dk = NULL;
+
+			foreach (ec_cell, sub_dk->dk_eclasses)
 			{
-				/*
-				 * keep segmentGeneral character, otherwise planner may put
-				 * this subplan to qDisp unexpectedly 
-				 */
-				if (flow->locustype == CdbLocusType_SegmentGeneral)
-					CdbPathLocus_MakeSegmentGeneral(&locus, numsegments);
-				else if (flow->locustype == CdbLocusType_General)
+				EquivalenceClass *sub_ec = (EquivalenceClass *) lfirst(ec_cell);
+				EquivalenceClass *outer_ec;
+
+				outer_ec = cdb_pull_up_eclass(root,
+											  sub_ec,
+											  rel->relids,
+											  usable_subtlist,
+											  new_vars,
+											  -1 /* not used */);
+				if (outer_ec)
 				{
-					/*
-					 * If a subquery's locus is general, we should keep it
-					 * general here. And general locus's numsegments should
-					 * be the cluster size.
-					 */
-					CdbPathLocus_MakeGeneral(&locus, getgpsegmentCount());
+					outer_dk = makeNode(DistributionKey);
+					outer_dk->dk_eclasses = list_make1(outer_ec);
+					outer_dk->dk_opfamily = sub_dk->dk_opfamily;
+					break;
 				}
-				else
-					CdbPathLocus_MakeSingleQE(&locus, numsegments);
 			}
-			break;
-		case FLOW_REPLICATED:
-			CdbPathLocus_MakeReplicated(&locus, numsegments);
-			break;
-		case FLOW_PARTITIONED:
+
+			if (outer_dk == NULL)
 			{
-				List	   *distkeys = NIL;
-				ListCell   *expr_cell;
-				ListCell   *opf_cell;
-
-				forboth(expr_cell, flow->hashExprs, opf_cell, flow->hashOpfamilies)
-				{
-					Node	   *expr = (Node *) lfirst(expr_cell);
-					Oid			opfamily = lfirst_oid(opf_cell);
-					TargetEntry *tle;
-					Var		   *var;
-					DistributionKey *distkey;
-
-					/*
-					 * Look for hash key expr among the subquery result
-					 * columns.
-					 */
-					tle = tlist_member_ignore_relabel(expr, subqplan->targetlist);
-					if (!tle)
-						break;
-
-					Assert(tle->resno >= 1);
-					var = makeVar(subqrelid,
-								  tle->resno,
-								  exprType((Node *) tle->expr),
-								  exprTypmod((Node *) tle->expr),
-								  exprCollation((Node *) tle->expr),
-								  0);
-					distkey = cdb_make_distkey_for_expr(root, (Node *) var, opfamily);
-					distkeys = lappend(distkeys, distkey);
-				}
-				if (distkeys && !expr_cell)
-					CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
-				else
-					CdbPathLocus_MakeStrewn(&locus, numsegments);
+				failed = true;
 				break;
 			}
-		default:
-			CdbPathLocus_MakeNull(&locus, GP_POLICY_INVALID_NUMSEGMENTS());
-			Insist(0);
+			distkeys = lappend(distkeys, outer_dk);
+		}
+
+		if (failed)
+			CdbPathLocus_MakeStrewn(&locus, numsegments);
+		else if (CdbPathLocus_IsHashed(subpath->locus))
+			CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
+		else
+		{
+			Assert(CdbPathLocus_IsHashedOJ(subpath->locus));
+			CdbPathLocus_MakeHashedOJ(&locus, distkeys, numsegments);
+		}
 	}
+	else
+		locus = subpath->locus;
 	return locus;
 }								/* cdbpathlocus_from_subquery */
 
@@ -787,6 +918,91 @@ cdbpathlocus_is_hashed_on_eclasses(CdbPathLocus locus, List *eclasses,
 		return !CdbPathLocus_IsStrewn(locus);
 }								/* cdbpathlocus_is_hashed_on_exprs */
 
+/*
+ * cdbpathlocus_is_hashed_on_tlist
+ *
+ * This function tests whether grouping on a given set of exprs can be done
+ * in place without motion.
+ *
+ * For a hashed locus, returns false if the distkey has a column whose
+ * equivalence class contains no expr belonging to the given list.
+ *
+ * If 'ignore_constants' is true, any constants in the locus are ignored.
+ */
+bool
+cdbpathlocus_is_hashed_on_tlist(CdbPathLocus locus, List *tlist,
+								bool ignore_constants)
+{
+	ListCell   *distkeycell;
+
+	Assert(cdbpathlocus_is_valid(locus));
+
+	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
+	{
+		foreach(distkeycell, locus.distkey)
+		{
+			DistributionKey *distkey = (DistributionKey *) lfirst(distkeycell);
+			ListCell   *distkeyeccell;
+			bool		found = false;
+
+			foreach(distkeyeccell, distkey->dk_eclasses)
+			{
+				/* Does some expr in distkey match some item in exprlist? */
+				EquivalenceClass *dk_eclass = (EquivalenceClass *) lfirst(distkeyeccell);
+				ListCell   *i;
+
+				if (ignore_constants && CdbEquivClassIsConstant(dk_eclass))
+				{
+					found = true;
+					break;
+				}
+
+				if (dk_eclass->ec_sortref != 0)
+				{
+					foreach(i, tlist)
+					{
+						TargetEntry *tle = (TargetEntry *) lfirst(i);
+
+						if (tle->ressortgroupref == dk_eclass->ec_sortref)
+						{
+							found = true;
+							break;
+						}
+					}
+				}
+				else
+				{
+					foreach(i, dk_eclass->ec_members)
+					{
+						EquivalenceMember *em = (EquivalenceMember *) lfirst(i);
+						ListCell *ltl;
+
+						foreach(ltl, tlist)
+						{
+							TargetEntry *tle = (TargetEntry *) lfirst(ltl);
+
+							if (equal(tle->expr, em->em_expr))
+							{
+								found = true;
+								break;
+							}
+						}
+						if (found)
+							break;
+					}
+				}
+				if (found)
+					break;
+			}
+			if (!found)
+				return false;
+		}
+		/* Every column of the distkey contains an expr in exprlist. */
+		return true;
+	}
+	else
+		return !CdbPathLocus_IsStrewn(locus);
+}
 
 /*
  * cdbpathlocus_is_hashed_on_relids

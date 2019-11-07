@@ -42,7 +42,7 @@
  *
  * HAVE_CBRT, HAVE_FUNCNAME_FUNC, HAVE_GETOPT, HAVE_GETOPT_H, HAVE_INTTYPES_H,
  * HAVE_GETOPT_LONG, HAVE_LOCALE_T, HAVE_RINT, HAVE_STRINGS_H, HAVE_STRTOLL,
- * HAVE_STRTOULL, HAVE_STRUCT_OPTION, ENABLE_THREAD_SAFETY, PG_USE_INLINE,
+ * HAVE_STRTOULL, HAVE_STRUCT_OPTION, ENABLE_THREAD_SAFETY,
  * inline, USE_SSE42_CRC32C_WITH_RUNTIME_CHECK
  */
 
@@ -368,15 +368,6 @@
 /* Define to 1 if you have the `setsid' function. */
 /* #undef HAVE_SETSID */
 
-/* Define to 1 if you have the `sigprocmask' function. */
-/* #undef HAVE_SIGPROCMASK */
-
-/* Define to 1 if you have sigsetjmp(). */
-/* #undef HAVE_SIGSETJMP */
-
-/* Define to 1 if the system has the type `sig_atomic_t'. */
-#define HAVE_SIG_ATOMIC_T 1
-
 /* Define to 1 if you have the `snprintf' function. */
 /* #undef HAVE_SNPRINTF */
 
@@ -581,6 +572,9 @@
 /* Define to 1 if your compiler understands __builtin_bswap32. */
 /* #undef HAVE__BUILTIN_BSWAP32 */
 
+/* Define to 1 if your compiler understands __builtin_bswap64. */
+/* #undef HAVE__BUILTIN_BSWAP64 */
+
 /* Define to 1 if your compiler understands __builtin_constant_p. */
 /* #undef HAVE__BUILTIN_CONSTANT_P */
 
@@ -627,7 +621,7 @@
 #define PACKAGE_STRING "Greenplum Database 7.0.0-alpha"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "9.5alpha1"
+#define PACKAGE_VERSION "9.6beta4"
 
 /* Define to the name of a signed 128-bit integer type. */
 #undef PG_INT128_TYPE
@@ -636,10 +630,10 @@
 #define PG_INT64_TYPE long long int
 
 /* PostgreSQL version as a string */
-#define PG_VERSION "9.5alpha1"
+#define PG_VERSION "9.6beta4"
 
 /* PostgreSQL version as a number */
-#define PG_VERSION_NUM 90500
+#define PG_VERSION_NUM 90600
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "greenplum"
@@ -689,6 +683,9 @@
 /* Define to 1 if "static inline" works without unwanted warnings from
    compilations where static inline functions are defined but not called. */
 #define PG_USE_INLINE 1
+
+/* Define to 1 to build with BSD Authentication support. (--with-bsd-auth) */
+/* #undef USE_BSD_AUTH */
 
 /* Define to 1 if you want 64-bit integer timestamp and interval support.
    (--enable-integer-datetimes) */

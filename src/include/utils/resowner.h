@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/resowner.h
@@ -20,7 +20,6 @@
 #define RESOWNER_H
 
 #include "storage/fd.h"
-#include "storage/lock.h"
 #include "utils/catcache.h"
 #include "utils/plancache.h"
 #include "utils/snapshot.h"
@@ -91,8 +90,9 @@ extern void ResourceOwnerRememberBuffer(ResourceOwner owner, Buffer buffer);
 extern void ResourceOwnerForgetBuffer(ResourceOwner owner, Buffer buffer);
 
 /* support for local lock management */
-extern void ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK *locallock);
-extern void ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK *locallock);
+struct LOCALLOCK;
+extern void ResourceOwnerRememberLock(ResourceOwner owner, struct LOCALLOCK *locallock);
+extern void ResourceOwnerForgetLock(ResourceOwner owner, struct LOCALLOCK *locallock);
 
 /* support for catcache refcount management */
 extern void ResourceOwnerEnlargeCatCacheRefs(ResourceOwner owner);

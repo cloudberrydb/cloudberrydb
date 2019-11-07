@@ -145,6 +145,127 @@ select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
    |   |  12 |   36
 (6 rows)
 
+-- nesting with grouping sets
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(())))
+  order by 1 desc;
+ sum 
+-----
+  12
+  12
+  12
+(3 rows)
+
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(((a, b)))))
+  order by 1 desc;
+ sum 
+-----
+  12
+  12
+   8
+   2
+   2
+(5 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(rollup(c), grouping sets(cube(c))))
+  order by 1 desc;
+ sum 
+-----
+  12
+  12
+   6
+   6
+   6
+   6
+(6 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(a, grouping sets(a, cube(b)))
+  order by 1 desc;
+ sum 
+-----
+  12
+  10
+  10
+   8
+   4
+   2
+   2
+(7 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, (b))))
+  order by 1 desc;
+ sum 
+-----
+   8
+   2
+   2
+(3 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, b)))
+  order by 1 desc;
+ sum 
+-----
+   8
+   2
+   2
+(3 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a), a))
+  order by 1 desc;
+ sum 
+-----
+  10
+  10
+  10
+   2
+   2
+   2
+(6 rows)
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a, grouping sets(a), ((a)), a, grouping sets(a), (a)), a))
+  order by 1 desc;
+ sum 
+-----
+  10
+  10
+  10
+  10
+  10
+  10
+  10
+  10
+   2
+   2
+   2
+   2
+   2
+   2
+   2
+   2
+(16 rows)
+
+select sum(c) from gstest2
+  group by grouping sets((a,(a,b)), grouping sets((a,(a,b)),a))
+  order by 1 desc;
+ sum 
+-----
+  10
+   8
+   8
+   2
+   2
+   2
+   2
+   2
+(8 rows)
+
 -- empty input: first is 0 rows, second 1, third 3 etc.
 select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
  a | b | sum | count 
@@ -488,6 +609,128 @@ having exists (select 1 from onek b where sum(distinct a.four) = b.four);
    9 |   1
    9 |   3
 (25 rows)
+
+-- Tests around pushdown of HAVING clauses, partially testing against previous bugs
+select a,count(*) from gstest2 group by rollup(a) order by a;
+ a | count 
+---+-------
+ 1 |     8
+ 2 |     1
+   |     9
+(3 rows)
+
+select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+ a | count 
+---+-------
+ 2 |     1
+   |     9
+(2 rows)
+
+explain (costs off)
+  select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+                   QUERY PLAN                   
+------------------------------------------------
+ GroupAggregate
+   Group Key: a
+   Group Key: ()
+   Filter: (a IS DISTINCT FROM 1)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: a
+         ->  Sort
+               Sort Key: a
+               ->  Seq Scan on gstest2
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select v.c, (select count(*) from gstest2 group by () having v.c)
+  from (values (false),(true)) v(c) order by v.c;
+ c | count 
+---+-------
+ f |      
+ t |     9
+(2 rows)
+
+explain (costs off)
+  select v.c, (select count(*) from gstest2 group by () having v.c)
+    from (values (false),(true)) v(c) order by v.c;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: "*VALUES*".column1
+   ->  Values Scan on "*VALUES*"
+         SubPlan 1
+           ->  Aggregate
+                 Group Key: ()
+                 Filter: "*VALUES*".column1
+                 ->  Result
+                       One-Time Filter: "*VALUES*".column1
+                       ->  Materialize
+                             ->  Gather Motion 3:1  (slice1; segments: 3)
+                                   ->  Seq Scan on gstest2
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+-- HAVING with GROUPING queries
+select ten, grouping(ten) from onek
+group by grouping sets(ten) having grouping(ten) >= 0
+order by 2,1;
+ ten | grouping 
+-----+----------
+   0 |        0
+   1 |        0
+   2 |        0
+   3 |        0
+   4 |        0
+   5 |        0
+   6 |        0
+   7 |        0
+   8 |        0
+   9 |        0
+(10 rows)
+
+select ten, grouping(ten) from onek
+group by grouping sets(ten, four) having grouping(ten) > 0
+order by 2,1;
+ ten | grouping 
+-----+----------
+     |        1
+     |        1
+     |        1
+     |        1
+(4 rows)
+
+select ten, grouping(ten) from onek
+group by rollup(ten) having grouping(ten) > 0
+order by 2,1;
+ ten | grouping 
+-----+----------
+     |        1
+(1 row)
+
+select ten, grouping(ten) from onek
+group by cube(ten) having grouping(ten) > 0
+order by 2,1;
+ ten | grouping 
+-----+----------
+     |        1
+(1 row)
+
+select ten, grouping(ten) from onek
+group by (ten) having grouping(ten) >= 0
+order by 2,1;
+ ten | grouping 
+-----+----------
+   0 |        0
+   1 |        0
+   2 |        0
+   3 |        0
+   4 |        0
+   5 |        0
+   6 |        0
+   7 |        0
+   8 |        0
+   9 |        0
+(10 rows)
 
 -- FILTER queries
 select ten, sum(distinct four) filter (where four::text ~ '123') from onek a

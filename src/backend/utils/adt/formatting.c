@@ -4,7 +4,7 @@
  * src/backend/utils/adt/formatting.c
  *
  *
- *	 Portions Copyright (c) 1999-2015, PostgreSQL Global Development Group
+ *	 Portions Copyright (c) 1999-2016, PostgreSQL Global Development Group
  *
  *
  *	 TO_CHAR(); TO_TIMESTAMP(); TO_DATE(); TO_NUMBER();
@@ -2420,7 +2420,7 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 				 * display time as shown on a 12-hour clock, even for
 				 * intervals
 				 */
-				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2,
+				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (tm->tm_hour >= 0) ? 2 : 3,
 				 tm->tm_hour % (HOURS_PER_DAY / 2) == 0 ? HOURS_PER_DAY / 2 :
 						tm->tm_hour % (HOURS_PER_DAY / 2));
 				if (S_THth(n->suffix))
@@ -2428,19 +2428,22 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 				s += strlen(s);
 				break;
 			case DCH_HH24:
-				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2, tm->tm_hour);
+				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (tm->tm_hour >= 0) ? 2 : 3,
+						tm->tm_hour);
 				if (S_THth(n->suffix))
 					str_numth(s, s, S_TH_TYPE(n->suffix));
 				s += strlen(s);
 				break;
 			case DCH_MI:
-				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2, tm->tm_min);
+				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (tm->tm_min >= 0) ? 2 : 3,
+						tm->tm_min);
 				if (S_THth(n->suffix))
 					str_numth(s, s, S_TH_TYPE(n->suffix));
 				s += strlen(s);
 				break;
 			case DCH_SS:
-				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2, tm->tm_sec);
+				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (tm->tm_sec >= 0) ? 2 : 3,
+						tm->tm_sec);
 				if (S_THth(n->suffix))
 					str_numth(s, s, S_TH_TYPE(n->suffix));
 				s += strlen(s);
@@ -2651,7 +2654,8 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 				s += strlen(s);
 				break;
 			case DCH_MM:
-				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2, tm->tm_mon);
+				sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (tm->tm_mon >= 0) ? 2 : 3,
+						tm->tm_mon);
 				if (S_THth(n->suffix))
 					str_numth(s, s, S_TH_TYPE(n->suffix));
 				s += strlen(s);
@@ -2826,7 +2830,7 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 						i = tm->tm_year / 100 - 1;
 				}
 				if (i <= 99 && i >= -99)
-					sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : 2, i);
+					sprintf(s, "%0*d", S_FM(n->suffix) ? 0 : (i >= 0) ? 2 : 3, i);
 				else
 					sprintf(s, "%d", i);
 				if (S_THth(n->suffix))
@@ -2844,7 +2848,8 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 			case DCH_YYYY:
 			case DCH_IYYY:
 				sprintf(s, "%0*d",
-						S_FM(n->suffix) ? 0 : 4,
+						S_FM(n->suffix) ? 0 :
+						(ADJUST_YEAR(tm->tm_year, is_interval) >= 0) ? 4 : 5,
 						(n->key->id == DCH_YYYY ?
 						 ADJUST_YEAR(tm->tm_year, is_interval) :
 						 ADJUST_YEAR(date2isoyear(tm->tm_year,
@@ -2858,7 +2863,8 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 			case DCH_YYY:
 			case DCH_IYY:
 				sprintf(s, "%0*d",
-						S_FM(n->suffix) ? 0 : 3,
+						S_FM(n->suffix) ? 0 :
+						(ADJUST_YEAR(tm->tm_year, is_interval) >= 0) ? 3 : 4,
 						(n->key->id == DCH_YYY ?
 						 ADJUST_YEAR(tm->tm_year, is_interval) :
 						 ADJUST_YEAR(date2isoyear(tm->tm_year,
@@ -2872,7 +2878,8 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
 			case DCH_YY:
 			case DCH_IY:
 				sprintf(s, "%0*d",
-						S_FM(n->suffix) ? 0 : 2,
+						S_FM(n->suffix) ? 0 :
+						(ADJUST_YEAR(tm->tm_year, is_interval) >= 0) ? 2 : 3,
 						(n->key->id == DCH_YY ?
 						 ADJUST_YEAR(tm->tm_year, is_interval) :
 						 ADJUST_YEAR(date2isoyear(tm->tm_year,
@@ -3142,15 +3149,15 @@ DCH_from_char(FormatNode *node, char *in, TmFromChar *out)
 				{
 					int			matched,
 								years,
-								millenia,
+								millennia,
 								nch;
 
-					matched = sscanf(s, "%d,%03d%n", &millenia, &years, &nch);
+					matched = sscanf(s, "%d,%03d%n", &millennia, &years, &nch);
 					if (matched < 2)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
 							 errmsg("invalid input string for \"Y,YYY\" in function \"to_date\"")));
-					years += (millenia * 1000);
+					years += (millennia * 1000);
 					from_char_set_int(&out->year, years, n);
 					out->yysz = 4;
 					s += nch;
@@ -3520,6 +3527,7 @@ to_date(PG_FUNCTION_ARGS)
 
 	do_to_timestamp(date_txt, fmt, &tm, &fsec);
 
+	/* Prevent overflow in Julian-day routines */
 	if (!IS_VALID_JULIAN(tm.tm_year, tm.tm_mon, tm.tm_mday))
 		ereport(ERROR,
 				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
@@ -3527,6 +3535,13 @@ to_date(PG_FUNCTION_ARGS)
 						text_to_cstring(date_txt))));
 
 	result = date2j(tm.tm_year, tm.tm_mon, tm.tm_mday) - POSTGRES_EPOCH_JDATE;
+
+	/* Now check for just-out-of-range dates */
+	if (!IS_VALID_DATE(result))
+		ereport(ERROR,
+				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+				 errmsg("date out of range: \"%s\"",
+						text_to_cstring(date_txt))));
 
 	PG_RETURN_DATEADT(result);
 }
@@ -4198,6 +4213,9 @@ NUM_numpart_from_char(NUMProc *Np, int id, int input_len)
 #define OVERLOAD_TEST	(Np->inout_p >= Np->inout + input_len)
 #define AMOUNT_TEST(_s) (input_len-(Np->inout_p-Np->inout) >= _s)
 
+	if (OVERLOAD_TEST)
+		return;
+
 	if (*Np->inout_p == ' ')
 		Np->inout_p++;
 
@@ -4335,7 +4353,7 @@ NUM_numpart_from_char(NUMProc *Np, int id, int input_len)
 		 * next char is not digit
 		 */
 		if (IS_LSIGN(Np->Num) && isread &&
-			(Np->inout_p + 1) <= Np->inout + input_len &&
+			(Np->inout_p + 1) < Np->inout + input_len &&
 			!isdigit((unsigned char) *(Np->inout_p + 1)))
 		{
 			int			x;
@@ -5064,7 +5082,7 @@ numeric_to_number(PG_FUNCTION_ARGS)
 				  VARSIZE(value) - VARHDRSZ, 0, 0, false, PG_GET_COLLATION());
 
 	scale = Num.post;
-	precision = Max(0, Num.pre) + scale;
+	precision = Num.pre + Num.multi + scale;
 
 	if (shouldFree)
 		pfree(format);
@@ -5073,6 +5091,23 @@ numeric_to_number(PG_FUNCTION_ARGS)
 								 CStringGetDatum(numstr),
 								 ObjectIdGetDatum(InvalidOid),
 					  Int32GetDatum(((precision << 16) | scale) + VARHDRSZ));
+
+	if (IS_MULTI(&Num))
+	{
+		Numeric		x;
+		Numeric		a = DatumGetNumeric(DirectFunctionCall1(int4_numeric,
+														 Int32GetDatum(10)));
+		Numeric		b = DatumGetNumeric(DirectFunctionCall1(int4_numeric,
+												 Int32GetDatum(-Num.multi)));
+
+		x = DatumGetNumeric(DirectFunctionCall2(numeric_power,
+												NumericGetDatum(a),
+												NumericGetDatum(b)));
+		result = DirectFunctionCall2(numeric_mul,
+									 result,
+									 NumericGetDatum(x));
+	}
+
 	pfree(numstr);
 	return result;
 }

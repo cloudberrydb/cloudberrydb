@@ -28,6 +28,10 @@ begin
 end;
 $$ language plpgsql;
 
+-- Avoid generating spurious WAL records by hint bit updates. The test below
+-- is quite sensitive.
+vacuum freeze;
+
 -- Test connection
 SELECT test_connect('application_name=walreceiver_test');
 -- Should report 1 replication
@@ -41,12 +45,11 @@ SELECT count(*) FROM pg_stat_replication where application_name = 'walreceiver_t
 SELECT test_disconnect();
 SELECT check_and_wait_for_replication(10);
 
--- create table and store current_xlog_location.
-create TEMP table tmp(startpoint pg_lsn) distributed randomly;
-CREATE FUNCTION select_tmp() RETURNS pg_lsn AS $$
-select startpoint from tmp;
-$$ LANGUAGE SQL;
-insert into tmp select pg_current_xlog_location();
+-- remember current_xlog_location.
+-- start_ignore
+select pg_current_xlog_location() as lsn;
+-- end_ignore
+\gset
 
 -- lets generate some xlogs
 create table testwalreceiver(a int);
@@ -55,7 +58,7 @@ insert into testwalreceiver select * from generate_series(0, 9);
 -- Connect and receive the xlogs, validate everything was received from start to
 -- end
 SELECT test_connect('');
-SELECT test_receive_and_verify(select_tmp(), pg_current_xlog_location());
+SELECT test_receive_and_verify(:'lsn', pg_current_xlog_location());
 SELECT test_send();
 SELECT test_receive();
 SELECT test_disconnect();

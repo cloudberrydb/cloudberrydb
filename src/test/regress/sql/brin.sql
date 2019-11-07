@@ -154,7 +154,7 @@ INSERT INTO brinopers VALUES
 	 '{100, 100, 1, 100, 100}'),
 	('textcol', 'text',
 	 '{>, >=, =, <=, <}',
-	 '{AAAAAA, AAAAAA, BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA, ZZAAAA, ZZAAAA}',
+	 '{ABABAB, ABABAB, BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA, ZZAAAA, ZZAAAA}',
 	 '{100, 100, 1, 100, 100}'),
 	('oidcol', 'oid',
 	 '{>, >=, =, <=, <}',
@@ -416,3 +416,8 @@ VACUUM brintest;  -- force a summarization cycle in brinidx
 
 UPDATE brintest SET int8col = int8col * int4col;
 UPDATE brintest SET textcol = '' WHERE textcol IS NOT NULL;
+
+-- Tests for brin_summarize_new_values
+SELECT brin_summarize_new_values('brintest'); -- error, not an index
+SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
+SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected

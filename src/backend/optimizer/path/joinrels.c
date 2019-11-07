@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -240,7 +240,7 @@ join_search_one_level(PlannerInfo *root, int level)
 		 */
 		if (joinrels[level] == NIL &&
 			root->join_info_list == NIL &&
-			root->lateral_info_list == NIL)
+			!root->hasLateralRTEs)
 			elog(ERROR, "failed to build any %d-way joins", level);
 	}
 }
@@ -499,9 +499,8 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 			/*
 			 * The proposed join could still be legal, but only if we're
 			 * allowed to associate it into the RHS of this SJ.  That means
-			 * this SJ must be a LEFT join (not SEMI, ANTI or LASJ, and
-			 * certainly not FULL) and the proposed join must not overlap the
-			 * LHS.
+			 * this SJ must be a LEFT join (not SEMI, ANTI or LASJ, and certainly
+			 * not FULL) and the proposed join must not overlap the LHS.
 			 */
 			if (sjinfo->jointype != JOIN_LEFT ||
 				bms_overlap(joinrelids, sjinfo->min_lefthand))
@@ -569,15 +568,7 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 				 match_sjinfo->jointype == JOIN_FULL))
 				return false;	/* not implementable as nestloop */
 			/* check there is a direct reference from rel2 to rel1 */
-			foreach(l, root->lateral_info_list)
-			{
-				LateralJoinInfo *ljinfo = (LateralJoinInfo *) lfirst(l);
-
-				if (bms_is_subset(ljinfo->lateral_rhs, rel2->relids) &&
-					bms_is_subset(ljinfo->lateral_lhs, rel1->relids))
-					break;
-			}
-			if (l == NULL)
+			if (!bms_overlap(rel1->relids, rel2->direct_lateral_relids))
 				return false;	/* only indirect refs, so reject */
 			/* check we won't have a dangerous PHV */
 			if (have_dangerous_phv(root, rel1->relids, rel2->lateral_relids))
@@ -592,15 +583,7 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 				 match_sjinfo->jointype == JOIN_FULL))
 				return false;	/* not implementable as nestloop */
 			/* check there is a direct reference from rel1 to rel2 */
-			foreach(l, root->lateral_info_list)
-			{
-				LateralJoinInfo *ljinfo = (LateralJoinInfo *) lfirst(l);
-
-				if (bms_is_subset(ljinfo->lateral_rhs, rel1->relids) &&
-					bms_is_subset(ljinfo->lateral_lhs, rel2->relids))
-					break;
-			}
-			if (l == NULL)
+			if (!bms_overlap(rel2->relids, rel1->direct_lateral_relids))
 				return false;	/* only indirect refs, so reject */
 			/* check we won't have a dangerous PHV */
 			if (have_dangerous_phv(root, rel2->relids, rel1->lateral_relids))
@@ -951,15 +934,23 @@ have_join_order_restriction(PlannerInfo *root,
 	 * If either side has a direct lateral reference to the other, attempt the
 	 * join regardless of outer-join considerations.
 	 */
-	foreach(l, root->lateral_info_list)
-	{
-		LateralJoinInfo *ljinfo = (LateralJoinInfo *) lfirst(l);
+	if (bms_overlap(rel1->relids, rel2->direct_lateral_relids) ||
+		bms_overlap(rel2->relids, rel1->direct_lateral_relids))
+		return true;
 
-		if (bms_is_subset(ljinfo->lateral_rhs, rel2->relids) &&
-			bms_overlap(ljinfo->lateral_lhs, rel1->relids))
-			return true;
-		if (bms_is_subset(ljinfo->lateral_rhs, rel1->relids) &&
-			bms_overlap(ljinfo->lateral_lhs, rel2->relids))
+	/*
+	 * Likewise, if both rels are needed to compute some PlaceHolderVar,
+	 * attempt the join regardless of outer-join considerations.  (This is not
+	 * very desirable, because a PHV with a large eval_at set will cause a lot
+	 * of probably-useless joins to be considered, but failing to do this can
+	 * cause us to fail to construct a plan at all.)
+	 */
+	foreach(l, root->placeholder_list)
+	{
+		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(l);
+
+		if (bms_is_subset(rel1->relids, phinfo->ph_eval_at) &&
+			bms_is_subset(rel2->relids, phinfo->ph_eval_at))
 			return true;
 	}
 
@@ -1247,9 +1238,10 @@ mark_dummy_rel(PlannerInfo *root, RelOptInfo *rel)
 
 	/* Evict any previously chosen paths */
 	rel->pathlist = NIL;
+	rel->partial_pathlist = NIL;
 
 	/* Set up the dummy path */
-	add_path(rel, (Path *) create_append_path(root, rel, NIL, NULL));
+	add_path(rel, (Path *) create_append_path(root, rel, NIL, NULL, 0));
 
 	/* Set or update cheapest_total_path */
 	set_cheapest(rel);

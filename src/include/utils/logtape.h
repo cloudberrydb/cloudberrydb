@@ -5,7 +5,7 @@
  *
  * See logtape.c for explanations.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/logtape.h
@@ -56,6 +56,7 @@ extern long LogicalTapeSetBlocks(LogicalTapeSet *lts);
 extern void LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts);
 
 extern LogicalTape *LogicalTapeSetGetTape(LogicalTapeSet *lts, int tapenum);
+extern int LogicalTapeGetTapeNum(LogicalTapeSet *lts, LogicalTape *lt);
 extern LogicalTape *LogicalTapeSetDuplicateTape(LogicalTapeSet *lts, LogicalTape *lt);
 
 #endif   /* LOGTAPE_H */

@@ -63,6 +63,8 @@ VACUUM FULL pg_database;
 VACUUM FULL vaccluster;
 VACUUM FULL vactst;
 
+VACUUM (DISABLE_PAGE_SKIPPING) vaccluster;
+
 -- check behavior with duplicate column mentions
 VACUUM ANALYZE vaccluster(i,i);
 ANALYZE vaccluster(i,i);

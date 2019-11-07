@@ -11,7 +11,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,9 +20,6 @@
  *
  *-------------------------------------------------------------------------
  */
-
-/* see palloc.h.  Must be before postgres.h */
-#define MCXT_INCLUDE_DEFINITIONS
 
 #include "postgres.h"
 
@@ -84,6 +81,9 @@ MemoryContext OptimizerMemoryContext = NULL;
 MemoryContext PortalContext = NULL;
 
 static void MemoryContextCallResetCallbacks(MemoryContext context);
+static void MemoryContextStatsInternal(MemoryContext context, int level,
+						   bool print, int max_children,
+						   MemoryContextCounters *totals);
 
 /*
  * You should not do memory allocations within a critical section, because
@@ -377,21 +377,16 @@ MemoryContextSetParent(MemoryContext context, MemoryContext new_parent)
 	{
 		MemoryContext parent = context->parent;
 
-		if (context == parent->firstchild)
-			parent->firstchild = context->nextchild;
+		if (context->prevchild != NULL)
+			context->prevchild->nextchild = context->nextchild;
 		else
 		{
-			MemoryContext child;
-
-			for (child = parent->firstchild; child; child = child->nextchild)
-			{
-				if (context == child->nextchild)
-				{
-					child->nextchild = context->nextchild;
-					break;
-				}
-			}
+			Assert(parent->firstchild == context);
+			parent->firstchild = context->nextchild;
 		}
+
+		if (context->nextchild != NULL)
+			context->nextchild->prevchild = context->prevchild;
 	}
 
 	/* And relink */
@@ -399,12 +394,16 @@ MemoryContextSetParent(MemoryContext context, MemoryContext new_parent)
 	{
 		AssertArg(MemoryContextIsValid(new_parent));
 		context->parent = new_parent;
+		context->prevchild = NULL;
 		context->nextchild = new_parent->firstchild;
+		if (new_parent->firstchild != NULL)
+			new_parent->firstchild->prevchild = context;
 		new_parent->firstchild = context;
 	}
 	else
 	{
 		context->parent = NULL;
+		context->prevchild = NULL;
 		context->nextchild = NULL;
 	}
 }
@@ -762,217 +761,109 @@ MemoryContextName(MemoryContext context, MemoryContext relativeTo,
 }                               /* MemoryContextName */
 
 /*
- * MemoryContext_LogContextStats
- *		Logs memory consumption details of a given context.
- *
- *	Parameters:
- *		siblingCount: number of sibling context of this context in the memory context tree
- *		allAllocated: total bytes allocated in this context
- *		allFreed: total bytes freed in this context
- *		curAvailable: bytes that are allocated in blocks but are not used in any chunks
- *		contextName: name of the context
- */
-static void
-MemoryContext_LogContextStats(uint64 siblingCount, uint64 allAllocated,
-		uint64 allFreed, uint64 curAvailable, const char *contextName)
-{
-	write_stderr("context: " UINT64_FORMAT ", " UINT64_FORMAT ", " UINT64_FORMAT ", " UINT64_FORMAT ", " UINT64_FORMAT ", %s\n", \
-	siblingCount, (allAllocated - allFreed), curAvailable, \
-	allAllocated, allFreed, contextName);
-}
-
-
-/*
- * MemoryContextStats_recur
+ * MemoryContextStats
  *		Print statistics about the named context and all its descendants.
  *
- * This is just a debugging utility, so it's not fancy.  The statistics
- * are merely sent to stderr.
- *
- * Parameters:
- * 		topContext: the top of the sub-tree where we start our processing
- * 		rootContext: the root context of the entire tree that can be used
- * 		to generate a bread crumb like context name
- *
- * 		topContexName: the name of the top context
- * 		nameBuffer: a buffer to format the name of any future context
- *		nameBufferSize: size of the nameBuffer
- *		nBlocksTop: number of blocks in the top context
- *		nChunksTop: number of chunks in the top context
- *
- *		currentAvailableTop: free space across all blocks in the top context
- *
- *		allAllocatedTop: total bytes allocated in the top context, including
- *		blocks that are already dropped
- *
- *		allFreedTop: total bytes that were freed in the top context
- *		maxHeldTop: maximum bytes held in the top context
- */
-static void
-MemoryContextStats_recur(MemoryContext topContext, MemoryContext rootContext,
-                         char *topContextName, char *nameBuffer, int nameBufferSize,
-                         uint64 nBlocksTop, uint64 nChunksTop,
-                         uint64 currentAvailableTop, uint64 allAllocatedTop,
-                         uint64 allFreedTop, uint64 maxHeldTop)
-{
-	MemoryContext   child;
-    char*           name;
-
-	AssertArg(MemoryContextIsValid(topContext));
-
-	uint64 nBlocks = 0;
-	uint64 nChunks = 0;
-	uint64 currentAvailable = 0;
-	uint64 allAllocated = 0;
-	uint64 allFreed = 0;
-	uint64 maxHeld = 0;
-
-	/*
-	 * The top context is always supposed to have children contexts. Therefore, it is not
-	 * collapse-able with other siblings. So, the siblingCount is set to 1.
-	 */
-	MemoryContext_LogContextStats(1 /* siblingCount */, allAllocatedTop, allFreedTop, currentAvailableTop, topContextName);
-
-    uint64 cumBlocks = 0;
-    uint64 cumChunks = 0;
-    uint64 cumCurAvailable = 0;
-    uint64 cumAllAllocated = 0;
-    uint64 cumAllFreed = 0;
-    uint64 cumMaxHeld = 0;
-
-    char prevChildName[MAX_CONTEXT_NAME_SIZE] = "";
-
-    uint64 siblingCount = 0;
-
-	for (child = topContext->firstchild; child != NULL; child = child->nextchild)
-	{
-		/* Get name and ancestry of this MemoryContext */
-		name = MemoryContextName(child, rootContext, nameBuffer, nameBufferSize);
-
-		(*child->methods.stats)(child, &nBlocks, &nChunks, &currentAvailable, &allAllocated, &allFreed, &maxHeld);
-
-		if (child->firstchild == NULL)
-		{
-			/* To qualify for sibling collapsing the context must not have any child context */
-
-			if (strcmp(name, prevChildName) == 0)
-			{
-				cumBlocks += nBlocks;
-				cumChunks += nChunks;
-				cumCurAvailable += currentAvailable;
-				cumAllAllocated += allAllocated;
-				cumAllFreed += allFreed;
-				cumMaxHeld = Max(cumMaxHeld, maxHeld);
-
-				siblingCount++;
-			}
-			else
-			{
-				if (siblingCount != 0)
-				{
-					/*
-					 * Output the previous cumulative stat, and start a new run. Note: don't just
-					 * pass the new one to MemoryContextStats_recur, as the new one might be the
-					 * start of another run of duplicate contexts
-					 */
-
-					MemoryContext_LogContextStats(siblingCount, cumAllAllocated, cumAllFreed, cumCurAvailable, prevChildName);
-				}
-
-				cumBlocks = nBlocks;
-				cumChunks = nChunks;
-				cumCurAvailable = currentAvailable;
-				cumAllAllocated = allAllocated;
-				cumAllFreed = allFreed;
-				cumMaxHeld = maxHeld;
-
-				/* Move new name into previous name */
-				strncpy(prevChildName, name, MAX_CONTEXT_NAME_SIZE - 1);
-
-				/* The current one is the sole sibling */
-				siblingCount = 1;
-			}
-		}
-		else
-		{
-			/* Does not qualify for sibling collapsing as the context has child context */
-
-			if (siblingCount != 0)
-			{
-				/*
-				 * We have previously collapsed (one or more siblings with empty children) context
-				 * stats that we want to print here. Output the previous cumulative stat.
-				 */
-
-				MemoryContext_LogContextStats(siblingCount, cumAllAllocated, cumAllFreed, cumCurAvailable, prevChildName);
-			}
-
-			MemoryContextStats_recur(child, rootContext, name, nameBuffer, nameBufferSize, nBlocks,
-					nChunks, currentAvailable, allAllocated, allFreed, maxHeld);
-
-			/*
-			 * We just traversed a child node, so we need to make sure we don't carry over
-			 * any child name from previous matching siblings. So, we reset prevChildName,
-			 * and all cumulative stats
-			 */
-			prevChildName[0] = '\0';
-
-			cumBlocks = 0;
-			cumChunks = 0;
-			cumCurAvailable = 0;
-			cumAllAllocated = 0;
-			cumAllFreed = 0;
-			cumMaxHeld = 0;
-
-			/*
-			 * The current one doesn't qualify for collapsing, and we already
-			 * printed it and its children by calling MemoryContextStats_recur
-			 */
-			siblingCount = 0;
-		}
-	}
-
-	if (siblingCount != 0)
-	{
-		/* Output any unprinted cumulative stats */
-
-		MemoryContext_LogContextStats(siblingCount, cumAllAllocated, cumAllFreed, cumCurAvailable, prevChildName);
-	}
-}
-
-/*
- * MemoryContextStats
- *		Prints the usage details of a context.
- *
- * Parameters:
- * 		context: the context of interest.
+ * This is just a debugging utility, so it's not very fancy.  However, we do
+ * make some effort to summarize when the output would otherwise be very long.
+ * The statistics are sent to stderr.
  */
 void
 MemoryContextStats(MemoryContext context)
 {
-    char*     name;
-    char      namebuf[MAX_CONTEXT_NAME_SIZE];
+	/* A hard-wired limit on the number of children is usually good enough */
+	MemoryContextStatsDetail(context, 100);
+}
+
+/*
+ * MemoryContextStatsDetail
+ *
+ * Entry point for use if you want to vary the number of child contexts shown.
+ */
+void
+MemoryContextStatsDetail(MemoryContext context, int max_children)
+{
+	MemoryContextCounters grand_totals;
+
+	memset(&grand_totals, 0, sizeof(grand_totals));
+
+	MemoryContextStatsInternal(context, 0, true, max_children, &grand_totals);
+
+	fprintf(stderr,
+	"Grand total: %zu bytes in %zd blocks; %zu free (%zd chunks); %zu used\n",
+			grand_totals.totalspace, grand_totals.nblocks,
+			grand_totals.freespace, grand_totals.freechunks,
+			grand_totals.totalspace - grand_totals.freespace);
+}
+
+/*
+ * MemoryContextStatsInternal
+ *		One recursion level for MemoryContextStats
+ *
+ * Print this context if print is true, but in any case accumulate counts into
+ * *totals (if given).
+ */
+static void
+MemoryContextStatsInternal(MemoryContext context, int level,
+						   bool print, int max_children,
+						   MemoryContextCounters *totals)
+{
+	MemoryContextCounters local_totals;
+	MemoryContext child;
+	int			ichild;
 
 	AssertArg(MemoryContextIsValid(context));
 
-    name = MemoryContextName(context, NULL, namebuf, sizeof(namebuf));
-    write_stderr("pid %d: Memory statistics for %s/\n", MyProcPid, name);
-    write_stderr("context: occurrences_count, currently_allocated, currently_available, total_allocated, total_freed, name\n");
+	/* Examine the context itself */
+	(*context->methods.stats) (context, level, print, totals);
 
-	uint64 nBlocks = 0;
-	uint64 nChunks = 0;
-	uint64 currentAvailable = 0;
-	uint64 allAllocated = 0;
-	uint64 allFreed = 0;
-	uint64 maxHeld = 0;
-	int namebufsize = sizeof(namebuf);
+	/*
+	 * Examine children.  If there are more than max_children of them, we do
+	 * not print the rest explicitly, but just summarize them.
+	 */
+	memset(&local_totals, 0, sizeof(local_totals));
 
-	/* Get the root context's stat and pass it to the MemoryContextStats_recur for printing */
-	(*context->methods.stats)(context, &nBlocks, &nChunks, &currentAvailable, &allAllocated, &allFreed, &maxHeld);
-	name = MemoryContextName(context, context, namebuf, namebufsize);
+	for (child = context->firstchild, ichild = 0;
+		 child != NULL;
+		 child = child->nextchild, ichild++)
+	{
+		if (ichild < max_children)
+			MemoryContextStatsInternal(child, level + 1,
+									   print, max_children,
+									   totals);
+		else
+			MemoryContextStatsInternal(child, level + 1,
+									   false, max_children,
+									   &local_totals);
+	}
 
-    MemoryContextStats_recur(context, context, name, namebuf, namebufsize, nBlocks, nChunks,
-    		currentAvailable, allAllocated, allFreed, maxHeld);
+	/* Deal with excess children */
+	if (ichild > max_children)
+	{
+		if (print)
+		{
+			int			i;
+
+			for (i = 0; i <= level; i++)
+				fprintf(stderr, "  ");
+			fprintf(stderr,
+					"%d more child contexts containing %zu total in %zd blocks; %zu free (%zd chunks); %zu used\n",
+					ichild - max_children,
+					local_totals.totalspace,
+					local_totals.nblocks,
+					local_totals.freespace,
+					local_totals.freechunks,
+					local_totals.totalspace - local_totals.freespace);
+		}
+
+		if (totals)
+		{
+			totals->nblocks += local_totals.nblocks;
+			totals->freechunks += local_totals.freechunks;
+			totals->totalspace += local_totals.totalspace;
+			totals->freespace += local_totals.freespace;
+		}
+	}
 }
 
 /*
@@ -1185,6 +1076,7 @@ MemoryContextCreate(NodeTag tag, Size size,
 	node->methods = *methods;
 	node->parent = parent;
 	node->firstchild = NULL;
+	node->prevchild = NULL;
 	node->nextchild = NULL;
 	node->isReset = true;
 	node->name = ((char *) node) + size;
@@ -1198,6 +1090,8 @@ MemoryContextCreate(NodeTag tag, Size size,
 	if (parent)
 	{
 		node->nextchild = parent->firstchild;
+		if (parent->firstchild != NULL)
+			parent->firstchild->prevchild = node;
 		parent->firstchild = node;
 		/* inherit allowInCritSection flag from parent */
 		node->allowInCritSection = parent->allowInCritSection;

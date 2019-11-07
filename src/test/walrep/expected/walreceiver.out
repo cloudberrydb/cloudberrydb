@@ -1,8 +1,8 @@
 -- negative cases
 SELECT test_receive();
-ERROR:  could not receive data from WAL stream: connection pointer is NULL (libpqwalreceiver.c:571)
+ERROR:  could not receive data from WAL stream: connection pointer is NULL (libpqwalreceiver.c:628)
 SELECT test_send();
-ERROR:  could not send data to WAL stream: connection pointer is NULL (libpqwalreceiver.c:590)
+ERROR:  could not send data to WAL stream: connection pointer is NULL (libpqwalreceiver.c:647)
 SELECT test_disconnect();
  test_disconnect 
 -----------------
@@ -33,6 +33,9 @@ begin
    end loop;
 end;
 $$ language plpgsql;
+-- Avoid generating spurious WAL records by hint bit updates. The test below
+-- is quite sensitive.
+vacuum freeze;
 -- Test connection
 SELECT test_connect('application_name=walreceiver_test');
  test_connect 
@@ -84,12 +87,16 @@ SELECT check_and_wait_for_replication(10);
  t
 (1 row)
 
--- create table and store current_xlog_location.
-create TEMP table tmp(startpoint pg_lsn) distributed randomly;
-CREATE FUNCTION select_tmp() RETURNS pg_lsn AS $$
-select startpoint from tmp;
-$$ LANGUAGE SQL;
-insert into tmp select pg_current_xlog_location();
+-- remember current_xlog_location.
+-- start_ignore
+select pg_current_xlog_location() as lsn;
+    lsn    
+-----------
+ 0/D24F4F0
+(1 row)
+
+-- end_ignore
+\gset
 -- lets generate some xlogs
 create table testwalreceiver(a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
@@ -103,7 +110,7 @@ SELECT test_connect('');
  t
 (1 row)
 
-SELECT test_receive_and_verify(select_tmp(), pg_current_xlog_location());
+SELECT test_receive_and_verify(:'lsn', pg_current_xlog_location());
  test_receive_and_verify 
 -------------------------
  t

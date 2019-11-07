@@ -24,12 +24,12 @@ timestamp='2018-09-05'
 # program.  This Exception is an additional permission under section 7
 # of the GNU General Public License, version 3 ("GPLv3").
 #
-# Originally written by Per Bothner.
+# Originally written by Per Bothner; maintained since 2000 by Ben Elliston.
 #
 # You can get the latest version of this script from:
-# http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD
+# http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess
 #
-# Please send patches with a ChangeLog entry to config-patches@gnu.org.
+# Please send patches to <config-patches@gnu.org>.
 
 
 me=`echo "$0" | sed -e 's,.*/,,'`
@@ -231,10 +231,6 @@ case "${UNAME_MACHINE}:${UNAME_SYSTEM}:${UNAME_RELEASE}:${UNAME_VERSION}" in
 	# contains redundant information, the shorter form:
 	# CPU_TYPE-MANUFACTURER-OPERATING_SYSTEM is used.
 	echo "${machine}-${os}${release}${abi}"
-	exit ;;
-    *:Bitrig:*:*)
-	UNAME_MACHINE_ARCH=`arch | sed 's/Bitrig.//'`
-	echo ${UNAME_MACHINE_ARCH}-unknown-bitrig${UNAME_RELEASE}
 	exit ;;
     *:Bitrig:*:*)
 	UNAME_MACHINE_ARCH=`arch | sed 's/Bitrig.//'`
@@ -964,6 +960,9 @@ EOF
     crisv32:Linux:*:*)
 	echo ${UNAME_MACHINE}-axis-linux-gnu
 	exit ;;
+    e2k:Linux:*:*)
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
+	exit ;;
     frv:Linux:*:*)
 	echo ${UNAME_MACHINE}-unknown-linux-gnu
 	exit ;;
@@ -1424,6 +1423,9 @@ EOF
 	exit ;;
     x86_64:VMkernel:*:*)
 	echo ${UNAME_MACHINE}-unknown-esx
+	exit ;;
+    amd64:Isilon\ OneFS:*:*)
+	echo x86_64-unknown-onefs
 	exit ;;
 esac
 

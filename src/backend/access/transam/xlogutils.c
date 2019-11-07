@@ -10,7 +10,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/access/transam/xlogutils.c
@@ -21,13 +21,12 @@
 
 #include <unistd.h>
 
-#include "miscadmin.h"
-
 #include "access/timeline.h"
 #include "access/xlog.h"
 #include "access/xlog_internal.h"
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"
+#include "miscadmin.h"
 #include "storage/smgr.h"
 #include "utils/guc.h"
 #include "utils/hsearch.h"
@@ -336,12 +335,25 @@ XLogReadBufferForRedoExtended(XLogReaderState *record,
 	ForkNumber	forknum;
 	BlockNumber blkno;
 	Page		page;
+	bool		zeromode;
+	bool		willinit;
 
 	if (!XLogRecGetBlockTag(record, block_id, &rnode, &forknum, &blkno))
 	{
 		/* Caller specified a bogus block_id */
 		elog(PANIC, "failed to locate backup block with ID %d", block_id);
 	}
+
+	/*
+	 * Make sure that if the block is marked with WILL_INIT, the caller is
+	 * going to initialize it. And vice versa.
+	 */
+	zeromode = (mode == RBM_ZERO_AND_LOCK || mode == RBM_ZERO_AND_CLEANUP_LOCK);
+	willinit = (record->blocks[block_id].flags & BKPBLOCK_WILL_INIT) != 0;
+	if (willinit && !zeromode)
+		elog(PANIC, "block with WILL_INIT flag in WAL record must be zeroed by redo routine");
+	if (!willinit && zeromode)
+		elog(PANIC, "block to be initialized in redo routine must be marked with WILL_INIT flag in the WAL record");
 
 	/* If it's a full-page image, restore it. */
 	if (XLogRecHasBlockImage(record, block_id))
@@ -363,16 +375,19 @@ XLogReadBufferForRedoExtended(XLogReaderState *record,
 
 		MarkBufferDirty(*buf);
 
+		/*
+		 * At the end of crash recovery the init forks of unlogged relations
+		 * are copied, without going through shared buffers. So we need to
+		 * force the on-disk state of init forks to always be in sync with the
+		 * state in shared buffers.
+		 */
+		if (forknum == INIT_FORKNUM)
+			FlushOneBuffer(*buf);
+
 		return BLK_RESTORED;
 	}
 	else
 	{
-		if ((record->blocks[block_id].flags & BKPBLOCK_WILL_INIT) != 0 &&
-			mode != RBM_ZERO_AND_LOCK && mode != RBM_ZERO_AND_CLEANUP_LOCK)
-		{
-			elog(PANIC, "block with WILL_INIT flag in WAL record must be zeroed by redo routine");
-		}
-
 		*buf = XLogReadBufferExtended(rnode, forknum, blkno, mode);
 		if (BufferIsValid(*buf))
 		{
@@ -414,9 +429,10 @@ XLogReadBufferForRedoExtended(XLogReaderState *record,
  * to imply that the page should be dropped or truncated later.
  *
  * NB: A redo function should normally not call this directly. To get a page
- * to modify, use XLogReplayBuffer instead. It is important that all pages
- * modified by a WAL record are registered in the WAL records, or they will be
- * invisible to tools that that need to know which pages are modified.
+ * to modify, use XLogReadBufferForRedoExtended instead. It is important that
+ * all pages modified by a WAL record are registered in the WAL records, or
+ * they will be invisible to tools that that need to know which pages are
+ * modified.
  */
 Buffer
 XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
@@ -640,8 +656,17 @@ XLogTruncateRelation(RelFileNode rnode, ForkNumber forkNum,
 }
 
 /*
- * TODO: This is duplicate code with pg_xlogdump, similar to walsender.c, but
- * we currently don't have the infrastructure (elog!) to share it.
+ * Read 'count' bytes from WAL into 'buf', starting at location 'startptr'
+ * in timeline 'tli'.
+ *
+ * Will open, and keep open, one WAL segment stored in the static file
+ * descriptor 'sendFile'. This means if XLogRead is used once, there will
+ * always be one descriptor left open until the process ends, but never
+ * more than one.
+ *
+ * XXX This is very similar to pg_xlogdump's XLogDumpXLogRead and to XLogRead
+ * in walsender.c but for small differences (such as lack of elog() in
+ * frontend).  Probably these should be merged at some point.
  */
 static void
 XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
@@ -650,6 +675,7 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
 	XLogRecPtr	recptr;
 	Size		nbytes;
 
+	/* state maintained across calls */
 	static int	sendFile = -1;
 	static XLogSegNo sendSegNo = 0;
 	static TimeLineID sendTLI = 0;
@@ -673,7 +699,6 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
 		{
 			char		path[MAXPGPATH];
 
-			/* Switch to another logfile segment */
 			if (sendFile >= 0)
 				close(sendFile);
 
@@ -878,14 +903,15 @@ XLogReadDetermineTimeline(XLogReaderState *state, XLogRecPtr wantPage, uint32 wa
  * Public because it would likely be very helpful for someone writing another
  * output method outside walsender, e.g. in a bgworker.
  *
- * TODO: The walsender has it's own version of this, but it relies on the
+ * TODO: The walsender has its own version of this, but it relies on the
  * walsender's latch being set whenever WAL is flushed. No such infrastructure
  * exists for normal backends, so we have to do a check/sleep/repeat style of
  * loop for now.
  */
 int
 read_local_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr,
-	int reqLen, XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI)
+					 int reqLen, XLogRecPtr targetRecPtr, char *cur_page,
+					 TimeLineID *pageTLI)
 {
 	XLogRecPtr	read_upto,
 				loc;

@@ -3,7 +3,7 @@
  * sampling.c
  *	  Relation block sampling routines.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -228,7 +228,7 @@ reservoir_get_next_S(ReservoirState rs, double t, int n)
 void
 sampler_random_init_state(long seed, SamplerRandomState randstate)
 {
-	randstate[0] = RAND48_SEED_0;
+	randstate[0] = 0x330e;		/* same as pg_erand48, but could be anything */
 	randstate[1] = (unsigned short) seed;
 	randstate[2] = (unsigned short) (seed >> 16);
 }
@@ -237,7 +237,14 @@ sampler_random_init_state(long seed, SamplerRandomState randstate)
 double
 sampler_random_fract(SamplerRandomState randstate)
 {
-	return pg_erand48(randstate);
+	double		res;
+
+	/* pg_erand48 returns a value in [0.0 - 1.0), so we must reject 0 */
+	do
+	{
+		res = pg_erand48(randstate);
+	} while (res == 0.0);
+	return res;
 }
 
 

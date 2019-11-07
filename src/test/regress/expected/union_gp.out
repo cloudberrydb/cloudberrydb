@@ -229,29 +229,22 @@ union
  test2  |  2
 (2 rows)
 
--- The plan you currently get for this has a Motion to move the data from the single QE to
--- QD. That's a bit silly, it would probably make more sense to pull all the data to the QD
--- in the first place, and execute the Limit in the QD, to avoid the extra Motion. But this
--- is hopefully a pretty rare case.
 explain (SELECT 'test1' as branch, id FROM test1 LIMIT 1)
 union
 (SELECT 'test2' as branch, id FROM test2);
-                                                   QUERY PLAN                                                   
-----------------------------------------------------------------------------------------------------------------
- Unique  (cost=1.06..1.07 rows=2 width=4)
-   Group Key: "outer".branch, "*SELECT* 1".id
-   ->  Sort  (cost=1.06..1.06 rows=2 width=4)
-         Sort Key (Distinct): "outer".branch, "*SELECT* 1".id
-         ->  Append  (cost=0.00..1.05 rows=2 width=4)
-               ->  Gather Motion 1:1  (slice2; segments: 1)  (cost=0.00..1.04 rows=1 width=4)
-                     ->  Subquery Scan on "*SELECT* 1"  (cost=0.00..1.04 rows=1 width=4)
-                           ->  Limit  (cost=0.00..1.03 rows=1 width=4)
-                                 ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=4)
-                                       ->  Limit  (cost=0.00..1.01 rows=1 width=4)
-                                             ->  Seq Scan on test1  (cost=0.00..1.01 rows=1 width=4)
-               ->  External Scan on test2  (cost=0.00..0.00 rows=1 width=4)
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=2.06..2.12 rows=6 width=36)
+   Group Key: ('test1'::text), "*SELECT* 1".id
+   ->  Append  (cost=2.05..2.06 rows=2 width=36)
+         ->  Subquery Scan on "*SELECT* 1"  (cost=1.01..2.05 rows=1 width=36)
+               ->  Limit  (cost=1.01..2.04 rows=1 width=36)
+                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..2.04 rows=1 width=36)
+                           ->  Limit  (cost=1.01..2.02 rows=1 width=36)
+                                 ->  Seq Scan on test1  (cost=0.00..1.01 rows=1 width=36)
+         ->  External Scan on test2  (cost=0.00..0.00 rows=1 width=36)
  Optimizer: Postgres query optimizer
-(13 rows)
+(10 rows)
 
 --
 -- Test pulling up distribution key expression, when the different branches

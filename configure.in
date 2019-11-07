@@ -21,14 +21,18 @@ dnl The PACKAGE_VERSION from upstream PostgreSQL is maintained in the
 dnl PG_PACKAGE_VERSION variable, when merging make sure to update this
 dnl variable with the merge conflict from the AC_INIT() statement.
 AC_INIT([Greenplum Database], [7.0.0-alpha.0], [support@greenplum.org])
-[PG_PACKAGE_VERSION=9.5beta1]
+m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.69], [], [m4_fatal([Autoconf version 2.69 is required.
+Untested combinations of 'autoconf' and PostgreSQL versions are not
+recommended.  You can remove the check from 'configure.in' but it is then
+your responsibility whether the result works or not.])])
+[PG_PACKAGE_VERSION=9.6beta4]
 AC_SUBST(PG_PACKAGE_VERSION)
 
 dnl m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.69], [], [m4_fatal([Autoconf version 2.69 is required.
 dnl Untested combinations of 'autoconf' and PostgreSQL versions are not
 dnl recommended.  You can remove the check from 'configure.in' but it is then
 dnl your responsibility whether the result works or not.])])
-AC_COPYRIGHT([Copyright (c) 1996-2015, PostgreSQL Global Development Group])
+AC_COPYRIGHT([Copyright (c) 1996-2016, PostgreSQL Global Development Group])
 AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
 AC_CONFIG_AUX_DIR(config)
 AC_PREFIX_DEFAULT(/usr/local/gpdb)
@@ -176,6 +180,17 @@ but it's convenient if your clients have the right default compiled in.
 AC_DEFINE_UNQUOTED(DEF_PGPORT_STR, "${default_port}",
                    [Define to the default TCP port number as a string constant.])
 AC_SUBST(default_port)
+
+# It's worth validating port; you can get very confusing errors otherwise
+if test x"$default_port" = x""; then
+  AC_MSG_ERROR([invalid --with-pgport specification: empty string])
+elif test ! x`echo "$default_port" | sed -e 's/[[0-9]]*//'` = x""; then
+  AC_MSG_ERROR([invalid --with-pgport specification: must be a number])
+elif test ! x`echo "$default_port" | sed -e 's/^0.//'` = x"$default_port"; then
+  AC_MSG_ERROR([invalid --with-pgport specification: must not have leading 0])
+elif test "$default_port" -lt "1" -o "$default_port" -gt "65535"; then
+  AC_MSG_ERROR([invalid --with-pgport specification: must be between 1 and 65535])
+fi
 
 #
 # '-rpath'-like feature can be disabled
@@ -440,15 +455,15 @@ CXXFLAGS=$ac_save_CXXFLAGS
 # Check if it's Intel's compiler, which (usually) pretends to be gcc,
 # but has idiosyncrasies of its own.  We assume icc will define
 # __INTEL_COMPILER regardless of CFLAGS.
-AC_TRY_COMPILE([], [@%:@ifndef __INTEL_COMPILER
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [@%:@ifndef __INTEL_COMPILER
 choke me
-@%:@endif], [ICC=[yes]], [ICC=[no]])
+@%:@endif])], [ICC=yes], [ICC=no])
 
 # Check if it's Sun Studio compiler. We assume that
 # __SUNPRO_C will be defined for Sun Studio compilers
-AC_TRY_COMPILE([], [@%:@ifndef __SUNPRO_C
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [@%:@ifndef __SUNPRO_C
 choke me
-@%:@endif], [SUN_STUDIO_CC=yes], [SUN_STUDIO_CC=no])
+@%:@endif])], [SUN_STUDIO_CC=yes], [SUN_STUDIO_CC=no])
 
 AC_SUBST(SUN_STUDIO_CC)
 
@@ -704,16 +719,16 @@ CFLAGS="$CFLAGS $user_CFLAGS"
 
 # Check if the compiler still works with the final flag settings
 AC_MSG_CHECKING([whether the C compiler still works])
-AC_TRY_LINK([], [return 0;],
+AC_LINK_IFELSE([AC_LANG_PROGRAM([], [return 0;])],
   [AC_MSG_RESULT(yes)],
   [AC_MSG_RESULT(no)
    AC_MSG_ERROR([cannot proceed])])
 
 # Defend against gcc -ffast-math
 if test "$GCC" = yes; then
-AC_TRY_COMPILE([], [@%:@ifdef __FAST_MATH__
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [@%:@ifdef __FAST_MATH__
 choke me
-@%:@endif], [], [AC_MSG_ERROR([do not put -ffast-math in CFLAGS])])
+@%:@endif])], [], [AC_MSG_ERROR([do not put -ffast-math in CFLAGS])])
 fi
 
 # Since PostgreSQL is written in pure C, all the tests in this file
@@ -930,6 +945,16 @@ AC_MSG_RESULT([$with_pam])
 
 
 #
+# BSD AUTH
+#
+AC_MSG_CHECKING([whether to build with BSD Authentication support])
+PGAC_ARG_BOOL(with, bsd-auth, no,
+              [build with BSD Authentication support],
+              [AC_DEFINE([USE_BSD_AUTH], 1, [Define to 1 to build with BSD Authentication support. (--with-bsd-auth)])])
+AC_MSG_RESULT([$with_bsd_auth])
+
+
+#
 # LDAP
 #
 AC_MSG_CHECKING([whether to build with LDAP support])
@@ -965,6 +990,15 @@ AC_MSG_CHECKING([whether to build with SELinux support])
 PGAC_ARG_BOOL(with, selinux, no, [build with SELinux support])
 AC_SUBST(with_selinux)
 AC_MSG_RESULT([$with_selinux])
+
+#
+# Systemd
+#
+AC_MSG_CHECKING([whether to build with systemd support])
+PGAC_ARG_BOOL(with, systemd, no, [build with systemd support],
+              [AC_DEFINE([USE_SYSTEMD], 1, [Define to build with systemd support. (--with-systemd)])])
+AC_SUBST(with_systemd)
+AC_MSG_RESULT([$with_systemd])
 
 #
 # Readline
@@ -1176,7 +1210,9 @@ case $host_os in sysv5*)
   AC_CACHE_CHECK([whether ld -R works], [pgac_cv_prog_ld_R],
   [
     pgac_save_LDFLAGS=$LDFLAGS; LDFLAGS="$LDFLAGS -Wl,-R/usr/lib"
-    AC_TRY_LINK([], [], [pgac_cv_prog_ld_R=yes], [pgac_cv_prog_ld_R=no])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+      [pgac_cv_prog_ld_R=yes],
+      [pgac_cv_prog_ld_R=no])
     LDFLAGS=$pgac_save_LDFLAGS
   ])
   ld_R_works=$pgac_cv_prog_ld_R
@@ -1289,6 +1325,58 @@ existing time-zone data, or set the environment variable ZIC to a zic
 program to use during the build.])
   fi
 fi
+
+#
+# Pthreads
+#
+# For each platform, we need to know about any special compile and link
+# libraries, and whether the normal C function names are thread-safe.
+# See the comment at the top of src/port/thread.c for more information.
+# WIN32 doesn't need the pthread tests;  it always uses threads
+#
+# These tests are run before the library-tests, because linking with the
+# other libraries can pull in the pthread functions as a side-effect.  We
+# want to use the -pthread or similar flags directly, and not rely on
+# the side-effects of linking with some other library.
+#
+# note: We have to use AS_IF here rather than plain if. The AC_CHECK_HEADER
+# invocation below is the first one in the script, and autoconf generates
+# additional code for that, which must not be inside the if-block. AS_IF
+# knows how to do that.
+AS_IF([test "$enable_thread_safety" = yes -a "$PORTNAME" != "win32"],
+[ # then
+AX_PTHREAD	# set thread flags
+
+# Some platforms use these, so just define them.  They can't hurt if they
+# are not supported.  For example, on Solaris -D_POSIX_PTHREAD_SEMANTICS
+# enables 5-arg getpwuid_r, among other things.
+PTHREAD_CFLAGS="$PTHREAD_CFLAGS -D_REENTRANT -D_THREAD_SAFE -D_POSIX_PTHREAD_SEMANTICS"
+
+# Check for *_r functions
+_CFLAGS="$CFLAGS"
+_LIBS="$LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+LIBS="$LIBS $PTHREAD_LIBS"
+
+AC_CHECK_HEADER(pthread.h, [], [AC_MSG_ERROR([
+pthread.h not found;  use --disable-thread-safety to disable thread safety])])
+
+AC_CHECK_FUNCS([strerror_r getpwuid_r gethostbyname_r])
+
+# Do test here with the proper thread flags
+PGAC_FUNC_STRERROR_R_INT
+
+CFLAGS="$_CFLAGS"
+LIBS="$_LIBS"
+
+], [ # else
+# do not use values from template file
+PTHREAD_CFLAGS=
+PTHREAD_LIBS=
+]) # fi
+
+AC_SUBST(PTHREAD_CFLAGS)
+AC_SUBST(PTHREAD_LIBS)
 
 
 ##
@@ -1472,6 +1560,33 @@ if test "$with_libxslt" = yes ; then
   AC_CHECK_LIB(xslt, xsltCleanupGlobals, [], [AC_MSG_ERROR([library 'xslt' is required for XSLT support])])
 fi
 
+# Note: We can test for libldap_r only after we know PTHREAD_LIBS
+if test "$with_ldap" = yes ; then
+  _LIBS="$LIBS"
+  if test "$PORTNAME" != "win32"; then
+    AC_CHECK_LIB(ldap, ldap_bind, [],
+		 [AC_MSG_ERROR([library 'ldap' is required for LDAP])],
+		 [$EXTRA_LDAP_LIBS])
+    LDAP_LIBS_BE="-lldap $EXTRA_LDAP_LIBS"
+    if test "$enable_thread_safety" = yes; then
+      # on some platforms ldap_r fails to link without PTHREAD_LIBS
+      AC_CHECK_LIB(ldap_r, ldap_simple_bind, [],
+		   [AC_MSG_ERROR([library 'ldap_r' is required for LDAP])],
+		   [$PTHREAD_CFLAGS $PTHREAD_LIBS $EXTRA_LDAP_LIBS])
+      LDAP_LIBS_FE="-lldap_r $EXTRA_LDAP_LIBS"
+    else
+      LDAP_LIBS_FE="-lldap $EXTRA_LDAP_LIBS"
+    fi
+  else
+    AC_CHECK_LIB(wldap32, ldap_bind, [], [AC_MSG_ERROR([library 'wldap32' is required for LDAP])])
+    LDAP_LIBS_FE="-lwldap32"
+    LDAP_LIBS_BE="-lwldap32"
+  fi
+  LIBS="$_LIBS"
+fi
+AC_SUBST(LDAP_LIBS_FE)
+AC_SUBST(LDAP_LIBS_BE)
+
 # for contrib/sepgsql
 if test "$with_selinux" = yes; then
   AC_CHECK_LIB(selinux, security_compute_create_name, [],
@@ -1516,7 +1631,7 @@ fi
 ##
 
 dnl sys/socket.h is required by AC_FUNC_ACCEPT_ARGTYPES
-AC_CHECK_HEADERS([atomic.h crypt.h dld.h execinfo.h fp_class.h getopt.h ieeefp.h ifaddrs.h langinfo.h mbarrier.h poll.h pwd.h sys/ioctl.h sys/ipc.h sys/poll.h sys/pstat.h sys/resource.h sys/select.h sys/sem.h sys/shm.h sys/socket.h sys/sockio.h sys/tas.h sys/time.h sys/un.h termios.h ucred.h utime.h wchar.h wctype.h])
+AC_CHECK_HEADERS([atomic.h crypt.h dld.h execinfo.h fp_class.h getopt.h ieeefp.h ifaddrs.h langinfo.h mbarrier.h poll.h pwd.h sys/epoll.h sys/ioctl.h sys/ipc.h sys/poll.h sys/pstat.h sys/resource.h sys/select.h sys/sem.h sys/shm.h sys/socket.h sys/sockio.h sys/tas.h sys/time.h sys/un.h termios.h ucred.h utime.h wchar.h wctype.h])
 
 # On BSD, test for net/if.h will fail unless sys/socket.h
 # is included first.
@@ -1634,6 +1749,14 @@ if test "$with_pam" = yes ; then
   AC_CHECK_HEADERS(security/pam_appl.h, [],
                    [AC_CHECK_HEADERS(pam/pam_appl.h, [],
                                      [AC_MSG_ERROR([header file <security/pam_appl.h> or <pam/pam_appl.h> is required for PAM.])])])
+fi
+
+if test "$with_bsd_auth" = yes ; then
+  AC_CHECK_HEADER(bsd_auth.h, [], [AC_MSG_ERROR([header file <bsd_auth.h> is required for BSD Authentication support])])
+fi
+
+if test "$with_systemd" = yes ; then
+  AC_CHECK_HEADER(systemd/sd-daemon.h, [], [AC_MSG_ERROR([header file <systemd/sd-daemon.h> is required for systemd support])])
 fi
 
 if test "$with_libxml" = yes ; then
@@ -1765,7 +1888,7 @@ fi
 
 m4_defun([AC_PROG_CC_STDC], []) dnl We don't want that.
 AC_C_BIGENDIAN
-PGAC_C_INLINE
+AC_C_INLINE
 PGAC_PRINTF_ARCHETYPE
 AC_C_FLEXIBLE_ARRAY_MEMBER
 PGAC_C_SIGNED
@@ -1773,6 +1896,7 @@ PGAC_C_FUNCNAME_SUPPORT
 PGAC_C_STATIC_ASSERT
 PGAC_C_TYPES_COMPATIBLE
 PGAC_C_BUILTIN_BSWAP32
+PGAC_C_BUILTIN_BSWAP64
 PGAC_C_BUILTIN_CONSTANT_P
 PGAC_C_BUILTIN_UNREACHABLE
 PGAC_C_VA_ARGS
@@ -1813,9 +1937,9 @@ fi
 case $host_cpu in
   ppc*|powerpc*)
     AC_MSG_CHECKING([whether assembler supports lwarx hint bit])
-    AC_TRY_COMPILE([],
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
 	[int a = 0; int *p = &a; int r;
-	 __asm__ __volatile__ (" lwarx %0,0,%1,1\n" : "=&r"(r) : "r"(p));],
+	 __asm__ __volatile__ (" lwarx %0,0,%1,1\n" : "=&r"(r) : "r"(p));])],
 	[pgac_cv_have_ppc_mutex_hint=yes],
 	[pgac_cv_have_ppc_mutex_hint=no])
     AC_MSG_RESULT([$pgac_cv_have_ppc_mutex_hint])
@@ -1881,7 +2005,6 @@ AC_CHECK_FUNCS(m4_normalize([
 	setproctitle
 	setsid
 	shm_open
-	sigprocmask
 	symlink
 	sync_file_range
 	towlower
@@ -1926,12 +2049,12 @@ AC_CHECK_TYPE([struct sockaddr_in6],
 AC_SUBST(HAVE_IPV6)
 
 AC_CACHE_CHECK([for PS_STRINGS], [pgac_cv_var_PS_STRINGS],
-[AC_TRY_LINK(
+[AC_LINK_IFELSE([AC_LANG_PROGRAM(
 [#include <machine/vmparam.h>
 #include <sys/exec.h>
 ],
 [PS_STRINGS->ps_nargvstr = 1;
-PS_STRINGS->ps_argvstr = "foo";],
+PS_STRINGS->ps_argvstr = "foo";])],
 [pgac_cv_var_PS_STRINGS=yes],
 [pgac_cv_var_PS_STRINGS=no])])
 if test "$pgac_cv_var_PS_STRINGS" = yes ; then
@@ -1988,11 +2111,11 @@ AC_CHECK_DECLS([snprintf, vsnprintf])
 
 dnl Cannot use AC_CHECK_FUNC because isinf may be a macro
 AC_CACHE_CHECK([for isinf], ac_cv_func_isinf,
-[AC_TRY_LINK([
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([
 #include <math.h>
 double glob_double;
 ],
-[return isinf(glob_double) ? 0 : 1;],
+[return isinf(glob_double) ? 0 : 1;])],
 [ac_cv_func_isinf=yes],
 [ac_cv_func_isinf=no])])
 
@@ -2060,6 +2183,7 @@ if test "$PORTNAME" = "win32"; then
   AC_LIBOBJ(system)
   AC_LIBOBJ(win32env)
   AC_LIBOBJ(win32error)
+  AC_LIBOBJ(win32security)
   AC_LIBOBJ(win32setlocale)
   AC_DEFINE([HAVE_SYMLINK], 1,
             [Define to 1 if you have the `symlink' function.])
@@ -2080,27 +2204,21 @@ if test "$PORTNAME" = "cygwin"; then
   AC_LIBOBJ(dirmod)
 fi
 
-dnl Cannot use AC_CHECK_FUNC because sigsetjmp may be a macro
-dnl (especially on GNU libc)
-dnl See also comments in c.h.
-AC_CACHE_CHECK([for sigsetjmp], pgac_cv_func_sigsetjmp,
-[AC_TRY_LINK([#include <setjmp.h>],
-            [sigjmp_buf x; sigsetjmp(x, 1);],
-            [pgac_cv_func_sigsetjmp=yes],
-            [pgac_cv_func_sigsetjmp=no])])
-if test x"$pgac_cv_func_sigsetjmp" = x"yes"; then
-  AC_DEFINE(HAVE_SIGSETJMP, 1, [Define to 1 if you have sigsetjmp().])
-fi
-
-AC_DECL_SYS_SIGLIST
+AC_CHECK_DECLS([sys_siglist], [], [],
+[#include <signal.h>
+/* NetBSD declares sys_siglist in unistd.h.  */
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+])
 
 AC_CHECK_FUNC(syslog,
               [AC_CHECK_HEADER(syslog.h,
                                [AC_DEFINE(HAVE_SYSLOG, 1, [Define to 1 if you have the syslog interface.])])])
 
 AC_CACHE_CHECK([for opterr], pgac_cv_var_int_opterr,
-[AC_TRY_LINK([#include <unistd.h>],
-  [extern int opterr; opterr = 1;],
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <unistd.h>],
+  [extern int opterr; opterr = 1;])],
   [pgac_cv_var_int_opterr=yes],
   [pgac_cv_var_int_opterr=no])])
 if test x"$pgac_cv_var_int_opterr" = x"yes"; then
@@ -2108,8 +2226,8 @@ if test x"$pgac_cv_var_int_opterr" = x"yes"; then
 fi
 
 AC_CACHE_CHECK([for optreset], pgac_cv_var_int_optreset,
-[AC_TRY_LINK([#include <unistd.h>],
-  [extern int optreset; optreset = 1;],
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <unistd.h>],
+  [extern int optreset; optreset = 1;])],
   [pgac_cv_var_int_optreset=yes],
   [pgac_cv_var_int_optreset=no])])
 if test x"$pgac_cv_var_int_optreset" = x"yes"; then
@@ -2147,81 +2265,9 @@ LIBS="$LIBS_including_readline"
 
 if test "$with_readline" = yes; then
   PGAC_VAR_RL_COMPLETION_APPEND_CHARACTER
-  AC_CHECK_FUNCS([rl_completion_matches rl_filename_completion_function])
+  AC_CHECK_FUNCS([rl_completion_matches rl_filename_completion_function rl_reset_screen_size])
   AC_CHECK_FUNCS([append_history history_truncate_file])
 fi
-
-
-#
-# Pthreads
-#
-# For each platform, we need to know about any special compile and link
-# libraries, and whether the normal C function names are thread-safe.
-# See the comment at the top of src/port/thread.c for more information.
-# WIN32 doesn't need the pthread tests;  it always uses threads
-if test "$enable_thread_safety" = yes -a "$PORTNAME" != "win32"; then
-ACX_PTHREAD	# set thread flags
-
-# Some platforms use these, so just define them.  They can't hurt if they
-# are not supported.  For example, on Solaris -D_POSIX_PTHREAD_SEMANTICS
-# enables 5-arg getpwuid_r, among other things.
-PTHREAD_CFLAGS="$PTHREAD_CFLAGS -D_REENTRANT -D_THREAD_SAFE -D_POSIX_PTHREAD_SEMANTICS"
-
-# Check for *_r functions
-_CFLAGS="$CFLAGS"
-_LIBS="$LIBS"
-CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-LIBS="$LIBS $PTHREAD_LIBS"
-
-if test "$PORTNAME" != "win32"; then
-AC_CHECK_HEADER(pthread.h, [], [AC_MSG_ERROR([
-pthread.h not found;  use --disable-thread-safety to disable thread safety])])
-fi
-
-AC_CHECK_FUNCS([strerror_r getpwuid_r gethostbyname_r])
-
-# Do test here with the proper thread flags
-PGAC_FUNC_STRERROR_R_INT
-
-CFLAGS="$_CFLAGS"
-LIBS="$_LIBS"
-
-else
-# do not use values from template file
-PTHREAD_CFLAGS=
-PTHREAD_LIBS=
-fi
-
-AC_SUBST(PTHREAD_CFLAGS)
-AC_SUBST(PTHREAD_LIBS)
-
-
-# We can test for libldap_r only after we know PTHREAD_LIBS
-if test "$with_ldap" = yes ; then
-  _LIBS="$LIBS"
-  if test "$PORTNAME" != "win32"; then
-    AC_CHECK_LIB(ldap, ldap_bind, [],
-		 [AC_MSG_ERROR([library 'ldap' is required for LDAP])],
-		 [$EXTRA_LDAP_LIBS])
-    LDAP_LIBS_BE="-lldap $EXTRA_LDAP_LIBS"
-    if test "$enable_thread_safety" = yes; then
-      # on some platforms ldap_r fails to link without PTHREAD_LIBS
-      AC_CHECK_LIB(ldap_r, ldap_simple_bind, [],
-		   [AC_MSG_ERROR([library 'ldap_r' is required for LDAP])],
-		   [$PTHREAD_CFLAGS $PTHREAD_LIBS $EXTRA_LDAP_LIBS])
-      LDAP_LIBS_FE="-lldap_r $EXTRA_LDAP_LIBS"
-    else
-      LDAP_LIBS_FE="-lldap $EXTRA_LDAP_LIBS"
-    fi
-  else
-    AC_CHECK_LIB(wldap32, ldap_bind, [], [AC_MSG_ERROR([library 'wldap32' is required for LDAP])])
-    LDAP_LIBS_FE="-lwldap32"
-    LDAP_LIBS_BE="-lwldap32"
-  fi
-  LIBS="$_LIBS"
-fi
-AC_SUBST(LDAP_LIBS_FE)
-AC_SUBST(LDAP_LIBS_BE)
 
 
 # This test makes sure that run tests work at all.  Sometimes a shared
@@ -2229,7 +2275,7 @@ AC_SUBST(LDAP_LIBS_BE)
 # This check should come after all modifications of compiler or linker
 # variables, and before any other run tests.
 AC_MSG_CHECKING([test program])
-AC_TRY_RUN([int main() { return 0; }],
+AC_RUN_IFELSE([AC_LANG_SOURCE([int main() { return 0; }])],
 [AC_MSG_RESULT(ok)],
 [AC_MSG_RESULT(failed)
 AC_MSG_ERROR([[
@@ -2374,11 +2420,7 @@ AC_DEFINE_UNQUOTED(MAXIMUM_ALIGNOF, $MAX_ALIGNOF, [Define as the maximum alignme
 AC_CHECK_TYPES([int8, uint8, int64, uint64], [], [],
 [#include <stdio.h>])
 
-# We also check for sig_atomic_t, which *should* be defined per ANSI
-# C, but is missing on some old platforms.
-AC_CHECK_TYPES(sig_atomic_t, [], [], [#include <signal.h>])
-
-# Some compilers offer a 128-bit integer scalar type.
+# Check for extensions offering the integer scalar type __int128.
 PGAC_TYPE_128BIT_INT
 
 # Check for various atomic operations now that we have checked how to declare
@@ -2393,10 +2435,10 @@ PGAC_HAVE_GCC__ATOMIC_INT64_CAS
 
 # Check for x86 cpuid instruction
 AC_CACHE_CHECK([for __get_cpuid], [pgac_cv__get_cpuid],
-[AC_TRY_LINK([#include <cpuid.h>],
-  [unsigned int exx[4] = {0, 0, 0, 0};
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <cpuid.h>],
+  [[unsigned int exx[4] = {0, 0, 0, 0};
   __get_cpuid(1, &exx[0], &exx[1], &exx[2], &exx[3]);
-  ],
+  ]])],
   [pgac_cv__get_cpuid="yes"],
   [pgac_cv__get_cpuid="no"])])
 if test x"$pgac_cv__get_cpuid" = x"yes"; then
@@ -2404,10 +2446,10 @@ if test x"$pgac_cv__get_cpuid" = x"yes"; then
 fi
 
 AC_CACHE_CHECK([for __cpuid], [pgac_cv__cpuid],
-[AC_TRY_LINK([#include <intrin.h>],
-  [unsigned int exx[4] = {0, 0, 0, 0};
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <intrin.h>],
+  [[unsigned int exx[4] = {0, 0, 0, 0};
   __get_cpuid(exx[0], 1);
-  ],
+  ]])],
   [pgac_cv__cpuid="yes"],
   [pgac_cv__cpuid="no"])])
 if test x"$pgac_cv__cpuid" = x"yes"; then
@@ -2427,11 +2469,11 @@ AC_SUBST(CFLAGS_SSE42)
 
 # Are we targeting a processor that supports SSE 4.2? gcc, clang and icc all
 # define __SSE4_2__ in that case.
-AC_TRY_COMPILE([], [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
 #ifndef __SSE4_2__
 #error __SSE4_2__ not defined
 #endif
-], [SSE4_2_TARGETED=1])
+])], [SSE4_2_TARGETED=1])
 
 # Select CRC-32C implementation.
 #
@@ -2479,17 +2521,6 @@ fi
 AC_SUBST(PG_CRC32C_OBJS)
 
 
-# Check that POSIX signals are available if thread safety is enabled.
-if test "$PORTNAME" != "win32"
-then
-PGAC_FUNC_POSIX_SIGNALS
-if test "$pgac_cv_func_posix_signals" != yes -a "$enable_thread_safety" = yes; then
-  AC_MSG_ERROR([
-Thread-safety requires POSIX signals, which are not supported by this
-operating system;  use --disable-thread-safety to disable thread safety.])
-fi
-fi
-
 if test $ac_cv_func_fseeko = yes; then
 AC_SYS_LARGEFILE
 enable_largefile=yes
@@ -2507,7 +2538,6 @@ if test "$ac_cv_sizeof_off_t" -lt 8 -a "$segsize" != "1"; then
    AC_MSG_ERROR([Large file support is not enabled. Segment size cannot be larger than 1GB.])
 fi
 fi
-
 
 # Select semaphore implementation type.
 if test "$PORTNAME" != "win32"; then
@@ -2583,13 +2613,6 @@ else
 *** Not using a strong random number source may be insecure.])
 fi
 
-# Select latch implementation type.
-if test "$PORTNAME" != "win32"; then
-  LATCH_IMPLEMENTATION="src/backend/port/unix_latch.c"
-else
-  LATCH_IMPLEMENTATION="src/backend/port/win32_latch.c"
-fi
-
 # If not set in template file, set bytes to use libc memset()
 if test x"$MEMSET_LOOP_LIMIT" = x"" ; then
   MEMSET_LOOP_LIMIT=1024
@@ -2631,10 +2654,10 @@ if test "$with_perl" = yes; then
   pgac_save_LIBS=$LIBS
   LIBS="$perl_embed_ldflags"
   AC_MSG_CHECKING([for libperl])
-  AC_TRY_LINK([
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([
 #include <EXTERN.h>
 #include <perl.h>
-],  [perl_alloc();],
+],  [perl_alloc();])],
     [AC_MSG_RESULT(yes)],
     [AC_MSG_RESULT(no)
      AC_MSG_ERROR([libperl library is required for Perl])])
@@ -2693,7 +2716,8 @@ _CFLAGS="$CFLAGS"
 _LIBS="$LIBS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS -DIN_CONFIGURE"
 LIBS="$LIBS $PTHREAD_LIBS"
-AC_TRY_RUN([#include "$srcdir/src/test/thread/thread_test.c"],
+AC_RUN_IFELSE(
+  [AC_LANG_SOURCE([[#include "$srcdir/src/test/thread/thread_test.c"]])],
   [AC_MSG_RESULT(yes)],
   [AC_MSG_RESULT(no)
   AC_MSG_ERROR([thread test program failed
@@ -2860,7 +2884,6 @@ AC_CONFIG_LINKS([
   src/backend/port/dynloader.c:src/backend/port/dynloader/${template}.c
   src/backend/port/pg_sema.c:${SEMA_IMPLEMENTATION}
   src/backend/port/pg_shmem.c:${SHMEM_IMPLEMENTATION}
-  src/backend/port/pg_latch.c:${LATCH_IMPLEMENTATION}
   src/include/dynloader.h:src/backend/port/dynloader/${template}.h
   src/include/pg_config_os.h:src/include/port/${template}.h
   src/Makefile.port:src/makefiles/Makefile.${template}

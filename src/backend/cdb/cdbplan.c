@@ -671,6 +671,17 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
+		case T_Gather:
+			{
+				Gather	   *gather = (Gather *) node;
+				Gather	   *newgather;
+
+				FLATCOPY(newgather, gather, Gather);
+				PLANMUTATE(newgather, gather);
+				return (Node *) newgather;
+			}
+			break;
+
 		case T_Hash:
 			{
 				Hash	   *hash = (Hash *) node;
@@ -868,7 +879,12 @@ plan_tree_mutator(Node *node,
 				SCANMUTATE(newfdwscan, fdwscan);
 
 				MUTATE(newfdwscan->fdw_exprs, fdwscan->fdw_exprs, List *);
-				MUTATE(newfdwscan->fdw_private, fdwscan->fdw_private, List *);
+
+				/*
+				 * Don't mutate fdw_private, it's private to the FDW. Must make
+				 * a copy of it, though.
+				 */
+				newfdwscan->fdw_private = copyObject(fdwscan->fdw_private);
 				newfdwscan->fsSystemCol = fdwscan->fsSystemCol;
 
 				return (Node *) newfdwscan;
@@ -987,82 +1003,6 @@ mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void *cont
 
 	/* Node fields need mutation. */
 	MUTATE(newjoin->joinqual, oldjoin->joinqual, List *);
-}
-
-
-/*
- * package_plan_as_rte
- *	   Package a plan as a pre-planned subquery RTE
- *
- * Note that the input query is often root->parse (since that is the
- * query from which this invocation of the planner usually takes it's
- * context), but may be a derived query, e.g., in the case of sequential
- * window plans or multiple-DQA pruning (in cdbgroup.c).
- * 
- * Note also that the supplied plan's target list must be congruent with
- * the supplied query: its Var nodes must refer to RTEs in the range
- * table of the Query node, it should conserve sort/group reference
- * values, and its SubqueryScan nodes should match up with the query's
- * Subquery RTEs.
- *
- * The result is a pre-planned subquery RTE which incorporates the given
- * plan, alias, and pathkeys (if any) directly.  The input query is not
- * modified.
- *
- * The caller must install the RTE in the range table of an appropriate query
- * and the corresponding plan should reference it's results through a
- * SubqueryScan node.
- */
-RangeTblEntry *
-package_plan_as_rte(PlannerInfo *root, Query *query, Plan *plan, Alias *eref, List *pathkeys,
-					PlannerInfo **subroot_p)
-{
-	Query *subquery;
-	RangeTblEntry *rte;
-	PlannerInfo *subroot;
-
-	Assert( query != NULL );
-	Assert( plan != NULL );
-	Assert( eref != NULL );
-	Assert( plan->flow != NULL ); /* essential in a pre-planned RTE */
-
-	subroot = makeNode(PlannerInfo);
-	/* shallow copy from root at first. */
-	memcpy(subroot, root, sizeof(PlannerInfo));
-	/* deep copy if needed. */
-	subroot->parse = copyObject(query);
-
-	/* Make a plausible subquery for the RTE we'll produce. */
-	subquery = makeNode(Query);
-	memcpy(subquery, query, sizeof(Query));
-	
-	subquery->querySource = QSRC_PLANNER;
-	subquery->canSetTag = false;
-	subquery->resultRelation = 0;
-	
-	subquery->rtable = copyObject(subquery->rtable);
-
-	subquery->targetList = copyObject(plan->targetlist);
-	subquery->windowClause = NIL;
-	
-	subquery->distinctClause = NIL;
-	subquery->sortClause = NIL;
-	subquery->limitOffset = NULL;
-	subquery->limitCount = NULL;
-	
-	Assert( subquery->setOperations == NULL );
-	
-	/* Package up the RTE. */
-	rte = makeNode(RangeTblEntry);
-	rte->rtekind = RTE_SUBQUERY;
-	rte->subquery = subquery;
-	rte->eref = eref;
-	rte->subquery_plan = plan;
-	rte->subquery_rtable = subquery->rtable;
-	rte->subquery_pathkeys = pathkeys;
-
-	*subroot_p = subroot;
-	return rte;
 }
 
 

@@ -3,7 +3,7 @@
  * genam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -204,7 +204,7 @@ BuildIndexValueDescription(Relation indexRelation,
 	Assert(indexrelid == idxrec->indexrelid);
 
 	/* RLS check- if RLS is enabled then we don't return anything. */
-	if (check_enable_rls(indrelid, GetUserId(), true) == RLS_ENABLED)
+	if (check_enable_rls(indrelid, InvalidOid, true) == RLS_ENABLED)
 	{
 		ReleaseSysCache(ht_idx);
 		return NULL;
@@ -471,7 +471,7 @@ systable_recheck_tuple(SysScanDesc sysscan, HeapTuple tup)
 		Assert(BufferIsValid(scan->xs_cbuf));
 		/* must hold a buffer lock to call HeapTupleSatisfiesVisibility */
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_SHARE);
-		result = HeapTupleSatisfiesVisibility(NULL, tup, freshsnap, scan->xs_cbuf);
+		result = HeapTupleSatisfiesVisibility(sysscan->heap_rel, tup, freshsnap, scan->xs_cbuf);
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_UNLOCK);
 	}
 	else

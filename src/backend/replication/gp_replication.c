@@ -18,6 +18,7 @@
 #include "replication/walreceiver.h"
 #include "replication/walsender.h"
 #include "replication/walsender_private.h"
+#include "storage/lwlock.h"
 #include "utils/builtins.h"
 
 /* Set at database system is ready to accept connections */

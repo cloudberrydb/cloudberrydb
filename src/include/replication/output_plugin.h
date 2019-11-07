@@ -2,7 +2,7 @@
  * output_plugin.h
  *	   PostgreSQL Logical Decode Plugin Interface
  *
- * Copyright (c) 2012-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2016, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -68,6 +68,18 @@ typedef void (*LogicalDecodeCommitCB) (struct LogicalDecodingContext *ctx,
 												   XLogRecPtr commit_lsn);
 
 /*
+ * Called for the generic logical decoding messages.
+ */
+typedef void (*LogicalDecodeMessageCB) (
+											 struct LogicalDecodingContext *,
+													ReorderBufferTXN *txn,
+													XLogRecPtr message_lsn,
+													bool transactional,
+													const char *prefix,
+													Size message_size,
+													const char *message);
+
+/*
  * Filter changes by origin.
  */
 typedef bool (*LogicalDecodeFilterByOriginCB) (
@@ -88,6 +100,7 @@ typedef struct OutputPluginCallbacks
 	LogicalDecodeBeginCB begin_cb;
 	LogicalDecodeChangeCB change_cb;
 	LogicalDecodeCommitCB commit_cb;
+	LogicalDecodeMessageCB message_cb;
 	LogicalDecodeFilterByOriginCB filter_by_origin_cb;
 	LogicalDecodeShutdownCB shutdown_cb;
 } OutputPluginCallbacks;

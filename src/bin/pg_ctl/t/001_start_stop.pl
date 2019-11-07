@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+
 use Config;
 use TestLib;
 use Test::More tests => 17;
@@ -14,14 +15,14 @@ program_options_handling_ok('pg_ctl');
 command_exit_is([ 'pg_ctl', 'start', '-D', "$tempdir/nonexistent" ],
 	1, 'pg_ctl start with nonexistent directory');
 
-command_ok([ 'pg_ctl', 'initdb', '-D', "$tempdir/data" ], 'pg_ctl initdb');
-command_ok(
-	[ $ENV{PG_REGRESS}, '--config-auth',
-		"$tempdir/data" ],
+#GPDB_96_MERGE_FIXME: dose our pg_ctl support '-o', '-N', if not delete these two
+command_ok([ 'pg_ctl', 'initdb', '-D', "$tempdir/data", '-o', '-N' ],
+	'pg_ctl initdb');
+command_ok([ $ENV{PG_REGRESS}, '--config-auth', "$tempdir/data" ],
 	'configure authentication');
 open CONF, ">>$tempdir/data/postgresql.conf";
 print CONF "fsync = off\n";
-if (! $windows_os)
+if (!$windows_os)
 {
 	print CONF "listen_addresses = ''\n";
 	print CONF "unix_socket_directories = '$tempdir_short'\n";
@@ -33,6 +34,7 @@ else
 close CONF;
 command_ok([ 'pg_ctl', 'start', '-D', "$tempdir/data", '-w', '-o', '-c gp_role=utility --gp_dbid=-1 --gp_contentid=-1'],
 	'pg_ctl start -w');
+
 # sleep here is because Windows builds can't check postmaster.pid exactly,
 # so they may mistake a pre-existing postmaster.pid for one created by the
 # postmaster they start.  Waiting more than the 2 seconds slop time allowed

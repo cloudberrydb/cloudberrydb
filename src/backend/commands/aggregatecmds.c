@@ -4,7 +4,7 @@
  *
  *	  Routines for aggregate-manipulation commands
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -80,6 +80,7 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	int32		mtransSpace = 0;
 	char	   *initval = NULL;
 	char	   *minitval = NULL;
+	char	   *parallel = NULL;
 	int			numArgs;
 	int			numDirectArgs = 0;
 	oidvector  *parameterTypes;
@@ -92,6 +93,7 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	Oid			mtransTypeId = InvalidOid;
 	char		transTypeType;
 	char		mtransTypeType = 0;
+	char		proparallel = PROPARALLEL_UNSAFE;
 	ListCell   *pl;
 	List	   *orig_args = args;
 
@@ -182,6 +184,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 			initval = defGetString(defel);
 		else if (pg_strcasecmp(defel->defname, "minitcond") == 0)
 			minitval = defGetString(defel);
+		else if (pg_strcasecmp(defel->defname, "parallel") == 0)
+			parallel = defGetString(defel);
 		else
 			ereport(WARNING,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -413,38 +417,53 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 		(void) OidInputFunctionCall(typinput, minitval, typioparam, -1);
 	}
 
+	if (parallel)
+	{
+		if (pg_strcasecmp(parallel, "safe") == 0)
+			proparallel = PROPARALLEL_SAFE;
+		else if (pg_strcasecmp(parallel, "restricted") == 0)
+			proparallel = PROPARALLEL_RESTRICTED;
+		else if (pg_strcasecmp(parallel, "unsafe") == 0)
+			proparallel = PROPARALLEL_UNSAFE;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("parameter \"parallel\" must be SAFE, RESTRICTED, or UNSAFE")));
+	}
+
 	/*
 	 * Most of the argument-checking is done inside of AggregateCreate
 	 */
 	ObjectAddress objAddr;
-	objAddr = AggregateCreate(aggName,				/* aggregate name */
-							  aggNamespace,		/* namespace */
-							  aggKind,
-							  numArgs,
-							  numDirectArgs,
-							  parameterTypes,
-							  PointerGetDatum(allParameterTypes),
-							  PointerGetDatum(parameterModes),
-							  PointerGetDatum(parameterNames),
-							  parameterDefaults,
-							  variadicArgType,
-							  transfuncName,		/* step function name */
-							  finalfuncName,		/* final function name */
-							  combinefuncName,		/* combine function name */
-							  serialfuncName,		/* serial function name */
-							  deserialfuncName,	/* deserial function name */
-							  mtransfuncName,		/* fwd trans function name */
-							  minvtransfuncName,	/* inv trans function name */
-							  mfinalfuncName,		/* final function name */
-							  finalfuncExtraArgs,
-							  mfinalfuncExtraArgs,
-							  sortoperatorName,	/* sort operator name */
-							  transTypeId, /* transition data type */
-							  transSpace,	/* transition space */
-							  mtransTypeId,		/* transition data type */
-							  mtransSpace, /* transition space */
-							  initval,		/* initial condition */
-							  minitval);	/* initial condition */
+	objAddr = AggregateCreate(aggName,		/* aggregate name */
+						   aggNamespace,		/* namespace */
+						   aggKind,
+						   numArgs,
+						   numDirectArgs,
+						   parameterTypes,
+						   PointerGetDatum(allParameterTypes),
+						   PointerGetDatum(parameterModes),
+						   PointerGetDatum(parameterNames),
+						   parameterDefaults,
+						   variadicArgType,
+						   transfuncName,		/* step function name */
+						   finalfuncName,		/* final function name */
+						   combinefuncName,		/* combine function name */
+						   serialfuncName,		/* serial function name */
+						   deserialfuncName,	/* deserial function name */
+						   mtransfuncName,		/* fwd trans function name */
+						   minvtransfuncName,	/* inv trans function name */
+						   mfinalfuncName,		/* final function name */
+						   finalfuncExtraArgs,
+						   mfinalfuncExtraArgs,
+						   sortoperatorName,	/* sort operator name */
+						   transTypeId, /* transition data type */
+						   transSpace,	/* transition space */
+						   mtransTypeId,		/* transition data type */
+						   mtransSpace, /* transition space */
+						   initval,		/* initial condition */
+						   minitval,	/* initial condition */
+						   proparallel);		/* parallel safe? */
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{

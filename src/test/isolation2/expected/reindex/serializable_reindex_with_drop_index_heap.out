@@ -43,7 +43,7 @@ DROP
 COMMIT
 -- Remember index relfilenodes from master and segments before
 -- reindex.
-2: create temp table old_relfilenodes as (select gp_segment_id as dbid, relfilenode, oid, relname from gp_dist_random('pg_class') where relname like 'idx%_reindex_dropindex_serialize_tab_heap' union all select gp_segment_id as dbid, relfilenode, oid, relname from pg_class where relname like 'idx%_reindex_dropindex_serialize_tab_heap');
+2: create table old_heap_relfilenodes as (select gp_segment_id as dbid, relfilenode, oid, relname from gp_dist_random('pg_class') where relname like 'idx%_reindex_dropindex_serialize_tab_heap' union all select gp_segment_id as dbid, relfilenode, oid, relname from pg_class where relname like 'idx%_reindex_dropindex_serialize_tab_heap');
 CREATE 28
 2: reindex table reindex_dropindex_serialize_tab_heap;
 REINDEX
@@ -51,7 +51,7 @@ REINDEX
 COMMIT
 -- Validate that reindex changed all index relfilenodes on master as well as
 -- segments.  The following query should return 0 tuples.
-2: select oldrels.* from old_relfilenodes oldrels join (select gp_segment_id as dbid, relfilenode, relname from gp_dist_random('pg_class') where relname like 'idx%_reindex_dropindex_serialize_tab_heap' union all select gp_segment_id as dbid, relfilenode, relname from pg_class where relname like 'idx%_reindex_dropindex_serialize_tab_heap') newrels on oldrels.relfilenode = newrels.relfilenode and oldrels.dbid = newrels.dbid and oldrels.relname = newrels.relname;
+2: select oldrels.* from old_heap_relfilenodes oldrels join (select gp_segment_id as dbid, relfilenode, relname from gp_dist_random('pg_class') where relname like 'idx%_reindex_dropindex_serialize_tab_heap' union all select gp_segment_id as dbid, relfilenode, relname from pg_class where relname like 'idx%_reindex_dropindex_serialize_tab_heap') newrels on oldrels.relfilenode = newrels.relfilenode and oldrels.dbid = newrels.dbid and oldrels.relname = newrels.relname;
  dbid | relfilenode | oid | relname 
 ------+-------------+-----+---------
 (0 rows)

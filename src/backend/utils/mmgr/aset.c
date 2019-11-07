@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -264,8 +264,8 @@ static void AllocSetReset(MemoryContext context);
 static void AllocSetDelete(MemoryContext context);
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
-static void AllocSet_GetStats(MemoryContext context, uint64 *nBlocks, uint64 *nChunks,
-		uint64 *currentAvailable, uint64 *allAllocated, uint64 *allFreed, uint64 *maxHeld);
+static void AllocSetStats(MemoryContext context, int level, bool print,
+			  MemoryContextCounters *totals);
 static void AllocSetReleaseAccountingForAllAllocatedChunks(MemoryContext context);
 
 static void dump_allocset_block(FILE *file, AllocBlock block);
@@ -290,7 +290,7 @@ static MemoryContextMethods AllocSetMethods = {
 	AllocSetDelete,
 	AllocSetGetChunkSpace,
 	AllocSetIsEmpty,
-	AllocSet_GetStats,
+	AllocSetStats,
 	AllocSetReleaseAccountingForAllAllocatedChunks
 #ifdef MEMORY_CONTEXT_CHECKING
 	,AllocSetCheck
@@ -1847,65 +1847,61 @@ AllocSetIsEmpty(MemoryContext context)
 }
 
 /*
- * AllocSet_GetStats
- *		Returns stats about memory consumption of an AllocSet.
+ * AllocSetStats
+ *		Compute stats about memory consumption of an allocset.
  *
- *	Input parameters:
- *		context: the context of interest
- *
- *	Output parameters:
- *		nBlocks: number of blocks in the context
- *		nChunks: number of chunks in the context
- *
- *		currentAvailable: free space across all blocks
- *
- *		allAllocated: total bytes allocated during lifetime (including
- *		blocks that was dropped later on, e.g., freeing a large chunk
- *		in an exclusive block would drop the block)
- *
- *		allFreed: total bytes that was freed during lifetime
- *		maxHeld: maximum bytes held during lifetime
+ * level: recursion level (0 at top level); used for print indentation.
+ * print: true to print stats to stderr.
+ * totals: if not NULL, add stats about this allocset into *totals.
  */
 static void
-AllocSet_GetStats(MemoryContext context, uint64 *nBlocks, uint64 *nChunks,
-		uint64 *currentAvailable, uint64 *allAllocated, uint64 *allFreed, uint64 *maxHeld)
+AllocSetStats(MemoryContext context, int level, bool print,
+			  MemoryContextCounters *totals)
 {
 	AllocSet	set = (AllocSet) context;
+	Size		nblocks = 0;
+	Size		freechunks = 0;
+	Size		totalspace = 0;
+	Size		freespace = 0;
 	AllocBlock	block;
-	AllocChunk	chunk;
 	int			fidx;
-	uint64 currentAllocated = 0;
 
-    *nBlocks = 0;
-    *nChunks = 0;
-    *currentAvailable = 0;
-    *allAllocated = set->header.allBytesAlloc;
-    *allFreed = set->header.allBytesFreed;
-    *maxHeld = set->header.maxBytesHeld;
-
-    /* Total space obtained from host's memory manager */
-    for (block = set->blocks; block != NULL; block = block->next)
-    {
-    	*nBlocks = *nBlocks + 1;
-    	currentAllocated += UserPtr_GetUserPtrSize(block);
+	for (block = set->blocks; block != NULL; block = block->next)
+	{
+		nblocks++;
+		totalspace += UserPtr_GetUserPtrSize(block);
+		freespace += (char *) UserPtr_GetEndPtr(block) - block->freeptr;
 	}
-
-    /* Space at end of first block is available for use. */
-    if (set->blocks)
-    {
-    	*nChunks = *nChunks + 1;
-    	*currentAvailable += (char*)UserPtr_GetEndPtr(set->blocks) - set->blocks->freeptr;
-    }
-
-    /* Freelists.  Count usable space only, not chunk headers. */
 	for (fidx = 0; fidx < ALLOCSET_NUM_FREELISTS; fidx++)
 	{
+		AllocChunk	chunk;
+
 		for (chunk = set->freelist[fidx]; chunk != NULL;
 			 chunk = (AllocChunk) chunk->sharedHeader)
 		{
-			*nChunks = *nChunks + 1;
-			*currentAvailable += chunk->size;
+			freechunks++;
+			freespace += chunk->size + ALLOC_CHUNKHDRSZ;
 		}
+	}
+
+	if (print)
+	{
+		int			i;
+
+		for (i = 0; i < level; i++)
+			fprintf(stderr, "  ");
+		fprintf(stderr,
+			"%s: %zu total in %zd blocks; %zu free (%zd chunks); %zu used\n",
+				set->header.name, totalspace, nblocks, freespace, freechunks,
+				totalspace - freespace);
+	}
+
+	if (totals)
+	{
+		totals->nblocks += nblocks;
+		totals->freechunks += freechunks;
+		totals->totalspace += totalspace;
+		totals->freespace += freespace;
 	}
 }
 

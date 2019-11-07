@@ -23,6 +23,7 @@ varsup.t: \
 	$(MOCK_DIR)/backend/access/transam/distributedlog_mock.o \
 	$(MOCK_DIR)/backend/access/transam/subtrans_mock.o \
 	$(MOCK_DIR)/backend/access/transam/xlog_mock.o \
+	$(MOCK_DIR)/backend/access/transam/commit_ts_mock.o \
 	$(MOCK_DIR)/backend/commands/dbcommands_mock.o \
 	$(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o \
 	$(MOCK_DIR)/backend/utils/error/elog_mock.o

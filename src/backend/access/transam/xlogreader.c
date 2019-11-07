@@ -3,16 +3,18 @@
  * xlogreader.c
  *		Generic XLog reading facility
  *
- * Portions Copyright (c) 2013-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2013-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/backend/access/transam/xlogreader.c
  *
  * NOTES
  *		See xlogreader.h for more notes on this facility.
+ *
+ *		This file is compiled as both front-end and backend code, so it
+ *		may not use ereport, server-defined static variables, etc.
  *-------------------------------------------------------------------------
  */
-
 #include "postgres.h"
 
 #include "access/transam.h"
@@ -126,13 +128,10 @@ XLogReaderFree(XLogReaderState *state)
 {
 	int			block_id;
 
-	for (block_id = 0; block_id <= state->max_block_id; block_id++)
+	for (block_id = 0; block_id <= XLR_MAX_BLOCK_ID; block_id++)
 	{
-		if (state->blocks[block_id].in_use)
-		{
-			if (state->blocks[block_id].data)
-				pfree(state->blocks[block_id].data);
-		}
+		if (state->blocks[block_id].data)
+			pfree(state->blocks[block_id].data);
 	}
 	if (state->main_data)
 		pfree(state->main_data);
@@ -216,13 +215,20 @@ XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
 {
 	XLogRecord *record;
 	XLogRecPtr	targetPagePtr;
-	bool		randAccess = false;
+	bool		randAccess;
 	uint32		len,
 				total_len;
 	uint32		targetRecOff;
 	uint32		pageHeaderSize;
 	bool		gotheader;
 	int			readOff;
+
+	/*
+	 * randAccess indicates whether to verify the previous-record pointer of
+	 * the record we're reading.  We only do this if we're reading
+	 * sequentially, which is what we initially assume.
+	 */
+	randAccess = false;
 
 	/* reset error state */
 	*errormsg = NULL;
@@ -232,6 +238,7 @@ XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
 
 	if (RecPtr == InvalidXLogRecPtr)
 	{
+		/* No explicit start point; read the record after the one we just read */
 		RecPtr = state->EndRecPtr;
 
 		if (state->ReadRecPtr == InvalidXLogRecPtr)
@@ -247,11 +254,13 @@ XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
 	else
 	{
 		/*
+		 * Caller supplied a position to start at.
+		 *
 		 * In this case, the passed-in record pointer should already be
 		 * pointing to a valid record starting position.
 		 */
 		Assert(XRecOffIsValid(RecPtr));
-		randAccess = true;		/* allow readPageTLI to go backwards too */
+		randAccess = true;
 	}
 
 	state->currRecPtr = RecPtr;
@@ -333,8 +342,10 @@ XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
 		/* XXX: more validation should be done here */
 		if (total_len < SizeOfXLogRecord)
 		{
-			report_invalid_record(state, "invalid record length at %X/%X",
-								  (uint32) (RecPtr >> 32), (uint32) RecPtr);
+			report_invalid_record(state,
+						 "invalid record length at %X/%X: wanted %u, got %u",
+								  (uint32) (RecPtr >> 32), (uint32) RecPtr,
+								  (uint32) SizeOfXLogRecord, total_len);
 			goto err;
 		}
 		gotheader = false;
@@ -487,12 +498,10 @@ XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
 err:
 
 	/*
-	 * Invalidate the xlog page we've cached. We might read from a different
-	 * source after failure.
+	 * Invalidate the read state. We might read from a different source after
+	 * failure.
 	 */
-	state->readSegNo = 0;
-	state->readOff = 0;
-	state->readLen = 0;
+	XLogReaderInvalReadState(state);
 
 	if (state->errormsg_buf[0] != '\0')
 		*errormsg = state->errormsg_buf;
@@ -594,7 +603,7 @@ ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
 	if (!XLogReaderValidatePageHeader(state, pageptr, (char *) hdr))
 		goto err;
 
-	/* update cache information */
+	/* update read state information */
 	state->readSegNo = targetSegNo;
 	state->readOff = targetPageOff;
 	state->readLen = readLen;
@@ -602,10 +611,19 @@ ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
 	return readLen;
 
 err:
+	XLogReaderInvalReadState(state);
+	return -1;
+}
+
+/*
+ * Invalidate the xlogreader's read state to force a re-read.
+ */
+void
+XLogReaderInvalReadState(XLogReaderState *state)
+{
 	state->readSegNo = 0;
 	state->readOff = 0;
 	state->readLen = 0;
-	return -1;
 }
 
 /*
@@ -622,8 +640,9 @@ ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
 	if (record->xl_tot_len < SizeOfXLogRecord)
 	{
 		report_invalid_record(state,
-							  "invalid record length at %X/%X",
-							  (uint32) (RecPtr >> 32), (uint32) RecPtr);
+						 "invalid record length at %X/%X: wanted %u, got %u",
+							  (uint32) (RecPtr >> 32), (uint32) RecPtr,
+							  (uint32) SizeOfXLogRecord, record->xl_tot_len);
 		return false;
 	}
 	if (record->xl_rmid > RM_MAX_ID)
@@ -774,20 +793,20 @@ XLogReaderValidatePageHeader(XLogReaderState *state, XLogRecPtr recptr,
 			snprintf(sysident_str, sizeof(sysident_str), UINT64_FORMAT,
 					 state->system_identifier);
 			report_invalid_record(state,
-								  "WAL file is from different database system: WAL file database system identifier is %s, pg_control database system identifier is %s.",
+								  "WAL file is from different database system: WAL file database system identifier is %s, pg_control database system identifier is %s",
 								  fhdrident_str, sysident_str);
 			return false;
 		}
 		else if (longhdr->xlp_seg_size != XLogSegSize)
 		{
 			report_invalid_record(state,
-								  "WAL file is from different database system: Incorrect XLOG_SEG_SIZE in page header.");
+								  "WAL file is from different database system: incorrect XLOG_SEG_SIZE in page header");
 			return false;
 		}
 		else if (longhdr->xlp_xlog_blcksz != XLOG_BLCKSZ)
 		{
 			report_invalid_record(state,
-								  "WAL file is from different database system: Incorrect XLOG_BLCKSZ in page header.");
+								  "WAL file is from different database system: incorrect XLOG_BLCKSZ in page header");
 			return false;
 		}
 	}
@@ -981,11 +1000,9 @@ XLogFindNextRecord(XLogReaderState *state, XLogRecPtr RecPtr)
 err:
 out:
 	/* Reset state to what we had before finding the record */
-	state->readSegNo = 0;
-	state->readOff = 0;
-	state->readLen = 0;
 	state->ReadRecPtr = saved_state.ReadRecPtr;
 	state->EndRecPtr = saved_state.EndRecPtr;
+	XLogReaderInvalReadState(state);
 
 	return found;
 }

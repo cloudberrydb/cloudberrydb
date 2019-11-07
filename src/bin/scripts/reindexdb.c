@@ -2,7 +2,7 @@
  *
  * reindexdb
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  *
  * src/bin/scripts/reindexdb.c
  *
@@ -11,7 +11,8 @@
 
 #include "postgres_fe.h"
 #include "common.h"
-#include "dumputils.h"
+#include "fe_utils/simple_list.h"
+#include "fe_utils/string_utils.h"
 
 
 static void reindex_one_database(const char *name, const char *dbname,
@@ -263,7 +264,7 @@ main(int argc, char *argv[])
 		 * specified
 		 */
 		if (indexes.head == NULL && tables.head == NULL && schemas.head == NULL)
-			reindex_one_database(dbname, dbname, "DATABASE", host, port,
+			reindex_one_database(NULL, dbname, "DATABASE", host, port,
 						 username, prompt_password, progname, echo, verbose);
 	}
 
@@ -281,7 +282,7 @@ reindex_one_database(const char *name, const char *dbname, const char *type,
 	PGconn	   *conn;
 
 	conn = connectDatabase(dbname, host, port, username, prompt_password,
-						   progname, echo, false);
+						   progname, echo, false, false);
 
 	initPQExpBuffer(&sql);
 
@@ -372,7 +373,7 @@ reindex_system_catalogs(const char *dbname, const char *host, const char *port,
 	PQExpBufferData sql;
 
 	conn = connectDatabase(dbname, host, port, username, prompt_password,
-						   progname, echo, false);
+						   progname, echo, false, false);
 
 	initPQExpBuffer(&sql);
 
@@ -407,7 +408,7 @@ help(const char *progname)
 	printf(_("  -i, --index=INDEX         recreate specific index(es) only\n"));
 	printf(_("  -q, --quiet               don't write any messages\n"));
 	printf(_("  -s, --system              reindex system catalogs\n"));
-	printf(_("  -S, --schema=SCHEMA       recreate specific schema(s) only\n"));
+	printf(_("  -S, --schema=SCHEMA       reindex specific schema(s) only\n"));
 	printf(_("  -t, --table=TABLE         reindex specific table(s) only\n"));
 	printf(_("  -v, --verbose             write a lot of output\n"));
 	printf(_("  -V, --version             output version information, then exit\n"));

@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2007-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Copyright (c) 2000-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2016, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * src/include/utils/guc.h
@@ -716,7 +716,8 @@ extern int set_config_option(const char *name, const char *value,
 				  GucAction action, bool changeVal, int elevel,
 				  bool is_reload);
 extern void AlterSystemSetConfigFile(AlterSystemStmt *setstmt);
-extern char *GetConfigOptionByName(const char *name, const char **varname);
+extern char *GetConfigOptionByName(const char *name, const char **varname,
+					  bool missing_ok);
 extern void GetConfigOptionByNum(int varnum, const char **values, bool *noshow);
 extern int	GetNumConfigOptions(void);
 

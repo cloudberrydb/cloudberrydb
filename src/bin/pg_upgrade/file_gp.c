@@ -13,7 +13,6 @@
 
 #include "storage/bufpage.h"
 #include "storage/checksum.h"
-#include "storage/checksum_impl.h"
 
 /*
  * rewriteHeapPageWithChecksum

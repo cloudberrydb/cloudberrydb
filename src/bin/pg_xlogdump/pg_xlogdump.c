@@ -2,7 +2,7 @@
  *
  * pg_xlogdump.c - decode and display WAL
  *
- * Copyright (c) 2013-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_xlogdump/pg_xlogdump.c
@@ -973,7 +973,7 @@ main(int argc, char **argv)
 	/* we don't know what to print */
 	if (XLogRecPtrIsInvalid(private.startptr))
 	{
-		fprintf(stderr, "%s: no start log position given in range mode.\n", progname);
+		fprintf(stderr, "%s: no start log position given.\n", progname);
 		goto bad_argument;
 	}
 

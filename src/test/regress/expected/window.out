@@ -631,11 +631,11 @@ select first_value(max(x)) over (), y
  WindowAgg
    ->  Gather Motion 3:1  (slice2; segments: 3)
          ->  Subquery Scan on "Window"
-               ->  HashAggregate
+               ->  Finalize HashAggregate
                      Group Key: ((tenk1.ten + tenk1.four))
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)
                            Hash Key: ((tenk1.ten + tenk1.four))
-                           ->  HashAggregate
+                           ->  Partial HashAggregate
                                  Group Key: (tenk1.ten + tenk1.four)
                                  ->  Seq Scan on tenk1
  Optimizer: Postgres query optimizer

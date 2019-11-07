@@ -3,7 +3,7 @@
  * shmem.c
  *	  create shared memory and initialize shared memory data structures.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -118,6 +118,7 @@ void
 InitShmemAllocation(void)
 {
 	PGShmemHeader *shmhdr = ShmemSegHdr;
+	char	   *aligned;
 
 	Assert(shmhdr != NULL);
 
@@ -157,6 +158,11 @@ InitShmemAllocation(void)
 	shmhdr->freeoffset += MAXALIGN(sizeof(slock_t));
 	Assert(shmhdr->freeoffset <= shmhdr->totalsize);
 
+	/* Make sure the first allocation begins on a cache line boundary. */
+	aligned = (char *)
+		(CACHELINEALIGN((((char *) shmhdr) + shmhdr->freeoffset)));
+	shmhdr->freeoffset = aligned - (char *) shmhdr;
+
 	SpinLockInit(ShmemLock);
 
 	/* ShmemIndex can't be set up yet (need LWLocks first) */
@@ -188,19 +194,24 @@ ShmemAlloc(Size size)
 	Size		newFree;
 	void	   *newSpace;
 
-	/* use volatile pointer to prevent code rearrangement */
-	volatile PGShmemHeader *shmemseghdr = ShmemSegHdr;
-
 	/*
-	 * ensure all space is adequately aligned.
+	 * Ensure all space is adequately aligned.  We used to only MAXALIGN this
+	 * space but experience has proved that on modern systems that is not good
+	 * enough.  Many parts of the system are very sensitive to critical data
+	 * structures getting split across cache line boundaries.  To avoid that,
+	 * attempt to align the beginning of the allocation to a cache line
+	 * boundary.  The calling code will still need to be careful about how it
+	 * uses the allocated space - e.g. by padding each element in an array of
+	 * structures out to a power-of-two size - but without this, even that
+	 * won't be sufficient.
 	 */
-	size = MAXALIGN(size);
+	size = CACHELINEALIGN(size);
 
-	Assert(shmemseghdr != NULL);
+	Assert(ShmemSegHdr != NULL);
 
 	SpinLockAcquire(ShmemLock);
 
-	newStart = shmemseghdr->freeoffset;
+	newStart = ShmemSegHdr->freeoffset;
 
 	/*
 	 * Extra alignment for large requests, since they are probably buffers.
@@ -213,10 +224,10 @@ ShmemAlloc(Size size)
 	}
 
 	newFree = newStart + size;
-	if (newFree <= shmemseghdr->totalsize)
+	if (newFree <= ShmemSegHdr->totalsize)
 	{
 		newSpace = (void *) ((char *) ShmemBase + newStart);
-		shmemseghdr->freeoffset = newFree;
+		ShmemSegHdr->freeoffset = newFree;
 	}
 	else
 		newSpace = NULL;
@@ -227,6 +238,8 @@ ShmemAlloc(Size size)
 		ereport(WARNING,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
 				 errmsg("out of shared memory")));
+
+	Assert(newSpace == (void *) CACHELINEALIGN(newSpace));
 
 	return newSpace;
 }
@@ -444,6 +457,9 @@ ShmemInitStruct(const char *name, Size size, bool *foundPtr)
 	LWLockRelease(ShmemIndexLock);
 
 	Assert(ShmemAddrIsValid(structPtr));
+
+	Assert(structPtr == (void *) CACHELINEALIGN(structPtr));
+
 	return structPtr;
 }
 

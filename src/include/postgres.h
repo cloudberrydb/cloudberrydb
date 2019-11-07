@@ -7,7 +7,7 @@
  * Client-side code should include postgres_fe.h instead.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1995, Regents of the University of California
  *
  * src/include/postgres.h
@@ -403,7 +403,6 @@ static inline Datum BoolGetDatum(bool b) { return (b ? 1 : 0); }
 
 static inline char DatumGetChar(Datum d) { return (char) d; }
 static inline Datum CharGetDatum(char c) { return (Datum) c; } 
-#define DatumGetBool(X) ((bool) (GET_1_BYTE(X) != 0))
 
 static inline int8 DatumGetInt8(Datum d) { return (int8) d; } 
 static inline Datum Int8GetDatum(int8 i8) { return (Datum) i8; }
@@ -497,7 +496,6 @@ static inline Datum Float4GetDatum(float4 f) { Datum_U du; du.d = 0; du.f4[1] = 
 static inline float8 DatumGetFloat8(Datum d) { Datum_U du; du.d = d; return du.f8; } 
 static inline Datum Float8GetDatum(float8 f) { Datum_U du; du.f8 = f; return du.d; }
 static inline Datum Float8GetDatumFast(float8 f) { return Float8GetDatum(f); }
-
 
 static inline ItemPointer DatumGetItemPointer(Datum d) { return (ItemPointer) DatumGetPointer(d); }
 static inline Datum ItemPointerGetDatum(ItemPointer i) { return PointerGetDatum(i); }

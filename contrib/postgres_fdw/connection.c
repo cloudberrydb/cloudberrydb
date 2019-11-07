@@ -3,7 +3,7 @@
  * connection.c
  *		  Connection management functions for postgres_fdw
  *
- * Portions Copyright (c) 2012-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/postgres_fdw/connection.c
@@ -31,9 +31,11 @@
 /*
  * Connection cache hash table entry
  *
- * The lookup key in this hash table is the foreign server OID plus the user
- * mapping OID.  (We use just one connection per user per foreign server,
- * so that we can ensure all scans use the same snapshot during a query.)
+ * The lookup key in this hash table is the user mapping OID. We use just one
+ * connection per user mapping ID, which ensures that all the scans use the
+ * same snapshot during a query.  Using the user mapping OID rather than
+ * the foreign server OID + user OID avoids creating multiple connections when
+ * the public user mapping applies to all user OIDs.
  *
  * The "conn" pointer can be NULL if we don't currently have a live connection.
  * When we do have a connection, xact_depth tracks the current depth of
@@ -42,11 +44,7 @@
  * ourselves, so that rolling back a subtransaction will kill the right
  * queries and not the wrong ones.
  */
-typedef struct ConnCacheKey
-{
-	Oid			serverid;		/* OID of foreign server */
-	Oid			userid;			/* OID of local user whose mapping we use */
-} ConnCacheKey;
+typedef Oid ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
@@ -107,8 +105,7 @@ static bool pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime,
  * (not even on error), we need this flag to cue manual cleanup.
  */
 PGconn *
-GetConnection(ForeignServer *server, UserMapping *user,
-			  bool will_prep_stmt)
+GetConnection(UserMapping *user, bool will_prep_stmt)
 {
 	bool		found;
 	ConnCacheEntry *entry;
@@ -144,8 +141,7 @@ GetConnection(ForeignServer *server, UserMapping *user,
 	xact_got_connection = true;
 
 	/* Create hash key for the entry.  Assume no pad bytes in key struct */
-	key.serverid = server->serverid;
-	key.userid = user->userid;
+	key = user->umid;
 
 	/*
 	 * Find or create cached entry for requested connection.
@@ -187,7 +183,7 @@ GetConnection(ForeignServer *server, UserMapping *user,
 	 */
 	if (entry->conn == NULL)
 	{
-		Oid			umoid;
+		ForeignServer *server = GetForeignServer(user->serverid);
 
 		/* Reset all transient state fields, to be sure all are clean */
 		entry->xact_depth = 0;
@@ -198,24 +194,14 @@ GetConnection(ForeignServer *server, UserMapping *user,
 		entry->server_hashvalue =
 			GetSysCacheHashValue1(FOREIGNSERVEROID,
 								  ObjectIdGetDatum(server->serverid));
-		/* Pre-9.6, UserMapping doesn't store its OID, so look it up again */
-		umoid = GetSysCacheOid2(USERMAPPINGUSERSERVER,
-								ObjectIdGetDatum(user->userid),
-								ObjectIdGetDatum(user->serverid));
-		if (!OidIsValid(umoid))
-		{
-			/* Not found for the specific user -- try PUBLIC */
-			umoid = GetSysCacheOid2(USERMAPPINGUSERSERVER,
-									ObjectIdGetDatum(InvalidOid),
-									ObjectIdGetDatum(user->serverid));
-		}
 		entry->mapping_hashvalue =
-			GetSysCacheHashValue1(USERMAPPINGOID, ObjectIdGetDatum(umoid));
+			GetSysCacheHashValue1(USERMAPPINGOID, ObjectIdGetDatum(user->umid));
 
 		/* Now try to make the connection */
 		entry->conn = connect_pg_server(server, user);
-		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\"",
-			 entry->conn, server->servername);
+
+		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u)",
+			 entry->conn, server->servername, user->umid, user->userid);
 	}
 
 	/*
@@ -547,7 +533,7 @@ pgfdw_exec_query(PGconn *conn, const char *query)
  *
  * This function offers quick responsiveness by checking for any interruptions.
  *
- * This function emulates PQexec()'s behavior of returning the last result
+ * This function emulates the PQexec()'s behavior of returning the last result
  * when there are many.
  *
  * Caller is responsible for the error handling on the result.
@@ -790,9 +776,9 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 					/*
 					 * If a command has been submitted to the remote server by
 					 * using an asynchronous execution function, the command
-					 * might not have yet completed.  Check to see if a command
-					 * is still being processed by the remote server, and if so,
-					 * request cancellation of the command.
+					 * might not have yet completed.  Check to see if a
+					 * command is still being processed by the remote server,
+					 * and if so, request cancellation of the command.
 					 */
 					if (PQtransactionStatus(entry->conn) == PQTRANS_ACTIVE &&
 						!pgfdw_cancel_query(entry->conn))
@@ -928,11 +914,11 @@ pgfdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 			entry->have_error = true;
 
 			/*
-			 * If a command has been submitted to the remote server by using an
-			 * asynchronous execution function, the command might not have yet
-			 * completed.  Check to see if a command is still being processed by
-			 * the remote server, and if so, request cancellation of the
-			 * command.
+			 * If a command has been submitted to the remote server by using
+			 * an asynchronous execution function, the command might not have
+			 * yet completed.  Check to see if a command is still being
+			 * processed by the remote server, and if so, request cancellation
+			 * of the command.
 			 */
 			if (PQtransactionStatus(entry->conn) == PQTRANS_ACTIVE &&
 				!pgfdw_cancel_query(entry->conn))
@@ -1010,6 +996,8 @@ pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
 static void
 pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
 {
+	HeapTuple	tup;
+	Form_pg_user_mapping umform;
 	ForeignServer *server;
 
 	/* nothing to do for inactive entries and entries of sane state */
@@ -1020,7 +1008,13 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
 	disconnect_pg_server(entry);
 
 	/* find server name to be shown in the message below */
-	server = GetForeignServer(entry->key.serverid);
+	tup = SearchSysCache1(USERMAPPINGOID,
+						  ObjectIdGetDatum(entry->key));
+	if (!HeapTupleIsValid(tup))
+		elog(ERROR, "cache lookup failed for user mapping %u", entry->key);
+	umform = (Form_pg_user_mapping) GETSTRUCT(tup);
+	server = GetForeignServer(umform->umserver);
+	ReleaseSysCache(tup);
 
 	ereport(ERROR,
 			(errcode(ERRCODE_CONNECTION_EXCEPTION),

@@ -1954,8 +1954,9 @@ ON CONFLICT (k) DO UPDATE SET v = (SELECT b || ' update' FROM aa WHERE a = 'a' L
 WITH aa AS (SELECT 1 a, 2 b)
 INSERT INTO z VALUES(1, (SELECT b || ' insert' FROM aa WHERE a = 1 ))
 ON CONFLICT (k) DO UPDATE SET v = (SELECT b || ' update' FROM aa WHERE a = 1 LIMIT 1);
--- This shows an attempt to update an invisible row, which should really be
--- reported as a cardinality violation, but it doesn't seem worth fixing:
+-- Update a row more than once, in different parts of a wCTE. That is
+-- an allowed, presumably very rare, edge case, but since it was
+-- broken in the past, having a test seems worthwhile.
 WITH simpletup AS (
   SELECT 2 k, 'Green' v),
 upsert_cte AS (
@@ -2169,9 +2170,6 @@ CREATE TEMP TABLE child2 ( ) INHERITS ( parent );
 INSERT INTO parent VALUES ( 1, 'p1' );
 INSERT INTO child1 VALUES ( 11, 'c11' ),( 12, 'c12' );
 INSERT INTO child2 VALUES ( 23, 'c21' ),( 24, 'c22' );
--- start_ignore
--- This query fails due to the 2 stage agg having issues with inherited tables:
--- ERROR:  incompatible loci in target inheritance set (planner.c:1426)
 WITH rcte AS ( SELECT sum(id) AS totalid FROM parent )
 UPDATE parent SET id = id + totalid FROM rcte;
 SELECT * FROM parent;
@@ -2184,7 +2182,6 @@ SELECT * FROM parent;
  95 | c22
 (5 rows)
 
--- end_ignore
 WITH wcte AS ( INSERT INTO child1 VALUES ( 42, 'new' ) RETURNING id AS newid )
 UPDATE parent SET id = id + newid FROM wcte;
 ERROR:  writable CTE queries cannot be themselves writable
@@ -2193,11 +2190,11 @@ HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM parent;
  id | val 
 ----+-----
-  1 | p1
- 11 | c11
- 12 | c12
- 23 | c21
- 24 | c22
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
+ 95 | c22
 (5 rows)
 
 WITH rcte AS ( SELECT max(id) AS maxid FROM parent )
@@ -2205,10 +2202,10 @@ DELETE FROM parent USING rcte WHERE id = maxid;
 SELECT * FROM parent;
  id | val 
 ----+-----
-  1 | p1
- 11 | c11
- 12 | c12
- 23 | c21
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
 (4 rows)
 
 WITH wcte AS ( INSERT INTO child2 VALUES ( 42, 'new2' ) RETURNING id AS newid )
@@ -2219,10 +2216,10 @@ HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM parent;
  id | val 
 ----+-----
-  1 | p1
- 11 | c11
- 12 | c12
- 23 | c21
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
 (4 rows)
 
 -- check EXPLAIN VERBOSE for a wCTE with RETURNING

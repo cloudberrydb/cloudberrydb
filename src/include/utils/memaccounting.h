@@ -131,6 +131,7 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_Sort,
 	MEMORY_OWNER_TYPE_Exec_Agg,
 	MEMORY_OWNER_TYPE_Exec_Unique,
+	MEMORY_OWNER_TYPE_Exec_Gather,
 	MEMORY_OWNER_TYPE_Exec_Hash,
 	MEMORY_OWNER_TYPE_Exec_SetOp,
 	MEMORY_OWNER_TYPE_Exec_Limit,

@@ -743,11 +743,11 @@ explain (verbose, costs off)
                    QUERY PLAN                   
 ------------------------------------------------
  Result
-   Output: current_database, current_database
+   Output: ('regression'::name), ('regression'::name)
    ->  Result
-         Output: current_database
+         Output: ('regression'::name)
          ->  Nested Loop Left Join
-               Output: current_database
+               Output: ('regression'::name)
                Join Filter: true
                ->  Values Scan on "Values"
                      Output: column1
@@ -780,11 +780,11 @@ explain (verbose, costs off)
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Result
-   Output: current_database, current_database
+   Output: ('regression'::name), ('regression'::name)
    ->  Result
-         Output: current_database
+         Output: ('regression'::name)
          ->  Nested Loop Left Join
-               Output: current_database
+               Output: ('regression'::name)
                Join Filter: ("Values".column1 = "Values".column1)
                ->  Values Scan on "Values"
                      Output: column1

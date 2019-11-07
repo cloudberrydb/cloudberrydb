@@ -2948,7 +2948,11 @@ SELECT test_return_out_setof_record('[ None ]');
 (1 row)
 
 SELECT * FROM test_return_out_setof_record('[ None ]');
-ERROR:  function returning set of rows cannot return null value
+ first | second 
+-------+--------
+       |       
+(1 row)
+
 -- [ERROR] From Python dict without the needed columns
 SELECT test_return_out_setof_record('[ {None: None} ]');
 ERROR:  key "first" not found in mapping
@@ -3101,7 +3105,12 @@ SELECT test_return_table('[ None, ["value", 4] ]');
 (2 rows)
 
 SELECT * FROM test_return_table('[ None, ["value", 4] ]');
-ERROR:  function returning set of rows cannot return null value
+ first | second 
+-------+--------
+       |       
+ value |      4
+(2 rows)
+
 -- [ERROR] From Python dict without the needed columns
 SELECT test_return_table('[ {None: None} ]');
 ERROR:  key "first" not found in mapping

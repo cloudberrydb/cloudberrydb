@@ -14,7 +14,7 @@
 #ifndef CDBAPPENDONLYSTORAGE_H
 #define CDBAPPENDONLYSTORAGE_H
 
-#include "c.h"
+#include "catalog/pg_appendonly.h"
 #include "utils/pg_crc.h"
 
 /*

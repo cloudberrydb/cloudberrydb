@@ -49,7 +49,6 @@ EXCL_OBJS+=\
 	src/backend/utils/adt/jsonfuncs.o \
 	src/backend/utils/adt/like.o \
 	src/backend/utils/adt/like_match.o \
-	src/backend/utils/adt/lockfuncs.o \
 	src/backend/utils/adt/mac.o \
 	src/backend/utils/adt/matrix.o \
 	src/backend/utils/adt/oracle_compat.o \

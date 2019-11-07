@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,6 +34,26 @@ static char *pg_strtok_begin = NULL;                    /*CDB*/
 
 static void nodeReadSkipThru(char closingDelimiter);    /*CDB*/
 
+/*
+ * Helper functions for saving current states and pg_strtok() another string
+ *
+ * External functions like ExtensibleNodeMethods->nodeRead() uses the
+ * pg_strtok_ptr information via pg_strtok() but the context could be binary
+ * (readfast.c), set_strtok_states() to pg_strtok() the string.
+ */
+void
+save_strtok_states(char **save_ptr, char **save_begin)
+{
+	*save_ptr = pg_strtok_ptr;		/* point pg_strtok at the string to read */
+	*save_begin = pg_strtok_begin;	/* CDB: save starting position for debug */
+}
+
+void
+set_strtok_states(char *ptr, char *begin)
+{
+	pg_strtok_ptr = ptr;		/* point pg_strtok at the string to read */
+	pg_strtok_begin = begin;	/* CDB: save starting position for debug */
+}
 
 /*
  * stringToNode -
@@ -253,7 +273,7 @@ nodeTokenType(char *token, int length)
 		retval = RIGHT_PAREN;
 	else if (*token == '{')
 		retval = LEFT_BRACE;
-	else if (*token == '\"' && length > 1 && token[length - 1] == '\"')
+	else if (*token == '"' && length > 1 && token[length - 1] == '"')
 		retval = T_String;
 	else if (*token == 'b')
 		retval = T_BitString;

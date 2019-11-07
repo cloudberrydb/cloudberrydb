@@ -1885,19 +1885,17 @@ explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example SCATT
 explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a / 2, b FROM example SCATTER BY a / 2) );
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=2.56..2.72 rows=8 width=36)
-   ->  Table Function Scan on multiset_5  (cost=2.56..2.72 rows=3 width=36)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=2.56..2.64 rows=3 width=36)
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=2.38..2.80 rows=10 width=36)
+   ->  Table Function Scan on multiset_5  (cost=2.38..2.80 rows=4 width=36)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=2.38..2.70 rows=4 width=16)
                Hash Key: ((example.a / 2))
-               ->  HashAggregate  (cost=2.56..2.64 rows=3 width=36)
+               ->  HashAggregate  (cost=2.38..2.50 rows=4 width=16)
                      Group Key: ((example.a / 2)), example.b
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2.17..2.44 rows=3 width=36)
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.33 rows=4 width=16)
                            Hash Key: ((example.a / 2)), example.b
-                           ->  HashAggregate  (cost=2.17..2.27 rows=3 width=36)
-                                 Group Key: (example.a / 2), example.b
-                                 ->  Seq Scan on example  (cost=0.00..2.12 rows=4 width=16)
+                           ->  Seq Scan on example  (cost=0.00..2.12 rows=4 width=16)
  Optimizer: Postgres query optimizer
-(12 rows)
+(10 rows)
 
 explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example SCATTER BY b) );
                                           QUERY PLAN                                           
@@ -1913,52 +1911,46 @@ explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example SCATT
 (8 rows)
 
 explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER BY b, a SCATTER RANDOMLY) );
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.97..5.97 rows=80 width=36)
-   ->  Table Function Scan on multiset_5  (cost=4.97..5.97 rows=27 width=36)
-         ->  Sort  (cost=4.97..5.17 rows=27 width=36)
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=2.62..2.74 rows=10 width=36)
+   ->  Table Function Scan on multiset_5  (cost=2.62..2.74 rows=4 width=36)
+         ->  Sort  (cost=2.62..2.64 rows=4 width=16)
                Sort Key: example.b, example.a
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2.27..2.44 rows=27 width=36)
-                     ->  GroupAggregate  (cost=2.27..2.44 rows=27 width=36)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2.15..2.45 rows=4 width=16)
+                     ->  HashAggregate  (cost=2.15..2.25 rows=4 width=16)
                            Group Key: example.b, example.a
-                           ->  Sort  (cost=2.27..2.29 rows=4 width=16)
-                                 Sort Key: example.b, example.a
-                                 ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
+                           ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
  Optimizer: Postgres query optimizer
-(11 rows)
+(9 rows)
 
 explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER BY a, b SCATTER BY a) );
-                                      QUERY PLAN                                      
---------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=4.97..5.97 rows=80 width=36)
-   ->  Table Function Scan on multiset_5  (cost=4.97..5.97 rows=27 width=36)
-         ->  Sort  (cost=4.97..5.17 rows=27 width=36)
-               Sort Key: example.a, example.b
-               ->  GroupAggregate  (cost=2.27..2.44 rows=27 width=36)
-                     Group Key: example.a, example.b
-                     ->  Sort  (cost=2.27..2.29 rows=4 width=16)
-                           Sort Key: example.a, example.b
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.27..2.54 rows=10 width=36)
+   ->  Table Function Scan on multiset_5  (cost=2.27..2.54 rows=4 width=36)
+         ->  GroupAggregate  (cost=2.27..2.44 rows=4 width=16)
+               Group Key: example.a, example.b
+               ->  Sort  (cost=2.27..2.29 rows=4 width=16)
+                     Sort Key: example.a, example.b
+                     ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER BY b, a SCATTER BY b) );
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=2.62..2.74 rows=10 width=36)
+   ->  Table Function Scan on multiset_5  (cost=2.62..2.74 rows=4 width=36)
+         ->  Sort  (cost=2.62..2.64 rows=4 width=16)
+               Sort Key: example.b, example.a
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2.15..2.45 rows=4 width=16)
+                     Hash Key: example.b
+                     ->  HashAggregate  (cost=2.15..2.25 rows=4 width=16)
+                           Group Key: example.b, example.a
                            ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
  Optimizer: Postgres query optimizer
 (10 rows)
-
-explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER BY b, a SCATTER BY b) );
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.97..5.97 rows=80 width=36)
-   ->  Table Function Scan on multiset_5  (cost=4.97..5.97 rows=27 width=36)
-         ->  Sort  (cost=4.97..5.17 rows=27 width=36)
-               Sort Key: example.b, example.a
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2.27..2.44 rows=27 width=36)
-                     Hash Key: example.b
-                     ->  GroupAggregate  (cost=2.27..2.44 rows=27 width=36)
-                           Group Key: example.b, example.a
-                           ->  Sort  (cost=2.27..2.29 rows=4 width=16)
-                                 Sort Key: example.b, example.a
-                                 ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
- Optimizer: Postgres query optimizer
-(12 rows)
 
 explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER BY b, a LIMIT 2 SCATTER RANDOMLY) );
                                                QUERY PLAN                                               
@@ -1981,26 +1973,26 @@ explain SELECT * FROM multiset_5( TABLE (SELECT DISTINCT a, b FROM example ORDER
 explain SELECT * FROM multiset_5( TABLE( SELECT count(*)::integer, 'hello'::text from example_r ) );
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
- Table Function Scan on multiset_5  (cost=2.24..2.27 rows=8 width=36)
-   ->  Aggregate  (cost=2.24..2.25 rows=1 width=36)
-         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.13..2.23 rows=1 width=8)
-               ->  Aggregate  (cost=2.13..2.14 rows=1 width=8)
-                     ->  Seq Scan on example_r  (cost=0.00..2.10 rows=5 width=0)
- Settings:  gp_segments_for_planner=8
+ Table Function Scan on multiset_5  (cost=3.16..3.18 rows=1 width=36)
+   ->  Finalize Aggregate  (cost=3.16..3.17 rows=1 width=36)
+         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.12..3.15 rows=1 width=8)
+               ->  Partial Aggregate  (cost=3.12..3.13 rows=1 width=8)
+                     ->  Seq Scan on example_r  (cost=0.00..3.10 rows=4 width=0)
+ Optimizer: Postgres query optimizer
 (6 rows)
 
 explain SELECT * FROM example_r WHERE (10, 'hello') in (SELECT * FROM multiset_5( TABLE( SELECT count(*)::integer, 'hello'::text from example_r )));
                                                    QUERY PLAN                                                    
 -----------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=3.21..6.36 rows=5 width=16)
-   ->  Seq Scan on example_r  (cost=3.21..6.36 rows=2 width=16)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..3.10 rows=5 width=16)
+   ->  Seq Scan on example_r  (cost=0.00..3.10 rows=2 width=16)
          Filter: (hashed SubPlan 1)
          SubPlan 1
-           ->  Broadcast Motion 1:3  (slice3; segments: 1)  (cost=3.19..3.21 rows=1 width=36)
-                 ->  Table Function Scan on multiset_5  (cost=3.19..3.21 rows=1 width=36)
-                       ->  Aggregate  (cost=3.19..3.20 rows=1 width=36)
-                             ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=3.12..3.17 rows=1 width=8)
-                                   ->  Aggregate  (cost=3.12..3.13 rows=1 width=8)
+           ->  Broadcast Motion 1:3  (slice3; segments: 1)  (cost=3.16..3.18 rows=1 width=36)
+                 ->  Table Function Scan on multiset_5  (cost=3.16..3.18 rows=1 width=36)
+                       ->  Finalize Aggregate  (cost=3.16..3.17 rows=1 width=36)
+                             ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=3.12..3.15 rows=1 width=8)
+                                   ->  Partial Aggregate  (cost=3.12..3.13 rows=1 width=8)
                                          ->  Seq Scan on example_r example_r_1  (cost=0.00..3.10 rows=4 width=0)
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -2017,15 +2009,15 @@ explain SELECT * FROM multiset_5( TABLE( SELECT * from example_v) );
 explain SELECT * FROM multiset_5( TABLE( SELECT * FROM example WHERE a >= (SELECT min(a) FROM example)));
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.25..6.41 rows=4 width=36)
-   ->  Table Function Scan on multiset_5  (cost=3.25..6.41 rows=2 width=36)
-         ->  Seq Scan on example  (cost=3.25..6.37 rows=2 width=16)
-               Filter: a >= $0
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=2.17..4.33 rows=4 width=36)
+   ->  Table Function Scan on multiset_5  (cost=2.17..4.33 rows=2 width=36)
+         ->  Seq Scan on example  (cost=2.17..4.29 rows=2 width=16)
+               Filter: (a >= $0)
                InitPlan 1 (returns $0)  (slice3)
-                 ->  Aggregate  (cost=3.24..3.25 rows=1 width=4)
-                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.12..3.22 rows=1 width=4)
-                             ->  Aggregate  (cost=3.12..3.13 rows=1 width=4)
-                                   ->  Seq Scan on example example_1  (cost=0.00..3.10 rows=4 width=4)
+                 ->  Finalize Aggregate  (cost=2.16..2.17 rows=1 width=4)
+                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.12..2.15 rows=1 width=4)
+                             ->  Partial Aggregate  (cost=2.12..2.13 rows=1 width=4)
+                                   ->  Seq Scan on example example_1  (cost=0.00..2.10 rows=4 width=4)
  Optimizer: Postgres query optimizer
 (10 rows)
 
@@ -2042,23 +2034,24 @@ explain WITH cte AS (SELECT * FROM example) SELECT * FROM multiset_5( TABLE ( SE
 (7 rows)
 
 explain WITH cte AS (SELECT * FROM example) SELECT x.* FROM multiset_5( TABLE ( SELECT * FROM cte ) ) x, (SELECT count(*) FROM cte) y order by x.a, x.b;
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000001.78..10000000001.80 rows=10 width=36)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000004.89..10000000005.12 rows=10 width=36)
    Merge Key: a, b
-   ->  Sort  (cost=10000000001.78..10000000001.80 rows=4 width=36)
+   ->  Sort  (cost=10000000004.89..10000000004.92 rows=4 width=36)
          Sort Key: a, b
-         ->  Nested Loop  (cost=10000000000.34..10000000001.61 rows=4 width=36)
-               ->  Table Function Scan on multiset_5 x  (cost=0.00..0.30 rows=4 width=36)
+         ->  Nested Loop  (cost=10000000002.13..10000000004.73 rows=4 width=36)
+               ->  Table Function Scan on multiset_5 x  (cost=0.00..2.20 rows=4 width=36)
                      ->  Seq Scan on example  (cost=0.00..2.10 rows=4 width=16)
-               ->  Materialize  (cost=0.20..0.28 rows=1 width=0)
-                     ->  Broadcast Motion 1:3  (slice2; segments: 1)  (cost=0.20..0.26 rows=3 width=0)
-                           ->  Subquery Scan on y  (cost=0.20..0.22 rows=1 width=0)
-                                 ->  Aggregate  (cost=0.20..0.21 rows=1 width=8)
-                                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.20 rows=10 width=0)
-                                             ->  Seq Scan on example example_1  (cost=0.00..2.10 rows=4 width=16)
+               ->  Materialize  (cost=2.13..2.20 rows=1 width=0)
+                     ->  Broadcast Motion 1:3  (slice2; segments: 1)  (cost=2.13..2.19 rows=3 width=0)
+                           ->  Subquery Scan on y  (cost=2.13..2.15 rows=1 width=0)
+                                 ->  Finalize Aggregate  (cost=2.13..2.14 rows=1 width=8)
+                                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.10..2.13 rows=1 width=0)
+                                             ->  Partial Aggregate  (cost=2.10..2.11 rows=1 width=0)
+                                                   ->  Seq Scan on example example_1  (cost=0.00..2.10 rows=4 width=16)
  Optimizer: Postgres query optimizer
-(16 rows)
+(15 rows)
 
 explain select * from multiset_2( TABLE( SELECT distinct a.a, b.b from example a, example b where a.a = b.a) ) order by 1,2;
                                           QUERY PLAN                                          
@@ -2121,25 +2114,24 @@ explain SELECT x.* FROM multiset_5( TABLE ( SELECT 1 ) ) x right join (SELECT 1)
 
 -- Do an explain analyze while we are at it:
 explain analyze SELECT * FROM multiset_5( TABLE( SELECT count(*)::integer, 'hello'::text from example_r scatter randomly) );
-                                                                              QUERY PLAN                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=2.24..2.27 rows=1 width=36)
-   ->  Table Function Scan on multiset_5  (cost=2.24..2.27 rows=1 width=36)
-         ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=2.24..2.25 rows=1 width=36)
-               ->  Aggregate  (cost=2.24..2.25 rows=1 width=36)
-                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.13..2.23 rows=1 width=8)
-                           ->  Aggregate  (cost=2.13..2.14 rows=1 width=8)
-                                 ->  Seq Scan on example_r  (cost=0.00..2.10 rows=5 width=0)
- Slice statistics:
-   (slice0)    Executor memory: 258K bytes.
-   (slice1)    Executor memory: 210K bytes avg x 2 workers, 210K bytes max (seg0).
-   (slice2)    Executor memory: 274K bytes (seg0).
-   (slice3)    Executor memory: 254K bytes avg x 2 workers, 266K bytes max (seg1).
- Statement statistics:
-   Memory used: 128000K bytes
- Settings:  gp_segments_for_planner=8
- Total runtime: 5.296 ms
-(23 rows)
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=3.16..3.20 rows=1 width=36) (actual time=2.118..2.119 rows=1 loops=1)
+   ->  Table Function Scan on multiset_5  (cost=3.16..3.20 rows=1 width=36) (actual time=1.515..1.519 rows=1 loops=1)
+         ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=3.16..3.19 rows=1 width=36) (actual time=1.503..1.504 rows=1 loops=1)
+               ->  Finalize Aggregate  (cost=3.16..3.17 rows=1 width=36) (actual time=0.224..0.224 rows=1 loops=1)
+                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.12..3.15 rows=1 width=8) (actual time=0.006..0.208 rows=3 loops=1)
+                           ->  Partial Aggregate  (cost=3.12..3.13 rows=1 width=8) (actual time=0.018..0.018 rows=1 loops=1)
+                                 ->  Seq Scan on example_r  (cost=0.00..3.10 rows=4 width=0) (actual time=0.011..0.011 rows=7 loops=1)
+ Planning time: 0.381 ms
+   (slice0)    Executor memory: 127K bytes.
+   (slice1)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
+   (slice2)    Executor memory: 63K bytes (seg1).
+   (slice3)    Executor memory: 35K bytes avg x 3 workers, 40K bytes max (seg2).
+ Memory used:  128000kB
+ Optimizer: Postgres query optimizer
+ Execution time: 2.603 ms
+(15 rows)
 
 -- Test for an old bug in aggregate planning - this used to crash.
 select count(*) from multiset_5(table(select * from example)) s ;
@@ -2990,28 +2982,28 @@ SELECT extract(day from "time") FROM project( TABLE( SELECT * FROM history ), 2)
 
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ),
   CASE 1 WHEN 2 THEN 1 ELSE GREATEST(1, COALESCE(1+1)) END);
- amstrategies 
---------------
-            5
-            1
-            0
-            0
-            0
-            0
-            5
+  amhandler  
+-------------
+ bthandler
+ hashhandler
+ gisthandler
+ ginhandler
+ spghandler
+ brinhandler
+ bmhandler
 (7 rows)
 
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ),
   CASE WHEN 3 IS NOT NULL AND 1 IN (1, 2) THEN floor(NULLIF(2, 3))::int END);
- amstrategies 
---------------
-            5
-            1
-            0
-            0
-            0
-            0
-            5
+  amhandler  
+-------------
+ bthandler
+ hashhandler
+ gisthandler
+ ginhandler
+ spghandler
+ brinhandler
+ bmhandler
 (7 rows)
 
 -- ERROR: invalid operations demonstrating different return types

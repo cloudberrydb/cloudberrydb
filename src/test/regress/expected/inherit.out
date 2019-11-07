@@ -1058,7 +1058,7 @@ DETAIL:  drop cascades to table inht2
 drop cascades to table inhts
 drop cascades to table inht3
 drop cascades to table inht4
--- Test non-inheritable indices [UNIQUE, EXCLUDE] contraints
+-- Test non-inheritable indices [UNIQUE, EXCLUDE] constraints
 CREATE TABLE test_constraints (id int, val1 varchar, val2 int, UNIQUE(val1, val2));
 CREATE TABLE test_constraints_inh () INHERITS (test_constraints);
 \d+ test_constraints
@@ -1133,7 +1133,7 @@ Distributed randomly
 DROP TABLE test_ex_constraints_inh;
 DROP TABLE test_ex_constraints;
 -- end_ignore
--- Test non-inheritable foreign key contraints
+-- Test non-inheritable foreign key constraints
 CREATE TABLE test_primary_constraints(id int PRIMARY KEY);
 CREATE TABLE test_foreign_constraints(id1 int REFERENCES test_primary_constraints(id));
 CREATE TABLE test_foreign_constraints_inh () INHERITS (test_foreign_constraints);
@@ -1372,14 +1372,14 @@ select * from matest0 order by 1-id;
 (6 rows)
 
 explain (verbose, costs off) select min(1-id) from matest0;
-                     QUERY PLAN                     
-----------------------------------------------------
- Aggregate
-   Output: min((min((1 - matest0.id))))
+                     QUERY PLAN                      
+-----------------------------------------------------
+ Finalize Aggregate
+   Output: min((1 - matest0.id))
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Output: (min((1 - matest0.id)))
-         ->  Aggregate
-               Output: min((1 - matest0.id))
+         Output: (PARTIAL min((1 - matest0.id)))
+         ->  Partial Aggregate
+               Output: PARTIAL min((1 - matest0.id))
                ->  Append
                      ->  Seq Scan on public.matest0
                            Output: matest0.id
@@ -1597,9 +1597,9 @@ SELECT min(x) FROM
    SELECT unique2 AS x FROM tenk1 b) s;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Aggregate
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
+         ->  Partial Aggregate
                ->  Append
                      ->  Index Only Scan using tenk1_unique1 on tenk1 a
                      ->  Index Only Scan using tenk1_unique2 on tenk1 b
@@ -1611,17 +1611,16 @@ SELECT min(y) FROM
   (SELECT unique1 AS x, unique1 AS y FROM tenk1 a
    UNION ALL
    SELECT unique2 AS x, unique2 AS y FROM tenk1 b) s;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Aggregate
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Aggregate
-               ->  Subquery Scan on s
-                     ->  Append
-                           ->  Index Only Scan using tenk1_unique1 on tenk1 a
-                           ->  Index Only Scan using tenk1_unique2 on tenk1 b
+         ->  Partial Aggregate
+               ->  Append
+                     ->  Index Only Scan using tenk1_unique1 on tenk1 a
+                     ->  Index Only Scan using tenk1_unique2 on tenk1 b
  Optimizer: Postgres query optimizer
-(8 rows)
+(7 rows)
 
 -- XXX planner doesn't recognize that index on unique2 is sufficiently sorted
 explain (costs off)

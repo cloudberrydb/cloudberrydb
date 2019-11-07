@@ -22,6 +22,7 @@
 #include "access/bitmap.h"
 #include "access/heapam.h"
 #include "access/reloptions.h"
+#include "access/relscan.h"
 
 static void _bitmap_findnextword(BMBatchWords* words, uint64 nextReadNo);
 static void _bitmap_resetWord(BMBatchWords *words, uint32 prevStartNo);
@@ -1120,18 +1121,10 @@ _bitmap_log_updatewords(Relation rel,
 	}
 }
 
-Datum
-bmoptions(PG_FUNCTION_ARGS)
+bytea *
+bmoptions(Datum reloptions, bool validate)
 {
-	Datum		reloptions = PG_GETARG_DATUM(0);
-	bool		validate = PG_GETARG_BOOL(1);
-	bytea	   *result;
-
-	result = default_reloptions(reloptions, validate,
-								RELOPT_KIND_BITMAP);
-	if (result)
-		PG_RETURN_BYTEA_P(result);
-	PG_RETURN_NULL();
+	return default_reloptions(reloptions, validate, RELOPT_KIND_BITMAP);
 }
 
 

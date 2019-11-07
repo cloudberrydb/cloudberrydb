@@ -1,3 +1,13 @@
+/*----------------------------------------------------------------------
+ * test_ddl_deparse.c
+ *		Support functions for the test_ddl_deparse module
+ *
+ * Copyright (c) 2014-2016, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  src/test/modules/test_ddl_deparse/test_ddl_deparse.c
+ *----------------------------------------------------------------------
+ */
 #include "postgres.h"
 
 #include "catalog/pg_type.h"
@@ -11,6 +21,10 @@ PG_FUNCTION_INFO_V1(get_command_type);
 PG_FUNCTION_INFO_V1(get_command_tag);
 PG_FUNCTION_INFO_V1(get_altertable_subcmdtypes);
 
+/*
+ * Return the textual representation of the struct type used to represent a
+ * command in struct CollectedCommand format.
+ */
 Datum
 get_command_type(PG_FUNCTION_ARGS)
 {
@@ -48,6 +62,10 @@ get_command_type(PG_FUNCTION_ARGS)
 	PG_RETURN_TEXT_P(cstring_to_text(type));
 }
 
+/*
+ * Return the command tag corresponding to a parse node contained in a
+ * CollectedCommand struct.
+ */
 Datum
 get_command_tag(PG_FUNCTION_ARGS)
 {
@@ -59,6 +77,10 @@ get_command_tag(PG_FUNCTION_ARGS)
 	PG_RETURN_TEXT_P(cstring_to_text(CreateCommandTag(cmd->parsetree)));
 }
 
+/*
+ * Return a text array representation of the subcommands of an ALTER TABLE
+ * command.
+ */
 Datum
 get_altertable_subcmdtypes(PG_FUNCTION_ARGS)
 {
@@ -150,6 +172,9 @@ get_altertable_subcmdtypes(PG_FUNCTION_ARGS)
 				break;
 			case AT_DropConstraintRecurse:
 				strtype = "DROP CONSTRAINT (and recurse)";
+				break;
+			case AT_ReAddComment:
+				strtype = "(re) ADD COMMENT";
 				break;
 			case AT_AlterColumnType:
 				strtype = "ALTER COLUMN SET TYPE";
@@ -250,8 +275,17 @@ get_altertable_subcmdtypes(PG_FUNCTION_ARGS)
 			case AT_DisableRowSecurity:
 				strtype = "DISABLE ROW SECURITY";
 				break;
+			case AT_ForceRowSecurity:
+				strtype = "FORCE ROW SECURITY";
+				break;
+			case AT_NoForceRowSecurity:
+				strtype = "NO FORCE ROW SECURITY";
+				break;
 			case AT_GenericOptions:
 				strtype = "SET OPTIONS";
+				break;
+			default:
+				strtype = "unrecognized";
 				break;
 		}
 

@@ -59,14 +59,13 @@ typedef enum GpSetOpType
 } GpSetOpType;
 
 extern 
-GpSetOpType choose_setop_type(List *planlist); 
+GpSetOpType choose_setop_type(List *pathlist);
 
 extern
-void adjust_setop_arguments(PlannerInfo *root, List *planlist, GpSetOpType setop_type);
+void adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSetOpType setop_type);
 
 
-extern
-Motion* make_motion_hash_all_targets(PlannerInfo *root, Plan *subplan);
+extern Path *make_motion_hash_all_targets(PlannerInfo *root, Path *subpath, List *tlist);
 
 extern Motion *make_motion_hash(PlannerInfo *root, Plan *subplan, List *hashexprs, List *hashopfamilies);
 extern Motion *make_motion_hash_exprs(PlannerInfo *root, Plan *subplan, List *hashexprs);
@@ -81,7 +80,7 @@ extern
 Motion *make_motion_gather(PlannerInfo *root, Plan *subplan, List *sortPathKeys);
 
 extern
-void mark_append_locus(Plan *plan, GpSetOpType optype);
+void mark_append_locus(Path *path, GpSetOpType optype);
 
 extern
 void mark_passthru_locus(Plan *plan, bool with_hash, bool with_sort);

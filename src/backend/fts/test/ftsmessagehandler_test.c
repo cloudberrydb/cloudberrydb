@@ -160,7 +160,7 @@ test_HandleFtsWalRepPromoteMirror(void **state)
 	mockresponse.IsRoleMirror     = am_mirror;
 	mockresponse.RequestRetry     = false;
 
-	expect_value(LWLockAcquire, l, ReplicationSlotControlLock);
+	expect_value(LWLockAcquire, lock, ReplicationSlotControlLock);
 	expect_value(LWLockAcquire, mode, LW_SHARED);
 	will_return(LWLockAcquire, true);
 

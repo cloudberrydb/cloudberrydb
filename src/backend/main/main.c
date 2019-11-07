@@ -9,7 +9,7 @@
  * proper FooMain() routine for the incarnation.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -155,6 +155,8 @@ main(int argc, char *argv[])
 	 */
 	unsetenv("LC_ALL");
 
+	check_strxfrm_bug();
+
 	/*
 	 * Catch standard options before doing much else, in particular before we
 	 * insist on not being root.
@@ -189,7 +191,7 @@ main(int argc, char *argv[])
 		 * read-only activities.  The -C case is important because pg_ctl may
 		 * try to invoke it while still holding administrator privileges on
 		 * Windows.  Note that while -C can normally be in any argv position,
-		 * if you wanna bypass the root check you gotta put it first.  This
+		 * if you want to bypass the root check you must put it first.  This
 		 * reduces the risk that we might misinterpret some other mode's -C
 		 * switch as being the postmaster/postgres one.
 		 */
@@ -280,19 +282,20 @@ startup_hacks(const char *progname)
 		SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 
 #if defined(_M_AMD64) && _MSC_VER == 1800
-		/*
-		 * Avoid crashing in certain floating-point operations if
-		 * we were compiled for x64 with MS Visual Studio 2013 and
-		 * are running on Windows prior to 7/2008R2 SP1 on an
-		 * AVX2-capable CPU.
+
+		/*----------
+		 * Avoid crashing in certain floating-point operations if we were
+		 * compiled for x64 with MS Visual Studio 2013 and are running on
+		 * Windows prior to 7/2008R2 SP1 on an AVX2-capable CPU.
 		 *
 		 * Ref: https://connect.microsoft.com/VisualStudio/feedback/details/811093/visual-studio-2013-rtm-c-x64-code-generation-bug-for-avx2-instructions
+		 *----------
 		 */
 		if (!IsWindows7SP1OrGreater())
 		{
 			_set_FMA3_enable(0);
 		}
-#endif /* defined(_M_AMD64) && _MSC_VER == 1800 */
+#endif   /* defined(_M_AMD64) && _MSC_VER == 1800 */
 
 	}
 #endif   /* WIN32 */

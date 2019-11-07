@@ -3,13 +3,14 @@
  *
  *	server checks and output routines
  *
- *	Copyright (c) 2010-2015, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2016, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/check.c
  */
 
 #include "postgres_fe.h"
 
 #include "catalog/pg_authid.h"
+#include "fe_utils/string_utils.h"
 #include "mb/pg_wchar.h"
 #include "pg_upgrade.h"
 
@@ -25,6 +26,7 @@ static void check_for_isn_and_int8_passing_mismatch(ClusterInfo *cluster);
 static void check_for_array_of_partition_table_types(ClusterInfo *cluster);
 static void check_for_reg_data_type_usage(ClusterInfo *cluster);
 static void check_for_jsonb_9_4_usage(ClusterInfo *cluster);
+static void check_for_pg_role_prefix(ClusterInfo *cluster);
 static void get_bin_version(ClusterInfo *cluster);
 static char *get_canonical_locale_name(int category, const char *locale);
 
@@ -81,8 +83,6 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	if (!live_check)
 		start_postmaster(&old_cluster, true);
 
-	get_pg_database_relfilenode(&old_cluster);
-
 	/* Extract a list of databases and tables from the old cluster */
 	get_db_and_rel_infos(&old_cluster);
 
@@ -106,6 +106,10 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	 * Check for various Greenplum failure cases
 	 */
 	check_greenplum();
+
+	/* 9.5 and below should not have roles starting with pg_ */
+	if (GET_MAJOR_VERSION(old_cluster.major_version) <= 905)
+		check_for_pg_role_prefix(&old_cluster);
 
 	if (GET_MAJOR_VERSION(old_cluster.major_version) == 904 &&
 		old_cluster.controldata.cat_ver < JSONB_FORMAT_CHANGE_CAT_VER)
@@ -287,10 +291,10 @@ output_completion_banner(char *analyze_script_file_name,
 			   deletion_script_file_name);
 	else
 		pg_log(PG_REPORT,
-		  "Could not create a script to delete the old cluster's data files\n"
-		  "because user-defined tablespaces or the new cluster's data directory\n"
-		  "exist in the old cluster directory.  The old cluster's contents must\n"
-		  "be deleted manually.\n");
+		 "Could not create a script to delete the old cluster's data files\n"
+			   "because user-defined tablespaces or the new cluster's data directory\n"
+			   "exist in the old cluster directory.  The old cluster's contents must\n"
+			   "be deleted manually.\n");
 }
 
 
@@ -448,8 +452,14 @@ equivalent_locale(int category, const char *loca, const char *locb)
 	lenb = charb ? (charb - canonb) : strlen(canonb);
 
 	if (lena == lenb && pg_strncasecmp(canona, canonb, lena) == 0)
+	{
+		pg_free(canona);
+		pg_free(canonb);
 		return true;
+	}
 
+	pg_free(canona);
+	pg_free(canonb);
 	return false;
 }
 
@@ -612,7 +622,8 @@ create_script_for_old_cluster_deletion(char **deletion_script_file_name)
 {
 	FILE	   *script = NULL;
 	int			tblnum;
-	char		old_cluster_pgdata[MAXPGPATH], new_cluster_pgdata[MAXPGPATH];
+	char		old_cluster_pgdata[MAXPGPATH],
+				new_cluster_pgdata[MAXPGPATH];
 
 	*deletion_script_file_name = psprintf("%sdelete_old_cluster.%s",
 										  SCRIPT_PREFIX, SCRIPT_EXT);
@@ -627,7 +638,7 @@ create_script_for_old_cluster_deletion(char **deletion_script_file_name)
 	if (path_is_prefix_of_path(old_cluster_pgdata, new_cluster_pgdata))
 	{
 		pg_log(PG_WARNING,
-		   "\nWARNING:  new data directory should not be inside the old data directory, e.g. %s\n", old_cluster_pgdata);
+			   "\nWARNING:  new data directory should not be inside the old data directory, e.g. %s\n", old_cluster_pgdata);
 
 		/* Unlink file in case it is left over from a previous run. */
 		unlink(*deletion_script_file_name);
@@ -746,7 +757,8 @@ check_is_install_user(ClusterInfo *cluster)
 	res = executeQueryOrDie(conn,
 							"SELECT rolsuper, oid "
 							"FROM pg_catalog.pg_roles "
-							"WHERE rolname = current_user");
+							"WHERE rolname = current_user "
+							"AND rolname !~ '^pg_'");
 
 	/*
 	 * We only allow the install user in the new cluster (see comment below)
@@ -762,7 +774,8 @@ check_is_install_user(ClusterInfo *cluster)
 
 	res = executeQueryOrDie(conn,
 							"SELECT COUNT(*) "
-							"FROM pg_catalog.pg_roles ");
+							"FROM pg_catalog.pg_roles "
+							"WHERE rolname !~ '^pg_'");
 
 	if (PQntuples(res) != 1)
 		pg_fatal("could not determine the number of users\n");
@@ -1227,6 +1240,34 @@ check_for_jsonb_9_4_usage(ClusterInfo *cluster)
 		check_ok();
 }
 
+/*
+ * check_for_pg_role_prefix()
+ *
+ *	Versions older than 9.6 should not have any pg_* roles
+ */
+static void
+check_for_pg_role_prefix(ClusterInfo *cluster)
+{
+	PGresult   *res;
+	PGconn	   *conn = connectToServer(cluster, "template1");
+
+	prep_status("Checking for roles starting with 'pg_'");
+
+	res = executeQueryOrDie(conn,
+							"SELECT * "
+							"FROM pg_catalog.pg_roles "
+							"WHERE rolname ~ '^pg_'");
+
+	if (PQntuples(res) != 0)
+		pg_fatal("The %s cluster contains roles starting with 'pg_'\n",
+				 CLUSTER_NAME(cluster));
+
+	PQclear(res);
+
+	PQfinish(conn);
+
+	check_ok();
+}
 
 static void
 get_bin_version(ClusterInfo *cluster)

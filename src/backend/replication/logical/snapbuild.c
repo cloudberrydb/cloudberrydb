@@ -107,7 +107,7 @@
  * is a convenient point to initialize replication from, which is why we
  * export a snapshot at that point, which *can* be used to read normal data.
  *
- * Copyright (c) 2012-2015, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2016, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/snapbuild.c
@@ -324,9 +324,7 @@ AllocateSnapshotBuilder(ReorderBuffer *reorder,
 	/* allocate memory in own context, to have better accountability */
 	context = AllocSetContextCreate(CurrentMemoryContext,
 									"snapshot builder context",
-									ALLOCSET_DEFAULT_MINSIZE,
-									ALLOCSET_DEFAULT_INITSIZE,
-									ALLOCSET_DEFAULT_MAXSIZE);
+									ALLOCSET_DEFAULT_SIZES);
 	oldcontext = MemoryContextSwitchTo(context);
 
 	builder = palloc0(sizeof(SnapBuild));
@@ -635,6 +633,8 @@ SnapBuildExportSnapshot(SnapBuild *builder)
 		TransactionIdAdvance(xid);
 	}
 
+	/* adjust remaining snapshot fields as needed */
+	snap->satisfies = HeapTupleSatisfiesMVCC;
 	snap->xcnt = newxcnt;
 	snap->xip = newxip;
 
@@ -653,14 +653,33 @@ SnapBuildExportSnapshot(SnapBuild *builder)
 }
 
 /*
+ * Ensure there is a snapshot and if not build one for current transaction.
+ */
+Snapshot
+SnapBuildGetOrBuildSnapshot(SnapBuild *builder, TransactionId xid)
+{
+	Assert(builder->state == SNAPBUILD_CONSISTENT);
+
+	/* only build a new snapshot if we don't have a prebuilt one */
+	if (builder->snapshot == NULL)
+	{
+		builder->snapshot = SnapBuildBuildSnapshot(builder, xid);
+		/* increase refcount for the snapshot builder */
+		SnapBuildSnapIncRefcount(builder->snapshot);
+	}
+
+	return builder->snapshot;
+}
+
+/*
  * Reset a previously SnapBuildExportSnapshot()'ed snapshot if there is
  * any. Aborts the previously started transaction and resets the resource
  * owner back to its original value.
  */
 void
-SnapBuildClearExportedSnapshot()
+SnapBuildClearExportedSnapshot(void)
 {
-	/* nothing exported, thats the usual case */
+	/* nothing exported, that is the usual case */
 	if (!ExportInProgress)
 		return;
 
@@ -1483,7 +1502,8 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 
 	if (ret != 0 && errno != ENOENT)
 		ereport(ERROR,
-				(errmsg("could not stat file \"%s\": %m", path)));
+				(errcode_for_file_access(),
+				 errmsg("could not stat file \"%s\": %m", path)));
 
 	else if (ret == 0)
 	{
@@ -1525,7 +1545,7 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	if (unlink(tmppath) != 0 && errno != ENOENT)
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not remove file \"%s\": %m", path)));
+				 errmsg("could not remove file \"%s\": %m", tmppath)));
 
 	needed_length = sizeof(SnapBuildOnDisk) +
 		sizeof(TransactionId) * builder->committed.xcnt;
@@ -1569,7 +1589,8 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 						   S_IRUSR | S_IWUSR);
 	if (fd < 0)
 		ereport(ERROR,
-				(errmsg("could not open file \"%s\": %m", path)));
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %m", tmppath)));
 
 	errno = 0;
 	if ((write(fd, ondisk, needed_length)) != needed_length)
@@ -1588,6 +1609,9 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	/*
 	 * fsync the file before renaming so that even if we crash after this we
 	 * have either a fully valid file or nothing.
+	 *
+	 * It's safe to just ERROR on fsync() here because we'll retry the whole
+	 * operation including the writes.
 	 *
 	 * TODO: Do the fsync() via checkpoints/restartpoints, doing it here has
 	 * some noticeable overhead since it's performed synchronously during
@@ -1692,12 +1716,14 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 
 	if (ondisk.magic != SNAPBUILD_MAGIC)
 		ereport(ERROR,
-				(errmsg("snapbuild state file \"%s\" has wrong magic %u instead of %u",
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("snapbuild state file \"%s\" has wrong magic number: %u instead of %u",
 						path, ondisk.magic, SNAPBUILD_MAGIC)));
 
 	if (ondisk.version != SNAPBUILD_VERSION)
 		ereport(ERROR,
-				(errmsg("snapbuild state file \"%s\" has unsupported version %u instead of %u",
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("snapbuild state file \"%s\" has unsupported version: %u instead of %u",
 						path, ondisk.version, SNAPBUILD_VERSION)));
 
 	INIT_CRC32C(checksum);
@@ -1762,8 +1788,8 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 	/* verify checksum of what we've read */
 	if (!EQ_CRC32C(checksum, ondisk.checksum))
 		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("snapbuild state file %s: checksum mismatch, is %u, should be %u",
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("checksum mismatch for snapbuild state file \"%s\": is %u, should be %u",
 						path, checksum, ondisk.checksum)));
 
 	/*

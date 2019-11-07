@@ -82,7 +82,7 @@ AcquireSessionState(int sessionId, int vmem, int activeProcessCount)
 {
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -265,7 +265,7 @@ test__RedZoneHandler_FlagTopConsumer__FindsTopConsumer(void **state)
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -308,7 +308,7 @@ test__RedZoneHandler_FlagTopConsumer__IgnoresIdleSession(void **state)
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -351,7 +351,7 @@ test__RedZoneHandler_FlagTopConsumer__ReactivatesDetectorIfNoActiveSession(void 
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 
@@ -391,7 +391,7 @@ test__RedZoneHandler_FlagTopConsumer__UpdatesEventVersions(void **state)
 
 	will_be_called_count(LWLockAcquire, 1);
 	will_be_called_count(LWLockRelease, 1);
-	expect_any_count(LWLockAcquire, l, 1);
+	expect_any_count(LWLockAcquire, lock, 1);
 	expect_any_count(LWLockAcquire, mode, 1);
 	expect_any_count(LWLockRelease, lock, 1);
 

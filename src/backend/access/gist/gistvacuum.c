@@ -4,7 +4,7 @@
  *	  vacuuming routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -25,11 +25,9 @@
 /*
  * VACUUM cleanup: update FSM
  */
-Datum
-gistvacuumcleanup(PG_FUNCTION_ARGS)
+IndexBulkDeleteResult *
+gistvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
 {
-	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
-	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	rel = info->index;
 	BlockNumber npages,
 				blkno;
@@ -39,7 +37,7 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 
 	/* No-op in ANALYZE ONLY mode */
 	if (info->analyze_only)
-		PG_RETURN_POINTER(stats);
+		return stats;
 
 	/* Set up all-zero stats if gistbulkdelete wasn't called */
 	if (stats == NULL)
@@ -97,7 +95,7 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 	stats->num_index_tuples = tuplesCount;
 	stats->estimated_count = false;
 
-	PG_RETURN_POINTER(stats);
+	return stats;
 }
 
 typedef struct GistBDItem
@@ -136,13 +134,10 @@ pushStackIfSplited(Page page, GistBDItem *stack)
  *
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
-Datum
-gistbulkdelete(PG_FUNCTION_ARGS)
+IndexBulkDeleteResult *
+gistbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+			   IndexBulkDeleteCallback callback, void *callback_state)
 {
-	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
-	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
-	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
-	void	   *callback_state = (void *) PG_GETARG_POINTER(3);
 	Relation	rel = info->index;
 	GistBDItem *stack,
 			   *ptr;
@@ -207,14 +202,12 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 				idxtuple = (IndexTuple) PageGetItem(page, iid);
 
 				if (callback(&(idxtuple->t_tid), callback_state))
-				{
-					todelete[ntodelete] = i - ntodelete;
-					ntodelete++;
-					stats->tuples_removed += 1;
-				}
+					todelete[ntodelete++] = i;
 				else
 					stats->num_index_tuples += 1;
 			}
+
+			stats->tuples_removed += ntodelete;
 
 			if (ntodelete)
 			{
@@ -222,15 +215,14 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 
 				MarkBufferDirty(buffer);
 
-				for (i = 0; i < ntodelete; i++)
-					PageIndexTupleDelete(page, todelete[i]);
+				PageIndexMultiDelete(page, todelete, ntodelete);
 				GistMarkTuplesDeleted(page);
 
 				if (RelationNeedsWAL(rel))
 				{
 					XLogRecPtr	recptr;
 
-					recptr = gistXLogUpdate(rel->rd_node, buffer,
+					recptr = gistXLogUpdate(buffer,
 											todelete, ntodelete,
 											NULL, 0, InvalidBuffer);
 					PageSetLSN(page, recptr);
@@ -278,5 +270,5 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 		vacuum_delay_point();
 	}
 
-	PG_RETURN_POINTER(stats);
+	return stats;
 }

@@ -3,7 +3,7 @@
  * orderedsetaggs.c
  *		Ordered-set aggregate functions.
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -455,7 +455,7 @@ percentile_disc_final(PG_FUNCTION_ARGS)
 			elog(ERROR, "missing row in percentile_disc");
 	}
 
-	if (!tuplesort_getdatum(osastate->sortstate, true, &val, &isnull))
+	if (!tuplesort_getdatum(osastate->sortstate, true, &val, &isnull, NULL))
 		elog(ERROR, "missing row in percentile_disc");
 
 	/*
@@ -591,7 +591,7 @@ percentile_cont_final_common(FunctionCallInfo fcinfo,
 	if (!tuplesort_skiptuples(osastate->sortstate, first_row, true))
 		elog(ERROR, "missing row in percentile_cont");
 
-	if (!tuplesort_getdatum(osastate->sortstate, true, &first_val, &isnull))
+	if (!tuplesort_getdatum(osastate->sortstate, true, &first_val, &isnull, NULL))
 		elog(ERROR, "missing row in percentile_cont");
 	if (isnull)
 		PG_RETURN_NULL();
@@ -602,7 +602,7 @@ percentile_cont_final_common(FunctionCallInfo fcinfo,
 	}
 	else
 	{
-		if (!tuplesort_getdatum(osastate->sortstate, true, &second_val, &isnull))
+		if (!tuplesort_getdatum(osastate->sortstate, true, &second_val, &isnull, NULL))
 			elog(ERROR, "missing row in percentile_cont");
 
 		if (isnull)
@@ -848,7 +848,7 @@ percentile_disc_multi_final(PG_FUNCTION_ARGS)
 				if (!tuplesort_skiptuples(osastate->sortstate, target_row - rownum - 1, true))
 					elog(ERROR, "missing row in percentile_disc");
 
-				if (!tuplesort_getdatum(osastate->sortstate, true, &val, &isnull))
+				if (!tuplesort_getdatum(osastate->sortstate, true, &val, &isnull, NULL))
 					elog(ERROR, "missing row in percentile_disc");
 
 				rownum = target_row;
@@ -977,7 +977,8 @@ percentile_cont_multi_final_common(FunctionCallInfo fcinfo,
 				if (!tuplesort_skiptuples(osastate->sortstate, first_row - rownum - 1, true))
 					elog(ERROR, "missing row in percentile_cont");
 
-				if (!tuplesort_getdatum(osastate->sortstate, true, &first_val, &isnull) || isnull)
+				if (!tuplesort_getdatum(osastate->sortstate, true, &first_val,
+										&isnull, NULL) || isnull)
 					elog(ERROR, "missing row in percentile_cont");
 
 				rownum = first_row;
@@ -997,7 +998,8 @@ percentile_cont_multi_final_common(FunctionCallInfo fcinfo,
 			/* Fetch second_row if needed */
 			if (second_row > rownum)
 			{
-				if (!tuplesort_getdatum(osastate->sortstate, true, &second_val, &isnull) || isnull)
+				if (!tuplesort_getdatum(osastate->sortstate, true, &second_val,
+										&isnull, NULL) || isnull)
 					elog(ERROR, "missing row in percentile_cont");
 				rownum++;
 			}
@@ -1098,6 +1100,8 @@ mode_final(PG_FUNCTION_ARGS)
 	int64		last_val_freq = 0;
 	bool		last_val_is_mode = false;
 	FmgrInfo   *equalfn;
+	Datum		abbrev_val = (Datum) 0;
+	Datum		last_abbrev_val = (Datum) 0;
 	bool		shouldfree;
 
 	Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
@@ -1124,7 +1128,7 @@ mode_final(PG_FUNCTION_ARGS)
 	tuplesort_performsort(osastate->sortstate);
 
 	/* Scan tuples and count frequencies */
-	while (tuplesort_getdatum(osastate->sortstate, true, &val, &isnull))
+	while (tuplesort_getdatum(osastate->sortstate, true, &val, &isnull, &abbrev_val))
 	{
 		/* we don't expect any nulls, but ignore them if found */
 		if (isnull)
@@ -1136,8 +1140,10 @@ mode_final(PG_FUNCTION_ARGS)
 			mode_val = last_val = val;
 			mode_freq = last_val_freq = 1;
 			last_val_is_mode = true;
+			last_abbrev_val = abbrev_val;
 		}
-		else if (DatumGetBool(FunctionCall2(equalfn, val, last_val)))
+		else if (abbrev_val == last_abbrev_val &&
+				 DatumGetBool(FunctionCall2(equalfn, val, last_val)))
 		{
 			/* value equal to previous value, count it */
 			if (last_val_is_mode)
@@ -1160,6 +1166,8 @@ mode_final(PG_FUNCTION_ARGS)
 			if (shouldfree && !last_val_is_mode)
 				pfree(DatumGetPointer(last_val));
 			last_val = val;
+			/* avoid equality function calls by reusing abbreviated keys */
+			last_abbrev_val = abbrev_val;
 			last_val_freq = 1;
 			last_val_is_mode = false;
 		}
@@ -1263,7 +1271,7 @@ hypothetical_rank_common(FunctionCallInfo fcinfo, int flag,
 	tuplesort_performsort(osastate->sortstate);
 
 	/* iterate till we find the hypothetical row */
-	while (tuplesort_gettupleslot(osastate->sortstate, true, slot))
+	while (tuplesort_gettupleslot(osastate->sortstate, true, slot, NULL))
 	{
 		bool		isnull;
 		Datum		d = slot_getattr(slot, nargs + 1, &isnull);
@@ -1348,6 +1356,8 @@ hypothetical_dense_rank_final(PG_FUNCTION_ARGS)
 	int64		duplicate_count = 0;
 	OSAPerGroupState *osastate;
 	int			numDistinctCols;
+	Datum		abbrevVal = (Datum) 0;
+	Datum		abbrevOld = (Datum) 0;
 	AttrNumber *sortColIdx;
 	FmgrInfo   *equalfns;
 	TupleTableSlot *slot;
@@ -1424,7 +1434,7 @@ hypothetical_dense_rank_final(PG_FUNCTION_ARGS)
 	slot2 = extraslot;
 
 	/* iterate till we find the hypothetical row */
-	while (tuplesort_gettupleslot(osastate->sortstate, true, slot))
+	while (tuplesort_gettupleslot(osastate->sortstate, true, slot, &abbrevVal))
 	{
 		bool		isnull;
 		Datum		d = slot_getattr(slot, nargs + 1, &isnull);
@@ -1435,6 +1445,7 @@ hypothetical_dense_rank_final(PG_FUNCTION_ARGS)
 
 		/* count non-distinct tuples */
 		if (!TupIsNull(slot2) &&
+			abbrevVal == abbrevOld &&
 			execTuplesMatch(slot, slot2,
 							numDistinctCols,
 							sortColIdx,
@@ -1445,6 +1456,8 @@ hypothetical_dense_rank_final(PG_FUNCTION_ARGS)
 		tmpslot = slot2;
 		slot2 = slot;
 		slot = tmpslot;
+		/* avoid execTuplesMatch() calls by reusing abbreviated keys */
+		abbrevOld = abbrevVal;
 
 		rank++;
 

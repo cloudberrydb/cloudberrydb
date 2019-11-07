@@ -3,7 +3,7 @@
  * objectaddress.c
  *	  functions for working with ObjectAddresses
  *
- * Portions Copyright (c) 1996-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,6 +22,7 @@
 #include "catalog/catalog.h"
 #include "catalog/indexing.h"
 #include "catalog/objectaddress.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_amop.h"
 #include "catalog/pg_amproc.h"
 #include "catalog/pg_attrdef.h"
@@ -31,6 +32,7 @@
 #include "catalog/pg_event_trigger.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_constraint.h"
+#include "catalog/pg_constraint_fn.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_extension.h"
@@ -114,6 +116,18 @@ typedef struct
 
 static const ObjectPropertyType ObjectProperty[] =
 {
+	{
+		AccessMethodRelationId,
+		AmOidIndexId,
+		AMOID,
+		AMNAME,
+		Anum_pg_am_amname,
+		InvalidAttrNumber,
+		InvalidAttrNumber,
+		InvalidAttrNumber,
+		-1,
+		true
+	},
 	{
 		CastRelationId,
 		CastOidIndexId,
@@ -582,6 +596,10 @@ static const struct object_type_map
 	{
 		"operator family", OBJECT_OPFAMILY
 	},
+	/* OCLASS_AM */
+	{
+		"access method", OBJECT_ACCESS_METHOD
+	},
 	/* OCLASS_AMOP */
 	{
 		"operator of access method", OBJECT_AMOP
@@ -818,6 +836,7 @@ get_object_address(ObjectType objtype, List *objname, List *objargs,
 			case OBJECT_FOREIGN_SERVER:
 			case OBJECT_EVENT_TRIGGER:
 			case OBJECT_EXTPROTOCOL:
+			case OBJECT_ACCESS_METHOD:
 				address = get_object_address_unqualified(objtype,
 														 objname, missing_ok);
 				break;
@@ -1032,6 +1051,31 @@ get_object_address(ObjectType objtype, List *objname, List *objargs,
 }
 
 /*
+ * Return an ObjectAddress based on a RangeVar and an object name. The
+ * name of the relation identified by the RangeVar is prepended to the
+ * (possibly empty) list passed in as objname. This is useful to find
+ * the ObjectAddress of objects that depend on a relation. All other
+ * considerations are exactly as for get_object_address above.
+ */
+ObjectAddress
+get_object_address_rv(ObjectType objtype, RangeVar *rel, List *objname,
+					  List *objargs, Relation *relp, LOCKMODE lockmode,
+					  bool missing_ok)
+{
+	if (rel)
+	{
+		objname = lcons(makeString(rel->relname), objname);
+		if (rel->schemaname)
+			objname = lcons(makeString(rel->schemaname), objname);
+		if (rel->catalogname)
+			objname = lcons(makeString(rel->catalogname), objname);
+	}
+
+	return get_object_address(objtype, objname, objargs,
+							  relp, lockmode, missing_ok);
+}
+
+/*
  * Find an ObjectAddress for a type of object that is identified by an
  * unqualified name.
  */
@@ -1052,6 +1096,9 @@ get_object_address_unqualified(ObjectType objtype,
 
 		switch (objtype)
 		{
+			case OBJECT_ACCESS_METHOD:
+				msg = gettext_noop("access method name cannot be qualified");
+				break;
 			case OBJECT_DATABASE:
 				msg = gettext_noop("database name cannot be qualified");
 				break;
@@ -1097,6 +1144,11 @@ get_object_address_unqualified(ObjectType objtype,
 	/* Translate name to OID. */
 	switch (objtype)
 	{
+		case OBJECT_ACCESS_METHOD:
+			address.classId = AccessMethodRelationId;
+			address.objectId = get_am_oid(name, missing_ok);
+			address.objectSubId = 0;
+			break;
 		case OBJECT_DATABASE:
 			address.classId = DatabaseRelationId;
 			address.objectId = get_database_oid(name, missing_ok);
@@ -1539,7 +1591,7 @@ get_object_address_opcf(ObjectType objtype, List *objname, bool missing_ok)
 	ObjectAddress address;
 
 	/* XXX no missing_ok support here */
-	amoid = get_am_oid(strVal(linitial(objname)), false);
+	amoid = get_index_am_oid(strVal(linitial(objname)), false);
 	objname = list_copy_tail(objname, 1);
 
 	switch (objtype)
@@ -1704,7 +1756,7 @@ get_object_address_usermapping(List *objname, List *objargs, bool missing_ok)
 			if (!missing_ok)
 				ereport(ERROR,
 						(errcode(ERRCODE_UNDEFINED_OBJECT),
-						 errmsg("user mapping for user \"%s\" in server \"%s\" does not exist",
+						 errmsg("user mapping for user \"%s\" on server \"%s\" does not exist",
 								username, servername)));
 			return address;
 		}
@@ -1730,7 +1782,7 @@ get_object_address_usermapping(List *objname, List *objargs, bool missing_ok)
 		if (!missing_ok)
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("user mapping for user \"%s\" in server \"%s\" does not exist",
+					 errmsg("user mapping for user \"%s\" on server \"%s\" does not exist",
 							username, servername)));
 		return address;
 	}
@@ -1792,7 +1844,7 @@ get_object_address_defacl(List *objname, List *objargs, bool missing_ok)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				  errmsg("unrecognized default ACL object type %c", objtype),
-				 errhint("Valid object types are 'r', 'S', 'f', and 'T'.")));
+					 errhint("Valid object types are \"r\", \"S\", \"f\", and \"T\".")));
 	}
 
 	/*
@@ -1883,7 +1935,7 @@ textarray_to_strvaluelist(ArrayType *arr)
 Datum
 pg_get_object_address(PG_FUNCTION_ARGS)
 {
-	char	   *ttype = TextDatumGetCString(PG_GETARG_TEXT_P(0));
+	char	   *ttype = TextDatumGetCString(PG_GETARG_DATUM(0));
 	ArrayType  *namearr = PG_GETARG_ARRAYTYPE_P(1);
 	ArrayType  *argsarr = PG_GETARG_ARRAYTYPE_P(2);
 	int			itype;
@@ -1953,7 +2005,7 @@ pg_get_object_address(PG_FUNCTION_ARGS)
 		if (list_length(name) < 1)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("name list must be of length at least %d", 1)));
+					 errmsg("name list length must be at least %d", 1)));
 	}
 
 	/*
@@ -2236,6 +2288,7 @@ check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
 			break;
 		case OBJECT_TSPARSER:
 		case OBJECT_TSTEMPLATE:
+		case OBJECT_ACCESS_METHOD:
 		case OBJECT_RESQUEUE:
 		case OBJECT_RESGROUP:
 			/* We treat these object types as being owned by superusers */
@@ -3252,6 +3305,21 @@ getObjectDescription(const ObjectAddress *object)
 				break;
 			}
 
+		case OCLASS_AM:
+			{
+				HeapTuple	tup;
+
+				tup = SearchSysCache1(AMOID,
+									  ObjectIdGetDatum(object->objectId));
+				if (!HeapTupleIsValid(tup))
+					elog(ERROR, "cache lookup failed for access method %u",
+						 object->objectId);
+				appendStringInfo(&buffer, _("access method %s"),
+							 NameStr(((Form_pg_am) GETSTRUCT(tup))->amname));
+				ReleaseSysCache(tup);
+				break;
+			}
+
 		case OCLASS_EXTPROTOCOL:
 			{
 				appendStringInfo(&buffer, _("protocol %s"),
@@ -3762,6 +3830,10 @@ getObjectTypeDescription(const ObjectAddress *object)
 
 		case OCLASS_TRANSFORM:
 			appendStringInfoString(&buffer, "transform");
+			break;
+
+		case OCLASS_AM:
+			appendStringInfoString(&buffer, "access method");
 			break;
 
 		default:
@@ -4717,6 +4789,20 @@ getObjectIdentityParts(const ObjectAddress *object,
 				}
 
 				heap_close(transformDesc, AccessShareLock);
+			}
+			break;
+
+		case OCLASS_AM:
+			{
+				char	   *amname;
+
+				amname = get_am_name(object->objectId);
+				if (!amname)
+					elog(ERROR, "cache lookup failed for access method %u",
+						 object->objectId);
+				appendStringInfoString(&buffer, quote_identifier(amname));
+				if (objname)
+					*objname = list_make1(amname);
 			}
 			break;
 

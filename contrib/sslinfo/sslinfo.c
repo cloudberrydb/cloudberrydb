@@ -382,6 +382,7 @@ ssl_issuer_dn(PG_FUNCTION_ARGS)
 	return X509_NAME_to_text(X509_get_issuer_name(MyProcPort->peer));
 }
 
+
 /*
  * Returns information about available SSL extensions.
  *
