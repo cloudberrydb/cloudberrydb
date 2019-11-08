@@ -1739,16 +1739,29 @@ select sum(z) as c from qp_misc_jiras.tbl7957_foo group by cube(z) order by c;
 
 drop table qp_misc_jiras.tbl7957_foo;
 
--- start_ignore
+--
+-- Test for MPP-6421, an old bug in GPDB 3.2.3.0.
+--
+-- Description of the bug from the original report:
+--
+-- Executing immutable functions that contain selects from a table as a
+-- non-superuser causes a SIGSEGV and a system core dump.  Executing the same
+-- function as a superuser does NOT cause the problem.  Functions that are not
+-- immutable do NOT cause the problem.  This problem seems to have been
+-- introduced in 3.2.3.0, it is NOT reproducible in versions earlier than
+-- that.  It is still reproducible in 3.3.0.1.  It is reproducible on both
+-- Solaris and Mac platforms.
+--
 CREATE SCHEMA mustan;
-
 CREATE TABLE mustan.test(
 	id int,
 	d date
 );
--- end_ignore
-	
 INSERT INTO mustan.test( id, d ) VALUES( 1, '20080101' ), (2, '20080102');
+
+CREATE USER regress_mustan NOLOGIN;
+GRANT USAGE ON SCHEMA mustan TO regress_mustan;
+GRANT SELECT ON mustan.test to regress_mustan;
 
 CREATE OR REPLACE FUNCTION mustan.f1() RETURNS DATE AS $$
 BEGIN
@@ -1817,6 +1830,7 @@ BEGIN
 END;
 $$LANGUAGE plpgsql immutable;
 
+SET SESSION AUTHORIZATION regress_mustan;
 
 select * from mustan.f1();
 select * from mustan.f2();
@@ -1826,6 +1840,11 @@ select * from mustan.f5();
 select * from mustan.f6( 2 );
 select * from mustan.f7( '20080102'::date );
 select * from mustan.f7( '20080102' );-- 
+
+-- Clean up
+RESET SESSION AUTHORIZATION;
+drop schema mustan cascade;
+drop user regress_mustan;
 
 
 -- start_ignore
