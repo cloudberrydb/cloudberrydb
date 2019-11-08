@@ -1877,20 +1877,6 @@ reset enable_seqscan;
 reset enable_bitmapscan;
 reset enable_indexscan;
 
--- create sample table
-create table qp_misc_jiras.tbl2976(x int);
-insert into qp_misc_jiras.tbl2976 select generate_series(1,1000);
-
--- test cases
--- start_ignore
-select pg_relation_size(tablename) from pg_tables where schemaname ='qp_misc_jiras' and tablename = 'tbl2976'; -- This should work
-
-select pg_relation_size(oid) from pg_class where relname = 'tbl2976'; -- This should work
--- end_ignore
-create table qp_misc_jiras.tbl2976_3(x int) distributed by (x);
-
-drop table qp_misc_jiras.tbl2976;
-drop table qp_misc_jiras.tbl2976_3;
 create table qp_misc_jiras.tbl8258 (a int, b double precision)
 PARTITION BY RANGE(b)
 (START (1::double precision) END (100::double precision)

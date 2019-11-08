@@ -90,3 +90,10 @@ select pg_table_size('aocssizetest') between 1500000 and 3000000; -- 1884456
 select pg_table_size('aocssizetest') > pg_relation_size('aocssizetest');
 select pg_total_relation_size('aocssizetest') between 1500000 and 3000000; -- 1884456
 select pg_total_relation_size('aocssizetest') = pg_table_size('aocssizetest');
+
+
+-- Also test pg_relation_size() in a query that selects from pg_class. It is a
+-- very typical way to use the the functions, so make sure it works. (A
+-- plausible difference to the above scenarios would be that the function
+-- might get executed on different nodes, for example.)
+select pg_relation_size(oid) between 3000000 and 5000000 from pg_class where relname = 'heapsizetest'; -- 3637248
