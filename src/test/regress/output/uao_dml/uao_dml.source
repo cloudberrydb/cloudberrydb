@@ -231,17 +231,27 @@ BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 DELETE FROM foo WHERE a < 4;
 ERROR:  deletes on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=96582)
 ROLLBACK;
+-- @Description Tests that update in a serializable transaction is not supported
+-- 
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+UPDATE foo SET b = 1 WHERE a < 4;
+ERROR:  updates on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=73392)
+ROLLBACK;
 -- @Description Tests that delete in a serializable transaction is not supported
 -- even in a subtransaction.
 -- 
-DROP TABLE IF EXISTS foo;
-CREATE TABLE foo (a INT, b INT, c CHAR(128)) WITH (appendonly=true);
-CREATE INDEX foo_index ON foo(b);
-INSERT INTO foo SELECT i as a, i as b, 'hello world' as c FROM generate_series(1,1000) AS i;
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 SAVEPOINT my_savepoint;
 DELETE FROM foo WHERE a < 4;
 ERROR:  deletes on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=96582)
+ROLLBACK;
+-- @Description Tests that update in a serializable transaction is not supported
+-- even in a subtransaction.
+-- 
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SAVEPOINT my_savepoint;
+UPDATE foo SET b = 1 WHERE a < 4;
+ERROR:  updates on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=73392)
 ROLLBACK;
 -- @Description Tests that delete with sub transactions
 -- 
@@ -1809,16 +1819,6 @@ reset enable_nestloop;
 reset enable_seqscan;
 reset enable_bitmapscan;
 reset enable_mergejoin;
--- @Description Tests that update in a serializable transaction is not supported
--- 
-DROP TABLE IF EXISTS foo;
-CREATE TABLE foo (a INT, b INT, c CHAR(128)) WITH (appendonly=true);
-CREATE INDEX foo_index ON foo(b);
-INSERT INTO foo SELECT i as a, i as b, 'hello world' as c FROM generate_series(1,1000) AS i;
-BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-UPDATE foo SET b = 1 WHERE a < 4;
-ERROR:  updates on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=73392)
-ROLLBACK;
 -- @Description Tests that update is supported in a subtransaction.
 -- 
 DROP TABLE IF EXISTS foo;
@@ -1876,15 +1876,3 @@ SELECT COUNT(*) FROM foo WHERE b = 1;
 (1 row)
 
 COMMIT;
--- @Description Tests that update in a serializable transaction is not supported
--- even in a subtransaction.
--- 
-DROP TABLE IF EXISTS foo;
-CREATE TABLE foo (a INT, b INT, c CHAR(128)) WITH (appendonly=true);
-CREATE INDEX foo_index ON foo(b);
-INSERT INTO foo SELECT i as a, i as b, 'hello world' as c FROM generate_series(1,1000) AS i;
-BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-SAVEPOINT my_savepoint;
-UPDATE foo SET b = 1 WHERE a < 4;
-ERROR:  updates on append-only tables are not supported in serializable transactions  (seg0 gesameistd1m1.corp.emc.com:40000 pid=73392)
-ROLLBACK;
