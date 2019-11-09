@@ -1329,7 +1329,7 @@ UPDATE_GPCONFIG () {
 		U_ROLE=$8
 
 		U_DB=$DEFAULTDB
-		CHK_COUNT=`env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -A -t -c "SELECT count(*) FROM $GP_CONFIG_TBL WHERE content=${U_CONTENT} AND preferred_role='${U_ROLE}';" 2>/dev/null` >> $LOG_FILE 2>&1
+		CHK_COUNT=`env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -X -A -t -c "SELECT count(*) FROM $GP_CONFIG_TBL WHERE content=${U_CONTENT} AND preferred_role='${U_ROLE}';" 2>/dev/null` >> $LOG_FILE 2>&1
 		ERROR_CHK $? "obtain psql count Master $GP_CONFIG_TBL" 2
 		if [ $CHK_COUNT -eq 0 ]; then
 				LOG_MSG "[INFO]:-Adding $U_CONTENT on $U_HOSTNAME, path $U_DIR to Master gp_segment_configuration"
@@ -1447,7 +1447,7 @@ REGISTER_MIRRORS () {
 		for I in "${QE_MIRROR_ARRAY[@]}"
 		do
 			SET_VAR $I
-			dbid=`env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "${DEFAULTDB}" -A -t -c "select pg_catalog.gp_add_segment_mirror(${GP_CONTENT}::int2, '${GP_HOSTADDRESS}', '${GP_HOSTADDRESS}', ${GP_PORT}, '${GP_DIR}');" 2>/dev/null` >> $LOG_FILE 2>&1
+			dbid=`env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "${DEFAULTDB}" -X -A -t -c "select pg_catalog.gp_add_segment_mirror(${GP_CONTENT}::int2, '${GP_HOSTADDRESS}', '${GP_HOSTADDRESS}', ${GP_PORT}, '${GP_DIR}');" 2>/dev/null` >> $LOG_FILE 2>&1
 			ERROR_CHK $? "failed to register mirror for contentid=${GP_CONTENT}" 2
 			MIRRORS_UPDATED_DBID=(${MIRRORS_UPDATED_DBID[@]} ${GP_HOSTADDRESS}~${GP_PORT}~${GP_DIR}~${dbid}~${GP_CONTENT})
 		done
@@ -1587,7 +1587,7 @@ FORCE_FTS_PROBE () {
             break;
         fi
 
-        RESULT=$( $PSQL -p $GP_PORT -d "$DEFAULTDB" -A -t -c "select count(*) > 0 from gp_segment_configuration where (mode = 'n' or status = 'd') and content != -1;" )
+        RESULT=$( $PSQL -p $GP_PORT -d "$DEFAULTDB" -X -A -t -c "select count(*) > 0 from gp_segment_configuration where (mode = 'n' or status = 'd') and content != -1;" )
         if [ x"$RESULT" == x"f" ]; then
             break
         fi
