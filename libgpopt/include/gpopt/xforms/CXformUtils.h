@@ -1259,8 +1259,9 @@ namespace gpopt
 			{
 				CExpression *pexprPredInner;
 				CExpression *pexprPredOuter;
+				IMDId *mdid_scop;
 				CPhysicalJoin::AlignJoinKeyOuterInner(pexprPred, pexprOuter, pexprInner,
-													   &pexprPredOuter, &pexprPredInner);
+													   &pexprPredOuter, &pexprPredInner, &mdid_scop);
 
 				pexprPredInner->AddRef();
 				pexprPredOuter->AddRef();
@@ -1359,8 +1360,9 @@ namespace gpopt
 			{
 				CExpression *pexprPredInner;
 				CExpression *pexprPredOuter;
+				IMDId *mdid_scop;
 				CPhysicalJoin::AlignJoinKeyOuterInner(pexprPred, pexprOuter, pexprInner,
-													   &pexprPredOuter, &pexprPredInner);
+													   &pexprPredOuter, &pexprPredInner, &mdid_scop);
 
 				pexprPredInner->AddRef();
 				pexprPredOuter->AddRef();

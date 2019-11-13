@@ -436,7 +436,8 @@ namespace gpopt
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression **ppexprKeyOuter,
-				CExpression **ppexprKeyInner
+				CExpression **ppexprKeyInner,
+				IMDId **mdid_scop
 				);
 
 			static

@@ -4058,20 +4058,21 @@ CTranslatorExprToDXL::PdxlnHashJoin
 		{
 			CExpression *pexprPredOuter;
 			CExpression *pexprPredInner;
+			IMDId *mdid_scop;
 			CPhysicalJoin::AlignJoinKeyOuterInner(pexprPred, pexprOuterChild, pexprInnerChild,
-												   &pexprPredOuter, &pexprPredInner);
+												   &pexprPredOuter, &pexprPredInner, &mdid_scop);
 
 			pexprPredOuter->AddRef();
 			pexprPredInner->AddRef();
 			// create hash join predicate based on conjunct type
 			if (CPredicateUtils::IsEqualityOp(pexprPred))
 			{
-				pexprPred = CUtils::PexprScalarEqCmp(m_mp, pexprPredOuter, pexprPredInner);
+				pexprPred = CUtils::PexprScalarCmp(m_mp, pexprPredOuter, pexprPredInner, mdid_scop);
 			}
 			else
 			{
 				GPOS_ASSERT(CPredicateUtils::FINDF(pexprPred));
-				pexprPred = CUtils::PexprINDF(m_mp, pexprPredOuter, pexprPredInner);
+				pexprPred = CUtils::PexprINDF(m_mp, pexprPredOuter, pexprPredInner, mdid_scop);
 			}
 
 			CDXLNode *pdxlnPred = PdxlnScalar(pexprPred);

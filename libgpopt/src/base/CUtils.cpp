@@ -398,6 +398,48 @@ CUtils::PexprScalarCmp
 	CMemoryPool *mp,
 	CExpression *pexprLeft,
 	CExpression *pexprRight,
+	IMDId *mdid_scop
+	)
+{
+	GPOS_ASSERT(NULL != pexprLeft);
+	GPOS_ASSERT(NULL != pexprRight);
+	GPOS_ASSERT(NULL != mdid_scop);
+
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	CExpression *pexprNewLeft = pexprLeft;
+	CExpression *pexprNewRight = pexprRight;
+
+	GPOS_ASSERT(pexprNewLeft != NULL);
+	GPOS_ASSERT(pexprNewRight != NULL);
+
+	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, pexprNewRight, mdid_scop);
+
+	mdid_scop->AddRef();
+	const IMDScalarOp *op = md_accessor->RetrieveScOp(mdid_scop);
+	const CMDName mdname = op->Mdname();
+	CWStringConst strCmpOpName(mdname.GetMDName()->GetBuffer());
+
+	CExpression *pexprResult = GPOS_NEW(mp) CExpression
+					(
+					mp,
+					GPOS_NEW(mp) CScalarCmp(mp, mdid_scop,
+											GPOS_NEW(mp) CWStringConst(mp, strCmpOpName.GetBuffer()),
+											op->ParseCmpType()),
+					pexprNewLeft,
+					pexprNewRight
+					);
+
+	return pexprResult;
+}
+
+// Generate a comparison expression over two expressions
+CExpression *
+CUtils::PexprScalarCmp
+	(
+	CMemoryPool *mp,
+	CExpression *pexprLeft,
+	CExpression *pexprRight,
 	IMDType::ECmpType cmp_type
 	)
 {
@@ -410,7 +452,9 @@ CUtils::PexprScalarCmp
 	CExpression *pexprNewLeft = pexprLeft;
 	CExpression *pexprNewRight = pexprRight;
 
-	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdApplyCasts(mp, md_accessor, pexprNewLeft, pexprNewRight, cmp_type);
+	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, pexprNewLeft,
+																 pexprNewRight, cmp_type);
+	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, pexprNewRight, op_mdid);
 
 	GPOS_ASSERT(pexprNewLeft != NULL);
 	GPOS_ASSERT(pexprNewRight != NULL);
@@ -759,7 +803,9 @@ CUtils::PexprIDF
 	CExpression *pexprNewLeft = pexprLeft;
 	CExpression *pexprNewRight = pexprRight;
 
-	IMDId *pmdidEqOp = CMDAccessorUtils::GetScCmpMdIdApplyCasts(mp, md_accessor, pexprNewLeft, pexprNewRight, IMDType::EcmptEq);
+	IMDId *pmdidEqOp = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, pexprNewLeft,
+																   pexprNewRight, IMDType::EcmptEq);
+	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, pexprNewRight, pmdidEqOp);
 	pmdidEqOp->AddRef();
 	const CMDName mdname = md_accessor->RetrieveScOp(pmdidEqOp)->Mdname();
 	CWStringConst strEqOpName(mdname.GetMDName()->GetBuffer());
@@ -768,6 +814,38 @@ CUtils::PexprIDF
 				(
 				mp,
 				GPOS_NEW(mp) CScalarIsDistinctFrom(mp, pmdidEqOp, GPOS_NEW(mp) CWStringConst(mp, strEqOpName.GetBuffer())),
+				pexprNewLeft,
+				pexprNewRight
+				);
+}
+
+// generate an Is Distinct From expression
+CExpression *
+CUtils::PexprIDF
+	(
+	CMemoryPool *mp,
+	CExpression *pexprLeft,
+	CExpression *pexprRight,
+	IMDId *mdid_scop
+	)
+{
+	GPOS_ASSERT(NULL != pexprLeft);
+	GPOS_ASSERT(NULL != pexprRight);
+
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	CExpression *pexprNewLeft = pexprLeft;
+	CExpression *pexprNewRight = pexprRight;
+
+	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, pexprNewRight, mdid_scop);
+	mdid_scop->AddRef();
+	const CMDName mdname = md_accessor->RetrieveScOp(mdid_scop)->Mdname();
+	CWStringConst strEqOpName(mdname.GetMDName()->GetBuffer());
+
+	return GPOS_NEW(mp) CExpression
+				(
+				mp,
+				GPOS_NEW(mp) CScalarIsDistinctFrom(mp, mdid_scop, GPOS_NEW(mp) CWStringConst(mp, strEqOpName.GetBuffer())),
 				pexprNewLeft,
 				pexprNewRight
 				);
@@ -802,6 +880,21 @@ CUtils::PexprINDF
 	GPOS_ASSERT(NULL != pexprRight);
 
 	return PexprNegate(mp, PexprIDF(mp, pexprLeft, pexprRight));
+}
+
+CExpression *
+CUtils::PexprINDF
+	(
+	CMemoryPool *mp,
+	CExpression *pexprLeft,
+	CExpression *pexprRight,
+	IMDId *mdid_scop
+	)
+{
+	GPOS_ASSERT(NULL != pexprLeft);
+	GPOS_ASSERT(NULL != pexprRight);
+
+	return PexprNegate(mp, PexprIDF(mp, pexprLeft, pexprRight, mdid_scop));
 }
 
 // Generate an Is Null expression

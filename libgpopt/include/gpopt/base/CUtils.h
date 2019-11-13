@@ -130,6 +130,10 @@ namespace gpopt
 			static
 			CExpression *PexprScalarCmp(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight, CWStringConst strOp, IMDId *mdid_op);
 
+			// generate a comparison expression for two expressions
+			static
+			CExpression *PexprScalarCmp(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight, IMDId *mdid_scop);
+
 			// generate a comparison expression for a column reference and an expression
 			static
 			CExpression *PexprScalarCmp(CMemoryPool *mp, const CColRef *pcrLeft, CExpression *pexprRight, IMDType::ECmpType cmp_type);
@@ -174,6 +178,9 @@ namespace gpopt
 			static
 			CExpression *PexprIDF(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight);
 
+			static
+			CExpression *PexprIDF(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight, IMDId *mdid_scop);
+
 			// generate an Is NOT Distinct From expression for two column references
 			static
 			CExpression *PexprINDF(CMemoryPool *mp, const CColRef *pcrLeft, const CColRef *pcrRight);
@@ -181,6 +188,9 @@ namespace gpopt
 			// generate an Is NOT Distinct From expression for scalar expressions
 			static
 			CExpression *PexprINDF(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight);
+
+			static
+			CExpression *PexprINDF(CMemoryPool *mp, CExpression *pexprLeft, CExpression *pexprRight, IMDId *mdid_scop);
 
 			// generate an Is NULL expression
 			static

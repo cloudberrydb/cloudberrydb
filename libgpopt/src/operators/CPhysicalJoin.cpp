@@ -623,7 +623,8 @@ CPhysicalJoin::AlignJoinKeyOuterInner
 	CExpression *,
 #endif // GPOS_DEBUG
 	CExpression **ppexprKeyOuter,
-	CExpression **ppexprKeyInner
+	CExpression **ppexprKeyInner,
+	IMDId **mdid_scop
 	)
 {
 	// we should not be here if there are outer references
@@ -638,12 +639,14 @@ CPhysicalJoin::AlignJoinKeyOuterInner
 	{
 		pexprPredOuter = (*pexprPred)[0];
 		pexprPredInner = (*pexprPred)[1];
+		*mdid_scop = CScalarCmp::PopConvert(pexprPred->Pop())->MdIdOp();
 	}
 	else if (CPredicateUtils::FINDF(pexprPred))
 	{
 		CExpression *pexpr = (*pexprPred)[0];
 		pexprPredOuter = (*pexpr)[0];
 		pexprPredInner = (*pexpr)[1];
+		*mdid_scop = CScalarIsDistinctFrom::PopConvert(pexpr->Pop())->MdIdOp();
 	}
 	else
 	{

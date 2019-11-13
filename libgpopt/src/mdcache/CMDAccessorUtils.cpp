@@ -236,22 +236,34 @@ CMDAccessorUtils::GetScCmpMdIdConsiderCasts
 	return CMDAccessorUtils::GetScCmpMdid(md_accessor, left_mdid, right_mdid, cmp_type);
 }
 
-// similar to GetScCmpMdIdConsiderCasts() but also add the appropriate casts to
-// the given expressions
 IMDId *
-CMDAccessorUtils::GetScCmpMdIdApplyCasts
+CMDAccessorUtils::GetScCmpMdIdConsiderCasts
 	(
-	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
-	CExpression*& pexprLeft,
-	CExpression*& pexprRight,
+	CExpression* pexprLeft,
+	CExpression* pexprRight,
 	IMDType::ECmpType cmp_type
 	)
 {
 	IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
 	IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
 
-	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);
+	return CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);
+}
+
+void
+CMDAccessorUtils::ApplyCastsForScCmp
+	(
+	CMemoryPool *mp,
+	CMDAccessor *md_accessor,
+	CExpression*& pexprLeft,
+	CExpression*& pexprRight,
+	IMDId *op_mdid
+	)
+{
+	IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
+	IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
+
 	const IMDScalarOp *op = md_accessor->RetrieveScOp(op_mdid);
 	IMDId *op_left_mdid = op->GetLeftMdid();
 	IMDId *op_right_mdid = op->GetRightMdid();
@@ -327,8 +339,6 @@ CMDAccessorUtils::GetScCmpMdIdApplyCasts
 			}
 		}
 	}
-
-	return op_mdid;
 }
 
 //---------------------------------------------------------------------------

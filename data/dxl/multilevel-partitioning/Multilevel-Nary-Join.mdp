@@ -1486,7 +1486,7 @@ select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
           <dxl:Filter/>
           <dxl:JoinFilter/>
           <dxl:HashCondList>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15795.15796">
               <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
@@ -1515,7 +1515,7 @@ select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
             <dxl:Filter/>
             <dxl:JoinFilter/>
             <dxl:HashCondList>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15781.15782">
                 <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
                 <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:Comparison>
