@@ -282,6 +282,9 @@ int gpos_exec
 //---------------------------------------------------------------------------
 void gpos_terminate()
 {
+#ifdef GPOS_DEBUG_COUNTERS
+	CDebugCounter::Shutdown();
+#endif
 #ifdef GPOS_DEBUG
 #ifdef GPOS_FPSIMULATOR
 	CFSimulator::FSim()->Shutdown();

@@ -47,6 +47,12 @@ CDebugCounter::CDebugCounter(CMemoryPool *mp) :
 	m_hashmap = GPOS_NEW(mp) CounterKeyToValueMap(mp);
 }
 
+CDebugCounter::~CDebugCounter()
+{
+  CRefCount::SafeRelease(m_hashmap);
+  m_hashmap = NULL;
+}
+
 void CDebugCounter::Init()
 {
 	CAutoMemoryPool amp;
@@ -57,6 +63,18 @@ void CDebugCounter::Init()
 
 	// detach safety
 	(void) amp.Detach();
+}
+
+void CDebugCounter::Shutdown()
+{
+	if (NULL != m_instance)
+	{
+		CMemoryPool *mp = m_instance->m_mp;
+
+		GPOS_DELETE(m_instance);
+		m_instance = NULL;
+		CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
+	}
 }
 
 void CDebugCounter::NextQry(const char *next_qry_name)

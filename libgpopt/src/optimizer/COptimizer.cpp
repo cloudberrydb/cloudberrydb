@@ -14,6 +14,7 @@
 #include "gpos/error/CErrorHandlerStandard.h"
 #include "gpos/io/CFileDescriptor.h"
 
+#include "naucrates/base/CDatumGenericGPDB.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/md/IMDProvider.h"
 
@@ -181,23 +182,28 @@ COptimizer::PrintQueryOrPlan
 			if (COperator::EopScalarConst == pop->Eopid())
 			{
 				CScalarConst *popScalarConst = CScalarConst::PopConvert(pop);
-				const char *select_element_bytes = (const char *) popScalarConst->GetDatum()->GetByteArrayValue();
-				ULONG select_element_len = clib::Strlen(select_element_bytes);
-				const char *query_name_prefix = "query name: ";
-				ULONG query_name_prefix_len = clib::Strlen(query_name_prefix);
+				CDatumGenericGPDB *datum = dynamic_cast<CDatumGenericGPDB *>(popScalarConst->GetDatum());
 
-				if (0 == clib::Strncmp((const char *) select_element_bytes,
-									   query_name_prefix,
-									   query_name_prefix_len))
+				if (NULL != datum)
 				{
-					// the constant in the select starts with "query_name: "
-					for (ULONG i=query_name_prefix_len; i<select_element_len; i++)
+					const char *select_element_bytes = (const char *) datum->GetByteArrayValue();
+					ULONG select_element_len = clib::Strlen(select_element_bytes);
+					const char *query_name_prefix = "query name: ";
+					ULONG query_name_prefix_len = clib::Strlen(query_name_prefix);
+
+					if (0 == clib::Strncmp((const char *) select_element_bytes,
+										   query_name_prefix,
+										   query_name_prefix_len))
 					{
-						if (select_element_bytes[i] > 0)
+						// the constant in the select starts with "query_name: "
+						for (ULONG i=query_name_prefix_len; i<select_element_len; i++)
 						{
-							// the query name should contain ASCII characters,
-							// we skip all other characters
-							query_name.append(1, select_element_bytes[i]);
+							if (select_element_bytes[i] > 0)
+							{
+								// the query name should contain ASCII characters,
+								// we skip all other characters
+								query_name.append(1, select_element_bytes[i]);
+							}
 						}
 					}
 				}

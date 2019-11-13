@@ -185,8 +185,12 @@ namespace gpos
 
 		// methods used by ORCA to provide the infrastructure for event counting
 		CDebugCounter(CMemoryPool *mp);
-		// called once in the lifetime of the process from gpos_init
+
+		~CDebugCounter();
+
+		// The static CDebugCounter lives from gpos_init to gpos_terminate
 		static void Init();
+		static void Shutdown();
 
 		// Prepare for running the next query, providing an optional name for the next
 		// query. Note that if a name is provided, we assume the current query is a
