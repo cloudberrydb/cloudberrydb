@@ -2069,7 +2069,7 @@ CPredicateUtils::PexprIndexLookup
 	{
 		cmptype = CScalarCmp::PopConvert(pexprScalar->Pop())->ParseCmpType();
 	}
-	else if (CUtils::FScalarArrayCmp(pexprScalar))
+	else if (CUtils::FScalarArrayCmp(pexprScalar) && IMDIndex::EmdindBitmap == pmdindex->IndexType())
 	{
 		cmptype = CUtils::ParseCmpType(CScalarArrayCmp::PopConvert(pexprScalar->Pop())->MdIdOp());
 	}
