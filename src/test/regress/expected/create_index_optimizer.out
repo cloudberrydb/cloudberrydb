@@ -3234,15 +3234,17 @@ explain (costs off)
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
 ORDER BY thousand;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                            QUERY PLAN
+-------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: thousand
-   ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-         Index Cond: (thousand < 2)
-         Filter: (tenthous = ANY ('{1001,3000}'::integer[]))
- Optimizer: Postgres query optimizer
-(7 rows)
+   ->  Sort
+         Sort Key: thousand
+         ->  Index Scan using tenk1_thous_tenthous on tenk1
+               Index Cond: (thousand < 2)
+               Filter: (tenthous = ANY ('{1001,3000}'::integer[]))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.80.0
+(8 rows)
 
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
@@ -3263,16 +3265,17 @@ explain (costs off)
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
 ORDER BY thousand;
-                                       QUERY PLAN                                       
-----------------------------------------------------------------------------------------
+                            QUERY PLAN
+-------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: thousand
    ->  Sort
          Sort Key: thousand
          ->  Index Scan using tenk1_thous_tenthous on tenk1
-               Index Cond: ((thousand < 2) AND (tenthous = ANY ('{1001,3000}'::integer[])))
- Optimizer: Postgres query optimizer
-(7 rows)
+               Index Cond: (thousand < 2)
+               Filter: (tenthous = ANY ('{1001,3000}'::integer[]))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.80.0
+(8 rows)
 
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
