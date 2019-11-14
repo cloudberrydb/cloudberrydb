@@ -27,6 +27,14 @@ struct PathTarget;
 
 /*
  * CdbLocusType
+ *
+ * The difference between SegmentGeneral and Replicated is that a path
+ * with Replicated locus *must* be executed on all of the segments, whereas
+ * a SegmentGeneral *may* be executed on all of the segments, or just one
+ * of them, as is convenient. Replicated is used as the locus for
+ * UPDATEs/DELETEs/INSERTs to replicated tables; it's important that the
+ * plan gets executed on all segments so that all segments are updated.
+ * SegmentGeneral is used when querying replicated tables.
  */
 typedef enum CdbLocusType
 {
