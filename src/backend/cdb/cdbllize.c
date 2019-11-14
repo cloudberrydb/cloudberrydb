@@ -523,8 +523,7 @@ makeFlow(FlowType flotype, int numsegments)
  * transformation of the plan by set_plan_references().  Later, calls were
  * added upstream of set_plan_references(); only these remain at present.
  *
- * Don't call on a SubqueryScan plan.  If you are tempted, you probably
- * want to use mark_passthru_locus (after make_subqueryscan) instead.
+ * Don't call on a SubqueryScan plan.
  */
 Flow *
 pull_up_Flow(Plan *plan, Plan *subplan)

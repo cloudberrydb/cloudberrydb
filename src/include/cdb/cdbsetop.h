@@ -67,46 +67,10 @@ void adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list,
 
 extern Path *make_motion_hash_all_targets(PlannerInfo *root, Path *subpath, List *tlist);
 
-extern Motion *make_motion_hash(PlannerInfo *root, Plan *subplan, List *hashexprs, List *hashopfamilies);
-extern Motion *make_motion_hash_exprs(PlannerInfo *root, Plan *subplan, List *hashexprs);
-
-extern
-Motion* make_motion_gather_to_QD(PlannerInfo *root, Plan *subplan, List *sortPathKeys);
-
-extern
-Motion* make_motion_gather_to_QE(PlannerInfo *root, Plan *subplan, List *sortPathKeys);
-
 extern
 Motion *make_motion_gather(PlannerInfo *root, Plan *subplan, List *sortPathKeys);
 
 extern
 void mark_append_locus(Path *path, GpSetOpType optype);
-
-extern
-void mark_passthru_locus(Plan *plan, bool with_hash, bool with_sort);
-
-extern
-void mark_sort_locus(Plan *plan);
-
-extern
-void mark_plan_general(Plan* plan, int numsegments);
-
-extern
-void mark_plan_strewn(Plan* plan, int numsegments);
-
-extern
-void mark_plan_replicated(Plan* plan, int numsegments);
-
-extern
-void mark_plan_entry(Plan* plan);
-
-extern
-void mark_plan_singleQE(Plan* plan, int numsegments);
-
-extern
-void mark_plan_outerquery(Plan* plan, int numsegments);
-
-extern
-void mark_plan_segment_general(Plan* plan, int numsegments);
 
 #endif   /* CDBSETOP_H */

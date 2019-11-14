@@ -4960,8 +4960,8 @@ create_distinct_paths(PlannerInfo *root,
 																	   limit_tuples,
 																	   true);
 						((Sort *) result_plan)->noduplicates = gp_enable_sort_distinct;
+						result_plan->flow = pull_up_Flow(plan, result_plan->lefttree);
 						current_pathkeys = root->sort_pathkeys;
-						mark_sort_locus(result_plan);
 					}
 				}
 

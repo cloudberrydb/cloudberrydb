@@ -1124,7 +1124,9 @@ create_append_plan(PlannerInfo *root, AppendPath *best_path)
 
 		copy_generic_path_info(plan, (Path *) best_path);
 
-		mark_plan_general(plan, getgpsegmentCount());
+		plan->flow = makeFlow(FLOW_SINGLETON, getgpsegmentCount());
+		plan->flow->segindex = 0;
+		plan->flow->locustype = CdbLocusType_General;
 
 		return plan;
 	}
@@ -2031,7 +2033,9 @@ create_minmaxagg_plan(PlannerInfo *root, MinMaxAggPath *best_path)
 	tlist = build_path_tlist(root, &best_path->path);
 
 	plan = make_result(tlist, (Node *) best_path->quals, NULL);
-	mark_plan_singleQE(&plan->plan, getgpsegmentCount());
+	plan->plan.flow = makeFlow(FLOW_SINGLETON, getgpsegmentCount());
+	plan->plan.flow->segindex = 0;
+	plan->plan.flow->locustype = CdbLocusType_SingleQE;
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
