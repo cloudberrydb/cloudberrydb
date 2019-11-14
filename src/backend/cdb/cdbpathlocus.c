@@ -195,7 +195,7 @@ cdb_build_distribution_keys(PlannerInfo *root, Index rti, GpPolicy *policy)
  * opfamilies), returns a NULL locus.
  */
 CdbPathLocus
-cdbpathlocus_for_insert(PlannerInfo *root, Index rti, GpPolicy *policy,
+cdbpathlocus_for_insert(PlannerInfo *root, GpPolicy *policy,
 						PathTarget *pathtarget)
 {
 	CdbPathLocus targetLocus;
@@ -203,7 +203,6 @@ cdbpathlocus_for_insert(PlannerInfo *root, Index rti, GpPolicy *policy,
 	if (policy->ptype == POLICYTYPE_PARTITIONED)
 	{
 		/* rows are distributed by hashing on specified columns */
-		RangeTblEntry *rte = planner_rt_fetch(rti, root);
 		List	   *distkeys = NIL;
 		Index		maxRef = 0;
 		bool		failed = false;
@@ -217,17 +216,14 @@ cdbpathlocus_for_insert(PlannerInfo *root, Index rti, GpPolicy *policy,
 			DistributionKey *cdistkey;
 			Expr	   *expr;
 			Oid			typeoid;
-			int32		type_mod;
-			Oid			varcollid;
 			Oid			eqopoid;
 			Oid			opfamily = get_opclass_family(policy->opclasses[i]);
 			Oid			opcintype = get_opclass_input_type(policy->opclasses[i]);
 			List	   *mergeopfamilies;
 			EquivalenceClass *eclass;
 
-			get_atttypetypmodcoll(rte->relid, attno, &typeoid, &type_mod, &varcollid);
-
 			expr = list_nth(pathtarget->exprs, attno - 1);
+			typeoid = exprType((Node *) expr);
 
 			/*
 			 * Look up the equality operator corresponding to the distribution

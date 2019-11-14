@@ -2456,8 +2456,8 @@ failIfUpdateTriggers(Relation relation)
  * distributed correctly for insertion into target table.
  */
 Path *
-create_motion_path_for_insert(PlannerInfo *root, Index rti, RangeTblEntry *rte,
-							  GpPolicy *policy, Path *subpath)
+create_motion_path_for_insert(PlannerInfo *root, GpPolicy *policy,
+							  Path *subpath)
 {
 	GpPolicyType	policyType = policy->ptype;
 	CdbPathLocus	targetLocus;
@@ -2476,7 +2476,7 @@ create_motion_path_for_insert(PlannerInfo *root, Index rti, RangeTblEntry *rte,
 			subpath->locus.numsegments = policy->numsegments;
 		}
 
-		targetLocus = cdbpathlocus_for_insert(root, rti, policy, subpath->pathtarget);
+		targetLocus = cdbpathlocus_for_insert(root, policy, subpath->pathtarget);
 
 		if (policy->nattrs == 0 && CdbPathLocus_IsPartitioned(subpath->locus))
 		{
@@ -2577,8 +2577,8 @@ create_motion_path_for_insert(PlannerInfo *root, Index rti, RangeTblEntry *rte,
  * Add a suitable Motion Path for deletion.
  */
 Path *
-create_motion_path_for_delete(PlannerInfo *root, Index rti, RangeTblEntry *rte,
-							  GpPolicy *policy, Path *subpath)
+create_motion_path_for_delete(PlannerInfo *root, GpPolicy *policy,
+							  Path *subpath)
 {
 	GpPolicyType	policyType = policy->ptype;
 	CdbPathLocus	targetLocus;
@@ -2616,8 +2616,8 @@ create_motion_path_for_delete(PlannerInfo *root, Index rti, RangeTblEntry *rte,
  * distribution key columns, use create_split_update_path() instead.
  */
 Path *
-create_motion_path_for_update(PlannerInfo *root, Index rti, RangeTblEntry *rte,
-							  GpPolicy *policy, Path *subpath)
+create_motion_path_for_update(PlannerInfo *root, GpPolicy *policy,
+							  Path *subpath)
 {
 	GpPolicyType	policyType = policy->ptype;
 	CdbPathLocus	targetLocus;
@@ -2704,7 +2704,7 @@ create_motion_path_for_update(PlannerInfo *root, Index rti, RangeTblEntry *rte,
  * 'rti' is the UPDATE target relation.
  */
 Path *
-create_split_update_path(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPolicy *policy, Path *subpath)
+create_split_update_path(PlannerInfo *root, Index rti, GpPolicy *policy, Path *subpath)
 {
 	GpPolicyType	policyType = policy->ptype;
 	CdbPathLocus	targetLocus;
@@ -2720,7 +2720,7 @@ create_split_update_path(PlannerInfo *root, Index rti, RangeTblEntry *rte, GpPol
 		 * e.g. because the input was eliminated by constraint
 		 * exclusion, we can skip it.
 		 */
-		targetLocus = cdbpathlocus_for_insert(root, rti, policy, subpath->pathtarget);
+		targetLocus = cdbpathlocus_for_insert(root, policy, subpath->pathtarget);
 
 		subpath = (Path *) make_splitupdate_path(root, subpath, rti);
 		subpath = cdbpath_create_explicit_motion_path(root,

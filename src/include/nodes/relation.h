@@ -1330,8 +1330,7 @@ typedef struct TidPath
  * Normally, the distribution is determined by the 'locus' of the path.
  * However, if the distribution cannot be represented by a DistributionKeys,
  * an alternative representation is to mark the locus as Strewn, and list
- * the hash expressions explicitly in hashExprs/hashFamilies. In the normal
- * case, they are not used.
+ * the hash columns in 'policy'. In the normal case, 'policy' is not used.
  */
 typedef struct CdbMotionPath
 {

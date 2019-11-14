@@ -4730,11 +4730,11 @@ adjust_modifytable_subpaths(PlannerInfo *root, CmdType operation,
 
 		if (operation == CMD_INSERT)
 		{
-			subpath = create_motion_path_for_insert(root, rti, rte, targetPolicy, subpath);
+			subpath = create_motion_path_for_insert(root, targetPolicy, subpath);
 		}
 		else if (operation == CMD_DELETE)
 		{
-			subpath = create_motion_path_for_delete(root, rti, rte, targetPolicy, subpath);
+			subpath = create_motion_path_for_delete(root, targetPolicy, subpath);
 		}
 		else if (operation == CMD_UPDATE)
 		{
@@ -4743,9 +4743,9 @@ adjust_modifytable_subpaths(PlannerInfo *root, CmdType operation,
 			is_split_update = (bool) lfirst_int(lci);
 
 			if (is_split_update)
-				subpath = create_split_update_path(root, rti, rte, targetPolicy, subpath);
+				subpath = create_split_update_path(root, rti, targetPolicy, subpath);
 			else
-				subpath = create_motion_path_for_update(root, rti, rte, targetPolicy, subpath);
+				subpath = create_motion_path_for_update(root, targetPolicy, subpath);
 
 			lci = lnext(lci);
 		}

@@ -255,7 +255,6 @@ extern bool cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b);
 /************************************************************************/
 
 extern CdbPathLocus cdbpathlocus_for_insert(struct PlannerInfo *root,
-											Index rti,
 											struct GpPolicy *policy,
 											struct PathTarget *pathtarget);
 
