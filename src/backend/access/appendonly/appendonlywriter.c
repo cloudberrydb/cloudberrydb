@@ -279,7 +279,7 @@ AORelCreateHashEntry(Oid relid)
 	{
 		aoHashEntry->relsegfiles[i].state = AVAILABLE;
 		aoHashEntry->relsegfiles[i].xid = InvalidTransactionId;
-		aoHashEntry->relsegfiles[i].latestWriteXid = InvalidDistributedTransactionId;
+		aoHashEntry->relsegfiles[i].latestWriteXid = InvalidTransactionId;
 		aoHashEntry->relsegfiles[i].isfull = false;
 		aoHashEntry->relsegfiles[i].total_tupcount = 0;
 		aoHashEntry->relsegfiles[i].tupsadded = 0;
@@ -598,9 +598,7 @@ segfileMaxRowThreshold(void)
 static bool
 usedByConcurrentTransaction(AOSegfileStatus *segfilestat, int segno)
 {
-	DistributedSnapshot *ds;
-	DistributedTransactionId latestWriteXid =
-	segfilestat->latestWriteXid;
+	TransactionId latestWriteXid = segfilestat->latestWriteXid;
 
 	/*
 	 * If latestWriteXid is invalid, simple return false.
@@ -618,7 +616,7 @@ usedByConcurrentTransaction(AOSegfileStatus *segfilestat, int segno)
 	 * If the current transaction is started earlier than latestWriteXid, this
 	 * segno is surely used by a concurrent transaction. So return true here.
 	 */
-	if (TransactionIdPrecedes(getDistributedTransactionId(),
+	if (TransactionIdPrecedes(GetTopTransactionId(),
 							  latestWriteXid))
 	{
 		ereportif(Debug_appendonly_print_segfile_choice, LOG,
@@ -638,15 +636,15 @@ usedByConcurrentTransaction(AOSegfileStatus *segfilestat, int segno)
 	Snapshot	snapshot = NULL;
 
 	if (!ActiveSnapshotSet())
-		elog(ERROR, "could not check if dxid:%d is concurrently used, ActiveSnapshot not set",
+		elog(ERROR, "could not check if xid:%d is concurrently used, ActiveSnapshot not set",
 			 latestWriteXid);
 
 	snapshot = GetActiveSnapshot();
 
 	if (Debug_appendonly_print_segfile_choice)
 	{
-		elog(LOG, "usedByConcurrentTransaction: current distributed transaction id = %x, latestWriteXid that uses segno %d is %x",
-			 getDistributedTransactionId(), segno, latestWriteXid);
+		elog(LOG, "usedByConcurrentTransaction: current transaction id = %x, latestWriteXid that uses segno %d is %x",
+			 GetTopTransactionId(), segno, latestWriteXid);
 		if (snapshot->haveDistribSnapshot)
 			LogDistributedSnapshotInfo(snapshot, "Used snapshot: ");
 		else
@@ -654,38 +652,31 @@ usedByConcurrentTransaction(AOSegfileStatus *segfilestat, int segno)
 				 "usedByConcurrentTransaction: snapshot is not distributed, so it is NOT considered concurrent");
 	}
 
-	if (!snapshot->haveDistribSnapshot)
-	{
-		return false;
-	}
-
-	ds = &snapshot->distribSnapshotWithLocalMapping.ds;
-
 	/* If latestWriterXid is invisible to me, return true. */
-	if (latestWriteXid >= ds->xmax)
+	if (latestWriteXid >= snapshot->xmax)
 	{
 		ereportif(Debug_appendonly_print_segfile_choice, LOG,
 				  (errmsg("usedByConcurrentTransaction: latestWriterXid %x of segno %d is >= distributed snapshot xmax %u, so it is considered concurrent",
 						  latestWriteXid,
 						  segno,
-						  ds->xmax)));
+						  snapshot->xmax)));
 		return true;
 	}
 
 	/*
 	 * If latestWriteXid is in in-progress, return true.
 	 */
-	int32		inProgressCount = ds->count;
+	int32		inProgressCount = snapshot->xcnt;
 
 	for (int inProgressNo = 0; inProgressNo < inProgressCount; inProgressNo++)
 	{
-		if (latestWriteXid == ds->inProgressXidArray[inProgressNo])
+		if (latestWriteXid == snapshot->xip[inProgressNo])
 		{
 			ereportif(Debug_appendonly_print_segfile_choice, LOG,
 					  (errmsg("usedByConcurrentTransaction: latestWriterXid %x of segno %d is equal to distributed snapshot in-flight %u, so it is considered concurrent",
 							  latestWriteXid,
 							  segno,
-							  ds->inProgressXidArray[inProgressNo])));
+							  snapshot->xip[inProgressNo])));
 			return true;
 		}
 	}
@@ -1807,9 +1798,9 @@ AtCommit_AppendOnly(void)
 
 					Assert(!TransactionIdIsValid(segfilestat->latestWriteXid) ||
 						   TransactionIdPrecedes(segfilestat->latestWriteXid,
-												 getDistributedTransactionId()));
+												 CurrentXid));
 
-					segfilestat->latestWriteXid = getDistributedTransactionId();
+					segfilestat->latestWriteXid = CurrentXid;
 				}
 			}
 		}

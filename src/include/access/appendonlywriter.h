@@ -158,7 +158,7 @@ typedef struct AOSegfileStatus
 	/*
 	 * the latest committed inserting transaction id
 	 */
-	DistributedTransactionId latestWriteXid;
+	TransactionId latestWriteXid;
 
 	AOSegfileState state;
 
