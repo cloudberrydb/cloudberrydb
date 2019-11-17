@@ -1292,31 +1292,6 @@ MultiExecProcNode(PlanState *node)
 	return result;
 }
 
-static CdbVisitOpt
-transportUpdateNodeWalker(PlanState *node, void *context)
-{
-	/*
-	 * For motion nodes, we just transfer the context information established
-	 * during SetupInterconnect
-	 */
-	if (IsA(node, MotionState))
-	{
-		node->state->interconnect_context = (ChunkTransportState *) context;
-		/* visit subtree */
-	}
-
-	return CdbVisit_Walk;
-}	/* transportUpdateNodeWalker */
-
-void
-ExecUpdateTransportState(PlanState *node, ChunkTransportState * state)
-{
-	Assert(node);
-	Assert(state);
-	planstate_walk_node(node, transportUpdateNodeWalker, state);
-}	/* ExecUpdateTransportState */
-
-
 /* ----------------------------------------------------------------
  *		ExecEndNode
  *

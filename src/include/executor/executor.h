@@ -303,7 +303,6 @@ extern void ExecEndNode(PlanState *node);
 extern bool ExecShutdownNode(PlanState *node);
 
 extern void ExecSquelchNode(PlanState *node);
-extern void ExecUpdateTransportState(PlanState *node, struct ChunkTransportState *state);
 
 typedef enum
 {

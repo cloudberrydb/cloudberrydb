@@ -1061,8 +1061,6 @@ PG_TRY();
 
 		UpdateMotionExpectedReceivers(queryDesc->estate->motionlayer_context, queryDesc->estate->es_sliceTable);
 
-		ExecUpdateTransportState(planstate, queryDesc->estate->interconnect_context);
-
 		/*
 		 * MPP-7504/MPP-7448: the pre-dispatch function evaluator
 		 * may mess up our snapshot-sync mechanism. So we've

@@ -766,9 +766,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			Assert(motionState);
 
 			Assert(IsA(motionState->ps.plan, Motion));
-
-			ExecUpdateTransportState((PlanState *) motionState,
-									 estate->interconnect_context);
 		}
 		else if (exec_identity == GP_ROOT_SLICE)
 		{
@@ -782,12 +779,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 				SetupInterconnect(estate);
 				Assert(estate->interconnect_context);
 				UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
-			}
-
-			if (estate->es_interconnect_is_setup)
-			{
-				ExecUpdateTransportState(queryDesc->planstate,
-										 estate->interconnect_context);
 			}
 		}
 		else if (exec_identity != GP_IGNORE)
