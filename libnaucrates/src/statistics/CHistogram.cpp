@@ -1357,7 +1357,7 @@ CHistogram::ComputeJoinNDVRemainInfo
 	// distinct values of the two inputs. This follows the principle of used to estimate join
 	// scaling factor -- defined as the maximum NDV of the two inputs
 	CDouble final_join_NDVs = std::min(num_distinct_non_null1, num_distinct_non_null2);
-	CDouble remaining_join_NDVs = final_join_NDVs - join_NDVs;
+	CDouble remaining_join_NDVs = std::max(final_join_NDVs - join_NDVs, CDouble(0.0));
 
 	// compute the frequency of the non-joining buckets in each input histogram
 	CDouble freq_buckets1 =  CStatisticsUtils::GetFrequency(histogram1->ParseDXLToBucketsArray());

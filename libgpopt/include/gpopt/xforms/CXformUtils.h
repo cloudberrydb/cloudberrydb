@@ -482,7 +482,8 @@ namespace gpopt
 				CColRefSet *pcrsReqd,
 				CColRefSet *pcrsOuterRefs,
 				CExpression **ppexprRecheck,
-				CExpression **ppexprResidual
+				CExpression **ppexprResidual,
+				BOOL alsoConsiderBTreeIndexes
 				);
 
 			// iterate over given hash map and return array of arrays of project elements sorted by the column id of the first entries
@@ -773,7 +774,8 @@ namespace gpopt
 				CColRefArray *pdrgpcrOutput,
 				CColRefSet *pcrsReqd, 
 				CColRefSet *pcrsScalar,
-				IMDIndex::EmdindexType emdindtype
+				IMDIndex::EmdindexType emdindtype,
+				IMDIndex::EmdindexType altindtype = IMDIndex::EmdindSentinel
 				);
 			
 			// check whether a CTE should be inlined
@@ -884,7 +886,8 @@ namespace gpopt
 				CColRefSet *pcrsReqd,
 				BOOL fConjunction,
 				CExpression **ppexprRecheck,
-				CExpression **ppexprResidual
+				CExpression **ppexprResidual,
+				BOOL isAPartialPredicate
 				);
 			
 			// construct a bitmap bool op given the left and right bitmap access
@@ -916,7 +919,8 @@ namespace gpopt
 				BOOL fConjunction,
 				CExpressionArray *pdrgpexprBitmap,
 				CExpressionArray *pdrgpexprRecheck,
-				CExpressionArray *pdrgpexprResidual
+				CExpressionArray *pdrgpexprResidual,
+				BOOL isAPartialPredicate
 				);
 
 			static
@@ -933,7 +937,8 @@ namespace gpopt
 				CColRefSet *pcrsReqd,
 				CExpression **pexprBitmapResult,
 				CExpression **pexprRecheckResult,
-				CExpressionArray *pdrgpexprResidualResult
+				CExpressionArray *pdrgpexprResidualResult,
+				BOOL isAPartialPredicate
 				);
 
 			// check if expression has any scalar node with ambiguous return type

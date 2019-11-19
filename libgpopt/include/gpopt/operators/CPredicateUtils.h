@@ -494,7 +494,8 @@ namespace gpopt
 				CColRefArray *pdrgpcrIndex,
 				CExpressionArray *pdrgpexprIndex,
 				CExpressionArray *pdrgpexprResidual,
-				CColRefSet *pcrsAcceptedOuterRefs = NULL // outer refs that are acceptable in an index predicate
+				CColRefSet *pcrsAcceptedOuterRefs = NULL, // outer refs that are acceptable in an index predicate
+				BOOL allowArrayCmpForBTreeIndexes = false
 				);
 
 			// return the inverse of given comparison expression
@@ -538,7 +539,8 @@ namespace gpopt
 				CExpression *pexpPred, 
 				const IMDIndex *pmdindex,
 				CColRefArray *pdrgpcrIndex, 
-				CColRefSet *outer_refs
+				CColRefSet *outer_refs,
+				BOOL allowArrayCmpForBTreeIndexes
 				);
 
 			// split given scalar expression into two conjunctions; without and with outer references
