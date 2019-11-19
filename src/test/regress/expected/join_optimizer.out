@@ -3148,25 +3148,31 @@ select * from
   int4(sin(1)) q1,
   int4(sin(0)) q2
 where q1 = thousand or q2 = thousand;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Hash Join
          Hash Cond: (tenk1.twothousand = int4_tbl.f1)
          ->  Nested Loop
-               Join Filter: (((1) = tenk1.thousand) OR ((0) = tenk1.thousand))
-               ->  Seq Scan on tenk1
+               Join Filter: true
                ->  Nested Loop
                      Join Filter: true
                      ->  Result
                            ->  Result
                      ->  Result
                            ->  Result
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: ((thousand = (1)) OR (thousand = (0)))
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = (1))
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = (0))
          ->  Hash
                ->  Broadcast Motion 3:3  (slice1; segments: 3)
                      ->  Seq Scan on int4_tbl
- Optimizer: Pivotal Optimizer (GPORCA) version 2.64.0
-(16 rows)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+(22 rows)
 
 explain (costs off)
 select * from
@@ -3319,51 +3325,98 @@ where t1.unique1 < i4.f1;
 explain (costs off)
 select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.hundred = 4);
-                                                        QUERY PLAN                                                         
----------------------------------------------------------------------------------------------------------------------------
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
-         Join Filter: (((tenk1_1.unique1 = 1) AND (tenk1.unique1 = 2)) OR ((tenk1_1.unique2 = 3) AND (tenk1.hundred = 4)))
+         Join Filter: true
          ->  Broadcast Motion 3:3  (slice1; segments: 3)
-               ->  Seq Scan on tenk1 tenk1_1
-                     Filter: ((unique1 = 1) OR (unique2 = 3))
-         ->  Seq Scan on tenk1
-               Filter: ((unique1 = 2) OR (hundred = 4))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
-(9 rows)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: ((unique1 = 1) OR (unique2 = 3))
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 1)
+                           ->  Bitmap Index Scan on tenk1_unique2
+                                 Index Cond: (unique2 = 3)
+         ->  Bitmap Heap Scan on tenk1 tenk1_1
+               Recheck Cond: (((unique1 = 2) OR (hundred = 4)) AND ((unique1 = 2) OR (hundred = 4)))
+               Filter: ((((tenk1.unique1 = 1) AND (unique1 = 2)) OR ((tenk1.unique2 = 3) AND (hundred = 4))) AND ((unique1 = 2) OR (hundred = 4)))
+               ->  BitmapAnd
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 2)
+                           ->  Bitmap Index Scan on tenk1_hundred
+                                 Index Cond: (hundred = 4)
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 2)
+                           ->  Bitmap Index Scan on tenk1_hundred
+                                 Index Cond: (hundred = 4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+(26 rows)
 
 explain (costs off)
 select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.ten = 4);
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
-         Join Filter: (((tenk1_1.unique1 = 1) AND (tenk1.unique1 = 2)) OR ((tenk1_1.unique2 = 3) AND (tenk1.ten = 4)))
+         Join Filter: true
          ->  Broadcast Motion 3:3  (slice1; segments: 3)
-               ->  Seq Scan on tenk1 tenk1_1
-                     Filter: ((unique1 = 1) OR (unique2 = 3))
-         ->  Seq Scan on tenk1
-               Filter: ((unique1 = 2) OR (ten = 4))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(9 rows)
+               ->  Seq Scan on tenk1
+                     Filter: ((unique1 = 2) OR (ten = 4))
+         ->  Bitmap Heap Scan on tenk1 tenk1_1
+               Recheck Cond: (((unique1 = 1) OR (unique2 = 3)) AND ((unique1 = 1) OR (unique2 = 3)))
+               Filter: ((((unique1 = 1) AND (tenk1.unique1 = 2)) OR ((unique2 = 3) AND (tenk1.ten = 4))) AND ((unique1 = 1) OR (unique2 = 3)))
+               ->  BitmapAnd
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 1)
+                           ->  Bitmap Index Scan on tenk1_unique2
+                                 Index Cond: (unique2 = 3)
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 1)
+                           ->  Bitmap Index Scan on tenk1_unique2
+                                 Index Cond: (unique2 = 3)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+(21 rows)
 
 explain (costs off)
 select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or
   ((a.unique2 = 3 or a.unique2 = 7) and b.hundred = 4);
-                                                                      QUERY PLAN                                                                      
-------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
-         Join Filter: (((tenk1_1.unique1 = 1) AND (tenk1.unique1 = 2)) OR (((tenk1_1.unique2 = 3) OR (tenk1_1.unique2 = 7)) AND (tenk1.hundred = 4)))
+         Join Filter: true
          ->  Broadcast Motion 3:3  (slice1; segments: 3)
-               ->  Seq Scan on tenk1 tenk1_1
-                     Filter: ((unique1 = 1) OR ((unique2 = 3) OR (unique2 = 7)))
-         ->  Seq Scan on tenk1
-               Filter: ((unique1 = 2) OR (hundred = 4))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(9 rows)
+               ->  Seq Scan on tenk1
+                     Filter: ((unique1 = 2) OR (hundred = 4))
+         ->  Bitmap Heap Scan on tenk1 tenk1_1
+               Recheck Cond: (((unique1 = 1) OR ((unique2 = 3) OR (unique2 = 7))) AND ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7)))
+               Filter: ((((unique1 = 1) AND (tenk1.unique1 = 2)) OR (((unique2 = 3) OR (unique2 = 7)) AND (tenk1.hundred = 4))) AND ((unique1 = 1) OR ((unique2 = 3) OR (unique2 = 7))))
+               ->  BitmapAnd
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_unique1
+                                 Index Cond: (unique1 = 1)
+                           ->  BitmapOr
+                                 ->  Bitmap Index Scan on tenk1_unique2
+                                       Index Cond: (unique2 = 3)
+                                 ->  Bitmap Index Scan on tenk1_unique2
+                                       Index Cond: (unique2 = 7)
+                     ->  BitmapOr
+                           ->  BitmapOr
+                                 ->  Bitmap Index Scan on tenk1_unique1
+                                       Index Cond: (unique1 = 1)
+                                 ->  Bitmap Index Scan on tenk1_unique2
+                                       Index Cond: (unique2 = 3)
+                           ->  Bitmap Index Scan on tenk1_unique2
+                                 Index Cond: (unique2 = 7)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+(27 rows)
 
 --
 -- test placement of movable quals in a parameterized join tree

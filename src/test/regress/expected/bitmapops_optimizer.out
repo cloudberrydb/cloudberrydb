@@ -81,15 +81,23 @@ SELECT count(*) FROM bmscantest2 WHERE a = 1 AND (b = 1 OR c = 1) AND d = 1;
 (1 row)
 
 EXPLAIN SELECT count(*) FROM bmscantest2 WHERE a = 1 OR b = 1 OR c = 1;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
- Finalize Aggregate  (cost=0.00..435.30 rows=1 width=8)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..435.30 rows=1 width=8)
-         ->  Partial Aggregate  (cost=0.00..435.30 rows=1 width=8)
-               ->  Seq Scan on bmscantest2  (cost=0.00..435.30 rows=856 width=1)
-                     Filter: ((a = 1) OR (b = 1) OR (c = 1))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.72.0
-(6 rows)
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=0.00..431.20 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.20 rows=1 width=8)
+         ->  Partial Aggregate  (cost=0.00..431.20 rows=1 width=8)
+               ->  Bitmap Heap Scan on bmscantest2  (cost=0.00..431.20 rows=856 width=1)
+                     Recheck Cond: ((a = 1) OR (b = 1) OR (c = 1))
+                     ->  BitmapOr  (cost=0.00..0.00 rows=0 width=0)
+                           ->  BitmapOr  (cost=0.00..0.00 rows=0 width=0)
+                                 ->  Bitmap Index Scan on i_bmtest2_a  (cost=0.00..0.00 rows=0 width=0)
+                                       Index Cond: (a = 1)
+                                 ->  Bitmap Index Scan on i_bmtest2_b  (cost=0.00..0.00 rows=0 width=0)
+                                       Index Cond: (b = 1)
+                           ->  Bitmap Index Scan on i_bmtest2_c  (cost=0.00..0.00 rows=0 width=0)
+                                 Index Cond: (c = 1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+(14 rows)
 
 SELECT count(*) FROM bmscantest2 WHERE a = 1 OR b = 1 OR c = 1;
  count 
