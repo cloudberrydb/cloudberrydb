@@ -3491,20 +3491,20 @@ EXPLAIN SELECT a FROM qp_tab1 f1 LEFT JOIN qp_tab2 on a=c WHERE NOT EXISTS(SELEC
 (11 rows)
 
 EXPLAIN SELECT DISTINCT a FROM qp_tab1 WHERE NOT (SELECT TRUE FROM qp_tab2 WHERE EXISTS (SELECT * FROM qp_tab3 WHERE qp_tab2.c = qp_tab3.e));
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.08..3.09 rows=1 width=4)
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=3.08..3.11 rows=1 width=4)
+   InitPlan 1 (returns $0)  (slice3)
+     ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=1.02..2.07 rows=4 width=1)
+           ->  Hash Semi Join  (cost=1.02..2.07 rows=2 width=1)
+                 Hash Cond: (qp_tab2.c = qp_tab3.e)
+                 ->  Seq Scan on qp_tab2  (cost=0.00..1.01 rows=1 width=4)
+                 ->  Hash  (cost=1.01..1.01 rows=1 width=4)
+                       ->  Seq Scan on qp_tab3  (cost=0.00..1.01 rows=1 width=4)
    ->  HashAggregate  (cost=3.08..3.09 rows=1 width=4)
          Group Key: qp_tab1.a
-         InitPlan 1 (returns $0)  (slice3)
-           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..2.07 rows=4 width=0)
-                 ->  Hash Semi Join  (cost=1.02..2.07 rows=2 width=0)
-                       Hash Cond: (qp_tab2.c = qp_tab3.e)
-                       ->  Seq Scan on qp_tab2  (cost=0.00..1.01 rows=1 width=4)
-                       ->  Hash  (cost=1.01..1.01 rows=1 width=4)
-                             ->  Seq Scan on qp_tab3  (cost=0.00..1.01 rows=1 width=4)
          ->  Result  (cost=0.00..1.01 rows=1 width=4)
-               One-Time Filter: NOT $0
+               One-Time Filter: (NOT $0)
                ->  Seq Scan on qp_tab1  (cost=0.00..1.01 rows=1 width=4)
  Optimizer: Postgres query optimizer
 (14 rows)

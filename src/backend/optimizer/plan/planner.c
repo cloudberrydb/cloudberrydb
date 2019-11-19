@@ -444,12 +444,19 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
 
+	if (Gp_role == GP_ROLE_DISPATCH)
+		best_path = create_motion_for_top_plan(root, best_path,
+											   &needToAssignDirectDispatchContentIds);
+
 	top_plan = create_plan(root, best_path);
 
 	/*
 	 * If creating a plan for a scrollable cursor, make sure it can run
 	 * backwards on demand.  Add a Material node at the top at need.
+	 *
+	 * Disabled in GPDB, because we don't support backward scans at all.
 	 */
+#if 0
 	if (cursorOptions & CURSOR_OPT_SCROLL)
 	{
 		if (!ExecSupportsBackwardScan(top_plan))
@@ -469,6 +476,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 			sub_plan->initPlan = NIL;
 		}
 	}
+#endif
 
 	/*
 	 * Optionally add a Gather node for testing purposes, provided this is
@@ -554,7 +562,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		top_plan = cdbparallelize(root, top_plan, &needToAssignDirectDispatchContentIds);
+		top_plan = cdbparallelize(root, top_plan);
 
 		/*
 		 * cdbparallelize() mutates all the nodes, so the producer nodes we

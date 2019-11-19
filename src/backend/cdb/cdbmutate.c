@@ -15,13 +15,10 @@
 
 #include "postgres.h"
 
-#include "access/hash.h"
 #include "access/xact.h"
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
-#include "optimizer/cost.h"
 #include "optimizer/planmain.h"
-#include "optimizer/predtest.h"
 #include "optimizer/var.h"
 #include "parser/parse_relation.h"
 #include "utils/fmgroids.h"
@@ -29,32 +26,23 @@
 #include "utils/lsyscache.h"
 #include "utils/datum.h"
 #include "utils/syscache.h"
-#include "utils/portal.h"
 #include "optimizer/clauses.h"
 #include "optimizer/pathnode.h"
-#include "optimizer/planmain.h"
 #include "nodes/makefuncs.h"
 
-#include "commands/defrem.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "catalog/gp_policy.h"
-#include "catalog/pg_am.h"
 #include "catalog/pg_operator.h"
-#include "catalog/pg_type.h"
-
 #include "catalog/pg_proc.h"
-#include "catalog/pg_trigger.h"
 
-#include "cdb/cdbdisp_query.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbllize.h"
 #include "cdb/cdbmutate.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbplan.h"
 #include "cdb/cdbpullup.h"
-#include "cdb/cdbsetop.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbtargeteddispatch.h"
@@ -180,166 +168,25 @@ directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy, Oid *hashfuncs)
 	pfree(nulls);
 }
 
-/*
- * Create a GpPolicy that matches the Flow of the given plan.
- *
- * This is used with CREATE TABLE AS, to derive the distribution
- * key for the table from the query plan.
- */
-static GpPolicy *
-get_partitioned_policy_from_flow(Plan *plan)
-{
-	/* Find out what the flow is partitioned on */
-	List	   *policykeys;
-	List	   *policyopclasses;
-	ListCell   *exp_cell;
-	ListCell   *opf_cell;
-
-	/*
-	 * Is it a Hashed distribution?
-	 *
-	 * NOTE: HashedOJ is not OK, because we cannot let the NULLs be stored
-	 * multiple segments.
-	 */
-	if (plan->flow->locustype != CdbLocusType_Hashed)
-	{
-		return NULL;
-	}
-
-	/*
-	 * Sometimes the planner produces a Flow with CdbLocusType_Hashed,
-	 * but hashExpr are not set because we have lost track of the
-	 * expressions it's hashed on.
-	 */
-	if (!plan->flow->hashExprs)
-		return NULL;
-
-	policykeys = NIL;
-	policyopclasses = NIL;
-	forboth(exp_cell, plan->flow->hashExprs,
-			opf_cell, plan->flow->hashOpfamilies)
-	{
-		Expr	   *var1 = (Expr *) lfirst(exp_cell);
-		Oid			opf1 = lfirst_oid(opf_cell);
-		AttrNumber	n;
-		bool		found_expr = false;
-
-		/*
-		 * Right side variable may be encapsulated by a relabel node.
-		 * Motion, however, does not care about relabel nodes.
-		 */
-		if (IsA(var1, RelabelType))
-			var1 = ((RelabelType *) var1)->arg;
-
-		/* See if this Expr is a column of the result table */
-
-		for (n = 1; n <= list_length(plan->targetlist); n++)
-		{
-			TargetEntry *target = get_tle_by_resno(plan->targetlist, n);
-
-			if (target->resjunk)
-				continue;
-
-			if (equal(var1, target->expr))
-			{
-				/*
-				 * If it is, use it to partition the result table, to avoid
-				 * unnecessary redistribution of data
-				 */
-				Oid			opclass;
-
-				Assert(list_length(policykeys) < MaxPolicyAttributeNumber);
-
-				if (list_member_int(policykeys, n))
-					ereport(ERROR,
-							(errcode(ERRCODE_DUPLICATE_COLUMN),
-							 errmsg("duplicate DISTRIBUTED BY column '%s'",
-									target->resname ? target->resname : "???")));
-
-
-				/*
-				 * We know the operator family to use, but the problem is, we
-				 * don't know the exact operator class within the family. In
-				 * the common case, the datatype has exactly one default
-				 * operator, and you usually use only that. So look up the
-				 * default operator class for the datatype, and if it's in
-				 * the same operator family, use that.
-				 *
-				 * If that fails, we could do some further checks. We could
-				 * check if there is exactly one operator class for the
-				 * datatype in the operator family, and if so, use that.
-				 * But it doesn't seem worth adding much extra code to deal
-				 * with more obscure cases. Deriving the distribution key
-				 * from the query plan is a heuristic, anyway.
-				 */
-				opclass = GetDefaultOpClass(exprType((Node *) target->expr), HASH_AM_OID);
-				if (get_opclass_family(opclass) != opf1)
-					continue;	/* not compatible */
-
-				policykeys = lappend_int(policykeys, n);
-				policyopclasses = lappend_oid(policyopclasses, opclass);
-				found_expr = true;
-				break;
-			}
-		}
-
-		if (!found_expr)
-		{
-			/*
-			 * This distribution key is not present in the target list. Give
-			 * up.
-			 */
-			return NULL;
-		}
-	}
-
-	/*
-	 * We use the default number of segments, even if the flow was partially
-	 * distributed. That defeats the performance benefit of using the same
-	 * distribution key columns, because we'll need a Restribute Motion
-	 * anyway. But presumably if the user had expanded the cluster, they want
-	 * to use all the segments for new tables.
-	 */
-	return createHashPartitionedPolicy(policykeys,
-									   policyopclasses,
-									   GP_POLICY_DEFAULT_NUMSEGMENTS());
-}
-
-
 /* -------------------------------------------------------------------------
- * Function apply_motion() and apply_motion_mutator() add motion nodes to a
- * top-level Plan tree so that the final result is distributed correctly
- * for the kind of query. For example, an INSERT statement's result must
- * be sent to the correct segments where the data needs to be inserted, and a
- * SELECT query's result must be brought to the dispatcher, so that it can
- * be sent to the client.
+ * Function apply_motion() adds Motion nodes on top of plan trees for
+ * SubPlans, so that the subplan results are available at the correct nodes
+ * for the outer query. It also assigns motionIDs to all the motions in the
+ * plan tree.
  *
- * This also adds Motion nodes on top of plan trees for SubPlans, so that the
- * subplan results are available at the correct nodes for the outer query.
- *
- * If the plan is a candidate for Direct Dispatch, *needToAssignDirectDispatchContentIds
- * is set to true.
- *
- * The result is a deep copy of the argument Plan tree with added Motion
- * nodes.
- *
- * TODO Maybe add more context to argument list!
+ * The result is a deep copy of the argument Plan tree with added/modified
+ * Motion nodes.
  * -------------------------------------------------------------------------
  */
 Plan *
-apply_motion(PlannerInfo *root, Plan *plan, bool *needToAssignDirectDispatchContentIds)
+apply_motion(PlannerInfo *root, Plan *plan)
 {
 	Query	   *query = root->parse;
 	Plan	   *result;
 	int			nInitPlans;
-	GpPolicy   *targetPolicy = NULL;
-	GpPolicyType targetPolicyType = POLICYTYPE_ENTRY;
 	ApplyMotionState state;
-	bool		bringResultToDispatcher = false;
 	int			numsegments = getgpsegmentCount();
 	int			nsubplans;
-
-	*needToAssignDirectDispatchContentIds = false;
 
 	/* Initialize mutator context. */
 	planner_init_plan_tree_base(&state.base, root); /* error on attempt to
@@ -363,262 +210,10 @@ apply_motion(PlannerInfo *root, Plan *plan, bool *needToAssignDirectDispatchCont
 		sstate->processed = false;
 	}
 
-	Assert(is_plan_node((Node *) plan));
-
-	/* Does query have a target relation?  (INSERT/DELETE/UPDATE) */
-
-	/*
-	 * NOTE: This code makes the assumption that if we are working on a
-	 * hierarchy of tables, all the tables are distributed, or all are on the
-	 * entry DB.  Any mixture will fail
-	 */
-	if (query->resultRelation > 0)
-	{
-		RangeTblEntry *rte = rt_fetch(query->resultRelation, query->rtable);
-
-		Assert(rte->rtekind == RTE_RELATION);
-
-		targetPolicy = GpPolicyFetch(rte->relid);
-		targetPolicyType = targetPolicy->ptype;
-	}
-
-	switch (query->commandType)
-	{
-		case CMD_SELECT:
-			/* If the query comes from 'CREATE TABLE AS' or 'SELECT INTO' */
-			if (query->parentStmtType != PARENTSTMTTYPE_NONE)
-			{
-				if (query->intoPolicy != NULL)
-				{
-					targetPolicy = query->intoPolicy;
-
-					Assert(query->intoPolicy->ptype != POLICYTYPE_ENTRY);
-					Assert(query->intoPolicy->nattrs >= 0);
-					Assert(query->intoPolicy->nattrs <= MaxPolicyAttributeNumber);
-				}
-				else if (gp_create_table_random_default_distribution)
-				{
-					targetPolicy = createRandomPartitionedPolicy(GP_POLICY_DEFAULT_NUMSEGMENTS());
-					ereport(NOTICE,
-							(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
-							 errmsg("using default RANDOM distribution since no distribution was specified"),
-							 errhint("Consider including the 'DISTRIBUTED BY' clause to determine the distribution of rows.")));
-				}
-				else
-				{
-					/* First try to deduce the distribution from the query */
-					targetPolicy = get_partitioned_policy_from_flow(plan);
-
-					/*
-					 * If that fails, hash on the first hashable column we can
-					 * find.
-					 */
-					if (!targetPolicy)
-					{
-						int			i;
-						List	   *policykeys = NIL;
-						List	   *policyopclasses = NIL;
-
-						for (i = 0; i < list_length(plan->targetlist); i++)
-						{
-							TargetEntry *target =
-							get_tle_by_resno(plan->targetlist, i + 1);
-
-							if (target)
-							{
-								Oid			typeOid = exprType((Node *) target->expr);
-								Oid			opclass = InvalidOid;
-
-								/*
-								 * Check for a legacy hash operator class if
-								 * gp_use_legacy_hashops GUC is set. If
-								 * InvalidOid is returned or the GUC is not
-								 * set, we'll get the default operator class.
-								 */
-								if (gp_use_legacy_hashops)
-									opclass = get_legacy_cdbhash_opclass_for_base_type(typeOid);
-
-								if (!OidIsValid(opclass))
-									opclass = cdb_default_distribution_opclass_for_type(typeOid);
-
-
-								if (OidIsValid(opclass))
-								{
-									policykeys = lappend_int(policykeys, i + 1);
-									policyopclasses = lappend_oid(policyopclasses, opclass);
-									break;
-								}
-							}
-						}
-						targetPolicy = createHashPartitionedPolicy(policykeys,
-																   policyopclasses,
-																   GP_POLICY_DEFAULT_NUMSEGMENTS());
-					}
-
-					/* If we deduced the policy from the query, give a NOTICE */
-					if (query->parentStmtType == PARENTSTMTTYPE_CTAS)
-					{
-						StringInfoData columnsbuf;
-						int			i;
-
-						initStringInfo(&columnsbuf);
-						for (i = 0; i < targetPolicy->nattrs; i++)
-						{
-							TargetEntry *target = get_tle_by_resno(plan->targetlist, targetPolicy->attrs[i]);
-
-							if (i > 0)
-								appendStringInfoString(&columnsbuf, ", ");
-							if (target->resname)
-								appendStringInfoString(&columnsbuf, target->resname);
-							else
-								appendStringInfoString(&columnsbuf, "???");
-
-						}
-						ereport(NOTICE,
-								(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
-								 errmsg("Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) "
-										"named '%s' as the Greenplum Database data distribution key for this "
-										"table. ", columnsbuf.data),
-								 errhint("The 'DISTRIBUTED BY' clause determines the distribution of data."
-										 " Make sure column(s) chosen are the optimal data distribution key to minimize skew.")));
-					}
-				}
-
-				query->intoPolicy = targetPolicy;
-
-				Assert(query->intoPolicy->ptype != POLICYTYPE_ENTRY);
-
-				/*
-				 * To copy data from old table to new table we must set
-				 * motion's dest numsegments the same as new table.
-				 */
-				numsegments = query->intoPolicy->numsegments;
-
-				if (GpPolicyIsReplicated(query->intoPolicy))
-				{
-					/*
-					 * CdbLocusType_SegmentGeneral is only used by replicated
-					 * table right now, so if both input and target are
-					 * replicated table, no need to add a motion
-					 */
-					if (plan->flow->flotype == FLOW_SINGLETON &&
-						plan->flow->locustype == CdbLocusType_SegmentGeneral)
-					{
-						/* do nothing */
-					}
-
-					/*
-					 * plan's data are available on all segment, no motion
-					 * needed
-					 */
-					if (plan->flow->flotype == FLOW_SINGLETON &&
-						plan->flow->locustype == CdbLocusType_General)
-					{
-						/* do nothing */
-					}
-
-					plan = broadcastPlan(plan, false, numsegments);
-				}
-				else
-				{
-					/*
-					 * Make sure the top level flow is partitioned on the
-					 * partitioning key of the target relation.	Since this is
-					 * a SELECT INTO (basically same as an INSERT) command,
-					 * the target list will correspond to the attributes of
-					 * the target relation in order.
-					 */
-					List	   *hashExprs;
-					List	   *hashOpfamilies;
-
-					hashExprs = getExprListFromTargetList(plan->targetlist,
-														  targetPolicy->nattrs,
-														  targetPolicy->attrs);
-					hashOpfamilies = NIL;
-					for (int i = 0; i < targetPolicy->nattrs; i++)
-					{
-						Oid			opfamily = get_opclass_family(targetPolicy->opclasses[i]);
-
-						hashOpfamilies = lappend_oid(hashOpfamilies, opfamily);
-					}
-
-					plan = repartitionPlan(plan, false,
-										   hashExprs, hashOpfamilies,
-										   numsegments);
-				}
-
-				Assert(query->intoPolicy->ptype != POLICYTYPE_ENTRY);
-			}
-			else
-			{
-				if (plan->flow->flotype == FLOW_PARTITIONED ||
-					(plan->flow->flotype == FLOW_SINGLETON &&
-					 plan->flow->locustype == CdbLocusType_SegmentGeneral))
-					bringResultToDispatcher = true;
-
-				*needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
-			}
-
-			break;
-
-		case CMD_INSERT:
-			if (query->returningList)
-			{
-				bringResultToDispatcher = true;
-			}
-			break;
-
-		case CMD_UPDATE:
-		case CMD_DELETE:
-			*needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
-			if (query->returningList)
-			{
-				bringResultToDispatcher = true;
-			}
-			break;
-
-		case CMD_UTILITY:
-			break;
-
-		default:
-			Insist(0);			/* Never see non-DML in here! */
-	}
-
-	state.outer_query_flow = plan->flow;
-
-	if (bringResultToDispatcher)
-	{
-		/*
-		 * Query result needs to be brought back to the QD. Ask for
-		 * motion to a single QE.  Later, apply_motion will override
-		 * that to bring it to the QD instead.
-		 *
-		 * If the query has an ORDER BY clause, use Merge Receive to
-		 * preserve the ordering.
-		 *
-		 * The plan has already been set up to ensure each qExec's
-		 * result is properly ordered according to the ORDER BY
-		 * specification.  The existing ordering could be stronger
-		 * than required; if so, omit the extra trailing columns from
-		 * the Merge Receive key.
-		 *
-		 * An unordered result is ok if the ORDER BY ordering is
-		 * degenerate (on constant exprs) or the result is known to
-		 * have at most one row.
-		 */
-		if (query->sortClause)
-		{
-			plan = focusPlan(plan, true);
-		}
-
-		/* Use UNION RECEIVE.  Does not preserve ordering. */
-		else
-			plan = focusPlan(plan, false);
-	}
-
 	/*
 	 * Process the main plan tree.
 	 */
+	state.outer_query_flow = plan->flow;
 	result = (Plan *) apply_motion_mutator((Node *) plan, &state);
 
 	/*

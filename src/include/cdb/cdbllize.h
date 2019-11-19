@@ -18,8 +18,12 @@
 
 #include "nodes/nodes.h"
 #include "nodes/plannodes.h"
+#include "nodes/relation.h"
 
-extern Plan *cdbparallelize(struct PlannerInfo *root, Plan *plan, bool *needToAssignDirectDispatchContentIds);
+extern Path *create_motion_for_top_plan(PlannerInfo *root, Path *best_path,
+										bool *needToAssignDirectDispatchContentIds);
+
+extern Plan *cdbparallelize(struct PlannerInfo *root, Plan *plan);
 
 extern bool is_plan_node(Node *node);
 
@@ -28,9 +32,6 @@ extern Flow *makeFlow(FlowType flotype, int numsegments);
 extern Flow *pull_up_Flow(Plan *plan, Plan *subplan);
 
 extern Plan *focusPlan(Plan *plan, bool stable);
-extern Plan *repartitionPlan(Plan *plan, bool stable,
-							 List *hashExpr, List *hashOpfamilies,
-							 int numsegments);
 extern Plan *broadcastPlan(Plan *plan, bool stable,
 						  int numsegments);
 

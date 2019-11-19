@@ -162,18 +162,18 @@ NOTICE:  table "mrs_t1" does not exist, skipping
 create table mrs_t1(x int) distributed by (x);
 insert into mrs_t1 select generate_series(1,20);
 explain select * from mrs_t1 where exists (select x from mrs_t1 where x < -1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.27..6.47 rows=20 width=4)
-   ->  Result  (cost=3.27..6.47 rows=7 width=4)
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=3.25..6.85 rows=20 width=4)
+   InitPlan 1 (returns $0)  (slice3)
+     ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..3.25 rows=1 width=0)
+           ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
+                 Filter: (x < '-1'::integer)
+   ->  Result  (cost=3.25..6.45 rows=7 width=4)
          One-Time Filter: $0
-         InitPlan 1 (returns $0)  (slice3)
-           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..3.25 rows=1 width=0)
-                 ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
-                       Filter: (x < '-1'::integer)
-         ->  Seq Scan on mrs_t1  (cost=0.00..3.20 rows=7 width=4)
+         ->  Seq Scan on mrs_t1  (cost=3.25..6.45 rows=7 width=4)
  Optimizer: Postgres query optimizer
-(11 rows)
+(9 rows)
 
 select * from mrs_t1 where exists (select x from mrs_t1 where x < -1) order by 1;
  x 
@@ -181,18 +181,18 @@ select * from mrs_t1 where exists (select x from mrs_t1 where x < -1) order by 1
 (0 rows)
 
 explain select * from mrs_t1 where exists (select x from mrs_t1 where x = 1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.27..6.47 rows=20 width=4)
-   ->  Result  (cost=3.27..6.47 rows=7 width=4)
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=3.25..6.85 rows=20 width=4)
+   InitPlan 1 (returns $0)  (slice3)
+     ->  Gather Motion 1:1  (slice2; segments: 1)  (cost=0.00..3.25 rows=1 width=0)
+           ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
+                 Filter: (x = 1)
+   ->  Result  (cost=3.25..6.45 rows=7 width=4)
          One-Time Filter: $0
-         InitPlan 1 (returns $0)  (slice3)
-           ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..3.25 rows=1 width=0)
-                 ->  Seq Scan on mrs_t1 mrs_t1_1  (cost=0.00..3.25 rows=1 width=0)
-                       Filter: (x = 1)
-         ->  Seq Scan on mrs_t1  (cost=0.00..3.20 rows=7 width=4)
+         ->  Seq Scan on mrs_t1  (cost=3.25..6.45 rows=7 width=4)
  Optimizer: Postgres query optimizer
-(11 rows)
+(9 rows)
 
 select * from mrs_t1 where exists (select x from mrs_t1 where x = 1) order by 1;
  x  

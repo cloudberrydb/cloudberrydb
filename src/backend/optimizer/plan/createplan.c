@@ -318,9 +318,18 @@ create_plan(PlannerInfo *root, Path *path)
 	 * the planner don't bother with that stuff, but we must have it on the
 	 * top-level tlist seen at execution time.  However, ModifyTable plan
 	 * nodes don't have a tlist matching the querytree targetlist.
+	 *
+	 * The ModifyTable might be under a Motion, so peek underneath it.
 	 */
-	if (!IsA(plan, ModifyTable))
-		apply_tlist_labeling(plan->targetlist, root->processed_tlist);
+	{
+		Plan	   *topplan = plan;
+
+		if (IsA(plan, Motion))
+			topplan = plan->lefttree;
+
+		if (!IsA(topplan, ModifyTable))
+			apply_tlist_labeling(topplan->targetlist, root->processed_tlist);
+	}
 
 	/* Decorate the top node of the plan with a Flow node. */
 	plan->flow = cdbpathtoplan_create_flow(root,
@@ -2499,9 +2508,8 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	if (CdbPathLocus_IsEntry(path->path.locus) &&
 		CdbPathLocus_IsSingleQE(subpath->locus))
 	{
-		/* Push the MotionPath's locus and pathkeys down onto subpath. */
+		/* Push the MotionPath's locus down onto subpath. */
 		subpath->locus = path->path.locus;
-		subpath->pathkeys = path->path.pathkeys;
 
 		subplan = create_subplan(root, subpath);
 

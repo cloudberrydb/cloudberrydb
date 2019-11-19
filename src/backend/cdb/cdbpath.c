@@ -233,7 +233,8 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			return (Path *) pathnode;
 		}
 
-		if (CdbPathLocus_IsSegmentGeneral(subpath->locus))
+		if (CdbPathLocus_IsSegmentGeneral(subpath->locus) ||
+			CdbPathLocus_IsReplicated(subpath->locus))
 		{
 			/*
 			 * Data is only available on segments, to distingush it with
@@ -292,10 +293,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		if (require_existing_order &&
 			!pathkeys)
 			return NULL;
-
-		/* replicated-->singleton would give redundant copies of the rows. */
-		if (CdbPathLocus_IsReplicated(subpath->locus))
-			goto invalid_motion_request;
 
 		/*
 		 * Must be partitioned-->singleton. If caller gave pathkeys, they'll
@@ -406,13 +403,15 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		}
 		else if (CdbPathLocus_IsReplicated(locus))
 		{
-			/*
-			 * Assume that this case only can be generated in
-			 * UPDATE/DELETE statement
-			 */
-			if (root->upd_del_replicated_table == 0)
-				goto invalid_motion_request;
-
+			if (CdbPathLocus_NumSegments(locus) <= CdbPathLocus_NumSegments(subpath->locus))
+			{
+				subpath->locus.numsegments = numsegments;
+				return subpath;
+			}
+			else
+			{
+				pathkeys = subpath->pathkeys;
+			}
 		}
 		else
 			goto invalid_motion_request;
@@ -2449,6 +2448,32 @@ failIfUpdateTriggers(Relation relation)
 		ereport(ERROR,
 				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
 				 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
+}
+
+/*
+ * Add a suitable Motion Path so that the input tuples from 'subpath' are
+ * distributed correctly for insertion into target table.
+ */
+Path *
+create_motion_path_for_ctas(PlannerInfo *root, GpPolicy *policy, Path *subpath)
+{
+	GpPolicyType	policyType = policy->ptype;
+
+	if (policyType == POLICYTYPE_PARTITIONED && policy->nattrs == 0)
+	{
+		/*
+		 * If the target table is DISTRIBUTED RANDOMLY, and the input data
+		 * is already partitioned, we could let the insertions happen where
+		 * they are. But to ensure more random distribution, redistribute.
+		 * This is different from create_motion_path_for_insert().
+		 */
+		CdbPathLocus targetLocus;
+
+		CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+		return cdbpath_create_motion_path(root, subpath, NIL, false, targetLocus);
+	}
+	else
+		return create_motion_path_for_insert(root, policy, subpath);
 }
 
 /*
