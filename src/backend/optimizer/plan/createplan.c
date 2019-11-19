@@ -91,7 +91,6 @@
 
 static Plan *create_scan_plan(PlannerInfo *root, Path *best_path,
 				 int flags);
-static Plan *create_subplan(PlannerInfo *root, Path *best_path);		/* CDB */
 static List *build_path_tlist(PlannerInfo *root, Path *path);
 static bool use_physical_tlist(PlannerInfo *root, Path *path, int flags);
 static List *get_gating_quals(PlannerInfo *root, List *quals);
@@ -298,7 +297,7 @@ static Motion *cdbpathtoplan_create_motion_plan(PlannerInfo *root,
  *	  Returns a Plan tree.
  */
 Plan *
-create_plan(PlannerInfo *root, Path *path)
+create_plan(PlannerInfo *root, Path *best_path)
 {
 	Plan	   *plan;
 
@@ -307,10 +306,14 @@ create_plan(PlannerInfo *root, Path *path)
 
 	/* Modify path to support unique rowid operation for subquery preds. */
 	if (root->join_info_list)
-		cdbpath_dedup_fixup(root, path);
+		cdbpath_dedup_fixup(root, best_path);
 
-	/* Generate the Plan tree. */
-	plan = create_subplan(root, path);
+	/* Initialize this module's workspace in PlannerInfo */
+	root->curOuterRels = NULL;
+	root->curOuterParams = NIL;
+
+	/* Recursively process the path tree, demanding the correct tlist result */
+	plan = create_plan_recurse(root, best_path, CP_EXACT_TLIST);
 
 	/*
 	 * Make sure the topmost plan node's targetlist exposes the original
@@ -332,54 +335,7 @@ create_plan(PlannerInfo *root, Path *path)
 	}
 
 	/* Decorate the top node of the plan with a Flow node. */
-	plan->flow = cdbpathtoplan_create_flow(root, path->locus, plan);
-	return plan;
-}	/* create_plan */
-
-
-/*
- * create_subplan
- */
-static Plan *
-create_subplan(PlannerInfo *root, Path *best_path)
-{
-	Plan	   *plan;
-
-	/*
-	 * GPDB_95_MERGE_FIXME: Is below true in case when recurse creates multiple subplans under same root?
-	 *
-	 *     ```
-	 *     // plan_params should not be in use in current query level
-	 *     Assert(root->plan_params == NIL);
-	 *     ```
-	 *
-	 * Regress test 'join' triggers this asssert with following stacktrace:
-	 *     #4  0x0000555f54b083ae in ExceptionalCondition (conditionName=0x555f54df1900 "!(root->plan_params == ((List *) ((void *)0)))", errorType=0x5 55f54df18ed "FailedAssertion", fileName=0x555f54df18e0 "createplan.c", lineNumber=245) at assert.c:46
-	 *     #5  0x0000555f54863c94 in create_subplan (root=0x555f5650e6a8, best_path=0x555f5652a140) at createplan.c:245
-	 *     #6  0x0000555f54865699 in create_motion_plan (root=0x555f5650e6a8, path=0x555f56604cb0) at createplan.c:1292
-	 *     #7  0x0000555f54863e3d in create_plan_recurse (root=0x555f5650e6a8, best_path=0x555f56604cb0) at createplan.c:338
-	 *     #8  0x0000555f54864ed9 in create_material_plan (root=0x555f5650e6a8, best_path=0x555f56604d48) at createplan.c:1044
-	 *     #9  0x0000555f54863e08 in create_plan_recurse (root=0x555f5650e6a8, best_path=0x555f56604d48) at createplan.c:330
-	 *     #10 0x0000555f54864737 in create_join_plan (root=0x555f5650e6a8, best_path=0x555f566031a8) at createplan.c:769
-	 *     #11 0x0000555f54863d98 in create_plan_recurse (root=0x555f5650e6a8, best_path=0x555f566031a8) at createplan.c:314
-	 *     #12 0x0000555f54863cc5 in create_subplan (root=0x555f5650e6a8, best_path=0x555f566031a8) at createplan.c:265
-	 *     #13 0x0000555f54863bfe in create_plan (root=0x555f5650e6a8, path=0x555f566031a8) at createplan.c:225
-	 *     #14 0x0000555f5487a82b in grouping_planner (root=0x555f5650e6a8, tuple_fraction=0) at planner.c:2411
-	 *     #15 0x0000555f54877a50 in subquery_planner (glob=0x555f566572a8, parse=0x555f564e7fd0, parent_root=0x0, hasRecursion=0 '\000', tuple_fraction=0, subroot=0x7fff97e4fbb8, config=0x555f5650e670) at planner.c:919
-	 *     #16 0x0000555f54876667 in standard_planner (parse=0x555f564e7fd0, cursorOptions=0, boundParams=0x0) at planner.c:363
-	 *     #17 0x0000555f54876188 in planner (parse=0x555f564a08a8, cursorOptions=0, boundParams=0x0) at planner.c:211
-	 *     #18 0x0000555f5496cf7d in pg_plan_query (querytree=0x555f564a08a8, cursorOptions=0, boundParams=0x0) at postgres.c:923
-	 *     #19 0x0000555f5467010b in ExplainOneQuery (query=0x555f564a08a8, into=0x0, es=0x555f563c6620, queryString=0x555f56428e58 "explain (costs off)\nselect a.f1, b.f1, t.thousand, t.tenthous from\n  tenk1 t,\n  (select sum(f1)+1 as f1 from int4_tbl i4a) a,\n  (select sum(f1) as f1 from int4_tbl i4b) b\nwhere b.f1 = t.thousand and a"..., params=0x0) at explain.c:426
-	 *
-	 * Also look here: https://github.com/greenplum-db/gpdb/pull/5440/files#diff-00750e058ab89e26bf48c8c76bf95779
-	 */
-
-	/* Initialize this module's private workspace in PlannerInfo */
-	root->curOuterRels = NULL;
-	root->curOuterParams = NIL;
-
-	/* Recursively process the path tree, demanding the correct tlist result */
-	plan = create_plan_recurse(root, best_path, CP_EXACT_TLIST);
+	plan->flow = cdbpathtoplan_create_flow(root, best_path->locus, plan);
 
 	/*
 	 * Attach any initPlans created in this query level to the topmost plan
@@ -2495,10 +2451,7 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 		/* Push the MotionPath's locus down onto subpath. */
 		subpath->locus = path->path.locus;
 
-		subplan = create_subplan(root, subpath);
-
-		root->curOuterRels = save_curOuterRels;
-		root->curOuterParams = save_curOuterParams;
+		subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
 
 		return subplan;
 	}
@@ -2510,7 +2463,20 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	 */
 	before_numMotions = root->numMotions;
 
-	subplan = create_subplan(root, subpath);
+	root->curOuterRels = NULL;
+	root->curOuterParams = NIL;
+
+	subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
+
+	/* Check we successfully assigned all NestLoopParams to plan nodes */
+	if (root->curOuterParams != NIL)
+		elog(ERROR, "failed to assign all NestLoopParams to plan nodes");
+
+	/*
+	 * Reset plan_params to ensure param IDs used for nestloop params are not
+	 * re-used later
+	 */
+	root->plan_params = NIL;
 
 	/*
 	 * Elide explicit motion, if the subplan doesn't contain any motions.
@@ -2566,7 +2532,7 @@ create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path)
 	resultDesc = RelationGetDescr(resultRel);
 	cdbpolicy = resultRel->rd_cdbpolicy;
 
-	subplan = create_subplan(root, subpath);
+	subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
 
 	/* Transfer resname/resjunk labeling, too, to keep executor happy */
 	apply_tlist_labeling(subplan->targetlist, root->processed_tlist);

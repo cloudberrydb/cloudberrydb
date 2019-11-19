@@ -71,32 +71,31 @@ ORDER BY id
 LIMIT 1;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=6.34..6.36 rows=1 width=4) (actual time=7.037..7.039 rows=1 loops=1)
-   InitPlan 1 (returns $0)  (slice4)
-     ->  Finalize Aggregate  (cost=3.16..3.17 rows=1 width=32) (actual time=25.980..0.000 rows=1 loops=1)
-           ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=3.12..3.15 rows=1 width=32) (actual time=5.475..0.000 rows=3 loops=1)
-                 ->  Partial Aggregate  (cost=3.12..3.13 rows=1 width=32) (actual time=0.055..0.055 rows=1 loops=1)
-                       ->  Seq Scan on explaintest explaintest_1  (cost=0.00..3.10 rows=4 width=4) (actual time=0.028..0.031 rows=5 loops=1)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.17..3.19 rows=1 width=4) (actual time=7.034..7.034 rows=1 loops=1)
+ Limit  (cost=6.34..6.36 rows=1 width=4) (actual time=8.146..8.149 rows=1 loops=1)
+   InitPlan 1 (returns $0)  (slice3)
+     ->  Finalize Aggregate  (cost=3.16..3.17 rows=1 width=32) (actual time=5.543..5.543 rows=1 loops=1)
+           ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=3.12..3.15 rows=1 width=32) (actual time=1.594..5.513 rows=3 loops=1)
+                 ->  Partial Aggregate  (cost=3.12..3.13 rows=1 width=32) (actual time=0.035..0.035 rows=1 loops=1)
+                       ->  Seq Scan on explaintest explaintest_1  (cost=0.00..3.10 rows=4 width=4) (actual time=0.020..0.021 rows=5 loops=1)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.17..3.19 rows=1 width=4) (actual time=8.142..8.142 rows=1 loops=1)
          Merge Key: explaintest.id
-         ->  Limit  (cost=3.17..3.17 rows=1 width=4) (actual time=2.365..2.371 rows=1 loops=1)
-               ->  Sort  (cost=3.17..3.17 rows=2 width=4) (actual time=2.363..2.363 rows=1 loops=1)
+         ->  Limit  (cost=3.17..3.17 rows=1 width=4) (actual time=0.576..0.580 rows=1 loops=1)
+               ->  Sort  (cost=3.17..3.17 rows=2 width=4) (actual time=0.574..0.574 rows=1 loops=1)
                      Sort Key: explaintest.id
                      Sort Method:  top-N heapsort  Memory: 51kB
-                     ->  Seq Scan on explaintest  (cost=0.00..3.15 rows=2 width=4) (actual time=0.042..0.046 rows=3 loops=1)
+                     ->  Seq Scan on explaintest  (cost=0.00..3.15 rows=2 width=4) (actual time=0.035..0.039 rows=3 loops=1)
                            Filter: ((id)::numeric > $0)
- Planning time: 1.826 ms
-   (slice0)    Executor memory: 279K bytes.
- * (slice1)    Executor memory: 124K bytes avg x 3 workers, 124K bytes max (seg0).  Work_mem: 65K bytes max, 1K bytes wanted.
-   (slice2)    
- _ (slice3)    Workers: Workers: 3 not dispatched;.  
+ Planning time: 1.636 ms
+   (slice0)    Executor memory: 156K bytes.
+ * (slice1)    Executor memory: 94K bytes avg x 3 workers, 100K bytes max (seg1).  Work_mem: 65K bytes max, 1K bytes wanted.
+ _ (slice2)    Workers: Workers: 3 not dispatched;.  
  Executor memory: 75K bytes avg x 3 workers, 75K bytes max (seg0).
-   (slice4)    Executor memory: 151K bytes.
+   (slice3)    Executor memory: 147K bytes.
  Memory used:  128000kB
- Memory wanted:  1200kB
+ Memory wanted:  800kB
  Optimizer: Postgres query optimizer
- Execution time: 53.744 ms
-(25 rows)
+ Execution time: 35.670 ms
+(24 rows)
 
 -- Verify that the column references are OK. This tests for an old ORCA bug,
 -- where the Filter clause in the IndexScan of this query was incorrectly

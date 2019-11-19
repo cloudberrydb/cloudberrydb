@@ -646,29 +646,29 @@ select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j
 explain select A.i, B.i, C.j from A, B, C where A.j = any ( select C.j from C where not exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=30000000026.43..30000000026.65 rows=10 width=12)
-   InitPlan 1 (returns $0)  (slice12)
-     ->  Gather Motion 1:1  (slice11; segments: 1)  (cost=10000000000.00..10000000005.18 rows=4 width=0)
+ Limit  (cost=30000000026.44..30000000026.67 rows=10 width=12)
+   InitPlan 1 (returns $0)  (slice7)
+     ->  Gather Motion 1:1  (slice6; segments: 1)  (cost=10000000000.00..10000000005.18 rows=4 width=0)
            ->  Nested Loop  (cost=10000000000.00..10000000005.18 rows=2 width=0)
                  ->  Seq Scan on c c_2  (cost=0.00..3.11 rows=1 width=4)
                        Filter: (i = 10)
                  ->  Seq Scan on a a_1  (cost=0.00..2.06 rows=1 width=4)
                        Filter: (i = 10)
-   ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=20000000024.87..20000000025.09 rows=10 width=12)
+   ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=20000000024.88..20000000025.11 rows=10 width=12)
          Merge Key: a.i, b.i, c.j
-         ->  Limit  (cost=20000000024.87..20000000024.89 rows=4 width=12)
-               ->  Sort  (cost=20000000024.80..20000000025.47 rows=90 width=12)
+         ->  Limit  (cost=20000000024.88..20000000024.91 rows=4 width=12)
+               ->  Sort  (cost=20000000024.82..20000000025.49 rows=90 width=12)
                      Sort Key: a.i, b.i, c.j
-                     ->  Result  (cost=20000000005.49..20000000018.97 rows=90 width=12)
+                     ->  Result  (cost=20000000005.51..20000000018.98 rows=90 width=12)
                            One-Time Filter: (NOT $0)
-                           ->  Hash Join  (cost=20000000005.49..20000000018.97 rows=90 width=12)
+                           ->  Hash Join  (cost=20000000005.51..20000000018.98 rows=90 width=12)
                                  Hash Cond: (c_1.j = a.j)
-                                 ->  Nested Loop  (cost=20000000003.28..20000000013.78 rows=18 width=12)
-                                       ->  Nested Loop  (cost=10000000003.28..10000000008.47 rows=2 width=8)
+                                 ->  Nested Loop  (cost=20000000003.29..20000000013.80 rows=18 width=12)
+                                       ->  Nested Loop  (cost=10000000003.29..10000000008.48 rows=2 width=8)
                                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.30 rows=6 width=4)
                                                    ->  Seq Scan on b  (cost=0.00..3.06 rows=2 width=4)
-                                             ->  Materialize  (cost=3.28..3.34 rows=3 width=4)
-                                                   ->  HashAggregate  (cost=3.28..3.30 rows=3 width=4)
+                                             ->  Materialize  (cost=3.29..3.36 rows=3 width=4)
+                                                   ->  HashAggregate  (cost=3.29..3.32 rows=3 width=4)
                                                          Group Key: c_1.j
                                                          ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..3.27 rows=3 width=4)
                                                                Hash Key: c_1.j
@@ -838,8 +838,8 @@ explain select A.i, B.i, C.j from A, B, C where A.j < all ( select C.j from C wh
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=40000000026.24..40000000026.47 rows=10 width=12)
-   InitPlan 1 (returns $0)  (slice10)
-     ->  Gather Motion 1:1  (slice9; segments: 1)  (cost=10000000000.00..10000000005.18 rows=4 width=0)
+   InitPlan 1 (returns $0)  (slice6)
+     ->  Gather Motion 1:1  (slice5; segments: 1)  (cost=10000000000.00..10000000005.18 rows=4 width=0)
            ->  Nested Loop  (cost=10000000000.00..10000000005.18 rows=2 width=0)
                  ->  Seq Scan on c c_2  (cost=0.00..3.11 rows=1 width=4)
                        Filter: (i = 10)

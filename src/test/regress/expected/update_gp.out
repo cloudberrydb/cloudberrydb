@@ -126,18 +126,18 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
  Update on keo1
-   InitPlan 3 (returns $2)  (slice26)
+   InitPlan 3 (returns $2)  (slice9)
      ->  Finalize Aggregate
-           InitPlan 2 (returns $1)  (slice25)
-             ->  Gather Motion 3:1  (slice15; segments: 3)
+           InitPlan 2 (returns $1)  (slice8)
+             ->  Gather Motion 3:1  (slice5; segments: 3)
                    ->  Seq Scan on keo4 keo4_1
                          Filter: ((keo_para_budget_date)::text = $0)
-                         InitPlan 1 (returns $0)  (slice24)
+                         InitPlan 1 (returns $0)  (slice7)
                            ->  Finalize Aggregate
-                                 ->  Gather Motion 3:1  (slice23; segments: 3)
+                                 ->  Gather Motion 3:1  (slice6; segments: 3)
                                        ->  Partial Aggregate
                                              ->  Seq Scan on keo4
-           ->  Gather Motion 3:1  (slice7; segments: 3)
+           ->  Gather Motion 3:1  (slice4; segments: 3)
                  ->  Partial Aggregate
                        ->  Seq Scan on keo3
                              Filter: ((bky_per)::text = ($1)::text)
@@ -176,11 +176,11 @@ SELECT user_vie_act_cntr_marg_cum FROM keo1;
 CREATE TABLE keo5 (x int, y int) DISTRIBUTED BY (x);
 INSERT INTO keo5 VALUES (1,1);
 EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS (SELECT x FROM keo5 WHERE x < 2));
-                        QUERY PLAN                        
-----------------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Delete on keo5
-   InitPlan 1 (returns $0)  (slice3)
-     ->  Gather Motion 3:1  (slice2; segments: 3)
+   InitPlan 1 (returns $0)  (slice2)
+     ->  Gather Motion 3:1  (slice1; segments: 3)
            ->  Seq Scan on keo5 keo5_2
                  Filter: (x < 2)
    ->  Result
@@ -193,7 +193,7 @@ EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS
                            Group Key: keo5_1.x
                            ->  Seq Scan on keo5 keo5_1
  Optimizer: Postgres query optimizer
-(17 rows)
+(15 rows)
 
 DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS (SELECT x FROM keo5 WHERE x < 2));
 SELECT x FROM keo5;

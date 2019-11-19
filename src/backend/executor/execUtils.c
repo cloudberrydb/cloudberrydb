@@ -1858,16 +1858,16 @@ typedef struct SubPlanFinderContext
  * Walker to find all the subplans in a PlanTree between 'node' and the next motion node
  */
 static bool
-SubPlanFinderWalker(Plan *node,
-				  void *context)
+SubPlanFinderWalker(Node *node, void *context)
 {
-	Assert(context);
 	SubPlanFinderContext *ctx = (SubPlanFinderContext *) context;
 
-	if (node == NULL || IsA(node, Motion))
-	{
-		return false;	/* don't visit subtree */
-	}
+	if (node == NULL)
+		return false;
+
+	/* don't recurse into other slices */
+	if (IsA(node, Motion))
+		return false;
 
 	if (IsA(node, SubPlan))
 	{
@@ -1881,7 +1881,7 @@ SubPlanFinderWalker(Plan *node,
 	}
 
 	/* Continue walking */
-	return plan_tree_walker((Node*)node, SubPlanFinderWalker, ctx, true);
+	return plan_tree_walker(node, SubPlanFinderWalker, ctx, true);
 }
 
 /*
@@ -1889,17 +1889,23 @@ SubPlanFinderWalker(Plan *node,
  * between 'root' and the next motion node in the tree
  */
 Bitmapset *
-getLocallyExecutableSubplans(PlannedStmt *plannedstmt, Plan *root)
+getLocallyExecutableSubplans(PlannedStmt *plannedstmt, Plan *root_plan)
 {
 	SubPlanFinderContext ctx;
-	Plan* root_plan = root;
-	if (IsA(root, Motion))
-	{
-		root_plan = outerPlan(root);
-	}
-	ctx.base.node = (Node*)plannedstmt;
+
+	ctx.base.node = (Node *) plannedstmt;
 	ctx.bms_subplans = NULL;
-	SubPlanFinderWalker(root_plan, &ctx);
+
+	/*
+	 * Note that we begin with plan_tree_walker(root_plan), not
+	 * SubPlanFinderWalker(root_plan). SubPlanFinderWalker() will stop
+	 * at a Motion, but a slice typically has a Motion at the top. We want
+	 * to recurse into the children of the top Motion, as well as any
+	 * initPlans, targetlist, and other fields on the Motion itself. They
+	 * are all considered part of the sending slice.
+	 */
+	(void) plan_tree_walker((Node *) root_plan, SubPlanFinderWalker, &ctx, true);
+
 	return ctx.bms_subplans;
 }
 
@@ -2008,16 +2014,11 @@ ExtractParamsFromInitPlans(PlannedStmt *plannedstmt, Plan *root, EState *estate)
 {
 	ParamExtractorContext ctx;
 
-	ctx.base.node = (Node*) plannedstmt;
+	ctx.base.node = (Node *) plannedstmt;
 	ctx.estate = estate;
 
 	Assert(Gp_role == GP_ROLE_EXECUTE);
 
-	/* If gather motion shows up at top, we still need to find master only init plan */
-	if (IsA(root, Motion))
-	{
-		root = outerPlan(root);
-	}
 	ParamExtractorWalker(root, &ctx);
 }
 

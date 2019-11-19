@@ -214,6 +214,7 @@ apply_motion(PlannerInfo *root, Plan *plan)
 	 * Process the main plan tree.
 	 */
 	state.outer_query_flow = plan->flow;
+	state.currentPlanFlow = plan->flow;
 	result = (Plan *) apply_motion_mutator((Node *) plan, &state);
 
 	/*
@@ -408,12 +409,23 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 			plan->flow->segindex = -1;
 		}
 
+		/*
+		 * Recurse into the Motion's initPlans and other fields, and the
+		 * subtree.
+		 *
+		 * All the fields on the Motion node are considered part of the sending
+		 * slice.
+		 */
 		saveCurrentPlanFlow = context->currentPlanFlow;
 		if (plan->flow != NULL && plan->flow->flotype != FLOW_UNDEFINED)
-			context->currentPlanFlow = plan->flow;
+			context->currentPlanFlow = plan->lefttree->flow;
 		context->sliceDepth++;
-		motion->plan.lefttree = (Plan *) apply_motion_mutator((Node *) motion->plan.lefttree,
-															  context);
+
+		plan = (Plan *) plan_tree_mutator((Node *) plan,
+										  apply_motion_mutator,
+										  context,
+										  false);
+		motion = (Motion *) plan;
 		context->sliceDepth--;
 		context->currentPlanFlow = saveCurrentPlanFlow;
 
