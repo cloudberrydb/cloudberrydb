@@ -1538,8 +1538,7 @@ typedef struct OnConflictExpr
  * This node type is a MPP extension.
  *
  * Plan nodes contain a reference to a Flow that characterizes the output
- * tuple flow of the node.  In addition, the node contains fields used for
- * parallelizing specification.
+ * tuple flow of the node.
  *----------
  */
 typedef struct Flow
@@ -1556,13 +1555,6 @@ typedef struct Flow
 	 */
 	int			segindex;		/* Segment index of singleton flow. */
 	int         numsegments;
-
-	/*
-	 * If flotype is FLOW_PARTITIONED, these are the partitioning key.
-	 * Otherwise NIL.
-	 */
-	List       *hashExprs;			/* list of hash expressions */
-	List	   *hashOpfamilies;
 
 } Flow;
 

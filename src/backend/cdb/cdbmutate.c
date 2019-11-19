@@ -568,8 +568,6 @@ make_hashed_motion(Plan *lefttree,
 	motion->hashFuncs = hashFuncs;
 	motion->plan.flow = makeFlow(FLOW_PARTITIONED, numsegments);
 	motion->plan.flow->locustype = CdbLocusType_Hashed;
-	motion->plan.flow->hashExprs = copyObject(motion->hashExprs);
-	motion->plan.flow->hashOpfamilies = copyObject(hashOpfamilies);
 
 	return motion;
 }
@@ -2637,8 +2635,6 @@ cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *su
 		/* Build a partitioned flow */
 		resultplan->plan.flow->flotype = FLOW_PARTITIONED;
 		resultplan->plan.flow->locustype = CdbLocusType_Hashed;
-		resultplan->plan.flow->hashExprs = hashExprs;
-		resultplan->plan.flow->hashOpfamilies = hashOpfamilies;
 	}
 	else
 		resultplan = NULL;

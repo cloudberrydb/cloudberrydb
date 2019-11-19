@@ -332,11 +332,7 @@ create_plan(PlannerInfo *root, Path *path)
 	}
 
 	/* Decorate the top node of the plan with a Flow node. */
-	plan->flow = cdbpathtoplan_create_flow(root,
-										   path->locus,
-										   path->parent ? path->parent->relids
-										   : NULL,
-										   plan);
+	plan->flow = cdbpathtoplan_create_flow(root, path->locus, plan);
 	return plan;
 }	/* create_plan */
 
@@ -775,11 +771,7 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	}
 
 	/* Decorate the top node of the plan with a Flow node. */
-	plan->flow = cdbpathtoplan_create_flow(root,
-										   best_path->locus,
-								best_path->parent ? best_path->parent->relids
-										   : NULL,
-										   plan);
+	plan->flow = cdbpathtoplan_create_flow(root, best_path->locus, plan);
 
 	/*
 	 * If there are any pseudoconstant clauses attached to this node, insert a
@@ -1065,11 +1057,7 @@ create_join_plan(PlannerInfo *root, JoinPath *best_path)
 		best_path->outerjoinpath->motionHazard)
 		((Join *) plan)->prefetch_joinqual = true;
 
-	plan->flow = cdbpathtoplan_create_flow(root,
-			best_path->path.locus,
-			best_path->path.parent ? best_path->path.parent->relids
-					: NULL,
-					  plan);
+	plan->flow = cdbpathtoplan_create_flow(root, best_path->path.locus, plan);
 
 	/*
 	 * If there are any pseudoconstant clauses attached to this node, insert a
@@ -1165,7 +1153,6 @@ create_append_plan(PlannerInfo *root, AppendPath *best_path)
 
 	plan->plan.flow = cdbpathtoplan_create_flow(root,
 												best_path->path.locus,
-												best_path->path.parent->relids,
 												&plan->plan);
 
 	return (Plan *) plan;
@@ -1278,7 +1265,6 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 
 	node->plan.flow = cdbpathtoplan_create_flow(root,
 												best_path->path.locus,
-												best_path->path.parent->relids,
 												&node->plan);
 
 	return (Plan *) node;
@@ -1311,8 +1297,6 @@ create_result_plan(PlannerInfo *root, ResultPath *best_path)
 	/* Decorate the top node of the plan with a Flow node. */
 	plan->plan.flow = cdbpathtoplan_create_flow(root,
 												best_path->path.locus,
-												best_path->path.parent ? best_path->path.parent->relids
-												: NULL,
 												(Plan *) plan);
 
 	return plan;
@@ -2680,8 +2664,6 @@ create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path)
 
 	/* XXX: strewn is good enough */
 	splitupdate->plan.flow->locustype = CdbLocusType_Strewn;
-	splitupdate->plan.flow->hashExprs = NIL;
-	splitupdate->plan.flow->hashOpfamilies = NIL;
 
 	relation_close(resultRel, NoLock);
 
@@ -2739,7 +2721,6 @@ create_seqscan_plan(PlannerInfo *root, Path *best_path,
 
 	scan_plan->plan.flow = cdbpathtoplan_create_flow(root,
 													 best_path->locus,
-													 best_path->parent->relids,
 													 &scan_plan->plan);
 
 	return scan_plan;
@@ -8317,9 +8298,6 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
      */
     subplan->flow = cdbpathtoplan_create_flow(root,
                                               subpath->locus,
-                                              subpath->parent
-                                                ? subpath->parent->relids
-                                                : NULL,
                                               subplan);
 
 	/* Remember that this subtree contains a Motion */

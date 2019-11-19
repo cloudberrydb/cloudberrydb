@@ -2455,8 +2455,6 @@ _copyFlow(const Flow *from)
 	COPY_SCALAR_FIELD(locustype);
 	COPY_SCALAR_FIELD(segindex);
 	COPY_SCALAR_FIELD(numsegments);
-	COPY_NODE_FIELD(hashExprs);
-	COPY_NODE_FIELD(hashOpfamilies);
 
 	return newnode;
 }

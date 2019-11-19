@@ -26,7 +26,7 @@
 #include "nodes/print.h"
 
 #include "optimizer/paths.h"
-#include "optimizer/planmain.h" /* for is_projection_capable_plan() */
+#include "optimizer/planmain.h" /* for make_result() */
 #include "optimizer/var.h"
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "nodes/makefuncs.h"	/* for makeTargetEntry() */
@@ -974,19 +974,6 @@ pull_up_Flow(Plan *plan, Plan *subplan)
 
 	if (model_flow->flotype == FLOW_SINGLETON)
 		new_flow->segindex = model_flow->segindex;
-
-	/* Pull up hash key exprs, if they're all present in the plan's result. */
-	else if (model_flow->flotype == FLOW_PARTITIONED &&
-			 model_flow->hashExprs)
-	{
-		if (!is_projection_capable_plan(plan) ||
-			cdbpullup_isExprCoveredByTargetlist((Expr *) model_flow->hashExprs,
-												plan->targetlist))
-		{
-			new_flow->hashExprs = copyObject(model_flow->hashExprs);
-			new_flow->hashOpfamilies = copyObject(model_flow->hashOpfamilies);
-		}
-	}
 
 	new_flow->locustype = model_flow->locustype;
 

@@ -740,7 +740,6 @@ plan_tree_mutator(Node *node,
 				Flow	   *newflow;
 
 				FLATCOPY(newflow, flow, Flow);
-				MUTATE(newflow->hashExprs, flow->hashExprs, List *);
 				return (Node *) newflow;
 			}
 			break;

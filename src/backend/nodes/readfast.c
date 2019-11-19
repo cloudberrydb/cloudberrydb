@@ -1578,8 +1578,6 @@ _readFlow(void)
 	READ_INT_FIELD(segindex);
 	READ_INT_FIELD(numsegments);
 
-	/* hashExprs and hashOpfamilies are omitted */
-
 	READ_DONE();
 }
 

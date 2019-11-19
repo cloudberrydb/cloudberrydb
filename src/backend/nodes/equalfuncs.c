@@ -806,8 +806,6 @@ _equalFlow(const Flow *a, const Flow *b)
 	COMPARE_SCALAR_FIELD(locustype);
 	COMPARE_SCALAR_FIELD(segindex);
 	COMPARE_SCALAR_FIELD(numsegments);
-	COMPARE_NODE_FIELD(hashExprs);
-	COMPARE_NODE_FIELD(hashOpfamilies);
 
 	return true;
 }

@@ -19,7 +19,6 @@
 Flow *
 cdbpathtoplan_create_flow(PlannerInfo  *root,
                           CdbPathLocus  locus,
-                          Relids        relids,
                           Plan         *plan);
 
 #endif   /* CDBPATHTOPLAN_H */

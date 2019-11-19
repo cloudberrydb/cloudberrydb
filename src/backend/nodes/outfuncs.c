@@ -2069,21 +2069,6 @@ _outFlow(StringInfo str, const Flow *node)
 	WRITE_ENUM_FIELD(locustype, CdbLocusType);
 	WRITE_INT_FIELD(segindex);
 	WRITE_INT_FIELD(numsegments);
-
-	/*
-	 * Don't send hashExprs to segments. It's not needed in segments.
-	 * Also, the hash expressions are not processed by set_plan_references(),
-	 * and might therefore still contain PlaceHolderVars, and we're missing
-	 * out/readfast support for them, too.
-	 *
-	 * FIXME: It's a bit ugly that we need the other fields from 'flow'.
-	 * We should clean that up, copying any information that's needed after
-	 * planning elsewhere.
-	 */
-#ifndef COMPILING_BINARY_FUNCS
-	WRITE_NODE_FIELD(hashExprs);
-	WRITE_NODE_FIELD(hashOpfamilies);
-#endif /* COMPILING_BINARY_FUNCS */
 }
 
 /*****************************************************************************
