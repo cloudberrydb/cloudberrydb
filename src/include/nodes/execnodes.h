@@ -3038,8 +3038,6 @@ typedef struct MotionState
 								 * each source segindex */
 
 	/* For sorted Motion recv */
-	struct MotionMKHeapContext *tupleheap_mk;		/* data structure for match merge in sorted motion node */
-
 	struct binaryheap *tupleheap;
 	struct CdbTupleHeapInfo *tupleheap_entries;
 	struct CdbMergeComparatorContext *tupleheap_cxt;

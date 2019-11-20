@@ -117,10 +117,5 @@ select col1, col2, col3, col4, col5 from gpsort_alltypes order by col5 desc, col
 create table colltest (t text);
 insert into colltest VALUES ('a'), ('A'), ('b'), ('B'), ('c'), ('C'), ('d'), ('D'), (NULL);
 
-set gp_enable_motion_mk_sort=on;
-select * from colltest order by t COLLATE "C";
-select * from colltest order by t COLLATE "C" NULLS FIRST;
-
-set gp_enable_motion_mk_sort=off;
 select * from colltest order by t COLLATE "C";
 select * from colltest order by t COLLATE "C" NULLS FIRST;

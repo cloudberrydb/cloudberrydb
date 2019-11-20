@@ -17,7 +17,6 @@
 		"gp_default_storage_options",
 		"gp_disable_tuple_hints",
 		"gp_enable_mk_sort",
-		"gp_enable_motion_mk_sort",
 		"gp_enable_segment_copy_checking",
 		"gp_external_enable_filter_pushdown",
 		"gp_gpperfmon_send_interval",

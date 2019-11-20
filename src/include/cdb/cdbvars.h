@@ -676,7 +676,6 @@ extern bool gp_enable_sort_distinct;
 
 /* Greenplum MK Sort */
 extern bool gp_enable_mk_sort;
-extern bool gp_enable_motion_mk_sort;
 
 #ifdef USE_ASSERT_CHECKING
 extern bool gp_mk_sort_check;

@@ -437,7 +437,6 @@ bool		gp_external_enable_filter_pushdown = true;
 
 /* Executor */
 bool		gp_enable_mk_sort = true;
-bool		gp_enable_motion_mk_sort = true;
 
 /* Enable GDD */
 bool		gp_enable_global_deadlock_detector = false;
@@ -838,18 +837,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 
 		},
 		&gp_enable_mk_sort,
-		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_enable_motion_mk_sort", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Enable multi-key sort in sorted motion recv."),
-			gettext_noop("A faster sort for recv motion"),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-
-		},
-		&gp_enable_motion_mk_sort,
 		true,
 		NULL, NULL, NULL
 	},

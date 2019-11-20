@@ -2087,16 +2087,16 @@ select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extract
 select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
          x         
 -------------------
-  4567890123456789
-  4567890123456789
                456
                456
   4567890123456789
   4567890123456789
- -4567890123456789
- -4567890123456789
                123
                123
+  4567890123456789
+  4567890123456789
+ -4567890123456789
+ -4567890123456789
 (10 rows)
 
 create function extractq2_wapper(t int8_tbl) returns table(ret1 int8) as $$      

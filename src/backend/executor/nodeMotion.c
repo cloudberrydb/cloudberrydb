@@ -27,7 +27,6 @@
 #include "executor/nodeMotion.h"
 #include "lib/binaryheap.h"
 #include "utils/tuplesort.h"
-#include "utils/tuplesort_mk_details.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
 
@@ -103,7 +102,6 @@ static void CdbMergeComparator_DestroyContext(CdbMergeComparatorContext *ctx);
 static TupleTableSlot *execMotionSender(MotionState *node);
 static TupleTableSlot *execMotionUnsortedReceiver(MotionState *node);
 static TupleTableSlot *execMotionSortedReceiver(MotionState *node);
-static TupleTableSlot *execMotionSortedReceiver_mk(MotionState *node);
 
 static void execMotionSortedReceiverFirstTime(MotionState *node);
 
@@ -193,12 +191,7 @@ ExecMotion(MotionState *node)
 			node->ps.state->active_recv_id = motion->motionID;
 
 		if (motion->sendSorted)
-		{
-			if (gp_enable_motion_mk_sort)
-				tuple = execMotionSortedReceiver_mk(node);
-			else
-				tuple = execMotionSortedReceiver(node);
-		}
+			tuple = execMotionSortedReceiver(node);
 		else
 			tuple = execMotionUnsortedReceiver(node);
 
@@ -457,179 +450,6 @@ execMotionUnsortedReceiver(MotionState *node)
  * Then we again select the lowest value and return that tuple.
  *
  */
-
-/* Sorted receiver using mk heap */
-typedef struct MotionMKHeapReaderContext
-{
-	MotionState *node;
-	int			srcRoute;
-} MotionMKHeapReaderContext;
-
-typedef struct MotionMKHeapContext
-{
-	MKHeapReader *readers;		/* Readers, one per sender */
-	MKHeap	   *heap;			/* The mkheap */
-	MKContext	mkctxt;			/* compare context */
-} MotionMKHeapContext;
-
-static bool
-motion_mkhp_read(void *vpctxt, MKEntry *a)
-{
-	MotionMKHeapReaderContext *ctxt = (MotionMKHeapReaderContext *) vpctxt;
-	MotionState *node = ctxt->node;
-
-	GenericTuple inputTuple = NULL;
-	Motion	   *motion = (Motion *) node->ps.plan;
-
-	if (ctxt->srcRoute < 0)
-	{
-		/* routes have not been set yet so set them */
-		ListCell   *lcProcess;
-		int			routeIndex,
-					readerIndex;
-		MotionMKHeapContext *ctxt = node->tupleheap_mk;
-		Slice	   *sendSlice = (Slice *) list_nth(node->ps.state->es_sliceTable->slices, motion->motionID);
-
-		Assert(sendSlice->sliceIndex == motion->motionID);
-
-		readerIndex = 0;
-		foreach_with_count(lcProcess, sendSlice->primaryProcesses, routeIndex)
-		{
-			if (lfirst(lcProcess) != NULL)
-			{
-				MotionMKHeapReaderContext *readerContext;
-
-				Assert(readerIndex < node->numInputSegs);
-
-				readerContext = (MotionMKHeapReaderContext *) ctxt->readers[readerIndex].mkhr_ctxt;
-				readerContext->srcRoute = routeIndex;
-				readerIndex++;
-			}
-		}
-		Assert(readerIndex == node->numInputSegs);
-	}
-
-	MemSet(a, 0, sizeof(MKEntry));
-
-	/* Receive the successor of the tuple that we returned last time. */
-	inputTuple = RecvTupleFrom(node->ps.state->motionlayer_context,
-							   node->ps.state->interconnect_context,
-							   motion->motionID,
-							   ctxt->srcRoute);
-
-	if (inputTuple)
-	{
-		a->ptr = inputTuple;
-		return true;
-	}
-
-	return false;
-}
-
-static Datum
-tupsort_fetch_datum_motion(MKEntry *a, MKContext *mkctxt, MKLvContext *lvctxt, bool *isNullOut)
-{
-	Datum		d;
-
-	if (is_memtuple(a->ptr))
-		d = memtuple_getattr((MemTuple) a->ptr, mkctxt->mt_bind, lvctxt->attno, isNullOut);
-	else
-		d = heap_getattr((HeapTuple) a->ptr, lvctxt->attno, mkctxt->tupdesc, isNullOut);
-	return d;
-}
-
-static void
-tupsort_free_datum_motion(MKEntry *e)
-{
-	pfree(e->ptr);
-	e->ptr = NULL;
-}
-
-static void
-create_motion_mk_heap(MotionState *node)
-{
-	MotionMKHeapContext *ctxt = palloc0(sizeof(MotionMKHeapContext));
-	Motion	   *motion = (Motion *) node->ps.plan;
-	int			nreader = node->numInputSegs;
-	int			i = 0;
-
-	Assert(nreader >= 1);
-
-	create_mksort_context(
-						  &ctxt->mkctxt,
-						  motion->numSortCols, motion->sortColIdx,
-						  motion->sortOperators,
-						  motion->collations,
-						  motion->nullsFirst,
-						  NULL,
-						  tupsort_fetch_datum_motion,
-						  tupsort_free_datum_motion,
-						  ExecGetResultType(&node->ps), false, 0 /* dummy does not matter */ );
-
-	ctxt->readers = palloc0(sizeof(MKHeapReader) * nreader);
-
-	for (i = 0; i < nreader; ++i)
-	{
-		MotionMKHeapReaderContext *hrctxt = palloc(sizeof(MotionMKHeapContext));
-
-		hrctxt->node = node;
-		hrctxt->srcRoute = -1;	/* set to a negative to indicate that we need
-								 * to update it to the real value */
-		ctxt->readers[i].reader = motion_mkhp_read;
-		ctxt->readers[i].mkhr_ctxt = hrctxt;
-	}
-
-	node->tupleheap_mk = ctxt;
-}
-
-static void
-destroy_motion_mk_heap(MotionState *node)
-{
-	/*
-	 * Don't need to do anything.  Memory is allocated from query execution
-	 * context.  By calling this, we are at the end of the life of a query.
-	 */
-}
-
-static TupleTableSlot *
-execMotionSortedReceiver_mk(MotionState *node)
-{
-	TupleTableSlot *slot = NULL;
-	MKEntry		e;
-
-	Motion	   *motion = (Motion *) node->ps.plan;
-	MotionMKHeapContext *ctxt = node->tupleheap_mk;
-
-	Assert(motion->motionType == MOTIONTYPE_GATHER &&
-		   motion->sendSorted &&
-		   ctxt
-		);
-
-	if (node->stopRequested)
-	{
-		SendStopMessage(node->ps.state->motionlayer_context,
-						node->ps.state->interconnect_context,
-						motion->motionID);
-		return NULL;
-	}
-
-	if (!node->tupleheapReady)
-	{
-		Assert(ctxt->readers);
-		Assert(!ctxt->heap);
-		ctxt->heap = mkheap_from_reader(ctxt->readers, node->numInputSegs, &ctxt->mkctxt);
-		node->tupleheapReady = true;
-	}
-
-	mke_set_empty(&e);
-	mkheap_putAndGet(ctxt->heap, &e);
-	if (mke_is_empty(&e))
-		return NULL;
-
-	slot = node->ps.ps_ResultTupleSlot;
-	slot = ExecStoreGenericTuple(e.ptr, slot, true);
-	return slot;
-}
 
 /* Sorted receiver using binary heap */
 static TupleTableSlot *
@@ -1094,27 +914,22 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	/* Merge Receive: Set up the key comparator and priority queue. */
 	if (node->sendSorted && motionstate->mstype == MOTIONSTATE_RECV)
 	{
-		if (gp_enable_motion_mk_sort)
-			create_motion_mk_heap(motionstate);
-		else
-		{
-			/* Allocate context object for the key comparator. */
-			motionstate->tupleheap_entries =
-				palloc(motionstate->numInputSegs * sizeof(CdbTupleHeapInfo));
-			/* Create the priority queue structure. */
-			motionstate->tupleheap_cxt =
-				CdbMergeComparator_CreateContext(motionstate->tupleheap_entries,
-												 tupDesc,
-												 node->numSortCols,
-												 node->sortColIdx,
-												 node->sortOperators,
-												 node->collations,
-												 node->nullsFirst);
-			motionstate->tupleheap =
-				binaryheap_allocate(motionstate->numInputSegs,
-									CdbMergeComparator,
-									motionstate->tupleheap_cxt);
-		}
+		/* Allocate context object for the key comparator. */
+		motionstate->tupleheap_entries =
+			palloc(motionstate->numInputSegs * sizeof(CdbTupleHeapInfo));
+		/* Create the priority queue structure. */
+		motionstate->tupleheap_cxt =
+			CdbMergeComparator_CreateContext(motionstate->tupleheap_entries,
+											 tupDesc,
+											 node->numSortCols,
+											 node->sortColIdx,
+											 node->sortOperators,
+											 node->collations,
+											 node->nullsFirst);
+		motionstate->tupleheap =
+			binaryheap_allocate(motionstate->numInputSegs,
+								CdbMergeComparator,
+								motionstate->tupleheap_cxt);
 	}
 
 	/*
@@ -1227,11 +1042,6 @@ ExecEndMotion(MotionState *node)
 
 		CdbMergeComparator_DestroyContext(node->tupleheap_cxt);
 		node->tupleheap = NULL;
-	}
-	if (node->tupleheap_mk)
-	{
-		destroy_motion_mk_heap(node);
-		node->tupleheap_mk = NULL;
 	}
 
 	/* Free the slices and routes */
