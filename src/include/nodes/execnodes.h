@@ -3061,7 +3061,6 @@ typedef struct MotionState
 	Oid		   *outputFunArray;	/* output functions for each column (debug only) */
 
 	int			numInputSegs;	/* the number of segments on the sending slice */
-	bool		isExplictGatherMotion;
 } MotionState;
 
 /*zx

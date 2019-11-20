@@ -2390,6 +2390,10 @@ create_modifytable_plan(PlannerInfo *root, ModifyTablePath *best_path)
 
 	copy_generic_path_info(&plan->plan, &best_path->path);
 
+	plan->plan.flow = cdbpathtoplan_create_flow(root,
+												best_path->path.locus,
+												&plan->plan);
+
 	/*
 	 * GPDB_96_MERGE_FIXME: is this needed here? I think we set directDispatch later in the
 	 * planning, so that this has no effect here. Try removing and see what happens.
@@ -8202,7 +8206,12 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 
 		/* Unordered Union Receive */
 		else
+		{
 			motion = make_union_motion(subplan, numsegments);
+
+			if (subplan->flow->locustype == CdbLocusType_Replicated)
+				motion->motionType = MOTIONTYPE_GATHER_SINGLE;
+		}
 
 		if (CdbPathLocus_IsOuterQuery(path->path.locus))
 			motion->plan.flow->locustype = CdbLocusType_OuterQuery;

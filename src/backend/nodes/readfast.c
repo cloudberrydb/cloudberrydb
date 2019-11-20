@@ -1593,6 +1593,7 @@ _readMotion(void)
 	READ_ENUM_FIELD(motionType, MotionType);
 
 	Assert(local_node->motionType == MOTIONTYPE_GATHER ||
+		   local_node->motionType == MOTIONTYPE_GATHER_SINGLE ||
 		   local_node->motionType == MOTIONTYPE_HASH ||
 		   local_node->motionType == MOTIONTYPE_BROADCAST ||
 		   local_node->motionType == MOTIONTYPE_EXPLICIT);

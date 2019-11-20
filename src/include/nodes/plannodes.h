@@ -1287,6 +1287,7 @@ typedef struct Limit
 typedef enum MotionType
 {
 	MOTIONTYPE_GATHER,		/* Send tuples from N senders to one receiver */
+	MOTIONTYPE_GATHER_SINGLE, /* Execute subplan on N nodes, but only send the tuples from one */
 	MOTIONTYPE_HASH,		/* Use hashing to select a segindex destination */
 	MOTIONTYPE_BROADCAST,	/* Send tuples from one sender to a fixed set of segindexes */
 	MOTIONTYPE_EXPLICIT		/* Send tuples to the segment explicitly specified in their segid column */

@@ -403,7 +403,7 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		Assert(plan->flow && motion->plan.lefttree->flow);
 
 		/* If top slice marked as singleton, make it a dispatcher singleton. */
-		if (motion->motionType == MOTIONTYPE_GATHER
+		if ((motion->motionType == MOTIONTYPE_GATHER || motion->motionType == MOTIONTYPE_GATHER_SINGLE)
 			&& context->sliceDepth == 0)
 		{
 			plan->flow->segindex = -1;
@@ -440,7 +440,8 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		if (plan->flow->locustype == CdbLocusType_OuterQuery)
 		{
 			Assert(context->outer_query_flow);
-			Assert(motion->motionType == MOTIONTYPE_GATHER || motion->motionType == MOTIONTYPE_BROADCAST);
+			Assert(motion->motionType == MOTIONTYPE_GATHER ||
+				   motion->motionType == MOTIONTYPE_BROADCAST);
 			Assert(!motion->sendSorted);
 
 			if (context->outer_query_flow->flotype == FLOW_SINGLETON)

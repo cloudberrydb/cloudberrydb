@@ -1433,10 +1433,12 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				switch (pMotion->motionType)
 				{
 					case MOTIONTYPE_GATHER:
-						if (plan->lefttree->flow->locustype == CdbLocusType_Replicated)
-							sname = "Explicit Gather Motion";
-						else
-							sname = "Gather Motion";
+						sname = "Gather Motion";
+						scaleFactor = 1;
+						motion_recv = 1;
+						break;
+					case MOTIONTYPE_GATHER_SINGLE:
+						sname = "Explicit Gather Motion";
 						scaleFactor = 1;
 						motion_recv = 1;
 						break;
@@ -1475,7 +1477,8 @@ ExplainNode(PlanState *planstate, List *ancestors,
 						motion_snd = plan->lefttree->flow->numsegments;
 					}
 
-					if (pMotion->motionType == MOTIONTYPE_GATHER)
+					if (pMotion->motionType == MOTIONTYPE_GATHER ||
+						pMotion->motionType == MOTIONTYPE_GATHER_SINGLE)
 					{
 						/* In Gather Motion always display receiver size as 1 */
 						motion_recv = 1;
