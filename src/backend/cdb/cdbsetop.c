@@ -245,55 +245,6 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 }
 
 /*
- * make_motion_gather
- *		Add a Motion node atop the given subplan to gather tuples to
- *      a single process. This motion should only be applied to a partitioned
- *      subplan.
- */
-Motion *
-make_motion_gather(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
-{
-	Motion	   *motion;
-
-	Assert(subplan->flow != NULL);
-	Assert(subplan->flow->flotype == FLOW_PARTITIONED ||
-		   subplan->flow->flotype == FLOW_SINGLETON);
-
-	if (sortPathKeys)
-	{
-		Sort	   *sort;
-
-		/*
-		 * The input is pre-sorted, so we don't need to do any real sorting
-		 * here. But make_sort_for_pathkeys() is a convenient way to construct
-		 * the 'sortColIdx', 'sortOperators', etc. fields that we need in the
-		 * Motion node. They represent the input order that the Motion node
-		 * will preserve, when it receives and merges the inputs.
-		 */
-		sort = make_sort_from_pathkeys(subplan,
-									   sortPathKeys,
-									   false /* add_keys_to_targetlist */ );
-
-		motion = make_sorted_union_motion(root,
-										  subplan,
-										  sort->numCols,
-										  sort->sortColIdx,
-										  sort->sortOperators,
-										  sort->collations,sort->nullsFirst,
-										  subplan->flow->numsegments);
-
-		/* throw away the Sort */
-		pfree(sort);
-	}
-	else
-	{
-		motion = make_union_motion(subplan, subplan->flow->numsegments);
-	}
-
-	return motion;
-}
-
-/*
  * make_motion_hash_all_targets
  *		Add a Motion node atop the given subplath to hash collocate
  *      tuples non-distinct on the non-junk attributes.  This motion

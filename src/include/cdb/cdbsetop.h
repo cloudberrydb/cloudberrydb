@@ -68,9 +68,6 @@ void adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list,
 extern Path *make_motion_hash_all_targets(PlannerInfo *root, Path *subpath, List *tlist);
 
 extern
-Motion *make_motion_gather(PlannerInfo *root, Plan *subplan, List *sortPathKeys);
-
-extern
 void mark_append_locus(Path *path, GpSetOpType optype);
 
 #endif   /* CDBSETOP_H */

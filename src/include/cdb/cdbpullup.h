@@ -18,8 +18,6 @@
 
 #include "nodes/relation.h"     /* PathKey, Relids */
 
-struct Plan;                    /* #include "nodes/plannodes.h" */
-
 /*
  * cdbpullup_expr
  *
@@ -61,19 +59,6 @@ extern Expr *cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *ta
 
 extern List *cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist);
 
-
-/*
- * cdbpullup_findSubplanRefInTargetList
- *
- * Given a targetlist, returns ptr to first TargetEntry whose expr is a
- * Var node having the specified varattno, and having its varno in executor
- * format (varno is OUTER, INNER, or 0) as set by set_plan_references().
- * Returns NULL if no such TargetEntry is found.
- */
-TargetEntry *
-cdbpullup_findSubplanRefInTargetList(AttrNumber varattno, List *targetlist);
-
-
 /*
  * cdbpullup_isExprCoveredByTargetlist
  *
@@ -114,21 +99,5 @@ cdbpullup_isExprCoveredByTargetlist(Expr *expr, List *targetlist);
  */
 Expr *
 cdbpullup_make_expr(Index varno, AttrNumber varattno, Expr *oldexpr, bool modifyOld);
-
-
-/*
- * cdbpullup_missingVarWalker
- *
- * Returns true if some Var in expr is not in targetlist.
- * 'targetlist' is either a List of TargetEntry, or a plain List of Expr.
- *
- * NB:  A Var in the expr is considered as matching a Var in the targetlist
- * without regard for whether or not there is a RelabelType node atop the 
- * targetlist Var.
- *
- * See also: cdbpullup_isExprCoveredByTargetlist
- */
-bool
-cdbpullup_missingVarWalker(Node *node, void *targetlist);
 
 #endif   /* CDBPULLUP_H */

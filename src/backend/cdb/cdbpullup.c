@@ -24,6 +24,9 @@
 
 #include "cdb/cdbpullup.h"		/* me */
 
+
+static bool cdbpullup_missingVarWalker(Node *node, void *targetlist);
+
 /*
  * cdbpullup_expr
  *
@@ -44,13 +47,8 @@
  *      newvarno = varno to be used in new Var nodes.  Ignored if a non-NULL
  *              newvarlist is given.
  *
- * When calling this function on an expr which has NOT yet been transformed
- * by set_plan_references(), newvarno should be the RTE index assigned to
- * the result of the projection.
- *
- * When calling this function on an expr which HAS been transformed by
- * set_plan_references(), newvarno should usually be OUTER_VAR; or 0 if the
- * expr is to be used in the targetlist of an Agg or Group node.
+ * This function cannot be used set_plan_references(). newvarno should be the
+ * RTE index assigned to the result of the projection.
  *
  * At present this function doesn't support pull-up from a subquery into a
  * containing query: there is no provision for adjusting the varlevelsup
@@ -94,16 +92,7 @@ pullUpExpr_mutator(Node *node, void *context)
 		/* Is targetlist a List of TargetEntry?  (Plan nodes use this format) */
 		if (IsA(linitial(ctx->targetlist), TargetEntry))
 		{
-
-			/* After set_plan_references(), search on varattno only. */
-			if (var->varno == OUTER_VAR ||
-				var->varno == INNER_VAR ||
-				var->varno == 0)
-				tle = cdbpullup_findSubplanRefInTargetList(var->varattno,
-														   ctx->targetlist);
-			/* Before set_plan_references(), search for exact match. */
-			else
-				tle = tlist_member((Node *) var, ctx->targetlist);
+			tle = tlist_member((Node *) var, ctx->targetlist);
 
 			/* Fail if P's result does not include this column. */
 			if (!tle)
@@ -350,40 +339,6 @@ cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist)
 }
 
 /*
- * cdbpullup_findSubplanRefInTargetList
- *
- * Given a targetlist, returns ptr to first TargetEntry whose expr is a
- * Var node having the specified varattno, and having its varno in executor
- * format (varno is OUTER_VAR, INNER_VAR, or 0) as set by set_plan_references().
- * Returns NULL if no such TargetEntry is found.
- */
-TargetEntry *
-cdbpullup_findSubplanRefInTargetList(AttrNumber varattno, List *targetlist)
-{
-	ListCell   *cell;
-	TargetEntry *tle;
-	Var		   *var;
-
-	foreach(cell, targetlist)
-	{
-		tle = (TargetEntry *) lfirst(cell);
-		if (IsA(tle->expr, Var))
-		{
-			var = (Var *) tle->expr;
-			if (var->varattno == varattno)
-			{
-				if (var->varno == OUTER_VAR ||
-					var->varno == INNER_VAR ||
-					var->varno == 0)
-					return tle;
-			}
-		}
-	}
-	return NULL;
-}								/* cdbpullup_findSubplanRefInTargetList */
-
-
-/*
  * cdbpullup_isExprCoveredByTargetlist
  *
  * Returns true if 'expr' is in 'targetlist', or if 'expr' contains no
@@ -505,7 +460,7 @@ cdbpullup_make_expr(Index varno, AttrNumber varattno, Expr *oldexpr, bool modify
  *
  * See also: cdbpullup_isExprCoveredByTargetlist
  */
-bool
+static bool
 cdbpullup_missingVarWalker(Node *node, void *targetlist)
 {
 	if (!node)

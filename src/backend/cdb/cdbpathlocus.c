@@ -15,7 +15,6 @@
 
 #include "catalog/gp_policy.h"	/* GpPolicy */
 #include "cdb/cdbhash.h"
-#include "cdb/cdbdef.h"			/* CdbSwap() */
 #include "cdb/cdbpullup.h"		/* cdbpullup_findDistributionKeyExprInTargetList() */
 #include "nodes/makefuncs.h"	/* makeVar() */
 #include "nodes/nodeFuncs.h"	/* exprType() and exprTypmod() */
