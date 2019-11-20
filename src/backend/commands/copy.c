@@ -346,6 +346,8 @@ typedef struct
 	uint32		line_len;			/* size of the included input line */
 	uint32		residual_off;		/* offset in the line, where QE should
 									 * process remaining fields */
+	bool		delim_seen_at_end;  /* conveys to QE if QD saw a delim at end
+									 * of its processing */
 	uint16		fld_count;			/* # of fields that were processed in the
 									 * QD. */
 
@@ -5222,7 +5224,8 @@ NextCopyFromX(CopyState cstate, ExprContext *econtext,
 			 * We have received the raw line from the QD, and we just
 			 * need to split it into raw fields.
 			 */
-			if (cstate->line_buf.cursor < cstate->line_buf.len)
+			if (cstate->stopped_processing_at_delim &&
+				cstate->line_buf.cursor <= cstate->line_buf.len)
 			{
 				if (cstate->csv_mode)
 					fldct = CopyReadAttributesCSV(cstate, -1);
@@ -5594,6 +5597,7 @@ retry:
 	cstate->line_buf_valid = true;
 	cstate->line_buf_converted = true;
 	cstate->cur_lineno = frame.lineno;
+	cstate->stopped_processing_at_delim = frame.delim_seen_at_end;
 
 	/*
 	 * Parse any fields from the input line that were not processed in the
@@ -6000,6 +6004,7 @@ SendCopyFromForwardedTuple(CopyState cstate,
 	frame->line_len = cstate->line_buf.len;
 	frame->residual_off = cstate->line_buf.cursor;
 	frame->fld_count = num_sent_fields;
+	frame->delim_seen_at_end = cstate->stopped_processing_at_delim;
 
 	if (toAll)
 		cdbCopySendDataToAll(cdbCopy, msgbuf->data, msgbuf->len);
@@ -6641,7 +6646,10 @@ CopyReadAttributesText(CopyState cstate, int stop_processing_at_field)
 		 * In QD, stop once we have processed the last field we need in the QD.
 		 */
 		if (fieldno == stop_processing_at_field)
+		{
+			cstate->stopped_processing_at_delim = true;
 			break;
+		}
 
 		/* Make sure there is enough space for the next value */
 		if (fieldno >= cstate->max_fields)
@@ -6805,7 +6813,10 @@ CopyReadAttributesText(CopyState cstate, int stop_processing_at_field)
 		fieldno++;
 		/* Done if we hit EOL instead of a delim */
 		if (!found_delim)
+		{
+			cstate->stopped_processing_at_delim = false;
 			break;
+		}
 	}
 
 	/*
@@ -6883,7 +6894,10 @@ CopyReadAttributesCSV(CopyState cstate, int stop_processing_at_field)
 		 * In QD, stop once we have processed the last field we need in the QD.
 		 */
 		if (fieldno == stop_processing_at_field)
+		{
+			cstate->stopped_processing_at_delim = true;
 			break;
+		}
 
 		/* Make sure there is enough space for the next value */
 		if (fieldno >= cstate->max_fields)
@@ -6988,7 +7002,10 @@ endfield:
 		fieldno++;
 		/* Done if we hit EOL instead of a delim */
 		if (!found_delim)
+		{
+			cstate->stopped_processing_at_delim = false;
 			break;
+		}
 	}
 
 	/*
