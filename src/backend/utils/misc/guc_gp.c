@@ -1603,7 +1603,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL
 		},
 		&gp_statistics_use_fkeys,
-		true,
+		false,
 		NULL, NULL, NULL
 	},
 	{

@@ -616,9 +616,6 @@
               </stentry>
               <stentry>
                 <p>
-                  <codeph>gp_statistics_use_fkeys</codeph>
-                </p>
-                <p>
                   <codeph>gp_workfile_compression</codeph>
                 </p>
               </stentry>
@@ -641,6 +638,9 @@
             </li>
             <li id="kh167484">
               <codeph>gp_statistics_pullup_from_child_partition</codeph>
+            </li>
+            <li>
+              <codeph>gp_statistics_use_fkeys</codeph>
             </li>
           </ul>
         </body>

@@ -618,10 +618,6 @@
             </stentry>
             <stentry>
               <p>
-                <xref href="guc-list.xml#gp_statistics_use_fkeys" type="section"
-                  >gp_statistics_use_fkeys</xref>
-              </p>
-              <p>
                 <xref href="guc-list.xml#gp_workfile_compression" type="section"
                   >gp_workfile_compression</xref>
               </p>
@@ -650,6 +646,10 @@
               <p>
                 <xref href="guc-list.xml#gp_statistics_pullup_from_child_partition" type="section"
                   >gp_statistics_pullup_from_child_partition</xref>
+              </p>
+              <p>
+                <xref href="guc-list.xml#gp_statistics_use_fkeys" type="section"
+                  >gp_statistics_use_fkeys</xref>
               </p>
             </stentry>
           </strow>
