@@ -43,9 +43,7 @@ CContextDXLToPlStmt::CContextDXLToPlStmt
 	CIdGenerator *plan_id_counter,
 	CIdGenerator *motion_id_counter,
 	CIdGenerator *param_id_counter,
-	DistributionHashOpsKind distribution_hashops,
-	List **rtable_entries_list,
-	List **subplan_entries_list
+	DistributionHashOpsKind distribution_hashops
 	)
 	:
 	m_mp(mp),
@@ -53,10 +51,10 @@ CContextDXLToPlStmt::CContextDXLToPlStmt
 	m_motion_id_counter(motion_id_counter),
 	m_param_id_counter(param_id_counter),
 	m_distribution_hashops(distribution_hashops),
-	m_rtable_entries_list(rtable_entries_list),
+	m_rtable_entries_list(NULL),
 	m_partitioned_tables_list(NULL),
 	m_num_partition_selectors_array(NULL),
-	m_subplan_entries_list(subplan_entries_list),
+	m_subplan_entries_list(NULL),
 	m_result_relation_index(0),
 	m_into_clause(NULL),
 	m_distribution_policy(NULL)
@@ -210,34 +208,6 @@ CContextDXLToPlStmt::GetCTEConsumerList
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CContextDXLToPlStmt::GetRTableEntriesList
-//
-//	@doc:
-//		Return the list of RangeTableEntries
-//
-//---------------------------------------------------------------------------
-List *
-CContextDXLToPlStmt::GetRTableEntriesList()
-{
-	return (*(m_rtable_entries_list));
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CContextDXLToPlStmt::GetSubplanEntriesList
-//
-//	@doc:
-//		Return the list of subplans generated so far
-//
-//---------------------------------------------------------------------------
-List *
-CContextDXLToPlStmt::GetSubplanEntriesList()
-{
-	return (*(m_subplan_entries_list));
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CContextDXLToPlStmt::AddRTE
 //
 //	@doc:
@@ -251,7 +221,7 @@ CContextDXLToPlStmt::AddRTE
 	BOOL is_result_relation
 	)
 {
-	(* (m_rtable_entries_list)) = gpdb::LAppend((*(m_rtable_entries_list)), rte);
+	m_rtable_entries_list = gpdb::LAppend(m_rtable_entries_list, rte);
 
 	rte->inFromCl = true;
 
@@ -259,7 +229,7 @@ CContextDXLToPlStmt::AddRTE
 	{
 		GPOS_ASSERT(0 == m_result_relation_index && "Only one result relation supported");
 		rte->inFromCl = false;
-		m_result_relation_index = gpdb::ListLength(*(m_rtable_entries_list));
+		m_result_relation_index = gpdb::ListLength(m_rtable_entries_list);
 	}
 }
 
@@ -342,7 +312,7 @@ CContextDXLToPlStmt::GetNumPartitionSelectorsList() const
 void
 CContextDXLToPlStmt::AddSubplan(Plan *plan)
 {
-	(* (m_subplan_entries_list)) = gpdb::LAppend((*(m_subplan_entries_list)), plan);
+	m_subplan_entries_list = gpdb::LAppend(m_subplan_entries_list, plan);
 }
 
 //---------------------------------------------------------------------------

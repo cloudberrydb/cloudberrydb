@@ -110,7 +110,7 @@ namespace gpdxl
 			DistributionHashOpsKind m_distribution_hashops;
 
 			// list of all rtable entries
-			List **m_rtable_entries_list;
+			List *m_rtable_entries_list;
 
 			// list of oids of partitioned tables
 			List *m_partitioned_tables_list;
@@ -119,7 +119,7 @@ namespace gpdxl
 			ULongPtrArray *m_num_partition_selectors_array;
 
 			// list of all subplan entries
-			List **m_subplan_entries_list;
+			List *m_subplan_entries_list;
 
 			// index of the target relation in the rtable or 0 if not a DML statement
 			ULONG m_result_relation_index;
@@ -141,9 +141,7 @@ namespace gpdxl
 						CIdGenerator *plan_id_counter,
 						CIdGenerator *motion_id_counter,
 						CIdGenerator *param_id_counter,
-						DistributionHashOpsKind distribution_hashops,
-						List **rtable_entries_list,
-						List **subplan_entries_list
+						DistributionHashOpsKind distribution_hashops
 						)
 						;
 
@@ -172,7 +170,10 @@ namespace gpdxl
 			List *GetCTEConsumerList(ULONG cte_id) const;
 
 			// return list of range table entries
-			List *GetRTableEntriesList();
+			List *GetRTableEntriesList() const
+			{
+				return m_rtable_entries_list;
+			}
 
 			// return list of partitioned table indexes
 			List *GetPartitionedTablesList() const
@@ -183,7 +184,10 @@ namespace gpdxl
 			// return list containing number of partition selectors for every scan id
 			List *GetNumPartitionSelectorsList() const;
 
-			List *GetSubplanEntriesList();
+			List *GetSubplanEntriesList() const
+			{
+				return m_subplan_entries_list;
+			}
 
 			// index of result relation in the rtable
 			ULONG GetResultRelationIndex() const

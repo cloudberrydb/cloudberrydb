@@ -329,18 +329,13 @@ COptTasks::ConvertToPlanStmtFromDXL
 	CIdGenerator motion_id_generator(1 /* ulStartId */);
 	CIdGenerator param_id_generator(0 /* ulStartId */);
 
-	List *table_list = NULL;
-	List *subplans_list = NULL;
-
 	CContextDXLToPlStmt dxl_to_plan_stmt_ctxt
 							(
 							mp,
 							&plan_id_generator,
 							&motion_id_generator,
 							&param_id_generator,
-							distribution_hashops,
-							&table_list,
-							&subplans_list
+							distribution_hashops
 							);
 	
 	// translate DXL -> PlannedStmt
