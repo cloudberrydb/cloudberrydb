@@ -54,8 +54,10 @@ EXECUTE prepstmt2(123);
 ALTER TABLE pcachetest ADD COLUMN q3 bigint;
 EXECUTE prepstmt;
 ERROR:  cached plan must not change result type
+DETAIL:  resultDesc is not NULL. plansource->resulDesc is not NULL.
 EXECUTE prepstmt2(123);
 ERROR:  cached plan must not change result type
+DETAIL:  resultDesc is not NULL. plansource->resulDesc is not NULL.
 -- but we're nice guys and will let you undo your mistake
 ALTER TABLE pcachetest DROP COLUMN q3;
 EXECUTE prepstmt;

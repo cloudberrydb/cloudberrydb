@@ -740,7 +740,11 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 		if (plansource->fixed_result)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("cached plan must not change result type")));
+					 errmsg("cached plan must not change result type"),
+					 errdetail("resultDesc is%s NULL. plansource->resulDesc is%s NULL.",
+							   resultDesc ? " not":"",
+							   plansource->resultDesc ? " not":"")));
+
 		oldcxt = MemoryContextSwitchTo(plansource->context);
 		if (resultDesc)
 			resultDesc = CreateTupleDescCopy(resultDesc);
