@@ -611,12 +611,12 @@
                 <xref href="guc-list.xml#gp_adjust_selectivity_for_outerjoins" type="section"
                   >gp_adjust_selectivity_for_outerjoins</xref>
               </p>
+            </stentry>
+            <stentry>
               <p>
                 <xref href="guc-list.xml#gp_hashjoin_tuples_per_bucket" type="section"
                   >gp_hashjoin_tuples_per_bucket</xref>
               </p>
-            </stentry>
-            <stentry>
               <p>
                 <xref href="guc-list.xml#gp_workfile_compression" type="section"
                   >gp_workfile_compression</xref>

@@ -4777,10 +4777,11 @@
   <topic id="gp_statistics_use_fkeys">
     <title>gp_statistics_use_fkeys</title>
     <body>
-      <p>When enabled, the Postgres Planner will use the statistics of the referenced column in
-         the parent table when a column is foreign key reference to another table instead of
-         the statistics of the column itself.</p>
-      <note>This option is deprecated and will be removed in a future Greenplum release.</note>
+      <p>When enabled, the Postgres Planner will use the statistics of the referenced column in the
+        parent table when a column is foreign key reference to another table instead of the
+        statistics of the column itself.</p>
+      <note>This parameter is deprecated and will be removed in a future Greenplum Database
+        release.</note>
       <table id="gp_statistics_use_fkeys_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
