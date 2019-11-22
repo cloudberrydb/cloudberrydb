@@ -10912,7 +10912,11 @@ insert into wst1 select i, i from generate_series(1,10) i;
 insert into wst2 select i, i from generate_series(1,10) i;
 -- NB: the rank() is need to force materialization (via Sort) in the subplan
 select count(*) from wst0 where exists (select 1, rank() over (order by wst1.a1) from wst1 where a1 = (select b2 from wst2 where a0=a2+5));
-ERROR:  correlated subquery with skip-level correlations is not supported
+ count 
+-------
+     5
+(1 row)
+
 --
 -- Test to ensure sane behavior when DML queries are optimized by ORCA by
 -- enforcing a non-master gather motion, controlled by

@@ -255,20 +255,12 @@ select * from int4_tbl o where not exists
 explain (costs off)
 select * from int4_tbl o where exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit 0);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Seq Scan on int4_tbl o
-         Filter: (SubPlan 1)
-         SubPlan 1
-           ->  Limit
-                 ->  Result
-                       Filter: (i.f1 = o.f1)
-                       ->  Materialize
-                             ->  Broadcast Motion 3:3  (slice2; segments: 3)
-                                   ->  Seq Scan on int4_tbl i
+             QUERY PLAN              
+-------------------------------------
+ Result
+   One-Time Filter: false
  Optimizer: Postgres query optimizer
-(11 rows)
+(3 rows)
 
 --
 -- Test cases to catch unpleasant interactions between IN-join processing
@@ -706,7 +698,10 @@ where a.thousand = b.thousand
   and exists ( select 1 from tenk1 c where b.hundred = c.hundred
                    and not exists ( select 1 from tenk1 d
                                     where a.thousand = d.thousand ) );
-ERROR:  correlated subquery with skip-level correlations is not supported
+ thousand 
+----------
+(0 rows)
+
 --
 -- Check that nested sub-selects are not pulled up if they contain volatiles
 --

@@ -813,7 +813,6 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i = all (s
  99 | 62 | 1 | 43
 (8 rows)
 
--- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C where C.j = B.j)) order by 1,2,3,4;
  i  | j  | i | j 
 ----+----+---+---
@@ -1035,7 +1034,6 @@ select * from A where exists (select * from C,B where C.j = A.j and exists (sele
  99 | 62
 (4 rows)
 
--- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A,B where exists (select * from C where C.j = A.j and exists (select * from C where C.i = B.i));
  i  | j  | i  | j  
 ----+----+----+----
@@ -1070,7 +1068,6 @@ select * from A where exists (select * from B, C where C.j = A.j and exists (sel
  99 | 62
 (4 rows)
 
--- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A where exists (select * from C where C.j = A.j and exists (select sum(C.i) from C where C.i !=10 and C.i = A.i)) order by 1, 2;
  i  | j  
 ----+----
@@ -1141,7 +1138,6 @@ select * from A where exists (select * from C where C.i = A.i and exists (select
  99 | 62
 (1 row)
 
--- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A where exists (select * from C where C.i = A.i and exists (select * from B where C.j = B.j and A.j < 10));
  i  | j  
 ----+----
