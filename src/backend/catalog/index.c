@@ -3233,6 +3233,9 @@ IndexBuildAppendOnlyColScan(Relation parentRelation,
 		GetNeededColumnsForScan((Node *)indexInfo->ii_Expressions,
 								proj,
 								parentRelation->rd_att->natts);
+		GetNeededColumnsForScan((Node *)indexInfo->ii_Predicate,
+								proj,
+								parentRelation->rd_att->natts);
 	}
 	
 	else
