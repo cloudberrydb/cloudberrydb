@@ -18,8 +18,9 @@
 
 extern void
 reconstructTupleValues(AttrMap *map,
-					Datum *oldValues, bool *oldIsnull, int oldNumAttrs,
-					Datum *newValues, bool *newIsnull, int newNumAttrs);
+					   Datum *oldValues, bool *oldIsnull, int oldNumAttrs,
+					   Datum *newValues, bool *newIsnull, int newNumAttrs);
+
 
 extern TupleTableSlot *
 reconstructMatchingTupleSlot(TupleTableSlot *slot, ResultRelInfo *resultRelInfo);

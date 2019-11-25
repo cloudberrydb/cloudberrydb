@@ -133,6 +133,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbrelsize.h"
 #include "cdb/cdboidsync.h"
+#include "executor/execDML.h"
 #include "postmaster/autostats.h"
 
 /*

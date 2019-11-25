@@ -113,20 +113,7 @@ reconstructMatchingTupleSlot(TupleTableSlot *slot, ResultRelInfo *resultRelInfo)
 
 	TupleDesc inputTupDesc = slot->tts_tupleDescriptor;
 	TupleDesc resultTupDesc = resultRelInfo->ri_RelationDesc->rd_att;
-	bool tupleDescMatch = (resultRelInfo->tupdesc_match == 1);
-	if (resultRelInfo->tupdesc_match == 0)
-	{
-		tupleDescMatch = physicalEqualTupleDescs(inputTupDesc, resultTupDesc);
-
-		if (tupleDescMatch)
-		{
-			resultRelInfo->tupdesc_match = 1;
-		}
-		else
-		{
-			resultRelInfo->tupdesc_match = -1;
-		}
-	}
+	bool tupleDescMatch = physicalEqualTupleDescs(inputTupDesc, resultTupDesc);
 
 	/* No map and matching tuple descriptor means no restructuring needed. */
 	if (map == NULL && tupleDescMatch)
@@ -143,7 +130,8 @@ reconstructMatchingTupleSlot(TupleTableSlot *slot, ResultRelInfo *resultRelInfo)
 	 */
 	if (resultRelInfo->ri_resultSlot == NULL)
 	{
-		resultRelInfo->ri_resultSlot = MakeSingleTupleTableSlot(resultTupDesc);
+		resultRelInfo->ri_resultSlot =
+			MakeSingleTupleTableSlot(resultRelInfo->ri_RelationDesc->rd_att);
 	}
 	partslot = resultRelInfo->ri_resultSlot;
 

@@ -3587,8 +3587,6 @@ CopyFrom(CopyState cstate)
 	TupleDesc	tupDesc;
 	AttrNumber	num_phys_attrs,
 				attr_count;
-	Datum		*partValues = NULL;
-	bool		*partNulls = NULL;
 	ResultRelInfo *resultRelInfo;
 	ResultRelInfo *parentResultRelInfo;
 	List *resultRelInfoList = NULL;
@@ -3813,9 +3811,6 @@ CopyFrom(CopyState cstate)
 	 */
 	ExecBSInsertTriggers(estate, resultRelInfo);
 
-	partValues = (Datum *) palloc(num_phys_attrs * sizeof(Datum));
-	partNulls = (bool *) palloc(num_phys_attrs * sizeof(bool));
-
 	econtext = GetPerTupleExprContext(estate);
 
 	/* Set up callback to identify error line number */
@@ -4011,31 +4006,7 @@ CopyFrom(CopyState cstate)
 			 *
 			 * The resulting tuple is stored in 'slot'
 			 */
-			if (resultRelInfo->ri_partInsertMap)
-			{
-				AttrMap *map = resultRelInfo->ri_partInsertMap;
-				int relnatts;
-
-				if (!resultRelInfo->ri_resultSlot)
-					resultRelInfo->ri_resultSlot =
-						MakeSingleTupleTableSlot(resultRelInfo->ri_RelationDesc->rd_att);
-
-				relnatts = resultRelInfo->ri_RelationDesc->rd_att->natts;
-				slot = resultRelInfo->ri_resultSlot;
-				ExecClearTuple(slot);
-				partValues = slot_get_values(resultRelInfo->ri_resultSlot);
-				partNulls = slot_get_isnull(resultRelInfo->ri_resultSlot);
-				MemSet(partValues, 0, relnatts * sizeof(Datum));
-				MemSet(partNulls, true, relnatts * sizeof(bool));
-
-				reconstructTupleValues(map, baseValues, baseNulls, (int) num_phys_attrs,
-									   partValues, partNulls, relnatts);
-				ExecStoreVirtualTuple(slot);
-			}
-			else
-			{
-				slot = baseSlot;
-			}
+			slot = reconstructMatchingTupleSlot(baseSlot, resultRelInfo);
 
 			if (cstate->dispatch_mode == COPY_DISPATCH)
 			{
