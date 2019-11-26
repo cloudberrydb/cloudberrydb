@@ -242,8 +242,22 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 	// shift the intoClause handling into planner and re-enable this
 //	pplstmt->intoClause = m_pctxdxltoplstmt->Pintocl();
 	planned_stmt->intoPolicy = m_dxl_to_plstmt_context->GetDistributionPolicy();
-	
-	SetInitPlanVariables(planned_stmt);
+
+	if(1 != m_dxl_to_plstmt_context->GetCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
+	{
+		planned_stmt->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
+	}
+
+	planned_stmt->nParamExec = m_dxl_to_plstmt_context->GetCurrentParamId();
+
+	/* ORCA doesn't use Init Plans. */
+	planned_stmt->subplan_sliceIds = (int *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(int));
+	planned_stmt->subplan_initPlanParallel = (bool *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(bool));
+	for (int i = 0; i < list_length(planned_stmt->subplans) + 1; i++)
+	{
+		planned_stmt->subplan_sliceIds[i] = 0;
+		planned_stmt->subplan_initPlanParallel[i] = false;
+	}
 
 	// Can we do direct dispatch?
 	if (CMD_SELECT == m_cmd_type && NULL != dxlnode->GetDXLDirectDispatchInfo())
@@ -311,100 +325,6 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan
 	}
 
 	return (this->* dxlnode_to_logical_funct)(dxlnode, output_context, ctxt_translation_prev_siblings);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::SetInitPlanVariables
-//
-//	@doc:
-//		Iterates over the plan to set the qDispSliceId that is found in the plan
-//		as well as its subplans. Set the number of parameters used in the plan.
-//---------------------------------------------------------------------------
-void
-CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
-{
-	if(1 != m_dxl_to_plstmt_context->GetCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
-	{
-		planned_stmt->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
-	}
-
-	planned_stmt->nParamExec = m_dxl_to_plstmt_context->GetCurrentParamId();
-
-	// Extract all subplans defined in the planTree
-	List *subplan_list = gpdb::ExtractNodesPlan(planned_stmt->planTree, T_SubPlan, true);
-
-	ListCell *lc = NULL;
-
-	planned_stmt->subplan_sliceIds = (int *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(int));
-	planned_stmt->subplan_initPlanParallel = (bool *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(bool));
-	for (int i = 0; i < list_length(planned_stmt->subplans) + 1; i++)
-	{
-		planned_stmt->subplan_sliceIds[i] = 0;
-		planned_stmt->subplan_initPlanParallel[i] = false;
-	}
-
-	ForEach (lc, subplan_list)
-	{
-		SubPlan *subplan = (SubPlan*) lfirst(lc);
-
-		if (subplan->is_initplan)
-		{
-			SetInitPlanSliceInformation(planned_stmt, subplan);
-		}
-	}
-
-	// InitPlans can also be defined in subplans. We therefore have to iterate
-	// over all the subplans referred to in the planned statement.
-
-	List *initplan_list = planned_stmt->subplans;
-
-	ForEach (lc,initplan_list)
-	{
-		subplan_list = gpdb::ExtractNodesPlan((Plan*) lfirst(lc), T_SubPlan, true);
-		ListCell *lc2;
-
-		ForEach (lc2, subplan_list)
-		{
-			SubPlan *subplan = (SubPlan*) lfirst(lc2);
-			if (subplan->is_initplan)
-			{
-				SetInitPlanSliceInformation(planned_stmt, subplan);
-			}
-		}
-	}
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::SetInitPlanSliceInformation
-//
-//	@doc:
-//		Set the qDispSliceId for a given subplans. In GPDB once all motion node
-// 		have been assigned a slice, each initplan is assigned a slice number.
-//		The initplan are traversed in an postorder fashion. Since in CTranslatorDXLToPlStmt
-//		we assign the plan_id to each initplan in a postorder fashion, we take
-//		advantage of this.
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(PlannedStmt *planned_stmt, SubPlan *subplan)
-{
-	GPOS_ASSERT(subplan->is_initplan && "This is processed for initplans only");
-
-	if (subplan->is_initplan)
-	{
-		GPOS_ASSERT(0 < m_dxl_to_plstmt_context->GetCurrentMotionId());
-
-		if(1 < m_dxl_to_plstmt_context->GetCurrentMotionId())
-		{
-			planned_stmt->subplan_sliceIds[subplan->plan_id] = m_dxl_to_plstmt_context->GetCurrentMotionId() + subplan->plan_id-1;
-		}
-		else
-		{
-			planned_stmt->subplan_sliceIds[subplan->plan_id] = 0;
-		}
-	}
 }
 
 //---------------------------------------------------------------------------

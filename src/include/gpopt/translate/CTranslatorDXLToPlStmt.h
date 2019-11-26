@@ -192,12 +192,6 @@ namespace gpdxl
 			// Set the bitmapset of a plan to the list of param_ids defined by the plan
 			void SetParamIds(Plan *);
 
-			// Set the qDispSliceId in the subplans defining an initplan
-			void SetInitPlanSliceInformation(PlannedStmt *, SubPlan *);
-
-			// Set InitPlanVariable in PlannedStmt
-			void SetInitPlanVariables(PlannedStmt *);
-
 			// translate DXL table scan node into a SeqScan node
 			Plan *TranslateDXLTblScan
 				(
