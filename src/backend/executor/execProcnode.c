@@ -220,21 +220,6 @@ setSubplanSliceId(SubPlan *subplan, EState *estate)
 
 	estate->currentSliceIdInPlan =
 		estate->es_plannedstmt->subplan_sliceIds[subplan->plan_id];
-
-	/*
-	 * The slice that the initPlan will be running is the same as the root
-	 * slice. Depending on the location of InitPlan in the plan, the root
-	 * slice is the root slice of the whole plan, or the root slice of the
-	 * parent subplan of this InitPlan.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		estate->currentExecutingSliceId = RootSliceIndex(estate);
-	}
-	else
-	{
-		estate->currentExecutingSliceId = estate->rootSliceId;
-	}
 }
 
 
@@ -268,7 +253,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 	Assert(estate != NULL);
 	int			origSliceIdInPlan = estate->currentSliceIdInPlan;
-	int			origExecutingSliceId = estate->currentExecutingSliceId;
 
 	MemoryAccountIdType curMemoryAccountId;
 
@@ -854,7 +838,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	}
 
 	estate->currentSliceIdInPlan = origSliceIdInPlan;
-	estate->currentExecutingSliceId = origExecutingSliceId;
 
 	/*
 	 * Initialize any initPlans present in this node.  The planner put them in
@@ -877,7 +860,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		result->initPlan = subps;
 
 	estate->currentSliceIdInPlan = origSliceIdInPlan;
-	estate->currentExecutingSliceId = origExecutingSliceId;
 
 	/* Set up instrumentation for this node if requested */
 	if (estate->es_instrument && result != NULL)
@@ -1316,10 +1298,8 @@ ExecEndNode(PlanState *node)
 
 	Assert(estate != NULL);
 	int			origSliceIdInPlan = estate->currentSliceIdInPlan;
-	int			origExecutingSliceId = estate->currentExecutingSliceId;
 
 	estate->currentSliceIdInPlan = origSliceIdInPlan;
-	estate->currentExecutingSliceId = origExecutingSliceId;
 
 	if (node->chgParam != NULL)
 	{
@@ -1556,7 +1536,6 @@ ExecEndNode(PlanState *node)
 		(*query_info_collect_hook)(METRICS_PLAN_NODE_FINISHED, node);
 
 	estate->currentSliceIdInPlan = origSliceIdInPlan;
-	estate->currentExecutingSliceId = origExecutingSliceId;
 }
 
 

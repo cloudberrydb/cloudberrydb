@@ -633,18 +633,11 @@ typedef struct EState
 	PartitionState *es_partition_state;
 
 	/*
-	 * The slice number for the current node that is
-	 * being processed. During the tree traversal,
-	 * this value is set by Motion and InitPlan nodes.
-	 *
-	 * currentSliceIdInPlan and currentExecutingSliceId
-	 * are basically the same, except for InitPlan nodes.
-	 * For InitPlan nodes, the nodes in the top slice have
-	 * an assigned slice id in the plan, while the executing
-	 * slice id for these nodes is the root slice id.
+	 * The slice number for the current node that is being processed.
+	 * During the tree traversal in ExecInitPlan stage, this field is set
+	 * by Motion and InitPlan nodes.
 	 */
 	int			currentSliceIdInPlan;
-	int			currentExecutingSliceId;
 
 	/*
 	 * This is >0, if we're processing a subplan.
@@ -654,11 +647,6 @@ typedef struct EState
 	 * node can be eager-free'ed only when this value is 0.
 	 */
 	int			currentSubplanLevel;
-
-	/*
-	 * The root slice id for this EState.
-	 */
-	int			rootSliceId;
 
 	/*
 	 * Information relevant to dynamic table scans.
