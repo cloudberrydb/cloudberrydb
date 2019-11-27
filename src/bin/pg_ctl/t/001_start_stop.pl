@@ -15,8 +15,7 @@ program_options_handling_ok('pg_ctl');
 command_exit_is([ 'pg_ctl', 'start', '-D', "$tempdir/nonexistent" ],
 	1, 'pg_ctl start with nonexistent directory');
 
-#GPDB_96_MERGE_FIXME: dose our pg_ctl support '-o', '-N', if not delete these two
-command_ok([ 'pg_ctl', 'initdb', '-D', "$tempdir/data", '-o', '-N' ],
+command_ok([ 'pg_ctl', 'initdb', '-D', "$tempdir/data", '-o', '-N'],
 	'pg_ctl initdb');
 command_ok([ $ENV{PG_REGRESS}, '--config-auth', "$tempdir/data" ],
 	'configure authentication');
