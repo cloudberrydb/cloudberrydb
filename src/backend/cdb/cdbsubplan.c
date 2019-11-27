@@ -29,8 +29,6 @@ typedef struct ParamWalkerContext
 	plan_tree_base_prefix base; /* Required prefix for
 								 * plan_tree_walker/mutator */
 	List	   *params;
-	Bitmapset  *wtParams;
-	Bitmapset  *epqParams;
 } ParamWalkerContext;
 
 static bool param_walker(Node *node, ParamWalkerContext *context);
@@ -229,8 +227,6 @@ addRemoteExecParamsToParamList(PlannedStmt *stmt, ParamListInfo extPrm, ParamExe
 
 	exec_init_plan_tree_base(&context.base, stmt);
 	context.params = NIL;
-	context.wtParams = NULL;
-	context.epqParams = NULL;
 	param_walker((Node *) plan, &context);
 
 	/*
@@ -352,22 +348,6 @@ param_walker(Node *node, ParamWalkerContext *context)
 			context->params = lappend(context->params, param);
 			return false;
 		}
-	}
-	else if (IsA(node, WorkTableScan))
-	{
-		WorkTableScan *wt = (WorkTableScan *) node;
-
-		context->wtParams = bms_add_member(context->wtParams, wt->wtParam);
-	}
-	else if (IsA(node, ModifyTable))
-	{
-		ModifyTable	*mt	= (ModifyTable *) node;
-		context->epqParams = bms_add_member(context->epqParams, mt->epqParam);
-	}
-	else if (IsA(node, LockRows))
-	{
-		LockRows	*lr = (LockRows*) node;
-		context->epqParams = bms_add_member(context->epqParams, lr->epqParam);
 	}
 	return plan_tree_walker(node, param_walker, context, true);
 }
