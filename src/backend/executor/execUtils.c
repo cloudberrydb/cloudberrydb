@@ -189,7 +189,6 @@ CreateExecutorState(void)
 	estate->dispatcherState = NULL;
 
 	estate->currentSliceIdInPlan = 0;
-	estate->currentSubplanLevel = 0;
 	estate->eliminateAliens = false;
 
 	/*

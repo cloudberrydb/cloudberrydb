@@ -640,15 +640,6 @@ typedef struct EState
 	int			currentSliceIdInPlan;
 
 	/*
-	 * This is >0, if we're processing a subplan.
-	 * This is used to determine whether we could eager free
-	 * the Material node on top of Broadcast inside a subplan
-	 * (for supporting correlated subqueries). The Material
-	 * node can be eager-free'ed only when this value is 0.
-	 */
-	int			currentSubplanLevel;
-
-	/*
 	 * Information relevant to dynamic table scans.
 	 */
 	DynamicTableScanInfo *dynamicTableScanInfo;

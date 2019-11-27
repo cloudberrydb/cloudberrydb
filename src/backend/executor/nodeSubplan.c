@@ -92,9 +92,6 @@ ExecSubPlan(SubPlanState *node,
 	if (subplan->setParam != NIL && subplan->subLinkType != MULTIEXPR_SUBLINK)
 		elog(ERROR, "cannot set parent params from subquery");
 
-	/* Remember that we're recursing into a sub-plan */
-	node->planstate->state->currentSubplanLevel++;
-
 	/* Force forward-scan mode for evaluation */
 	estate->es_direction = ForwardScanDirection;
 
@@ -106,8 +103,6 @@ ExecSubPlan(SubPlanState *node,
 
 	/* restore scan direction */
 	estate->es_direction = dir;
-
-	node->planstate->state->currentSubplanLevel--;
 
 	return retval;
 }
@@ -1025,8 +1020,6 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
 		queryDesc && queryDesc->plannedstmt->subplan_initPlanParallel[subplan->plan_id])
 		shouldDispatch = true;
 
-	planstate->state->currentSubplanLevel++;
-
 	/*
 	 * Reset memory high-water mark so EXPLAIN ANALYZE can report each
 	 * root slice's usage separately.
@@ -1340,8 +1333,6 @@ PG_CATCH();
 	PG_RE_THROW();
 }
 PG_END_TRY();
-
-	planstate->state->currentSubplanLevel--;
 
 	/* If EXPLAIN ANALYZE, collect local execution stats. */
 	if (Gp_role == GP_ROLE_DISPATCH && planstate->instrument && planstate->instrument->need_cdb)
