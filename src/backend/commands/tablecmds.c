@@ -13788,8 +13788,6 @@ copy_relation_data(SMgrRelation src, SMgrRelation dst,
 
 		PageSetChecksumInplace(page, blkno);
 
-		PageSetChecksumInplace(page, blkno);
-
 		/*
 		 * Now write the page.  We say isTemp = true even if it's not a temp
 		 * rel, because there's no need for smgr to schedule an fsync for this
