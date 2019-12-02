@@ -449,21 +449,11 @@ class GpStart:
         # segments marked down
         invalid_segs = self.gparray.get_invalid_segdbs()
 
-        # now produce the list of segments to actually start
-        dbIdsToNotStart = {}
-        for segment in invalid_segs:
-            dbIdsToNotStart[segment.getSegmentDbId()] = True
-
         for seg in invalid_segs:
             logger.warning("Skipping startup of segment marked down in configuration: on %s directory %s <<<<<" % \
                            (seg.getSegmentHostName(), seg.getSegmentDataDirectory()))
-        logger.debug("dbIdsToNotStart has %d entries" % len(dbIdsToNotStart))
 
-        # we intend to dedup invalid_segs
-        assert len(dbIdsToNotStart) == len(invalid_segs)
-
-        toStart = [seg for seg in segs if dbIdsToNotStart.get(seg.getSegmentDbId()) is None]
-        return (toStart, invalid_segs)
+        return (segs, invalid_segs)
 
     ####
     def _verify_enough_segments(self, startResult, gparray):
