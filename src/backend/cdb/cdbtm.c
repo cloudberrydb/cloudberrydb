@@ -111,7 +111,6 @@ int	max_tm_gxacts = 100;
 /*=========================================================================
  * FUNCTIONS PROTOTYPES
  */
-static void clearAndResetGxact(void);
 static void doPrepareTransaction(void);
 static void doInsertForgetCommitted(void);
 static void doNotifyingOnePhaseCommit(void);
@@ -489,45 +488,6 @@ doInsertForgetCommitted(void)
 
 	setCurrentDtxState(DTX_STATE_INSERTED_FORGET_COMMITTED);
 	MyTmGxact->includeInCkpt = false;
-}
-
-void
-ClearTransactionState(TransactionId latestXid)
-{
-	/*
-	 * These two actions must be performed for a distributed transaction under
-	 * the same locking of ProceArrayLock so the visibility of the transaction
-	 * changes for local master readers (e.g. those using  SnapshotNow for
-	 * reading) the same as for distributed transactions.
-	 *
-	 *
-	 * In upstream Postgres, proc->xid is cleared in ProcArrayEndTransaction.
-	 * But there would have a small window in Greenplum that allows inconsistency
-	 * between ProcArrayEndTransaction and notifying prepared commit to segments.
-	 * In between, the master has new tuple visible while the segments are seeing
-	 * old tuples.
-	 *
-	 * For example, session 1 runs:
-	 *    RENAME from a_new to a;
-	 * session 2 runs:
-	 *    DROP TABLE a;
-	 *
-	 * When session 1 goes to just before notifyCommittedDtxTransaction, the new
-	 * coming session 2 can see a new tuple for renamed table "a" in pg_class,
-	 * and can drop it in master. However, dispatching DROP to segments, at this
-	 * point of time segments still have old tuple for "a_new" visible in
-	 * pg_class and DROP process just fails to drop "a". Then DTX is notified
-	 * later and committed in the segments, the new tuple for "a" is visible
-	 * now, but nobody wants to DROP it anymore, so the master has no tuple for
-	 * "a" while the segments have it.
-	 *
-	 * To fix this, transactions require two-phase commit should defer clear 
-	 * proc->xid here with ProcArryLock held.
-	 */
-	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-	ProcArrayEndTransaction(MyProc, latestXid, true);
-	ProcArrayEndGxact();
-	LWLockRelease(ProcArrayLock);
 }
 
 static void
@@ -978,7 +938,6 @@ rollbackDtxTransaction(void)
 			 */
 			CheckForResetSession();
 
-			clearAndResetGxact();
 			return;
 
 		case DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED:
@@ -997,7 +956,6 @@ rollbackDtxTransaction(void)
 		case DTX_STATE_RETRY_ABORT_PREPARED:
 			elog(DTM_DEBUG5, "rollbackDtxTransaction dtx state \"%s\" not expected here",
 				 DtxStateToString(MyTmGxactLocal->state));
-			clearAndResetGxact();
 			return;
 
 		default:
@@ -1046,13 +1004,10 @@ rollbackDtxTransaction(void)
 		 */
 		CheckForResetSession();
 
-		clearAndResetGxact();
 		return;
 	}
 
 	doNotifyingAbort();
-	clearAndResetGxact();
-
 	return;
 }
 
@@ -1392,11 +1347,9 @@ dispatchDtxCommand(const char *cmd)
 
 /* reset global transaction context */
 void
-resetGxact()
+resetGxact(void)
 {
-	AssertImply(Gp_role == GP_ROLE_DISPATCH && MyTmGxact->gxid != InvalidDistributedTransactionId,
-				LWLockHeldByMe(ProcArrayLock));
-	MyTmGxact->gxid = InvalidDistributedTransactionId;
+	Assert(MyTmGxact->gxid == InvalidDistributedTransactionId);
 	MyTmGxact->distribTimeStamp = 0;
 	MyTmGxact->xminDistributedSnapshot = InvalidDistributedTransactionId;
 	MyTmGxact->includeInCkpt = false;
@@ -1423,16 +1376,6 @@ getNextDistributedXactStatus(TMGALLXACTSTATUS *allDistributedXactStatus, TMGXACT
 	allDistributedXactStatus->next++;
 
 	return true;
-}
-
-static void
-clearAndResetGxact(void)
-{
-	Assert(isCurrentDtxTwoPhaseActivated());
-
-	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-	ProcArrayEndGxact();
-	LWLockRelease(ProcArrayLock);
 }
 
 /*
