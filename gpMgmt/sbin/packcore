@@ -110,13 +110,37 @@ def _getLibraryListWithGDB(coreFile, binary):
     for key in ('PYTHONHOME', 'PYTHONPATH', 'LD_LIBRARY_PATH'):
         if key in environ:
             del environ[key]
-    cmd = Popen(gdb + ' --eval-command="quit" ' + binary + ' -c ' + coreFile, shell=True, stdout=PIPE, stderr=PIPE)
+
+    cmd = Popen([gdb,
+                 '--batch',     # exit after processing options
+                 '--nx',        # do not read any .gdbinit files
+                 '--eval-command=info sharedlibrary',
+                                # list shared libraries explicitly
+                 '-c', coreFile,
+                 binary],
+                stdout=PIPE, stderr=PIPE)
     result = cmd.communicate()[0]
 
+    # gdb output looks like below:
+    #
+    #     ...
+    #     (gdb) info sharedlibrary
+    #     From        To          Syms Read  Shared Object Library
+    #     0x00001000  0x00001234  Yes (*)    /path/to/liba.so.1.0
+    #     0x00002000  0x00002234  Yes (*)    /path/to/libb.so.1.0
+    #     0x00003000  0x00003234  Yes        /path/to/libc.so.1.0
+    #     (*): Shared library is missing debugging information.
+    #
+    # to get the list we first search for the header line, then collect all the
+    # path strings in following lines.
+    header = False
     for line in result.splitlines():
-        if line.find('Reading symbols') is 0:
-            end = line.find('...')
-            libraries.append(line[21:end])
+        if header:
+            begin = line.find(os.path.sep)
+            if begin >= 0:
+                libraries.append(line[begin:])
+        elif 'Shared Object Library' in line:
+            header = True
 
     return libraries
 
