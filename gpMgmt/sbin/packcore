@@ -68,7 +68,22 @@ def _getLibraryListWithLDD(binary):
     # This may not be needed for all processes, but will round out the
     # postgres binary debugging
     # TODO: Look at ways to distinguish a 32 vs. 64 bit executable
-    libraries = ['/lib64/libgcc_s.so.1', '/lib64/libnss_files.so.2', '/lib/libgcc_s.so.1', '/lib/libnss_files.so.2']
+    libraries = [
+        # on centos
+        '/lib64/libgcc_s.so.1',
+        '/lib64/libnss_files.so.2',
+        '/lib/libgcc_s.so.1',
+        '/lib/libnss_files.so.2',
+
+        # on ubuntu
+        '/lib/x86_64-linux-gnu/libgcc_s.so.1',
+        '/lib/x86_64-linux-gnu/libnss_files.so.2',
+        '/usr/lib32/libgcc_s.so.1',
+        '/lib32/libnss_files.so.2',
+        '/usr/libx32/libgcc_s.so.1',
+        '/libx32/libnss_files.so.2',
+    ]
+
     ldd_output = Popen('ldd `which postgres`', shell=True, stdout=PIPE)
     for line in ldd_output.stdout:
         match = re.search(r'(\S+) \(0x', line)
