@@ -181,6 +181,30 @@ class GpStart(GpTestCase):
         messages = [msg[0][0] for msg in self.subject.logger.info.call_args_list]
         self.assertIn("No standby master configured.  skipping...", messages)
 
+    def test_prepare_segment_start_returns_up_and_down_segments(self):
+        # Boilerplate: create a gpstart object
+        parser = self.subject.GpStart.createParser()
+        options, args = parser.parse_args([])
+        gpstart = self.subject.GpStart.createProgram(options, args)
+
+        # Up segments
+        master = Segment.initFromString("1|-1|p|p|n|u|mdw|mdw|5432|/data/master")
+        primary1 = Segment.initFromString("3|1|p|p|n|u|sdw2|sdw2|40001|/data/primary1")
+        mirror0 = Segment.initFromString("4|0|m|m|n|u|sdw2|sdw2|50000|/data/mirror0")
+
+        # Down segments
+        primary0 = Segment.initFromString("2|0|p|p|n|d|sdw1|sdw1|40000|/data/primary0")
+        mirror1 = Segment.initFromString("5|1|m|m|n|d|sdw1|sdw1|50001|/data/mirror1")
+        standby = Segment.initFromString("6|-1|m|m|n|d|sdw3|sdw3|5433|/data/standby")
+
+        gpstart.gparray = GpArray([master, primary0, primary1, mirror0, mirror1, standby])
+
+        up, down = gpstart._prepare_segment_start()
+
+        # The master and standby should not be accounted for in these lists.
+        self.assertItemsEqual(up, [primary1, mirror0])
+        self.assertItemsEqual(down, [primary0, mirror1])
+
     def _createGpArrayWith2Primary2Mirrors(self):
         self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|/data/master")
