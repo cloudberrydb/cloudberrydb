@@ -79,9 +79,24 @@ def step_impl(context):
     stop_database(context)
 
 
+@given(u'a mirror has crashed')
 @when(u'a mirror has crashed')
 def step_impl(context):
-    run_command(context, "ps aux | grep dbfast_mirror1 | awk '{print $2}' | xargs kill -9")
+    host, datadir = execute_sql("postgres",
+        "SELECT hostname, datadir FROM gp_segment_configuration WHERE role='m' AND content=0"
+    ).fetchone()
+
+    # NOTE that these commands are manually escaped; beware when adding dollar
+    # signs or double-quotes!
+    cmd = "ps aux | grep '[p]ostgres .* %s' | awk '{print \$2}' | xargs kill -9" % datadir
+    cmd = 'ssh %s "%s"' % (host, cmd)
+    run_command(context, cmd)
+
+    # If the kill succeeds, recover the mirror when this test is done.
+    def recover():
+        run_command(context, "gprecoverseg -a")
+    context.add_cleanup(recover)
+
     wait_for_unblocked_transactions(context)
 
 
