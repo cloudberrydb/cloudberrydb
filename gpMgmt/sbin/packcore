@@ -84,7 +84,14 @@ def _getLibraryListWithLDD(binary):
         '/libx32/libnss_files.so.2',
     ]
 
-    ldd_output = Popen('ldd `which postgres`', shell=True, stdout=PIPE)
+    ldd = which('ldd')
+    if ldd:
+        args = [ldd]
+    else:
+        # simulate ldd with ld-linux.so
+        args = ['/lib64/ld-linux-x86-64.so.2', '--list']
+
+    ldd_output = Popen(args + [binary], stdout=PIPE)
     for line in ldd_output.stdout:
         match = re.search(r'(\S+) \(0x', line)
         if match and match.group(1):
