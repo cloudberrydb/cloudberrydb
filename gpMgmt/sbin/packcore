@@ -38,11 +38,28 @@ def _isCore(fileCmdOutput):
 
 
 def _findBinary(fileCmdOutput):
-    start = string.find(fileCmdOutput, "'") + 1
+    # execfn: '/path/to/postgres'
+    field = string.find(fileCmdOutput, 'execfn')
+    # if 'execfn' field is not found, search for 'from' field instead
+    if field < 0:
+        # from: /path/to/postgres
+        # from: postgres: 5432, ...
+        field = string.find(fileCmdOutput, 'from')
+    # if 'from' field is still missing, search for any single-quoted string
+    if field < 0:
+        field = 0
+    start = string.find(fileCmdOutput, "'", field) + 1
     end = string.find(fileCmdOutput, "'", start)
-    cmd = fileCmdOutput[start:end].split()[0].translate(None, string.punctuation)
+    if start <= 0 or end < 0:
+        return None
+    cmd = fileCmdOutput[start:end]
+    # special characters can be correctly handled in abs format, no need to
+    # remove them
     if os.path.isabs(cmd):
         return cmd
+    # otherwise try to search with the process name, punctuations like ':'
+    # should be removed
+    cmd = cmd.split()[0].translate(None, string.punctuation)
     return which(cmd)
 
 
