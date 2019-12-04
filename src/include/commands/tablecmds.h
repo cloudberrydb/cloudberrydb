@@ -59,8 +59,6 @@ extern ObjectAddress DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 
 extern void RemoveRelations(DropStmt *drop);
 
-extern bool RelationToRemoveIsTemp(const RangeVar *relation, DropBehavior behavior);
-
 extern Oid	AlterTableLookupRelation(AlterTableStmt *stmt, LOCKMODE lockmode);
 
 extern void AlterTable(Oid relid, LOCKMODE lockmode, AlterTableStmt *stmt);

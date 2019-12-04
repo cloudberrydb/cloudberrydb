@@ -152,47 +152,6 @@ check_xact_readonly(Node *parsetree)
 
 	switch (nodeTag(parsetree))
 	{
-		case T_CreateStmt:
-			{
-				CreateStmt *createStmt;
-
-				createStmt = (CreateStmt *) parsetree;
-
-				if (createStmt->relation->relpersistence == RELPERSISTENCE_TEMP)
-					return;		// Permit creation of TEMPORARY tables in read-only mode.
-
-				ereport(ERROR,
-						(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-						 errmsg("transaction is read-only")));
-			}
-			break;
-
-		case T_DropStmt:
-			{
-				DropStmt   *dropStmt = (DropStmt *) parsetree;
-				ListCell   *arg;
-
-				/*
-				 * So, if DROP TABLE is used, all objects must be
-				 * temporary tables.
-				 */
-				foreach(arg, dropStmt->objects)
-				{
-					List	   *names = (List *) lfirst(arg);
-					RangeVar   *rel;
-
-					rel = makeRangeVarFromNameList(names);
-
-					if (dropStmt->removeType != OBJECT_TABLE ||
-					    !RelationToRemoveIsTemp(rel, dropStmt->missing_ok))
-						ereport(ERROR,
-								(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-								 errmsg("transaction is read-only")));
-
-				}
-			}
-			return;		// All objects are TEMPORARY tables.
-
 		case T_AlterDatabaseStmt:
 		case T_AlterDatabaseSetStmt:
 		case T_AlterDomainStmt:
@@ -229,6 +188,7 @@ check_xact_readonly(Node *parsetree)
 		case T_RuleStmt:
 		case T_CreateSchemaStmt:
 		case T_CreateSeqStmt:
+		case T_CreateStmt:
 		case T_CreateExternalStmt:
 		case T_CreateTableAsStmt:
 		case T_RefreshMatViewStmt:
@@ -240,6 +200,7 @@ check_xact_readonly(Node *parsetree)
 		case T_CreateRangeStmt:
 		case T_AlterEnumStmt:
 		case T_ViewStmt:
+		case T_DropStmt:
 		case T_DropdbStmt:
 		case T_DropTableSpaceStmt:
 		case T_DropQueueStmt:
