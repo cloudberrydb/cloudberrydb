@@ -143,11 +143,12 @@ namespace gpnaucrates
 
 			// distribute total distinct and frequency of the histogram bucket into the new buckets
 			static
-			void DistributeBucketProperties
+			CBucketArray* DistributeBucketProperties
 					(
+					CMemoryPool *mp,
 					CDouble total_frequency,
 					CDouble total_distinct_values,
-					CBucketArray *buckets
+					const CBucketArray *buckets
 					);
 
 			// add the NDVs for all of the grouping columns

@@ -207,13 +207,13 @@ CMCVTest::EresUnittest_MergeHistMCV()
 		const CDXLStatsDerivedColumnArray *pdrgpdxlstatsdercolMCV = pdxlstatsderrelMCV->GetDXLStatsDerivedColArray();
 		CDXLStatsDerivedColumn *pdxlstatsdercolMCV = (*pdrgpdxlstatsdercolMCV)[0];
 		CBucketArray *pdrgppbucketMCV = CDXLUtils::ParseDXLToBucketsArray(mp, md_accessor, pdxlstatsdercolMCV);
-		CHistogram *phistMCV =  GPOS_NEW(mp) CHistogram(pdrgppbucketMCV);
+		CHistogram *phistMCV =  GPOS_NEW(mp) CHistogram(mp, pdrgppbucketMCV);
 
 		CDXLStatsDerivedRelation *pdxlstatsderrelHist = (*pdrgpdxlstatsderrelHist)[0];
 		const CDXLStatsDerivedColumnArray *pdrgpdxlstatsdercolHist = pdxlstatsderrelHist->GetDXLStatsDerivedColArray();
 		CDXLStatsDerivedColumn *pdxlstatsdercolHist = (*pdrgpdxlstatsdercolHist)[0];
 		CBucketArray *pdrgppbucketHist = CDXLUtils::ParseDXLToBucketsArray(mp, md_accessor, pdxlstatsdercolHist);
-		CHistogram *phistHist =  GPOS_NEW(mp) CHistogram(pdrgppbucketHist);
+		CHistogram *phistHist =  GPOS_NEW(mp) CHistogram(mp, pdrgppbucketHist);
 
 		GPOS_CHECK_ABORT;
 

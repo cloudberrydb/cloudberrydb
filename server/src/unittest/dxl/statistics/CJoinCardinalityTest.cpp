@@ -138,7 +138,7 @@ CJoinCardinalityTest::EresUnittest_JoinNDVRemain()
 		CHistogram *histogram1 = col_histogram_mapping->Find(&colid1);
 		CHistogram *histogram2 = col_histogram_mapping->Find(&colid2);
 
-		CHistogram *join_histogram = histogram1->MakeJoinHistogram(mp, CStatsPred::EstatscmptEq, histogram2);
+		CHistogram *join_histogram = histogram1->MakeJoinHistogram(CStatsPred::EstatscmptEq, histogram2);
 
 		{
 			CAutoTrace at(mp);

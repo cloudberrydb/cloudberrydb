@@ -62,7 +62,7 @@ CUnionAllStatsProcessor::CreateStatsForUnionAll
 
 			if (first_child_histogram->IsWellDefined() || second_child_histogram->IsWellDefined())
 			{
-				CHistogram *output_histogram = first_child_histogram->MakeUnionAllHistogramNormalize(mp, stats_first_child->Rows(), second_child_histogram, stats_second_child->Rows());
+				CHistogram *output_histogram = first_child_histogram->MakeUnionAllHistogramNormalize(stats_first_child->Rows(), second_child_histogram, stats_second_child->Rows());
 				CStatisticsUtils::AddHistogram(mp, output_colid, output_histogram, histograms_new);
 				GPOS_DELETE(output_histogram);
 			}

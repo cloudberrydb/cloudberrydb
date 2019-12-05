@@ -123,7 +123,7 @@ CCardinalityTestUtils::PhistInt4Remain
 		freq_remaining = CDouble(0.0);
 	}
 
-	return GPOS_NEW(mp) CHistogram(histogram_buckets, true, null_freq, num_NDV_remain, freq_remaining);
+	return GPOS_NEW(mp) CHistogram(mp, histogram_buckets, true, null_freq, num_NDV_remain, freq_remaining);
 }
 
 // helper function to generate an example int histogram
@@ -148,7 +148,7 @@ CCardinalityTestUtils::PhistExampleInt4
 	// add an additional singleton bucket [100, 100]
 	histogram_buckets->Append(CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 100, 100, 0.1, 1.0));
 
-	return  GPOS_NEW(mp) CHistogram(histogram_buckets);
+	return  GPOS_NEW(mp) CHistogram(mp, histogram_buckets);
 }
 
 // helper function to generates example bool histogram
@@ -163,7 +163,7 @@ CCardinalityTestUtils::PhistExampleBool
 	CBucket *pbucketTrue = CCardinalityTestUtils::PbucketSingletonBoolVal(mp, true, 0.2);
 	histogram_buckets->Append(pbucketFalse);
 	histogram_buckets->Append(pbucketTrue);
-	return  GPOS_NEW(mp) CHistogram(histogram_buckets);
+	return  GPOS_NEW(mp) CHistogram(mp, histogram_buckets);
 }
 
 // helper function to generate a point from an encoded value of specific datatype

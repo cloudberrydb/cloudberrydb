@@ -298,7 +298,7 @@ CStatisticsTest::PhistExampleInt4Dim
 		histogram_buckets->Append(bucket);
 	}
 
-	return  GPOS_NEW(mp) CHistogram(histogram_buckets);
+	return  GPOS_NEW(mp) CHistogram(mp, histogram_buckets);
 }
 
 // create a table descriptor with two columns having the given names.

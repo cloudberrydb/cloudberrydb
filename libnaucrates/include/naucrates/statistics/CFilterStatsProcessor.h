@@ -32,7 +32,6 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistSimpleFilter
 				(
-				CMemoryPool *mp,
 				CStatsPred *pred_stats,
 												CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -44,7 +43,6 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistPointFilter
 				(
-				CMemoryPool *mp,
 				CStatsPredPoint *pred_stats,
 											   CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -56,7 +54,6 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistLikeFilter
 				(
-				CMemoryPool *mp,
 				CStatsPredLike *pred_stats,
 											  CBitSet *filter_colids,
 				CHistogram *hist_before,
@@ -68,7 +65,6 @@ namespace gpnaucrates
 			static
 			CHistogram *MakeHistUnsupportedPred
 				(
-				CMemoryPool *mp,
 				CStatsPredUnsupported *pred_stats,
 												   CBitSet *filter_colids,
 				CHistogram *hist_before,

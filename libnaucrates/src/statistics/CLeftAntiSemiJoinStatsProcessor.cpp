@@ -19,7 +19,6 @@ using namespace gpmd;
 void
 CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 			(
-			CMemoryPool *mp,
 			const CHistogram *histogram1,
 			const CHistogram *histogram2,
 			CStatsPredJoin *join_stats,
@@ -48,7 +47,7 @@ CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 
 	if (is_input_empty)
 	{
-		*result_hist1 = histogram1->CopyHistogram(mp);
+		*result_hist1 = histogram1->CopyHistogram();
 		*result_hist2 = NULL;
 
 		return;
@@ -59,7 +58,6 @@ CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 	{
 		*result_hist1 = histogram1->MakeLASJHistogramNormalize
 				(
-				mp,
 				stats_cmp_type,
 				num_rows1,
 				histogram2,
@@ -81,7 +79,7 @@ CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 	// for an unsupported join predicate operator or in the case of missing stats,
 	// copy input histograms and use default scale factor
 	*scale_factor = CDouble(CScaleFactorUtils::DefaultJoinPredScaleFactor);
-	*result_hist1 = histogram1->CopyHistogram(mp);
+	*result_hist1 = histogram1->CopyHistogram();
 	*result_hist2 = NULL;
 }
 

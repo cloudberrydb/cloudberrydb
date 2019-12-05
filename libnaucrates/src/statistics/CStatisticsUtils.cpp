@@ -160,7 +160,7 @@ CStatisticsUtils::TransformMCVToHist
 										);
 		mcv_buckets->Append(bucket);
 	}
-	CHistogram *histogram =  GPOS_NEW(mp) CHistogram(mcv_buckets);
+	CHistogram *histogram =  GPOS_NEW(mp) CHistogram(mp, mcv_buckets);
 	GPOS_ASSERT(histogram->IsValid());
 	mcv_pairs->Release();
 
@@ -204,10 +204,10 @@ CStatisticsUtils::MergeMCVHist
 		{
 			// have to do deep copy, otherwise mcv_histogram and phistMerge
 			// will point to the same object
-			return mcv_histogram->CopyHistogram(mp);
+			return mcv_histogram->CopyHistogram();
 		}
 
-		return histogram->CopyHistogram(mp);
+		return histogram->CopyHistogram();
 	}
 
 	// both MCV and histogram buckets must be sorted
@@ -216,7 +216,7 @@ CStatisticsUtils::MergeMCVHist
 
 	CBucketArray *merged_buckets = MergeMcvHistBucket(mp, mcv_buckets, histogram_buckets);
 
-	CHistogram *merged_histogram =  GPOS_NEW(mp) CHistogram(merged_buckets);
+	CHistogram *merged_histogram =  GPOS_NEW(mp) CHistogram(mp, merged_buckets);
 	GPOS_ASSERT(merged_histogram->IsValid());
 
 	return merged_histogram;
@@ -425,9 +425,10 @@ CStatisticsUtils::SplitHistBucketGivenMcvBuckets
 
 	// re-balance distinct and frequency in pdrgpbucketNew
 	CDouble total_distinct_values = std::max(CDouble(1.0), histogram_bucket->GetNumDistinct() - mcv);
-	DistributeBucketProperties(histogram_bucket->GetFrequency(), total_distinct_values, buckets_after_split);
+	CBucketArray *complete_buckets = DistributeBucketProperties(mp, histogram_bucket->GetFrequency(), total_distinct_values, buckets_after_split);
+	buckets_after_split->Release();
 
-	return buckets_after_split;
+	return complete_buckets;
 }
 
 //---------------------------------------------------------------------------
@@ -531,15 +532,18 @@ CStatisticsUtils::IsValidBucket
 //	@doc:
 //		Set distinct and frequency of the new buckets according to
 //		their ranges, based on the assumption that values are uniformly
-//		distributed within a bucket.
+//		distributed within a bucket. This function assumes that the buckets
+//		are valid but incomplete. Since it modifies existing buckets, it still
+//		copies and returns a new array of complete buckets.
 //
 //---------------------------------------------------------------------------
-void
+CBucketArray*
 CStatisticsUtils::DistributeBucketProperties
 	(
+	CMemoryPool *mp,
 	CDouble total_frequency,
 	CDouble total_distinct_values,
-	CBucketArray *buckets
+	const CBucketArray *buckets
 	)
 {
 	GPOS_ASSERT(NULL != buckets);
@@ -555,17 +559,26 @@ CStatisticsUtils::DistributeBucketProperties
 			bucket_width = bucket_width + bucket->Width();
 		}
 	}
-	for (ULONG i = 0; i < bucket_size; i++)
+	CBucketArray *histogram_buckets = CHistogram::DeepCopyHistogramBuckets(mp, buckets);
+
+	for (ULONG i = 0; i < histogram_buckets->Size(); i++)
 	{
-		CBucket *bucket = (*buckets)[i];
+		CBucket *bucket = (*histogram_buckets)[i];
+
 		if (!bucket->IsSingleton())
 		{
+			// assert that the bucket is incomplete, and we are populating freq and NDV
+			GPOS_ASSERT(GPOPT_BUCKET_DEFAULT_FREQ == bucket->GetFrequency());
+			GPOS_ASSERT(GPOPT_BUCKET_DEFAULT_DISTINCT == bucket->GetNumDistinct());
+
 			CDouble factor = bucket->Width() / bucket_width;
 			bucket->SetFrequency(total_frequency * factor);
 			// TODO: , Aug 1 2013 - another heuristic may be max(1, dDisinct * factor)
 			bucket->SetDistinct(total_distinct_values * factor);
 		}
 	}
+	// buckets is released in the caller function and thus is not released here
+	return histogram_buckets;
 }
 
 
@@ -720,7 +733,6 @@ CStatisticsUtils::UpdateDisjStatistics
 			CDouble output_rows(0.0);
 			CHistogram *new_histogram = previous_histogram->MakeUnionHistogramNormalize
 												(
-												mp,
 												input_disjunct_rows,
 												result_histogram,
 												local_rows,
@@ -852,7 +864,7 @@ CStatisticsUtils::AddHistogram
 #ifdef GPOS_DEBUG
 		BOOL result =
 #endif
-		col_histogram_mapping->Insert(GPOS_NEW(mp) ULONG(colid), histogram->CopyHistogram(mp));
+		col_histogram_mapping->Insert(GPOS_NEW(mp) ULONG(colid), histogram->CopyHistogram());
 		GPOS_ASSERT(result);
 	}
 	else if (replace_old)
@@ -860,7 +872,7 @@ CStatisticsUtils::AddHistogram
 #ifdef GPOS_DEBUG
 		BOOL result =
 #endif
-		col_histogram_mapping->Replace(&colid, histogram->CopyHistogram(mp));
+		col_histogram_mapping->Replace(&colid, histogram->CopyHistogram());
 		GPOS_ASSERT(result);
 	}
 }
@@ -945,7 +957,7 @@ CStatisticsUtils::CreateHistHashMapAfterMergingDisjPreds
 				merged_histogram->Insert
 									(
 									GPOS_NEW(mp) ULONG(disj_child_colid),
-									 GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */)
+									 GPOS_NEW(mp) CHistogram(mp, false /* is_well_defined */)
 									);
 			}
 		}
@@ -979,7 +991,6 @@ CStatisticsUtils::CreateHistHashMapAfterMergingDisjPreds
 				const CHistogram *disj_child_histogram = disj_preds_histogram_map->Find(&colid);
 				CHistogram *normalized_union_histogram = histogram->MakeUnionHistogramNormalize
 													(
-													mp,
 													cumulative_rows,
 													disj_child_histogram,
 													num_rows_disj_child,
@@ -1717,7 +1728,7 @@ CStatisticsUtils::AddGrpColStats
 		const CHistogram *histogram = input_stats->GetHistogram(grp_colid);
 		if (NULL != histogram)
 		{
-			CHistogram *result_histogram = histogram->MakeGroupByHistogramNormalize(mp, input_stats->Rows(), &num_distinct_vals);
+			CHistogram *result_histogram = histogram->MakeGroupByHistogramNormalize(input_stats->Rows(), &num_distinct_vals);
 			if (histogram->WereNDVsScaled())
 			{
 				result_histogram->SetNDVScaled();

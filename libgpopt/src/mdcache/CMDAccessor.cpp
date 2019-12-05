@@ -1303,6 +1303,7 @@ CMDAccessor::GetHistogram
 
 	CHistogram *histogram = GPOS_NEW(mp) CHistogram
 									(
+									mp,
 									buckets,
 									true /*is_well_defined*/,
 									null_freq,
