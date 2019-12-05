@@ -193,7 +193,9 @@ namespace gpopt
 				return 0 < m_pdrgpulPart->Size();
 			}
 
-			// true iff a hash distributed table needs to be considered as random
+			// true iff a hash distributed table needs to be considered as random;
+			// this happens for when we are in phase 1 of a gpexpand or (for GPDB 5X)
+			// when we have a mix of hash-distributed and random distributed partitions
 			BOOL ConvertHashToRandom() const
 			{
 				return m_convert_hash_to_random;

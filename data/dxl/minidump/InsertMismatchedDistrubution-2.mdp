@@ -340,7 +340,7 @@ explain insert into pt2 select * from r;
               <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
