@@ -157,11 +157,17 @@ def _copyFilePath(src, dst):
 
 def _generateGDBScript(b, c):
     with open('runGDB.sh', 'w') as f1:
-        print >>f1, '#!/bin/bash'
-        print >>f1, 'unset PYTHONHOME'
-        print >>f1, 'unset PYTHONPATH'
-        print >>f1, 'curDIR=`pwd`'
-        print >>f1, '/usr/bin/gdb --eval-command="set sysroot $curDIR" --eval-command="core %s" %s' % (c, b)
+        print >>f1, '''\
+#!/bin/bash
+unset PYTHONHOME
+unset PYTHONPATH
+curDIR=`pwd`
+/usr/bin/gdb \\
+    --eval-command="set sysroot $curDIR" \\
+    --eval-command="core {core}" \\
+    {binary} \\
+    "$@"
+'''.format(core=c, binary=b)
     os.chmod('runGDB.sh', 0755)
 
 
