@@ -1280,7 +1280,7 @@ cdb_pull_up_eclass(PlannerInfo *root,
 		   list_length(newvarlist) == list_length(targetlist));
 
 	/* Find an expr that we can rewrite to use the projected columns. */
-	sub_distkeyexpr = cdbpullup_findEclassInTargetList(eclass, targetlist);
+	sub_distkeyexpr = cdbpullup_findEclassInTargetList(eclass, targetlist, InvalidOid);
 
 	/* Replace expr's Var nodes with new ones referencing the targetlist. */
 	if (sub_distkeyexpr)

@@ -13,6 +13,7 @@
  */
 #include "postgres.h"
 
+#include "access/hash.h"
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "catalog/pg_amop.h"
@@ -641,10 +642,13 @@ makeDistributionKeyForEC(EquivalenceClass *eclass, Oid opfamily)
  * cdbpath_eclass_constant_is_hashable
  *
  * Iterates through a list of equivalence class members and determines if
- * expression in pseudoconstant are hashable.
+ * expression in pseudoconstant is hashable under the given hash opfamily.
+ *
+ * If there are multiple constants in the equivalence class, it is sufficient
+ * that one of them is usable.
  */
 static bool
-cdbpath_eclass_constant_is_hashable(EquivalenceClass *ec)
+cdbpath_eclass_constant_is_hashable(EquivalenceClass *ec, Oid hashOpFamily)
 {
 	ListCell   *j;
 
@@ -652,12 +656,15 @@ cdbpath_eclass_constant_is_hashable(EquivalenceClass *ec)
 	{
 		EquivalenceMember *em = (EquivalenceMember *) lfirst(j);
 
-		/* Fail on non-hashable expression types */
-		if (em->em_is_const && !cdb_default_distribution_opfamily_for_type(exprType((Node *) em->em_expr)))
-			return false;
+		if (!em->em_is_const)
+			continue;
+
+		if (get_opfamily_member(hashOpFamily, em->em_datatype, em->em_datatype,
+								HTEqualStrategyNumber))
+			return true;
 	}
 
-	return true;
+	return false;
 }
 
 static bool
@@ -691,7 +698,7 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 		EquivalenceClass *ec = (EquivalenceClass *) lfirst(cell);
 
 		if (CdbEquivClassIsConstant(ec) &&
-			cdbpath_eclass_constant_is_hashable(ec))
+			cdbpath_eclass_constant_is_hashable(ec, distkey->dk_opfamily))
 		{
 			codistkey = distkey;
 			break;

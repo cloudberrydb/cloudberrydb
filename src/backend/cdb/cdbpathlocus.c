@@ -523,7 +523,8 @@ cdbpathlocus_get_distkey_exprs(CdbPathLocus locus,
 			{
 				EquivalenceClass *dk_eclass = (EquivalenceClass *) lfirst(ec_cell);
 
-				item = cdbpullup_findEclassInTargetList(dk_eclass, targetlist);
+				item = cdbpullup_findEclassInTargetList(dk_eclass, targetlist,
+														distkey->dk_opfamily);
 
 				if (item)
 					break;

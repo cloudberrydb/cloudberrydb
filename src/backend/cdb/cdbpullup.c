@@ -15,12 +15,14 @@
 
 #include "postgres.h"
 
+#include "access/hash.h"		/* HashEqualStrategyNumber */
 #include "nodes/makefuncs.h"	/* makeVar() */
 #include "nodes/plannodes.h"	/* Plan */
 #include "optimizer/clauses.h"	/* expression_tree_walker/mutator */
 #include "optimizer/tlist.h"	/* tlist_member() */
 #include "nodes/nodeFuncs.h"	/* exprType() and exprTypmod() */
 #include "parser/parsetree.h"	/* get_tle_by_resno() */
+#include "utils/lsyscache.h"	/* get_opfamily_member() */
 
 #include "cdb/cdbpullup.h"		/* me */
 
@@ -216,7 +218,9 @@ cdbpullup_expr(Expr *expr, List *targetlist, List *newvarlist, Index newvarno)
  *
  * Searches the given equivalence class for a member that uses no rels
  * outside the 'relids' set, and either is a member of 'targetlist', or
- * uses no Vars that are not in 'targetlist'.
+ * uses no Vars that are not in 'targetlist'. Furthermore, if
+ * 'hashOpFamily' is valid, the member must be hashable using that hash
+ * operator family.
  *
  * If found, returns the chosen member's expression, otherwise returns
  * NULL.
@@ -233,7 +237,8 @@ cdbpullup_expr(Expr *expr, List *targetlist, List *newvarlist, Index newvarno)
  * targetlist expr.)
  */
 Expr *
-cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist)
+cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist,
+								 Oid hashOpFamily)
 {
 	ListCell   *lc;
 
@@ -242,6 +247,11 @@ cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist)
 		EquivalenceMember *em = (EquivalenceMember *) lfirst(lc);
 		Expr	   *key = (Expr *) em->em_expr;
 		ListCell *lc_tle;
+
+		if (OidIsValid(hashOpFamily) &&
+			!get_opfamily_member(hashOpFamily, em->em_datatype, em->em_datatype,
+								 HTEqualStrategyNumber))
+			continue;
 
 		/* A constant is OK regardless of the target list */
 		if (em->em_is_const)
@@ -329,7 +339,7 @@ cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist)
 	{
 		PathKey	   *pk = (PathKey *) lfirst(lc);
 
-		if (!cdbpullup_findEclassInTargetList(pk->pk_eclass, targetlist))
+		if (!cdbpullup_findEclassInTargetList(pk->pk_eclass, targetlist, InvalidOid))
 			break;
 
 		new_pathkeys = lappend(new_pathkeys, pk);

@@ -309,6 +309,56 @@ reset enable_hashjoin;
 reset enable_mergejoin;
 reset enable_nestloop;
 
+--
+-- Mix timestamp and timestamptz in a join. We cannot use a Redistribute
+-- Motion, because the cross-datatype = operator between them doesn't belong
+-- to any hash operator class. We cannot hash rows in a way that matches would
+-- land on the same segment in that case.
+--
+CREATE TABLE gp_timestamp1 (a int, b timestamp, bb timestamptz) DISTRIBUTED BY (a, b);
+CREATE TABLE gp_timestamp2 (c int, d timestamp, dd timestamptz) DISTRIBUTED BY (c, d);
+INSERT INTO gp_timestamp1 VALUES
+  ( 9, '2016/11/09', '2016/11/09'),
+  (10, '2016/11/10', '2016/11/10'),
+  (11, '2016/11/11', '2016/11/11'),
+  (12, '2016/11/12', '2016/11/12'),
+  (13, '2016/11/13', '2016/11/13');
+
+INSERT INTO gp_timestamp2 VALUES
+  ( 9, '2016/11/09', '2016/11/09'),
+  (10, '2016/11/10', '2016/11/10'),
+  (11, '2016/11/11', '2016/11/11'),
+  (12, '2016/11/12', '2016/11/12'),
+  (13, '2016/11/13', '2016/11/13');
+
+ANALYZE gp_timestamp1;
+ANALYZE gp_timestamp2;
+
+SELECT a, b FROM gp_timestamp1 JOIN gp_timestamp2 ON a = c AND b = dd AND b = bb AND b = timestamp '2016/11/11';
+
+-- Similar case, but involving a constant
+SELECT a, b FROM gp_timestamp1 JOIN gp_timestamp2 ON a = c AND b = timestamptz '2016/11/11';
+
+-- Similar case. Here, the =(float8, float4) cross-type operator would be
+-- hashable using the default hash opclass. But not with the legacy cdbhash
+-- opclass.
+CREATE TABLE gp_float1 (a int, b real) DISTRIBUTED BY (a, b cdbhash_float4_ops);
+CREATE TABLE gp_float2 (c int, d real) DISTRIBUTED BY (c, d cdbhash_float4_ops);
+
+INSERT INTO gp_float1 SELECT i, i FROM generate_series(1, 5) i;
+INSERT INTO gp_float1 SELECT i, 3 FROM generate_series(1, 5) i WHERE i <> 3;
+INSERT INTO gp_float2 SELECT i, i FROM generate_series(1, 5) i;
+
+ANALYZE gp_float1;
+ANALYZE gp_float2;
+
+EXPLAIN SELECT a, b FROM gp_float1 JOIN gp_float2 ON a = c AND b = float8 '3.0';
+
+-- Another variation: There are two constants in the same equivalence class. One's
+-- datatype is compatible with the distribution key, the other's is not. We can
+-- redistribute based on the compatible constant.
+EXPLAIN SELECT a, b FROM gp_float1 JOIN gp_float2 ON a = c AND b = float8 '3.0' AND b = float4 '3.0';
+
 -- Clean up. None of the objects we create are very interesting to keep around.
 reset search_path;
 set client_min_messages='warning';
