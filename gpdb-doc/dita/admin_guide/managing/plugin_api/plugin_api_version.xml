@@ -18,7 +18,7 @@
     <section id="section5">
       <title>Return Value</title>
       <p>The <codeph>plugin_api_version</codeph> command must return the Backup Storage Plugin API
-        version number supported by the storage plugin, "0.3.0".</p>
+        version number supported by the storage plugin, "0.4.0".</p>
     </section>
   </body>
 </topic>

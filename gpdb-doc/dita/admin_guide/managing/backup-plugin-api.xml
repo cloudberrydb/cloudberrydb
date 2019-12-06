@@ -6,13 +6,15 @@
   <body>
     <p>This topic describes how to develop a custom storage plugin with the Greenplum Database
       Backup/Restore Storage Plugin API.</p>
-    <note type="note">Only the Backup/Restore Storage Plugin API is Beta feature. The storage
+    <note type="note">Only the Backup/Restore Storage Plugin API is a Beta feature. The storage
       plugins are supported features.</note>
     <p>The Backup/Restore Storage Plugin API provides a framework that you can use to develop and
       integrate a custom backup storage system with the Greenplum Database <xref
-        href="../../utility_guide/ref/gpbackup.xml"><codeph>gpbackup</codeph></xref> and
-        <xref href="../../utility_guide/ref/gprestore.xml"
-        ><codeph>gprestore</codeph></xref> utilities.</p>
+        href="../../utility_guide/ref/gpbackup.xml"><codeph>gpbackup</codeph></xref><ph
+        otherprops="pivotal">, <xref href="../../utility_guide/ref/gpbackup_manager.xml"
+          format="xml"><codeph>gpbackup_manager</codeph></xref>,</ph> and <xref
+        href="../../utility_guide/ref/gprestore.xml"><codeph>gprestore</codeph></xref>
+      utilities.</p>
     <p>The Backup/Restore Storage Plugin API defines a set of interfaces that a plugin must support.
       The API also specifies the format and content of a configuration file for a plugin.</p>
     <p>When you use the Backup/Restore Storage Plugin API, you create a plugin that the Greenplum
@@ -108,7 +110,11 @@ options:
           instances. There might be some setup or cleanup required at the segment host level as
           compared to each segment instance.</li>
       </ul>
-
+      <p otherprops="pivotal">The Plugin API also defines the <codeph>delete_backup</codeph>
+        command, which is called by the <codeph>gpbackup_manager</codeph> utility. (The
+          <codeph>gpbackup_manager</codeph> source code is proprietary and the utility is available
+        only in the Pivotal Greenplum Backup and Restore download from <xref
+          href="https://network.pivotal.io" format="html" scope="external">Pivotal Network</xref>.)</p>
       <p>The Backup/Restore Storage Plugin API defines the following call syntax for a
         backup/restore storage plugin executable
         program:<codeblock><varname>plugin_executable</varname> <varname>command</varname> <varname>config_file</varname> <varname>args</varname></codeblock></p>
@@ -150,8 +156,8 @@ options:
                       href="plugin_api/plugin_api_version.xml#topic1" type="topic" format="dita"
                       >plugin_api_version</xref></entry>
                   <entry colname="col3" class="- topic/entry ">Return the version of the
-                    Backup/Restore Storage Plugin API supported by the plugin. The only supported
-                    version is 0.3.0.</entry>
+                    Backup/Restore Storage Plugin API supported by the plugin. The currently
+                    supported version is 0.4.0.</entry>
                 </row>
                 <row class="- topic/row ">
                   <entry colname="col1" class="- topic/entry "><xref
@@ -173,6 +179,12 @@ options:
                       >backup_data</xref></entry>
                   <entry colname="col3" class="- topic/entry ">Move streaming data from
                       <codeph>stdin</codeph> to a file on the remote storage system.</entry>
+                </row>
+                <row>
+                  <entry><xref href="plugin_api/delete_backup.xml#topic1" format="dita"
+                    >delete_backup</xref></entry>
+                  <entry>Delete the directory specified by the given backup timestamp on the remote
+                    system.</entry>
                 </row>
                 <row class="- topic/row ">
                   <entry colname="col1" class="- topic/entry "><xref

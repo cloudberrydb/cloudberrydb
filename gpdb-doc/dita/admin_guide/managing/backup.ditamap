@@ -28,6 +28,7 @@
         <topicref href="plugin_api/backup_file.xml" linking="none"/>
         <topicref href="plugin_api/cleanup_plugin_for_backup.xml" linking="none"/>
         <topicref href="plugin_api/cleanup_plugin_for_restore.xml" linking="none"/>
+        <topicref href="plugin_api/delete_backup.xml" linking="none"/>
         <topicref href="plugin_api/plugin_api_version.xml" linking="none"/>
         <topicref href="plugin_api/restore_data.xml" linking="none"/>
         <topicref href="plugin_api/restore_file.xml" linking="none"/>

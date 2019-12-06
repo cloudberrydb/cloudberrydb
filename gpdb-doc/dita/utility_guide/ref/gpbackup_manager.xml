@@ -9,7 +9,7 @@
       <title>Synopsis</title>
 <codeblock><b>gpbackup_manager</b> [<b><varname>command</varname></b>]</codeblock>
       <p>where <i>command</i> is: </p>
-      <codeblock><b>delete-backup</b> <b><varname>timestamp</varname></b>  
+      <codeblock><b>delete-backup</b> <b><varname>timestamp</varname></b> [--plugin-config <b><varname>config-file</varname></b>]
 | <b>display-report</b> <b><varname>timestamp</varname></b>  
 | <b>encrypt-password --plugin-config <varname>config-file</varname></b>  
 | <b>list-backups</b>
