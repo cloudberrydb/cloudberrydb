@@ -11708,3 +11708,217 @@ DETAIL:  Operator Citext comparison in join. not supported
  1 | b | 1 | b
 (4 rows)
 
+-- test gpexpand phase 1
+-- right now, these will fall back to planner
+drop table if exists noexp_hash, gpexp_hash, gpexp_rand, gpexp_repl;
+NOTICE:  table "noexp_hash" does not exist, skipping
+NOTICE:  table "gpexp_hash" does not exist, skipping
+NOTICE:  table "gpexp_rand" does not exist, skipping
+NOTICE:  table "gpexp_repl" does not exist, skipping
+create table noexp_hash(a int, b int) distributed by (a);
+insert into  noexp_hash select i, i from generate_series(1,50) i;
+-- three tables that will be expanded (simulated)
+create table gpexp_hash(a int, b int) distributed by (a);
+create table gpexp_rand(a int, b int) distributed randomly;
+create table gpexp_repl(a int, b int) distributed replicated;
+-- simulate a cluster with one segment less than we have now
+set allow_system_table_mods = true;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_hash'::regclass and numsegments > 1;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_rand'::regclass and numsegments > 1;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_repl'::regclass and numsegments > 1;
+reset allow_system_table_mods;
+-- populate the tables on this smaller cluster
+explain insert into gpexp_hash select i, i from generate_series(1,50) i;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Insert on gpexp_hash  (cost=0.00..30.00 rows=500 width=8)
+   ->  Redistribute Motion 1:2  (slice1; segments: 1)  (cost=0.00..30.00 rows=1000 width=8)
+         Hash Key: i.i
+         ->  Function Scan on generate_series i  (cost=0.00..10.00 rows=500 width=8)
+ Optimizer: Postgres query optimizer
+(5 rows)
+
+insert into gpexp_hash select i, i from generate_series(1,50) i;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+insert into gpexp_rand select i, i from generate_series(1,50) i;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+insert into gpexp_repl select i, i from generate_series(1,50) i;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+-- the segment ids in the unmodified table should have one extra number
+select max(noexp_hash.gp_segment_id) - max(gpexp_hash.gp_segment_id) as expect_one
+from noexp_hash, gpexp_hash;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ expect_one 
+------------
+          1
+(1 row)
+
+-- join should have a redistribute motion for gpexp_hash
+explain select count(*) from noexp_hash n join gpexp_hash x on n.a=x.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=8.47..8.48 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=8.44..8.47 rows=1 width=8)
+         ->  Partial Aggregate  (cost=8.44..8.45 rows=1 width=8)
+               ->  Hash Join  (cost=4.12..8.31 rows=17 width=0)
+                     Hash Cond: (n.a = x.a)
+                     ->  Seq Scan on noexp_hash n  (cost=0.00..3.50 rows=17 width=4)
+                     ->  Hash  (cost=3.50..3.50 rows=17 width=4)
+                           ->  Redistribute Motion 2:3  (slice1; segments: 2)  (cost=0.00..3.50 rows=25 width=4)
+                                 Hash Key: x.a
+                                 ->  Seq Scan on gpexp_hash x  (cost=0.00..2.50 rows=25 width=4)
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(*) from noexp_hash n join gpexp_hash x on n.a=x.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ count 
+-------
+    50
+(1 row)
+
+delete from gpexp_hash where b between 21 and 50;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+select count(*) from gpexp_hash;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ count 
+-------
+    20
+(1 row)
+
+update gpexp_hash set b=-1 where b between 11 and 100;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+select b, count(*) from gpexp_hash group by b order by b;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ b  | count 
+----+-------
+ -1 |    10
+  1 |     1
+  2 |     1
+  3 |     1
+  4 |     1
+  5 |     1
+  6 |     1
+  7 |     1
+  8 |     1
+  9 |     1
+ 10 |     1
+(11 rows)
+
+explain update gpexp_rand set b=(select b from gpexp_hash where gpexp_rand.a = gpexp_hash.a);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Update on gpexp_rand  (cost=0.00..216.00 rows=25 width=18)
+   ->  Seq Scan on gpexp_rand  (cost=0.00..215.00 rows=25 width=18)
+         SubPlan 1
+           ->  Result  (cost=0.00..4.25 rows=50 width=4)
+                 Filter: (gpexp_rand.a = gpexp_hash.a)
+                 ->  Materialize  (cost=0.00..3.75 rows=50 width=8)
+                       ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..3.50 rows=25 width=8)
+                             ->  Seq Scan on gpexp_hash  (cost=0.00..2.50 rows=25 width=8)
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+update gpexp_rand set b=(select b from gpexp_hash where gpexp_rand.a = gpexp_hash.a);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+select b, count(*) from gpexp_rand group by b order by b;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ b  | count 
+----+-------
+ -1 |    10
+  1 |     1
+  2 |     1
+  3 |     1
+  4 |     1
+  5 |     1
+  6 |     1
+  7 |     1
+  8 |     1
+  9 |     1
+ 10 |     1
+    |    30
+(12 rows)
+
+delete from gpexp_repl where b >= 20;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+explain insert into gpexp_repl values (20, 20);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Insert on gpexp_repl  (cost=0.00..0.01 rows=1 width=8)
+   ->  Result  (cost=0.00..0.01 rows=1 width=8)
+ Optimizer: Postgres query optimizer
+(3 rows)
+
+insert into gpexp_repl values (20, 20);
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+explain select count(*) from gpexp_hash h join gpexp_repl r on h.a=r.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=5.47..5.48 rows=1 width=8)
+   ->  Gather Motion 2:1  (slice1; segments: 2)  (cost=5.44..5.47 rows=1 width=8)
+         ->  Partial Aggregate  (cost=5.44..5.45 rows=1 width=8)
+               ->  Hash Join  (cost=2.12..5.31 rows=25 width=0)
+                     Hash Cond: (h.a = r.a)
+                     ->  Seq Scan on gpexp_hash h  (cost=0.00..2.50 rows=25 width=4)
+                     ->  Hash  (cost=1.50..1.50 rows=17 width=4)
+                           ->  Seq Scan on gpexp_repl r  (cost=0.00..1.50 rows=50 width=4)
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+select count(*) as expect_20 from gpexp_hash h join gpexp_repl r on h.a=r.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ expect_20 
+-----------
+        20
+(1 row)
+
+explain select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=7.47..7.48 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=7.44..7.47 rows=1 width=8)
+         ->  Partial Aggregate  (cost=7.44..7.45 rows=1 width=8)
+               ->  Hash Join  (cost=3.12..7.31 rows=17 width=0)
+                     Hash Cond: (h.a = r.a)
+                     ->  Seq Scan on noexp_hash h  (cost=0.00..3.50 rows=17 width=4)
+                     ->  Hash  (cost=2.50..2.50 rows=17 width=4)
+                           ->  Redistribute Motion 1:3  (slice1; segments: 1)  (cost=0.00..2.50 rows=50 width=4)
+                                 Hash Key: r.a
+                                 ->  Seq Scan on gpexp_repl r  (cost=0.00..1.50 rows=50 width=4)
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Unknown error: Partially Distributed Data
+ expect_20 
+-----------
+        20
+(1 row)
+

@@ -2266,6 +2266,57 @@ insert into tt values (1, 'b'), (1, 'B');
 -- expected fall back to the planner
 select * from tc, tt where c = v;
 
+-- test gpexpand phase 1
+-- right now, these will fall back to planner
+
+drop table if exists noexp_hash, gpexp_hash, gpexp_rand, gpexp_repl;
+create table noexp_hash(a int, b int) distributed by (a);
+insert into  noexp_hash select i, i from generate_series(1,50) i;
+
+-- three tables that will be expanded (simulated)
+create table gpexp_hash(a int, b int) distributed by (a);
+create table gpexp_rand(a int, b int) distributed randomly;
+create table gpexp_repl(a int, b int) distributed replicated;
+
+-- simulate a cluster with one segment less than we have now
+set allow_system_table_mods = true;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_hash'::regclass and numsegments > 1;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_rand'::regclass and numsegments > 1;
+update gp_distribution_policy set numsegments = numsegments-1 where localoid = 'gpexp_repl'::regclass and numsegments > 1;
+reset allow_system_table_mods;
+
+-- populate the tables on this smaller cluster
+explain insert into gpexp_hash select i, i from generate_series(1,50) i;
+
+insert into gpexp_hash select i, i from generate_series(1,50) i;
+insert into gpexp_rand select i, i from generate_series(1,50) i;
+insert into gpexp_repl select i, i from generate_series(1,50) i;
+
+-- the segment ids in the unmodified table should have one extra number
+select max(noexp_hash.gp_segment_id) - max(gpexp_hash.gp_segment_id) as expect_one
+from noexp_hash, gpexp_hash;
+
+-- join should have a redistribute motion for gpexp_hash
+explain select count(*) from noexp_hash n join gpexp_hash x on n.a=x.a;
+select count(*) from noexp_hash n join gpexp_hash x on n.a=x.a;
+delete from gpexp_hash where b between 21 and 50;
+select count(*) from gpexp_hash;
+update gpexp_hash set b=-1 where b between 11 and 100;
+select b, count(*) from gpexp_hash group by b order by b;
+
+explain update gpexp_rand set b=(select b from gpexp_hash where gpexp_rand.a = gpexp_hash.a);
+update gpexp_rand set b=(select b from gpexp_hash where gpexp_rand.a = gpexp_hash.a);
+select b, count(*) from gpexp_rand group by b order by b;
+
+delete from gpexp_repl where b >= 20;
+explain insert into gpexp_repl values (20, 20);
+insert into gpexp_repl values (20, 20);
+
+explain select count(*) from gpexp_hash h join gpexp_repl r on h.a=r.a;
+select count(*) as expect_20 from gpexp_hash h join gpexp_repl r on h.a=r.a;
+explain select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
+select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore
