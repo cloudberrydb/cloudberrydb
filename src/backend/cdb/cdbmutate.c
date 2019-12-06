@@ -1008,28 +1008,6 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 	(*f) (node, root, true);
 }
 
-typedef struct
-{
-	plan_tree_base_prefix base; /* Required prefix for
-								 * plan_tree_walker/mutator */
-	int			nextPlanId;
-} assign_plannode_id_context;
-
-static bool
-assign_plannode_id_walker(Node *node, assign_plannode_id_context *ctxt)
-{
-	if (node == NULL)
-		return false;
-
-	if (is_plan_node(node))
-		((Plan *) node)->plan_node_id = ++ctxt->nextPlanId;
-
-	if (IsA(node, SubPlan))
-		return false;
-
-	return plan_tree_walker(node, assign_plannode_id_walker, ctxt, true);
-}
-
 /*
  * Create a fake CTE range table entry that reflects the target list of a
  * shared input.
@@ -1723,31 +1701,6 @@ apply_shareinput_xslice(Plan *plan, PlannerInfo *root)
 	shareinput_walker(shareinput_mutator_xslice_4, (Node *) plan, root);
 
 	return plan;
-}
-
-/*
- * assign_plannode_id - Assign an id for each plan node.
- * Used by gpmon and instrument.
- */
-void
-assign_plannode_id(PlannedStmt *stmt)
-{
-	assign_plannode_id_context ctxt;
-	ListCell   *lc;
-
-	ctxt.base.node = (Node *) stmt->planTree;
-	ctxt.nextPlanId = 0;
-
-	assign_plannode_id_walker((Node *) stmt->planTree, &ctxt);
-
-	foreach(lc, stmt->subplans)
-	{
-		Plan	   *subplan = lfirst(lc);
-
-		Assert(subplan);
-
-		assign_plannode_id_walker((Node *) subplan, &ctxt);
-	}
 }
 
 /*

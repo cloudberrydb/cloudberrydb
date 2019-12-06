@@ -193,16 +193,6 @@ static inline void exec_subplan_put_plan(struct PlannedStmt *plannedstmt, SubPla
 typedef struct Plan
 {
 	NodeTag		type;
-
-	/* Plan node id */
-	/* GPDB_96_MERGE_FIXME: we had this in GPDB before 9.6 merge, but
-	 * PostgreSQL 9.6 introduced a new field called 'plan_node_id'.
-	 * Is it the same thing? Can we just remove this commented out copy,
-	 * or do we need to have a new field with different name, for the
-	 * stuff that we used to do with this old 'plan_node_id'?
-	 */
-	//int			plan_node_id;	/* unique across entire final plan tree */
-
 	/*
 	 * estimated execution costs for plan (see costsize.c for more info)
 	 */

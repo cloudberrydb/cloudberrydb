@@ -667,16 +667,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	Assert(result->utilityStmt == NULL || IsA(result->utilityStmt, DeclareCursorStmt));
 
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		/*
-		 * Generate a plan node id for each node. Used by gpmon and instrument.
-		 * Note that this needs to be the last step of the planning when the
-		 * structure of the plan is final.
-		 */
-		assign_plannode_id(result);
-	}
-
 	if (gp_log_optimization_time)
 	{
 		INSTR_TIME_SET_CURRENT(endtime);

@@ -30,6 +30,12 @@ typedef struct gpmon_query_seginfo_t gpmon_query_seginfo_t;
 #define GPMON_UNKNOWN "Unknown"
 
 /*
+ * Plan node id assignments in the server start from 0, with the root being
+ * assigned first.
+ */
+#define ROOT_PLAN_NODE_ID 0
+
+/*
 this is enough space for 2 names plus a . between the names plus a null char at the end of the string
 for example SCHEMA.RELATION\0
 */

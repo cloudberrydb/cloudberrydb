@@ -1047,7 +1047,7 @@ static void extract_segments_exec(gpmon_packet_t* pkt)
 	{
 		rec->u.queryseg.sum_cpu_elapsed += pidrec->cpu_elapsed;
 		rec->u.queryseg.sum_measures_rows_out += p->rowsout;
-		if (p->key.hash_key.segid == -1 && p->key.hash_key.nid == 1 && (int64)(p->rowsout) > rec->u.queryseg.final_rowsout)
+		if (p->key.hash_key.segid == -1 && p->key.hash_key.nid == ROOT_PLAN_NODE_ID && (int64)(p->rowsout) > rec->u.queryseg.final_rowsout)
 		{
 			rec->u.queryseg.final_rowsout = p->rowsout;
 		}
@@ -1059,7 +1059,7 @@ static void extract_segments_exec(gpmon_packet_t* pkt)
 		CHECKMEM(rec);
 		gp_smon_to_mmon_set_header(rec, GPMON_PKTTYPE_QUERYSEG);
 		rec->u.queryseg.key = qseg_key;
-		if (p->key.hash_key.segid == -1 && p->key.hash_key.nid == 1)
+		if (p->key.hash_key.segid == -1 && p->key.hash_key.nid == ROOT_PLAN_NODE_ID)
 		{
 			rec->u.queryseg.final_rowsout = p->rowsout;
 		}
