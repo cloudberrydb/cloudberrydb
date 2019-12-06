@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic id="topic1" other_props="pivotal">
+<topic id="topic1" otherprops="pivotal">
   <title>gpbackup_manager</title>
   <body>
     <p>Display information about existing backups, delete existing backups, or encrypt passwords for
