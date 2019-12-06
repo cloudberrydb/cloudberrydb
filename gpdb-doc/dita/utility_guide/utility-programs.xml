@@ -43,6 +43,7 @@
             <p><xref href="ref/dropuser.xml" type="topic" format="dita"/><sup otherprops="pivotal">3</sup></p>
             <p><xref href="ref/gpactivatestandby.xml" type="topic" format="dita"/></p>
             <p><xref href="ref/gpaddmirrors.xml" type="topic" format="dita"/></p>
+            <p otherprops="pivotal"><xref href="ref/gpbackup_manager.xml" type="topic" format="dita"/><sup>1</sup></p>
             <p otherprops="pivotal"><xref href="ref/gpbackup.xml" type="topic" format="dita"/><sup>1</sup></p>
             <p><xref href="ref/gpcheckcat.xml#topic1"/></p>
             <p><xref href="ref/gpcheckperf.xml#topic1" type="topic" format="dita"/></p>

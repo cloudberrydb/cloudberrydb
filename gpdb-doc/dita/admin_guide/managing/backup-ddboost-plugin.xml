@@ -45,12 +45,14 @@
 <xref href="#topic_ddb-plugin/ddb-options" format="dita">options</xref>: 
   <xref href="#topic_ddb-plugin/ddb-host" format="dita">hostname</xref>: "&lt;<varname>data-domain-host</varname>>"
   <xref href="#topic_ddb-plugin/ddb-user" format="dita">username</xref>: "&lt;<varname>ddboost-ID</varname>>"
+  <xref href="#topic_ddb-plugin/ddb-pwd-encrypt" format="dita">password-encryption</xref>: "on" | "off"       
   <xref href="#topic_ddb-plugin/ddb-pwd" format="dita">password</xref>: "&lt;<varname>ddboost-pwd</varname>>"
   <xref href="#topic_ddb-plugin/ddb-s-unit" format="dita">storage_unit</xref>: "&lt;<varname>data-domain-id</varname>>"
   <xref href="#topic_ddb-plugin/ddb-dir" format="dita">directory</xref>: "&lt;<varname>data-domain-dir</varname>>"
   <xref href="#topic_ddb-plugin/ddb-replication" format="dita">replication</xref>: "on" | "off"
   <xref href="#topic_ddb-plugin/ddb-remote-host" format="dita">remote_hostname</xref>: "&lt;<varname>remote-dd-host</varname>>"
   <xref href="#topic_ddb-plugin/ddb-remote-user" format="dita">remote_username</xref>: "&lt;<varname>remote-ddboost-ID</varname>>"
+  <xref href="#topic_ddb-plugin/ddb-remote-pwd-encrypt" format="dita">remote_password_encryption</xref> "on" | "off"
   <xref href="#topic_ddb-plugin/ddb-remote-pwd" format="dita">remote_password</xref>: "&lt;<varname>remote-dd-pwd</varname>>"
   <xref href="#topic_ddb-plugin/ddb-remote-s-unit" format="dita">remote_storage_unit</xref>: "&lt;<varname>remote-dd-ID</varname>>"
   <xref href="#topic_ddb-plugin/ddb-remote-dir" format="dita">remote_directory</xref>: "&lt;<varname>remote-dd-dir</varname>>"</codeblock>
@@ -73,10 +75,23 @@
                 <pt>username</pt>
                 <pd>Required. The Data Domain Boost user name. There is a 30-character limit.</pd>
               </plentry>
+              <plentry id="ddb-pwd-encrypt">            
+                <pt>password_encryption</pt>
+                <pd>Optional. Specifies whether the <codeph>password</codeph> option value is
+                  encrypted. Default value is <codeph>off</codeph>. Use the <codeph><xref
+                      href="../../utility_guide/ref/gpbackup_manager.xml#topic1"/></codeph>
+                  <codeph>encrypt-password</codeph> command to encrypt the plain-text password for
+                  the DD Boost user. If the <codeph>replication</codeph> option is
+                    <codeph>on</codeph>, <codeph>gpbackup_manager</codeph> also encrypts the remote
+                  Data Domain user's password. Copy the encrypted password(s) from the
+                    <codeph>gpbackup_manager</codeph> output to the <codeph>password</codeph>
+                  options in the configuration file.</pd>
+            </plentry>
               <plentry id="ddb-pwd">
                 <pt>password</pt>
                 <pd>Required. The passcode for the DD Boost user to access the Data Domain storage
-                  unit.</pd>
+                  unit. If the <codeph>password_encryption</codeph> option is <codeph>on</codeph>,
+                  this is an encrypted password.</pd>
               </plentry>
               <plentry id="ddb-s-unit">
                 <pt>storage-unit</pt>
@@ -119,14 +134,29 @@
                   Boost user name that accesses the remote Data Domain system. There is a
                   30-character limit.</pd>
               </plentry>
-              <plentry id="ddb-remote-pwd">
+            <plentry id="ddb-remote-pwd-encrypt">
+              <pt>remote_password_encryption</pt>
+              <pd>Optional. Specifies whether the <codeph>remote_password</codeph> option value is
+                  encrypted. The default value is <codeph>off</codeph>. To set up password
+                  encryption use the <codeph><xref
+                      href="../../utility_guide/ref/gpbackup_manager.xml#topic1"
+                      >gpbackup_manager</xref></codeph>
+                  <codeph>encrypt-password</codeph> command to encrypt the plain-text passwords for
+                  the DD Boost user. If the <codeph>replication</codeph> parameter is
+                    <codeph>on</codeph>, <codeph>gpbackup_manager</codeph> also encrypts the remote
+                  Data Domain user's password. Copy the encrypted passwords from the
+                    <codeph>gpbackup_manager</codeph> output to the password options in the
+                  configuration file. </pd>
+            </plentry>
+            <plentry id="ddb-remote-pwd">
                 <pt>remote_password</pt>
                 <pd>Required if <codeph>replication</codeph> is <codeph>on</codeph>. The passcode
-                  for the DD Boost user to access the Data Domain storage unit on the remote
-                  system.</pd>
+                  for the DD Boost user to access the Data Domain storage unit on the remote system.
+                  If the <codeph>remote_password_encryption</codeph> option is <codeph>on</codeph>,
+                  this is an encrypted password.</pd>
               </plentry>
               <plentry id="ddb-remote-s-unit">
-                <pt>remote_storage-unit</pt>
+                <pt>remote_storage_unit</pt>
                 <pd>Required if <codeph>replication</codeph> is <codeph>on</codeph>. A valid storage
                   unit name for the remote Data Domain system that is used for backup
                   replication.</pd>
