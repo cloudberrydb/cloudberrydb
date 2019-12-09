@@ -8,4 +8,4 @@
 /tmp_check/
 
 # GPDB files
-/aomd_filehandler.c
+/greenplum/aomd_filehandler.c

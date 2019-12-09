@@ -12,8 +12,9 @@ OBJS = check.o controldata.o dump.o exec.o file.o function.o info.o \
        tablespace.o util.o version.o version_old_8_3.o $(WIN32RES)
 
 # Source files specific to Greenplum
-OBJS += aotable.o gpdb4_heap_convert.o version_gp.o \
-		check_gp.o file_gp.o reporting.o aomd_filehandler.o
+OBJS += greenplum/aotable.o greenplum/gpdb4_heap_convert.o greenplum/version_gp.o \
+		greenplum/check_gp.o greenplum/file_gp.o greenplum/reporting.o \
+		greenplum/aomd_filehandler.o
 
 override CPPFLAGS := -DDLSUFFIX=\"$(DLSUFFIX)\" -I$(srcdir) -I$(libpq_srcdir) $(CPPFLAGS)
 LDFLAGS += -L$(top_builddir)/src/fe_utils -lpgfeutils -lpq
@@ -41,8 +42,8 @@ clean distclean maintainer-clean:
 		   clusterConfigPostgresAddonsFile clusterConfigFile gpdemo-env.sh \
 		   hostfile regression.diffs aomd_filehandler.c
 
-aomd_filehandler.c: % : $(top_srcdir)/src/backend/access/appendonly/%
-	rm -f $@ && $(LN_S) $< .
+greenplum/aomd_filehandler.c: $(top_srcdir)/src/backend/access/appendonly/aomd_filehandler.c
+	rm -f $@ && $(LN_S) ../$< $@
 
 check: test_gpdb.sh all
 	bash $< -C -r -s -o $(top_builddir)/gpAux/gpdemo/datadirs/ -b $(DESTDIR)$(bindir)
