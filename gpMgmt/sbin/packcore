@@ -238,8 +238,8 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
 def packCoreFile(coreFile, binary):
     packDir = './packcore-' + os.path.basename(coreFile)
     oldDir = os.getcwd()
+    os.mkdir(packDir)
     try:
-        os.mkdir(packDir)
         os.chdir(packDir)
         shutil.copy(coreFile, '.')
         _getPlatformInfo()
