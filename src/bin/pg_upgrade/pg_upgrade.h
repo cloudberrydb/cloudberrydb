@@ -448,11 +448,6 @@ typedef struct
 	transferMode transfer_mode; /* copy files or link them? */
 	int			jobs;			/* number of processes/threads to use */
 	char	   *socketdir;		/* directory to use for Unix sockets */
-
-	bool		progress;
-	segmentMode	segment_mode;
-	checksumMode checksum_mode;
-
 } UserOpts;
 
 
@@ -481,7 +476,6 @@ extern UserOpts user_opts;
 extern ClusterInfo old_cluster,
 			new_cluster;
 extern OSInfo os_info;
-
 
 /* check.c */
 

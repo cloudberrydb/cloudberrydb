@@ -177,7 +177,7 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	 * While not a check option, we do this now because this is the only time
 	 * the old server is running.
 	 */
-	if (!user_opts.check && user_opts.segment_mode == DISPATCHER)
+	if (!user_opts.check && greenplum_user_opts.segment_mode == DISPATCHER)
 		generate_old_dump();
 
 	if (!live_check)
@@ -474,7 +474,7 @@ check_new_cluster_is_empty(void)
 	 * place from the QD at this point, so the cluster cannot be tested for
 	 * being empty.
 	 */
-	if (user_opts.segment_mode == SEGMENT)
+	if (greenplum_user_opts.segment_mode == SEGMENT)
 		return;
 
 	for (dbnum = 0; dbnum < new_cluster.dbarr.ndbs; dbnum++)
@@ -791,7 +791,7 @@ check_is_install_user(ClusterInfo *cluster)
 	 * Greenplum cluster upgrade scheme will overwrite the QE's schema
 	 * with the QD's schema, making this check inappropriate for a QE upgrade.
 	 */
-	if (user_opts.segment_mode == DISPATCHER &&
+	if (greenplum_user_opts.segment_mode == DISPATCHER &&
 		cluster == &new_cluster &&
 		atooid(PQgetvalue(res, 0, 0)) != 1)
 		pg_fatal("Only the install user can be defined in the new cluster.\n");
