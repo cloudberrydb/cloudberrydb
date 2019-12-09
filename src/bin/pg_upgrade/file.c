@@ -18,6 +18,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "greenplum/pg_upgrade_greenplum.h"
+
 #define BITS_PER_HEAPBLOCK_OLD 1
 
 

@@ -14,7 +14,7 @@
  *	contrib/pg_upgrade/check_gp.c
  */
 
-#include "pg_upgrade.h"
+#include "pg_upgrade_greenplum.h"
 
 static void check_external_partition(void);
 static void check_covering_aoindex(void);

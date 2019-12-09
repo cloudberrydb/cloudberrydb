@@ -18,6 +18,7 @@
 #include "access/htup_details.h"
 #include "access/transam.h"
 
+#include "greenplum/pg_upgrade_greenplum.h"
 
 static void transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace);
 static void transfer_relfile(FileNameMap *map, const char *suffix, bool vm_must_add_frozenbit);
