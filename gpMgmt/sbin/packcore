@@ -237,6 +237,7 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
 
 def packCoreFile(coreFile, binary):
     packDir = './packcore-' + os.path.basename(coreFile)
+    packTarball = packDir + '.tgz'
     oldDir = os.getcwd()
     os.mkdir(packDir)
     try:
@@ -258,8 +259,11 @@ def packCoreFile(coreFile, binary):
 
         _generateGDBScript(os.path.basename(binary), os.path.basename(coreFile))
         os.chdir(oldDir)
-        cmd = Popen('tar zcf packcore-' + os.path.basename(coreFile) + '.tgz ' + packDir, shell=True)
+        cmd = Popen(['tar', 'zcf', packTarball, packDir])
         cmd.wait()
+    except Exception as e:
+        Popen(['rm', '-rf', packTarball])
+        raise e
     finally:
         os.chdir(oldDir)
         Popen('rm -rf ' + packDir, shell=True)
