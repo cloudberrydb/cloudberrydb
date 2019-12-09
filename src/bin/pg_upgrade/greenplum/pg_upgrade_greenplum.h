@@ -12,13 +12,35 @@
 
 #define PG_OPTIONS_UTILITY_MODE " PGOPTIONS='-c gp_session_role=utility' "
 
+
 typedef struct {
 	bool progress;
 	segmentMode segment_mode;
 	checksumMode checksum_mode;
 } GreenplumUserOpts;
 
+#define GREENPLUM_MODE_OPTION 1
+#define GREENPLUM_PROGRESS_OPTION 2
+#define GREENPLUM_ADD_CHECKSUM_OPTION 3
+#define GREENPLUM_REMOVE_CHECKSUM_OPTION 4
+
+#define GREENPLUM_OPTIONS \
+	{"mode", required_argument, NULL, GREENPLUM_MODE_OPTION}, \
+	{"progress", no_argument, NULL, GREENPLUM_PROGRESS_OPTION}, \
+	{"add-checksum", no_argument, NULL, GREENPLUM_ADD_CHECKSUM_OPTION}, \
+	{"remove-checksum", no_argument, NULL, },
+
+#define GREENPLUM_USAGE "\
+      --mode=TYPE               designate node type to upgrade, \"segment\" or \"dispatcher\" (default \"segment\")\n\
+      --progress                enable progress reporting\n\
+      --remove-checksum         remove data checksums when creating new cluster\n\
+      --add-checksum            add data checksumming to the new cluster\n\
+"
+
+/* option_gp.c */
 extern GreenplumUserOpts greenplum_user_opts;
+void initialize_greenplum_user_options(void);
+bool process_greenplum_option(int option, char *option_value);
 
 /* aotable.c */
 
