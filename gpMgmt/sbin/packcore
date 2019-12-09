@@ -18,7 +18,8 @@ def _getPlatformInfo():
         for file in glob.glob('/etc/*release'):
             shutil.copy(file, '.')
     else:
-        Popen('/usr/bin/lsb_release -a > ./lsb_release.out', shell=True)
+        Popen('/usr/bin/lsb_release -a > ./lsb_release.out',
+              shell=True, stderr=PIPE)
 
     if os.path.exists('/etc/gpdb-appliance-version'):
         shutil.copy('/etc/gpdb-appliance-version', '.')
