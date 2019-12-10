@@ -78,20 +78,19 @@ SELECT DISTINCT (i || '/' || j)::pg_lsn f
    Sort Key: (((((generate_series_1.generate_series)::text || '/'::text) || (generate_series_2.generate_series)::text))::pg_lsn)
    ->  HashAggregate
          Group Key: ((((generate_series_1.generate_series)::text || '/'::text) || (generate_series_2.generate_series)::text))::pg_lsn
-         ->  Result
+         ->  Nested Loop
+               Join Filter: true
                ->  Nested Loop
                      Join Filter: true
-                     ->  Nested Loop
-                           Join Filter: true
-                           ->  Result
-                                 Filter: ((generate_series_2.generate_series > 0) AND (generate_series_2.generate_series <= 10))
-                                 ->  Function Scan on generate_series generate_series_2
-                           ->  Result
-                                 Filter: (generate_series_1.generate_series <= 10)
-                                 ->  Function Scan on generate_series generate_series_1
-                     ->  Function Scan on generate_series
- Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0
-(17 rows)
+                     ->  Result
+                           Filter: ((generate_series_2.generate_series > 0) AND (generate_series_2.generate_series <= 10))
+                           ->  Function Scan on generate_series generate_series_2
+                     ->  Result
+                           Filter: (generate_series_1.generate_series <= 10)
+                           ->  Function Scan on generate_series generate_series_1
+               ->  Function Scan on generate_series
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(16 rows)
 
 SELECT DISTINCT (i || '/' || j)::pg_lsn f
   FROM generate_series(1, 10) i,

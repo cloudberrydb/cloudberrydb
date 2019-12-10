@@ -469,8 +469,8 @@ select * from g1 where (a,b,c) not in
 --
 explain select c1 from t1, t2 where c1 not in 
 	(select c3 from t3 where c3 = c1) and c1 = c2;
-                                                                                                                                                                  QUERY PLAN                                                                                                                                                                  
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                          QUERY PLAN                                                                                                                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324465.54 rows=6 width=4)
    ->  Hash Join  (cost=0.00..1324465.54 rows=2 width=4)
          Hash Cond: (t1.c1 = t2.c2)
@@ -478,21 +478,17 @@ explain select c1 from t1, t2 where c1 not in
                Filter: (SubPlan 1)
                SubPlan 1
                  ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                       ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                             Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                             ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                                   ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
-                                         ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                               ->  Result  (cost=0.00..431.00 rows=1 width=4)
-                                                     Filter: (t3.c3 = t1.c1)
-                                                     ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
-                                                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
-                                                                 ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
+                       Filter: ((CASE WHEN (sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t1.c1 = t3.c3) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+                       ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                             ->  Result  (cost=0.00..431.00 rows=1 width=4)
+                                   Filter: (t3.c3 = t1.c1)
+                                   ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
+                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
+                                               ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
          ->  Hash  (cost=431.00..431.00 rows=2 width=4)
                ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(21 rows)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(17 rows)
 
 select c1 from t1, t2 where c1 not in 
 	(select c3 from t3 where c3 = c1) and c1 = c2;
@@ -553,15 +549,14 @@ explain select c1 from t1 where c1 not in
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
          ->  Hash  (cost=431.00..431.00 rows=2 width=8)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=8)
-                     ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                           ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=8)
-                                 Group Key: t2.c2
-                                 ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                                       Sort Key: t2.c2
-                                       ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
-                                             Filter: ((c2 > 2) AND (c2 > 3))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.77.0
-(14 rows)
+                     ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=8)
+                           Group Key: t2.c2
+                           ->  Sort  (cost=0.00..431.00 rows=1 width=4)
+                                 Sort Key: t2.c2
+                                 ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+                                       Filter: ((c2 > 2) AND (c2 > 3))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 select c1 from t1 where c1 not in 
 	(select sum(c2) as s from t2 where c2 > 2 group by c2 having c2 > 3);
@@ -652,39 +647,38 @@ select c1 from t1 where c1 not in
 explain select (case when c1%2 = 0 
  then (select sum(c2) from t2 where c2 not in (select c3 from t3)) 
  else (select sum(c3) from t3 where c3 not in (select c4 from t4)) end) as foo from t1;
-                                                                    QUERY PLAN                                                                     
----------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice7; segments: 3)  (cost=0.00..1809071284.19 rows=10 width=8)
-   ->  Result  (cost=0.00..1809071284.19 rows=4 width=8)
-         ->  Nested Loop Left Join  (cost=0.00..1809071284.19 rows=14 width=20)
+   ->  Nested Loop Left Join  (cost=0.00..1809071284.19 rows=14 width=20)
+         Join Filter: true
+         ->  Nested Loop Left Join  (cost=0.00..1765378.17 rows=7 width=12)
                Join Filter: true
-               ->  Nested Loop Left Join  (cost=0.00..1765378.17 rows=7 width=12)
-                     Join Filter: true
-                     ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
-                     ->  Materialize  (cost=0.00..862.00 rows=1 width=8)
-                           ->  Broadcast Motion 1:3  (slice6)  (cost=0.00..862.00 rows=3 width=8)
-                                 ->  Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8)
-                                       ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-                                             ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8)
-                                                   ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                         Hash Cond: (t2.c2 = t3_1.c3)
-                                                         ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
-                                                         ->  Hash  (cost=431.00..431.00 rows=3 width=4)
-                                                               ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
-                                                                     ->  Seq Scan on t3 t3_1  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
                ->  Materialize  (cost=0.00..862.00 rows=1 width=8)
-                     ->  Broadcast Motion 1:3  (slice3)  (cost=0.00..862.00 rows=3 width=8)
+                     ->  Broadcast Motion 1:3  (slice6)  (cost=0.00..862.00 rows=3 width=8)
                            ->  Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8)
-                                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+                                 ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
                                        ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8)
                                              ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: (t3.c3 = t4.c4)
-                                                   ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
-                                                   ->  Hash  (cost=431.00..431.00 rows=2 width=4)
-                                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
-                                                               ->  Seq Scan on t4  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(30 rows)
+                                                   Hash Cond: (t2.c2 = t3_1.c3)
+                                                   ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
+                                                   ->  Hash  (cost=431.00..431.00 rows=3 width=4)
+                                                         ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
+                                                               ->  Seq Scan on t3 t3_1  (cost=0.00..431.00 rows=1 width=4)
+         ->  Materialize  (cost=0.00..862.00 rows=1 width=8)
+               ->  Broadcast Motion 1:3  (slice3)  (cost=0.00..862.00 rows=3 width=8)
+                     ->  Finalize Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                           ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+                                 ->  Partial Aggregate  (cost=0.00..862.00 rows=1 width=8)
+                                       ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
+                                             Hash Cond: (t3.c3 = t4.c4)
+                                             ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
+                                             ->  Hash  (cost=431.00..431.00 rows=2 width=4)
+                                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
+                                                         ->  Seq Scan on t4  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(29 rows)
 
 select (case when c1%2 = 0 
  then (select sum(c2) from t2 where c2 not in (select c3 from t3)) 
@@ -707,25 +701,22 @@ select (case when c1%2 = 0
 --q27
 --
 explain select c1 from t1 where not c1 >= some (select c2 from t2);
-                                                                                                                                                             QUERY PLAN                                                                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                     QUERY PLAN                                                                                                                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.00..1324032.88 rows=2 width=4)
    Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
          ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=4)
    SubPlan 1
      ->  Result  (cost=0.00..431.00 rows=1 width=1)
-           ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                 Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                 ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                       ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
-                             ->  Result  (cost=0.00..431.00 rows=2 width=8)
-                                   ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
-                                         ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
-                                               ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(16 rows)
+           Filter: ((CASE WHEN (sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t1.c1 >= t2.c2) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+           ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                 ->  Result  (cost=0.00..431.00 rows=2 width=8)
+                       ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
+                             ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=5 width=4)
+                                   ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 select c1 from t1 where not c1 >= some (select c2 from t2);
  c1 
@@ -762,25 +753,22 @@ select c2 from t2 where not c2 < all (select c2 from t2);
 --q29
 --
 explain select c3 from t3 where not c3 <> any (select c4 from t4);
-                                                                                                                                                             QUERY PLAN                                                                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                     QUERY PLAN                                                                                                                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.00..1324032.31 rows=1 width=4)
    Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
          ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
    SubPlan 1
      ->  Result  (cost=0.00..431.00 rows=1 width=1)
-           ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                 Filter: ((CASE WHEN ((sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t4.c4 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t3.c3 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                 ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                       ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
-                             ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                   ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
-                                         ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
-                                               ->  Seq Scan on t4  (cost=0.00..431.00 rows=1 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(16 rows)
+           Filter: ((CASE WHEN (sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t4.c4 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t3.c3 IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t3.c3 <> t4.c4) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+           ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                 ->  Result  (cost=0.00..431.00 rows=1 width=8)
+                       ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                             ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
+                                   ->  Seq Scan on t4  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 select c3 from t3 where not c3 <> any (select c4 from t4);
  c3 
@@ -830,25 +818,22 @@ select c1 from t1 where c1 not in (select c2 from t2 order by c2 limit 3) order 
 --q32
 --
 explain select c1 from t1 where c1 =all (select c2 from t2 where c2 > -1 and c2 <= 1);
-                                                                                                                                                                QUERY PLAN                                                                                                                                                                
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                        QUERY PLAN                                                                                                                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.79 rows=4 width=4)
    ->  Seq Scan on t1  (cost=0.00..1324032.79 rows=2 width=4)
          Filter: (SubPlan 1)
          SubPlan 1
            ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                 ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                       Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                       ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                             ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
-                                   ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                         ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
-                                               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                                     ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
-                                                           Filter: c2 > (-1) AND c2 <= 1
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(16 rows)
+                 Filter: ((CASE WHEN (sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t1.c1 <> t2.c2) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+                 ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                       ->  Result  (cost=0.00..431.00 rows=1 width=8)
+                             ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                         ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+                                               Filter: ((c2 > '-1'::integer) AND (c2 <= 1))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 select c1 from t1 where c1 =all (select c2 from t2 where c2 > -1 and c2 <= 1);
  c1 
@@ -887,29 +872,26 @@ select c1 from t1 where c1 <>all (select c2 from t2);
 --q34
 --
 explain select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (select c1n from t1n));
-                                                                                                                                                               QUERY PLAN                                                                                                                                                               
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                       QUERY PLAN                                                                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1765379.01 rows=4 width=4)
    ->  Seq Scan on t1  (cost=0.00..1765379.01 rows=2 width=4)
          Filter: (SubPlan 1)
          SubPlan 1
            ->  Result  (cost=0.00..862.00 rows=1 width=1)
-                 ->  Result  (cost=0.00..862.00 rows=1 width=1)
-                       Filter: ((CASE WHEN ((sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                       ->  Result  (cost=0.00..862.00 rows=1 width=1)
-                             ->  Aggregate  (cost=0.00..862.00 rows=1 width=16)
-                                   ->  Result  (cost=0.00..862.00 rows=2 width=8)
-                                         ->  Materialize  (cost=0.00..862.00 rows=2 width=4)
-                                               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
-                                                     ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
-                                                           Hash Cond: (t2.c2 = t1n.c1n)
-                                                           ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
-                                                           ->  Hash  (cost=431.00..431.00 rows=7 width=4)
-                                                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
-                                                                       ->  Seq Scan on t1n  (cost=0.00..431.00 rows=3 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(20 rows)
+                 Filter: ((CASE WHEN (sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t2.c2 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t1.c1 IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t1.c1 > t2.c2) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+                 ->  Aggregate  (cost=0.00..862.00 rows=1 width=16)
+                       ->  Result  (cost=0.00..862.00 rows=2 width=8)
+                             ->  Materialize  (cost=0.00..862.00 rows=2 width=4)
+                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
+                                         ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
+                                               Hash Cond: (t2.c2 = t1n.c1n)
+                                               ->  Seq Scan on t2  (cost=0.00..431.00 rows=2 width=4)
+                                               ->  Hash  (cost=431.00..431.00 rows=7 width=4)
+                                                     ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
+                                                           ->  Seq Scan on t1n  (cost=0.00..431.00 rows=3 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(17 rows)
 
 select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (select c1n from t1n));
  c1 
@@ -967,8 +949,8 @@ select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all (select
 --q36
 --
 explain select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all (select c3 from t3 where c3 = c1n));
-                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                        
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324464.89 rows=8 width=4)
    ->  Hash Semi Join  (cost=0.00..1324464.89 rows=3 width=4)
          Hash Cond: (t1.c1 = t1n.c1n)
@@ -978,19 +960,15 @@ explain select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all
                      Filter: (SubPlan 1)
                      SubPlan 1
                        ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                             ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                                   Filter: ((CASE WHEN ((sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END))) > '0'::bigint) THEN NULL::boolean WHEN (t1n.c1n IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END))) = '0'::bigint) THEN true ELSE false END) = true)
-                                   ->  Result  (cost=0.00..431.00 rows=1 width=1)
-                                         ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
-                                               ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                                     ->  Result  (cost=0.00..431.00 rows=1 width=4)
-                                                           Filter: (t3.c3 = t1n.c1n)
-                                                           ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
-                                                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
-                                                                       ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.34.0
-(21 rows)
+                             Filter: ((CASE WHEN (sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END)) IS NULL) THEN true WHEN (sum((CASE WHEN (t3.c3 IS NULL) THEN 1 ELSE 0 END)) > '0'::bigint) THEN NULL::boolean WHEN (t1n.c1n IS NULL) THEN NULL::boolean WHEN (sum((CASE WHEN (t1n.c1n >= t3.c3) THEN 1 ELSE 0 END)) = '0'::bigint) THEN true ELSE false END) = true)
+                             ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                                   ->  Result  (cost=0.00..431.00 rows=1 width=4)
+                                         Filter: (t3.c3 = t1n.c1n)
+                                         ->  Materialize  (cost=0.00..431.00 rows=3 width=4)
+                                               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
+                                                     ->  Seq Scan on t3  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(17 rows)
 
 select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all (select c3 from t3 where c3 = c1n));
  c1 
@@ -1207,23 +1185,22 @@ create or replace function abseq (absint, absint) returns bool as $$ select isze
 create operator = (PROCEDURE = abseq, leftarg=absint, rightarg=absint);
 explain select c1 from t1 where c1::absint not in
 	(select c1n::absint from t1n);
-                                                                                                                            QUERY PLAN                                                                                                                             
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                QUERY PLAN                                                                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324035.89 rows=10 width=4)
    ->  Result  (cost=0.00..1324035.89 rows=4 width=4)
          Filter: (NOT CASE WHEN ((count((true))) > '0'::bigint) THEN CASE WHEN ((sum((CASE WHEN (((t1.c1)::absint = ((t1n.c1n)::absint)) IS NULL) THEN 1 ELSE 0 END))) = (count((true)))) THEN NULL::boolean ELSE true END ELSE false END)
          ->  HashAggregate  (cost=0.00..1324035.89 rows=4 width=20)
                Group Key: t1.c1, t1.ctid, t1.gp_segment_id
-               ->  Result  (cost=0.00..1324035.88 rows=11 width=19)
-                     ->  Nested Loop Left Join  (cost=0.00..1324035.88 rows=11 width=19)
-                           Join Filter: (((t1.c1)::absint = ((t1n.c1n)::absint)) IS NOT FALSE)
-                           ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=14)
-                           ->  Result  (cost=0.00..431.00 rows=7 width=5)
-                                 ->  Materialize  (cost=0.00..431.00 rows=7 width=4)
-                                       ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
-                                             ->  Seq Scan on t1n  (cost=0.00..431.00 rows=3 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0
-(14 rows)
+               ->  Nested Loop Left Join  (cost=0.00..1324035.88 rows=11 width=19)
+                     Join Filter: (((t1.c1)::absint = ((t1n.c1n)::absint)) IS NOT FALSE)
+                     ->  Seq Scan on t1  (cost=0.00..431.00 rows=4 width=14)
+                     ->  Result  (cost=0.00..431.00 rows=7 width=5)
+                           ->  Materialize  (cost=0.00..431.00 rows=7 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
+                                       ->  Seq Scan on t1n  (cost=0.00..431.00 rows=3 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 select c1 from t1 where c1::absint not in
 	(select c1n::absint from t1n);

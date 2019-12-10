@@ -17,17 +17,14 @@ DETAIL:  Feature not supported: INSERT with constraints
 
 set optimizer_enable_dml_constraints=on;
 explain insert into constr_tab values (1,2,3);
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Insert  (cost=0.00..0.03 rows=1 width=12)
    ->  Result  (cost=0.00..0.00 rows=1 width=20)
          ->  Result  (cost=0.00..0.00 rows=1 width=16)
-               ->  Result  (cost=0.00..0.00 rows=1 width=16)
-                     ->  Result  (cost=0.00..0.00 rows=1 width=16)
-                           ->  Result  (cost=0.00..0.00 rows=1 width=1)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.48.0
-(8 rows)
+               ->  Result  (cost=0.00..0.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(5 rows)
 
 -- The remaining tests require a row in the table.
 INSERT INTO constr_tab VALUES(1,5,3,4);
@@ -56,15 +53,14 @@ DETAIL:  Feature not supported: UPDATE with constraints
 
 set optimizer_enable_dml_constraints=on;
 explain update constr_tab set b = 10;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Update  (cost=0.00..431.09 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=34)
          ->  Split  (cost=0.00..431.00 rows=1 width=30)
-               ->  Result  (cost=0.00..431.00 rows=1 width=30)
-                     ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(6 rows)
+               ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(5 rows)
 
 -- Same, with NOT NULL constraint.
 DROP TABLE IF EXISTS constr_tab;
@@ -117,10 +113,9 @@ explain update constr_tab set a = 10;
          ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=30)
                Hash Key: constr_tab.a
                ->  Split  (cost=0.00..431.00 rows=1 width=30)
-                     ->  Result  (cost=0.00..431.00 rows=1 width=30)
-                           ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.39.0
-(8 rows)
+                     ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 -- Test ORCA fallback on "FROM ONLY"
 CREATE TABLE homer (a int, b int, c int)
@@ -256,12 +251,11 @@ explain select count(*) from foo group by a;
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.50 rows=100 width=8)
-   ->  Result  (cost=0.00..431.50 rows=34 width=8)
-         ->  HashAggregate  (cost=0.00..431.50 rows=34 width=8)
-               Group Key: a
-               ->  Seq Scan on foo  (cost=0.00..431.07 rows=3334 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.39.0
-(6 rows)
+   ->  HashAggregate  (cost=0.00..431.50 rows=34 width=8)
+         Group Key: a
+         ->  Seq Scan on foo  (cost=0.00..431.07 rows=3334 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(5 rows)
 
 set optimizer_enable_hashagg = off;
 set optimizer_enable_groupagg = on;
@@ -269,14 +263,13 @@ explain select count(*) from foo group by a;
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..432.00 rows=100 width=8)
-   ->  Result  (cost=0.00..431.99 rows=34 width=8)
-         ->  GroupAggregate  (cost=0.00..431.99 rows=34 width=8)
-               Group Key: a
-               ->  Sort  (cost=0.00..431.98 rows=3334 width=4)
-                     Sort Key: a
-                     ->  Seq Scan on foo  (cost=0.00..431.07 rows=3334 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.39.0
-(8 rows)
+   ->  GroupAggregate  (cost=0.00..431.99 rows=34 width=8)
+         Group Key: a
+         ->  Sort  (cost=0.00..431.98 rows=3334 width=4)
+               Sort Key: a
+               ->  Seq Scan on foo  (cost=0.00..431.07 rows=3334 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 set optimizer_enable_hashagg = off;
 set optimizer_enable_groupagg = off;

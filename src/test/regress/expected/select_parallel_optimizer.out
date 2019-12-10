@@ -43,21 +43,20 @@ alter table tenk1 set (parallel_workers = 4);
 explain (verbose, costs off)
 select parallel_restricted(unique1) from tenk1
   where stringu1 = 'GRAAAA' order by 1;
-                                      QUERY PLAN                                      
---------------------------------------------------------------------------------------
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Output: (parallel_restricted(unique1))
    Merge Key: (parallel_restricted(unique1))
    ->  Sort
          Output: (parallel_restricted(unique1))
          Sort Key: (parallel_restricted(tenk1.unique1))
-         ->  Result
+         ->  Seq Scan on public.tenk1
                Output: parallel_restricted(unique1)
-               ->  Seq Scan on public.tenk1
-                     Output: unique1
-                     Filter: (tenk1.stringu1 = 'GRAAAA'::name)
- Settings: min_parallel_relation_size=0, parallel_setup_cost=0, parallel_tuple_cost=0
-(13 rows)
+               Filter: (tenk1.stringu1 = 'GRAAAA'::name)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Settings: min_parallel_relation_size=0, optimizer=on, parallel_setup_cost=0, parallel_tuple_cost=0
+(11 rows)
 
 -- test parallel plan when group by expression is in target list.
 explain (costs off)
@@ -71,9 +70,9 @@ explain (costs off)
                Hash Key: (length((stringu1)::text))
                ->  Streaming HashAggregate
                      Group Key: length((stringu1)::text)
-                     ->  Result
-                           ->  Seq Scan on tenk1
-(10 rows)
+                     ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(9 rows)
 
 select length(stringu1) from tenk1 group by length(stringu1);
  length 
@@ -93,29 +92,27 @@ explain (costs off)
                Sort Key: stringu1
                ->  Redistribute Motion 3:3  (slice1; segments: 3)
                      Hash Key: stringu1
-                     ->  Result
-                           ->  Streaming Partial HashAggregate
-                                 Group Key: stringu1
-                                 ->  Seq Scan on tenk1
-(13 rows)
+                     ->  Streaming Partial HashAggregate
+                           Group Key: stringu1
+                           ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(12 rows)
 
 -- test that parallel plan for aggregates is not selected when
 -- target list contains parallel restricted clause.
 explain (costs off)
 	select  sum(parallel_restricted(unique1)) from tenk1
 	group by(parallel_restricted(unique1));
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
-   ->  Result
-         ->  HashAggregate
-               Group Key: (parallel_restricted(unique1))
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                     Hash Key: (parallel_restricted(unique1))
-                     ->  Result
-                           ->  Result
-                                 ->  Seq Scan on tenk1
-(10 rows)
+   ->  HashAggregate
+         Group Key: (parallel_restricted(unique1))
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               Hash Key: (parallel_restricted(unique1))
+               ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 set force_parallel_mode=1;
 explain (costs off)
@@ -123,10 +120,10 @@ explain (costs off)
                       QUERY PLAN                      
 ------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
-   ->  Result
-         ->  Index Scan using tenk1_unique1 on tenk1
-               Index Cond: (unique1 = 1)
-(5 rows)
+   ->  Index Scan using tenk1_unique1 on tenk1
+         Index Cond: (unique1 = 1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(4 rows)
 
 do $$begin
   -- Provoke error, possibly in worker.  If this error happens to occur in

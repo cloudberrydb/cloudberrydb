@@ -658,19 +658,17 @@ SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.a = t2.a WHERE t1.b IS NOT DISTINCT FR
 -- Test for unexpected NLJ qual
 --
 explain select 1 as mrs_t1 where 1 <= ALL (select x from z);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Result  (cost=0.00..882688.07 rows=1 width=4)
-   ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=0.00..882688.07 rows=1 width=1)
-         Join Filter: true
-         ->  Result  (cost=0.00..0.00 rows=1 width=1)
-         ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
-               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                     ->  Seq Scan on z  (cost=0.00..431.00 rows=1 width=1)
-                           Filter: 1 > x
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 1.621
-(10 rows)
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Nested Loop Left Anti Semi (Not-In) Join  (cost=0.00..882688.07 rows=1 width=1)
+   Join Filter: true
+   ->  Result  (cost=0.00..0.00 rows=1 width=1)
+   ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
+         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+               ->  Seq Scan on z  (cost=0.00..431.00 rows=1 width=1)
+                     Filter: (1 > x)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 --
 -- Test for wrong results in window functions under joins #1
@@ -3180,16 +3178,14 @@ explain select * from nlj1, (select NULL a, b from nlj2) other where nlj1.a is n
 ------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.53 rows=4 width=16)
    ->  Nested Loop  (cost=0.00..1324032.53 rows=2 width=16)
-         Join Filter: (NOT (nlj1.a IS DISTINCT FROM "outer".a))
+         Join Filter: (NOT (nlj1.a IS DISTINCT FROM (NULL::integer)))
          ->  Seq Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
          ->  Materialize  (cost=0.00..431.00 rows=1 width=8)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-                     Hash Key: "outer".a
-                     ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                           ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.2.0
-(11 rows)
+                     Hash Key: (NULL::integer)
+                     ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(9 rows)
 
 select * from nlj1, (select NULL a, b from nlj2) other where nlj1.a is not distinct from other.a;
  a | b | a | b 

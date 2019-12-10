@@ -227,38 +227,36 @@ from int8_tbl group by q1 order by q1;
 explain (costs off)
 select * from int4_tbl o where exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit null);
-                       QUERY PLAN                        
----------------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Semi Join
          Hash Cond: (int4_tbl.f1 = int4_tbl_1.f1)
          ->  Seq Scan on int4_tbl
          ->  Hash
-               ->  Result
-                     ->  Seq Scan on int4_tbl int4_tbl_1
- Optimizer: Pivotal Optimizer (GPORCA) version 3.44.0
-(8 rows)
+               ->  Seq Scan on int4_tbl int4_tbl_1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 explain (costs off)
 select * from int4_tbl o where not exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit 1);
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Result
    Filter: (SubPlan 1)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Seq Scan on int4_tbl
    SubPlan 1
      ->  Result
-           ->  Result
-                 ->  Limit
-                       ->  Result
-                             Filter: (int4_tbl_1.f1 = int4_tbl.f1)
-                             ->  Materialize
-                                   ->  Gather Motion 3:1  (slice2; segments: 3)
-                                         ->  Seq Scan on int4_tbl int4_tbl_1
- Optimizer: Pivotal Optimizer (GPORCA) version 3.44.0
-(14 rows)
+           ->  Limit
+                 ->  Result
+                       Filter: (int4_tbl_1.f1 = int4_tbl.f1)
+                       ->  Materialize
+                             ->  Gather Motion 3:1  (slice2; segments: 3)
+                                   ->  Seq Scan on int4_tbl int4_tbl_1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 explain (costs off)
 select * from int4_tbl o where exists
@@ -271,10 +269,9 @@ select * from int4_tbl o where exists
          ->  Seq Scan on int4_tbl
          ->  Limit
                ->  Result
-                     ->  Result
-                           One-Time Filter: false
- Optimizer: Pivotal Optimizer (GPORCA) version 3.44.0
-(9 rows)
+                     One-Time Filter: false
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 --
 -- Test cases to catch unpleasant interactions between IN-join processing
@@ -740,24 +737,18 @@ where a.thousand = b.thousand
 explain (verbose, costs off)
   select x, x from
     (select (select current_database()) as x from (values(1),(2)) v(y)) ss;
-                   QUERY PLAN                   
-------------------------------------------------
- Result
+                      QUERY PLAN                      
+------------------------------------------------------
+ Nested Loop Left Join
    Output: ('regression'::name), ('regression'::name)
+   Join Filter: true
+   ->  Values Scan on "Values"
+         Output: column1
    ->  Result
-         Output: ('regression'::name)
-         ->  Nested Loop Left Join
-               Output: ('regression'::name)
-               Join Filter: true
-               ->  Values Scan on "Values"
-                     Output: column1
-               ->  Result
-                     Output: 'regression'::name
-                     ->  Result
-                           Output: true
- Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
+         Output: 'regression'::name
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
  Settings: optimizer=on
-(15 rows)
+(9 rows)
 
 explain (verbose, costs off)
   select x, x from
@@ -777,24 +768,18 @@ explain (verbose, costs off)
 explain (verbose, costs off)
   select x, x from
     (select (select current_database() where y=y) as x from (values(1),(2)) v(y)) ss;
-                            QUERY PLAN                            
-------------------------------------------------------------------
- Result
+                      QUERY PLAN                      
+------------------------------------------------------
+ Nested Loop Left Join
    Output: ('regression'::name), ('regression'::name)
+   Join Filter: ("Values".column1 = "Values".column1)
+   ->  Values Scan on "Values"
+         Output: column1
    ->  Result
-         Output: ('regression'::name)
-         ->  Nested Loop Left Join
-               Output: ('regression'::name)
-               Join Filter: ("Values".column1 = "Values".column1)
-               ->  Values Scan on "Values"
-                     Output: column1
-               ->  Result
-                     Output: 'regression'::name
-                     ->  Result
-                           Output: true
- Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
+         Output: 'regression'::name
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
  Settings: optimizer=on
-(15 rows)
+(9 rows)
 
 explain (verbose, costs off)
   select x, x from
@@ -861,8 +846,8 @@ explain (verbose, costs off)
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
   (select ten from tenk1 b);
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Result
    Output: int4_tbl.f1
    Filter: (SubPlan 2)
@@ -873,14 +858,12 @@ select * from int4_tbl where
    SubPlan 1
      ->  Result
            Output: tenk1.unique1
-           ->  Result
-                 Output: true, tenk1.unique1
-                 ->  Materialize
+           ->  Materialize
+                 Output: tenk1.unique1
+                 ->  Gather Motion 3:1  (slice2; segments: 3)
                        Output: tenk1.unique1
-                       ->  Gather Motion 3:1  (slice2; segments: 3)
+                       ->  Seq Scan on public.tenk1
                              Output: tenk1.unique1
-                             ->  Seq Scan on public.tenk1
-                                   Output: tenk1.unique1
    SubPlan 2
      ->  Materialize
            Output: tenk1_1.ten
@@ -888,9 +871,9 @@ select * from int4_tbl where
                  Output: tenk1_1.ten
                  ->  Seq Scan on public.tenk1 tenk1_1
                        Output: tenk1_1.ten
- Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
  Settings: optimizer=on
-(27 rows)
+(25 rows)
 
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in

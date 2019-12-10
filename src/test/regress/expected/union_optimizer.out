@@ -484,12 +484,11 @@ explain (costs off)
    ->  Append
          ->  Result
                Filter: (((t1.a || t1.b)) = 'ab'::text)
-               ->  Result
-                     ->  Seq Scan on t1
+               ->  Seq Scan on t1
          ->  Index Scan using t2_pkey on t2
                Index Cond: (ab = 'ab'::text)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(9 rows)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 explain (costs off)
  SELECT * FROM
@@ -497,8 +496,8 @@ explain (costs off)
   UNION
   SELECT * FROM t2) t
  WHERE ab = 'ab';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  GroupAggregate
          Group Key: ((t1.a || t1.b))
@@ -509,12 +508,11 @@ explain (costs off)
                            Hash Key: ((t1.a || t1.b))
                            ->  Result
                                  Filter: (((t1.a || t1.b)) = 'ab'::text)
-                                 ->  Result
-                                       ->  Seq Scan on t1
+                                 ->  Seq Scan on t1
                      ->  Index Scan using t2_pkey on t2
                            Index Cond: (ab = 'ab'::text)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.64.0
-(15 rows)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 --
 -- Test that ORDER BY for UNION ALL can be pushed down to inheritance
@@ -605,19 +603,17 @@ explain (costs off)
    UNION ALL
    SELECT 2 AS t, * FROM tenk1 b) c
  WHERE t = 2;
-                   QUERY PLAN                   
-------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Append
    ->  Result
-         ->  Result
-               One-Time Filter: false
+         One-Time Filter: false
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Result
                Filter: ((2) = 2)
-               ->  Result
-                     ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(10 rows)
+               ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 -- Test that we push quals into UNION sub-selects only when it's safe
 explain (costs off)
@@ -626,18 +622,16 @@ SELECT * FROM
    UNION
    SELECT 2 AS t, 4 AS x) ss
 WHERE x < 4;
-              QUERY PLAN              
---------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Append
    ->  Result
          Filter: ((2) < 4)
          ->  Result
-               ->  Result
    ->  Result
-         ->  Result
-               One-Time Filter: false
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(9 rows)
+         One-Time Filter: false
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, 2 AS x
@@ -670,10 +664,9 @@ ORDER BY x;
                            ->  Result
                                  ->  Result
                      ->  Result
-                           ->  Result
-                                 One-Time Filter: false
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(15 rows)
+                           One-Time Filter: false
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, generate_series(1,10) AS x

@@ -181,15 +181,14 @@ drop table m;
 create table update_pk_test (a int primary key, b int) distributed by (a);
 insert into update_pk_test values(1,1);
 explain update update_pk_test set b = 5;
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Update  (cost=0.00..431.07 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=26)
          ->  Split  (cost=0.00..431.00 rows=1 width=22)
-               ->  Result  (cost=0.00..431.00 rows=1 width=22)
-                     ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(6 rows)
+               ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(5 rows)
 
 update update_pk_test set b = 5;
 select * from update_pk_test order by 1,2;
@@ -199,8 +198,8 @@ select * from update_pk_test order by 1,2;
 (1 row)
 
 explain update update_pk_test set a = 5;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Update  (cost=0.00..431.07 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=26)
          ->  Sort  (cost=0.00..431.00 rows=1 width=22)
@@ -208,10 +207,9 @@ explain update update_pk_test set a = 5;
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=22)
                      Hash Key: update_pk_test.a
                      ->  Split  (cost=0.00..431.00 rows=1 width=22)
-                           ->  Result  (cost=0.00..431.00 rows=1 width=22)
-                                 ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.39.0
-(10 rows)
+                           ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(9 rows)
 
 update update_pk_test set a = 5;
 select * from update_pk_test order by 1,2;

@@ -57,16 +57,15 @@ CREATE INDEX i_bmtest2_b ON bmscantest2 USING BITMAP(b);
 CREATE INDEX i_bmtest2_c ON bmscantest2(c);
 CREATE INDEX i_bmtest2_d ON bmscantest2(d);
 EXPLAIN SELECT count(*) FROM bmscantest2 WHERE a = 1 AND b = 1 AND c = 1;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Aggregate  (cost=0.00..6.35 rows=1 width=8)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.35 rows=2 width=1)
-         ->  Result  (cost=0.00..6.35 rows=1 width=1)
-               ->  Index Scan using i_bmtest2_c on bmscantest2  (cost=0.00..6.35 rows=1 width=1)
-                     Index Cond: (c = 1)
-                     Filter: ((a = 1) AND (b = 1))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.72.0
-(7 rows)
+         ->  Index Scan using i_bmtest2_c on bmscantest2  (cost=0.00..6.35 rows=1 width=1)
+               Index Cond: (c = 1)
+               Filter: ((a = 1) AND (b = 1))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(6 rows)
 
 SELECT count(*) FROM bmscantest2 WHERE a = 1 AND b = 1 AND c = 1;
  count 

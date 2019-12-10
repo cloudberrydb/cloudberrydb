@@ -1072,18 +1072,17 @@ create table TabDel4(a int not null, b int not null);
 insert into TabDel4 values(1,2);
 commit;
 explain delete from TabDel1 where TabDel1.a not in (select a from TabDel3); -- do not support this because we produce NLASJ
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
  Delete  (cost=0.00..862.04 rows=1 width=1)
-   ->  Result  (cost=0.00..862.00 rows=1 width=22)
-         ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=18)
-               Hash Cond: tabdel1.a = tabdel3.a
-               ->  Seq Scan on tabdel1  (cost=0.00..431.00 rows=1 width=18)
-               ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                           ->  Seq Scan on tabdel3  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(9 rows)
+   ->  Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=18)
+         Hash Cond: (tabdel1.a = tabdel3.a)
+         ->  Seq Scan on tabdel1  (cost=0.00..431.00 rows=1 width=18)
+         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                     ->  Seq Scan on tabdel3  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 explain delete from TabDel2 where TabDel2.a not in (select a from TabDel4); -- support this
                                                   QUERY PLAN                                                   

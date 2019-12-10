@@ -232,8 +232,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss1
   where ss1.x = ec1.f1 and ec1.ff = 42::int8;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
          Join Filter: (((((ec1.ff + 2)) + 1)) = ec1_3.f1)
@@ -244,14 +244,11 @@ explain (costs off)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_1
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(17 rows)
+                                       ->  Seq Scan on ec1
+                                       ->  Seq Scan on ec1 ec1_1
+                           ->  Seq Scan on ec1 ec1_2
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 explain (costs off)
   select * from ec1,
@@ -262,8 +259,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss1
   where ss1.x = ec1.f1 and ec1.ff = 42::int8 and ec1.ff = ec1.f1;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
          Join Filter: (((((ec1.ff + 2)) + 1)) = ec1_3.f1)
@@ -275,14 +272,11 @@ explain (costs off)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_1
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(18 rows)
+                                       ->  Seq Scan on ec1
+                                       ->  Seq Scan on ec1 ec1_1
+                           ->  Seq Scan on ec1 ec1_2
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(15 rows)
 
 explain (costs off)
   select * from ec1,
@@ -299,8 +293,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss2
   where ss1.x = ec1.f1 and ss1.x = ss2.x and ec1.ff = 42::int8;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)
    ->  Hash Join
          Hash Cond: (((((ec1.ff + 2)) + 1)) = ((((ec1_4.ff + 2)) + 1)))
@@ -314,25 +308,19 @@ explain (costs off)
                            ->  Append
                                  ->  Result
                                        ->  Append
-                                             ->  Result
-                                                   ->  Seq Scan on ec1
-                                             ->  Result
-                                                   ->  Seq Scan on ec1 ec1_1
-                                 ->  Result
-                                       ->  Seq Scan on ec1 ec1_2
+                                             ->  Seq Scan on ec1
+                                             ->  Seq Scan on ec1 ec1_1
+                                 ->  Seq Scan on ec1 ec1_2
          ->  Hash
                ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_4
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_5
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_6
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(31 rows)
+                                       ->  Seq Scan on ec1 ec1_4
+                                       ->  Seq Scan on ec1 ec1_5
+                           ->  Seq Scan on ec1 ec1_6
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(25 rows)
 
 -- let's try that as a mergejoin
 set enable_mergejoin = on;
@@ -352,8 +340,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss2
   where ss1.x = ec1.f1 and ss1.x = ss2.x and ec1.ff = 42::int8;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)
    ->  Hash Join
          Hash Cond: (((((ec1.ff + 2)) + 1)) = ((((ec1_4.ff + 2)) + 1)))
@@ -367,25 +355,19 @@ explain (costs off)
                            ->  Append
                                  ->  Result
                                        ->  Append
-                                             ->  Result
-                                                   ->  Seq Scan on ec1
-                                             ->  Result
-                                                   ->  Seq Scan on ec1 ec1_1
-                                 ->  Result
-                                       ->  Seq Scan on ec1 ec1_2
+                                             ->  Seq Scan on ec1
+                                             ->  Seq Scan on ec1 ec1_1
+                                 ->  Seq Scan on ec1 ec1_2
          ->  Hash
                ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_4
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_5
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_6
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(31 rows)
+                                       ->  Seq Scan on ec1 ec1_4
+                                       ->  Seq Scan on ec1 ec1_5
+                           ->  Seq Scan on ec1 ec1_6
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(25 rows)
 
 -- check partially indexed scan
 set enable_nestloop = on;
@@ -400,8 +382,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss1
   where ss1.x = ec1.f1 and ec1.ff = 42::int8;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
          Join Filter: (((((ec1.ff + 2)) + 1)) = ec1_3.f1)
@@ -412,14 +394,11 @@ explain (costs off)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_1
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(17 rows)
+                                       ->  Seq Scan on ec1
+                                       ->  Seq Scan on ec1 ec1_1
+                           ->  Seq Scan on ec1 ec1_2
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 -- let's try that as a mergejoin
 set enable_mergejoin = on;
@@ -433,8 +412,8 @@ explain (costs off)
      union all
      select ff + 4 as x from ec1) as ss1
   where ss1.x = ec1.f1 and ec1.ff = 42::int8;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Nested Loop
          Join Filter: (((((ec1.ff + 2)) + 1)) = ec1_3.f1)
@@ -445,12 +424,9 @@ explain (costs off)
                      ->  Append
                            ->  Result
                                  ->  Append
-                                       ->  Result
-                                             ->  Seq Scan on ec1
-                                       ->  Result
-                                             ->  Seq Scan on ec1 ec1_1
-                           ->  Result
-                                 ->  Seq Scan on ec1 ec1_2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.9.0
-(17 rows)
+                                       ->  Seq Scan on ec1
+                                       ->  Seq Scan on ec1 ec1_1
+                           ->  Seq Scan on ec1 ec1_2
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 

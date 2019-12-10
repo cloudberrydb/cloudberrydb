@@ -1389,23 +1389,22 @@ where i < (select count(*) from smallt where smallt.i = smallt2.i) order by 1,2,
 
 explain select smallt2.* from smallt2
 where i < (select count(*) from smallt where smallt.i = smallt2.i);
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.02 rows=50 width=15)
    ->  Result  (cost=0.00..862.01 rows=17 width=15)
-         Filter: smallt2.i < COALESCE((count()), 0::bigint)
-         ->  Result  (cost=0.00..862.01 rows=17 width=24)
-               ->  Hash Left Join  (cost=0.00..862.01 rows=17 width=23)
-                     Hash Cond: smallt2.i = smallt.i
-                     ->  Seq Scan on smallt2  (cost=0.00..431.00 rows=17 width=15)
-                     ->  Hash  (cost=431.01..431.01 rows=4 width=12)
-                           ->  GroupAggregate  (cost=0.00..431.01 rows=4 width=12)
-                                 Group Key: smallt.i
-                                 ->  Sort  (cost=0.00..431.00 rows=34 width=4)
-                                       Sort Key: smallt.i
-                                       ->  Seq Scan on smallt  (cost=0.00..431.00 rows=34 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.67.0
-(14 rows)
+         Filter: (smallt2.i < COALESCE((count()), '0'::bigint))
+         ->  Hash Left Join  (cost=0.00..862.01 rows=17 width=23)
+               Hash Cond: (smallt2.i = smallt.i)
+               ->  Seq Scan on smallt2  (cost=0.00..431.00 rows=17 width=15)
+               ->  Hash  (cost=431.01..431.01 rows=4 width=12)
+                     ->  GroupAggregate  (cost=0.00..431.01 rows=4 width=12)
+                           Group Key: smallt.i
+                           ->  Sort  (cost=0.00..431.00 rows=34 width=4)
+                                 Sort Key: smallt.i
+                                 ->  Seq Scan on smallt  (cost=0.00..431.00 rows=34 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 -- Sort in MergeJoin
 -- start_ignore

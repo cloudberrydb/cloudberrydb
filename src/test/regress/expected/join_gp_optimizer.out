@@ -317,14 +317,12 @@ create table bar (c int, d int) distributed randomly;
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 explain select a from foo where a<1 and a>1 and not exists (select c from bar where c=a);
-                   QUERY PLAN                   
-------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Result  (cost=0.00..0.00 rows=0 width=4)
-   ->  Result  (cost=0.00..0.00 rows=0 width=4)
-         One-Time Filter: false
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.39.2
-(5 rows)
+   One-Time Filter: false
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(3 rows)
 
 select a from foo where a<1 and a>1 and not exists (select c from bar where c=a);
  a 
@@ -822,20 +820,19 @@ set enable_material = 0;
 set enable_seqscan = 0;
 set enable_bitmapscan = 0;
 explain select tenk1.unique2 >= 0 from tenk1 left join tenk2 on true limit 1;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..1885517.36 rows=1 width=1)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1885517.36 rows=1 width=1)
          ->  Limit  (cost=0.00..1885517.36 rows=1 width=1)
-               ->  Result  (cost=0.00..1885517.36 rows=33336667 width=1)
-                     ->  Nested Loop Left Join  (cost=0.00..1885484.02 rows=33336667 width=4)
-                           Join Filter: true
-                           ->  Seq Scan on tenk1  (cost=0.00..431.51 rows=3334 width=4)
-                           ->  Materialize  (cost=0.00..431.70 rows=10000 width=1)
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.69 rows=10000 width=1)
-                                       ->  Seq Scan on tenk2  (cost=0.00..431.50 rows=3334 width=1)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0
-(11 rows)
+               ->  Nested Loop Left Join  (cost=0.00..1885484.02 rows=33336667 width=4)
+                     Join Filter: true
+                     ->  Seq Scan on tenk1  (cost=0.00..431.51 rows=3334 width=4)
+                     ->  Materialize  (cost=0.00..431.70 rows=10000 width=1)
+                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.69 rows=10000 width=1)
+                                 ->  Seq Scan on tenk2  (cost=0.00..431.50 rows=3334 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(10 rows)
 
 select tenk1.unique2 >= 0 from tenk1 left join tenk2 on true limit 1;
  ?column? 

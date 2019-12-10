@@ -77,19 +77,18 @@ select a, b, c, sum(d) from olap_test group by a, b, c;
 explain select a, sum(d) from olap_test group by a;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.55 rows=2 width=12)
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.55 rows=3 width=12)
    ->  Finalize GroupAggregate  (cost=0.00..431.55 rows=1 width=12)
          Group Key: a
          ->  Sort  (cost=0.00..431.55 rows=1 width=12)
                Sort Key: a
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.55 rows=1 width=12)
                      Hash Key: a
-                     ->  Result  (cost=0.00..431.55 rows=1 width=12)
-                           ->  Streaming Partial HashAggregate  (cost=0.00..431.55 rows=1 width=12)
-                                 Group Key: a
-                                 ->  Seq Scan on olap_test  (cost=0.00..431.08 rows=3334 width=8)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.79.1
-(12 rows)
+                     ->  Streaming Partial HashAggregate  (cost=0.00..431.55 rows=1 width=12)
+                           Group Key: a
+                           ->  Seq Scan on olap_test  (cost=0.00..431.08 rows=3334 width=8)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(11 rows)
 
 select a, sum(d) from olap_test group by a;
  a |   sum    

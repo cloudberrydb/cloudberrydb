@@ -839,18 +839,17 @@ select max(unique2) from tenk1 order by max(unique2);
 
 explain (costs off)
   select max(unique2) from tenk1 order by max(unique2)+1;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Result
    ->  Sort
-         Sort Key: (((max(unique2)) + 1))
-         ->  Result
-               ->  Finalize Aggregate
-                     ->  Gather Motion 3:1  (slice1; segments: 3)
-                           ->  Partial Aggregate
-                                 ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
-(9 rows)
+         Sort Key: ((max(unique2) + 1))
+         ->  Finalize Aggregate
+               ->  Gather Motion 3:1  (slice1; segments: 3)
+                     ->  Partial Aggregate
+                           ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 select max(unique2) from tenk1 order by max(unique2)+1;
  max  
@@ -1025,19 +1024,18 @@ explain (costs off) select * from t1 group by a,b,c,d;
 
 -- No removal can happen if the complete PK is not present in GROUP BY
 explain (costs off) select a,c from t1 group by a,c,d;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
-   ->  Result
-         ->  GroupAggregate
-               Group Key: a, c, d
-               ->  Sort
-                     Sort Key: a, c, d
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                           Hash Key: a, c, d
-                           ->  Seq Scan on t1
- Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
-(10 rows)
+   ->  GroupAggregate
+         Group Key: a, c, d
+         ->  Sort
+               Sort Key: a, c, d
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: a, c, d
+                     ->  Seq Scan on t1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(9 rows)
 
 -- Test removal across multiple relations
 explain (costs off) select *

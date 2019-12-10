@@ -181,16 +181,15 @@ WHERE et like '%Hash Cond:%';
 -- doesn't print it at all.)
 --
 explain (costs off) select count(*) over (partition by g) from generate_series(1, 10) g;
-                     QUERY PLAN                     
-----------------------------------------------------
- Result
-   ->  WindowAgg
-         Partition By: generate_series
-         ->  Sort
-               Sort Key: generate_series
-               ->  Function Scan on generate_series
- Optimizer: Pivotal Optimizer (GPORCA) version 2.70.0
-(7 rows)
+                      QUERY PLAN                      
+------------------------------------------------------
+ WindowAgg
+   Partition By: generate_series
+   ->  Sort
+         Sort Key: generate_series
+         ->  Function Scan on generate_series
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(6 rows)
 
 --
 -- Test non-text format with a few queries that contain GPDB-specific node types.
@@ -300,16 +299,6 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
                    <Segments>1</Segments>                              +
                    <Gang-Type>primary writer</Gang-Type>               +
                    <Parallel-Aware>false</Parallel-Aware>              +
-                   <Plans>                                             +
-                     <Plan>                                            +
-                       <Node-Type>Result</Node-Type>                   +
-                       <Parent-Relationship>Outer</Parent-Relationship>+
-                       <Slice>0</Slice>                                +
-                       <Segments>1</Segments>                          +
-                       <Gang-Type>primary writer</Gang-Type>           +
-                       <Parallel-Aware>false</Parallel-Aware>          +
-                     </Plan>                                           +
-                   </Plans>                                            +
                  </Plan>                                               +
                </Plans>                                                +
              </Plan>                                                   +
@@ -318,7 +307,7 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
        </Plans>                                                        +
      </Plan>                                                           +
      <Settings>                                                        +
-       <Optimizer>Pivotal Optimizer (GPORCA) version 2.70.0</Optimizer>                       +
+       <Optimizer>Pivotal Optimizer (GPORCA) version 3.83.0</Optimizer>+
      </Settings>                                                       +
    </Query>                                                            +
  </explain>

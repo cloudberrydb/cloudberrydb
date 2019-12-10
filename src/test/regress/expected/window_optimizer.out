@@ -626,22 +626,19 @@ explain (costs off)
 select first_value(max(x)) over (), y
   from (select unique1 as x, ten+four as y from tenk1) ss
   group by y;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  WindowAgg
    ->  Gather Motion 3:1  (slice2; segments: 3)
-         ->  Result
-               ->  Finalize HashAggregate
-                     Group Key: ((ten + four))
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                           Hash Key: ((ten + four))
-                           ->  Result
-                                 ->  Streaming Partial HashAggregate
-                                       Group Key: (ten + four)
-                                       ->  Result
-                                             ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(13 rows)
+         ->  Finalize HashAggregate
+               Group Key: ((ten + four))
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: ((ten + four))
+                     ->  Streaming Partial HashAggregate
+                           Group Key: (ten + four)
+                           ->  Seq Scan on tenk1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(10 rows)
 
 -- test non-default frame specifications
 SELECT four, ten,
@@ -1080,23 +1077,23 @@ SELECT * FROM
           min(salary) OVER (PARTITION BY depname, empno order by enroll_date) depminsalary
    FROM empsalary) emp
 WHERE depname = 'sales';
-                                  QUERY PLAN
------------------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Result
-         ->  WindowAgg
-               Partition By: depname, empno
-               Order By: enroll_date
-               ->  Sort
-                     Sort Key: depname, empno, enroll_date
-                     ->  WindowAgg
-                           Partition By: depname
-                           Order By: empno
-                           ->  Sort
-                                 Sort Key: depname, empno
-                                 ->  Seq Scan on empsalary
-                                       Filter: ((depname)::text = 'sales'::text)
-(15 rows)
+   ->  WindowAgg
+         Partition By: depname, empno
+         Order By: enroll_date
+         ->  Sort
+               Sort Key: depname, empno, enroll_date
+               ->  WindowAgg
+                     Partition By: depname
+                     Order By: empno
+                     ->  Sort
+                           Sort Key: depname, empno
+                           ->  Seq Scan on empsalary
+                                 Filter: ((depname)::text = 'sales'::text)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 -- Test Sort node reordering
 EXPLAIN (COSTS OFF)
@@ -1104,23 +1101,22 @@ SELECT
   lead(1) OVER (PARTITION BY depname ORDER BY salary, enroll_date),
   lag(1) OVER (PARTITION BY depname ORDER BY salary,enroll_date,empno)
 FROM empsalary;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Result
-         ->  WindowAgg
-               Partition By: depname
-               Order By: salary, enroll_date, empno
-               ->  Sort
-                     Sort Key: depname, salary, enroll_date, empno
-                     ->  WindowAgg
-                           Partition By: depname
-                           Order By: salary, enroll_date
-                           ->  Sort
-                                 Sort Key: depname, salary, enroll_date
-                                 ->  Seq Scan on empsalary
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0
-(14 rows)
+   ->  WindowAgg
+         Partition By: depname
+         Order By: salary, enroll_date, empno
+         ->  Sort
+               Sort Key: depname, salary, enroll_date, empno
+               ->  WindowAgg
+                     Partition By: depname
+                     Order By: salary, enroll_date
+                     ->  Sort
+                           Sort Key: depname, salary, enroll_date
+                           ->  Seq Scan on empsalary
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 -- Test pushdown of quals into a subquery containing window functions
 -- pushdown is safe because all PARTITION BY clauses include depname:
@@ -1131,23 +1127,22 @@ SELECT * FROM
           min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
    FROM empsalary) emp
 WHERE depname = 'sales';
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Result
-         ->  WindowAgg
-               Partition By: (((depname)::text || 'A'::text)), depname
-               ->  Sort
-                     Sort Key: (((depname)::text || 'A'::text)), depname
-                     ->  WindowAgg
-                           Partition By: depname
-                           ->  Result
-                                 ->  Sort
-                                       Sort Key: depname
-                                       ->  Seq Scan on empsalary
-                                             Filter: ((depname)::text = 'sales'::text)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0
-(14 rows)
+   ->  WindowAgg
+         Partition By: (((depname)::text || 'A'::text)), depname
+         ->  Sort
+               Sort Key: (((depname)::text || 'A'::text)), depname
+               ->  WindowAgg
+                     Partition By: depname
+                     ->  Result
+                           ->  Sort
+                                 Sort Key: depname
+                                 ->  Seq Scan on empsalary
+                                       Filter: ((depname)::text = 'sales'::text)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 -- pushdown is unsafe because there's a PARTITION BY clause without depname:
 EXPLAIN (COSTS OFF)
@@ -1186,23 +1181,22 @@ SELECT * FROM
           min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
    FROM empsalary) emp
 WHERE depname = 'sales' OR RANDOM() > 0.5;
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Result
-         ->  WindowAgg
-               Partition By: (((depname)::text || 'A'::text)), depname
-               ->  Sort
-                     Sort Key: (((depname)::text || 'A'::text)), depname
-                     ->  WindowAgg
-                           Partition By: depname
-                           ->  Result
-                                 ->  Sort
-                                       Sort Key: depname
-                                       ->  Seq Scan on empsalary
-                                             Filter: (((depname)::text = 'sales'::text) OR (random() > '0.5'::double precision))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0
-(14 rows)
+   ->  WindowAgg
+         Partition By: (((depname)::text || 'A'::text)), depname
+         ->  Sort
+               Sort Key: (((depname)::text || 'A'::text)), depname
+               ->  WindowAgg
+                     Partition By: depname
+                     ->  Result
+                           ->  Sort
+                                 Sort Key: depname
+                                 ->  Seq Scan on empsalary
+                                       Filter: (((depname)::text = 'sales'::text) OR (random() > '0.5'::double precision))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 -- cleanup
 DROP TABLE empsalary;

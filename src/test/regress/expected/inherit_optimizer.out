@@ -1568,37 +1568,34 @@ SELECT thousand, tenthous, thousand+tenthous AS x FROM tenk1
 UNION ALL
 SELECT 42, 42, hundred FROM tenk1
 ORDER BY thousand, tenthous;
-                    QUERY PLAN                     
----------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: tenk1.thousand, tenk1.tenthous
-   ->  Sort
-         Sort Key: tenk1.thousand, tenk1.tenthous
-         ->  Append
-               ->  Result
-                     ->  Seq Scan on tenk1
-               ->  Result
-                     ->  Seq Scan on tenk1 tenk1_1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(10 rows)
-
-explain (costs off)
-SELECT thousand, tenthous FROM tenk1
-UNION ALL
-SELECT thousand, random()::integer FROM tenk1
-ORDER BY thousand, tenthous;
-                    QUERY PLAN                     
----------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
          Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Seq Scan on tenk1
-               ->  Result
-                     ->  Seq Scan on tenk1 tenk1_1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(9 rows)
+               ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
+
+explain (costs off)
+SELECT thousand, tenthous FROM tenk1
+UNION ALL
+SELECT thousand, random()::integer FROM tenk1
+ORDER BY thousand, tenthous;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: tenk1.thousand, tenk1.tenthous
+   ->  Sort
+         Sort Key: tenk1.thousand, tenk1.tenthous
+         ->  Append
+               ->  Seq Scan on tenk1
+               ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 -- Check min/max aggregate optimization
 -- GPDB: simple union all pull up is disabled in pull_up_subqueries(), so the
@@ -1630,11 +1627,10 @@ SELECT min(y) FROM
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Append
-                     ->  Result
-                           ->  Seq Scan on tenk1
+                     ->  Seq Scan on tenk1
                      ->  Seq Scan on tenk1 tenk1_1
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(8 rows)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(7 rows)
 
 -- XXX planner doesn't recognize that index on unique2 is sufficiently sorted
 explain (costs off)

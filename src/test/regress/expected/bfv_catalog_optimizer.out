@@ -257,13 +257,11 @@ reset optimizer_enable_indexscan;
 create table mpp_bfv_2(a int, b text, primary key (a)) distributed by (a);
 -- stop falling back to planner when catalog functions are encountered
 explain select pg_column_size('mpp_bfv_2');
-                   QUERY PLAN                   
-------------------------------------------------
- Result  (cost=0.00..0.00 rows=1 width=4)
-   ->  Result  (cost=0.00..0.00 rows=1 width=1)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.23.0
-(4 rows)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Result  (cost=0.00..0.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(2 rows)
 
 explain select pg_lock_status();
                    QUERY PLAN                   

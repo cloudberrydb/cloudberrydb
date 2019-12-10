@@ -1606,18 +1606,17 @@ explain select cn,
 sum(qty) over (order by ord,cn rows between 1 preceding and 1 following),
 sum(qty) over (order by ord,cn rows between 1 preceding and 1 following)
 from sale_ord;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
- Result  (cost=0.00..431.00 rows=6 width=24)
-   ->  WindowAgg  (cost=0.00..431.00 rows=6 width=24)
-         Order By: ord, cn
-         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=12 width=12)
-               Merge Key: ord, cn
-               ->  Sort  (cost=0.00..431.00 rows=6 width=12)
-                     Sort Key: ord, cn
-                     ->  Seq Scan on sale_ord  (cost=0.00..431.00 rows=6 width=12)
- Settings:  optimizer=on; optimizer_segments=3
-(9 rows)
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ WindowAgg  (cost=0.00..431.00 rows=4 width=20)
+   Order By: ord, cn
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=12 width=12)
+         Merge Key: ord, cn
+         ->  Sort  (cost=0.00..431.00 rows=4 width=12)
+               Sort Key: ord, cn
+               ->  Seq Scan on sale_ord  (cost=0.00..431.00 rows=4 width=12)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(8 rows)
 
 select cn,
 sum(qty) over (order by ord,cn rows between 1 preceding and 1 following),
@@ -7882,24 +7881,22 @@ select count(*) over (partition by 1 order by cn rows between 1 preceding and 1 
 -- MPP-13710
 create table redundant_sort_check (i int, j int, k int) distributed by (i);
 explain select count(*) over (order by i), count(*) over (partition by i order by j) from redundant_sort_check;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
- Result  (cost=0.00..431.00 rows=1 width=16)
-   ->  WindowAgg  (cost=0.00..431.00 rows=1 width=16)
-         Partition By: i
-         Order By: j
-         ->  Sort  (cost=0.00..431.00 rows=1 width=16)
-               Sort Key: i, j
-               ->  WindowAgg  (cost=0.00..431.00 rows=1 width=16)
-                     Order By: i
-                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-                           Merge Key: i
-                           ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-                                 Sort Key: i
-                                 ->  Seq Scan on redundant_sort_check  (cost=0.00..431.00 rows=1 width=8)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 1.675
-(15 rows)
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ WindowAgg  (cost=0.00..431.00 rows=1 width=16)
+   Partition By: i
+   Order By: j
+   ->  Sort  (cost=0.00..431.00 rows=1 width=16)
+         Sort Key: i, j
+         ->  WindowAgg  (cost=0.00..431.00 rows=1 width=16)
+               Order By: i
+               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                     Merge Key: i
+                     ->  Sort  (cost=0.00..431.00 rows=1 width=8)
+                           Sort Key: i
+                           ->  Seq Scan on redundant_sort_check  (cost=0.00..431.00 rows=1 width=8)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(13 rows)
 
 -- End of MPP-13710
 -- MPP-13879
@@ -8090,25 +8087,23 @@ select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar wher
 (3 rows)
 
 explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar where foo.a = bar.a;
-                                                    QUERY PLAN                                                    
-------------------------------------------------------------------------------------------------------------------
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=6 width=12)
-   ->  Result  (cost=0.00..862.00 rows=3 width=12)
-         ->  WindowAgg  (cost=0.00..862.00 rows=3 width=12)
-               Partition By: bar.a
-               Order By: bar.b
-               ->  Sort  (cost=0.00..862.00 rows=3 width=12)
-                     Sort Key: bar.a, bar.b
-                     ->  Hash Join  (cost=0.00..862.00 rows=3 width=12)
-                           Hash Cond: bar.a = foo.a
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=8)
-                                 Hash Key: bar.a
-                                 ->  Seq Scan on bar  (cost=0.00..431.00 rows=3 width=8)
-                           ->  Hash  (cost=431.00..431.00 rows=5 width=4)
-                                 ->  Seq Scan on foo  (cost=0.00..431.00 rows=5 width=4)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 1.622
-(16 rows)
+   ->  WindowAgg  (cost=0.00..862.00 rows=2 width=12)
+         Partition By: bar.a
+         Order By: bar.b
+         ->  Sort  (cost=0.00..862.00 rows=2 width=12)
+               Sort Key: bar.a, bar.b
+               ->  Hash Join  (cost=0.00..862.00 rows=2 width=12)
+                     Hash Cond: (bar.a = foo.a)
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=8)
+                           Hash Key: bar.a
+                           ->  Seq Scan on bar  (cost=0.00..431.00 rows=2 width=8)
+                     ->  Hash  (cost=431.00..431.00 rows=4 width=4)
+                           ->  Seq Scan on foo  (cost=0.00..431.00 rows=4 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(14 rows)
 
 drop table foo, bar;
 -- Test to verify fix for https://github.com/greenplum-db/gpdb/issues/2571
@@ -8147,40 +8142,38 @@ EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY c, b) as count2,
        count(*) over (PARTITION BY a ORDER BY c, b, d) as count3
 FROM foo;
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.01 rows=10 width=48)
-   ->  Result  (cost=0.00..431.01 rows=4 width=48)
-         ->  WindowAgg  (cost=0.00..431.01 rows=4 width=48)
-               Partition By: a
-               Order By: c, b, d
-               ->  Sort  (cost=0.00..431.01 rows=4 width=56)
-                     Sort Key: a, c, b, d
-                     ->  WindowAgg  (cost=0.00..431.00 rows=4 width=56)
-                           Partition By: a
-                           Order By: c, b
-                           ->  Sort  (cost=0.00..431.00 rows=4 width=48)
-                                 Sort Key: a, c, b
-                                 ->  WindowAgg  (cost=0.00..431.00 rows=4 width=48)
-                                       Partition By: a
-                                       Order By: c
-                                       ->  Sort  (cost=0.00..431.00 rows=4 width=40)
-                                             Sort Key: a, c
-                                             ->  WindowAgg  (cost=0.00..431.00 rows=4 width=40)
+   ->  WindowAgg  (cost=0.00..431.01 rows=4 width=48)
+         Partition By: a
+         Order By: c, b, d
+         ->  Sort  (cost=0.00..431.01 rows=4 width=56)
+               Sort Key: a, c, b, d
+               ->  WindowAgg  (cost=0.00..431.00 rows=4 width=56)
+                     Partition By: a
+                     Order By: c, b
+                     ->  Sort  (cost=0.00..431.00 rows=4 width=48)
+                           Sort Key: a, c, b
+                           ->  WindowAgg  (cost=0.00..431.00 rows=4 width=48)
+                                 Partition By: a
+                                 Order By: c
+                                 ->  Sort  (cost=0.00..431.00 rows=4 width=40)
+                                       Sort Key: a, c
+                                       ->  WindowAgg  (cost=0.00..431.00 rows=4 width=40)
+                                             Partition By: a
+                                             Order By: b
+                                             ->  WindowAgg  (cost=0.00..431.00 rows=4 width=32)
                                                    Partition By: a
-                                                   Order By: b
-                                                   ->  WindowAgg  (cost=0.00..431.00 rows=4 width=32)
+                                                   Order By: b, c
+                                                   ->  WindowAgg  (cost=0.00..431.00 rows=4 width=24)
                                                          Partition By: a
-                                                         Order By: b, c
-                                                         ->  WindowAgg  (cost=0.00..431.00 rows=4 width=24)
-                                                               Partition By: a
-                                                               Order By: b, c, d
-                                                               ->  Sort  (cost=0.00..431.00 rows=4 width=16)
-                                                                     Sort Key: a, b, c, d
-                                                                     ->  Seq Scan on foo  (cost=0.00..431.00 rows=4 width=16)
- Settings:  optimizer=on
- Optimizer status: Pivotal Optimizer (GPORCA) version 2.45.0
-(31 rows)
+                                                         Order By: b, c, d
+                                                         ->  Sort  (cost=0.00..431.00 rows=4 width=16)
+                                                               Sort Key: a, b, c, d
+                                                               ->  Seq Scan on foo  (cost=0.00..431.00 rows=4 width=16)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(29 rows)
 
 drop table foo;
 -- test predicate push down in subqueries for quals containing windowref nodes
@@ -8199,23 +8192,21 @@ insert into window_preds values(6,7,8);
 -- end_ignore
 -- for planner qual k = 1 should not be pushed down in the subquery as it has window refs at top level of subquery. orca is able to push down the predicate to appropriate node
 explain select k from ( select row_number() over()+2 as k from window_preds union all select row_number() over()+2 as k from window_preds) as t where k = 3;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
  Append  (cost=0.00..862.00 rows=1 width=8)
    ->  Result  (cost=0.00..431.00 rows=1 width=8)
-         Filter: ((row_number() OVER (?)) + 2) = 3
-         ->  Result  (cost=0.00..431.00 rows=1 width=8)
-               ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
-                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                           ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
+         Filter: (((row_number() OVER (?) + 2)) = 3)
+         ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
+               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                     ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=8)
-         Filter: ((row_number() OVER (?)) + 2) = 3
-         ->  Result  (cost=0.00..431.00 rows=1 width=8)
-               ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
-                     ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                           ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(14 rows)
+         Filter: (((row_number() OVER (?) + 2)) = 3)
+         ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
+               ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                     ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(12 rows)
 
 select k from ( select row_number() over()+2 as k from window_preds union all select row_number() over()+2 as k from window_preds) as t where k = 3;
  k 
@@ -8225,27 +8216,25 @@ select k from ( select row_number() over()+2 as k from window_preds union all se
 (2 rows)
 
 explain insert into window_preds select k from ( select row_number() over()+2 as k from window_preds union all select row_number() over()+2 as k from window_preds) as t where k = 3;
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Insert  (cost=0.00..862.04 rows=1 width=4)
    ->  Redistribute Motion 1:3  (slice3; segments: 1)  (cost=0.00..862.00 rows=2 width=16)
-         Hash Key: (((row_number() OVER (?)) + 2)::integer)
+         Hash Key: (int4(((row_number() OVER (?) + 2))))
          ->  Result  (cost=0.00..862.00 rows=1 width=16)
                ->  Append  (cost=0.00..862.00 rows=1 width=8)
                      ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                           Filter: ((row_number() OVER (?)) + 2) = 3
-                           ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
-                                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                                             ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
+                           Filter: (((row_number() OVER (?) + 2)) = 3)
+                           ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
+                                 ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                                       ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
                      ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                           Filter: ((row_number() OVER (?)) + 2) = 3
-                           ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
-                                       ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                                             ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(18 rows)
+                           Filter: (((row_number() OVER (?) + 2)) = 3)
+                           ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
+                                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                                       ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(16 rows)
 
 insert into window_preds select k from ( select row_number() over()+2 as k from window_preds union all select row_number() over()+2 as k from window_preds) as t where k = 3;
 explain SELECT t.k FROM window_preds p1, window_preds p2, (SELECT ROW_NUMBER() OVER() AS k FROM window_preds union all SELECT ROW_NUMBER() OVER() AS k FROM window_preds) AS t WHERE t.k = 1 limit 1;
@@ -8310,21 +8299,20 @@ explain with CTE as (select i, row_number() over (partition by j) j from window_
 insert into window_preds with CTE as (select i, row_number() over (partition by j) j from window_preds union all select i, row_number() over (partition by j) from window_preds) select * from cte where j = 1;
 -- qual k = 1 should be pushed down
 explain select k from ( select k from (select row_number() over() as k from window_preds) f union all select 1::bigint as k from window_preds) as t where k = 1;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
  Append  (cost=0.00..862.00 rows=1 width=8)
    ->  Result  (cost=0.00..431.00 rows=1 width=8)
-         Filter: (row_number() OVER (?)) = 1
+         Filter: ((row_number() OVER (?)) = 1)
          ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
                ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
                      ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
    ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
          ->  Result  (cost=0.00..431.00 rows=1 width=8)
-               Filter: "outer".k = 1
-               ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                     ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(12 rows)
+               Filter: (('1'::bigint) = 1)
+               ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(11 rows)
 
 select k from ( select k from (select row_number() over() as k from window_preds) f union all select 1::bigint as k from window_preds) as t where k = 1;
  k 
@@ -8355,52 +8343,49 @@ select k from ( select k from (select row_number() over() as k from window_preds
 (23 rows)
 
 explain insert into window_preds select k from ( select k from (select row_number() over() as k from window_preds) f union all select 1::bigint as k from window_preds) as t where k = 1;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
  Insert  (cost=0.00..862.04 rows=1 width=4)
    ->  Redistribute Motion 1:3  (slice3; segments: 1)  (cost=0.00..862.00 rows=2 width=16)
-         Hash Key: ((row_number() OVER (?))::integer)
+         Hash Key: (int4((row_number() OVER (?))))
          ->  Result  (cost=0.00..862.00 rows=1 width=16)
                ->  Append  (cost=0.00..862.00 rows=1 width=8)
                      ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                           Filter: (row_number() OVER (?)) = 1
+                           Filter: ((row_number() OVER (?)) = 1)
                            ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
                                  ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
                                        ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=1)
                      ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
                            ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 Filter: "outer".k = 1
-                                 ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                       ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(16 rows)
+                                 Filter: (('1'::bigint) = 1)
+                                 ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(15 rows)
 
 insert into window_preds select k from ( select k from (select row_number() over() as k from window_preds) f union all select 1::bigint as k from window_preds) as t where k = 1;
 explain with CTE as (select i, row_number() over (partition by j) j from window_preds union all select i, row_number() over (partition by j) from window_preds) select * from cte where i = 1;
-                                                       QUERY PLAN                                                       
-------------------------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.00 rows=2 width=12)
    ->  Result  (cost=0.00..862.00 rows=1 width=12)
-         Filter: window_preds.i = 1
+         Filter: (window_preds.i = 1)
          ->  Append  (cost=0.00..862.00 rows=1 width=12)
-               ->  Result  (cost=0.00..431.00 rows=1 width=12)
-                     ->  WindowAgg  (cost=0.00..431.00 rows=1 width=12)
-                           Partition By: window_preds.j
-                           ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-                                 Sort Key: window_preds.j
-                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-                                       Hash Key: window_preds.j
-                                       ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=8)
-               ->  Result  (cost=0.00..431.00 rows=1 width=12)
-                     ->  WindowAgg  (cost=0.00..431.00 rows=1 width=12)
-                           Partition By: window_preds_1.j
-                           ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-                                 Sort Key: window_preds_1.j
-                                 ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
-                                       Hash Key: window_preds_1.j
-                                       ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=8)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(21 rows)
+               ->  WindowAgg  (cost=0.00..431.00 rows=1 width=12)
+                     Partition By: window_preds.j
+                     ->  Sort  (cost=0.00..431.00 rows=1 width=8)
+                           Sort Key: window_preds.j
+                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                                 Hash Key: window_preds.j
+                                 ->  Seq Scan on window_preds  (cost=0.00..431.00 rows=1 width=8)
+               ->  WindowAgg  (cost=0.00..431.00 rows=1 width=12)
+                     Partition By: window_preds_1.j
+                     ->  Sort  (cost=0.00..431.00 rows=1 width=8)
+                           Sort Key: window_preds_1.j
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                                 Hash Key: window_preds_1.j
+                                 ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=8)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(19 rows)
 
 insert into window_preds with CTE as (select i, row_number() over (partition by j) j from window_preds union all select i, row_number() over (partition by j) from window_preds) select * from cte where i = 1;
 --
