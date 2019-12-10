@@ -16,6 +16,8 @@
 
 #include "pg_upgrade_greenplum.h"
 
+#define RELSTORAGE_EXTERNAL	'x'
+
 static void check_external_partition(void);
 static void check_covering_aoindex(void);
 static void check_partition_indexes(void);

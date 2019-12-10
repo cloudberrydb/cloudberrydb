@@ -12,6 +12,7 @@
 
 #define PG_OPTIONS_UTILITY_MODE " PGOPTIONS='-c gp_session_role=utility' "
 
+
 /*
  * Enumeration for operations in the progress report
  */
@@ -64,6 +65,8 @@ bool is_show_progress_mode(void);
 /* aotable.c */
 
 void		restore_aosegment_tables(void);
+bool        is_appendonly(char relstorage);
+
 
 /* gpdb4_heap_convert.c */
 

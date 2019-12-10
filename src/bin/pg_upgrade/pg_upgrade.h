@@ -42,11 +42,6 @@
 #define GLOBALS_OIDS_DUMP_FILE	"pg_upgrade_dump_globals_oids.sql"
 #define DB_OIDS_DUMP_FILE_MASK	"pg_upgrade_dump_%u_oids.sql"
 
-/* needs to be kept in sync with pg_class.h */
-#define RELSTORAGE_EXTERNAL	'x'
-#define RELSTORAGE_AOROWS	'a'
-#define RELSTORAGE_AOCOLS	'c'
-
 #define DB_DUMP_LOG_FILE_MASK	"pg_upgrade_dump_%u.log"
 #define SERVER_LOG_FILE		"pg_upgrade_server.log"
 #define UTILITY_LOG_FILE	"pg_upgrade_utility.log"
