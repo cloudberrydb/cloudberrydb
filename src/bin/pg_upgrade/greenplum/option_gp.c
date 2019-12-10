@@ -43,3 +43,8 @@ process_greenplum_option(int option, char *option_value)
 	return true;
 }
 
+bool
+is_greenplum_dispatcher_mode()
+{
+	return greenplum_user_opts.segment_mode == DISPATCHER;
+}

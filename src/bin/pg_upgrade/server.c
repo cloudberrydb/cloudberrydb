@@ -252,7 +252,7 @@ start_postmaster(ClusterInfo *cluster, bool throw_error)
 		version_opts = "-c synchronous_standby_names='' --xid_warn_limit=10000000";
 	else
 	{
-		if (greenplum_user_opts.segment_mode == DISPATCHER)
+		if (is_greenplum_dispatcher_mode())
 			version_opts =
 				"-c gp_dbid=1 -c gp_contentid=-1 -c gp_num_contents_in_cluster=1";
 		else
