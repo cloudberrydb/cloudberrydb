@@ -53,6 +53,10 @@ DO LANGUAGE plpythonu $$
     # gzip runs much faster with -1
     os.putenv('GZIP', '-1')
 
+    # do not put the packcore results under master data, that will cause
+    # failures in other tests
+    os.chdir('/tmp')
+
     gphome = os.getenv('GPHOME')
     assert gphome
 

@@ -11,6 +11,7 @@ if sys.platform not in ('linux', 'linux2'): # packcore only works on linux retur
 # verify that binary and shared libraries are included assert os.path.exists('{}/postgres'.format(dirname)) assert os.path.exists('{}/lib64/ld-linux-x86-64.so.2'.format(dirname)) 
 if os.path.exists('/usr/bin/gdb'): # load the coredump and run some simple gdb commands os.chdir(dirname) subprocess.check_call(['./runGDB.sh', '--batch', '--nx', '--eval-command=bt', '--eval-command=p main', '--eval-command=p fork', '--eval-command=p MyProcPid']) os.chdir('..') 
 # gzip runs much faster with -1 os.putenv('GZIP', '-1') 
+# do not put the packcore results under master data, that will cause # failures in other tests os.chdir('/tmp') 
 gphome = os.getenv('GPHOME') assert gphome 
 postgres = '{}/bin/postgres'.format(gphome) assert os.path.exists(postgres) 
 packcore = '{}/sbin/packcore'.format(gphome) assert os.path.exists(packcore) 
