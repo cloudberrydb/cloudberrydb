@@ -296,8 +296,6 @@ typedef struct
 	char	   *db_ctype;
 	int			db_encoding;
 	RelInfoArr	rel_arr;		/* array of all user relinfos */
-
-	char	   *reserved_oids;	/* as a string */
 } DbInfo;
 
 typedef struct
@@ -381,8 +379,6 @@ typedef struct
 	char		major_version_str[64];	/* string PG_VERSION of cluster */
 	uint32		bin_version;	/* version returned from pg_ctl */
 	const char *tablespace_suffix;		/* directory specification */
-
-	char	   *global_reserved_oids; /* OID preassign calls for shared objects */
 } ClusterInfo;
 
 
