@@ -37,9 +37,6 @@
 #define GLOBALS_DUMP_FILE	"pg_upgrade_dump_globals.sql"
 #define DB_DUMP_FILE_MASK	"pg_upgrade_dump_%u.custom"
 
-#define GLOBALS_OIDS_DUMP_FILE	"pg_upgrade_dump_globals_oids.sql"
-#define DB_OIDS_DUMP_FILE_MASK	"pg_upgrade_dump_%u_oids.sql"
-
 #define DB_DUMP_LOG_FILE_MASK	"pg_upgrade_dump_%u.log"
 #define SERVER_LOG_FILE		"pg_upgrade_server.log"
 #define UTILITY_LOG_FILE	"pg_upgrade_utility.log"
