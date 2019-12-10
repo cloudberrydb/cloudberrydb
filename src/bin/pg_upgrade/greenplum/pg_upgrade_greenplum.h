@@ -10,6 +10,7 @@
 
 #include "pg_upgrade.h"
 
+
 #define PG_OPTIONS_UTILITY_MODE " PGOPTIONS='-c gp_session_role=utility' "
 
 
@@ -61,6 +62,11 @@ bool process_greenplum_option(greenplumOption option, char *option_value);
 bool is_greenplum_dispatcher_mode(void);
 bool is_checksum_mode(checksumMode mode);
 bool is_show_progress_mode(void);
+
+/* pg_upgrade_greenplum.c */
+void freeze_master_data(void);
+void reset_system_identifier(void);
+
 
 /* aotable.c */
 
