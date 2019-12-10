@@ -265,7 +265,7 @@ parseCommandLine(int argc, char *argv[])
 
 	/* Ensure we are only adding checksums in copy mode */
 	if (user_opts.transfer_mode != TRANSFER_MODE_COPY &&
-		greenplum_user_opts.checksum_mode != CHECKSUM_NONE)
+		!is_checksum_mode(CHECKSUM_NONE))
 		pg_log(PG_FATAL, "Adding and removing checksums only supported in copy mode.\n");
 
 #ifdef WIN32

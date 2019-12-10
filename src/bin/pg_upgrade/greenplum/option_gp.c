@@ -1,6 +1,18 @@
 #include "pg_upgrade_greenplum.h"
 
-GreenplumUserOpts greenplum_user_opts;
+typedef enum
+{
+	DISPATCHER = 0,
+	SEGMENT
+} segmentMode;
+
+typedef struct {
+	bool progress;
+	segmentMode segment_mode;
+	checksumMode checksum_mode;
+} GreenplumUserOpts;
+
+static GreenplumUserOpts greenplum_user_opts;
 
 void
 initialize_greenplum_user_options(void)
@@ -9,7 +21,7 @@ initialize_greenplum_user_options(void)
 }
 
 bool
-process_greenplum_option(int option, char *option_value)
+process_greenplum_option(greenplumOption option, char *option_value)
 {
 	switch (option)
 	{
@@ -48,3 +60,16 @@ is_greenplum_dispatcher_mode()
 {
 	return greenplum_user_opts.segment_mode == DISPATCHER;
 }
+
+bool
+is_checksum_mode(checksumMode mode)
+{
+	return mode == greenplum_user_opts.checksum_mode;
+}
+
+bool
+is_show_progress_mode(void)
+{
+	return greenplum_user_opts.progress;
+}
+
