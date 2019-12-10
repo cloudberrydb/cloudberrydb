@@ -2423,7 +2423,6 @@ StartTransaction(void)
 				SharedLocalSnapshotSlot->xid = s->transactionId;
 				SharedLocalSnapshotSlot->startTimestamp = stmtStartTimestamp;
 				SharedLocalSnapshotSlot->QDxid = QEDtxContextInfo.distributedXid;
-				SharedLocalSnapshotSlot->pid = MyProc->pid;
 				SharedLocalSnapshotSlot->writer_proc = MyProc;
 				SharedLocalSnapshotSlot->writer_xact = MyPgXact;
 

@@ -340,8 +340,9 @@ SharedSnapshotDump(void)
 
 		if (testSlot->slotid != -1)
 		{
-			appendStringInfo(&str, "(SLOT index: %d slotid: %d QDxid: %u QDcid: %u pid: %u)",
-							 testSlot->slotindex, testSlot->slotid, testSlot->QDxid, testSlot->QDcid, (int)testSlot->pid);
+			appendStringInfo(&str, "(SLOT index: %d slotid: %d QDxid: %u pid: %u)",
+							 testSlot->slotindex, testSlot->slotid, testSlot->QDxid,
+							 testSlot->writer_proc ? testSlot->writer_proc->pid : 0);
 		}
 
 	}
@@ -390,7 +391,8 @@ retry:
 
 	if (slot != NULL)
 	{
-		elog(DEBUG1, "SharedSnapshotAdd: found existing entry for our session-id. id %d retry %d pid %u", slotId, retryCount, (int)slot->pid);
+		elog(DEBUG1, "SharedSnapshotAdd: found existing entry for our session-id. id %d retry %d pid %u", slotId, retryCount,
+				slot->writer_proc ? slot->writer_proc->pid : 0);
 		LWLockRelease(SharedSnapshotLock);
 
 		if (retryCount > 0)
@@ -450,11 +452,8 @@ retry:
 	/* initialize some things */
 	slot->slotid = slotId;
 	slot->xid = 0;
-	slot->pid = 0;
-	slot->cid = 0;
 	slot->startTimestamp = 0;
 	slot->QDxid = 0;
-	slot->QDcid = 0;
 	slot->segmateSync = 0;
 	/* Remember the writer proc for IsCurrentTransactionIdForReader */
 	slot->writer_proc = MyProc;
@@ -564,11 +563,8 @@ SharedSnapshotRemove(volatile SharedSnapshotSlot *slot, char *creatorDescription
 	/* reset the slotid which marks it as being unused. */
 	slot->slotid = -1;
 	slot->xid = 0;
-	slot->pid = 0;
-	slot->cid = 0;
 	slot->startTimestamp = 0;
 	slot->QDxid = 0;
-	slot->QDcid = 0;
 	slot->segmateSync = 0;
 
 	sharedSnapshotArray->numSlots -= 1;
@@ -708,9 +704,7 @@ dumpSharedLocalSnapshot_forCursor(void)
 		count = 0;
 
 		FileWriteFieldWithCount(count, f, count);
-		FileWriteFieldWithCount(count, f, src->pid);
 		FileWriteFieldWithCount(count, f, src->xid);
-		FileWriteFieldWithCount(count, f, src->cid);
 		FileWriteFieldWithCount(count, f, src->startTimestamp);
 
 		FileWriteFieldWithCount(count, f, src->combocidcnt);
@@ -760,9 +754,7 @@ readSharedLocalSnapshot_forCursor(Snapshot snapshot, DtxContext distributedTrans
 	Size count=0, sanity;
 	uint8 *p, *buffer=NULL;
 
-	pid_t writerPid;
 	TransactionId localXid;
-	CommandId localCid;
 	TimestampTz localXactStartTimestamp;
 
 	uint32 combocidcnt;
@@ -820,14 +812,8 @@ readSharedLocalSnapshot_forCursor(Snapshot snapshot, DtxContext distributedTrans
 
 	/* see dumpSharedLocalSnapshot_forCursor() for the correct order here */
 
-	memcpy(&writerPid, p, sizeof(writerPid));
-	p += sizeof(writerPid);
-
 	memcpy(&localXid, p, sizeof(localXid));
 	p += sizeof(localXid);
-
-	memcpy(&localCid, p, sizeof(localCid));
-	p += sizeof(localCid);
 
 	memcpy(&localXactStartTimestamp, p, sizeof(localXactStartTimestamp));
 	p += sizeof(localXactStartTimestamp);

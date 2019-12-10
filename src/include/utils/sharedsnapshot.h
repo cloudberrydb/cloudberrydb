@@ -22,20 +22,19 @@ typedef struct SharedSnapshotSlot
 {
 	int32			slotindex;  /* where in the array this one is. */
 	int32	 		slotid;
-	pid_t	 		pid; /* pid of writer seg */
 	PGPROC			*writer_proc;
 	PGXACT			*writer_xact;
-	TransactionId	xid;
-	CommandId       cid;
-	TimestampTz		startTimestamp;
 	volatile TransactionId   QDxid;
-	volatile CommandId		QDcid;
 	volatile bool			ready;
 	volatile uint32			segmateSync;
 	uint32			combocidcnt;
 	ComboCidKeyData combocids[MaxComboCids];
 	SnapshotData	snapshot;
 	LWLock		   *slotLock;
+
+	/* for debugging only */
+	TransactionId	xid;
+	TimestampTz		startTimestamp;
 } SharedSnapshotSlot;
 
 extern volatile SharedSnapshotSlot *SharedLocalSnapshotSlot;

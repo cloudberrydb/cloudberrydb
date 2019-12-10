@@ -26,6 +26,7 @@ test_write_read_shared_snapshot_for_cursor(void **state)
 	xipEntryCount = XCNT;
 
 	PGPROC writer_proc;
+	writer_proc.pid = 1000;
 
 	TopTransactionResourceOwner = ResourceOwnerCreate(NULL, "unittest resource owner");
 	CurrentResourceOwner = TopTransactionResourceOwner;
@@ -36,14 +37,11 @@ test_write_read_shared_snapshot_for_cursor(void **state)
 	SharedLocalSnapshotSlot = &slot;
 	slot.slotindex = 1;
 	slot.slotid = 1;
-	slot.pid = 1000;
 	slot.writer_proc = &writer_proc;
 	slot.writer_xact = NULL;
 	slot.xid = 100;
-	slot.cid = 1;
 	slot.startTimestamp = 0;
 	slot.QDxid = 10;
-	slot.QDcid = 1;
 	slot.ready = true;
 	slot.segmateSync = 1;
 	slot.combocidcnt = 0;
@@ -85,7 +83,6 @@ test_write_read_shared_snapshot_for_cursor(void **state)
 
 	QEDtxContextInfo.segmateSync = slot.segmateSync;
 	QEDtxContextInfo.distributedXid = slot.QDxid;
-	QEDtxContextInfo.curcid = slot.QDcid;
 
 	SnapshotData snapshot;
 	snapshot.xip = palloc(XCNT * sizeof(TransactionId));

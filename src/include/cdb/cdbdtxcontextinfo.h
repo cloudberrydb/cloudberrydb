@@ -23,8 +23,6 @@ typedef struct DtxContextInfo
 	
 	DistributedTransactionId 		distributedXid;
 	
-	CommandId				 		curcid;	/* in my xact, CID < curcid are visible */
-
 	bool							haveDistributedSnapshot;
 	bool							cursorContext;
 	
@@ -34,6 +32,9 @@ typedef struct DtxContextInfo
 
 	uint32							segmateSync;
 	uint32							nestingLevel;
+
+	/* currentCommandId of QD, for debugging only */
+	CommandId				 		curcid;	
 } DtxContextInfo;
 
 extern DtxContextInfo QEDtxContextInfo;	

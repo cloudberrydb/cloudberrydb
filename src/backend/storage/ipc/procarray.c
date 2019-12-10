@@ -1646,27 +1646,24 @@ updateSharedLocalSnapshot(DtxContextInfo *dtxContextInfo,
 
 	SetSharedTransactionId_writer(distributedTransactionContext);
 	
-	SharedLocalSnapshotSlot->QDcid = dtxContextInfo->curcid;
 	SharedLocalSnapshotSlot->QDxid = dtxContextInfo->distributedXid;
 	SharedLocalSnapshotSlot->segmateSync = dtxContextInfo->segmateSync;
 	SharedLocalSnapshotSlot->ready = true;
 
 	ereport((Debug_print_full_dtm ? LOG : DEBUG5),
-			(errmsg("updateSharedLocalSnapshot for DistributedTransactionContext = '%s' setting shared local snapshot xid = %u (xmin: %u xmax: %u xcnt: %u) curcid: %d, QDxid = %u, QDcid = %u",
+			(errmsg("updateSharedLocalSnapshot for DistributedTransactionContext = '%s' setting shared local snapshot xid = %u (xmin: %u xmax: %u xcnt: %u) curcid: %d, QDxid = %u",
 					DtxContextToString(distributedTransactionContext),
 					SharedLocalSnapshotSlot->xid,
 					SharedLocalSnapshotSlot->snapshot.xmin,
 					SharedLocalSnapshotSlot->snapshot.xmax,
 					SharedLocalSnapshotSlot->snapshot.xcnt,
 					SharedLocalSnapshotSlot->snapshot.curcid,
-					SharedLocalSnapshotSlot->QDxid,
-					SharedLocalSnapshotSlot->QDcid)));
+					SharedLocalSnapshotSlot->QDxid)));
 
 	ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-			(errmsg("[Distributed Snapshot #%u] *Writer Set Shared* gxid %u, currcid %d (gxid = %u, slot #%d, '%s', '%s')",
+			(errmsg("[Distributed Snapshot #%u] *Writer Set Shared* gxid %u, (gxid = %u, slot #%d, '%s', '%s')",
 					QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 					SharedLocalSnapshotSlot->QDxid,
-					SharedLocalSnapshotSlot->QDcid,
 					getDistributedTransactionId(),
 					SharedLocalSnapshotSlot->slotid,
 					debugCaller,
@@ -1811,13 +1808,13 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 					 errmsg("GetSnapshotData timed out waiting for Writer to set the shared snapshot."),
 					 errdetail("We are waiting for the shared snapshot to have XID: %d but the value "
 							   "is currently: %d."
-							   " waiting for cid to be %d but is currently %d.  ready=%d."
+							   " waiting for syncount to be %d but is currently %d.  ready=%d."
 							   "DistributedTransactionContext = %s. "
 							   " Our slotindex is: %d \n"
 							   "Dump of all sharedsnapshots in shmem: %s",
 							   QEDtxContextInfo.distributedXid, SharedLocalSnapshotSlot->QDxid,
-							   QEDtxContextInfo.curcid,
-							   SharedLocalSnapshotSlot->QDcid, SharedLocalSnapshotSlot->ready,
+							   QEDtxContextInfo.segmateSync,
+							   SharedLocalSnapshotSlot->segmateSync, SharedLocalSnapshotSlot->ready,
 							   DtxContextToString(distributedTransactionContext),
 							   SharedLocalSnapshotSlot->slotindex, SharedSnapshotDump())));
 		}
@@ -1828,25 +1825,22 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 			 * Every second issue warning.
 			 */
 			ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-					(errmsg("[Distributed Snapshot #%u] *No Match* gxid %u = %u and currcid %d = %d (%s)",
+					(errmsg("[Distributed Snapshot #%u] *No Match* gxid %u = %u and segmateSync %d = %d (%s)",
 							QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 							QEDtxContextInfo.distributedXid,
 							SharedLocalSnapshotSlot->QDxid,
-							QEDtxContextInfo.curcid,
-							SharedLocalSnapshotSlot->QDcid,
+							QEDtxContextInfo.segmateSync,
+							SharedLocalSnapshotSlot->segmateSync,
 							DtxContextToString(distributedTransactionContext))));
 
 			ereport(LOG,
 					(errmsg("GetSnapshotData did not find shared local snapshot information. "
 							"We are waiting for the shared snapshot to have XID: %d/%u but the value "
-							"is currently: %d/%u."
-							" waiting for cid to be %d but is currently %d.  ready=%d."
+							"is currently: %d/%u, ready=%d."
 							" Our slotindex is: %d \n"
 							"DistributedTransactionContext = %s.",
 							QEDtxContextInfo.distributedXid, QEDtxContextInfo.segmateSync,
 							SharedLocalSnapshotSlot->QDxid, SharedLocalSnapshotSlot->segmateSync,
-							QEDtxContextInfo.curcid,
-							SharedLocalSnapshotSlot->QDcid,
 							SharedLocalSnapshotSlot->ready,
 							SharedLocalSnapshotSlot->slotindex,
 							DtxContextToString(distributedTransactionContext))));
@@ -3201,10 +3195,9 @@ UpdateSerializableCommandId(CommandId curcid)
 		}
 
 		ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-				(errmsg("[Distributed Snapshot #%u] *Update Serializable Command Id* segment currcid = %d, QDcid = %d, TransactionSnapshot currcid = %d, Shared currcid = %d (gxid = %u, '%s')",
+				(errmsg("[Distributed Snapshot #%u] *Update Serializable Command Id* segment currcid = %d, TransactionSnapshot currcid = %d, Shared currcid = %d (gxid = %u, '%s')",
 						QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 						QEDtxContextInfo.curcid,
-						SharedLocalSnapshotSlot->QDcid,
 						curcid,
 						SharedLocalSnapshotSlot->snapshot.curcid,
 						getDistributedTransactionId(),
@@ -3221,7 +3214,6 @@ UpdateSerializableCommandId(CommandId curcid)
 			   combocidSize * sizeof(ComboCidKeyData));
 
 		SharedLocalSnapshotSlot->snapshot.curcid = curcid;
-		SharedLocalSnapshotSlot->QDcid = QEDtxContextInfo.curcid;
 		SharedLocalSnapshotSlot->segmateSync = QEDtxContextInfo.segmateSync;
 
 		LWLockRelease(SharedLocalSnapshotSlot->slotLock);
