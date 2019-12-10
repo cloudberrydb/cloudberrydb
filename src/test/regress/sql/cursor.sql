@@ -413,3 +413,31 @@ FETCH 1 FROM c_hold;
 DROP INDEX if exists ctest_id_idx;
 DROP TABLE if exists ctest;
 --end_ignore
+
+
+--
+-- Simple test for the combination of cursor, initplans and function
+--
+SET optimizer=off;
+CREATE TABLE cursor_initplan(a int, b int);
+INSERT INTO cursor_initplan SELECT i, i FROM generate_series(1,10) i;
+CREATE OR REPLACE FUNCTION func_test_cursor() RETURNS void AS
+$BODY$
+DECLARE cur CURSOR FOR SELECT * FROM cursor_initplan WHERE a = 2 or a = 3 FOR UPDATE;
+var1 record;
+var2 record;
+BEGIN
+	OPEN cur;
+
+	FETCH  cur INTO var1;
+	UPDATE cursor_initplan SET b = var1.b + 1 WHERE CURRENT OF cur;
+
+	FETCH  cur INTO var2;
+	UPDATE cursor_initplan SET b = var2.b + 1 WHERE CURRENT OF cur;
+END;
+$BODY$
+LANGUAGE 'plpgsql';
+
+SELECT func_test_cursor();
+SELECT * FROM cursor_initplan ORDER BY a;
+DROP TABLE cursor_initplan;

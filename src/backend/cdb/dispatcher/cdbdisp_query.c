@@ -227,7 +227,7 @@ CdbDispatchPlan(struct QueryDesc *queryDesc,
 	 */
 	if (queryDesc->extended_query)
 	{
-		verify_shared_snapshot_ready();
+		verify_shared_snapshot_ready(gp_command_count);
 	}
 
 	cdbdisp_dispatchX(queryDesc, planRequiresTxn, cancelOnError);
@@ -1146,6 +1146,10 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 
 		primaryGang = slice->primaryGang;
 		Assert(primaryGang != NULL);
+		AssertImply(queryDesc->extended_query,
+					primaryGang->type == GANGTYPE_PRIMARY_READER ||
+					primaryGang->type == GANGTYPE_SINGLETON_READER ||
+					primaryGang->type == GANGTYPE_ENTRYDB_READER);
 
 		if (Test_print_direct_dispatch_info)
 			elog(INFO, "(slice %d) Dispatch command to %s", slice->sliceIndex,

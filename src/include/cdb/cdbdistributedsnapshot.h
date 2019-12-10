@@ -17,7 +17,7 @@
 /* This is a shipped header, do not include other files under "cdb" */
 #include "c.h"     /* DistributedTransactionId */
 
-#define DistributedSnapshot_StaticInit {0,0,0,0,0,0}
+#define DistributedSnapshot_StaticInit {0,0,0,0,0,0,0}
 
 typedef struct DistributedSnapshot
 {

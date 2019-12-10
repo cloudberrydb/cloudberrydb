@@ -1648,10 +1648,8 @@ updateSharedLocalSnapshot(DtxContextInfo *dtxContextInfo,
 	
 	SharedLocalSnapshotSlot->QDcid = dtxContextInfo->curcid;
 	SharedLocalSnapshotSlot->QDxid = dtxContextInfo->distributedXid;
-
-	SharedLocalSnapshotSlot->ready = true;
-
 	SharedLocalSnapshotSlot->segmateSync = dtxContextInfo->segmateSync;
+	SharedLocalSnapshotSlot->ready = true;
 
 	ereport((Debug_print_full_dtm ? LOG : DEBUG5),
 			(errmsg("updateSharedLocalSnapshot for DistributedTransactionContext = '%s' setting shared local snapshot xid = %u (xmin: %u xmax: %u xcnt: %u) curcid: %d, QDxid = %u, QDcid = %u",
@@ -1792,11 +1790,13 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 	{
 		LWLockAcquire(SharedLocalSnapshotSlot->slotLock, LW_SHARED);
 
-		if (QEDtxContextInfo.distributedXid == SharedLocalSnapshotSlot->QDxid &&
-			QEDtxContextInfo.curcid == SharedLocalSnapshotSlot->QDcid &&
-			QEDtxContextInfo.segmateSync == SharedLocalSnapshotSlot->segmateSync &&
+		if (QEDtxContextInfo.segmateSync == SharedLocalSnapshotSlot->segmateSync &&
 			SharedLocalSnapshotSlot->ready)
 		{
+			if (QEDtxContextInfo.distributedXid != SharedLocalSnapshotSlot->QDxid)
+				elog(ERROR, "transaction ID doesn't match between the reader gang "
+							"and the writer gang, expect %d but having %d",
+							QEDtxContextInfo.distributedXid, SharedLocalSnapshotSlot->QDxid);
 			copyLocalSnapshot(snapshot);
 			SetSharedTransactionId_reader(SharedLocalSnapshotSlot->xid, snapshot->curcid, distributedTransactionContext);
 			LWLockRelease(SharedLocalSnapshotSlot->slotLock);

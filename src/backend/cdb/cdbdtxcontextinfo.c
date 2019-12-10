@@ -22,6 +22,7 @@
 #include "cdb/cdbtm.h"
 #include "access/xact.h"
 #include "utils/guc.h"
+#include "utils/session_state.h"
 #include "utils/tqual.h"
 
 /*
@@ -32,16 +33,9 @@
  *
  */
 static uint32 syncCount = 1;
-static DistributedTransactionId syncCacheXid = InvalidDistributedTransactionId;
 
 void
-DtxContextInfo_RewindSegmateSync(void)
-{
-	syncCount--;
-}
-
-void
-DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
+DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo, bool inCursor,
 							  int txnOptions, Snapshot snapshot)
 {
 	int			i;
@@ -53,34 +47,33 @@ DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
 	DtxContextInfo_Reset(dtxContextInfo);
 
 	dtxContextInfo->distributedXid = getDistributedTransactionId();
-
 	if (dtxContextInfo->distributedXid != InvalidDistributedTransactionId)
 	{
-		if (syncCacheXid == dtxContextInfo->distributedXid)
-			dtxContextInfo->segmateSync = ++syncCount;
-		else
-		{
-			syncCacheXid = dtxContextInfo->distributedXid;
-			dtxContextInfo->segmateSync = syncCount = 1;
-		}
-
 		dtxContextInfo->distributedTimeStamp = getDtxStartTime();
 		dtxContextInfo->curcid = curcid;
 	}
-	else
-	{
-		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "DtxContextInfo_CreateOnMaster Gp_role is DISPATCH and distributed transaction is InvalidDistributedTransactionId");
 
-		syncCacheXid = dtxContextInfo->distributedXid;
-		dtxContextInfo->segmateSync = syncCount = 1;
-	}
+	/*
+	 * When this is an extended query, all the dispatchs will go to
+	 * the reader gangs, don't increase 'syncCount' so that all the
+	 * dispatch could share the same snapshot created by 'gp_write_shared_snapshot'.
+	 */
+	dtxContextInfo->segmateSync = inCursor ? syncCount : ++syncCount;
+	if (dtxContextInfo->segmateSync == (~(uint32)0))
+		ereport(FATAL,
+				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("cannot have more than 2^32-2 commands in a session")));
 
+	AssertImply(inCursor,
+				dtxContextInfo->distributedXid != InvalidDistributedTransactionId &&
+				gp_command_count == MySessionState->latestCursorCommandId);
+
+	dtxContextInfo->cursorContext = inCursor;
 	dtxContextInfo->nestingLevel = GetCurrentTransactionNestLevel();
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "DtxContextInfo_CreateOnMaster: created dtxcontext with dxid %u/%u nestingLevel %d segmateSync %u/%u (current/cached)",
-		 dtxContextInfo->distributedXid, syncCacheXid, dtxContextInfo->nestingLevel,
+		 "DtxContextInfo_CreateOnMaster: created dtxcontext with dxid %u nestingLevel %d segmateSync %u/%u (current/cached)",
+		 dtxContextInfo->distributedXid, dtxContextInfo->nestingLevel,
 		 dtxContextInfo->segmateSync, syncCount);
 
 	dtxContextInfo->haveDistributedSnapshot = false;

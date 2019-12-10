@@ -49,6 +49,7 @@
 #include "utils/faultinjector.h"
 #include "utils/guc.h"
 #include "utils/fmgroids.h"
+#include "utils/session_state.h"
 #include "utils/sharedsnapshot.h"
 #include "utils/snapmgr.h"
 #include "utils/memutils.h"
@@ -1485,24 +1486,27 @@ insertedDistributedCommitted(void)
  * information.
  */
 void
-verify_shared_snapshot_ready(void)
+verify_shared_snapshot_ready(int cid)
 {
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		CdbDispatchCommand("set gp_write_shared_snapshot=true",
-						   DF_CANCEL_ON_ERROR |
-						   DF_WITH_SNAPSHOT |
-						   DF_NEED_TWO_PHASE,
-						   NULL);
+	Assert (Gp_role == GP_ROLE_DISPATCH);
 
-		dumpSharedLocalSnapshot_forCursor();
+	/*
+	 * A cursor/bind/exec command may trigger multiple dispatchs (e.g.
+	 *    DECLARE s1 CURSOR FOR SELECT * FROM test WHERE a=(SELECT max(b) FROM test))
+	 * and all the dispatchs target to the reader gangs only. Since all the dispatchs
+	 * are read-only and happens in one user command, it's ok to share one same snapshot.
+	 */
+	if (MySessionState->latestCursorCommandId == cid)
+		return;
 
-		/*
-		 * To keep our readers in sync (since they will be dispatched
-		 * separately) we need to rewind the segmate synchronizer.
-		 */
-		DtxContextInfo_RewindSegmateSync();
-	}
+	CdbDispatchCommand("set gp_write_shared_snapshot=true",
+					   DF_CANCEL_ON_ERROR |
+					   DF_WITH_SNAPSHOT |
+					   DF_NEED_TWO_PHASE,
+					   NULL);
+
+	dumpSharedLocalSnapshot_forCursor();
+	MySessionState->latestCursorCommandId = cid;
 }
 
 /*

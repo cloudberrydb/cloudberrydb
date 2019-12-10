@@ -313,7 +313,7 @@ extern bool dispatchDtxCommand(const char *cmd);
 extern void tmShmemInit(void);
 extern int	tmShmemSize(void);
 
-extern void verify_shared_snapshot_ready(void);
+extern void verify_shared_snapshot_ready(int cid);
 
 int			mppTxnOptions(bool needTwoPhase);
 int			mppTxOptions_IsoLevel(int txnOptions);

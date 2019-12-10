@@ -168,10 +168,8 @@ qdSerializeDtxContextInfo(int *size, bool wantSnapshot, bool inCursor,
 	{
 		case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
 		case DTX_CONTEXT_LOCAL_ONLY:
-			DtxContextInfo_CreateOnMaster(&TempQDDtxContextInfo,
+			DtxContextInfo_CreateOnMaster(&TempQDDtxContextInfo, inCursor,
 										  txnOptions, snapshot);
-
-			TempQDDtxContextInfo.cursorContext = inCursor;
 
 			if (DistributedTransactionContext ==
 				DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE && snapshot != NULL)

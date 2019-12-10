@@ -628,7 +628,7 @@ lookupSharedSnapshot(char *lookerDescription, char *creatorDescription, int id)
 }
 
 static char *
-sharedLocalSnapshot_filename(TransactionId xid, CommandId cid, uint32 segmateSync)
+sharedLocalSnapshot_filename(TransactionId xid, uint32 segmateSync)
 {
 	int pid;
 	static char filename[MAXPGPATH];
@@ -647,8 +647,8 @@ sharedLocalSnapshot_filename(TransactionId xid, CommandId cid, uint32 segmateSyn
 		pid = lockHolderProcPtr->pid;
 	}
 
-	snprintf(filename, sizeof(filename), "sess%u_w%u_qdxid%u_qdcid%u_sync%u",
-			 gp_session_id, pid, xid, cid, segmateSync);
+	snprintf(filename, sizeof(filename), "sess%u_w%u_qdxid%u_sync%u",
+			 gp_session_id, pid, xid, segmateSync);
 	return filename;
 }
 
@@ -671,7 +671,7 @@ dumpSharedLocalSnapshot_forCursor(void)
 	LWLockAcquire(SharedLocalSnapshotSlot->slotLock, LW_SHARED);
 
 	src = (SharedSnapshotSlot *)SharedLocalSnapshotSlot;
-	fname = sharedLocalSnapshot_filename(src->QDxid, src->QDcid, src->segmateSync);
+	fname = sharedLocalSnapshot_filename(src->QDxid, src->segmateSync);
 
 	/*
 	 * Create our dump-file. Hold the reference to it in
@@ -780,8 +780,7 @@ readSharedLocalSnapshot_forCursor(Snapshot snapshot, DtxContext distributedTrans
 	 * NOTE: this is always run *after* the dump by the writer is
 	 * guaranteed to have completed.
 	 */
-	fname = sharedLocalSnapshot_filename(QEDtxContextInfo.distributedXid,
-		QEDtxContextInfo.curcid, QEDtxContextInfo.segmateSync);
+	fname = sharedLocalSnapshot_filename(QEDtxContextInfo.distributedXid, QEDtxContextInfo.segmateSync);
 
 	f = BufFileOpenNamedTemp(fname,
 							 false /* interXact */);

@@ -39,7 +39,7 @@ typedef struct DtxContextInfo
 extern DtxContextInfo QEDtxContextInfo;	
 
 extern void DtxContextInfo_Reset(DtxContextInfo *dtxContextInfo);
-extern void DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
+extern void DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo, bool inCursor,
 										  int txnOptions, Snapshot snapshot);
 extern int DtxContextInfo_SerializeSize(DtxContextInfo *dtxContextInfo);
 
@@ -49,7 +49,4 @@ extern void DtxContextInfo_Deserialize(const char *serializedDtxContextInfo,
 									   DtxContextInfo *dtxContextInfo);
 
 extern void DtxContextInfo_Copy(DtxContextInfo *target, DtxContextInfo *source);
-
-extern void DtxContextInfo_RewindSegmateSync(void);
-
 #endif   /* CDBDTXCONTEXTINFO_H */

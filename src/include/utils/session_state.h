@@ -96,6 +96,9 @@ typedef struct SessionState
 	 */
 	void *resGroupSlot;
 
+	/* gp_command_count of the latest cursor command in this session */
+	int latestCursorCommandId;
+
 #ifdef USE_ASSERT_CHECKING
 	/* If we modify the sessionId in ProcMppSessionId, this field is turned on */
 	bool isModifiedSessionId;

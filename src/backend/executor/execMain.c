@@ -477,22 +477,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			queryDesc->ddesc->useChangedAOOpts = true;
 		}
 
-		/*
-		 * If this is an extended query (normally cursor or bind/exec) - before
-		 * starting the portal, we need to make sure that the shared snapshot is
-		 * already set by a writer gang, or the cursor query readers will
-		 * timeout waiting for one that may not exist (in some cases). Therefore
-		 * we insert a small hack here and dispatch a SET query that will do it
-		 * for us. (This is also done in performOpenCursor() for the simple
-		 * query protocol).
-		 *
-		 * MPP-7504/MPP-7448: We also call this down inside the dispatcher after
-		 * the pre-dispatch evaluator has run.
-		 */
-		if (queryDesc->extended_query) {
-			verify_shared_snapshot_ready();
-		}
-
 		/* Set up blank slice table to be filled in during InitPlan. */
 		InitSliceTable(estate, queryDesc->plannedstmt->nMotionNodes, queryDesc->plannedstmt->nInitPlans);
 
