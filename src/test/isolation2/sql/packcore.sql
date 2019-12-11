@@ -13,6 +13,18 @@ DO LANGUAGE plpythonu $$
         # packcore only works on linux
         return
 
+    def check_call(cmds):
+        ret = subprocess.Popen(cmds,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+        out = ret.communicate()
+        if ret.returncode != 0:
+            raise SystemError('''\
+Command {cmds} returned non-zero exit status {retcode}
+stdout: {stdout}
+stderr: {stderr}
+'''.format(cmds=cmds, retcode=ret.returncode, stdout=out[0], stderr=out[1]))
+
     # generate and verify a packcore tarball
     #
     # TODO: packcore can list shared libraries with gdb, ldd, or ld-linux.so,
@@ -27,11 +39,11 @@ DO LANGUAGE plpythonu $$
         shutil.rmtree(dirname, ignore_errors=True)
 
         # generate the tarball, the packcore command should return 0
-        subprocess.check_call(cmds)
+        check_call(cmds)
         assert os.path.isfile(tarball)
 
         # extract the tarball
-        subprocess.check_call(['tar', '-zxf', tarball])
+        check_call(['tar', '-zxf', tarball])
         assert os.path.isdir(dirname)
 
         # verify that binary and shared libraries are included
@@ -41,13 +53,12 @@ DO LANGUAGE plpythonu $$
         if os.path.exists('/usr/bin/gdb'):
             # load the coredump and run some simple gdb commands
             os.chdir(dirname)
-            subprocess.check_call(['./runGDB.sh',
-                                   '--batch',
-                                   '--nx',
-                                   '--eval-command=bt',
-                                   '--eval-command=p main',
-                                   '--eval-command=p fork',
-                                   '--eval-command=p MyProcPid'])
+            check_call(['./runGDB.sh',
+                        '--batch',
+                        '--nx',
+                        '--eval-command=bt',
+                        '--eval-command=p main',
+                        '--eval-command=p fork'])
             os.chdir('..')
 
     # gzip runs much faster with -1
@@ -67,11 +78,11 @@ DO LANGUAGE plpythonu $$
     assert os.path.exists(packcore)
 
     # 'packcore --help' should return 0
-    subprocess.check_call([packcore, '--help'])
-    subprocess.check_call([packcore, '-h'])
+    check_call([packcore, '--help'])
+    check_call([packcore, '-h'])
 
     # 'packcore --version' should return 0
-    subprocess.check_call([packcore, '--version'])
+    check_call([packcore, '--version'])
 
     cores = glob.glob('/tmp/core.*')
     if not cores:
