@@ -1913,8 +1913,13 @@ RecordTransactionAbort(bool isSubXact)
 	 * we had already decided that we are going to commit this transaction and
 	 * wrote a commit record for it, there's no turning back. The Distributed
 	 * Transaction Manager will take care of completing the transaction for us.
+	 *
+	 * If the distributed transaction has started rolling back, it means we already
+	 * wrote the abort record, skip it. 
 	 */
-	if (isQEReader || getCurrentDtxState() == DTX_STATE_NOTIFYING_COMMIT_PREPARED)
+	if (isQEReader ||
+		getCurrentDtxState() == DTX_STATE_NOTIFYING_COMMIT_PREPARED ||
+		CurrentDtxIsRollingback())
 		xid = InvalidTransactionId;
 	else
 		xid = GetCurrentTransactionIdIfAny();

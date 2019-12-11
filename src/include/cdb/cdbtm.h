@@ -342,6 +342,7 @@ extern void markCurrentGxactWriterGangLost(void);
 extern bool currentGxactWriterGangLost(void);
 
 extern void addToGxactTwophaseSegments(struct Gang* gp);
+extern bool CurrentDtxIsRollingback(void);
 
 extern void DtxRecoveryMain(Datum main_arg);
 extern bool DtxRecoveryStartRule(Datum main_arg);

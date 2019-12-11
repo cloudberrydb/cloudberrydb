@@ -589,15 +589,9 @@ doNotifyingCommitPrepared(void)
 		 * or any failed segment instances must be marked INVALID.
 		 */
 		elog(NOTICE, "Releasing segworker group to retry broadcast.");
-		DisconnectAndDestroyAllGangs(true);
+		ResetAllGangs();
 
-		/*
-		 * This call will at a minimum change the session id so we will not
-		 * have SharedSnapshotAdd colissions.
-		 */
-		CheckForResetSession();
 		savedInterruptHoldoffCount = InterruptHoldoffCount;
-
 		PG_TRY();
 		{
 			succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED, true);
@@ -660,16 +654,10 @@ retryAbortPrepared(void)
 			 */
 			pg_usleep(DTX_PHASE2_SLEEP_TIME_BETWEEN_RETRIES_MSECS * 1000);
 		}
-		DisconnectAndDestroyAllGangs(true);
 
-		/*
-		 * This call will at a minimum change the session id so we will not
-		 * have SharedSnapshotAdd colissions.
-		 */
-		CheckForResetSession();
+		ResetAllGangs();
 
 		savedInterruptHoldoffCount = InterruptHoldoffCount;
-
 		PG_TRY();
 		{
 			MyTmGxactLocal->twophaseSegments = cdbcomponent_getCdbComponentsList();
@@ -724,41 +712,25 @@ doNotifyingAbort(void)
 		 * occur before the command is actually dispatched, no need to dispatch DTX for
 		 * such cases.
 		 */ 
-		if (!MyTmGxactLocal->writerGangLost && MyTmGxactLocal->twophaseSegments)
+		succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, false);
+		if (!succeeded)
 		{
-			succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, false);
+			ereport(WARNING,
+					(errmsg("The distributed transaction 'Abort' broadcast failed to one or more segments"),
+					 TM_ERRDETAIL));
 
-			if (!succeeded)
-			{
-				ereport(WARNING,
-						(errmsg("The distributed transaction 'Abort' broadcast failed to one or more segments"),
-						TM_ERRDETAIL));
-
-				/*
-				 * Reset the dispatch logic and disconnect from any segment
-				 * that didn't respond to our abort.
-				 */
-				elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-				DisconnectAndDestroyAllGangs(true);
-
-				/*
-				 * This call will at a minimum change the session id so we
-				 * will not have SharedSnapshotAdd colissions.
-				 */
-				CheckForResetSession();
-			}
-			else
-			{
-				ereport(DTM_DEBUG5,
-						(errmsg("The distributed transaction 'Abort' broadcast succeeded to all the segments"),
-						TM_ERRDETAIL));
-			}
+			/*
+			 * Reset the dispatch logic and disconnect from any segment
+			 * that didn't respond to our abort.
+			 */
+			elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
+			ResetAllGangs();
 		}
 		else
 		{
 			ereport(DTM_DEBUG5,
-					(errmsg("The distributed transaction 'Abort' broadcast was omitted (segworker group already dead)"),
-					TM_ERRDETAIL));
+					(errmsg("The distributed transaction 'Abort' broadcast succeeded to all the segments"),
+					 TM_ERRDETAIL));
 		}
 	}
 	else
@@ -812,11 +784,7 @@ doNotifyingAbort(void)
 	}
 
 	SIMPLE_FAULT_INJECTOR("dtm_broadcast_abort_prepared");
-
-	Assert(MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED ||
-			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
-			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED ||
-			MyTmGxactLocal->state == DTX_STATE_RETRY_ABORT_PREPARED);
+	Assert(CurrentDtxIsRollingback());
 }
 
 /*
@@ -894,6 +862,15 @@ rollbackDtxTransaction(void)
 	switch (MyTmGxactLocal->state)
 	{
 		case DTX_STATE_ACTIVE_DISTRIBUTED:
+		case DTX_STATE_ONE_PHASE_COMMIT:
+		case DTX_STATE_PERFORMING_ONE_PHASE_COMMIT:
+			if (!MyTmGxactLocal->twophaseSegments || currentGxactWriterGangLost())
+			{
+				ereport(DTM_DEBUG5,
+						(errmsg("The distributed transaction 'Abort' broadcast was omitted (segworker group already dead)"),
+						 TM_ERRDETAIL));
+				return;
+			}
 			setCurrentDtxState(DTX_STATE_NOTIFYING_ABORT_NO_PREPARED);
 			break;
 
@@ -917,27 +894,15 @@ rollbackDtxTransaction(void)
 			setCurrentDtxState(DTX_STATE_NOTIFYING_ABORT_PREPARED);
 			break;
 
-		case DTX_STATE_ONE_PHASE_COMMIT:
-		case DTX_STATE_PERFORMING_ONE_PHASE_COMMIT:
-			setCurrentDtxState(DTX_STATE_NOTIFYING_ABORT_NO_PREPARED);
-			break;
 
 		case DTX_STATE_NOTIFYING_ABORT_NO_PREPARED:
-
 			/*
 			 * By deallocating the gang, we will force a new gang to connect
 			 * to all the segment instances.  And, we will abort the
 			 * transactions in the segments.
 			 */
 			elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-			DisconnectAndDestroyAllGangs(true);
-
-			/*
-			 * This call will at a minimum change the session id so we will
-			 * not have SharedSnapshotAdd colissions.
-			 */
-			CheckForResetSession();
-
+			ResetAllGangs();
 			return;
 
 		case DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED:
@@ -996,14 +961,7 @@ rollbackDtxTransaction(void)
 		 * all the segment instances.  And, we will abort the transactions in
 		 * the segments.
 		 */
-		DisconnectAndDestroyAllGangs(true);
-
-		/*
-		 * This call will at a minimum change the session id so we will not
-		 * have SharedSnapshotAdd colissions.
-		 */
-		CheckForResetSession();
-
+		ResetAllGangs();
 		return;
 	}
 
@@ -2308,4 +2266,13 @@ addToGxactTwophaseSegments(Gang *gang)
 			lappend_int(MyTmGxactLocal->twophaseSegments, segindex);
 	}
 	MemoryContextSwitchTo(oldContext);
+}
+
+bool
+CurrentDtxIsRollingback(void)
+{
+	return (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED ||
+			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
+			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED ||
+			MyTmGxactLocal->state == DTX_STATE_RETRY_ABORT_PREPARED);
 }

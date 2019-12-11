@@ -861,3 +861,10 @@ RecycleGang(Gang *gp, bool forceDestroy)
 		cdbcomponent_recycleIdleQE(segdbDesc, forceDestroy);
 	}
 }
+
+void
+ResetAllGangs(void)
+{
+	DisconnectAndDestroyAllGangs(true);
+	CheckForResetSession();
+}
