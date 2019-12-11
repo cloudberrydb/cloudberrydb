@@ -491,11 +491,12 @@ AppendOnlyStorageWrite_FlushAndCloseFile(
 							   storageWrite->needsWAL);
 
 	/*
-	 * We must take care of fsynching to disk ourselves since the fd API won't
-	 * do it for us.
+	 * We must take care of fsynching to disk ourselves since a fsync request
+	 * is not enqueued for an AO segment file that is written to disk on
+	 * primary.  Temp tables are not crash safe, no need to fsync them.
 	 */
-
-	if (FileSync(storageWrite->file) != 0)
+	if (!RelFileNodeBackendIsTemp(storageWrite->relFileNode) &&
+		FileSync(storageWrite->file) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("Could not flush (fsync) Append-Only segment file '%s' to disk for relation '%s': %m",
