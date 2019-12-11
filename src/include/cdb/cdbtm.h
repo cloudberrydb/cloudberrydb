@@ -230,8 +230,6 @@ typedef struct TMGXACTLOCAL
 	/* Used on QE, indicates the transaction applies one-phase commit protocol */
 	bool						isOnePhaseCommit;
 
-	bool						badPrepareGangs;
-
 	bool						writerGangLost;
 
 	Bitmapset					*twophaseSegmentsMap;
@@ -334,7 +332,7 @@ extern void UtilityModeCloseDtmRedoFile(void);
 extern bool currentDtxDispatchProtocolCommand(DtxProtocolCommand dtxProtocolCommand, bool raiseError);
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
 extern bool doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, char *gid,
-							 bool *badGangs, bool raiseError, List *twophaseSegments,
+							 bool raiseError, List *twophaseSegments,
 							 char *serializedDtxContextInfo, int serializedDtxContextInfoLen);
 
 extern void markCurrentGxactWriterGangLost(void);

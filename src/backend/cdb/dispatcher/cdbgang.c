@@ -817,7 +817,7 @@ gangTypeToString(GangType type)
 bool
 GangOK(Gang *gp)
 {
-	int			i;
+	int i;
 
 	if (gp == NULL)
 		return false;

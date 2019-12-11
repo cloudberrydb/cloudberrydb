@@ -404,7 +404,7 @@ doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType)
 	dtxFormGID(gid, getDistributedTransactionTimestamp(), getDistributedTransactionId());
 	succeeded = doDispatchDtxProtocolCommand(cmdType,
 											 gid,
-											 NULL, /* raiseError */ true,
+											 /* raiseError */ true,
 											 cdbcomponent_getCdbComponentsList(),
 											 serializedDtxContextInfo, serializedDtxContextInfoLen);
 
@@ -450,9 +450,6 @@ doPrepareTransaction(void)
 
 	if (!succeeded)
 	{
-		elog(DTM_DEBUG5, "doPrepareTransaction error finds badPrimaryGangs = %s",
-			 (MyTmGxactLocal->badPrepareGangs ? "true" : "false"));
-
 		ereport(ERROR,
 				(errmsg("The distributed transaction 'Prepare' broadcast failed to one or more segments"),
 				TM_ERRDETAIL));
@@ -701,86 +698,93 @@ doNotifyingAbort(void)
 
 	elog(DTM_DEBUG5, "doNotifyingAborted entering in state = %s", DtxStateToString(MyTmGxactLocal->state));
 
-	Assert(MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED ||
-			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
-			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED);
-
-	if (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED)
+	switch (MyTmGxactLocal->state)
 	{
-		/*
-		 * In some cases, dtmPreCommand said two phase commit is needed, but some errors
-		 * occur before the command is actually dispatched, no need to dispatch DTX for
-		 * such cases.
-		 */ 
-		succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, false);
-		if (!succeeded)
-		{
-			ereport(WARNING,
-					(errmsg("The distributed transaction 'Abort' broadcast failed to one or more segments"),
-					 TM_ERRDETAIL));
+		case DTX_STATE_NOTIFYING_ABORT_NO_PREPARED:
+			{
+				/*
+				 * In some cases, dtmPreCommand said two phase commit is needed, but some errors
+				 * occur before the command is actually dispatched, no need to dispatch DTX for
+				 * such cases.
+				 */ 
+				succeeded = currentDtxDispatchProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, false);
+				if (!succeeded)
+				{
+					ereport(WARNING,
+							(errmsg("The distributed transaction 'Abort' broadcast failed to one or more segments"),
+							 TM_ERRDETAIL));
 
-			/*
-			 * Reset the dispatch logic and disconnect from any segment
-			 * that didn't respond to our abort.
-			 */
-			elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-			ResetAllGangs();
-		}
-		else
-		{
-			ereport(DTM_DEBUG5,
-					(errmsg("The distributed transaction 'Abort' broadcast succeeded to all the segments"),
-					 TM_ERRDETAIL));
-		}
-	}
-	else
-	{
-		DtxProtocolCommand dtxProtocolCommand;
-		char	   *abortString;
+					/*
+					 * Reset the dispatch logic and disconnect from any segment
+					 * that didn't respond to our abort.
+					 */
+					elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
+					ResetAllGangs();
+				}
+				else
+				{
+					ereport(DTM_DEBUG5,
+							(errmsg("The distributed transaction 'Abort' broadcast succeeded to all the segments"),
+							 TM_ERRDETAIL));
+				}
 
-		Assert(MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
-				MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED);
+				break;
+			}
 
-		if (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED)
-		{
-			dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED;
-			abortString = "Abort [Prepared]";
-		}
-		else
-		{
-			dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_PREPARED;
-			abortString = "Abort Prepared";
-		}
+		case DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED:
+		case DTX_STATE_NOTIFYING_ABORT_PREPARED:
+			{
+				DtxProtocolCommand dtxProtocolCommand;
+				char	   *abortString;
 
-		savedInterruptHoldoffCount = InterruptHoldoffCount;
+				if (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED)
+				{
+					dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED;
+					abortString = "Abort [Prepared]";
+				}
+				else
+				{
+					dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_PREPARED;
+					abortString = "Abort Prepared";
+				}
 
-		PG_TRY();
-		{
-			succeeded = currentDtxDispatchProtocolCommand(dtxProtocolCommand, true);
-		}
-		PG_CATCH();
-		{
-			/*
-			 * restore the previous value, which is reset to 0 in errfinish.
-			 */
-			MemoryContextSwitchTo(oldcontext);
-			InterruptHoldoffCount = savedInterruptHoldoffCount;
-			succeeded = false;
-			FlushErrorState();
-		}
-		PG_END_TRY();
+				savedInterruptHoldoffCount = InterruptHoldoffCount;
 
-		if (!succeeded)
-		{
-			ereport(WARNING,
-					(errmsg("the distributed transaction broadcast failed "
-							"to one or more segments"),
-					TM_ERRDETAIL));
+				PG_TRY();
+				{
+					succeeded = currentDtxDispatchProtocolCommand(dtxProtocolCommand, true);
+				}
+				PG_CATCH();
+				{
+					/*
+					 * restore the previous value, which is reset to 0 in errfinish.
+					 */
+					MemoryContextSwitchTo(oldcontext);
+					InterruptHoldoffCount = savedInterruptHoldoffCount;
+					succeeded = false;
+					FlushErrorState();
+				}
+				PG_END_TRY();
 
-			setCurrentDtxState(DTX_STATE_RETRY_ABORT_PREPARED);
-			setDistributedTransactionContext(DTX_CONTEXT_QD_RETRY_PHASE_2);
+				if (succeeded)
+					break;
+
+				ereport(WARNING,
+						(errmsg("the distributed transaction broadcast failed "
+								"to one or more segments"),
+						 TM_ERRDETAIL));
+
+				setCurrentDtxState(DTX_STATE_RETRY_ABORT_PREPARED);
+				setDistributedTransactionContext(DTX_CONTEXT_QD_RETRY_PHASE_2);
+			}
+			/* FALL THRU */
+
+		case DTX_STATE_RETRY_ABORT_PREPARED:
 			retryAbortPrepared();
-		}
+			break;
+
+		default:
+			elog(PANIC, "Unexpected Dtx state: %s", DtxStateToString(MyTmGxactLocal->state));
 	}
 
 	SIMPLE_FAULT_INJECTOR("dtm_broadcast_abort_prepared");
@@ -875,19 +879,17 @@ rollbackDtxTransaction(void)
 			break;
 
 		case DTX_STATE_PREPARING:
-			if (MyTmGxactLocal->badPrepareGangs)
-			{
+			/*
+			 * The writer gang is detected broken during preparing, then it has been destroyed
+			 * in AtAbort_DispatcherState(). In this way, we will create a new writer gang to
+			 * do the rollback. As this new writer gang is in DTX_CONTEXT_LOCAL_ONLY context,
+			 * we need to dispatch DTX_STATE_RETRY_ABORT_PREPARED command instead of
+			 * DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED.
+			 */
+			if (currentGxactWriterGangLost())
 				setCurrentDtxState(DTX_STATE_RETRY_ABORT_PREPARED);
-
-				/*
-				 * DisconnectAndDestroyAllGangs and ResetSession happens
-				 * inside retryAbortPrepared.
-				 */
-				retryAbortPrepared();
-				clearAndResetGxact();
-				return;
-			}
-			setCurrentDtxState(DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED);
+			else
+				setCurrentDtxState(DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED);
 			break;
 
 		case DTX_STATE_PREPARED:
@@ -932,6 +934,7 @@ rollbackDtxTransaction(void)
 
 	Assert(MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED ||
 			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
+			MyTmGxactLocal->state == DTX_STATE_RETRY_ABORT_PREPARED ||
 			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED);
 
 	/*
@@ -947,6 +950,7 @@ rollbackDtxTransaction(void)
 		 * prepared transactions...
 		 */
 		if (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED ||
+			MyTmGxactLocal->state == DTX_STATE_RETRY_ABORT_PREPARED ||
 			MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_PREPARED)
 		{
 			ereport(FATAL,
@@ -1126,17 +1130,16 @@ bool
 currentDtxDispatchProtocolCommand(DtxProtocolCommand dtxProtocolCommand, bool raiseError)
 {
 	char gid[TMGIDSIZE];
-	bool *badgang = (MyTmGxactLocal->state == DTX_STATE_PREPARING) ? &MyTmGxactLocal->badPrepareGangs : NULL;
 
 	dtxFormGID(gid, getDistributedTransactionTimestamp(), getDistributedTransactionId());
-	return doDispatchDtxProtocolCommand(dtxProtocolCommand, gid, badgang, raiseError,
+	return doDispatchDtxProtocolCommand(dtxProtocolCommand, gid, raiseError,
 										MyTmGxactLocal->twophaseSegments, NULL, 0);
 }
 
 bool
 doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 							 char *gid,
-							 bool *badGangs, bool raiseError,
+							 bool raiseError,
 							 List *twophaseSegments,
 							 char *serializedDtxContextInfo,
 							 int serializedDtxContextInfoLen)
@@ -1168,7 +1171,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	results = CdbDispatchDtxProtocolCommand(dtxProtocolCommand,
 											dtxProtocolCommandStr,
 											gid,
-											&qeError, &resultCount, badGangs, twophaseSegments,
+											&qeError, &resultCount, twophaseSegments,
 											serializedDtxContextInfo, serializedDtxContextInfoLen);
 
 	if (qeError)
@@ -1314,7 +1317,6 @@ resetGxact(void)
 	MyTmGxact->sessionId = 0;
 
 	MyTmGxactLocal->explicitBeginRemembered = false;
-	MyTmGxactLocal->badPrepareGangs = false;
 	MyTmGxactLocal->writerGangLost = false;
 	MyTmGxactLocal->twophaseSegmentsMap = NULL;
 	MyTmGxactLocal->twophaseSegments = NIL;
