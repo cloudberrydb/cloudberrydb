@@ -206,7 +206,7 @@ static Const *string_to_bytea_const(const char *str, size_t str_len);
 static List *add_predicate_to_quals(IndexOptInfo *index, List *indexQuals);
 static void try_fetch_rel_stats(RangeTblEntry *rte, const char *attname,
 								VariableStatData* vardata);
-static void try_fetch_largest_child_stats(PlannerInfo *root, RelOptInfo *parent_rel,
+static void try_fetch_largest_child_stats(PlannerInfo *root, Index parent_rti,
 										  const char *attname, VariableStatData* vardata);
 
 /*
@@ -4424,30 +4424,46 @@ get_join_variables(PlannerInfo *root, List *args, SpecialJoinInfo *sjinfo,
  * Output: largest child partition. If there are no child partition because all of them have been eliminated, then
  *         returns NULL.
  */
-static RelOptInfo* largest_child_relation(PlannerInfo *root, RelOptInfo *rel)
+static RelOptInfo *
+largest_child_relation(PlannerInfo *root, Path *path, bool recursing)
 {
-	AppendPath *append_path = NULL;
-	ListCell *subpath_lc = NULL;
+	List	   *subpaths;
+	ListCell   *subpath_lc;
 	RelOptInfo *largest_child_in_subpath = NULL;
-	double max_rows = -1.0;
+	double		max_rows = -1.0;
 
-	Assert(IsA(rel->cheapest_total_path, AppendPath));
+	/* Guard against stack overflow due to overly complex inheritance trees */
+	check_stack_depth();
 
-	append_path = (AppendPath *) rel->cheapest_total_path;
+	while (IsA(path, ProjectionPath))
+		path = ((ProjectionPath *) path)->subpath;
 
-	foreach(subpath_lc, append_path->subpaths)
+	/*
+	 * Add the children of an Append or MergeAppend path to the list
+	 * of paths to process.
+	 */
+	if (IsA(path, AppendPath))
 	{
-		RelOptInfo *candidate_child = NULL;
-		Path *subpath = lfirst(subpath_lc);
-
-		if (IsA(subpath, AppendPath))
-		{
-			candidate_child = largest_child_relation(root, subpath->parent);
-		}
+		subpaths = ((AppendPath *) path)->subpaths;
+	}
+	else if (IsA(path, MergeAppendPath))
+	{
+		subpaths = ((MergeAppendPath *) path)->subpaths;
+	}
+	else
+	{
+		if (recursing)
+			return path->parent;
 		else
-		{
-			candidate_child = subpath->parent;
-		}
+			return NULL;
+	}
+
+	foreach(subpath_lc, subpaths)
+	{
+		Path	   *subpath = lfirst(subpath_lc);
+		RelOptInfo *candidate_child;
+
+		candidate_child = largest_child_relation(root, subpath, true);
 
 		if (candidate_child && candidate_child->rows > max_rows)
 		{
@@ -4816,20 +4832,6 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 
 		vardata->statsTuple = NULL;
 
-		/* GPDB_96_MERGE_FIXME: This was tripping an assertion in the select_distinct regression
-		 * test:
-		 *
-		 *
-		 * SELECT DISTINCT p.age FROM person* p ORDER BY age using >;
-		 * FATAL:  Unexpected internal error (selfuncs.c:4380)
-		 * DETAIL:  FailedAssertion("!(((((const Node*)(rel->cheapest_total_path))->type) == T_AppendPath))", File: "selfuncs.c", Line: 4380)
-		 *
-		 * Heikki: I don't quite understand why pulling the statistics from the largest partition
-		 * is a good idea in the first place. Maybe it seemed like a good idea in the past, but
-		 * we collect whole-table statistics these days, so maybe we should just remove this
-		 * feature?
-		 */
-#if 0
 		if (gp_statistics_pullup_from_child_partition)
 		{
 			/*
@@ -4837,13 +4839,12 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 			 * set false defaultly. If it is true, we always try
 			 * to use largest child's stat.
 			 */
-			try_fetch_largest_child_stats(root, rel, attname, vardata);
+			try_fetch_largest_child_stats(root, var->varno, attname, vardata);
 		}
 		else
-#endif
 		{
 			try_fetch_rel_stats(rte, attname, vardata);
-#if 0
+
 			if (vardata->statsTuple == NULL)
 			{
 				/*
@@ -4851,9 +4852,8 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 				 * try to use largest child partition's stat info
 				 * for the whole table.
 				 */
-				try_fetch_largest_child_stats(root, rel, attname, vardata);
+				try_fetch_largest_child_stats(root, var->varno, attname, vardata);
 			}
-#endif
 		}
 	}
 	else if (rte->rtekind == RTE_RELATION)
@@ -8091,15 +8091,18 @@ try_fetch_rel_stats(RangeTblEntry *rte, const char *attname, VariableStatData* v
 }
 
 static void
-try_fetch_largest_child_stats(PlannerInfo *root, RelOptInfo *parent_rel,
+try_fetch_largest_child_stats(PlannerInfo *root, Index parent_rti,
 							  const char *attname, VariableStatData* vardata)
 {
-	RelOptInfo *child_rel = NULL;
+	RelOptInfo *parent_rel;
+	RelOptInfo *child_rel;
+
+	parent_rel = find_base_rel(root, parent_rti);
 
 	if (parent_rel->cheapest_total_path == NULL)
 		return;
 
-	child_rel = largest_child_relation(root, parent_rel);
+	child_rel = largest_child_relation(root, parent_rel->cheapest_total_path, false);
 	if (child_rel)
 	{
 		RangeTblEntry *child_rte = NULL;
