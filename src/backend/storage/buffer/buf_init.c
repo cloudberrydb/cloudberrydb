@@ -98,7 +98,6 @@ ProtectMemoryPoolBuffers()
 void
 InitBufferPool(void)
 {
-    Size bufferBlocksTotalSize = mul_size((Size)NBuffers, (Size) BLCKSZ);
 	bool		foundBufs,
 				foundDescs,
 				foundIOLocks,
@@ -112,10 +111,7 @@ InitBufferPool(void)
 
 	BufferBlocks = (char *)
 		ShmemInitStruct("Buffer Blocks",
-						bufferBlocksTotalSize, &foundBufs);
-
-	/* GPDB: Init the buffer memory to something to help check for bugs */
-	memset(BufferBlocks,0xFE,bufferBlocksTotalSize);
+						NBuffers * (Size) BLCKSZ, &foundBufs);
 
 	/* Align lwlocks to cacheline boundary */
 	BufferIOLWLockArray = (LWLockMinimallyPadded *)
