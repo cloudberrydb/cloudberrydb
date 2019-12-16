@@ -235,7 +235,6 @@ ExecInitSplitUpdate(SplitUpdate *node, EState *estate, int eflags)
 	bool    has_oids = false;
 
 	SplitUpdateState *splitupdatestate;
-	int			numsegments;
 
 	splitupdatestate = makeNode(SplitUpdateState);
 	splitupdatestate->ps.plan = (Plan *)node;
@@ -282,26 +281,9 @@ ExecInitSplitUpdate(SplitUpdate *node, EState *estate, int eflags)
 	 */
 	if (node->numHashAttrs > 0)
 	{
-		if (estate->es_plannedstmt->planGen == PLANGEN_PLANNER)
-		{
-			Assert(node->plan.flow);
-			Assert(node->plan.flow->numsegments > 0);
-
-			/*
-			 * For planner generated plan the size of receiver slice can be
-			 * determined from flow.
-			 */
-			numsegments = node->plan.flow->numsegments;
-		}
-		else
-		{
-			/*
-			 * For ORCA generated plan we could distribute to ALL as partially
-			 * distributed tables are not supported by ORCA yet.
-			 */
-			numsegments = getgpsegmentCount();
-		}
-		splitupdatestate->cdbhash = makeCdbHash(numsegments, node->numHashAttrs, node->hashFuncs);
+		splitupdatestate->cdbhash = makeCdbHash(node->numHashSegments,
+												node->numHashAttrs,
+												node->hashFuncs);
 	}
 
 	if (estate->es_instrument && (estate->es_instrument & INSTRUMENT_CDB))

@@ -35,7 +35,8 @@ extern Motion *make_broadcast_motion(Plan *lefttree,
 
 extern Plan *make_explicit_motion(PlannerInfo *root,
 								  Plan *lefttree,
-								  AttrNumber segidColIdx);
+								  AttrNumber segidColIdx,
+								  int numsegments);
 
 void 
 cdbmutate_warn_ctid_without_segid(struct PlannerInfo *root, struct RelOptInfo *rel);

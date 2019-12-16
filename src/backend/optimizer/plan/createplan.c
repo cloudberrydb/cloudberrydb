@@ -2630,10 +2630,7 @@ create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path)
 	splitupdate->hashAttnos = palloc(cdbpolicy->nattrs * sizeof(AttrNumber));
 	memcpy(splitupdate->hashAttnos, cdbpolicy->attrs, cdbpolicy->nattrs * sizeof(AttrNumber));
 	splitupdate->hashFuncs = hashFuncs;
-	splitupdate->plan.flow = makeFlow(FLOW_PARTITIONED, cdbpolicy->numsegments);
-
-	/* XXX: strewn is good enough */
-	splitupdate->plan.flow->locustype = CdbLocusType_Strewn;
+	splitupdate->numHashSegments = cdbpolicy->numsegments;
 
 	relation_close(resultRel, NoLock);
 
@@ -8112,7 +8109,8 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 		segmentid_tle = find_junk_tle(subplan->targetlist, "gp_segment_id");
 		if (!segmentid_tle)
 			elog(ERROR, "could not find gp_segment_id in subplan's targetlist");
-		motion = (Motion *) make_explicit_motion(root, subplan, segmentid_tle->resno);
+		motion = (Motion *) make_explicit_motion(root, subplan, segmentid_tle->resno,
+												 numsegments);
 	}
 	else if (path->policy)
 	{

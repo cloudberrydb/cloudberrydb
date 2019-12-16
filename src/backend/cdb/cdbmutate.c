@@ -605,19 +605,12 @@ make_broadcast_motion(Plan *lefttree, int numsegments)
 }
 
 Plan *
-make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx)
+make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx, int numsegments)
 {
 	Motion	   *motion;
-	int			numsegments;
 	plan_tree_base_prefix base;
 
 	base.node = (Node *) root;
-
-	/*
-	 * For explicit motion data come back to the source segments,
-	 * so numsegments is also the same with source.
-	 */
-	numsegments = lefttree->flow->numsegments;
 
 	Assert(numsegments > 0);
 	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());

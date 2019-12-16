@@ -1290,6 +1290,7 @@ _outSplitUpdate(StringInfo str, const SplitUpdate *node)
 	WRITE_NODE_FIELD(insertColIdx);
 	WRITE_NODE_FIELD(deleteColIdx);
 
+	WRITE_INT_FIELD(numHashSegments);
 	WRITE_INT_FIELD(numHashAttrs);
 #ifdef COMPILING_BINARY_FUNCS
 	WRITE_INT_ARRAY(hashAttnos, node->numHashAttrs, AttrNumber);

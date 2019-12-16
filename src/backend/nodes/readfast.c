@@ -1647,6 +1647,7 @@ _readSplitUpdate(void)
 	READ_NODE_FIELD(insertColIdx);
 	READ_NODE_FIELD(deleteColIdx);
 
+	READ_INT_FIELD(numHashSegments);
 	READ_INT_FIELD(numHashAttrs);
 	READ_ATTRNUMBER_ARRAY(hashAttnos, local_node->numHashAttrs);
 	READ_OID_ARRAY(hashFuncs, local_node->numHashAttrs);
