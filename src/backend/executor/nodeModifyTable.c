@@ -274,7 +274,7 @@ ExecCheckTIDVisible(EState *estate,
  *
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
+static TupleTableSlot *
 ExecInsert(ModifyTableState *mtstate,
 		   TupleTableSlot *parentslot,
 		   TupleTableSlot *planSlot,
@@ -282,7 +282,6 @@ ExecInsert(ModifyTableState *mtstate,
 		   OnConflictAction onconflict,
 		   EState *estate,
 		   bool canSetTag,
-		   PlanGenerator planGen,
 		   bool isUpdate,
 		   Oid	tupleOid)
 {
@@ -709,21 +708,32 @@ ExecInsert(ModifyTableState *mtstate,
  *		Returns RETURNING result if any, otherwise NULL.
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
+static TupleTableSlot *
 ExecDelete(ItemPointer tupleid,
+		   int32 segid,
 		   HeapTuple oldtuple,
 		   TupleTableSlot *planSlot,
 		   EPQState *epqstate,
 		   EState *estate,
 		   bool canSetTag,
-		   PlanGenerator planGen,
 		   bool isUpdate)
 {
+	PlanGenerator planGen = estate->es_plannedstmt->planGen;
 	ResultRelInfo *resultRelInfo;
 	Relation	resultRelationDesc;
 	HTSU_Result result;
 	HeapUpdateFailureData hufd;
 	TupleTableSlot *slot = NULL;
+
+	/*
+	 * Sanity check the distribution of the tuple to prevent
+	 * potential data corruption in case users manipulate data
+	 * incorrectly (e.g. insert data on incorrect segment through
+	 * utility mode) or there is bug in code, etc.
+	 */
+	if (segid != GpIdentity.segindex)
+		elog(ERROR, "distribution key of the tuple doesn't belong to "
+			 "current segment (actually from seg%d)", segid);
 
 	/*
 	 * get information on the (current) result relation
@@ -1280,7 +1290,7 @@ checkPartitionUpdate(EState *estate, TupleTableSlot *partslot,
  *		Returns RETURNING result if any, otherwise NULL.
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
+static TupleTableSlot *
 ExecUpdate(ItemPointer tupleid,
 		   HeapTuple oldtuple,
 		   TupleTableSlot *slot,
@@ -1836,6 +1846,7 @@ TupleTableSlot *
 ExecModifyTable(ModifyTableState *node)
 {
 	EState	   *estate = node->ps.state;
+	PlanGenerator planGen = estate->es_plannedstmt->planGen;
 	CmdType		operation = node->operation;
 	ResultRelInfo *saved_resultRelInfo;
 	ResultRelInfo *resultRelInfo;
@@ -2085,7 +2096,7 @@ ExecModifyTable(ModifyTableState *node)
 			case CMD_INSERT:
 				slot = ExecInsert(node, slot, planSlot,
 								node->mt_arbiterindexes, node->mt_onconflict,
-								  estate, node->canSetTag, PLANGEN_PLANNER,
+								  estate, node->canSetTag,
 								  false /* isUpdate */, InvalidOid /* tupleOid */);
 				break;
 			case CMD_UPDATE:
@@ -2098,43 +2109,24 @@ ExecModifyTable(ModifyTableState *node)
 				}
 				else if (DML_INSERT == action)
 				{
-					if (estate->es_result_partitions)
+					if (estate->es_result_partitions && planGen == PLANGEN_PLANNER)
 						checkPartitionUpdate(estate, slot, estate->es_result_relation_info);
 
 					slot = ExecInsert(node, slot, planSlot, node->mt_arbiterindexes,
 									  node->mt_onconflict, estate, node->canSetTag,
-									  PLANGEN_PLANNER, true /* isUpdate */, tupleoid);
+									  true /* isUpdate */, tupleoid);
 				}
 				else /* DML_DELETE */
 				{
-					/*
-					 * Sanity check the distribution of the tuple to prevent
-					 * potential data corruption in case users manipulate data
-					 * incorrectly (e.g. insert data on incorrect segment through
-					 * utility mode) or there is bug in code, etc.
-					 */
-					if (segid != GpIdentity.segindex)
-						elog(ERROR, "distribution key of the tuple doesn't belong to "
-							 "current segment (actually from seg%d)", segid);
-					slot = ExecDelete(tupleid, oldtuple, planSlot,
+					slot = ExecDelete(tupleid, segid, oldtuple, planSlot,
 									  &node->mt_epqstate, estate, false,
-									  PLANGEN_PLANNER, true /* isUpdate */);
+									  true /* isUpdate */);
 				}
 				break;
 			case CMD_DELETE:
-				/*
-				 * Sanity check the distribution of the tuple to prevent
-				 * potential data corruption in case users manipulate data
-				 * incorrectly (e.g. insert data on incorrect segment through
-				 * utility mode) or there is bug in code, etc.
-				 */
-				if (segid != GpIdentity.segindex)
-					elog(ERROR, "distribution key of the tuple doesn't belong to "
-						 "current segment (actually from seg%d)", segid);
-
-				slot = ExecDelete(tupleid, oldtuple, planSlot,
+				slot = ExecDelete(tupleid, segid, oldtuple, planSlot,
 								  &node->mt_epqstate, estate, node->canSetTag,
-								  PLANGEN_PLANNER, false /* isUpdate */);
+								  false /* isUpdate */);
 				break;
 			default:
 				elog(ERROR, "unknown operation");

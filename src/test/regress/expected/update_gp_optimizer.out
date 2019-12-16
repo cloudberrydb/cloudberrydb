@@ -125,21 +125,21 @@ EXPLAIN (COSTS OFF) UPDATE keo1 SET user_vie_act_cntr_marg_cum = 234.682 FROM
 WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                                                                                        QUERY PLAN                                                                                        
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Update
+ Update on keo1
    ->  Result
          ->  Explicit Redistribute Motion 3:3  (slice7; segments: 3)
                ->  Split
                      ->  Hash Join
-                           Hash Cond: ((keo1_1.user_vie_project_code_pk)::text = (keo2.projects_pk)::text)
+                           Hash Cond: ((keo1_2.user_vie_project_code_pk)::text = (keo2.projects_pk)::text)
                            ->  Hash Join
-                                 Hash Cond: ((keo1.user_vie_project_code_pk)::text = (keo1_1.user_vie_project_code_pk)::text)
-                                 ->  Seq Scan on keo1
+                                 Hash Cond: ((keo1_1.user_vie_project_code_pk)::text = (keo1_2.user_vie_project_code_pk)::text)
+                                 ->  Seq Scan on keo1 keo1_1
                                  ->  Hash
                                        ->  Broadcast Motion 1:3  (slice5; segments: 1)
                                              ->  Hash Join
-                                                   Hash Cond: ((keo1_1.user_vie_fiscal_year_period_sk)::text = (max((keo3.sky_per)::text)))
+                                                   Hash Cond: ((keo1_2.user_vie_fiscal_year_period_sk)::text = (max((keo3.sky_per)::text)))
                                                    ->  Gather Motion 3:1  (slice1; segments: 3)
-                                                         ->  Seq Scan on keo1 keo1_1
+                                                         ->  Seq Scan on keo1 keo1_2
                                                    ->  Hash
                                                          ->  Aggregate
                                                                ->  Hash Join
@@ -185,19 +185,19 @@ INSERT INTO keo5 VALUES (1,1);
 EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS (SELECT x FROM keo5 WHERE x < 2));
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Delete
+ Delete on keo5
    ->  Hash Semi Join
-         Hash Cond: (keo5.x = keo5_2.x)
-         ->  Seq Scan on keo5
+         Hash Cond: (keo5_1.x = keo5_3.x)
+         ->  Seq Scan on keo5 keo5_1
          ->  Hash
                ->  Nested Loop Semi Join
                      Join Filter: true
-                     ->  Seq Scan on keo5 keo5_2
+                     ->  Seq Scan on keo5 keo5_3
                      ->  Materialize
                            ->  Broadcast Motion 1:3  (slice2; segments: 1)
                                  ->  Limit
                                        ->  Gather Motion 3:1  (slice1; segments: 3)
-                                             ->  Seq Scan on keo5 keo5_1
+                                             ->  Seq Scan on keo5 keo5_2
                                                    Filter: (x < 2)
  Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
 (15 rows)
@@ -498,7 +498,7 @@ create table nosplitupdate (a int) distributed by (a);
 explain update nosplitupdate set a=0 where a=1 and a<1;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Update  (cost=0.00..0.00 rows=0 width=1)
+ Update on nosplitupdate  (cost=0.00..0.00 rows=0 width=1)
    ->  Result  (cost=0.00..0.00 rows=0 width=22)
          ->  Result  (cost=0.00..0.00 rows=0 width=18)
                ->  Split  (cost=0.00..0.00 rows=0 width=18)

@@ -1617,24 +1617,6 @@ _readMotion(void)
 }
 
 /*
- * _readDML
- */
-static DML *
-_readDML(void)
-{
-	READ_LOCALS(DML);
-
-	READ_UINT_FIELD(scanrelid);
-	READ_INT_FIELD(actionColIdx);
-	READ_INT_FIELD(ctidColIdx);
-	READ_INT_FIELD(tupleoidColIdx);
-
-	ReadCommonPlan(&local_node->plan);
-
-	READ_DONE();
-}
-
-/*
  * _readSplitUpdate
  */
 static SplitUpdate *
@@ -2477,9 +2459,6 @@ readNodeBinary(void)
 				break;
 			case T_Motion:
 				return_value = _readMotion();
-				break;
-			case T_DML:
-				return_value = _readDML();
 				break;
 			case T_SplitUpdate:
 				return_value = _readSplitUpdate();

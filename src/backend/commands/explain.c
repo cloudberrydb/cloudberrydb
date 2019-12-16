@@ -1494,26 +1494,6 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				pname = psprintf("%s %d:%d", sname, motion_snd, motion_recv);
 			}
 			break;
-		case T_DML:
-			{
-				sname = "DML";
-				switch (es->pstmt->commandType)
-				{
-					case CMD_INSERT:
-						pname = operation = "Insert";
-						break;
-					case CMD_DELETE:
-						pname = operation = "Delete";
-						break;
-					case CMD_UPDATE:
-						pname = operation = "Update";
-						break;
-					default:
-						pname = operation = "DML ???";
-						break;
-				}
-			}
-			break;
 		case T_SplitUpdate:
 			pname = sname = "Split";
 			break;

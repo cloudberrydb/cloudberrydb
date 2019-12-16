@@ -269,16 +269,18 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
  <explain xmlns="http://www.postgresql.org/2009/explain">              +
    <Query>                                                             +
      <Plan>                                                            +
-       <Node-Type>DML</Node-Type>                                      +
+       <Node-Type>ModifyTable</Node-Type>                              +
        <Operation>Insert</Operation>                                   +
        <Slice>0</Slice>                                                +
        <Segments>1</Segments>                                          +
        <Gang-Type>primary writer</Gang-Type>                           +
        <Parallel-Aware>false</Parallel-Aware>                          +
+       <Relation-Name>dummy_aotab</Relation-Name>                      +
+       <Alias>dummy_aotab</Alias>                                      +
        <Plans>                                                         +
          <Plan>                                                        +
            <Node-Type>Result</Node-Type>                               +
-           <Parent-Relationship>Outer</Parent-Relationship>            +
+           <Parent-Relationship>Member</Parent-Relationship>           +
            <Slice>0</Slice>                                            +
            <Segments>1</Segments>                                      +
            <Gang-Type>primary writer</Gang-Type>                       +

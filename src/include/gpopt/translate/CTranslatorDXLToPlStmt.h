@@ -614,13 +614,13 @@ namespace gpdxl
 			// check if the given operator is a DML operator on a distributed table
 			BOOL IsTgtTblDistributed(CDXLOperator *dxlop);
 
-			// add a target entry for the given colid to the given target list
-			ULONG AddTargetEntryForColId
+			// add a target entry for a junk column with given colid to the target list
+			void AddJunkTargetEntryForColId
 				(
 				List **target_list, 
 				CDXLTranslateContext *dxl_translate_ctxt, 
 				ULONG colid, 
-				BOOL is_resjunk
+				const char *resname
 				);
 			
 			// translate the index condition list in an Index scan

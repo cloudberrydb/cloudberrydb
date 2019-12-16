@@ -42,7 +42,6 @@ OBJS += nodeExternalscan.o \
        nodeRowTrigger.o \
        nodeAssertOp.o \
        nodeSplitUpdate.o \
-       nodeDML.o \
        execDML.o \
        nodePartitionSelector.o \
        execDynamicScan.o \

@@ -3716,8 +3716,8 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 	// translate table descriptor into a range table entry
 	CDXLPhysicalDML *phy_dml_dxlop = CDXLPhysicalDML::Cast(dml_dxlnode->GetOperator());
 
-	// create DML node
-	DML *dml = MakeNode(DML);
+	// create ModifyTable node
+	ModifyTable *dml = MakeNode(ModifyTable);
 	Plan *plan = &(dml->plan);
 	AclMode acl_mode = ACL_NO_RIGHTS;
 	
@@ -3761,7 +3761,6 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 
 	// add the new range table entry as the last element of the range table
 	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
-	dml->scanrelid = index;
 	
 	m_result_rel_list = gpdb::LAppendInt(m_result_rel_list, index);
 
@@ -3791,42 +3790,63 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 		child_contexts,
 		output_context
 		);
-	
-	if (md_rel->HasDroppedColumns())
-	{
-		// pad DML target list with NULLs for dropped columns for all DML operator types
-		List *target_list_with_dropped_cols = CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel);
-		gpdb::GPDBFree(dml_target_list);
-		dml_target_list = target_list_with_dropped_cols;
-	}
 
-	// Extract column numbers of the action and ctid columns from the
-	// target list. ORCA also includes a third similar column for
-	// partition Oid to the target list, but we don't use it for anything
-	// in GPDB.
-	dml->actionColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->ActionColId(), true /*is_resjunk*/);
-	dml->ctidColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetCtIdColId(), true /*is_resjunk*/);
-	if (phy_dml_dxlop->IsOidsPreserved())
-	{
-		dml->tupleoidColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetTupleOid(), true /*is_resjunk*/);
-	}
-	else
-	{
-		dml->tupleoidColIdx = 0;
-	}
+	// pad child plan's target list with NULLs for dropped columns for all DML operator types
+	List *target_list_with_dropped_cols = CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel);
+	dml_target_list = target_list_with_dropped_cols;
 
-	GPOS_ASSERT(0 != dml->actionColIdx);
+	// Add junk columns to the target list for the 'action', 'ctid',
+	// 'gp_segment_id', and tuple's 'oid'. The ModifyTable node will find
+	// these based on the resnames. ORCA also includes a similar column for
+	// partition Oid in the child's target list, but we don't use it for
+	// anything in GPDB.
+	if (m_cmd_type == CMD_UPDATE)
+		(void) AddJunkTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->ActionColId(), "DMLAction");
 
-	plan->targetlist = dml_target_list;
-	
-	plan->lefttree = child_plan;
+	if (m_cmd_type == CMD_UPDATE || m_cmd_type == CMD_DELETE)
+	{
+		AddJunkTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetCtIdColId(), "ctid");
+		AddJunkTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetSegmentIdColId(), "gp_segment_id");
+	}
+	if (m_cmd_type == CMD_UPDATE && phy_dml_dxlop->IsOidsPreserved())
+		AddJunkTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetTupleOid(), "oid");
+
+	// Add a Result node on top of the child plan, to coerce the target
+	// list to match the exact physical layout of the target table,
+	// including dropped columns.  Often, the Result node isn't really
+	// needed, as the child node could do the projection, but we don't have
+	// the information to determine that here. There's a step in the
+	// backend optimize_query() function to eliminate unnecessary Results
+	// throught the plan, hopefully this Result gets eliminated there.
+	Result *result = MakeNode(Result);
+	Plan *result_plan = &(result->plan);
+
+	result_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	result_plan->lefttree = child_plan;
+
+	result_plan->targetlist = target_list_with_dropped_cols;
+	SetParamIds(result_plan);
+
+	child_plan = (Plan *) result;
+
+	dml->operation = m_cmd_type;
+	dml->canSetTag = true; // FIXME
+	dml->nominalRelation = index;
+	dml->resultRelations = ListMake1Int(index);
+	dml->resultRelIndex = list_length(m_result_rel_list) - 1;
+	dml->plans = ListMake1(child_plan);
+
+	// ORCA plans all updates as split updates
+	if (m_cmd_type == CMD_UPDATE)
+		dml->isSplitUpdates = ListMake1Int((int) true);
+
+	plan->targetlist = NIL;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	
+
 	SetParamIds(plan);
 
 	// cleanup
 	child_contexts->Release();
-
 
 	// translate operator costs
 	TranslatePlanCosts
@@ -4847,20 +4867,19 @@ CTranslatorDXLToPlStmt::IsTgtTblDistributed
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::IAddTargetEntryForColId
+//		CTranslatorDXLToPlStmt::AddJunkTargetEntryForColId
 //
 //	@doc:
-//		Add a new target entry for the given colid to the given target list and
-//		return the position of the new entry
+//		Add a new target entry for the given colid to the given target list
 //
 //---------------------------------------------------------------------------
-ULONG
-CTranslatorDXLToPlStmt::AddTargetEntryForColId
+void
+CTranslatorDXLToPlStmt::AddJunkTargetEntryForColId
 	(
 	List **target_list,
 	CDXLTranslateContext *dxl_translate_ctxt,
 	ULONG colid,
-	BOOL is_resjunk
+	const char *resname
 	)
 {
 	GPOS_ASSERT(NULL != target_list);
@@ -4870,7 +4889,7 @@ CTranslatorDXLToPlStmt::AddTargetEntryForColId
 	if (NULL == target_entry)
 	{
 		// colid not found in translate context
-		return 0;
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, colid);
 	}
 	
 	// TODO: Oct 29, 2012; see if entry already exists in the target list
@@ -4886,11 +4905,10 @@ CTranslatorDXLToPlStmt::AddTargetEntryForColId
 						0	// varlevelsup
 						);
 	ULONG resno = gpdb::ListLength(*target_list) + 1;
-	CHAR *resname_str = PStrDup(target_entry->resname);
-	TargetEntry *te_new = gpdb::MakeTargetEntry((Expr*) var, resno, resname_str, is_resjunk);
+	CHAR *resname_str = PStrDup(resname);
+	TargetEntry *te_new = gpdb::MakeTargetEntry((Expr *) var, resno,
+						    resname_str, true /* resjunk */);
 	*target_list = gpdb::LAppend(*target_list, te_new);
-	
-	return target_entry->resno;
 }
 
 //---------------------------------------------------------------------------

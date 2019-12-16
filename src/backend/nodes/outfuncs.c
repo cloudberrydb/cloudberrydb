@@ -1261,22 +1261,6 @@ _outMotion(StringInfo str, const Motion *node)
 #endif /* COMPILING_BINARY_FUNCS */
 
 /*
- * _outDML
- */
-static void
-_outDML(StringInfo str, const DML *node)
-{
-	WRITE_NODE_TYPE("DML");
-
-	WRITE_UINT_FIELD(scanrelid);
-	WRITE_INT_FIELD(actionColIdx);
-	WRITE_INT_FIELD(ctidColIdx);
-	WRITE_INT_FIELD(tupleoidColIdx);
-
-	_outPlanInfo(str, (Plan *) node);
-}
-
-/*
  * _outSplitUpdate
  */
 static void
@@ -5391,9 +5375,6 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_Motion:
 				_outMotion(str, obj);
-				break;
-			case T_DML:
-				_outDML(str, obj);
 				break;
 			case T_SplitUpdate:
 				_outSplitUpdate(str, obj);

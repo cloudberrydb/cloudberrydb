@@ -141,7 +141,6 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_Repeat,
 	MEMORY_OWNER_TYPE_Exec_ModifyTable,
 	MEMORY_OWNER_TYPE_Exec_LockRows,
-	MEMORY_OWNER_TYPE_Exec_DML,
 	MEMORY_OWNER_TYPE_Exec_SplitUpdate,
 	MEMORY_OWNER_TYPE_Exec_RowTrigger,
 	MEMORY_OWNER_TYPE_Exec_AssertOp,

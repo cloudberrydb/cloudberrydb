@@ -1477,9 +1477,6 @@ _outNode(StringInfo str, void *obj)
 			case T_Motion:
 				_outMotion(str, obj);
 				break;
-			case T_DML:
-				_outDML(str, obj);
-				break;
 			case T_SplitUpdate:
 				_outSplitUpdate(str, obj);
 				break;

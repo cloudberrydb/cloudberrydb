@@ -494,7 +494,6 @@ plan_tree_walker(Node *node,
 				return true;
 			break;
 
-		case T_DML:
 		case T_SplitUpdate:
 		case T_RowTrigger:
 		case T_AssertOp:

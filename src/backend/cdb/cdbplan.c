@@ -200,17 +200,6 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
-		case T_DML:
-			{
-				DML		   *dml = (DML *) node;
-				DML		   *newdml;
-
-				FLATCOPY(newdml, dml, DML);
-				PLANMUTATE(newdml, dml);
-				return (Node *) newdml;
-			}
-			break;
-
 		case T_LockRows:
 			{
 				LockRows   *lockrows = (LockRows *) node;

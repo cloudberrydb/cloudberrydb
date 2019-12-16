@@ -62,7 +62,6 @@
 #include "commands/tablecmds.h" /* XXX: temp for get_parts() */
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
-#include "executor/execDML.h"
 #include "executor/execdebug.h"
 #include "executor/execUtils.h"
 #include "executor/instrument.h"
@@ -5081,27 +5080,6 @@ FillSliceTable_walker(Node *node, void *context)
 				else
 					FillSliceGangInfo(currentSlice, getgpsegmentCount());
 			}
-		}
-	}
-	/* A DML node is the same as a ModifyTable node, in ORCA plans. */
-	if (IsA(node, DML))
-	{
-		DML		   *dml = (DML *) node;
-		int			idx = dml->scanrelid;
-		Oid			reloid = getrelid(idx, stmt->rtable);
-		GpPolicyType policyType;
-
-		policyType = GpPolicyFetch(reloid)->ptype;
-
-		if (policyType != POLICYTYPE_ENTRY)
-		{
-			Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
-
-			currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-
-			/* DML node can only be genereated by ORCA */
-			Assert(stmt->planGen == PLANGEN_OPTIMIZER);
-			FillSliceGangInfo(currentSlice, getgpsegmentCount());
 		}
 	}
 

@@ -1159,8 +1159,6 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_ModifyTable";
 	case MEMORY_OWNER_TYPE_Exec_LockRows:
 		return "X_LockRows";
-	case MEMORY_OWNER_TYPE_Exec_DML:
-		return "X_DML";
 	case MEMORY_OWNER_TYPE_Exec_SplitUpdate:
 		return "X_SplitUpdate";
 	case MEMORY_OWNER_TYPE_Exec_RowTrigger:

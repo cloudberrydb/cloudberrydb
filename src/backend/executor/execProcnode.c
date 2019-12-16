@@ -123,7 +123,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/ml_ipc.h"			/* interconnect context */
 #include "executor/nodeAssertOp.h"
-#include "executor/nodeDML.h"
 #include "executor/nodeDynamicIndexscan.h"
 #include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeExternalscan.h"
@@ -781,16 +780,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			}
 			END_MEMORY_ACCOUNT();
 			break;
-		case T_DML:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, DML);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
-			result = (PlanState *) ExecInitDML((DML *) node,
-												  estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
-			break;
 		case T_SplitUpdate:
 			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, SplitUpdate);
 
@@ -1156,10 +1145,6 @@ ExecProcNode(PlanState *node)
 			result = ExecRepeat((RepeatState *) node);
 			break;
 
-		case T_DMLState:
-			result = ExecDML((DMLState *) node);
-			break;
-
 		case T_SplitUpdateState:
 			result = ExecSplitUpdate((SplitUpdateState *) node);
 			break;
@@ -1511,9 +1496,6 @@ ExecEndNode(PlanState *node)
 			/*
 			 * DML nodes
 			 */
-		case T_DMLState:
-			ExecEndDML((DMLState *) node);
-			break;
 		case T_SplitUpdateState:
 			ExecEndSplitUpdate((SplitUpdateState *) node);
 			break;

@@ -1404,27 +1404,6 @@ _copyMotion(const Motion *from)
 }
 
 /*
- * _copyDML
- */
-static DML *
-_copyDML(const DML *from)
-{
-	DML *newnode = makeNode(DML);
-
-	/*
-	 * copy node superclass fields
-	 */
-	CopyPlanFields((Plan *) from, (Plan *) newnode);
-
-	COPY_SCALAR_FIELD(scanrelid);
-	COPY_SCALAR_FIELD(actionColIdx);
-	COPY_SCALAR_FIELD(ctidColIdx);
-	COPY_SCALAR_FIELD(tupleoidColIdx);
-
-	return newnode;
-}
-
-/*
  * _copySplitUpdate
  */
 static SplitUpdate *
@@ -5615,9 +5594,6 @@ copyObject(const void *from)
 			break;
 		case T_Motion:
 			retval = _copyMotion(from);
-			break;
-		case T_DML:
-			retval = _copyDML(from);
 			break;
 		case T_SplitUpdate:
 			retval = _copySplitUpdate(from);

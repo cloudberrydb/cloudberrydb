@@ -2931,21 +2931,6 @@ typedef struct LimitState
  */
 
 /*
- * ExecNode for DML.
- * This operator contains a Plannode in PlanState.
- * The Plannode contains indexes to the resjunk columns
- * needed for deciding the action (Insert/Delete), the table oid
- * and the tuple ctid.
- */
-typedef struct DMLState
-{
-	PlanState	ps;
-	JunkFilter *junkfilter;			/* filter that removes junk and dropped attributes */
-	TupleTableSlot *cleanedUpSlot;	/* holds 'final' tuple which matches the target relation schema */
-	AttrNumber	segid_attno;		/* attribute number of "gp_segment_id" */
-} DMLState;
-
-/*
  * ExecNode for Split.
  * This operator contains a Plannode in PlanState.
  * The Plannode contains indexes to the ctid, insert, delete, resjunk columns

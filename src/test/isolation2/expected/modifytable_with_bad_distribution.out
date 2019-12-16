@@ -1,6 +1,4 @@
 -- start_matchsubs
--- m/nodeDML.c:\d+/
--- s/nodeDML.c:\d+/nodeDML.c:XXX/
 -- m/nodeModifyTable.c:\d+/
 -- s/nodeModifyTable.c:\d+/nodeModifyTable.c:XXX/
 -- end_matchsubs
