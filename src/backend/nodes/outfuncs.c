@@ -501,8 +501,7 @@ _outModifyTable(StringInfo str, const ModifyTable *node)
 	WRITE_NODE_FIELD(onConflictWhere);
 	WRITE_UINT_FIELD(exclRelRTI);
 	WRITE_NODE_FIELD(exclRelTlist);
-	WRITE_NODE_FIELD(action_col_idxes);
-	WRITE_NODE_FIELD(oid_col_idxes);
+	WRITE_NODE_FIELD(isSplitUpdates);
 }
 
 static void

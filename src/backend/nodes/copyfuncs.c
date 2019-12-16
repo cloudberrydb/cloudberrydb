@@ -333,9 +333,7 @@ _copyModifyTable(const ModifyTable *from)
 	COPY_NODE_FIELD(onConflictWhere);
 	COPY_SCALAR_FIELD(exclRelRTI);
 	COPY_NODE_FIELD(exclRelTlist);
-
-	COPY_NODE_FIELD(action_col_idxes);
-	COPY_NODE_FIELD(oid_col_idxes);
+	COPY_NODE_FIELD(isSplitUpdates);
 
 	return newnode;
 }

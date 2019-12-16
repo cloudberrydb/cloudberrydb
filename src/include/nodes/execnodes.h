@@ -371,7 +371,17 @@ typedef struct ResultRelInfo
 	List	   *ri_WithCheckOptionExprs;
 	List	  **ri_ConstraintExprs;
 	JunkFilter *ri_junkFilter;
-	AttrNumber  ri_segid_attno; /* gpdb: attribute number of "gp_segment_id" */
+	/*
+	 * Extra GPDB junk columns. ri_segid_attno is used with DELETE, to indicate
+	 * the segment the target tuple came from. 'action' and 'tupleoid' are used with
+	 * Split Updates.
+	 *
+	 * The target tuple's ctid is in ri_junkFilter->jf_junkAttNo, like in upstream.
+	 */
+	AttrNumber  ri_segid_attno;		/* gp_segment_id of old tuple */
+	AttrNumber	ri_action_attno;	/* is this an INSERT or DELETE ? */
+	AttrNumber	ri_tupleoid_attno;	/* old OID, when updating table with OIDs */
+
 	ProjectionInfo *ri_projectReturning;
 	ProjectionInfo *ri_onConflictSetProj;
 	List	   *ri_onConflictSetWhere;
@@ -1532,8 +1542,7 @@ typedef struct ModifyTableState
 										 * tlist  */
 	TupleTableSlot *mt_conflproj;		/* CONFLICT ... SET ... projection
 										 * target */
-	AttrNumber		*mt_action_col_idxes;
-	AttrNumber		*mt_oid_col_idxes;
+	bool	   *mt_isSplitUpdates; /* per-subplan flag to indicate if it's a split update */
 } ModifyTableState;
 
 /* ----------------

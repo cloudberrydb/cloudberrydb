@@ -7819,55 +7819,8 @@ make_modifytable(PlannerInfo *root,
 	node->returningLists = returningLists;
 	node->rowMarks = rowMarks;
 	node->epqParam = epqParam;
-	node->action_col_idxes = NIL;
-	node->oid_col_idxes = NIL;
 
-	/* Set action/oid_col_idxes */
-	if (operation == CMD_UPDATE)
-	{
-		ListCell   *cell_subplan;
-		ListCell   *cell_is_split_update;
-
-		forboth(cell_subplan, subplans, cell_is_split_update, is_split_updates)
-		{
-			Plan	   *subplan = (Plan *) lfirst(cell_subplan);
-			bool		is_split_update = (bool) lfirst_int(cell_is_split_update);
-
-			if (is_split_update)
-			{
-				AttrNumber	action_col_idx = -1;
-				AttrNumber	oid_col_idx = -1;
-				ListCell   *cell_targetlist;
-				TargetEntry *oid_tle;
-
-				foreach(cell_targetlist, subplan->targetlist)
-				{
-					TargetEntry *tle = (TargetEntry *) lfirst(cell_targetlist);
-
-					if (IsA(tle->expr, DMLActionExpr))
-					{
-						action_col_idx = tle->resno;
-						break;
-					}
-				}
-				if (action_col_idx == -1)
-					elog(WARNING, "could not find DMLActionExpr in split update target list");
-				node->action_col_idxes = lappend_int(node->action_col_idxes, action_col_idx);
-
-				oid_tle = find_junk_tle(subplan->targetlist, "oid");
-				if (oid_tle)
-					oid_col_idx = oid_tle->resno;
-				else
-					oid_col_idx = 0;
-				node->oid_col_idxes = lappend_int(node->oid_col_idxes, oid_col_idx);
-			}
-			else
-			{
-				node->action_col_idxes = lappend_int(node->action_col_idxes, 0);
-				node->oid_col_idxes = lappend_int(node->oid_col_idxes, 0);
-			}
-		}
-	}
+	node->isSplitUpdates = is_split_updates;
 
 	/*
 	 * For each result relation that is a foreign table, allow the FDW to

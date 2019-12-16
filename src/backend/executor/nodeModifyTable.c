@@ -1841,7 +1841,9 @@ ExecModifyTable(ModifyTableState *node)
 	ResultRelInfo *resultRelInfo;
 	PlanState  *subplanstate;
 	JunkFilter *junkfilter;
+	AttrNumber  action_attno;
 	AttrNumber  segid_attno;
+	AttrNumber  tupleoid_attno;
 	TupleTableSlot *slot;
 	TupleTableSlot *planSlot;
 	ItemPointer tupleid = NULL;
@@ -1888,7 +1890,9 @@ ExecModifyTable(ModifyTableState *node)
 	resultRelInfo = node->resultRelInfo + node->mt_whichplan;
 	subplanstate = node->mt_plans[node->mt_whichplan];
 	junkfilter = resultRelInfo->ri_junkFilter;
+	action_attno = resultRelInfo->ri_action_attno;
 	segid_attno = resultRelInfo->ri_segid_attno;
+	tupleoid_attno = resultRelInfo->ri_tupleoid_attno;
 
 	/*
 	 * es_result_relation_info must point to the currently active result
@@ -1927,7 +1931,9 @@ ExecModifyTable(ModifyTableState *node)
 				resultRelInfo = estate->es_result_relation_info;
 				subplanstate = node->mt_plans[node->mt_whichplan];
 				junkfilter = estate->es_result_relation_info->ri_junkFilter;
+				action_attno = estate->es_result_relation_info->ri_action_attno;
 				segid_attno = estate->es_result_relation_info->ri_segid_attno;
+				tupleoid_attno = estate->es_result_relation_info->ri_tupleoid_attno;
 				EvalPlanQualSetPlan(&node->mt_epqstate, subplanstate->plan,
 									node->mt_arowmarks[node->mt_whichplan]);
 				continue;
@@ -1959,32 +1965,9 @@ ExecModifyTable(ModifyTableState *node)
 		EvalPlanQualSetSlot(&node->mt_epqstate, planSlot);
 		slot = planSlot;
 
-		/*
-		 * Find and check gp_segment_id if needed. Run it before executing
-		 * junkfilter since that code removes all junk attributes (including
-		 * the gp_segment_id attribute) in the end.
-		 */
 		int32 segid = GpIdentity.segindex;
-		if (AttributeNumberIsValid(segid_attno) && (operation == CMD_UPDATE || operation == CMD_DELETE))
-		{
-			char		relkind;
-			Datum		datum;
-			bool		isNull;
-
-			relkind = resultRelInfo->ri_RelationDesc->rd_rel->relkind;
-			if (relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW)
-			{
-				datum = ExecGetJunkAttribute(slot,
-											 segid_attno,
-											 &isNull);
-				/* shouldn't ever get a null result... */
-				if (isNull)
-					elog(ERROR, "gp_segment_id is NULL for unknown reason");
-
-				segid = DatumGetInt32(datum);
-
-			}
-		}
+		int action = -1;
+		Oid tupleoid = InvalidOid;;
 
 		oldtuple = NULL;
 		if (junkfilter != NULL)
@@ -2051,6 +2034,43 @@ ExecModifyTable(ModifyTableState *node)
 				}
 				else
 					Assert(relkind == RELKIND_FOREIGN_TABLE);
+
+				/*
+				 * Extract GPDB-specific junk attributes.
+				 */
+				if (AttributeNumberIsValid(segid_attno))
+				{
+					datum = ExecGetJunkAttribute(slot,
+												 segid_attno,
+												 &isNull);
+					/* shouldn't ever get a null result... */
+					if (isNull)
+						elog(ERROR, "action is NULL");
+
+					segid = DatumGetInt32(datum);
+				}
+				if (AttributeNumberIsValid(action_attno))
+				{
+					datum = ExecGetJunkAttribute(slot,
+												 action_attno,
+												 &isNull);
+					/* shouldn't ever get a null result... */
+					if (isNull)
+						elog(ERROR, "gp_segment_id is NULL");
+
+					action = DatumGetInt32(datum);
+				}
+				if (AttributeNumberIsValid(tupleoid_attno))
+				{
+					datum = ExecGetJunkAttribute(slot,
+												 tupleoid_attno,
+												 &isNull);
+					/* shouldn't ever get a null result... */
+					if (isNull)
+						elog(ERROR, "tupleoid is NULL");
+
+					tupleoid = DatumGetInt32(datum);
+				}
 			}
 
 			/*
@@ -2069,60 +2089,36 @@ ExecModifyTable(ModifyTableState *node)
 								  false /* isUpdate */, InvalidOid /* tupleOid */);
 				break;
 			case CMD_UPDATE:
+				if (!AttributeNumberIsValid(action_attno))
 				{
-					int			action;
-					bool		isnull;
-					int			actionColIdx;
-					int			tupleoidColIdx;
+					/* normal non-split UPDATE */
+					slot = ExecUpdate(tupleid, oldtuple, slot, planSlot,
+									  &node->mt_epqstate, estate,
+									  node->canSetTag);
+				}
+				else if (DML_INSERT == action)
+				{
+					if (estate->es_result_partitions)
+						checkPartitionUpdate(estate, slot, estate->es_result_relation_info);
 
-					actionColIdx = node->mt_action_col_idxes[node->mt_whichplan];
-					tupleoidColIdx = node->mt_oid_col_idxes[node->mt_whichplan];
-
-					/* It is planned as not split update mode */
-					if (actionColIdx <= 0)
-					{
-						slot = ExecUpdate(tupleid, oldtuple, slot, planSlot,
-										  &node->mt_epqstate, estate,
-										  node->canSetTag);
-						break;
-					}
-
-					action = DatumGetUInt32(slot_getattr(planSlot, actionColIdx, &isnull));
-					Assert(!isnull);
-
-					if (DML_INSERT == action)
-					{
-						Oid		tupleOid = InvalidOid;
-
-						if (tupleoidColIdx != 0)
-						{
-							bool			isnull;
-
-							tupleOid = slot_getattr(planSlot, tupleoidColIdx, &isnull);
-						}
-
-						if (estate->es_result_partitions)
-							checkPartitionUpdate(estate, slot, estate->es_result_relation_info);
-
-						slot = ExecInsert(node, slot, planSlot, node->mt_arbiterindexes,
-										  node->mt_onconflict, estate, node->canSetTag,
-										  PLANGEN_PLANNER, true /* isUpdate */, tupleOid);
-					}
-					else /* DML_DELETE */
-					{
-							/*
-							 * Sanity check the distribution of the tuple to prevent
-							 * potential data corruption in case users manipulate data
-							 * incorrectly (e.g. insert data on incorrect segment through
-							 * utility mode) or there is bug in code, etc.
-							 */
-							if (segid != GpIdentity.segindex)
-								elog(ERROR, "distribution key of the tuple doesn't belong to "
-									 "current segment (actually from seg%d)", segid);
-							slot = ExecDelete(tupleid, oldtuple, planSlot,
-											  &node->mt_epqstate, estate, false,
-											  PLANGEN_PLANNER, true /* isUpdate */);
-					}
+					slot = ExecInsert(node, slot, planSlot, node->mt_arbiterindexes,
+									  node->mt_onconflict, estate, node->canSetTag,
+									  PLANGEN_PLANNER, true /* isUpdate */, tupleoid);
+				}
+				else /* DML_DELETE */
+				{
+					/*
+					 * Sanity check the distribution of the tuple to prevent
+					 * potential data corruption in case users manipulate data
+					 * incorrectly (e.g. insert data on incorrect segment through
+					 * utility mode) or there is bug in code, etc.
+					 */
+					if (segid != GpIdentity.segindex)
+						elog(ERROR, "distribution key of the tuple doesn't belong to "
+							 "current segment (actually from seg%d)", segid);
+					slot = ExecDelete(tupleid, oldtuple, planSlot,
+									  &node->mt_epqstate, estate, false,
+									  PLANGEN_PLANNER, true /* isUpdate */);
 				}
 				break;
 			case CMD_DELETE:
@@ -2224,21 +2220,16 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 
 	if (CMD_UPDATE == operation)
 	{
-		if (list_length(node->action_col_idxes) != nplans)
-			elog(ERROR, "ModifyTable node is missing action column information");
-		if (list_length(node->oid_col_idxes) != nplans)
-			elog(ERROR, "ModifyTable node is missing tuple OID information");
+		mtstate->mt_isSplitUpdates = (bool *) palloc0(nplans * sizeof(bool));
+		if (node->isSplitUpdates)
+		{
+			if (list_length(node->isSplitUpdates) != nplans)
+				elog(ERROR, "ModifyTable node is missing is-split-update information");
 
-		mtstate->mt_action_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * nplans);
-		mtstate->mt_oid_col_idxes = (AttrNumber *) palloc0 (sizeof(AttrNumber) * nplans);
-
-		i = 0;
-		foreach(l, node->action_col_idxes)
-			mtstate->mt_action_col_idxes[i++] = lfirst_int(l);
-
-		i = 0;
-		foreach(l, node->oid_col_idxes)
-			mtstate->mt_oid_col_idxes[i++] = lfirst_int(l);
+			i = 0;
+			foreach(l, node->isSplitUpdates)
+				mtstate->mt_isSplitUpdates[i++] = (bool) lfirst_int(l);
+		}
 	}
 
 	/* GPDB: Don't fire statement-triggers in QE reader processes */
@@ -2577,7 +2568,24 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 						if (!AttributeNumberIsValid(j->jf_junkAttNo))
 							elog(ERROR, "could not find junk ctid column");
 
+						/* Extra GPDB junk columns */
 						resultRelInfo->ri_segid_attno = ExecFindJunkAttribute(j, "gp_segment_id");
+						if (!AttributeNumberIsValid(resultRelInfo->ri_segid_attno))
+							elog(ERROR, "could not find junk gp_segment_id column");
+
+						if (operation == CMD_UPDATE && mtstate->mt_isSplitUpdates[i])
+						{
+							resultRelInfo->ri_action_attno = ExecFindJunkAttribute(j, "DMLAction");
+							if (!AttributeNumberIsValid(resultRelInfo->ri_action_attno))
+								elog(ERROR, "could not find junk action column");
+
+							if (resultRelInfo->ri_RelationDesc->rd_rel->relhasoids)
+							{
+								resultRelInfo->ri_tupleoid_attno = ExecFindJunkAttribute(j, "oid");
+								if (!AttributeNumberIsValid(resultRelInfo->ri_tupleoid_attno))
+									elog(ERROR, "could not find junk tupleoid column");
+							}
+						}
 					}
 					else if (relkind == RELKIND_FOREIGN_TABLE)
 					{
