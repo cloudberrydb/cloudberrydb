@@ -3239,6 +3239,9 @@ heap_multi_insert(Relation relation, HeapTuple *tuples, int ntuples,
 		tuples[i]->t_self = heaptuples[i]->t_self;
 
 	pgstat_count_heap_insert(relation, ntuples);
+
+	if (needwal)
+		wait_to_avoid_large_repl_lag();
 }
 
 /*
