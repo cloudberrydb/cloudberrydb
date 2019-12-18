@@ -224,11 +224,9 @@ static GpDistributionData *InitDistributionData(CopyState cstate, EState *estate
 static void FreeDistributionData(GpDistributionData *distData);
 static void InitCopyFromDispatchSplit(CopyState cstate, GpDistributionData *distData, EState *estate);
 static Bitmapset *GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols, bool distkeys, EState *estate);
-static GpDistributionData *GetDistributionPolicyForPartition(CopyState cstate,
-								  EState *estate,
-								  GpDistributionData *mainDistData,
-								  TupleDesc tupDesc,
-								  Datum *values, bool *nulls);
+static GpDistributionData *GetDistributionPolicyForPartition(GpDistributionData *mainDistData,
+															 ResultRelInfo *resultRelInfo,
+															 MemoryContext context);
 static unsigned int
 GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls);
 static ProgramPipes *open_program_pipes(char *command, bool forwrite);
@@ -4052,21 +4050,22 @@ CopyFrom(CopyState cstate)
 			{
 				/* In QD, compute the target segment to send this row to. */
 				part_distData = GetDistributionPolicyForPartition(
-					cstate, estate,
-					distData,
-					tupDesc,
-					slot_get_values(slot), slot_get_isnull(slot));
+																  distData,
+																  resultRelInfo,
+																  cstate->copycontext);
 
 				target_seg = GetTargetSeg(part_distData, slot_get_values(slot), slot_get_isnull(slot));
 			}
 			else if (is_check_distkey)
 			{
-				/* In COPY FROM ON SEGMENT, check the distribution key in the QE. */
+				/*
+				 * In COPY FROM ON SEGMENT, check the distribution key in the
+				 * QE.
+				 */
 				part_distData = GetDistributionPolicyForPartition(
-					cstate, estate,
-					distData,
-					tupDesc,
-					slot_get_values(slot), slot_get_isnull(slot));
+																  distData,
+																  resultRelInfo,
+																  cstate->copycontext);
 
 				if (part_distData->policy->nattrs != 0)
 				{
@@ -7807,10 +7806,9 @@ GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols,
 
 /* Get distribution policy for specific part */
 static GpDistributionData *
-GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
-								  GpDistributionData *mainDistData,
-                                  TupleDesc tupDesc,
-                                  Datum *values, bool *nulls)
+GetDistributionPolicyForPartition(GpDistributionData *mainDistData,
+								  ResultRelInfo *resultRelInfo,
+								  MemoryContext context)
 {
 
 	/*
@@ -7821,27 +7819,21 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 	if (mainDistData->hashmap)
 	{
 		Oid			relid;
-		ResultRelInfo *resultRelInfo;
 		GpDistributionData *d;
 		bool		found;
 
-		resultRelInfo = values_get_partition(values,
-											 nulls,
-											 tupDesc,
-											 estate,
-											 false); /* don't need indices in QD */
 		relid = resultRelInfo->ri_RelationDesc->rd_id;
 
 		d = hash_search(mainDistData->hashmap, &(relid), HASH_ENTER, &found);
 		if (!found)
 		{
-			Relation rel = resultRelInfo->ri_RelationDesc;
+			Relation	rel = resultRelInfo->ri_RelationDesc;
 			MemoryContext oldcontext;
 
 			/*
 			 * Make sure this all persists the current iteration.
 			 */
-			oldcontext = MemoryContextSwitchTo(cstate->copycontext);
+			oldcontext = MemoryContextSwitchTo(context);
 
 			d->cdbHash = makeCdbHashForRelation(rel);
 			d->policy = GpPolicyCopy(rel->rd_cdbpolicy);

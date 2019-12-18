@@ -54,16 +54,29 @@ COPY partdisttest FROM stdin;
 DROP TABLE partdisttest;
 
 -- Hash distributed, with a dropped column
-CREATE TABLE partdisttest (a int, dropped int, b int, c int)
-  DISTRIBUTED BY (b)
-  PARTITION BY RANGE (a) (START (0) END (100) EVERY (50));
-ALTER TABLE partdisttest DROP COLUMN dropped;
+
+-- We used to have a bug where QD would pick the wrong partition and/or the
+-- wrong segment due to difference between the base table and a partition: the
+-- partitioing attribute(s) for the root table is column 3, but it is column 1
+-- in the leaf partition "neg". The QD would then mistakenly pick a partition
+-- for the NULL value, and error out that no such a partition exists.
+
+-- Note if the dropped columns are in a different position, a different (but
+-- really similar) symptom will appear: the QD will pick another partition,
+-- which potentially results in the wrong segment receiving the line / tuple.
+
+CREATE TABLE partdisttest (dropped1 int, dropped2 int, a int, b int, c int)
+  DISTRIBUTED BY (a)
+  PARTITION BY RANGE (b) (START (0) END (100) EVERY (50));
+ALTER TABLE partdisttest DROP COLUMN dropped1, DROP COLUMN dropped2;
 
 ALTER TABLE partdisttest ADD PARTITION neg start (-10) end (0);
 
 COPY partdisttest FROM stdin;
--1	2	3
+2	-1	3
 \.
+
+SELECT tableoid::regclass, * FROM partdisttest;
 DROP TABLE partdisttest;
 
 
