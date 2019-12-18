@@ -325,6 +325,8 @@ extern bool debug_walrepl_syncrep;
 extern bool debug_walrepl_rcv;
 extern bool debug_basebackup;
 
+extern int rep_lag_avoidance_threshold;
+
 /* Latch mechanism debug GUCs */
 extern bool debug_latch;
 

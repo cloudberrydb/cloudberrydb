@@ -174,6 +174,15 @@ const struct config_enum_entry archive_mode_options[] = {
 };
 
 /*
+ * This is used to track how much xlog has been written by this backend, since
+ * start of transaction or last time SyncReplWaitForLSN() was called for this
+ * transaction. Currently, this is used to check if replication lag avoidance
+ * threshold has reached and if its time to wait for replication before moving
+ * forward for this transaction.
+ */
+static uint64_t wal_bytes_written = 0;
+
+/*
  * Statistics for current checkpoint are collected in this global struct.
  * Because only the checkpointer or a stand-alone backend can perform
  * checkpoints, this will be unused in normal backends.
@@ -1069,6 +1078,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 		 */
 		CopyXLogRecordToWAL(rechdr->xl_tot_len, isLogSwitch, rdata,
 							StartPos, EndPos);
+		wal_bytes_written += rechdr->xl_tot_len;
 	}
 	else
 	{
@@ -12389,6 +12399,52 @@ last_xlog_replay_location()
 	SpinLockRelease(&xlogctl->info_lck);
 
 	return recptr;
+}
+
+void
+initialize_wal_bytes_written(void)
+{
+	wal_bytes_written = 0;
+}
+
+/*
+ * Transactions on commit, wait for replication and make sure WAL is flushed
+ * up to commit lsn on mirror in GPDB. While commit is mandatory sync/wait
+ * point, waiting for replication at some periodic intervals even before that
+ * may be desirable/efficient to act as good citizen in system. Consider for
+ * example setup where primary and mirror can write at 20GB/sec, while network
+ * between them can only transfer at 2GB/sec. Now if CTAS is run in such setup
+ * for large table, it can generate WAL very aggressively on primary, but
+ * can't be transfered at that rate to mirror. Hence, there would be pending
+ * WAL build-up on primary. This exhibits two main things:
+ *
+ * - new write transactions (even if single tuple I/U/D), would exhibit
+ * latency for amount of time equivalent to the pending WAL to be shipped and
+ * flushed to mirror
+ *
+ * - primary needs to have space to hold that much WAL, since till the WAL is
+ * not shipped to mirror, it can't be recycled
+ *
+ * So, to make the situation better instead of waiting for mirror only at
+ * commit point, waiting for mirror in-between transaction after writing N
+ * bytes of WAL will help avoid the situation. This function checks if
+ * transaction has written above rep_lag_avoidance_threshold bytes, and waits
+ * for mirror if that's the case. This function can be called to avoid bulk
+ * transactions starving concurrent transactions from commiting due to sync
+ * rep. This interface provides a way for primary to avoid racing forward with
+ * WAL generation and move at sustained speed with network and mirrors.
+ */
+void
+wait_to_avoid_large_repl_lag(void)
+{
+	/* rep_lag_avoidance_threshold is defined in KB */
+	if (rep_lag_avoidance_threshold &&
+		wal_bytes_written > (rep_lag_avoidance_threshold * 1024))
+	{
+		/* we use local cached copy of LogwrtResult here */
+		SyncRepWaitForLSN(LogwrtResult.Flush, false);
+		wal_bytes_written = 0;
+	}
 }
 
 void
