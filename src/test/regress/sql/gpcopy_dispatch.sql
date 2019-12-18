@@ -110,3 +110,28 @@ COPY partdisttest FROM stdin;
 \.
 
 DROP TABLE partdisttest;
+
+CREATE TABLE partdisttest (dropped bool, a smallint, b smallint)
+  DISTRIBUTED BY (a)
+  PARTITION BY RANGE(a)
+  (PARTITION segundo START(5));
+ALTER TABLE partdisttest DROP dropped;
+ALTER TABLE partdisttest ADD PARTITION primero START(0) END(5);
+
+-- We used to have bug, when a partition has a different distribution
+-- column number than the base table, we'd lazily construct a tuple
+-- table slot for that partition, but in a (mistakenly) short-lived
+-- per query memory context. COPY FROM uses batch size of
+-- MAX_BUFFERED_TUPLES tuples, and after that it resets the per query
+-- context. As a result while processing second batch, segment used to
+-- crash. This test exposed the bug and now validates the fix.
+COPY (
+    SELECT 2,1
+    FROM (
+        SELECT generate_series(1, MAX_BUFFERED_TUPLES + 1)
+        FROM (VALUES (10000)) t(MAX_BUFFERED_TUPLES)
+        ) t
+    ) TO '/tmp/ten-thousand-and-one-lines.txt';
+COPY partdisttest FROM '/tmp/ten-thousand-and-one-lines.txt';
+
+SELECT tableoid::regclass, count(*) FROM partdisttest GROUP BY 1;
