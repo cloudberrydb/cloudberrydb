@@ -719,6 +719,9 @@ raw_heap_insert(RewriteState state, HeapTuple tup)
 
 			state->rs_blockno++;
 			state->rs_buffer_valid = false;
+
+			if (state->rs_use_wal)
+				wait_to_avoid_large_repl_lag();
 		}
 	}
 
