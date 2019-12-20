@@ -113,10 +113,13 @@ CXformExpandNAryJoinGreedy::Transform
 	CJoinOrderGreedy jomc(pmp, pdrgpexpr, pdrgpexprPreds);
 	CExpression *pexprResult = jomc.PexprExpand();
 
-	// normalize resulting expression
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
-	pexprResult->Release();
-	pxfres->Add(pexprNormalized);
+	if (NULL != pexprResult)
+	{
+		// normalize resulting expression
+		CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
+		pexprResult->Release();
+		pxfres->Add(pexprNormalized);
+	}
 }
 
 // EOF
