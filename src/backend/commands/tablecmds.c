@@ -510,8 +510,6 @@ static void ATPExecPartSetTemplate(AlteredTableInfo *tab,   /* Set */
                                    AlterPartitionCmd *pc);	/* Template */
 static void ATPExecPartSplit(Relation *relp,
                              AlterPartitionCmd *pc);		/* Split */
-static List *
-atpxTruncateList(Relation rel, PartitionNode *pNode);
 static void ATPExecPartTruncate(Relation rel,
                                 AlterPartitionCmd *pc);		/* Truncate */
 static bool TypeTupleExists(Oid typeId);
@@ -1489,41 +1487,11 @@ ExecuteTruncate(TruncateStmt *stmt)
 	ResultRelInfo *resultRelInfo;
 	SubTransactionId mySubid;
 	ListCell   *cell;
-	List *partList = NIL;
-	List *relationsToTruncate = NIL;
-
-	/*
-	 * Copy list to ensure we do not modify a cached plan
-	 */
-	relationsToTruncate = list_copy(stmt->relations);
-
-	/*
-	 * Check if table has partitions and add them too
-	 */
-	foreach(cell, relationsToTruncate)
-	{
-		RangeVar   *rv = lfirst(cell);
-		Relation	rel;
-		PartitionNode *pNode;
-
-		rel = heap_openrv(rv, AccessExclusiveLock);
-			
-		pNode = RelationBuildPartitionDesc(rel, false);
-
-		if (pNode)
-		{
-			List *plist = atpxTruncateList(rel, pNode);
-			partList = list_concat(partList, plist);
-		}
-		heap_close(rel, NoLock);
-	}
-
-	relationsToTruncate = list_concat(partList, relationsToTruncate);
 
 	/*
 	 * Open, exclusive-lock, and check all the explicitly-specified relations
 	 */
-	foreach(cell, relationsToTruncate)
+	foreach(cell, stmt->relations)
 	{
 		RangeVar   *rv = lfirst(cell);
 		Relation	rel;
@@ -19544,98 +19512,6 @@ ATExecGenericOptions(Relation rel, List *options)
 	heap_freetuple(tuple);
 }
 
-/* ALTER TABLE ... TRUNCATE PARTITION */
-static List *
-atpxTruncateList(Relation rel, PartitionNode *pNode)
-{
-	List *l1 = NIL;
-	ListCell *lc;
-
-	if (!pNode)
-		return l1;
-
-	/* add the child lists first */
-	foreach(lc, pNode->rules)
-	{
-		PartitionRule *rule = lfirst(lc);
-		List *l2 = NIL;
-
-		if (rule->children)
-			l2 = atpxTruncateList(rel, rule->children);
-		else
-			l2 = NIL;
-
-		if (l2)
-		{
-			if (l1)
-				l1 = list_concat(l1, l2);
-			else
-				l1 = l2;
-		}
-	}
-
-	/* and the default partition */
-	if (pNode->default_part)
-	{
-		PartitionRule *rule = pNode->default_part;
-		List *l2 = NIL;
-
-		if (rule->children)
-			l2 = atpxTruncateList(rel, rule->children);
-		else
-			l2 = NIL;
-
-		if (l2)
-		{
-			if (l1)
-				l1 = list_concat(l1, l2);
-			else
-				l1 = l2;
-		}
-	}
-
-	/* add entries for rules at current level */
-	foreach(lc, pNode->rules)
-	{
-		PartitionRule 	*rule = lfirst(lc);
-		RangeVar 		*rv;
-		Relation		 rel;
-
-		rel = heap_open(rule->parchildrelid, AccessShareLock);
-
-		rv = makeRangeVar(get_namespace_name(RelationGetNamespace(rel)),
-						  pstrdup(RelationGetRelationName(rel)), -1);
-
-		heap_close(rel, NoLock);
-
-		if (l1)
-			l1 = lappend(l1, rv);
-		else
-			l1 = list_make1(rv);
-	}
-
-	/* and the default partition */
-	if (pNode->default_part)
-	{
-		PartitionRule 	*rule = pNode->default_part;
-		RangeVar 		*rv;
-		Relation		 rel;
-
-		rel = heap_open(rule->parchildrelid, AccessShareLock);
-		rv = makeRangeVar(get_namespace_name(RelationGetNamespace(rel)),
-						  pstrdup(RelationGetRelationName(rel)), -1);
-
-		heap_close(rel, NoLock);
-
-		if (l1)
-			l1 = lappend(l1, rv);
-		else
-			l1 = list_make1(rv);
-	}
-
-	return l1;
-} /* end atpxTruncateList */
-
 static void
 ATPExecPartTruncate(Relation rel,
                     AlterPartitionCmd *pc)
@@ -19665,16 +19541,7 @@ ATPExecPartTruncate(Relation rel,
 						  pstrdup(RelationGetRelationName(rel2)), -1);
 
 		rv->location = pc->location;
-
-		if (prule->topRule->children)
-		{
-			List *l1 = atpxTruncateList(rel2, prule->topRule->children);
-
-			ts->relations = lappend(l1, rv);
-		}
-		else
-			ts->relations = list_make1(rv);
-
+		ts->relations = list_make1(rv);
 		heap_close(rel2, NoLock);
 
 		ProcessUtility( (Node *) ts,
