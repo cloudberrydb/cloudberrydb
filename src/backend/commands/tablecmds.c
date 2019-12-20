@@ -299,6 +299,14 @@ struct DropRelationCallbackState
 #define		ATT_COMPOSITE_TYPE		0x0010
 #define		ATT_FOREIGN_TABLE		0x0020
 
+/*
+ * Partition tables are expected to be dropped when the parent partitioned
+ * table gets dropped. Hence for partitioning we use AUTO dependency.
+ * Otherwise, for regular inheritance use NORMAL dependency.
+ */
+#define child_dependency_type(child_is_partition)	\
+	((child_is_partition) ? DEPENDENCY_AUTO : DEPENDENCY_NORMAL)
+
 static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd);
 
 static void truncate_check_rel(Relation rel);
@@ -453,7 +461,8 @@ static void ATExecEnableDisableRule(Relation rel, char *rulename,
 static void ATPrepAddInherit(Relation child_rel);
 static ObjectAddress ATExecAddInherit(Relation child_rel, Node *node, LOCKMODE lockmode);
 static ObjectAddress ATExecDropInherit(Relation rel, RangeVar *parent, LOCKMODE lockmode);
-static void drop_parent_dependency(Oid relid, Oid refclassid, Oid refobjid, bool is_partition);
+static void drop_parent_dependency(Oid relid, Oid refclassid, Oid refobjid,
+					   DependencyType deptype);
 static ObjectAddress ATExecAddOf(Relation rel, const TypeName *ofTypename, LOCKMODE lockmode);
 static void ATExecDropOf(Relation rel, LOCKMODE lockmode);
 static void ATExecReplicaIdentity(Relation rel, ReplicaIdentityStmt *stmt, LOCKMODE lockmode);
@@ -1921,6 +1930,7 @@ storage_name(char c)
  *		of ColumnDef's.) It is destructively changed.
  * 'supers' is a list of names (as RangeVar nodes) of parent relations.
  * 'relpersistence' is a persistence type of the table.
+ * 'is_partition' tells if the table is a partition
  * 'GpPolicy *' is NULL if the distribution policy is not to be updated
  *
  * Output arguments:
@@ -1974,8 +1984,9 @@ storage_name(char c)
  *----------
  */
 List *
-MergeAttributes(List *schema, List *supers, char relpersistence, bool isPartitioned,
-				List **supOids, List **supconstr, int *supOidCount)
+MergeAttributes(List *schema, List *supers, char relpersistence,
+				bool is_partition, List **supOids, List **supconstr,
+				int *supOidCount)
 {
 	ListCell   *entry;
 	List	   *inhSchema = NIL;
@@ -2101,7 +2112,7 @@ MergeAttributes(List *schema, List *supers, char relpersistence, bool isPartitio
 							parent->relname)));
 
 		/* Reject if parent is CO for non-partitioned table */
-		if (RelationIsAoCols(relation) && !isPartitioned)
+		if (RelationIsAoCols(relation) && !is_partition)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("cannot inherit relation \"%s\" as it is column oriented",
@@ -2175,14 +2186,7 @@ MergeAttributes(List *schema, List *supers, char relpersistence, bool isPartitio
 				 * Yes, try to merge the two column definitions. They must
 				 * have the same type, typmod, and collation.
 				 */
-				if (Gp_role == GP_ROLE_EXECUTE)
-				{
-					ereport(DEBUG1,
-						(errmsg("merging multiple inherited definitions of column \"%s\"",
-								attributeName)));
-				}
-				else
-				ereport(NOTICE,
+				ereport(Gp_role == GP_ROLE_EXECUTE ? DEBUG1 : NOTICE,
 						(errmsg("merging multiple inherited definitions of column \"%s\"",
 								attributeName)));
 				def = (ColumnDef *) list_nth(inhSchema, exist_attno - 1);
@@ -2225,7 +2229,6 @@ MergeAttributes(List *schema, List *supers, char relpersistence, bool isPartitio
 				def->is_not_null |= attribute->attnotnull;
 				/* Default and other constraints are handled below */
 				newattno[parent_attno - 1] = exist_attno;
-
 			}
 			else
 			{
@@ -2598,7 +2601,7 @@ StoreCatalogInheritance(Oid relationId, List *supers)
 static void
 StoreCatalogInheritance1(Oid relationId, Oid parentOid,
 						 int16 seqNumber, Relation inhRelation,
-						 bool is_partition)
+						 bool child_is_partition)
 {
 	TupleDesc	desc = RelationGetDescr(inhRelation);
 	Datum		values[Natts_pg_inherits];
@@ -2635,7 +2638,7 @@ StoreCatalogInheritance1(Oid relationId, Oid parentOid,
 	childobject.objectSubId = 0;
 
 	recordDependencyOn(&childobject, &parentobject,
-					   is_partition ? DEPENDENCY_AUTO : DEPENDENCY_NORMAL);
+					   child_dependency_type(child_is_partition));
 
 	/*
 	 * Post creation hook of this inheritance. Since object_access_hook
@@ -6502,8 +6505,9 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 
 		/* Preallocate values/isnull arrays */
 		i = Max(newTupDesc->natts, oldTupDesc->natts);
-		values = (Datum *) palloc0(i * sizeof(Datum));
+		values = (Datum *) palloc(i * sizeof(Datum));
 		isnull = (bool *) palloc(i * sizeof(bool));
+		memset(values, 0, i * sizeof(Datum));
 		memset(isnull, true, i * sizeof(bool));
 
 		/*
@@ -8756,7 +8760,11 @@ ATExecDropColumn(List **wqueue, Relation rel, const char *colName,
 				 errmsg("cannot drop inherited column \"%s\"",
 						colName)));
 
-	/* better not be a column we partition on */
+	/*
+	 * Don't drop columns used in the partition key, either.  (If we let this
+	 * go through, the key column's dependencies would cause a cascaded drop
+	 * of the whole table, which is surely not what the user expected.)
+	 */
 	pn = RelationBuildPartitionDesc(rel, false);
 	if (pn)
 	{
@@ -9387,6 +9395,11 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 	 * Validity checks (permission checks wait till we have the column
 	 * numbers)
 	 */
+	if (rel_is_child_partition(RelationGetRelid(pkrel)))
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("cannot reference just part of a partitioned table")));
+
 	if (pkrel->rd_rel->relkind != RELKIND_RELATION)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
@@ -9432,17 +9445,6 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 						 errmsg("constraints on temporary tables must involve temporary tables of this session")));
 			break;
-	}
-	
-	/*
-	 * Disallow reference to a part of a partitioned table.  A foreign key 
-	 * must reference the whole partitioned table or none of it.
-	 */
-	if ( rel_is_child_partition(RelationGetRelid(pkrel)) )
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-				 errmsg("cannot reference just part of a partitioned table")));
 	}
 
 	/*
@@ -9687,7 +9689,6 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 							new_castfunc == old_castfunc &&
 							(!IsPolymorphicType(pfeqop_right) ||
 							 new_fktype == old_fktype));
-
 		}
 
 		pfeqoperators[i] = pfeqop;
@@ -14393,7 +14394,7 @@ ATExecDropInherit(Relation rel, RangeVar *parent, LOCKMODE lockmode)
  * Return value is the address of the relation that is no longer parent.
  */
 static void
-RemoveInheritance(Relation child_rel, Relation parent_rel, bool is_partition)
+RemoveInheritance(Relation child_rel, Relation parent_rel, bool child_is_partition)
 {
 	Relation	catalogRelation;
 	SysScanDesc scan;
@@ -14408,7 +14409,7 @@ RemoveInheritance(Relation child_rel, Relation parent_rel, bool is_partition)
 								RelationGetRelid(parent_rel));
 	if (!found)
 	{
-		if (is_partition)
+		if (child_is_partition)
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_TABLE),
 					 errmsg("relation \"%s\" is not a partition of relation \"%s\"",
@@ -14540,7 +14541,7 @@ RemoveInheritance(Relation child_rel, Relation parent_rel, bool is_partition)
 	drop_parent_dependency(RelationGetRelid(child_rel),
 						   RelationRelationId,
 						   RelationGetRelid(parent_rel),
-						   is_partition);
+						   child_dependency_type(child_is_partition));
 
 	/*
 	 * Post alter hook of this inherits. Since object_access_hook doesn't take
@@ -14561,7 +14562,8 @@ RemoveInheritance(Relation child_rel, Relation parent_rel, bool is_partition)
  * through pg_depend.
  */
 static void
-drop_parent_dependency(Oid relid, Oid refclassid, Oid refobjid, bool is_partition)
+drop_parent_dependency(Oid relid, Oid refclassid, Oid refobjid,
+					   DependencyType deptype)
 {
 	Relation	catalogRelation;
 	SysScanDesc scan;
@@ -14593,11 +14595,8 @@ drop_parent_dependency(Oid relid, Oid refclassid, Oid refobjid, bool is_partitio
 		if (dep->refclassid == refclassid &&
 			dep->refobjid == refobjid &&
 			dep->refobjsubid == 0 &&
-			((dep->deptype == DEPENDENCY_NORMAL && !is_partition) ||
-			 (dep->deptype == DEPENDENCY_AUTO && is_partition)))
-		{
+			dep->deptype == deptype)
 			simple_heap_delete(catalogRelation, &depTuple->t_self);
-		}
 	}
 
 	systable_endscan(scan);
@@ -19055,7 +19054,8 @@ ATExecAddOf(Relation rel, const TypeName *ofTypename, LOCKMODE lockmode)
 
 	/* If the table was already typed, drop the existing dependency. */
 	if (rel->rd_rel->reloftype)
-		drop_parent_dependency(relid, TypeRelationId, rel->rd_rel->reloftype, false);
+		drop_parent_dependency(relid, TypeRelationId, rel->rd_rel->reloftype,
+							   DEPENDENCY_NORMAL);
 
 	/* Record a dependency on the new type. */
 	tableobj.classId = RelationRelationId;
@@ -19109,7 +19109,8 @@ ATExecDropOf(Relation rel, LOCKMODE lockmode)
 	 * table is presumed enough rights.  No lock required on the type, either.
 	 */
 
-	drop_parent_dependency(relid, TypeRelationId, rel->rd_rel->reloftype, false);
+	drop_parent_dependency(relid, TypeRelationId, rel->rd_rel->reloftype,
+						   DEPENDENCY_NORMAL);
 
 	/* Clear pg_class.reloftype */
 	relationRelation = heap_open(RelationRelationId, RowExclusiveLock);
