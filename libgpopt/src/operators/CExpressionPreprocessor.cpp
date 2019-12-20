@@ -1286,11 +1286,36 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 				}
 			}
 
-			if (!fNewChild)
+			// Consider the following join tree:
+			// +--CLogicalNAryJoin
+			// |--CLogicalLeftOuterJoin
+			// |  |--CLogicalLeftOuterJoin
+			// |  |  |--CLogicalGet "t1"
+			// |  |  |--CLogicalGet "t2"
+			// |  |--CLogicalGet "t3"
+			// |--CLogicalGet "t4"
+			//
+			// If the predicate between the CLogicalNAryJoin and first CLogicalLeftOuterJoin
+			// is NULL rejecting, we convert the left join to an inner join and create a new
+			// expression. Then the modified tree would be:
+			//
+			// +--CLogicalNAryJoin
+			// |--CLogicalLeftOuterJoin
+			// |  |--CLogicalGet "t1"
+			// |  |--CLogicalGet "t2"
+			// |--CLogicalGet "t3"
+			// |--CLogicalGet "t4"
+			//
+			// Note that we can still convert the second CLogicalLeftOuterJoin into an inner join
+			// if the predicate between the CLogicalNAryJoin is NULL rejecting. So we need to recurse
+			// into the child and continue checking if we can convert the LOJs into inner joins.
+
+			CExpression *pexprChildNew = PexprOuterJoinToInnerJoin(mp, pexprChild);
+			if (fNewChild)
 			{
-				pexprChild = PexprOuterJoinToInnerJoin(mp, pexprChild);
+				pexprChild->Release();
 			}
-			pdrgpexprChildren->Append(pexprChild);
+			pdrgpexprChildren->Append(pexprChildNew);
 		}
 
 		return GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalNAryJoin(mp), pdrgpexprChildren);
