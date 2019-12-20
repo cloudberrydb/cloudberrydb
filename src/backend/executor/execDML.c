@@ -15,39 +15,9 @@
  */
 #include "postgres.h"
 
-#include "access/fileam.h"
-#include "cdb/cdbaocsam.h"
-#include "cdb/cdbappendonlyam.h"
-#include "cdb/cdbpartition.h"
-#include "commands/trigger.h"
-#include "executor/execdebug.h"
+#include "catalog/pg_attribute.h"
+#include "executor/executor.h"
 #include "executor/execDML.h"
-#include "utils/lsyscache.h"
-#include "parser/parsetree.h"
-#include "cdb/cdbvars.h"
-
-/*
- * reconstructTupleValues
- *   Re-construct tuple values based on the pre-defined mapping.
- */
-void
-reconstructTupleValues(AttrMap *map,
-					Datum *oldValues, bool *oldIsnull, int oldNumAttrs,
-					Datum *newValues, bool *newIsnull, int newNumAttrs)
-{
-	for (int oldAttNo = 1; oldAttNo <= oldNumAttrs; oldAttNo++)
-	{
-		int newAttNo = attrMap(map, oldAttNo);
-		if (newAttNo == 0)
-		{
-			continue;
-		}
-
-		Assert(newAttNo <= newNumAttrs);
-		newValues[newAttNo - 1] = oldValues[oldAttNo - 1];
-		newIsnull[newAttNo - 1] = oldIsnull[oldAttNo - 1];
-	}
-}
 
 /*
  * Are two TupleDescs physically compatible?
@@ -88,66 +58,81 @@ physicalEqualTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
 }
 
 /*
- * Use the supplied ResultRelInfo to create an appropriately restructured
- * version of the tuple in the supplied slot, if necessary.
+ * Given a tuple in the partitioned table's parent physical format, map it to
+ * the physical format of a particular partition.
  *
- * slot -- slot containing the input tuple
- * resultRelInfo -- info pertaining to the target part of an insert
+ * parentSlot -- slot containing the input tuple
+ * childInfo  -- info pertaining to the target partition
  *
- * If no restructuring is required, the result is the argument slot, else
- * it is the slot from the argument result info updated to hold the
- * restructured tuple.
+ * If no restructuring is required, 'parentSlot' is returned unmodified.
+ * Otherwise, the restructured tuple is stored in childInfo->ri_resultSlot.
  */
 TupleTableSlot *
-reconstructMatchingTupleSlot(TupleTableSlot *slot, ResultRelInfo *resultRelInfo)
+reconstructPartitionTupleSlot(TupleTableSlot *parentSlot,
+							  ResultRelInfo *childInfo)
 {
-	int natts;
-	Datum *values;
-	bool *isnull;
-	AttrMap *map;
-	TupleTableSlot *partslot;
-	Datum *partvalues;
-	bool *partisnull;
-
-	map = resultRelInfo->ri_partInsertMap;
-
-	TupleDesc inputTupDesc = slot->tts_tupleDescriptor;
-	TupleDesc resultTupDesc = resultRelInfo->ri_RelationDesc->rd_att;
-	bool tupleDescMatch = physicalEqualTupleDescs(inputTupDesc, resultTupDesc);
+	AttrMap	   *map = childInfo->ri_partInsertMap;
+	TupleDesc	childDesc = RelationGetDescr(childInfo->ri_RelationDesc);
 
 	/* No map and matching tuple descriptor means no restructuring needed. */
-	if (map == NULL && tupleDescMatch)
-		return slot;
-
-	/* Put the given tuple into attribute arrays. */
-	natts = slot->tts_tupleDescriptor->natts;
-	slot_getallattrs(slot);
-	values = slot_get_values(slot);
-	isnull = slot_get_isnull(slot);
+	if (map == NULL && physicalEqualTupleDescs(parentSlot->tts_tupleDescriptor,
+											   childDesc))
+		return parentSlot;
 
 	/*
-	 * Get the target slot ready.
+	 * Mapping is required. Get the target slot ready.
 	 */
-	if (resultRelInfo->ri_resultSlot == NULL)
-	{
-		resultRelInfo->ri_resultSlot =
-			MakeSingleTupleTableSlot(resultRelInfo->ri_RelationDesc->rd_att);
-	}
-	partslot = resultRelInfo->ri_resultSlot;
+	if (!childInfo->ri_resultSlot)
+		childInfo->ri_resultSlot = MakeSingleTupleTableSlot(childDesc);
 
-	partslot = ExecStoreAllNullTuple(partslot);
-	partvalues = slot_get_values(partslot);
-	partisnull = slot_get_isnull(partslot);
+	reconstructMatchingTupleSlot(parentSlot, childInfo->ri_resultSlot, map);
 
-	/* Restructure the input tuple.  Non-zero map entries are attribute
+	return childInfo->ri_resultSlot;
+}
+
+/*
+ * Use the supplied attribute map to restructure a tuple from the
+ * input slot to target slot.
+ */
+void
+reconstructMatchingTupleSlot(TupleTableSlot *inputSlot,
+							 TupleTableSlot *targetSlot,
+							 AttrMap *map)
+{
+	int			input_natts;
+	Datum	   *input_values;
+	bool	   *input_isnull;
+	Datum	   *target_values;
+	bool	   *target_isnull;
+
+	/* Put the given tuple into attribute arrays. */
+	input_natts = inputSlot->tts_tupleDescriptor->natts;
+	slot_getallattrs(inputSlot);
+	input_values = slot_get_values(inputSlot);
+	input_isnull = slot_get_isnull(inputSlot);
+
+	targetSlot = ExecStoreAllNullTuple(targetSlot);
+	target_values = slot_get_values(targetSlot);
+	target_isnull = slot_get_isnull(targetSlot);
+
+	/*
+	 * Restructure the input tuple.  Non-zero map entries are attribute
 	 * numbers in the target tuple, however, not every attribute
 	 * number of the input tuple need be present.  In particular,
 	 * attribute numbers corresponding to dropped attributes will be
 	 * missing.
 	 */
-	reconstructTupleValues(map, values, isnull, natts,
-						partvalues, partisnull, partslot->tts_tupleDescriptor->natts);
-	partslot = ExecStoreVirtualTuple(partslot);
+	for (int input_attno = 1; input_attno <= input_natts; input_attno++)
+	{
+		int			target_attno;
 
-	return partslot;
+		target_attno = attrMap(map, input_attno);
+		if (target_attno == 0)
+			continue;
+
+		Assert(target_attno <= targetSlot->tts_tupleDescriptor->natts);
+		target_values[target_attno - 1] = input_values[input_attno - 1];
+		target_isnull[target_attno - 1] = input_isnull[input_attno - 1];
+	}
+	(void) ExecStoreVirtualTuple(targetSlot);
 }

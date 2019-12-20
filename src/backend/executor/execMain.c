@@ -2581,13 +2581,15 @@ CloseResultRelInfo(ResultRelInfo *resultRelInfo)
 
 	if (resultRelInfo->ri_resultSlot)
 	{
-		Assert(resultRelInfo->ri_resultSlot->tts_tupleDescriptor);
-		ReleaseTupleDesc(resultRelInfo->ri_resultSlot->tts_tupleDescriptor);
-		ExecClearTuple(resultRelInfo->ri_resultSlot);
+		ExecDropSingleTupleTableSlot(resultRelInfo->ri_resultSlot);
+		resultRelInfo->ri_resultSlot = NULL;
 	}
 
-	if (resultRelInfo->ri_PartitionParent)
-		relation_close(resultRelInfo->ri_PartitionParent, AccessShareLock);
+	if (resultRelInfo->ri_PartitionParentSlot)
+	{
+		ExecDropSingleTupleTableSlot(resultRelInfo->ri_PartitionParentSlot);
+		resultRelInfo->ri_PartitionParentSlot = NULL;
+	}
 
 	/* Close indices and then the relation itself */
 	ExecCloseIndices(resultRelInfo);

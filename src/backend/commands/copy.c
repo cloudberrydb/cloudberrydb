@@ -4044,7 +4044,7 @@ CopyFrom(CopyState cstate)
 			 *
 			 * The resulting tuple is stored in 'slot'
 			 */
-			slot = reconstructMatchingTupleSlot(baseSlot, resultRelInfo);
+			slot = reconstructPartitionTupleSlot(baseSlot, resultRelInfo);
 
 			if (cstate->dispatch_mode == COPY_DISPATCH)
 			{
@@ -5620,7 +5620,7 @@ retry:
 
 		resultRelInfo = targetid_get_partition(frame.relid, estate, true);
 		estate->es_result_relation_info = resultRelInfo;
-		slot = reconstructMatchingTupleSlot(baseSlot, resultRelInfo);
+		slot = reconstructPartitionTupleSlot(baseSlot, resultRelInfo);
 
 		MemoryContextSwitchTo(oldcontext);
 

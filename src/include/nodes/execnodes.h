@@ -396,14 +396,22 @@ typedef struct ResultRelInfo
 
 	int			ri_aosegno;
 	uint64		ri_aoprocessed; /* tuples added/deleted for AO */
+
+	/* Attribute map for mapping tuples from parent table format to child partition */
 	struct AttrMap *ri_partInsertMap;
+
+	/* slot to hold a mapped tuple, in this partition's format */
 	TupleTableSlot *ri_resultSlot;
-	/* Parent relation in checkPartitionUpdate */
-	Relation	ri_PartitionParent;
+
 	/* tupdesc_match for checkPartitionUpdate */
 	int			ri_PartCheckTupDescMatch;
-	/* Attribute map in checkPartitionUpdate */
+	/*
+	 * Attribute map in checkPartitionUpdate, to map a tuple from child
+	 * partition format to parent table's format.
+	 */
 	struct AttrMap *ri_PartCheckMap;
+	/* slot to hold a mapped tuple, in the parent table's format */
+	TupleTableSlot *ri_PartitionParentSlot;
 
 	/*
 	 * Hash table of sub-ResultRelInfos, one for each active partition.
