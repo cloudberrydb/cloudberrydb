@@ -4035,7 +4035,6 @@ CopyFrom(CopyState cstate)
 
 				estate->es_result_relation_info = resultRelInfo;
 			}
-			MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
 
 			ExecStoreVirtualTuple(baseSlot);
 
@@ -4044,7 +4043,9 @@ CopyFrom(CopyState cstate)
 			 *
 			 * The resulting tuple is stored in 'slot'
 			 */
+			MemoryContextSwitchTo(estate->es_query_cxt);
 			slot = reconstructPartitionTupleSlot(baseSlot, resultRelInfo);
+			MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
 
 			if (cstate->dispatch_mode == COPY_DISPATCH)
 			{
