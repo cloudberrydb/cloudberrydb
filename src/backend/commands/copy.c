@@ -7755,7 +7755,7 @@ GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols,
 	{
 		ResultRelInfo *partrr;
 		GpPolicy *partPolicy;
-		AttrMap	   *map;
+		TupleConversionMap *map;
 
 		partrr = targetid_get_partition(relid, estate, false);
 		map = partrr->ri_partInsertMap;
@@ -7771,12 +7771,8 @@ GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols,
 				/* Map this partition's attribute number to the parent's. */
 				if (map)
 				{
-					for (parentAttNum = 1; parentAttNum <= map->attr_count; parentAttNum++)
-					{
-						if (map->attr_map[parentAttNum] == partAttNum)
-							break;
-					}
-					if (parentAttNum > map->attr_count)
+					parentAttNum = map->attrMap[partAttNum - 1];
+					if (parentAttNum > map->indesc->natts)
 						elog(ERROR, "could not find mapping partition distribution key column %d in parent relation",
 							 partAttNum);
 				}

@@ -38,6 +38,7 @@
 #include "postgres.h"
 
 #include "access/htup_details.h"
+#include "access/tupconvert.h"
 #include "access/xact.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
@@ -1160,7 +1161,7 @@ checkPartitionUpdate(EState *estate, TupleTableSlot *partslot,
 		parentTupdesc = RelationGetDescr(parentRel);
 		if (!equalTupleDescs(resultTupdesc, parentTupdesc, false))
 		{
-			AttrMap		   *map;
+			TupleConversionMap *map;
 			MemoryContext	oldcontext;
 
 			/* Tuple looks different.  Construct attribute mapping. */
@@ -1187,9 +1188,9 @@ checkPartitionUpdate(EState *estate, TupleTableSlot *partslot,
 		 * rules are based on the parent relation's tuple descriptor.
 		 * max_partition_attr can be bogus as well, so don't use it.
 		 */
-		reconstructMatchingTupleSlot(partslot,
-									 resultRelInfo->ri_PartitionParentSlot,
-									 resultRelInfo->ri_PartCheckMap);
+		parentslot = execute_attr_map_slot(resultRelInfo->ri_PartCheckMap->attrMap,
+										   partslot,
+										   resultRelInfo->ri_PartitionParentSlot);
 
 		/* Now we have values/nulls in parent's view. */
 		slot_getallattrs(parentslot);

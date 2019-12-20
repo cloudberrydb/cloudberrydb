@@ -18,6 +18,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/tupconvert.h"
 #include "executor/instrument.h"
 #include "lib/pairingheap.h"
 #include "nodes/params.h"
@@ -398,7 +399,7 @@ typedef struct ResultRelInfo
 	uint64		ri_aoprocessed; /* tuples added/deleted for AO */
 
 	/* Attribute map for mapping tuples from parent table format to child partition */
-	struct AttrMap *ri_partInsertMap;
+	struct TupleConversionMap *ri_partInsertMap;
 
 	/* slot to hold a mapped tuple, in this partition's format */
 	TupleTableSlot *ri_resultSlot;
@@ -409,7 +410,7 @@ typedef struct ResultRelInfo
 	 * Attribute map in checkPartitionUpdate, to map a tuple from child
 	 * partition format to parent table's format.
 	 */
-	struct AttrMap *ri_PartCheckMap;
+	struct TupleConversionMap *ri_PartCheckMap;
 	/* slot to hold a mapped tuple, in the parent table's format */
 	TupleTableSlot *ri_PartitionParentSlot;
 

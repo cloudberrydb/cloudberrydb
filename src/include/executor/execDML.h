@@ -20,10 +20,5 @@ extern TupleTableSlot *
 reconstructPartitionTupleSlot(TupleTableSlot *parentSlot,
 							  ResultRelInfo *childInfo);
 
-extern void
-reconstructMatchingTupleSlot(TupleTableSlot *inputSlot,
-							 TupleTableSlot *targetSlot,
-							 AttrMap *map);
-
 #endif   /* EXECDML_H */
 

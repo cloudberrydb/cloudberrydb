@@ -71,7 +71,7 @@ TupleTableSlot *
 reconstructPartitionTupleSlot(TupleTableSlot *parentSlot,
 							  ResultRelInfo *childInfo)
 {
-	AttrMap	   *map = childInfo->ri_partInsertMap;
+	TupleConversionMap *map = childInfo->ri_partInsertMap;
 	TupleDesc	childDesc = RelationGetDescr(childInfo->ri_RelationDesc);
 
 	/* No map and matching tuple descriptor means no restructuring needed. */
@@ -85,54 +85,49 @@ reconstructPartitionTupleSlot(TupleTableSlot *parentSlot,
 	if (!childInfo->ri_resultSlot)
 		childInfo->ri_resultSlot = MakeSingleTupleTableSlot(childDesc);
 
-	reconstructMatchingTupleSlot(parentSlot, childInfo->ri_resultSlot, map);
+	if (map)
+		execute_attr_map_slot(map->attrMap, parentSlot, childInfo->ri_resultSlot);
+	else
+	{
+		/*
+		 * No mapping required, but there might be differences in the physical
+		 * tuple, e.g because dropped columns have differing datatypes.
+		 */
+		Datum	   *invalues;
+		bool	   *inisnull;
+		TupleTableSlot *outSlot = childInfo->ri_resultSlot;
+		Datum	   *outvalues;
+		bool	   *outisnull;
+		int			natts;
+
+		/* Sanity checks */
+		Assert(parentSlot->tts_tupleDescriptor != NULL &&
+			   outSlot->tts_tupleDescriptor != NULL);
+		Assert(parentSlot->PRIVATE_tts_values != NULL && outSlot->PRIVATE_tts_values != NULL);
+
+		natts = parentSlot->tts_tupleDescriptor->natts;
+
+		/* Extract all the values of the in slot. */
+		slot_getallattrs(parentSlot);
+
+		/* Before doing the mapping, clear any old contents from the out slot */
+		ExecClearTuple(outSlot);
+
+		invalues = slot_get_values(parentSlot);
+		inisnull = slot_get_isnull(parentSlot);
+		outvalues = slot_get_values(outSlot);
+		outisnull = slot_get_isnull(outSlot);
+
+		/* Copy the values. */
+		for (int i = 0; i < natts; i++)
+		{
+			outvalues[i] = invalues[i];
+			outisnull[i] = inisnull[i];
+		}
+
+		ExecStoreVirtualTuple(outSlot);
+
+	}
 
 	return childInfo->ri_resultSlot;
-}
-
-/*
- * Use the supplied attribute map to restructure a tuple from the
- * input slot to target slot.
- */
-void
-reconstructMatchingTupleSlot(TupleTableSlot *inputSlot,
-							 TupleTableSlot *targetSlot,
-							 AttrMap *map)
-{
-	int			input_natts;
-	Datum	   *input_values;
-	bool	   *input_isnull;
-	Datum	   *target_values;
-	bool	   *target_isnull;
-
-	/* Put the given tuple into attribute arrays. */
-	input_natts = inputSlot->tts_tupleDescriptor->natts;
-	slot_getallattrs(inputSlot);
-	input_values = slot_get_values(inputSlot);
-	input_isnull = slot_get_isnull(inputSlot);
-
-	targetSlot = ExecStoreAllNullTuple(targetSlot);
-	target_values = slot_get_values(targetSlot);
-	target_isnull = slot_get_isnull(targetSlot);
-
-	/*
-	 * Restructure the input tuple.  Non-zero map entries are attribute
-	 * numbers in the target tuple, however, not every attribute
-	 * number of the input tuple need be present.  In particular,
-	 * attribute numbers corresponding to dropped attributes will be
-	 * missing.
-	 */
-	for (int input_attno = 1; input_attno <= input_natts; input_attno++)
-	{
-		int			target_attno;
-
-		target_attno = attrMap(map, input_attno);
-		if (target_attno == 0)
-			continue;
-
-		Assert(target_attno <= targetSlot->tts_tupleDescriptor->natts);
-		target_values[target_attno - 1] = input_values[input_attno - 1];
-		target_isnull[target_attno - 1] = input_isnull[input_attno - 1];
-	}
-	(void) ExecStoreVirtualTuple(targetSlot);
 }

@@ -17050,8 +17050,8 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 		Relation		 newrel;
 		Relation		 oldrel;
 		Relation		 parentrel = NULL;
-		AttrMap			*newmap; /* used for compatability check below only */
-		AttrMap			*oldmap; /* used for compatability check below only */
+		TupleConversionMap *newmap; /* used for compatability check below only */
+		TupleConversionMap *oldmap; /* used for compatability check below only */
 		List			*newcons;
 		bool			 ok;
 		bool			 validate	= intVal(pc2->arg1) ? true : false;
@@ -20828,8 +20828,7 @@ AttachPartitionEnsureIndexes(Relation rel, Relation attachrel)
 		/* construct an indexinfo to compare existing indexes against */
 		info = BuildIndexInfo(idxRel);
 		attmap = convert_tuples_by_name_map(RelationGetDescr(attachrel),
-											RelationGetDescr(rel),
-											gettext_noop("could not convert row type"));
+											RelationGetDescr(rel));
 		constraintOid = get_relation_idx_constraint_oid(RelationGetRelid(rel), idx);
 
 		/*
@@ -21127,8 +21126,7 @@ ATExecAttachPartitionIdx(List **wqueue, Relation parentIdx, AlterPartitionId *al
 		childInfo = BuildIndexInfo(partIdx);
 		parentInfo = BuildIndexInfo(parentIdx);
 		attmap = convert_tuples_by_name_map(RelationGetDescr(partTbl),
-											RelationGetDescr(parentTbl),
-											gettext_noop("could not convert row type"));
+											RelationGetDescr(parentTbl));
 		if (!CompareIndexInfo(childInfo, parentInfo,
 							  partIdx->rd_indcollation,
 							  parentIdx->rd_indcollation,
