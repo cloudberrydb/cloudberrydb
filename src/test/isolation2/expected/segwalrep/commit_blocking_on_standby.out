@@ -8,10 +8,10 @@
 
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
-select application_name, state, sync_state from pg_stat_replication;
- application_name | state     | sync_state 
-------------------+-----------+------------
- gp_walreceiver   | streaming | sync       
+select application_name, state from pg_stat_replication;
+ application_name | state     
+------------------+-----------
+ gp_walreceiver   | streaming 
 (1 row)
 
 -- Inject fault on standby to skip WAL flush.
@@ -101,10 +101,10 @@ select gp_inject_fault_infinite('walrecv_skip_flush', 'skip', dbid) from gp_segm
 -- will be restarted and new connection will be established.  Note
 -- that the faults injected are still in effect and will affect the
 -- newly forked WAL sender and receiver processes.
-select pg_terminate_backend(pid), sync_state from pg_stat_replication;
- pg_terminate_backend | sync_state 
-----------------------+------------
- t                    | sync       
+select pg_terminate_backend(pid) from pg_stat_replication;
+ pg_terminate_backend 
+----------------------
+ t                    
 (1 row)
 
 -- Should be set to 1 WAL segment by default.  Standby is considered
@@ -137,10 +137,10 @@ select gp_wait_until_triggered_fault('wal_sender_loop', 1, dbid) from gp_segment
 (1 row)
 
 -- WAL sender should be stuck in CATCHUP state.
-select application_name, state, sync_state from pg_stat_replication;
- application_name | state   | sync_state 
-------------------+---------+------------
- gp_walreceiver   | catchup | async      
+select application_name, state from pg_stat_replication;
+ application_name | state   
+------------------+---------
+ gp_walreceiver   | catchup 
 (1 row)
 
 -- This commit should NOT block because WAL sender has not yet
