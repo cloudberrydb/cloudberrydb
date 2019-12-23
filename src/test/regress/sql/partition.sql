@@ -2179,6 +2179,31 @@ alter table it add primary key(i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 drop table it;
 
+--
+-- Exclusion constraints are currently not supported on partitioned tables.
+--
+create table parttab_with_excl_constraint (
+  i int,
+  j int,
+  CONSTRAINT part_excl EXCLUDE (i WITH =) )
+distributed by (i) partition by list (i) (
+  partition a values (1),
+  partition b values (2),
+  partition c values (3)
+);
+
+create table parttab_with_excl_constraint (
+  i int,
+  j int)
+distributed by (i) partition by list (i) (
+  partition a values (1),
+  partition b values (2),
+  partition c values (3)
+);
+alter table parttab_with_excl_constraint ADD CONSTRAINT part_excl EXCLUDE (i WITH =);
+
+drop table parttab_with_excl_constraint;
+
 
 -- MPP-6297: test special WITH(tablename=...) syntax for dump/restore
 

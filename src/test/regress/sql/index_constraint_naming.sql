@@ -106,10 +106,7 @@ ALTER TABLE st_pk2 RENAME CONSTRAINT st_pk2_pkey_r_i  TO st_pk_pkey;
 ALTER INDEX st_pk2_pkey_r_i RENAME TO st_pk_pkey;
 
 -- EXCLUSION CONSTRAINT
-
--- EXCLUSION CONSTRAINT: GPDB does not support exclusion constraints
 CREATE TABLE st_x (a int, b int, EXCLUDE (a with =, b with =));
--- Should fail
 SELECT table_name,constraint_name,index_name,constraint_type FROM constraints_and_indices() WHERE (constraint_name::text=index_name::text AND constraint_type='x');
 
 -- U_P

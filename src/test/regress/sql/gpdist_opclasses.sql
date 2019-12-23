@@ -136,6 +136,41 @@ ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i, j); -- not allowed
 ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i abs_int_hash_ops, j abs_int_hash_ops);
 
 
+-- Exclusion constraints work similarly. We can enforce them, as long as the
+-- exclusion ops are the same equality ops as used in the distribution key.
+--
+-- That may seem a bit pointless, but there are some use cases for it. For
+-- example, imagine that you have a calendar system, where you can book rooms.
+-- If you distribute the bookings table by room number, you could have an
+-- exclusion constraint on (room_no WITH =, reservation WITH &&), to enforce
+-- that there are no overlapping reservations for the same room.
+--
+-- We can't use that exact example here, without the 'btree_gist' extension
+-- that would provide the = gist opclass for basic types. So we use a more
+-- contrived example using IP addresses rather than rooms.
+
+CREATE TABLE ip_reservations (ip_addr inet, reserved tsrange) DISTRIBUTED BY (ip_addr);
+
+-- these are not allowed
+ALTER TABLE ip_reservations ADD EXCLUDE USING gist (reserved WITH &&);
+ALTER TABLE ip_reservations ADD EXCLUDE USING gist (ip_addr inet_ops WITH &&);
+
+-- but this is.
+ALTER TABLE ip_reservations ADD EXCLUDE USING gist (ip_addr inet_ops WITH =, reserved WITH &&);
+
+-- new distribution is incompatible with the constraint.
+ALTER TABLE ip_reservations SET DISTRIBUTED BY (reserved);
+
+-- After dropping the constraint, it's allowed.
+ALTER TABLE ip_reservations DROP CONSTRAINT ip_reservations_ip_addr_reserved_excl;
+ALTER TABLE ip_reservations SET DISTRIBUTED BY (reserved);
+
+-- Test creating exclusion constraint on tsrange column. (The subtle
+-- difference is there is no direct =(tsrange, tsrange) operator, we rely on
+-- the implicit casts for it)
+ALTER TABLE ip_reservations ADD EXCLUDE USING gist (reserved WITH =);
+
+
 --
 -- Test scenario, where a type has a hash operator class, but not a default
 -- one.

@@ -46,6 +46,7 @@ static int errdetails_index_policy(char *attname,
 								   Oid policy_indclass,
 								   Oid policy_eqop,
 								   Oid found_indclass,
+								   Oid exclop,
 								   index_check_policy_compatible_context *context);
 
 /*
@@ -681,16 +682,24 @@ GpPolicyRemove(Oid tbloid)
 	 */
 	heap_close(gp_policy_rel, NoLock);
 }								/* GpPolicyRemove */
+
 /*
- * Is the supplied GpPolicy compatible with a unique index?
+ * Is the supplied GpPolicy compatible with a unique or exclusion constraint
+ * index?
  *
  * This is used both when a new index is created (CREATE INDEX), and when
  * a table's distribution key is about to be changed (ALTER TABLE SET
  * DISTRIBUTED BY).
  *
  * The set of columns being indexed needs to be a superset of the distribution
- * policy. If the table is distributed randomly, no unique indexing is
- * supported. If the table is replicated, all constraints all supported.
+ * policy. If the table is distributed randomly, no unique / exclusion
+ * indexing is supported. If the table is replicated, all constraints all
+ * supported.
+ *
+ * The index is described by 'indattr', 'indclasses', 'exclop', 'nidxatts'
+ * parameters. Note that the parameters don't include expressions for an
+ * expression index; expressions can never match distribution keys, so
+ * they can be ignored here.
  *
  * Returns 'true', if the policy is compatible with the index.
  */
@@ -699,6 +708,7 @@ index_check_policy_compatible(GpPolicy *policy,
 							  TupleDesc desc,
 							  AttrNumber *indattr,
 							  Oid *indclasses,
+							  Oid *exclop,
 							  int nidxatts,
 							  bool report_error,
 							  index_check_policy_compatible_context *error_context)
@@ -714,8 +724,8 @@ index_check_policy_compatible(GpPolicy *policy,
 		return true;
 
 	/*
-	 * Firstly, unique indexes are not supported at all on randomly distributed
-	 * tables.
+	 * Firstly, unique indexes / exclusion constraints are not supported at
+	 * all on randomly distributed tables.
 	 *
 	 * XXX: The error message here is worded as if we're adding a constraint. This
 	 * function is also used for ALTER TABLE SET DISTRIBUTED BY, but as of this
@@ -732,6 +742,10 @@ index_check_policy_compatible(GpPolicy *policy,
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 						 errmsg("PRIMARY KEY and DISTRIBUTED RANDOMLY are incompatible")));
+			else if (exclop)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("exclusion constraint and DISTRIBUTED RANDOMLY are incompatible")));
 			else
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
@@ -793,15 +807,25 @@ index_check_policy_compatible(GpPolicy *policy,
 			 * Is the index's operator class is compatible with the
 			 * distribution key's operator class? It's compatible, if it
 			 * has the same equality operator.
+			 *
+			 * If this is an exclusion constraint, rather than a unique index,
+			 * then we compare the exclusion operator instead. The exclusion
+			 * operator should be the same operator as the distribution key
+			 * opclass's equality operator.
 			 */
-			found_col_indclass = indclasses[j];
+			if (exclop)
+				indeqop = exclop[j];
+			else
+			{
+				found_col_indclass = indclasses[j];
 
-			indopfamily = get_opclass_family(indclasses[j]);
-			opcintype = get_opclass_input_type(indclasses[j]);
-			indeqop = get_opfamily_member(indopfamily,
-										  opcintype,
-										  opcintype,
-										  BTEqualStrategyNumber);
+				indopfamily = get_opclass_family(indclasses[j]);
+				opcintype = get_opclass_input_type(indclasses[j]);
+				indeqop = get_opfamily_member(indopfamily,
+											  opcintype,
+											  opcintype,
+											  BTEqualStrategyNumber);
+			}
 			if (indeqop == policy_eqop)
 			{
 				found = true;
@@ -824,6 +848,7 @@ index_check_policy_compatible(GpPolicy *policy,
 												 policy_opclass,
 												 policy_eqop,
 												 found_col_indclass,
+												 exclop ? exclop[j] : InvalidOid,
 												 error_context)));
 			return false;
 		}
@@ -871,6 +896,7 @@ errdetails_index_policy(char *attname,
 						Oid policy_opclass,
 						Oid policy_eqop,
 						Oid found_indclass,
+						Oid exclop,
 						index_check_policy_compatible_context *context)
 {
 	errcode(ERRCODE_INVALID_TABLE_DEFINITION);
@@ -896,6 +922,9 @@ errdetails_index_policy(char *attname,
 	{
 		if (context->is_primarykey)
 			errmsg("distribution policy is not compatible with the table's PRIMARY KEY");
+		else if (exclop)
+			errmsg("distribution policy is not compatible with exclusion constraint \"%s\"",
+				   context->constraint_name);
 		else
 		{
 			Assert (context->is_unique);
@@ -911,6 +940,8 @@ errdetails_index_policy(char *attname,
 	{
 		if (context->is_primarykey)
 			errmsg("PRIMARY KEY definition must contain all columns in the table's distribution key");
+		else if (exclop)
+			errmsg("exclusion constraint is not compatible with the table's distribution policy");
 		else
 		{
 			Assert (context->is_unique);
@@ -924,7 +955,14 @@ errdetails_index_policy(char *attname,
 	/*
 	 * Print details of which distribution column is causing the trouble.
 	 */
-	if (found_indclass != InvalidOid)
+	if (exclop)
+	{
+		errdetail("Distribution key column \"%s\" is not included in the constraint.",
+				  attname);
+		errhint("Add \"%s\" to the constraint with the %s operator.",
+				attname, format_operator(policy_eqop));
+	}
+	else if (found_indclass != InvalidOid)
 	{
 		/*
 		 * A unique index contained the distribution key column, but with
@@ -956,12 +994,22 @@ bool
 change_policy_to_match_index(Relation rel,
 							 AttrNumber *indattr,
 							 Oid *indclasses,
+							 Oid *exclop,
 							 int nidxatts)
 {
 	TupleDesc	desc = RelationGetDescr(rel);
 	GpPolicy *policy;
 	int			i;
 	MemoryContext oldcontext;
+
+	/*
+	 * Don't do anything with exclusion constraints, for now. We could
+	 * do the analogous thing we do with unique indexes, if any of the
+	 * exclusion operators have a compatible hash opclass. But we don't
+	 * bother.
+	 */
+	if (exclop)
+		return false;
 
 	policy = makeGpPolicy(POLICYTYPE_PARTITIONED, nidxatts,
 						  rel->rd_cdbpolicy->numsegments);

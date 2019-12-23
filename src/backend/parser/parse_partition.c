@@ -332,6 +332,22 @@ transformPartitionBy(CreateStmtContext *cxt,
 
 		Constraint *ucon = (Constraint *) lfirst(lc);
 
+		/*
+		 * For now, don't allow exclusion constraints on partitioned tables at
+		 * all.
+		 *
+		 * XXX: There's no fundamental reason they couldn't be made to work.
+		 * As long as the index contains all the partitioning key columns,
+		 * with the equality operators as the exclusion operators, they would
+		 * work. These are the same conditions as with compatibility with
+		 * distribution keys. But the code to check that hasn't been written
+		 * yet.
+		 */
+		if (ucon->contype == CONSTR_EXCLUSION)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("exclusion constraints are not supported on partitioned tables")));
+
 		Insist(ucon->keys != NIL);
 
 		foreach(ilc, key_attnames)

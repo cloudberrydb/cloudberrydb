@@ -4299,6 +4299,30 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 (3 rows)
 
 drop table it;
+--
+-- Exclusion constraints are currently not supported on partitioned tables.
+--
+create table parttab_with_excl_constraint (
+  i int,
+  j int,
+  CONSTRAINT part_excl EXCLUDE (i WITH =) )
+distributed by (i) partition by list (i) (
+  partition a values (1),
+  partition b values (2),
+  partition c values (3)
+);
+ERROR:  exclusion constraints are not supported on partitioned tables
+create table parttab_with_excl_constraint (
+  i int,
+  j int)
+distributed by (i) partition by list (i) (
+  partition a values (1),
+  partition b values (2),
+  partition c values (3)
+);
+alter table parttab_with_excl_constraint ADD CONSTRAINT part_excl EXCLUDE (i WITH =);
+ERROR:  cannot create exclusion constraint on partitioned table "parttab_with_excl_constraint"
+drop table parttab_with_excl_constraint;
 -- MPP-6297: test special WITH(tablename=...) syntax for dump/restore
 -- original table was:
 -- PARTITION BY RANGE(l_commitdate) 

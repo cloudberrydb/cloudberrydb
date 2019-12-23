@@ -1096,11 +1096,10 @@ Distributed by: (val1, val2)
 
 DROP TABLE test_constraints_inh;
 DROP TABLE test_constraints;
--- start_ignore
--- GPDB does not support exclusion constraints, so no need to run this test
 CREATE TABLE test_ex_constraints (
     c circle,
-    EXCLUDE USING gist (c WITH &&)
+    dkey inet,
+    EXCLUDE USING gist (dkey inet_ops WITH =, c WITH &&)
 );
 CREATE TABLE test_ex_constraints_inh () INHERITS (test_ex_constraints);
 \d+ test_ex_constraints
@@ -1108,31 +1107,33 @@ CREATE TABLE test_ex_constraints_inh () INHERITS (test_ex_constraints);
  Column |  Type  | Modifiers | Storage | Stats target | Description 
 --------+--------+-----------+---------+--------------+-------------
  c      | circle |           | plain   |              | 
+ dkey   | inet   |           | main    |              | 
 Indexes:
-    "test_ex_constraints_c_excl" EXCLUDE USING gist (c WITH &&)
+    "test_ex_constraints_dkey_c_excl" EXCLUDE USING gist (dkey inet_ops WITH =, c WITH &&)
 Child tables: test_ex_constraints_inh
-Distributed randomly
+Distributed by: (dkey)
 
-ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_c_excl;
+ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_dkey_c_excl;
 \d+ test_ex_constraints
                  Table "public.test_ex_constraints"
  Column |  Type  | Modifiers | Storage | Stats target | Description 
 --------+--------+-----------+---------+--------------+-------------
  c      | circle |           | plain   |              | 
+ dkey   | inet   |           | main    |              | 
 Child tables: test_ex_constraints_inh
-Distributed randomly
+Distributed by: (dkey)
 
 \d+ test_ex_constraints_inh
                Table "public.test_ex_constraints_inh"
  Column |  Type  | Modifiers | Storage | Stats target | Description 
 --------+--------+-----------+---------+--------------+-------------
  c      | circle |           | plain   |              | 
+ dkey   | inet   |           | main    |              | 
 Inherits: test_ex_constraints
-Distributed randomly
+Distributed by: (dkey)
 
 DROP TABLE test_ex_constraints_inh;
 DROP TABLE test_ex_constraints;
--- end_ignore
 -- Test non-inheritable foreign key constraints
 CREATE TABLE test_primary_constraints(id int PRIMARY KEY);
 CREATE TABLE test_foreign_constraints(id1 int REFERENCES test_primary_constraints(id));

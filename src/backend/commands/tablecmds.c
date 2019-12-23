@@ -15103,18 +15103,58 @@ checkPolicyCompatibleWithIndexes(Relation rel, GpPolicy *pol)
 		indexStruct = (Form_pg_index) GETSTRUCT(indexTuple);
 
 		if (indexStruct->indisprimary ||
-			indexStruct->indisunique)
+			indexStruct->indisunique ||
+			indexStruct->indisexclusion)
 		{
 			int2vector *indkey;
 			oidvector  *indclass;
 			Datum		datum;
 			bool		isnull;
+			Oid		   *exclops = NULL;
 
 			indkey = &indexStruct->indkey;
 			datum = SysCacheGetAttr(INDEXRELID, indexTuple,
 									Anum_pg_index_indclass, &isnull);
 			Assert(!isnull);
 			indclass = (oidvector *) DatumGetPointer(datum);
+
+			if (indexStruct->indisexclusion)
+			{
+				HeapTuple	ht_constr;
+				Form_pg_constraint conrec;
+				Oid			constraintId;
+				Datum	   *elems;
+				int			nElems;
+
+				/*
+				 * For an exclusion constraint, we need to extract the operator OIDs
+				 * from pg_constraint
+				 */
+				constraintId = get_index_constraint(indexoid);
+				if (!constraintId)
+					elog(ERROR, "could not find pg_constraint entry for index %u", indexoid);
+
+				ht_constr = SearchSysCache1(CONSTROID,
+											ObjectIdGetDatum(constraintId));
+				if (!HeapTupleIsValid(ht_constr))
+					elog(ERROR, "cache lookup failed for constraint %u",
+						 constraintId);
+				conrec = (Form_pg_constraint) GETSTRUCT(ht_constr);
+				datum = SysCacheGetAttr(CONSTROID, ht_constr,
+										Anum_pg_constraint_conexclop,
+										&isnull);
+				if (isnull)
+					elog(ERROR, "null conexclop for constraint %u",
+						 constraintId);
+
+				deconstruct_array(DatumGetArrayTypeP(datum),
+								  OIDOID, sizeof(Oid), true, 'i',
+								  &elems, NULL, &nElems);
+				exclops = palloc(nElems * sizeof(Oid));
+				for (int i = 0; i < nElems; i++)
+					exclops[i] = DatumGetObjectId(elems[i]);
+				ReleaseSysCache(ht_constr);
+			}
 
 			index_check_policy_compatible_context ctx;
 
@@ -15129,9 +15169,12 @@ checkPolicyCompatibleWithIndexes(Relation rel, GpPolicy *pol)
 												 RelationGetDescr(rel),
 												 indkey->values,
 												 indclass->values,
+												 exclops,
 												 indexStruct->indnatts,
 												 true, /* report_error */
 												 &ctx);
+			if (exclops)
+				pfree(exclops);
 		}
 
 		ReleaseSysCache(indexTuple);

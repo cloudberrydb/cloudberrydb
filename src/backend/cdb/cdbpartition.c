@@ -8423,24 +8423,39 @@ ChooseConstraintNameForPartitionCreate(const char *rname,
  * an error.  The argument primary just conditions the message text.
  */
 void
-checkUniqueConstraintVsPartitioning(Relation rel, AttrNumber *indattr, int nidxatts, bool primary)
+index_check_partitioning_compatible(Relation rel,
+									AttrNumber *indattr, Oid *exclops, int nidxatts,
+									bool primary)
 {
 	int			i;
-	bool		contains;
-	Bitmapset  *ikey = NULL;
-	Bitmapset  *pkey = get_partition_key_bitmapset(RelationGetRelid(rel));
+	Bitmapset  *ikey;
+	Bitmapset  *pkey;
 
+	if (exclops)
+	{
+		/*
+		 * For now, don't allow exclusion constraints on partitioned tables at
+		 * all.
+		 *
+		 * XXX: There's no fundamental reason they couldn't be made to work.
+		 * As long as the index contains all the partitioning key columns,
+		 * with the equality operators as the exclusion operators, they would
+		 * work. These are the same conditions as with compatibility with
+		 * distribution keys. But the code to check that hasn't been written
+		 * yet.
+		 */
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("exclusion constraints are not supported on partitioned tables")));
+	}
+
+	ikey = NULL;
 	for (i = 0; i < nidxatts; i++)
 		ikey = bms_add_member(ikey, indattr[i]);
 
-	contains = bms_is_subset(pkey, ikey);
+	pkey = get_partition_key_bitmapset(RelationGetRelid(rel));
 
-	if (pkey)
-		bms_free(pkey);
-	if (ikey)
-		bms_free(ikey);
-
-	if (!contains)
+	if (!bms_is_subset(pkey, ikey))
 	{
 		char	   *what = "UNIQUE";
 
@@ -8453,6 +8468,9 @@ checkUniqueConstraintVsPartitioning(Relation rel, AttrNumber *indattr, int nidxa
 						what, RelationGetRelationName(rel)),
 				 errhint("Include the partition key or create a part-wise UNIQUE index instead.")));
 	}
+
+	bms_free(pkey);
+	bms_free(ikey);
 }
 
 /**

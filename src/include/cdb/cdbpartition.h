@@ -201,8 +201,7 @@ extern bool is_exchangeable(Relation rel, Relation oldrel, Relation newrel, bool
 extern void
 fixCreateStmtForPartitionedTable(CreateStmt *stmt);
 
-extern void
-checkUniqueConstraintVsPartitioning(Relation rel, AttrNumber *indattr, int nidxatts, bool primary);
+extern void index_check_partitioning_compatible(Relation rel, AttrNumber *indattr, Oid *exclops, int nidxatts, bool primary);
 
 extern List *
 selectPartitionMulti(PartitionNode *partnode, Datum *values, bool *isnull,

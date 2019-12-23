@@ -339,20 +339,19 @@ ALTER TABLE ONLY test_constraints DROP CONSTRAINT test_constraints_val1_val2_key
 DROP TABLE test_constraints_inh;
 DROP TABLE test_constraints;
 
--- start_ignore
--- GPDB does not support exclusion constraints, so no need to run this test
 CREATE TABLE test_ex_constraints (
     c circle,
-    EXCLUDE USING gist (c WITH &&)
+    dkey inet,
+    EXCLUDE USING gist (dkey inet_ops WITH =, c WITH &&)
 );
+
 CREATE TABLE test_ex_constraints_inh () INHERITS (test_ex_constraints);
 \d+ test_ex_constraints
-ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_c_excl;
+ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_dkey_c_excl;
 \d+ test_ex_constraints
 \d+ test_ex_constraints_inh
 DROP TABLE test_ex_constraints_inh;
 DROP TABLE test_ex_constraints;
--- end_ignore
 
 -- Test non-inheritable foreign key constraints
 CREATE TABLE test_primary_constraints(id int PRIMARY KEY);

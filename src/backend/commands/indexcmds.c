@@ -452,9 +452,6 @@ DefineIndex(Oid relationId,
 	else
 		shouldDispatch = false;
 
-	/* Exlusion constraint not allowed */
-	Assert(!stmt->excludeOpNames);
-
 	/*
 	 * count attributes in index
 	 */
@@ -534,7 +531,7 @@ DefineIndex(Oid relationId,
 		if (stmt->excludeOpNames)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("cannot create exclusion constraints on partitioned table \"%s\"",
+					 errmsg("cannot create exclusion constraint on partitioned table \"%s\"",
 							RelationGetRelationName(rel))));
 	}
 
@@ -775,7 +772,9 @@ DefineIndex(Oid relationId,
 	 */
 	if (rel->rd_cdbpolicy)
 	{
-		if (stmt->primary || stmt->unique)
+		if (stmt->primary ||
+			stmt->unique ||
+			stmt->excludeOpNames)
 		{
 			bool		compatible;
 
@@ -794,6 +793,7 @@ DefineIndex(Oid relationId,
 											  RelationGetDescr(rel),
 											  indexInfo->ii_KeyAttrNumbers,
 											  classObjectId,
+											  indexInfo->ii_ExclusionOps,
 											  indexInfo->ii_NumIndexAttrs,
 											  false, /* report_error */
 											  NULL);
@@ -816,6 +816,7 @@ DefineIndex(Oid relationId,
 					change_policy_to_match_index(rel,
 												 indexInfo->ii_KeyAttrNumbers,
 												 classObjectId,
+												 indexInfo->ii_ExclusionOps,
 												 indexInfo->ii_NumIndexAttrs);
 				if (compatible && Gp_role == GP_ROLE_DISPATCH)
 				{
@@ -855,6 +856,7 @@ DefineIndex(Oid relationId,
 													 RelationGetDescr(rel),
 													 indexInfo->ii_KeyAttrNumbers,
 													 classObjectId,
+													 indexInfo->ii_ExclusionOps,
 													 indexInfo->ii_NumIndexAttrs,
 													 true, /* report_error */
 													 &ctx);
@@ -872,8 +874,9 @@ DefineIndex(Oid relationId,
 	 * constraint must be compatible with the partitioning key.
 	 */
 	if ( stmt->isconstraint && rel_is_partitioned(relationId) )
-		checkUniqueConstraintVsPartitioning(rel,
+		index_check_partitioning_compatible(rel,
 											indexInfo->ii_KeyAttrNumbers,
+											indexInfo->ii_ExclusionOps,
 											indexInfo->ii_NumIndexAttrs,
 											stmt->primary);
 
