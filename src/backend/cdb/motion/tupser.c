@@ -271,15 +271,6 @@ addByteStringToChunkList(TupleChunkList tcList, char *data, int datalen, TupleCh
 			break;
 
 		tcItem = getChunkFromCache(chunkCache);
-		if (tcItem == NULL)
-		{
-			ereport(FATAL,
-					(errcode(ERRCODE_OUT_OF_MEMORY),
-					 errmsg("could not allocate space for new chunk"),
-					 errdetail("%d of %d bytes in %d chunks",
-							   tcList->serialized_data_length, datalen,
-							   tcList->num_chunks)));
-		}
 		tcItem->chunk_length = TUPLE_CHUNK_HEADER_SIZE;
 		SetChunkType(tcItem->chunk_data, TC_PARTIAL_MID);
 		appendChunkToTCList(tcList, tcItem);
@@ -324,12 +315,6 @@ SerializeRecordCacheIntoChunks(SerTupInfo *pSerInfo,
 	tcList->max_chunk_length = Gp_max_tuple_chunk_size;
 
 	tcItem = getChunkFromCache(&pSerInfo->chunkCache);
-	if (tcItem == NULL)
-	{
-		ereport(FATAL,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("could not allocate space for first chunk item in new chunk list")));
-	}
 
 	/* assume that we'll take a single chunk */
 	SetChunkType(tcItem->chunk_data, TC_WHOLE);
@@ -490,12 +475,6 @@ SerializeTuple(TupleTableSlot *slot, SerTupInfo *pSerInfo, struct directTranspor
 		 * out-of-line serialization.
 		 */
 		tcItem = getChunkFromCache(&pSerInfo->chunkCache);
-		if (tcItem == NULL)
-		{
-			ereport(FATAL,
-					(errcode(ERRCODE_OUT_OF_MEMORY),
-					 errmsg("could not allocate space for first chunk item in new chunk list")));
-		}
 		SetChunkType(tcItem->chunk_data, TC_WHOLE);
 		tcItem->chunk_length = TUPLE_CHUNK_HEADER_SIZE;
 		appendChunkToTCList(tcList, tcItem);
@@ -571,12 +550,6 @@ SerializeTuple(TupleTableSlot *slot, SerTupInfo *pSerInfo, struct directTranspor
 		 * out-of-line serialization.
 		 */
 		tcItem = getChunkFromCache(&pSerInfo->chunkCache);
-		if (tcItem == NULL)
-		{
-			ereport(FATAL,
-					(errcode(ERRCODE_OUT_OF_MEMORY),
-					 errmsg("could not allocate space for first chunk item in new chunk list")));
-		}
 		SetChunkType(tcItem->chunk_data, TC_WHOLE);
 		tcItem->chunk_length = TUPLE_CHUNK_HEADER_SIZE;
 		appendChunkToTCList(tcList, tcItem);
