@@ -841,7 +841,8 @@ DETAIL:  Key (test)=(2) already exists.
 insert into atacc1 select i from generate_series(3,10)i;
 -- try adding a unique oid constraint
 alter table atacc1 add constraint atacc_oid1 unique(oid);
-ERROR:  cannot create unique index on system column
+ERROR:  UNIQUE constraint must contain all columns in the table's distribution key
+DETAIL:  Distribution key column "test" is not included in the constraint.
 -- try to create duplicates via alter table using - should fail
 -- this errors out in Greenplum for a different reason: we don't support
 -- SET DATA TYPE on an indexed column yet
@@ -884,7 +885,8 @@ drop table atacc1;
 -- lets do some naming tests
 create table atacc1 (test int, test2 int, unique(test)) distributed by (test);
 alter table atacc1 add unique (test2);
-ERROR:  UNIQUE index must contain all columns in the distribution key of relation "atacc1"
+ERROR:  UNIQUE constraint must contain all columns in the table's distribution key
+DETAIL:  Distribution key column "test" is not included in the constraint.
 -- should fail for @@ second one @@
 insert into atacc1 (test2, test) values (3, 3);
 insert into atacc1 (test2, test) values (2, 3);
@@ -916,7 +918,8 @@ ERROR:  multiple primary keys for table "atacc1" are not allowed
 alter table atacc1 drop constraint atacc_test1 restrict;
 -- try adding a primary key on oid (should fail)
 alter table atacc1 add constraint atacc_oid1 primary key(oid);
-ERROR:  cannot create primary key on system column
+ERROR:  PRIMARY KEY definition must contain all columns in the table's distribution key
+DETAIL:  Distribution key column "test" is not included in the constraint.
 drop table atacc1;
 -- let's do one where the primary key constraint fails when added
 create table atacc1 ( test int ) distributed by (test);
@@ -2954,7 +2957,7 @@ CREATE TABLE tt8(a int);
 CREATE SCHEMA alter2;
 ALTER TABLE IF EXISTS tt8 ADD COLUMN f int;
 ALTER TABLE IF EXISTS tt8 ADD CONSTRAINT xxx PRIMARY KEY(f);
-NOTICE:  updating distribution policy to match new primary key
+NOTICE:  updating distribution policy to match new PRIMARY KEY
 ALTER TABLE IF EXISTS tt8 ADD CHECK (f BETWEEN 0 AND 10);
 ALTER TABLE IF EXISTS tt8 ALTER COLUMN f SET DEFAULT 0;
 ALTER TABLE IF EXISTS tt8 RENAME COLUMN f TO f1;

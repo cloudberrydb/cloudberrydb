@@ -64,6 +64,7 @@
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbappendonlyxlog.h"
 #include "cdb/cdbaocsam.h"
+#include "cdb/cdbcat.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/memquota.h"
 #include "commands/cluster.h"
@@ -15077,20 +15078,16 @@ make_distro_str(List *lwith, DistributedBy *ldistro)
 }
 
 /*
- * Check if distribution key compatible with unique index
+ * Check if a new DISTRIBUTED BY clause is compatible with existing indexes.
  */
-static void checkUniqueIndexCompatible(Relation rel, GpPolicy *pol)
+static void
+checkPolicyCompatibleWithIndexes(Relation rel, GpPolicy *pol)
 {
-	List *indexoidlist = RelationGetIndexList(rel);
-	ListCell *indexoidscan = NULL;
-	Bitmapset *polbm = NULL;
-	int i = 0;
+	List	   *indexoidlist = RelationGetIndexList(rel);
+	ListCell   *indexoidscan;
 
-	if(pol == NULL || pol->nattrs == 0)
+	if (pol == NULL || pol->nattrs == 0)
 		return;
-
-	for (i = 0; i < pol->nattrs; i++)
-		polbm = bms_add_member(polbm, pol->attrs[i]);
 
 	/* Loop over all indexes on the relation */
 	foreach(indexoidscan, indexoidlist)
@@ -15098,8 +15095,6 @@ static void checkUniqueIndexCompatible(Relation rel, GpPolicy *pol)
 		Oid			indexoid = lfirst_oid(indexoidscan);
 		HeapTuple	indexTuple;
 		Form_pg_index indexStruct;
-		int			i;
-		Bitmapset  *indbm = NULL;
 
 		indexTuple = SearchSysCache1(INDEXRELID,
 									 ObjectIdGetDatum(indexoid));
@@ -15107,30 +15102,42 @@ static void checkUniqueIndexCompatible(Relation rel, GpPolicy *pol)
 			elog(ERROR, "cache lookup failed for index %u", indexoid);
 		indexStruct = (Form_pg_index) GETSTRUCT(indexTuple);
 
-		/* If the index is not a unique key, skip the check */
-		if (indexStruct->indisunique)
+		if (indexStruct->indisprimary ||
+			indexStruct->indisunique)
 		{
-			for (i = 0; i < indexStruct->indnatts; i++)
-			{
-				indbm = bms_add_member(indbm, indexStruct->indkey.values[i]);
-			}
+			int2vector *indkey;
+			oidvector  *indclass;
+			Datum		datum;
+			bool		isnull;
 
-			if (!bms_is_subset(polbm, indbm))
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("UNIQUE INDEX and DISTRIBUTED BY definitions incompatible"),
-						 errhint("The DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.")));
-			}
+			indkey = &indexStruct->indkey;
+			datum = SysCacheGetAttr(INDEXRELID, indexTuple,
+									Anum_pg_index_indclass, &isnull);
+			Assert(!isnull);
+			indclass = (oidvector *) DatumGetPointer(datum);
 
-			bms_free(indbm);
+			index_check_policy_compatible_context ctx;
+
+			memset(&ctx, 0, sizeof(ctx));
+			ctx.for_alter_dist_policy = true;
+			ctx.is_constraint = indexStruct->indisprimary; /* unknown */
+			ctx.is_unique = indexStruct->indisunique;
+			ctx.is_primarykey = indexStruct->indisprimary;
+			ctx.constraint_name = get_rel_name(indexoid);
+
+			(void) index_check_policy_compatible(pol,
+												 RelationGetDescr(rel),
+												 indkey->values,
+												 indclass->values,
+												 indexStruct->indnatts,
+												 true, /* report_error */
+												 &ctx);
 		}
 
 		ReleaseSysCache(indexTuple);
 	}
 
 	list_free(indexoidlist);
-	bms_free(polbm);
 }
 
 /*
@@ -15749,7 +15756,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 				}
 			}
 
-			checkUniqueIndexCompatible(rel, policy);
+			checkPolicyCompatibleWithIndexes(rel, policy);
 		}
 
 		if (!ldistro)

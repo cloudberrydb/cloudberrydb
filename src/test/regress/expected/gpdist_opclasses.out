@@ -202,6 +202,23 @@ Table "public.abs_opclass_test"
 Distributed by: (i abs_int_hash_ops, t, j abs_int_hash_ops)
 
 --
+-- Test interaction between unique and primary key indexes and distribution keys.
+--
+-- should fail, because the default index opclass is not compatible with the |=| operator
+CREATE UNIQUE INDEX ON abs_opclass_test (i, j, t);
+ERROR:  UNIQUE index must contain all columns in the table's distribution key
+DETAIL:  Operator class abs_int_hash_ops of distribution key column "i" is not compatible with operator class int4_ops used in the constraint.
+ALTER TABLE abs_opclass_test ADD PRIMARY KEY (i, j, t);
+ERROR:  PRIMARY KEY definition must contain all columns in the table's distribution key
+DETAIL:  Operator class abs_int_hash_ops of distribution key column "i" is not compatible with operator class int4_ops used in the constraint.
+-- but this is allowed. (There is no syntax to specify the opclasses with ADD PRIMARY KEY)
+CREATE UNIQUE INDEX ON abs_opclass_test (i abs_int_btree_ops, j abs_int_btree_ops, t);
+-- ALTER TABLE should perform the same tests
+ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i, j); -- not allowed
+ERROR:  distribution policy is not compatible with UNIQUE index "abs_opclass_test_i_j_t_idx"
+DETAIL:  Operator class int4_ops of distribution key column "i" is not compatible with operator class abs_int_btree_ops used in the constraint.
+ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i abs_int_hash_ops, j abs_int_hash_ops);
+--
 -- Test scenario, where a type has a hash operator class, but not a default
 -- one.
 --

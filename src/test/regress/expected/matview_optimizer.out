@@ -91,7 +91,8 @@ CREATE MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtes
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 CREATE MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm distributed by(grandtot);
 CREATE UNIQUE INDEX mvtest_tvmm_expr ON mvtest_tvmm ((grandtot > 0));
-ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mvtest_tvmm"
+DETAIL:  Distribution key column "grandtot" is not included in the constraint.
+ERROR:  UNIQUE index must contain all columns in the table's distribution key
 CREATE UNIQUE INDEX mvtest_tvmm_pred ON mvtest_tvmm (grandtot) WHERE grandtot < 0;
 CREATE VIEW mvtest_tvv AS SELECT sum(totamt) AS grandtot FROM mvtest_tv;
 EXPLAIN (costs off)

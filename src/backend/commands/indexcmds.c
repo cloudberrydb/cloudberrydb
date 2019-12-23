@@ -65,6 +65,7 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
+#include "catalog/pg_constraint.h"
 #include "catalog/pg_inherits_fn.h"
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbcat.h"
@@ -72,6 +73,7 @@
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdboidsync.h"
 #include "cdb/cdbpartition.h"
+#include "cdb/cdbrelsize.h"
 #include "cdb/cdbvars.h"
 #include "libpq-fe.h"
 #include "utils/faultinjector.h"
@@ -754,16 +756,121 @@ DefineIndex(Oid relationId,
 	if (stmt->primary)
 		index_check_primary_key(rel, indexInfo, is_alter_table);
 
-	if ((stmt->primary || stmt->unique) && rel->rd_cdbpolicy)
-		checkPolicyForUniqueIndex(rel,
-								  indexInfo->ii_KeyAttrNumbers,
-								  indexInfo->ii_NumIndexAttrs,
-								  stmt->primary,
-								  list_length(indexInfo->ii_Expressions),
-								  relationHasPrimaryKey(rel),
-								  relationHasUniqueIndex(rel));
+	/*
+	 * Check that the index is compatible with the distribution policy.
+	 *
+	 * If the index is unique, the index columns must include all the
+	 * distribution key columns. Otherwise we cannot enforce the uniqueness,
+	 * because rows with duplicate keys might be stored in differenet segments,
+	 * and we would miss it. Similarly, an exlusion constraint must include
+	 * all all the distribution key columns.
+	 *
+	 * As a convenience, if it's a newly created table, we try to change the
+	 * policy to allow the index to exist, instead of throwing an error. This
+	 * allows the typical case of CREATE TABLE, without a DISTRIBUTED BY
+	 * clause, followed by CREATE UNIQUE INDEX, to work. This is a bit weird
+	 * if the user specified the distribution policy explicitly in the
+	 * CREATE TABLE clause, but we have no way of knowing whether it was
+	 * specified explicitly or not.
+	 */
+	if (rel->rd_cdbpolicy)
+	{
+		if (stmt->primary || stmt->unique)
+		{
+			bool		compatible;
 
-	/* We don't have to worry about constraints on parts.  Already checked. */
+			/* Don't allow indexes on system attributes. Except OIDs. */
+			for (i = 0; i < indexInfo->ii_NumIndexAttrs; i++)
+			{
+				if (indexInfo->ii_KeyAttrNumbers[i] < 0 &&
+					indexInfo->ii_KeyAttrNumbers[i] != ObjectIdAttributeNumber)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+							 errmsg("cannot create constraint or unique index on system column")));
+			}
+
+			compatible =
+				index_check_policy_compatible(rel->rd_cdbpolicy,
+											  RelationGetDescr(rel),
+											  indexInfo->ii_KeyAttrNumbers,
+											  classObjectId,
+											  indexInfo->ii_NumIndexAttrs,
+											  false, /* report_error */
+											  NULL);
+
+			/*
+			 * If the constraint isn't compatible with the current distribution policy,
+			 * try to change the distribution policy to match the constraint.
+			 *
+			 * The table must be empty, and it mustn't have any other constraints,
+			 * and the index mustn't contain expressions.
+			 */
+			if (!compatible &&
+				!GpPolicyIsRandomPartitioned(rel->rd_cdbpolicy) &&
+				(Gp_role == GP_ROLE_EXECUTE || cdbRelMaxSegSize(rel) == 0) &&
+				!relationHasPrimaryKey(rel) &&
+				!relationHasUniqueIndex(rel) &&
+				list_length(indexInfo->ii_Expressions) == 0)
+			{
+				compatible =
+					change_policy_to_match_index(rel,
+												 indexInfo->ii_KeyAttrNumbers,
+												 classObjectId,
+												 indexInfo->ii_NumIndexAttrs);
+				if (compatible && Gp_role == GP_ROLE_DISPATCH)
+				{
+					if (stmt->primary)
+						elog(NOTICE, "updating distribution policy to match new PRIMARY KEY");
+					else if (stmt->excludeOpNames)
+						elog(NOTICE, "updating distribution policy to match new exclusion constraint");
+					else
+					{
+						Assert(stmt->unique);
+						if (stmt->isconstraint)
+							elog(NOTICE, "updating distribution policy to match new UNIQUE constraint");
+						else
+							elog(NOTICE, "updating distribution policy to match new UNIQUE index");
+					}
+				}
+			}
+
+			if (!compatible)
+			{
+				/*
+				 * Not compatible, and couldn't change the distribution policy to match.
+				 * Report the error to the user. Do that by calling
+				 * index_check_policy_compatible() again, but pass report_error=true so
+				 * that it will throw an error. index_check_policy_compatible() can
+				 * give a better error message than we could here.
+				 */
+				index_check_policy_compatible_context ctx;
+
+				memset(&ctx, 0, sizeof(ctx));
+				ctx.for_alter_dist_policy = false;
+				ctx.is_constraint = stmt->isconstraint;
+				ctx.is_unique = stmt->unique;
+				ctx.is_primarykey = stmt->primary;
+				ctx.constraint_name = indexRelationName;
+				(void) index_check_policy_compatible(rel->rd_cdbpolicy,
+													 RelationGetDescr(rel),
+													 indexInfo->ii_KeyAttrNumbers,
+													 classObjectId,
+													 indexInfo->ii_NumIndexAttrs,
+													 true, /* report_error */
+													 &ctx);
+				/*
+				 * index_check_policy_compatible() should not return, because the earlier
+				 * call already determined that it's incompatible. But just in case..
+				 */
+				elog(ERROR, "constraint is not compatible with distribution key");
+			}
+		}
+	}
+
+	/*
+	 * Similar to the distribution keys, if the table is partitioned, a
+	 * constraint must be compatible with the partitioning key.
+	 */
 	if ( stmt->isconstraint && rel_is_partitioned(relationId) )
 		checkUniqueConstraintVsPartitioning(rel,
 											indexInfo->ii_KeyAttrNumbers,

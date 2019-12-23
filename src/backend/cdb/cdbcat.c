@@ -16,19 +16,21 @@
 #include "postgres.h"
 
 #include "access/genam.h"
+#include "access/hash.h"
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "catalog/dependency.h"
 #include "catalog/gp_policy.h"
 #include "catalog/indexing.h"
+#include "catalog/namespace.h"
 #include "catalog/objectaddress.h"
+#include "catalog/pg_constraint.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbcat.h"
 #include "cdb/cdbhash.h"
-#include "cdb/cdbrelsize.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"		/* Gp_role */
 #include "utils/array.h"
@@ -39,6 +41,12 @@
 #include "utils/tqual.h"
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
+
+static int errdetails_index_policy(char *attname,
+								   Oid policy_indclass,
+								   Oid policy_eqop,
+								   Oid found_indclass,
+								   index_check_policy_compatible_context *context);
 
 /*
  * The default numsegments when creating tables.  The value can be an integer
@@ -673,136 +681,343 @@ GpPolicyRemove(Oid tbloid)
 	 */
 	heap_close(gp_policy_rel, NoLock);
 }								/* GpPolicyRemove */
-
-
 /*
- * Does the supplied GpPolicy support unique indexing on the specified
- * attributes?
+ * Is the supplied GpPolicy compatible with a unique index?
  *
- * If the table is distributed randomly, no unique indexing is supported.
- * Otherwise, the set of columns being indexed should be a superset of the
- * policy.
+ * This is used both when a new index is created (CREATE INDEX), and when
+ * a table's distribution key is about to be changed (ALTER TABLE SET
+ * DISTRIBUTED BY).
  *
- * If the proposed index does not match the distribution policy but the relation
- * is empty and does not have a primary key or unique index, update the
- * distribution policy to match the index definition (MPP-101), as long as it
- * doesn't contain expressions.
+ * The set of columns being indexed needs to be a superset of the distribution
+ * policy. If the table is distributed randomly, no unique indexing is
+ * supported. If the table is replicated, all constraints all supported.
+ *
+ * Returns 'true', if the policy is compatible with the index.
  */
-void
-checkPolicyForUniqueIndex(Relation rel, AttrNumber *indattr, int nidxatts,
-						  bool isprimary, bool has_exprs, bool has_pkey,
-						  bool has_ukey)
+bool
+index_check_policy_compatible(GpPolicy *policy,
+							  TupleDesc desc,
+							  AttrNumber *indattr,
+							  Oid *indclasses,
+							  int nidxatts,
+							  bool report_error,
+							  index_check_policy_compatible_context *error_context)
 {
-	Bitmapset  *polbm = NULL;
-	Bitmapset  *indbm = NULL;
 	int			i;
-	TupleDesc	desc = RelationGetDescr(rel);
+	int			j;
 
 	/*
 	 * POLICYTYPE_ENTRY normally means it's a system table or a table created
 	 * in utility mode, so unique/primary key is allowed anywhere.
 	 */
-	if (GpPolicyIsEntry(rel->rd_cdbpolicy))
-		return;
+	if (GpPolicyIsEntry(policy))
+		return true;
 
 	/*
-	 * Firstly, unique/primary key indexes aren't supported if we're
-	 * distributing randomly.
-	 */
-	if (GpPolicyIsRandomPartitioned(rel->rd_cdbpolicy))
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-				 errmsg("%s and DISTRIBUTED RANDOMLY are incompatible",
-						isprimary ? "PRIMARY KEY" : "UNIQUE")));
-	}
-
-	/* Replicated table support unique/primary key indexes */
-	if (GpPolicyIsReplicated(rel->rd_cdbpolicy))
-		return;
-
-	Assert(GpPolicyIsHashPartitioned(rel->rd_cdbpolicy));
-
-	/*
-	 * We use bitmaps to make intersection tests easier. As noted, order is
-	 * not relevant so looping is just painful.
-	 */
-	for (i = 0; i < rel->rd_cdbpolicy->nattrs; i++)
-		polbm = bms_add_member(polbm, rel->rd_cdbpolicy->attrs[i]);
-	for (i = 0; i < nidxatts; i++)
-	{
-		if (indattr[i] < 0)
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-					 errmsg("cannot create %s on system column",
-							isprimary ? "primary key" : "unique index")));
-
-		indbm = bms_add_member(indbm, indattr[i]);
-	}
-
-	Assert(bms_membership(polbm) != BMS_EMPTY_SET);
-	Assert(bms_membership(indbm) != BMS_EMPTY_SET);
-
-	/*
-	 * If the existing policy is not a subset, we must either error out or
-	 * update the distribution policy. It might be tempting to say that even
-	 * when the policy is a subset, we should update it to match the index
-	 * definition. The problem then is that if the user actually wants a
-	 * distribution on (a, b) but then creates an index on (a, b, c) we'll
-	 * change the policy underneath them.
+	 * Firstly, unique indexes are not supported at all on randomly distributed
+	 * tables.
 	 *
-	 * What is really needed is a new field in gp_distribution_policy telling
-	 * us if the policy has been explicitly set.
+	 * XXX: The error message here is worded as if we're adding a constraint. This
+	 * function is also used for ALTER TABLE SET DISTRIBUTED BY, but as of this
+	 * writing, with ALTER TABLE SET DISTRIBUTED BY the caller checks for these
+	 * cases before calling this function, with a different error message. That
+	 * seems redundant, but as long as the caller does that, we can amke that
+	 * assumption in the error message.
 	 */
-	if (!bms_is_subset(polbm, indbm))
+	if (GpPolicyIsRandomPartitioned(policy))
 	{
-		if ((Gp_role == GP_ROLE_DISPATCH && cdbRelMaxSegSize(rel) != 0) ||
-			has_pkey || has_ukey || has_exprs)
+		if (report_error)
 		{
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-					 errmsg("%s must contain all columns in the "
-							"distribution key of relation \"%s\"",
-							isprimary ? "PRIMARY KEY" : "UNIQUE index",
-							RelationGetRelationName(rel))));
-		}
-
-		/* update policy since table is not populated yet. See MPP-101 */
-		GpPolicy *policy = makeGpPolicy(POLICYTYPE_PARTITIONED, nidxatts,
-										rel->rd_cdbpolicy->numsegments);
-
-		for (i = 0; i < nidxatts; i++)
-		{
-			AttrNumber attno = indattr[i];
-			Oid			opclass;
-
-			opclass = cdb_default_distribution_opclass_for_type(desc->attrs[attno - 1]->atttypid);
-			if (!opclass)
-			{
-				/*
-				 * The datatype has no default opclass. Can't use it in the
-				 * distribution key.
-				 */
+			if (error_context->is_primarykey)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-						 errmsg("%s must contain all columns in the "
-								"distribution key of relation \"%s\"",
-								isprimary ? "PRIMARY KEY" : "UNIQUE index",
-								RelationGetRelationName(rel))));
-			}
+						 errmsg("PRIMARY KEY and DISTRIBUTED RANDOMLY are incompatible")));
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("UNIQUE and DISTRIBUTED RANDOMLY are incompatible")));
+		}
+		return false;
+	}
 
-			policy->attrs[i] = attno;
-			policy->opclasses[i] = opclass;
+	/*
+	 * On the other hand, everything is supported on replicated tables.
+	 */
+	if (GpPolicyIsReplicated(policy))
+		return true;
+
+	/*
+	 * Otherwise, it's hash distributed.
+	 *
+	 * Loop through each distribution key column, and check that it's part
+	 * of the index.
+	 */
+	Assert(GpPolicyIsHashPartitioned(policy));
+	Assert(policy->nattrs > 0);
+	for (i = 0; i < policy->nattrs; i++)
+	{
+		int			policy_attr;
+		Oid			policy_opclass;
+		Oid			policy_opfamily;
+		Oid			policy_typeid;
+		Oid			policy_eqop;
+		bool		found;
+		bool		found_col;
+		Oid			found_col_indclass;
+
+		/* Look up the equality operator for the distribution key opclass */
+		policy_attr = policy->attrs[i];
+		policy_typeid = desc->attrs[policy_attr - 1]->atttypid;
+		policy_opclass = policy->opclasses[i];
+		policy_opfamily = get_opclass_family(policy_opclass);
+		policy_eqop = cdb_eqop_in_hash_opfamily(policy_opfamily, policy_typeid);
+
+		/*
+		 * Scan the index columns to see if any of them match the distribution
+		 * key.
+		 */
+		found = false;
+		found_col = false;
+		found_col_indclass = InvalidOid;
+		for (j = 0; j < nidxatts; j++)
+		{
+			Oid			indopfamily;
+			Oid			opcintype;
+			Oid			indeqop;
+
+			if (indattr[j] != policy_attr)
+				continue;
+			found_col = true;
+
+			/*
+			 * Is the index's operator class is compatible with the
+			 * distribution key's operator class? It's compatible, if it
+			 * has the same equality operator.
+			 */
+			found_col_indclass = indclasses[j];
+
+			indopfamily = get_opclass_family(indclasses[j]);
+			opcintype = get_opclass_input_type(indclasses[j]);
+			indeqop = get_opfamily_member(indopfamily,
+										  opcintype,
+										  opcintype,
+										  BTEqualStrategyNumber);
+			if (indeqop == policy_eqop)
+			{
+				found = true;
+				break;
+			}
 		}
 
-		GpPolicyReplace(rel->rd_id, policy);
-
-		MemoryContext oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
-		rel->rd_cdbpolicy = GpPolicyCopy(policy);
-		MemoryContextSwitchTo(oldcontext);
-
-		if (Gp_role == GP_ROLE_DISPATCH)
-			elog(NOTICE, "updating distribution policy to match new %s", isprimary ? "primary key" : "unique index");
+		if (!found)
+		{
+			/*
+			 * If the caller asked for an ERROR, construct a suitable error
+			 * message. The details of the message depend on the kind of
+			 * constraint it is, and whether the distribution key was missing
+			 * from the constraint altogther, or if it just had different
+			 * opclass.
+			 */
+			if (report_error)
+				ereport(ERROR,
+						(errdetails_index_policy(NameStr(TupleDescAttr(desc, policy_attr - 1)->attname),
+												 policy_opclass,
+												 policy_eqop,
+												 found_col_indclass,
+												 error_context)));
+			return false;
+		}
 	}
+
+	return true;
 }
 
+
+/*
+ * Print the name of an operator class, for error messages.
+ */
+static const char *
+format_opclass(Oid opclass)
+{
+	HeapTuple	ht_opc;
+	Form_pg_opclass opcrec;
+	char	   *opcname;
+	char	   *nspname;
+	const char *result;
+
+	ht_opc = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclass));
+	if (!HeapTupleIsValid(ht_opc))
+		elog(ERROR, "cache lookup failed for opclass %u", opclass);
+	opcrec = (Form_pg_opclass) GETSTRUCT(ht_opc);
+
+	/* do we need to schema-qualify the name? */
+	opcname = NameStr(opcrec->opcname);
+	if (OpclassIsVisible(opclass))
+		result = quote_identifier(opcname);
+	else
+	{
+		nspname = get_namespace_name(opcrec->opcnamespace);
+		result = psprintf("%s.%s",
+						  quote_identifier(nspname),
+						  quote_identifier(opcname));
+	}
+	ReleaseSysCache(ht_opc);
+
+	return result;
+}
+
+static int
+errdetails_index_policy(char *attname,
+						Oid policy_opclass,
+						Oid policy_eqop,
+						Oid found_indclass,
+						index_check_policy_compatible_context *context)
+{
+	errcode(ERRCODE_INVALID_TABLE_DEFINITION);
+
+	/*
+	 * Print main message. The wording depends on whether we're ALTERing a
+	 * table's distribution key, and the new distribution key isn't compatible
+	 * with existing indexes, or if we're trying to build a new index that's
+	 * not compatible with the table's distribution key. Both variants contain
+	 * the same information, but we try to say that the thing we're changing
+	 * is not compatible with the existing stuff, rather than the other way
+	 * round.
+	 *
+	 * In the ALTER TABLE SET DISTRIBUTED BY, we print the name of the conflicting
+	 * constraint/index. When we're adding an index, we leave that out, because
+	 * that's right there in the CREATE INDEX or ALTER TABLE ADD CONSTRAINT command.
+	 *
+	 * XXX: If it's a CREATE TABLE with multiple UNIQUE constraints, it would be
+	 * to printout which UNIQUE constraint is causing trouble. But we can't
+	 * distinguish CREATE TABLE subcommands from a straight CREATE INDEX here.
+	 */
+	if (context->for_alter_dist_policy)
+	{
+		if (context->is_primarykey)
+			errmsg("distribution policy is not compatible with the table's PRIMARY KEY");
+		else
+		{
+			Assert (context->is_unique);
+			if (context->is_constraint)
+				errmsg("distribution policy is not compatible with UNIQUE constraint \"%s\"",
+					   context->constraint_name);
+			else
+				errmsg("distribution policy is not compatible with UNIQUE index \"%s\"",
+					   context->constraint_name);
+		}
+	}
+	else
+	{
+		if (context->is_primarykey)
+			errmsg("PRIMARY KEY definition must contain all columns in the table's distribution key");
+		else
+		{
+			Assert (context->is_unique);
+			if (context->is_constraint)
+				errmsg("UNIQUE constraint must contain all columns in the table's distribution key");
+			else
+				errmsg("UNIQUE index must contain all columns in the table's distribution key");
+		}
+	}
+
+	/*
+	 * Print details of which distribution column is causing the trouble.
+	 */
+	if (found_indclass != InvalidOid)
+	{
+		/*
+		 * A unique index contained the distribution key column, but with
+		 * an incompatible opclass.
+		 *
+		 * It would be nice to hint what a compatible operator class be.
+		 * But it'd take some effort to dig that from the catalogs.
+		 */
+		errdetail("Operator class %s of distribution key column \"%s\" is not compatible with operator class %s used in the constraint.",
+				  format_opclass(policy_opclass),
+				  attname,
+				  format_opclass(found_indclass));
+	}
+	else
+	{
+		errdetail("Distribution key column \"%s\" is not included in the constraint.",
+				  attname);
+	}
+
+	return 0;
+}
+
+/*
+ * If the proposed index does not match the distribution policy but the relation
+ * is empty and does not have a primary key or unique index, update the
+ * distribution policy to match the index definition (MPP-101).
+ */
+bool
+change_policy_to_match_index(Relation rel,
+							 AttrNumber *indattr,
+							 Oid *indclasses,
+							 int nidxatts)
+{
+	TupleDesc	desc = RelationGetDescr(rel);
+	GpPolicy *policy;
+	int			i;
+	MemoryContext oldcontext;
+
+	policy = makeGpPolicy(POLICYTYPE_PARTITIONED, nidxatts,
+						  rel->rd_cdbpolicy->numsegments);
+	for (i = 0; i < nidxatts; i++)
+	{
+		AttrNumber	attno = indattr[i];
+		Oid			typeid = desc->attrs[attno - 1]->atttypid;
+		Oid			policy_opclass;
+		Oid			policy_opfamily;
+		Oid			policy_eqop;
+		Oid			indopfamily;
+		Oid			indeqop;
+
+		policy_opclass = cdb_default_distribution_opclass_for_type(typeid);
+		if (!policy_opclass)
+		{
+			/*
+			 * The datatype has no default opclass. Can't use it in the
+			 * distribution key.
+			 */
+			return false;
+		}
+
+		policy_opfamily = get_opclass_family(policy_opclass);
+		policy_eqop = get_opfamily_member(policy_opfamily,
+										  typeid,
+										  typeid,
+										  HTEqualStrategyNumber);
+
+		indopfamily = get_opclass_family(indclasses[i]);
+		indeqop = get_opfamily_member(indopfamily,
+									  typeid,
+									  typeid,
+									  BTEqualStrategyNumber);
+		if (policy_eqop != indeqop)
+		{
+			/*
+			 * The default hash opclass isn't compatible with the index opclass.
+			 * That is, they use a different equality operator. Give up.
+			 *
+			 * We could perhaps work a bit harder, and search for a different
+			 * hash opclass that would be compatible. But doesn't seem worth
+			 * the trouble.
+			 */
+			return false;
+		}
+
+		policy->attrs[i] = attno;
+		policy->opclasses[i] = policy_opclass;
+	}
+
+	GpPolicyReplace(rel->rd_id, policy);
+
+	oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+	rel->rd_cdbpolicy = GpPolicyCopy(policy);
+	MemoryContextSwitchTo(oldcontext);
+
+	return true;
+}

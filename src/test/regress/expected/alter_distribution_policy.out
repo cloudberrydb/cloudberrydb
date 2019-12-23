@@ -1324,8 +1324,8 @@ ALTER TABLE public.distrib_part_test SET with (reorganize=false) DISTRIBUTED RAN
 -- case 1
 CREATE TABLE t_dist1(col1 INTEGER, col2 INTEGER, CONSTRAINT pk_t_dist1 PRIMARY KEY(col2)) DISTRIBUTED BY(col2);
 ALTER TABLE t_dist1 SET DISTRIBUTED BY(col1);
-ERROR:  UNIQUE INDEX and DISTRIBUTED BY definitions incompatible
-HINT:  the DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.
+ERROR:  distribution policy is not compatible with the table's PRIMARY KEY
+DETAIL:  Distribution key column "col1" is not included in the constraint.
 -- case 2
 CREATE TABLE t_dist2(col1 INTEGER, col2 INTEGER, col3 INTEGER, col4 INTEGER) DISTRIBUTED BY(col1);
 CREATE UNIQUE INDEX idx1_t_dist2 ON t_dist2(col1, col2);
@@ -1337,14 +1337,14 @@ HINT:  Use ALTER TABLE "t_dist2" SET WITH (REORGANIZE=TRUE) DISTRIBUTED BY (col1
 ALTER TABLE t_dist2 SET DISTRIBUTED BY(col2);
 ALTER TABLE t_dist2 SET DISTRIBUTED BY(col1, col2);
 ALTER TABLE t_dist2 SET DISTRIBUTED BY(col1, col2, col3);
-ERROR:  UNIQUE INDEX and DISTRIBUTED BY definitions incompatible
-HINT:  the DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.
+ERROR:  distribution policy is not compatible with UNIQUE index "idx1_t_dist2"
+DETAIL:  Distribution key column "col3" is not included in the constraint.
 ALTER TABLE t_dist2 SET DISTRIBUTED BY(col3);
-ERROR:  UNIQUE INDEX and DISTRIBUTED BY definitions incompatible
-HINT:  the DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.
+ERROR:  distribution policy is not compatible with UNIQUE index "idx1_t_dist2"
+DETAIL:  Distribution key column "col3" is not included in the constraint.
 ALTER TABLE t_dist2 SET DISTRIBUTED BY(col4);
-ERROR:  UNIQUE INDEX and DISTRIBUTED BY definitions incompatible
-HINT:  the DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.
+ERROR:  distribution policy is not compatible with UNIQUE index "idx1_t_dist2"
+DETAIL:  Distribution key column "col4" is not included in the constraint.
 -- Altering distribution policy for temp tables
 create temp table atsdb (c1 int, c2 int) distributed randomly;
 select * from atsdb;
@@ -1398,7 +1398,8 @@ select policytype, distkey, distclass from gp_distribution_policy where localoid
 -- have a hash opclass!
 CREATE TABLE tstab (i int4, t tsvector) distributed by (i);
 CREATE UNIQUE INDEX tstab_idx ON tstab(t);
-ERROR:  UNIQUE index must contain all columns in the distribution key of relation "tstab"
+ERROR:  UNIQUE index must contain all columns in the table's distribution key
+DETAIL:  Distribution key column "i" is not included in the constraint.
 INSERT INTO tstab VALUES (1, 'foo');
 -- ALTER TABLE SET DISTRIBUTED RANDOMLY should not work on a table
 -- that has a primary key or unique index.

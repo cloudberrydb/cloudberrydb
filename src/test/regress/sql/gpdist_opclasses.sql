@@ -121,6 +121,20 @@ INSERT INTO abs_opclass_test VALUES
 \d abs_opclass_test
 
 
+--
+-- Test interaction between unique and primary key indexes and distribution keys.
+--
+-- should fail, because the default index opclass is not compatible with the |=| operator
+CREATE UNIQUE INDEX ON abs_opclass_test (i, j, t);
+ALTER TABLE abs_opclass_test ADD PRIMARY KEY (i, j, t);
+
+-- but this is allowed. (There is no syntax to specify the opclasses with ADD PRIMARY KEY)
+CREATE UNIQUE INDEX ON abs_opclass_test (i abs_int_btree_ops, j abs_int_btree_ops, t);
+
+-- ALTER TABLE should perform the same tests
+ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i, j); -- not allowed
+ALTER TABLE abs_opclass_test SET DISTRIBUTED BY (i abs_int_hash_ops, j abs_int_hash_ops);
+
 
 --
 -- Test scenario, where a type has a hash operator class, but not a default
