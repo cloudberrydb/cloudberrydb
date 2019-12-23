@@ -1640,7 +1640,7 @@ CreateExtension(CreateExtensionStmt *stmt)
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_DUPLICATE_OBJECT),
-					 errmsg("extension \"%s\" already exists. CreateExtension. ",
+					 errmsg("extension \"%s\" already exists",
 							stmt->extname)));
 	}
 
