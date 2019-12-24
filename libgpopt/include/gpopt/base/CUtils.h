@@ -567,6 +567,10 @@ namespace gpopt
 			static
 			BOOL FHasCorrelatedApply(CExpression *pexpr, BOOL fCheckRoot = true);
 
+			// check for existence of CTE anchor
+			static
+			BOOL FHasCTEAnchor(CExpression *pexpr);
+
 			// check for existence of outer references
 			static
 			BOOL HasOuterRefs(CExpression *pexpr);

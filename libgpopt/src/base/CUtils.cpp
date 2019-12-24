@@ -897,6 +897,32 @@ CUtils::FHasSubquery
 	return pexpr->DeriveHasSubquery();
 }
 
+// check for existence of CTE anchor
+BOOL
+CUtils::FHasCTEAnchor
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (COperator::EopLogicalCTEAnchor == pexpr->Pop()->Eopid())
+	{
+		return true;
+	}
+
+	for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+	{
+		CExpression *pexprChild = (*pexpr)[ul];
+		if (FHasCTEAnchor(pexprChild))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 
 //---------------------------------------------------------------------------
 //	@class:

@@ -146,7 +146,10 @@ CNormalizer::FPushable
 	CColRefSet *pcrsOutput =
 		pexprLogical->DeriveOutputColumns();
 
-	return pcrsOutput->ContainsAll(pcrsUsed);
+	//	In case of a Union or UnionAll the predicate might get pushed
+	//	to multiple children In such cases we will end up with duplicate
+	//	CTEProducers having the same cte_id.
+	return pcrsOutput->ContainsAll(pcrsUsed) && !CUtils::FHasCTEAnchor(pexprPred);
 }
 
 
