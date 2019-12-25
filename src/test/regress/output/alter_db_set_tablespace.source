@@ -1009,6 +1009,27 @@ SELECT force_mirrors_to_catch_up();
 -- Note: We can't use a temporary table as PANICS wipe them out
 CREATE TABLE before_alter AS SELECT * FROM stat_db_objects('alter_db', 'adst_source_tablespace');
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
+-- Skip fts probe such that we prevent the promotion of the mirror of the primary that we induce the panic on.
+SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
+
+-- Force scan to trigger the fault.
+SELECT gp_request_fts_probe_scan();
+ gp_request_fts_probe_scan 
+---------------------------
+ t
+(1 row)
+
+-- Verify the failure should be triggered once.
+SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:
+(1 row)
+
 -- And we track the removal of the dboid dir by all mirrors including the standby master, except the mirror of the primary about to panic.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m' AND content!=0;
  gp_inject_fault 
@@ -1022,13 +1043,6 @@ SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM 
 SELECT gp_inject_fault('start_prepare', 'panic', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
  gp_inject_fault 
 -----------------
- Success:
-(1 row)
-
--- Skip fts probe such that we prevent the promotion of the mirror of the primary that we induce the panic on.
-SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
- gp_inject_fault_infinite 
---------------------------
  Success:
 (1 row)
 
@@ -1130,6 +1144,27 @@ SELECT force_mirrors_to_catch_up();
 -- And we record the filesystem state for the database in the source tablespace
 CREATE TABLE before_alter AS SELECT * FROM stat_db_objects('alter_db', 'adst_source_tablespace');
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
+-- Skip fts probe such that we prevent the promotion of the mirror of the primary that we induce the panic on.
+SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
+
+-- Force scan to trigger the fault.
+SELECT gp_request_fts_probe_scan();
+ gp_request_fts_probe_scan 
+---------------------------
+ t
+(1 row)
+
+-- Verify the failure should be triggered once.
+SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:
+(1 row)
+
 -- And we track the removal of the dboid dir by all mirrors including the standby master.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m';
  gp_inject_fault 
@@ -1144,13 +1179,6 @@ SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM 
 SELECT gp_inject_fault('after_xlog_xact_prepare_flushed', 'panic', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
  gp_inject_fault 
 -----------------
- Success:
-(1 row)
-
--- Skip fts probe such that we prevent the promotion of the mirror of the primary that we induce the panic on.
-SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
- gp_inject_fault_infinite 
---------------------------
  Success:
 (1 row)
 
