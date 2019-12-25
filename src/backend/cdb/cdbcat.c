@@ -46,7 +46,7 @@ static int errdetails_index_policy(char *attname,
 								   Oid policy_indclass,
 								   Oid policy_eqop,
 								   Oid found_indclass,
-								   Oid exclop,
+								   Oid *exclop,
 								   index_check_policy_compatible_context *context);
 
 /*
@@ -848,7 +848,7 @@ index_check_policy_compatible(GpPolicy *policy,
 												 policy_opclass,
 												 policy_eqop,
 												 found_col_indclass,
-												 exclop ? exclop[j] : InvalidOid,
+												 exclop,
 												 error_context)));
 			return false;
 		}
@@ -896,7 +896,7 @@ errdetails_index_policy(char *attname,
 						Oid policy_opclass,
 						Oid policy_eqop,
 						Oid found_indclass,
-						Oid exclop,
+						Oid *exclop,
 						index_check_policy_compatible_context *context)
 {
 	errcode(ERRCODE_INVALID_TABLE_DEFINITION);
