@@ -54,11 +54,14 @@ extern void gp_decompress(
  * To use:
  *
  * zstd_context *ctx = call zstd_alloc_context();
+ *
  * ctx->cctx = ZSTD_createCCtx();
+ * if (!ctx->cctx)
+ *     elog(ERROR, "out of memory");
  *
  * <use the context using normal ZSTD functions>
  *
- * zsd_free_context(ctx);
+ * zstd_free_context(ctx);
  *
  * If the transaction is aborted, the handle will be automatically closed,
  * when the resource owner is destroyed.
