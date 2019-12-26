@@ -6440,18 +6440,24 @@ CopyReadLineText(CopyState cstate)
 					if (c2 == '\n')
 					{
 						if (!cstate->csv_mode)
+						{
+							cstate->raw_buf_index = raw_buf_ptr;
 							ereport(ERROR,
 									(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 									 errmsg("end-of-copy marker does not match previous newline style")));
+						}
 						else
 							NO_END_OF_COPY_GOTO;
 					}
 					else if (c2 != '\r')
 					{
 						if (!cstate->csv_mode)
+						{
+							cstate->raw_buf_index = raw_buf_ptr;
 							ereport(ERROR,
 									(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 									 errmsg("end-of-copy marker corrupt")));
+						}
 						else
 							NO_END_OF_COPY_GOTO;
 					}
@@ -6465,9 +6471,12 @@ CopyReadLineText(CopyState cstate)
 				if (c2 != '\r' && c2 != '\n')
 				{
 					if (!cstate->csv_mode)
+					{
+						cstate->raw_buf_index = raw_buf_ptr;
 						ereport(ERROR,
 								(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 								 errmsg("end-of-copy marker corrupt")));
+					}
 					else
 						NO_END_OF_COPY_GOTO;
 				}
@@ -6476,6 +6485,7 @@ CopyReadLineText(CopyState cstate)
 					(cstate->eol_type == EOL_CRNL && c2 != '\n') ||
 					(cstate->eol_type == EOL_CR && c2 != '\r'))
 				{
+					cstate->raw_buf_index = raw_buf_ptr;
 					ereport(ERROR,
 							(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 							 errmsg("end-of-copy marker does not match previous newline style")));
