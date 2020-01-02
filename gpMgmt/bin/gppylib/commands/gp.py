@@ -856,7 +856,7 @@ class GpDirsExist(Command):
     Checks if gp_dump* directories exist in the given directory
     """
     def __init__(self, name, baseDir, dirName, ctxt=LOCAL, remoteHost=None):
-        cmdStr = "find %s -name %s -print" % (baseDir, dirName)
+        cmdStr = "find %s -name %s -type d -print" % (baseDir, dirName)
         Command.__init__(self, name, cmdStr, ctxt, remoteHost)
 
     @staticmethod
