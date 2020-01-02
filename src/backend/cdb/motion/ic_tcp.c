@@ -1259,6 +1259,7 @@ SetupTCPInterconnect(EState *estate)
 
 	interconnect_context->teardownActive = false;
 	interconnect_context->activated = false;
+	interconnect_context->networkTimeoutIsLogged = false;
 	interconnect_context->incompleteConns = NIL;
 	interconnect_context->sliceTable = copyObject(sliceTable);
 	interconnect_context->sliceId = sliceTable->localSlice;
