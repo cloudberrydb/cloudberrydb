@@ -1814,19 +1814,13 @@ NOTICE:  dropped partition "jan01" for partition "girls" of relation "ataprank" 
 -- ok , skipping
 alter table ataprank alter partition girls drop partition if exists jan01;
 NOTICE:  partition "jan01" of partition "girls" of relation "ataprank" does not exist, skipping
--- ok until run out of partitions
-alter table ataprank alter partition girls drop partition ;
+-- ok
+alter table ataprank alter partition girls drop partition for ('2002-01-01');
 NOTICE:  dropped partition "jan02" for partition "girls" of relation "ataprank" and its children
-alter table ataprank alter partition girls drop partition ;
+alter table ataprank alter partition girls drop partition for ('2003-01-01');
 NOTICE:  dropped partition "jan03" for partition "girls" of relation "ataprank" and its children
-alter table ataprank alter partition girls drop partition ;
+alter table ataprank alter partition girls drop partition for ('2004-01-01');
 NOTICE:  dropped partition "jan04" for partition "girls" of relation "ataprank" and its children
-alter table ataprank alter partition girls drop partition ;
-ERROR:  cannot drop partition "jan05" of partition "girls" of relation "ataprank" -- only one remains
-HINT:  DROP the parent partition to remove the final partition
-alter table ataprank alter partition girls drop partition ;
-ERROR:  cannot drop partition "jan05" of partition "girls" of relation "ataprank" -- only one remains
-HINT:  DROP the parent partition to remove the final partition
 -- ok, skipping
 alter table ataprank alter partition girls drop partition if exists for (rank(5));
 NOTICE:  partition for specified rank of partition "girls" of relation "ataprank" does not exist, skipping

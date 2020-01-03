@@ -926,25 +926,23 @@ partition cc values ('2009-01-01')
 NOTICE:  CREATE TABLE will create partition "hhh_l1_1_prt_aa" for table "hhh_l1"
 NOTICE:  CREATE TABLE will create partition "hhh_l1_1_prt_bb" for table "hhh_l1"
 NOTICE:  CREATE TABLE will create partition "hhh_l1_1_prt_cc" for table "hhh_l1"
--- must have name or value for list partition
+-- must have name or value for partition
 alter table hhh_l1 drop partition;
 ERROR:  missing name or value for DROP for relation "hhh_l1"
 alter table hhh_l1 drop partition aa;
 alter table hhh_l1 drop partition for ('2008-01-01');
 NOTICE:  dropped partition "bb" for relation "hhh_l1"
--- if not specified, drop first range partition...
+-- same with range partitioning
+alter table hhh_r1 drop partition;
+ERROR:  missing name or value for DROP for relation "hhh_r1"
 alter table hhh_r1 drop partition for ('2007-04-01');
 NOTICE:  dropped partition "aa_4" for relation "hhh_r1"
-alter table hhh_r1 drop partition;
+alter table hhh_r1 drop partition for(rank(1));
 NOTICE:  dropped partition "aa_1" for relation "hhh_r1"
-alter table hhh_r1 drop partition;
-NOTICE:  dropped partition "aa_2" for relation "hhh_r1"
-alter table hhh_r1 drop partition;
-NOTICE:  dropped partition "aa_3" for relation "hhh_r1"
-alter table hhh_r1 drop partition;
-NOTICE:  dropped partition "aa_5" for relation "hhh_r1"
-alter table hhh_r1 drop partition;
-NOTICE:  dropped partition "aa_6" for relation "hhh_r1"
+alter table hhh_r1 drop partition aa_2;
+alter table hhh_r1 drop partition aa_3;
+alter table hhh_r1 drop partition aa_5;
+alter table hhh_r1 drop partition aa_6;
 -- more add partition tests
 -- start before first partition (fail because start equal end)
 alter table hhh_r1 add partition zaa start ('2007-07-01');

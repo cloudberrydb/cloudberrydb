@@ -673,7 +673,7 @@ subpartition by range (unique2) subpartition template ( start (0) end (1000) eve
 insert into mpp3375a select * from mpp3375;
 
 alter table mpp3375a add default partition default_part;
-alter table mpp3375a drop partition;
+alter table mpp3375a drop partition for (0);
 alter table mpp3375a drop partition default_part;
 
 -- Check that a negative number can be used in START, without quotes.
@@ -759,18 +759,16 @@ CREATE TABLE mpp3261_part (
 ) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
 
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
--- Last partition, cannot be dropped, only default partition is left
-alter table mpp3261_part drop partition;
+alter table mpp3261_part drop partition for (0);
+alter table mpp3261_part drop partition for (100);
+alter table mpp3261_part drop partition for (200);
+alter table mpp3261_part drop partition for (300);
+alter table mpp3261_part drop partition for (400);
+alter table mpp3261_part drop partition for (500);
+alter table mpp3261_part drop partition for (600);
+alter table mpp3261_part drop partition for (700);
+alter table mpp3261_part drop partition for (800);
+alter table mpp3261_part drop partition for (900);
 
 -- Shouldn't take a long time to insert
 insert into mpp3261_part select * from mpp3261;
@@ -852,16 +850,16 @@ CREATE TABLE mpp3260 (
 
 -- Not Allowed to drop partition table directly
 drop table mpp3260_1_prt_aa_6;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
+alter table mpp3260 drop partition for (0);
+alter table mpp3260 drop partition for (100);
+alter table mpp3260 drop partition for (200);
+alter table mpp3260 drop partition for (300);
+alter table mpp3260 drop partition for (400);
+alter table mpp3260 drop partition for (500);
+alter table mpp3260 drop partition for (600);
+alter table mpp3260 drop partition for (700);
+alter table mpp3260 drop partition for (800);
+alter table mpp3260 drop partition for (900);
 drop table mpp3260_1_prt_default_part ;
 insert into mpp3260 (unique1) values (1);
 
@@ -887,17 +885,17 @@ subpartition by range (unique2) subpartition template ( start (0) end (1000) eve
 ( start (0) end (1000) every (100));
 -- Not Allowed to drop partition table directly
 drop table mpp3260a_1_prt_10;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
+alter table mpp3260a drop partition for (0);
+alter table mpp3260a drop partition for (100);
+alter table mpp3260a drop partition for (200);
+alter table mpp3260a drop partition for (300);
+alter table mpp3260a drop partition for (400);
+alter table mpp3260a drop partition for (500);
+alter table mpp3260a drop partition for (600);
+alter table mpp3260a drop partition for (700);
+alter table mpp3260a drop partition for (800);
 -- Last subpartition, cannot be dropped
-alter table mpp3260a drop partition;
+alter table mpp3260a drop partition for (900);
 drop table mpp3260a_1_prt_10;
 
 drop table mpp3260;

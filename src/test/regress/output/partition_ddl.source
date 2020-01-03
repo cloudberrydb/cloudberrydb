@@ -2345,7 +2345,7 @@ subpartition by range (unique2) subpartition template ( start (0) end (1000) eve
 ( start (0) end (1000) every (100));
 insert into mpp3375a select * from mpp3375;
 alter table mpp3375a add default partition default_part;
-alter table mpp3375a drop partition;
+alter table mpp3375a drop partition for (0);
 alter table mpp3375a drop partition default_part;
 -- Check that a negative number can be used in START, without quotes.
 CREATE TABLE mpp3241(a int, b int, c int)
@@ -2667,19 +2667,16 @@ CREATE TABLE mpp3261_part (
         string4         name
 ) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
-alter table mpp3261_part drop partition;
--- Last partition, cannot be dropped, only default partition is left
-alter table mpp3261_part drop partition;
-ERROR:  partition for rank 1 of relation "mpp3261_part" does not exist
+alter table mpp3261_part drop partition for (0);
+alter table mpp3261_part drop partition for (100);
+alter table mpp3261_part drop partition for (200);
+alter table mpp3261_part drop partition for (300);
+alter table mpp3261_part drop partition for (400);
+alter table mpp3261_part drop partition for (500);
+alter table mpp3261_part drop partition for (600);
+alter table mpp3261_part drop partition for (700);
+alter table mpp3261_part drop partition for (800);
+alter table mpp3261_part drop partition for (900);
 -- Shouldn't take a long time to insert
 insert into mpp3261_part select * from mpp3261;
 drop table mpp3261;
@@ -2803,16 +2800,16 @@ CREATE TABLE mpp3260 (
 drop table mpp3260_1_prt_aa_6;
 ERROR:  cannot drop partition "mpp3260_1_prt_aa_6" directly
 HINT:  Table "mpp3260_1_prt_aa_6" is a child partition of table "mpp3260".  To drop it, use ALTER TABLE "mpp3260" DROP PARTITION "aa_6"...
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
-alter table mpp3260 drop partition;
+alter table mpp3260 drop partition for (0);
+alter table mpp3260 drop partition for (100);
+alter table mpp3260 drop partition for (200);
+alter table mpp3260 drop partition for (300);
+alter table mpp3260 drop partition for (400);
+alter table mpp3260 drop partition for (500);
+alter table mpp3260 drop partition for (600);
+alter table mpp3260 drop partition for (700);
+alter table mpp3260 drop partition for (800);
+alter table mpp3260 drop partition for (900);
 drop table mpp3260_1_prt_default_part ;
 ERROR:  cannot drop partition "mpp3260_1_prt_default_part" directly
 HINT:  Table "mpp3260_1_prt_default_part" is a child partition of table "mpp3260".  To drop it, use ALTER TABLE "mpp3260" DROP PARTITION "default_part"...
@@ -2841,18 +2838,18 @@ subpartition by range (unique2) subpartition template ( start (0) end (1000) eve
 drop table mpp3260a_1_prt_10;
 ERROR:  cannot drop partition "mpp3260a_1_prt_10" directly
 HINT:  Table "mpp3260a_1_prt_10" is a child partition of table "mpp3260a".  To drop it, use ALTER TABLE "mpp3260a" DROP PARTITION FOR(RANK(10))...
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
-alter table mpp3260a drop partition;
+alter table mpp3260a drop partition for (0);
+alter table mpp3260a drop partition for (100);
+alter table mpp3260a drop partition for (200);
+alter table mpp3260a drop partition for (300);
+alter table mpp3260a drop partition for (400);
+alter table mpp3260a drop partition for (500);
+alter table mpp3260a drop partition for (600);
+alter table mpp3260a drop partition for (700);
+alter table mpp3260a drop partition for (800);
 -- Last subpartition, cannot be dropped
-alter table mpp3260a drop partition;
-ERROR:  cannot drop partition for rank 1 of relation "mpp3260a" -- only one remains
+alter table mpp3260a drop partition for (900);
+ERROR:  cannot drop partition for value (900) of relation "mpp3260a" -- only one remains
 HINT:  Use DROP TABLE "mpp3260a" to remove the table and the final partition
 drop table mpp3260a_1_prt_10;
 ERROR:  cannot drop partition "mpp3260a_1_prt_10" directly

@@ -624,7 +624,7 @@ NOTICE:  CREATE TABLE will create partition "mpp3263_1_prt_aa_2" for table "mpp3
 alter table mpp3263 add column AAA int;
 alter table mpp3263 add column BBB int;
 alter table mpp3263 drop column BBB;
-alter table mpp3263 drop partition;
+alter table mpp3263 drop partition for (0);
 NOTICE:  dropped partition "aa_1" for relation "mpp3263"
 alter table mpp3263 add column CCC int;
 insert into mpp3263 (unique1) values (1111);
@@ -3757,7 +3757,7 @@ HINT:  You may be able to perform the operation on the partitioned table as a wh
 alter table fff_main_1_prt_1 add partition;
 ERROR:  can't alter "fff_main_1_prt_1"; it is part of a partitioned table
 HINT:  You may be able to perform the operation on the partitioned table as a whole.
-alter table fff_main_1_prt_1 drop partition;
+alter table fff_main_1_prt_1 drop partition for (0);
 ERROR:  can't alter "fff_main_1_prt_1"; it is part of a partitioned table
 HINT:  You may be able to perform the operation on the partitioned table as a whole.
 alter table fff_main_1_prt_1 add column c int;

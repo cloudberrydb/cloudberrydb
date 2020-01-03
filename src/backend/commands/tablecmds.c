@@ -16714,9 +16714,7 @@ ATPExecPartDrop(Relation rel,
 		bForceDrop = true;
 	}
 
-	/* missing partition id only ok for range partitions -- just get
-	 * first one */
-
+	/* resolve the target partition */
 	locPid =
 			wack_pid_relname(pid,
 							 &pNode,
@@ -16726,22 +16724,15 @@ ATPExecPartDrop(Relation rel,
 
 	if (AT_AP_IDNone == locPid->idtype)
 	{
-		if (pNode && pNode->part && (pNode->part->parkind != 'r'))
-		{
-			if (strlen(lrelname))
-				ereport(ERROR,
-						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("missing name or value for DROP for %s",
-								lrelname)));
-			else
-				ereport(ERROR,
-						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("missing name or value for DROP")));
-		}
-
-		/* if a range partition, and not specified, just get the first one */
-		locPid->idtype = AT_AP_IDRank;
-		locPid->partiddef = (Node *)makeInteger(1);
+		if (strlen(lrelname))
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("missing name or value for DROP for %s",
+							lrelname)));
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("missing name or value for DROP")));
 	}
 
 	prule = get_part_rule(rel, pid, bCheckMaybe, true, NULL, false);

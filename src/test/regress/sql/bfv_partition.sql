@@ -270,7 +270,7 @@ alter table mpp3263 add column AAA int;
 alter table mpp3263 add column BBB int;
 alter table mpp3263 drop column BBB;
 
-alter table mpp3263 drop partition;
+alter table mpp3263 drop partition for (0);
 
 alter table mpp3263 add column CCC int;
 
@@ -1429,7 +1429,7 @@ alter table fff_main_1_prt_1 drop oids;
 alter table fff_main_1_prt_1 no inherit fff_main;
 alter table fff_main_1_prt_1 drop column rank;
 alter table fff_main_1_prt_1 add partition;
-alter table fff_main_1_prt_1 drop partition;
+alter table fff_main_1_prt_1 drop partition for (0);
 
 alter table fff_main_1_prt_1 add column c int;
 

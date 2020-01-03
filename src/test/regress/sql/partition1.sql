@@ -625,18 +625,19 @@ partition bb values ('2008-01-01'),
 partition cc values ('2009-01-01')
 );
 
--- must have name or value for list partition
+-- must have name or value for partition
 alter table hhh_l1 drop partition;
 alter table hhh_l1 drop partition aa;
 alter table hhh_l1 drop partition for ('2008-01-01');
 
--- if not specified, drop first range partition...
+-- same with range partitioning
+alter table hhh_r1 drop partition;
 alter table hhh_r1 drop partition for ('2007-04-01');
-alter table hhh_r1 drop partition;
-alter table hhh_r1 drop partition;
-alter table hhh_r1 drop partition;
-alter table hhh_r1 drop partition;
-alter table hhh_r1 drop partition;
+alter table hhh_r1 drop partition for(rank(1));
+alter table hhh_r1 drop partition aa_2;
+alter table hhh_r1 drop partition aa_3;
+alter table hhh_r1 drop partition aa_5;
+alter table hhh_r1 drop partition aa_6;
 
 -- more add partition tests
 
