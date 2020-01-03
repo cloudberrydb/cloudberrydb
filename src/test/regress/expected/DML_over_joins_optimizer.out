@@ -1700,11 +1700,14 @@ create table tab3 (a int, b int) distributed by (b);
 insert into tab1 values (1, 1);
 insert into tab2 values (1, 1);
 insert into tab3 values (1, 1);
+-- we must not write the WHERE condition as `relname='tab2'`, it matches tables
+-- in all the schemas, which will cause problems in other tests; we should use
+-- the `::regclass` way as it only matches the table in current search_path.
 set allow_system_table_mods=true;
-update pg_class set relpages = 10000 where relname='tab2';
-update pg_class set reltuples = 100000000 where relname='tab2';
-update pg_class set relpages = 100000000 where relname='tab3';
-update pg_class set reltuples = 100000 where relname='tab3';
+update pg_class set relpages = 10000 where oid='tab2'::regclass;
+update pg_class set reltuples = 100000000 where oid='tab2'::regclass;
+update pg_class set relpages = 100000000 where oid='tab3'::regclass;
+update pg_class set reltuples = 100000 where oid='tab3'::regclass;
 -- Planner: there is redistribute motion above tab1, however, we can also
 -- remove the explicit redistribute motion here because the final join
 -- co-locate with the result relation tab1.
