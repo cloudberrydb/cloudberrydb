@@ -16276,8 +16276,7 @@ wack_pid_relname(AlterPartitionId 		 *pid,
 				 PartitionNode  		**ppNode,
 				 Relation 				  rel,
 				 PgPartRule 			**ppar_prule,
-				 char 					**plrelname,
-				 char 					 *lRelNameBuf)
+				 char 					**plrelname)
 {
 	AlterPartitionId 	*locPid = pid;	/* local pid if IDRule */
 
@@ -16295,7 +16294,7 @@ wack_pid_relname(AlterPartitionId 		 *pid,
 
 		par_prule = *ppar_prule;
 
-		*plrelname = par_prule->relname;
+		*plrelname = pstrdup(par_prule->relname);
 
 		if (par_prule && par_prule->topRule && par_prule->topRule->children)
 			*ppNode = par_prule->topRule->children;
@@ -16310,10 +16309,8 @@ wack_pid_relname(AlterPartitionId 		 *pid,
 	{
 		*ppNode = RelationBuildPartitionDesc(rel, false);
 
-		snprintf(lRelNameBuf, (NAMEDATALEN*2),
-					 "relation \"%s\"",
+		*plrelname = psprintf("relation \"%s\"",
 					 RelationGetRelationName(rel));
-		*plrelname = lRelNameBuf;
 	}
 
 	return locPid;
@@ -16331,7 +16328,6 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 	char			 	 namBuf[NAMEDATALEN];
 	AlterPartitionId 	*locPid 	= NULL;	/* local pid if IDRule */
 	PgPartRule* 		 par_prule 	= NULL;	/* prule for parent if IDRule */
-	char 		 		 lRelNameBuf[(NAMEDATALEN*2)];
 	char 				*lrelname   = NULL;
 	bool				 is_split = false;
 	bool				 bSetTemplate = (att == AT_PartSetTemplate);
@@ -16353,8 +16349,7 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 							 &pNode,
 							 rel,
 							 &par_prule,
-							 &lrelname,
-							 lRelNameBuf);
+							 &lrelname);
 
 	if (!pNode)
 		ereport(ERROR,
@@ -16699,7 +16694,6 @@ ATPExecPartDrop(Relation rel,
 	bool 				 bCheckMaybe = !(ds->missing_ok);
 	AlterPartitionId 	*locPid 	 = pid;  /* local pid if IDRule */
 	PgPartRule* 		 par_prule 	 = NULL; /* prule for parent if IDRule */
-	char 		 		 lRelNameBuf[(NAMEDATALEN*2)];
 	char 				*lrelname	= NULL;
 	bool 				 bForceDrop	= false;
 
@@ -16728,8 +16722,7 @@ ATPExecPartDrop(Relation rel,
 							 &pNode,
 							 rel,
 							 &par_prule,
-							 &lrelname,
-							 lRelNameBuf);
+							 &lrelname);
 
 	if (AT_AP_IDNone == locPid->idtype)
 	{
@@ -17315,7 +17308,6 @@ ATPExecPartRename(Relation rel,
 	PartitionNode  		*pNode     = NULL;
 	AlterPartitionId 	*locPid    = pid;	/* local pid if IDRule */
 	PgPartRule* 		 par_prule = NULL;	/* prule for parent if IDRule */
-	char 		 		 lRelNameBuf[(NAMEDATALEN*2)];
 	char 				*lrelname=NULL;
 
 	if (Gp_role != GP_ROLE_DISPATCH)
@@ -17326,8 +17318,7 @@ ATPExecPartRename(Relation rel,
 							 &pNode,
 							 rel,
 							 &par_prule,
-							 &lrelname,
-							 lRelNameBuf);
+							 &lrelname);
 
 	prule = get_part_rule(rel, pid, true, true, NULL, false);
 
