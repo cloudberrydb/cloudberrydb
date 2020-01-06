@@ -177,6 +177,44 @@ static inline void exec_subplan_put_plan(struct PlannedStmt *plannedstmt, SubPla
 	cell->data.ptr_value = plan;
 }
 
+/*
+ * FlowType - kinds of tuple flows in parallelized plans.
+ *
+ * This enum is a MPP extension.
+ */
+typedef enum FlowType
+{
+	FLOW_UNDEFINED,		/* used prior to calculation of type of derived flow */
+	FLOW_SINGLETON,		/* flow has single stream */
+	FLOW_REPLICATED,	/* flow is replicated across IOPs */
+	FLOW_PARTITIONED,	/* flow is partitioned across IOPs */
+} FlowType;
+
+/*----------
+ * Flow - describes a tuple flow in a parallelized plan
+ *
+ * This node type is a MPP extension.
+ *
+ * Plan nodes contain a reference to a Flow that characterizes the output
+ * tuple flow of the node.
+ *----------
+ */
+typedef struct Flow
+{
+	NodeTag		type;			/* T_Flow */
+	FlowType	flotype;		/* Type of flow produced by the plan. */
+
+	/* Locus type (optimizer flow characterization).
+	 */
+	CdbLocusType	locustype;
+
+	/* If flotype is FLOW_SINGLETON, then this is the segment (-1 for entry)
+	 * on which tuples occur.
+	 */
+	int			segindex;		/* Segment index of singleton flow. */
+	int         numsegments;
+
+} Flow;
 
 /* ----------------
  *		Plan node

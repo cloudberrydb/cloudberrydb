@@ -867,19 +867,6 @@ typedef enum JoinType
 	   (1 << JOIN_LASJ_NOTIN))) != 0)
 
 /*
- * FlowType - kinds of tuple flows in parallelized plans.
- *
- * This enum is a MPP extension.
- */
-typedef enum FlowType
-{
-	FLOW_UNDEFINED,		/* used prior to calculation of type of derived flow */
-	FLOW_SINGLETON,		/* flow has single stream */
-	FLOW_REPLICATED,	/* flow is replicated across IOPs */
-	FLOW_PARTITIONED,	/* flow is partitioned across IOPs */
-} FlowType;
-
-/*
  * DispatchMethod - MPP dispatch method.
  *
  * There are currently three possibilties, an initial value of undetermined,

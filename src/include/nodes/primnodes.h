@@ -1532,32 +1532,6 @@ typedef struct OnConflictExpr
 	List	   *exclRelTlist;	/* tlist of the EXCLUDED pseudo relation */
 } OnConflictExpr;
 
-/*----------
- * Flow - describes a tuple flow in a parallelized plan
- *
- * This node type is a MPP extension.
- *
- * Plan nodes contain a reference to a Flow that characterizes the output
- * tuple flow of the node.
- *----------
- */
-typedef struct Flow
-{
-	NodeTag		type;			/* T_Flow */
-	FlowType	flotype;		/* Type of flow produced by the plan. */
-
-	/* Locus type (optimizer flow characterization).
-	 */
-	CdbLocusType	locustype;
-
-	/* If flotype is FLOW_SINGLETON, then this is the segment (-1 for entry)
-	 * on which tuples occur.
-	 */
-	int			segindex;		/* Segment index of singleton flow. */
-	int         numsegments;
-
-} Flow;
-
 /*
  * DMLActionExpr
  *
