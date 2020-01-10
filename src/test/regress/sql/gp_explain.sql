@@ -155,3 +155,12 @@ explain SELECT * from information_schema.key_column_usage;
 set gp_enable_explain_allstat=on;
 explain analyze SELECT * FROM explaintest;
 set gp_enable_explain_allstat=DEFAULT;
+
+
+--
+-- Test GPDB-specific EXPLAIN (SLICETABLE) option.
+--
+explain (slicetable, costs off) SELECT * FROM explaintest;
+
+-- same in JSON format
+explain (slicetable, costs off, format json) SELECT * FROM explaintest;

@@ -207,6 +207,8 @@ ExplainQuery(ExplainStmt *stmt, const char *queryString,
 		}
 		else if (strcmp(opt->defname, "dxl") == 0)
 			es->dxl = defGetBoolean(opt);
+		else if (strcmp(opt->defname, "slicetable") == 0)
+			es->slicetable = defGetBoolean(opt);
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -639,6 +641,10 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 			ExplainPropertyFloat("Planning Time", 1000.0 * plantime, 3, es);
 	}
 
+	/* Print slice table */
+	if (es->slicetable)
+		ExplainPrintSliceTable(es, queryDesc);
+
 	/* Print info about runtime of triggers */
 	if (es->analyze)
 		ExplainPrintTriggers(es, queryDesc);
@@ -768,6 +774,67 @@ ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc)
 	if (IsA(ps, GatherState) &&((Gather *) ps->plan)->invisible)
 		ps = outerPlanState(ps);
 	ExplainNode(ps, NIL, NULL, NULL, es);
+}
+
+
+/*
+ * ExplainPrintSliceTable -
+ *	  convert the MPP slice table text and append it to es->str
+ */
+void
+ExplainPrintSliceTable(ExplainState *es, QueryDesc *queryDesc)
+{
+	SliceTable *sliceTable = queryDesc->estate->es_sliceTable;
+	int			numSlices = (sliceTable ? sliceTable->numSlices : 0);
+
+	ExplainOpenGroup("Slice Table", "Slice Table", false, es);
+
+	for (int i = 0; i < numSlices; i++)
+	{
+		ExecSlice *slice = &sliceTable->slices[i];
+		const char *gangType = "???";
+
+		switch (slice->gangType)
+		{
+			case GANGTYPE_UNALLOCATED:
+				gangType = "Dispatcher";
+				break;
+			case GANGTYPE_ENTRYDB_READER:
+				gangType = "Entry DB Reader";
+				break;
+			case GANGTYPE_SINGLETON_READER:
+				gangType = "Singleton Reader";
+				break;
+			case GANGTYPE_PRIMARY_READER:
+				gangType = "Reader";
+				break;
+			case GANGTYPE_PRIMARY_WRITER:
+				gangType = "Primary Writer";
+				break;
+		}
+
+		if (es->format == EXPLAIN_FORMAT_TEXT)
+		{
+			appendStringInfo(es->str, "Slice %d: %s; root %d; parent %d; gang size %d\n",
+							 i,
+							 gangType,
+							 slice->rootIndex,
+							 slice->parentIndex,
+							 slice->gangSize);
+		}
+		else
+		{
+			ExplainOpenGroup("Slice", NULL, true, es);
+			ExplainPropertyInteger("Slice ID", i, es);
+			ExplainPropertyText("Gang Type", gangType, es);
+			ExplainPropertyInteger("Root", slice->rootIndex, es);
+			ExplainPropertyInteger("Parent", slice->parentIndex, es);
+			ExplainPropertyInteger("Gang Size", slice->gangSize, es);
+			ExplainCloseGroup("Slice", NULL, true, es);
+		}
+	}
+
+	ExplainCloseGroup("Slice Table", "Slice Table", false, es);
 }
 
 /*

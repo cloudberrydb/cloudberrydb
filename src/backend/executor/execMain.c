@@ -4869,28 +4869,6 @@ map_part_attrs(Relation base, Relation part, TupleConversionMap **map_ptr, bool 
 	return TRUE;
 }
 
-#if 0 /* for debugging purposes only */
-char *
-DumpSliceTable(SliceTable *table)
-{
-	StringInfoData buf;
-
-	if (!table)
-		return "No slice table";
-
-	initStringInfo(&buf);
-
-	for (int = 0; i < table->numSlices; i++)
-	{
-		ExecSlice *slice = &table->slices[i];
-
-		appendStringInfo(&buf, "Slice %d: rootIndex %d gangType %d parent %d\n",
-						 slice->sliceIndex, slice->rootIndex, slice->gangType, slice->parentIndex);
-	}
-	return buf.data;
-}
-#endif
-
 typedef struct
 {
 	plan_tree_base_prefix prefix;

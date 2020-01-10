@@ -364,3 +364,66 @@ explain analyze SELECT * FROM explaintest;
 (8 rows)
 
 set gp_enable_explain_allstat=DEFAULT;
+--
+-- Test GPDB-specific EXPLAIN (SLICETABLE) option.
+--
+explain (slicetable, costs off) SELECT * FROM explaintest;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Seq Scan on explaintest
+ Slice 0: Dispatcher; root 0; parent -1; gang size 0
+ Slice 1: Reader; root 0; parent 0; gang size 3
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+(5 rows)
+
+-- same in JSON format
+explain (slicetable, costs off, format json) SELECT * FROM explaintest;
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ [                                                             +
+   {                                                           +
+     "Plan": {                                                 +
+       "Node Type": "Gather Motion",                           +
+       "Senders": 3,                                           +
+       "Receivers": 1,                                         +
+       "Slice": 1,                                             +
+       "Segments": 3,                                          +
+       "Gang Type": "primary reader",                          +
+       "Parallel Aware": false,                                +
+       "Plans": [                                              +
+         {                                                     +
+           "Node Type": "Seq Scan",                            +
+           "Parent Relationship": "Outer",                     +
+           "Slice": 1,                                         +
+           "Segments": 3,                                      +
+           "Gang Type": "primary reader",                      +
+           "Parallel Aware": false,                            +
+           "Relation Name": "explaintest",                     +
+           "Alias": "explaintest"                              +
+         }                                                     +
+       ]                                                       +
+     },                                                        +
+     "Slice Table": [                                          +
+       {                                                       +
+         "Slice ID": 0,                                        +
+         "Gang Type": "Dispatcher",                            +
+         "Root": 0,                                            +
+         "Parent": -1,                                         +
+         "Gang Size": 0                                        +
+       },                                                      +
+       {                                                       +
+         "Slice ID": 1,                                        +
+         "Gang Type": "Reader",                                +
+         "Root": 0,                                            +
+         "Parent": 0,                                          +
+         "Gang Size": 3                                        +
+       }                                                       +
+     ],                                                        +
+     "Settings": {                                             +
+       "Optimizer": "Pivotal Optimizer (GPORCA) version 3.83.0"+
+     }                                                         +
+   }                                                           +
+ ]
+(1 row)
+
