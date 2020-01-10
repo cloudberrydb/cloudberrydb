@@ -56,7 +56,6 @@ typedef struct ApplyMotionSubPlanState
 {
 	int			sliceDepth;
 	Flow	   *parentFlow;
-	Flow	   *outerQueryFlow;
 	bool		is_initplan;
 	bool		useHashTable;
 	bool		processed;
@@ -75,7 +74,6 @@ typedef struct ApplyMotionState
 	List	   *subplan_workingQueue;
 
 	Flow	   *currentPlanFlow;
-	Flow	   *outer_query_flow;
 } ApplyMotionState;
 
 typedef struct
@@ -205,7 +203,6 @@ apply_motion(PlannerInfo *root, Plan *plan)
 
 		sstate->sliceDepth = -1;
 		sstate->parentFlow = NULL;
-		sstate->outerQueryFlow = NULL;
 		sstate->is_initplan = false;
 		sstate->processed = false;
 	}
@@ -213,7 +210,6 @@ apply_motion(PlannerInfo *root, Plan *plan)
 	/*
 	 * Process the main plan tree.
 	 */
-	state.outer_query_flow = plan->flow;
 	state.currentPlanFlow = plan->flow;
 	result = (Plan *) apply_motion_mutator((Node *) plan, &state);
 
@@ -241,13 +237,11 @@ apply_motion(PlannerInfo *root, Plan *plan)
 
 			topFlow->segindex = -1;
 			state.sliceDepth = 0;
-			state.outer_query_flow = topFlow;
 			state.currentPlanFlow = topFlow;
 		}
 		else
 		{
 			state.sliceDepth = sstate->sliceDepth;
-			state.outer_query_flow = sstate->outerQueryFlow;
 			state.currentPlanFlow = sstate->parentFlow;
 		}
 
@@ -261,8 +255,8 @@ apply_motion(PlannerInfo *root, Plan *plan)
 		if (subplan->flow->locustype != CdbLocusType_OuterQuery &&
 			subplan->flow->locustype != CdbLocusType_General)
 		{
-			numsegments = state.outer_query_flow->numsegments;
-			switch (state.outer_query_flow->flotype)
+			numsegments = state.currentPlanFlow->numsegments;
+			switch (state.currentPlanFlow->flotype)
 			{
 				case FLOW_SINGLETON:
 					subplan = focusPlan(subplan, false);
@@ -274,7 +268,7 @@ apply_motion(PlannerInfo *root, Plan *plan)
 					break;
 				default:
 					elog(ERROR, "unexpected flow type %d in parent of SubPlan expression",
-						 state.outer_query_flow->flotype);
+						 state.currentPlanFlow->flotype);
 			}
 
 			/*
@@ -382,10 +376,6 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 			if (!spexpr->is_initplan && context->sliceDepth > sstate->sliceDepth)
 			{
 				sstate->sliceDepth = context->sliceDepth;
-				if (context->currentPlanFlow->locustype == CdbLocusType_OuterQuery)
-					sstate->outerQueryFlow = context->outer_query_flow;
-				else
-					sstate->outerQueryFlow = context->currentPlanFlow;
 				sstate->parentFlow = context->currentPlanFlow;
 			}
 		}
@@ -439,24 +429,23 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		 */
 		if (plan->flow->locustype == CdbLocusType_OuterQuery)
 		{
-			Assert(context->outer_query_flow);
 			Assert(motion->motionType == MOTIONTYPE_GATHER ||
 				   motion->motionType == MOTIONTYPE_BROADCAST);
 			Assert(!motion->sendSorted);
 
-			if (context->outer_query_flow->flotype == FLOW_SINGLETON)
+			if (context->currentPlanFlow->flotype == FLOW_SINGLETON)
 			{
 				motion->motionType = MOTIONTYPE_GATHER;
 			}
-			else if (context->outer_query_flow->flotype == FLOW_REPLICATED ||
-					 context->outer_query_flow->flotype == FLOW_PARTITIONED)
+			else if (context->currentPlanFlow->flotype == FLOW_REPLICATED ||
+					 context->currentPlanFlow->flotype == FLOW_PARTITIONED)
 			{
 				motion->motionType = MOTIONTYPE_BROADCAST;
 			}
 			else
 				elog(ERROR, "unexpected Flow type in parent of a SubPlan");
 
-			motion->plan.flow = context->outer_query_flow;
+			motion->plan.flow = context->currentPlanFlow;
 		}
 
 		/*
@@ -486,7 +475,7 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		 * parallelization will have had it applied.
 		 */
 		saveCurrentPlanFlow = context->currentPlanFlow;
-		if (plan->flow != NULL && plan->flow->flotype != FLOW_UNDEFINED)
+		if (plan->flow != NULL && plan->flow->locustype != CdbLocusType_OuterQuery)
 			context->currentPlanFlow = plan->flow;
 		newnode = plan_tree_mutator(node, apply_motion_mutator, context, false);
 		context->currentPlanFlow = saveCurrentPlanFlow;
