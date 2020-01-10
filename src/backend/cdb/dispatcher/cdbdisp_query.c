@@ -58,7 +58,7 @@ typedef struct
 {
 	int			sliceIndex;
 	int			children;
-	Slice	   *slice;
+	ExecSlice  *slice;
 } SliceVec;
 
 /*
@@ -769,7 +769,7 @@ markbit_dep_children(SliceTable *sliceTable, int sliceIdx,
 					 SliceVec *sliceVec, int bitmasklen, char *bits)
 {
 	ListCell   *sublist;
-	Slice	   *slice = (Slice *) list_nth(sliceTable->slices, sliceIdx);
+	ExecSlice  *slice = &sliceTable->slices[sliceIdx];
 
 	foreach(sublist, slice->children)
 	{
@@ -1086,7 +1086,7 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 	 * Traverse the slice tree in sliceTbl rooted at rootIdx and build a
 	 * vector of slice indexes specifying the order of [potential] dispatch.
 	 */
-	nTotalSlices = list_length(sliceTbl->slices);
+	nTotalSlices = sliceTbl->numSlices;
 	sliceVector = palloc0(nTotalSlices * sizeof(SliceVec));
 	nSlices = fillSliceVector(sliceTbl, rootIdx, sliceVector, nTotalSlices);
 
@@ -1122,7 +1122,7 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 	for (iSlice = 0; iSlice < nSlices; iSlice++)
 	{
 		Gang	   *primaryGang = NULL;
-		Slice	   *slice = NULL;
+		ExecSlice  *slice;
 		int			si = -1;
 
 		Assert(sliceVector != NULL);

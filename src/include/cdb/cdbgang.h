@@ -65,7 +65,7 @@ cdbgang_createGang(List *segments, SegmentType segmentType);
 
 extern const char *gangTypeToString(GangType type);
 
-extern void setupCdbProcessList(Slice *slice);
+extern void setupCdbProcessList(ExecSlice *slice);
 
 extern bool GangOK(Gang *gp);
 
@@ -106,7 +106,7 @@ extern void cdbgang_parse_gpqeid_params(struct Port *port, const char *gpqeid_va
  * It is constructed on the entry process (QD) and transmitted as part of
  * the global slice table to the involved QEs. Note that this is an
  * immutable, fixed-size structure so it can be held in a contiguous
- * array. In the Slice node, however, it is held in a List.
+ * array. In the ExecSlice node, however, it is held in a List.
  */
 typedef struct CdbProcess
 {

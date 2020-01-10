@@ -610,8 +610,8 @@ TeardownInterconnect(ChunkTransportState *transportStates,
  */
 ChunkTransportStateEntry *
 createChunkTransportState(ChunkTransportState *transportStates,
-						  Slice *sendSlice,
-						  Slice *recvSlice,
+						  ExecSlice *sendSlice,
+						  ExecSlice *recvSlice,
 						  int numConns)
 {
 	ChunkTransportStateEntry *pEntry;
@@ -619,10 +619,8 @@ createChunkTransportState(ChunkTransportState *transportStates,
 	int			i;
 
 	Assert(recvSlice &&
-		   IsA(recvSlice, Slice) &&
 		   recvSlice->sliceIndex >= 0);
 	Assert(sendSlice &&
-		   IsA(sendSlice, Slice) &&
 		   sendSlice->sliceIndex > 0);
 
 	motNodeID = sendSlice->sliceIndex;
@@ -736,7 +734,7 @@ removeChunkTransportState(ChunkTransportState *transportStates,
  * the network interface recorded in the catalog.
  */
 void
-adjustMasterRouting(Slice *recvSlice)
+adjustMasterRouting(ExecSlice *recvSlice)
 {
 	ListCell   *lc = NULL;
 

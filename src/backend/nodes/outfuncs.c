@@ -4951,23 +4951,6 @@ _outCdbProcess(StringInfo str, const CdbProcess *node)
 }
 
 static void
-_outSlice(StringInfo str, const Slice *node)
-{
-	WRITE_NODE_TYPE("SLICE");
-	WRITE_INT_FIELD(sliceIndex);
-	WRITE_INT_FIELD(rootIndex);
-	WRITE_INT_FIELD(parentIndex);
-	WRITE_NODE_FIELD(children); /* List of int index */
-	WRITE_ENUM_FIELD(gangType,GangType);
-	WRITE_INT_FIELD(gangSize);
-	WRITE_BOOL_FIELD(directDispatch.isDirectDispatch);
-	WRITE_NODE_FIELD(directDispatch.contentIds); /* List of int */
-	WRITE_DUMMY_FIELD(primaryGang);
-	WRITE_NODE_FIELD(primaryProcesses); /* List of (CDBProcess *) */
-	WRITE_BITMAPSET_FIELD(processesMap);
-}
-
-static void
 _outSliceTable(StringInfo str, const SliceTable *node)
 {
 	WRITE_NODE_TYPE("SLICETABLE");
@@ -4976,7 +4959,21 @@ _outSliceTable(StringInfo str, const SliceTable *node)
 	WRITE_INT_FIELD(nMotions);
 	WRITE_INT_FIELD(nInitPlans);
 	WRITE_INT_FIELD(localSlice);
-	WRITE_NODE_FIELD(slices); /* List of int */
+	WRITE_INT_FIELD(numSlices);
+	for (int i = 0; i < node->numSlices; i++)
+	{
+		WRITE_INT_FIELD(slices[i].sliceIndex);
+		WRITE_INT_FIELD(slices[i].rootIndex);
+		WRITE_INT_FIELD(slices[i].parentIndex);
+		WRITE_NODE_FIELD(slices[i].children); /* List of int index */
+		WRITE_ENUM_FIELD(slices[i].gangType, GangType);
+		WRITE_INT_FIELD(slices[i].gangSize);
+		WRITE_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
+		WRITE_NODE_FIELD(slices[i].directDispatch.contentIds); /* List of int */
+		WRITE_DUMMY_FIELD(slices[i].primaryGang);
+		WRITE_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
+		WRITE_BITMAPSET_FIELD(slices[i].processesMap);
+	}
 	WRITE_INT_FIELD(instrument_options);
 	WRITE_INT_FIELD(ic_instance_id);
 }
@@ -6084,9 +6081,6 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_CdbProcess:
 				_outCdbProcess(str, obj);
-				break;
-			case T_Slice:
-				_outSlice(str, obj);
 				break;
 			case T_SliceTable:
 				_outSliceTable(str, obj);

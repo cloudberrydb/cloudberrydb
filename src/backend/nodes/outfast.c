@@ -2016,9 +2016,6 @@ _outNode(StringInfo str, void *obj)
 			case T_CdbProcess:
 				_outCdbProcess(str, obj);
 				break;
-			case T_Slice:
-				_outSlice(str, obj);
-				break;
 			case T_SliceTable:
 				_outSliceTable(str, obj);
 				break;

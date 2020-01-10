@@ -193,7 +193,7 @@ typedef struct CdbExplain_NodeSummary
 /* One slice's statistics for all the workers of its segworker group */
 typedef struct CdbExplain_SliceSummary
 {
-	Slice	   *slice;
+	ExecSlice  *slice;
 
 	/* worker array */
 	int			nworker;		/* num of SliceWorker slots in worker array */
@@ -1959,7 +1959,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                              struct EState *estate,
                              ExplainState *es)
 {
-	Slice	   *slice;
+	ExecSlice  *slice;
 	int			sliceIndex;
 	int			flag;
 	double		total_memory_across_slices = 0;

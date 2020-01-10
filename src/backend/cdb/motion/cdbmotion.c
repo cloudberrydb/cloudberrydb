@@ -305,19 +305,19 @@ UpdateMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool preserve
 void
 UpdateMotionExpectedReceivers(MotionLayerState *mlStates, SliceTable *sliceTable)
 {
-	Slice	   *mySlice;
-	Slice	   *aSlice;
+	ExecSlice  *mySlice;
+	ExecSlice  *aSlice;
 	ListCell   *cell;
 	CdbProcess *cdbProc;
 	MotionNodeEntry *pEntry;
 
-	mySlice = (Slice *) list_nth(sliceTable->slices, sliceTable->localSlice);
+	mySlice = (ExecSlice *) &sliceTable->slices[sliceTable->localSlice];
 	foreach(cell, mySlice->children)
 	{
 		int			totalNumProcs, activeNumProcs, i;
 		int			childId = lfirst_int(cell);
 
-		aSlice = (Slice *) list_nth(sliceTable->slices, childId);
+		aSlice = (ExecSlice *) &sliceTable->slices[childId];
 
 		/*
 		 * If we're using directed-dispatch we have dummy primary-process

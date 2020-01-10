@@ -660,7 +660,7 @@ static void setXmitSocketOptions(int txfd);
 static uint32 setSocketBufferSize(int fd, int type, int expectedSize, int leastSize);
 static void setupUDPListeningSocket(int *listenerSocketFd, uint16 *listenerPort, int *txFamily);
 static ChunkTransportStateEntry *startOutgoingUDPConnections(ChunkTransportState *transportStates,
-							Slice *sendSlice,
+							ExecSlice *sendSlice,
 							int *pOutgoingCount);
 static void setupOutgoingUDPConnection(ChunkTransportState *transportStates,
 						   ChunkTransportStateEntry *pEntry, MotionConn *conn);
@@ -2629,19 +2629,19 @@ getSndBuffer(MotionConn *conn)
  */
 static ChunkTransportStateEntry *
 startOutgoingUDPConnections(ChunkTransportState *transportStates,
-							Slice *sendSlice,
+							ExecSlice *sendSlice,
 							int *pOutgoingCount)
 {
 	ChunkTransportStateEntry *pEntry;
 	MotionConn *conn;
 	ListCell   *cell;
-	Slice	   *recvSlice;
+	ExecSlice  *recvSlice;
 	CdbProcess *cdbProc;
 	int			i;
 
 	*pOutgoingCount = 0;
 
-	recvSlice = (Slice *) list_nth(transportStates->sliceTable->slices, sendSlice->parentIndex);
+	recvSlice = &transportStates->sliceTable->slices[sendSlice->parentIndex];
 
 	/*
 	 * Potentially introduce a Bug (MPP-17186). The workaround is to turn off
@@ -3008,8 +3008,8 @@ SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable)
 	int			i,
 				n;
 	ListCell   *cell;
-	Slice	   *mySlice;
-	Slice	   *aSlice;
+	ExecSlice  *mySlice;
+	ExecSlice  *aSlice;
 	MotionConn *conn = NULL;
 	int			incoming_count = 0;
 	int			outgoing_count = 0;
@@ -3045,10 +3045,9 @@ SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable)
 	interconnect_context->SendChunk = SendChunkUDPIFC;
 	interconnect_context->doSendStopMessage = doSendStopMessageUDPIFC;
 
-	mySlice = (Slice *) list_nth(interconnect_context->sliceTable->slices, sliceTable->localSlice);
+	mySlice = &interconnect_context->sliceTable->slices[sliceTable->localSlice];
 
 	Assert(mySlice &&
-		   IsA(mySlice, Slice) &&
 		   mySlice->sliceIndex == sliceTable->localSlice);
 
 #ifdef USE_ASSERT_CHECKING
@@ -3089,7 +3088,7 @@ SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable)
 		int			childId = lfirst_int(cell);
 		ChunkTransportStateEntry *pEntry = NULL;
 
-		aSlice = (Slice *) list_nth(interconnect_context->sliceTable->slices, childId);
+		aSlice = &interconnect_context->sliceTable->slices[childId];
 		numProcs = list_length(aSlice->primaryProcesses);
 
 		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
@@ -3355,7 +3354,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 {
 	ChunkTransportStateEntry *pEntry = NULL;
 	int			i;
-	Slice	   *mySlice;
+	ExecSlice  *mySlice;
 	MotionConn *conn;
 
 	uint64		maxRtt = 0;
@@ -3380,7 +3379,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 		return;
 	}
 
-	mySlice = (Slice *) list_nth(transportStates->sliceTable->slices, transportStates->sliceId);
+	mySlice = &transportStates->sliceTable->slices[transportStates->sliceId];
 
 	HOLD_INTERRUPTS();
 
@@ -3427,9 +3426,9 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 	 */
 	if (mySlice->parentIndex != -1)
 	{
-		Slice	   *parentSlice;
+		ExecSlice  *parentSlice;
 
-		parentSlice = (Slice *) list_nth(transportStates->sliceTable->slices, mySlice->parentIndex);
+		parentSlice = &transportStates->sliceTable->slices[mySlice->parentIndex];
 
 		/* cleanup a Sending motion node. */
 		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
@@ -3497,10 +3496,10 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 
 	foreach(cell, mySlice->children)
 	{
-		Slice	   *aSlice;
+		ExecSlice  *aSlice;
 		int			childId = lfirst_int(cell);
 
-		aSlice = (Slice *) list_nth(transportStates->sliceTable->slices, childId);
+		aSlice = &transportStates->sliceTable->slices[childId];
 
 		/*
 		 * First check whether the entry is initialized to avoid the potential

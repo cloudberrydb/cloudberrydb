@@ -40,7 +40,6 @@ typedef enum NodeTag
 	T_EState,
 	T_TupleTableSlot,
 	T_CdbProcess,
-	T_Slice,
 	T_SliceTable,
 	T_CursorPosInfo,
 	T_ShareNodeEntry,

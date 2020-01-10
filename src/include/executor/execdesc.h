@@ -44,10 +44,8 @@ typedef enum GangType
  * a gang of processes. Some gangs have a worker process on each of several
  * databases, others have a single worker.
  */
-typedef struct Slice
+typedef struct ExecSlice
 {
-	NodeTag		type;
-
 	/*
 	 * The index in the global slice table of this slice. The root slice of
 	 * the main plan is always 0. Slices that have senders at their local
@@ -106,7 +104,7 @@ typedef struct Slice
 	Bitmapset	*processesMap;
 	/* A list of segment ids who will execute this slice */
 	List		*segments;
-} Slice;
+} ExecSlice;
 
 /*
  * The SliceTable is a list of Slice structures organized into root slices
@@ -129,7 +127,8 @@ typedef struct SliceTable
 	int			nMotions;		/* The number Motion nodes in the entire plan */
 	int			nInitPlans;		/* The number of initplan slices allocated */
 	int			localSlice;		/* Index of the slice to execute. */
-	List	   *slices;			/* List of slices */
+	int			numSlices;
+	ExecSlice  *slices;
 	int			instrument_options;	/* OR of InstrumentOption flags */
 	uint32		ic_instance_id;
 } SliceTable;

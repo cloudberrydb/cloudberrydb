@@ -297,8 +297,8 @@ extern void putTransportDirectBuffer(ChunkTransportState *transportStates,
 
 
 extern ChunkTransportStateEntry *createChunkTransportState(ChunkTransportState *transportStates,
-														   Slice *sendSlice,
-														   Slice *recvSlice,
+														   ExecSlice *sendSlice,
+														   ExecSlice *recvSlice,
 														   int numConns);
 
 extern ChunkTransportStateEntry *removeChunkTransportState(ChunkTransportState *transportStates,
@@ -323,7 +323,7 @@ extern void TeardownUDPIFCInterconnect(ChunkTransportState *transportStates,
 								 bool forceEOS);
 
 extern uint32 getActiveMotionConns(void);
-extern void adjustMasterRouting(Slice *recvSlice);
+extern void adjustMasterRouting(ExecSlice *recvSlice);
 
 extern char *format_sockaddr(struct sockaddr_storage *sa, char *buf, size_t len);
 

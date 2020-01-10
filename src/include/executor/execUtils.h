@@ -21,10 +21,10 @@ struct QueryDesc;
 struct CdbDispatcherState;
 
 extern void InitSliceTable(struct EState *estate, int nMotions, int nSubplans);
-extern Slice *getCurrentSlice(struct EState *estate, int sliceIndex);
-extern bool sliceRunsOnQD(Slice *slice);
-extern bool sliceRunsOnQE(Slice *slice);
-extern int sliceCalculateNumSendingProcesses(Slice *slice);
+extern ExecSlice *getCurrentSlice(struct EState *estate, int sliceIndex);
+extern bool sliceRunsOnQD(ExecSlice *slice);
+extern bool sliceRunsOnQE(ExecSlice *slice);
+extern int sliceCalculateNumSendingProcesses(ExecSlice *slice);
 
 extern void AssignGangs(struct CdbDispatcherState *ds, QueryDesc *queryDesc);
 

@@ -1228,7 +1228,7 @@ void
 InitSliceTable(EState *estate, int nMotions, int nSubplans)
 {
 	SliceTable *table;
-	Slice	   *slice;
+	ExecSlice  *slice;
 	int			i,
 				n;
 	MemoryContext oldcontext;
@@ -1247,15 +1247,15 @@ InitSliceTable(EState *estate, int nMotions, int nSubplans)
 	table->used_subplans = NULL;
 	table->nMotions = nMotions;
 	table->nInitPlans = nSubplans;
-	table->slices = NIL;
 	table->instrument_options = INSTRUMENT_NONE;
 
 	/* Each slice table has a unique-id. */
 	table->ic_instance_id = ++gp_interconnect_id;
 
+	table->slices = palloc0(n * sizeof(ExecSlice));
 	for (i = 0; i < n; i++)
 	{
-		slice = makeNode(Slice);
+		slice = &table->slices[i];
 
 		slice->sliceIndex = i;
         slice->rootIndex = (i > 0 && i <= nMotions) ? -1 : i;
@@ -1268,9 +1268,8 @@ InitSliceTable(EState *estate, int nMotions, int nSubplans)
 		slice->parentIndex = -1;
 		slice->children = NIL;
 		slice->primaryProcesses = NIL;
-
-		table->slices = lappend(table->slices, slice);
 	}
+	table->numSlices = n;
 
 	estate->es_sliceTable = table;
 
@@ -1280,15 +1279,15 @@ InitSliceTable(EState *estate, int nMotions, int nSubplans)
 /*
  * A forgiving slice table indexer that returns the indexed Slice* or NULL
  */
-Slice *
+ExecSlice *
 getCurrentSlice(EState *estate, int sliceIndex)
 {
 	SliceTable *sliceTable = estate->es_sliceTable;
 
     if (sliceTable &&
-        sliceIndex >= 0 &&
-        sliceIndex < list_length(sliceTable->slices))
-	    return (Slice *)list_nth(sliceTable->slices, sliceIndex);
+		sliceIndex >= 0 &&
+		sliceIndex < sliceTable->numSlices)
+		return &sliceTable->slices[sliceIndex];
 
     return NULL;
 }
@@ -1298,7 +1297,7 @@ getCurrentSlice(EState *estate, int sliceIndex)
  * N.B. Not the same as !sliceRunsOnQE(slice), when slice is NULL.
  */
 bool
-sliceRunsOnQD(Slice * slice)
+sliceRunsOnQD(ExecSlice *slice)
 {
 	return (slice != NULL && slice->gangType == GANGTYPE_UNALLOCATED);
 }
@@ -1309,7 +1308,7 @@ sliceRunsOnQD(Slice * slice)
  * N.B. Not the same as !sliceRunsOnQD(slice), when slice is NULL.
  */
 bool
-sliceRunsOnQE(Slice * slice)
+sliceRunsOnQE(ExecSlice *slice)
 {
 	return (slice != NULL && slice->gangType != GANGTYPE_UNALLOCATED);
 }
@@ -1318,7 +1317,7 @@ sliceRunsOnQE(Slice * slice)
  * Calculate the number of sending processes that should in be a slice.
  */
 int
-sliceCalculateNumSendingProcesses(Slice *slice)
+sliceCalculateNumSendingProcesses(ExecSlice *slice)
 {
 	switch(slice->gangType)
 	{
@@ -1345,7 +1344,7 @@ sliceCalculateNumSendingProcesses(Slice *slice)
 }
 
 /* Forward declarations */
-static void InventorySliceTree(CdbDispatcherState *ds, List * slices, int sliceIndex);
+static void InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, int sliceIndex);
 
 /*
  * Function AssignGangs runs on the QD and finishes construction of the
@@ -1369,8 +1368,6 @@ void
 AssignGangs(CdbDispatcherState *ds, QueryDesc *queryDesc)
 {
 	SliceTable	*sliceTable;
-	ListCell  	*cell;
-	Slice		*slice;
 	EState		*estate;
 	int			rootIdx;
 
@@ -1379,13 +1376,10 @@ AssignGangs(CdbDispatcherState *ds, QueryDesc *queryDesc)
 	rootIdx = RootSliceIndex(queryDesc->estate);
 
 	/* cleanup processMap because initPlan and main Plan share the same slice table */
-	foreach(cell, sliceTable->slices)
-	{
-		slice = (Slice *) lfirst(cell);
-		slice->processesMap = NULL;
-	}
+	for (int i = 0; i < sliceTable->numSlices; i++)
+		sliceTable->slices[i].processesMap = NULL;
 
-	InventorySliceTree(ds, sliceTable->slices, rootIdx);
+	InventorySliceTree(ds, sliceTable, rootIdx);
 }
 
 /*
@@ -1394,11 +1388,11 @@ AssignGangs(CdbDispatcherState *ds, QueryDesc *queryDesc)
  * generally useful.
  */
 void
-InventorySliceTree(CdbDispatcherState *ds, List *slices, int sliceIndex)
+InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, int sliceIndex)
 {
 	ListCell *cell;
 	int childIndex;
-	Slice *slice = list_nth(slices, sliceIndex);
+	ExecSlice *slice = &sliceTable->slices[sliceIndex];
 
 	if (slice->gangType == GANGTYPE_UNALLOCATED)
 	{
@@ -1415,7 +1409,7 @@ InventorySliceTree(CdbDispatcherState *ds, List *slices, int sliceIndex)
 	foreach(cell, slice->children)
 	{
 		childIndex = lfirst_int(cell);
-		InventorySliceTree(ds, slices, childIndex);
+		InventorySliceTree(ds, sliceTable, childIndex);
 	}
 }
 
@@ -1446,7 +1440,7 @@ getGpExecIdentity(QueryDesc *queryDesc,
 				  ScanDirection direction,
 				  EState	   *estate)
 {
-	Slice *currentSlice;
+	ExecSlice *currentSlice;
 
 	currentSlice = getCurrentSlice(estate, LocallyExecutingSliceIndex(estate));
 	if (currentSlice)
@@ -1484,7 +1478,7 @@ getGpExecIdentity(QueryDesc *queryDesc,
 void mppExecutorFinishup(QueryDesc *queryDesc)
 {
 	EState	   *estate;
-	Slice      *currentSlice;
+	ExecSlice  *currentSlice;
 
 	/* caller must have switched into per-query memory context already */
 	estate = queryDesc->estate;
@@ -2114,16 +2108,14 @@ int LocallyExecutingSliceIndex(EState *estate)
  */
 int PrimaryWriterSliceIndex(EState *estate)
 {
-	ListCell   *lc;
-
 	Assert(estate);
 
 	if (!estate->es_sliceTable)
 		return 0;
 
-	foreach (lc, estate->es_sliceTable->slices)
+	for (int i = 0; i < estate->es_sliceTable->numSlices; i++)
 	{
-		Slice	   *slice = (Slice *) lfirst(lc);
+		ExecSlice  *slice = &estate->es_sliceTable->slices[i];
 
 		if (slice->gangType == GANGTYPE_PRIMARY_WRITER)
 			return slice->sliceIndex;
@@ -2142,7 +2134,8 @@ int RootSliceIndex(EState *estate)
 
 	if (estate->es_sliceTable)
 	{
-		Slice *localSlice = list_nth(estate->es_sliceTable->slices, LocallyExecutingSliceIndex(estate));
+		ExecSlice *localSlice = &estate->es_sliceTable->slices[LocallyExecutingSliceIndex(estate)];
+
 		result = localSlice->rootIndex;
 	}
 
@@ -2164,16 +2157,13 @@ void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
 	Assert(pstmt->nMotionNodes == st->nMotions);
 	Assert(pstmt->nInitPlans == st->nInitPlans);
 
-	ListCell *lc = NULL;
-	int i = 0;
-
 	int maxIndex = st->nMotions + st->nInitPlans + 1;
 
-	Assert(maxIndex == list_length(st->slices));
+	Assert(maxIndex == st->numSlices);
 
-	foreach_with_count(lc, st->slices, i)
+	for (int i = 0; i < st->numSlices; i++)
 	{
-		Slice *s = (Slice *) lfirst(lc);
+		ExecSlice *s = &st->slices[i];
 
 		/* The n-th slice entry has sliceIndex of n */
 		Assert(s->sliceIndex == i && "slice index incorrect");
@@ -2215,21 +2205,21 @@ void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
 		{
 			int childIndex = lfirst_int(lc1);
 			Assert(childIndex >= 0 && childIndex < maxIndex && "invalid child slice");
-			Slice *sc = (Slice *) list_nth(st->slices, childIndex);
+			ExecSlice *sc = (ExecSlice *) &st->slices[childIndex];
 			Assert(sc->parentIndex == s->sliceIndex && "slice's child does not consider it the parent");
 		}
 
 		/* Current slice must be in its parent's children list */
 		if (s->parentIndex >= 0)
 		{
-			Slice *sp = (Slice *) list_nth(st->slices, s->parentIndex);
+			ExecSlice *sp = (ExecSlice *) &st->slices[s->parentIndex];
 
 			bool found = false;
 			foreach (lc1, sp->children)
 			{
 				int childIndex = lfirst_int(lc1);
 				Assert(childIndex >= 0 && childIndex < maxIndex && "invalid child slice");
-				Slice *sc = (Slice *) list_nth(st->slices, childIndex);
+				ExecSlice *sc = &st->slices[childIndex];
 
 				if (sc->sliceIndex == s->sliceIndex)
 				{

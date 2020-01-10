@@ -5092,27 +5092,6 @@ _copyCdbProcess(const CdbProcess *from)
 	return newnode;
 }
 
-static Slice *
-_copySlice(const Slice *from)
-{
-	Slice *newnode = makeNode(Slice);
-
-	COPY_SCALAR_FIELD(sliceIndex);
-	COPY_SCALAR_FIELD(rootIndex);
-	COPY_SCALAR_FIELD(gangType);
-	COPY_SCALAR_FIELD(gangSize);
-	COPY_SCALAR_FIELD(directDispatch.isDirectDispatch);
-	COPY_NODE_FIELD(directDispatch.contentIds);
-
-	newnode->primaryGang = from->primaryGang;
-	COPY_SCALAR_FIELD(parentIndex);
-	COPY_NODE_FIELD(children);
-	COPY_NODE_FIELD(primaryProcesses);
-	COPY_BITMAPSET_FIELD(processesMap);
-
-	return newnode;
-}
-
 static SliceTable *
 _copySliceTable(const SliceTable *from)
 {
@@ -5122,7 +5101,25 @@ _copySliceTable(const SliceTable *from)
 	COPY_SCALAR_FIELD(nMotions);
 	COPY_SCALAR_FIELD(nInitPlans);
 	COPY_SCALAR_FIELD(localSlice);
-	COPY_NODE_FIELD(slices);
+	COPY_SCALAR_FIELD(numSlices);
+
+	newnode->slices = palloc0(from->numSlices * sizeof(ExecSlice));
+	for (int i = 0; i < from->numSlices; i++)
+	{
+		COPY_SCALAR_FIELD(slices[i].sliceIndex);
+		COPY_SCALAR_FIELD(slices[i].rootIndex);
+		COPY_SCALAR_FIELD(slices[i].gangType);
+		COPY_SCALAR_FIELD(slices[i].gangSize);
+		COPY_SCALAR_FIELD(slices[i].directDispatch.isDirectDispatch);
+		COPY_NODE_FIELD(slices[i].directDispatch.contentIds);
+
+		newnode->slices[i].primaryGang = from->slices[i].primaryGang;
+		COPY_SCALAR_FIELD(slices[i].parentIndex);
+		COPY_NODE_FIELD(slices[i].children);
+		COPY_NODE_FIELD(slices[i].primaryProcesses);
+		COPY_BITMAPSET_FIELD(slices[i].processesMap);
+	}
+
 	COPY_SCALAR_FIELD(instrument_options);
 	COPY_SCALAR_FIELD(ic_instance_id);
 
@@ -6378,9 +6375,6 @@ copyObject(const void *from)
 			break;
 		case T_CdbProcess:
 			retval = _copyCdbProcess(from);
-			break;
-		case T_Slice:
-			retval = _copySlice(from);
 			break;
 		case T_SliceTable:
 			retval = _copySliceTable(from);

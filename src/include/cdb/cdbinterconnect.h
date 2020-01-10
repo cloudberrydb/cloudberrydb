@@ -331,9 +331,9 @@ typedef struct ChunkTransportStateEntry
 
     int         scanStart;
 
-    /* slice table entries */
-    struct Slice   *sendSlice;
-    struct Slice   *recvSlice;
+	/* slice table entries */
+	struct ExecSlice *sendSlice;
+	struct ExecSlice *recvSlice;
 
 	/* setup info */
 	int			txfd;

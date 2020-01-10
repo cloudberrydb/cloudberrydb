@@ -1012,7 +1012,7 @@ exec_mpp_query(const char *query_string,
 	QueryDispatchDesc *ddesc = NULL;
 	CmdType		commandType = CMD_UNKNOWN;
 	SliceTable *sliceTable = NULL;
-	Slice      *slice = NULL;
+	ExecSlice      *slice = NULL;
 	ParamListInfo paramLI = NULL;
 
 	Assert(Gp_role == GP_ROLE_EXECUTE);
@@ -1096,24 +1096,24 @@ exec_mpp_query(const char *query_string,
 
 		if (sliceTable)
 		{
-			ListCell *lc;
+			int			i;
 
 			if (!IsA(sliceTable, SliceTable) ||
 				sliceTable->localSlice < 0 ||
-				sliceTable->localSlice >= list_length(sliceTable->slices))
+				sliceTable->localSlice >= sliceTable->numSlices)
 				elog(ERROR, "MPPEXEC: received invalid slice table: %d", sliceTable->localSlice);
 
 			/* Identify slice to execute */
-			foreach(lc, sliceTable->slices)
+			for (i = 0; i < sliceTable->numSlices; i++)
 			{
-				slice = (Slice *)lfirst(lc);
+				slice = &sliceTable->slices[i];
+
 				if (bms_is_member(qe_identifier, slice->processesMap))
 					break;
 			}
-
+			if (i == sliceTable->numSlices)
+				elog(ERROR, "could not find QE identifier in process map");
 			sliceTable->localSlice = slice->sliceIndex;
-
-			Assert(IsA(slice, Slice));
 
 			/* Set global sliceid variable for elog. */
 			currentSliceId = sliceTable->localSlice;

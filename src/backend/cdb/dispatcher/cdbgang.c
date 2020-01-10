@@ -528,7 +528,7 @@ makeCdbProcess(SegmentDatabaseDescriptor *segdbDesc)
  * @directDispatch: might be null
  */
 void
-setupCdbProcessList(Slice *slice)
+setupCdbProcessList(ExecSlice *slice)
 {
 	int			i = 0;
 	Gang		*gang = slice->primaryGang;

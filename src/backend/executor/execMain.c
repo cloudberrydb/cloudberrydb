@@ -148,7 +148,7 @@ static char *ExecBuildSlotValueDescription(Oid reloid,
 static void EvalPlanQualStart(EPQState *epqstate, EState *parentestate,
 				  Plan *planTree);
 
-static void FillSliceGangInfo(Slice *slice, int numsegments);
+static void FillSliceGangInfo(ExecSlice *slice, int numsegments);
 static void FillSliceTable(EState *estate, PlannedStmt *stmt);
 static PartitionNode *BuildPartitionNodeFromRoot(Oid relid);
 static void InitializeQueryPartsMetadata(PlannedStmt *plannedstmt, EState *estate);
@@ -195,7 +195,7 @@ static void
 CopyDirectDispatchToSlice( Plan *ddPlan, int sliceId, CopyDirectDispatchToSliceContext *context)
 {
 	EState	*estate = context->estate;
-	Slice *slice = (Slice *)list_nth(estate->es_sliceTable->slices, sliceId);
+	ExecSlice *slice = &estate->es_sliceTable->slices[sliceId];
 
 	Assert( ! slice->directDispatch.isDirectDispatch );	/* should not have been set by some other process */
 	Assert(ddPlan != NULL);
@@ -530,12 +530,11 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		if (ddesc && ddesc->sliceTable != NULL)
 		{
 			SliceTable *sliceTable;
-			Slice	   *slice;
+			ExecSlice  *slice;
 
 			sliceTable = ddesc->sliceTable;
 			Assert(IsA(sliceTable, SliceTable));
-			slice = (Slice *)list_nth(sliceTable->slices, sliceTable->localSlice);
-			Assert(IsA(slice, Slice));
+			slice = &sliceTable->slices[sliceTable->localSlice];
 
 			estate->es_sliceTable = sliceTable;
 			estate->es_cursorPositions = ddesc->cursorPositions;
@@ -603,7 +602,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		Assert(queryDesc->planstate);
 
 #ifdef USE_ASSERT_CHECKING
-		AssertSliceTableIsValid((struct SliceTable *) estate->es_sliceTable, queryDesc->plannedstmt);
+		AssertSliceTableIsValid(estate->es_sliceTable, queryDesc->plannedstmt);
 #endif
 
 		if (Debug_print_slice_table && Gp_role == GP_ROLE_DISPATCH)
@@ -862,7 +861,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	 * NOTE: Any local vars that are set in the PG_TRY block and examined in the
 	 * PG_CATCH block should be declared 'volatile'. (setjmp shenanigans)
 	 */
-	Slice              *currentSlice;
+	ExecSlice  *currentSlice;
 	GpExecIdentity		exec_identity;
 
 	/* sanity checks */
@@ -4875,16 +4874,15 @@ char *
 DumpSliceTable(SliceTable *table)
 {
 	StringInfoData buf;
-	ListCell *lc;
 
 	if (!table)
 		return "No slice table";
 
 	initStringInfo(&buf);
 
-	foreach(lc, table->slices)
+	for (int = 0; i < table->numSlices; i++)
 	{
-		Slice *slice = (Slice *) lfirst(lc);
+		ExecSlice *slice = &table->slices[i];
 
 		appendStringInfo(&buf, "Slice %d: rootIndex %d gangType %d parent %d\n",
 						 slice->sliceIndex, slice->rootIndex, slice->gangType, slice->parentIndex);
@@ -4901,7 +4899,7 @@ typedef struct
 } FillSliceTable_cxt;
 
 static void
-FillSliceGangInfo(Slice *slice, int numsegments)
+FillSliceGangInfo(ExecSlice *slice, int numsegments)
 {
 	switch (slice->gangType)
 	{
@@ -4984,7 +4982,7 @@ FillSliceTable_walker(Node *node, void *context)
 
 			if (policyType != POLICYTYPE_ENTRY)
 			{
-				Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
+				ExecSlice  *currentSlice = &sliceTable->slices[cxt->currentSliceId];
 
 				currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
 
@@ -5005,24 +5003,23 @@ FillSliceTable_walker(Node *node, void *context)
 		Motion	   *motion = (Motion *) node;
 		MemoryContext oldcxt = MemoryContextSwitchTo(estate->es_query_cxt);
 		Flow	   *sendFlow;
-		Slice	   *sendSlice;
-		Slice	   *recvSlice;
+		ExecSlice  *sendSlice;
+		ExecSlice  *recvSlice;
 
 		/* Top node of subplan should have a Flow node. */
 		Insist(motion->plan.lefttree && motion->plan.lefttree->flow);
 		sendFlow = motion->plan.lefttree->flow;
 
 		/* Look up the sending gang's slice table entry. */
-		sendSlice = (Slice *) list_nth(sliceTable->slices, motion->motionID);
+		sendSlice = &sliceTable->slices[motion->motionID];
 
 		/* Look up the receiving (parent) gang's slice table entry. */
-		recvSlice = (Slice *)list_nth(sliceTable->slices, parentSliceIndex);
+		recvSlice = &sliceTable->slices[parentSliceIndex];
 
-		Assert(IsA(recvSlice, Slice));
 		Assert(recvSlice->sliceIndex == parentSliceIndex);
 		Assert(recvSlice->rootIndex == 0 ||
 			   (recvSlice->rootIndex > sliceTable->nMotions &&
-				recvSlice->rootIndex < list_length(sliceTable->slices)));
+				recvSlice->rootIndex < sliceTable->numSlices));
 
 		/* Sending slice become a children of recv slice */
 		recvSlice->children = lappend_int(recvSlice->children, sendSlice->sliceIndex);
@@ -5130,7 +5127,7 @@ FillSliceTable(EState *estate, PlannedStmt *stmt)
 
 	if (stmt->intoClause != NULL || stmt->copyIntoClause != NULL || stmt->refreshClause)
 	{
-		Slice	   *currentSlice = (Slice *) linitial(sliceTable->slices);
+		ExecSlice  *currentSlice = &sliceTable->slices[0];
 		int			numsegments;
 		if (stmt->commandType == CMD_SELECT && stmt->intoPolicy)
 			/*

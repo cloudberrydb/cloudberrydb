@@ -1707,27 +1707,6 @@ _readPartitionSelector(void)
 	READ_DONE();
 }
 
-static Slice *
-_readSlice(void)
-{
-	READ_LOCALS(Slice);
-
-	READ_INT_FIELD(sliceIndex);
-	READ_INT_FIELD(rootIndex);
-	READ_INT_FIELD(parentIndex);
-	READ_NODE_FIELD(children); /* List of int index */
-	READ_ENUM_FIELD(gangType, GangType);
-	Assert(local_node->gangType <= GANGTYPE_PRIMARY_WRITER);
-	READ_INT_FIELD(gangSize);
-	READ_BOOL_FIELD(directDispatch.isDirectDispatch);
-	READ_NODE_FIELD(directDispatch.contentIds); /* List of int index */
-	READ_DUMMY_FIELD(primaryGang, NULL);
-	READ_NODE_FIELD(primaryProcesses); /* List of (CDBProcess *) */
-	READ_BITMAPSET_FIELD(processesMap);
-
-	READ_DONE();
-}
-
 static Bitmapset *
 _readBitmapset(void)
 {
@@ -3016,9 +2995,6 @@ readNodeBinary(void)
 				break;
 			case T_CdbProcess:
 				return_value = _readCdbProcess();
-				break;
-			case T_Slice:
-				return_value = _readSlice();
 				break;
 			case T_SliceTable:
 				return_value = _readSliceTable();
