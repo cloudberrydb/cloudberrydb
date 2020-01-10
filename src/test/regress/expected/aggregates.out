@@ -590,9 +590,9 @@ explain (costs off)
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan using tenk1_unique1 on tenk1
                        Index Cond: (unique1 IS NOT NULL)
@@ -610,9 +610,9 @@ explain (costs off)
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                        Index Cond: (unique1 IS NOT NULL)
@@ -630,9 +630,9 @@ explain (costs off)
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                        Index Cond: ((unique1 IS NOT NULL) AND (unique1 < 42))
@@ -650,9 +650,9 @@ explain (costs off)
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                        Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42))
@@ -679,9 +679,9 @@ explain (costs off)
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                        Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42000))
@@ -701,9 +701,9 @@ explain (costs off)
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.tenthous
                  ->  Index Only Scan Backward using tenk1_thous_tenthous on tenk1
                        Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
@@ -721,9 +721,9 @@ explain (costs off)
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.tenthous
                  ->  Index Only Scan using tenk1_thous_tenthous on tenk1
                        Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
@@ -774,9 +774,9 @@ explain (costs off)
 ---------------------------------------------------------------------------
  HashAggregate
    Group Key: $0
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                        Index Cond: (unique2 IS NOT NULL)
@@ -796,9 +796,9 @@ explain (costs off)
 ---------------------------------------------------------------------------
  Sort
    Sort Key: ($0)
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                        Index Cond: (unique2 IS NOT NULL)
@@ -818,9 +818,9 @@ explain (costs off)
 ---------------------------------------------------------------------------
  Sort
    Sort Key: ($0)
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                        Index Cond: (unique2 IS NOT NULL)
@@ -840,9 +840,9 @@ explain (costs off)
 ---------------------------------------------------------------------------
  Sort
    Sort Key: (($0 + 1))
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                        Index Cond: (unique2 IS NOT NULL)
@@ -862,9 +862,9 @@ explain (costs off)
 ---------------------------------------------------------------------------
  Sort
    Sort Key: (generate_series(1, 3)) DESC
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                        Index Cond: (unique2 IS NOT NULL)
@@ -886,9 +886,9 @@ explain (costs off)
                         QUERY PLAN                        
 ----------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  ->  Result
                        One-Time Filter: (100 IS NOT NULL)
                        ->  Seq Scan on tenk1
@@ -920,9 +920,9 @@ explain (costs off)
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice3)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: minmaxtest.f1
                  ->  Merge Append
                        Sort Key: minmaxtest.f1
@@ -933,9 +933,9 @@ explain (costs off)
                        ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2
                              Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest3i on minmaxtest3
-   InitPlan 2 (returns $1)  (slice4)
+   InitPlan 2 (returns $1)  (slice3)
      ->  Limit
-           ->  Gather Motion 3:1  (slice2; segments: 3)
+           ->  Gather Motion 3:1  (slice4; segments: 3)
                  Merge Key: minmaxtest_1.f1
                  ->  Merge Append
                        Sort Key: minmaxtest_1.f1 DESC
@@ -1017,10 +1017,10 @@ explain (costs off) select * from t1 group by a,b,c,d;
 explain (costs off) select a,c from t1 group by a,c,d;
                          QUERY PLAN                         
 ------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Finalize HashAggregate
          Group Key: a, c, d
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: a, c, d
                ->  Partial HashAggregate
                      Group Key: a, c, d

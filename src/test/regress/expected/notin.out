@@ -78,12 +78,12 @@ explain select c1 from t1 where c1 not in
 	(select c2 from t2);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.44..5.63 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.44..5.63 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=2.44..5.63 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Hash  (cost=2.25..2.25 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
  Optimizer status: Postgres query optimizer
 (8 rows)
@@ -107,7 +107,7 @@ explain select c1 from t1 where c1 not in
 		(select c3 from t3));
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.43..7.59 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=4.43..7.59 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=4.43..7.59 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -117,7 +117,7 @@ explain select c1 from t1 where c1 not in
                      ->  Seq Scan on t2  (cost=0.00..2.06 rows=2 width=4)
                            Filter: c2 > 2
                      ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                  ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Optimizer status: Postgres query optimizer
 (13 rows)
@@ -147,22 +147,22 @@ explain select c1 from t1 where c1 not in
 			(select c4 from t4)));
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)  (cost=5.90..9.08 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5.90..9.08 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=5.90..9.08 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Hash  (cost=5.77..5.77 rows=4 width=4)
-               ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=3.52..5.77 rows=4 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=3.52..5.77 rows=4 width=4)
                      ->  Hash Left Anti Semi (Not-In) Join  (cost=3.52..5.64 rows=2 width=4)
                            Hash Cond: t2.c2 = t3.c3
                            ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
                            ->  Hash  (cost=3.39..3.39 rows=4 width=4)
-                                 ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=1.18..3.39 rows=4 width=4)
+                                 ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=1.18..3.39 rows=4 width=4)
                                        ->  Hash Left Anti Semi (Not-In) Join  (cost=1.18..3.26 rows=2 width=4)
                                              Hash Cond: t3.c3 = t4.c4
                                              ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
                                              ->  Hash  (cost=1.10..1.10 rows=2 width=4)
-                                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
+                                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
                                                          ->  Seq Scan on t4  (cost=0.00..1.02 rows=1 width=4)
  Optimizer status: Postgres query optimizer
 (18 rows)
@@ -190,7 +190,7 @@ explain select c1 from t1,
 	where c1 = foo.c2;
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.42..7.59 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=4.42..7.59 rows=4 width=4)
    ->  Hash Join  (cost=4.42..7.59 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -199,7 +199,7 @@ explain select c1 from t1,
                      Hash Cond: t2.c2 = t3.c3
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
                      ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                  ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Optimizer status: Postgres query optimizer
 (12 rows)
@@ -223,7 +223,7 @@ explain select c1 from t1,
 	where c1 = foo.c2;
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=5.34..8.58 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5.34..8.58 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=5.34..8.58 rows=2 width=4)
          Hash Cond: (t2.c2 = t3.c3)
          ->  Hash Join  (cost=3.08..6.26 rows=2 width=8)
@@ -234,7 +234,7 @@ explain select c1 from t1,
                      ->  Seq Scan on t2  (cost=0.00..3.06 rows=1 width=4)
                            Filter: (c2 > 4)
          ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                      ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Optimizer: Postgres query optimizer
 (14 rows)
@@ -255,13 +255,13 @@ explain select c1 from t1 where c1 not in
 	(select c2 from t2) and c1 > 1;
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.44..5.66 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.44..5.66 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=2.44..5.66 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.12 rows=4 width=4)
                Filter: c1 > 1
          ->  Hash  (cost=2.25..2.25 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
  Optimizer status: Postgres query optimizer
 (9 rows)
@@ -284,13 +284,13 @@ explain select c1 from t1 where c1 > 6 and c1 not in
 	(select c2 from t2) and c1 < 10;
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.44..5.65 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.44..5.65 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=2.44..5.65 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.15 rows=2 width=4)
                Filter: c1 > 6 AND c1 < 10
          ->  Hash  (cost=2.25..2.25 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
  Optimizer status: Postgres query optimizer
 (9 rows)
@@ -311,14 +311,14 @@ explain select c1 from t1,t2 where c1 not in
 	(select c3 from t3) and c1 = c2;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=5.38..8.62 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5.38..8.62 rows=4 width=4)
    ->  Hash Join  (cost=5.38..8.62 rows=2 width=4)
          Hash Cond: (t1.c1 = t2.c2)
          ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..5.46 rows=2 width=4)
                Hash Cond: (t1.c1 = t3.c3)
                ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
                ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                            ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
          ->  Hash  (cost=3.05..3.05 rows=2 width=4)
                ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
@@ -394,7 +394,7 @@ explain select x,y from l1 where (x,y) not in
 	(select distinct y, sum(x) from l1 group by y having y < 4 order by y) order by 1,2;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000008.14..10000000008.22 rows=4 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000008.14..10000000008.22 rows=4 width=8)
    Merge Key: l1.x, l1.y
    ->  Sort  (cost=10000000008.14..10000000008.15 rows=2 width=8)
          Sort Key: l1.x, l1.y
@@ -406,7 +406,7 @@ explain select x,y from l1 where (x,y) not in
                            ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=3.19..3.25 rows=2 width=12)
                                  ->  HashAggregate  (cost=3.19..3.22 rows=2 width=16)
                                        Group Key: l1_1.y
-                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.19 rows=2 width=8)
+                                       ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..3.19 rows=2 width=8)
                                              Hash Key: l1_1.y
                                              ->  Seq Scan on l1 l1_1  (cost=0.00..3.12 rows=2 width=8)
                                                    Filter: (y < 4)
@@ -433,12 +433,12 @@ explain select * from g1 where (a,b,c) not in
 	(select x,y,z from l1);
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.53..14.71 rows=11 width=12)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=3.53..14.71 rows=11 width=12)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=3.53..14.71 rows=4 width=12)
          Join Filter: g1.a = l1.x AND g1.b = l1.y AND g1.c = l1.z
          ->  Seq Scan on g1  (cost=0.00..2.11 rows=4 width=12)
          ->  Materialize  (cost=3.53..3.83 rows=10 width=12)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.50 rows=10 width=12)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..3.50 rows=10 width=12)
                      ->  Seq Scan on l1  (cost=0.00..3.10 rows=4 width=12)
  Optimizer status: Postgres query optimizer
 (8 rows)
@@ -462,7 +462,7 @@ explain select c1 from t1, t2 where c1 not in
 	(select c3 from t3 where c3 = c1) and c1 = c2;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.11..15.49 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.11..15.49 rows=4 width=4)
    ->  Hash Join  (cost=2.11..15.49 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..13.32 rows=2 width=4)
@@ -471,7 +471,7 @@ explain select c1 from t1, t2 where c1 not in
                  ->  Result  (cost=2.04..2.05 rows=1 width=4)
                        Filter: t3.c3 = $0
                        ->  Materialize  (cost=2.04..2.05 rows=1 width=4)
-                             ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.04 rows=1 width=4)
+                             ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.04 rows=1 width=4)
                                    ->  Seq Scan on t3  (cost=0.00..2.04 rows=1 width=4)
          ->  Hash  (cost=2.05..2.05 rows=2 width=4)
                ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
@@ -532,12 +532,12 @@ explain select c1 from t1 where c1 not in
 	(select sum(c2) as s from t2 where c2 > 2 group by c2 having c2 > 3);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=3.35..6.52 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=3.35..6.52 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=3.35..6.52 rows=2 width=4)
          Hash Cond: (t1.c1 = "NotIn_SUBQUERY".s)
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Hash  (cost=3.26..3.26 rows=3 width=8)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=3.09..3.26 rows=3 width=8)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=3.09..3.26 rows=3 width=8)
                      ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=3.09..3.16 rows=1 width=8)
                            ->  GroupAggregate  (cost=3.09..3.14 rows=1 width=16)
                                  Group Key: t2.c2
@@ -640,7 +640,7 @@ explain select (case when c1%2 = 0
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=9.72..13.07 rows=10 width=8)
-   InitPlan 1 (returns $0)  (slice6)
+   InitPlan 1 (returns $0)  (slice2)
      ->  Finalize Aggregate  (cost=5.41..5.42 rows=1 width=8)
            ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=5.37..5.40 rows=1 width=8)
                  ->  Partial Aggregate  (cost=5.37..5.38 rows=1 width=8)
@@ -648,17 +648,17 @@ explain select (case when c1%2 = 0
                              Hash Cond: (t2.c2 = t3.c3)
                              ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
                              ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                          ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
-   InitPlan 2 (returns $1)  (slice7)
+   InitPlan 2 (returns $1)  (slice5)
      ->  Finalize Aggregate  (cost=4.29..4.30 rows=1 width=8)
-           ->  Gather Motion 3:1  (slice5; segments: 3)  (cost=4.26..4.29 rows=1 width=8)
+           ->  Gather Motion 3:1  (slice6; segments: 3)  (cost=4.26..4.29 rows=1 width=8)
                  ->  Partial Aggregate  (cost=4.26..4.27 rows=1 width=8)
                        ->  Hash Left Anti Semi (Not-In) Join  (cost=2.18..4.25 rows=2 width=4)
                              Hash Cond: (t3_1.c3 = t4.c4)
                              ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=4)
                              ->  Hash  (cost=2.10..2.10 rows=2 width=4)
-                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..2.10 rows=2 width=4)
+                                   ->  Broadcast Motion 3:3  (slice7; segments: 3)  (cost=0.00..2.10 rows=2 width=4)
                                          ->  Seq Scan on t4  (cost=0.00..2.02 rows=1 width=4)
    ->  Seq Scan on t1  (cost=9.72..12.87 rows=4 width=8)
  Optimizer: Postgres query optimizer
@@ -687,12 +687,12 @@ select (case when c1%2 = 0
 explain select c1 from t1 where not c1 >= some (select c2 from t2);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.27..8.74 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.27..8.74 rows=4 width=4)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=2.27..8.74 rows=2 width=4)
          Join Filter: t1.c1 >= t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Materialize  (cost=2.27..2.42 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
  Optimizer status: Postgres query optimizer
 (8 rows)
@@ -708,12 +708,12 @@ select c1 from t1 where not c1 >= some (select c2 from t2);
 explain select c2 from t2 where not c2 < all (select c2 from t2);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000007.10 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000000007.10 rows=4 width=4)
    ->  Nested Loop Semi Join  (cost=10000000000.00..10000000007.10 rows=2 width=4)
          Join Filter: t2.c2 >= t2_1.c2
          ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
          ->  Materialize  (cost=0.00..3.33 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..3.25 rows=5 width=4)
                      ->  Seq Scan on t2 t2_1  (cost=0.00..3.05 rows=2 width=4)
  Optimizer: Postgres query optimizer
 (8 rows)
@@ -734,12 +734,12 @@ select c2 from t2 where not c2 < all (select c2 from t2);
 explain select c3 from t3 where not c3 <> any (select c4 from t4);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=1.11..3.54 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1.11..3.54 rows=4 width=4)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=1.11..3.54 rows=2 width=4)
          Join Filter: t3.c3 <> t4.c4
          ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
          ->  Materialize  (cost=1.11..1.17 rows=2 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
                      ->  Seq Scan on t4  (cost=0.00..1.02 rows=1 width=4)
  Optimizer status: Postgres query optimizer
 (8 rows)
@@ -755,7 +755,7 @@ select c3 from t3 where not c3 <> any (select c4 from t4);
 explain select c1 from t1 where c1 not in (select c2 from t2 order by c2 limit 3) order by c1;
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=5.65..5.66 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5.65..5.66 rows=4 width=4)
    Merge Key: t1.c1
    ->  Sort  (cost=5.65..5.66 rows=2 width=4)
          Sort Key: t1.c1
@@ -766,7 +766,7 @@ explain select c1 from t1 where c1 not in (select c2 from t2 order by c2 limit 3
                      ->  Broadcast Motion 1:3  (slice2; segments: 1)  (cost=2.11..2.33 rows=9 width=4)
                            ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=2.11..2.21 rows=3 width=4)
                                  ->  Limit  (cost=2.11..2.18 rows=3 width=4)
-                                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.11..2.18 rows=3 width=4)
+                                       ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=2.11..2.18 rows=3 width=4)
                                              Merge Key: t2.c2
                                              ->  Limit  (cost=2.11..2.12 rows=1 width=4)
                                                    ->  Sort  (cost=2.11..2.12 rows=2 width=4)
@@ -795,12 +795,12 @@ select c1 from t1 where c1 not in (select c2 from t2 order by c2 limit 3) order 
 explain select c1 from t1 where c1 =all (select c2 from t2 where c2 > -1 and c2 <= 1);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.12..5.89 rows=9 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.12..5.89 rows=9 width=4)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=2.12..5.89 rows=3 width=4)
          Join Filter: t1.c1 <> t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Materialize  (cost=2.12..2.15 rows=1 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.12 rows=1 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.12 rows=1 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.08 rows=1 width=4)
                            Filter: c2 > (-1) AND c2 <= 1
  Optimizer status: Postgres query optimizer
@@ -818,12 +818,12 @@ select c1 from t1 where c1 =all (select c2 from t2 where c2 > -1 and c2 <= 1);
 explain select c1 from t1 where c1 <>all (select c2 from t2);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.44..5.63 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.44..5.63 rows=4 width=4)
    ->  Hash Left Anti Semi (Not-In) Join  (cost=2.44..5.63 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Hash  (cost=2.25..2.25 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
  Optimizer status: Postgres query optimizer
 (8 rows)
@@ -844,7 +844,7 @@ select c1 from t1 where c1 <>all (select c2 from t2);
 explain select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (select c1n from t1n));
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=4.88..10.23 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=4.88..10.23 rows=4 width=4)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=4.88..10.23 rows=2 width=4)
          Join Filter: t1.c1 > t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -854,7 +854,7 @@ explain select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (sel
                            Hash Cond: t2.c2 = t1n.c1n
                            ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
                            ->  Hash  (cost=2.35..2.35 rows=7 width=4)
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.35 rows=7 width=4)
+                                 ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..2.35 rows=7 width=4)
                                        ->  Seq Scan on t1n  (cost=0.00..2.07 rows=3 width=4)
  Optimizer status: Postgres query optimizer
 (13 rows)
@@ -880,7 +880,7 @@ select c1 from t1 where c1 <=all (select c2 from t2 where c2 not in (select c1n 
 explain select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all (select c3 from t3));
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=5.23..10.36 rows=45 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5.23..10.36 rows=45 width=4)
    ->  Nested Loop Semi Join  (cost=5.23..10.36 rows=15 width=4)
          Join Filter: t1.c1 <> t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -890,7 +890,7 @@ explain select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all
                            Join Filter: t2.c2 <= t3.c3
                            ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
                            ->  Materialize  (cost=2.16..2.25 rows=3 width=4)
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                                 ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                        ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Settings:  optimizer=off
  Optimizer status: Postgres query optimizer
@@ -917,7 +917,7 @@ select c1 from t1 where not c1 =all (select c2 from t2 where not c2 >all (select
 explain select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all (select c3 from t3 where c3 = c1n));
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=9.27..12.44 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=9.27..12.44 rows=4 width=4)
    ->  Hash Semi Join  (cost=9.27..12.44 rows=2 width=4)
          Hash Cond: t1.c1 = t1n.c1n
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -928,7 +928,7 @@ explain select c1 from t1 where not c1 <>all (select c1n from t1n where c1n <all
                        ->  Result  (cost=2.04..2.05 rows=1 width=4)
                              Filter: t3.c3 = $0
                              ->  Materialize  (cost=2.04..2.05 rows=1 width=4)
-                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.04 rows=1 width=4)
+                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.04 rows=1 width=4)
                                          ->  Seq Scan on t3  (cost=0.00..2.04 rows=1 width=4)
  Settings:  optimizer=off
  Optimizer status: Postgres query optimizer
@@ -996,7 +996,7 @@ select c1 from t1 where not exists (select c2 from t2 where c2 = c1);
 explain select c1 from t1 where not exists (select c2 from t2 where c2 not in (select c3 from t3) and c2 = c1);
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.42..7.59 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=4.42..7.59 rows=4 width=4)
    ->  Hash Anti Join  (cost=4.42..7.59 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -1005,7 +1005,7 @@ explain select c1 from t1 where not exists (select c2 from t2 where c2 not in (s
                      Hash Cond: t2.c2 = t3.c3
                      ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
                      ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                  ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Settings:  optimizer=off
  Optimizer status: Postgres query optimizer
@@ -1031,11 +1031,11 @@ select c1 from t1 where not exists (select c2 from t2 where c2 not in (select c3
 explain select c1 from t1 where not exists (select c2 from t2 where exists (select c3 from t3) and c2 <>all (select c3 from t3) and c2 = c1);
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=6.08..9.32 rows=4 width=4)
-   InitPlan 1 (returns $0)  (slice4)
-     ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..2.03 rows=3 width=0)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=6.10..9.34 rows=4 width=4)
+   InitPlan 1 (returns $0)  (slice3)
+     ->  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..2.09 rows=3 width=0)
            ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=0)
-   ->  Hash Anti Join  (cost=6.08..9.25 rows=2 width=4)
+   ->  Hash Anti Join  (cost=6.10..9.27 rows=2 width=4)
          Hash Cond: (t1.c1 = t2.c2)
          Join Filter: $0
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
@@ -1044,7 +1044,7 @@ explain select c1 from t1 where not exists (select c2 from t2 where exists (sele
                      Hash Cond: (t2.c2 = t3.c3)
                      ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
                      ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                  ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
  Optimizer: Postgres query optimizer
 (16 rows)
@@ -1146,12 +1146,12 @@ explain select c1 from t1 where c1::absint not in
 	(select c1n::absint from t1n);
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000062.89 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000000062.89 rows=4 width=4)
    ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=10000000000.00..10000000062.89 rows=2 width=4)
          Join Filter: iszero(((abs(((t1.c1)::absint)::integer) - abs(((t1n.c1n)::absint)::integer)))::absint)
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
          ->  Materialize  (cost=0.00..3.45 rows=7 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.35 rows=7 width=4)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..3.35 rows=7 width=4)
                      ->  Seq Scan on t1n  (cost=0.00..3.07 rows=3 width=4)
  Planning time: 0.865 ms
  Optimizer: Postgres query optimizer

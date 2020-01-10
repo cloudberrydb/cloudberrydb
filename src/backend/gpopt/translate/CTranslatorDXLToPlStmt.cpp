@@ -179,12 +179,29 @@ PlannedStmt *
 CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 	(
 	const CDXLNode *dxlnode,
+	const Query *orig_query,
 	bool can_set_tag
 	)
 {
 	GPOS_ASSERT(NULL != dxlnode);
 
 	CDXLTranslateContext dxl_translate_ctxt(m_mp, false);
+
+	PlanSlice *topslice;
+
+	topslice = (PlanSlice *) gpdb::GPDBAlloc(sizeof(PlanSlice));
+	memset(topslice, 0, sizeof(PlanSlice));
+	topslice->sliceIndex = 0;
+	topslice->parentIndex = -1;
+	topslice->gangType = GANGTYPE_UNALLOCATED;
+	topslice->numsegments = 1;
+	topslice->segindex = -1;
+	topslice->directDispatch.isDirectDispatch = false;
+	topslice->directDispatch.contentIds = NIL;
+	topslice->directDispatch.haveProcessedAnyCalculations = false;
+
+	m_dxl_to_plstmt_context->AddSlice(topslice);
+	m_dxl_to_plstmt_context->SetCurrentSlice(topslice);
 
 	CDXLTranslationContextArray *ctxt_translation_prev_siblings = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
 	Plan *plan = TranslateDXLOperatorToPlan(dxlnode, &dxl_translate_ctxt, ctxt_translation_prev_siblings);
@@ -221,20 +238,7 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 	planned_stmt->relationOids = oids_list;
 	planned_stmt->numSelectorsPerScanId = m_dxl_to_plstmt_context->GetNumPartitionSelectorsList();
 
-	planned_stmt->nMotionNodes =  m_dxl_to_plstmt_context->GetCurrentMotionId()-1;
-
 	planned_stmt->commandType = m_cmd_type;
-	
-	GPOS_ASSERT(planned_stmt->nMotionNodes >= 0);
-	if (0 == planned_stmt->nMotionNodes && !m_is_tgt_tbl_distributed)
-	{
-		// no motion nodes and not a DML on a distributed table
-		plan->dispatch = DISPATCH_SEQUENTIAL;
-	}
-	else
-	{
-		plan->dispatch = DISPATCH_PARALLEL;
-	}
 	
 	planned_stmt->resultRelations = m_result_rel_list;
 	// GPDB_92_MERGE_FIXME: we really *should* be handling intoClause
@@ -243,53 +247,52 @@ CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
 //	pplstmt->intoClause = m_pctxdxltoplstmt->Pintocl();
 	planned_stmt->intoPolicy = m_dxl_to_plstmt_context->GetDistributionPolicy();
 
-	if(1 != m_dxl_to_plstmt_context->GetCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
-	{
-		planned_stmt->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
-	}
-
 	planned_stmt->nParamExec = m_dxl_to_plstmt_context->GetCurrentParamId();
 
-	/* ORCA doesn't use Init Plans. */
-	planned_stmt->subplan_sliceIds = (int *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(int));
-	planned_stmt->subplan_initPlanParallel = (bool *) gpdb::GPDBAlloc((list_length(planned_stmt->subplans) + 1) * sizeof(bool));
-	for (int i = 0; i < list_length(planned_stmt->subplans) + 1; i++)
-	{
-		planned_stmt->subplan_sliceIds[i] = 0;
-		planned_stmt->subplan_initPlanParallel[i] = false;
-	}
+	planned_stmt->slices = m_dxl_to_plstmt_context->GetSlices(&planned_stmt->numSlices);
+	planned_stmt->subplan_sliceIds = m_dxl_to_plstmt_context->GetSubplanSliceIdArray();
+
+	topslice = &planned_stmt->slices[0];
 
 	// Can we do direct dispatch?
 	if (CMD_SELECT == m_cmd_type && NULL != dxlnode->GetDXLDirectDispatchInfo())
 	{
 		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(dxlnode->GetDXLDirectDispatchInfo());
-		plan->directDispatch.contentIds = direct_dispatch_segids;
-		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
-		
-		if (plan->directDispatch.isDirectDispatch)
-		{
-			List *motion_node_list = gpdb::ExtractNodesPlan(planned_stmt->planTree, T_Motion, true /*descendIntoSubqueries*/);
-			ListCell *lc = NULL;
-			ForEach(lc, motion_node_list)
-			{
-				Motion *motion = (Motion *) lfirst(lc);
-				GPOS_ASSERT(IsA(motion, Motion));
-				GPOS_ASSERT(motion->motionType == MOTIONTYPE_GATHER);
 
-				motion->plan.directDispatch.isDirectDispatch = true;
-				motion->plan.directDispatch.contentIds = plan->directDispatch.contentIds;
+		if (direct_dispatch_segids != NIL)
+		{
+			for (int i = 0; i < planned_stmt->numSlices; i++)
+			{
+				PlanSlice *slice = &planned_stmt->slices[i];
+
+				slice->directDispatch.isDirectDispatch = true;
+				slice->directDispatch.contentIds = direct_dispatch_segids;
 			}
 		}
 	}
 
-	if (CMD_INSERT == m_cmd_type && 0 == planned_stmt->nMotionNodes &&
+	if (CMD_INSERT == m_cmd_type && planned_stmt->numSlices == 1 &&
 	    dxlnode->GetOperator()->GetDXLOperator() == EdxlopPhysicalDML)
 	{
 		CDXLPhysicalDML *phy_dml_dxlop = CDXLPhysicalDML::Cast(dxlnode->GetOperator());
 
 		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(phy_dml_dxlop->GetDXLDirectDispatchInfo());
-		plan->directDispatch.contentIds = direct_dispatch_segids;
-		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
+		if (direct_dispatch_segids != NIL)
+		{
+			topslice->directDispatch.isDirectDispatch = true;
+			topslice->directDispatch.contentIds = direct_dispatch_segids;
+		}
+	}
+
+	/*
+	 * If it's a CREATE TABLE AS, we have to dispatch the top slice to
+	 * all segments, because the catalog changes need to be made
+	 * everywhere even if the data originates from only some segments.
+	 */
+	if (orig_query->commandType == CMD_SELECT && orig_query->parentStmtType == PARENTSTMTTYPE_CTAS)
+	{
+		topslice->numsegments = m_num_of_segments;
+		topslice->gangType = GANGTYPE_PRIMARY_WRITER;
 	}
 
 	return planned_stmt;
@@ -1808,6 +1811,8 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 	)
 {
 	CDXLPhysicalMotion *motion_dxlop = CDXLPhysicalMotion::Cast(motion_dxlnode->GetOperator());
+	const IntPtrArray *input_segids_array = motion_dxlop->GetInputSegIdsArray();
+	PlanSlice *recvslice = m_dxl_to_plstmt_context->GetCurrentSlice();
 
 	// create motion node
 	Motion *motion = MakeNode(Motion);
@@ -1829,6 +1834,53 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 	CDXLNode *filter_dxlnode = (*motion_dxlnode)[EdxlgmIndexFilter];
 	CDXLNode *sort_col_list_dxl = (*motion_dxlnode)[EdxlgmIndexSortColList];
 
+	PlanSlice *sendslice = (PlanSlice *) gpdb::GPDBAlloc(sizeof(PlanSlice));
+	memset(sendslice, 0, sizeof(PlanSlice));
+
+	sendslice->sliceIndex = m_dxl_to_plstmt_context->AddSlice(sendslice);
+	sendslice->parentIndex = recvslice->sliceIndex;
+	m_dxl_to_plstmt_context->SetCurrentSlice(sendslice);
+
+	// only one sender
+	if (1 == input_segids_array->Size())
+	{
+		int segindex = *((*input_segids_array)[0]);
+
+		// only one segment in total
+		if (segindex == MASTER_CONTENT_ID)
+		{
+			// sender is on master, must be singleton gang
+			sendslice->gangType = GANGTYPE_ENTRYDB_READER;
+		}
+		else if (1 == gpdb::GetGPSegmentCount())
+		{
+			// sender is on segment, can not tell it's singleton or
+			// all-segment gang, so treat it as all-segment reader gang.
+			// It can be promoted to writer gang later if needed.
+			sendslice->gangType = GANGTYPE_PRIMARY_READER;
+		}
+		else
+		{
+			// multiple segments, must be singleton gang
+			sendslice->gangType = GANGTYPE_SINGLETON_READER;
+		}
+		sendslice->numsegments = 1;
+		sendslice->segindex = segindex;
+	}
+	else
+	{
+		// Mark it as reader for now. Will be overwritten into WRITER, if we
+		// encounter a DML node.
+		sendslice->gangType = GANGTYPE_PRIMARY_READER;
+		sendslice->numsegments = m_num_of_segments;
+		sendslice->segindex = 0;
+	}
+	sendslice->directDispatch.isDirectDispatch = false;
+	sendslice->directDispatch.contentIds = NIL;
+	sendslice->directDispatch.haveProcessedAnyCalculations = false;
+
+	motion->motionID = sendslice->sliceIndex;
+
 	// translate motion child
 	// child node is in the same position in broadcast and gather motion nodes
 	// but different in redistribute motion nodes
@@ -1838,6 +1890,9 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 	CDXLNode *child_dxlnode = (*motion_dxlnode)[child_index];
 
 	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+
+	// Recurse into the child, which runs in the sending slice.
+	m_dxl_to_plstmt_context->SetCurrentSlice(sendslice);
 
 	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
 
@@ -1924,43 +1979,8 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 	// cleanup
 	child_contexts->Release();
 
-	// create flow for child node to distinguish between singleton flows and all-segment flows
-	Flow *flow = MakeNode(Flow);
+	m_dxl_to_plstmt_context->SetCurrentSlice(recvslice);
 
-	const IntPtrArray *input_segids_array = motion_dxlop->GetInputSegIdsArray();
-
-
-	// only one sender
-	if (1 == input_segids_array->Size())
-	{
-		flow->segindex = *((*input_segids_array)[0]);
-
-		// only one segment in total
-		if (1 == gpdb::GetGPSegmentCount())
-		{
-			if (flow->segindex == MASTER_CONTENT_ID)
-				// sender is on master, must be singleton flow
-				flow->flotype = FLOW_SINGLETON;
-			else
-				// sender is on segment, can not tell it's singleton or
-				// all-segment flow, just treat it as all-segment flow so
-				// it can be promoted to writer gang later if needed.
-				flow->flotype = FLOW_UNDEFINED;
-		}
-		else
-		{
-			// multiple segments, must be singleton flow
-			flow->flotype = FLOW_SINGLETON;
-		}
-	}
-	else
-	{
-		flow->flotype = FLOW_UNDEFINED;
-	}
-
-	child_plan->flow = flow;
-
-	motion->motionID = m_dxl_to_plstmt_context->GetNextMotionId();
 	plan->lefttree = child_plan;
 
 	// translate properties of the specific type of motion operator
@@ -1970,7 +1990,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 		case EdxlopPhysicalMotionGather:
 		{
 			motion->motionType = MOTIONTYPE_GATHER;
-			flow->numsegments = 1;
 			break;
 		}
 		case EdxlopPhysicalMotionRedistribute:
@@ -3269,8 +3288,6 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 	List *shared_scan_cte_consumer_list = m_dxl_to_plstmt_context->GetCTEConsumerList(share_id);
 	GPOS_ASSERT(NULL != shared_scan_cte_consumer_list);
 
-	Flow *flow = GetFlowCTEConsumer(shared_scan_cte_consumer_list);
-
 	const ULONG num_of_shared_scan = gpdb::ListLength(shared_scan_cte_consumer_list);
 
 	ShareType share_type = SHARE_NOTSHARED;
@@ -3283,8 +3300,6 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 		share_type = SHARE_MATERIAL;
 		// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
 		materialize->share_type = share_type;
-		GPOS_ASSERT(NULL == (materialize->plan).flow);
-		(materialize->plan).flow = flow;
 	}
 	else
 	{
@@ -3295,8 +3310,6 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 		share_type = SHARE_SORT;
 		// the share_type is later reset to SHARE_SORT_XSLICE (if needed) the apply_shareinput_xslice
 		sort->share_type = share_type;
-		GPOS_ASSERT(NULL == (sort->plan).flow);
-		(sort->plan).flow = flow;
 	}
 
 	GPOS_ASSERT(SHARE_NOTSHARED != share_type);
@@ -3308,55 +3321,7 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
 		share_input_scan_consumer->share_type = share_type;
 		share_input_scan_consumer->driver_slice = -1; // default
-		if (NULL == (share_input_scan_consumer->scan.plan).flow)
-		{
-			(share_input_scan_consumer->scan.plan).flow = (Flow *) gpdb::CopyObject(flow);
-		}
 	}
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::GetFlowCTEConsumer
-//
-//	@doc:
-//		Retrieve the flow of the shared input scan of the cte consumers. If
-//		multiple CTE consumers have a flow then ensure that they are of the
-//		same type
-//---------------------------------------------------------------------------
-Flow *
-CTranslatorDXLToPlStmt::GetFlowCTEConsumer
-	(
-	List *shared_scan_cte_consumer_list
-	)
-{
-	Flow *flow = NULL;
-
-	ListCell *lc_sh_scan_cte_consumer = NULL;
-	ForEach (lc_sh_scan_cte_consumer, shared_scan_cte_consumer_list)
-	{
-		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
-		Flow *flow_cte = (share_input_scan_consumer->scan.plan).flow;
-		if (NULL != flow_cte)
-		{
-			if (NULL == flow)
-			{
-				flow = (Flow *) gpdb::CopyObject(flow_cte);
-			}
-			else
-			{
-				GPOS_ASSERT(flow->flotype == flow_cte->flotype);
-			}
-		}
-	}
-
-	if (NULL == flow)
-	{
-		flow = MakeNode(Flow);
-		flow->flotype = FLOW_UNDEFINED; // default flow
-	}
-
-	return flow;
 }
 
 //---------------------------------------------------------------------------
@@ -3844,6 +3809,13 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 
 	SetParamIds(plan);
+
+	if (m_is_tgt_tbl_distributed)
+	{
+		PlanSlice *current_slice = m_dxl_to_plstmt_context->GetCurrentSlice();
+		current_slice->numsegments = m_num_of_segments;
+		current_slice->gangType = GANGTYPE_PRIMARY_WRITER;
+	}
 
 	// cleanup
 	child_contexts->Release();

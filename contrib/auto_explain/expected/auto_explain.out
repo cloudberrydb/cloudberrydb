@@ -44,16 +44,16 @@ LOG:  statement: SELECT count(*) FROM auto_explain_test.t1, auto_explain_test.t2
 LOG:  duration: 165.358 ms  plan:
 Query Text: SELECT count(*) FROM auto_explain_test.t1, auto_explain_test.t2;
 Finalize Aggregate  (cost=35148.64..35148.65 rows=1 width=8) (actual rows=1 loops=1)
-  ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=35148.61..35148.64 rows=1 width=8) (actual rows=3 loops=1)
+  ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=35148.61..35148.64 rows=1 width=8) (actual rows=3 loops=1)
         ->  Partial Aggregate  (cost=35148.61..35148.62 rows=1 width=8) (actual rows=1 loops=1)
               ->  Nested Loop  (cost=0.00..32643.60 rows=334001 width=0) (actual rows=340340 loops=1)
                     ->  Seq Scan on t1  (cost=0.00..13.01 rows=334 width=0) (actual rows=340 loops=1)
                     ->  Materialize  (cost=0.00..68.06 rows=1001 width=0) (actual rows=1001 loops=340)
-                          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..53.05 rows=1001 width=0) (actual rows=1001 loops=1)
+                          ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..53.05 rows=1001 width=0) (actual rows=1001 loops=1)
                                 ->  Seq Scan on t2  (cost=0.00..13.01 rows=334 width=0) (actual rows=340 loops=1)
   (slice0)    Executor memory: 131K bytes.
-  (slice1)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
-  (slice2)    Executor memory: 152K bytes avg x 3 workers, 152K bytes max (seg0).
+  (slice1)    Executor memory: 152K bytes avg x 3 workers, 152K bytes max (seg0).
+  (slice2)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
 Memory used:  128000kB
   count  
 ---------
@@ -81,7 +81,7 @@ LOG:  duration: 208.523 ms  plan:
 Query Text: SELECT count(*) FROM auto_explain_test.t1, auto_explain_test.t2;
 Finalize Aggregate  (cost=35148.64..35148.65 rows=1 width=8) (actual rows=1 loops=1)
   Output: count(*)
-  ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=35148.61..35148.64 rows=1 width=8) (actual rows=3 loops=1)
+  ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=35148.61..35148.64 rows=1 width=8) (actual rows=3 loops=1)
         Output: (PARTIAL count(*))
         ->  Partial Aggregate  (cost=35148.61..35148.62 rows=1 width=8) (actual rows=1 loops=1)
               Output: PARTIAL count(*)
@@ -89,11 +89,11 @@ Finalize Aggregate  (cost=35148.64..35148.65 rows=1 width=8) (actual rows=1 loop
                     ->  Seq Scan on auto_explain_test.t1  (cost=0.00..13.01 rows=334 width=0) (actual rows=340 loops=1)
                           Output: t1.a
                     ->  Materialize  (cost=0.00..68.06 rows=1001 width=0) (actual rows=1001 loops=340)
-                          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..53.05 rows=1001 width=0) (actual rows=1001 loops=1)
+                          ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..53.05 rows=1001 width=0) (actual rows=1001 loops=1)
                                 ->  Seq Scan on auto_explain_test.t2  (cost=0.00..13.01 rows=334 width=0) (actual rows=340 loops=1)
   (slice0)    Executor memory: 131K bytes.
-  (slice1)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
-  (slice2)    Executor memory: 152K bytes avg x 3 workers, 152K bytes max (seg0).
+  (slice1)    Executor memory: 152K bytes avg x 3 workers, 152K bytes max (seg0).
+  (slice2)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
 Memory used:  128000kB
   count  
 ---------

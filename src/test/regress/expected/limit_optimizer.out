@@ -298,7 +298,7 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
    Output: (sum(tenthous)), (((sum(tenthous))::double precision + (random() * '0'::double precision)))
    ->  Limit
          Output: (sum(tenthous)), (((sum(tenthous))::double precision + (random() * '0'::double precision))), thousand
-         ->  Gather Motion 3:1  (slice2; segments: 3)
+         ->  Gather Motion 3:1  (slice1; segments: 3)
                Output: (sum(tenthous)), (((sum(tenthous))::double precision + (random() * '0'::double precision))), thousand
                Merge Key: thousand
                ->  Limit
@@ -309,7 +309,7 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
                            ->  Sort
                                  Output: thousand, (PARTIAL sum(tenthous)), (PARTIAL sum(tenthous))
                                  Sort Key: tenk1.thousand
-                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                        Output: thousand, (PARTIAL sum(tenthous)), (PARTIAL sum(tenthous))
                                        Hash Key: thousand
                                        ->  Streaming Partial HashAggregate

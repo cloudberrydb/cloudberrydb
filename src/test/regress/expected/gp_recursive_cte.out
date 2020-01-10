@@ -600,7 +600,7 @@ select * from the_cte_here;
    ->  Hash Join  (cost=2.13..2.40 rows=4 width=4)
          Hash Cond: (the_cte_here.n = t_rand_test_rcte.c)
          ->  WorkTable Scan on the_cte_here  (cost=0.00..0.20 rows=10 width=4)
-         ->  Hash  (cost=2.09..2.09 rows=1 width=4)
+         ->  Hash  (cost=2.09..2.09 rows=3 width=4)
                ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..2.09 rows=3 width=4)
                      ->  Seq Scan on t_rand_test_rcte  (cost=0.00..2.03 rows=1 width=4)
  Optimizer: Postgres query optimizer

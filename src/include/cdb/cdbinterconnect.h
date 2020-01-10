@@ -28,7 +28,7 @@
 #include "cdb/tupleremap.h"
 
 struct CdbProcess;                          /* #include "nodes/execnodes.h" */
-struct Slice;                               /* #include "nodes/execnodes.h" */
+struct ExecSlice;                           /* #include "nodes/execnodes.h" */
 struct SliceTable;                          /* #include "nodes/execnodes.h" */
 struct EState;                              /* #include "nodes/execnodes.h" */
 

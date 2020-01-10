@@ -63,10 +63,10 @@ explain (costs off)
 	select length(stringu1) from tenk1 group by length(stringu1);
                          QUERY PLAN                         
 ------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  HashAggregate
          Group Key: (length((stringu1)::text))
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: (length((stringu1)::text))
                ->  Streaming HashAggregate
                      Group Key: length((stringu1)::text)
@@ -84,13 +84,13 @@ explain (costs off)
 	select stringu1, count(*) from tenk1 group by stringu1 order by stringu1;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: stringu1
    ->  Finalize GroupAggregate
          Group Key: stringu1
          ->  Sort
                Sort Key: stringu1
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: stringu1
                      ->  Streaming Partial HashAggregate
                            Group Key: stringu1
@@ -105,10 +105,10 @@ explain (costs off)
 	group by(parallel_restricted(unique1));
                          QUERY PLAN                         
 ------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  HashAggregate
          Group Key: (parallel_restricted(unique1))
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: (parallel_restricted(unique1))
                ->  Seq Scan on tenk1
  Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0

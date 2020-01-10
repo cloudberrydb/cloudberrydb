@@ -148,8 +148,6 @@ static char *ExecBuildSlotValueDescription(Oid reloid,
 static void EvalPlanQualStart(EPQState *epqstate, EState *parentestate,
 				  Plan *planTree);
 
-static void FillSliceGangInfo(ExecSlice *slice, int numsegments);
-static void FillSliceTable(EState *estate, PlannedStmt *stmt);
 static PartitionNode *BuildPartitionNodeFromRoot(Oid relid);
 static void InitializeQueryPartsMetadata(PlannedStmt *plannedstmt, EState *estate);
 static void AdjustReplicatedTableCounts(EState *estate);
@@ -179,82 +177,6 @@ typedef struct ResultPartHashEntry
 	Oid			targetid; /* OID of part relation */
 	ResultRelInfo resultRelInfo;
 } ResultPartHashEntry;
-
-
-typedef struct CopyDirectDispatchToSliceContext
-{
-	plan_tree_base_prefix	base; /* Required prefix for plan_tree_walker/mutator */
-	EState					*estate; /* EState instance */
-
-	Bitmapset *processed_subplans;
-} CopyDirectDispatchToSliceContext;
-
-static bool CopyDirectDispatchFromPlanToSliceTableWalker( Node *node, CopyDirectDispatchToSliceContext *context);
-
-static void
-CopyDirectDispatchToSlice( Plan *ddPlan, int sliceId, CopyDirectDispatchToSliceContext *context)
-{
-	EState	*estate = context->estate;
-	ExecSlice *slice = &estate->es_sliceTable->slices[sliceId];
-
-	Assert( ! slice->directDispatch.isDirectDispatch );	/* should not have been set by some other process */
-	Assert(ddPlan != NULL);
-
-	if ( ddPlan->directDispatch.isDirectDispatch)
-	{
-		slice->directDispatch.isDirectDispatch = true;
-		slice->directDispatch.contentIds = list_copy(ddPlan->directDispatch.contentIds);
-	}
-}
-
-static bool
-CopyDirectDispatchFromPlanToSliceTableWalker( Node *node, CopyDirectDispatchToSliceContext *context)
-{
-	int			sliceId = -1;
-	bool		recurse_into_subplan = true;
-
-	if (node == NULL)
-		return false;
-
-	if (IsA(node, Motion))
-	{
-		Motion *motion = (Motion *) node;
-
-		sliceId = motion->motionID;
-
-		CopyDirectDispatchToSlice(&motion->plan, sliceId, context);
-	}
-	else if (IsA(node, SubPlan))
-	{
-		SubPlan	   *spexpr = (SubPlan *) node;
-
-		/*
-		 * Only recurse into each subplan on first encounter. But do process
-		 * any test expressions on the SubPlan node itself, in any case. (I'm
-		 * not sure if the test expressions can actually be different on
-		 * different SubPlan references to the same subquery, but let's not
-		 * assume that they can't be.)
-		 */
-		if (!bms_is_member(spexpr->plan_id, context->processed_subplans))
-			context->processed_subplans = bms_add_member(context->processed_subplans, spexpr->plan_id);
-		else
-			recurse_into_subplan = false;
-	}
-
-	return plan_tree_walker(node, CopyDirectDispatchFromPlanToSliceTableWalker, context,
-							recurse_into_subplan);
-}
-
-static void
-CopyDirectDispatchFromPlanToSliceTable(PlannedStmt *stmt, EState *estate)
-{
-	CopyDirectDispatchToSliceContext context;
-	exec_init_plan_tree_base(&context.base, stmt);
-	context.estate = estate;
-	context.processed_subplans = NULL;
-	CopyDirectDispatchToSlice( stmt->planTree, 0, &context);
-	CopyDirectDispatchFromPlanToSliceTableWalker((Node *) stmt->planTree, &context);
-}
 
 /* ----------------------------------------------------------------
  *		ExecutorStart
@@ -461,70 +383,77 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	 */
 	estate->es_sharenode = (List **) palloc0(sizeof(List *));
 
-	if (queryDesc->plannedstmt->nMotionNodes > 0)
-		estate->motionlayer_context = createMotionLayerState(queryDesc->plannedstmt->nMotionNodes);
-
 	/*
 	 * Handling of the Slice table depends on context.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH &&
-		(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
-		 queryDesc->plannedstmt->nMotionNodes > 0))
+	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		if (queryDesc->ddesc == NULL)
+		/* Set up the slice table. */
+		SliceTable *sliceTable;
+
+		sliceTable = InitSliceTable(estate, queryDesc->plannedstmt);
+		estate->es_sliceTable = sliceTable;
+
+		if (sliceTable->slices[0].gangType != GANGTYPE_UNALLOCATED ||
+			sliceTable->hasMotions)
 		{
-			queryDesc->ddesc = makeNode(QueryDispatchDesc);;
-			queryDesc->ddesc->useChangedAOOpts = true;
-		}
-
-		/* Set up blank slice table to be filled in during InitPlan. */
-		InitSliceTable(estate, queryDesc->plannedstmt->nMotionNodes, queryDesc->plannedstmt->nInitPlans);
-
-		/**
-		 * Copy direct dispatch decisions out of the plan and into the slice table.  Must be done after slice table is built.
-		 * Note that this needs to happen whether or not the plan contains direct dispatch decisions. This
-		 * is because the direct dispatch partially forgets some of the decisions it has taken.
-		 **/
-		if (gp_enable_direct_dispatch)
-		{
-			CopyDirectDispatchFromPlanToSliceTable(queryDesc->plannedstmt, estate );
-		}
-
-		/* Pass EXPLAIN ANALYZE flag to qExecs. */
-		estate->es_sliceTable->instrument_options = queryDesc->instrument_options;
-
-		/* set our global sliceid variable for elog. */
-		currentSliceId = LocallyExecutingSliceIndex(estate);
-
-		/* Determine OIDs for into relation, if any */
-		if (queryDesc->plannedstmt->intoClause != NULL)
-		{
-			IntoClause *intoClause = queryDesc->plannedstmt->intoClause;
-			Oid         reltablespace;
-
-			cdb_sync_oid_to_segments();
-
-			/* MPP-10329 - must always dispatch the tablespace */
-			if (intoClause->tableSpaceName)
+			if (queryDesc->ddesc == NULL)
 			{
-				reltablespace = get_tablespace_oid(intoClause->tableSpaceName, false);
-				queryDesc->ddesc->intoTableSpaceName = intoClause->tableSpaceName;
+				queryDesc->ddesc = makeNode(QueryDispatchDesc);;
+				queryDesc->ddesc->useChangedAOOpts = true;
 			}
-			else
+
+			/* Pass EXPLAIN ANALYZE flag to qExecs. */
+			estate->es_sliceTable->instrument_options = queryDesc->instrument_options;
+
+			/* set our global sliceid variable for elog. */
+			currentSliceId = LocallyExecutingSliceIndex(estate);
+
+			/* Determine OIDs for into relation, if any */
+			if (queryDesc->plannedstmt->intoClause != NULL)
 			{
-				reltablespace = GetDefaultTablespace(intoClause->rel->relpersistence);
+				IntoClause *intoClause = queryDesc->plannedstmt->intoClause;
+				Oid         reltablespace;
 
-				/* Need the real tablespace id for dispatch */
-				if (!OidIsValid(reltablespace))
-					reltablespace = MyDatabaseTableSpace;
+				cdb_sync_oid_to_segments();
 
-				queryDesc->ddesc->intoTableSpaceName = get_tablespace_name(reltablespace);
+				/* MPP-10329 - must always dispatch the tablespace */
+				if (intoClause->tableSpaceName)
+				{
+					reltablespace = get_tablespace_oid(intoClause->tableSpaceName, false);
+					queryDesc->ddesc->intoTableSpaceName = intoClause->tableSpaceName;
+				}
+				else
+				{
+					reltablespace = GetDefaultTablespace(intoClause->rel->relpersistence);
+
+					/* Need the real tablespace id for dispatch */
+					if (!OidIsValid(reltablespace))
+						reltablespace = MyDatabaseTableSpace;
+
+					queryDesc->ddesc->intoTableSpaceName = get_tablespace_name(reltablespace);
+				}
 			}
+
+			/* InitPlan() will acquire locks by walking the entire plan
+			 * tree -- we'd like to avoid acquiring the locks until
+			 * *after* we've set up the interconnect */
+			if (estate->es_sliceTable->hasMotions)
+				estate->motionlayer_context = createMotionLayerState(queryDesc->plannedstmt->numSlices - 1);
+
+			shouldDispatch = !(eflags & EXEC_FLAG_EXPLAIN_ONLY);
+		}
+		else
+		{
+			/* QD-only query, no dispatching required */
+			shouldDispatch = false;
 		}
 	}
 	else if (Gp_role == GP_ROLE_EXECUTE)
 	{
 		QueryDispatchDesc *ddesc = queryDesc->ddesc;
+
+		shouldDispatch = false;
 
 		/* qDisp should have sent us a slice table via MPPEXEC */
 		if (ddesc && ddesc->sliceTable != NULL)
@@ -539,7 +468,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			estate->es_sliceTable = sliceTable;
 			estate->es_cursorPositions = ddesc->cursorPositions;
 
-			estate->currentSliceIdInPlan = slice->rootIndex;
+			estate->currentSliceId = slice->rootIndex;
 
 			/* set our global sliceid variable for elog. */
 			currentSliceId = LocallyExecutingSliceIndex(estate);
@@ -547,33 +476,41 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			/* Should we collect statistics for EXPLAIN ANALYZE? */
 			estate->es_instrument = sliceTable->instrument_options;
 			queryDesc->instrument_options = sliceTable->instrument_options;
+
+			/* InitPlan() will acquire locks by walking the entire plan
+			 * tree -- we'd like to avoid acquiring the locks until
+			 * *after* we've set up the interconnect */
+			if (estate->es_sliceTable->hasMotions)
+			{
+				estate->motionlayer_context = createMotionLayerState(queryDesc->plannedstmt->numSlices - 1);
+
+				PG_TRY();
+				{
+					/*
+					 * Initialize the motion layer for this query.
+					 */
+					Assert(!estate->interconnect_context);
+					SetupInterconnect(estate);
+					UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
+
+					SIMPLE_FAULT_INJECTOR("qe_got_snapshot_and_interconnect");
+					Assert(estate->interconnect_context);
+				}
+				PG_CATCH();
+				{
+					mppExecutorCleanup(queryDesc);
+					PG_RE_THROW();
+				}
+				PG_END_TRY();
+			}
 		}
-
-		/* InitPlan() will acquire locks by walking the entire plan
-		 * tree -- we'd like to avoid acquiring the locks until
-		 * *after* we've set up the interconnect */
-		if (queryDesc->plannedstmt->nMotionNodes > 0)
+		else
 		{
-			PG_TRY();
-			{
-				/*
-				 * Initialize the motion layer for this query.
-				 */
-				Assert(!estate->interconnect_context);
-				SetupInterconnect(estate);
-				UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
-
-				SIMPLE_FAULT_INJECTOR("qe_got_snapshot_and_interconnect");
-				Assert(estate->interconnect_context);
-			}
-			PG_CATCH();
-			{
-				mppExecutorCleanup(queryDesc);
-				PG_RE_THROW();
-			}
-			PG_END_TRY();
+			/* local query in QE. */
 		}
 	}
+	else
+		shouldDispatch = false;
 
 	/*
 	 * We don't eliminate aliens if we don't have an MPP plan
@@ -581,7 +518,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	 *
 	 * TODO: eliminate aliens even on master, if not EXPLAIN ANALYZE
 	 */
-	estate->eliminateAliens = execute_pruned_plan && queryDesc->plannedstmt->nMotionNodes > 0 && !IS_QUERY_DISPATCHER();
+	estate->eliminateAliens = execute_pruned_plan && estate->es_sliceTable && estate->es_sliceTable->hasMotions && !IS_QUERY_DISPATCHER();
 
 	/*
 	 * Assign a Motion Node to every Plan Node. This makes it
@@ -602,7 +539,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		Assert(queryDesc->planstate);
 
 #ifdef USE_ASSERT_CHECKING
-		AssertSliceTableIsValid(estate->es_sliceTable, queryDesc->plannedstmt);
+		AssertSliceTableIsValid(estate->es_sliceTable);
 #endif
 
 		if (Debug_print_slice_table && Gp_role == GP_ROLE_DISPATCH)
@@ -640,22 +577,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 					 GpIdentity.segindex,
 					 LocallyExecutingSliceIndex(estate),
 					 RootSliceIndex(estate));
-		}
-
-		/*
-		 * Are we going to dispatch this plan parallel?  Only if we're running as
-		 * a QD and the plan is a parallel plan.
-		 */
-		if (Gp_role == GP_ROLE_DISPATCH &&
-			(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
-			 queryDesc->plannedstmt->nMotionNodes > 0) &&
-			!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-		{
-			shouldDispatch = true;
-		}
-		else
-		{
-			shouldDispatch = false;
 		}
 
 		/*
@@ -726,7 +647,8 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			 *
 			 * Main plan is parallel, send plan to it.
 			 */
-			if (queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+			if (estate->es_sliceTable->slices[0].gangType != GANGTYPE_UNALLOCATED ||
+				estate->es_sliceTable->slices[0].children)
 				CdbDispatchPlan(queryDesc, needDtxTwoPhase, true);
 		}
 
@@ -755,8 +677,9 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		{
 			/* Run a root slice. */
 			if (queryDesc->planstate != NULL &&
-				queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL &&
-				queryDesc->plannedstmt->nMotionNodes > 0 &&
+				estate->es_sliceTable &&
+				estate->es_sliceTable->slices[0].gangType == GANGTYPE_UNALLOCATED &&
+				estate->es_sliceTable->slices[0].children &&
 				!estate->es_interconnect_is_setup)
 			{
 				Assert(!estate->interconnect_context);
@@ -2074,12 +1997,6 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	estate->es_epqScanDone = NULL;
 
 	/*
-	 * Initialize the slice table.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-		FillSliceTable(estate, plannedstmt);
-
-	/*
 	 * Initialize private state information for each SubPlan.  We must do this
 	 * before running ExecInitNode on the main query tree, since
 	 * ExecInitSubPlan expects to be able to find these entries.
@@ -2087,6 +2004,8 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	Assert(estate->es_subplanstates == NIL);
 	Bitmapset *locallyExecutableSubplans;
 	Plan *start_plan_node = plannedstmt->planTree;
+
+	estate->currentSliceId = 0;
 
 	/*
 	 * If eliminateAliens is true then we extract the local Motion node
@@ -2104,12 +2023,12 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		if (NULL != m)
 		{
 			start_plan_node = (Plan *) m;
+			ExecSlice *sendSlice = &estate->es_sliceTable->slices[m->motionID];
+			estate->currentSliceId = sendSlice->parentIndex;
 		}
 		/* Compute SubPlans' root plan nodes for SubPlans reachable from this plan root */
 		locallyExecutableSubplans = getLocallyExecutableSubplans(plannedstmt, start_plan_node);
 	}
-	else if (estate->es_sliceTable)
-		locallyExecutableSubplans = estate->es_sliceTable->used_subplans;
 	else
 		locallyExecutableSubplans = NULL;
 
@@ -2124,7 +2043,8 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		 * If alien elimination is not turned on, then all subplans are considered
 		 * reachable.
 		 */
-		if (queryDesc->ddesc == NULL || bms_is_member(subplan_id, locallyExecutableSubplans))
+		if (!estate->eliminateAliens ||
+			bms_is_member(subplan_id, locallyExecutableSubplans))
 		{
 			/*
 			 * A subplan will never need to do BACKWARD scan nor MARK/RESTORE.
@@ -2135,8 +2055,15 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 				& (EXEC_FLAG_EXPLAIN_ONLY | EXEC_FLAG_WITH_NO_DATA);
 			sp_eflags |= EXEC_FLAG_REWIND;
 
+			/* set our global sliceid variable for elog. */
+			int			save_currentSliceId = estate->currentSliceId;
+
+			estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan_id - 1];
+
 			Plan	   *subplan = (Plan *) lfirst(l);
 			subplanstate = ExecInitNode(subplan, estate, sp_eflags);
+
+			estate->currentSliceId = save_currentSliceId;
 		}
 
 		estate->es_subplanstates = lappend(estate->es_subplanstates, subplanstate);
@@ -4868,271 +4795,6 @@ map_part_attrs(Relation base, Relation part, TupleConversionMap **map_ptr, bool 
 									  RelationGetDescr(part));
 	return TRUE;
 }
-
-typedef struct
-{
-	plan_tree_base_prefix prefix;
-	EState	   *estate;
-	int			currentSliceId;
-} FillSliceTable_cxt;
-
-static void
-FillSliceGangInfo(ExecSlice *slice, int numsegments)
-{
-	switch (slice->gangType)
-	{
-		case GANGTYPE_UNALLOCATED:
-			slice->planNumSegments = 1;
-			slice->gangSize = 0;
-			break;
-		case GANGTYPE_PRIMARY_WRITER:
-		case GANGTYPE_PRIMARY_READER:
-			slice->planNumSegments = numsegments;
-			if (slice->directDispatch.isDirectDispatch)
-			{
-				slice->gangSize = list_length(slice->directDispatch.contentIds);
-				slice->segments = slice->directDispatch.contentIds;
-			}
-			else
-			{
-				int i;
-				slice->gangSize = numsegments;
-				slice->segments = NIL;
-				for (i = 0; i < numsegments; i++)
-					slice->segments = lappend_int(slice->segments, i);
-			}
-			break;
-		case GANGTYPE_ENTRYDB_READER:
-			slice->planNumSegments = 1;
-			slice->gangSize = 1;
-			slice->segments = list_make1_int(-1);
-			break;
-		case GANGTYPE_SINGLETON_READER:
-			slice->planNumSegments = 1;
-			slice->gangSize = 1;
-			slice->segments = list_make1_int(gp_session_id % numsegments);
-			break;
-		default:
-			elog(ERROR, "unexpected gang type");
-	}
-}
-
-static bool
-FillSliceTable_walker(Node *node, void *context)
-{
-	FillSliceTable_cxt *cxt = (FillSliceTable_cxt *) context;
-	PlannedStmt *stmt = (PlannedStmt *) cxt->prefix.node;
-	EState	   *estate = cxt->estate;
-	SliceTable *sliceTable = estate->es_sliceTable;
-	int			parentSliceIndex = cxt->currentSliceId;
-	bool		result;
-
-	if (node == NULL)
-		return false;
-
-	/*
-	 * When we encounter a ModifyTable node, mark the slice it's in as the
-	 * primary writer slice. (There should be only one.)
-	 */
-	if (IsA(node, ModifyTable))
-	{
-		ModifyTable *mt = (ModifyTable *) node;
-
-		if (list_length(mt->resultRelations) > 0)
-		{
-			ListCell   *lc = list_head(mt->resultRelations);
-			int			idx = lfirst_int(lc);
-			Oid			reloid = getrelid(idx, stmt->rtable);
-			GpPolicyType policyType;
-
-			policyType = GpPolicyFetch(reloid)->ptype;
-
-#ifdef USE_ASSERT_CHECKING
-			{
-				lc = lc->next;
-				for (; lc != NULL; lc = lnext(lc))
-				{
-					idx = lfirst_int(lc);
-					reloid = getrelid(idx, stmt->rtable);
-
-					if (policyType != GpPolicyFetch(reloid)->ptype)
-						elog(ERROR, "ModifyTable mixes distributed and entry-only tables");
-
-				}
-			}
-#endif
-
-			if (policyType != POLICYTYPE_ENTRY)
-			{
-				ExecSlice  *currentSlice = &sliceTable->slices[cxt->currentSliceId];
-
-				currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-
-				/*
-				 * If the PLAN is generated by ORCA, We assume that they
-				 * distpatch on all segments.
-				 */
-				if (stmt->planGen == PLANGEN_PLANNER)
-					FillSliceGangInfo(currentSlice, mt->plan.flow->numsegments);
-				else
-					FillSliceGangInfo(currentSlice, getgpsegmentCount());
-			}
-		}
-	}
-
-	if (IsA(node, Motion))
-	{
-		Motion	   *motion = (Motion *) node;
-		MemoryContext oldcxt = MemoryContextSwitchTo(estate->es_query_cxt);
-		Flow	   *sendFlow;
-		ExecSlice  *sendSlice;
-		ExecSlice  *recvSlice;
-
-		/* Top node of subplan should have a Flow node. */
-		Insist(motion->plan.lefttree && motion->plan.lefttree->flow);
-		sendFlow = motion->plan.lefttree->flow;
-
-		/* Look up the sending gang's slice table entry. */
-		sendSlice = &sliceTable->slices[motion->motionID];
-
-		/* Look up the receiving (parent) gang's slice table entry. */
-		recvSlice = &sliceTable->slices[parentSliceIndex];
-
-		Assert(recvSlice->sliceIndex == parentSliceIndex);
-		Assert(recvSlice->rootIndex == 0 ||
-			   (recvSlice->rootIndex > sliceTable->nMotions &&
-				recvSlice->rootIndex < sliceTable->numSlices));
-
-		/* Sending slice become a children of recv slice */
-		recvSlice->children = lappend_int(recvSlice->children, sendSlice->sliceIndex);
-		sendSlice->parentIndex = parentSliceIndex;
-		sendSlice->rootIndex = recvSlice->rootIndex;
-
-		/* The gang beneath a Motion will be a reader. */
-		sendSlice->gangType = GANGTYPE_PRIMARY_READER;
-
-		if (sendFlow->flotype != FLOW_SINGLETON)
-		{
-			sendSlice->gangType = GANGTYPE_PRIMARY_READER;
-
-			/*
-			 * If the PLAN is generated by ORCA, We assume that they
-			 * distpatch on all segments.
-			 */
-			if (stmt->planGen == PLANGEN_PLANNER)
-				FillSliceGangInfo(sendSlice, sendFlow->numsegments);
-			else
-				FillSliceGangInfo(sendSlice, getgpsegmentCount());
-		}
-		else
-		{
-			sendSlice->gangType =
-				sendFlow->segindex == -1 ?
-				GANGTYPE_ENTRYDB_READER : GANGTYPE_SINGLETON_READER;
-
-			/*
-			 * If the PLAN is generated by ORCA, We assume that they
-			 * distpatch on all segments.
-			 */
-			if (stmt->planGen == PLANGEN_PLANNER)
-				FillSliceGangInfo(sendSlice, sendFlow->numsegments);
-			else
-				FillSliceGangInfo(sendSlice, getgpsegmentCount());
-		}
-
-		MemoryContextSwitchTo(oldcxt);
-
-		/* recurse into children */
-		cxt->currentSliceId = motion->motionID;
-		result = plan_tree_walker(node, FillSliceTable_walker, cxt, true);
-		cxt->currentSliceId = parentSliceIndex;
-		return result;
-	}
-
-	if (IsA(node, SubPlan))
-	{
-		SubPlan	   *subplan = (SubPlan *) node;
-		int			qDispSliceId = stmt->subplan_sliceIds[subplan->plan_id];
-		bool		recurse_into_plan;
-
-		/*
-		 * Only recurse into each subplan on first encounter. But do process
-		 * any test expressions on the SubPlan node itself, in any case. (I'm
-		 * not sure if the test expressions can actually be different on
-		 * different SubPlan references to the same subquery, but let's not
-		 * assume that they can't be.)
-		 */
-		if (!bms_is_member(subplan->plan_id, sliceTable->used_subplans))
-		{
-			sliceTable->used_subplans = bms_add_member(sliceTable->used_subplans, subplan->plan_id);
-			recurse_into_plan = true;
-		}
-		else
-			recurse_into_plan = false;
-
-		if (subplan->is_initplan)
-		{
-			cxt->currentSliceId = qDispSliceId;
-			result = plan_tree_walker(node, FillSliceTable_walker, cxt, recurse_into_plan);
-			cxt->currentSliceId = parentSliceIndex;
-		}
-		else
-			result = plan_tree_walker(node, FillSliceTable_walker, cxt, recurse_into_plan);
-
-		return result;
-	}
-
-	return plan_tree_walker(node, FillSliceTable_walker, cxt, true);
-}
-
-/*
- * Set up the parent-child relationships in the slice table.
- *
- * We used to do this as part of ExecInitMotion(), but because ExecInitNode()
- * no longer recurses into subplans, at SubPlan nodes, we cannot easily track
- * the parent-child slice relationships across SubPlan nodes at that phase
- * anymore. We now do this separate walk of the whole plantree, recursing
- * into SubPlan nodes, to do the same.
- */
-static void
-FillSliceTable(EState *estate, PlannedStmt *stmt)
-{
-	FillSliceTable_cxt cxt;
-	SliceTable *sliceTable = estate->es_sliceTable;
-
-	if (!sliceTable)
-		return;
-
-	cxt.prefix.node = (Node *) stmt;
-	cxt.estate = estate;
-	cxt.currentSliceId = 0;
-
-	if (stmt->intoClause != NULL || stmt->copyIntoClause != NULL || stmt->refreshClause)
-	{
-		ExecSlice  *currentSlice = &sliceTable->slices[0];
-		int			numsegments;
-		if (stmt->commandType == CMD_SELECT && stmt->intoPolicy)
-			/*
-			 * For CTAS although the data is distributed on part of the
-			 * segments, the catalog changes must be dispatched to all the
-			 * segments, so a full gang is required.
-			 */
-			numsegments = getgpsegmentCount();
-		else
-			/* FIXME: ->lefttree or planTree? */
-			numsegments = stmt->planTree->flow->numsegments;
-		currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-		FillSliceGangInfo(currentSlice, numsegments);
-	}
-
-	/*
-	 * NOTE: We depend on plan_tree_walker() to recurse into subplans of
-	 * SubPlan nodes.
-	 */
-	FillSliceTable_walker((Node *) stmt->planTree, &cxt);
-}
-
-
 
 /*
  * BuildPartitionNodeFromRoot

@@ -56,10 +56,10 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
      ->  Result
            Filter: (ii.key = excluded.key)
            ->  Materialize
-                 ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                 ->  Broadcast Motion 3:1  (slice1; segments: 3)
                        ->  Seq Scan on insertconflicttest ii
    SubPlan 2
-     ->  Broadcast Motion 3:3  (slice2; segments: 3)
+     ->  Broadcast Motion 3:1  (slice2; segments: 3)
            ->  Seq Scan on insertconflicttest ii_1
  Optimizer: Postgres query optimizer
 (15 rows)
@@ -212,10 +212,10 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
    {                                                                       +
      "Plan": {                                                             +
        "Node Type": "Gather Motion",                                       +
-       "Senders": 3,                                                       +
+       "Senders": 1,                                                       +
        "Receivers": 1,                                                     +
        "Slice": 1,                                                         +
-       "Segments": 3,                                                      +
+       "Segments": 1,                                                      +
        "Gang Type": "primary writer",                                      +
        "Parallel Aware": false,                                            +
        "Plans": [                                                          +
@@ -224,7 +224,7 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
            "Operation": "Insert",                                          +
            "Parent Relationship": "Outer",                                 +
            "Slice": 1,                                                     +
-           "Segments": 3,                                                  +
+           "Segments": 1,                                                  +
            "Gang Type": "primary writer",                                  +
            "Parallel Aware": false,                                        +
            "Relation Name": "insertconflicttest",                          +
@@ -237,7 +237,7 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
                "Node Type": "Result",                                      +
                "Parent Relationship": "Member",                            +
                "Slice": 1,                                                 +
-               "Segments": 3,                                              +
+               "Segments": 1,                                              +
                "Gang Type": "primary writer",                              +
                "Parallel Aware": false                                     +
              }                                                             +

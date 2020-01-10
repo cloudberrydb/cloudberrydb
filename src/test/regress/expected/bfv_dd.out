@@ -815,8 +815,8 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 
 -- inner joins
 select * from dd_singlecol_1 t1, dd_singlecol_2 t2 where t1.a=t2.a and t1.a=1;
-INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to SINGLE content
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 2) Dispatch command to SINGLE content
  a | b | a | b 
 ---+---+---+---
  1 | 1 | 1 | 1
@@ -839,16 +839,16 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (10 rows)
 
 select * from dd_singlecol_1 t1, dd_singlecol_2 t2 where t1.b>t2.a and t1.a=1;
-INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to SINGLE content
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 2) Dispatch command to SINGLE content
  a | b | a | b 
 ---+---+---+---
 (0 rows)
 
 -- outer joins
 select * from dd_singlecol_1 t1 left outer join dd_singlecol_2 t2 on (t1.a=t2.a) where t1.a=1;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
  a | b | a | b 
 ---+---+---+---
  1 | 1 | 1 | 1
@@ -871,8 +871,8 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (10 rows)
 
 select * from dd_singlecol_1 t1 left outer join dd_singlecol_2 t2 on (t1.b=t2.b) where t1.a=1;
-INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to SINGLE content
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 2) Dispatch command to SINGLE content
  a | b | a  | b 
 ---+---+----+---
  1 | 1 | 91 | 1
@@ -888,8 +888,8 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (10 rows)
 
 select * from dd_singlecol_2 t2 left outer join dd_singlecol_1 t1 on (t1.b=t2.b) where t1.a=1;
-INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to SINGLE content
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 2) Dispatch command to SINGLE content
  a  | b | a | b 
 ----+---+---+---
   1 | 1 | 1 | 1
@@ -906,22 +906,22 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 
 -- subqueries
 select * from dd_singlecol_1 t1 where a=1 and b < (select count(*) from dd_singlecol_2 t2 where t2.a=t1.a);
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
  a | b 
 ---+---
 (0 rows)
 
 select * from dd_singlecol_1 t1 where a=1 and b in (select count(*) from dd_singlecol_2 t2 where t2.a<=t1.a);
 INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to SINGLE content
  a | b 
 ---+---
  1 | 1
 (1 row)
 
 select t1.a, t1.b, (select sum(t2.a+t2.b) from dd_singlecol_2 t2 where t2.b=1) from dd_singlecol_1 t1  where t1.a=1; 
-INFO:  (slice 2) Dispatch command to SINGLE content
+INFO:  (slice 3) Dispatch command to SINGLE content
 INFO:  (slice 1) Dispatch command to SINGLE content
  a | b | sum 
 ---+---+-----

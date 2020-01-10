@@ -20,7 +20,7 @@ struct EState;
 struct QueryDesc;
 struct CdbDispatcherState;
 
-extern void InitSliceTable(struct EState *estate, int nMotions, int nSubplans);
+extern SliceTable *InitSliceTable(struct EState *estate, PlannedStmt *plannedstmt);
 extern ExecSlice *getCurrentSlice(struct EState *estate, int sliceIndex);
 extern bool sliceRunsOnQD(ExecSlice *slice);
 extern bool sliceRunsOnQE(ExecSlice *slice);
@@ -35,7 +35,7 @@ extern void AssignParentMotionToPlanNodes(PlannedStmt *plannedstmt);
 
 #ifdef USE_ASSERT_CHECKING
 struct PlannedStmt;
-extern void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt);
+extern void AssertSliceTableIsValid(SliceTable *st);
 #endif
 
 #endif

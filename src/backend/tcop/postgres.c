@@ -1012,7 +1012,7 @@ exec_mpp_query(const char *query_string,
 	QueryDispatchDesc *ddesc = NULL;
 	CmdType		commandType = CMD_UNKNOWN;
 	SliceTable *sliceTable = NULL;
-	ExecSlice      *slice = NULL;
+	ExecSlice  *slice = NULL;
 	ParamListInfo paramLI = NULL;
 
 	Assert(Gp_role == GP_ROLE_EXECUTE);

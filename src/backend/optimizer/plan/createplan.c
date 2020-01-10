@@ -55,7 +55,7 @@
 #include "utils/uri.h"
 
 #include "cdb/cdbhash.h"
-#include "cdb/cdbllize.h"		/* pull_up_Flow() */
+#include "cdb/cdbllize.h"		/* cdbllize_adjust_init_plan_path() */
 #include "cdb/cdbmutate.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbpath.h"		/* cdbpath_rows() */
@@ -63,6 +63,7 @@
 #include "cdb/cdbpullup.h"		/* cdbpullup_targetlist() */
 #include "cdb/cdbsetop.h"
 #include "cdb/cdbsreh.h"
+#include "cdb/cdbtargeteddispatch.h"
 #include "cdb/cdbvars.h"
 
 /*
@@ -297,9 +298,11 @@ static Motion *cdbpathtoplan_create_motion_plan(PlannerInfo *root,
  *	  Returns a Plan tree.
  */
 Plan *
-create_plan(PlannerInfo *root, Path *best_path)
+create_plan(PlannerInfo *root, Path *best_path, PlanSlice *curSlice)
 {
 	Plan	   *plan;
+
+	root->curSlice = curSlice;
 
 	/* plan_params should not be in use in current query level */
 	Assert(root->plan_params == NIL);
@@ -335,7 +338,7 @@ create_plan(PlannerInfo *root, Path *best_path)
 	}
 
 	/* Decorate the top node of the plan with a Flow node. */
-	plan->flow = cdbpathtoplan_create_flow(root, best_path->locus, plan);
+	plan->flow = cdbpathtoplan_create_flow(root, best_path->locus);
 
 	/*
 	 * Attach any initPlans created in this query level to the topmost plan
@@ -504,11 +507,6 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 			plan = NULL;		/* keep compiler quiet */
 			break;
 	}
-
-	if (CdbPathLocus_IsPartitioned(best_path->locus) ||
-		CdbPathLocus_IsSegmentGeneral(best_path->locus) ||
-		CdbPathLocus_IsReplicated(best_path->locus))
-		plan->dispatch = DISPATCH_PARALLEL;
 
 	return plan;
 }
@@ -726,8 +724,8 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 			break;
 	}
 
-	/* Decorate the top node of the plan with a Flow node. */
-	plan->flow = cdbpathtoplan_create_flow(root, best_path->locus, plan);
+	if (Gp_role == GP_ROLE_DISPATCH && root->config->gp_enable_direct_dispatch)
+		DirectDispatchUpdateContentIdsFromPlan(root, plan);
 
 	/*
 	 * If there are any pseudoconstant clauses attached to this node, insert a
@@ -931,7 +929,6 @@ create_gating_plan(PlannerInfo *root, Path *path, Plan *plan,
 	gplan = (Plan *) make_result(build_path_tlist(root, path),
 								 (Node *) gating_quals,
 								 plan);
-	gplan->flow = pull_up_Flow(gplan, plan);
 
 	/*
 	 * Notice that we don't change cost or size estimates when doing gating.
@@ -1013,8 +1010,6 @@ create_join_plan(PlannerInfo *root, JoinPath *best_path)
 		best_path->outerjoinpath->motionHazard)
 		((Join *) plan)->prefetch_joinqual = true;
 
-	plan->flow = cdbpathtoplan_create_flow(root, best_path->path.locus, plan);
-
 	/*
 	 * If there are any pseudoconstant clauses attached to this node, insert a
 	 * gating Result node that evaluates the pseudoconstants as one-time
@@ -1077,10 +1072,6 @@ create_append_plan(PlannerInfo *root, AppendPath *best_path)
 
 		copy_generic_path_info(plan, (Path *) best_path);
 
-		plan->flow = makeFlow(FLOW_SINGLETON, getgpsegmentCount());
-		plan->flow->segindex = 0;
-		plan->flow->locustype = CdbLocusType_General;
-
 		return plan;
 	}
 
@@ -1106,10 +1097,6 @@ create_append_plan(PlannerInfo *root, AppendPath *best_path)
 	plan = make_append(subplans, tlist);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
-
-	plan->plan.flow = cdbpathtoplan_create_flow(root,
-												best_path->path.locus,
-												&plan->plan);
 
 	return (Plan *) plan;
 }
@@ -1219,10 +1206,6 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 
 	node->mergeplans = subplans;
 
-	node->plan.flow = cdbpathtoplan_create_flow(root,
-												best_path->path.locus,
-												&node->plan);
-
 	return (Plan *) node;
 }
 
@@ -1249,11 +1232,6 @@ create_result_plan(PlannerInfo *root, ResultPath *best_path)
 	plan = make_result(tlist, (Node *) quals, NULL);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
-
-	/* Decorate the top node of the plan with a Flow node. */
-	plan->plan.flow = cdbpathtoplan_create_flow(root,
-												best_path->path.locus,
-												(Plan *) plan);
 
 	return plan;
 }
@@ -1285,8 +1263,6 @@ create_material_plan(PlannerInfo *root, MaterialPath *best_path, int flags)
 	plan->cdb_shield_child_from_rescans = best_path->cdb_shield_child_from_rescans;
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
-
-	plan->plan.flow = pull_up_Flow(&plan->plan, subplan);
 
 	return plan;
 }
@@ -1434,7 +1410,6 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path, int flags)
 								 NIL,
 								 best_path->path.rows,
 								 subplan);
-		plan->flow = pull_up_Flow(plan, subplan);
 	}
 	else
 	{
@@ -1607,7 +1582,6 @@ create_projection_plan(PlannerInfo *root, ProjectionPath *best_path)
 		plan->qual = scan_clauses;
 
 		copy_generic_path_info(plan, (Path *) best_path);
-		plan->flow = pull_up_Flow(plan, subplan);
 	}
 
 	return plan;
@@ -1693,8 +1667,6 @@ create_upper_unique_plan(PlannerInfo *root, UpperUniquePath *best_path, int flag
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
-	plan->plan.flow = copyObject(subplan->flow);
-
 	return plan;
 }
 
@@ -1736,8 +1708,6 @@ create_agg_plan(PlannerInfo *root, AggPath *best_path)
 					subplan);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
-
-	plan->plan.flow = copyObject(subplan->flow);
 
 	return plan;
 }
@@ -1955,17 +1925,20 @@ create_minmaxagg_plan(PlannerInfo *root, MinMaxAggPath *best_path)
 		Query	   *subparse = subroot->parse;
 		Plan	   *plan;
 
+		mminfo->path = cdbllize_adjust_init_plan_path(subroot, mminfo->path);
+
 		/*
 		 * Generate the plan for the subquery. We already have a Path, but we
 		 * have to convert it to a Plan and attach a LIMIT node above it.
 		 * Since we are entering a different planner context (subroot),
 		 * recurse to create_plan not create_plan_recurse.
 		 */
-		plan = create_plan(subroot, mminfo->path);
+		plan = create_plan(subroot, mminfo->path, root->curSlice);
 
 		plan = (Plan *) make_limit(plan,
 								   subparse->limitOffset,
 								   subparse->limitCount);
+		plan->flow = plan->lefttree->flow;
 
 		/* Must apply correct cost/width data to Limit node */
 		plan->startup_cost = mminfo->path->startup_cost;
@@ -1975,16 +1948,13 @@ create_minmaxagg_plan(PlannerInfo *root, MinMaxAggPath *best_path)
 		plan->parallel_aware = false;
 
 		/* Convert the plan into an InitPlan in the outer query. */
-		SS_make_initplan_from_plan(root, subroot, plan, mminfo->param);
+		SS_make_initplan_from_plan(root, subroot, plan, root->curSlice, mminfo->param);
 	}
 
 	/* Generate the output plan --- basically just a Result */
 	tlist = build_path_tlist(root, &best_path->path);
 
 	plan = make_result(tlist, (Node *) best_path->quals, NULL);
-	plan->plan.flow = makeFlow(FLOW_SINGLETON, getgpsegmentCount());
-	plan->plan.flow->segindex = 0;
-	plan->plan.flow->locustype = CdbLocusType_SingleQE;
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
@@ -2252,8 +2222,6 @@ create_setop_plan(PlannerInfo *root, SetOpPath *best_path, int flags)
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
-	plan->plan.flow = pull_up_Flow(&plan->plan, subplan);
-
 	return plan;
 }
 
@@ -2312,7 +2280,6 @@ create_lockrows_plan(PlannerInfo *root, LockRowsPath *best_path,
 	plan = make_lockrows(subplan, best_path->rowMarks, best_path->epqParam);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
-	plan->plan.flow = pull_up_Flow(&plan->plan, subplan);
 
 	return plan;
 }
@@ -2342,6 +2309,9 @@ create_modifytable_plan(PlannerInfo *root, ModifyTablePath *best_path)
 		bool		is_split_update = (bool) lfirst_int(is_split_updates);
 		Plan	   *subplan;
 		RangeTblEntry *rte = planner_rt_fetch(best_path->nominalRelation, root);
+		PlanSlice  *save_curSlice = subroot->curSlice;
+
+		subroot->curSlice = root->curSlice;
 
 		/* Try the Single-Row-Insert optimization first. */
 		subplan = cdbpathtoplan_create_sri_plan(rte, subroot, subpath, CP_EXACT_TLIST);
@@ -2373,6 +2343,8 @@ create_modifytable_plan(PlannerInfo *root, ModifyTablePath *best_path)
 		}
 
 		subplans = lappend(subplans, subplan);
+
+		subroot->curSlice = save_curSlice;
 	}
 
 	plan = make_modifytable(root,
@@ -2390,17 +2362,46 @@ create_modifytable_plan(PlannerInfo *root, ModifyTablePath *best_path)
 
 	copy_generic_path_info(&plan->plan, &best_path->path);
 
-	plan->plan.flow = cdbpathtoplan_create_flow(root,
-												best_path->path.locus,
-												&plan->plan);
-
-	/*
-	 * GPDB_96_MERGE_FIXME: is this needed here? I think we set directDispatch later in the
-	 * planning, so that this has no effect here. Try removing and see what happens.
-	 */
-	if (list_length(plan->plans) == 1)
+	if (list_length(plan->resultRelations) > 0 && Gp_role == GP_ROLE_DISPATCH)
 	{
-		plan->plan.directDispatch = ((Plan *) linitial(plan->plans))->directDispatch;
+		GpPolicyType policyType = POLICYTYPE_ENTRY;
+		bool		isfirst = true;
+		ListCell   *lc;
+
+		foreach (lc, plan->resultRelations)
+		{
+			int			idx = lfirst_int(lc);
+			Oid			reloid = planner_rt_fetch(idx, root)->relid;
+			GpPolicy   *policy = GpPolicyFetch(reloid);
+
+			/*
+			 * We cannot update tables on segments and on the entry DB in the
+			 * same process.
+			 */
+			if (isfirst)
+				policyType = policy->ptype;
+			else
+			{
+				if (policy->ptype != policyType)
+					elog(ERROR, "ModifyTable mixes distributed and entry-only tables");
+			}
+
+			if (policyType != POLICYTYPE_ENTRY)
+			{
+				if (isfirst)
+				{
+					root->curSlice->gangType = GANGTYPE_PRIMARY_WRITER;
+					root->curSlice->numsegments = policy->numsegments;
+				}
+				else
+				{
+					Assert(root->curSlice->gangType == GANGTYPE_PRIMARY_WRITER);
+					root->curSlice->numsegments =
+						Max(root->curSlice->numsegments, policy->numsegments);
+				}
+			}
+			isfirst = false;
+		}
 	}
 
 	return plan;
@@ -2443,6 +2444,8 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	Relids		save_curOuterRels = root->curOuterRels;
 	List	   *save_curOuterParams = root->curOuterParams;
 	int			before_numMotions;
+	PlanSlice  *save_curSlice = root->curSlice;
+	PlanSlice  *sendSlice;
 
 	/*
 	 * singleQE-->entry:  Elide the motion.  The subplan will run in the same
@@ -2470,7 +2473,18 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	root->curOuterRels = NULL;
 	root->curOuterParams = NIL;
 
+	/*
+	 * Set up a new slice struct, to represent the sending slice.
+	 */
+	sendSlice = palloc0(sizeof(PlanSlice));
+	sendSlice->gangType = GANGTYPE_PRIMARY_READER;
+	sendSlice->sliceIndex = -1;
+
+	root->curSlice = sendSlice;
+
 	subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
+
+	root->curSlice = save_curSlice;
 
 	/* Check we successfully assigned all NestLoopParams to plan nodes */
 	if (root->curOuterParams != NIL)
@@ -2496,20 +2510,98 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	 */
 	if (root->numMotions == before_numMotions && path->is_explicit_motion)
 	{
-		/* GPDB_96_MERGE_FIXME: does this set the locus correctly? */
 		root->curOuterRels = save_curOuterRels;
-		root->curOuterParams = save_curOuterParams;
+
+		/*
+		 * Combine any new direct dispatch information from the subplan to
+		 * the parent slice.
+		 */
+		MergeDirectDispatchCalculationInfo(&root->curSlice->directDispatch,
+										   &sendSlice->directDispatch);
 
 		return subplan;
 	}
 
+	switch (subpath->locus.locustype)
+	{
+		case CdbLocusType_Entry:
+			/* cannot motion from Entry DB */
+			sendSlice->gangType = GANGTYPE_ENTRYDB_READER;
+			sendSlice->numsegments = 1;
+			sendSlice->segindex = -1;
+			break;
+
+		case CdbLocusType_SingleQE:
+			sendSlice->gangType = GANGTYPE_SINGLETON_READER;
+			sendSlice->numsegments = 1;
+			/*
+			 * XXX: for now, always execute the slice in segment 0. Ideally, we
+			 * would assign different SingleQEs to different segments to distribute
+			 * the load more evenly, but keep it simple for now.
+			 */
+			sendSlice->segindex = 0;
+			break;
+
+		case CdbLocusType_General:
+			/*  */
+			sendSlice->gangType = GANGTYPE_PRIMARY_READER;
+			sendSlice->numsegments = 1;
+			sendSlice->segindex = 0;
+			break;
+
+		case CdbLocusType_SegmentGeneral:
+			sendSlice->gangType = GANGTYPE_SINGLETON_READER;
+			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->segindex = 0;
+			break;
+
+		case CdbLocusType_Replicated:
+			// is probably writer, set already
+			//sendSlice->gangType == GANGTYPE_PRIMARY_READER;
+			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->segindex = 0;
+			break;
+
+		case CdbLocusType_OuterQuery:
+			elog(ERROR, "unexpected Motion requested from OuterQuery locus");
+			break;
+
+		case CdbLocusType_Hashed:
+		case CdbLocusType_HashedOJ:
+		case CdbLocusType_Strewn:
+			// might be writer, set already
+			//sendSlice->gangType == GANGTYPE_PRIMARY_READER;
+			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->segindex = 0;
+			break;
+
+		default:
+			elog(ERROR, "unknown locus type %d", subpath->locus.locustype);
+	}
+
 	/* Add motion operator. */
 	motion = cdbpathtoplan_create_motion_plan(root, path, subplan);
+	motion->senderSliceInfo = sendSlice;
+
+	if (subpath->locus.locustype == CdbLocusType_Replicated)
+		motion->motionType = MOTIONTYPE_GATHER_SINGLE;
+
+	/* The topmost Plan in the sender slice must have 'flow' set correctly. */
+	motion->plan.lefttree->flow = cdbpathtoplan_create_flow(root, subpath->locus);
 
 	copy_generic_path_info(&motion->plan, (Path *) path);
 
 	root->curOuterRels = save_curOuterRels;
 	root->curOuterParams = save_curOuterParams;
+
+	/*
+	 * It's currently not allowed to direct-dispatch a slice that has a
+	 * Motion that sends tuples to it. It would be possible in principle,
+	 * but the interconnect initialization code gets confused. Give the
+	 * direct dispatch machinery a chance to react to this Motion.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && root->config->gp_enable_direct_dispatch)
+		DirectDispatchUpdateContentIdsFromPlan(root, (Plan *) motion);
 
 	return (Plan *) motion;
 }	/* create_motion_plan */
@@ -2547,7 +2639,6 @@ create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path)
 	splitupdate->plan.qual = NIL;
 	splitupdate->plan.lefttree = subplan;
 	splitupdate->plan.righttree = NULL;
-	splitupdate->plan.dispatch = DISPATCH_PARALLEL;
 
 	copy_generic_path_info(&splitupdate->plan, (Path *) path);
 
@@ -2685,10 +2776,6 @@ create_seqscan_plan(PlannerInfo *root, Path *best_path,
 							 scan_relid);
 
 	copy_generic_path_info(&scan_plan->plan, best_path);
-
-	scan_plan->plan.flow = cdbpathtoplan_create_flow(root,
-													 best_path->locus,
-													 &scan_plan->plan);
 
 	return scan_plan;
 }
@@ -3970,6 +4057,9 @@ create_bitmap_subplan(PlannerInfo *root, Path *bitmapqual,
 		plan = NULL;			/* keep compiler quiet */
 	}
 
+	if (Gp_role == GP_ROLE_DISPATCH && root->config->gp_enable_direct_dispatch)
+		DirectDispatchUpdateContentIdsFromPlan(root, plan);
+
 	return plan;
 }
 
@@ -4057,7 +4147,7 @@ create_subqueryscan_plan(PlannerInfo *root, SubqueryScanPath *best_path,
 	 * a different planner context (subroot), recurse to create_plan not
 	 * create_plan_recurse.
 	 */
-	subplan = create_plan(rel->subroot, best_path->subpath);
+	subplan = create_plan(rel->subroot, best_path->subpath, root->curSlice);
 
 	/* Sort clauses into best execution order */
 	scan_clauses = order_qual_clauses(root, scan_clauses);
@@ -4157,7 +4247,7 @@ create_tablefunction_plan(PlannerInfo *root,
 	 * a different planner context (subroot), recurse to create_plan not
 	 * create_plan_recurse.
 	 */
-	subplan = create_plan(rel->subroot, best_path->subpath);
+	subplan = create_plan(rel->subroot, best_path->subpath, root->curSlice);
 
 	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
@@ -4315,7 +4405,7 @@ create_ctescan_plan(PlannerInfo *root, Path *best_path,
 		 * a different planner context (subroot), recurse to create_plan not
 		 * create_plan_recurse.
 		 */
-		subplan = create_plan(best_path->parent->subroot, ((CtePath *) best_path)->subpath);
+		subplan = create_plan(best_path->parent->subroot, ((CtePath *) best_path)->subpath, root->curSlice);
 	}
 	else
 	{
@@ -4328,7 +4418,7 @@ create_ctescan_plan(PlannerInfo *root, Path *best_path,
 			RelOptInfo *sub_final_rel;
 
 			sub_final_rel = fetch_upper_rel(best_path->parent->subroot, UPPERREL_FINAL, NULL);
-			subplan = create_plan(best_path->parent->subroot, sub_final_rel->cheapest_total_path);
+			subplan = create_plan(best_path->parent->subroot, sub_final_rel->cheapest_total_path, root->curSlice);
 			cteplaninfo->shared_plan = prepare_plan_for_sharing(cteroot, subplan);
 		}
 		/* Wrap the common Plan tree in a ShareInputScan node */
@@ -6715,8 +6805,6 @@ make_sort(Plan *lefttree, int numCols,
 	node->nsharer = 0;
 	node->nsharer_xslice = 0;
 
-	plan->flow = pull_up_Flow(plan, lefttree);
-
 	return node;
 }
 
@@ -6963,8 +7051,6 @@ prepare_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
 				/* copy needed so we don't modify input's tlist below */
 				tlist = copyObject(tlist);
 				lefttree = inject_projection_plan(lefttree, tlist);
-				if (lefttree->lefttree->flow)
-					lefttree->flow = pull_up_Flow(lefttree, lefttree->lefttree);
 			}
 
 			/* Don't bother testing is_projection_capable_plan again */
@@ -7247,7 +7333,6 @@ make_motion(PlannerInfo *root, Plan *lefttree,
 	plan->qual = NIL;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
-	plan->dispatch = DISPATCH_PARALLEL;
 
 	node->numSortCols = numSortCols;
 	node->sortColIdx = sortColIdx;
@@ -7275,8 +7360,6 @@ make_motion(PlannerInfo *root, Plan *lefttree,
 	plan->extParam = bms_copy(lefttree->extParam);
 	plan->allParam = bms_copy(lefttree->allParam);
 
-	plan->flow = NULL;
-
 	return node;
 }
 
@@ -7297,9 +7380,6 @@ make_material(Plan *lefttree)
 	node->driver_slice = -1;
 	node->nsharer = 0;
 	node->nsharer_xslice = 0;
-
-	if (lefttree->flow)
-		plan->flow = pull_up_Flow(plan, lefttree);
 
 	return node;
 }
@@ -7333,9 +7413,11 @@ materialize_finished_plan(PlannerInfo *root, Plan *subplan)
 	matplan->plan_width = subplan->plan_width;
 	matplan->parallel_aware = false;
 
-	/* MPP -- propagate dispatch method and flow */
-	matplan->dispatch = subplan->dispatch;
-	matplan->flow = copyObject(subplan->flow);
+	/*
+	 * Since this is applied after calling create_plan(), this becomes the
+	 * topmost node in the (sub)plan. We have to keep the 'flow' up to date.
+	 */
+	matplan->flow = subplan->flow;
 
 	return matplan;
 }
@@ -7374,8 +7456,6 @@ make_agg(List *tlist, List *qual,
 	plan->extParam = bms_copy(lefttree->extParam);
 	plan->allParam = bms_copy(lefttree->allParam);
 
-	plan->flow = pull_up_Flow(plan, lefttree);
-
 	return node;
 }
 
@@ -7409,9 +7489,6 @@ make_windowagg(List *tlist, Index winref,
 	plan->righttree = NULL;
 	/* WindowAgg nodes never have a qual clause */
 	plan->qual = NIL;
-
-	if (lefttree->flow)
-		plan->flow = pull_up_Flow(plan, lefttree);
 
 	return node;
 }
@@ -7594,9 +7671,6 @@ make_gather(List *qptlist,
 	node->single_copy = single_copy;
 	node->invisible = false;
 
-	/* GPDB_96_MERGE_FIXME: how should this work? */
-	plan->flow = pull_up_Flow(plan, subplan);
-
 	return node;
 }
 
@@ -7692,8 +7766,6 @@ make_limit(Plan *lefttree, Node *limitOffset, Node *limitCount)
 
 	node->limitOffset = limitOffset;
 	node->limitCount = limitCount;
-
-	plan->flow = pull_up_Flow(plan, lefttree);
 
 	return node;
 }
@@ -7984,11 +8056,6 @@ plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist)
 
 	if (!need_result)
 	{
-		/* Fix up annotation of plan's distribution and ordering properties. */
-		if (plan->flow)
-			plan->flow = pull_up_Flow((Plan *) make_result(tlist, NULL, plan),
-									  plan);
-
 		/* Install the new targetlist. */
 		plan->targetlist = tlist;
 	}
@@ -7998,10 +8065,6 @@ plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist)
 
 		/* Insert a Result node to evaluate the targetlist. */
 		plan = (Plan *) inject_projection_plan(subplan, tlist);
-
-		/* Propagate the subplan's distribution. */
-		if (subplan->flow)
-			plan->flow = pull_up_Flow(plan, subplan);
 	}
 	return plan;
 }	/* plan_pushdown_tlist */
@@ -8104,6 +8167,11 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 									hashOpfamilies,
 									numsegments);
 	}
+	else if (CdbPathLocus_IsOuterQuery(path->path.locus))
+	{
+		motion = make_union_motion(subplan, numsegments);
+		motion->motionType = MOTIONTYPE_OUTER_QUERY;
+	}
 	/* Send all tuples to a single process? */
 	else if (CdbPathLocus_IsBottleneck(path->path.locus))
 	{
@@ -8160,13 +8228,7 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 		else
 		{
 			motion = make_union_motion(subplan, numsegments);
-
-			if (subplan->flow->locustype == CdbLocusType_Replicated)
-				motion->motionType = MOTIONTYPE_GATHER_SINGLE;
 		}
-
-		if (CdbPathLocus_IsOuterQuery(path->path.locus))
-			motion->plan.flow->locustype = CdbLocusType_OuterQuery;
 	}
 
 	/* Send all of the tuples to all of the QEs in gang above... */
@@ -8218,14 +8280,6 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	}
 	else
 		elog(ERROR, "unexpected target locus type %d for Motion node", path->path.locus.locustype);
-
-    /*
-     * Decorate the subplan with a Flow node telling the plan slicer
-     * what kind of gang will be needed to execute the subplan.
-     */
-    subplan->flow = cdbpathtoplan_create_flow(root,
-                                              subpath->locus,
-                                              subplan);
 
 	/* Remember that this subtree contains a Motion */
 	root->numMotions++;

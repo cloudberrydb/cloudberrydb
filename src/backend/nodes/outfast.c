@@ -43,7 +43,6 @@
 #include "utils/workfile_mgr.h"
 #include "parser/parsetree.h"
 
-
 /*
  * Macros to simplify output of different kinds of fields.	Use these
  * wherever possible to reduce the chance for silly typos.	Note that these
@@ -1630,13 +1629,9 @@ _outNode(StringInfo str, void *obj)
 			case T_FromExpr:
 				_outFromExpr(str, obj);
 				break;
-			case T_Flow:
-				_outFlow(str, obj);
-				break;
 			case T_OnConflictExpr:
 				_outOnConflictExpr(str, obj);
 				break;
-
 			case T_CreateExtensionStmt:
 				_outCreateExtensionStmt(str, obj);
 				break;

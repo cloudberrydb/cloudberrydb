@@ -20,19 +20,15 @@
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"
 
-extern Path *create_motion_for_top_plan(PlannerInfo *root, Path *best_path,
-										bool *needToAssignDirectDispatchContentIds);
+extern Path *cdbllize_adjust_top_path(PlannerInfo *root, Path *best_path, PlanSlice *topslice);
+extern Path *cdbllize_adjust_init_plan_path(PlannerInfo *root, Path *best_path);
+extern Plan *cdbllize_decorate_subplans_with_motions(PlannerInfo *root, Plan *plan);
+extern void cdbllize_build_slice_table(PlannerInfo *root, Plan *top_plan, PlanSlice *top_slice);
 
-extern Plan *cdbparallelize(struct PlannerInfo *root, Plan *plan);
+extern void motion_sanity_check(PlannerInfo *root, Plan *plan);
 
 extern bool is_plan_node(Node *node);
 
 extern Flow *makeFlow(FlowType flotype, int numsegments);
-
-extern Flow *pull_up_Flow(Plan *plan, Plan *subplan);
-
-extern Plan *focusPlan(Plan *plan, bool stable);
-extern Plan *broadcastPlan(Plan *plan, bool stable,
-						  int numsegments);
 
 #endif   /* CDBLLIZE_H */

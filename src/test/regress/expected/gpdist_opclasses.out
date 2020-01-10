@@ -56,14 +56,14 @@ set optimizer=off;
 EXPLAIN (COSTS OFF) SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (abstab_a.a |=| abstab_b.b)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: abstab_a.a
                ->  Seq Scan on abstab_a
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: abstab_b.b
                      ->  Seq Scan on abstab_b
  Optimizer: Postgres query optimizer
@@ -89,12 +89,12 @@ INSERT INTO abstab_a VALUES (-1), (0), (1);
 EXPLAIN (COSTS OFF) SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (abstab_a.a |=| abstab_b.b)
          ->  Seq Scan on abstab_a
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: abstab_b.b
                      ->  Seq Scan on abstab_b
  Optimizer: Postgres query optimizer
@@ -142,14 +142,14 @@ SELECT a, b FROM abstab_a, abstab_b WHERE a |=| b;
 EXPLAIN (COSTS OFF) SELECT a, b FROM abstab_a, abstab_b WHERE a = b;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (abstab_b.b = abstab_a.a)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: abstab_b.b
                ->  Seq Scan on abstab_b
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: abstab_a.a
                      ->  Seq Scan on abstab_a
  Optimizer: Postgres query optimizer

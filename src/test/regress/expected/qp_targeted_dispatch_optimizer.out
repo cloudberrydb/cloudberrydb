@@ -781,8 +781,8 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a);
 (11 rows)
 
 select a0 from table_a where a0 in (select max(a1) from table_a);
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 3) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 2) Dispatch command to SINGLE content
  a0 
 ----

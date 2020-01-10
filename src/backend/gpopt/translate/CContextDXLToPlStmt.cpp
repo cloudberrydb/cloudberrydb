@@ -55,6 +55,8 @@ CContextDXLToPlStmt::CContextDXLToPlStmt
 	m_partitioned_tables_list(NULL),
 	m_num_partition_selectors_array(NULL),
 	m_subplan_entries_list(NULL),
+	m_subplan_sliceids_list(NULL),
+	m_slices_list(NULL),
 	m_result_relation_index(0),
 	m_into_clause(NULL),
 	m_distribution_policy(NULL)
@@ -303,6 +305,68 @@ CContextDXLToPlStmt::GetNumPartitionSelectorsList() const
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CContextDXLToPlStmt::GetSubplanSliceIdArray
+//
+//	@doc:
+//		Get the slice IDs of each subplan as an array.
+//
+//---------------------------------------------------------------------------
+int *
+CContextDXLToPlStmt::GetSubplanSliceIdArray()
+{
+	int numSubplans = list_length(m_subplan_entries_list);
+	int *sliceIdArray;
+	ListCell *lc;
+	int i;
+
+	sliceIdArray = (int *) gpdb::GPDBAlloc(numSubplans * sizeof(int));
+
+	i = 0;
+	foreach(lc, m_subplan_sliceids_list)
+	{
+		sliceIdArray[i++] = lfirst_int(lc);
+	}
+
+	return sliceIdArray;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CContextDXLToPlStmt::GetSlices
+//
+//	@doc:
+//		Get the slice table as an array
+//
+//---------------------------------------------------------------------------
+PlanSlice *
+CContextDXLToPlStmt::GetSlices(int *numSlices_p)
+{
+	int numSlices = list_length(m_slices_list);
+	PlanSlice *sliceArray;
+	ListCell *lc;
+	int i;
+
+	sliceArray = (PlanSlice *) gpdb::GPDBAlloc(numSlices * sizeof(PlanSlice));
+
+	i = 0;
+	foreach(lc, m_slices_list)
+	{
+		PlanSlice *src = (PlanSlice *) lfirst(lc);
+
+		memcpy(&sliceArray[i], src, sizeof(PlanSlice));
+
+		i++;
+	}
+
+	m_current_slice = NULL;
+	gpdb::ListFreeDeep(m_slices_list);
+
+	*numSlices_p = numSlices;
+	return sliceArray;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CContextDXLToPlStmt::AddSubplan
 //
 //	@doc:
@@ -313,6 +377,24 @@ void
 CContextDXLToPlStmt::AddSubplan(Plan *plan)
 {
 	m_subplan_entries_list = gpdb::LAppend(m_subplan_entries_list, plan);
+	m_subplan_sliceids_list = gpdb::LAppendInt(m_subplan_sliceids_list, m_current_slice->sliceIndex);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CContextDXLToPlStmt::AddSlice
+//
+//	@doc:
+//		Add a plan slice
+//
+//---------------------------------------------------------------------------
+int
+CContextDXLToPlStmt::AddSlice(PlanSlice *slice)
+{
+	slice->sliceIndex = list_length(m_slices_list);
+	m_slices_list = gpdb::LAppend(m_slices_list, slice);
+
+	return slice->sliceIndex;
 }
 
 //---------------------------------------------------------------------------

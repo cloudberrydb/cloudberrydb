@@ -119,8 +119,14 @@ preprocess_initplans(QueryDesc *queryDesc)
 
 			Assert(IsA(subplan, SubPlan));
 
-			qDispSliceId = queryDesc->plannedstmt->subplan_sliceIds ?
-				queryDesc->plannedstmt->subplan_sliceIds[subplan->plan_id] : 0;
+			if (queryDesc->plannedstmt->subplan_sliceIds)
+			{
+				qDispSliceId = queryDesc->plannedstmt->subplan_sliceIds[subplan->plan_id - 1];
+				if (queryDesc->plannedstmt->slices[qDispSliceId].parentIndex != -1)
+					qDispSliceId = 0;		/* not an init plan */
+			}
+			else
+				qDispSliceId = 0;
 
 			if (qDispSliceId > 0)
 			{
@@ -147,10 +153,7 @@ preprocess_initplans(QueryDesc *queryDesc)
 					sps->planstate->ps_ExprContext = CreateExprContext(estate);
 
 				/* MPP-12048: Set the right slice index before execution. */
-				Assert((qDispSliceId > queryDesc->plannedstmt->nMotionNodes) &&
-					   (qDispSliceId <=
-						(queryDesc->plannedstmt->nMotionNodes
-						 + queryDesc->plannedstmt->nInitPlans)));
+				Assert(qDispSliceId < queryDesc->plannedstmt->numSlices);
 
 				Assert(LocallyExecutingSliceIndex(sps->planstate->state) == qDispSliceId);
 

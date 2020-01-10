@@ -41,6 +41,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
+#include "cdb/cdbllize.h"
 #include "cdb/cdbmutate.h"
 #include "cdb/cdbsubselect.h"
 #include "cdb/cdbvars.h"
@@ -719,7 +720,12 @@ make_subplan(PlannerInfo *root, Query *orig_subquery,
 	final_rel = fetch_upper_rel(subroot, UPPERREL_FINAL, NULL);
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
 
-	plan = create_plan(subroot, best_path);
+	best_path = cdbllize_adjust_init_plan_path(root, best_path);
+
+	subroot->curSlice = palloc0(sizeof(PlanSlice));
+	subroot->curSlice->gangType = GANGTYPE_UNALLOCATED;
+
+	plan = create_plan(subroot, best_path, subroot->curSlice);
 
 	/* And convert to SubPlan or InitPlan format. */
 	result = build_subplan(root, plan, subroot, plan_params,
@@ -763,7 +769,10 @@ make_subplan(PlannerInfo *root, Query *orig_subquery,
 			final_rel = fetch_upper_rel(subroot, UPPERREL_FINAL, NULL);
 			best_path = final_rel->cheapest_total_path;
 
-			plan = create_plan(subroot, best_path);
+			subroot->curSlice = palloc0(sizeof(PlanSlice));
+			subroot->curSlice->gangType = GANGTYPE_UNALLOCATED;
+
+			plan = create_plan(subroot, best_path, subroot->curSlice);
 
 			/* Now we can check if it'll fit in work_mem */
 			/* XXX can we check this at the Path stage? */
@@ -3338,6 +3347,7 @@ SS_make_initplan_output_param(PlannerInfo *root,
 void
 SS_make_initplan_from_plan(PlannerInfo *root,
 						   PlannerInfo *subroot, Plan *plan,
+						   PlanSlice *subslice,
 						   Param *prm)
 {
 	SubPlan    *node;

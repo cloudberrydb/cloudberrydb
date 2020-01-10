@@ -1266,7 +1266,7 @@ explain (costs off)
 select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 limit 1) ss on id = f1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (patest0.id = int4_tbl.f1)
          ->  Append
@@ -1277,7 +1277,7 @@ select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 l
                ->  Redistribute Motion 1:3  (slice2; segments: 1)
                      Hash Key: int4_tbl.f1
                      ->  Limit
-                           ->  Gather Motion 3:1  (slice1; segments: 3)
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
                                  ->  Limit
                                        ->  Seq Scan on int4_tbl
                                              Filter: ((f1 < 10) AND (f1 > '-10'::integer))
@@ -1297,7 +1297,7 @@ explain (costs off)
 select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 limit 1) ss on id = f1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (patest0.id = int4_tbl.f1)
          ->  Append
@@ -1308,7 +1308,7 @@ select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 l
                ->  Redistribute Motion 1:3  (slice2; segments: 1)
                      Hash Key: int4_tbl.f1
                      ->  Limit
-                           ->  Gather Motion 3:1  (slice1; segments: 3)
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
                                  ->  Limit
                                        ->  Seq Scan on int4_tbl
                                              Filter: ((f1 < 10) AND (f1 > '-10'::integer))
@@ -1458,10 +1458,10 @@ explain (verbose, costs off) select min(1-id) from matest0;
 --------------------------------------------------------------------------------------------
  Result
    Output: $0
-   InitPlan 1 (returns $0)  (slice2)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
            Output: ((1 - matest0.id))
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Output: ((1 - matest0.id))
                  Merge Key: ((1 - matest0.id))
                  ->  Result

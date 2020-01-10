@@ -1390,7 +1390,6 @@ set_subqueryscan_references(PlannerInfo *root,
 
 		/* Honor the flow of the SubqueryScan, by copying it to the subplan. */
 		result->flow = plan->scan.plan.flow;
-		result->dispatch = plan->scan.plan.dispatch;
 	}
 	else
 	{

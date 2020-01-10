@@ -468,8 +468,6 @@ create_partition_selector_plan(PlannerInfo *root, PartitionSelectorPath *best_pa
 	ps->propagationExpression = (Node *)
 		makeConst(INT4OID, -1, InvalidOid, 4, Int32GetDatum(ps->scanId), false, true);
 
-	ps->plan.flow = pull_up_Flow(&ps->plan, subplan);
-
 	return (Plan *) ps;
 }
 

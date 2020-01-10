@@ -208,21 +208,6 @@ MemoryAccounting_CreateExecutorAccountWithType(bool isAlienPlanNode,
 		}
 }
 
-/*
- * setSubplanSliceId
- *	 Set the slice id info for the given subplan.
- */
-static void
-setSubplanSliceId(SubPlan *subplan, EState *estate)
-{
-	Assert(subplan != NULL && IsA(subplan, SubPlan) &&estate != NULL);
-
-	estate->currentSliceIdInPlan =
-		estate->es_plannedstmt->subplan_sliceIds[subplan->plan_id];
-}
-
-
-
 /* ------------------------------------------------------------------------
  *		ExecInitNode
  *
@@ -251,7 +236,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		return NULL;
 
 	Assert(estate != NULL);
-	int			origSliceIdInPlan = estate->currentSliceIdInPlan;
 
 	MemoryAccountIdType curMemoryAccountId;
 
@@ -832,8 +816,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 	}
 
-	estate->currentSliceIdInPlan = origSliceIdInPlan;
-
 	/*
 	 * Initialize any initPlans present in this node.  The planner put them in
 	 * a separate list for us.
@@ -843,18 +825,19 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	{
 		SubPlan    *subplan = (SubPlan *) lfirst(l);
 		SubPlanState *sstate;
+		int			origSliceId = estate->currentSliceId;
 
 		Assert(IsA(subplan, SubPlan));
 
-		setSubplanSliceId(subplan, estate);
+		estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan->plan_id - 1];
 
 		sstate = ExecInitSubPlan(subplan, result);
 		subps = lappend(subps, sstate);
+
+		estate->currentSliceId = origSliceId;
 	}
 	if (result != NULL)
 		result->initPlan = subps;
-
-	estate->currentSliceIdInPlan = origSliceIdInPlan;
 
 	/* Set up instrumentation for this node if requested */
 	if (estate->es_instrument && result != NULL)
@@ -1288,9 +1271,6 @@ ExecEndNode(PlanState *node)
 	EState	   *estate = node->state;
 
 	Assert(estate != NULL);
-	int			origSliceIdInPlan = estate->currentSliceIdInPlan;
-
-	estate->currentSliceIdInPlan = origSliceIdInPlan;
 
 	if (node->chgParam != NULL)
 	{
@@ -1522,8 +1502,6 @@ ExecEndNode(PlanState *node)
 	/* GPDB hook for collecting query info */
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(METRICS_PLAN_NODE_FINISHED, node);
-
-	estate->currentSliceIdInPlan = origSliceIdInPlan;
 }
 
 

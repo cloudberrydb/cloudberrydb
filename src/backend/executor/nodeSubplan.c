@@ -1017,8 +1017,16 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
 	if (Gp_role == GP_ROLE_DISPATCH &&
 		planstate != NULL &&
 		planstate->plan != NULL &&
-		queryDesc && queryDesc->plannedstmt->subplan_initPlanParallel[subplan->plan_id])
-		shouldDispatch = true;
+		queryDesc)
+	{
+		int			subsliceIndex = queryDesc->plannedstmt->subplan_sliceIds[subplan->plan_id - 1];
+		ExecSlice  *subslice;
+
+		subslice = &estate->es_sliceTable->slices[subsliceIndex];
+
+		if (subslice->gangType != GANGTYPE_UNALLOCATED || subslice->children)
+			shouldDispatch = true;
+	}
 
 	/*
 	 * Reset memory high-water mark so EXPLAIN ANALYZE can report each

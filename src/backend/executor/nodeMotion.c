@@ -692,6 +692,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	ExecSlice  *recvSlice;
 	SliceTable *sliceTable = estate->es_sliceTable;
 	PlanState  *outerPlan;
+	int			parentIndex;
 
 #ifdef CDB_MOTION_DEBUG
 	int			i;
@@ -710,9 +711,10 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 				 errmsg("EvalPlanQual can not handle subPlan with Motion node")));
 
 	Assert(node->motionID > 0);
-	Assert(node->motionID <= sliceTable->nMotions);
+	Assert(node->motionID < sliceTable->numSlices);
 
-	estate->currentSliceIdInPlan = node->motionID;
+	parentIndex = estate->currentSliceId;
+	estate->currentSliceId = node->motionID;
 
 	/*
 	 * create state structure
@@ -728,7 +730,8 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	/* Look up the sending and receiving gang's slice table entries. */
 	sendSlice = &sliceTable->slices[node->motionID];
 	Assert(sendSlice->sliceIndex == node->motionID);
-	recvSlice = &sliceTable->slices[sendSlice->parentIndex];
+	recvSlice = &sliceTable->slices[parentIndex];
+	Assert(parentIndex == sendSlice->parentIndex);
 
 	/* QD must fill in the global slice table. */
 	if (Gp_role == GP_ROLE_DISPATCH)
@@ -910,6 +913,8 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	}
 #endif
 
+	estate->currentSliceId = parentIndex;
+
 	return motionstate;
 }
 
@@ -938,7 +943,7 @@ ExecEndMotion(MotionState *node)
 	 * Set the slice no for the nodes under this motion.
 	 */
 	Assert(node->ps.state != NULL);
-	node->ps.state->currentSliceIdInPlan = motNodeID;
+	node->ps.state->currentSliceId = motNodeID;
 
 	/*
 	 * shut down the subplan

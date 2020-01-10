@@ -866,20 +866,6 @@ typedef enum JoinType
 	   (1 << JOIN_LASJ_NOTIN))) != 0)
 
 /*
- * DispatchMethod - MPP dispatch method.
- *
- * There are currently three possibilties, an initial value of undetermined,
- * and a value for each of the ways the dispatch code implements.
- */
-typedef enum DispatchMethod
-{
-	DISPATCH_UNDETERMINED = 0,	/* Used prior to determination. */
-	DISPATCH_SEQUENTIAL,		/* Dispatch on entry postgres process only. */
-	DISPATCH_PARALLEL			/* Dispatch on query executor and entry processes. */
-
-} DispatchMethod;
-
-/*
  * AggStrategy -
  *	  overall execution strategies for Agg plan nodes
  *

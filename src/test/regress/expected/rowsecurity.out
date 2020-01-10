@@ -175,8 +175,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
          Filter: f_leak(document.dtitle)
          ->  Seq Scan on document document_1
                Filter: (dlevel <= $0)
-               InitPlan 1 (returns $0)  (slice3)
-                 ->  Gather Motion 1:1  (slice2; segments: 1)
+               InitPlan 1 (returns $0)  (slice2)
+                 ->  Gather Motion 1:1  (slice3; segments: 1)
                        ->  Seq Scan on uaccount
                              Filter: (pguser = 'regress_rls_carol'::name)
  Optimizer: Postgres query optimizer
@@ -185,17 +185,17 @@ EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
 EXPLAIN (COSTS OFF) SELECT * FROM document NATURAL JOIN category WHERE f_leak(dtitle);
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (document.cid = category.cid)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: document.cid
                ->  Subquery Scan on document
                      Filter: f_leak(document.dtitle)
                      ->  Seq Scan on document document_1
                            Filter: (dlevel <= $0)
-                           InitPlan 1 (returns $0)  (slice4)
-                             ->  Gather Motion 1:1  (slice3; segments: 1)
+                           InitPlan 1 (returns $0)  (slice3)
+                             ->  Gather Motion 1:1  (slice4; segments: 1)
                                    ->  Seq Scan on uaccount
                                          Filter: (pguser = 'regress_rls_carol'::name)
          ->  Hash
@@ -280,10 +280,10 @@ EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
 EXPLAIN (COSTS OFF) SELECT * FROM document NATURAL JOIN category WHERE f_leak(dtitle);
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (document.cid = category.cid)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: document.cid
                ->  Subquery Scan on document
                      Filter: f_leak(document.dtitle)
@@ -1204,14 +1204,14 @@ WHERE t2.a = 3 and t3.a = 2 AND f_leak(t2.b) AND f_leak(t3.b);
                                QUERY PLAN                               
 ------------------------------------------------------------------------
  Update on t2 t2_1
-   ->  Explicit Redistribute Motion 3:3  (slice2; segments: 3)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
          ->  Nested Loop
                ->  Subquery Scan on t2
                      Filter: f_leak(t2.b)
                      ->  Seq Scan on t2 t2_2
                            Filter: ((a = 3) AND ((a % 2) = 1))
                ->  Materialize
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: 3
                            ->  Seq Scan on t3
                                  Filter: (f_leak(b) AND (a = 2))
@@ -1252,9 +1252,9 @@ WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
                      Filter: f_leak(t2_1.b)
                      ->  Seq Scan on t2 t2_5
                            Filter: ((a = 3) AND ((a % 2) = 1))
-   ->  Explicit Redistribute Motion 3:3  (slice2; segments: 3)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
          ->  Nested Loop
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: t1_2.a
                      ->  Subquery Scan on t1_2
                            Filter: f_leak(t1_2.b)
@@ -1275,14 +1275,14 @@ WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
                                       QUERY PLAN                                       
 ---------------------------------------------------------------------------------------
  Update on t2 t2_1
-   ->  Explicit Redistribute Motion 3:3  (slice2; segments: 3)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
          ->  Nested Loop
                ->  Subquery Scan on t2
                      Filter: f_leak(t2.b)
                      ->  Seq Scan on t2 t2_2
                            Filter: ((a = 3) AND ((a % 2) = 1))
                ->  Materialize
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: 3
                            ->  Subquery Scan on t1
                                  Filter: f_leak(t1.b)
@@ -1337,7 +1337,7 @@ WHERE t1_1.a = 4 AND t1_2.a = t1_1.a AND t1_2.b = t1_1.b
 AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 3:1  (slice7; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Update on t1 t1_1_3
          Update on t1 t1_1_3
          Update on t2 t1_1
@@ -1345,7 +1345,7 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
          ->  Explicit Redistribute Motion 3:3  (slice2; segments: 3)
                ->  Hash Join
                      Hash Cond: (t1_2.b = t1_1.b)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Hash Key: 4
                            ->  Subquery Scan on t1_2
                                  Filter: f_leak(t1_2.b)
@@ -1364,7 +1364,7 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
          ->  Explicit Redistribute Motion 3:3  (slice4; segments: 3)
                ->  Hash Join
                      Hash Cond: (t1_2_1.b = t1_1_1.b)
-                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice5; segments: 3)
                            Hash Key: 4
                            ->  Subquery Scan on t1_2_1
                                  Filter: f_leak(t1_2_1.b)
@@ -1393,7 +1393,7 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
                                  ->  Seq Scan on t3 t1_2_11
                                        Filter: ((a = 4) AND ((a % 2) = 0))
                      ->  Hash
-                           ->  Broadcast Motion 3:3  (slice5; segments: 3)
+                           ->  Broadcast Motion 3:3  (slice7; segments: 3)
                                  ->  Subquery Scan on t1_1_2
                                        Filter: f_leak(t1_1_2.b)
                                        ->  Seq Scan on t3 t1_1_6
@@ -1773,11 +1773,11 @@ PREPARE plancache_test2 AS WITH q AS (SELECT * FROM z1 WHERE f_leak(b)) SELECT *
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1789,11 +1789,11 @@ PREPARE plancache_test3 AS WITH q AS (SELECT * FROM z2) SELECT * FROM q,z1 WHERE
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1836,11 +1836,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1851,11 +1851,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1898,11 +1898,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1913,11 +1913,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1960,11 +1960,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -1975,11 +1975,11 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Seq Scan on z2
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Subquery Scan on z1
                            Filter: f_leak(z1.b)
                            ->  Seq Scan on z1 z1_1
@@ -2397,13 +2397,13 @@ NOTICE:  f_leak => def
 EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(abc);
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (y2.b = test_qual_pushdown.abc)
          ->  Seq Scan on y2
                Filter: (((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0))
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on test_qual_pushdown
                            Filter: f_leak(abc)
  Optimizer: Postgres query optimizer
@@ -2431,7 +2431,7 @@ NOTICE:  f_leak => 98f13708210194c475687be6106a3b84
 EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(b);
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (y2.b = test_qual_pushdown.abc)
          ->  Subquery Scan on y2
@@ -2439,7 +2439,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE 
                ->  Seq Scan on y2 y2_1
                      Filter: (((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0))
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on test_qual_pushdown
  Optimizer: Postgres query optimizer
 (11 rows)

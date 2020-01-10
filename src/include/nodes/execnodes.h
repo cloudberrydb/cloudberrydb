@@ -656,7 +656,7 @@ typedef struct EState
 	 * During the tree traversal in ExecInitPlan stage, this field is set
 	 * by Motion and InitPlan nodes.
 	 */
-	int			currentSliceIdInPlan;
+	int			currentSliceId;
 
 	/*
 	 * Information relevant to dynamic table scans.

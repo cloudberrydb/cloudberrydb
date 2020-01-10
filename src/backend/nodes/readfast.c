@@ -1573,22 +1573,6 @@ _readShareInputScan(void)
 }
 
 /*
- * _readFlow
- */
-static Flow *
-_readFlow(void)
-{
-	READ_LOCALS(Flow);
-
-	READ_ENUM_FIELD(flotype, FlowType);
-	READ_ENUM_FIELD(locustype, CdbLocusType);
-	READ_INT_FIELD(segindex);
-	READ_INT_FIELD(numsegments);
-
-	READ_DONE();
-}
-
-/*
  * _readMotion
  */
 static Motion *
@@ -2619,9 +2603,6 @@ readNodeBinary(void)
 				break;
 			case T_OnConflictExpr:
 				return_value = _readOnConflictExpr();
-				break;
-			case T_Flow:
-				return_value = _readFlow();
 				break;
 			case T_GrantStmt:
 				return_value = _readGrantStmt();

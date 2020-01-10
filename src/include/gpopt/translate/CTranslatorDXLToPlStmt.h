@@ -179,7 +179,7 @@ namespace gpdxl
 				);
 
 			// main translation routine for DXL tree -> PlannedStmt
-			PlannedStmt *GetPlannedStmtFromDXL(const CDXLNode *dxlnode, bool can_set_tag);
+			PlannedStmt *GetPlannedStmtFromDXL(const CDXLNode *dxlnode, const Query *orig_query, bool can_set_tag);
 
 			// translate the join types from its DXL representation to the GPDB one
 			static JoinType GetGPDBJoinTypeFromDXLJoinType(EdxlJoinType join_type);
@@ -412,9 +412,6 @@ namespace gpdxl
 				Plan *plan,
 				ULONG share_id
 				);
-
-			// retrieve the flow of the shared input scan of the cte consumers
-			Flow *GetFlowCTEConsumer(List *shared_scan_cte_consumer_list);
 
 			// translate a CTE producer into a GPDB share input scan
 			Plan *TranslateDXLCTEProducerToSharedScan

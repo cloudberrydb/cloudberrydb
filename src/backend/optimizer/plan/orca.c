@@ -104,8 +104,6 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->share.sliceMarks = NULL;
 	glob->share.motStack = NIL;
 	glob->share.qdShares = NIL;
-	glob->share.qdSlices = NIL;
-	glob->share.nextPlanId = 0;
 	/* these will be filled in below, in the pre- and post-processing steps */
 	glob->finalrtable = NIL;
 	glob->subplans = NIL;
@@ -187,7 +185,7 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	collect_shareinput_producers(root, result->planTree);
 
 	/* Post-process ShareInputScan nodes */
-	(void) apply_shareinput_xslice(result->planTree, root);
+	(void) apply_shareinput_xslice(result->planTree, root, result->slices);
 
 	/*
 	 * Fix ShareInputScans for EXPLAIN, like in standard_planner(). For all
@@ -316,8 +314,6 @@ remove_redundant_results_mutator(Node *node, void *ctx)
 
 			child_plan->targetlist = tlist;
 			child_plan->flow = result_plan->plan.flow;
-			child_plan->dispatch = result_plan->plan.dispatch;
-			child_plan->directDispatch = result_plan->plan.directDispatch;
 
 			return (Node *) child_plan;
 		}

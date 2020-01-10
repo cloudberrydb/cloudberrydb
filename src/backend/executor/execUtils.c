@@ -188,7 +188,7 @@ CreateExecutorState(void)
 
 	estate->dispatcherState = NULL;
 
-	estate->currentSliceIdInPlan = 0;
+	estate->currentSliceId = 0;
 	estate->eliminateAliens = false;
 
 	/*
@@ -1211,7 +1211,7 @@ ShouldPrefetchJoinQual(EState *estate, Join *join)
 {
 	return (join->prefetch_joinqual &&
 			findSenderMotion(estate->es_plannedstmt,
-							 estate->currentSliceIdInPlan));
+							 estate->currentSliceId));
 }
 
 /* ----------------------------------------------------------------
@@ -1219,62 +1219,172 @@ ShouldPrefetchJoinQual(EState *estate, Join *join)
  * ----------------------------------------------------------------
  */
 
-/* Attach a slice table to the given Estate structure.	It should
- * consist of blank slices, one for the root plan, one for each
- * Motion node (which roots a slice with a send node), and one for
- * each subplan (which acts as an initplan root node).
+
+static void
+FillSliceGangInfo(ExecSlice *slice, int numsegments)
+{
+	switch (slice->gangType)
+	{
+		case GANGTYPE_UNALLOCATED:
+			/*
+			 * It's either the root slice or an InitPlan slice that runs in
+			 * the QD process, or really unused slice.
+			 */
+			slice->planNumSegments = 1;
+			slice->gangSize = 0;
+			break;
+		case GANGTYPE_PRIMARY_WRITER:
+		case GANGTYPE_PRIMARY_READER:
+			slice->planNumSegments = numsegments;
+			if (slice->directDispatch.isDirectDispatch)
+			{
+				slice->gangSize = list_length(slice->directDispatch.contentIds);
+				slice->segments = slice->directDispatch.contentIds;
+			}
+			else
+			{
+				int i;
+				slice->gangSize = numsegments;
+				slice->segments = NIL;
+				for (i = 0; i < numsegments; i++)
+					slice->segments = lappend_int(slice->segments, i);
+			}
+			break;
+		case GANGTYPE_ENTRYDB_READER:
+			slice->planNumSegments = 1;
+			slice->gangSize = 1;
+			slice->segments = list_make1_int(-1);
+			break;
+		case GANGTYPE_SINGLETON_READER:
+			slice->planNumSegments = 1;
+			slice->gangSize = 1;
+			slice->segments = list_make1_int(gp_session_id % numsegments);
+			break;
+		default:
+			elog(ERROR, "unexpected gang type");
+	}
+}
+
+/*
+ * Create the executor slice table.
+ *
+ * The planner constructed a slice table, in plannedstmt->slices. Turn that
+ * into an "executor slice table", with slightly more information. The gangs
+ * to execute the slices will be set up later.
  */
-void
-InitSliceTable(EState *estate, int nMotions, int nSubplans)
+SliceTable *
+InitSliceTable(EState *estate, PlannedStmt *plannedstmt)
 {
 	SliceTable *table;
-	ExecSlice  *slice;
-	int			i,
-				n;
+	int			i;
+	int			numSlices;
 	MemoryContext oldcontext;
 
-	n = 1 + nMotions + nSubplans;
+	numSlices = plannedstmt->numSlices;
+	Assert(numSlices > 0);
 
-	if (gp_max_slices > 0 && n > gp_max_slices)
+	if (gp_max_slices > 0 && numSlices > gp_max_slices)
 		ereport(ERROR,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-				 errmsg("at most %d slices are allowed in a query, current number: %d", gp_max_slices, n),
+				 errmsg("at most %d slices are allowed in a query, current number: %d",
+						gp_max_slices, numSlices),
 				 errhint("rewrite your query or adjust GUC gp_max_slices")));
 
 	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
 
 	table = makeNode(SliceTable);
-	table->used_subplans = NULL;
-	table->nMotions = nMotions;
-	table->nInitPlans = nSubplans;
 	table->instrument_options = INSTRUMENT_NONE;
+	table->hasMotions = false;
 
 	/* Each slice table has a unique-id. */
 	table->ic_instance_id = ++gp_interconnect_id;
 
-	table->slices = palloc0(n * sizeof(ExecSlice));
-	for (i = 0; i < n; i++)
+	/*
+	 * Initialize the executor slice table.
+	 *
+	 * We have most of the information in the planner slice table. In addition to that,
+	 * we set up the parent-child relationships.
+	 */
+	table->slices = palloc0(sizeof(ExecSlice) * numSlices);
+	for (i = 0; i < numSlices; i++)
 	{
-		slice = &table->slices[i];
+		ExecSlice  *currExecSlice = &table->slices[i];
+		PlanSlice  *currPlanSlice = &plannedstmt->slices[i];
+		int			parentIndex;
+		int			rootIndex;
 
-		slice->sliceIndex = i;
-        slice->rootIndex = (i > 0 && i <= nMotions) ? -1 : i;
-		slice->planNumSegments = 0;
-		slice->gangType = GANGTYPE_UNALLOCATED;
-		slice->gangSize = 0;
-		slice->segments = NIL;
-		slice->directDispatch.isDirectDispatch = false;
-		slice->directDispatch.contentIds = NIL;
-		slice->primaryGang = NULL;
-		slice->parentIndex = -1;
-		slice->children = NIL;
-		slice->primaryProcesses = NIL;
+		currExecSlice->sliceIndex = i;
+		currExecSlice->gangSize = 0;
+		currExecSlice->planNumSegments = currPlanSlice->numsegments;
+		currExecSlice->segments = NIL;
+		currExecSlice->directDispatch.isDirectDispatch = false;
+		currExecSlice->directDispatch.contentIds = NIL;
+		currExecSlice->primaryGang = NULL;
+		currExecSlice->primaryProcesses = NIL;
+
+		parentIndex = currPlanSlice->parentIndex;
+		if (parentIndex < -1 || parentIndex >= numSlices)
+			elog(ERROR, "invalid parent slice index %d", currPlanSlice->parentIndex);
+
+		if (parentIndex >= 0)
+		{
+			ExecSlice *parentExecSlice = &table->slices[parentIndex];
+			int			counter;
+
+			/* Sending slice is a child of recv slice */
+			parentExecSlice->children = lappend_int(parentExecSlice->children, currPlanSlice->sliceIndex);
+
+			/* Find the root slice */
+			rootIndex = i;
+			counter = 0;
+			while (plannedstmt->slices[rootIndex].parentIndex >= 0)
+			{
+				rootIndex = plannedstmt->slices[rootIndex].parentIndex;
+
+				if (counter++ > numSlices)
+					elog(ERROR, "circular parent-child relationship in slice table");
+			}
+			table->hasMotions = true;
+		}
+		else
+			rootIndex = i;
+
+		/* find root of this slice. All the parents should be initialized already */
+
+		currExecSlice->parentIndex = parentIndex;
+		currExecSlice->rootIndex = rootIndex;
+		currExecSlice->gangType = currPlanSlice->gangType;
+
+		if (currPlanSlice->directDispatch.isDirectDispatch)
+		{
+			currExecSlice->directDispatch.isDirectDispatch = true;
+			currExecSlice->directDispatch.contentIds = list_copy(currPlanSlice->directDispatch.contentIds);
+		}
+
+		FillSliceGangInfo(currExecSlice, currPlanSlice->numsegments);
 	}
-	table->numSlices = n;
+	table->numSlices = numSlices;
 
-	estate->es_sliceTable = table;
+	/*
+	 * For CTAS although the data is distributed on part of the
+	 * segments, the catalog changes must be dispatched to all the
+	 * segments, so a full gang is required.
+	 */
+	if ((plannedstmt->intoClause != NULL || plannedstmt->copyIntoClause != NULL || plannedstmt->refreshClause))
+	{
+		if (table->slices[0].gangType == GANGTYPE_PRIMARY_WRITER)
+		{
+			table->slices[0].directDispatch.isDirectDispatch = false;
+			table->slices[0].gangSize = getgpsegmentCount();
+			table->slices[0].segments = NIL;
+			for (i = 0; i < table->slices[0].gangSize; i++)
+				table->slices[0].segments = lappend_int(table->slices[0].segments, i);
+		}
+	}
 
 	MemoryContextSwitchTo(oldcontext);
+
+	return table;
 }
 
 /*
@@ -1352,9 +1462,8 @@ static void InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, i
  * global slice table for a plan by assigning gangs allocated by the
  * executor factory to the slices of the slice table.
  *
- * On entry, the slice table (at queryDesc->estate->es_sliceTable) has
- * the correct structure (established by InitSliceTable) and has correct
- * gang types (established by function FillSliceTable).
+ * On entry, the executor slice table (at queryDesc->estate->es_sliceTable)
+ * has been initialized and has correct (by InitSliceTable function)
  *
  * Gang assignment involves taking an inventory of the requirements of
  * each slice tree in the slice table, asking the executor factory to
@@ -1388,12 +1497,11 @@ AssignGangs(CdbDispatcherState *ds, QueryDesc *queryDesc)
  * by a slice tree.  Recursive.  Closely coupled with AssignGangs.	Not
  * generally useful.
  */
-void
+static void
 InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, int sliceIndex)
 {
-	ListCell *cell;
-	int childIndex;
 	ExecSlice *slice = &sliceTable->slices[sliceIndex];
+	ListCell *cell;
 
 	if (slice->gangType == GANGTYPE_UNALLOCATED)
 	{
@@ -1409,7 +1517,8 @@ InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, int sliceInde
 
 	foreach(cell, slice->children)
 	{
-		childIndex = lfirst_int(cell);
+		int			childIndex = lfirst_int(cell);
+
 		InventorySliceTree(ds, sliceTable, childIndex);
 	}
 }
@@ -1784,7 +1893,7 @@ getMotionState(struct PlanState *ps, int sliceIndex)
 	planstate_walk_node(ps, MotionStateFinderWalker, &ctx);
 
 	if (ctx.motionState == NULL)
-		elog(ERROR, "could not find MotionState in executor tree");
+		elog(ERROR, "could not find MotionState for slice %d in executor tree", sliceIndex);
 
 	return ctx.motionState;
 }
@@ -2107,10 +2216,9 @@ int LocallyExecutingSliceIndex(EState *estate)
 /**
  * Provide index of slice being executed on the primary writer gang
  */
-int PrimaryWriterSliceIndex(EState *estate)
+int
+PrimaryWriterSliceIndex(EState *estate)
 {
-	Assert(estate);
-
 	if (!estate->es_sliceTable)
 		return 0;
 
@@ -2128,16 +2236,18 @@ int PrimaryWriterSliceIndex(EState *estate)
 /**
  * Provide root slice of locally executing slice.
  */
-int RootSliceIndex(EState *estate)
+int
+RootSliceIndex(EState *estate)
 {
-	Assert(estate);
-	int result = 0;
+	int			result = 0;
 
 	if (estate->es_sliceTable)
 	{
 		ExecSlice *localSlice = &estate->es_sliceTable->slices[LocallyExecutingSliceIndex(estate)];
 
 		result = localSlice->rootIndex;
+
+		Assert(result >= 0 && estate->es_sliceTable->numSlices);
 	}
 
 	return result;
@@ -2148,19 +2258,10 @@ int RootSliceIndex(EState *estate)
 /**
  * Assert that slicetable is valid. Must be called after ExecInitMotion, which sets up the slice table
  */
-void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
+void AssertSliceTableIsValid(SliceTable *st)
 {
 	if (!st)
 		return;
-
-	Assert(pstmt);
-
-	Assert(pstmt->nMotionNodes == st->nMotions);
-	Assert(pstmt->nInitPlans == st->nInitPlans);
-
-	int maxIndex = st->nMotions + st->nInitPlans + 1;
-
-	Assert(maxIndex == st->numSlices);
 
 	for (int i = 0; i < st->numSlices; i++)
 	{
@@ -2185,9 +2286,6 @@ void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
 		if (s->rootIndex == -1 && s->parentIndex == -1 && s->gangType == GANGTYPE_UNALLOCATED)
 			continue;
 
-		/* The root index of a slice is either 0 or is a slice corresponding to an init plan */
-		Assert((s->rootIndex == 0) || (s->rootIndex > st->nMotions && s->rootIndex < maxIndex));
-
 		/* Parent slice index */
 		if (s->sliceIndex == s->rootIndex)
 		{
@@ -2197,7 +2295,7 @@ void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
 		else
 		{
 			/* All other slices must have a valid parent index */
-			Assert(s->parentIndex >= 0 && s->parentIndex < maxIndex && "slice's parent index out of range");
+			Assert(s->parentIndex >= 0 && s->parentIndex < st->numSlices && "slice's parent index out of range");
 		}
 
 		/* Current slice's children must consider it the parent */
@@ -2205,21 +2303,21 @@ void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt)
 		foreach (lc1, s->children)
 		{
 			int childIndex = lfirst_int(lc1);
-			Assert(childIndex >= 0 && childIndex < maxIndex && "invalid child slice");
-			ExecSlice *sc = (ExecSlice *) &st->slices[childIndex];
+			Assert(childIndex >= 0 && childIndex < st->numSlices && "invalid child slice");
+			ExecSlice *sc = &st->slices[childIndex];
 			Assert(sc->parentIndex == s->sliceIndex && "slice's child does not consider it the parent");
 		}
 
 		/* Current slice must be in its parent's children list */
 		if (s->parentIndex >= 0)
 		{
-			ExecSlice *sp = (ExecSlice *) &st->slices[s->parentIndex];
+			ExecSlice *sp = &st->slices[s->parentIndex];
 
 			bool found = false;
 			foreach (lc1, sp->children)
 			{
 				int childIndex = lfirst_int(lc1);
-				Assert(childIndex >= 0 && childIndex < maxIndex && "invalid child slice");
+				Assert(childIndex >= 0 && childIndex < st->numSlices && "invalid child slice");
 				ExecSlice *sc = &st->slices[childIndex];
 
 				if (sc->sliceIndex == s->sliceIndex)

@@ -53,7 +53,6 @@
 /* Copy a field that is a pointer to a Bitmapset */
 #define COPY_BITMAPSET_FIELD(fldname) \
 	(newnode->fldname = bms_copy(from->fldname))
-
 /* Copy a field that is a pointer to a C string, or perhaps NULL */
 #define COPY_STRING_FIELD(fldname) \
 	(newnode->fldname = from->fldname ? pstrdup(from->fldname) : (char *) NULL)
@@ -116,8 +115,7 @@ _copyPlannedStmt(const PlannedStmt *from)
 	COPY_NODE_FIELD(resultRelations);
 	COPY_NODE_FIELD(utilityStmt);
 	COPY_NODE_FIELD(subplans);
-	COPY_POINTER_FIELD(subplan_sliceIds, (list_length(from->subplans) + 1) * sizeof(int));
-	COPY_POINTER_FIELD(subplan_initPlanParallel, (list_length(from->subplans) + 1) * sizeof(bool));
+	COPY_POINTER_FIELD(subplan_sliceIds, list_length(from->subplans) * sizeof(int));
 	COPY_BITMAPSET_FIELD(rewindPlanIDs);
 
 	COPY_NODE_FIELD(result_partitions);
@@ -129,8 +127,19 @@ _copyPlannedStmt(const PlannedStmt *from)
 	COPY_NODE_FIELD(relationOids);
 	COPY_NODE_FIELD(invalItems);
 	COPY_SCALAR_FIELD(nParamExec);
-	COPY_SCALAR_FIELD(nMotionNodes);
-	COPY_SCALAR_FIELD(nInitPlans);
+
+	COPY_SCALAR_FIELD(numSlices);
+	newnode->slices = palloc(from->numSlices * sizeof(PlanSlice));
+	for (int i = 0; i < from->numSlices; i++)
+	{
+		COPY_SCALAR_FIELD(slices[i].sliceIndex);
+		COPY_SCALAR_FIELD(slices[i].parentIndex);
+		COPY_SCALAR_FIELD(slices[i].gangType);
+		COPY_SCALAR_FIELD(slices[i].numsegments);
+		COPY_SCALAR_FIELD(slices[i].segindex);
+		COPY_SCALAR_FIELD(slices[i].directDispatch.isDirectDispatch);
+		COPY_NODE_FIELD(slices[i].directDispatch.contentIds);
+	}
 
 	COPY_NODE_FIELD(intoPolicy);
 
@@ -197,10 +206,7 @@ CopyPlanFields(const Plan *from, Plan *newnode)
 	COPY_BITMAPSET_FIELD(extParam);
 	COPY_BITMAPSET_FIELD(allParam);
 	COPY_NODE_FIELD(flow);
-	COPY_SCALAR_FIELD(dispatch);
 
-	COPY_SCALAR_FIELD(directDispatch.isDirectDispatch);
-	COPY_NODE_FIELD(directDispatch.contentIds);
 	COPY_SCALAR_FIELD(operatorMemKB);
 	/*
 	 * Don't copy memoryAccountId and this is an index to the account array
@@ -1399,6 +1405,12 @@ _copyMotion(const Motion *from)
 	COPY_POINTER_FIELD(nullsFirst, from->numSortCols * sizeof(bool));
 
 	COPY_SCALAR_FIELD(segidColIdx);
+
+	if (from->senderSliceInfo)
+	{
+		newnode->senderSliceInfo = palloc(sizeof(PlanSlice));
+		memcpy(newnode->senderSliceInfo, from->senderSliceInfo, sizeof(PlanSlice));
+	}
 
 	return newnode;
 }
@@ -5097,9 +5109,6 @@ _copySliceTable(const SliceTable *from)
 {
 	SliceTable *newnode = makeNode(SliceTable);
 
-	COPY_BITMAPSET_FIELD(used_subplans);
-	COPY_SCALAR_FIELD(nMotions);
-	COPY_SCALAR_FIELD(nInitPlans);
 	COPY_SCALAR_FIELD(localSlice);
 	COPY_SCALAR_FIELD(numSlices);
 

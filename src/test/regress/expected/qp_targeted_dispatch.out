@@ -680,13 +680,11 @@ insert into mpp7620 values (200, 200);
 INFO:  (slice 0) Dispatch command to SINGLE content
 INFO:  Distributed transaction command 'Distributed Commit (one-phase)' to SINGLE content
 insert into zoompp7620 select * from mpp7620 where key=200;
-INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
+INFO:  (slice 0) Dispatch command to SINGLE content
+INFO:  Distributed transaction command 'Distributed Commit (one-phase)' to SINGLE content
 insert into zoompp7620(key) select key from mpp7620 where mpp7620.key=200;
-INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
+INFO:  (slice 0) Dispatch command to SINGLE content
+INFO:  Distributed transaction command 'Distributed Commit (one-phase)' to SINGLE content
 select key from mpp7620 where mpp7620.key=200;
 INFO:  (slice 1) Dispatch command to SINGLE content
  key 
@@ -749,7 +747,7 @@ alter table table_a set distributed randomly;
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
 select max(a0) from table_a where a0=3;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 2) Dispatch command to ALL contents: 0 1 2
  max 
 -----
    3
@@ -773,7 +771,7 @@ explain select * from table_a where a0=3;
 explain select a0 from table_a where a0 in (select max(a1) from table_a);
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=1.08..2.13 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1.08..2.13 rows=4 width=4)
    ->  Hash Semi Join  (cost=1.08..2.13 rows=2 width=4)
          Hash Cond: (table_a.a0 = (max(table_a_1.a1)))
          ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
@@ -781,14 +779,14 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a);
                ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=1.03..1.07 rows=1 width=4)
                      Hash Key: (max(table_a_1.a1))
                      ->  Aggregate  (cost=1.03..1.04 rows=1 width=4)
-                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=4)
+                           ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1.03 rows=1 width=4)
                                  ->  Seq Scan on table_a table_a_1  (cost=0.00..1.01 rows=1 width=4)
  Optimizer: Postgres query optimizer
 (11 rows)
 
 select a0 from table_a where a0 in (select max(a1) from table_a);
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 3) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 2) Dispatch command to SINGLE content
  a0 
 ----
@@ -802,7 +800,7 @@ INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 (1 row)
 
 select max(a0) from table_a where a0=1;
-INFO:  (slice 1) Dispatch command to SINGLE content
+INFO:  (slice 2) Dispatch command to SINGLE content
  max 
 -----
    1
@@ -811,7 +809,7 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 explain select a0 from table_a where a0 in (select max(a1) from table_a where a0=1);
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=1.09..2.13 rows=4 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1.09..2.20 rows=4 width=4)
    ->  Hash Semi Join  (cost=1.09..2.13 rows=2 width=4)
          Hash Cond: (table_a.a0 = (max(table_a_1.a1)))
          ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
@@ -819,7 +817,7 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a where a0
                ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=1.03..1.07 rows=1 width=4)
                      Hash Key: (max(table_a_1.a1))
                      ->  Aggregate  (cost=1.03..1.04 rows=1 width=4)
-                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=4)
+                           ->  Gather Motion 1:1  (slice3; segments: 1)  (cost=0.00..1.03 rows=1 width=4)
                                  ->  Seq Scan on table_a table_a_1  (cost=0.00..1.01 rows=1 width=4)
                                        Filter: (a0 = 1)
  Optimizer: Postgres query optimizer

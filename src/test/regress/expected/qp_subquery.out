@@ -583,10 +583,10 @@ select t1.a, t2.b from t1 inner join t2 on  (t1.a=t2.a) where ((t1.a,t2.b) not i
 explain select t1.a, t2.b from t1, t2 where t1.a=t2.a or ((t1.a,t2.b) not in (select i1.a,i1.b from i1));
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000002.11 rows=4 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000000002.11 rows=4 width=8)
    ->  Nested Loop  (cost=10000000000.00..10000000002.11 rows=2 width=8)
          Join Filter: ((t1.a = t2.a) OR (NOT (hashed SubPlan 1)))
-         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.05 rows=1 width=4)
+         ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1.05 rows=1 width=4)
                ->  Seq Scan on t1  (cost=0.00..1.01 rows=1 width=4)
          ->  Materialize  (cost=0.00..1.01 rows=1 width=8)
                ->  Seq Scan on t2  (cost=0.00..1.01 rows=1 width=8)
@@ -808,14 +808,14 @@ explain (costs off)
 select Tbl04.* from Tbl04 where not ((Tbl04.a,Tbl04.b) in (select Tbl06.a,Tbl06.b from Tbl06) or (Tbl04.a,Tbl04.b) in (select i3.a, i3.b from i3));
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Left Anti Semi (Not-In) Join
          Hash Cond: ((tbl04.a = i3.a) AND (tbl04.b = i3.b))
          ->  Nested Loop Left Anti Semi (Not-In) Join
                Join Filter: ((tbl04.a = tbl06.a) AND (tbl04.b = tbl06.b))
                ->  Seq Scan on tbl04
                ->  Materialize
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            ->  Seq Scan on tbl06
          ->  Hash
                ->  Seq Scan on i3

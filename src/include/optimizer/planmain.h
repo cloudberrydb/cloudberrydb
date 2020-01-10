@@ -109,7 +109,7 @@ extern bool contain_group_id(Node *node);
 /*
  * prototypes for plan/createplan.c
  */
-extern Plan *create_plan(PlannerInfo *root, Path *best_path);
+extern Plan *create_plan(PlannerInfo *root, Path *best_path, PlanSlice *curSlice);
 extern Plan *create_plan_recurse(PlannerInfo *root, Path *best_path,
 					int flags);
 extern SubqueryScan *make_subqueryscan(List *qptlist, List *qpqual,

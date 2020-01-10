@@ -209,8 +209,8 @@ extern bool gp_debug_pgproc;
  * This run-time parameter is closely related to the PostgreSQL parameter
  * debug_print_plan which, if true, causes the final plan to display on the
  * server log prior to execution.  This parameter, if true, causes the
- * preliminary plan (from the optimizer prior to cdbparallelize) to display
- * on the log.
+ * preliminary plan (from the optimizer prior to adding Motions for subplans)
+ * to display on the log.
  */
 extern bool Debug_print_prelim_plan;
 

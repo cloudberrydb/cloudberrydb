@@ -629,10 +629,10 @@ select first_value(max(x)) over (), y
                             QUERY PLAN                            
 ------------------------------------------------------------------
  WindowAgg
-   ->  Gather Motion 3:1  (slice2; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Finalize HashAggregate
                Group Key: ((ten + four))
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: ((ten + four))
                      ->  Streaming Partial HashAggregate
                            Group Key: (ten + four)
@@ -1154,7 +1154,7 @@ SELECT * FROM
 WHERE depname = 'sales';
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  WindowAgg
          Partition By: depname
          ->  Sort
@@ -1167,7 +1167,7 @@ WHERE depname = 'sales';
                                  Partition By: enroll_date
                                  ->  Sort
                                        Sort Key: enroll_date
-                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                              Hash Key: enroll_date
                                              ->  Seq Scan on empsalary
  Optimizer: Pivotal Optimizer (GPORCA) version 3.23.0

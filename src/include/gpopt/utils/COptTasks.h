@@ -138,7 +138,7 @@ class COptTasks
 
 		// translate a DXL tree into a planned statement
 		static
-		PlannedStmt *ConvertToPlanStmtFromDXL(CMemoryPool *mp, CMDAccessor *md_accessor, const CDXLNode *dxlnode, bool can_set_tag, DistributionHashOpsKind distribution_hashops);
+		PlannedStmt *ConvertToPlanStmtFromDXL(CMemoryPool *mp, CMDAccessor *md_accessor, const Query *orig_query, const CDXLNode *dxlnode, bool can_set_tag, DistributionHashOpsKind distribution_hashops);
 
 		// load search strategy from given path
 		static

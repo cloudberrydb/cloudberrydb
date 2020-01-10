@@ -316,6 +316,7 @@ COptTasks::ConvertToPlanStmtFromDXL
 	(
 	CMemoryPool *mp,
 	CMDAccessor *md_accessor,
+	const Query *orig_query,
 	const CDXLNode *dxlnode,
 	bool can_set_tag,
 	DistributionHashOpsKind distribution_hashops
@@ -344,7 +345,7 @@ COptTasks::ConvertToPlanStmtFromDXL
 	
 	// translate DXL -> PlannedStmt
 	CTranslatorDXLToPlStmt dxl_to_plan_stmt_translator(mp, md_accessor, &dxl_to_plan_stmt_ctxt, gpdb::GetGPSegmentCount());
-	return dxl_to_plan_stmt_translator.GetPlannedStmtFromDXL(dxlnode, can_set_tag);
+	return dxl_to_plan_stmt_translator.GetPlannedStmtFromDXL(dxlnode, orig_query, can_set_tag);
 }
 
 
@@ -656,7 +657,7 @@ COptTasks::OptimizeTask
 			{
 				// always use opt_ctxt->m_query->can_set_tag as the query_to_dxl_translator->Pquery() is a mutated Query object
 				// that may not have the correct can_set_tag
-			  opt_ctxt->m_plan_stmt = (PlannedStmt *) gpdb::CopyObject(ConvertToPlanStmtFromDXL(mp, &mda, plan_dxl, opt_ctxt->m_query->canSetTag, query_to_dxl_translator->GetDistributionHashOpsKind()));
+			  opt_ctxt->m_plan_stmt = (PlannedStmt *) gpdb::CopyObject(ConvertToPlanStmtFromDXL(mp, &mda, opt_ctxt->m_query, plan_dxl, opt_ctxt->m_query->canSetTag, query_to_dxl_translator->GetDistributionHashOpsKind()));
 			}
 
 			CStatisticsConfig *stats_conf = optimizer_config->GetStatsConf();

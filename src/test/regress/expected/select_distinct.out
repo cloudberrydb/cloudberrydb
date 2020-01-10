@@ -134,14 +134,14 @@ SELECT count(*) FROM
 --------------------------------------------------------------------------------
  Finalize Aggregate
    Output: count(*)
-   ->  Gather Motion 3:1  (slice2; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          Output: (PARTIAL count(*))
          ->  Partial Aggregate
                Output: PARTIAL count(*)
                ->  Finalize HashAggregate
                      Output: tenk1.two, tenk1.four, tenk1.two
                      Group Key: tenk1.two, tenk1.four, tenk1.two
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Output: tenk1.two, tenk1.four, tenk1.two
                            Hash Key: tenk1.two, tenk1.four, tenk1.two
                            ->  Partial HashAggregate

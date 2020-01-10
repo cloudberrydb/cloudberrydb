@@ -243,7 +243,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			 *
 			 * This motion may be redundant for segmentGeneral --> singleQE
 			 * if the singleQE is not promoted to executed on qDisp in the
-			 * end, so in apply_motion_mutator(), we will omit it.
+			 * end, so in cdbllize_fix_outer_query_motions(), we will omit it.
 			 */
 			pathnode = makeNode(CdbMotionPath);
 			pathnode->path.pathtype = T_Motion;

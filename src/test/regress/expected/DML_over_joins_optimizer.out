@@ -1718,13 +1718,13 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 ------------------------------------------------------------------------------
  Delete on tab1
    ->  Result
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)
                Hash Key: tab1_1.b
                ->  Hash Join
                      Hash Cond: (tab2.a = tab1_1.a)
                      ->  Seq Scan on tab2
                      ->  Hash
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                  Hash Key: tab1_1.a
                                  ->  Hash Join
                                        Hash Cond: (tab3.b = tab1_1.b)

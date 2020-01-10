@@ -4778,14 +4778,6 @@ adjust_modifytable_subpaths(PlannerInfo *root, CmdType operation,
 	 * nothing, FLOW_PARTITIONED without hashExprs(General locus has no
 	 * distkeys) returns duplication.
 	 *
-	 * Notes: 1, make a copy of plan->plan.directDispatch.contentIds in
-	 * create_modifytable_plan(), otherwise the original data will be freed in
-	 * AssignContentIdsToPlanData() by FinalizeDirectDispatchDataForSlice(),
-	 * because there is no extra motions then. Which should not be a problem,
-	 * but _outNode() fails.
-	 *        2, cdbpathtoplan_create_flow() in create_modifytable_plan(), non
-	 * CTE cases need the flow to gather results.
-	 *
 	 * GPDB_90_MERGE_FIXME: I've hacked a basic implementation of the above for
 	 * the case where all the subplans are POLICYTYPE_ENTRY, but it seems like
 	 * there should be a more general way to do this.

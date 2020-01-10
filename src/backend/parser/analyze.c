@@ -4053,7 +4053,7 @@ get_distkey_by_name(char *key, IntoClause *into, Query *qry, bool *found)
  *
  * 2. If no DISTRIBUTED BY was given explicitly, we don't try to deduce a
  * default here. We delay that into the planner because we'll have more
- * information available at that point (see apply_motion()).
+ * information available at that point (see cdbllize_adjust_top_path()).
  */
 static void
 setQryDistributionPolicy(IntoClause *into, Query *qry)

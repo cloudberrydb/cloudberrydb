@@ -2195,13 +2195,13 @@ select * from int8_tbl i1 left join (int8_tbl i2 join
 order by 1, 2;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: i1.q1, i1.q2
    ->  Sort
          Sort Key: i1.q1, i1.q2
          ->  Hash Right Join
                Hash Cond: (i2.q2 = i1.q2)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: i2.q2
                      ->  Hash Join
                            Hash Cond: (i2.q1 = (123))
@@ -2209,7 +2209,7 @@ order by 1, 2;
                            ->  Hash
                                  ->  Result
                ->  Hash
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Hash Key: i1.q2
                            ->  Seq Scan on int8_tbl i1
  Optimizer: Postgres query optimizer
@@ -2261,20 +2261,20 @@ select a.f1, b.f1, t.thousand, t.tenthous from
 where b.f1 = t.thousand and a.f1 = b.f1 and (a.f1+b.f1+999) = t.tenthous;
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice5; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: ((t.thousand = (sum(i4b.f1))) AND (((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999) = t.tenthous))
          ->  Nested Loop
                ->  Broadcast Motion 1:3  (slice2; segments: 1)
                      ->  Aggregate
-                           ->  Gather Motion 3:1  (slice1; segments: 3)
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
                                  ->  Seq Scan on int4_tbl i4a
                ->  Index Only Scan using tenk1_thous_tenthous on tenk1 t
                      Index Cond: (thousand = ((sum(i4a.f1) + 1)))
          ->  Materialize
                ->  Broadcast Motion 1:3  (slice4; segments: 1)
                      ->  Aggregate
-                           ->  Gather Motion 3:1  (slice3; segments: 3)
+                           ->  Gather Motion 3:1  (slice5; segments: 3)
                                  ->  Seq Scan on int4_tbl i4b
  Optimizer: Postgres query optimizer
 (16 rows)
@@ -2500,11 +2500,11 @@ select count(*) from tenk1 a, tenk1 b
                              QUERY PLAN                              
 ---------------------------------------------------------------------
  Finalize Aggregate
-   ->  Gather Motion 3:1  (slice2; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Hash Join
                      Hash Cond: (b.thousand = a.hundred)
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            ->  Seq Scan on tenk1 b
                                  Filter: ((fivethous % 10) < 10)
                      ->  Hash
@@ -2563,20 +2563,20 @@ where not exists (
 );
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice5; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Anti Join
          Hash Cond: (t1.c1 = t2.c2)
          ->  Seq Scan on tt4x t1
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice4; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: t2.c2
                      ->  Hash Left Join
                            Hash Cond: (t3.c2 = t5.c1)
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                  Hash Key: t3.c2
                                  ->  Hash Left Join
                                        Hash Cond: (t2.c3 = t3.c1)
-                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                              Hash Key: t2.c3
                                              ->  Seq Scan on tt4x t2
                                        ->  Hash
@@ -2584,7 +2584,7 @@ where not exists (
                            ->  Hash
                                  ->  Hash Join
                                        Hash Cond: (t4.c2 = t5.c1)
-                                       ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice5; segments: 3)
                                              Hash Key: t4.c2
                                              ->  Seq Scan on tt4x t4
                                        ->  Hash
@@ -2735,9 +2735,9 @@ explain (costs off)
 select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
                         QUERY PLAN                        
 ----------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
-         ->  Broadcast Motion 3:3  (slice1; segments: 3)
+         ->  Broadcast Motion 3:3  (slice2; segments: 3)
                ->  Seq Scan on tidv a
          ->  Index Only Scan using tidv_idv_idx on tidv b
                Index Cond: (idv = a.idv)
@@ -2894,19 +2894,19 @@ SELECT qq, unique1
   INNER JOIN tenk1 c ON qq = unique2;
                                               QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (c.unique2 = COALESCE((COALESCE(a.q1, '0'::bigint)), (COALESCE(b.q2, '-1'::bigint))))
          ->  Seq Scan on tenk1 c
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice3; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Hash Full Join
                            Hash Cond: (COALESCE(a.q1, '0'::bigint) = COALESCE(b.q2, '-1'::bigint))
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                  Hash Key: COALESCE(a.q1, '0'::bigint)
                                  ->  Seq Scan on int8_tbl a
                            ->  Hash
-                                 ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                        Hash Key: COALESCE(b.q2, '-1'::bigint)
                                        ->  Seq Scan on int8_tbl b
  Optimizer: Postgres query optimizer
@@ -2970,7 +2970,7 @@ from nt3 as nt3
 where nt3.id = 1 and ss2.b3;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (nt2.id = nt3.nt2_id)
          ->  Redistribute Motion 3:3  (slice2; segments: 3)
@@ -2978,7 +2978,7 @@ where nt3.id = 1 and ss2.b3;
                ->  Hash Join
                      Hash Cond: (nt2.nt1_id = nt1.id)
                      Join Filter: (nt2.b1 AND ((nt1.id IS NOT NULL)))
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Hash Key: nt2.nt1_id
                            ->  Seq Scan on nt2
                      ->  Hash
@@ -3016,16 +3016,16 @@ select * from
 where
   1 = (select 1 from int8_tbl t3 where ss.y is not null limit 1)
 order by 1,2;
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: t1.q1, t1.q2
    ->  Sort
          Sort Key: t1.q1, t1.q2
          ->  Hash Left Join
                Hash Cond: (t1.q2 = t2.q1)
                Filter: (1 = (SubPlan 1))
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: t1.q2
                      ->  Seq Scan on int8_tbl t1
                ->  Hash
@@ -3035,7 +3035,7 @@ order by 1,2;
                        ->  Result
                              One-Time Filter: ((42) IS NOT NULL)
                              ->  Materialize
-                                   ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)
                                          ->  Seq Scan on int8_tbl t3
  Optimizer: Postgres query optimizer
 (20 rows)
@@ -3121,7 +3121,7 @@ select * from
 where q1 = thousand or q2 = thousand;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: ((q1.q1 = tenk1.thousand) OR (q2.q2 = tenk1.thousand))
          ->  Nested Loop
@@ -3129,7 +3129,7 @@ where q1 = thousand or q2 = thousand;
                      Hash Cond: (tenk1.twothousand = int4_tbl.f1)
                      ->  Seq Scan on tenk1
                      ->  Hash
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3)
                                  ->  Seq Scan on int4_tbl
                ->  Function Scan on q1
          ->  Function Scan on q2
@@ -3144,14 +3144,14 @@ select * from
 where thousand = (q1 + q2);
                              QUERY PLAN                              
 ---------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (tenk1.thousand = (q1.q1 + q2.q2))
          ->  Hash Join
                Hash Cond: (tenk1.twothousand = int4_tbl.f1)
                ->  Seq Scan on tenk1
                ->  Hash
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            ->  Seq Scan on int4_tbl
          ->  Hash
                ->  Nested Loop
@@ -3171,15 +3171,15 @@ select * from
 where thousand = a.q1 and tenthous = b.q1 and a.q2 = 1 and b.q2 = 2;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
-         ->  Broadcast Motion 3:3  (slice1; segments: 3)
+         ->  Broadcast Motion 3:3  (slice2; segments: 3)
                ->  Seq Scan on int8_tbl b
                      Filter: (q2 = 2)
          ->  Materialize
                ->  Nested Loop
                      ->  Materialize
-                           ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                           ->  Broadcast Motion 3:3  (slice3; segments: 3)
                                  ->  Seq Scan on int8_tbl a
                                        Filter: (q2 = 1)
                      ->  Index Scan using tenk1_thous_tenthous on tenk1
@@ -3272,13 +3272,13 @@ select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.hundred = 4);
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.hundred = 4)))
          ->  Seq Scan on tenk1 b
                Filter: ((unique1 = 2) OR (hundred = 4))
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on tenk1 a
                            Filter: ((unique1 = 1) OR (unique2 = 3))
  Optimizer: Postgres query optimizer
@@ -3289,13 +3289,13 @@ select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.ten = 4);
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.ten = 4)))
          ->  Seq Scan on tenk1 b
                Filter: ((unique1 = 2) OR (ten = 4))
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on tenk1 a
                            Filter: ((unique1 = 1) OR (unique2 = 3))
  Optimizer: Postgres query optimizer
@@ -3307,13 +3307,13 @@ select * from tenk1 a join tenk1 b on
   ((a.unique2 = 3 or a.unique2 = 7) and b.hundred = 4);
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR (((a.unique2 = 3) OR (a.unique2 = 7)) AND (b.hundred = 4)))
          ->  Seq Scan on tenk1 b
                Filter: ((unique1 = 2) OR (hundred = 4))
          ->  Materialize
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on tenk1 a
                            Filter: ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7))
  Optimizer: Postgres query optimizer
@@ -3329,18 +3329,18 @@ select * from tenk1 t1 left join
 where t1.unique1 = 1;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: ((t2.hundred = t1.hundred) AND (t3.ten = t1.ten))
-         ->  Redistribute Motion 3:3  (slice3; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: 1
                ->  Hash Join
                      Hash Cond: (t2.thousand = t3.unique2)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Hash Key: t2.thousand
                            ->  Seq Scan on tenk1 t2
                      ->  Hash
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                  Hash Key: t3.unique2
                                  ->  Seq Scan on tenk1 t3
          ->  Hash
@@ -3356,19 +3356,19 @@ select * from tenk1 t1 left join
 where t1.unique1 = 1;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (t2.hundred = t1.hundred)
          Join Filter: ((t1.ten + t2.ten) = t3.ten)
-         ->  Redistribute Motion 3:3  (slice3; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: 1
                ->  Hash Join
                      Hash Cond: (t2.thousand = t3.unique2)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Hash Key: t2.thousand
                            ->  Seq Scan on tenk1 t2
                      ->  Hash
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                  Hash Key: t3.unique2
                                  ->  Seq Scan on tenk1 t3
          ->  Hash
@@ -3385,28 +3385,28 @@ select count(*) from
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
  Finalize Aggregate
-   ->  Gather Motion 3:1  (slice5; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Hash Right Join
                      Hash Cond: (c.thousand = a.thousand)
                      Join Filter: (a.unique2 = b.unique1)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: c.thousand
                            ->  Seq Scan on tenk1 c
                      ->  Hash
-                           ->  Redistribute Motion 3:3  (slice4; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                  Hash Key: a.thousand
                                  ->  Hash Join
                                        Hash Cond: (a.unique1 = b.unique2)
                                        ->  Seq Scan on tenk1 a
                                        ->  Hash
-                                             ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                             ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                                    Hash Key: b.unique2
                                                    ->  Hash Join
                                                          Hash Cond: (b.thousand = int4_tbl.f1)
                                                          ->  Seq Scan on tenk1 b
                                                          ->  Hash
-                                                               ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                                               ->  Broadcast Motion 3:3  (slice5; segments: 3)
                                                                      ->  Seq Scan on int4_tbl
  Optimizer: Postgres query optimizer
 (25 rows)
@@ -3429,18 +3429,18 @@ select b.unique1 from
   order by 1;
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice6; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: b.unique1
    ->  Sort
          Sort Key: b.unique1
          ->  Hash Right Join
                Hash Cond: (b.tenthous = i2.f1)
-               ->  Redistribute Motion 3:3  (slice5; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: b.tenthous
                      ->  Hash Right Join
                            Hash Cond: (c.thousand = a.thousand)
                            Join Filter: (b.unique1 = 42)
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                  Hash Key: c.thousand
                                  ->  Seq Scan on tenk1 c
                            ->  Hash
@@ -3450,13 +3450,13 @@ select b.unique1 from
                                              Hash Cond: (a.unique1 = b.unique2)
                                              ->  Seq Scan on tenk1 a
                                              ->  Hash
-                                                   ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                                   ->  Redistribute Motion 3:3  (slice5; segments: 3)
                                                          Hash Key: b.unique2
                                                          ->  Hash Join
                                                                Hash Cond: (b.thousand = i1.f1)
                                                                ->  Seq Scan on tenk1 b
                                                                ->  Hash
-                                                                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                                                     ->  Broadcast Motion 3:3  (slice6; segments: 3)
                                                                            ->  Seq Scan on int4_tbl i1
                ->  Hash
                      ->  Seq Scan on int4_tbl i2
@@ -3488,15 +3488,15 @@ where fault = 122
 order by fault;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (tenk1.unique2 = int8_tbl.q2)
          Filter: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1) = 122)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: tenk1.unique2
                ->  Seq Scan on tenk1
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: int8_tbl.q2
                      ->  Seq Scan on int8_tbl
  Optimizer: Postgres query optimizer
@@ -3551,11 +3551,11 @@ select q1, unique2, thousand, hundred
   where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (b.unique2 = a.q1)
          Filter: ((COALESCE(b.thousand, 123) = a.q1) AND (a.q1 = COALESCE(b.hundred, 123)))
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: b.unique2
                ->  Seq Scan on tenk1 b
          ->  Hash
@@ -3576,11 +3576,11 @@ select f1, unique2, case when unique2 is null then f1 else 0 end
   where (case when unique2 is null then f1 else 0 end) = 0;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (b.unique2 = a.f1)
          Filter: (CASE WHEN (b.unique2 IS NULL) THEN a.f1 ELSE 0 END = 0)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: b.unique2
                ->  Seq Scan on tenk1 b
          ->  Hash
@@ -3605,20 +3605,20 @@ select a.unique1, b.unique1, c.unique1, coalesce(b.twothousand, a.twothousand)
   where a.unique2 < 10 and coalesce(b.twothousand, a.twothousand) = 44;
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Left Join
          Hash Cond: (COALESCE(b.twothousand, a.twothousand) = c.unique2)
          ->  Hash Right Join
                Hash Cond: (b.thousand = a.unique1)
                Filter: (COALESCE(b.twothousand, a.twothousand) = 44)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: b.thousand
                      ->  Seq Scan on tenk1 b
                ->  Hash
                      ->  Seq Scan on tenk1 a
                            Filter: (unique2 < 10)
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice2; segments: 3)
+               ->  Broadcast Motion 3:3  (slice3; segments: 3)
                      ->  Index Scan using tenk1_unique2 on tenk1 c
                            Index Cond: (unique2 = 44)
  Optimizer: Postgres query optimizer
@@ -3649,7 +3649,7 @@ left join
 using (join_key);
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: "*VALUES*".column1, i1.f1, (666)
    ->  Hash Right Join
          Output: "*VALUES*".column1, i1.f1, (666)
@@ -3657,7 +3657,7 @@ using (join_key);
          ->  Hash Right Join
                Output: i1.f1, 666
                Hash Cond: (i2.unique2 = i1.f1)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Output: i2.unique2
                      Hash Key: i2.unique2
                      ->  Seq Scan on public.tenk1 i2
@@ -3668,7 +3668,7 @@ using (join_key);
                            Output: i1.f1
          ->  Hash
                Output: "*VALUES*".column1
-               ->  Redistribute Motion 1:3  (slice2; segments: 1)
+               ->  Redistribute Motion 1:3  (slice3; segments: 1)
                      Output: "*VALUES*".column1
                      Hash Key: "*VALUES*".column1
                      ->  Values Scan on "*VALUES*"
@@ -3710,7 +3710,7 @@ select t1.* from
   on (i8.q2 = i4.f1);
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice5; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.f1
    ->  Hash Left Join
          Output: t1.f1
@@ -3722,12 +3722,12 @@ select t1.* from
                      Output: t1.f1
                ->  Materialize
                      Output: i8.q2
-                     ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            Output: i8.q2
                            ->  Hash Right Join
                                  Output: i8.q2
                                  Hash Cond: ((NULL::integer) = i8b1.q2)
-                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Output: i8.q2, (NULL::integer)
                                        Hash Key: (NULL::integer)
                                        ->  Hash Left Join
@@ -3741,14 +3741,14 @@ select t1.* from
                                                          Output: i8b2.q1, NULL::integer
                                  ->  Hash
                                        Output: i8b1.q2
-                                       ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                              Output: i8b1.q2
                                              Hash Key: i8b1.q2
                                              ->  Seq Scan on public.int8_tbl i8b1
                                                    Output: i8b1.q2
          ->  Hash
                Output: i4.f1
-               ->  Broadcast Motion 3:3  (slice4; segments: 3)
+               ->  Broadcast Motion 3:3  (slice5; segments: 3)
                      Output: i4.f1
                      ->  Seq Scan on public.int4_tbl i4
                            Output: i4.f1
@@ -3784,7 +3784,7 @@ select t1.* from
   on (i8.q2 = i4.f1);
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice6; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.f1
    ->  Hash Left Join
          Output: t1.f1
@@ -3796,12 +3796,12 @@ select t1.* from
                      Output: t1.f1
                ->  Materialize
                      Output: i8.q2
-                     ->  Broadcast Motion 3:3  (slice4; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            Output: i8.q2
                            ->  Hash Right Join
                                  Output: i8.q2
                                  Hash Cond: ((NULL::integer) = i8b1.q2)
-                                 ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Output: i8.q2, (NULL::integer)
                                        Hash Key: (NULL::integer)
                                        ->  Hash Right Join
@@ -3812,7 +3812,7 @@ select t1.* from
                                                    ->  Seq Scan on public.int8_tbl i8b2
                                                          Output: i8b2.q1, i8b2.q2
                                                    ->  Materialize
-                                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                                         ->  Broadcast Motion 3:3  (slice4; segments: 3)
                                                                ->  Seq Scan on public.int4_tbl i4b2
                                              ->  Hash
                                                    Output: i8.q1, i8.q2
@@ -3820,14 +3820,14 @@ select t1.* from
                                                          Output: i8.q1, i8.q2
                                  ->  Hash
                                        Output: i8b1.q2
-                                       ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice5; segments: 3)
                                              Output: i8b1.q2
                                              Hash Key: i8b1.q2
                                              ->  Seq Scan on public.int8_tbl i8b1
                                                    Output: i8b1.q2
          ->  Hash
                Output: i4.f1
-               ->  Broadcast Motion 3:3  (slice5; segments: 3)
+               ->  Broadcast Motion 3:3  (slice6; segments: 3)
                      Output: i4.f1
                      ->  Seq Scan on public.int4_tbl i4
                            Output: i4.f1
@@ -3864,7 +3864,7 @@ select t1.* from
   on (i8.q2 = i4.f1);
                                           QUERY PLAN                                          
 ----------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice5; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.f1
    ->  Hash Left Join
          Output: t1.f1
@@ -3876,12 +3876,12 @@ select t1.* from
                      Output: t1.f1
                ->  Materialize
                      Output: i8.q2
-                     ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            Output: i8.q2
                            ->  Hash Right Join
                                  Output: i8.q2
                                  Hash Cond: ((NULL::integer) = i8b1.q2)
-                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Output: i8.q2, (NULL::integer)
                                        Hash Key: (NULL::integer)
                                        ->  Hash Right Join
@@ -3902,14 +3902,14 @@ select t1.* from
                                                          Output: i8.q1, i8.q2
                                  ->  Hash
                                        Output: i8b1.q2
-                                       ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                              Output: i8b1.q2
                                              Hash Key: i8b1.q2
                                              ->  Seq Scan on public.int8_tbl i8b1
                                                    Output: i8b1.q2
          ->  Hash
                Output: i4.f1
-               ->  Broadcast Motion 3:3  (slice4; segments: 3)
+               ->  Broadcast Motion 3:3  (slice5; segments: 3)
                      Output: i4.f1
                      ->  Seq Scan on public.int4_tbl i4
                            Output: i4.f1
@@ -3944,7 +3944,7 @@ select * from
   on i8.q1 = i4.f1;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.f1, i8.q1, i8.q2, t2.f1, i4.f1
    ->  Nested Loop Left Join
          Output: t1.f1, i8.q1, i8.q2, t2.f1, i4.f1
@@ -3968,7 +3968,7 @@ select * from
                                              Output: i4.f1
                            ->  Materialize
                                  Output: t1.f1
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                 ->  Broadcast Motion 1:3  (slice3; segments: 1)
                                        Output: t1.f1
                                        ->  Seq Scan on public.text_tbl t1
                                              Output: t1.f1
@@ -4202,7 +4202,7 @@ select * from
   on (xx.id = coalesce(yy.id));
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (COALESCE((1)) = (1))
          ->  Redistribute Motion 3:3  (slice2; segments: 3)
@@ -4211,11 +4211,11 @@ select * from
                      Hash Cond: (a1.unique1 = (1))
                      ->  Seq Scan on tenk1 a1
                      ->  Hash
-                           ->  Redistribute Motion 1:3  (slice1; segments: 1)
+                           ->  Redistribute Motion 1:3  (slice3; segments: 1)
                                  Hash Key: (1)
                                  ->  Result
          ->  Hash
-               ->  Redistribute Motion 1:3  (slice3; segments: 1)
+               ->  Redistribute Motion 1:3  (slice4; segments: 1)
                      Hash Key: (1)
                      ->  Result
  Optimizer: Postgres query optimizer
@@ -4238,10 +4238,10 @@ explain (costs off)
   select * from int4_tbl a left join tenk1 b on f1 = unique2 where f1 = 0;
                          QUERY PLAN                          
 -------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Right Join
          Hash Cond: (b.unique2 = a.f1)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: 0
                ->  Index Scan using tenk1_unique2 on tenk1 b
                      Index Cond: (unique2 = 0)
@@ -4255,15 +4255,15 @@ explain (costs off)
   select * from tenk1 a full join tenk1 b using(unique2) where unique2 = 42;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Full Join
          Hash Cond: (a.unique2 = b.unique2)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Hash Key: a.unique2
                ->  Index Scan using tenk1_unique2 on tenk1 a
                      Index Cond: (unique2 = 42)
          ->  Hash
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: b.unique2
                      ->  Index Scan using tenk1_unique2 on tenk1 b
                            Index Cond: (unique2 = 42)
@@ -4284,7 +4284,7 @@ explain (verbose, costs off)
     where coalesce(b.q1, 1) > 0;
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: a.q2, b.q1
    ->  Merge Left Join
          Output: a.q2, b.q1
@@ -4293,7 +4293,7 @@ explain (verbose, costs off)
          ->  Sort
                Output: a.q2
                Sort Key: a.q2
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Output: a.q2
                      Hash Key: a.q2
                      ->  Seq Scan on public.int8_tbl a
@@ -4303,7 +4303,7 @@ explain (verbose, costs off)
                Sort Key: (COALESCE(b.q1, '1'::bigint))
                ->  Result
                      Output: b.q1, COALESCE(b.q1, '1'::bigint)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
                            Output: b.q1
                            Hash Key: COALESCE(b.q1, '1'::bigint)
                            ->  Seq Scan on public.int8_tbl b
@@ -4628,7 +4628,7 @@ from
 where ss.stringu2 !~* ss.case1;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (CASE t1.ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END = t0.f1)
          ->  Hash Join
@@ -4636,10 +4636,10 @@ where ss.stringu2 !~* ss.case1;
                ->  Seq Scan on tenk1 t1
                      Filter: (stringu2 !~* CASE ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)
                ->  Hash
-                     ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            ->  Seq Scan on int4_tbl i4
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice2; segments: 3)
+               ->  Broadcast Motion 3:3  (slice3; segments: 3)
                      ->  Seq Scan on text_tbl t0
  Optimizer: Postgres query optimizer
 (14 rows)
@@ -4910,11 +4910,11 @@ explain (costs off)
                                QUERY PLAN                               
 ------------------------------------------------------------------------
  Finalize Aggregate
-   ->  Gather Motion 3:1  (slice2; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Hash Join
                      Hash Cond: (b.unique2 = a.unique1)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: b.unique2
                            ->  Seq Scan on tenk1 b
                      ->  Hash
@@ -4936,17 +4936,17 @@ explain (costs off)
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Finalize Aggregate
-   ->  Gather Motion 3:1  (slice3; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Hash Join
                      Hash Cond: ("*VALUES*".column1 = b.unique2)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: "*VALUES*".column1
                            ->  Nested Loop
                                  ->  Seq Scan on tenk1 a
                                  ->  Values Scan on "*VALUES*"
                      ->  Hash
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                  Hash Key: b.unique2
                                  ->  Seq Scan on tenk1 b
  Optimizer: Postgres query optimizer
@@ -5276,11 +5276,11 @@ select * from
   lateral (select *, a.q2 as x from int8_tbl b) ss on a.q2 = ss.q1;
                          QUERY PLAN                         
 ------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: a.q1, a.q2, b.q1, b.q2, (a.q2)
    ->  Nested Loop Left Join
          Output: a.q1, a.q2, b.q1, b.q2, (a.q2)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: a.q1, a.q2
                Hash Key: a.q2
                ->  Seq Scan on public.int8_tbl a
@@ -5315,11 +5315,11 @@ select * from
   lateral (select *, coalesce(a.q2, 42) as x from int8_tbl b) ss on a.q2 = ss.q1;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: a.q1, a.q2, b.q1, b.q2, (COALESCE(a.q2, '42'::bigint))
    ->  Nested Loop Left Join
          Output: a.q1, a.q2, b.q1, b.q2, (COALESCE(a.q2, '42'::bigint))
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: a.q1, a.q2
                Hash Key: a.q2
                ->  Seq Scan on public.int8_tbl a
@@ -5513,7 +5513,7 @@ select * from
   lateral (select ss2.y offset 0) ss3;
                                                                                         QUERY PLAN                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice4; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: c.q1, c.q2, a.q1, a.q2, b.q1, (COALESCE(b.q2, '42'::bigint)), d.q1, (COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)), ((COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)))
    ->  Nested Loop
          Output: c.q1, c.q2, a.q1, a.q2, b.q1, (COALESCE(b.q2, '42'::bigint)), d.q1, (COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)), ((COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)))
@@ -5527,7 +5527,7 @@ select * from
                            ->  Hash Left Join
                                  Output: a.q1, a.q2, b.q1, (COALESCE(b.q2, '42'::bigint))
                                  Hash Cond: (a.q2 = b.q1)
-                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Output: a.q1, a.q2
                                        Hash Key: a.q2
                                        ->  Seq Scan on public.int8_tbl a
@@ -5540,7 +5540,7 @@ select * from
                            Output: d.q1, COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)
                ->  Hash
                      Output: c.q1, c.q2
-                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice4; segments: 3)
                            Output: c.q1, c.q2
                            Hash Key: c.q2
                            ->  Seq Scan on public.int8_tbl c
@@ -5567,7 +5567,7 @@ select c.*,a.*,ss1.q1,ss2.q1,ss3.* from
   lateral (select * from int4_tbl i where ss2.y > f1) ss3;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice6; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: c.q1, c.q2, a.q1, a.q2, b.q1, d.q1, i.f1
    ->  Nested Loop
          Output: c.q1, c.q2, a.q1, a.q2, b.q1, d.q1, i.f1
@@ -5577,7 +5577,7 @@ select c.*,a.*,ss1.q1,ss2.q1,ss3.* from
                Hash Cond: (d.q1 = c.q2)
                ->  Nested Loop
                      Output: a.q1, a.q2, b.q1, d.q1, (COALESCE((COALESCE(b.q2, (b2.f1)::bigint)), d.q2))
-                     ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                            Output: a.q1, a.q2, b.q1, (COALESCE(b.q2, (b2.f1)::bigint))
                            ->  Hash Right Join
                                  Output: a.q1, a.q2, b.q1, (COALESCE(b.q2, (b2.f1)::bigint))
@@ -5589,13 +5589,13 @@ select c.*,a.*,ss1.q1,ss2.q1,ss3.* from
                                              Output: b.q1, b.q2
                                        ->  Materialize
                                              Output: b2.f1
-                                             ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                             ->  Broadcast Motion 3:3  (slice3; segments: 3)
                                                    Output: b2.f1
                                                    ->  Seq Scan on public.int4_tbl b2
                                                          Output: b2.f1
                                  ->  Hash
                                        Output: a.q1, a.q2
-                                       ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice4; segments: 3)
                                              Output: a.q1, a.q2
                                              Hash Key: a.q2
                                              ->  Seq Scan on public.int8_tbl a
@@ -5604,14 +5604,14 @@ select c.*,a.*,ss1.q1,ss2.q1,ss3.* from
                            Output: d.q1, COALESCE((COALESCE(b.q2, (b2.f1)::bigint)), d.q2)
                ->  Hash
                      Output: c.q1, c.q2
-                     ->  Redistribute Motion 3:3  (slice4; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice5; segments: 3)
                            Output: c.q1, c.q2
                            Hash Key: c.q2
                            ->  Seq Scan on public.int8_tbl c
                                  Output: c.q1, c.q2
          ->  Materialize
                Output: i.f1
-               ->  Broadcast Motion 3:3  (slice5; segments: 3)
+               ->  Broadcast Motion 3:3  (slice6; segments: 3)
                      Output: i.f1
                      ->  Seq Scan on public.int4_tbl i
                            Output: i.f1

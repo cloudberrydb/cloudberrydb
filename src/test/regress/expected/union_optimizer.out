@@ -498,13 +498,13 @@ explain (costs off)
  WHERE ab = 'ab';
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  GroupAggregate
          Group Key: ((t1.a || t1.b))
          ->  Sort
                Sort Key: ((t1.a || t1.b))
                ->  Append
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: ((t1.a || t1.b))
                            ->  Result
                                  Filter: (((t1.a || t1.b)) = 'ab'::text)
@@ -725,14 +725,14 @@ select * from
   join int4_tbl on f1 = expensivefunc(x);
                           QUERY PLAN                           
 ---------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (expensivefunc(t3.x) = int4_tbl.f1)
          ->  Append
                ->  Seq Scan on t3
                ->  Seq Scan on t3 t3_1
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on int4_tbl
  Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
 (10 rows)

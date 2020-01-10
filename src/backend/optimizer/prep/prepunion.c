@@ -53,7 +53,6 @@
 #include "utils/rel.h"
 #include "utils/selfuncs.h"
 
-#include "cdb/cdbllize.h"                   /* pull_up_Flow() */
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbpath.h"
 #include "cdb/cdbsetop.h"
@@ -2210,7 +2209,7 @@ adjust_appendrel_attrs_mutator(Node *node,
 	 */
 	if (IsA(node, SubPlan))
 	{
-		SubPlan *sp = (SubPlan *) node;
+		SubPlan	   *sp = (SubPlan *) node;
 
 		if (!sp->is_initplan)
 		{
@@ -2231,6 +2230,7 @@ adjust_appendrel_attrs_mutator(Node *node,
 			 * we can modify it directly.
 			 */
 			sp->plan_id = list_length(root->glob->subplans);
+			sp->plan_name = psprintf("%s (copy %d)", sp->plan_name, sp->plan_id);
 		}
 	}
 

@@ -25,6 +25,11 @@
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"
 
-extern void AssignContentIdsToPlanData(PlannerInfo *root, Plan *plan);
+extern void FinalizeDirectDispatchDataForSlice(PlanSlice *slice);
+extern void DirectDispatchUpdateContentIdsFromPlan(PlannerInfo *root, Plan *plan);
+extern void DirectDispatchUpdateContentIdsForInsert(PlannerInfo *root, Plan *plan,
+													GpPolicy *targetPolicy, Oid *hashfuncs);
+
+extern void MergeDirectDispatchCalculationInfo(DirectDispatchInfo *to, DirectDispatchInfo *from);
 
 #endif   /* CDBTARGETEDDISPATCH_H */

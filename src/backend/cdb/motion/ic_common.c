@@ -15,7 +15,7 @@
 
 #include "postgres.h"
 
-#include "nodes/execnodes.h"	/* Slice, SliceTable */
+#include "nodes/execnodes.h"	/* ExecSlice, SliceTable */
 #include "miscadmin.h"
 #include "libpq/libpq-be.h"
 #include "libpq/ip.h"
@@ -519,11 +519,11 @@ SetupInterconnect(EState *estate)
 
 	if (estate->interconnect_context)
 	{
-		elog(FATAL, "SetupInterconnect: already initialized.");
+		elog(ERROR, "SetupInterconnect: already initialized.");
 	}
 	else if (!estate->es_sliceTable)
 	{
-		elog(FATAL, "SetupInterconnect: no slice table ?");
+		elog(ERROR, "SetupInterconnect: no slice table ?");
 	}
 
 	h = allocate_interconnect_handle();
@@ -536,7 +536,7 @@ SetupInterconnect(EState *estate)
 	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP)
 		SetupTCPInterconnect(estate);
 	else
-		Assert("unsupported expected interconnect type");
+		elog(ERROR, "unsupported expected interconnect type");
 
 	MemoryContextSwitchTo(oldContext);
 
@@ -618,10 +618,8 @@ createChunkTransportState(ChunkTransportState *transportStates,
 	int			motNodeID;
 	int			i;
 
-	Assert(recvSlice &&
-		   recvSlice->sliceIndex >= 0);
-	Assert(sendSlice &&
-		   sendSlice->sliceIndex > 0);
+	Assert(recvSlice->sliceIndex >= 0);
+	Assert(sendSlice->sliceIndex > 0);
 
 	motNodeID = sendSlice->sliceIndex;
 	if (motNodeID > transportStates->size)

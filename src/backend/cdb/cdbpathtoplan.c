@@ -24,8 +24,7 @@
  */
 Flow *
 cdbpathtoplan_create_flow(PlannerInfo *root,
-						  CdbPathLocus locus,
-						  Plan *plan)
+						  CdbPathLocus locus)
 {
 	Flow	   *flow = NULL;
 

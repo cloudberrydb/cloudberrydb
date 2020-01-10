@@ -6,6 +6,45 @@
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  *
+ * This file contains functions to process plan tree, at various stages in
+ * planning, to produce a parallelize MPP plan. Outline of the stages,
+ * as they happen in standard_planner():
+ *
+ * 1. Call subquery_planner(), to build the best Path.
+ *
+ * 2. Call cdbllize_adjust_top_path().
+ *
+ *    cdbllize_adjust_top_path() adds Motion paths on top of the best Path, so
+ *    that the query's final result is made available at the correct nodes.
+ *    That's usually the QD node, so that the QD can send the query result
+ *    back to the client, but in a DML statement or CREATE TABLE AS, the final
+ *    result might be needed in the segments instead.
+ *
+ *    (There's a similar function for Init Plans,
+ *    cdbllize_adjust_init_plan_path(). The planner calls it when it builds
+ *    Paths for SubPlans that are run as Init Plans before the main query.)
+ *
+ * 3. Call create_plan() to turn the best Path into a Plan tree.
+ *
+ * 4. Call cdbllize_decorate_subplans_with_motions()
+ *
+ *    cdbllize_decorate_subplans_with_motions() adds Motions to subplans as
+ *    needed, to make subplan results available in the parent nodes.
+ *
+ * 5. Call set_plan_references()
+ *
+ * 6. Call cdbllize_build_slice_table().
+ *
+ *    cdbllize_build_slice_table() assigns slice IDs to Motion nodes, and
+ *    builds the slice table needed by the executor to set up the gang of
+ *    processes and the interconnects between them. It also eliminates unused
+ *    subplans, and zaps some fields from the Query tree that are not needed
+ *    after planning, to reduce the amount of data that needs to be dispatched.
+ *
+ *
+ * In addition to the above-mentioned functions, there's a
+ * motion_sanity_check() function, which is used to check that the query
+ * plan doesn't contain deadlock hazards involving Motions across nodes.
  *
  * IDENTIFICATION
  *	    src/backend/cdb/cdbllize.c
@@ -22,7 +61,6 @@
 #include "nodes/primnodes.h"
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
-#include "nodes/pg_list.h"
 #include "nodes/print.h"
 
 #include "optimizer/paths.h"
@@ -43,72 +81,69 @@
 #include "cdb/cdbutil.h"
 #include "optimizer/tlist.h"
 
-
 /*
- * A PlanProfile holds state for cdbparallelize() and its prescan stage.
- *
- * PlanProfileSubPlanInfo holds extra information about every subplan in
- * the plan tree. There is one PlanProfileSubPlanInfo for each entry in
- * glob->subplans.
+ * decorate_subplans_with_motions_context holds state for the recursive
+ * cdbllize_decorate_subplans_with_motions() function.
  */
-typedef struct PlanProfileSubPlanInfo
+typedef struct decorate_subplan_info
 {
-	/*
-	 * plan_id is used to identify this subplan in the overall plan tree.
-	 * Same as SubPlan->plan_id.
-	 */
-	int			plan_id;
-
-	bool		seen;			/* have we seen a SubPlan reference to this yet? */
-	bool		initPlanParallel;	/* T = this is an Init Plan that needs to be
-									 * dispatched, i.e. it contains Motions */
-
-	/* Fields copied from SubPlan */
-	bool		is_initplan;
-	bool		is_multirow;
-	bool		hasParParam;
-	SubLinkType subLinkType;
-
-	/* The context where we saw the SubPlan reference(s) for this. */
+	int			sliceDepth;
 	Flow	   *parentFlow;
-} PlanProfileSubPlanInfo;
+	bool		is_initplan;
+	bool		useHashTable;
+	bool		processed;
 
-typedef struct PlanProfile
+} decorate_subplan_info;
+
+typedef struct decorate_subplans_with_motions_context
 {
 	plan_tree_base_prefix base; /* Required prefix for
 								 * plan_tree_walker/mutator */
 
-	PlannerInfo *root;			/* cdbparallelize argument, root of top plan. */
-
-	/* main plan is parallelled */
-	bool		dispatchParallel;
-
-	/* Any of the init plans is parallelled */
-	bool		anyInitPlanParallel;
-
-	/* array is indexed by plan_id (plan_id is 1-based, so 0 is unused) */
-	PlanProfileSubPlanInfo *subplan_info;
+	/* Queue of subplan IDs that we seen, but processed yet. */
+	List	   *subplan_workingQueue;
 
 	/*
-	 * Working queue in prescan stage. Contains plan_ids of subplans that have been
-	 * seen in SubPlan expressions, but haven't been parallelized yet.
+	 * array, one element for each subplan. Use subplans[plan_id - 1] to
+	 * access the struct for a particular subplan.
 	 */
-	List	   *unvisited_subplans;
+	decorate_subplan_info *subplans;
 
-	/* working state for prescan_walker() */
-	Flow	   *currentPlanFlow;	/* what is the flow of the current plan
-									 * node */
-} PlanProfile;
+	/* Current position in the tree. */
+	int			sliceDepth;
+	Flow	   *currentPlanFlow;
+} decorate_subplans_with_motions_context;
+
+/* State for the recursive build_slice_table() function. */
+typedef struct
+{
+	plan_tree_base_prefix base; /* Required prefix for
+								 * plan_tree_walker/mutator */
+
+	/*
+	 * PlanSlice structs. Indexed by slice Id. This List is converted
+	 * into an array, for PlannedStmt->slices, at the end of
+	 * build_slice_table().
+	 */
+	List	   *slices;
+
+	/* Current slice in the traversal. */
+	int			currentSliceIndex;
+
+	/*
+	 * Subplan IDs that we have seen. Used to prevent scanning the
+	 * same subplan more than once, even if there are multiple SubPlan
+	 * nodes referring it, and to eliminate unused subplans.
+	 */
+	Bitmapset  *seen_subplans;
+} build_slice_table_context;
 
 /*
  * Forward Declarations
  */
-static void prescan_plantree(Plan *plan, PlanProfile *context);
-static void prescan_subplan(int plan_id, PlanProfile *context);
-static bool prescan_walker(Node *node, PlanProfile *context);
-static void parallelize_subplans(Plan *plan, PlanProfile *context);
-
-static void motion_sanity_check(PlannerInfo *root, Plan *plan);
+static Node *fix_outer_query_motions_mutator(Node *node, decorate_subplans_with_motions_context *context);
+static Plan *fix_subplan_motion(PlannerInfo *root, Plan *subplan, Flow *outer_query_flow);
+static bool build_slice_table_walker(Node *node, build_slice_table_context *context);
 
 /*
  * Create a GpPolicy that matches the natural distribution of the given plan.
@@ -263,29 +298,31 @@ get_partitioned_policy_from_path(PlannerInfo *root, Path *path)
 }
 
 /*
+ * cdbllize_adjust_top_path -- Adjust top Path for MPP
+ *
  * Add a Motion to the top of the query path, so that the final result
  * is distributed correctly for the kind of query. For example, an INSERT
  * statement's result must be sent to the correct segments where the data
  * needs to be inserted, and a SELECT query's result must be brought to the
  * dispatcher, so that it can be sent to the client.
  *
- * If the plan is a candidate for Direct Dispatch,
- * *needToAssignDirectDispatchContentIds is set to true.
+ * For a CREATE TABLE AS command, this also determines the distribution
+ * policy for the table, if it was not given explicitly with DISTRIBUTED BY.
+ *
+ * The input is a Path, produced by subquery_planner(). The result is a
+ * Path, with a Motion added on top, if needed. Also, *topslice is adjusted
+ * to reflect how/where the top slice needs to be executed.
  */
 Path *
-create_motion_for_top_plan(PlannerInfo *root, Path *best_path, bool *needToAssignDirectDispatchContentIds)
+cdbllize_adjust_top_path(PlannerInfo *root, Path *best_path, PlanSlice *topslice)
 {
 	Query	   *query = root->parse;
 	GpPolicy   *targetPolicy = NULL;
-	GpPolicyType targetPolicyType = POLICYTYPE_ENTRY;
-	bool		bringResultToDispatcher = false;
-
-	*needToAssignDirectDispatchContentIds = false;
 
 	/*
 	 * NOTE: This code makes the assumption that if we are working on a
 	 * hierarchy of tables, all the tables are distributed, or all are on the
-	 * entry DB.  Any mixture will fail
+	 * entry DB.  Any mixture will fail.
 	 */
 	if (query->resultRelation > 0)
 	{
@@ -294,7 +331,6 @@ create_motion_for_top_plan(PlannerInfo *root, Path *best_path, bool *needToAssig
 		Assert(rte->rtekind == RTE_RELATION);
 
 		targetPolicy = GpPolicyFetch(rte->relid);
-		targetPolicyType = targetPolicy->ptype;
 	}
 
 	if (query->commandType == CMD_SELECT && query->parentStmtType == PARENTSTMTTYPE_CTAS)
@@ -421,6 +457,10 @@ create_motion_for_top_plan(PlannerInfo *root, Path *best_path, bool *needToAssig
 			best_path = create_motion_path_for_ctas(root, targetPolicy,
 													best_path);
 		}
+
+		topslice->numsegments = targetPolicy->numsegments;
+		topslice->segindex = 0;
+		topslice->gangType = (targetPolicy->ptype == POLICYTYPE_ENTRY) ? GANGTYPE_UNALLOCATED : GANGTYPE_PRIMARY_WRITER;
 	}
 	else if (query->commandType == CMD_SELECT && query->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW)
 	{
@@ -461,27 +501,65 @@ create_motion_for_top_plan(PlannerInfo *root, Path *best_path, bool *needToAssig
 			best_path = create_motion_path_for_insert(root, targetPolicy,
 													  best_path);
 		}
+
+		topslice->numsegments = targetPolicy->numsegments;
+		topslice->segindex = 0;
+		topslice->gangType = (targetPolicy->ptype == POLICYTYPE_ENTRY) ? GANGTYPE_UNALLOCATED : GANGTYPE_PRIMARY_WRITER;
 	}
 	else if (query->commandType == CMD_SELECT && query->parentStmtType == PARENTSTMTTYPE_COPY)
 	{
 		/* COPY (SELECT ...) TO */
+		topslice->directDispatch.isDirectDispatch = false;
+		topslice->directDispatch.haveProcessedAnyCalculations = true;
+		topslice->numsegments = getgpsegmentCount();
+		topslice->segindex = 0;
+		topslice->gangType = GANGTYPE_PRIMARY_READER;
 	}
-	else if (query->commandType == CMD_SELECT)
+	else if (query->commandType == CMD_SELECT ||
+			 query->commandType == CMD_INSERT ||
+			 query->commandType == CMD_UPDATE ||
+			 query->commandType == CMD_DELETE)
 	{
 		Assert(query->parentStmtType == PARENTSTMTTYPE_NONE);
-		bringResultToDispatcher = true;
-		*needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
-	}
-	else if (query->commandType == CMD_INSERT)
-	{
-		if (query->returningList)
-			bringResultToDispatcher = true;
-	}
-	else if (query->commandType == CMD_UPDATE || query->commandType == CMD_DELETE)
-	{
-		*needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
-		if (query->returningList)
-			bringResultToDispatcher = true;
+
+		if (query->commandType == CMD_SELECT || query->returningList)
+		{
+			/*
+			 * Query result needs to be brought back to the QD. Ask for
+			 * a motion to bring it in. If the result already has the
+			 * right locus, cdbpath_create_motion_path() will return it
+			 * unmodified.
+			 *
+			 * If the query has an ORDER BY clause, use Merge Receive to
+			 * preserve the ordering. The plan has already been set up to
+			 * ensure each qExec's result is properly ordered according to
+			 * the ORDER BY specification.
+			 */
+			CdbPathLocus entryLocus;
+
+			CdbPathLocus_MakeEntry(&entryLocus);
+
+			/*
+			 * In a Motion to Entry locus, the numsegments indicates the
+			 * number of segments in the *sender*.
+			 */
+			entryLocus.numsegments = best_path->locus.numsegments;
+
+			best_path = cdbpath_create_motion_path(root,
+												   best_path,
+												   root->sort_pathkeys,
+												   false,
+												   entryLocus);
+			topslice->numsegments = 1;
+			topslice->segindex = 0;
+			topslice->gangType = GANGTYPE_UNALLOCATED;
+		}
+		else
+		{
+			topslice->numsegments = targetPolicy->numsegments;
+			topslice->segindex = 0;
+			topslice->gangType = (targetPolicy->ptype == POLICYTYPE_ENTRY) ? GANGTYPE_UNALLOCATED : GANGTYPE_PRIMARY_WRITER;
+		}
 	}
 	else if (query->commandType == CMD_UTILITY)
 	{
@@ -490,426 +568,688 @@ create_motion_for_top_plan(PlannerInfo *root, Path *best_path, bool *needToAssig
 	else
 		elog(ERROR, "unknown command type %d", query->commandType);
 
-	if (bringResultToDispatcher)
-	{
-		/*
-		 * Query result needs to be brought back to the QD. Ask for
-		 * a motion to bring it in. If the result already has the
-		 * right locus, cdbpath_create_motion_path() will return it
-		 * unmodified.
-		 *
-		 * If the query has an ORDER BY clause, use Merge Receive to
-		 * preserve the ordering. The plan has already been set up to
-		 * ensure each qExec's result is properly ordered according to
-		 * the ORDER BY specification.
-		 */
-		CdbPathLocus entryLocus;
-
-		CdbPathLocus_MakeEntry(&entryLocus);
-
-		/*
-		 * In a Motion to Entry locus, the numsegments indicates the
-		 * number of segments in the *sender*.
-		 */
-		entryLocus.numsegments = best_path->locus.numsegments;
-
-		best_path = cdbpath_create_motion_path(root,
-											   best_path,
-											   root->sort_pathkeys,
-											   false,
-											   entryLocus);
-	}
-
 	return best_path;
 }
 
-
-
-/* ------------------------------------------------------------------------- *
- * Function cdbparallelize() is the main entry point.
+/*
+ * cdbllize_adjust_init_plan_path -- Adjust Init Plan's Path for MPP
  *
- * Parallelize a single raw PostgreSQL sequential plan. The input plan
- * is modified in that Flow nodes are attached to Plan nodes in the input
- * as appropriate and the top-level plan node's dispatch field is set
- * to specify how the plan should be handled by the executor.
- *
- * The result is [a copy of] the input plan with alterations to make the
- * plan suitable for execution by Greenplum Database.
- *
- *
- * TODO: Much investigation remains in the areas of
- *
- *		- initialization plans,
- *		- plan parameters,
- *		- subqueries,
- *		- ordering and hash attributes,
- *		- etc.
- *
- *		The current implementation is little more than a rough sketch.
- *
- *
- * Outline of processing:
- *
- * - Walk through all init-plans. Make note which ones are used, and
- *   remove any unused ones (remove_unused_initplans())
- *
- * - Walk through the main plan tree, make note of SubPlan expressions
- *   and the context they appear in. (prescan_plantree())
- *
- * - Walk through any subplans that were referenced from the main plan
- *   tree (prescan_plantree_subplans()). If there are references to
- *   other subplans in a subplan, they are added to the working queue.
- *   Iterate until all reachable subplans have been visited.
- *
- * - If there were no Motions in the plan, the plan can be executed
- *   as is, and no further processing is required.
- *
- * - Otherwise, "parallelize" any subplan Plans into a form that can be
- *   executed as part of the main plan. (parallelize_subplans())
- *
- * - Implement the decisions recorded in the Flow nodes (apply_motion)
- *	 to produce a modified copy of the plan.  Mark the copy for parallel
- *	 dispatch and return it.
- * ------------------------------------------------------------------------- *
+ * Init Plans are dispatched and executed before the main query. Adjust the
+ * Path to bring the result back to the QD.
  */
-Plan *
-cdbparallelize(PlannerInfo *root, Plan *plan)
+Path *
+cdbllize_adjust_init_plan_path(PlannerInfo *root, Path *best_path)
 {
-	PlanProfile profile;
-	PlanProfile *context = &profile;
+	CdbPathLocus entryLocus;
 
-	/* Make sure we're called correctly (and need to be called).  */
-	if (Gp_role == GP_ROLE_UTILITY)
-		return plan;
-	if (Gp_role != GP_ROLE_DISPATCH)
-		elog(ERROR, "Plan parallelization invoked for incorrect role: %s",
-			 role_to_string(Gp_role));
-
-	Assert(is_plan_node((Node *) plan));
-	/* this should only be called at the top-level, not on a subquery */
-	Assert(root->parent_root == NULL);
+	CdbPathLocus_MakeEntry(&entryLocus);
 
 	/*
-	 * Walk plan and remove unused initplans and their params
+	 * In a Motion to Entry locus, the numsegments indicates the
+	 * number of segments in the *sender*.
 	 */
-	remove_unused_initplans(plan, root);
+	entryLocus.numsegments = best_path->locus.numsegments;
 
-	/* Print plan if debugging. */
-	if (Debug_print_prelim_plan)
-		elog_node_display(DEBUG1, "preliminary plan", plan, Debug_pretty_print);
-
-	/*
-	 * Don't parallelize plans rendered impotent be constraint exclusion. See
-	 * MPP-2168.  We could fold this into prescan() but this quick check is
-	 * effective in the only case we know of.
-	 */
-	if (IsA(plan, Result) &&plan->lefttree == NULL
-		&& plan->targetlist == NULL
-		&& plan->qual == NULL
-		&& plan->initPlan == NULL)
-	{
-		Assert(plan->dispatch != DISPATCH_PARALLEL);
-		return plan;
-	}
-
-	/* Initialize the PlanProfile result ... */
-	planner_init_plan_tree_base(&context->base, root);
-	context->root = root;
-	context->dispatchParallel = false;
-	context->anyInitPlanParallel = false;
-	context->currentPlanFlow = NULL;
-	context->subplan_info = (PlanProfileSubPlanInfo *)
-		palloc((list_length(root->glob->subplans) + 1) * sizeof(PlanProfileSubPlanInfo));
-	for (int i = 0; i <= list_length(root->glob->subplans); i++)
-	{
-		context->subplan_info[i].plan_id = i;
-		context->subplan_info[i].seen = false;
-		context->subplan_info[i].initPlanParallel = false;
-	}
-	context->unvisited_subplans = NIL;
-
-	switch (root->parse->commandType)
-	{
-		case CMD_SELECT:
-			/* SELECT INTO / CREATE TABLE AS always created partitioned tables. */
-			if (root->parse->parentStmtType != PARENTSTMTTYPE_NONE)
-				context->dispatchParallel = true;
-			break;
-
-		case CMD_INSERT:
-		case CMD_UPDATE:
-		case CMD_DELETE:
-			break;
-
-		default:
-			elog(ERROR, "incorrect commandtype for Plan parallelization");
-	}
-
-	/*
-	 * First scan the main plantree, making note of any Motion nodes, so that
-	 * we know whether the plan needs to be dispatched in parallel. We also
-	 * make note of any SubPlan expressions, and the parallelization context
-	 * that they appear in.
-	 */
-	prescan_plantree(plan, context);
-
-	/*
-	 * Then scan all the subplans that were referenced from the main plan tree.
-	 * Whenever we walk through a sub-plan, we might see more subplans.
-	 * They are added to the 'unvisited_subplans' working queue, so keep
-	 * going until the queue is empty.
-	 */
-	while (context->unvisited_subplans)
-	{
-		int			plan_id = linitial_int(context->unvisited_subplans);
-
-		context->unvisited_subplans = list_delete_first(context->unvisited_subplans);
-
-		prescan_subplan(plan_id, context);
-	}
-
-	root->glob->subplan_sliceIds = palloc0((list_length(root->glob->subplans) + 1) * sizeof(int));
-	root->glob->subplan_initPlanParallel = palloc0((list_length(root->glob->subplans) + 1) * sizeof(bool));
-
-	/*
-	 * Parallelize any subplans.
-	 *
-	 * Do this even when not actually dispatching, to eliminate any unused
-	 * subplans. That's not merely an optimization: the unused subplans might
-	 * contain Motion nodes, and the executor gets confused if there are
-	 * Motion nodes - even though they would never be executed - in a plan
-	 * that's not dispatched.
-	 */
-	parallelize_subplans(plan, context);
-
-	/*
-	 * Implement the parallelizing directions in the Flow nodes attached
-	 * to the root plan node of each root slice of the plan, and assign
-	 * slice IDs to parts of the plan tree that will run in separate
-	 * processes.
-	 */
-	if (context->dispatchParallel || context->anyInitPlanParallel)
-		plan = apply_motion(root, plan);
-
-	/*
-	 * Mark the root plan to DISPATCH_PARALLEL if prescan() says it is
-	 * parallel. Each init plan has its own flag to indicate
-	 * whether it's a parallel plan.
-	 */
-	if (context->dispatchParallel)
-		plan->dispatch = DISPATCH_PARALLEL;
-
-	if (context->anyInitPlanParallel)
-	{
-		for (int plan_id = 1; plan_id <= list_length(root->glob->subplans); plan_id++)
-		{
-			PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
-
-			if (spinfo->seen && spinfo->is_initplan && spinfo->initPlanParallel)
-				root->glob->subplan_initPlanParallel[plan_id] = true;
-		}
-	}
-
-	if (gp_enable_motion_deadlock_sanity)
-		motion_sanity_check(root, plan);
-
-	return plan;
+	return cdbpath_create_motion_path(root,
+									  best_path,
+									  root->sort_pathkeys,
+									  false,
+									  entryLocus);
 }
 
 /*
- * parallelize_subplans()
+ * cdbllize_decorate_subplans_with_motions - Adjust subplans for MPP.
  *
- * Transform subplans into something that can run in a parallel Greenplum
- * environment. Also remove unused subplans.
+ * This function adds Motion nodes on top of plan trees for SubPlans, so that
+ * the subplan results are available at the correct segment for the outer
+ * query. It also fixes up any MOTIONTYPE_OUTER_QUERY Motions, changing them
+ * into Gather or Broadcast Motions, depending on the parent slice. The plan
+ * tree can contain outer-query Motions, even if there are no SubPlans, if it
+ * contains subquery RTEs.
+ *
+ * The input is a Plan tree, from create_plan().
+ *
+ * Outline of processing:
+ *
+ * - Walk through the main Plan tree. Make note of all SubPlan expressions,
+ *   and the context they appear in.
+ *
+ * - Recurse to process each subplan that was encountered. At the top of the
+ *   subplan, add a Motion if needed, so that the result of the subplan is
+ *   available in the outer slice. For example, if the SubPlan appears in
+ *   a slice that's executed only on a single QE node, then the subplan's
+ *   result must also be present at that node. A Gather Motion is put on
+ *   top of the subplan, if needed. Or if the parent slice is executes on all
+ *   nodes (Replicated or Partitioned), then a Broadcast Motion is put on
+ *   top of the subplan, unless the subplan's result is already available on
+ *   all QEs.
+ *
+ * - If any of the subplans contained more SubPlan expressions, process those
+ *   too.
+ *
+ * The result is a deep copy of the argument Plan tree with added/modified
+ * Motion nodes, or the original Plan tree unmodified if no changes are
+ * needed.
+ *
+ * Note: Subqueries in from-list can contain MOTIONTYPE_OUTER_QUERY Motions,
+ * too, so we need to scan the tree even if there are no SubPlans.
  */
-static void
-parallelize_subplans(Plan *plan, PlanProfile *context)
+Plan *
+cdbllize_decorate_subplans_with_motions(PlannerInfo *root, Plan *plan)
 {
-	PlannerInfo *root = context->root;
+	Plan	   *result;
+	decorate_subplans_with_motions_context context;
+	int			nsubplans;
+
+	/* Initialize mutator context. */
+	planner_init_plan_tree_base(&context.base, root);
+	context.sliceDepth = 0;
+	context.subplan_workingQueue = NIL;
+
+	nsubplans = list_length(root->glob->subplans);
+	context.subplans = (decorate_subplan_info *)
+		palloc((nsubplans + 1) * sizeof(decorate_subplan_info));
+	for (int i = 1; i <= nsubplans; i++)
+	{
+		decorate_subplan_info *sstate = &context.subplans[i];
+
+		sstate->sliceDepth = -1;
+		sstate->parentFlow = NULL;
+		sstate->is_initplan = false;
+		sstate->processed = false;
+	}
 
 	/*
-	 * Parallelize all subplans. And remove unused ones
+	 * Process the main plan tree.
 	 */
-	for (int plan_id = 1; plan_id <= list_length(root->glob->subplans); plan_id++)
-	{
-		PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
-		ListCell   *planlist_cell = list_nth_cell(root->glob->subplans, plan_id - 1);
-		Plan	   *subplan_plan = (Plan *) lfirst(planlist_cell);
+	context.currentPlanFlow = plan->flow;
+	result = (Plan *) fix_outer_query_motions_mutator((Node *) plan, &context);
 
-		if (!spinfo->seen)
+	/*
+	 * Process any SubPlans that were reachable from the main plan tree.
+	 * While we process the SubPlans, we might encounter more SubPlans.
+	 * They will be added to the working queue, so keep going until the
+	 * working queue is empty.
+	 */
+	while (context.subplan_workingQueue)
+	{
+		int			plan_id = linitial_int(context.subplan_workingQueue);
+		decorate_subplan_info *sstate = &context.subplans[plan_id];
+		ListCell   *planlist_cell = list_nth_cell(root->glob->subplans, plan_id - 1);
+		Plan	   *subplan = (Plan *) lfirst(planlist_cell);
+
+		context.subplan_workingQueue = list_delete_first(context.subplan_workingQueue);
+
+		if (sstate->processed)
+		{
+			if (!sstate->is_initplan)
+				elog(ERROR, "SubPlan %d already processed", plan_id);
+			else
+				continue;
+		}
+		sstate->processed = true;
+
+		if (sstate->is_initplan)
 		{
 			/*
-			 * Remove unused subplans.
-			 * Executor initializes state for subplans even they are unused.
-			 * When the generated subplan is not used and has motion inside,
-			 * causing motionID not being assigned, which will break sanity
-			 * check when executor tries to initialize subplan state.
+			 * InitPlans are dispatched separately, before the main plan,
+			 * and the result is brought to the QD.
 			 */
+			Flow	   *topFlow = makeFlow(FLOW_SINGLETON, getgpsegmentCount());
+
+			topFlow->segindex = -1;
+			context.sliceDepth = 0;
+			context.currentPlanFlow = topFlow;
+		}
+		else
+		{
+			context.sliceDepth = sstate->sliceDepth;
+			context.currentPlanFlow = sstate->parentFlow;
+		}
+
+		if (!subplan->flow)
+			elog(ERROR, "subplan is missing Flow information");
+
+		/*
+		 * If the subquery result is not available where the outer query needs it,
+		 * we have to add a Motion node to redistribute it.
+		 */
+		if (subplan->flow->locustype != CdbLocusType_OuterQuery &&
+			subplan->flow->locustype != CdbLocusType_SegmentGeneral &&
+			subplan->flow->locustype != CdbLocusType_General)
+		{
+			subplan = fix_subplan_motion(root, subplan, context.currentPlanFlow);
+
+			/*
+			 * If we created a Motion, protect it from rescanning. Init Plans
+			 * and hashed SubPlans are never rescanned.
+			 */
+			if (IsA(subplan, Motion) && !sstate->is_initplan &&
+				!sstate->useHashTable)
+				subplan = (Plan *) make_material(subplan);
+		}
+
+		subplan = (Plan *) fix_outer_query_motions_mutator((Node *) subplan, &context);
+
+		lfirst(planlist_cell) = subplan;
+	}
+
+	return result;
+}
+
+
+/*
+ * Workhorse for cdbllize_fix_outer_query_motions().
+ */
+static Node *
+fix_outer_query_motions_mutator(Node *node, decorate_subplans_with_motions_context *context)
+{
+	Node	   *newnode;
+	Plan	   *plan;
+	Flow	   *saveCurrentPlanFlow;
+
+#ifdef USE_ASSERT_CHECKING
+	PlannerInfo *root = (PlannerInfo *) context->base.node;
+	Assert(root && IsA(root, PlannerInfo));
+#endif
+
+	if (node == NULL)
+		return NULL;
+
+	/* An expression node might have subtrees containing plans to be mutated. */
+	if (!is_plan_node(node))
+	{
+		node = plan_tree_mutator(node, fix_outer_query_motions_mutator, context, false);
+
+		/*
+		 * If we see a SubPlan, remember the context where we saw it. We memorize
+		 * the parent's node's Flow, so that we know where the SubPlan needs to
+		 * bring the result. There might be multiple references to the same SubPlan,
+		 * if e.g. the result of the SubPlan is passed up the plan for use in later
+		 * joins or for the final target list. Remember the *deepest* slice level
+		 * where we saw it. We cannot pass SubPlan's result down the tree, but we
+		 * can propagate it upwards if we put it to the target list. So it needs
+		 * to be calculated at the bottom level, and propagated up from there.
+		 */
+		if (IsA(node, SubPlan))
+		{
+			SubPlan	   *spexpr = (SubPlan *) node;
+			decorate_subplan_info *sstate = &context->subplans[spexpr->plan_id];
+
+			sstate->is_initplan = spexpr->is_initplan;
+			sstate->useHashTable = spexpr->useHashTable;
+
+			if (sstate->processed)
+				elog(ERROR, "found reference to already-processed SubPlan");
+			if (sstate->sliceDepth == -1)
+				context->subplan_workingQueue = lappend_int(context->subplan_workingQueue,
+															spexpr->plan_id);
+
+			if (!spexpr->is_initplan && context->sliceDepth > sstate->sliceDepth)
+			{
+				sstate->sliceDepth = context->sliceDepth;
+				sstate->parentFlow = context->currentPlanFlow;
+			}
+		}
+		return node;
+	}
+
+	plan = (Plan *) node;
+
+	if (IsA(plan, Motion))
+	{
+		Motion	   *motion = (Motion *) plan;
+
+		/* sanity check: Sub plan must have flow */
+		Assert(motion->plan.lefttree->flow);
+
+		/* sanity check: we haven't assigned slice/motion IDs yet */
+		Assert(motion->motionID == 0);
+
+		/*
+		 * Recurse into the Motion's initPlans and other fields, and the
+		 * subtree.
+		 *
+		 * All the fields on the Motion node are considered part of the sending
+		 * slice.
+		 */
+		saveCurrentPlanFlow = context->currentPlanFlow;
+		if (plan->lefttree->flow->locustype != CdbLocusType_OuterQuery)
+			context->currentPlanFlow = plan->lefttree->flow;
+		context->sliceDepth++;
+
+		plan = (Plan *) plan_tree_mutator((Node *) plan,
+										  fix_outer_query_motions_mutator,
+										  context,
+										  false);
+		motion = (Motion *) plan;
+		context->sliceDepth--;
+		context->currentPlanFlow = saveCurrentPlanFlow;
+
+		/*
+		 * If this is a Motion node in a correlated SubPlan, where we bring
+		 * the result to the parent, the Motion was marked as type
+		 * MOTIONTYPE_OUTER_QUERY. Because we didn't know whether the parent
+		 * is distributed, replicated, or a single QD/QE process, when the
+		 * subquery was planned, we fix that up here. Modify the Motion node
+		 * so that it brings the result to the parent.
+		 */
+		if (motion->motionType == MOTIONTYPE_OUTER_QUERY)
+		{
+			Assert(!motion->sendSorted);
+
+			if (context->currentPlanFlow->flotype == FLOW_SINGLETON)
+			{
+				motion->motionType = MOTIONTYPE_GATHER;
+			}
+			else if (context->currentPlanFlow->flotype == FLOW_REPLICATED ||
+					 context->currentPlanFlow->flotype == FLOW_PARTITIONED)
+			{
+				motion->motionType = MOTIONTYPE_BROADCAST;
+			}
+			else
+				elog(ERROR, "unexpected Flow type in parent of a SubPlan");
+		}
+
+		/*
+		 * For non-top slice, if this motion is QE singleton and subplan's locus
+		 * is CdbLocusType_SegmentGeneral, omit this motion.
+		 */
+		if (context->sliceDepth > 0 &&
+			context->currentPlanFlow->flotype == FLOW_SINGLETON &&
+			context->currentPlanFlow->segindex == 0 &&
+			motion->plan.lefttree->flow->locustype == CdbLocusType_SegmentGeneral)
+		{
+			/*
+			 * Omit this motion. If there were any InitPlans attached to it,
+			 * make sure we keep them.
+			 */
+			Plan	   *child;
+
+			child = motion->plan.lefttree;
+			child->initPlan = list_concat(child->initPlan, motion->plan.initPlan);
+
+			newnode = (Node *) child;
+		}
+		else
+		{
+			newnode = (Node *) motion;
+		}
+	}
+	else
+	{
+		/*
+		 * Copy this node and mutate its children. Afterwards, this node should be
+		 * an exact image of the input node, except that contained nodes requiring
+		 * parallelization will have had it applied.
+		 */
+		saveCurrentPlanFlow = context->currentPlanFlow;
+		if (plan->flow != NULL && plan->flow->locustype != CdbLocusType_OuterQuery)
+			context->currentPlanFlow = plan->flow;
+		newnode = plan_tree_mutator(node, fix_outer_query_motions_mutator, context, false);
+		context->currentPlanFlow = saveCurrentPlanFlow;
+	}
+
+	return newnode;
+}
+
+
+/*
+ * Add a Motion node on top of a Plan if needed, to make the result available
+ * in 'outer_query_flow'. Subroutine of cdbllize_fix_outer_query_motions().
+ */
+static Plan *
+fix_subplan_motion(PlannerInfo *root, Plan *subplan, Flow *outer_query_flow)
+{
+	bool		need_motion;
+
+	if (outer_query_flow->flotype == FLOW_SINGLETON)
+	{
+		if (subplan->flow->flotype != FLOW_SINGLETON)
+			need_motion = true;
+		else
+			need_motion = false;
+	}
+	else if (outer_query_flow->flotype == FLOW_REPLICATED ||
+			 outer_query_flow->flotype == FLOW_PARTITIONED)
+	{
+		// FIXME: Isn't it pointless to broadcast if it's already replicated?
+		need_motion = true;
+	}
+	else
+		elog(ERROR, "unexpected flow type %d in parent of SubPlan expression",
+			 outer_query_flow->flotype);
+
+	if (need_motion)
+	{
+		/*
+		 * We need to add a Motion to the top.
+		 */
+		PlanSlice  *sendSlice;
+		Motion	   *motion;
+		Flow	   *subFlow = subplan->flow;
+		List	   *initPlans = NIL;
+
+		Assert(subFlow);
+
+		/*
+		 * Strip off any Material nodes at the top. There's no point in
+		 * materializing just below a Motion, because a Motion is never
+		 * rescanned.
+		 *
+		 * If we strip off any nodes, make sure we preserve any initPlans
+		 * that were attached to them.
+		 */
+		while (IsA(subplan, Material))
+		{
+			initPlans = list_concat(initPlans, subplan->initPlan);
+			subplan = subplan->lefttree;
+		}
+
+		/*
+		 * If there's an existing Motion on top, we can remove it, and
+		 * replace it with a new Motion. But make sure we reuse the sender
+		 * slice information. We could build a new one here, but then we'd
+		 * lose any direct dispatch information.
+		 *
+		 * Otherwise, build a new sender slice.
+		 */
+		if (IsA(subplan, Motion))
+		{
+			Motion *strippedMotion = (Motion *) subplan;
+
+			sendSlice = strippedMotion->senderSliceInfo;
+			subplan = subplan->lefttree;
+			initPlans = list_concat(initPlans, strippedMotion->plan.initPlan);
+		}
+		else
+		{
+			sendSlice = palloc0(sizeof(PlanSlice));
+			sendSlice->gangType = GANGTYPE_PRIMARY_READER;
+			sendSlice->sliceIndex = -1;
+
+			if (subFlow->flotype != FLOW_SINGLETON)
+			{
+				sendSlice->numsegments = subFlow->numsegments;
+				sendSlice->segindex = 0;
+			}
+			else
+			{
+				if (subFlow->segindex == -1)
+					sendSlice->gangType = GANGTYPE_ENTRYDB_READER;
+				else
+					sendSlice->gangType = GANGTYPE_SINGLETON_READER;
+				sendSlice->numsegments = 1;
+				sendSlice->segindex = subFlow->segindex;
+			}
+		}
+
+		motion = make_motion(NULL, subplan,
+							 0, NULL, NULL, NULL, NULL /* no ordering */);
+		motion->motionType = (outer_query_flow->flotype == FLOW_SINGLETON) ?
+			MOTIONTYPE_GATHER : MOTIONTYPE_BROADCAST;
+		motion->hashExprs = NIL;
+		motion->hashFuncs = NULL;
+		motion->plan.lefttree->flow = subFlow;
+		motion->plan.initPlan = initPlans;
+		motion->senderSliceInfo = sendSlice;
+
+		subplan = (Plan *) motion;
+	}
+	return subplan;
+}
+
+/*
+ * cdbllize_build_slice_table -- Build the (planner) slice table for a query.
+ */
+void
+cdbllize_build_slice_table(PlannerInfo *root, Plan *top_plan,
+						   PlanSlice *top_slice)
+{
+	Query	   *query = root->parse;
+	build_slice_table_context cxt;
+	ListCell   *lc;
+	int			sliceIndex;
+	bool		all_root_slices;
+
+	/* subplan_sliceIds array needs to exist, even in non-dispatcher mode */
+	root->glob->subplan_sliceIds = palloc(list_length(root->glob->subplans) * sizeof(int));
+	for(int i = 0; i < list_length(root->glob->subplans); i++)
+		root->glob->subplan_sliceIds[i] = -1;
+
+	/*
+	 * In non-dispatcher mode, there are no motions and no dispatching.
+	 * In utility mode, we still need a slice, at least some of the
+	 * EXPLAIN code expects it.
+	 */
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		PlanSlice *dummySlice;
+
+		dummySlice = palloc0(sizeof(PlanSlice));
+		dummySlice->sliceIndex = 0;
+		dummySlice->parentIndex = 0;
+		dummySlice->gangType = GANGTYPE_UNALLOCATED;
+		dummySlice->numsegments = 0;
+		dummySlice->segindex = -1;
+
+		root->glob->numSlices = 1;
+		root->glob->slices = dummySlice;
+
+		return;
+	}
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return;
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	planner_init_plan_tree_base(&cxt.base, root);
+	cxt.seen_subplans = NULL;
+
+	Assert(root->glob->slices == NULL);
+
+	top_slice->sliceIndex = 0;
+	top_slice->parentIndex = -1;
+	cxt.slices = list_make1(top_slice);
+
+	cxt.currentSliceIndex = 0;
+
+	/*
+	 * Walk through the main plan tree, and recursively all SubPlans.
+	 * Create a new PlanSlice, and assign a slice ID at every Motion
+	 * and Init Plan. Also makes note of all the Subplans that are
+	 * reachable from the top plan, so that unused SubPlans can be
+	 * eliminated later.
+	 */
+	(void) build_slice_table_walker((Node *) top_plan, &cxt);
+
+	/*
+	 * Remove unused subplans, and Init Plans.
+	 *
+	 */
+	remove_unused_initplans(top_plan, root);
+
+	/*
+	 * Remove unused subplans.
+	 *
+	 * Executor initializes state for subplans even they are unused.
+	 * When the generated subplan is not used and has motion inside,
+	 * causing motionID not being assigned, which will break sanity
+	 * check when executor tries to initialize subplan state.
+	 */
+	int			plan_id = 1;
+	foreach(lc, root->glob->subplans)
+	{
+		if (!bms_is_member(plan_id, cxt.seen_subplans))
+		{
+			Plan	   *dummy_plan;
+
 			/*
 			 * This subplan is unused. Replace it in the global list of
 			 * subplans with a dummy. (We can't just remove it from the global
 			 * list, because that would screw up the plan_id numbering of the
 			 * subplans).
 			 */
-			pfree(subplan_plan);
-			subplan_plan = (Plan *) make_result(NIL,
-												(Node *) list_make1(makeBoolConst(false, false)),
-												NULL);
+			pfree(lfirst(lc));
+			dummy_plan = (Plan *) make_result(NIL,
+											  (Node *) list_make1(makeBoolConst(false, false)),
+											  NULL);
+			lfirst(lc) = dummy_plan;
 		}
-
-		/* Replace subplan in global subplan list. */
-		lfirst(planlist_cell) = subplan_plan;
+		plan_id++;
 	}
-}
-
-/*
- * Function prescan_walker is the workhorse of prescan.
- *
- * The driving function, prescan(), should be called only once on a
- * plan produced by the Greenplum Database optimizer for dispatch on the QD.  There
- * are two main task performed:
- *
- * 1. Since the optimizer isn't in a position to view plan globally,
- *    it may generate plans that we can't execute.  This function is
- *    responsible for detecting potential problem usages:
- *
- *    Example: Non-initplan subplans are legal in sequential contexts
- *    but not in parallel contexs.
- *
- * 2. The function specifies (by marking Flow nodes) what (if any)
- *    motions need to be applied to initplans prior to dispatch.
- *    As in the case of the main plan, the actual Motion node is
- *    attached later.
- */
-static void
-prescan_plantree(Plan *plan, PlanProfile *context)
-{
-	(void) prescan_walker((Node *) plan, context);
-}
-
-static void
-prescan_subplan(int plan_id, PlanProfile *context)
-{
-	PlanProfileSubPlanInfo *spinfo = &context->subplan_info[plan_id];
-	Plan	   *subplan_plan = (Plan *) list_nth(context->root->glob->subplans, plan_id - 1);
-
-	Assert(spinfo->seen);
-	Assert(is_plan_node((Node *) subplan_plan));
 
 	/*
-	 * Init plan and main plan are dispatched separately,
-	 * so we need to set DISPATCH_PARALLEL flag separately
-	 * for them.
-	 *
-	 * save the parallel state of main plan. init plan
-	 * should not effect main plan.
+	 * If none of the slices require dispatching, we can run everything in one slice.
 	 */
-	if (spinfo->is_initplan)
+	all_root_slices = true;
+	foreach (lc, cxt.slices)
 	{
-		bool		savedMainPlanParallel = context->dispatchParallel;
+		PlanSlice *slice = (PlanSlice *) lfirst(lc);
 
-		context->dispatchParallel = false;
-
-		(void) prescan_walker((Node *) subplan_plan, context);
-
-		/* mark init plan parallel state and restore it for main plan */
-		if (context->dispatchParallel)
+		if (slice->gangType != GANGTYPE_UNALLOCATED)
 		{
-			spinfo->initPlanParallel = true;
-			context->anyInitPlanParallel = true;
+			all_root_slices = false;
+			break;
 		}
-
-		context->dispatchParallel = savedMainPlanParallel;
 	}
-	else
+	if (all_root_slices)
 	{
-		(void) prescan_walker((Node *) subplan_plan, context);
+		for(int i = 0; i < list_length(root->glob->subplans); i++)
+			root->glob->subplan_sliceIds[i] = -1;
+		cxt.slices = list_truncate(cxt.slices, 1);
 	}
+
+	/*
+	 * Turn the list of PlanSlices into an array, for dispatching.
+	 */
+	root->glob->numSlices = list_length(cxt.slices);
+	root->glob->slices = palloc(root->glob->numSlices * sizeof(PlanSlice));
+	sliceIndex = 0;
+	foreach (lc, cxt.slices)
+	{
+		PlanSlice *src = (PlanSlice *) lfirst(lc);
+
+		memcpy(&root->glob->slices[sliceIndex], src, sizeof(PlanSlice));
+		sliceIndex++;
+	}
+	list_free_deep(cxt.slices);
+
+	/*
+	 * Discard subtrees of Query node that aren't needed for execution. Note
+	 * the targetlist (query->targetList) is used in execution of prepared
+	 * statements, so we leave that alone.
+	 */
+	query->jointree = NULL;
+	query->groupClause = NIL;
+	query->havingQual = NULL;
+	query->distinctClause = NIL;
+	query->sortClause = NIL;
+	query->limitCount = NULL;
+	query->limitOffset = NULL;
+	query->setOperations = NULL;
 }
 
 static bool
-prescan_walker(Node *node, PlanProfile *context)
+build_slice_table_walker(Node *node, build_slice_table_context *context)
 {
-	Flow	   *savedPlanFlow = context->currentPlanFlow;
-	bool		result;
+	PlannerInfo *root = (PlannerInfo *) context->base.node;
 
 	if (node == NULL)
 		return false;
 
-	if (is_plan_node(node))
-	{
-		Plan	   *plan = (Plan *) node;
-
-		if (plan->dispatch == DISPATCH_PARALLEL)
-			context->dispatchParallel = true;
-
-		if (plan->flow &&
-			(plan->flow->flotype == FLOW_PARTITIONED
-			 || plan->flow->flotype == FLOW_REPLICATED))
-			context->dispatchParallel = true;
-
-		/*
-		 * Not all Plan types set the Flow information. If it's missing,
-		 * assume it's the same as parent's
-		 */
-		if (plan->flow)
-			context->currentPlanFlow = plan->flow;
-	}
-
 	if (IsA(node, SubPlan))
 	{
 		SubPlan	   *spexpr = (SubPlan *) node;
-		PlanProfileSubPlanInfo *spinfo = &context->subplan_info[spexpr->plan_id];
+		int			plan_id = spexpr->plan_id;
 
 		/*
-		 * The Plans of the subqueries are handled separately, after the pass
-		 * over the main plan tree. Remember the context where this SubPlan
-		 * reference occurred, so that we can set the flow that the subplan
-		 * needs to feed into correctly, in that separate pass.
-		 *
-		 * XXX: If there are multiple SubPlan references with the same plan_id,
-		 * but in different slices, that would spell trouble, if the subplan's
-		 * Plan tree also contained Motions, because same Motion plan would
-		 * essentially have to send rows to two different receiver slices.
-		 * We wrap potentially problematic SubPlans in PlaceHolderVars during
-		 * planning to avoid that (see make_placeholders_for_subplans() in
-		 * src/backend/optimizer/util/placeholder.c), but it would be nice to
-		 * check for that here. However, we cannot detect that case here,
-		 * because we haven't assigned slices yet.
+		 * Recurse into each subplan only once, even if there are multiple
+		 * SubPlans referring to it.
 		 */
-		if (!context->currentPlanFlow)
-			elog(ERROR, "SubPlan's parent Plan has no Flow information");
-
-		if (!spinfo->seen)
+		if (!bms_is_member(plan_id, context->seen_subplans))
 		{
-			spinfo->seen = true;
-			spinfo->is_initplan = spexpr->is_initplan;
-			spinfo->is_multirow = spexpr->is_multirow;
-			spinfo->hasParParam = (spexpr->parParam) != NIL;
-			spinfo->subLinkType = spexpr->subLinkType;
-			spinfo->parentFlow = context->currentPlanFlow;
+			bool		result;
+			int			save_currentSliceIndex;
 
-			context->unvisited_subplans = lappend_int(context->unvisited_subplans, spexpr->plan_id);
-		}
-		else
-		{
-			Assert(spinfo->is_initplan == spexpr->is_initplan);
-			Assert(spinfo->is_multirow == spexpr->is_multirow);
-			Assert(spinfo->hasParParam == ((spexpr->parParam) != NIL));
-			Assert(spinfo->subLinkType == spexpr->subLinkType);
+			context->seen_subplans = bms_add_member(context->seen_subplans, plan_id);
+
+			save_currentSliceIndex = context->currentSliceIndex;
+			if (spexpr->is_initplan)
+			{
+				PlanSlice *initTopSlice;
+
+				initTopSlice = palloc0(sizeof(PlanSlice));
+				initTopSlice->gangType = GANGTYPE_UNALLOCATED;
+				initTopSlice->numsegments = 0;
+				initTopSlice->segindex = -1;
+				initTopSlice->parentIndex = -1;
+				initTopSlice->sliceIndex = list_length(context->slices);
+				context->slices = lappend(context->slices, initTopSlice);
+
+				context->currentSliceIndex = initTopSlice->sliceIndex;
+			}
+			root->glob->subplan_sliceIds[plan_id - 1] = context->currentSliceIndex;
+
+			result = plan_tree_walker(node,
+									  build_slice_table_walker,
+									  context,
+									  true);
+
+			context->currentSliceIndex = save_currentSliceIndex;
+
+			return result;
 		}
 	}
 
 	if (IsA(node, Motion))
-		context->dispatchParallel = true;
+	{
+		Motion	   *motion = (Motion *) node;
+		PlanSlice  *sendSlice;
+		int			save_currentSliceIndex;
+		bool		result;
 
-	/* don't recurse into plan trees of SubPlans */
-	result = plan_tree_walker(node, prescan_walker, context, false);
+		Assert(motion->motionID == 0);
 
-	/* restore saved flow */
-	context->currentPlanFlow = savedPlanFlow;
+		/* set up a new slice */
+		sendSlice = motion->senderSliceInfo;
+		Assert(sendSlice->sliceIndex == -1);
+		sendSlice->sliceIndex = list_length(context->slices);
+		sendSlice->parentIndex = context->currentSliceIndex;
+		motion->motionID = sendSlice->sliceIndex;
+		motion->senderSliceInfo = NULL;
+		context->slices = lappend(context->slices, sendSlice);
 
-	return result;
+		save_currentSliceIndex = context->currentSliceIndex;
+		context->currentSliceIndex = sendSlice->sliceIndex;
+
+		if (sendSlice->directDispatch.isDirectDispatch &&
+			sendSlice->directDispatch.contentIds == NIL)
+		{
+			/*
+			 * Direct dispatch, but we've already determined that there will
+			 * be no match on any segment. Doesn't matter which segmnent produces
+			 * the non-result.
+			 *
+			 * XXX: Would've been better to replace this with a dummy Result
+			 * node or something in the planner.
+			 */
+			sendSlice->directDispatch.contentIds = list_make1_int(0);
+		}
+
+		result = plan_tree_walker((Node *) motion,
+								  build_slice_table_walker,
+								  context,
+								  false);
+
+		context->currentSliceIndex = save_currentSliceIndex;
+
+		return result;
+	}
+
+	return plan_tree_walker(node,
+							build_slice_table_walker,
+							context,
+							false);
 }
 
 
@@ -933,53 +1273,6 @@ makeFlow(FlowType flotype, int numsegments)
 
 	return flow;
 }
-
-
-/*
- * Create a flow for the given Plan node based on the flow in its
- * lefttree (outer) plan.  Partitioning information is preserved.
- * Sort specifications are preserved only if withSort is true.
- *
- * NB: At one time this function was called during cdbparallelize(), after
- * transformation of the plan by set_plan_references().  Later, calls were
- * added upstream of set_plan_references(); only these remain at present.
- *
- * Don't call on a SubqueryScan plan.
- */
-Flow *
-pull_up_Flow(Plan *plan, Plan *subplan)
-{
-	Flow	   *model_flow = NULL;
-	Flow	   *new_flow = NULL;
-
-	Insist(subplan);
-
-	model_flow = subplan->flow;
-	if (!model_flow)
-		elog(ERROR, "subplan is missing flow information");
-
-	/* SubqueryScan always has manifest Flow, so we shouldn't see one here. */
-	Assert(!IsA(plan, SubqueryScan));
-
-	if (IsA(plan, MergeJoin) ||IsA(plan, NestLoop) ||IsA(plan, HashJoin))
-		Assert(subplan == plan->lefttree || subplan == plan->righttree);
-	else if (IsA(plan, Append))
-		Assert(list_member(((Append *) plan)->appendplans, subplan));
-	else if (IsA(plan, ModifyTable))
-		Assert(list_member(((ModifyTable *) plan)->plans, subplan));
-	else
-		Assert(subplan == plan->lefttree);
-
-	new_flow = makeFlow(model_flow->flotype, model_flow->numsegments);
-
-	if (model_flow->flotype == FLOW_SINGLETON)
-		new_flow->segindex = model_flow->segindex;
-
-	new_flow->locustype = model_flow->locustype;
-
-	return new_flow;
-}
-
 
 /*
  * Is the node a "subclass" of Plan?
@@ -1170,7 +1463,7 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 	return false;
 }
 
-static void
+void
 motion_sanity_check(PlannerInfo *root, Plan *plan)
 {
 	sanity_result_t sanity_result;
@@ -1187,78 +1480,4 @@ motion_sanity_check(PlannerInfo *root, Plan *plan)
 
 	if (sanity_result.flags & SANITY_DEADLOCK)
 		elog(ERROR, "Post-planning sanity check detected motion deadlock.");
-}
-
-
-
-/*
- * Functions focusPlan and broadcastPlan add a Motion node
- * on top of the given plan tree. If the input plan is already distributed
- * in the requested way, returns the input plan unmodified. If there is a
- * a different kind of Motion node at the top of the plan already, it is
- * replaced with the right kind of Motion. Also, if there is a Material
- * node at the top, it will be removed; a Motion node cannot be rescanned,
- * so materializing its input would be pointless.
- *
- * plan		   the plan to annotate
- *
- * stable	   if true, the result plan must present the result in the
- *			   order specified in the flow (which, presumably, matches
- *			   the input order.
- *
- * Remaining arguments, if any, determined by the requirements of the specific
- * function.
- */
-
-/*
- * Function: focusPlan
- */
-Plan *
-focusPlan(Plan *plan, bool stable)
-{
-	Assert(plan->flow && plan->flow->flotype != FLOW_UNDEFINED);
-
-	/*
-	 * Already focused and flow is CdbLocusType_SingleQE, CdbLocusType_Entry,
-	 * do nothing.
-	 */
-	if (plan->flow->flotype == FLOW_SINGLETON &&
-		plan->flow->locustype != CdbLocusType_SegmentGeneral)
-		return plan;
-
-	/* Add motion operator. If there is a single sender, the order is preserved. */
-	if (stable && plan->flow->flotype != FLOW_SINGLETON)
-		elog(ERROR, "sorted focusPlan not supported");
-
-	if (IsA(plan, Motion) || IsA(plan, Material))
-	{
-		return focusPlan(plan->lefttree, stable);
-	}
-
-	return (Plan *) make_union_motion(plan, plan->flow->numsegments);
-}
-
-/*
- * Function: broadcastPlan
- */
-Plan *
-broadcastPlan(Plan *plan, bool stable, int numsegments)
-{
-	Assert(plan->flow && plan->flow->flotype != FLOW_UNDEFINED);
-
-	/*
-	 * Already focused and flow is CdbLocusType_SegmentGeneral and data
-	 * is replicated on every segment of target, do nothing.
-	 */
-	if (plan->flow->flotype == FLOW_SINGLETON &&
-		plan->flow->locustype == CdbLocusType_SegmentGeneral &&
-		plan->flow->numsegments >= numsegments)
-		return plan;
-
-	if (IsA(plan, Motion) || IsA(plan, Material))
-	{
-		return broadcastPlan(plan->lefttree, stable, numsegments);
-	}
-
-	return (Plan *) make_broadcast_motion(plan, numsegments);
 }

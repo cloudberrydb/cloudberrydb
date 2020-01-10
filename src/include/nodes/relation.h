@@ -107,15 +107,14 @@ typedef struct ApplyShareInputContext
 	int			share_refcounts_sz;		/* allocated sized of 'share_refcounts' */
 	List *motStack;
 	List *qdShares;
-	List *qdSlices;
-	int nextPlanId;
 
 	ShareInputScan **producers;
 	int		   *sliceMarks;			/* one for each producer */
 	int			producer_count;
 
-} ApplyShareInputContext;
+	PlanSlice  *slices;
 
+} ApplyShareInputContext;
 
 /*----------
  * PlannerGlobal
@@ -133,10 +132,10 @@ typedef struct PlannerGlobal
 	ParamListInfo boundParams;	/* Param values provided to planner() */
 
 	List	   *subplans;		/* Plans for SubPlan nodes */
-	int		   *subplan_sliceIds; /* Slice IDs for initplans */
-	bool	   *subplan_initPlanParallel;
 
 	List	   *subroots;		/* PlannerInfos for SubPlan nodes */
+
+	int		   *subplan_sliceIds;	/* slice IDs for SubPlan nodes. */
 
 	Bitmapset  *rewindPlanIDs;	/* indices of subplans that require REWIND */
 
@@ -170,8 +169,12 @@ typedef struct PlannerGlobal
 
 	bool		parallelModeNeeded;		/* parallel mode actually required? */
 
-	int			nMotionNodes;
-	int			nInitPlans;
+	/*
+	 * Slice table. Built by cdbllize_build_slice_table() near the end of
+	 * planning, and copied to the final PlannedStmt.
+	 */
+	int			numSlices;
+	struct PlanSlice *slices;
 
 } PlannerGlobal;
 
@@ -355,6 +358,8 @@ typedef struct PlannerInfo
 	Relids		curOuterRels;	/* outer rels above current node */
 	List	   *curOuterParams; /* not-yet-assigned NestLoopParams */
 	int			numMotions;
+
+	PlanSlice  *curSlice;
 
 	PlannerConfig *config;		/* Planner configuration */
 

@@ -2318,11 +2318,22 @@ _readPlannedStmt(void)
 	READ_NODE_FIELD(resultRelations);
 	READ_NODE_FIELD(utilityStmt);
 	READ_NODE_FIELD(subplans);
+	READ_INT_ARRAY(subplan_sliceIds, list_length(local_node->subplans));
+
+	READ_INT_FIELD(numSlices);
+	local_node->slices = palloc(local_node->numSlices * sizeof(PlanSlice));
+	for (int i = 0; i < local_node->numSlices; i++)
+	{
+		READ_INT_FIELD(slices[i].sliceIndex);
+		READ_INT_FIELD(slices[i].parentIndex);
+		READ_INT_FIELD(slices[i].gangType);
+		READ_INT_FIELD(slices[i].numsegments);
+		READ_INT_FIELD(slices[i].segindex);
+		READ_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
+		READ_NODE_FIELD(slices[i].directDispatch.contentIds);
+	}
+
 	READ_BITMAPSET_FIELD(rewindPlanIDs);
-#ifdef COMPILING_BINARY_FUNCS
-	READ_INT_ARRAY(subplan_sliceIds, list_length(local_node->subplans) + 1);
-	READ_BOOL_ARRAY(subplan_initPlanParallel, list_length(local_node->subplans) + 1);
-#endif /* COMPILING_BINARY_FUNCS */
 	READ_NODE_FIELD(result_partitions);
 	READ_NODE_FIELD(result_aosegnos);
 	READ_NODE_FIELD(queryPartOids);
@@ -2336,9 +2347,6 @@ _readPlannedStmt(void)
 	READ_NODE_FIELD(invalItems);
 #endif /* COMPILING_BINARY_FUNCS */
 	READ_INT_FIELD(nParamExec);
-
-	READ_INT_FIELD(nMotionNodes);
-	READ_INT_FIELD(nInitPlans);
 
 	READ_NODE_FIELD(intoPolicy);
 
@@ -2375,10 +2383,9 @@ ReadCommonPlan(Plan *local_node)
 	READ_BITMAPSET_FIELD(extParam);
 	READ_BITMAPSET_FIELD(allParam);
 
+#ifndef COMPILING_BINARY_FUNCS
 	READ_NODE_FIELD(flow);
-	READ_ENUM_FIELD(dispatch, DispatchMethod);
-	READ_BOOL_FIELD(directDispatch.isDirectDispatch);
-	READ_NODE_FIELD(directDispatch.contentIds);
+#endif /* COMPILING_BINARY_FUNCS */
 
 	READ_UINT64_FIELD(operatorMemKB);
 }
@@ -3913,9 +3920,6 @@ _readSliceTable(void)
 {
 	READ_LOCALS(SliceTable);
 
-	READ_BITMAPSET_FIELD(used_subplans);
-	READ_INT_FIELD(nMotions);
-	READ_INT_FIELD(nInitPlans);
 	READ_INT_FIELD(localSlice);
 	READ_INT_FIELD(numSlices);
 	local_node->slices = palloc0(local_node->numSlices * sizeof(ExecSlice));
@@ -3934,6 +3938,8 @@ _readSliceTable(void)
 		READ_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
 		READ_BITMAPSET_FIELD(slices[i].processesMap);
 	}
+	READ_BOOL_FIELD(hasMotions);
+
 	READ_INT_FIELD(instrument_options);
 	READ_INT_FIELD(ic_instance_id);
 

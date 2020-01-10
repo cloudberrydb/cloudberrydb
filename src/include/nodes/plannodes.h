@@ -25,15 +25,18 @@
 
 typedef struct DirectDispatchInfo
 {
-     /**
-      * if true then this Slice requires an n-gang but the gang can be targeted to
-      *   fewer segments than the entire cluster.
-      *
-      * When true, directDispatchContentId and directDispathCount will combine to indicate
-      *    the content ids that need segments.
-      */
-	bool isDirectDispatch;
-    List *contentIds;
+	/*
+	 * if true then this Slice requires an n-gang but the gang can be
+	 * targeted to fewer segments than the entire cluster.
+	 *
+	 * When true, 'contentIds' list the segments that this slice needs to be
+	 * dispatched to.
+	 */
+	bool		isDirectDispatch;
+	List	   *contentIds;
+
+	/* only used while planning, in createplan.c */
+	bool		haveProcessedAnyCalculations;
 } DirectDispatchInfo;
 
 typedef enum PlanGenerator
@@ -88,6 +91,10 @@ typedef struct PlannedStmt
 
 	struct Plan *planTree;		/* tree of Plan nodes */
 
+	/* Slice table */
+	int			numSlices;
+	struct PlanSlice *slices;
+
 	List	   *rtable;			/* list of RangeTblEntry nodes */
 
 	/* rtable indexes of target relations for INSERT/UPDATE/DELETE */
@@ -96,8 +103,7 @@ typedef struct PlannedStmt
 	Node	   *utilityStmt;	/* non-null if this is DECLARE CURSOR */
 
 	List	   *subplans;		/* Plan trees for SubPlan expressions */
-	int		   *subplan_sliceIds; /* Slice IDs for initplans. Size equals 'subplans'. 0 for non-initplans */
-	bool	   *subplan_initPlanParallel;
+	int		   *subplan_sliceIds;	/* slice IDs containing SubPlans; size equals 'subplans' */
 
 	Bitmapset  *rewindPlanIDs;	/* indices of subplans that require REWIND */
 
@@ -131,10 +137,6 @@ typedef struct PlannedStmt
 	List	   *invalItems;		/* other dependencies, as PlanInvalItems */
 
 	int			nParamExec;		/* number of PARAM_EXEC Params used */
-
-	int			nMotionNodes;	/* number of Motion nodes in plan */
-
-	int			nInitPlans;		/* number of initPlans in plan */
 
 	/* 
 	 * Cloned from top Query node at the end of planning.
@@ -216,6 +218,38 @@ typedef struct Flow
 
 } Flow;
 
+/* GangType enumeration is used in several structures related to CDB
+ * slice plan support.
+ */
+typedef enum GangType
+{
+	GANGTYPE_UNALLOCATED,       /* a root slice executed by the qDisp */
+	GANGTYPE_ENTRYDB_READER,    /* a 1-gang with read access to the entry db */
+	GANGTYPE_SINGLETON_READER,	/* a 1-gang to read the segment dbs */
+	GANGTYPE_PRIMARY_READER,    /* a 1-gang or N-gang to read the segment dbs */
+	GANGTYPE_PRIMARY_WRITER		/* the N-gang that can update the segment dbs */
+} GangType;
+
+/*
+ * PlanSlice represents one query slice, to be executed by a separate gang
+ * of executor processes.
+ */
+typedef struct PlanSlice
+{
+	int			sliceIndex;
+	int			parentIndex;
+
+	GangType	gangType;
+
+	/* # of segments in the gang, for PRIMARY_READER/WRITER slices */
+	int			numsegments;
+	/* segment to execute on, for SINGLETON_READER slices */
+	int			segindex;
+
+	/* direct dispatch information, for PRIMARY_READER/WRITER slices */
+	DirectDispatchInfo directDispatch;
+} PlanSlice;
+
 /* ----------------
  *		Plan node
  *
@@ -280,26 +314,6 @@ typedef struct Plan
 	Flow		*flow;			/* Flow description.  Initially NULL.
 	 * Set during parallelization.
 	 */
-
-	/*
-	 * CDB:  How should this plan tree be dispatched?  Initially this is set
-	 * to DISPATCH_UNDETERMINED and, in non-root nodes, may remain so.
-	 * However, in Plan nodes at the root of any separately dispatchable plan
-	 * fragment, it must be set to a specific dispatch type.
-	 */
-	DispatchMethod dispatch;
-
-	/*
-	 * CDB: if we're going to direct dispatch, point it at a particular id.
-	 *
-	 * For motion nodes, this direct dispatch data is for the slice rooted at the
-	 *   motion node (the sending side!)
-	 * For other nodes, it is for the slice rooted at this plan so it must be a root
-	 *   plan for a query
-	 * Note that for nodes that are internal to a slice then this data is not
-	 *   set.
-	 */
-	DirectDispatchInfo directDispatch;
 
 	/**
 	 * How much memory (in KB) should be used to execute this plan node?
@@ -1317,7 +1331,8 @@ typedef enum MotionType
 	MOTIONTYPE_GATHER_SINGLE, /* Execute subplan on N nodes, but only send the tuples from one */
 	MOTIONTYPE_HASH,		/* Use hashing to select a segindex destination */
 	MOTIONTYPE_BROADCAST,	/* Send tuples from one sender to a fixed set of segindexes */
-	MOTIONTYPE_EXPLICIT		/* Send tuples to the segment explicitly specified in their segid column */
+	MOTIONTYPE_EXPLICIT,	/* Send tuples to the segment explicitly specified in their segid column */
+	MOTIONTYPE_OUTER_QUERY	/* Gather or Broadcast to outer query's slice, don't know which one yet */
 } MotionType;
 
 /*
@@ -1345,6 +1360,9 @@ typedef struct Motion
 	Oid		   *sortOperators;	/* OIDs of operators to sort them by */
 	Oid		   *collations;		/* OIDs of collations */
 	bool	   *nullsFirst;		/* NULLS FIRST/LAST directions */
+
+	/* sender slice info */
+	PlanSlice  *senderSliceInfo;
 } Motion;
 
 /*

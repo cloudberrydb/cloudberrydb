@@ -24,18 +24,6 @@
 struct CdbExplain_ShowStatCtx;  /* private, in "cdb/cdbexplain.c" */
 
 
-/* GangType enumeration is used in several structures related to CDB
- * slice plan support.
- */
-typedef enum GangType
-{
-	GANGTYPE_UNALLOCATED,       /* a root slice executed by the qDisp */
-	GANGTYPE_ENTRYDB_READER,    /* a 1-gang with read access to the entry db */
-	GANGTYPE_SINGLETON_READER,	/* a 1-gang to read the segment dbs */
-	GANGTYPE_PRIMARY_READER,    /* a 1-gang or N-gang to read the segment dbs */
-	GANGTYPE_PRIMARY_WRITER		/* the N-gang that can update the segment dbs */
-} GangType;
-
 /*
  * MPP Plan Slice information
  *
@@ -117,24 +105,20 @@ typedef struct ExecSlice
  * and motion slices as follows:
  *
  * Slice 0 is the root slice of plan as a whole.
- * Slices 1 through nMotion are motion slices with a sending motion at
- *  the root of the slice.
- * Slices nMotion+1 and on are root slices of initPlans.
  *
- * There may be unused slices in case the plan contains subplans that
- * are  not initPlans.  (This won't happen unless MPP decides to support
- * subplans similarly to PostgreSQL, which isn't the current plan.)
+ * The rest root slices of initPlans, or sub-slices of the root slice or one
+ * of the initPlan roots.
  */
 typedef struct SliceTable
 {
 	NodeTag		type;
 
-	Bitmapset  *used_subplans;
-	int			nMotions;		/* The number Motion nodes in the entire plan */
-	int			nInitPlans;		/* The number of initplan slices allocated */
 	int			localSlice;		/* Index of the slice to execute. */
 	int			numSlices;
-	ExecSlice  *slices;
+	ExecSlice  *slices;			/* Array of slices, indexed by SliceIndex */
+
+	bool		hasMotions;		/* Are there any Motion nodes anywhere in the plan? */
+
 	int			instrument_options;	/* OR of InstrumentOption flags */
 	uint32		ic_instance_id;
 } SliceTable;

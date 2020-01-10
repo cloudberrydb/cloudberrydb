@@ -780,8 +780,6 @@ sendRegisterMessage(ChunkTransportState *transportStates, ChunkTransportStateEnt
 		Assert(conn->cdbProc &&
 			   conn->pBuff &&
 			   sizeof(*regMsg) <= Gp_max_packet_size);
-		Assert(pEntry->recvSlice &&
-			   pEntry->sendSlice);
 
 		/* Save local host and port for log messages. */
 		addrsize = sizeof(localAddr);

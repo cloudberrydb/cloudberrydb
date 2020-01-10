@@ -925,9 +925,9 @@ DETAIL:  Feature not supported: Inherited tables
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Result
-   InitPlan 1 (returns $0)  (slice3)
+   InitPlan 1 (returns $0)  (slice1)
      ->  Limit
-           ->  Gather Motion 3:1  (slice1; segments: 3)
+           ->  Gather Motion 3:1  (slice2; segments: 3)
                  Merge Key: minmaxtest.f1
                  ->  Merge Append
                        Sort Key: minmaxtest.f1
@@ -938,9 +938,9 @@ DETAIL:  Feature not supported: Inherited tables
                        ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2
                              Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest3i on minmaxtest3
-   InitPlan 2 (returns $1)  (slice4)
+   InitPlan 2 (returns $1)  (slice3)
      ->  Limit
-           ->  Gather Motion 3:1  (slice2; segments: 3)
+           ->  Gather Motion 3:1  (slice4; segments: 3)
                  Merge Key: minmaxtest_1.f1
                  ->  Merge Append
                        Sort Key: minmaxtest_1.f1 DESC
@@ -1026,12 +1026,12 @@ explain (costs off) select * from t1 group by a,b,c,d;
 explain (costs off) select a,c from t1 group by a,c,d;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  GroupAggregate
          Group Key: a, c, d
          ->  Sort
                Sort Key: a, c, d
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: a, c, d
                      ->  Seq Scan on t1
  Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0

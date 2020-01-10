@@ -269,15 +269,15 @@ set enable_nestloop=on;
 --
 --                                 QUERY PLAN                                 
 -- ---------------------------------------------------------------------------
---  Gather Motion 3:1  (slice3; segments: 3)
+--  Gather Motion 3:1  (slice1; segments: 3)
 --    ->  Nested Loop [1]
---          ->  Broadcast Motion 3:3  (slice1; segments: 3)
+--          ->  Broadcast Motion 3:3  (slice2; segments: 3)
 --                ->  Seq Scan on b
 --          ->  Materialize  [6]
 --                ->  Nested Loop [2]
 --                      Join Filter: (b.i = a.i)
 --                      ->  Materialize [5]
---                            ->  Broadcast Motion 3:3  (slice2; segments: 3) [3]
+--                            ->  Broadcast Motion 3:3  (slice3; segments: 3) [3]
 --                                  ->  Seq Scan on a
 --                      ->  Index Only Scan using c_i_j_idx on c
 --                            Index Cond: (j = (a.i + b.i)) [4]

@@ -34,9 +34,7 @@
 #include "lib/bipartite_match.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
-#ifdef OPTIMIZER_DEBUG
 #include "nodes/print.h"
-#endif
 #include "optimizer/clauses.h"
 #include "optimizer/cost.h"
 #include "optimizer/orca.h"
@@ -257,14 +255,13 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	RelOptInfo *final_rel;
 	Path	   *best_path;
 	Plan	   *top_plan;
+	PlanSlice  *top_slice;
 	ListCell   *lp,
 			   *lr;
 	PlannerConfig *config;
 	instr_time		starttime;
 	instr_time		endtime;
 	MemoryAccountIdType curMemoryAccountId;
-	bool		needToAssignDirectDispatchContentIds = false;
-	DispatchMethod saved_plan_dispatch = DISPATCH_UNDETERMINED;
 
 	/*
 	 * Use ORCA only if it is enabled and we are in a master QD process.
@@ -345,16 +342,14 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->lastPlanNodeId = 0;
 	glob->transientPlan = false;
 	glob->oneoffPlan = false;
-	glob->nMotionNodes = 0;
-	glob->nInitPlans = 0;
+	glob->numSlices = 0;
+	glob->slices = NULL;
 	/* ApplyShareInputContext initialization. */
 	glob->share.producers = NULL;
 	glob->share.producer_count = 0;
 	glob->share.sliceMarks = NULL;
 	glob->share.motStack = NIL;
 	glob->share.qdShares = NIL;
-	glob->share.qdSlices = NIL;
-	glob->share.nextPlanId = 0;
 
 	if ((cursorOptions & CURSOR_OPT_UPDATABLE) != 0)
 		glob->simplyUpdatable = isSimplyUpdatableQuery(parse);
@@ -437,6 +432,15 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	config = DefaultPlannerConfig();
 
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		top_slice = palloc0(sizeof(PlanSlice));
+		top_slice->parentIndex = -1;
+		top_slice->sliceIndex = 0;
+	}
+	else
+		top_slice = NULL;
+
 	/* primary planning entry point (may recurse for subqueries) */
 	root = subquery_planner(glob, parse, NULL,
 							false, tuple_fraction, config);
@@ -446,10 +450,12 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
-		best_path = create_motion_for_top_plan(root, best_path,
-											   &needToAssignDirectDispatchContentIds);
+	{
+		Assert(root->curSlice == NULL);
+		best_path = cdbllize_adjust_top_path(root, best_path, top_slice);
+	}
 
-	top_plan = create_plan(root, best_path);
+	top_plan = create_plan(root, best_path, top_slice);
 
 	/*
 	 * If creating a plan for a scrollable cursor, make sure it can run
@@ -511,7 +517,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		gather->plan.plan_rows = top_plan->plan_rows;
 		gather->plan.plan_width = top_plan->plan_width;
 		gather->plan.parallel_aware = false;
-		gather->plan.flow = pull_up_Flow(&gather->plan, top_plan);
 
 		/* use parallel mode for parallel plans. */
 		root->glob->parallelModeNeeded = true;
@@ -541,8 +546,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	/*
 	 * Fix sharing id and shared id.
 	 *
-	 * This must be called before set_plan_references and cdbparallelize.  The other mutator
-	 * or tree walker assumes the input is a tree.  If there is plan sharing, we have a DAG. 
+	 * This must be called before set_plan_references.  The other mutator or
+	 * tree walker assumes the input is a tree.  If there is plan sharing, we
+	 * have a DAG.
 	 *
 	 * apply_shareinput will fix shared_id, and change the DAG to a tree.
 	 */
@@ -563,42 +569,17 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		top_plan = cdbparallelize(root, top_plan);
+		/* Print plan if debugging. */
+		if (Debug_print_prelim_plan)
+			elog_node_display(DEBUG1, "preliminary plan", top_plan, Debug_pretty_print);
 
-		/*
-		 * cdbparallelize() mutates all the nodes, so the producer nodes we
-		 * memorized earlier are no longer valid. apply_shareinput_xslice()
-		 * will re-populate it, but clear it for now, just to make sure that
-		 * we don't access the obsolete copies of the nodes.
-		 */
-		if (glob->share.producer_count > 0)
-			memset(glob->share.producers, 0, glob->share.producer_count * sizeof(ShareInputScan *));
+		top_plan = cdbllize_decorate_subplans_with_motions(root, top_plan);
 
-		/*
-		 * cdbparallelize may create additional slices that may affect share
-		 * input. need to mark material nodes that are split acrossed multi
-		 * slices.
-		 */
-		top_plan = apply_shareinput_xslice(top_plan, root);
-	}
-	else
-	{
-		/*
-		 * Normally cdbparallelize() creates these, but they need to be
-		 * initialized even for completely local plans that don't need any
-		 * "parallelization"; the out/read functions expect them to be present.
-		 */
-		glob->subplan_sliceIds = palloc0((list_length(glob->subplans) + 1) * sizeof(int));
-		glob->subplan_initPlanParallel = palloc0((list_length(glob->subplans) + 1) * sizeof(bool));
+		if (gp_enable_motion_deadlock_sanity)
+			motion_sanity_check(root, top_plan);
 	}
 
-	/*
-	 * top_plan->dispatch is set correctly in the function cdbparallelize above,
-	 * set_plan_references may lose this information. So save and restore it.
-	 */
-	saved_plan_dispatch = top_plan->dispatch;
 	top_plan = set_plan_references(root, top_plan);
-	top_plan->dispatch = saved_plan_dispatch;
 	/* ... and the subplans (both regular subplans and initplans) */
 	Assert(list_length(glob->subplans) == list_length(glob->subroots));
 	forboth(lp, glob->subplans, lr, glob->subroots)
@@ -609,12 +590,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		lfirst(lp) = set_plan_references(subroot, subplan);
 	}
 
-	if (needToAssignDirectDispatchContentIds)
-	{
-		/* figure out if we can run on a reduced set of nodes */
-		AssignContentIdsToPlanData(root, top_plan);
-	}
-
 	/* fix ShareInputScans for EXPLAIN */
 	foreach(lp, glob->subplans)
 	{
@@ -623,6 +598,27 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		lfirst(lp) = replace_shareinput_targetlists(root, subplan);
 	}
 	top_plan = replace_shareinput_targetlists(root, top_plan);
+
+	cdbllize_build_slice_table(root, top_plan, top_slice);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/*
+		 * cdb_build_slice_table() can modify nodes, so the producer nodes we
+		 * memorized earlier are no longer valid. apply_shareinput_xslice()
+		 * will re-populate it, but clear it for now, just to make sure that
+		 * we don't access the obsolete copies of the nodes.
+		 */
+		if (glob->share.producer_count > 0)
+			memset(glob->share.producers, 0, glob->share.producer_count * sizeof(ShareInputScan *));
+
+		/*
+		 * cdb_build_slice_table() may create additional slices that may affect
+		 * share input. need to mark material nodes that are split acrossed
+		 * multi slices.
+		 */
+		top_plan = apply_shareinput_xslice(top_plan, root, glob->slices);
+	}
 
 	/* build the PlannedStmt result */
 	result = makeNode(PlannedStmt);
@@ -637,12 +633,13 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->dependsOnRole = glob->dependsOnRole;
 	result->parallelModeNeeded = glob->parallelModeNeeded;
 	result->planTree = top_plan;
+	result->numSlices = glob->numSlices;
+	result->slices = glob->slices;
 	result->rtable = glob->finalrtable;
 	result->resultRelations = glob->resultRelations;
 	result->utilityStmt = parse->utilityStmt;
 	result->subplans = glob->subplans;
 	result->subplan_sliceIds = glob->subplan_sliceIds;
-	result->subplan_initPlanParallel = glob->subplan_initPlanParallel;
 	result->rewindPlanIDs = glob->rewindPlanIDs;
 	result->result_partitions = root->result_partitions;
 	result->result_aosegnos = root->result_aosegnos;
@@ -651,8 +648,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->invalItems = glob->invalItems;
 	result->nParamExec = glob->nParamExec;
 
-	result->nMotionNodes = glob->nMotionNodes;
-	result->nInitPlans = glob->nInitPlans;
 	result->intoPolicy = GpPolicyCopy(parse->intoPolicy);
 	result->queryPartOids = NIL;
 	result->queryPartsMetadata = NIL;
@@ -4965,14 +4960,11 @@ create_distinct_paths(PlannerInfo *root,
 																	   limit_tuples,
 																	   true);
 						((Sort *) result_plan)->noduplicates = gp_enable_sort_distinct;
-						result_plan->flow = pull_up_Flow(plan, result_plan->lefttree);
 						current_pathkeys = root->sort_pathkeys;
 					}
 				}
 
 				result_plan = (Plan *) make_unique(result_plan, parse->distinctClause);
-
-				result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 
 				result_plan->plan_rows = numDistinct;
 

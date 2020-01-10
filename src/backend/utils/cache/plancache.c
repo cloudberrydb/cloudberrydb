@@ -1169,37 +1169,57 @@ cached_plan_cost(CachedPlan *plan, bool include_planner)
 		}
 
 		/*
-		 * For generic plan, no params will be passed to planner, which leads
-		 * to plan can not genenrate direct dispatch plan, even if all the
-		 * params are const values. Unfortunately, direct dispatch cost v.s.
-		 * full gang dispatch cost is not included in plan's total cost. But
-		 * this cost is significantly. For query could leverage direct
-		 * dispatch, dispatching it to full gangs will result in unneccessary
-		 * QEs, but these QEs still need to go through volcano model, do two
-		 * phase commit and write xlog for Prepare etc, which not only
-		 * consuming CPU but also IO to disk. 
+		 * For generic plan, no params will be passed to planner, so the
+		 * planner usually cannot generate a direct dispatch plan.
+		 * Unfortunately, direct dispatch cost vs. full gang dispatch cost is
+		 * not included in plan's total cost. But this cost is significant.
+		 * If a query could leverage direct dispatch, dispatching it to full
+		 * gangs will result in unneccessary QEs. Even if the QEs will find
+		 * no rows matching search criteria, these QEs still need to go
+		 * through volcano model, do two phase commit and write xlog for
+		 * Prepare etc, which not only consumes CPU but also IO to disk.
 		 *
-		 * So correctly generating direct dispatch plan matters.  As for custom
-		 * plan, it would pass the const params to planner and is able to
-		 * generate direct dispatch plan when possible. As a result, when we
-		 * evaluate the cost of generic plan and custom plan, we should not
-		 * only consider the plan's total cost and re-plan cost, but also
-		 * consider the cost of failed to generate direct dispatch.
+		 * So using a direct dispatch plan, when it's possible, matters. To
+		 * nudge the decision to that direction, we add some cost to plans
+		 * that don't use direct dispatch. Since non direct dispatch
+		 * introduces additional IO, we use seq_page_cost as base unit to
+		 * measure non direct dispatch cost. The number of unneccessary QEs
+		 * also measures the amount of this cost. Considering clusters with
+		 * 100 segments vs. 10 segments, the non-direct dispatch cost of the
+		 * 100 segments cluster is definitely higher than 10 segments cluster.
+		 * We don't have a good cost model for this, so somewhat arbitrarily,
+		 * add 10 * seq_page_cost to the cost, for every segment that is
+		 * involved in the execution.
 		 *
-		 * Since non direct dispatch introduces additional IO, we use
-		 * seq_page_cost as base unit to measure non direct dispatch cost. The
-		 * number of unneccessary QEs also measures the amount of this cost.
-		 * Considering clusters with 100 segments v.s. 10 segments, the non
-		 * direct dispatch cost of the 100 segments cluster is definitely
-		 * higher than 10 segments cluster.
+		 * Actually, we're not very accurate in counting the number of
+		 * segments; we use the highest number of segments involved in any
+		 * particular slice. But if a plan e.g. has two slices, and both are
+		 * directly dispatched to a single segment, we conder the number of
+		 * segments as 1, even if the slices are direct-dispatched to
+		 * different segments. But this is pretty crude anyway. Ideally,
+		 * we would factor direct dispatch into the cost estimates
+		 * throughout the planner, so that it could affect the shape of the
+		 * plan.
 		 */
-		if (!plannedstmt->planTree->directDispatch.isDirectDispatch)
+		int			maxsegments = 1;
+		for (int i = 0; i < plannedstmt->numSlices; i++)
 		{
-			int			ndirectDispatchContentIds =
-				list_length(plannedstmt->planTree->directDispatch.contentIds);
-			int			nsegments = getgpsegmentCount();
-			result += 10.0 * seq_page_cost * (nsegments - ndirectDispatchContentIds);
+			PlanSlice *slice = &plannedstmt->slices[i];
+
+			if (slice->gangType == GANGTYPE_PRIMARY_READER ||
+				slice->gangType == GANGTYPE_PRIMARY_WRITER)
+			{
+				int			nsegments;
+
+				/* How many segments are involved in this slice? */
+				if (slice->directDispatch.isDirectDispatch)
+					nsegments = list_length(slice->directDispatch.contentIds);
+				else
+					nsegments = slice->numsegments;
+				maxsegments = Max(maxsegments, nsegments);
+			}
 		}
+		result += 10.0 * seq_page_cost * (maxsegments - 1);
 	}
 
 	return result;

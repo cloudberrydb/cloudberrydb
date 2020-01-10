@@ -48,7 +48,6 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
-#include "cdb/cdbllize.h"                   /* pull_up_Flow() */
 #include "cdb/cdbpath.h"
 #include "cdb/cdbsetop.h"
 #include "cdb/cdbutil.h"

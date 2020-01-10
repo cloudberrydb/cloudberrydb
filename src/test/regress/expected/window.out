@@ -629,11 +629,11 @@ select first_value(max(x)) over (), y
                                QUERY PLAN                               
 ------------------------------------------------------------------------
  WindowAgg
-   ->  Gather Motion 3:1  (slice2; segments: 3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Subquery Scan on "Window"
                ->  Finalize HashAggregate
                      Group Key: ((tenk1.ten + tenk1.four))
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: ((tenk1.ten + tenk1.four))
                            ->  Partial HashAggregate
                                  Group Key: (tenk1.ten + tenk1.four)
@@ -1148,14 +1148,14 @@ SELECT * FROM
 WHERE depname = 'sales';
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Subquery Scan on emp
          Filter: ((emp.depname)::text = 'sales'::text)
          ->  WindowAgg
                Partition By: empsalary.enroll_date
                ->  Sort
                      Sort Key: empsalary.enroll_date
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: empsalary.enroll_date
                            ->  WindowAgg
                                  Partition By: empsalary.depname

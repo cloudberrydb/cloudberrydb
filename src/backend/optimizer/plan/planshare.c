@@ -210,7 +210,6 @@ prepare_plan_for_sharing(PlannerInfo *root, Plan *common)
 		shared->total_cost = matpath.total_cost;
 		shared->plan_rows = common->plan_rows;
 		shared->plan_width = common->plan_width;
-		shared->dispatch = common->dispatch;
 		shared->flow = copyObject(common->flow); 
 		shared->extParam = bms_copy(common->extParam);
 		shared->allParam = bms_copy(common->allParam);
