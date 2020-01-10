@@ -5119,9 +5119,7 @@ _copySliceTable(const SliceTable *from)
 		COPY_SCALAR_FIELD(slices[i].rootIndex);
 		COPY_SCALAR_FIELD(slices[i].planNumSegments);
 		COPY_SCALAR_FIELD(slices[i].gangType);
-		COPY_SCALAR_FIELD(slices[i].gangSize);
-		COPY_SCALAR_FIELD(slices[i].directDispatch.isDirectDispatch);
-		COPY_NODE_FIELD(slices[i].directDispatch.contentIds);
+		COPY_NODE_FIELD(slices[i].segments);
 
 		newnode->slices[i].primaryGang = from->slices[i].primaryGang;
 		COPY_SCALAR_FIELD(slices[i].parentIndex);

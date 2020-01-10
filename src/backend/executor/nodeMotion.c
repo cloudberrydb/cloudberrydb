@@ -752,8 +752,8 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 			else
 			{
 				/* sanity checks */
-				if (recvSlice->gangSize != 1)
-					elog(ERROR, "unexpected gang size: %d", recvSlice->gangSize);
+				if (list_length(recvSlice->segments) != 1)
+					elog(ERROR, "unexpected gang size: %d", list_length(recvSlice->segments));
 			}
 		}
 
@@ -792,7 +792,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	motionstate->numTuplesToParent = 0;
 
 	motionstate->stopRequested = false;
-	motionstate->numInputSegs = sendSlice->gangSize;
+	motionstate->numInputSegs = list_length(sendSlice->segments);
 
 	/*
 	 * Miscellaneous initialization

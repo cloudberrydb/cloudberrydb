@@ -519,7 +519,7 @@ startOutgoingConnections(ChunkTransportState *transportStates,
 
 	if (gp_interconnect_aggressive_retry)
 	{
-		if ((list_length(recvSlice->children) * sendSlice->gangSize) > listenerBacklog)
+		if ((list_length(recvSlice->children) * list_length(sendSlice->segments)) > listenerBacklog)
 			transportStates->aggressiveRetry = true;
 	}
 	else

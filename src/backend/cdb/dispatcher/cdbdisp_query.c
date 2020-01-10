@@ -1141,8 +1141,7 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 
 		if (Test_print_direct_dispatch_info)
 			elog(INFO, "(slice %d) Dispatch command to %s", slice->sliceIndex,
-				 		segmentsToContentStr(slice->directDispatch.isDirectDispatch ?
-											slice->directDispatch.contentIds : slice->segments));
+						segmentsToContentStr(slice->segments));
 
 		/*
 		 * Bail out if already got an error or cancellation request.

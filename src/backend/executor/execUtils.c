@@ -1221,7 +1221,7 @@ ShouldPrefetchJoinQual(EState *estate, Join *join)
 
 
 static void
-FillSliceGangInfo(ExecSlice *slice, int numsegments)
+FillSliceGangInfo(ExecSlice *slice, int numsegments, DirectDispatchInfo *dd)
 {
 	switch (slice->gangType)
 	{
@@ -1231,20 +1231,17 @@ FillSliceGangInfo(ExecSlice *slice, int numsegments)
 			 * the QD process, or really unused slice.
 			 */
 			slice->planNumSegments = 1;
-			slice->gangSize = 0;
 			break;
 		case GANGTYPE_PRIMARY_WRITER:
 		case GANGTYPE_PRIMARY_READER:
 			slice->planNumSegments = numsegments;
-			if (slice->directDispatch.isDirectDispatch)
+			if (dd->isDirectDispatch)
 			{
-				slice->gangSize = list_length(slice->directDispatch.contentIds);
-				slice->segments = slice->directDispatch.contentIds;
+				slice->segments = list_copy(dd->contentIds);
 			}
 			else
 			{
 				int i;
-				slice->gangSize = numsegments;
 				slice->segments = NIL;
 				for (i = 0; i < numsegments; i++)
 					slice->segments = lappend_int(slice->segments, i);
@@ -1252,12 +1249,10 @@ FillSliceGangInfo(ExecSlice *slice, int numsegments)
 			break;
 		case GANGTYPE_ENTRYDB_READER:
 			slice->planNumSegments = 1;
-			slice->gangSize = 1;
 			slice->segments = list_make1_int(-1);
 			break;
 		case GANGTYPE_SINGLETON_READER:
 			slice->planNumSegments = 1;
-			slice->gangSize = 1;
 			slice->segments = list_make1_int(gp_session_id % numsegments);
 			break;
 		default:
@@ -1314,11 +1309,8 @@ InitSliceTable(EState *estate, PlannedStmt *plannedstmt)
 		int			rootIndex;
 
 		currExecSlice->sliceIndex = i;
-		currExecSlice->gangSize = 0;
 		currExecSlice->planNumSegments = currPlanSlice->numsegments;
 		currExecSlice->segments = NIL;
-		currExecSlice->directDispatch.isDirectDispatch = false;
-		currExecSlice->directDispatch.contentIds = NIL;
 		currExecSlice->primaryGang = NULL;
 		currExecSlice->primaryProcesses = NIL;
 
@@ -1355,13 +1347,7 @@ InitSliceTable(EState *estate, PlannedStmt *plannedstmt)
 		currExecSlice->rootIndex = rootIndex;
 		currExecSlice->gangType = currPlanSlice->gangType;
 
-		if (currPlanSlice->directDispatch.isDirectDispatch)
-		{
-			currExecSlice->directDispatch.isDirectDispatch = true;
-			currExecSlice->directDispatch.contentIds = list_copy(currPlanSlice->directDispatch.contentIds);
-		}
-
-		FillSliceGangInfo(currExecSlice, currPlanSlice->numsegments);
+		FillSliceGangInfo(currExecSlice, currPlanSlice->numsegments, &currPlanSlice->directDispatch);
 	}
 	table->numSlices = numSlices;
 
@@ -1374,10 +1360,10 @@ InitSliceTable(EState *estate, PlannedStmt *plannedstmt)
 	{
 		if (table->slices[0].gangType == GANGTYPE_PRIMARY_WRITER)
 		{
-			table->slices[0].directDispatch.isDirectDispatch = false;
-			table->slices[0].gangSize = getgpsegmentCount();
+			int			numsegments = getgpsegmentCount();
+
 			table->slices[0].segments = NIL;
-			for (i = 0; i < table->slices[0].gangSize; i++)
+			for (i = 0; i < numsegments; i++)
 				table->slices[0].segments = lappend_int(table->slices[0].segments, i);
 		}
 	}
@@ -1443,10 +1429,7 @@ sliceCalculateNumSendingProcesses(ExecSlice *slice)
 
 		case GANGTYPE_PRIMARY_WRITER:
 		case GANGTYPE_PRIMARY_READER:
-			if (slice->directDispatch.isDirectDispatch)
-				return list_length(slice->directDispatch.contentIds);
-			else
-				return slice->gangSize;
+			return list_length(slice->segments);
 
 		default:
 			Insist(false);

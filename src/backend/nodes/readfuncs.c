@@ -3931,9 +3931,7 @@ _readSliceTable(void)
 		READ_INT_FIELD(slices[i].planNumSegments);
 		READ_NODE_FIELD(slices[i].children); /* List of int index */
 		READ_ENUM_FIELD(slices[i].gangType, GangType);
-		READ_INT_FIELD(slices[i].gangSize);
-		READ_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
-		READ_NODE_FIELD(slices[i].directDispatch.contentIds); /* List of int index */
+		READ_NODE_FIELD(slices[i].segments); /* List of int index */
 		READ_DUMMY_FIELD(slices[i].primaryGang, NULL);
 		READ_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
 		READ_BITMAPSET_FIELD(slices[i].processesMap);

@@ -4980,9 +4980,7 @@ _outSliceTable(StringInfo str, const SliceTable *node)
 		WRITE_INT_FIELD(slices[i].planNumSegments);
 		WRITE_NODE_FIELD(slices[i].children); /* List of int index */
 		WRITE_ENUM_FIELD(slices[i].gangType, GangType);
-		WRITE_INT_FIELD(slices[i].gangSize);
-		WRITE_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
-		WRITE_NODE_FIELD(slices[i].directDispatch.contentIds); /* List of int */
+		WRITE_NODE_FIELD(slices[i].segments); /* List of int */
 		WRITE_DUMMY_FIELD(slices[i].primaryGang);
 		WRITE_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
 		WRITE_BITMAPSET_FIELD(slices[i].processesMap);

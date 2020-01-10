@@ -1995,16 +1995,18 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
         /* Worker counts */
         slice = getCurrentSlice(estate, sliceIndex);
         if (slice &&
-            slice->gangSize > 0 &&
-            slice->gangSize != ss->dispatchSummary.nOk)
+			list_length(slice->segments) > 0 &&
+			list_length(slice->segments) != ss->dispatchSummary.nOk)
         {
-            int nNotDispatched = slice->gangSize - ds->nResult + ds->nNotDispatched;
+			int			nNotDispatched;
+			StringInfoData workersInformationText;
 
-            es->str->data[flag] = (ss->dispatchSummary.nError > 0) ? 'X' : '_';
-            StringInfoData workersInformationText;
-            initStringInfo(&workersInformationText);
+			nNotDispatched = list_length(slice->segments) - ds->nResult + ds->nNotDispatched;
 
-            appendStringInfo(&workersInformationText, "Workers:");
+			es->str->data[flag] = (ss->dispatchSummary.nError > 0) ? 'X' : '_';
+
+			initStringInfo(&workersInformationText);
+			appendStringInfo(&workersInformationText, "Workers:");
 
             if (es->format == EXPLAIN_FORMAT_TEXT)
             {
@@ -2107,8 +2109,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                 {
                     cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->peakmemused.imax, 999);
                 }
-                else if (slice &&
-                         slice->gangSize > 0)
+                else if (slice && list_length(slice->segments) > 0)
                 {
                     seg = " (entry db)";
                 }
@@ -2168,8 +2169,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                     {
                         cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, 999);
                     }
-                    else if (slice &&
-                             slice->gangSize > 0)
+                    else if (slice && list_length(slice->segments) > 0)
                     {
                         seg = " (entry db)";
                     }
@@ -2228,8 +2228,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                     {
                         cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, 999);
                     }
-                    else if (slice &&
-                             slice->gangSize > 0)
+                    else if (slice && list_length(slice->segments) > 0)
                     {
                         seg = " (entry db)";
                     }

@@ -820,7 +820,7 @@ ExplainPrintSliceTable(ExplainState *es, QueryDesc *queryDesc)
 							 gangType,
 							 slice->rootIndex,
 							 slice->parentIndex,
-							 slice->gangSize);
+							 list_length(slice->segments));
 			if (slice->gangType == GANGTYPE_SINGLETON_READER)
 				appendStringInfo(es->str, "; segment %d", linitial_int(slice->segments));
 			appendStringInfoString(es->str, "\n");
@@ -832,7 +832,7 @@ ExplainPrintSliceTable(ExplainState *es, QueryDesc *queryDesc)
 			ExplainPropertyText("Gang Type", gangType, es);
 			ExplainPropertyInteger("Root", slice->rootIndex, es);
 			ExplainPropertyInteger("Parent", slice->parentIndex, es);
-			ExplainPropertyInteger("Gang Size", slice->gangSize, es);
+			ExplainPropertyInteger("Gang Size", list_length(slice->segments), es);
 			if (slice->gangType == GANGTYPE_SINGLETON_READER)
 				ExplainPropertyInteger("Segment", linitial_int(slice->segments), es);
 			ExplainCloseGroup("Slice", NULL, true, es);
@@ -1006,14 +1006,7 @@ show_dispatch_info(ExecSlice *slice, ExplainState *es, Plan *plan)
 		case GANGTYPE_PRIMARY_READER:
 		case GANGTYPE_SINGLETON_READER:
 		{
-			if (slice->directDispatch.isDirectDispatch)
-			{
-				segments = list_length(slice->directDispatch.contentIds);
-			}
-			else
-			{
-				segments = slice->gangSize;
-			}
+			segments = list_length(slice->segments);
 			break;
 		}
 
@@ -1170,7 +1163,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		if (es->currentSlice)
 		{
 			if (es->currentSlice->gangType != GANGTYPE_UNALLOCATED)
-				scaleFactor = es->currentSlice->gangSize;
+				scaleFactor = list_length(es->currentSlice->segments);
 		}
 	}
 
@@ -1435,8 +1428,8 @@ ExplainNode(PlanState *planstate, List *ancestors,
 
 				Assert(plan->lefttree);
 
-				motion_snd = es->currentSlice->gangSize;
-				motion_recv = (parentSlice == NULL ? 1 : parentSlice->gangSize);
+				motion_snd = list_length(es->currentSlice->segments);
+				motion_recv = (parentSlice == NULL ? 1 : list_length(parentSlice->segments));
 
 				/* scale the number of rows by the number of segments sending data */
 				scaleFactor = motion_snd;

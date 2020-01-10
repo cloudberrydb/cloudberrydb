@@ -71,18 +71,12 @@ typedef struct ExecSlice
 	GangType	gangType;
 
 	/*
-	 * How many gang members needed?
+	 * A list of segment ids who will execute this slice.
 	 *
 	 * It is set before the process lists below and used to decide how
 	 * to initialize them.
 	 */
-	int			gangSize;
-
-	/*
-	 * directDispatch->isDirectDispatch should ONLY be set for a slice
-	 * when it requires an n-gang.
-	 */
-	DirectDispatchInfo directDispatch;
+	List		*segments;
 
 	struct Gang *primaryGang;
 
@@ -96,8 +90,6 @@ typedef struct ExecSlice
 	List		*primaryProcesses;
 	/* A bitmap to identify which QE should execute this slice */
 	Bitmapset	*processesMap;
-	/* A list of segment ids who will execute this slice */
-	List		*segments;
 } ExecSlice;
 
 /*
