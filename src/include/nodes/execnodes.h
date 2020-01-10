@@ -3010,6 +3010,7 @@ typedef struct MotionState
 	bool		sentEndOfStream;	/* set when end-of-stream has successfully been sent */
 	List	   *hashExprs;		/* state struct used for evaluating the hash expressions */
 	struct CdbHash *cdbhash;	/* hash api object */
+	int			numHashSegments;	/* number of segments to use when calculating hash */
 
 	/* For Motion recv */
 	int			routeIdNext;	/* for a sorted motion node, the routeId to get next (same as

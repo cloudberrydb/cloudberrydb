@@ -67,6 +67,12 @@ typedef struct ExecSlice
 	int			parentIndex;
 
 	/*
+	 * nominal # of segments, for hash calculations. Can be different from
+	 * gangSize, if direct dispatch.
+	 */
+	int			planNumSegments;
+
+	/*
 	 * An integer list of indices in the global slice table (origin  0)
 	 * of the child slices of this slice, or -1 if this is a leaf slice.
 	 * A child slice corresponds to a receiving motion in this slice.

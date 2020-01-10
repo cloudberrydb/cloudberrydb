@@ -4965,6 +4965,7 @@ _outSliceTable(StringInfo str, const SliceTable *node)
 		WRITE_INT_FIELD(slices[i].sliceIndex);
 		WRITE_INT_FIELD(slices[i].rootIndex);
 		WRITE_INT_FIELD(slices[i].parentIndex);
+		WRITE_INT_FIELD(slices[i].planNumSegments);
 		WRITE_NODE_FIELD(slices[i].children); /* List of int index */
 		WRITE_ENUM_FIELD(slices[i].gangType, GangType);
 		WRITE_INT_FIELD(slices[i].gangSize);

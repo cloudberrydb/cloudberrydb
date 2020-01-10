@@ -3924,6 +3924,7 @@ _readSliceTable(void)
 		READ_INT_FIELD(slices[i].sliceIndex);
 		READ_INT_FIELD(slices[i].rootIndex);
 		READ_INT_FIELD(slices[i].parentIndex);
+		READ_INT_FIELD(slices[i].planNumSegments);
 		READ_NODE_FIELD(slices[i].children); /* List of int index */
 		READ_ENUM_FIELD(slices[i].gangType, GangType);
 		READ_INT_FIELD(slices[i].gangSize);

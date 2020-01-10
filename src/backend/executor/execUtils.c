@@ -1259,6 +1259,7 @@ InitSliceTable(EState *estate, int nMotions, int nSubplans)
 
 		slice->sliceIndex = i;
         slice->rootIndex = (i > 0 && i <= nMotions) ? -1 : i;
+		slice->planNumSegments = 0;
 		slice->gangType = GANGTYPE_UNALLOCATED;
 		slice->gangSize = 0;
 		slice->segments = NIL;

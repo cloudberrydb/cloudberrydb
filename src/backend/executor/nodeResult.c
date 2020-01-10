@@ -390,28 +390,12 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	 */
 	if (node->numHashFilterCols > 0)
 	{
-		int			numSegments;
+		int			currentSliceId = estate->currentSliceIdInPlan;
+		ExecSlice *currentSlice = &estate->es_sliceTable->slices[currentSliceId];
 
-		if (resstate->ps.state->es_plannedstmt->planGen == PLANGEN_PLANNER)
-		{
-			Assert(node->plan.flow->numsegments > 0);
-
-			/*
-			 * For planner generated plan the size of receiver slice can be
-			 * determined from flow.
-			 */
-			numSegments = node->plan.flow->numsegments;
-		}
-		else
-		{
-			/*
-			 * For ORCA generated plan we could distribute to ALL as partially
-			 * distributed tables are not supported by ORCA yet.
-			 */
-			numSegments = getgpsegmentCount();
-		}
-
-		resstate->hashFilter = makeCdbHash(numSegments, node->numHashFilterCols, node->hashFilterFuncs);
+		resstate->hashFilter = makeCdbHash(currentSlice->planNumSegments,
+										   node->numHashFilterCols,
+										   node->hashFilterFuncs);
 	}
 
 	if (!IsResManagerMemoryPolicyNone()

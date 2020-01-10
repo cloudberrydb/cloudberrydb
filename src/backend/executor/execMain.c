@@ -4904,10 +4904,12 @@ FillSliceGangInfo(ExecSlice *slice, int numsegments)
 	switch (slice->gangType)
 	{
 		case GANGTYPE_UNALLOCATED:
+			slice->planNumSegments = 1;
 			slice->gangSize = 0;
 			break;
 		case GANGTYPE_PRIMARY_WRITER:
 		case GANGTYPE_PRIMARY_READER:
+			slice->planNumSegments = numsegments;
 			if (slice->directDispatch.isDirectDispatch)
 			{
 				slice->gangSize = list_length(slice->directDispatch.contentIds);
@@ -4923,10 +4925,12 @@ FillSliceGangInfo(ExecSlice *slice, int numsegments)
 			}
 			break;
 		case GANGTYPE_ENTRYDB_READER:
+			slice->planNumSegments = 1;
 			slice->gangSize = 1;
 			slice->segments = list_make1_int(-1);
 			break;
 		case GANGTYPE_SINGLETON_READER:
+			slice->planNumSegments = 1;
 			slice->gangSize = 1;
 			slice->segments = list_make1_int(gp_session_id % numsegments);
 			break;
