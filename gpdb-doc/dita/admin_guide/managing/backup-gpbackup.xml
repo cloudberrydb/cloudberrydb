@@ -27,8 +27,8 @@
       commands in parallel. The backup process acquires an <codeph>ACCESS SHARE</codeph> lock on
       each table that is backed up.</p>
     <p>For information about the <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> utility
-      options, see <xref href="../../utility_guide/ref/gpbackup.xml">gpbackup</xref> and
-        <xref href="../../utility_guide/ref/gprestore.xml">gprestore</xref>.</p>
+      options, see <xref href="../../utility_guide/ref/gpbackup.xml">gpbackup</xref> and <xref
+        href="../../utility_guide/ref/gprestore.xml">gprestore</xref>.</p>
   </body>
   <topic id="topic_vh5_1hd_tbb">
     <title>Requirements and Limitations</title>
@@ -123,6 +123,7 @@
                     <li dir="ltr">Casts</li>
                     <li dir="ltr">Types</li>
                     <li dir="ltr">Views</li>
+                    <li>Materialized Views (DDL only)</li>
                     <li dir="ltr">Protocols</li>
                     <li dir="ltr">Triggers. (While Greenplum Database does not support triggers, any
                       trigger definitions that are present are backed up and restored.)</li>
@@ -228,6 +229,8 @@ $ <b>find /home/gpadmin/backups/ -type f</b>
       <p>When performing a backup operation, you can use the <codeph>--single-data-file</codeph> in
         situations where the additional overhead of multiple files might be prohibitive. For
         example, if you use a third party storage solution such as Data Domain with back ups.</p>
+      <note>Backing up a materialized view does not back up the materialized view data. Only the
+        materialized view definition is backed up.</note>
       <section>
         <title>Restoring from Backup</title>
         <p>To use <codeph>gprestore</codeph> to restore from a backup set, you must use the
@@ -264,7 +267,14 @@ $ <b>gprestore --backup-dir /home/gpadmin/backups/ --timestamp 20171103153156 --
           number for fast data recovery. </p>
         <note>You cannot perform a parallel restore operation with <codeph>gprestore</codeph> if the
           backup combined table backups into a single file per segment with the
-            <codeph>gpbackup</codeph> option <codeph>--single-data-file</codeph>.</note>
+            <codeph>gpbackup</codeph> option <codeph>--single-data-file</codeph>.<p>Restoring a
+            materialized view does not restore materialized view data. Only the materialized view
+            definition is restored. To populate the materialized view with data, use <codeph>REFRESH
+              MATERIALIZED VIEW</codeph>. The tables that are referenced by the materialized view
+            definition must be available when you refresh the materialized view. The
+              <codeph>gprestore</codeph> log file lists the materialized views that were restored
+            and the <codeph>REFRESH MATERIALIZED VIEW</codeph> commands that are used to populate
+            the materialized views with data.</p></note>
       </section>
       <section id="report_files"><title>Report Files</title><p>When performing a backup or restore
           operation, <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> generate a report
@@ -379,9 +389,10 @@ water.tonic</codeblock></p>
           <codeph>--exclude-table</codeph> or <codeph>--include-table</codeph>.</p>
       <p>When you use <codeph>--include-table</codeph> or <codeph>--include-table-file</codeph>
         dependent objects are not automatically backed up or restored, you must explicitly specify
-        the dependent objects that are required. For example, if you back up or restore a view, you
-        must also specify the tables that the view uses. If you backup or restore a table that uses
-        a sequence, you must also specify the sequence.</p>
+        the dependent objects that are required. For example, if you back up or restore a view or
+        materialized view, you must also specify the tables that the view or the materialized view
+        uses. If you backup or restore a table that uses a sequence, you must also specify the
+        sequence. </p>
       <section id="section_ddf_gyn_5bb"><title>Filtering by Leaf Partition</title><p>By default,
             <codeph>gpbackup</codeph> creates one file for each table on a segment. You can specify
           the <codeph>--leaf-partition-data</codeph> option to create one data file per leaf
@@ -670,6 +681,8 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
                     <li>Aggregates</li>
                     <li>Casts</li>
                     <li>Views</li>
+                    <li>Materialized Views <b>Note:</b> Materialized view data is not restored, only
+                      the definition.</li>
                     <li>Constraints</li>
                   </ul>Database-specific objects that must be created <i>after</i> restoring the
                   actual data include:<ul id="ul_br4_wsv_scb">
