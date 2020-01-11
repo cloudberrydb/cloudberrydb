@@ -116,10 +116,10 @@ sdw4-2</codeblock></li>
       <title id="jm138566">Creating the Greenplum Database Configuration File</title>
       <body>
         <p>Your Greenplum Database configuration file tells the <codeph><xref
-              href="../utility_guide/ref/gpinitsystem.html" type="topic"
-            >gpinitsystem</xref></codeph> utility how you want to configure your Greenplum Database
-          system. An example configuration file can be found in
-            <codeph>$GPHOME/docs/cli_help/gpconfigs/gpinitsystem_config</codeph>.</p>
+              href="../utility_guide/ref/gpinitsystem.xml" type="topic">gpinitsystem</xref></codeph>
+          utility how you want to configure your Greenplum Database system. An example configuration
+          file can be found in
+          <codeph>$GPHOME/docs/cli_help/gpconfigs/gpinitsystem_config</codeph>.</p>
         <section id="jm138725">
           <title>To create a gpinitsystem_config file</title>
           <ol>
