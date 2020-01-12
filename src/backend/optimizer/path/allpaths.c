@@ -455,7 +455,7 @@ bring_to_outer_query(PlannerInfo *root, RelOptInfo *rel, List *outer_quals)
 			if (origpath->param_info)
 				continue;
 
-			CdbPathLocus_MakeOuterQuery(&outerquery_locus, origpath->locus.numsegments);
+			CdbPathLocus_MakeOuterQuery(&outerquery_locus);
 
 			path = cdbpath_create_motion_path(root,
 											  origpath,
@@ -1973,8 +1973,7 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 							make_tlist_from_pathtarget(subpath->pathtarget));
 
 		if (forceDistRand)
-			CdbPathLocus_MakeStrewn(&locus,
-									CdbPathLocus_NumSegments(subpath->locus));
+			CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount());
 		else
 			locus = cdbpathlocus_from_subquery(root, rel, subpath);
 

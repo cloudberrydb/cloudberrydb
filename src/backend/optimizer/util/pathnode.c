@@ -1737,8 +1737,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 	/* If no subpath, any worker can execute this Append.  Result has 0 rows. */
 	if (!subpaths)
 	{
-		CdbPathLocus_MakeGeneral(&pathnode->locus,
-								 getgpsegmentCount());
+		CdbPathLocus_MakeGeneral(&pathnode->locus);
 		return;
 	}
 
@@ -1851,11 +1850,19 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		/* nothing more to do */
 		CdbPathLocus_MakeEntry(&targetlocus);
 	}
-	else if (targetlocustype == CdbLocusType_OuterQuery ||
-			 targetlocustype == CdbLocusType_SingleQE ||
+	else if (targetlocustype == CdbLocusType_OuterQuery)
+	{
+		/* nothing more to do */
+		CdbPathLocus_MakeOuterQuery(&targetlocus);
+	}
+	else if (targetlocustype == CdbLocusType_General)
+	{
+		/* nothing more to do */
+		CdbPathLocus_MakeGeneral(&targetlocus);
+	}
+	else if (targetlocustype == CdbLocusType_SingleQE ||
 			 targetlocustype == CdbLocusType_Replicated ||
-			 targetlocustype == CdbLocusType_SegmentGeneral ||
-			 targetlocustype == CdbLocusType_General)
+			 targetlocustype == CdbLocusType_SegmentGeneral)
 	{
 		/* By default put Append node on all the segments */
 		numsegments = getgpsegmentCount();
@@ -1867,9 +1874,10 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 			 * Align numsegments to be the common segments among the children.
 			 * Partitioned children will need to be motioned, so ignore them.
 			 */
-			if (!CdbPathLocus_IsPartitioned(subpath->locus))
+			if (CdbPathLocus_IsSingleQE(subpath->locus) ||
+				CdbPathLocus_IsSegmentGeneral(subpath->locus) ||
+				CdbPathLocus_IsReplicated(subpath->locus))
 			{
-				/* When there are multiple SingleQE, use the common segments */
 				numsegments = Min(numsegments,
 								  CdbPathLocus_NumSegments(subpath->locus));
 			}
@@ -1882,7 +1890,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 
 		/* By default put Append node on all the segments */
 		numsegments = getgpsegmentCount();
-		CdbPathLocus_MakeNull(&targetlocus, 0);
+		CdbPathLocus_MakeNull(&targetlocus);
 		foreach(l, subpaths)
 		{
 			Path	   *subpath = (Path *) lfirst(l);
@@ -2010,7 +2018,7 @@ create_result_path(PlannerInfo *root, RelOptInfo *rel,
 	}
 
 	/* Result can be on any segments */
-	CdbPathLocus_MakeGeneral(&pathnode->path.locus, getgpsegmentCount());
+	CdbPathLocus_MakeGeneral(&pathnode->path.locus);
 	pathnode->path.motionHazard = false;
 	pathnode->path.rescannable = true;
 
@@ -2849,12 +2857,11 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 			 * for backwards compatibility.
 			 */
 			if (contain_outer_params)
-				CdbPathLocus_MakeOuterQuery(&pathnode->locus, getgpsegmentCount());
+				CdbPathLocus_MakeOuterQuery(&pathnode->locus);
 			else if (contain_mutables)
 				CdbPathLocus_MakeEntry(&pathnode->locus);
 			else
-				CdbPathLocus_MakeGeneral(&pathnode->locus,
-										 getgpsegmentCount());
+				CdbPathLocus_MakeGeneral(&pathnode->locus);
 			break;
 		case PROEXECLOCATION_MASTER:
 			if (contain_outer_params)
@@ -2968,7 +2975,7 @@ create_valuesscan_path(PlannerInfo *root, RelOptInfo *rel,
 		/*
 		 * ValuesScan can be on any segment.
 		 */
-		CdbPathLocus_MakeGeneral(&pathnode->locus, getgpsegmentCount());
+		CdbPathLocus_MakeGeneral(&pathnode->locus);
 	}
 
 	pathnode->motionHazard = false;
@@ -3048,13 +3055,6 @@ create_worktablescan_path(PlannerInfo *root, RelOptInfo *rel,
 						  Relids required_outer)
 {
 	Path	   *pathnode = makeNode(Path);
-	int			numsegments;
-
-	/* GPDB_96_MERGE_FIXME: should we use ctelocus as is?  */
-	if (rel->cdbpolicy)
-		numsegments = rel->cdbpolicy->numsegments;
-	else
-		numsegments = getgpsegmentCount(); /* FIXME */
 
 	pathnode->pathtype = T_WorkTableScan;
 	pathnode->parent = rel;
@@ -3144,7 +3144,7 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 	switch (rel->ftEntry->exec_location)
 	{
 		case FTEXECLOCATION_ANY:
-			CdbPathLocus_MakeGeneral(&(pathnode->path.locus), getgpsegmentCount());
+			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
 			break;
 		case FTEXECLOCATION_ALL_SEGMENTS:
 			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount());
@@ -4752,8 +4752,6 @@ adjust_modifytable_subpaths(PlannerInfo *root, CmdType operation,
 		lfirst(lcp) = subpath;
 	}
 
-	Assert(numsegments >= 0);
-
 	/*
 	 * Set the distribution of the ModifyTable node itself. If there is only
 	 * one subplan, or all the subplans have a compatible distribution, then
@@ -4793,12 +4791,16 @@ adjust_modifytable_subpaths(PlannerInfo *root, CmdType operation,
 	{
 		CdbPathLocus resultLocus;
 
+		Assert(numsegments >= 0);
+
 		CdbPathLocus_MakeReplicated(&resultLocus, numsegments);
 		return resultLocus;
 	}
 	else
 	{
 		CdbPathLocus resultLocus;
+
+		Assert(numsegments >= 0);
 
 		CdbPathLocus_MakeStrewn(&resultLocus, numsegments);
 

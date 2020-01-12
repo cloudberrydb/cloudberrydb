@@ -1875,7 +1875,7 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 	CdbPathLocus current_locus;
 	bool		must_gather;
 
-	CdbPathLocus_MakeNull(&current_locus, GP_POLICY_INVALID_NUMSEGMENTS());
+	CdbPathLocus_MakeNull(&current_locus);
 
 	/* Tweak caller-supplied tuple_fraction if have LIMIT/OFFSET */
 	if (parse->limitCount || parse->limitOffset)

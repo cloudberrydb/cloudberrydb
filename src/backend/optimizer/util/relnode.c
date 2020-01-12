@@ -29,6 +29,7 @@
 
 #include "catalog/gp_policy.h"
 #include "cdb/cdbpath.h"
+#include "cdb/cdbutil.h"
 #include "nodes/makefuncs.h"                /* makeVar() */
 #include "nodes/nodeFuncs.h"
 #include "optimizer/var.h"                  /* contain_vars_of_level_or_above */
@@ -163,8 +164,14 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptKind reloptkind)
 			if (rte->forceDistRandom)
 			{
 				GpPolicy   *origpolicy = GpPolicyFetch(rte->relid);
+				int			numsegments;
 
-				rel->cdbpolicy = createRandomPartitionedPolicy(origpolicy->numsegments);
+				if (origpolicy->ptype != POLICYTYPE_ENTRY)
+					numsegments = origpolicy->numsegments;
+				else
+					numsegments = getgpsegmentCount();
+
+				rel->cdbpolicy = createRandomPartitionedPolicy(numsegments);
 
 				/* Scribble the tuple number of rel to reflect the real size */
 				rel->tuples = rel->tuples * planner_segment_count(rel->cdbpolicy);

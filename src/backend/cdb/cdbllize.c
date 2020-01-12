@@ -1262,10 +1262,6 @@ makeFlow(FlowType flotype, int numsegments)
 	Flow	   *flow = makeNode(Flow);
 
 	Assert(numsegments > 0);
-	if (numsegments == GP_POLICY_INVALID_NUMSEGMENTS())
-	{
-		Assert(!"what's the proper value of numsegments?");
-	}
 
 	flow->flotype = flotype;
 	flow->locustype = CdbLocusType_Null;

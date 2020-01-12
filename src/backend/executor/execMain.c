@@ -4931,7 +4931,7 @@ AdjustReplicatedTableCounts(EState *estate)
 	int i;
 	ResultRelInfo *resultRelInfo;
 	bool containReplicatedTable = false;
-	int			numsegments = getgpsegmentCount();
+	int			numsegments =  1;
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 		return;

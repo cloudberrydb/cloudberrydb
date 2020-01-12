@@ -753,7 +753,7 @@ cdb_choose_grouping_locus(PlannerInfo *root, Path *path,
 	if (CdbPathLocus_IsBottleneck(path->locus))
 	{
 		need_redistribute = false;
-		CdbPathLocus_MakeNull(&locus, getgpsegmentCount());
+		CdbPathLocus_MakeNull(&locus);
 	}
 	else
 	{
@@ -854,7 +854,7 @@ cdb_choose_grouping_locus(PlannerInfo *root, Path *path,
 				CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
 		}
 		else
-			CdbPathLocus_MakeNull(&locus, getgpsegmentCount());
+			CdbPathLocus_MakeNull(&locus);
 	}
 
 	*need_redistribute_p = need_redistribute;

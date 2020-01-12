@@ -278,7 +278,7 @@ cdbpathlocus_for_insert(PlannerInfo *root, GpPolicy *policy,
 
 		if (failed)
 		{
-			CdbPathLocus_MakeNull(&targetLocus, policy->numsegments);
+			CdbPathLocus_MakeNull(&targetLocus);
 		}
 		else if (distkeys)
 			CdbPathLocus_MakeHashed(&targetLocus, distkeys, policy->numsegments);
@@ -578,19 +578,19 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 								   Index newrelid)
 {
 	CdbPathLocus newlocus;
-	int			numsegments;
 
 	Assert(cdbpathlocus_is_valid(locus));
-
-	/*
-	 * Keep the numsegments unchanged.
-	 */
-	numsegments = CdbPathLocus_NumSegments(locus);
 
 	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
 	{
 		ListCell   *distkeycell;
 		List	   *newdistkeys = NIL;
+		int			numsegments;
+
+		/*
+		 * Keep the numsegments unchanged.
+		 */
+		numsegments = CdbPathLocus_NumSegments(locus);
 
 		/* For each column of the distribution key... */
 		foreach(distkeycell, locus.distkey)
@@ -676,53 +676,39 @@ cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 	if (cdbpathlocus_equal(a, b))
 		return a;
 
-	numsegments = CdbPathLocus_CommonSegments(a, b);
-
 	/*
 	 * SingleQE may have different segment counts.
 	 */
 	if (CdbPathLocus_IsSingleQE(a) &&
 		CdbPathLocus_IsSingleQE(b))
 	{
-		CdbPathLocus_MakeSingleQE(&resultlocus, numsegments);
+		CdbPathLocus_MakeSingleQE(&resultlocus,
+								  CdbPathLocus_CommonSegments(a, b));
 		return resultlocus;
 	}
 
-	/*
-	 * If both are Entry then do the job on the common segments.
-	 */
-	if (CdbPathLocus_IsEntry(a) &&
-		CdbPathLocus_IsEntry(b))
-	{
-		a.numsegments = numsegments;
+	if (CdbPathLocus_IsGeneral(a))
+		return b;
+
+	if (CdbPathLocus_IsGeneral(b))
 		return a;
-	}
 
 	/*
-	 * If one rel is general or replicated, result stays with the other rel,
+	 * If one rel is replicated, result stays with the other rel,
 	 * but need to ensure the result is on the common segments.
 	 */
-	if (CdbPathLocus_IsGeneral(a) ||
+	if (CdbPathLocus_IsSegmentGeneral(a) ||
 		CdbPathLocus_IsReplicated(a))
 	{
-		b.numsegments = numsegments;
+		b.numsegments = CdbPathLocus_CommonSegments(a, b);
 		return b;
 	}
-	if (CdbPathLocus_IsGeneral(b) ||
+	if (CdbPathLocus_IsSegmentGeneral(b) ||
 		CdbPathLocus_IsReplicated(b))
 	{
-		a.numsegments = numsegments;
+		a.numsegments = CdbPathLocus_CommonSegments(a, b);
 		return a;
 	}
-
-	/*
-	 * FIXME: should we adjust the returned numsegments like
-	 * Replicated above?
-	 */
-	if (CdbPathLocus_IsSegmentGeneral(a))
-		return b;
-	else if (CdbPathLocus_IsSegmentGeneral(b))
-		return a;
 
 	/*
 	 * Both sides must be Hashed (or HashedOJ), then. And the distribution
@@ -734,9 +720,11 @@ cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 	if (!(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b)))
 		elog(ERROR, "could not be construct join with non-hashed path");
 	if (a.distkey == NIL ||
-		CdbPathLocus_NumSegments(a) != CdbPathLocus_NumSegments(b) ||
 		list_length(a.distkey) != list_length(b.distkey))
 		elog(ERROR, "could not construct hashed join locus with incompatible distribution keys");
+	if (CdbPathLocus_NumSegments(a) != CdbPathLocus_NumSegments(b))
+		elog(ERROR, "could not construct hashed join locus with different number of segments");
+	numsegments = CdbPathLocus_NumSegments(a);
 
 	/*
 	 * For a LEFT/RIGHT OUTER JOIN, we can use key of the outer, non-nullable
@@ -1108,6 +1096,14 @@ cdbpathlocus_is_valid(CdbPathLocus locus)
 				goto bad;
 		}
 	}
+
+	/* Check that 'numsegments' is valid */
+	if (!CdbPathLocus_IsGeneral(locus) &&
+		!CdbPathLocus_IsEntry(locus) &&
+		!CdbPathLocus_IsOuterQuery(locus) &&
+		locus.numsegments == -1)
+		goto bad;
+
 	return true;
 
 bad:

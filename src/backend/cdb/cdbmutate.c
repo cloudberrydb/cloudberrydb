@@ -71,7 +71,6 @@ make_union_motion(Plan *lefttree, int numsegments)
 	Motion	   *motion;
 
 	Assert(numsegments > 0);
-	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL /* no ordering */);
@@ -92,7 +91,6 @@ make_sorted_union_motion(PlannerInfo *root, Plan *lefttree, int numSortCols,
 	Motion	   *motion;
 
 	Assert(numsegments > 0);
-	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 
 	motion = make_motion(root, lefttree,
 						 numSortCols, sortColIdx, sortOperators, collations, nullsFirst);
@@ -116,7 +114,6 @@ make_hashed_motion(Plan *lefttree,
 	int			i;
 
 	Assert(numsegments > 0);
-	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 	Assert(list_length(hashExprs) == list_length(hashOpfamilies));
 
 	/* Look up the right hash functions for the hash expressions */
@@ -146,7 +143,6 @@ make_broadcast_motion(Plan *lefttree, int numsegments)
 	Motion	   *motion;
 
 	Assert(numsegments > 0);
-	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 
 	motion = make_motion(NULL, lefttree,
 						 0, NULL, NULL, NULL, NULL /* no ordering */);
@@ -166,7 +162,6 @@ make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx, 
 	base.node = (Node *) root;
 
 	Assert(numsegments > 0);
-	Assert(numsegments != GP_POLICY_INVALID_NUMSEGMENTS());
 	Assert(segidColIdx > 0 && segidColIdx <= list_length(lefttree->targetlist));
 
 	motion = make_motion(NULL, lefttree,

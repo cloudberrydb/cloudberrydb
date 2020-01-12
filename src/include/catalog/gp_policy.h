@@ -62,12 +62,6 @@ typedef FormData_gp_policy *Form_gp_policy;
 #define SYM_POLICYTYPE_REPLICATED 'r'
 
 /*
- * A magic number, setting GpPolicy.numsegments to this value will cause a
- * failed assertion at runtime, which allows developers to debug with gdb.
- */
-#define GP_POLICY_INVALID_NUMSEGMENTS()		(-1)
-
-/*
  * Default set of segments, the value is controlled by the variable
  * gp_create_table_default_numsegments.
  */

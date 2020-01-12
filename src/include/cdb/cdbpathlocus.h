@@ -221,14 +221,14 @@ typedef struct CdbPathLocus
         _locus->distkey = NIL;                        \
     } while (0)
 
-#define CdbPathLocus_MakeNull(plocus, numsegments_)                   \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Null, (numsegments_))
+#define CdbPathLocus_MakeNull(plocus)                   \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Null, -1)
 #define CdbPathLocus_MakeEntry(plocus)                  \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Entry, getgpsegmentCount())
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Entry, -1)
 #define CdbPathLocus_MakeSingleQE(plocus, numsegments_)               \
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_SingleQE, (numsegments_))
-#define CdbPathLocus_MakeGeneral(plocus, numsegments_)                \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_General, (numsegments_))
+#define CdbPathLocus_MakeGeneral(plocus)                \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_General, -1)
 #define CdbPathLocus_MakeSegmentGeneral(plocus, numsegments_)                \
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_SegmentGeneral, (numsegments_))
 #define CdbPathLocus_MakeReplicated(plocus, numsegments_)             \
@@ -252,9 +252,8 @@ typedef struct CdbPathLocus
 #define CdbPathLocus_MakeStrewn(plocus, numsegments_)                 \
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_Strewn, (numsegments_))
 
-// GPDB_96_MERGE_FIXME numsegments doens't really make sense here
-#define CdbPathLocus_MakeOuterQuery(plocus, numsegments_)                 \
-	CdbPathLocus_MakeSimple((plocus), CdbLocusType_OuterQuery, (numsegments_))
+#define CdbPathLocus_MakeOuterQuery(plocus)                 \
+	CdbPathLocus_MakeSimple((plocus), CdbLocusType_OuterQuery, -1)
 
 /************************************************************************/
 

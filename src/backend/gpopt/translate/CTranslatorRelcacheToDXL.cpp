@@ -568,6 +568,7 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	}
 
 	if (NULL != rel->rd_cdbpolicy &&
+		POLICYTYPE_ENTRY != rel->rd_cdbpolicy->ptype &&
 		gpdb::GetGPSegmentCount() != rel->rd_cdbpolicy->numsegments)
 	{
 		// GPORCA does not support partially distributed tables yet

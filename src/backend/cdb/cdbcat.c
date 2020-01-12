@@ -95,11 +95,8 @@ makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments)
 	policy->numsegments = numsegments;
 	policy->nattrs = nattrs; 
 
-	Assert(numsegments > 0);
-	if (numsegments == GP_POLICY_INVALID_NUMSEGMENTS())
-	{
-		Assert(!"what's the proper value of numsegments?");
-	}
+	Assert(numsegments > 0 ||
+		   (ptype == POLICYTYPE_ENTRY && numsegments == -1));
 
 	return policy;
 }
@@ -312,8 +309,7 @@ GpPolicyFetch(Oid tbloid)
 
 			if (strcmp(on_clause, "MASTER_ONLY") == 0)
 			{
-				return makeGpPolicy(POLICYTYPE_ENTRY,
-									0, getgpsegmentCount());
+				return makeGpPolicy(POLICYTYPE_ENTRY, 0, -1);
 			}
 
 			return createRandomPartitionedPolicy(getgpsegmentCount());
@@ -413,8 +409,7 @@ GpPolicyFetch(Oid tbloid)
 	/* Interpret absence of a valid policy row as POLICYTYPE_ENTRY */
 	if (policy == NULL)
 	{
-		return makeGpPolicy(POLICYTYPE_ENTRY,
-							0, getgpsegmentCount());
+		return makeGpPolicy(POLICYTYPE_ENTRY, 0, -1);
 	}
 
 	return policy;

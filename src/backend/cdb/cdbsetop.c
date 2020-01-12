@@ -313,27 +313,22 @@ make_motion_hash_all_targets(PlannerInfo *root, Path *subpath, List *tlist)
 void
 mark_append_locus(Path *path, GpSetOpType optype)
 {
-	/*
-	 * FIXME: for append we forcely collect data on all segments
-	 */
-	int			numsegments = getgpsegmentCount();
-
 	switch (optype)
 	{
 		case PSETOP_GENERAL:
-			CdbPathLocus_MakeGeneral(&path->locus, numsegments);
+			CdbPathLocus_MakeGeneral(&path->locus);
 			break;
 		case PSETOP_PARALLEL_PARTITIONED:
-			CdbPathLocus_MakeStrewn(&path->locus, numsegments);
+			CdbPathLocus_MakeStrewn(&path->locus, getgpsegmentCount());
 			break;
 		case PSETOP_SEQUENTIAL_QD:
 			CdbPathLocus_MakeEntry(&path->locus);
 			break;
 		case PSETOP_SEQUENTIAL_QE:
-			CdbPathLocus_MakeSingleQE(&path->locus, numsegments);
+			CdbPathLocus_MakeSingleQE(&path->locus, getgpsegmentCount());
 			break;
 		case PSETOP_SEQUENTIAL_OUTERQUERY:
-			CdbPathLocus_MakeOuterQuery(&path->locus, numsegments);
+			CdbPathLocus_MakeOuterQuery(&path->locus);
 			break;
 		case PSETOP_NONE:
 			break;

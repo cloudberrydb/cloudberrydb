@@ -8102,7 +8102,11 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	Path	   *subpath = path->subpath;
 	int			numsegments;
 
-	numsegments = CdbPathLocus_NumSegments(path->path.locus);
+	if (CdbPathLocus_IsOuterQuery(path->path.locus) ||
+		CdbPathLocus_IsEntry(path->path.locus))
+		numsegments = 1;  /* dummy numsegments */
+	else
+		numsegments = CdbPathLocus_NumSegments(path->path.locus);
 
 	if (path->is_explicit_motion)
 	{

@@ -120,13 +120,9 @@ cdbpath_create_motion_path(PlannerInfo *root,
 						   CdbPathLocus locus)
 {
 	CdbMotionPath *pathnode;
-	int numsegments;
 
 	Assert(cdbpathlocus_is_valid(locus) &&
 		   cdbpathlocus_is_valid(subpath->locus));
-
-	numsegments = CdbPathLocus_CommonSegments(subpath->locus, locus);
-	Assert(numsegments > 0);
 
 	/* Moving subpath output to a single executor process (qDisp or qExec)? */
 	if (CdbPathLocus_IsOuterQuery(locus))
@@ -163,21 +159,19 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		if (CdbPathLocus_IsEntry(subpath->locus) &&
 			CdbPathLocus_IsEntry(locus))
 		{
-			subpath->locus.numsegments = getgpsegmentCount();
 			return subpath;
 		}
 		/* singleQE-->singleQE?  No motion needed. */
 		if (CdbPathLocus_IsSingleQE(subpath->locus) &&
 			CdbPathLocus_IsSingleQE(locus))
 		{
-			subpath->locus.numsegments = numsegments;
+			subpath->locus.numsegments = CdbPathLocus_CommonSegments(subpath->locus, locus);
 			return subpath;
 		}
 
 		/* entry-->singleQE?  Don't move.  Slice's QE will run on entry db. */
 		if (CdbPathLocus_IsEntry(subpath->locus))
 		{
-			subpath->locus.numsegments = numsegments;
 			return subpath;
 		}
 
@@ -185,7 +179,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		if (CdbPathLocus_IsOuterQuery(subpath->locus) &&
 			CdbPathLocus_IsEntry(locus))
 		{
-			subpath->locus.numsegments = numsegments;
 			return subpath;
 		}
 
@@ -219,8 +212,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			pathnode->path.pathkeys = pathkeys;
 
 			pathnode->subpath = subpath;
-
-			Assert(pathnode->path.locus.numsegments > 0);
 
 			/* Costs, etc, are same as subpath. */
 			pathnode->path.startup_cost = subpath->total_cost;
@@ -265,8 +256,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 
 			pathnode->subpath = subpath;
 
-			Assert(pathnode->path.locus.numsegments > 0);
-
 			/* Costs, etc, are same as subpath. */
 			pathnode->path.startup_cost = subpath->total_cost;
 			pathnode->path.total_cost = subpath->total_cost;
@@ -285,7 +274,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			 * general-->(entry|singleqe), no motion is needed, can run
 			 * directly on any of the common segments
 			 */
-			subpath->locus.numsegments = numsegments;
 			return subpath;
 		}
 
@@ -354,7 +342,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		if (CdbPathLocus_IsGeneral(locus) ||
 			CdbPathLocus_IsReplicated(locus))
 		{
-			subpath->locus.numsegments = numsegments;
 			return subpath;
 		}
 
@@ -379,7 +366,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		{
 			Assert(CdbPathLocus_NumSegments(locus) <=
 				   CdbPathLocus_NumSegments(subpath->locus));
-			subpath->locus.numsegments = numsegments;
+			subpath->locus.numsegments = CdbPathLocus_NumSegments(locus);
 			return subpath;
 		}
 
@@ -405,7 +392,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		{
 			if (CdbPathLocus_NumSegments(locus) <= CdbPathLocus_NumSegments(subpath->locus))
 			{
-				subpath->locus.numsegments = numsegments;
+				subpath->locus.numsegments = CdbPathLocus_NumSegments(locus);
 				return subpath;
 			}
 			else
@@ -926,6 +913,7 @@ static bool
 cdbpath_distkeys_from_preds(PlannerInfo *root,
 							List *mergeclause_list,
 							Path *a_path,
+							int numsegments,
 							CdbPathLocus *a_locus,	/* OUT */
 							CdbPathLocus *b_locus)	/* OUT */
 {
@@ -1072,13 +1060,9 @@ cdbpath_distkeys_from_preds(PlannerInfo *root,
 	if (!a_distkeys)
 		return false;
 
-	/*
-	 * Callers of this functions must correct numsegments themselves
-	 */
-
-	CdbPathLocus_MakeHashed(a_locus, a_distkeys, GP_POLICY_INVALID_NUMSEGMENTS());
+	CdbPathLocus_MakeHashed(a_locus, a_distkeys, numsegments);
 	if (b_distkeys)
-		CdbPathLocus_MakeHashed(b_locus, b_distkeys, GP_POLICY_INVALID_NUMSEGMENTS());
+		CdbPathLocus_MakeHashed(b_locus, b_distkeys, numsegments);
 	else
 		*b_locus = *a_locus;
 	return true;
@@ -1116,10 +1100,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	inner.path = *p_inner_path;
 	outer.locus = outer.path->locus;
 	inner.locus = inner.path->locus;
-	CdbPathLocus_MakeNull(&outer.move_to,
-						  CdbPathLocus_NumSegments(outer.path->locus));
-	CdbPathLocus_MakeNull(&inner.move_to,
-						  CdbPathLocus_NumSegments(inner.path->locus));
+	CdbPathLocus_MakeNull(&outer.move_to);
+	CdbPathLocus_MakeNull(&inner.move_to);
 
 	Assert(cdbpathlocus_is_valid(outer.locus));
 	Assert(cdbpathlocus_is_valid(inner.locus));
@@ -1257,10 +1239,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			other = &outer;
 		}
 
-		/*
-		 * numsegments of General locus is always the cluster size
-		 */
-		Assert(CdbPathLocus_NumSegments(general->locus) == getgpsegmentCount());
+		/* numsegments of General locus is always -1 */
+		Assert(CdbPathLocus_NumSegments(general->locus) == -1);
 
 		/*
 		 * If general can happen everywhere (ok_to_replicate)
@@ -1600,20 +1580,21 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			CdbPathLocus_MakeReplicated(&single->move_to,
 										CdbPathLocus_NumSegments(other->locus));
 
-		/* Redistribute both rels on equijoin cols. */
+		/*
+		 * Redistribute both rels on equijoin cols.
+		 *
+		 * Redistribute both to the same segments, here we choose the
+		 * same segments with other.
+		 */
 		else if (!other_immovable &&
 				 cdbpath_distkeys_from_preds(root,
 											 redistribution_clauses,
 											 single->path,
+											 CdbPathLocus_NumSegments(other->locus),
 											 &single->move_to,	/* OUT */
 											 &other->move_to))	/* OUT */
 		{
-			/*
-			 * Redistribute both to the same segments, here we choose the
-			 * same segments with other.
-			 */
-			single->move_to.numsegments = CdbPathLocus_NumSegments(other->locus);
-			other->move_to.numsegments = CdbPathLocus_NumSegments(other->locus);
+			/* ok */
 		}
 
 		/* Broadcast single rel for below cases. */
@@ -1717,7 +1698,13 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			CdbPathLocus_MakeReplicated(&large_rel->move_to,
 										CdbPathLocus_NumSegments(small_rel->locus));
 
-		/* Redistribute both rels on equijoin cols. */
+		/*
+		 * Redistribute both rels on equijoin cols.
+		 *
+		 * the two results should all be distributed on the same segments,
+		 * here we make them the same with common segments for safe
+		 * TODO: how about distribute them both to ALL segments?
+		 */
 		else if (!small_rel->require_existing_order &&
 				 !small_rel->has_wts &&
 				 !large_rel->require_existing_order &&
@@ -1725,19 +1712,12 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 cdbpath_distkeys_from_preds(root,
 											 redistribution_clauses,
 											 large_rel->path,
+											 CdbPathLocus_CommonSegments(large_rel->locus,
+																		 small_rel->locus),
 											 &large_rel->move_to,
 											 &small_rel->move_to))
 		{
-			/*
-			 * the two results should all be distributed on the same segments,
-			 * here we make them the same with common segments for safe
-			 * TODO: how about distribute them both to ALL segments?
-			 */
-			numsegments = CdbPathLocus_CommonSegments(large_rel->locus,
-													  small_rel->locus);
-
-			large_rel->move_to.numsegments = numsegments;
-			small_rel->move_to.numsegments = numsegments;
+			/* ok */
 		}
 
 		/*
@@ -1802,7 +1782,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	return cdbpathlocus_join(jointype, outer.path->locus, inner.path->locus);
 
 fail:							/* can't do this join */
-	CdbPathLocus_MakeNull(&outer.move_to, GP_POLICY_INVALID_NUMSEGMENTS());
+	CdbPathLocus_MakeNull(&outer.move_to);
 	return outer.move_to;
 }								/* cdbpath_motion_for_join */
 
@@ -2338,7 +2318,6 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 {
 	bool g_immovable;
 	bool o_immovable;
-	int  numsegments;
 
 	Assert(CdbPathLocus_IsGeneral(g->locus) ||
 		   CdbPathLocus_IsSegmentGeneral(g->locus));
@@ -2382,16 +2361,20 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 			 * both g and o can be added motion on,
 			 * we should try each possible case.
 			 */
+			int			numsegments;
+
+			if (CdbPathLocus_IsGeneral(g->locus))
+				numsegments = CdbPathLocus_NumSegments(o->locus);
+			else
+				numsegments = CdbPathLocus_CommonSegments(o->locus, g->locus);
+
 			if(cdbpath_distkeys_from_preds(root,
 										   redistribution_clauses,
 										   o->path,
+										   numsegments,
 										   &o->move_to,
 										   &g->move_to))
 			{
-				numsegments = CdbPathLocus_CommonSegments(o->locus,
-														  g->locus);
-				o->move_to.numsegments = numsegments;
-				g->move_to.numsegments = numsegments;
 				return true;
 			}
 		}
@@ -2403,17 +2386,21 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 		 * redistributed both g and o, so
 		 * both g and o should be movable.
 		 */
+		int			numsegments;
+
+		if (CdbPathLocus_IsGeneral(g->locus))
+			numsegments = CdbPathLocus_NumSegments(o->locus);
+		else
+			numsegments = CdbPathLocus_CommonSegments(o->locus, g->locus);
+
 		if (!o_immovable &&
 			cdbpath_distkeys_from_preds(root,
 										redistribution_clauses,
 										o->path,
+										numsegments,
 										&o->move_to,
 										&g->move_to))
 		{
-			numsegments = CdbPathLocus_CommonSegments(o->locus,
-													  g->locus);
-			o->move_to.numsegments = numsegments;
-			g->move_to.numsegments = numsegments;
 			return true;
 		}
 	}

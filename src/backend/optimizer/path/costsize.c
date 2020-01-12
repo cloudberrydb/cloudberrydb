@@ -5417,7 +5417,7 @@ int planner_segment_count(GpPolicy *policy)
 		return 1;
 	else if ( gp_segments_for_planner > 0 )
 		return gp_segments_for_planner;
-	else if (policy)
+	else if (policy && policy->ptype != POLICYTYPE_ENTRY)
 		return policy->numsegments;
 	else
 		return getgpsegmentCount();
