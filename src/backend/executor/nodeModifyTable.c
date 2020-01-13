@@ -307,7 +307,7 @@ ExecInsert(ModifyTableState *mtstate,
 	 */
 	if (estate->es_result_partitions)
 	{
-		resultRelInfo = slot_get_partition(parentslot, estate);
+		resultRelInfo = slot_get_partition(parentslot, estate, true);
 
 		/*
 		 * Check whether the user provided the correct leaf part only if required.
@@ -748,7 +748,7 @@ ExecDelete(ItemPointer tupleid,
 #endif
 
 		/* Obtain part for current tuple. */
-		resultRelInfo = slot_get_partition(planSlot, estate);
+		resultRelInfo = slot_get_partition(planSlot, estate, true);
 		estate->es_result_relation_info = resultRelInfo;
 
 #ifdef USE_ASSERT_CHECKING

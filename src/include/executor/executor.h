@@ -447,9 +447,7 @@ extern void mppExecutorFinishup(QueryDesc *queryDesc);
 extern void mppExecutorCleanup(QueryDesc *queryDesc);
 
 extern ResultRelInfo *targetid_get_partition(Oid targetid, EState *estate, bool openIndices);
-extern ResultRelInfo *slot_get_partition(TupleTableSlot *slot, EState *estate);
-extern ResultRelInfo *values_get_partition(Datum *values, bool *nulls,
-					 TupleDesc desc, EState *estate, bool openIndices);
+extern ResultRelInfo *slot_get_partition(TupleTableSlot *slot, EState *estate, bool openIndices);
 
 extern void SendAOTupCounts(EState *estate);
 

@@ -1943,6 +1943,7 @@ cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *su
 		 */
 		List	   *partatts = get_partition_attrs(pn);
 		ListCell   *lc;
+		TupleTableSlot *slot;
 		bool	   *nulls;
 		Datum	   *values;
 		EState	   *estate = CreateExecutorState();
@@ -1951,8 +1952,10 @@ cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *su
 		/*
 		 * 4: build tuple, look up partitioning key
 		 */
-		nulls = palloc0(sizeof(bool) * rel->rd_att->natts);
-		values = palloc(sizeof(Datum) * rel->rd_att->natts);
+		slot = MakeSingleTupleTableSlot(RelationGetDescr(rel));
+		ExecClearTuple(slot);
+		values = slot_get_values(slot);
+		nulls = slot_get_isnull(slot);
 
 		foreach(lc, partatts)
 		{
@@ -1987,6 +1990,8 @@ cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *su
 				}
 			}
 		}
+		ExecStoreVirtualTuple(slot);
+
 		estate->es_result_partitions = pn;
 		estate->es_partition_state =
 			createPartitionState(estate->es_result_partitions, 1 /* resultPartSize */ );
@@ -1998,8 +2003,7 @@ cdbpathtoplan_create_sri_plan(RangeTblEntry *rte, PlannerInfo *subroot, Path *su
 		estate->es_result_relations = rri;
 		estate->es_num_result_relations = 1;
 		estate->es_result_relation_info = rri;
-		rri = values_get_partition(values, nulls, RelationGetDescr(rel),
-								   estate, false);
+		rri = slot_get_partition(slot, estate, false);
 
 		/*
 		 * 5: get target policy for destination table

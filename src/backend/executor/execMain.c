@@ -59,7 +59,6 @@
 #include "commands/copy.h"
 #include "commands/createas.h"
 #include "commands/matview.h"
-#include "commands/tablecmds.h" /* XXX: temp for get_parts() */
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "executor/execdebug.h"
@@ -4422,43 +4421,6 @@ EvalPlanQualEnd(EPQState *epqstate)
 	epqstate->origslot = NULL;
 }
 
-/*
- * Calculate the part to use for the given key, then find or calculate
- * and cache required information about that part in the hash table
- * anchored in estate.
- * 
- * Return a pointer to the information, an entry in the table
- * estate->es_result_relations.  Note that the first entry in this
- * table is for the partitioned table itself and that the entire table
- * may be reallocated, changing the addresses of its entries.  
- *
- * Thus, it is important to avoid holding long-lived pointers to 
- * table entries (such as the pointer returned from this function).
- */
-static ResultRelInfo *
-get_part(EState *estate, Datum *values, bool *isnull, TupleDesc tupdesc,
-		 bool openIndices)
-{
-	Oid			targetid;
-
-	/* add a short term memory context if one wasn't assigned already */
-	Assert(estate->es_partition_state != NULL &&
-		estate->es_partition_state->accessMethods != NULL);
-	if (!estate->es_partition_state->accessMethods->part_cxt)
-		estate->es_partition_state->accessMethods->part_cxt =
-			GetPerTupleExprContext(estate)->ecxt_per_tuple_memory;
-
-	targetid = selectPartition(estate->es_result_partitions, values,
-							   isnull, tupdesc, estate->es_partition_state->accessMethods);
-
-	if (!OidIsValid(targetid))
-		ereport(ERROR,
-				(errcode(ERRCODE_NO_PARTITION_FOR_PARTITIONING_KEY),
-				 errmsg("no partition for partitioning key")));
-
-	return targetid_get_partition(targetid, estate, openIndices);
-}
-
 ResultRelInfo *
 targetid_get_partition(Oid targetid, EState *estate, bool openIndices)
 {
@@ -4515,30 +4477,26 @@ targetid_get_partition(Oid targetid, EState *estate, bool openIndices)
 	return childInfo;
 }
 
-ResultRelInfo *
-values_get_partition(Datum *values, bool *nulls, TupleDesc tupdesc,
-					 EState *estate, bool openIndices)
-{
-	ResultRelInfo *relinfo;
-
-	Assert(PointerIsValid(estate->es_result_partitions));
-
-	relinfo = get_part(estate, values, nulls, tupdesc, openIndices);
-
-	return relinfo;
-}
-
 /*
- * Find the partition we want and get the ResultRelInfo for the
- * partition.
+ * Calculate the part to use for the given key, then find or calculate
+ * and cache required information about that part in the hash table
+ * anchored in estate.
+ *
+ * Return a ResultRelInfo for that partition, an entry in the table
+ * estate->es_result_relations. The first entry in this table is for the
+ * partitioned table itself.
+ *
+ * NB: The entire table may be reallocated, changing the addresses of its
+ * entries. Thus, it is important to avoid holding long-lived pointers to
+ * table entries, such as the pointer returned from this function!
  */
 ResultRelInfo *
-slot_get_partition(TupleTableSlot *slot, EState *estate)
+slot_get_partition(TupleTableSlot *slot, EState *estate, bool openIndices)
 {
-	ResultRelInfo *resultRelInfo;
-	AttrNumber max_attr;
-	Datum *values;
-	bool *nulls;
+	AttrNumber	max_attr;
+	Datum	   *values;
+	bool	   *nulls;
+	Oid			targetid;
 
 	Assert(PointerIsValid(estate->es_result_partitions));
 
@@ -4548,10 +4506,23 @@ slot_get_partition(TupleTableSlot *slot, EState *estate)
 	values = slot_get_values(slot);
 	nulls = slot_get_isnull(slot);
 
-	resultRelInfo = get_part(estate, values, nulls, slot->tts_tupleDescriptor,
-							 true);
+	/* add a short term memory context if one wasn't assigned already */
+	Assert(estate->es_partition_state != NULL &&
+		estate->es_partition_state->accessMethods != NULL);
+	if (!estate->es_partition_state->accessMethods->part_cxt)
+		estate->es_partition_state->accessMethods->part_cxt =
+			GetPerTupleExprContext(estate)->ecxt_per_tuple_memory;
 
-	return resultRelInfo;
+	targetid = selectPartition(estate->es_result_partitions, values, nulls,
+							   slot->tts_tupleDescriptor,
+							   estate->es_partition_state->accessMethods);
+
+	if (!OidIsValid(targetid))
+		ereport(ERROR,
+				(errcode(ERRCODE_NO_PARTITION_FOR_PARTITIONING_KEY),
+				 errmsg("no partition for partitioning key")));
+
+	return targetid_get_partition(targetid, estate, openIndices);
 }
 
 

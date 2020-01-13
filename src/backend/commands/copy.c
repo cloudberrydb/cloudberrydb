@@ -4018,6 +4018,8 @@ CopyFrom(CopyState cstate)
 					break;
 			}
 
+			ExecStoreVirtualTuple(baseSlot);
+
 			if (estate->es_result_partitions)
 			{
 				/*
@@ -4030,8 +4032,7 @@ CopyFrom(CopyState cstate)
 
 				PG_TRY();
 				{
-					resultRelInfo = values_get_partition(baseValues, baseNulls,
-														 tupDesc, estate, true);
+					resultRelInfo = slot_get_partition(baseSlot,  estate, true);
 					success = true;
 				}
 				PG_CATCH();
@@ -4047,8 +4048,6 @@ CopyFrom(CopyState cstate)
 
 				estate->es_result_relation_info = resultRelInfo;
 			}
-
-			ExecStoreVirtualTuple(baseSlot);
 
 			/*
 			 * And now we can form the input tuple.
