@@ -27,8 +27,7 @@ read -r COMMIT_SHA < gpdb_src/.git/HEAD
 source ./gpdb_src/concourse/scripts/common.bash
 time install_gpdb
 
-pip install -r ./gpdb_src/gpMgmt/requirements-dev.txt
-pip install gsutil
+pip install -r ./gpdb_src/gpMgmt/requirements-dev.txt gsutil
 
 # Save the JSON_KEY to a file, for later use by gsutil.
 keyfile=secret-key.json
