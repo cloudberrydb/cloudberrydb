@@ -3917,7 +3917,10 @@ _copyPartitionNode(const PartitionNode *from)
 
 	COPY_NODE_FIELD(part);
 	COPY_NODE_FIELD(default_part);
-	COPY_NODE_FIELD(rules);
+	COPY_SCALAR_FIELD(num_rules);
+	newnode->rules = palloc(from->num_rules * sizeof(PartitionRule *));
+	for (int i = 0; i < from->num_rules; i++)
+		COPY_NODE_FIELD(rules[i]);
 
 	return newnode;
 }

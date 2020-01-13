@@ -3606,7 +3606,9 @@ _outPartitionNode(StringInfo str, const PartitionNode *node)
 
 	WRITE_NODE_FIELD(part);
 	WRITE_NODE_FIELD(default_part);
-	WRITE_NODE_FIELD(rules);
+	WRITE_INT_FIELD(num_rules);
+	for (int i = 0; i < node->num_rules; i++)
+		WRITE_NODE_FIELD(rules[i]);
 }
 
 static void

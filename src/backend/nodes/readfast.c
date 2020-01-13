@@ -1337,18 +1337,6 @@ _readPartitionRule(void)
 	READ_DONE();
 }
 
-static PartitionNode *
-_readPartitionNode(void)
-{
-	READ_LOCALS(PartitionNode);
-
-	READ_NODE_FIELD(part);
-	READ_NODE_FIELD(default_part);
-	READ_NODE_FIELD(rules);
-
-	READ_DONE();
-}
-
 static CreateExternalStmt *
 _readCreateExternalStmt(void)
 {

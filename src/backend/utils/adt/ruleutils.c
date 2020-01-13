@@ -11237,9 +11237,6 @@ get_partition_recursive(PartitionNode *pn, deparse_context *head,
 						deparse_context *body,
 						int16 *leveldone, int bLeafTablename)
 {
-	PartitionRule		*rule			  = NULL;
-	ListCell			*lc;
-	int					 i;
 	bool				 needcomma		  = false;
 	bool				 first_rule		  = true;
 	PartitionRule		*first_every_rule = NULL;
@@ -11269,7 +11266,7 @@ get_partition_recursive(PartitionNode *pn, deparse_context *head,
 		}
 
 		appendStringInfoChar(head->buf, '(');
-		for (i = 0; i < pn->part->parnatts; i++)
+		for (int i = 0; i < pn->part->parnatts; i++)
 		{
 			char *attname = get_relid_attribute_name(pn->part->parrelid,
 													 pn->part->paratts[i]);
@@ -11287,13 +11284,13 @@ get_partition_recursive(PartitionNode *pn, deparse_context *head,
 
 	if (pn->part->parlevel > 0)
 		appendStringInfoChar(body->buf, ' ');
-	if (pn->rules || pn->default_part)
+	if (pn->num_rules > 0 || pn->default_part)
 		appendContextKeyword(body, "(", PRETTYINDENT_STD, 0, 2);
 
 	/* iterate through partitions */
-	foreach(lc, pn->rules)
+	for (int i = 0; i < pn->num_rules; i++)
 	{
-		rule = lfirst(lc);
+		PartitionRule *rule = pn->rules[i];
 
 		/*
 		 * RANGE partitions are the interesting case. If the partitions use
@@ -11483,7 +11480,7 @@ get_partition_recursive(PartitionNode *pn, deparse_context *head,
 					   bLeafTablename);
 	}
 
-	if (pn->rules || pn->default_part)
+	if (pn->num_rules > 0 || pn->default_part)
 	{
 		if (pn->part->paristemplate)
 		{
@@ -11605,8 +11602,8 @@ pg_get_partition_template_def_worker(Oid relid, int prettyFlags,
 		prule = pn->default_part;
 		if (!prule)
 		{
-			if (list_length(pn->rules))
-				prule = (PartitionRule *)linitial(pn->rules);
+			if (pn->num_rules > 0)
+				prule = pn->rules[0];
 		}
 
 		if (!prule)

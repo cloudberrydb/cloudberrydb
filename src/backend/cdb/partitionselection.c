@@ -148,11 +148,10 @@ partition_rules_for_general_predicate(PartitionSelectorState *node, int level,
 	Assert(NULL != parentNode);
 
 	List	   *result = NIL;
-	ListCell   *lc = NULL;
 
-	foreach(lc, parentNode->rules)
+	for (int i = 0; i < parentNode->num_rules; i++)
 	{
-		PartitionRule *rule = (PartitionRule *) lfirst(lc);
+		PartitionRule *rule = parentNode->rules[i];
 
 		/*
 		 * We need to register it to allLevelParts to evaluate the current
@@ -310,21 +309,10 @@ processLevel(PartitionSelectorState *node, int level, TupleTableSlot *inputTuple
 		/*
 		 * Neither equality predicate nor general predicate exists. Return all
 		 * the next level PartitionRule.
-		 *
-		 * WARNING: Do NOT use list_concat with satisfiedRules and
-		 * parentNode->rules. list_concat will destructively modify
-		 * satisfiedRules to point to parentNode->rules, which will then be
-		 * freed when we free satisfiedRules. This does not apply when we
-		 * execute partition_rules_for_general_predicate as it creates its own
-		 * list.
 		 */
-		ListCell   *lc = NULL;
-
-		foreach(lc, parentNode->rules)
+		for (int i = 0; i < parentNode->num_rules; i++)
 		{
-			PartitionRule *rule = (PartitionRule *) lfirst(lc);
-
-			satisfiedRules = lappend(satisfiedRules, rule);
+			satisfiedRules = lappend(satisfiedRules, parentNode->rules[i]);
 		}
 
 		if (NULL != parentNode->default_part)

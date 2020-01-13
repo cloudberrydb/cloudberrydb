@@ -2401,8 +2401,11 @@ struct PartitionNode
 {
 	NodeTag type;
 	Partition *part;
+
+	/* rules for this level */
 	struct PartitionRule *default_part;
-	List *rules; /* rules for this level */
+	struct PartitionRule **rules;
+	int			num_rules;		/* excluding default rule */
 };
 
 /* Individual partitioning rule */

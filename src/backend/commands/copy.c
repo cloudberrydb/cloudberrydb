@@ -7748,7 +7748,6 @@ GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols,
 				 bool distkeys, EState *estate)
 {
 	int			i;
-	ListCell   *lc;
 
 	/*
 	 * Partition key columns.
@@ -7809,9 +7808,9 @@ GetTargetKeyCols(Oid relid, PartitionNode *children, Bitmapset *needed_cols,
 	/* Recurse to subpartitions */
 	if (children)
 	{
-		foreach(lc, children->rules)
+		for (i = 0; i < children->num_rules; i++)
 		{
-			PartitionRule *pr = (PartitionRule *) lfirst(lc);
+			PartitionRule *pr = children->rules[i];
 
 			needed_cols = GetTargetKeyCols(pr->parchildrelid, pr->children,
 										   needed_cols, distkeys, estate);

@@ -3418,18 +3418,20 @@ _readPartitionRule(void)
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
-#ifndef COMPILING_BINARY_FUNCS
 static PartitionNode *
 _readPartitionNode(void)
 {
 	READ_LOCALS(PartitionNode);
 
 	READ_NODE_FIELD(part);
-	READ_NODE_FIELD(rules);
+	READ_NODE_FIELD(default_part);
+	READ_INT_FIELD(num_rules);
+	local_node->rules = palloc(local_node->num_rules * sizeof(PartitionRule *));
+	for (int i = 0; i < local_node->num_rules; i++)
+		READ_NODE_FIELD(rules[i]);
 
 	READ_DONE();
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 static PgPartRule *
 _readPgPartRule(void)

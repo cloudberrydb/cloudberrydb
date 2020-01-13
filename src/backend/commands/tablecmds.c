@@ -16795,7 +16795,7 @@ ATPExecPartDrop(Relation rel,
 	else
 	{
 		char* prelname;
-		int   numParts = list_length(prule->pNode->rules);
+		int   numParts = prule->pNode->num_rules;
 		DestReceiver 	*dest = None_Receiver;
 		Relation rel2;
 		RangeVar *relation;
@@ -17626,14 +17626,11 @@ partrule_walker(Node *node, void *context)
 	else if (IsA(node, PartitionNode))
 	{
 		PartitionNode *pn = (PartitionNode *)node;
-		ListCell *lc;
 
 		partrule_walker((Node *)pn->default_part, p);
-		foreach(lc, pn->rules)
-		{
-			PartitionRule *r = lfirst(lc);
-			partrule_walker((Node *)r, p);
-		}
+		for (int i = 0; i < pn->num_rules; i++)
+			partrule_walker((Node *) pn->rules[i], p);
+
 		return false;
 	}
 
@@ -18174,7 +18171,6 @@ ATPExecPartSplit(Relation *rel,
 				}
 				else
 				{
-					ListCell *rc;
 					AlterPartitionId *id = (AlterPartitionId *)pc2->partid;
 
 					if (id->idtype == AT_AP_IDDefault)
@@ -18184,9 +18180,9 @@ ATPExecPartSplit(Relation *rel,
 										"default partition",
 										RelationGetRelationName(*rel))));
 
-					foreach(rc, prule->pNode->rules)
+					for (int i = 0; i < prule->pNode->num_rules; i++)
 					{
-						PartitionRule *r = lfirst(rc);
+						PartitionRule *r = prule->pNode->rules[i];
 
 						if (strcmp(r->parname, strVal((Value *)id->partiddef)) == 0)
 						{
@@ -18258,7 +18254,6 @@ ATPExecPartSplit(Relation *rel,
 				}
 				else
 				{
-					ListCell *rc;
 					AlterPartitionId *id = (AlterPartitionId *)pc2->arg1;
 
 					if (id->idtype == AT_AP_IDDefault)
@@ -18268,9 +18263,9 @@ ATPExecPartSplit(Relation *rel,
 										"default partition",
 										RelationGetRelationName(*rel))));
 
-					foreach(rc, prule->pNode->rules)
+					for (int i = 0; i < prule->pNode->num_rules; i++)
 					{
-						PartitionRule *r = lfirst(rc);
+						PartitionRule *r = prule->pNode->rules[i];
 
 						if (strcmp(r->parname, strVal((Value *)id->partiddef)) == 0)
 						{

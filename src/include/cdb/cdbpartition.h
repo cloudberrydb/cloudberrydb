@@ -41,7 +41,6 @@ typedef struct PartitionRangeState
 	FmgrInfo *ltfuncs_inverse; /* comparator partRule < expr */
 	FmgrInfo *lefuncs_inverse; /* comparator partRule <= expr */
 	int last_rule; /* cache offset to the last rule and test if it matches */
-	PartitionRule **rules;
 } PartitionRangeState;
 
 /* likewise, for list */
