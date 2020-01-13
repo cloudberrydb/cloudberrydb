@@ -8412,3 +8412,38 @@ select typname from pg_type where typarray = '_xchg_tab1'::regtype;
  xchg_tab1
 (1 row)
 
+-- Test with an incomplete operator class. Create a custom operator class and
+-- only define equality on it. You can't do much with that.
+--
+-- Currently in GPDB, you can use the incomplete opclass in list partitioning,
+-- but inserting to the table will fail. In PostgreSQL v10, the CREATE TABLE
+-- will fail.
+create type employee_type as (empid int, empname text);
+create function emp_equal(employee_type, employee_type) returns boolean
+  as 'select $1.empid = $2.empid;'
+  language sql
+  immutable
+  returns null on null input;
+create operator = (
+        leftarg = employee_type,
+        rightarg = employee_type,
+        procedure = emp_equal
+);
+create operator class employee_incomplete_op_class default for type employee_type
+  using btree as
+  operator 3 =;
+create table employee_table(timest date, user_id numeric(16,0) not null, tag1 char(5), emp employee_type)
+  distributed by (user_id)
+  partition by list(emp)
+  (partition part1 values('(1, ''foo'')'::employee_type), partition part2 values('(2, ''foo'')'::employee_type));
+NOTICE:  CREATE TABLE will create partition "employee_table_1_prt_part1" for table "employee_table"
+NOTICE:  CREATE TABLE will create partition "employee_table_1_prt_part2" for table "employee_table"
+create index user_id_idx1 on employee_table_1_prt_part1(user_id);
+create index user_id_idx2 on employee_table_1_prt_part2(user_id);
+insert into employee_table values('01-03-2012'::date,0,'tag1','(1, ''foo'')'::employee_type);
+ERROR:  operator class "employee_incomplete_op_class" of access method btree is missing comparison support function between types employee_type and employee_type  (seg2 127.0.0.1:40002 pid=30152)
+select * from employee_table where user_id = 2;
+ timest | user_id | tag1 | emp 
+--------+---------+------+-----
+(0 rows)
+

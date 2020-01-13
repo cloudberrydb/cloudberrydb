@@ -20,6 +20,7 @@
 #include "access/genam.h"
 #include "access/hash.h"
 #include "access/heapam.h"
+#include "access/nbtree.h"
 #include "access/reloptions.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
@@ -32,6 +33,7 @@
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_inherits_fn.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_partition_encoding.h"
@@ -170,9 +172,8 @@ static bool compare_partn_opfuncid(PartitionNode *partnode,
 static PartitionNode *selectListPartition(PartitionNode *partnode, Datum *values, bool *isnull,
 					TupleDesc tupdesc, PartitionAccessMethods *accessMethods,
 					Oid *foundOid, PartitionRule **prule, Oid exprTypid);
-static Oid	get_less_than_oper(Oid lhstypid, Oid rhstypid, bool strictlyless);
-static FmgrInfo *get_less_than_comparator(int keyno, PartitionRangeState *rs, Oid ruleTypeOid, Oid exprTypeOid, bool strictlyless, bool is_direct);
-static int range_test(Datum tupval, Oid ruleTypeOid, Oid exprTypeOid, PartitionRangeState *rs, int keyno,
+static void get_cmp_func(Oid opclass, FmgrInfo *fmgrinfo, Oid lhstypid, Oid rhstypid);
+static int range_test(Datum tupval, FmgrInfo *cmpfuncs, int keyno,
 		   PartitionRule *rule);
 static PartitionNode *selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 					 TupleDesc tupdesc, PartitionAccessMethods *accessMethods,
@@ -4026,21 +4027,51 @@ selectListPartition(PartitionNode *partnode, Datum *values, bool *isnull,
 {
 	Partition  *part = partnode->part;
 	MemoryContext oldcxt = NULL;
-	PartitionListState *ls;
+	FmgrInfo   *cmpfuncs;
 
-	if (accessMethods && accessMethods->amstate[partnode->part->parlevel])
-		ls = (PartitionListState *) accessMethods->amstate[partnode->part->parlevel];
+	if (accessMethods && accessMethods->cmpfuncs[partnode->part->parlevel])
+		cmpfuncs = accessMethods->cmpfuncs[partnode->part->parlevel];
 	else
 	{
 		int			natts = partnode->part->parnatts;
 
-		ls = palloc(sizeof(PartitionListState));
+		cmpfuncs = (FmgrInfo *) palloc0(sizeof(FmgrInfo) * natts);
 
-		ls->eqfuncs = palloc(sizeof(FmgrInfo) * natts);
-		ls->eqinit = palloc0(sizeof(bool) * natts);
+		for (int keyno = 0; keyno < natts; keyno++)
+		{
+			AttrNumber	attno = part->paratts[keyno];
+
+			/*
+			 * Compute the type of the LHS and RHS for the
+			 * equality comparator. The way we call the comparator
+			 * is comp(expr, rule) So lhstypid = type(expr) and
+			 * rhstypeid = type(rule)
+			 */
+
+			/*
+			 * The tupdesc tuple descriptor matches the table
+			 * schema, so it has the rule type
+			 */
+			Oid			rhstypid = tupdesc->attrs[attno - 1]->atttypid;
+
+			/*
+			 * exprTypeOid is passed to us from our caller which
+			 * evaluated the expression. In some cases (e.g legacy
+			 * optimizer doing explicit casting), we don't compute
+			 * specify exprTypeOid. Assume lhstypid = rhstypid in
+			 * those cases
+			 */
+			Oid			lhstypid = exprTypeOid;
+
+			if (!OidIsValid(lhstypid))
+				lhstypid = rhstypid;
+
+			get_cmp_func(partnode->part->parclass[keyno], &cmpfuncs[keyno],
+						 lhstypid, rhstypid);
+		}
 
 		if (accessMethods)
-			accessMethods->amstate[partnode->part->parlevel] = (void *) ls;
+			accessMethods->cmpfuncs[partnode->part->parlevel] = cmpfuncs;
 	}
 
 	if (accessMethods && accessMethods->part_cxt)
@@ -4049,9 +4080,9 @@ selectListPartition(PartitionNode *partnode, Datum *values, bool *isnull,
 	*foundOid = InvalidOid;
 
 	/* With LIST, we have no choice at the moment except to be exhaustive */
-	for (int i = 0; i < partnode->num_rules; i++)
+	for (int ruleno = 0; ruleno < partnode->num_rules; ruleno++)
 	{
-		PartitionRule *rule = partnode->rules[i];
+		PartitionRule *rule = partnode->rules[ruleno];
 		List	   *vals = rule->parlistvalues;
 		ListCell   *lc2;
 		bool		matched = false;
@@ -4098,55 +4129,14 @@ selectListPartition(PartitionNode *partnode, Datum *values, bool *isnull,
 				}
 				else
 				{
-					Datum		res;
+					int			res;
 					Datum		d = values[attno - 1];
-					FmgrInfo   *finfo;
+					FmgrInfo   *finfo = &cmpfuncs[i];
 
-					if (!ls->eqinit[i])
+					res = DatumGetInt32(FunctionCall2Coll(finfo, c->constcollid, d, c->constvalue));
+
+					if (res != 0)
 					{
-
-						/*
-						 * Compute the type of the LHS and RHS for the
-						 * equality comparator. The way we call the comparator
-						 * is comp(expr, rule) So lhstypid = type(expr) and
-						 * rhstypeid = type(rule)
-						 */
-
-						/*
-						 * The tupdesc tuple descriptor matches the table
-						 * schema, so it has the rule type
-						 */
-						Oid			rhstypid = tupdesc->attrs[attno - 1]->atttypid;
-
-						/*
-						 * exprTypeOid is passed to us from our caller which
-						 * evaluated the expression. In some cases (e.g legacy
-						 * optimizer doing explicit casting), we don't compute
-						 * specify exprTypeOid. Assume lhstypid = rhstypid in
-						 * those cases
-						 */
-						Oid			lhstypid = exprTypeOid;
-
-						if (!OidIsValid(lhstypid))
-						{
-							lhstypid = rhstypid;
-						}
-
-						List	   *opname = list_make2(makeString("pg_catalog"),
-														makeString("="));
-
-						Oid			opfuncid = get_opfuncid_by_opname(opname, lhstypid, rhstypid);
-
-						fmgr_info(opfuncid, &(ls->eqfuncs[i]));
-						ls->eqinit[i] = true;
-					}
-
-					finfo = &(ls->eqfuncs[i]);
-					res = FunctionCall2Coll(finfo, c->constcollid, d, c->constvalue);
-
-					if (!DatumGetBool(res))
-					{
-						/* found it */
 						matched = false;
 						break;
 					}
@@ -4177,105 +4167,52 @@ selectListPartition(PartitionNode *partnode, Datum *values, bool *isnull,
 }
 
 /*
- * get_less_than_oper()
+ * Look up comparison function between types 'lhstypid' and 'rhstypid'.
  *
- * Retrieves the appropriate comparator that knows how to handle
- * the two types lhsid, rhsid.
- *
- * Input parameters:
- * lhstypid: Type oid of the LHS of the comparator
- * rhstypid: Type oid of the RHS of the comparator
- * strictlyless: If true, requests the 'strictly less than' operator instead of 'less or equal than'
- *
- * Returns: The Oid of the appropriate comparator; throws an ERROR if no such comparator exists
- *
+ * If either type ID is InvalidOid, the operator class's opcintype is used
+ * in its place. If either type is a binary-coercible to opcintype, the
+ * function for opcintype is looked up instaed.
  */
-static Oid
-get_less_than_oper(Oid lhstypid, Oid rhstypid, bool strictlyless)
+static void
+get_cmp_func(Oid opclass, FmgrInfo *fmgrinfo, Oid lhstypid, Oid rhstypid)
 {
-	Value	   *str = strictlyless ? makeString("<") : makeString("<=");
-	Value	   *pub = makeString("pg_catalog");
-	List	   *opname = list_make2(pub, str);
+	HeapTuple	opclasstup;
+	Form_pg_opclass opclassform;
+	Oid			funcid;
 
-	Oid			funcid = get_opfuncid_by_opname(opname, lhstypid, rhstypid);
+	opclasstup = SearchSysCache1(CLAOID,
+								 ObjectIdGetDatum(opclass));
+	if (!HeapTupleIsValid(opclasstup))
+		elog(ERROR, "cache lookup failed for opclass %u", opclass);
 
-	list_free_deep(opname);
+	opclassform = (Form_pg_opclass) GETSTRUCT(opclasstup);
 
-	return funcid;
-}
+	if (lhstypid == InvalidOid)
+		lhstypid = opclassform->opcintype;
+	if (lhstypid != opclassform->opcintype && IsBinaryCoercible(lhstypid, opclassform->opcintype))
+		lhstypid = opclassform->opcintype;
 
-/*
- * get_comparator
- *   Retrieves the comparator function between the expression and the partition rules
- *
- *  Input:
- *   keyno: Index in the key array of the partitioning key considered
- *   rs: the current PartitionRangeState
- *   ruleTypeOid: Oid for the type of the partition rules
- *   exprTypeOid: Oid for the type of the expressions
- *   strictlyless: If true, the operator for strictly less than (LT) is retrieved. Otherwise,
- *     it's less or equal than (LE)
- *   is_direct: If true, then the "direct" comparison (expression OP rule) is retrieved.
- *     Otherwise, it's the "inverse" comparison (rule OP expression)
- *
- */
-static FmgrInfo *
-get_less_than_comparator(int keyno, PartitionRangeState *rs, Oid ruleTypeOid, Oid exprTypeOid, bool strictlyless, bool is_direct)
-{
+	if (rhstypid == InvalidOid)
+		rhstypid = opclassform->opcintype;
+	if (rhstypid != opclassform->opcintype && IsBinaryCoercible(rhstypid, opclassform->opcintype))
+		rhstypid = opclassform->opcintype;
 
-	Assert(NULL != rs);
+	/* Get a support function for the specified opfamily and datatypes */
+	funcid = get_opfamily_proc(opclassform->opcfamily,
+							   lhstypid,
+							   rhstypid,
+							   BTORDER_PROC);
+	if (!OidIsValid(funcid))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
+				 errmsg("operator class \"%s\" of access method btree is missing comparison support function between types %s and %s",
+						NameStr(opclassform->opcname),
+						format_type_be(lhstypid),
+						format_type_be(rhstypid))));
 
-	Oid			lhsOid = InvalidOid;
-	Oid			rhsOid = InvalidOid;
-	FmgrInfo   *funcInfo = NULL;
+	fmgr_info(funcid, fmgrinfo);
 
-	if (is_direct && strictlyless)
-	{
-		/* Looking for expr < partRule comparator */
-		funcInfo = &rs->ltfuncs_direct[keyno];
-	}
-	else if (is_direct && !strictlyless)
-	{
-		/* Looking for expr <= partRule comparator */
-		funcInfo = &rs->lefuncs_direct[keyno];
-	}
-	else if (!is_direct && strictlyless)
-	{
-		/* Looking for partRule < expr comparator */
-		funcInfo = &rs->ltfuncs_inverse[keyno];
-	}
-	else if (!is_direct && !strictlyless)
-	{
-		/* Looking for partRule <= expr comparator */
-		funcInfo = &rs->lefuncs_inverse[keyno];
-	}
-
-	Assert(NULL != funcInfo);
-
-	if (!OidIsValid(funcInfo->fn_oid))
-	{
-		/* We haven't looked up this comparator before, let's do it now */
-
-		if (is_direct)
-		{
-			/* Looking for "direct" comparators (expr OP partRule ) */
-			lhsOid = exprTypeOid;
-			rhsOid = ruleTypeOid;
-		}
-		else
-		{
-			/* Looking for "inverse" comparators (partRule OP expr ) */
-			lhsOid = ruleTypeOid;
-			rhsOid = exprTypeOid;
-		}
-
-		Oid			funcid = get_less_than_oper(lhsOid, rhsOid, strictlyless);
-
-		fmgr_info(funcid, funcInfo);
-	}
-
-	Assert(OidIsValid(funcInfo->fn_oid));
-	return funcInfo;
+	ReleaseSysCache(opclasstup);
 }
 
 /*
@@ -4284,21 +4221,18 @@ get_less_than_comparator(int keyno, PartitionRangeState *rs, Oid ruleTypeOid, Oi
  *
  *  Input parameters:
  *    tupval: The value of the expression
- *    ruleTypeOid: The type of the partition rule boundaries
- *    exprTypeOid: The type of the expression (can be different from ruleTypeOid
- *      if types can be directly compared with each other)
- *    rs: The partition range state
+ *    cmpfuncs: Comparison functions
  *    keyno: The index of the partitioning key considered (for composite partitioning keys)
  *    rule: The rule whose boundaries we're testing
  *
  */
 static int
-range_test(Datum tupval, Oid ruleTypeOid, Oid exprTypeOid, PartitionRangeState *rs, int keyno,
+range_test(Datum tupval, FmgrInfo *cmpfuncs, int keyno,
 		   PartitionRule *rule)
 {
-	Const	   *c = NULL;
-	FmgrInfo   *finfo;
-	Datum		res;
+	Const	   *c;
+	FmgrInfo   *finfo  = &cmpfuncs[keyno];
+	int32		res;
 
 	Assert(PointerIsValid(rule->parrangestart) ||
 		   PointerIsValid(rule->parrangeend));
@@ -4314,15 +4248,13 @@ range_test(Datum tupval, Oid ruleTypeOid, Oid exprTypeOid, PartitionRangeState *
 #endif
 
 		/*
-		 * Is the value in the range? If rule->parrangestartincl, we request
-		 * for comparator ruleVal <= exprVal ( ==> strictly_less = false)
-		 * Otherwise, we request comparator ruleVal < exprVal ( ==>
-		 * strictly_less = true)
+		 * Is the value in the range?
 		 */
-		finfo = get_less_than_comparator(keyno, rs, ruleTypeOid, exprTypeOid, !rule->parrangestartincl /* strictly_less */ , false /* is_direct */ );
-		res = FunctionCall2Coll(finfo, c->constcollid, c->constvalue, tupval);
+		res = DatumGetInt32(FunctionCall2Coll(finfo, c->constcollid, tupval, c->constvalue));
 
-		if (!DatumGetBool(res))
+		if (res < 0)
+			return -1;
+		else if (res == 0 && !rule->parrangestartincl)
 			return -1;
 	}
 
@@ -4341,13 +4273,12 @@ range_test(Datum tupval, Oid ruleTypeOid, Oid exprTypeOid, PartitionRangeState *
 		 * Otherwise, we request comparator exprVal < ruleVal ( ==>
 		 * strictly_less = true)
 		 */
-		finfo = get_less_than_comparator(keyno, rs, ruleTypeOid, exprTypeOid, !rule->parrangeendincl /* strictly_less */ , true /* is_direct */ );
-		res = FunctionCall2Coll(finfo, c->constcollid, tupval, c->constvalue);
+		res = DatumGetInt32(FunctionCall2Coll(finfo, c->constcollid, tupval, c->constvalue));
 
-		if (!DatumGetBool(res))
-		{
+		if (res > 0)
 			return 1;
-		}
+		else if (res == 0 && !rule->parrangeendincl)
+			return 1;
 	}
 	return 0;
 }
@@ -4370,7 +4301,7 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 	bool		matched = false;
 	PartitionRule *rule = NULL;
 	PartitionNode *pNode = NULL;
-	PartitionRangeState *rs = NULL;
+	FmgrInfo   *cmpfuncs;
 	MemoryContext oldcxt = NULL;
 
 	Assert(partnode->part->parkind == 'r');
@@ -4381,8 +4312,8 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 	 */
 	AssertImply(partnode->part->parnatts > 1, !OidIsValid(exprTypeOid));
 
-	if (accessMethods && accessMethods->amstate[partnode->part->parlevel])
-		rs = (PartitionRangeState *) accessMethods->amstate[partnode->part->parlevel];
+	if (accessMethods && accessMethods->cmpfuncs[partnode->part->parlevel])
+		cmpfuncs = accessMethods->cmpfuncs[partnode->part->parlevel];
 	else
 	{
 		int			natts = partnode->part->parnatts;
@@ -4391,22 +4322,19 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 		 * We're still in our caller's memory context so the memory will
 		 * persist long enough for us.
 		 */
-		rs = palloc(sizeof(PartitionRangeState));
-		rs->lefuncs_direct = palloc0(sizeof(FmgrInfo) * natts);
-		rs->ltfuncs_direct = palloc0(sizeof(FmgrInfo) * natts);
-		rs->lefuncs_inverse = palloc0(sizeof(FmgrInfo) * natts);
-		rs->ltfuncs_inverse = palloc0(sizeof(FmgrInfo) * natts);
+		cmpfuncs = (FmgrInfo *) palloc0(sizeof(FmgrInfo) * natts);
 
-		/*
-		 * Set the function Oid to InvalidOid to signal that we haven't looked
-		 * up this function yet
-		 */
 		for (int keyno = 0; keyno < natts; keyno++)
 		{
-			rs->lefuncs_direct[keyno].fn_oid = InvalidOid;
-			rs->ltfuncs_direct[keyno].fn_oid = InvalidOid;
-			rs->lefuncs_inverse[keyno].fn_oid = InvalidOid;
-			rs->lefuncs_inverse[keyno].fn_oid = InvalidOid;
+			AttrNumber	attno = partnode->part->paratts[keyno];
+			Oid			rhstypid = tupdesc->attrs[attno - 1]->atttypid;
+			Oid			lhstypid = exprTypeOid;
+
+			if (!OidIsValid(lhstypid))
+				lhstypid = rhstypid;
+
+			get_cmp_func(partnode->part->parclass[keyno], &cmpfuncs[keyno],
+						 lhstypid, rhstypid);
 		}
 	}
 
@@ -4450,11 +4378,9 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 			goto l_fin_range;
 		}
 
-		Oid			ruleTypeOid = tupdesc->attrs[attno - 1]->atttypid;
-
 		if (OidIsValid(exprTypeOid))
 		{
-			ret = range_test(exprValue, ruleTypeOid, exprTypeOid, rs, 0, rule);
+			ret = range_test(exprValue, cmpfuncs, 0, rule);
 		}
 		else
 		{
@@ -4462,7 +4388,7 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 			 * In some cases, we don't have an expression type oid. In those
 			 * cases, the expression and partition rules have the same type.
 			 */
-			ret = range_test(exprValue, ruleTypeOid, ruleTypeOid, rs, 0, rule);
+			ret = range_test(exprValue, cmpfuncs, 0, rule);
 		}
 
 		if (ret > 0)
@@ -4523,15 +4449,12 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 					goto l_fin_range;
 				}
 
-				Oid			ruleTypeOid = tupdesc->attrs[attno - 1]->atttypid;
-
 				/*
 				 * For composite partition keys, we don't support casting
 				 * comparators, so both sides must be of identical types
 				 */
 				Assert(!OidIsValid(exprTypeOid));
-				ret = range_test(d, ruleTypeOid, ruleTypeOid,
-								 rs, i, rule);
+				ret = range_test(d, cmpfuncs, i, rule);
 				if (ret != 0)
 				{
 					matched = false;
@@ -4583,14 +4506,12 @@ selectRangePartition(PartitionNode *partnode, Datum *values, bool *isnull,
 					goto l_fin_range;
 				}
 
-				Oid			ruleTypeOid = tupdesc->attrs[attno - 1]->atttypid;
-
 				/*
 				 * For composite partition keys, we don't support casting
 				 * comparators, so both sides must be of identical types
 				 */
 				Assert(!OidIsValid(exprTypeOid));
-				ret = range_test(d, ruleTypeOid, ruleTypeOid, rs, i, rule);
+				ret = range_test(d, cmpfuncs, i, rule);
 				if (ret != 0)
 				{
 					matched = false;
@@ -4631,7 +4552,7 @@ l_fin_range:
 		MemoryContextSwitchTo(oldcxt);
 
 	if (accessMethods)
-		accessMethods->amstate[partnode->part->parlevel] = (void *) rs;
+		accessMethods->cmpfuncs[partnode->part->parlevel] = cmpfuncs;
 
 	return pNode;
 }								/* end selectrangepartition */

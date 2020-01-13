@@ -33,30 +33,6 @@ typedef enum
 	PART_STATUS_LEAF	/* a leaf part of a partitioned table */
 } PartStatus;
 
-/* cache of function lookups for range partition selection */
-typedef struct PartitionRangeState
-{
-	FmgrInfo *ltfuncs_direct; /* comparator expr < partRule */
-	FmgrInfo *lefuncs_direct; /* comparator expr <= partRule */
-	FmgrInfo *ltfuncs_inverse; /* comparator partRule < expr */
-	FmgrInfo *lefuncs_inverse; /* comparator partRule <= expr */
-	int last_rule; /* cache offset to the last rule and test if it matches */
-} PartitionRangeState;
-
-/* likewise, for list */
-typedef struct PartitionListState
-{
-	FmgrInfo *eqfuncs;
-	bool *eqinit;
-} PartitionListState;
-
-/* likewise, for hash */
-typedef struct PartitionHashState
-{
-	FmgrInfo *hashfuncs;
-	bool *hashinit;
-} PartitionHashState;
-
 typedef struct LogicalIndexes
 {
 	int			numLogicalIndexes;

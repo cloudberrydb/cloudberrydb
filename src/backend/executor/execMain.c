@@ -4798,7 +4798,7 @@ createPartitionAccessMethods(int numLevels)
 {
 	PartitionAccessMethods *accessMethods = palloc(sizeof(PartitionAccessMethods));;
 	accessMethods->partLevels = numLevels;
-	accessMethods->amstate = palloc0(numLevels * sizeof(void *));
+	accessMethods->cmpfuncs = (FmgrInfo **) palloc0(numLevels * sizeof(FmgrInfo *));
 	accessMethods->part_cxt = NULL;
 
 	return accessMethods;

@@ -450,8 +450,11 @@ typedef struct PartitionAccessMethods
 	/* Number of partition levels */
 	int			partLevels;
 
-	/* Access methods, one for each level */
-	void	  **amstate;
+	/*
+	 * Cache of comparison functions for partition bounds/values, one array
+	 * of FmgrInfos for each level
+	 */
+	FmgrInfo  **cmpfuncs;
 
 	/* Memory context for access methods */
 	MemoryContext part_cxt;
