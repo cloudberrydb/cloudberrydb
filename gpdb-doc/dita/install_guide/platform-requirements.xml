@@ -355,7 +355,7 @@
               </row>
               <row>
                 <entry>PL/Container and PL/Container images for Python, R </entry>
-                <entry>2.0.2</entry>
+                <entry>2.1.0</entry>
               </row>
               <row class="- topic/row ">
                 <entry colname="col1" class="- topic/entry ">PostGIS Spatial and Geographic Objects
@@ -393,7 +393,7 @@
       <body>
         <p>
           <ul id="ul_ckf_sfc_hbb">
-            <li>Greenplum Platform Extension Framework (PXF) v5.10.0 - PXF, integrated with
+            <li>Greenplum Platform Extension Framework (PXF) v5.10.1 - PXF, integrated with
               Greenplum Database 6, provides access to Hadoop, object store, and SQL external data
               stores. Refer to <xref scope="peer" href="../admin_guide/external/pxf-overview.xml"
                 >Accessing External Data with PXF</xref> in the <cite>Greenplum Database
@@ -406,7 +406,7 @@
                 href="../greenplum-kafka/intro.html" type="topic" scope="peer" format="html">Pivotal
                 Greenplum-Kafka Integration</xref> Documentation for more information about this
               feature.</li>
-            <li>Greenplum Stream Server v1.2.6 - The Pivotal Greenplum Stream Server is an ETL tool
+            <li>Greenplum Stream Server v1.3.1 - The Pivotal Greenplum Stream Server is an ETL tool
               that provides high speed, parallel data transfer from Informatica, Kafka, and custom
               client data sources to a Pivotal Greenplum Database cluster. Refer to the <xref
                 href="../greenplum-stream/intro.html" type="topic" scope="peer" format="html">
@@ -415,7 +415,7 @@
             <li>Greenplum Informatica Connector v1.0.5 - The Pivotal Greenplum Informatica Connector
               supports high speed data transfer from an Informatica PowerCenter cluster to a Pivotal
               Greenplum Database cluster for batch and streaming ETL operations.</li>
-            <li>Greenplum Spark Connector v1.6.1 - The Pivotal Greenplum Spark Connector supports
+            <li>Greenplum Spark Connector v1.6.2 - The Pivotal Greenplum Spark Connector supports
               high speed, parallel data transfer between Greenplum Database and an Apache Spark
               cluster using Spark’s Scala API.</li>
             <li>Progress DataDirect JDBC Drivers v5.1.4.000223 - The Progress DataDirect JDBC
