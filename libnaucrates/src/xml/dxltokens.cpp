@@ -564,6 +564,7 @@ CDXLTokens::Init
 			{EdxltokenMDTypeHashable, GPOS_WSZ_LIT("IsHashable")},
 			{EdxltokenMDTypeMergeJoinable, GPOS_WSZ_LIT("IsMergeJoinable")},
 			{EdxltokenMDTypeComposite, GPOS_WSZ_LIT("IsComposite")},
+			{EdxltokenMDTypeIsTextRelated, GPOS_WSZ_LIT("IsTextRelated")},
 			{EdxltokenMDTypeFixedLength, GPOS_WSZ_LIT("IsFixedLength")},
 			{EdxltokenMDTypeLength, GPOS_WSZ_LIT("Length")},
 			{EdxltokenMDTypeByValue, GPOS_WSZ_LIT("PassByValue")},

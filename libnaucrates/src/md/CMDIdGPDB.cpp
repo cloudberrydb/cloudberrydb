@@ -65,6 +65,9 @@ CMDIdGPDB CMDIdGPDB::m_mdid_interval(GPDB_INTERVAL);
 // time interval mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_time_interval(GPDB_TIMEINTERVAL);
 
+// char mdid
+CMDIdGPDB CMDIdGPDB::m_mdid_char(GPDB_SINGLE_CHAR);
+
 // bpchar mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_bpchar(GPDB_CHAR);
 
@@ -73,6 +76,9 @@ CMDIdGPDB CMDIdGPDB::m_mdid_varchar(GPDB_VARCHAR);
 
 // text mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_text(GPDB_TEXT);
+
+// text mdid
+CMDIdGPDB CMDIdGPDB::m_mdid_name(GPDB_NAME);
 
 // float4 mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_float4(GPDB_FLOAT4);

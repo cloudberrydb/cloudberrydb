@@ -2946,6 +2946,11 @@ CDXLOperatorFactory::GetDatumVal
 		
 	if (NULL == func)
 	{
+		const XMLCh *attr_val_xml = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenLintValue));
+		if (attr_val_xml)
+		{
+			return GetDatumStatsLintMappable(dxl_memory_manager, attrs, target_elem, mdid, is_const_null);
+		}
 		// generate a datum of generic type
 		return GetDatumGeneric(dxl_memory_manager, attrs, target_elem, mdid, is_const_null);
 	}

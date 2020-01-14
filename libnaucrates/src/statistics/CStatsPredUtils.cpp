@@ -234,16 +234,6 @@ CStatsPredUtils::GetStatsCmpType
 }
 
 
-BOOL
-CStatsPredUtils::IsTextRelatedType(const IMDId *mdid)
-{
-	return mdid->Equals(&CMDIdGPDB::m_mdid_varchar)
-	|| mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)
-	|| mdid->Equals(&CMDIdGPDB::m_mdid_text)
-	|| mdid->Equals(&CMDIdGPDB::m_mdid_uuid);
-}
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CStatsPredUtils::GetPredStats
@@ -303,10 +293,12 @@ CStatsPredUtils::GetPredStats
 	CScalarConst *scalar_const_op = CScalarConst::PopExtractFromConstOrCastConst(expr_right);
 	GPOS_ASSERT(NULL != scalar_const_op);
 
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	IDatum *datum = scalar_const_op->GetDatum();
+	const IMDType *datum_type = md_accessor->RetrieveType(datum->MDId());
 
-	BOOL is_text_related_type = IsTextRelatedType(datum->MDId()) && IsTextRelatedType(col_ref->RetrieveType()->MDId());
-	if (is_text_related_type && !CHistogram::IsOpSupportedForTextFilter(stats_cmp_type))
+	BOOL is_text_related = datum_type->IsTextRelated() && col_ref->RetrieveType()->IsTextRelated();
+	if (is_text_related && !CHistogram::IsOpSupportedForTextFilter(stats_cmp_type))
 	{
 		return GPOS_NEW(mp) CStatsPredUnsupported(col_ref->Id(), stats_cmp_type);
 	}

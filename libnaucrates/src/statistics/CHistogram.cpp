@@ -2216,7 +2216,10 @@ const
 	if (m_histogram_buckets->Size() > 0)
 	{
 		IMDId *mdid = (*m_histogram_buckets)[0]->GetLowerBound()->GetDatum()->MDId();
-		return CStatsPredUtils::IsTextRelatedType(mdid);
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+		const IMDType *type = md_accessor->RetrieveType(mdid);
+
+		return type->IsTextRelated();
 	}
 	return false;
 }

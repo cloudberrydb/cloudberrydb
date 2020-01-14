@@ -61,6 +61,7 @@ CParseHandlerMDType::CParseHandlerMDType
 	m_mdid_count_op(NULL),
 	m_is_hashable(false),
 	m_is_composite(false),
+	m_is_text_related(false),
 	m_mdid_base_rel(NULL),
 	m_mdid_array_type(NULL)
 {
@@ -211,6 +212,22 @@ CParseHandlerMDType::StartElement
 											EdxltokenMDTypeFixedLength,
 											EdxltokenMDType
 											);
+
+			const XMLCh *xml_is_text_related = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenMDTypeIsTextRelated));
+			if (NULL == xml_is_text_related)
+			{
+				m_is_text_related = false;
+			}
+			else
+			{
+				m_is_text_related = CDXLOperatorFactory::ConvertAttrValueToBool
+									(
+									m_parse_handler_mgr->GetDXLMemoryManager(),
+									xml_is_text_related,
+									EdxltokenMDTypeIsTextRelated,
+									EdxltokenMDType
+									);
+			}
 
 			// get type length
 			m_type_length = CDXLOperatorFactory::ExtractConvertAttrValueToInt
@@ -462,6 +479,7 @@ CParseHandlerMDType::EndElement
 										m_is_hashable,
 										m_is_merge_joinable,
 										m_is_composite,
+										m_is_text_related,
 										m_mdid_base_rel,
 										m_mdid_array_type,
 										m_type_length

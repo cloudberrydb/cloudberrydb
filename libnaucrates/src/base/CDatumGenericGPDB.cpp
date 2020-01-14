@@ -20,6 +20,9 @@
 
 #include "naucrates/statistics/CScaleFactorUtils.h"
 
+#include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/base/COptCtxt.h"
+
 using namespace gpnaucrates;
 using namespace gpmd;
 
@@ -319,7 +322,9 @@ CDatumGenericGPDB::IsDatumMappableToDouble() const
 BOOL
 CDatumGenericGPDB::IsDatumMappableToLINT() const
 {
-	return CMDTypeGenericGPDB::HasByte2IntMapping(this->MDId());
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDType *type = md_accessor->RetrieveType(MDId());
+	return CMDTypeGenericGPDB::HasByte2IntMapping(type);
 
 }
 

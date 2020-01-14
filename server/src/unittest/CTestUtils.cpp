@@ -4286,7 +4286,7 @@ CTestUtils::CreateGenericDatum
 	{
 		dxl_datum = GPOS_NEW(mp) CDXLDatumStatsDoubleMappable(mp, mdid_type, default_type_modifier, false /*is_const_null*/, data, ulbaSize, CDouble(value));
 	}
-	else if (CStatsPredUtils::IsTextRelatedType(mdid_type))
+	else if (pmdtype->IsTextRelated())
 	{
 		dxl_datum = GPOS_NEW(mp) CDXLDatumStatsLintMappable(mp, mdid_type, default_type_modifier, false /*is_const_null*/, data, ulbaSize, value);
 	}

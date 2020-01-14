@@ -48,6 +48,8 @@ namespace gpmd
                     mdtype->GetBaseRelMdid()->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeRelid));
                 }
 
+				xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeIsTextRelated), mdtype->IsTextRelated());
+
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeFixedLength), mdtype->IsFixedLength());
 
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLength), mdtype->GetGPDBLength());

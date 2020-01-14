@@ -119,6 +119,9 @@ namespace gpmd
 			// is type composite
 			BOOL m_is_composite_type;
 
+			// is type text related
+			BOOL m_is_text_related;
+
 			// id of the relation corresponding to a composite type
 			IMDId *m_mdid_base_relation;
 
@@ -160,6 +163,7 @@ namespace gpmd
 				BOOL is_hashable,
 				BOOL is_merge_joinable,
 				BOOL is_composite_type,
+				BOOL is_text_related,
 				IMDId *mdid_base_relation,
 				IMDId *mdid_type_array,
 				INT gpdb_length
@@ -232,6 +236,12 @@ namespace gpmd
 			BOOL IsHashable() const
 			{
 				return m_is_hashable;
+			}
+
+			virtual
+			BOOL IsTextRelated() const
+			{
+				return m_is_text_related;
 			}
 
 			// is type merge joinable on '='
@@ -308,6 +318,7 @@ namespace gpmd
 						(
 						CMemoryPool *mp,
 						IMDId *mdid,
+						const IMDType *md_type,
 						INT type_modifier,
 						BOOL is_null,
 						BYTE *byte_array,
@@ -346,7 +357,7 @@ namespace gpmd
 
 			// does a datum of this type need bytea to Lint mapping for statistics computation
 			static
-			BOOL HasByte2IntMapping(const IMDId *mdid);
+			BOOL HasByte2IntMapping(const IMDType *mdtype);
 
 			// does a datum of this type need bytea to double mapping for statistics computation
 			static

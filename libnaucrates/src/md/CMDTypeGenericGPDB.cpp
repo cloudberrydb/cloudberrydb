@@ -9,12 +9,15 @@
 //		Implementation of the class for representing GPDB generic types
 //---------------------------------------------------------------------------
 
+#include "gpopt/base/COptCtxt.h"
+
 #include "gpos/string/CWStringDynamic.h"
 
 #include "naucrates/md/CMDTypeGenericGPDB.h"
 #include "naucrates/md/CGPDBTypeHelper.h"
 
 #include "naucrates/base/CDatumGenericGPDB.h"
+#include "naucrates/statistics/CStatsPredUtils.h"
 
 #include "naucrates/dxl/operators/CDXLScalarConstValue.h"
 #include "naucrates/dxl/operators/CDXLDatumStatsDoubleMappable.h"
@@ -68,6 +71,7 @@ CMDTypeGenericGPDB::CMDTypeGenericGPDB
 	BOOL is_hashable,
 	BOOL is_merge_joinable,
 	BOOL is_composite_type,
+	BOOL is_text_related,
 	IMDId *mdid_base_relation,
 	IMDId *mdid_type_array,
 	INT gpdb_length
@@ -95,6 +99,7 @@ CMDTypeGenericGPDB::CMDTypeGenericGPDB
 	m_is_hashable(is_hashable),
 	m_is_merge_joinable(is_merge_joinable),
 	m_is_composite_type(is_composite_type),
+	m_is_text_related(is_text_related),
 	m_mdid_base_relation(mdid_base_relation),
 	m_mdid_type_array(mdid_type_array),
 	m_gpdb_length(gpdb_length),
@@ -369,7 +374,9 @@ CMDTypeGenericGPDB::GetDatumVal
 		dValue = datum_generic->GetDoubleMapping();
 	}
 
-	return CreateDXLDatumVal(mp, m_mdid, datum_generic->TypeModifier(), datum_generic->IsNull(), pba, length, lValue, dValue);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDType *md_type = md_accessor->RetrieveType(m_mdid);
+	return CreateDXLDatumVal(mp, m_mdid, md_type, datum_generic->TypeModifier(), datum_generic->IsNull(), pba, length, lValue, dValue);
 }
 
 //---------------------------------------------------------------------------
@@ -404,6 +411,7 @@ CMDTypeGenericGPDB::CreateDXLDatumVal
 	(
 	CMemoryPool *mp,
 	IMDId *mdid,
+	const IMDType *md_type,
 	INT type_modifier,
 	BOOL is_null,
 	BYTE *pba,
@@ -414,40 +422,17 @@ CMDTypeGenericGPDB::CreateDXLDatumVal
 {
 	GPOS_ASSERT(IMDId::EmdidGPDB == mdid->MdidType());
 
-	const CMDIdGPDB * const pmdidGPDB = CMDIdGPDB::CastMdid(mdid);
-	switch (pmdidGPDB->Oid())
+	if (HasByte2DoubleMapping(mdid))
 	{
-		// numbers
-		case GPDB_NUMERIC:
-		case GPDB_FLOAT4:
-		case GPDB_FLOAT8:
-			return CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
-		// has lint mapping
-		case GPDB_CHAR:
-		case GPDB_VARCHAR:
-		case GPDB_TEXT:
-		case GPDB_CASH:
-		case GPDB_UUID:
-			return CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
-		// time-related types
-		case GPDB_DATE:
-		case GPDB_TIME:
-		case GPDB_TIMETZ:
-		case GPDB_TIMESTAMP:
-		case GPDB_TIMESTAMPTZ:
-		case GPDB_ABSTIME:
-		case GPDB_RELTIME:
-		case GPDB_INTERVAL:
-		case GPDB_TIMEINTERVAL:
-			return CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
-		// network-related types
-		case GPDB_INET:
-		case GPDB_CIDR:
-		case GPDB_MACADDR:
-			return CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
-		default:
-			return GPOS_NEW(mp) CDXLDatumGeneric(mp, mdid, type_modifier, is_null, pba, length);
+		return CMDTypeGenericGPDB::CreateDXLDatumStatsDoubleMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
 	}
+
+	if (HasByte2IntMapping(md_type))
+	{
+		return CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable(mp, mdid, type_modifier, is_null, pba, length, lValue, dValue);
+	}
+
+	return GPOS_NEW(mp) CDXLDatumGeneric(mp, mdid, type_modifier, is_null, pba, length);
 }
 
 
@@ -498,7 +483,6 @@ CMDTypeGenericGPDB::CreateDXLDatumStatsIntMappable
 	CDouble // double_value
 	)
 {
-	GPOS_ASSERT(CMDTypeGenericGPDB::HasByte2IntMapping(mdid));
 	return GPOS_NEW(mp) CDXLDatumStatsLintMappable(mp, mdid, type_modifier, is_null, byte_array, length, lint_value);
 }
 
@@ -539,8 +523,9 @@ CMDTypeGenericGPDB::GetDXLDatumNull
 	const
 {
 	m_mdid->AddRef();
-
-	return CreateDXLDatumVal(mp, m_mdid, default_type_modifier, true /*fConstNull*/, NULL /*byte_array*/, 0 /*length*/, 0 /*lint_value */, 0 /*double_value */);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDType *md_type = md_accessor->RetrieveType(m_mdid);
+	return CreateDXLDatumVal(mp, m_mdid, md_type, default_type_modifier, true /*fConstNull*/, NULL /*byte_array*/, 0 /*length*/, 0 /*lint_value */, 0 /*double_value */);
 }
 
 //---------------------------------------------------------------------------
@@ -554,12 +539,11 @@ CMDTypeGenericGPDB::GetDXLDatumNull
 BOOL
 CMDTypeGenericGPDB::HasByte2IntMapping
 	(
-	const IMDId *mdid
+	const IMDType *mdtype
 	)
 {
-	return mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)
-			|| mdid->Equals(&CMDIdGPDB::m_mdid_varchar)
-			|| mdid->Equals(&CMDIdGPDB::m_mdid_text)
+	IMDId *mdid = mdtype->MDId();
+	return mdtype->IsTextRelated()
 			|| mdid->Equals(&CMDIdGPDB::m_mdid_uuid)
 			|| mdid->Equals(&CMDIdGPDB::m_mdid_cash);
 }

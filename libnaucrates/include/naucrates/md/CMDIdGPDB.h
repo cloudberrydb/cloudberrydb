@@ -213,6 +213,10 @@ namespace gpmd
 			static
 			CMDIdGPDB m_mdid_time_interval;
 
+			// char mdid
+			static
+			CMDIdGPDB m_mdid_char;
+
 			// bpchar mdid
 			static
 			CMDIdGPDB m_mdid_bpchar;
@@ -224,6 +228,10 @@ namespace gpmd
 			// text mdid
 			static
 			CMDIdGPDB m_mdid_text;
+
+			// name mdid
+			static
+			CMDIdGPDB m_mdid_name;
 
 			// float4 mdid
 			static

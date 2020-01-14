@@ -524,6 +524,7 @@ namespace gpdxl
 		EdxltokenMDTypeHashable,
 		EdxltokenMDTypeMergeJoinable,
 		EdxltokenMDTypeComposite,
+		EdxltokenMDTypeIsTextRelated,
 		EdxltokenMDTypeFixedLength,
 		EdxltokenMDTypeLength,
 		EdxltokenMDTypeByValue,

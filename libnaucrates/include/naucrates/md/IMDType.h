@@ -142,6 +142,12 @@ namespace gpmd
 			virtual
 			BOOL IsComposite() const = 0;
 
+			virtual
+			BOOL IsTextRelated() const
+			{
+				return false;
+			}
+
 			// id of the relation corresponding to a composite type
 			virtual
 			IMDId *GetBaseRelMdid() const = 0;
