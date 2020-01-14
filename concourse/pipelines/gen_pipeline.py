@@ -137,7 +137,7 @@ def validate_pipeline_release_jobs(raw_pipeline_yml):
     rc_name = 'gate_release_candidate_start'
     release_candidate_job = [j for j in jobs_raw if j['name'] == rc_name][0]
 
-    release_blocking_jobs = release_candidate_job['plan'][0]['aggregate'][0]['passed']
+    release_blocking_jobs = release_candidate_job['plan'][0]['in_parallel']['steps'][0]['passed']
 
     non_release_blocking_jobs = [j for j in all_job_names if j not in release_blocking_jobs]
 

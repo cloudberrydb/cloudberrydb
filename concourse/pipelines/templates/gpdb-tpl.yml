@@ -861,11 +861,12 @@ jobs:
 
 - name: concourse_unit_tests
   plan:
-    - aggregate:
-      - get: bats_core_src
-      - get: gpdb_src
-        trigger: true
-      - get: gpdb6-ubuntu18.04-build
+    - in_parallel:
+        steps:
+        - get: bats_core_src
+        - get: gpdb_src
+          trigger: true
+        - get: gpdb6-ubuntu18.04-build
     - task: run_unit_tests
       image: gpdb6-ubuntu18.04-build
       config:
@@ -899,20 +900,21 @@ jobs:
 {% if "centos6" in os_types %}
 - name: compile_gpdb_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: ((gpdb_src-trigger-flag))
-    - get: reduced-frequency-trigger
-      trigger: ((reduced-frequency-trigger-flag))
-    - get: gpdb6-centos6-build
-    - get: libquicklz-installer
-      resource: libquicklz-centos6
-    - get: libquicklz-devel-installer
-      resource: libquicklz-devel-centos6
-    - get: libsigar-installer
-      resource: libsigar-centos6
-    - get: python-tarball
-      resource: python-centos6
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        trigger: ((gpdb_src-trigger-flag))
+      - get: reduced-frequency-trigger
+        trigger: ((reduced-frequency-trigger-flag))
+      - get: gpdb6-centos6-build
+      - get: libquicklz-installer
+        resource: libquicklz-centos6
+      - get: libquicklz-devel-installer
+        resource: libquicklz-devel-centos6
+      - get: libsigar-installer
+        resource: libsigar-centos6
+      - get: python-tarball
+        resource: python-centos6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
@@ -922,32 +924,34 @@ jobs:
       TARGET_OS_VERSION: 6
       BLD_TARGETS: "clients"
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
-  - aggregate:
-    - put: bin_gpdb_centos6
-      params:
-        file: gpdb_artifacts/bin_gpdb.tar.gz
-    - put: bin_gpdb_clients_centos6
-      params:
-        file: gpdb_artifacts/gpdb-clients-centos6.tar.gz
+  - in_parallel:
+      steps:
+      - put: bin_gpdb_centos6
+        params:
+          file: gpdb_artifacts/bin_gpdb.tar.gz
+      - put: bin_gpdb_clients_centos6
+        params:
+          file: gpdb_artifacts/gpdb-clients-centos6.tar.gz
 
 {% endif %}
 {% if "centos7" in os_types %}
 - name: compile_gpdb_centos7
   plan:
-  - aggregate:
-    - get: reduced-frequency-trigger
-      trigger: ((reduced-frequency-trigger-flag))
-    - get: gpdb_src
-      trigger: ((gpdb_src-trigger-flag))
-    - get: gpdb6-centos7-build
-    - get: libquicklz-installer
-      resource: libquicklz-centos7
-    - get: libquicklz-devel-installer
-      resource: libquicklz-devel-centos7
-    - get: libsigar-installer
-      resource: libsigar-centos7
-    - get: python-tarball
-      resource: python-centos7
+  - in_parallel:
+      steps:
+      - get: reduced-frequency-trigger
+        trigger: ((reduced-frequency-trigger-flag))
+      - get: gpdb_src
+        trigger: ((gpdb_src-trigger-flag))
+      - get: gpdb6-centos7-build
+      - get: libquicklz-installer
+        resource: libquicklz-centos7
+      - get: libquicklz-devel-installer
+        resource: libquicklz-devel-centos7
+      - get: libsigar-installer
+        resource: libsigar-centos7
+      - get: python-tarball
+        resource: python-centos7
   - task: compile_gpdb
     image: gpdb6-centos7-build
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -957,13 +961,14 @@ jobs:
       TARGET_OS_VERSION: 7
       BLD_TARGETS: "clients"
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
-  - aggregate:
-    - put: bin_gpdb_centos7
-      params:
-        file: gpdb_artifacts/bin_gpdb.tar.gz
-    - put: bin_gpdb_clients_centos7
-      params:
-        file: gpdb_artifacts/gpdb-clients-centos7.tar.gz
+  - in_parallel:
+      steps:
+      - put: bin_gpdb_centos7
+        params:
+          file: gpdb_artifacts/bin_gpdb.tar.gz
+      - put: bin_gpdb_clients_centos7
+        params:
+          file: gpdb_artifacts/gpdb-clients-centos7.tar.gz
 
 {% endif %}
 {% if "centos6" in os_types %}
@@ -973,19 +978,20 @@ jobs:
   # binary to use for our binary swap compatibility tests. Setting a new
   # tag or branch for the gpdb_src_binary_swap resource via set-pipeline
   # will replace the cached binary.
-  - aggregate:
-    - get: gpdb_src
-      resource: gpdb_src_binary_swap
-      trigger: true
-    - get: gpdb6-centos6-build
-    - get: libquicklz-installer
-      resource: libquicklz-centos6
-    - get: libquicklz-devel-installer
-      resource: libquicklz-devel-centos6
-    - get: libsigar-installer
-      resource: libsigar-centos6
-    - get: python-tarball
-      resource: python-centos6
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        resource: gpdb_src_binary_swap
+        trigger: true
+      - get: gpdb6-centos6-build
+      - get: libquicklz-installer
+        resource: libquicklz-centos6
+      - get: libquicklz-devel-installer
+        resource: libquicklz-devel-centos6
+      - get: libsigar-installer
+        resource: libsigar-centos6
+      - get: python-tarball
+        resource: python-centos6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
@@ -995,16 +1001,18 @@ jobs:
       TARGET_OS_VERSION: 6
       BLD_TARGETS: "clients loaders"
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
-  - aggregate:
-    - put: binary_swap_gpdb_centos6
-      params:
-        file: gpdb_artifacts/bin_gpdb.tar.gz
+  - in_parallel:
+      steps:
+      - put: binary_swap_gpdb_centos6
+        params:
+          file: gpdb_artifacts/bin_gpdb.tar.gz
 
 {% endif %}
 {% if "ubuntu18.04" in os_types %}
 - name: compile_gpdb_ubuntu18.04
   plan:
-    - aggregate:
+    - in_parallel:
+        steps:
         - get: reduced-frequency-trigger
           trigger: ((reduced-frequency-trigger-flag))
         - get: gpdb_src
@@ -1023,7 +1031,8 @@ jobs:
         TARGET_OS_VERSION: "18.04"
         BLD_TARGETS: "clients"
         RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
-    - aggregate:
+    - in_parallel:
+        steps:
         - put: bin_gpdb_ubuntu18.04
           params:
             file: gpdb_artifacts/bin_gpdb.tar.gz
@@ -1037,10 +1046,11 @@ jobs:
 - name: compile_gpdb_clients_windows
   serial: true
   plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: true
-    - get: gpdb6-centos6-build
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        trigger: true
+      - get: gpdb6-centos6-build
   - task: compile_gpdb_windows_remote
     file: gpdb_src/concourse/tasks/compile_gpdb_remote_windows.yml
     image: gpdb6-centos6-build
@@ -1055,7 +1065,8 @@ jobs:
 
 - name: test_gpdb_clients_windows
   plan:
-  - aggregate:
+  - in_parallel:
+      steps:
       - get: ccp_src
       - get: gpdb_src
         trigger: true
@@ -1102,18 +1113,19 @@ jobs:
 {% if "centos6" in os_types %}
 - name: icw_planner_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb
-      passed: [compile_gpdb_centos6]
-      resource: bin_gpdb_centos6
-      trigger: [[ test_trigger ]]
-    - get: binary_swap_gpdb
-      passed: [compile_gpdb_binary_swap_centos6]
-      resource: binary_swap_gpdb_centos6
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos6-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos6]
+      - get: bin_gpdb
+        passed: [compile_gpdb_centos6]
+        resource: bin_gpdb_centos6
+        trigger: [[ test_trigger ]]
+      - get: binary_swap_gpdb
+        passed: [compile_gpdb_binary_swap_centos6]
+        resource: binary_swap_gpdb_centos6
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos6-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb_binary_swap.yml
     image: gpdb6-centos6-test
@@ -1125,14 +1137,15 @@ jobs:
 
 - name: icw_gporca_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos6-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos6]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [compile_gpdb_centos6]
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos6-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: gpdb6-centos6-test
@@ -1147,14 +1160,15 @@ jobs:
 
 - name: icw_gporca_ictcp_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos6-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos6]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [compile_gpdb_centos6]
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos6-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: gpdb6-centos6-test
@@ -1166,14 +1180,15 @@ jobs:
 {% if "centos7" in os_types %}
 - name: icw_gporca_centos7
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos7]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos7
-      passed: [compile_gpdb_centos7]
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos7-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [compile_gpdb_centos7]
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos7-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: gpdb6-centos7-test
@@ -1184,14 +1199,15 @@ jobs:
 
 - name: icw_planner_centos7
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos7]
-    - get: bin_gpdb
-      passed: [compile_gpdb_centos7]
-      resource: bin_gpdb_centos7
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos7-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb
+        passed: [compile_gpdb_centos7]
+        resource: bin_gpdb_centos7
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos7-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: gpdb6-centos7-test
@@ -1204,7 +1220,8 @@ jobs:
 {% if "ubuntu18.04" in os_types %}
 - name: icw_gporca_ubuntu18.04
   plan:
-    - aggregate:
+    - in_parallel:
+        steps:
         - get: gpdb_src
           passed: [compile_gpdb_ubuntu18.04]
         - get: bin_gpdb
@@ -1222,7 +1239,8 @@ jobs:
 
 - name: icw_planner_ubuntu18.04
   plan:
-    - aggregate:
+    - in_parallel:
+        steps:
         - get: gpdb_src
           passed: [compile_gpdb_ubuntu18.04]
         - get: bin_gpdb
@@ -1241,36 +1259,37 @@ jobs:
 {% endif %}
 - name: gate_icw_end
   plan:
-  - aggregate:
+  - in_parallel:
+      steps:
 {% if "centos6" in os_types %}
-    - get: bin_gpdb_centos6
-      passed:
-      - icw_gporca_centos6
-      - icw_planner_centos6
-      - icw_gporca_ictcp_centos6
+      - get: bin_gpdb_centos6
+        passed:
+        - icw_gporca_centos6
+        - icw_planner_centos6
+        - icw_gporca_ictcp_centos6
 {% if "Extensions" in test_sections %}
-      - icw_extensions_gpcloud_centos6
+        - icw_extensions_gpcloud_centos6
 {% endif %}
 {% endif %}
 {% if "centos6" in os_types %}
-    - get: icw_gporca_centos6_dump
-      passed:
-      - icw_gporca_centos6
+      - get: icw_gporca_centos6_dump
+        passed:
+        - icw_gporca_centos6
 {% endif %}
-    - get: gpdb_src
-      passed:
+      - get: gpdb_src
+        passed:
 {% if "centos6" in os_types %}
-      - icw_gporca_centos6
-      - icw_planner_centos6
-      - icw_gporca_ictcp_centos6
+        - icw_gporca_centos6
+        - icw_planner_centos6
+        - icw_gporca_ictcp_centos6
 {% if "Extensions" in test_sections %}
-      - icw_extensions_gpcloud_centos6
+        - icw_extensions_gpcloud_centos6
 {% endif %}
 {% endif %}
 {% if "centos7" in os_types %}
-      - icw_gporca_centos7
+        - icw_gporca_centos7
 {% endif %}
-      trigger: true
+        trigger: true
 {% if pipeline_configuration == "prod" and "centos6" in os_types %}
   - put: bin_gpdb_centos6_icw_green
     params:
@@ -1289,14 +1308,15 @@ jobs:
 {% if "centos6" in os_types %}
 - name: interconnect
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb
-      passed: [compile_gpdb_centos6]
-      resource: bin_gpdb_centos6
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos6-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos6]
+      - get: bin_gpdb
+        passed: [compile_gpdb_centos6]
+        resource: bin_gpdb_centos6
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos6-test
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: gpdb6-centos6-test
@@ -1319,44 +1339,46 @@ jobs:
 
 - name: gate_resource_groups_start
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed:
-      - compile_gpdb_centos6
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed:
+        - compile_gpdb_centos6
 {% if "centos7" in os_types %}
-      - compile_gpdb_centos7
+        - compile_gpdb_centos7
 {% endif %}
-      trigger: true
-    - get: bin_gpdb_centos6
-      passed:
-      - compile_gpdb_centos6
+        trigger: true
+      - get: bin_gpdb_centos6
+        passed:
+        - compile_gpdb_centos6
 {% if "centos7" in os_types %}
-    - get: bin_gpdb_centos7
-      passed:
-      - compile_gpdb_centos7
+      - get: bin_gpdb_centos7
+        passed:
+        - compile_gpdb_centos7
 {% endif %}
 {% if "centos6" in os_types or "centos7" in os_types %}
-    - get: binary_swap_gpdb
-      passed: [compile_gpdb_binary_swap_centos6]
-      resource: binary_swap_gpdb_centos6
-      trigger: [[ test_trigger ]]
+      - get: binary_swap_gpdb
+        passed: [compile_gpdb_binary_swap_centos6]
+        resource: binary_swap_gpdb_centos6
+        trigger: [[ test_trigger ]]
 {% endif %}
 
 - name: resource_group_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [gate_resource_groups_start]
-    - get: gpdb_binary
-      resource: bin_gpdb_centos6
-      passed: [gate_resource_groups_start]
-      trigger: [[ test_trigger ]]
-    - get: ccp_src
-    - get: ccp-image
-    - get: binary_swap_gpdb
-      passed: [gate_resource_groups_start]
-      resource: binary_swap_gpdb_centos6
-      trigger: [[ test_trigger ]]
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [gate_resource_groups_start]
+      - get: gpdb_binary
+        resource: bin_gpdb_centos6
+        passed: [gate_resource_groups_start]
+        trigger: [[ test_trigger ]]
+      - get: ccp_src
+      - get: ccp-image
+      - get: binary_swap_gpdb
+        passed: [gate_resource_groups_start]
+        resource: binary_swap_gpdb_centos6
+        trigger: [[ test_trigger ]]
   - put: terraform
     params:
       <<: *ccp_default_params
@@ -1382,19 +1404,20 @@ jobs:
 {% if "centos7" in os_types %}
 - name: resource_group_centos7
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [gate_resource_groups_start]
-    - get: gpdb_binary
-      resource: bin_gpdb_centos7
-      passed: [gate_resource_groups_start]
-      trigger: [[ test_trigger ]]
-    - get: ccp_src
-    - get: ccp-image
-    - get: binary_swap_gpdb
-      passed: [gate_resource_groups_start]
-      resource: binary_swap_gpdb_centos6
-      trigger: [[ test_trigger ]]
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [gate_resource_groups_start]
+      - get: gpdb_binary
+        resource: bin_gpdb_centos7
+        passed: [gate_resource_groups_start]
+        trigger: [[ test_trigger ]]
+      - get: ccp_src
+      - get: ccp-image
+      - get: binary_swap_gpdb
+        passed: [gate_resource_groups_start]
+        resource: binary_swap_gpdb_centos6
+        trigger: [[ test_trigger ]]
   - put: terraform
     params:
       <<: *ccp_default_params
@@ -1435,43 +1458,45 @@ jobs:
 
 - name: gate_gpperfmon_start
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed:
-      - compile_gpdb_centos6
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed:
+        - compile_gpdb_centos6
 {% if "centos7" in os_types %}
-      - compile_gpdb_centos7
+        - compile_gpdb_centos7
 {% endif %}
-      trigger: true
-    - get: bin_gpdb_centos6
-      passed:
-      - compile_gpdb_centos6
+        trigger: true
+      - get: bin_gpdb_centos6
+        passed:
+        - compile_gpdb_centos6
 {% if "centos7" in os_types %}
-    - get: bin_gpdb_centos7
-      passed:
-      - compile_gpdb_centos7
+      - get: bin_gpdb_centos7
+        passed:
+        - compile_gpdb_centos7
 {% endif %}
 {% if "centos6" in os_types or "centos7" in os_types %}
-    - get: binary_swap_gpdb
-      passed: [compile_gpdb_binary_swap_centos6]
-      resource: binary_swap_gpdb_centos6
-      trigger: [[ test_trigger ]]
+      - get: binary_swap_gpdb
+        passed: [compile_gpdb_binary_swap_centos6]
+        resource: binary_swap_gpdb_centos6
+        trigger: [[ test_trigger ]]
 {% endif %}
 
 - name: gpperfmon_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      params:
-        submodules:
-        - gpMgmt/bin/pythonSrc/ext
-      passed: [gate_gpperfmon_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [gate_gpperfmon_start]
-      trigger: true
-    - get: gpdb6-centos6-test
-    - get: gpdb6-centos7-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        params:
+          submodules:
+          - gpMgmt/bin/pythonSrc/ext
+        passed: [gate_gpperfmon_start]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [gate_gpperfmon_start]
+        trigger: true
+      - get: gpdb6-centos6-test
+      - get: gpdb6-centos7-test
   - task: gpperfmon
     file: gpdb_src/concourse/tasks/behave_gpdb.yml
     image: gpdb6-centos6-test
@@ -1494,17 +1519,18 @@ jobs:
 {% if "centos7" in os_types %}
 - name: gpperfmon_centos7
   plan:
-  - aggregate:
-    - get: gpdb_src
-      params:
-        submodules:
-        - gpMgmt/bin/pythonSrc/ext
-      passed: [gate_gpperfmon_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos7
-      passed: [gate_gpperfmon_start]
-      trigger: true
-    - get: gpdb6-centos7-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        params:
+          submodules:
+          - gpMgmt/bin/pythonSrc/ext
+        passed: [gate_gpperfmon_start]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [gate_gpperfmon_start]
+        trigger: true
+      - get: gpdb6-centos7-test
   - task: gpperfmon
     file: gpdb_src/concourse/tasks/behave_gpdb.yml
     image: gpdb6-centos7-test
@@ -1539,26 +1565,28 @@ jobs:
 
 - name: gate_cli_start
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed:
-      - compile_gpdb_centos6
-      trigger: true
-    - get: bin_gpdb_centos6
-      passed:
-      - compile_gpdb_centos6
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed:
+        - compile_gpdb_centos6
+        trigger: true
+      - get: bin_gpdb_centos6
+        passed:
+        - compile_gpdb_centos6
 
 - name: check_centos
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [gate_cli_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [gate_cli_start]
-      trigger: [[ test_trigger ]]
-    - get: gpdb6-centos6-test
-    - get: gpdb6-centos7-test
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [gate_cli_start]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [gate_cli_start]
+        trigger: [[ test_trigger ]]
+      - get: gpdb6-centos6-test
+      - get: gpdb6-centos7-test
   - task: check_centos
     file: gpdb_src/concourse/tasks/gpMgmt_check_gpdb.yml
     image: gpdb6-centos6-test
@@ -1581,162 +1609,167 @@ jobs:
 {% for test in CLI_BEHAVE_TESTS %}
 - name: [[ test.name ]]
   plan:
-    - aggregate:
-      - get: gpdb_src
-        params:
-          submodules:
-            - gpMgmt/bin/pythonSrc/ext
-        passed: [gate_cli_start]
-      - get: gpdb6-centos6-test
-      - get: gpdb6-centos7-test
-    - aggregate:
-      {% if test.use_concourse_cluster %}
-      - do:
-        - get: gpdb_binary
-          resource: bin_gpdb_centos6
+    - in_parallel:
+        steps:
+        - get: gpdb_src
+          params:
+            submodules:
+              - gpMgmt/bin/pythonSrc/ext
           passed: [gate_cli_start]
-          trigger: [[ test_trigger ]]
-        - get: ccp_src
-        - get: ccp-image
-        - put: terraform
-          params:
-            <<: *ccp_default_params
-            vars:
-              <<: *ccp_default_vars
-              instance_type: n1-standard-2
-              [[ test.additional_ccp_vars ]]
-        - task: gen_cluster
-          file: ccp_src/ci/tasks/gen_cluster.yml
-          params:
-            <<: *ccp_gen_cluster_default_params
-        - task: gpinitsystem
-          file: ccp_src/ci/tasks/gpinitsystem.yml
-        - task: [[ test.name ]]_concourse_cluster_tests
-          file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
-          image: ccp-image
-          params:
-            BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=concourse_cluster
-            TEST_NAME: [[ test.name ]]
-            [[ test.env ]]
-          on_success:
-            <<: *ccp_destroy
-          ensure:
-            <<: *set_failed
-          output_mapping:
-            coverage: ccp-coverage
-        - task: publish_ccp_coverage
-          image: gpdb6-centos7-test
-          config:
-            platform: linux
-            inputs:
-              - name: gpdb_src
-              - name: ccp-coverage
-            run:
-              path: gpdb_src/concourse/scripts/gsutil_sync
-              args: [ "./ccp-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+        - get: gpdb6-centos6-test
+        - get: gpdb6-centos7-test
+    - in_parallel:
+        steps:
+        {% if test.use_concourse_cluster %}
+        - do:
+          - get: gpdb_binary
+            resource: bin_gpdb_centos6
+            passed: [gate_cli_start]
+            trigger: [[ test_trigger ]]
+          - get: ccp_src
+          - get: ccp-image
+          - put: terraform
             params:
-              JSON_KEY: ((concourse-gcs-resources-service-account-key))
-      {% endif %}
-      - do:
-        - get: bin_gpdb
-          resource: bin_gpdb_centos6
-          passed: [gate_cli_start]
-          trigger: [[ test_trigger ]]
-        - task: [[ test.name ]]_demo_cluster_tests
-          file: gpdb_src/concourse/tasks/behave_gpdb.yml
-          image: gpdb6-centos6-test
-          params:
-            BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
-            TEST_NAME: [[ test.name ]]
-            [[ test.env ]]
-          output_mapping:
-            coverage: demo-coverage
-        - task: publish_demo_coverage
-          image: gpdb6-centos7-test
-          config:
-            platform: linux
-            inputs:
-              - name: gpdb_src
-              - name: demo-coverage
-            run:
-              path: gpdb_src/concourse/scripts/gsutil_sync
-              args: [ "./demo-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+              <<: *ccp_default_params
+              vars:
+                <<: *ccp_default_vars
+                instance_type: n1-standard-2
+                [[ test.additional_ccp_vars ]]
+          - task: gen_cluster
+            file: ccp_src/ci/tasks/gen_cluster.yml
             params:
-              JSON_KEY: ((concourse-gcs-resources-service-account-key))
+              <<: *ccp_gen_cluster_default_params
+          - task: gpinitsystem
+            file: ccp_src/ci/tasks/gpinitsystem.yml
+          - task: [[ test.name ]]_concourse_cluster_tests
+            file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
+            image: ccp-image
+            params:
+              BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=concourse_cluster
+              TEST_NAME: [[ test.name ]]
+              [[ test.env ]]
+            on_success:
+              <<: *ccp_destroy
+            ensure:
+              <<: *set_failed
+            output_mapping:
+              coverage: ccp-coverage
+          - task: publish_ccp_coverage
+            image: gpdb6-centos7-test
+            config:
+              platform: linux
+              inputs:
+                - name: gpdb_src
+                - name: ccp-coverage
+              run:
+                path: gpdb_src/concourse/scripts/gsutil_sync
+                args: [ "./ccp-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+              params:
+                JSON_KEY: ((concourse-gcs-resources-service-account-key))
+        {% endif %}
+        - do:
+          - get: bin_gpdb
+            resource: bin_gpdb_centos6
+            passed: [gate_cli_start]
+            trigger: [[ test_trigger ]]
+          - task: [[ test.name ]]_demo_cluster_tests
+            file: gpdb_src/concourse/tasks/behave_gpdb.yml
+            image: gpdb6-centos6-test
+            params:
+              BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
+              TEST_NAME: [[ test.name ]]
+              [[ test.env ]]
+            output_mapping:
+              coverage: demo-coverage
+          - task: publish_demo_coverage
+            image: gpdb6-centos7-test
+            config:
+              platform: linux
+              inputs:
+                - name: gpdb_src
+                - name: demo-coverage
+              run:
+                path: gpdb_src/concourse/scripts/gsutil_sync
+                args: [ "./demo-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+              params:
+                JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 - name: [[ test.name ]]_ubuntu18
   plan:
-    - aggregate:
-      - get: gpdb_src
-        params:
-          submodules:
-            - gpMgmt/bin/pythonSrc/ext
-        passed: [compile_gpdb_ubuntu18.04]
-      - get: gpdb6-ubuntu18.04-test
-    - aggregate:
-      {% if test.use_concourse_cluster %}
-      - do:
-        - get: gpdb_binary
-          resource: bin_gpdb_ubuntu18.04
-          passed: [compile_gpdb_ubuntu18.04]
-          trigger: [[ test_trigger ]]
-        - get: ccp_src
-        - put: terraform
+    - in_parallel:
+        steps:
+        - get: gpdb_src
           params:
-            <<: *ccp_default_params
-            vars:
-              <<: *ccp_default_vars
-              instance_type: n1-standard-2
+            submodules:
+              - gpMgmt/bin/pythonSrc/ext
+          passed: [compile_gpdb_ubuntu18.04]
+        - get: gpdb6-ubuntu18.04-test
+    - in_parallel:
+        steps:
+        {% if test.use_concourse_cluster %}
+        - do:
+          - get: gpdb_binary
+            resource: bin_gpdb_ubuntu18.04
+            passed: [compile_gpdb_ubuntu18.04]
+            trigger: [[ test_trigger ]]
+          - get: ccp_src
+          - put: terraform
+            params:
+              <<: *ccp_default_params
+              vars:
+                <<: *ccp_default_vars
+                instance_type: n1-standard-2
+                PLATFORM: ubuntu18.04
+                [[ test.additional_ccp_vars ]]
+          - task: gen_cluster
+            file: ccp_src/ci/tasks/gen_cluster.yml
+            params:
+              <<: *ccp_gen_cluster_default_params
               PLATFORM: ubuntu18.04
-              [[ test.additional_ccp_vars ]]
-        - task: gen_cluster
-          file: ccp_src/ci/tasks/gen_cluster.yml
-          params:
-            <<: *ccp_gen_cluster_default_params
-            PLATFORM: ubuntu18.04
-        - task: gpinitsystem
-          file: ccp_src/ci/tasks/gpinitsystem.yml
-        - task: [[ test.name ]]_concourse_cluster_tests
-          file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
-          image: gpdb6-ubuntu18.04-test
-          params:
-            BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=concourse_cluster
-            [[ test.env ]]
-          on_success:
-            <<: *ccp_destroy
-          ensure:
-            <<: *set_failed
-      {% endif %}
-      - do:
-        - get: bin_gpdb_ubuntu18.04
-          resource: bin_gpdb_ubuntu18.04
-          passed: [compile_gpdb_ubuntu18.04]
-          trigger: [[ test_trigger ]]
-        - task: [[ test.name ]]_demo_cluster_tests
-          file: gpdb_src/concourse/tasks/behave_gpdb.yml
-          image: gpdb6-ubuntu18.04-test
-          input_mapping:
-            bin_gpdb: bin_gpdb_ubuntu18.04
-          params:
-            BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
-            [[ test.env ]]
+          - task: gpinitsystem
+            file: ccp_src/ci/tasks/gpinitsystem.yml
+          - task: [[ test.name ]]_concourse_cluster_tests
+            file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
+            image: gpdb6-ubuntu18.04-test
+            params:
+              BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=concourse_cluster
+              [[ test.env ]]
+            on_success:
+              <<: *ccp_destroy
+            ensure:
+              <<: *set_failed
+        {% endif %}
+        - do:
+          - get: bin_gpdb_ubuntu18.04
+            resource: bin_gpdb_ubuntu18.04
+            passed: [compile_gpdb_ubuntu18.04]
+            trigger: [[ test_trigger ]]
+          - task: [[ test.name ]]_demo_cluster_tests
+            file: gpdb_src/concourse/tasks/behave_gpdb.yml
+            image: gpdb6-ubuntu18.04-test
+            input_mapping:
+              bin_gpdb: bin_gpdb_ubuntu18.04
+            params:
+              BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
+              [[ test.env ]]
 
 {% endfor %}
 
 - name: combine_cli_coverage
   plan:
-    - aggregate:
-      - get: gpdb6-centos7-test
-      - get: gpdb_src
-        passed:
-          - compile_gpdb_centos6
-      - get: bin_gpdb_centos6
-        trigger: true
-        passed:
-          - check_centos
-        {% for test in CLI_BEHAVE_TESTS %}
-          - [[ test.name ]]
-        {% endfor %}
+    - in_parallel:
+        steps:
+        - get: gpdb6-centos7-test
+        - get: gpdb_src
+          passed:
+            - compile_gpdb_centos6
+        - get: bin_gpdb_centos6
+          trigger: true
+          passed:
+            - check_centos
+          {% for test in CLI_BEHAVE_TESTS %}
+            - [[ test.name ]]
+          {% endfor %}
     - task: combine_coverage
       image: gpdb6-centos7-test
       input_mapping:
@@ -1759,15 +1792,16 @@ jobs:
   on_success:
     <<: *ccp_destroy
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [icw_gporca_centos6]
-    - get: bin_gpdb_centos6
-      passed: [icw_gporca_centos6]
-      trigger: [[ test_trigger ]]
-    - get: icw_gporca_centos6_dump
-      passed: [icw_gporca_centos6]
-    - get: ccp_src
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [icw_gporca_centos6]
+      - get: bin_gpdb_centos6
+        passed: [icw_gporca_centos6]
+        trigger: [[ test_trigger ]]
+      - get: icw_gporca_centos6_dump
+        passed: [icw_gporca_centos6]
+      - get: ccp_src
   - put: terraform
     params:
       <<: *ccp_default_params
@@ -1797,20 +1831,21 @@ jobs:
 
 - name: gpexpand
   plan:
-  - aggregate:
-    - get: gpdb_src
-      params:
-        submodules:
-        - gpMgmt/bin/pythonSrc/ext
-      passed: [icw_gporca_centos6]
-    - get: gpdb_binary
-      resource: bin_gpdb_centos6
-      passed: [icw_gporca_centos6]
-      trigger: [[ test_trigger ]]
-    - get: ccp_src
-    - get: ccp-image
-    - get: icw_gporca_centos6_dump
-      passed: [icw_gporca_centos6]
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        params:
+          submodules:
+          - gpMgmt/bin/pythonSrc/ext
+        passed: [icw_gporca_centos6]
+      - get: gpdb_binary
+        resource: bin_gpdb_centos6
+        passed: [icw_gporca_centos6]
+        trigger: [[ test_trigger ]]
+      - get: ccp_src
+      - get: ccp-image
+      - get: icw_gporca_centos6_dump
+        passed: [icw_gporca_centos6]
   - put: terraform
     params:
       <<: *ccp_default_params
@@ -1850,46 +1885,48 @@ jobs:
 ## ======================================================================
 - name: gate_advanced_analytics_start
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed:
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed:
 {% if "centos6" in os_types %}
-      - compile_gpdb_centos6
+        - compile_gpdb_centos6
 {% endif %}
 {% if "centos7" in os_types %}
-      - compile_gpdb_centos7
+        - compile_gpdb_centos7
 {% endif %}
-      trigger: true
+        trigger: true
 {% if "centos6" in os_types %}
-    - get: bin_gpdb_centos6
-      passed:
-      - compile_gpdb_centos6
+      - get: bin_gpdb_centos6
+        passed:
+        - compile_gpdb_centos6
 {% endif %}
 {% if "centos7" in os_types %}
-    - get: bin_gpdb_centos7
-      passed:
-      - compile_gpdb_centos7
+      - get: bin_gpdb_centos7
+        passed:
+        - compile_gpdb_centos7
 {% endif %}
 
 {% if "centos6" in os_types or "centos7" in os_types%}
 - name: madlib_build_gppkg
   plan:
-  - aggregate:
-    - get: madlib_src
-    - get: madlib_ci
-    - get: cmake_tar
-    - get: pyxb
-    - get: eigen
-    - get: boost
-    - get: gpdb_src
-      passed: [gate_advanced_analytics_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      trigger: [[ test_trigger ]]
-      passed: [gate_advanced_analytics_start]
-    - get: bin_gpdb_centos7
-      passed: [gate_advanced_analytics_start]
-    - get: gpdb6-centos6-build
+  - in_parallel:
+      steps:
+      - get: madlib_src
+      - get: madlib_ci
+      - get: cmake_tar
+      - get: pyxb
+      - get: eigen
+      - get: boost
+      - get: gpdb_src
+        passed: [gate_advanced_analytics_start]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        trigger: [[ test_trigger ]]
+        passed: [gate_advanced_analytics_start]
+      - get: bin_gpdb_centos7
+        passed: [gate_advanced_analytics_start]
+      - get: gpdb6-centos6-build
   - task: build_madlib_gppkg_from_source
     file: madlib_ci/concourse/tasks/madlib_build_gppkg_from_source.yml
     image: gpdb6-centos6-build
@@ -1897,26 +1934,26 @@ jobs:
       TEST_OS: centos6
       DB_TYPE: gpdb6
       CMAKE_BUILD_TYPE: Release
-  - aggregate:
-    - put: madlib_gppkg
-      params:
-        file: madlib_master_artifacts/madlib-*.gppkg
+  - put: madlib_gppkg
+    params:
+      file: madlib_master_artifacts/madlib-*.gppkg
 {% endif %}
 
 {% if "centos6" in os_types %}
 - name: MADlib_Test_planner_centos6
   plan:
-  - aggregate:
-    - get: madlib_ci
-    - get: gpdb_src
-      passed: [madlib_build_gppkg]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [madlib_build_gppkg]
-    - get: gpdb6-centos6-test
-    - get: madlib_gppkg
-      passed: [madlib_build_gppkg]
-      trigger: true
+  - in_parallel:
+      steps:
+      - get: madlib_ci
+      - get: gpdb_src
+        passed: [madlib_build_gppkg]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [madlib_build_gppkg]
+      - get: gpdb6-centos6-test
+      - get: madlib_gppkg
+        passed: [madlib_build_gppkg]
+        trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
     image: gpdb6-centos6-test
@@ -1927,17 +1964,18 @@ jobs:
 
 - name: MADlib_Test_orca_centos6
   plan:
-  - aggregate:
-    - get: madlib_ci
-    - get: gpdb_src
-      passed: [madlib_build_gppkg]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [madlib_build_gppkg]
-    - get: gpdb6-centos6-test
-    - get: madlib_gppkg
-      passed: [madlib_build_gppkg]
-      trigger: true
+  - in_parallel:
+      steps:
+      - get: madlib_ci
+      - get: gpdb_src
+        passed: [madlib_build_gppkg]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos6
+        passed: [madlib_build_gppkg]
+      - get: gpdb6-centos6-test
+      - get: madlib_gppkg
+        passed: [madlib_build_gppkg]
+        trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
     image: gpdb6-centos6-test
@@ -1950,17 +1988,18 @@ jobs:
 {% if "centos7" in os_types %}
 - name: MADlib_Test_planner_centos7
   plan:
-  - aggregate:
-    - get: madlib_ci
-    - get: gpdb_src
-      passed: [madlib_build_gppkg]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos7
-      passed: [madlib_build_gppkg]
-    - get: gpdb6-centos7-test
-    - get: madlib_gppkg
-      passed: [madlib_build_gppkg]
-      trigger: true
+  - in_parallel:
+      steps:
+      - get: madlib_ci
+      - get: gpdb_src
+        passed: [madlib_build_gppkg]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [madlib_build_gppkg]
+      - get: gpdb6-centos7-test
+      - get: madlib_gppkg
+        passed: [madlib_build_gppkg]
+        trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
     image: gpdb6-centos7-test
@@ -1971,17 +2010,18 @@ jobs:
 
 - name: MADlib_Test_orca_centos7
   plan:
-  - aggregate:
-    - get: madlib_ci
-    - get: gpdb_src
-      passed: [madlib_build_gppkg]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos7
-      passed: [madlib_build_gppkg]
-    - get: gpdb6-centos7-test
-    - get: madlib_gppkg
-      passed: [madlib_build_gppkg]
-      trigger: true
+  - in_parallel:
+      steps:
+      - get: madlib_ci
+      - get: gpdb_src
+        passed: [madlib_build_gppkg]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [madlib_build_gppkg]
+      - get: gpdb6-centos7-test
+      - get: madlib_gppkg
+        passed: [madlib_build_gppkg]
+        trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
     image: gpdb6-centos7-test
@@ -2003,173 +2043,179 @@ jobs:
 
 - name: gate_release_candidate_start
   plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: true
-      passed:
-      - compile_gpdb_centos6
-      - compile_gpdb_centos7
-      - compile_gpdb_ubuntu18.04
-      - icw_planner_centos6
-      - icw_gporca_centos6
-      - icw_gporca_centos7
-      - icw_planner_centos7
-      - icw_gporca_ubuntu18.04
-      - icw_planner_ubuntu18.04
-      - icw_gporca_ictcp_centos6
-      - icw_extensions_gpcloud_centos6
-      - resource_group_centos6
-      - resource_group_centos7
-      - gpperfmon_centos6
-      - gpperfmon_centos7
-      - test_gpdb_clients_windows
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        trigger: true
+        passed:
+        - compile_gpdb_centos6
+        - compile_gpdb_centos7
+        - compile_gpdb_ubuntu18.04
+        - icw_planner_centos6
+        - icw_gporca_centos6
+        - icw_gporca_centos7
+        - icw_planner_centos7
+        - icw_gporca_ubuntu18.04
+        - icw_planner_ubuntu18.04
+        - icw_gporca_ictcp_centos6
+        - icw_extensions_gpcloud_centos6
+        - resource_group_centos6
+        - resource_group_centos7
+        - gpperfmon_centos6
+        - gpperfmon_centos7
+        - test_gpdb_clients_windows
 {% for test in CLI_BEHAVE_TESTS %}
-      - [[ test.name ]]
-      - [[ test.name ]]_ubuntu18
+        - [[ test.name ]]
+        - [[ test.name ]]_ubuntu18
 {% endfor %}
  ##     - madlib_build_gppkg
  ##     - MADlib_Test_orca_centos6
  ##     - MADlib_Test_planner_centos6
  ##     - MADlib_Test_orca_centos7
  ##     - MADlib_Test_planner_centos7
-      - pg_upgrade
-      - gpexpand
-      - check_centos
-      - interconnect
-    - get: bin_gpdb_centos6
-      trigger: true
-      passed:
-      - compile_gpdb_centos6
-      - icw_planner_centos6
-      - icw_gporca_centos6
-      - icw_gporca_ictcp_centos6
-      - icw_extensions_gpcloud_centos6
-      - resource_group_centos6
+        - pg_upgrade
+        - gpexpand
+        - check_centos
+        - interconnect
+      - get: bin_gpdb_centos6
+        trigger: true
+        passed:
+        - compile_gpdb_centos6
+        - icw_planner_centos6
+        - icw_gporca_centos6
+        - icw_gporca_ictcp_centos6
+        - icw_extensions_gpcloud_centos6
+        - resource_group_centos6
 {% for test in CLI_BEHAVE_TESTS %}
-      - [[ test.name ]]
+        - [[ test.name ]]
 {% endfor %}
  ##     - MADlib_Test_orca_centos6
  ##     - MADlib_Test_planner_centos6
-      - gpexpand
-      - check_centos
-      - interconnect
-    - get: bin_gpdb_centos7
-      trigger: true
-      passed:
-      - compile_gpdb_centos7
-      - icw_gporca_centos7
-      - icw_planner_centos7
-      - resource_group_centos7
+        - gpexpand
+        - check_centos
+        - interconnect
+      - get: bin_gpdb_centos7
+        trigger: true
+        passed:
+        - compile_gpdb_centos7
+        - icw_gporca_centos7
+        - icw_planner_centos7
+        - resource_group_centos7
  ##     - MADlib_Test_orca_centos7
  ##     - MADlib_Test_planner_centos7
-    - get: bin_gpdb_clients_centos6
-      passed:
-      - compile_gpdb_centos6
-    - get: bin_gpdb_clients_centos7
-      passed:
-      - compile_gpdb_centos7
-    - get: bin_gpdb_ubuntu18.04
-      trigger: true
-      passed:
-      - compile_gpdb_ubuntu18.04
-      - icw_gporca_ubuntu18.04
-      - icw_planner_ubuntu18.04
+      - get: bin_gpdb_clients_centos6
+        passed:
+        - compile_gpdb_centos6
+      - get: bin_gpdb_clients_centos7
+        passed:
+        - compile_gpdb_centos7
+      - get: bin_gpdb_ubuntu18.04
+        trigger: true
+        passed:
+        - compile_gpdb_ubuntu18.04
+        - icw_gporca_ubuntu18.04
+        - icw_planner_ubuntu18.04
 {% for test in CLI_BEHAVE_TESTS %}
-      - [[ test.name ]]_ubuntu18
+        - [[ test.name ]]_ubuntu18
 {% endfor %}
-    - get: bin_gpdb_clients_ubuntu18.04
-      passed:
-      - compile_gpdb_ubuntu18.04
-    - get: bin_gpdb_clients_windows
-      passed:
-      - test_gpdb_clients_windows
+      - get: bin_gpdb_clients_ubuntu18.04
+        passed:
+        - compile_gpdb_ubuntu18.04
+      - get: bin_gpdb_clients_windows
+        passed:
+        - test_gpdb_clients_windows
 
 - name: Publish Server Builds
   plan:
   - in_parallel:
-    - get: gpdb_src
-      trigger: true
-      passed:
-      - compile_gpdb_centos6
-      - compile_gpdb_centos7
-      - compile_gpdb_ubuntu18.04
-    - get: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb_centos7
-      passed: [compile_gpdb_centos7]
-    - get: bin_gpdb_ubuntu18.04
-      passed: [compile_gpdb_ubuntu18.04]
+      steps:
+      - get: gpdb_src
+        trigger: true
+        passed:
+        - compile_gpdb_centos6
+        - compile_gpdb_centos7
+        - compile_gpdb_ubuntu18.04
+      - get: bin_gpdb_centos6
+        passed: [compile_gpdb_centos6]
+      - get: bin_gpdb_centos7
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb_ubuntu18.04
+        passed: [compile_gpdb_ubuntu18.04]
   - task: rename server build artifacts
     file: gpdb_src/concourse/tasks/rename-server-build.yml
     params:
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
   - in_parallel:
-    - put: server-build-centos6
-      params:
-        file: output/server-build-*-rhel6*.tar.gz
-    - put: server-build-centos7
-      params:
-        file: output/server-build-*-rhel7*.tar.gz
-    - put: server-build-ubuntu18.04
-      params:
-        file: output/server-build-*-ubuntu18.04*.tar.gz
+      steps:
+      - put: server-build-centos6
+        params:
+          file: output/server-build-*-rhel6*.tar.gz
+      - put: server-build-centos7
+        params:
+          file: output/server-build-*-rhel7*.tar.gz
+      - put: server-build-ubuntu18.04
+        params:
+          file: output/server-build-*-ubuntu18.04*.tar.gz
 
 - name: Release_Candidate
   plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_centos6
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_centos7
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_ubuntu18.04
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_clients_centos6
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_clients_centos7
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_clients_ubuntu18.04
-      trigger: true
-      passed: [gate_release_candidate_start]
-    - get: bin_gpdb_clients_windows
-      passed: [gate_release_candidate_start]
-    - get: gpdb6-centos6-build
-  - aggregate:
-    - task: rename_rc_artifacts
-      file: gpdb_src/concourse/tasks/rename_rc_artifacts.yml
-      params:
-        RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
-    - task: verify_gpdb_versions
-      file: gpdb_src/concourse/tasks/verify_gpdb_versions.yml
-  - aggregate:
-    - put: bin_gpdb_centos6_rc
-      params:
-        file: "release_candidates/server-rc-*rhel6*.tar.gz"
-    - put: bin_gpdb_centos7_rc
-      params:
-        file: "release_candidates/server-rc-*rhel7*.tar.gz"
-    - put: bin_gpdb_ubuntu18.04_rc
-      params:
-        file: "release_candidates/server-rc-*ubuntu18.04*.tar.gz"
-    - put: bin_gpdb_clients_centos6_rc
-      params:
-        file: "release_candidates/clients-rc-*rhel6*.tar.gz"
-    - put: bin_gpdb_clients_centos7_rc
-      params:
-        file: "release_candidates/clients-rc-*rhel7*.tar.gz"
-    - put: bin_gpdb_clients_ubuntu18.04_rc
-      params:
-        file: "release_candidates/clients-rc-*ubuntu18.04*.tar.gz"
-    - put: bin_gpdb_clients_windows_rc
-      params:
-        file: "release_candidates/clients-rc-*-windows*.msi"
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_centos6
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_centos7
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_ubuntu18.04
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_clients_centos6
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_clients_centos7
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_clients_ubuntu18.04
+        trigger: true
+        passed: [gate_release_candidate_start]
+      - get: bin_gpdb_clients_windows
+        passed: [gate_release_candidate_start]
+      - get: gpdb6-centos6-build
+  - in_parallel:
+      steps:
+      - task: rename_rc_artifacts
+        file: gpdb_src/concourse/tasks/rename_rc_artifacts.yml
+        params:
+          RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
+      - task: verify_gpdb_versions
+        file: gpdb_src/concourse/tasks/verify_gpdb_versions.yml
+  - in_parallel:
+      steps:
+      - put: bin_gpdb_centos6_rc
+        params:
+          file: "release_candidates/server-rc-*rhel6*.tar.gz"
+      - put: bin_gpdb_centos7_rc
+        params:
+          file: "release_candidates/server-rc-*rhel7*.tar.gz"
+      - put: bin_gpdb_ubuntu18.04_rc
+        params:
+          file: "release_candidates/server-rc-*ubuntu18.04*.tar.gz"
+      - put: bin_gpdb_clients_centos6_rc
+        params:
+          file: "release_candidates/clients-rc-*rhel6*.tar.gz"
+      - put: bin_gpdb_clients_centos7_rc
+        params:
+          file: "release_candidates/clients-rc-*rhel7*.tar.gz"
+      - put: bin_gpdb_clients_ubuntu18.04_rc
+        params:
+          file: "release_candidates/clients-rc-*ubuntu18.04*.tar.gz"
+      - put: bin_gpdb_clients_windows_rc
+        params:
+          file: "release_candidates/clients-rc-*-windows*.msi"
 
 {% endif %}
 
@@ -2185,36 +2231,38 @@ jobs:
 {% if 'centos6' in os_types%}
 - name: icw_extensions_gpcloud_centos6
   plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-      trigger: [[ test_trigger ]]
-    - get: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
-    - get: gpdb6-centos6-test
-  - aggregate:
-    - task: unit_tests_gpcloud
-      file: gpdb_src/concourse/tasks/unit_tests_gpcloud.yml
-      image: gpdb6-centos6-test
-      params:
-        TARGET_OS: centos
-    - task: regression_tests_gpcloud_centos
-      input_mapping:
-        bin_gpdb: bin_gpdb_centos6
-      file: gpdb_src/concourse/tasks/regression_tests_gpcloud.yml
-      image: gpdb6-centos6-test
-      params:
-        gpcloud_access_key_id: {{gpcloud-access-key-id}}
-        gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
-        TARGET_OS: centos
-    - task: gpcheckcloud_tests_gpcloud_centos
-      input_mapping:
-        bin_gpdb: bin_gpdb_centos6
-      file: gpdb_src/concourse/tasks/gpcheckcloud_tests_gpcloud.yml
-      image: gpdb6-centos6-test
-      params:
-        gpcloud_access_key_id: {{gpcloud-access-key-id}}
-        gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
-        TARGET_OS: centos
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos6]
+        trigger: [[ test_trigger ]]
+      - get: bin_gpdb_centos6
+        passed: [compile_gpdb_centos6]
+      - get: gpdb6-centos6-test
+  - in_parallel:
+      steps:
+      - task: unit_tests_gpcloud
+        file: gpdb_src/concourse/tasks/unit_tests_gpcloud.yml
+        image: gpdb6-centos6-test
+        params:
+          TARGET_OS: centos
+      - task: regression_tests_gpcloud_centos
+        input_mapping:
+          bin_gpdb: bin_gpdb_centos6
+        file: gpdb_src/concourse/tasks/regression_tests_gpcloud.yml
+        image: gpdb6-centos6-test
+        params:
+          gpcloud_access_key_id: {{gpcloud-access-key-id}}
+          gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
+          TARGET_OS: centos
+      - task: gpcheckcloud_tests_gpcloud_centos
+        input_mapping:
+          bin_gpdb: bin_gpdb_centos6
+        file: gpdb_src/concourse/tasks/gpcheckcloud_tests_gpcloud.yml
+        image: gpdb6-centos6-test
+        params:
+          gpcloud_access_key_id: {{gpcloud-access-key-id}}
+          gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
+          TARGET_OS: centos
 {% endif %}
 {% endif %}
