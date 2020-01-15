@@ -709,44 +709,6 @@ _outPartitionBoundSpec(StringInfo str, PartitionBoundSpec *node)
 }
 
 static void
-_outPartition(StringInfo str, Partition *node)
-{
-	WRITE_NODE_TYPE("PARTITION");
-
-	WRITE_OID_FIELD(partid);
-	WRITE_OID_FIELD(parrelid);
-	WRITE_CHAR_FIELD(parkind);
-	WRITE_INT_FIELD(parlevel);
-	WRITE_BOOL_FIELD(paristemplate);
-	WRITE_BINARY_FIELD(parnatts, sizeof(int16));
-	WRITE_INT_ARRAY(paratts, node->parnatts, int16);
-	WRITE_OID_ARRAY(parclass, node->parnatts);
-}
-
-static void
-_outPartitionRule(StringInfo str, PartitionRule *node)
-{
-	WRITE_NODE_TYPE("PARTITIONRULE");
-
-	WRITE_OID_FIELD(parruleid);
-	WRITE_OID_FIELD(paroid);
-	WRITE_OID_FIELD(parchildrelid);
-	WRITE_OID_FIELD(parparentoid);
-	WRITE_BOOL_FIELD(parisdefault);
-	WRITE_STRING_FIELD(parname);
-	WRITE_NODE_FIELD(parrangestart);
-	WRITE_BOOL_FIELD(parrangestartincl);
-	WRITE_NODE_FIELD(parrangeend);
-	WRITE_BOOL_FIELD(parrangeendincl);
-	WRITE_NODE_FIELD(parrangeevery);
-	WRITE_NODE_FIELD(parlistvalues);
-	WRITE_BINARY_FIELD(parruleord, sizeof(int16));
-	WRITE_NODE_FIELD(parreloptions);
-	WRITE_OID_FIELD(partemplatespaceId);
-	WRITE_NODE_FIELD(children);
-}
-
-static void
 _outAlterPartitionCmd(StringInfo str, AlterPartitionCmd *node)
 {
 	WRITE_NODE_TYPE("ALTERPARTITIONCMD");

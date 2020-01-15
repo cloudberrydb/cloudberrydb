@@ -3551,12 +3551,9 @@ _outExpandStmtSpec(StringInfo str, const ExpandStmtSpec *node)
 }
 
 
-#ifndef COMPILING_BINARY_FUNCS
 static void
 _outPartition(StringInfo str, const Partition *node)
 {
-	int i;
-
 	WRITE_NODE_TYPE("PARTITION");
 
 	WRITE_OID_FIELD(partid);
@@ -3565,17 +3562,20 @@ _outPartition(StringInfo str, const Partition *node)
 	WRITE_INT_FIELD(parlevel);
 	WRITE_BOOL_FIELD(paristemplate);
 	WRITE_INT_FIELD(parnatts);
+#ifndef COMPILING_BINARY_FUNCS
 	appendStringInfoLiteral(str, " :paratts");
-	for (i = 0; i < node->parnatts; i++)
+	for (int i = 0; i < node->parnatts; i++)
 		appendStringInfo(str, " %i", node->paratts[i]);
 
 	appendStringInfoLiteral(str, " :parclass");
-	for (i = 0; i < node->parnatts; i++)
+	for (int i = 0; i < node->parnatts; i++)
 		appendStringInfo(str, " %d", node->parclass[i]);
-}
+#else
+	WRITE_INT_ARRAY(paratts, node->parnatts, int16);
+	WRITE_OID_ARRAY(parclass, node->parnatts);
 #endif /* COMPILING_BINARY_FUNCS */
+}
 
-#ifndef COMPILING_BINARY_FUNCS
 static void
 _outPartitionRule(StringInfo str, const PartitionRule *node)
 {
@@ -3585,6 +3585,7 @@ _outPartitionRule(StringInfo str, const PartitionRule *node)
 	WRITE_OID_FIELD(paroid);
 	WRITE_OID_FIELD(parchildrelid);
 	WRITE_OID_FIELD(parparentoid);
+	WRITE_BOOL_FIELD(parisdefault);
 	WRITE_STRING_FIELD(parname);
 	WRITE_NODE_FIELD(parrangestart);
 	WRITE_BOOL_FIELD(parrangestartincl);
@@ -3597,7 +3598,6 @@ _outPartitionRule(StringInfo str, const PartitionRule *node)
 	WRITE_OID_FIELD(partemplatespaceId);
 	WRITE_NODE_FIELD(children);
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 static void
 _outPartitionNode(StringInfo str, const PartitionNode *node)
