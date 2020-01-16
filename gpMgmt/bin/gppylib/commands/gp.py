@@ -1565,6 +1565,20 @@ class GpRecoverSeg(Command):
        cmdStr = "$GPHOME/bin/gprecoverseg %s" % (options)
        Command.__init__(self,name,cmdStr,ctxt,remoteHost)
 
+class IfAddrs:
+    @staticmethod
+    def list_addrs(hostname=None, include_loopback=False):
+        cmd = ['%s/libexec/ifaddrs' % GPHOME]
+        if not include_loopback:
+            cmd.append('--no-loopback')
+        if hostname:
+            args = ['ssh', '-n', hostname]
+            args.append(' '.join(cmd))
+        else:
+            args = cmd
+
+        result = subprocess.check_output(args)
+        return result.splitlines()
 
 if __name__ == '__main__':
 

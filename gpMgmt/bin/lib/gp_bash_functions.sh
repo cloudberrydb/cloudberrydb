@@ -724,7 +724,24 @@ BUILD_MASTER_PG_HBA_FILE () {
 
         # Add replication config
         $ECHO "local    replication $USER_NAME         $PG_METHOD" >> ${GP_DIR}/$PG_HBA
-        $ECHO "host     replication $USER_NAME         samenet       trust" >> ${GP_DIR}/$PG_HBA
+        # Add the samehost replication entry to support single-host development
+        $ECHO "host     replication $USER_NAME         samehost       trust" >> ${GP_DIR}/$PG_HBA
+        if [ $HBA_HOSTNAMES -eq 0 ];then
+            local MASTER_IP_ADDRESS_NO_LOOPBACK=($("$GPHOME"/libexec/ifaddrs --no-loopback))
+            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$MASTER_HOSTNAME" ];then
+                local STANDBY_IP_ADDRESS_NO_LOOPBACK=($($TRUSTED_SHELL $STANDBY_HOSTNAME "$GPHOME"/libexec/ifaddrs --no-loopback))
+            fi
+            for ADDR in "${MASTER_IP_ADDRESS_NO_LOOPBACK[@]}" "${STANDBY_IP_ADDRESS_NO_LOOPBACK[@]}"
+            do
+                CIDRADDR=$(GET_CIDRADDR $ADDR)
+                $ECHO "host     replication $USER_NAME         $CIDRADDR       trust" >> ${GP_DIR}/$PG_HBA
+            done
+        else
+            $ECHO "host     replication $USER_NAME         $MASTER_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
+            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$MASTER_HOSTNAME" ];then
+                $ECHO "host     replication $USER_NAME         $STANDBY_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
+            fi
+        fi
         LOG_MSG "[INFO]:-Complete Master $PG_HBA configuration"
         LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
