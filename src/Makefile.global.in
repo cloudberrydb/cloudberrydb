@@ -108,6 +108,7 @@ datarootdir := @datarootdir@
 
 bindir := @bindir@
 sbindir := @sbindir@
+libexecdir := @libexecdir@
 
 datadir := @datadir@
 ifeq "$(findstring pgsql, $(datadir))" ""

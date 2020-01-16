@@ -2017,6 +2017,17 @@ AC_CHECK_FUNCS(m4_normalize([
 	wcstombs_l
 ]))
 
+# For upstream Postgres, the getifaddrs() symbol is optional, but the GPDB
+# ifaddrs utility requires it, along with inet_ntop(). The check for getifaddrs
+# is duplicated here to avoid a merge conflict in the AC_CHECK_FUNCS block
+# above.
+AC_CHECK_FUNCS(m4_normalize([
+	getifaddrs
+	inet_ntop
+]), [], [
+	AC_MSG_ERROR([getifaddrs and inet_ntop are required for Greenplum])
+])
+
 AC_REPLACE_FUNCS(fseeko)
 case $host_os in
 	# NetBSD uses a custom fseeko/ftello built on fsetpos/fgetpos
