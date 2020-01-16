@@ -1650,6 +1650,24 @@ left join pg_roles on pg_roles.oid = pg_shdepend.refobjid
 where classid = 'pg_class'::regclass and objid::regclass::text like 'part_acl_test%'
 and datname = current_database();
 
+-- Validate, using GrantStmt from cached plan in function works
+-- fine. Using partition table is added spice to this validation as
+-- for partition tables need to perform parent to all child partition
+-- lookup on QD before dispatching the command to segments. There used
+-- to bug where functions cached plan was scribbled during this
+-- process.
+CREATE TABLE grant_test (f1 int) PARTITION BY RANGE (f1) (START (2018) END (2020) EVERY (1), DEFAULT PARTITION extra);
+CREATE FUNCTION grant_table_in_function() RETURNS void AS
+$$
+BEGIN
+    GRANT ALL ON TABLE grant_test TO part_acl_u1;
+END;
+$$ VOLATILE LANGUAGE plpgsql;
+
+SELECT grant_table_in_function();
+-- calling it second time in same session should use cached plan for
+-- GrantStmt
+SELECT grant_table_in_function();
 
 -- CLEANUP
 -- start_ignore
