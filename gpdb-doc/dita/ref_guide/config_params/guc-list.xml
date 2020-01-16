@@ -5850,9 +5850,8 @@
     <body>
       <p>Controls whether or not the SQL statement that causes an error condition will also be
         recorded in the server log. All SQL statements that cause an error of the specified level or
-        higher are logged. The default is PANIC (effectively turning this feature off for normal
-        use). Enabling this option can be helpful in tracking down the source of any errors that
-        appear in the server log.</p>
+        higher are logged. The default is ERROR. To effectively turn off logging of failing
+        statements, set this parameter to PANIC.</p>
       <table id="log_min_error_statement_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
