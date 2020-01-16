@@ -73,7 +73,7 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
-      <dxl:Type Mdid="0.2950.1.0" Name="uuid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="16" PassByValue="false">
+      <dxl:Type Mdid="0.2950.1.0" Name="uuid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="true" Length="16" PassByValue="false">
         <dxl:EqualityOp Mdid="0.2972.1.0"/>
         <dxl:InequalityOp Mdid="0.2973.1.0"/>
         <dxl:LessThanOp Mdid="0.2974.1.0"/>

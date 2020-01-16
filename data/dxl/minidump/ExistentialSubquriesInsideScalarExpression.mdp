@@ -200,7 +200,7 @@
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.16.1.0;16.1.0" Name="bool" BinaryCoercible="true" SourceTypeId="0.16.1.0" DestinationTypeId="0.16.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
-      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>

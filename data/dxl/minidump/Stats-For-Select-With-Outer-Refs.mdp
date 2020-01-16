@@ -201,7 +201,7 @@
       </dxl:GPDBFunc>
       <dxl:ColumnStatistics Mdid="1.2604.1.1.5" Name="oid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.2604.1.1.4" Name="ctid" Width="6.000000"/>
-      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
