@@ -2729,6 +2729,7 @@ create_subqueryscan_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 	pathnode->path.rescannable = false;
 	pathnode->path.sameslice_relids = NULL;
 
+	pathnode->required_outer = bms_copy(required_outer);
 	cost_subqueryscan(pathnode, root, rel, pathnode->path.param_info);
 
 	return pathnode;

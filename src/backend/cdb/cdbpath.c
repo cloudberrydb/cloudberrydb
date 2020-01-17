@@ -416,6 +416,58 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	 * materialize nodes on top of motion nodes
 	 */
 
+
+    if(IsA(subpath,SubqueryScanPath)
+       && CdbPathLocus_IsBottleneck(locus)
+       && !subpath->pathkeys
+       && ((SubqueryScanPath *)subpath)->subpath->pathkeys)
+    {
+        /*
+         * In gpdb, when there is a Gather Motion on top of a SubqueryScan,
+         * it is hard to keep the sort order information. The subquery's
+         * path key cannot be pulled up, if the parent query doesn't have
+         * an equivalence class corresponding to the subquery's sort order.
+         *
+         * e.g. create a view with an ORDER BY:
+         *
+         * CREATE VIEW v AS SELECT va, vn FROM sourcetable ORDER BY vn;
+         *
+         * and query it:
+         *
+         * SELECT va FROM v_sourcetable;
+         *
+         * So, push down the Gather Motion if the SubqueryScan dose not 
+         * have pathkey but the SubqueryScan's subpath does.
+         *
+         */
+        SubqueryScanPath *subqueryScanPath = (SubqueryScanPath *)subpath;
+        SubqueryScanPath *newSubqueryScanPath = NULL;
+        Path *motionPath = NULL;
+
+        subpath = subqueryScanPath->subpath;
+
+        motionPath = cdbpath_create_motion_path(root,
+                                                subpath,
+                                                subpath->pathkeys,
+                                                true,
+                                                locus);
+
+        newSubqueryScanPath = create_subqueryscan_path(root,
+                                                       subqueryScanPath->path.parent,
+                                                       motionPath,
+                                                       subqueryScanPath->path.pathkeys,
+                                                       locus,
+                                                       subqueryScanPath->required_outer);
+
+	/* apply final path target */
+        newSubqueryScanPath = (SubqueryScanPath *)apply_projection_to_path(root,
+                                                                           subqueryScanPath->path.parent,
+                                                                           newSubqueryScanPath,
+                                                                           subqueryScanPath->path.pathtarget);
+
+        return (Path *) newSubqueryScanPath;
+    }
+
 	/* Create CdbMotionPath node. */
 	pathnode = makeNode(CdbMotionPath);
 	pathnode->path.pathtype = T_Motion;

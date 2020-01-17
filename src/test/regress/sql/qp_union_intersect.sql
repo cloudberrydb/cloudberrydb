@@ -691,3 +691,16 @@ explain analyze select a, b, array_dims(array_agg(x)) from mergeappend_test r gr
 union all
 select null, null, array_dims(array_agg(x)) FROM mergeappend_test r
 order by 1,2;
+
+CREATE TABLE t1(c1 int, c2 int, c3 int);
+CREATE TABLE t2(c1 int, c2 int, c3 int);
+INSERT INTO t1 SELECT i, i ,i + 1 FROM generate_series(1,10) i;
+INSERT INTO t2 SELECT i, i ,i + 1 FROM generate_series(1,10) i;
+SET enable_hashagg = off;
+with tcte(c1, c2, c3) as (
+	SELECT c1, sum(c2) as c2, c3 FROM t1 WHERE c3 > 0 GROUP BY c1, c3
+	UNION ALL
+	SELECT c1, sum(c2) as c2, c3 FROM t2 WHERE c3 < 0 GROUP BY c1, c3
+)
+SELECT * FROM tcte WHERE c3 = 1;
+

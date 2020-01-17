@@ -1080,8 +1080,9 @@ SELECT * FROM
 WHERE depname = 'sales';
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Subquery Scan on emp
+ Subquery Scan on emp
+   ->  Gather Motion 1:1  (slice1; segments: 1)
+         Merge Key: empsalary.empno, empsalary.enroll_date
          ->  WindowAgg
                Order By: empsalary.empno
                ->  WindowAgg
@@ -1092,7 +1093,7 @@ WHERE depname = 'sales';
                            ->  Seq Scan on empsalary
                                  Filter: ((depname)::text = 'sales'::text)
  Optimizer: Postgres query optimizer
-(12 rows)
+(13 rows)
 
 -- Test Sort node reordering
 EXPLAIN (COSTS OFF)
@@ -1126,8 +1127,9 @@ SELECT * FROM
 WHERE depname = 'sales';
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Subquery Scan on emp
+ Subquery Scan on emp
+   ->  Gather Motion 1:1  (slice1; segments: 1)
+         Merge Key: (((empsalary.depname)::text || 'A'::text))
          ->  WindowAgg
                ->  WindowAgg
                      Partition By: (((empsalary.depname)::text || 'A'::text))
@@ -1136,7 +1138,7 @@ WHERE depname = 'sales';
                            ->  Seq Scan on empsalary
                                  Filter: ((depname)::text = 'sales'::text)
  Optimizer: Postgres query optimizer
-(10 rows)
+(11 rows)
 
 -- pushdown is unsafe because there's a PARTITION BY clause without depname:
 EXPLAIN (COSTS OFF)
@@ -1148,9 +1150,10 @@ SELECT * FROM
 WHERE depname = 'sales';
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Subquery Scan on emp
-         Filter: ((emp.depname)::text = 'sales'::text)
+ Subquery Scan on emp
+   Filter: ((emp.depname)::text = 'sales'::text)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: empsalary.enroll_date
          ->  WindowAgg
                Partition By: empsalary.enroll_date
                ->  Sort
@@ -1163,7 +1166,7 @@ WHERE depname = 'sales';
                                        Sort Key: empsalary.depname
                                        ->  Seq Scan on empsalary
  Optimizer: Postgres query optimizer
-(15 rows)
+(16 rows)
 
 -- pushdown is unsafe because the subquery contains window functions and the qual is volatile:
 EXPLAIN (COSTS OFF)
@@ -1175,9 +1178,10 @@ SELECT * FROM
 WHERE depname = 'sales' OR RANDOM() > 0.5;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Subquery Scan on emp
-         Filter: (((emp.depname)::text = 'sales'::text) OR (random() > '0.5'::double precision))
+ Subquery Scan on emp
+   Filter: (((emp.depname)::text = 'sales'::text) OR (random() > '0.5'::double precision))
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: empsalary.depname
          ->  WindowAgg
                Partition By: empsalary.depname
                ->  Sort
@@ -1188,7 +1192,7 @@ WHERE depname = 'sales' OR RANDOM() > 0.5;
                                  Sort Key: (((empsalary.depname)::text || 'A'::text)), empsalary.depname
                                  ->  Seq Scan on empsalary
  Optimizer: Postgres query optimizer
-(13 rows)
+(14 rows)
 
 -- cleanup
 DROP TABLE empsalary;

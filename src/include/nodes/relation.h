@@ -1358,6 +1358,9 @@ typedef struct SubqueryScanPath
 {
 	Path		path;
 	Path	   *subpath;		/* path representing subquery execution */
+
+	/* In gpdb, we need to rebuild a SubqueryScanPath if MotionPath push down*/
+	Relids      required_outer;
 } SubqueryScanPath;
 
 /*
