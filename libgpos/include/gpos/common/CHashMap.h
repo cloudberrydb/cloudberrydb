@@ -261,6 +261,28 @@ namespace gpos
                 return fSuccess;
             }
 
+			BOOL Delete(const K *key)
+			{
+				CHashSetElemArray **chain = GetChain(key);
+
+				if (NULL != *chain)
+				{
+					for (ULONG ul=0; ul<(*chain)->Size(); ul++)
+					{
+						if (EqFn((**chain)[ul]->Key(), key))
+						{
+							// found the entry, now remove it by putting it last,
+							// then removing the last element
+							(*chain)->Swap(ul, (*chain)->Size()-1);
+							CHashMapElem *to_delete = (*chain)->RemoveLast();
+							CleanupDelete(to_delete);
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+
 			// return number of map entries
 			ULONG Size() const
 			{

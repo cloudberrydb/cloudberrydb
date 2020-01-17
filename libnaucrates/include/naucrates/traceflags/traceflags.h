@@ -187,6 +187,15 @@ namespace gpos
 
 		// Expand LOJs in N-aryjoin
 		EopttraceEnableLOJInNAryJoin = 103033,
+
+		// Generate only query join order in DPv2 transform
+		EopttraceQueryOnlyInDPv2 = 103034,
+
+		// Generate only Greedy join order in DPv2 transform
+		EopttraceGreedyOnlyInDPv2 = 103035,
+
+		// Generate only MinCard join order in DPv2 transform
+		EopttraceMinCardOnlyInDPv2 = 103036,
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

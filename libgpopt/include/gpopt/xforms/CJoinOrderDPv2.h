@@ -57,7 +57,6 @@ namespace gpopt
 			{
 			private:
 
-				CJoinOrderDPv2 *m_join_order;
 				A *m_topk;
 				CMemoryPool *m_mp;
 				ULONG m_k;
@@ -131,9 +130,8 @@ namespace gpopt
 
 			public:
 
-				KHeap(CMemoryPool *mp, CJoinOrderDPv2 *join_order, ULONG k)
+				KHeap(CMemoryPool *mp, ULONG k)
 				:
-				m_join_order(join_order),
 				m_mp(mp),
 				m_k(k),
 				m_is_heapified(false),
@@ -163,6 +161,7 @@ namespace gpopt
 					}
 				}
 
+				// remove the next of the top k elements, sorted ascending by cost
 				E *RemoveBestElement()
 				{
 					if (0 == m_topk->Size() || m_k <= m_num_returned)
@@ -171,6 +170,17 @@ namespace gpopt
 					}
 
 					m_num_returned++;
+
+					return RemoveNextElement();
+				}
+
+				// remove the next best element, without the top k limit
+				E *RemoveNextElement()
+				{
+					if (0 == m_topk->Size())
+					{
+						return NULL;
+					}
 
 					if (!m_is_heapified)
 						Heapify();
@@ -208,36 +218,167 @@ namespace gpopt
 
 			};
 
-			// forward declaration, circular reference
-			struct SGroupInfo;
+			// Data structures for DPv2 join enumeration:
+			//
+			// Each level l is the set of l-way joins we are considering.
+			// Level 1 describes the "atoms" the leaves of the original NAry join we are transforming.
+			//
+			// Each level consists of a set (an array) of "groups". A group represents what may eventually
+			// become a group in the MEMO structure, if it is a part of one of the generated top k
+			// expressions at the top level. It is a set of atoms to be joined (in any order).
+			// The SGroupInfo struct contains the bitset representing the atoms, the cardinality from the
+			// derived statistics and an array of SExpressionInfo structs.
+			//
+			// Each SExpressionInfo struct describes an expression in a group. Besides a CExpression,
+			// it also has the SGroupInfo and SExpressionInfo of the children. Each SExpressionInfo
+			// also has a property. The SExpressionInfo entries in a group all have different properties.
+			// We only keep expressions that are not dominated by another expression, meaning that there
+			// is no other expression that can produce a superset of the properties for a less or equal
+			// cost.
+			//
+			//
+			//           SLevelInfo
+			//           +---------------------+
+			// Level n:  | SGroupInfo array ---+----> SGroupInfo
+			//           | optional top k      |      +------------------+
+			//           +---------------------+      | Atoms (bitset)   |
+			//                                        | cardinality      |
+			//                                        | SExpressionInfo  |
+			//                                        |      array       |
+			//                                        +--------+---------+
+			//                                                 v
+			//                                          SExpressionInfo
+			//                                          +------------------------+
+			//                                          | CExpression            |
+			//                                          | child SExpressionInfos |
+			//                                          | properties             |
+			//                                          +------------------------+
+			//                                          +------------------------+
+			//                                          | CExpression            |
+			//                                          | child SExpressionInfos |
+			//                                          | properties             |
+			//                                          +------------------------+
+			//                                           ...
+			//                                          +------------------------+
+			//                                          | CExpression            |
+			//                                          | child SExpressionInfos |
+			//                                          | properties             |
+			//                                          +------------------------+
+			//           ...
+			//
+			//           SLevelInfo
+			//           +---------------------+
+			// Level 1:  | SGroupInfo array ---+----> SGroupInfo                        SGroupInfo
+			//           | optional top k      |      +------------------+              +------------------+
+			//           +---------------------+      | Atoms (bitset)   |              | Atoms (bitset)   |
+			//                                        | cardinality      +--------------+ cardinality      |
+			//                                        | ExpressionInfo   |              | ExpressionInfo   |
+			//                                        |      array       |              |      array       |
+			//                                        +--------+---------+              +--------+---------+
+			//                                                 v                                 v
+			//                                          SExpressionInfo                   SExpressionInfo
+			//                                          +------------------------+        +------------------------+
+			//                                          | CExpression            |        | CExpression            |
+			//                                          | child SExpressionInfos |        | child SExpressionInfos |
+			//                                          | properties             |        | properties             |
+			//                                          +------------------------+        +------------------------+
+			//
 
-			// description of an expression in the DP environment,
+			// forward declarations, circular reference
+			struct SGroupInfo;
+			struct SExpressionInfo;
+
+			// Join enumeration algorithm properties, these can be added if an expression satisfies more than one
+			// consider these as constants, not as a true enum
+			// note that the numbers (other than the first) must be powers of 2,
+			// since we add them to make composite properties!!!
+			// Note also that query, mincard and GreedyAvoidXProd are all greedy algorithms.
+			// Sorry for the confusion with the term "greedy" used in the optimizer_join_order guc
+			// and the CXformExpandNAryJoinGreedy classes, where they refer to one type of greedy
+			// algorithm that avoids cross products.
+			enum JoinOrderPropType
+			{
+				EJoinOrderAny              = 0,  // the overall best solution (used for exhaustive2)
+				EJoinOrderQuery            = 1,  // this expression uses the "query" join order
+				EJoinOrderMincard          = 2,  // this expression has the "mincard" property
+				EJoinOrderGreedyAvoidXProd = 4,  // best "greedy" expression with minimal cross products
+				EJoinOrderStats            = 8   // this expression is used to calculate the statistics
+												 // (row count) for the group
+			};
+
+			// properties of an expression in the DP structure (also used as required properties)
+			struct SExpressionProperties
+			{
+				// the join order enumeration algorithm for which this is a solution
+				// (exhaustive enumeration, can use any of these: EJoinOrderAny)
+				ULONG m_join_order;
+
+				SExpressionProperties(ULONG join_order_properties) :
+						m_join_order(join_order_properties)
+				{}
+
+				BOOL Satisfies(ULONG pt) { return pt == (m_join_order & pt); }
+				void Add(const SExpressionProperties &p) { m_join_order |= p.m_join_order; }
+				BOOL IsGreedy() { return 0 != (m_join_order & (EJoinOrderQuery + EJoinOrderMincard)); }
+			};
+
+			// a simple wrapper of an SGroupInfo * plus an index into its array of SExpressionInfos
+			// this identifies a group and one expression belonging to that group
+			struct SGroupAndExpression
+			{
+				SGroupInfo *m_group_info;
+				ULONG m_expr_index;
+
+				SGroupAndExpression() : m_group_info(NULL), m_expr_index(gpos::ulong_max) {}
+				SGroupAndExpression(SGroupInfo *g, ULONG ix) : m_group_info(g), m_expr_index(ix) {}
+				SGroupAndExpression(const SGroupAndExpression &other) : m_group_info(other.m_group_info),
+																		  m_expr_index(other.m_expr_index) {}
+				SExpressionInfo *GetExprInfo() const { return (*m_group_info->m_best_expr_info_array)[m_expr_index]; }
+				BOOL IsValid() { return NULL != m_group_info && gpos::ulong_max != m_expr_index; }
+				BOOL operator == (const SGroupAndExpression &other) const
+				{ return m_group_info == other.m_group_info && m_expr_index == other.m_expr_index; }
+			};
+
+			// description of an expression in the DP environment
 			// left and right child of join expressions point to
-			// other groups, similar to a CGroupExpression
+			// child groups + expressions
 			struct SExpressionInfo : public CRefCount
 			{
 				// the expression
 				CExpression *m_expr;
 
-				// left/right child group info (group for left/right child of m_best_expr),
+				// left/right child group/expr info (group for left/right child of m_expr),
 				// we do not keep a refcount for these
-				SGroupInfo *m_left_child_group;
-				SGroupInfo *m_right_child_group;
+				SGroupAndExpression m_left_child_expr;
+				SGroupAndExpression m_right_child_expr;
+				// derived properties of this expression
+				SExpressionProperties m_properties;
 
-				// in the future, we may add properties relevant to the cost here,
-				// like distribution key, partition selectors
+				// in the future, we may add more properties relevant to the cost here,
+				// like distribution spec, partition selectors
 
 				// cost of the expression
 				CDouble m_cost;
 
 				SExpressionInfo(
 								CExpression *expr,
-								SGroupInfo *left_child_group_info,
-								SGroupInfo *right_child_group_info
+								const SGroupAndExpression &left_child_expr_info,
+								const SGroupAndExpression &right_child_expr_info,
+								SExpressionProperties &properties
 							   ) : m_expr(expr),
-								   m_left_child_group(left_child_group_info),
-								   m_right_child_group(right_child_group_info),
+								   m_left_child_expr(left_child_expr_info),
+								   m_right_child_expr(right_child_expr_info),
+								   m_properties(properties),
 								   m_cost(0.0)
+				{
+				}
+
+				SExpressionInfo(
+								CExpression *expr,
+								SExpressionProperties &properties
+								) : m_expr(expr),
+									m_properties(properties),
+									m_cost(0.0)
 				{
 				}
 
@@ -246,9 +387,13 @@ namespace gpopt
 					m_expr->Release();
 				}
 
-				CDouble DCost() { return m_cost; }
-
+				// cost (use -1 for greedy solutions to ensure we keep all of them)
+				CDouble DCost() { return m_properties.IsGreedy() ? -1.0 : m_cost; }
+				BOOL ChildrenAreEqual(const SExpressionInfo &other) const
+				{ return m_left_child_expr == other.m_left_child_expr && m_right_child_expr == other.m_right_child_expr; }
 			};
+
+			typedef CDynamicPtrArray<SExpressionInfo, CleanupRelease<SExpressionInfo> > SExpressionInfoArray;
 
 			//---------------------------------------------------------------------------
 			//	@struct:
@@ -262,30 +407,29 @@ namespace gpopt
 				{
 					// the set of atoms, this uniquely identifies the group
 					CBitSet *m_atoms;
-					// expression used to derive stats (not necessarily the one with lowest cost)
-					CExpression *m_expr_for_stats;
-					// info of the best (lowest cost) expression (so far, if at the current level)
-					SExpressionInfo *m_best_expr_info;
-					// future: have a list or map of SExpressionInfos
-					// each with a different property
+					// infos of the best (lowest cost) expressions (so far, if at the current level)
+					// for each interesting property
+					SExpressionInfoArray *m_best_expr_info_array;
+					CDouble m_cardinality;
+					CDouble m_lowest_expr_cost;
 
-					SGroupInfo(CBitSet *atoms,
-							   SExpressionInfo *first_expr_info
+					SGroupInfo(CMemoryPool *mp,
+							   CBitSet *atoms
 							  ) : m_atoms(atoms),
-								  m_expr_for_stats(NULL),
-								  m_best_expr_info(first_expr_info)
+								  m_cardinality(-1.0),
+								  m_lowest_expr_cost(-1.0)
 					{
+						m_best_expr_info_array = GPOS_NEW(mp) SExpressionInfoArray(mp);
 					}
 
 					~SGroupInfo()
 					{
 						m_atoms->Release();
-						CRefCount::SafeRelease(m_expr_for_stats);
-						m_best_expr_info->Release();
+						m_best_expr_info_array->Release();
 					}
 
 					BOOL IsAnAtom() { return 1 == m_atoms->Size(); }
-					CDouble DCost() { return m_best_expr_info->m_cost; }
+					CDouble DCost() { return m_lowest_expr_cost; }
 
 				};
 
@@ -351,8 +495,6 @@ namespace gpopt
 			// dynamic array of SLevelInfos, where each index represents the level
 			typedef CDynamicPtrArray<SLevelInfo, CleanupRelease<SLevelInfo> > DPv2Levels;
 
-			typedef CDynamicPtrArray<SExpressionInfo, CleanupRelease<SExpressionInfo> > SExpressionInfoArray;
-
 			// an array of an array of groups, organized by level at the first array dimension,
 			// main data structure for dynamic programming
 			DPv2Levels *m_join_levels;
@@ -378,6 +520,9 @@ namespace gpopt
 			// top K expressions at the top level
 			KHeap<SExpressionInfoArray, SExpressionInfo> *m_top_k_expressions;
 
+			// current penalty for cross products (depends on enumeration algorithm)
+			CDouble m_cross_prod_penalty;
+
 			CMemoryPool *m_mp;
 
 			SLevelInfo *Level(ULONG l) { return (*m_join_levels)[l]; }
@@ -386,7 +531,7 @@ namespace gpopt
 			CExpression *PexprBuildInnerJoinPred(CBitSet *pbsFst, CBitSet *pbsSnd);
 
 			// compute cost of a join expression in a group
-			CDouble DCost(SGroupInfo *group, const SGroupInfo *leftChildGroup, const SGroupInfo *rightChildGroup);
+			void ComputeCost(SExpressionInfo *expr_info, CDouble join_cardinality);
 
 			// if we need to keep track of used edges, make a map that
 			// speeds up this usage check
@@ -403,18 +548,48 @@ namespace gpopt
 			// and right_level-way joins on the right side, resulting in left_level + right_level-way joins
 			void SearchJoinOrders(ULONG left_level, ULONG right_level);
 
+			void GreedySearchJoinOrders(ULONG left_level, JoinOrderPropType algo);
+
 			virtual
 			void DeriveStats(CExpression *pexpr);
 
-			// create a CLogicalJoin and a CExpression to join two groups
-			CExpression *GetJoinExpr(SGroupInfo *left_child, SGroupInfo *right_child, BOOL use_stats_expr);
+			// create a CLogicalJoin and a CExpression to join two groups, for a required property
+			SExpressionInfo *GetJoinExprForProperties
+										(
+										 SGroupInfo *left_child,
+										 SGroupInfo *right_child,
+										 SExpressionProperties &required_properties
+										);
+
+			// get a join expression from two child groups with specified child expressions
+			SExpressionInfo *GetJoinExpr
+										(
+										 const SGroupAndExpression &left_child_expr,
+										 const SGroupAndExpression &right_child_expr,
+										 SExpressionProperties &result_properties
+										);
+
+			// does "prop" provide all the properties of "other_prop" plus maybe more?
+			BOOL IsASupersetOfProperties(SExpressionProperties &prop, SExpressionProperties &other_prop);
+
+			// is one of the properties a subset of the other or are they disjoint?
+			BOOL ArePropertiesDisjoint(SExpressionProperties &prop, SExpressionProperties &other_prop);
+
+			// get best expression in a group for a given set of properties
+			SGroupAndExpression GetBestExprForProperties(SGroupInfo *group_info, SExpressionProperties &props);
+
+			// add a new property to an existing predicate
+			void AddNewPropertyToExpr(SExpressionInfo *expr_info, SExpressionProperties props);
 
 			// enumerate bushy joins (joins where both children are also joins) of level "current_level"
 			void SearchBushyJoinOrders(ULONG current_level);
 
-			void AddExprs(const CExpressionArray *candidate_join_exprs, CExpressionArray *result_join_exprs);
-			void AddGroupInfo(SLevelInfo *levelInfo, SGroupInfo *groupInfo);
-			void FinalizeLevel(ULONG level);
+			// look up an existing group or create a new one, with an expression to be used for stats
+			SGroupInfo *LookupOrCreateGroupInfo(SLevelInfo *levelInfo, CBitSet *atoms, SExpressionInfo *stats_expr_info);
+			// add a new expression to a group, unless there already is an existing expression that dominates it
+			void AddExprToGroupIfNecessary(SGroupInfo *group_info, SExpressionInfo *new_expr_info);
+
+			void FinalizeDPLevel(ULONG level);
 
 			SGroupInfoArray *GetGroupsForLevel(ULONG level) const
 			{ return (*m_join_levels)[level]->m_groups; }
@@ -424,6 +599,11 @@ namespace gpopt
 			ULONG NChooseK(ULONG n, ULONG k);
 			BOOL LevelIsFull(ULONG level);
 
+			void EnumerateDP();
+			void EnumerateQuery();
+			void FindLowestCardTwoWayJoin();
+			void EnumerateMinCard();
+			void EnumerateGreedyAvoidXProd();
 
 		public:
 
@@ -458,6 +638,8 @@ namespace gpopt
 			// print function
 			virtual
 			IOstream &OsPrint(IOstream &) const;
+
+			IOstream &OsPrintProperty(IOstream &, SExpressionProperties &) const;
 
 #ifdef GPOS_DEBUG
 			void
