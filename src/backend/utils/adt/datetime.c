@@ -4278,9 +4278,9 @@ EncodeDateTime(struct pg_tm * tm, fsec_t fsec, bool print_tz, int tz, const char
 				str[j++] = tm->tm_min % 10 + '0';
 				str[j++] = ':';
 				str[j] = '\0';
-			}
 
-			AppendTimestampSeconds(str + strlen(str), tm, fsec);
+				str = AppendTimestampSeconds(str + j, tm, fsec);
+			}
 #else
 			str = pg_ltostr_zeropad(str,
 					(tm->tm_year > 0) ? tm->tm_year : -(tm->tm_year - 1), 4);
