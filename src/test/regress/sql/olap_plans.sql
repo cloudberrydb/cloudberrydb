@@ -7,7 +7,7 @@ analyze olap_test;
 
 create table olap_test_single(a int4, b int4, c int4, d int4) distributed by (a);
 insert into olap_test_single select g / 5000, g / 1000, g / 500, g from generate_series(1, 10000) g;
-analyze olap_test;
+analyze olap_test_single;
 
 -- If the GROUP BY is a superset of the table's distribution keys, the
 -- aggregation can be independently in segments, and just gather the

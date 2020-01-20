@@ -2507,16 +2507,12 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		phasedata->sortnode = sortnode;
 
 		/* Compute group_ids */
+		phasedata->group_id = palloc0(numGroupingSets * sizeof(int));
+
+		for (int setno = 1; setno < num_sets; setno++)
 		{
-			int			setno;
-
-			phasedata->group_id = palloc0(numGroupingSets * sizeof(int));
-
-			for (setno = 1; setno < num_sets; setno++)
-			{
-				if (bms_equal(phasedata->grouped_cols[setno], phasedata->grouped_cols[setno - 1]))
-					phasedata->group_id[setno] = phasedata->group_id[setno - 1] + 1;
-			}
+			if (bms_equal(phasedata->grouped_cols[setno], phasedata->grouped_cols[setno - 1]))
+				phasedata->group_id[setno] = phasedata->group_id[setno - 1] + 1;
 		}
 	}
 
