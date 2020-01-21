@@ -41,3 +41,17 @@ select sum(distinct a) from olap_test_single;
 explain select sum(distinct b) from olap_test_single;
 select sum(distinct b) from olap_test_single;
 
+
+--
+-- GROUPING SETS
+--
+
+-- If the query produces a relatively small number of groups in comparison to
+-- the number of input rows, two-stage aggregation will be picked.
+explain select a, b, c, sum(d) from olap_test group by grouping sets((a, b), (a), (b, c));
+select a, b, c, sum(d) from olap_test group by grouping sets((a, b), (a), (b, c));
+
+-- If the query produces a relatively large number of groups in comparison to
+-- the number of input rows, one-stage aggregation will be picked.
+explain select a, b, d, sum(d) from olap_test group by grouping sets((a, b), (a), (b, d));
+-- do not execute this query as it would produce too many tuples.
