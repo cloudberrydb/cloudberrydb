@@ -169,9 +169,15 @@ ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags)
 
 	/*
 	 * tuple table initialization
+	 *
+	 * In GPDB, cannot use ExecInitScanTupleSlot() on foreign scans of join
+	 * relations.
 	 */
 	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
+	if (scanrelid > 0)
+		ExecInitScanTupleSlot(estate, &scanstate->ss);
+	else
+		scanstate->ss.ss_ScanTupleSlot = ExecAllocTableSlot(&estate->es_tupleTable);
 
 	/*
 	 * open the base relation, if any, and acquire an appropriate lock on it;

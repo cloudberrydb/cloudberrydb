@@ -2458,6 +2458,7 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 	final_rel->userid = current_rel->userid;
 	final_rel->useridiscurrent = current_rel->useridiscurrent;
 	final_rel->fdwroutine = current_rel->fdwroutine;
+	final_rel->exec_location = current_rel->exec_location;
 
 	if (root->is_split_update)
 	{
@@ -3913,6 +3914,7 @@ create_grouping_paths(PlannerInfo *root,
 	grouped_rel->userid = input_rel->userid;
 	grouped_rel->useridiscurrent = input_rel->useridiscurrent;
 	grouped_rel->fdwroutine = input_rel->fdwroutine;
+	grouped_rel->exec_location = input_rel->exec_location;
 
 	/*
 	 * Check for degenerate grouping.
@@ -4703,6 +4705,7 @@ create_window_paths(PlannerInfo *root,
 	window_rel->userid = input_rel->userid;
 	window_rel->useridiscurrent = input_rel->useridiscurrent;
 	window_rel->fdwroutine = input_rel->fdwroutine;
+	window_rel->exec_location = input_rel->exec_location;
 
 	/*
 	 * Consider computing window functions starting from the existing
@@ -5011,6 +5014,7 @@ create_distinct_paths(PlannerInfo *root,
 	distinct_rel->userid = input_rel->userid;
 	distinct_rel->useridiscurrent = input_rel->useridiscurrent;
 	distinct_rel->fdwroutine = input_rel->fdwroutine;
+	distinct_rel->exec_location = input_rel->exec_location;
 
 	/* Estimate number of distinct rows there will be */
 	if (parse->groupClause || parse->groupingSets || parse->hasAggs ||
@@ -5358,6 +5362,7 @@ create_ordered_paths(PlannerInfo *root,
 	ordered_rel->userid = input_rel->userid;
 	ordered_rel->useridiscurrent = input_rel->useridiscurrent;
 	ordered_rel->fdwroutine = input_rel->fdwroutine;
+	ordered_rel->exec_location = input_rel->exec_location;
 
 	foreach(lc, input_rel->pathlist)
 	{

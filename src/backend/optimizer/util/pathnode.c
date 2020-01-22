@@ -3145,7 +3145,7 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->path.total_cost = total_cost;
 	pathnode->path.pathkeys = pathkeys;
 
-	switch (rel->ftEntry->exec_location)
+	switch (rel->exec_location)
 	{
 		case FTEXECLOCATION_ANY:
 			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
@@ -3157,7 +3157,7 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 			CdbPathLocus_MakeEntry(&(pathnode->path.locus));
 			break;
 		default:
-			elog(ERROR, "unrecognized exec_location '%c'", rel->ftEntry->exec_location);
+			elog(ERROR, "unrecognized exec_location '%c'", rel->exec_location);
 	}
 
 	pathnode->fdw_outerpath = fdw_outerpath;

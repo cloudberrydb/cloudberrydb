@@ -147,10 +147,6 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	if (rel->relstorage == RELSTORAGE_EXTERNAL)
 		get_external_relation_info(relation, rel);
 
-	/* If it's an foreign table, get info from catalog */
-	if (rel->relstorage == RELSTORAGE_FOREIGN)
-		rel->ftEntry = GetForeignTable(RelationGetRelid(relation));
-
 	/*
 	 * Estimate relation size --- unless it's an inheritance parent, in which
 	 * case the size will be computed later in set_append_rel_pathlist, and we
@@ -434,11 +430,13 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	{
 		rel->serverid = GetForeignServerIdByRelId(RelationGetRelid(relation));
 		rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
+		rel->exec_location = GetForeignTable(RelationGetRelid(relation))->exec_location;
 	}
 	else
 	{
 		rel->serverid = InvalidOid;
 		rel->fdwroutine = NULL;
+		rel->exec_location = FTEXECLOCATION_NOT_DEFINED;
 	}
 
 	/* Collect info about relation's foreign keys, if relevant */
