@@ -342,12 +342,12 @@ resources:
 {% endif %}
 {% endif %}
 {% if "centos6" in os_types and "ICW" in test_sections %}
-- name: icw_gporca_centos6_dump
+- name: icw_planner_centos6_dump
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/icw_gporca_centos6_dump/dump.sql.xz
+    versioned_file: ((pipeline-name))/icw_planner_centos6_dump/dump.sql.xz
 
 {% endif %}
 - name: gpdb_src
@@ -1134,6 +1134,10 @@ jobs:
       TEST_OS: centos
       TEST_BINARY_SWAP: {{test-binary-swap}}
       CONFIGURE_FLAGS: {{configure_flags}}
+      DUMP_DB: "true"
+  - put: icw_planner_centos6_dump
+    params:
+      file: sqldump/dump.sql.xz
 
 - name: icw_gporca_centos6
   plan:
@@ -1153,10 +1157,6 @@ jobs:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=on' installcheck-world
       TEST_OS: centos
       CONFIGURE_FLAGS: {{configure_flags}}
-      DUMP_DB: "true"
-  - put: icw_gporca_centos6_dump
-    params:
-      file: sqldump/dump.sql.xz
 
 - name: icw_gporca_ictcp_centos6
   plan:
@@ -1272,9 +1272,9 @@ jobs:
 {% endif %}
 {% endif %}
 {% if "centos6" in os_types %}
-      - get: icw_gporca_centos6_dump
+      - get: icw_planner_centos6_dump
         passed:
-        - icw_gporca_centos6
+        - icw_planner_centos6
 {% endif %}
       - get: gpdb_src
         passed:
@@ -1799,8 +1799,8 @@ jobs:
       - get: bin_gpdb_centos6
         passed: [icw_gporca_centos6]
         trigger: [[ test_trigger ]]
-      - get: icw_gporca_centos6_dump
-        passed: [icw_gporca_centos6]
+      - get: icw_planner_centos6_dump
+        passed: [icw_planner_centos6]
       - get: ccp_src
   - put: terraform
     params:
@@ -1825,7 +1825,7 @@ jobs:
   - task: test_upgrade
     file: gpdb_src/concourse/tasks/test_upgrade.yml
     input_mapping:
-      sqldump: icw_gporca_centos6_dump
+      sqldump: icw_planner_centos6_dump
     params:
       NUMBER_OF_NODES: 2
 
@@ -1844,8 +1844,8 @@ jobs:
         trigger: [[ test_trigger ]]
       - get: ccp_src
       - get: ccp-image
-      - get: icw_gporca_centos6_dump
-        passed: [icw_gporca_centos6]
+      - get: icw_planner_centos6_dump
+        passed: [icw_planner_centos6]
   - put: terraform
     params:
       <<: *ccp_default_params
@@ -1860,7 +1860,7 @@ jobs:
   - task: pre_run_test_setup
     file: gpdb_src/concourse/tasks/setup_for_gpexpand_to_make_new_gpdb.yml
     image: ccp-image
-    input_mapping: {sqldump: icw_gporca_centos6_dump}
+    input_mapping: {sqldump: icw_planner_centos6_dump}
   - task: run_tests
     file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
     params:
