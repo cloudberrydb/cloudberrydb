@@ -1391,6 +1391,7 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 		case T_FunctionScan:
 		case T_ValuesScan:
 		case T_Agg:
+		case T_TupleSplit:
 		case T_Unique:
 		case T_Hash:
 		case T_SetOp:

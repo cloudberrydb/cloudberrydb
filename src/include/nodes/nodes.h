@@ -93,6 +93,7 @@ typedef enum NodeTag
 	T_Material,
 	T_Sort,
 	T_Agg,
+	T_TupleSplit,
 	T_WindowAgg,
 	T_Unique,
 	T_Gather,
@@ -159,6 +160,7 @@ typedef enum NodeTag
 	T_MaterialState,
 	T_SortState,
 	T_AggState,
+	T_TupleSplitState,
 	T_WindowAggState,
 	T_UniqueState,
 	T_GatherState,
@@ -238,6 +240,7 @@ typedef enum NodeTag
 	T_Flow,
 	T_GroupId,
 	T_GroupingSetId,
+	T_AggExprId,
 	T_DistributedBy,
 	T_DMLActionExpr,
 	T_PartSelectedExpr,
@@ -291,6 +294,7 @@ typedef enum NodeTag
 	T_PartBoundOpenExprState,
 	T_PartListRuleExprState,
 	T_PartListNullTestExprState,
+	T_AggExprIdState,
 
 	/*
 	 * TAGS FOR PLANNER NODES (relation.h)
@@ -332,6 +336,7 @@ typedef enum NodeTag
 	T_GroupingSetsPath,
 	T_MinMaxAggPath,
 	T_WindowAggPath,
+	T_TupleSplitPath,
 	T_SetOpPath,
 	T_RecursiveUnionPath,
 	T_LockRowsPath,

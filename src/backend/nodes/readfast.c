@@ -2086,6 +2086,13 @@ _readLockingClause(void)
 	READ_DONE();
 }
 
+static AggExprId *
+_readAggExprId(void)
+{
+	READ_LOCALS(AggExprId);
+	READ_DONE();
+}
+
 static Node *
 _readValue(NodeTag nt)
 {
@@ -2336,6 +2343,9 @@ readNodeBinary(void)
 				break;
 			case T_Agg:
 				return_value = _readAgg();
+				break;
+			case T_TupleSplit:
+				return_value = _readTupleSplit();
 				break;
 			case T_WindowAgg:
 				return_value = _readWindowAgg();
@@ -3066,7 +3076,9 @@ readNodeBinary(void)
 			case T_LockingClause:
 				return_value = _readLockingClause();
 				break;
-
+			case T_AggExprId:
+				return_value = _readAggExprId();
+				break;
 			default:
 				return_value = NULL; /* keep the compiler silent */
 				elog(ERROR, "could not deserialize unrecognized node type: %d",

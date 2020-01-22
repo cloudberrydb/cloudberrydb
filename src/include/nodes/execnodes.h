@@ -2640,6 +2640,12 @@ typedef enum HashAggStatus
 	HASHAGG_END_OF_PASSES
 } HashAggStatus;
 
+typedef struct SplitAggInfo
+{
+	int             idx;
+	TupleTableSlot  *outerslot;
+} SplitAggInfo;
+
 typedef struct AggState
 {
 	ScanState	ss;				/* its first field is NodeTag */
@@ -2705,7 +2711,34 @@ typedef struct AggState
 	 * which an Agg's target list usually has.
 	 */
 	bool		ps_TupFromTlist;
+
+	/* if input tuple has an AggExprId, save the Attribute Number */
+	Index       AggExprId_AttrNum;
 } AggState;
+
+typedef struct TupleSplitState
+{
+	ScanState	    ss;				/* its first field is NodeTag */
+
+	bool		    *isnull_orig;
+	Bitmapset       *grpbySet;
+
+	TupleTableSlot  *outerslot;
+	Index           currentExprId;
+
+	AttrNumber	maxAttrNum;
+	Bitmapset       **dqa_args_attr_num;
+	Bitmapset       *all_dist_attr_num;
+
+	Index            largest_attno_in_dqas;
+} TupleSplitState;
+
+typedef struct AggExprIdState
+{
+	ExprState	xprstate;
+
+	PlanState   *parent;
+} AggExprIdState;
 
 /* ----------------
  *	WindowAggState information

@@ -373,6 +373,12 @@ plan_tree_walker(Node *node,
 			/* Other fields are simple items and lists of simple items. */
 			break;
 
+		case T_TupleSplit:
+			if (walk_plan_node_fields((Plan *) node, walker, context))
+				return true;
+			/* Other fields are simple items and lists of simple items. */
+			break;
+
 		case T_WindowAgg:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;

@@ -220,6 +220,9 @@ static Datum ExecEvalPartListRuleExpr(PartListRuleExprState *exprstate,
 static Datum ExecEvalPartListNullTestExpr(PartListNullTestExprState *exprstate,
 							ExprContext *econtext,
 							bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalAggExprId(AggExprIdState *exprstate,
+							   ExprContext *econtext,
+							   bool *isNull, ExprDoneCond *isDone);
 
 static bool ExecIsExprUnsafeToConst_walker(Node *node, void *context);
 static bool ExecIsExprUnsafeToConst(Node *node);
@@ -5130,6 +5133,34 @@ static Datum ExecEvalPartListNullTestExpr(PartListNullTestExprState *exprstate,
 }
 
 /* ----------------------------------------------------------------
+ *		ExecEvalAggExprId
+ *
+ *		Evaluate the AggExprId, which is zero indexed, indicates which DQA is
+ *		this tuple for, in the tuple split case.
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalAggExprId(AggExprIdState *exprstate,
+							   ExprContext *econtext,
+							   bool *isNull, ExprDoneCond *isDone)
+{
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+	if (IsA(exprstate->parent, TupleSplitState))
+	{
+		TupleSplitState *tsState = (TupleSplitState *)exprstate->parent;
+
+		*isNull = false;
+		*isDone = ExprSingleResult;
+
+		return Int32GetDatum(tsState->currentExprId);
+	}
+
+	*isNull = true;
+	*isDone = ExprSingleResult;
+	return Int32GetDatum(0);
+}
+
+/* ----------------------------------------------------------------
  *		ExecEvalCoerceViaIO
  *
  *		Evaluate a CoerceViaIO node.
@@ -6182,6 +6213,17 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				PartListNullTestExprState *exprstate = makeNode(PartListNullTestExprState);
 				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartListNullTestExpr;
 				exprstate->selector = psstate;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
+
+		case T_AggExprId:
+			{
+				AggExprIdState *exprstate = makeNode(AggExprIdState);
+
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalAggExprId;
+				exprstate->parent = parent;
 
 				state = (ExprState *) exprstate;
 			}

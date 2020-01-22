@@ -1011,6 +1011,9 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 				set_upper_references(root, plan, rtoffset);
 			}
 			break;
+		case T_TupleSplit:
+			set_upper_references(root, plan, rtoffset);
+			break;
 		case T_WindowAgg:
 			{
 				WindowAgg  *wplan = (WindowAgg *) plan;

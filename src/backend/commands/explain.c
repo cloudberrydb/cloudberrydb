@@ -47,6 +47,7 @@
 
 #include "cdb/cdbgang.h"
 #include "executor/execDynamicScan.h"
+#include "optimizer/tlist.h"
 
 #ifdef USE_ORCA
 extern char *SerializeDXLPlan(Query *parse);
@@ -102,6 +103,8 @@ static void show_merge_append_keys(MergeAppendState *mstate, List *ancestors,
 					   ExplainState *es);
 static void show_agg_keys(AggState *astate, List *ancestors,
 			  ExplainState *es);
+static void show_tuple_split_keys(TupleSplitState *tstate, List *ancestors,
+								  ExplainState *es);
 static void show_grouping_sets(PlanState *planstate, Agg *agg,
 							   List *ancestors, ExplainState *es);
 static void show_grouping_set_keys(PlanState *planstate,
@@ -1344,6 +1347,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		case T_Sort:
 			pname = sname = "Sort";
 			break;
+		case T_TupleSplit:
+			pname = "TupleSplit";
+			break;
 		case T_Agg:
 			{
 				Agg		   *agg = (Agg *) plan;
@@ -2045,6 +2051,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 										   planstate, es);
 			break;
 		}
+		case T_TupleSplit:
+			show_tuple_split_keys((TupleSplitState *)planstate, ancestors, es);
+			break;
 		case T_Agg:
 			show_agg_keys((AggState *) planstate, ancestors, es);
 			show_upper_qual(plan->qual, "Filter", planstate, ancestors, es);
@@ -2503,6 +2512,65 @@ show_merge_append_keys(MergeAppendState *mstate, List *ancestors,
 						 plan->sortOperators, plan->collations,
 						 plan->nullsFirst,
 						 ancestors, es);
+}
+
+/*
+ * Show the Split key for an SplitTuple
+ */
+static void
+show_tuple_split_keys(TupleSplitState *tstate, List *ancestors,
+					  ExplainState *es)
+{
+	TupleSplit *plan = (TupleSplit *)tstate->ss.ps.plan;
+
+	ancestors = lcons(tstate, ancestors);
+
+	List	   *context;
+	bool		useprefix;
+	List	   *result = NIL;
+	PlanState *planstate = outerPlanState(tstate);
+	/* Set up deparsing context */
+	context = set_deparse_context_planstate(es->deparse_cxt,
+											(Node *) planstate,
+											ancestors);
+	useprefix = (list_length(es->rtable) > 1 || es->verbose);
+
+	StringInfoData buf;
+	initStringInfo(&buf);
+
+	for (int i = 0; i < plan->numDisDQAs; i++)
+	{
+		int id = -1;
+		Bitmapset *bm = plan->dqa_args_id_bms[i];
+		resetStringInfo(&buf);
+		appendStringInfoChar(&buf, '(');
+		while ((id = bms_next_member(bm, id)) >= 0)
+		{
+			TargetEntry *te = get_sortgroupref_tle((Index)id, planstate->plan->targetlist);
+			char	   *exprstr;
+
+			if (!te)
+				elog(ERROR, "no tlist entry for sort key: %d", id);
+			/* Deparse the expression, showing any top-level cast */
+			exprstr = deparse_expression((Node *) te->expr, context,
+										 useprefix, true);
+
+			appendStringInfoString(&buf, exprstr);
+			appendStringInfoChar(&buf, ',');
+		}
+		buf.data[buf.len - 1] = ')';
+
+		result = lappend(result, pstrdup(buf.data));
+	}
+	ExplainPropertyList("Split by Col", result, es);
+
+	if (plan->numCols > 0)
+		show_sort_group_keys(outerPlanState(tstate), "Group Key",
+							 plan->numCols, plan->grpColIdx,
+							 NULL, NULL, NULL,
+							 ancestors, es);
+
+	ancestors = list_delete_first(ancestors);
 }
 
 /*

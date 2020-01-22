@@ -1168,7 +1168,28 @@ typedef struct Agg
 
 	/* Stream entries when out of memory instead of spilling to disk */
 	bool		streaming;
+
+	/* if input tuple has an AggExprId, save the tlist index */
+	Index       agg_expr_id;
 } Agg;
+
+/* ---------------
+ *		tuple split node
+ *
+ * A TupleSplit node implements tuple split in multiple DQAs MPP query.
+ *
+ * ---------------
+ */
+typedef struct TupleSplit
+{
+	Plan		plan;
+
+	int			numCols;		    /* number of grouping columns */
+	AttrNumber *grpColIdx;		    /* their indexes in the target list */
+
+	int         numDisDQAs;         /* the number of different dqa exprs */
+	Bitmapset **dqa_args_id_bms;    /* each DQA's arg indexes bitmapset */
+} TupleSplit;
 
 /* ----------------
  *		window aggregate node

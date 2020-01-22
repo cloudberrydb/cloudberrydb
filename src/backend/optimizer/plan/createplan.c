@@ -114,6 +114,7 @@ static Sort *create_sort_plan(PlannerInfo *root, SortPath *best_path, int flags)
 static Unique *create_upper_unique_plan(PlannerInfo *root, UpperUniquePath *best_path,
 						 int flags);
 static Agg *create_agg_plan(PlannerInfo *root, AggPath *best_path);
+static TupleSplit *create_tup_split_plan(PlannerInfo *root, TupleSplitPath *best_path);
 static Plan *create_groupingsets_plan(PlannerInfo *root, GroupingSetsPath *best_path);
 static Result *create_minmaxagg_plan(PlannerInfo *root, MinMaxAggPath *best_path);
 static WindowAgg *create_windowagg_plan(PlannerInfo *root, WindowAggPath *best_path);
@@ -464,6 +465,10 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 				plan = (Plan *) create_agg_plan(root,
 												(AggPath *) best_path);
 			}
+			break;
+		case T_TupleSplit:
+			plan = (Plan *)create_tup_split_plan(root,
+												 (TupleSplitPath *) best_path);
 			break;
 		case T_WindowAgg:
 			plan = (Plan *) create_windowagg_plan(root,
@@ -1706,6 +1711,50 @@ create_agg_plan(PlannerInfo *root, AggPath *best_path)
 					NIL,
 					best_path->numGroups,
 					subplan);
+
+	copy_generic_path_info(&plan->plan, (Path *) best_path);
+
+	/* assign the agg_expr_id, indicate which DQA is this agg for */
+	List *tl = plan->plan.lefttree->targetlist;
+	ListCell *lc;
+	Index id = 0;
+	foreach (lc, tl)
+	{
+		TargetEntry *te = (TargetEntry *)lfirst(lc);
+		if (IsA(te->expr, AggExprId))
+		{
+			/* id is zero indexed */
+			plan->agg_expr_id = id + 1;
+			break;
+		}
+		id ++;
+	}
+
+	return plan;
+}
+
+/*
+ * create_tup_split_plan
+ *
+ *	  Create an TupleSplit plan for 'best_path' and (recursively) plans
+ *	  for its subpaths.
+ */
+static TupleSplit *
+create_tup_split_plan(PlannerInfo *root, TupleSplitPath *best_path)
+{
+	TupleSplit *plan;
+	Plan	   *subplan;
+	List	   *tlist;
+
+	subplan = create_plan_recurse(root, best_path->subpath, CP_LABEL_TLIST);
+
+	tlist = build_path_tlist(root, &best_path->path);
+
+	plan = make_tup_split(tlist, best_path->numDisDQAs, best_path->agg_args_id_bms,
+						  list_length(best_path->groupClause),
+						  extract_grouping_cols(best_path->groupClause,
+												subplan->targetlist),
+						  subplan);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
@@ -7449,6 +7498,33 @@ make_agg(List *tlist, List *qual,
 	node->streaming = streaming;
 
 	plan->qual = qual;
+	plan->targetlist = tlist;
+	plan->lefttree = lefttree;
+	plan->righttree = NULL;
+
+	plan->extParam = bms_copy(lefttree->extParam);
+	plan->allParam = bms_copy(lefttree->allParam);
+
+	return node;
+}
+
+TupleSplit *
+make_tup_split(List *tlist,
+			   int numDQAs, Bitmapset **dqas_ref_bms,
+			   int numGroupCols, AttrNumber *grpColIdx,
+			   Plan *lefttree)
+{
+	TupleSplit *node = makeNode(TupleSplit);
+	Plan	   *plan = &node->plan;
+
+	node->numCols    = numGroupCols;
+	node->grpColIdx  = grpColIdx;
+	node->numDisDQAs = numDQAs;
+
+	node->dqa_args_id_bms = palloc0(sizeof(Bitmapset *) * numDQAs);
+	for (int id = 0; id < numDQAs; id++)
+		node->dqa_args_id_bms[id] = bms_copy(dqas_ref_bms[id]);
+
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;

@@ -242,6 +242,9 @@ pathnode_walk_kids(Path            *path,
 		case T_Agg:
 			v = pathnode_walk_node(((AggPath *)path)->subpath, walker, context);
 			break;
+		case T_TupleSplit:
+			v = pathnode_walk_node(((TupleSplitPath *)path)->subpath, walker, context);
+			break;
 		case T_WindowAgg:
 			v = pathnode_walk_node(((WindowAggPath *)path)->subpath, walker, context);
 			break;
@@ -4090,6 +4093,60 @@ create_agg_path(PlannerInfo *root,
 		target->cost.per_tuple * pathnode->path.rows;
 
 	pathnode->path.locus = subpath->locus;
+
+	return pathnode;
+}
+
+/*
+ * create_tup_split_path
+ *	  Creates a pathnode that represents performing TupleSplit
+ *
+ * 'rel' is the parent relation associated with the result
+ * 'subpath' is the path representing the source of data
+ * 'target' is the PathTarget to be computed
+ * 'groupClause' is a list of SortGroupClause's representing the grouping
+ * 'numGroups' is the estimated number of groups (1 if not grouping)
+ * 'bitmapset' is the bitmap of DQA expr Index in PathTarget
+ * 'numDisDQAs' is the number of bitmapset size
+ */
+TupleSplitPath *
+create_tup_split_path(PlannerInfo *root,
+					  RelOptInfo *rel,
+					  Path *subpath,
+					  PathTarget *target,
+					  List *groupClause,
+					  Bitmapset **bitmapset,
+					  int numDisDQAs)
+{
+	TupleSplitPath *pathnode = makeNode(TupleSplitPath);
+
+	pathnode->path.pathtype = T_TupleSplit;
+	pathnode->path.parent = rel;
+	pathnode->path.pathtarget = target;
+
+	/* For now, assume we are above any joins, so no parameterization */
+	pathnode->path.param_info = NULL;
+	pathnode->path.parallel_aware = false;
+	pathnode->path.parallel_safe = rel->consider_parallel &&
+		subpath->parallel_safe;
+	pathnode->path.parallel_workers = subpath->parallel_workers;
+	pathnode->path.pathkeys = NIL;
+
+	pathnode->subpath = subpath;
+	pathnode->groupClause = groupClause;
+
+	pathnode->numDisDQAs = numDisDQAs;
+
+	pathnode->agg_args_id_bms = palloc0(sizeof(Bitmapset *) * numDisDQAs);
+	for (int i = 0 ; i < numDisDQAs; i ++)
+		pathnode->agg_args_id_bms[i] = bms_copy(bitmapset[i]);
+
+	cost_tup_split(&pathnode->path, root, numDisDQAs,
+				   subpath->startup_cost, subpath->total_cost,
+				   subpath->rows);
+
+	CdbPathLocus_MakeStrewn(&pathnode->path.locus,
+							subpath->locus.numsegments);
 
 	return pathnode;
 }

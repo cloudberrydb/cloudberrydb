@@ -390,6 +390,21 @@ _outMergeJoin(StringInfo str, MergeJoin *node)
 }
 
 static void
+_outTupleSplit(StringInfo str, TupleSplit *node)
+{
+	WRITE_NODE_TYPE("TupleSplit");
+
+	_outPlanInfo(str, (Plan *) node);
+
+	WRITE_INT_FIELD(numCols);
+	WRITE_INT_ARRAY(grpColIdx, node->numCols, AttrNumber);
+	WRITE_INT_FIELD(numDisDQAs);
+
+	for (int i = 0; i < node->numDisDQAs ; i ++)
+		WRITE_BITMAPSET_FIELD(dqa_args_id_bms[i]);
+}
+
+static void
 _outAgg(StringInfo str, Agg *node)
 {
 	WRITE_NODE_TYPE("AGG");
@@ -407,6 +422,8 @@ _outAgg(StringInfo str, Agg *node)
 	WRITE_NODE_FIELD(groupingSets);
 	WRITE_NODE_FIELD(chain);
 	WRITE_BOOL_FIELD(streaming);
+
+	WRITE_UINT_FIELD(agg_expr_id);
 }
 
 static void
@@ -1246,6 +1263,11 @@ _outCreateAmStmt(StringInfo str, const CreateAmStmt *node)
 	WRITE_NODE_FIELD(handler_name);
 	WRITE_INT_FIELD(amtype);
 }
+static void
+_outAggExprId(StringInfo str, const AggExprId *node)
+{
+	WRITE_NODE_TYPE("AGGEXPRID");
+}
 
 /*
  * _outNode -
@@ -1389,6 +1411,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_Agg:
 				_outAgg(str, obj);
+				break;
+			case T_TupleSplit:
+				_outTupleSplit(str, obj);
 				break;
 			case T_WindowAgg:
 				_outWindowAgg(str, obj);
@@ -2139,6 +2164,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_CreateAmStmt:
 				_outCreateAmStmt(str, obj);
+				break;
+			case T_AggExprId:
+				_outAggExprId(str, obj);
 				break;
 
 			default:

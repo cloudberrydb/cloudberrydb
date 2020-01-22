@@ -213,6 +213,23 @@ extern AggPath *create_agg_path(PlannerInfo *root,
 				const AggClauseCosts *aggcosts,
 				double numGroups,
 				struct HashAggTableSizes *hash_info);
+
+extern TupleSplitPath *create_tup_split_path(PlannerInfo *root,
+											 RelOptInfo *rel,
+											 Path *subpath,
+											 PathTarget *target,
+											 List *groupClause,
+											 Bitmapset **bitmapset,
+											 int numDisDQAs);
+
+extern AggPath *create_shadow_eliminate_path(PlannerInfo *root,
+											 RelOptInfo *rel,
+											 Path *subpath,
+											 PathTarget *target,
+											 double numGroups,
+											 int mapSz,
+											 int *shadow_mapping);
+
 extern GroupingSetsPath *create_groupingsets_path(PlannerInfo *root,
 						 RelOptInfo *rel,
 						 Path *subpath,

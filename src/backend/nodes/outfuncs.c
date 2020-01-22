@@ -989,6 +989,29 @@ _outAgg(StringInfo str, const Agg *node)
 	WRITE_NODE_FIELD(groupingSets);
 	WRITE_NODE_FIELD(chain);
 	WRITE_BOOL_FIELD(streaming);
+
+	WRITE_UINT_FIELD(agg_expr_id);
+}
+#endif /* COMPILING_BINARY_FUNCS */
+
+#ifndef COMPILING_BINARY_FUNCS
+static void
+_outTupleSplit(StringInfo str, const TupleSplit *node)
+{
+	int         i;
+
+	WRITE_NODE_TYPE("TupleSplit");
+
+	_outPlanInfo(str, (const Plan *) node);
+
+	WRITE_INT_FIELD(numCols);
+	appendStringInfoString(str, " :grpColIdx");
+	for (i = 0; i < node->numCols; i++)
+		appendStringInfo(str, " %d", node->grpColIdx[i]);
+
+	WRITE_INT_FIELD(numDisDQAs);
+	for (i = 0; i < node->numDisDQAs; i++)
+		WRITE_BITMAPSET_FIELD(dqa_args_id_bms[i]);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -5352,6 +5375,9 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_Agg:
 				_outAgg(str, obj);
+				break;
+			case T_TupleSplit:
+				_outTupleSplit(str, obj);
 				break;
 			case T_WindowAgg:
 				_outWindowAgg(str, obj);

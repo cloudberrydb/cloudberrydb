@@ -1172,6 +1172,29 @@ _copyAgg(const Agg *from)
 	COPY_NODE_FIELD(chain);
 	COPY_SCALAR_FIELD(streaming);
 
+	COPY_SCALAR_FIELD(agg_expr_id);
+	return newnode;
+}
+
+/*
+ * _copyTupleSplit
+ */
+static TupleSplit *
+_copyTupleSplit(const TupleSplit *from)
+{
+	TupleSplit  *newnode = makeNode(TupleSplit);
+
+	CopyPlanFields((const Plan *) from, (Plan *) newnode);
+	COPY_SCALAR_FIELD(numCols);
+	if (from->numCols > 0)
+	{
+		COPY_POINTER_FIELD(grpColIdx, from->numCols * sizeof(AttrNumber));
+	}
+
+	COPY_SCALAR_FIELD(numDisDQAs);
+	for (int i = 0; i < from->numDisDQAs; i ++)
+		COPY_BITMAPSET_FIELD(dqa_args_id_bms[i]);
+
 	return newnode;
 }
 
@@ -5455,6 +5478,11 @@ _copyForeignKeyCacheInfo(const ForeignKeyCacheInfo *from)
 	return newnode;
 }
 
+static AggExprId*
+_copyAggExprId(const AggExprId *from)
+{
+	return makeNode(AggExprId);
+}
 
 /*
  * copyObject
@@ -5603,6 +5631,9 @@ copyObject(const void *from)
 			break;
 		case T_Agg:
 			retval = _copyAgg(from);
+			break;
+		case T_TupleSplit:
+			retval = _copyTupleSplit(from);
 			break;
 		case T_WindowAgg:
 			retval = _copyWindowAgg(from);
@@ -6463,6 +6494,10 @@ copyObject(const void *from)
 			 */
 		case T_ForeignKeyCacheInfo:
 			retval = _copyForeignKeyCacheInfo(from);
+			break;
+
+		case T_AggExprId:
+			retval = _copyAggExprId(from);
 			break;
 
 		default:

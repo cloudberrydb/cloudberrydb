@@ -376,6 +376,16 @@ typedef struct GroupingSetId
 } GroupingSetId;
 
 /*
+ * AggExprId
+ *
+ *    A hint for aggregation which agg expr is this split tuple for.
+ */
+typedef struct AggExprId
+{
+	Expr        xpr;
+} AggExprId;
+
+/*
  * GroupingFunc
  *
  * A GroupingFunc is a GROUPING(...) expression, which behaves in many ways
