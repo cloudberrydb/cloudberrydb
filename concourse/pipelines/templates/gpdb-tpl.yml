@@ -245,7 +245,9 @@ groups:
   - cli_cross_subnet
 {% for test in CLI_BEHAVE_TESTS %}
   - [[ test.name ]]
+{% if "ubuntu18.04" in os_types %}
   - [[ test.name ]]_ubuntu18
+{% endif %}
 {% endfor %}
   - check_centos
   - combine_cli_coverage
@@ -384,11 +386,15 @@ groups:
 - name: CLI
   jobs:
   - gate_cli_start
+{% if "ubuntu18.04" in os_types %}
   - compile_gpdb_ubuntu18.04
+{% endif %}
   - cli_cross_subnet
 {% for test in CLI_BEHAVE_TESTS %}
   - [[ test.name ]]
+{% if "ubuntu18.04" in os_types %}
   - [[ test.name ]]_ubuntu18
+{% endif %}
 {% endfor %}
   - check_centos
   - combine_cli_coverage
@@ -1725,6 +1731,7 @@ jobs:
               params:
                 JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
+{% if "ubuntu18.04" in os_types %}
 - name: [[ test.name ]]_ubuntu18
   plan:
     - in_parallel:
@@ -1784,6 +1791,7 @@ jobs:
               BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
               [[ test.env ]]
 
+{% endif %}
 {% endfor %}
 
 - name: cli_cross_subnet
@@ -2233,7 +2241,9 @@ jobs:
         - cli_cross_subnet
 {% for test in CLI_BEHAVE_TESTS %}
         - [[ test.name ]]
+{% if "ubuntu18.04" in os_types %}
         - [[ test.name ]]_ubuntu18
+{% endif %}
 {% endfor %}
  ##     - madlib_build_gppkg
  ##     - MADlib_Test_orca_centos6
