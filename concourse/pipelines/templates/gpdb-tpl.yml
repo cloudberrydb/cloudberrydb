@@ -326,6 +326,7 @@ groups:
 {% if "ubuntu18.04" in os_types %}
   - icw_gporca_ubuntu18.04
   - icw_planner_ubuntu18.04
+  - compile_gpdb_ubuntu18.04
 {% endif %}
   - gate_icw_end
 
