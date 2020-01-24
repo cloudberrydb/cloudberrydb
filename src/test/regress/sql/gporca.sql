@@ -2306,18 +2306,6 @@ explain select count(*) from gpexp_hash h join gpexp_repl r on h.a=r.a;
 select count(*) as expect_20 from gpexp_hash h join gpexp_repl r on h.a=r.a;
 explain select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
 select count(*) as expect_20 from noexp_hash h join gpexp_repl r on h.a=r.a;
-
--- DISTINCT with multi-argument aggregates should fallback to planner
-
-create table dqa_t1 (d int, i int, c char, dt date);
-
-insert into dqa_t1 select i%23, i%12, (i%10) || '', '2009-06-10'::date + ( (i%34) || ' days')::interval
-from generate_series(0, 99) i;
-
-explain select corr(distinct d, i) from dqa_t1;
-
-select corr(distinct d, i) from dqa_t1;
-
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore

@@ -1396,7 +1396,7 @@ CTranslatorScalarToDXL::TranslateAggrefToDXL
 
 		if ( list_length(aggref->args) != 1 )
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("DISTINCT is supported only for single-argument aggregates"));
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("DISTINCT is supported only for single-argument aggregates"));
 		}
 	}
 
