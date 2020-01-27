@@ -86,9 +86,9 @@ typedef struct
  *          1 |             0 |                       |     | 
  * (7 rows)
  *
- * The first four columns form the actual sample. One of the columns contained
- * an oversized text datum. The function is marked as EXECUTE ON SEGMENTS in the catalog
- * so you get one summary row *for each segment*.
+ * The first four rows form the actual sample. One of the columns contained
+ * an oversized text datum. The function is marked as EXECUTE ON SEGMENTS in
+ * the catalog so you get one summary row *for each segment*.
  */
 Datum
 gp_acquire_sample_rows(PG_FUNCTION_ARGS)
