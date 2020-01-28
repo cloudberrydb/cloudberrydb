@@ -449,3 +449,13 @@ analyze aocs_analyze_test;
 select relname, reltuples from pg_class where relname like 'aocs_analyze_test%' order by relname;
 
 reset default_statistics_target;
+
+--
+-- Test with both a dropped column and an oversized column
+-- (github issue https://github.com/greenplum-db/gpdb/issues/9503)
+--
+create table analyze_dropped_col (a text, b text, c text, d text);
+insert into analyze_dropped_col values('a','bbb', repeat('x', 5000), 'dddd');
+alter table analyze_dropped_col drop column b;
+analyze analyze_dropped_col;
+select attname, null_frac, avg_width, n_distinct from pg_stats where tablename ='analyze_dropped_col';

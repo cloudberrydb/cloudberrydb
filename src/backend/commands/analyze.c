@@ -727,7 +727,7 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 			}
 			Assert(sample_needed);
 
-			Bitmapset  *rowIndexes = colLargeRowIndexes[i];
+			Bitmapset  *rowIndexes = colLargeRowIndexes[stats->attr->attnum - 1];
 			int			validRowsLength;
 
 			/* If there are too wide rows in the sample, remove them

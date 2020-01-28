@@ -303,14 +303,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 			toolarge_str = palloc((natts + 1) * sizeof(char));
 			i = 0;
 			for (attno = 1; attno <= natts; attno++)
-			{
-				Form_pg_attribute relatt = (Form_pg_attribute) relDesc->attrs[attno - 1];
-
-				if (relatt->attisdropped)
-					continue;
-
 				toolarge_str[i++] = bms_is_member(attno, toolarge) ? '1' : '0';
-			}
 			toolarge_str[i] = '\0';
 
 			outvalues[2] = CStringGetTextDatum(toolarge_str);
