@@ -8,7 +8,7 @@ resources:
 - name: gporca-commits-to-test
   type: git
   source:
-    branch: ds-explain-test
+    branch: {{branch_name}}
     uri: https://github.com/greenplum-db/gporca-pipeline-misc
 - name: orca_main_src  # used for yml task files
   type: git
@@ -119,7 +119,7 @@ resources:
     bucket: {{gporca-concourse-bucket-dev}}
     region_name: us-west-2
     secret_access_key: {{s3_secret_access_key}}
-    versioned_file: ds_partitioned_suite_1tb.tar.gz
+    versioned_file: {{explain_workload_tar}}
 - name: explain_output
   type: s3
   source:
@@ -143,7 +143,7 @@ resources:
     bucket: {{gporca-concourse-bucket-dev}}
     region_name: us-west-2
     secret_access_key: {{s3_secret_access_key}}
-    versioned_file: explain_ds_test_results.tar.gz
+    versioned_file: {{explain_workload_results}}
 
 resource_types: []
 jobs:
