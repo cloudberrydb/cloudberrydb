@@ -33,6 +33,7 @@
 #include "parser/parse_clause.h"
 #include "parser/parse_oper.h"
 #include "utils/lsyscache.h"
+#include "utils/selfuncs.h"
 
 typedef enum
 {
@@ -728,7 +729,8 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 	                                        &group_need_redistribute);
 	if (!parse->groupClause)
 	{
-		Path    *dqa_dist_path = path;
+		Path	    *dqa_dist_path = path;
+
 		if (distinct_need_redistribute)
 			dqa_dist_path = cdbpath_create_motion_path(root, path, NIL, false,
 			                                           distinct_locus);
@@ -782,6 +784,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
 	HashAggTableSizes hash_info;
+	double		dNumDistinctGroups;
 
 	if (!gp_enable_agg_distinct)
 		return;
@@ -805,6 +808,12 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	 * may not be found in the scan targetlist.
 	 */
 	path = apply_projection_to_path(root, path->parent, path, input_target);
+
+	dNumDistinctGroups = estimate_num_groups(root,
+											 get_sortgrouplist_exprs(dqa_group_clause,
+																	 make_tlist_from_pathtarget(path->pathtarget)),
+											 path->rows,
+											 NULL);
 
 	distinct_locus = cdb_choose_grouping_locus(root, path,
 											   input_target,
@@ -891,7 +900,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 											dqa_group_clause,
 											NIL,
 											ctx->agg_partial_costs, /* FIXME */
-											ctx->dNumGroups * getgpsegmentCount(),
+											dNumDistinctGroups * getgpsegmentCount(),
 											&hash_info);
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,
@@ -906,7 +915,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										ctx->dNumGroups * getgpsegmentCount(),
+										dNumDistinctGroups * getgpsegmentCount(),
 										&hash_info);
 
 		path = (Path *) create_agg_path(root,
@@ -944,7 +953,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										ctx->dNumGroups * getgpsegmentCount(),
+										dNumDistinctGroups * getgpsegmentCount(),
 										&hash_info);
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,

@@ -792,20 +792,13 @@ select corr(distinct d, i) from dqa_t1;
 (1 row)
 
 explain (costs off) select corr(distinct d, i) from dqa_t1;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Finalize Aggregate
+                   QUERY PLAN                   
+------------------------------------------------
+ Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Partial Aggregate
-               ->  HashAggregate
-                     Group Key: ((d)::double precision), ((i)::double precision)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: ((d)::double precision), ((i)::double precision)
-                           ->  Streaming HashAggregate
-                                 Group Key: (d)::double precision, (i)::double precision
-                                 ->  Seq Scan on dqa_t1
+         ->  Seq Scan on dqa_t1
  Optimizer: Postgres query optimizer
-(11 rows)
+(4 rows)
 
 -- multi args singledqa with group by
 select corr(distinct d, i) from dqa_t1 group by d;
