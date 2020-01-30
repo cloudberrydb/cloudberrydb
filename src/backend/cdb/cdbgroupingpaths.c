@@ -492,7 +492,9 @@ add_twostage_group_agg_path(PlannerInfo *root,
 											  ctx->rollup_lists,
 											  ctx->rollup_groupclauses,
 											  ctx->agg_partial_costs,
-											  ctx->dNumGroups * getgpsegmentCount());
+											  estimate_num_groups_across_segments(ctx->dNumGroups,
+																				  path->rows,
+																				  getgpsegmentCount()));
 
 		motion_pathkeys = NIL;
 	}
@@ -510,7 +512,9 @@ add_twostage_group_agg_path(PlannerInfo *root,
 									 parse->groupClause,
 									 NIL,
 									 ctx->agg_partial_costs,
-									 ctx->dNumGroups * getgpsegmentCount(),
+									 estimate_num_groups_across_segments(ctx->dNumGroups,
+																	 path->rows,
+																	 getgpsegmentCount()),
 									 NULL);
 
 		motion_pathkeys = initial_agg_path->pathkeys;
@@ -631,7 +635,9 @@ add_twostage_hash_agg_path(PlannerInfo *root,
 												parse->groupClause,
 												NIL,
 												ctx->agg_partial_costs,
-												ctx->dNumGroups * getgpsegmentCount(),
+												estimate_num_groups_across_segments(ctx->dNumGroups,
+																				path->rows,
+																				getgpsegmentCount()),
 												&hash_info);
 
 	/*
@@ -745,7 +751,9 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 		                                parse->groupClause,
 		                                NIL,
 		                                ctx->agg_partial_costs, /* FIXME */
-		                                ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 		                                &hash_info);
 
 		if (group_need_redistribute)
@@ -767,6 +775,7 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 		add_path(output_rel, path);
 	}
 }
+
 /*
  * Create Paths for an Aggregate with one DISTINCT-qualified aggregate.
  */
@@ -855,7 +864,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		if (group_need_redistribute)
@@ -900,7 +911,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 											dqa_group_clause,
 											NIL,
 											ctx->agg_partial_costs, /* FIXME */
-											dNumDistinctGroups * getgpsegmentCount(),
+											estimate_num_groups_across_segments(dNumDistinctGroups,
+																			path->rows,
+																			getgpsegmentCount()),
 											&hash_info);
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,
@@ -915,7 +928,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										dNumDistinctGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(dNumDistinctGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		path = (Path *) create_agg_path(root,
@@ -953,7 +968,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										dNumDistinctGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(dNumDistinctGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,
@@ -968,7 +985,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		path = (Path *) create_agg_path(root,
@@ -981,7 +1000,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										parse->groupClause,
 										NIL,
 										ctx->agg_partial_costs,
-										ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 		path = cdbpath_create_motion_path(root, path, NIL, false,
 										  group_locus);
@@ -1101,7 +1122,9 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 										dummy_group_clause, /* only its length 1 is being used here */
 										NIL,
 										&DedupCost,
-										ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		/* set the actual group clause back */
@@ -1133,7 +1156,9 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 										info->dqa_group_clause,
 										NIL,
 										&DedupCost,
-										ctx->dNumGroups * getgpsegmentCount(),
+										estimate_num_groups_across_segments(ctx->dNumGroups,
+																		path->rows,
+																		getgpsegmentCount()),
 										&hash_info);
 
 		split = AGG_HASHED;
@@ -1151,7 +1176,9 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 									root->parse->groupClause,
 									NIL,
 									ctx->agg_partial_costs,
-									ctx->dNumGroups * getgpsegmentCount(),
+									estimate_num_groups_across_segments(ctx->dNumGroups,
+																	path->rows,
+																	getgpsegmentCount()),
 									&hash_info);
 
 	CdbPathLocus singleQE_locus;
