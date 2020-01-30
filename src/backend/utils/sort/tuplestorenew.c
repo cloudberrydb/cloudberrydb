@@ -26,8 +26,6 @@
 #include "utils/tuplestorenew.h"
 #include "utils/memutils.h"
 
-#include "cdb/cdbvars.h"                /* currentSliceId */
-
 
 typedef struct NTupleStorePageHeader
 {

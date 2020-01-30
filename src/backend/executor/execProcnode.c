@@ -222,6 +222,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	PlanState  *result;
 	List	   *subps;
 	ListCell   *l;
+	MemoryAccountIdType curMemoryAccountId;
 
 	/*
 	 * do nothing when we get to the end of a leaf on tree.
@@ -230,8 +231,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		return NULL;
 
 	Assert(estate != NULL);
-
-	MemoryAccountIdType curMemoryAccountId;
 
 	switch (nodeTag(node))
 	{
