@@ -161,7 +161,6 @@ TeardownMemoryDataStructures(void **state)
 	MemoryAccountMemoryAccount = NULL;
 	RolloverMemoryAccount = NULL;
 	SharedChunkHeadersMemoryAccount = NULL;
-	AlienExecutorMemoryAccount = NULL;
 	MemoryAccountMemoryContext = NULL;
 
 	ActiveMemoryAccountId = MEMORY_OWNER_TYPE_Undefined;
@@ -719,7 +718,7 @@ test__MemoryContextReset__ResetsSharedChunkHeadersMemoryAccountBalance(void **st
 	 * the MemoryAccountMemoryContext reset. So, we have to carefully set
 	 * to a long-living active memory account to prevent a crash in the teardown
 	 */
-	MemoryAccountIdType oldAccountId = MemoryAccounting_SwitchAccount(MEMORY_OWNER_TYPE_Exec_AlienShared);
+	MemoryAccountIdType oldAccountId = MemoryAccounting_SwitchAccount(MEMORY_OWNER_TYPE_LogicalRoot);
 	MemoryContext newContext = AllocSetContextCreate(TopMemoryContext,
 										   "TestContext",
 										   ALLOCSET_DEFAULT_MINSIZE,
@@ -889,7 +888,6 @@ test__MemoryAccounting_CombinedAccountArrayToExplain__Validate(void **state)
       X_Hash: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
         X_Sort: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
         X_SeqScan: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
-    X_Alien: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
     MemAcc: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
     Rollover: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
     SharedHeader: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n";
@@ -918,7 +916,7 @@ test__MemoryAccounting_CombinedAccountArrayToExplain__Validate(void **state)
 static void
 test__MemoryAccounting_GetAccountName__Validate(void **state)
 {
-	char* longLivingNames[] = {"Root", "SharedHeader", "Rollover", "MemAcc", "X_Alien", "RelinquishedPool"};
+	char* longLivingNames[] = {"Root", "SharedHeader", "Rollover", "MemAcc", "RelinquishedPool"};
 
 	char* shortLivingNames[] = {"Top", "Main", "Parser", "Planner", "PlannerHook", "Dispatcher", "Serializer", "Deserializer",
 			"Executor", "X_Result", "X_Append", "X_Sequence", "X_MergeAppend", "X_BitmapAnd", "X_BitmapOr",
@@ -1023,7 +1021,6 @@ test__MemoryAccounting_ToExplain__Validate(void **state)
 "  Root: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
     Top: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
       X_Agg: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
-    X_Alien: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
     MemAcc: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
     Rollover: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
       X_Hash: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
@@ -1095,10 +1092,9 @@ memory: Root, 1, 1, 0, 0, 0, 0, 0\n\
 memory: SharedHeader, 2, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
 memory: Rollover, 3, 1, 0, 0, 0, 0, 0\n\
 memory: MemAcc, 4, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
-memory: X_Alien, 5, 1, 0, 0, 0, 0, 0\n\
-memory: RelinquishedPool, 6, 1, 0, 0, 0, 0, 0\n\
-memory: Top, 7, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
-memory: X_Hash, 8, 7, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
+memory: RelinquishedPool, 5, 1, 0, 0, 0, 0, 0\n\
+memory: Top, 6, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
+memory: X_Hash, 7, 6, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
 
 	/* ActiveMemoryAccount should be Top at this point */
 	MemoryAccount *newAccount = MemoryAccounting_ConvertIdToAccount(
@@ -1184,7 +1180,6 @@ test__MemoryAccounting_SaveToFile__GeneratesCorrectString(void **state)
 	int memoryOwnerTypes[] = {MEMORY_STAT_TYPE_VMEM_RESERVED, MEMORY_STAT_TYPE_MEMORY_ACCOUNTING_PEAK,
 			MEMORY_OWNER_TYPE_LogicalRoot, MEMORY_OWNER_TYPE_Top, MEMORY_OWNER_TYPE_Exec_Hash,
 			MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
-			MEMORY_OWNER_TYPE_Exec_AlienShared,
 			MEMORY_OWNER_TYPE_MemAccount, MEMORY_OWNER_TYPE_Rollover,
 			MEMORY_OWNER_TYPE_SharedChunkHeader};
 
@@ -1248,11 +1243,6 @@ test__MemoryAccounting_SaveToFile__GeneratesCorrectString(void **state)
 		{
 			assert_true(peak == RelinquishedPoolMemoryAccount->peak &&
 					allocated == RelinquishedPoolMemoryAccount->allocated && freed == RelinquishedPoolMemoryAccount->freed);
-		}
-		else if (ownerType == MEMORY_OWNER_TYPE_Exec_AlienShared)
-		{
-			assert_true(peak == AlienExecutorMemoryAccount->peak &&
-					allocated == AlienExecutorMemoryAccount->allocated && freed == AlienExecutorMemoryAccount->freed);
 		}
 		else if (ownerType == MEMORY_OWNER_TYPE_MemAccount)
 		{

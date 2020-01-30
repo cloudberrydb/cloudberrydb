@@ -9,7 +9,6 @@
 
 extern MemoryAccount* MemoryAccountMemoryAccount;
 extern MemoryAccount* RolloverMemoryAccount;
-extern MemoryAccount* AlienExecutorMemoryAccount;
 
 extern MemoryAccountIdType liveAccountStartId;
 extern MemoryAccountIdType nextAccountId;
@@ -67,7 +66,6 @@ TeardownMemoryDataStructures(void **state)
 	MemoryAccountMemoryAccount = NULL;
 	RolloverMemoryAccount = NULL;
 	SharedChunkHeadersMemoryAccount = NULL;
-	AlienExecutorMemoryAccount = NULL;
 	MemoryAccountMemoryContext = NULL;
 
 	ActiveMemoryAccountId = MEMORY_OWNER_TYPE_Undefined;

@@ -205,11 +205,6 @@ MemoryAccount *SharedChunkHeadersMemoryAccount = NULL;
  * allocations that were not freed before the reset process
  */
 MemoryAccount *RolloverMemoryAccount = NULL;
-/*
- * AlienExecutorMemoryAccount is a shared executor node account across all the
- * plan nodes that are not supposed to execute in current slice
- */
-MemoryAccount *AlienExecutorMemoryAccount = NULL;
 
 /*
  * RelinqishedPoolMemoryAccount is a shared executor account that tracks amount
@@ -254,8 +249,7 @@ MemoryAccounting_Reset()
 
 		/* Outstanding balance will come from either the rollover or the shared chunk header account */
 		Assert((RolloverMemoryAccount->allocated - RolloverMemoryAccount->freed) +
-				(SharedChunkHeadersMemoryAccount->allocated - SharedChunkHeadersMemoryAccount->freed) +
-				(AlienExecutorMemoryAccount->allocated - AlienExecutorMemoryAccount->freed) ==
+				(SharedChunkHeadersMemoryAccount->allocated - SharedChunkHeadersMemoryAccount->freed) ==
 						MemoryAccountingOutstandingBalance);
 		MemoryAccounting_ResetPeakBalance();
 	}
@@ -570,7 +564,7 @@ InitLongLivingAccounts() {
 	 * All the long living accounts are created together, so if logical root
 	 * is null, then other long-living accounts should be the null too
 	 */
-	Assert(SharedChunkHeadersMemoryAccount == NULL && RolloverMemoryAccount == NULL && MemoryAccountMemoryAccount == NULL && AlienExecutorMemoryAccount == NULL);
+	Assert(SharedChunkHeadersMemoryAccount == NULL && RolloverMemoryAccount == NULL && MemoryAccountMemoryAccount == NULL);
 	Assert(MemoryAccountMemoryContext == NULL);
 	/* Ensure we are in TopMemoryContext as we are creating long living accounts that don't die */
 	Assert(CurrentMemoryContext == TopMemoryContext);
@@ -592,8 +586,6 @@ InitLongLivingAccounts() {
 			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_Rollover];
 	MemoryAccountMemoryAccount =
 			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_MemAccount];
-	AlienExecutorMemoryAccount =
-			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_Exec_AlienShared];
 	RelinquishedPoolMemoryAccount =
 			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_Exec_RelinquishedPool];
 
@@ -726,7 +718,6 @@ CreateMemoryAccountImpl(long maxLimit, MemoryOwnerType ownerType, MemoryAccountI
 	Assert(ownerType == MEMORY_OWNER_TYPE_LogicalRoot || ownerType == MEMORY_OWNER_TYPE_SharedChunkHeader ||
 			ownerType == MEMORY_OWNER_TYPE_Rollover ||
 			ownerType == MEMORY_OWNER_TYPE_MemAccount ||
-			ownerType == MEMORY_OWNER_TYPE_Exec_AlienShared ||
 			ownerType == MEMORY_OWNER_TYPE_Exec_RelinquishedPool ||
 			(MemoryAccountMemoryContext != NULL && MemoryAccountMemoryAccount != NULL));
 
@@ -737,15 +728,15 @@ CreateMemoryAccountImpl(long maxLimit, MemoryOwnerType ownerType, MemoryAccountI
 	}
 
 	/*
-	 * Other than logical root and AlienShared, no long-living account should have children
+	 * Other than logical root, no long-living account should have children
 	 * and only logical root is allowed to have no parent
 	 */
-	Assert((parentId == MEMORY_OWNER_TYPE_LogicalRoot || parentId == MEMORY_OWNER_TYPE_Exec_AlienShared
+	Assert((parentId == MEMORY_OWNER_TYPE_LogicalRoot
 			|| parentId > MEMORY_OWNER_TYPE_END_LONG_LIVING));
 
 	/*
 	 * Only SharedChunkHeadersMemoryAccount, Rollover, MemoryAccountMemoryAccount,
-	 * AlienExecutorAccount and Top can be under "logical root"
+	 * Top can be under "logical root"
 	 */
 	AssertImply(parentId == MEMORY_OWNER_TYPE_LogicalRoot, ownerType <= MEMORY_OWNER_TYPE_END_LONG_LIVING ||
 			ownerType == MEMORY_OWNER_TYPE_Top);
@@ -1056,8 +1047,6 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "Rollover";
 	case MEMORY_OWNER_TYPE_MemAccount:
 		return "MemAcc";
-	case MEMORY_OWNER_TYPE_Exec_AlienShared:
-		return "X_Alien";
 	case MEMORY_OWNER_TYPE_Exec_RelinquishedPool:
 		return "RelinquishedPool";
 
@@ -1353,18 +1342,16 @@ InitMemoryAccounting()
 		/* Long-living setup is already done, so re-initialize those */
 		/* If "logical root" is pre-existing, "rollover" should also be pre-existing */
 		Assert(RolloverMemoryAccount != NULL && SharedChunkHeadersMemoryAccount != NULL &&
-				MemoryAccountMemoryAccount != NULL && AlienExecutorMemoryAccount != NULL);
+				MemoryAccountMemoryAccount != NULL);
 
 		/* Ensure tree integrity */
 		Assert(MemoryAccountMemoryAccount->parentId == MEMORY_OWNER_TYPE_LogicalRoot &&
 				SharedChunkHeadersMemoryAccount->parentId == MEMORY_OWNER_TYPE_LogicalRoot &&
-				RolloverMemoryAccount->parentId == MEMORY_OWNER_TYPE_LogicalRoot &&
-				AlienExecutorMemoryAccount->parentId == MEMORY_OWNER_TYPE_LogicalRoot);
+				RolloverMemoryAccount->parentId == MEMORY_OWNER_TYPE_LogicalRoot);
 	}
 
 	InitShortLivingMemoryAccounts();
 
-	/* For AlienExecutorMemoryAccount we need TopMemoryAccount as parent */
 	ActiveMemoryAccountId = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Top);
 }
 
@@ -1404,10 +1391,9 @@ AdvanceMemoryAccountingGeneration()
 	 */
 	ClearAccount(MemoryAccountMemoryAccount);
 
-	/* Everything except the SharedChunkHeadersMemoryAccount and AlienExecutorMemoryAccount rolls over */
+	/* Everything except the SharedChunkHeadersMemoryAccount rolls over */
 	RolloverMemoryAccount->allocated = (MemoryAccountingOutstandingBalance -
-			(SharedChunkHeadersMemoryAccount->allocated - SharedChunkHeadersMemoryAccount->freed) -
-			(AlienExecutorMemoryAccount->allocated - AlienExecutorMemoryAccount->freed));
+			(SharedChunkHeadersMemoryAccount->allocated - SharedChunkHeadersMemoryAccount->freed));
 	RolloverMemoryAccount->freed = 0;
 
 	/*

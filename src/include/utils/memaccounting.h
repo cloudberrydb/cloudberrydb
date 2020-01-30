@@ -84,7 +84,6 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_SharedChunkHeader,
 	MEMORY_OWNER_TYPE_Rollover,
 	MEMORY_OWNER_TYPE_MemAccount,
-	MEMORY_OWNER_TYPE_Exec_AlienShared,
 	MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
 	MEMORY_OWNER_TYPE_END_LONG_LIVING = MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
 	/* End of long-living accounts */

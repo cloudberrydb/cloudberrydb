@@ -12,6 +12,20 @@ insert into test select i, i % 100 from generate_series(1,1000) as i;
 -- start_ignore
 create language plpythonu;
 -- end_ignore
+create or replace function has_account_type(query text, search_text text) returns int as
+$$
+import re
+rv = plpy.execute('EXPLAIN ANALYZE '+ query)
+comp_regex = re.compile("^\s+%s" % search_text)
+count = 0
+for i in range(len(rv)):
+    cur_line = rv[i]['QUERY PLAN']
+    m = comp_regex.match(cur_line)
+    if m is not None:
+        count = count + 1
+return count
+$$
+language plpythonu;
 create or replace function sum_owner_consumption(query text, owner text) returns int as
 $$
 import re
@@ -31,33 +45,24 @@ for i in range(len(rv)):
 return total_consumption
 $$
 language plpythonu;
-select sum_owner_consumption('SELECT t1.i, t2.j FROM test as t1 join test as t2 on t1.i = t2.j', 'X_Alien') = 0;
+-- Fetch number of segments in psql variable.
+select count(*) as num_segments from gp_segment_configuration where role='p' and content >= 0
+\gset
+-- If alien node eliminate works, the HashJoin node should be initialized only on slice 1
+select has_account_type('SELECT t1.i, t2.j FROM test as t1 join test as t2 on t1.i = t2.j', 'X_HashJoin') / :num_segments;
  ?column? 
 ----------
- t
+        1
 (1 row)
 
+-- Otherwise, it's initialized on both slices.
 set execute_pruned_plan=off;
-select sum_owner_consumption('SELECT t1.i, t2.j FROM test as t1 join test as t2 on t1.i = t2.j', 'X_Alien') > 0;
+select has_account_type('SELECT t1.i, t2.j FROM test as t1 join test as t2 on t1.i = t2.j', 'X_HashJoin') / :num_segments;
  ?column? 
 ----------
- t
+        2
 (1 row)
 
-create or replace function has_account_type(query text, search_text text) returns int as
-$$
-import re
-rv = plpy.execute('EXPLAIN ANALYZE '+ query)
-comp_regex = re.compile("^\s+%s" % search_text)
-count = 0
-for i in range(len(rv)):
-    cur_line = rv[i]['QUERY PLAN']
-    m = comp_regex.match(cur_line)
-    if m is not None:
-        count = count + 1
-return count
-$$
-language plpythonu;
 -- Create functions that will generate nested SQL executors
 CREATE OR REPLACE FUNCTION simple_plpgsql_function(int) RETURNS int AS $$
  DECLARE RESULT int;
