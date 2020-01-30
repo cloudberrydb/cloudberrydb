@@ -42,6 +42,8 @@ SUBDIRS = \
 		pgrowlocks	\
 		pgstattuple	\
 		pg_visibility	\
+		postgres_fdw	\
+		pxf_fdw		\
 		seg		\
 		spi		\
 		tablefunc	\
@@ -81,6 +83,10 @@ ifeq ($(with_selinux),yes)
 SUBDIRS += sepgsql
 else
 ALWAYS_SUBDIRS += sepgsql
+endif
+
+ifeq ($(enable_pxf),yes)
+SUBDIRS += pxf_fdw
 endif
 
 ifeq ($(with_perl),yes)

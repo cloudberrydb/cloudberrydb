@@ -21,6 +21,7 @@ all:
 	$(MAKE) -C contrib/dblink all
 	$(MAKE) -C contrib/indexscan all
 	$(MAKE) -C contrib/pageinspect all  # needed by src/test/isolation
+	$(MAKE) -C contrib/pxf_fdw all
 	$(MAKE) -C contrib/hstore all
 	$(MAKE) -C contrib/pgcrypto all
 ifeq ($(with_openssl), yes)
@@ -56,6 +57,7 @@ install:
 	$(MAKE) -C contrib/dblink $@
 	$(MAKE) -C contrib/indexscan $@ 
 	$(MAKE) -C contrib/pageinspect $@  # needed by src/test/isolation
+	$(MAKE) -C contrib/pxf_fdw $@
 	$(MAKE) -C contrib/hstore $@
 	$(MAKE) -C contrib/pgcrypto $@
 ifeq ($(with_openssl), yes)
