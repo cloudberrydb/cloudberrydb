@@ -2367,7 +2367,6 @@ class gpload:
                         FROM pg_catalog.pg_class c
                             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                         WHERE c.relkind IN ('r','v','S','')
-                            AND c.relstorage IN ('h', 'a', 'c','x','v','')
                             AND n.nspname <> 'pg_catalog'
                             AND n.nspname <> 'information_schema'
                             AND n.nspname !~ '^pg_toast'
