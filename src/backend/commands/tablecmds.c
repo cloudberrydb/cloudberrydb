@@ -3508,35 +3508,6 @@ ATVerifyObject(AlterTableStmt *stmt, Relation rel)
 		return;
 
 	/*
-	 * Verify the object specified against relstorage in the catalog.
-	 * Enforce correct syntax usage. 
-	 */
-	if (RelationIsExternal(rel) && stmt->relkind != OBJECT_EXTTABLE)
-	{
-		/*
-		 * special case: in order to support 3.3 dumps with ALTER TABLE OWNER of
-		 * external tables, we will allow using ALTER TABLE (without EXTERNAL)
-		 * temporarily, and use a deprecation warning. This should be removed
-		 * in future releases.
-		 */
-		if(stmt->relkind == OBJECT_TABLE)
-		{
-			if (Gp_role == GP_ROLE_DISPATCH) /* why are WARNINGs emitted from all segments? */
-				ereport(WARNING,
-						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						 errmsg("\"%s\" is an external table. ALTER TABLE for external tables is deprecated.", RelationGetRelationName(rel)),
-						 errhint("Use ALTER EXTERNAL TABLE instead")));
-		}
-		else
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("\"%s\" is an external table", RelationGetRelationName(rel)),
-					 errhint("Use ALTER EXTERNAL TABLE instead")));
-		}
-	}
-
-	/*
 	 * Check the ALTER command type is supported for this object
 	 */
 	if (RelationIsExternal(rel))

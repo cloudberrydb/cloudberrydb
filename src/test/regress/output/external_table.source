@@ -215,9 +215,7 @@ ERROR:  protocol "bad_protocol" does not exist
 create external table ext (a int, x text)
 location ('file://@hostname@@abs_srcdir@/data/no/such/place/badt1.tbl' )
 format 'text';
-alter table ext drop column a; -- should pass with warning
-WARNING:  "ext" is an external table. ALTER TABLE for external tables is deprecated.
-HINT:  Use ALTER EXTERNAL TABLE instead
+alter table ext drop column a; -- should pass
 alter external table ext add column a int; -- pass
 alter external table ext drop column a; -- pass
 alter external table ext add column extnewcol int not null; -- should fail (constraints not allowed)
