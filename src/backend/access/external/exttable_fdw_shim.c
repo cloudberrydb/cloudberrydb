@@ -320,6 +320,65 @@ exttable_BeginForeignScan(ForeignScanState *node,
 	node->fdw_state = fdw_state;
 }
 
+
+static bool
+ExternalConstraintCheck(TupleTableSlot *slot, FileScanDesc scandesc, EState *estate)
+{
+	Relation		rel = scandesc->fs_rd;
+	TupleConstr		*constr = rel->rd_att->constr;
+	ConstrCheck		*check = constr->check;
+	uint16			ncheck = constr->num_check;
+	ExprContext		*econtext = NULL;
+	MemoryContext	oldContext = NULL;
+	List	*qual = NULL;
+	int		i = 0;
+
+	/* No constraints */
+	if (ncheck == 0)
+	{
+		return true;
+	}
+
+	/*
+	 * Build expression nodetrees for rel's constraint expressions.
+	 * Keep them in the per-query memory context so they'll survive throughout the query.
+	 */
+	if (scandesc->fs_constraintExprs == NULL)
+	{
+		oldContext = MemoryContextSwitchTo(estate->es_query_cxt);
+		scandesc->fs_constraintExprs =
+			(List **) palloc(ncheck * sizeof(List *));
+		for (i = 0; i < ncheck; i++)
+		{
+			/* ExecQual wants implicit-AND form */
+			qual = make_ands_implicit(stringToNode(check[i].ccbin));
+			scandesc->fs_constraintExprs[i] = (List *)
+				ExecPrepareExpr((Expr *) qual, estate);
+		}
+		MemoryContextSwitchTo(oldContext);
+	}
+
+	/*
+	 * We will use the EState's per-tuple context for evaluating constraint
+	 * expressions (creating it if it's not already there).
+	 */
+	econtext = GetPerTupleExprContext(estate);
+
+	/* Arrange for econtext's scan tuple to be the tuple under test */
+	econtext->ecxt_scantuple = slot;
+
+	/* And evaluate the constraints */
+	for (i = 0; i < ncheck; i++)
+	{
+		qual = scandesc->fs_constraintExprs[i];
+
+		if (!ExecQual(qual, econtext, true))
+			return false;
+	}
+
+	return true;
+}
+
 static TupleTableSlot *
 exttable_IterateForeignScan(ForeignScanState *node)
 {
@@ -339,19 +398,28 @@ exttable_IterateForeignScan(ForeignScanState *node)
 	 */
 	oldcxt = MemoryContextSwitchTo(estate->es_query_cxt);
 
-	tuple = external_getnext(fdw_state->ess_ScanDesc,
-							 ForwardScanDirection,
-							 fdw_state->externalSelectDesc);
+	for (;;)
+	{
+		tuple = external_getnext(fdw_state->ess_ScanDesc,
+								 ForwardScanDirection, /* FIXME: foreign scans don't support backward scans, I think? */
+								 fdw_state->externalSelectDesc);
+		if (!tuple)
+		{
+			ExecClearTuple(slot);
+			break;
+		}
 
+		ExecStoreHeapTuple(tuple, slot, InvalidBuffer, true);
+
+		if (fdw_state->ess_ScanDesc->fs_hasConstraints &&
+			!ExternalConstraintCheck(slot, fdw_state->ess_ScanDesc, estate))
+			continue;
+
+		break;
+	}
 	MemoryContextSwitchTo(oldcxt);
 
-	if (tuple)
-	{
-		ExecStoreHeapTuple(tuple, slot, InvalidBuffer, true);
-		return slot;
-	}
-	else
-		return ExecClearTuple(slot);
+	return slot;
 }
 
 static void
