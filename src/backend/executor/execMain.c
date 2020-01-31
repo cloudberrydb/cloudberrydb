@@ -2266,9 +2266,6 @@ CheckValidResultRel(Relation resultRel, CmdType operation)
 								RelationGetRelationName(resultRel))));
 			break;
 		case RELKIND_FOREIGN_TABLE:
-			if (rel_is_external_table(RelationGetRelid(resultRel)))
-				break;
-
 			/* Okay only if the FDW supports it */
 			fdwroutine = GetFdwRoutineForRelation(resultRel, false);
 			switch (operation)
@@ -2453,12 +2450,7 @@ InitResultRelInfo(ResultRelInfo *resultRelInfo,
 		resultRelInfo->ri_TrigInstrument = NULL;
 	}
 	if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
-	{
-		if (rel_is_external_table(RelationGetRelid(resultRelationDesc)))
-			resultRelInfo->ri_FdwRoutine = NULL;
-		else
-			resultRelInfo->ri_FdwRoutine = GetFdwRoutineForRelation(resultRelationDesc, true);
-	}
+		resultRelInfo->ri_FdwRoutine = GetFdwRoutineForRelation(resultRelationDesc, true);
 	else
 		resultRelInfo->ri_FdwRoutine = NULL;
 	resultRelInfo->ri_FdwState = NULL;

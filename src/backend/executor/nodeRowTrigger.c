@@ -461,11 +461,6 @@ ExecRowTrigger(RowTriggerState *node)
 
 	Assert(NULL != resultRelInfo);
 
-	// FIXME: We used to check for external tables, in AssignTuplesForTriggers().
-	// Do we actually support other foreign tables?
-	if (resultRelInfo->ri_RelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
-		elog(ERROR, "triggers are not supported on foreign tables");
-
 	bool processTuple = true;
 	TupleTableSlot *slot = NULL;
 

@@ -2589,19 +2589,6 @@ relation_is_updatable(Oid reloid,
 	/* If this is a foreign table, check which update events it supports */
 	if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
-		if (rel_is_external_table(rel->rd_id))
-		{
-			ExtTableEntry	   *extentry;
-
-			extentry = GetExtTableEntry(reloid);
-
-			if (extentry->iswritable)
-				events |= (1 << CMD_INSERT);
-
-			pfree(extentry);
-			relation_close(rel, AccessShareLock);
-			return events;
-		}
 		FdwRoutine *fdwroutine = GetFdwRoutineForRelation(rel, false);
 
 		if (fdwroutine->IsForeignRelUpdatable != NULL)

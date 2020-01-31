@@ -1148,17 +1148,6 @@ typedef struct AOCSPath
 	/* for now it's pretty plain.. */
 } AOCSPath;
 
-
-/*
- * ExternalPath is used for external table scans.
- */
-typedef struct ExternalPath
-{
-	Path		path;
-
-	/* for now it's pretty plain.. */
-} ExternalPath;
-
 /*
  * PartitionSelectorPath is used for injection of partition selectors
  */

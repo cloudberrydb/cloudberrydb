@@ -3590,8 +3590,8 @@ CTranslatorRelcacheToDXL::RetrievePartConstraintFromNode
 //
 //	@doc:
 //		Does given relation type have system columns.
-//		Currently only regular relations, sequences, toast values relations and
-//		AO segment relations have system columns
+//		Currently regular relations, sequences, toast values relations,
+//		AO segment relations and foreign/external tables have system columns
 //
 //---------------------------------------------------------------------------
 BOOL
@@ -3603,7 +3603,8 @@ CTranslatorRelcacheToDXL::RelHasSystemColumns
 	return RELKIND_RELATION == rel_kind ||
 			RELKIND_SEQUENCE == rel_kind ||
 			RELKIND_AOSEGMENTS == rel_kind ||
-			RELKIND_TOASTVALUE == rel_kind;
+			RELKIND_TOASTVALUE == rel_kind ||
+			RELKIND_FOREIGN_TABLE == rel_kind;
 }
 
 //---------------------------------------------------------------------------

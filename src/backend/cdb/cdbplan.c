@@ -376,22 +376,6 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
-		case T_ExternalScan:
-			{
-				ExternalScan *extscan = (ExternalScan *) node;
-				ExternalScan *newextscan;
-
-				FLATCOPY(newextscan, extscan, ExternalScan);
-				SCANMUTATE(newextscan, extscan);
-
-				MUTATE(newextscan->uriList, extscan->uriList, List *);
-				newextscan->fmtType = extscan->fmtType;
-				newextscan->isMasterOnly = extscan->isMasterOnly;
-
-				return (Node *) newextscan;
-			}
-			break;
-
 		case T_IndexScan:
 		case T_DynamicIndexScan:
 			{

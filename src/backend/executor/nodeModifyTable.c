@@ -380,7 +380,7 @@ ExecInsert(ModifyTableState *mtstate,
 	 * what kind of a table this is (or neither for an AOCS table, since
 	 * aocs_insert() works directly off the slot). So we keep the Oid in a
 	 * local variable for now, and only set it in the tuple just before the
-	 * call to heap/appendonly/external_insert().
+	 * call to heap/appendonly_insert().
 	 */
 	if (resultRelationDesc->rd_rel->relhasoids)
 	{
@@ -2735,25 +2735,6 @@ table_insert(ResultRelInfo *resultRelInfo, EState *estate, TupleTableSlot *slot,
 		newId = aocs_insert(resultRelInfo->ri_aocsInsertDesc, slot);
 		*lastTid = *slot_get_ctid(slot);
 		(resultRelInfo->ri_aoprocessed)++;
-	}
-	else if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
-	{
-		/* Writable external table (true PostgreSQL-style foreign tables are handled elsewhere). */
-		HeapTuple tuple;
-
-		if (resultRelInfo->ri_extInsertDesc == NULL)
-			resultRelInfo->ri_extInsertDesc = external_insert_init(resultRelationDesc);
-
-		/*
-		 * get the heap tuple out of the tuple table slot, making sure we have a
-		 * writable copy. (external_insert() can scribble on the tuple)
-		 */
-		tuple = ExecMaterializeSlot(slot);
-		if (resultRelationDesc->rd_rel->relhasoids)
-			HeapTupleSetOid(tuple, tuple_oid);
-
-		newId = external_insert(resultRelInfo->ri_extInsertDesc, tuple);
-		ItemPointerSetInvalid(lastTid);
 	}
 	else if (RelationIsHeap(resultRelationDesc))
 	{

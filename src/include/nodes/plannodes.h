@@ -858,20 +858,21 @@ typedef struct WorkTableScan
 } WorkTableScan;
 
 /* ----------------
- * External Scan node
- *
- * Field scan.scanrelid is the index of the external relation for
- * this node.
+ * External Scan parameters
  *
  * Field filenames is a list of N string node pointers (or NULL)
  * where N is number of segments in the array. The pointer in
  * position I is NULL or points to the string node containing the
  * file name for segment I.
+ *
+ * This used to be a separate node type. Now it's just used to carry
+ * the parameters for a Foreign Scan on an external table, for the
+ * shim layer.
  * ----------------
  */
-typedef struct ExternalScan
+typedef struct ExternalScanInfo
 {
-	Scan		scan;
+	NodeTag		type;
 	List		*uriList;       /* data uri or null for each segment  */
 	char	   *fmtOptString;	/* data format options                */
 	char		fmtType;        /* data format type                   */
@@ -882,7 +883,7 @@ typedef struct ExternalScan
 	int			encoding;		/* encoding of external table data    */
 	uint32      scancounter;	/* counter incr per scan node created */
 
-} ExternalScan;
+} ExternalScanInfo;
 
 /* ----------------
  *		ForeignScan node

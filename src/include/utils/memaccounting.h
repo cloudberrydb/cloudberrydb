@@ -110,7 +110,6 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_SeqScan,
 	MEMORY_OWNER_TYPE_Exec_SampleScan,
 	MEMORY_OWNER_TYPE_Exec_DynamicSeqScan,
-	MEMORY_OWNER_TYPE_Exec_ExternalScan,
 	MEMORY_OWNER_TYPE_Exec_IndexScan,
 	MEMORY_OWNER_TYPE_Exec_IndexOnlyScan,
 	MEMORY_OWNER_TYPE_Exec_DynamicIndexScan,

@@ -163,9 +163,6 @@ extern Plan *add_sort_cost(PlannerInfo *root, Plan *input,
 						   double limit_tuples);
 extern Plan *plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist);      /*CDB*/
 
-struct ExtTableEntry;
-extern List *create_external_scan_uri_list(struct ExtTableEntry *extEntry, bool *ismasteronly);
-
 /* External use of these functions is deprecated: */
 extern Sort *make_sort_from_pathkeys(Plan *lefttree, List *pathkeys, bool add_keys_to_targetlist);
 extern Sort *make_sort_from_sortclauses(List *sortcls,

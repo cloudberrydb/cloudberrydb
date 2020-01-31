@@ -550,21 +550,13 @@ _copyDynamicSeqScan(const DynamicSeqScan *from)
 }
 
 /*
- * _copyExternalScan
+ * _copyExternalScanInfo
  */
-static ExternalScan *
-_copyExternalScan(const ExternalScan *from)
+static ExternalScanInfo *
+_copyExternalScanInfo(const ExternalScanInfo *from)
 {
-	ExternalScan    *newnode = makeNode(ExternalScan);
+	ExternalScanInfo *newnode = makeNode(ExternalScanInfo);
 
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	/*
-	 * copy remainder of node
-	 */
 	COPY_NODE_FIELD(uriList);
 	COPY_STRING_FIELD(fmtOptString);
 	COPY_SCALAR_FIELD(fmtType);
@@ -5553,8 +5545,8 @@ copyObject(const void *from)
 		case T_DynamicSeqScan:
 			retval = _copyDynamicSeqScan(from);
 			break;
-		case T_ExternalScan:
-			retval = _copyExternalScan(from);
+		case T_ExternalScanInfo:
+			retval = _copyExternalScanInfo(from);
 			break;
 		case T_SampleScan:
 			retval = _copySampleScan(from);

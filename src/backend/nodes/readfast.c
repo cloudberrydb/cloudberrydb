@@ -1455,14 +1455,12 @@ _readDynamicSeqScan(void)
 }
 
 /*
- * _readExternalScan
+ * _readExternalScanInfo
  */
-static ExternalScan *
-_readExternalScan(void)
+static ExternalScanInfo *
+_readExternalScanInfo(void)
 {
-	READ_LOCALS(ExternalScan);
-
-	ReadCommonScan(&local_node->scan);
+	READ_LOCALS(ExternalScanInfo);
 
 	READ_NODE_FIELD(uriList);
 	READ_STRING_FIELD(fmtOptString);
@@ -2278,8 +2276,8 @@ readNodeBinary(void)
 			case T_DynamicSeqScan:
 				return_value = _readDynamicSeqScan();
 				break;
-			case T_ExternalScan:
-				return_value = _readExternalScan();
+			case T_ExternalScanInfo:
+				return_value = _readExternalScanInfo();
 				break;
 			case T_IndexScan:
 				return_value = _readIndexScan();

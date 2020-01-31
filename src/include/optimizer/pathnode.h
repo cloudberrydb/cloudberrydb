@@ -38,8 +38,6 @@ extern void cdb_add_join_path(PlannerInfo *root, RelOptInfo *parent_rel, JoinTyp
 				  Relids required_outer, JoinPath *new_path);
 extern Path *create_seqscan_path(PlannerInfo *root, RelOptInfo *rel,
 					Relids required_outer, int parallel_workers);
-extern ExternalPath *create_external_path(PlannerInfo *root, RelOptInfo *rel,
-					Relids required_outer);
 extern AppendOnlyPath *create_appendonly_path(PlannerInfo *root, RelOptInfo *rel,
 					Relids required_outer);
 extern AOCSPath *create_aocs_path(PlannerInfo *root, RelOptInfo *rel,

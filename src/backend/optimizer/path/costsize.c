@@ -272,45 +272,6 @@ cost_seqscan(Path *path, PlannerInfo *root,
 }
 
 /*
- * cost_externalscan
- *	  Determines and returns the cost of scanning an external relation.
- *
- *	  Right now this is not very meaningful at all but we'll probably
- *	  want to make some good estimates in the future.
- */
-void
-cost_externalscan(ExternalPath *path, PlannerInfo *root,
-				  RelOptInfo *baserel, ParamPathInfo *param_info)
-{
-	Cost		startup_cost = 0;
-	Cost		run_cost = 0;
-	Cost		cpu_per_tuple;
-
-	/* Should only be applied to external relations */
-	Assert(baserel->relid > 0);
-	Assert(baserel->rtekind == RTE_RELATION);
-
-	/* Mark the path with the correct row estimate */
-	if (param_info)
-		path->path.rows = param_info->ppi_rows;
-	else
-		path->path.rows = baserel->rows;
-
-	/*
-	 * disk costs
-	 */
-	run_cost += seq_page_cost * baserel->pages;
-
-	/* CPU costs */
-	startup_cost += baserel->baserestrictcost.startup;
-	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
-	run_cost += cpu_per_tuple * baserel->tuples;
-
-	path->path.startup_cost = startup_cost;
-	path->path.total_cost = startup_cost + run_cost;
-}
-
-/*
  * cost_samplescan
  *	  Determines and returns the cost of scanning a relation using sampling.
  *

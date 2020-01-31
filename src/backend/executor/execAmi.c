@@ -57,7 +57,6 @@
 #include "executor/nodeAssertOp.h"
 #include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeDynamicIndexscan.h"
-#include "executor/nodeExternalscan.h"
 #include "executor/nodeMotion.h"
 #include "executor/nodeSequence.h"
 #include "executor/nodeTableFunction.h"
@@ -187,10 +186,6 @@ ExecReScan(PlanState *node)
 		case T_IndexScanState:
 			ExecReScanIndexScan((IndexScanState *) node);
 			break;
-
-		case T_ExternalScanState:
-			ExecReScanExternal((ExternalScanState *) node);
-			break;			
 
 		case T_DynamicSeqScanState:
 			ExecReScanDynamicSeqScan((DynamicSeqScanState *) node);
@@ -364,10 +359,6 @@ ExecMarkPos(PlanState *node)
 			ExecIndexMarkPos((IndexScanState *) node);
 			break;
 
-		case T_ExternalScanState:
-			elog(ERROR, "Marking scan position for external relation is not supported");
-			break;			
-
 		case T_IndexOnlyScanState:
 			ExecIndexOnlyMarkPos((IndexOnlyScanState *) node);
 			break;
@@ -427,10 +418,6 @@ ExecRestrPos(PlanState *node)
 		case T_IndexScanState:
 			ExecIndexRestrPos((IndexScanState *) node);
 			break;
-
-		case T_ExternalScanState:
-			elog(ERROR, "Restoring scan position is not yet supported for external relation scan");
-			break;			
 
 		case T_IndexOnlyScanState:
 			ExecIndexOnlyRestrPos((IndexOnlyScanState *) node);
@@ -724,7 +711,6 @@ ExecSquelchNode(PlanState *node)
 		case T_IndexOnlyScanState:
 		case T_DynamicBitmapIndexScanState:
 		case T_BitmapIndexScanState:
-		case T_ForeignScanState:
 		case T_ValuesScanState:
 		case T_TidScanState:
 		case T_TableFunctionState:
@@ -739,8 +725,8 @@ ExecSquelchNode(PlanState *node)
 			ExecSquelchRecursiveUnion((RecursiveUnionState *) node);
 			break;
 
-		case T_ExternalScanState:
-			ExecSquelchExternalScan((ExternalScanState *) node);
+		case T_ForeignScanState:
+			ExecSquelchForeignScan((ForeignScanState *) node);
 			break;
 
 		case T_BitmapHeapScanState:

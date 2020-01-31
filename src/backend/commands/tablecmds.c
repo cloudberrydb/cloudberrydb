@@ -910,7 +910,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 					 errhint("Use OIDS=FALSE.")));
 	}
 
-	// FIXME valid_opts was true for RELSTORAGE_EXTERNAL
 	bool valid_opts = !useChangedOpts;
 
 	/*
@@ -5718,11 +5717,6 @@ ATRewriteTables(AlterTableStmt *parsetree, List **wqueue, LOCKMODE lockmode)
 
 		/* We will lock the table iff we decide to actually rewrite it */
 		OldHeap = relation_open(tab->relid, NoLock);
-		if (rel_is_external_table(tab->relid))
-		{
-			heap_close(OldHeap, NoLock);
-			continue;
-		}
 		oldTableSpace = OldHeap->rd_rel->reltablespace;
 		oldRelPersistence = OldHeap->rd_rel->relpersistence;
 

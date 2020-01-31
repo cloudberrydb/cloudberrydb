@@ -29,8 +29,7 @@ OBJS = execAmi.o execCurrent.o execGrouping.o execIndexing.o execJunk.o \
        nodeSubplan.o nodeSubqueryscan.o nodeTidscan.o nodeTupleSplit.o \
        nodeForeignscan.o nodeWindowAgg.o tstoreReceiver.o tqueue.o spi.o
 
-OBJS += nodeExternalscan.o \
-       nodeDynamicIndexscan.o \
+OBJS += nodeDynamicIndexscan.o \
        nodeDynamicBitmapHeapscan.o \
        nodeDynamicBitmapIndexscan.o \
        nodeMotion.o \

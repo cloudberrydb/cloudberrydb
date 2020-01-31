@@ -69,7 +69,6 @@ typedef enum NodeTag
 	T_BitmapOr,
 	T_SeqScan,
 	T_DynamicSeqScan,
-	T_ExternalScan,
 	T_SampleScan,
 	T_IndexScan,
 	T_DynamicIndexScan,
@@ -136,7 +135,6 @@ typedef enum NodeTag
 	T_BitmapOrState,
 	T_SeqScanState,
 	T_DynamicSeqScanState,
-	T_ExternalScanState,
 	T_SampleScanState,
 	T_IndexScanState,
 	T_DynamicIndexScanState,
@@ -616,6 +614,7 @@ typedef enum NodeTag
 	T_FormatterData,            /* in access/formatter.h */
 	T_ExtProtocolData,          /* in access/extprotocol.h */
 	T_ExtProtocolValidatorData, /* in access/extprotocol.h */
+	T_ExternalScanInfo,			/* in access/plannodes.h */
 	T_SelectedParts,            /* in executor/nodePartitionSelector.h */
 	T_CookedConstraint,			/* in catalog/heap.h */
 

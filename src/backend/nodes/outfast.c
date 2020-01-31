@@ -1361,8 +1361,8 @@ _outNode(StringInfo str, void *obj)
 			case T_CustomScan:
 				_outCustomScan(str, obj);
 				break;
-			case T_ExternalScan:
-				_outExternalScan(str, obj);
+			case T_ExternalScanInfo:
+				_outExternalScanInfo(str, obj);
 				break;
 			case T_IndexScan:
 				_outIndexScan(str, obj);

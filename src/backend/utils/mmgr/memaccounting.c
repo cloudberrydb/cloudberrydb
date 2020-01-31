@@ -1088,8 +1088,6 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_SampleScan";
 	case MEMORY_OWNER_TYPE_Exec_DynamicSeqScan:
 		return "X_DynamicSeqScan";
-	case MEMORY_OWNER_TYPE_Exec_ExternalScan:
-		return "X_ExternalScan";
 	case MEMORY_OWNER_TYPE_Exec_IndexScan:
 		return "X_IndexScan";
 	case MEMORY_OWNER_TYPE_Exec_IndexOnlyScan:

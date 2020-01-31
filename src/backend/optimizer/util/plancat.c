@@ -50,7 +50,6 @@
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbrelsize.h"
 #include "catalog/pg_appendonly_fn.h"
-#include "catalog/pg_exttable.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_inherits_fn.h"
 #include "utils/guc.h"
@@ -424,10 +423,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	if (relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
 		rel->serverid = GetForeignServerIdByRelId(RelationGetRelid(relation));
-		if (rel->serverid == PG_EXTTABLE_SERVER_OID)
-			rel->fdwroutine = NULL;
-		else
-			rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
+		rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
 		rel->exec_location = GetForeignTable(RelationGetRelid(relation))->exec_location;
 	}
 	else
@@ -656,6 +652,10 @@ cdb_estimate_partitioned_numtuples(Relation rel, bool *stats_missing)
 								  &childtuples,
 								  &allvisfrac);
 			pfree(dummy_reloptinfo);
+		}
+		if (childtuples == 0 && rel_is_external_table(RelationGetRelid(childrel)))
+		{
+			childtuples = DEFAULT_EXTERNAL_TABLE_TUPLES;
 		}
 		totaltuples += childtuples;
 

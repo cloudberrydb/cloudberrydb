@@ -211,7 +211,8 @@ explain (format json, costs off) SELECT * FROM dummy_ext_tab;
        "Parallel Aware": false,               +
        "Plans": [                             +
          {                                    +
-           "Node Type": "External Scan",      +
+           "Node Type": "Foreign Scan",       +
+           "Operation": "Select",             +
            "Parent Relationship": "Outer",    +
            "Slice": 1,                        +
            "Segments": 3,                     +

@@ -233,11 +233,11 @@ alter external table ext alter column x type integer; -- pass
 truncate ext;
 ERROR:  "ext" is not a table
 delete from ext;
-ERROR:  cannot update or delete from external relation "ext"
+ERROR:  cannot delete from foreign table "ext"
 update ext set x='1' where x='2';
-ERROR:  cannot update or delete from external relation "ext"
-insert into ext(x) values('a');
-ERROR:  cannot change a readable external table "ext"
+ERROR:  cannot update foreign table "ext"
+insert into ext(x) values(123);
+ERROR:  foreign table "ext" does not allow inserts
 create index ext_index on ext(x); -- should fail
 ERROR:  cannot create index on foreign table "ext"
 drop table ext; -- should fail (wrong object)

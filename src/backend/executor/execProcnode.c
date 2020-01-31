@@ -126,7 +126,6 @@
 #include "executor/nodeAssertOp.h"
 #include "executor/nodeDynamicIndexscan.h"
 #include "executor/nodeDynamicSeqscan.h"
-#include "executor/nodeExternalscan.h"
 #include "executor/nodeMotion.h"
 #include "executor/nodePartitionSelector.h"
 #include "executor/nodeRepeat.h"
@@ -347,17 +346,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			{
 			result = (PlanState *) ExecInitDynamicSeqScan((DynamicSeqScan *) node,
 												   estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
-			break;
-
-		case T_ExternalScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(node, ExternalScan);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
-			result = (PlanState *) ExecInitExternalScan((ExternalScan *) node,
-														estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
 			break;
@@ -971,10 +959,6 @@ ExecProcNode(PlanState *node)
 			result = ExecDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
 
-		case T_ExternalScanState:
-			result = ExecExternalScan((ExternalScanState *) node);
-			break;
-
 		case T_SampleScanState:
 			result = ExecSampleScan((SampleScanState *) node);
 			break;
@@ -1325,10 +1309,6 @@ ExecEndNode(PlanState *node)
 
 		case T_DynamicIndexScanState:
 			ExecEndDynamicIndexScan((DynamicIndexScanState *) node);
-			break;
-
-		case T_ExternalScanState:
-			ExecEndExternalScan((ExternalScanState *) node);
 			break;
 
 		case T_IndexOnlyScanState:

@@ -2774,8 +2774,6 @@ GetTupleForTrigger(EState *estate,
 	/* these should be rejected when you try to create such triggers, but let's check */
 	if (RelationIsAppendOptimized(relation))
 		elog(ERROR, "UPDATE and DELETE triggers are not supported on append-only tables");
-	if (rel_is_external_table(RelationGetRelid(relation)))
-		elog(ERROR, "UPDATE and DELETE triggers are not supported on external tables");
 
 	Assert(RelationIsHeap(relation));
 

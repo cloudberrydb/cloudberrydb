@@ -175,7 +175,6 @@ pathnode_walk_kids(Path            *path,
 	{
 		case T_SeqScan:
 		case T_SampleScan:
-		case T_ExternalScan:
 		case T_ForeignScan:
 		case T_IndexScan:
 		case T_IndexOnlyScan:
@@ -1259,37 +1258,6 @@ create_seqscan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->sameslice_relids = rel->relids;
 
 	cost_seqscan(pathnode, root, rel, pathnode->param_info);
-
-	return pathnode;
-}
-
-/*
-* Create a path for scanning an external table
- */
-ExternalPath *
-create_external_path(PlannerInfo *root, RelOptInfo *rel, Relids required_outer)
-{
-	ExternalPath   *pathnode = makeNode(ExternalPath);
-
-	pathnode->path.pathtype = T_ExternalScan;
-	pathnode->path.parent = rel;
-	pathnode->path.pathtarget = rel->reltarget;
-	pathnode->path.param_info = get_baserel_parampathinfo(root, rel,
-													 required_outer);
-	pathnode->path.pathkeys = NIL;	/* external scan has unordered result */
-
-	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-	pathnode->path.motionHazard = false;
-
-	/*
-	 * Mark external tables as non-rescannable. While rescan is possible,
-	 * it can lead to surprising results if the external table produces
-	 * different results when invoked twice.
-	 */
-	pathnode->path.rescannable = false;
-	pathnode->path.sameslice_relids = rel->relids;
-
-	cost_externalscan(pathnode, root, rel, pathnode->path.param_info);
 
 	return pathnode;
 }

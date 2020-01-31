@@ -605,7 +605,6 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 	switch (nodeTag(plan))
 	{
 		case T_SeqScan: /* Rely on structure equivalence */
-		case T_ExternalScan: /* Rely on structure equivalence */
 			{
 				Scan    *splan = (Scan *) plan;
 
@@ -823,6 +822,8 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 			}
 			break;
 		case T_ForeignScan:
+			if (cdb_expr_requires_full_eval((Node *)plan->targetlist))
+				return cdb_insert_result_node(root, plan, rtoffset);
 			set_foreignscan_references(root, (ForeignScan *) plan, rtoffset);
 			break;
 		case T_CustomScan:

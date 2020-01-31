@@ -382,12 +382,6 @@ DirectDispatchUpdateContentIdsFromPlan(PlannerInfo *root, Plan *plan)
 																  plan->qual);
 			break;
 
-		case T_ExternalScan:
-			DisableTargetedDispatch(&dispatchInfo); /* not sure about
-													 * external tables ...
-													 * so disable */
-			break;
-
 		case T_IndexScan:
 			{
 				IndexScan  *indexScan = (IndexScan *) plan;

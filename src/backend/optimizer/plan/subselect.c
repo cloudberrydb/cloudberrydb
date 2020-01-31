@@ -3125,7 +3125,6 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params,
 			break;
 
 		case T_Hash:
-		case T_ExternalScan:
 		case T_Material:
 		case T_Sort:
 		case T_ShareInputScan:

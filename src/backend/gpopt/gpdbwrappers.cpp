@@ -31,6 +31,7 @@
 #include "gpopt/gpdbwrappers.h"
 #include "catalog/pg_collation.h"
 extern "C" {
+	#include "access/exttable_fdw_shim.h"
 	#include "utils/memutils.h"
 	#include "parser/parse_agg.h"
 }
@@ -2584,16 +2585,21 @@ gpdb::GetExternalTableEntry
 	return NULL;
 }
 
-List *
-gpdb::GetExternalScanUriList
+
+ForeignScan *
+gpdb::CreateForeignScanForExternalTable
 	(
-	ExtTableEntry *ext,
-	bool *ismasteronlyp
+	Oid rel_oid,
+	Index scanrelid,
+	List *qual,
+	List *targetlist
 	)
 {
 	GP_WRAP_START;
 	{
-		return create_external_scan_uri_list(ext, ismasteronlyp);
+		/* catalog tables: pg_exttable */
+		return create_foreignscan_for_external_table(rel_oid, scanrelid,
+							     qual, targetlist);
 	}
 	GP_WRAP_END;
 	return NULL;

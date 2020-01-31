@@ -660,11 +660,9 @@ _outSampleScan(StringInfo str, const SampleScan *node)
 }
 
 static void
-_outExternalScan(StringInfo str, const ExternalScan *node)
+_outExternalScanInfo(StringInfo str, const ExternalScanInfo *node)
 {
-	WRITE_NODE_TYPE("EXTERNALSCAN");
-
-	_outScanInfo(str, (Scan *) node);
+	WRITE_NODE_TYPE("EXTERNALSCANINFO");
 
 	WRITE_NODE_FIELD(uriList);
 	WRITE_STRING_FIELD(fmtOptString);
@@ -5310,8 +5308,8 @@ outNode(StringInfo str, const void *obj)
 			case T_DynamicSeqScan:
 				_outDynamicSeqScan(str, obj);
 				break;
-			case T_ExternalScan:
-				_outExternalScan(str, obj);
+			case T_ExternalScanInfo:
+				_outExternalScanInfo(str, obj);
 				break;
 			case T_SampleScan:
 				_outSampleScan(str, obj);

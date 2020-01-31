@@ -2235,23 +2235,11 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
-} ForeignScanState;
 
-/* ----------------
- *         ExternalScanState information
- *
- *	 ExternalScan nodes are used to scan external tables
- *
- *	 ess_ScanDesc                the state of the file data scan
- * ----------------
- */
-typedef struct ExternalScanState
-{
-	ScanState	ss;
-	struct FileScanDescData *ess_ScanDesc;
 	bool		cdb_want_ctid;
 	ItemPointerData cdb_fake_ctid;
-} ExternalScanState;
+	bool		is_squelched;
+} ForeignScanState;
 
 /*
  * DynamicSeqScanState

@@ -921,7 +921,6 @@ test__MemoryAccounting_GetAccountName__Validate(void **state)
 	char* shortLivingNames[] = {"Top", "Main", "Parser", "Planner", "PlannerHook", "Dispatcher", "Serializer", "Deserializer",
 			"Executor", "X_Result", "X_Append", "X_Sequence", "X_MergeAppend", "X_BitmapAnd", "X_BitmapOr",
 			"X_SeqScan", "X_SampleScan", "X_DynamicSeqScan",
-			"X_ExternalScan",
 			"X_IndexScan", "X_IndexOnlyScan", "X_DynamicIndexScan",
 			"X_BitmapIndexScan", "X_DynamicBitmapIndexScan",
 			"X_BitmapHeapScan", "X_DynamicBitmapHeapScan",

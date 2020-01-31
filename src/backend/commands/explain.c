@@ -1076,7 +1076,6 @@ ExplainPreScanNode(PlanState *planstate, Bitmapset **rels_used)
 		case T_CteScan:
 		case T_WorkTableScan:
 		case T_DynamicSeqScan:
-		case T_ExternalScan:
 		case T_DynamicIndexScan:
 		case T_ShareInputScan:
 			*rels_used = bms_add_member(*rels_used,
@@ -1251,9 +1250,6 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			break;
 		case T_DynamicSeqScan:
 			pname = sname = "Dynamic Seq Scan";
-			break;
-		case T_ExternalScan:
-			pname = sname = "External Scan";
 			break;
 		case T_SampleScan:
 			pname = sname = "Sample Scan";
@@ -1561,7 +1557,6 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	{
 		case T_SeqScan:
 		case T_DynamicSeqScan:
-		case T_ExternalScan:
 		case T_DynamicIndexScan:
 		case T_SampleScan:
 		case T_BitmapHeapScan:
@@ -1913,7 +1908,6 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			/* FALLTHROUGH */
 		case T_SeqScan:
 		case T_DynamicSeqScan:
-		case T_ExternalScan:
 		case T_ValuesScan:
 		case T_CteScan:
 		case T_WorkTableScan:
@@ -3329,7 +3323,6 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 		case T_ForeignScan:
 		case T_CustomScan:
 		case T_ModifyTable:
-		case T_ExternalScan:
 			/* Assert it's on a real relation */
 			Assert(rte->rtekind == RTE_RELATION);
 			objectname = get_rel_name(rte->relid);
