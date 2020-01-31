@@ -2537,7 +2537,8 @@ AlterTableStmt:
 					AlterTableStmt *n = makeNode(AlterTableStmt);
 					n->relation = $4;
 					n->cmds = $5;
-					n->relkind = OBJECT_EXTTABLE;
+					n->relkind = OBJECT_FOREIGN_TABLE;
+					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
 		|	ALTER TABLE ALL IN_P TABLESPACE name SET TABLESPACE name opt_nowait
@@ -8016,13 +8017,13 @@ DropStmt:	DROP drop_type IF_P EXISTS any_name_list opt_drop_behavior
 
 
 drop_type:	TABLE									{ $$ = OBJECT_TABLE; }
-			| EXTERNAL TABLE						{ $$ = OBJECT_EXTTABLE; }
-			| EXTERNAL WEB TABLE					{ $$ = OBJECT_EXTTABLE; }	
 			| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
 			| VIEW									{ $$ = OBJECT_VIEW; }
 			| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
 			| INDEX									{ $$ = OBJECT_INDEX; }
 			| FOREIGN TABLE							{ $$ = OBJECT_FOREIGN_TABLE; }
+			| EXTERNAL TABLE						{ $$ = OBJECT_FOREIGN_TABLE; }
+			| EXTERNAL WEB TABLE					{ $$ = OBJECT_FOREIGN_TABLE; }	
 			| ACCESS METHOD							{ $$ = OBJECT_ACCESS_METHOD; }
 			| EVENT TRIGGER 						{ $$ = OBJECT_EVENT_TRIGGER; }
 			| COLLATION								{ $$ = OBJECT_COLLATION; }

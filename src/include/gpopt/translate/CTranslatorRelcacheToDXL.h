@@ -266,7 +266,7 @@ namespace gpdxl
 
 			// storage type for a relation
 			static
-			IMDRelation::Erelstoragetype RetrieveRelStorageType(CHAR storage_type);
+			IMDRelation::Erelstoragetype RetrieveRelStorageType(Relation rel);
 
 			// fix frequencies if they add up to more than 1.0
 			static

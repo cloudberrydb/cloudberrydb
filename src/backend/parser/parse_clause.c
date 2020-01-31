@@ -332,7 +332,7 @@ setTargetTable(ParseState *pstate, RangeVar *relation,
 						 RelationGetRelationName(pstate->p_target_relation))));
 
 	/* special check for DML on external relations */
-	if(RelationIsExternal(pstate->p_target_relation))
+	if (rel_is_external_table(RelationGetRelid(pstate->p_target_relation)))
 	{
 		if (requiredPerms != ACL_INSERT)
 		{

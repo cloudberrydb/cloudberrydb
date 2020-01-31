@@ -402,13 +402,13 @@ ExecInsert(ModifyTableState *mtstate,
 
 	slot = reconstructPartitionTupleSlot(parentslot, resultRelInfo);
 
-	if (RelationIsExternal(resultRelationDesc) &&
+	if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
 		estate->es_result_partitions &&
 		estate->es_result_partitions->part->parrelid != 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("insert into external partitions not supported")));
+				 errmsg("insert into foreign partitions not supported")));
 	}
 
 	Assert(slot != NULL);
@@ -780,12 +780,13 @@ ExecDelete(ItemPointer tupleid,
 		}
 	}
 
-	if (RelationIsExternal(resultRelationDesc) && estate->es_result_partitions &&
+	if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
+		estate->es_result_partitions &&
 		estate->es_result_partitions->part->parrelid != 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("delete from external partitions not supported")));
+				 errmsg("delete from foreign partitions not supported")));
 	}
 
 	/* INSTEAD OF ROW DELETE Triggers */
@@ -1289,13 +1290,13 @@ ExecUpdate(ItemPointer tupleid,
 	resultRelInfo = estate->es_result_relation_info;
 	resultRelationDesc = resultRelInfo->ri_RelationDesc;
 
-	if (RelationIsExternal(resultRelationDesc) &&
+	if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
 		estate->es_result_partitions &&
 		estate->es_result_partitions->part->parrelid != 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("updating external partitions not supported")));
+				 errmsg("updating foreign partitions not supported")));
 	}
 
 	/*
@@ -2735,9 +2736,9 @@ table_insert(ResultRelInfo *resultRelInfo, EState *estate, TupleTableSlot *slot,
 		*lastTid = *slot_get_ctid(slot);
 		(resultRelInfo->ri_aoprocessed)++;
 	}
-	else if (RelationIsExternal(resultRelationDesc))
+	else if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
-		/* Writable external table */
+		/* Writable external table (true PostgreSQL-style foreign tables are handled elsewhere). */
 		HeapTuple tuple;
 
 		if (resultRelInfo->ri_extInsertDesc == NULL)

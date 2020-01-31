@@ -49,6 +49,7 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 
+#include "catalog/pg_foreign_server.h"		/* ExtTableForeignServer */
 #include "cdb/cdbmutate.h"		/* cdbmutate_warn_ctid_without_segid */
 #include "cdb/cdbpath.h"		/* cdbpath_rows() */
 #include "cdb/cdbutil.h"
@@ -799,17 +800,6 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	/* Consider sequential scan */
 	switch (rel->relstorage)
 	{
-		case RELSTORAGE_EXTERNAL:
-
-			/*
-			 * If the relation is external, create an external path for it and
-			 * select it (only external path is considered for an external
-			 * base rel).
-			 */
-			add_path(rel, (Path *) create_external_path(root, rel, required_outer));
-			set_cheapest(rel);
-			return;
-
 		case RELSTORAGE_AOROWS:
 		case RELSTORAGE_AOCOLS:
 		case RELSTORAGE_HEAP:
@@ -997,6 +987,13 @@ set_tablesample_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *
 static void
 set_foreign_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 {
+	if (rel->serverid == PG_EXTTABLE_SERVER_OID)
+	{
+		/* Mark rel with estimated output rows, width, etc */
+		set_baserel_size_estimates(root, rel);
+		return;
+	}
+
 	/* Mark rel with estimated output rows, width, etc */
 	set_foreign_size_estimates(root, rel);
 
@@ -1014,6 +1011,18 @@ set_foreign_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 static void
 set_foreign_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 {
+	if (rel->serverid == PG_EXTTABLE_SERVER_OID)
+	{
+		/*
+		 * If the relation is external, create an external path for it and
+		 * select it (only external path is considered for an external
+		 * base rel).
+		 */
+		add_path(rel, (Path *) create_external_path(root, rel, rel->lateral_relids));
+		set_cheapest(rel);
+		return;
+	}
+
 	/* Call the FDW's GetForeignPaths function to generate path(s) */
 	rel->fdwroutine->GetForeignPaths(root, rel, rte->relid);
 }

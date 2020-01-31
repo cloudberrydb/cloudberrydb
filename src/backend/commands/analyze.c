@@ -324,9 +324,8 @@ analyze_rel_internal(Oid relid, RangeVar *relation, int options,
 	 * used to do this in get_rel_oids() but seems safer to check after we've
 	 * locked the relation.
 	 */
-	if ((onerel->rd_rel->relkind == RELKIND_RELATION ||
-		 onerel->rd_rel->relkind == RELKIND_MATVIEW) &&
-		!RelationIsExternal(onerel))
+	if (onerel->rd_rel->relkind == RELKIND_RELATION ||
+		onerel->rd_rel->relkind == RELKIND_MATVIEW)
 	{
 		/* Regular table, so we'll use the regular row acquisition function */
 		acquirefunc = acquire_sample_rows;
@@ -334,8 +333,7 @@ analyze_rel_internal(Oid relid, RangeVar *relation, int options,
 		/* Also get regular table's size */
 		relpages = acquire_number_of_blocks(onerel);
 	}
-	else if (onerel->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
-			 !RelationIsExternal(onerel))
+	else if (onerel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
 		/*
 		 * For a foreign table, call the FDW's hook function to see whether it

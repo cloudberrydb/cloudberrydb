@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 #include "catalog/pg_default_acl.h"
+#include "catalog/pg_foreign_server.h"
 #include "fe_utils/string_utils.h"
 
 #include "common.h"
@@ -2248,7 +2249,8 @@ describeOneTableDetails(const char *schemaname,
 		PGresult   *result = NULL;
 		int			tuples = 0;
 
-		if (tableinfo.relstorage == 'x')
+		/* external tables were marked in catalogs like this before GPDB 7 */
+		if (tableinfo.relkind == 'r' && tableinfo.relstorage == 'x')
 			add_external_table_footer(&cont, oid);
 
 		/* print append only table information */
@@ -2860,10 +2862,17 @@ describeOneTableDetails(const char *schemaname,
 				goto error_return;
 			}
 
-			/* Print server name */
-			printfPQExpBuffer(&buf, _("Server: %s"),
-							  PQgetvalue(result, 0, 0));
-			printTableAddFooter(&cont, buf.data);
+			if (strcmp(PQgetvalue(result, 0, 0), PG_EXTTABLE_SERVER_NAME) == 0)
+			{
+				add_external_table_footer(&cont, oid);
+			}
+			else
+			{
+				/* Print server name */
+				printfPQExpBuffer(&buf, _("Server: %s"),
+								  PQgetvalue(result, 0, 0));
+				printTableAddFooter(&cont, buf.data);
+			}
 
 			/* Print per-table FDW options, if any */
 			ftoptions = PQgetvalue(result, 0, 1);
@@ -3104,7 +3113,6 @@ add_external_table_footer(printTableContent *const cont, const char *oid)
 	result = PSQLexec(buf.data);
 	if (!result)
 		goto error_return;
-
 	if (PQntuples(result) != 1)
 		goto error_return;
 

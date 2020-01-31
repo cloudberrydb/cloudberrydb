@@ -395,11 +395,10 @@ AssignTuplesForTriggers(void **newTuple, void **oldTuple,  RowTrigger *plannode,
 	bool rel_is_heap = RelationIsHeap(relation);
 	bool rel_is_aorows = RelationIsAoCols(relation);
 	bool rel_is_aocols = RelationIsAoRows(relation);
-	bool rel_is_external = RelationIsExternal(relation);
 
-	if (rel_is_aocols || rel_is_external)
+	if (rel_is_aocols)
 	{
-		elog(ERROR, "Triggers are not supported on column-oriented or external tables");
+		elog(ERROR, "Triggers are not supported on column-oriented tables");
 	}
 
 	if (rel_is_aorows && !(plannode->eventFlags & GPMD_TRIGGER_INSERT))
@@ -461,6 +460,11 @@ ExecRowTrigger(RowTriggerState *node)
 	ResultRelInfo *resultRelInfo = outerNode->state->es_result_relation_info;
 
 	Assert(NULL != resultRelInfo);
+
+	// FIXME: We used to check for external tables, in AssignTuplesForTriggers().
+	// Do we actually support other foreign tables?
+	if (resultRelInfo->ri_RelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+		elog(ERROR, "triggers are not supported on foreign tables");
 
 	bool processTuple = true;
 	TupleTableSlot *slot = NULL;

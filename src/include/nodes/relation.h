@@ -679,9 +679,6 @@ typedef struct RelOptInfo
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_private;
 
-	/* used by external scan */
-	struct ExtTableEntry *extEntry;
-
 	/* used by various scans and joins: */
 	List	   *baserestrictinfo;		/* RestrictInfo structures (if base
 										 * rel) */

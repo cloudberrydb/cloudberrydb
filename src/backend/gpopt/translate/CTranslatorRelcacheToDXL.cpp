@@ -560,13 +560,6 @@ CTranslatorRelcacheToDXL::RetrieveRel
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, mdid->GetBuffer());
 	}
 
-	if (RelationIsForeign(rel))
-	{
-		// GPORCA does not support foreign data wrappers
-		gpdb::CloseRelation(rel);
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Foreign Data"));
-	}
-
 	if (NULL != rel->rd_cdbpolicy &&
 		POLICYTYPE_ENTRY != rel->rd_cdbpolicy->ptype &&
 		gpdb::GetGPSegmentCount() != rel->rd_cdbpolicy->numsegments)
@@ -603,7 +596,7 @@ CTranslatorRelcacheToDXL::RetrieveRel
 		mdname = GetRelName(mp, rel);
 
 		// get storage type
-		rel_storage_type = RetrieveRelStorageType(rel->rd_rel->relstorage);
+		rel_storage_type = RetrieveRelStorageType(rel);
 
 		// get relation columns
 		mdcol_array = RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
@@ -3135,12 +3128,12 @@ CTranslatorRelcacheToDXL::TransformHistogramToDXLBucketArray
 IMDRelation::Erelstoragetype
 CTranslatorRelcacheToDXL::RetrieveRelStorageType
 	(
-	CHAR storage_type
+	Relation rel
 	)
 {
 	IMDRelation::Erelstoragetype rel_storage_type = IMDRelation::ErelstorageSentinel;
 
-	switch (storage_type)
+	switch (rel->rd_rel->relstorage)
 	{
 		case RELSTORAGE_HEAP:
 			rel_storage_type = IMDRelation::ErelstorageHeap;
@@ -3154,8 +3147,14 @@ CTranslatorRelcacheToDXL::RetrieveRelStorageType
 		case RELSTORAGE_VIRTUAL:
 			rel_storage_type = IMDRelation::ErelstorageVirtual;
 			break;
-		case RELSTORAGE_EXTERNAL:
-			rel_storage_type = IMDRelation::ErelstorageExternal;
+		case RELSTORAGE_FOREIGN:
+			if (gpdb::RelIsExternalTable(rel->rd_id))
+				rel_storage_type = IMDRelation::ErelstorageExternal;
+			else
+			{
+				// GPORCA does not support foreign data wrappers
+				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Foreign Data"));
+			}
 			break;
 		default:
 			GPOS_ASSERT(!"Unsupported relation type");

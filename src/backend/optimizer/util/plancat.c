@@ -51,6 +51,7 @@
 #include "cdb/cdbrelsize.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_exttable.h"
+#include "catalog/pg_foreign_server.h"
 #include "catalog/pg_inherits_fn.h"
 #include "utils/guc.h"
 
@@ -72,8 +73,6 @@ static List *get_relation_constraints(PlannerInfo *root,
 						 bool include_notnull);
 static List *build_index_tlist(PlannerInfo *root, IndexOptInfo *index,
 				  Relation heapRelation);
-
-static void get_external_relation_info(Relation relation, RelOptInfo *rel);
 
 
 /*
@@ -142,10 +141,6 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
     rel->cdbpolicy = RelationGetPartitioningKey(relation);
 
 	rel->relstorage = relation->rd_rel->relstorage;
-
-	/* If it's an external table, get locations and format from catalog */
-	if (rel->relstorage == RELSTORAGE_EXTERNAL)
-		get_external_relation_info(relation, rel);
 
 	/*
 	 * Estimate relation size --- unless it's an inheritance parent, in which
@@ -429,7 +424,10 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	if (relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
 		rel->serverid = GetForeignServerIdByRelId(RelationGetRelid(relation));
-		rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
+		if (rel->serverid == PG_EXTTABLE_SERVER_OID)
+			rel->fdwroutine = NULL;
+		else
+			rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
 		rel->exec_location = GetForeignTable(RelationGetRelid(relation))->exec_location;
 	}
 	else
@@ -454,24 +452,6 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 }
 
 /*
- * Update RelOptInfo to include the external specifications (file URI list
- * and data format) from the pg_exttable catalog.
- */
-static void
-get_external_relation_info(Relation relation, RelOptInfo *rel)
-{
-	/*
-     * Get partitioning key info for distributed relation.
-     */
-	rel->cdbpolicy = RelationGetPartitioningKey(relation);
-
-	/*
-	 * Get the pg_exttable fields for this table
-	 */
-	rel->extEntry = GetExtTableEntry(RelationGetRelid(relation));
-}
-
-/*
  * cdb_estimate_rel_size - estimate # pages and # tuples in a table or index
  *
  * If attr_widths isn't NULL, it points to the zero-index entry of the
@@ -491,6 +471,7 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 	BlockNumber relallvisible;
 	double		density;
     BlockNumber curpages = 0;
+	bool		use_external_table_defaults = false;
 
     /* Rel not distributed?  RelationGetNumberOfBlocks can get actual #pages. */
     if (!relOptInfo->cdbpolicy ||
@@ -522,8 +503,10 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 		 */
 		curpages = relpages;
 	}
-	else if (RelationIsExternal(rel))
+	else if (rel_is_external_table(RelationGetRelid(rel)))
 	{
+		/* Note: we can't use relOptinfo->serverid here, because isn't filled in yet */
+		use_external_table_defaults = true;
 		curpages = DEFAULT_EXTERNAL_TABLE_PAGES;
 	}
 	else
@@ -558,6 +541,15 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 	 */
 	if (relpages > 0)
 		density = reltuples / (double) relpages;
+	else if (use_external_table_defaults)
+	{
+		/*
+		 * For an external table with no estimates stored in pg_class, use
+		 * defaults.
+		 */
+		density = DEFAULT_EXTERNAL_TABLE_TUPLES /
+			(double) DEFAULT_EXTERNAL_TABLE_PAGES;
+	}
 	else
 	{
 		/*
@@ -1153,10 +1145,6 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
-
-			/* skip external tables */
-			if(RelationIsExternal(rel))
-				break;
 			
 			if (RelationIsAoRows(rel))
 			{

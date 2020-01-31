@@ -509,6 +509,9 @@ namespace gpdb {
 	// check whether a relation is inherited
 	bool HasSubclassSlow(Oid rel_oid);
 
+	// check whether table with given oid is an external table
+	bool RelIsExternalTable(Oid relid);
+
     // return the distribution policy of a relation; if the table is partitioned
     // and the parts are distributed differently, return Random distribution
     GpPolicy *GetDistributionPolicy(Relation rel);

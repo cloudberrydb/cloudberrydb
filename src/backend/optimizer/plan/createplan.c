@@ -2868,7 +2868,8 @@ create_externalscan_plan(PlannerInfo *root, Path *best_path,
 	bool		islimitinrows = false;
 	int			rejectlimit = -1;
 	bool		logerrors = false;
-	ExtTableEntry *ext = rel->extEntry;
+	ExtTableEntry *ext;
+	Oid			reloid;
 
 	/* it should be an external rel... */
 	Assert(scan_relid > 0);
@@ -2879,6 +2880,9 @@ create_externalscan_plan(PlannerInfo *root, Path *best_path,
 
 	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
+
+	reloid = planner_rt_fetch(scan_relid, root)->relid;
+	ext = GetExtTableEntry(reloid);
 
 	Assert(ext->execlocations != NIL);
 
@@ -8004,7 +8008,12 @@ make_modifytable(PlannerInfo *root,
 
 			Assert(rte->rtekind == RTE_RELATION);
 			if (rte->relkind == RELKIND_FOREIGN_TABLE)
-				fdwroutine = GetFdwRoutineByRelId(rte->relid);
+			{
+				if (rel_is_external_table(rte->relid))
+					fdwroutine = NULL;
+				else
+					fdwroutine = GetFdwRoutineByRelId(rte->relid);
+			}
 			else
 				fdwroutine = NULL;
 		}

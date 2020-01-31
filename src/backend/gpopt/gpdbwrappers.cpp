@@ -2371,6 +2371,19 @@ gpdb::HasSubclassSlow
 	return false;
 }
 
+bool
+gpdb::RelIsExternalTable
+	(
+	Oid relid
+	)
+{
+	GP_WRAP_START;
+	{
+		return rel_is_external_table(relid);
+	}
+	GP_WRAP_END;
+	return false;
+}
 
 GpPolicy *
 gpdb::GetDistributionPolicy

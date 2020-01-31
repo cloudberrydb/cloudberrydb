@@ -2532,22 +2532,6 @@ relation_is_updatable(Oid reloid,
 	if (rel == NULL)
 		return 0;
 
-	/* If this is an external table, check if it's writeable */
-	if (rel->rd_rel->relkind == RELKIND_RELATION &&
-		rel->rd_rel->relstorage == RELSTORAGE_EXTERNAL)
-	{
-		ExtTableEntry	   *extentry;
-
-		extentry = GetExtTableEntry(reloid);
-
-		if (extentry->iswritable)
-			events |= (1 << CMD_INSERT);
-
-		pfree(extentry);
-		relation_close(rel, AccessShareLock);
-		return events;
-	}
-
 	/* If the relation is a table, it is always updatable */
 	/* GPDB: except if it's an external table, which we checked above */
 	if (rel->rd_rel->relkind == RELKIND_RELATION)
@@ -2605,6 +2589,19 @@ relation_is_updatable(Oid reloid,
 	/* If this is a foreign table, check which update events it supports */
 	if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
+		if (rel_is_external_table(rel->rd_id))
+		{
+			ExtTableEntry	   *extentry;
+
+			extentry = GetExtTableEntry(reloid);
+
+			if (extentry->iswritable)
+				events |= (1 << CMD_INSERT);
+
+			pfree(extentry);
+			relation_close(rel, AccessShareLock);
+			return events;
+		}
 		FdwRoutine *fdwroutine = GetFdwRoutineForRelation(rel, false);
 
 		if (fdwroutine->IsForeignRelUpdatable != NULL)
