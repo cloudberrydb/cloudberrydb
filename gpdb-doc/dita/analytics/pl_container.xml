@@ -149,7 +149,7 @@
         <p>With PL/Container 1.2.0 and later, you can use Greenplum Database resource groups to
           manage and limit the total CPU and memory resources of containers in PL/Container
           runtimes. For more information about enabling, configuring, and using Greenplum Database
-          resource groups, refer to <xref href="../../admin_guide/workload_mgmt_resgroups.xml"
+          resource groups, refer to <xref href="../admin_guide/workload_mgmt_resgroups.xml"
             format="dita" scope="peer">Using Resource Groups</xref> in the <cite>Greenplum Database
             Administrator Guide</cite>.</p>
         <note>If you do not explicitly configure resource groups for a PL/Container runtime, its
@@ -168,7 +168,7 @@
      CPU_RATE_LIMIT=10, MEMORY_LIMIT=10);</codeblock></p>
         <p>PL/Container does not use the <codeph>MEMORY_SHARED_QUOTA</codeph> and
             <codeph>MEMORY_SPILL_RATIO</codeph> resource group memory limits. Refer to the
-              <codeph><xref href="../../ref_guide/sql_commands/CREATE_RESOURCE_GROUP.xml"
+              <codeph><xref href="../ref_guide/sql_commands/CREATE_RESOURCE_GROUP.xml"
               format="dita" scope="peer">CREATE RESOURCE GROUP</xref></codeph> reference page for
           detailed information about this SQL command.</p>
         <p>You can create one or more resource groups to manage your running PL/Container instances.
@@ -181,7 +181,7 @@
           <codeph>plpy_run1_rg</codeph>:<codeblock>SELECT groupname, groupid FROM gp_toolkit.gp_resgroup_config
      WHERE groupname='plpy_run1_rg';
 
-  groupname   |  groupid  
+  groupname   |  groupid
 --------------+----------
  plpy_run1_rg |   16391
 (1 row)</codeblock></p>
@@ -224,7 +224,7 @@
             <li>If you have not already configured and enabled resource groups in your Greenplum
               Database deployment, configure cgroups and enable Greenplum Database resource groups
               as described in <xref
-                href="../../admin_guide/workload_mgmt_resgroups.xml#topic71717999" format="dita"
+                href="../admin_guide/workload_mgmt_resgroups.xml#topic71717999" format="dita"
                 scope="peer">Using Resource Groups</xref> in the <cite>Greenplum Database
                 Administrator Guide</cite>.
               <note>If you have previously configured and enabled resource groups in your
@@ -251,7 +251,7 @@ CREATE RESOURCE GROUP plpy_run1_rg WITH (MEMORY_AUDITOR=cgroup, CONCURRENCY=0,
     CPU_RATE_LIMIT=10, MEMORY_LIMIT=10);</codeblock></li>
             <li>Find and note the <codeph>groupid</codeph> associated with each resource group that
               you created. For
-              example:<codeblock>SELECT groupname, groupid FROM gp_toolkit.gp_resgroup_config 
+              example:<codeblock>SELECT groupname, groupid FROM gp_toolkit.gp_resgroup_config
     WHERE groupname IN ('plpy_run1_rg', 'plr_run1_rg');
 
   groupname   |  groupid
@@ -290,10 +290,10 @@ plcontainer runtime-replace -r r_run1 -i pivotaldata/plcontainer_r_shared:devel 
             Library package installed. </li>
         </ul></p>
       <p>The Data Science packages contain a set of Python modules or R functions and data sets
-        related to data science. For information about the packages, see <xref
-          href="../../install_guide/install_python_dsmod.xml" format="dita">Python Data Science
-          Module Package</xref> and <xref href="../../install_guide/install_r_dslib.xml"
-          format="dita">R Data Science Library Package</xref>.</p>
+        related to data science. <ph otherprops="pivotal ">For information about the packages, see
+            <xref href="../install_guide/install_python_dsmod.xml" format="dita">Python Data Science
+            Module Package</xref> and <xref href="../install_guide/install_r_dslib.xml"
+            format="dita">R Data Science Library Package</xref>.</ph></p>
       <p>The Docker image tag represents the PL/Container release version (for example, 2.1.0). For
         example, the full Docker image name for the PL/Container for Python Docker image is similar
         to <codeph>pivotaldata/plc_python_shared:2.1.0</codeph>. This is the name that is referred
@@ -368,7 +368,8 @@ plcontainer runtime-replace -r r_run1 -i pivotaldata/plcontainer_r_shared:devel 
             database.<codeblock>SELECT proname, prosrc FROM pg_proc WHERE prolang = (SELECT oid FROM pg_language WHERE lanname = 'plcontainer');</codeblock><p>For
             information about the catalog tables, <codeph>pg_proc</codeph> and
               <codeph>pg_language</codeph>, see <xref
-              href="../system_catalogs/catalog_ref-tables.xml" format="dita"/>. </p></note>
+              href="../ref_guide/system_catalogs/catalog_ref-tables.xml" format="dita" scope="peer"
+              >System Tables</xref>. </p></note>
         <p>These steps upgrade from PL/Container 1.0 to PL/Container 1.1 or later in a database. The
           steps save the PL/Container 1.0 configuration and restore the configuration for use with
           PL/Container 1.1 or later.<ol id="ol_axf_mmq_vcb">
@@ -419,12 +420,11 @@ plcontainer runtime-replace -r r_run1 -i pivotaldata/plcontainer_r_shared:devel 
           the Docker images when you upgrade PL/Container.</p>
         <note>Before you perform this upgrade procedure, ensure that you have migrated your
           PL/Container 1.1 package from your previous Greenplum Database installation to your new
-          Greenplum Database installation. Refer to the <codeph><xref
-              href="../../utility_guide/ref/gppkg.html#topic1" format="dita" scope="peer"
-              >gppkg</xref></codeph> command for package installation and migration
-          information.</note>
-        <p>Perform the following procedure to upgrade from PL/Container 1.1 to PL/Container 1.2 or
-            later.<ol id="ol_axf_mmq_vcb">
+          Greenplum Database installation. Refer to the <xref
+            href="../utility_guide/ref/gppkg.xml#topic1" format="dita" scope="peer">gppkg</xref>
+          command for package installation and migration information.</note>
+        <p>Perform the following procedure to upgrade from PL/Container 1.1 to PL/Container version
+          1.2 or later.<ol id="ol_axf_mmq_vcb">
             <li>Save the PL/Container configuration. For example, to save the configuration to a
               file named <codeph>plcontainer110-backup.xml</codeph> in the local
               directory:<codeblock>$ plcontainer runtime-backup -f plcontainer110-backup.xml</codeblock></li>
@@ -616,7 +616,7 @@ plcontainer runtime-add -r plc_r -i pivotaldata/plcontainer_r_shared:devel -l r<
         element that contains a corresponding <codeph>id</codeph> XML element that specifies the
         Docker container startup information. See <xref href="#topic_sk1_gdq_dw" format="dita"/> for
         information about how PL/Container maps the <varname>ID</varname> to a Docker image. See
-          <xref href="#topic9" format="dita"/> for example UDF definitions.</p>
+          <xref href="#topic_kwg_qfg_mjb" format="dita"/> for example UDF definitions.</p>
       <p>The PL/Container configuration file is read only on the first invocation of a PL/Container
         function in each Greenplum Database session that runs PL/Container functions. You can force
         the configuration file to be re-read by performing a <codeph>SELECT</codeph> command on the
@@ -654,7 +654,7 @@ INFO:  plcontainer:     memory_mb = '1024'  (seg0 slice3 192.168.180.45:40000 pi
 INFO:  plcontainer:     use container network = 'no'  (seg0 slice3 192.168.180.45:40000 pid=3304)
 INFO:  plcontainer:     use container logging  = 'yes'  (seg0 slice3 192.168.180.45:40000 pid=3304)
 INFO:  plcontainer:     shared directory from host '/usr/local/greenplum-db/bin/plcontainer_clients' to container '/clientdir'  (seg0 slice3 192.168.180.45:40000 pid=3304)
-INFO:  plcontainer:         access = readonly  (seg0 slice3 192.168.180.45:40000 pid=3304) 
+INFO:  plcontainer:         access = readonly  (seg0 slice3 192.168.180.45:40000 pid=3304)
 gp_segment_id | plcontainer_show_local_config
 ---------------+-------------------------------
              0 | ok
@@ -673,7 +673,7 @@ gp_segment_id | plcontainer_show_local_config
  1          | bc9a0c04019c266f6d8269ffe35769d118bfb96ec634549b2b1bd2401ea20158 | Up 2 minutes | gpadmin | 13628
 (2 rows)</codeblock>
     </body>
-    <topic id="topic9" xml:lang="en">
+    <topic xml:lang="en" id="topic_kwg_qfg_mjb">
       <title id="pz215232">Examples</title>
       <body>
         <p>The values in the <codeph># container</codeph> lines of the examples,
@@ -949,7 +949,8 @@ $$ LANGUAGE plcontainer;</codeblock></p>
                       <codeph>id</codeph> element in the PL/Container configuration file. Maximum
                     length is 63 Bytes.</pd>
                   <pd>You specify the name in the Greenplum Database UDF on the <codeph>#
-                      container</codeph> line. See <xref href="#topic9" format="dita"/>.</pd>
+                      container</codeph> line. See <xref href="#topic_kwg_qfg_mjb" format="dita"
+                    />.</pd>
                 </plentry>
                 <plentry>
                   <pt>{<b>-s</b> | <b>--setting</b>}
@@ -981,11 +982,11 @@ $$ LANGUAGE plcontainer;</codeblock></p>
                         for the container. The value is either <codeph>yes</codeph> (enable logging)
                         or <codeph>no</codeph> (disable logging, the default). <p>The Greenplum
                           Database server configuration parameter <codeph><xref
-                              href="../config_params/guc-list.xml#log_min_messages"
-                              >log_min_messages</xref></codeph> controls the log level. The default
-                          log level is <codeph>warning</codeph>. For information about PL/Container
-                          log information, see <xref href="#plc_notes" format="dita"
-                          >Notes</xref>.</p></li>
+                              href="../ref_guide/config_params/guc-list.xml#log_min_messages"
+                              scope="peer">log_min_messages</xref></codeph> controls the log level.
+                          The default log level is <codeph>warning</codeph>. For information about
+                          PL/Container log information, see <xref href="#plc_notes" format="dita"
+                            >Notes</xref>.</p></li>
                     </ul></pd>
                 </plentry>
                 <plentry>
@@ -1337,11 +1338,11 @@ $$ LANGUAGE plcontainer;</codeblock></p>
                           attribute value <codeph>yes</codeph> enables logging. The attribute value
                             <codeph>no</codeph> disables logging (the default). </pd>
                         <pd>The Greenplum Database server configuration parameter <codeph><xref
-                              href="../config_params/guc-list.xml#log_min_messages"
-                              >log_min_messages</xref></codeph> controls the PL/Container log level.
-                          The default log level is <codeph>warning</codeph>. For information about
-                          PL/Container log information, see <xref href="#plc_notes" format="dita"
-                            >Notes</xref>.</pd>
+                              href="../ref_guide/config_params/guc-list.xml#log_min_messages"
+                              scope="peer">log_min_messages</xref></codeph> controls the
+                          PL/Container log level. The default log level is <codeph>warning</codeph>.
+                          For information about PL/Container log information, see <xref
+                            href="#plc_notes" format="dita">Notes</xref>.</pd>
                         <pd>
                           <p>By default, the PL/Container log information is sent to a system
                             service. On Red Hat 7 or CentOS 7 systems, the log information is sent
@@ -1409,13 +1410,13 @@ $$ LANGUAGE plcontainer;</codeblock></p>
             start Docker containers and reuse them as needed. After a certain amount of idle time, a
             QE process quits and destroys its Docker containers. You can control the amount of idle
             time with the Greenplum Database server configuration parameter <codeph><xref
-                href="../config_params/guc-list.xml#gp_vmem_idle_resource_timeout"
-                >gp_vmem_idle_resource_timeout</xref></codeph>. Controlling the idle time might help
-            with Docker container reuse and avoid the overhead of creating and starting a Docker
-            container.
-            <note type="warning">Changing <codeph>gp_vmem_idle_resource_timeout</codeph> value,
-              might affect performance due to resource issues. The parameter also controls the
-              freeing of Greenplum Database resources other than Docker containers.</note></li>
+                href="../ref_guide/config_params/guc-list.xml#gp_vmem_idle_resource_timeout"
+                scope="peer">gp_vmem_idle_resource_timeout</xref></codeph>. Controlling the idle
+            time might help with Docker container reuse and avoid the overhead of creating and
+            starting a Docker container. <note type="warning">Changing
+                <codeph>gp_vmem_idle_resource_timeout</codeph> value, might affect performance due
+              to resource issues. The parameter also controls the freeing of Greenplum Database
+              resources other than Docker containers.</note></li>
           <li>If a PL/Container Docker container exceeds the maximum allowed memory, it is
             terminated and an out of memory warning is displayed. On Red Hat 6 or CentOS 6 systems
             that are configured with Docker version 1.7.1, the out of memory warning is also
@@ -1446,10 +1447,10 @@ $$ LANGUAGE plcontainer;</codeblock></p>
             hosts.</p></li>
           <li>When PL/Container logging is enabled, you can set the log level with the Greenplum
             Database server configuration parameter <codeph><xref
-                href="../config_params/guc-list.xml#log_min_messages"
-              >log_min_messages</xref></codeph>. The default log level is <codeph>warning</codeph>.
-            The parameter controls the PL/Container log level and also controls the Greenplum
-            Database log level.<ul id="ul_knd_jhl_mcb">
+                href="../ref_guide/config_params/guc-list.xml#log_min_messages" scope="peer"
+                >log_min_messages</xref></codeph>. The default log level is
+            <codeph>warning</codeph>. The parameter controls the PL/Container log level and also
+            controls the Greenplum Database log level.<ul id="ul_knd_jhl_mcb">
               <li>PL/Container logging is enabled or disabled for each runtime ID with the
                   <codeph>setting</codeph> attribute <codeph>use_container_logging</codeph>. The
                 default is no logging. </li>
