@@ -42,7 +42,6 @@ SUBDIRS = \
 		pgrowlocks	\
 		pgstattuple	\
 		pg_visibility	\
-		postgres_fdw	\
 		seg		\
 		spi		\
 		tablefunc	\
