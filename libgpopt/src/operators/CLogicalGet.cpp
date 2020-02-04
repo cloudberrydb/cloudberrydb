@@ -80,7 +80,7 @@ CLogicalGet::CLogicalGet
 	GPOS_ASSERT(NULL != pnameAlias);
 
 	// generate a default column set for the table descriptor
-	m_pdrgpcrOutput = PdrgpcrCreateMapping(mp, m_ptabdesc->Pdrgpcoldesc(), UlOpId());
+	m_pdrgpcrOutput = PdrgpcrCreateMapping(mp, m_ptabdesc->Pdrgpcoldesc(), UlOpId(),  m_ptabdesc->MDId());
 	
 	if (m_ptabdesc->IsPartitioned())
 	{

@@ -74,7 +74,8 @@ namespace gpopt
 					(
 					CMemoryPool *mp,
 					const CColumnDescriptorArray *pdrgpcoldesc,
-					ULONG ulOpSourceId
+					ULONG ulOpSourceId,
+					IMDId *mdid_table=NULL
 					)
 					const;
 

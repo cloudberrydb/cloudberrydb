@@ -72,7 +72,7 @@ def processLogFile(logFileLines):
             current_file = line.split()[-1]
             current_file = current_file.split('\"')[0]
             if read_plan > 0:
-                print "Log file contains partial plans for %, please update this file by hand" % (current_file)
+                print "Log file contains partial plans for %s, please update this file by hand" % (current_file)
                 read_plan = 0
         elif actualPlanMatch:
             read_plan = 1

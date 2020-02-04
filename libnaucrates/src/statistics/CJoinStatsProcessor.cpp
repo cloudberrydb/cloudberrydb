@@ -227,7 +227,7 @@ CJoinStatsProcessor::SetResultingJoinStats
 		CStatisticsConfig *stats_config,
 		const IStatistics *outer_stats_input,
 		const IStatistics *inner_stats_input,
-										   CStatsPredJoinArray *join_pred_stats_info,
+		CStatsPredJoinArray *join_pred_stats_info,
 		IStatistics::EStatsJoinType join_type,
 		BOOL DoIgnoreLASJHistComputation
 		)
@@ -273,7 +273,7 @@ CJoinStatsProcessor::SetResultingJoinStats
 		inner_side_stats->AddNotExcludedHistograms(mp, join_colids, result_col_hist_mapping);
 	}
 
-	CDoubleArray *join_conds_scale_factors = GPOS_NEW(mp) CDoubleArray(mp);
+	CScaleFactorUtils::SJoinConditionArray *join_conds_scale_factors = GPOS_NEW(mp) CScaleFactorUtils::SJoinConditionArray(mp);
 	const ULONG num_join_conds = join_pred_stats_info->Size();
 
 	BOOL output_is_empty = false;
@@ -336,14 +336,38 @@ CJoinStatsProcessor::SetResultingJoinStats
 		GPOS_DELETE(outer_histogram_after);
 		GPOS_DELETE(inner_histogram_after);
 
-		join_conds_scale_factors->Append(GPOS_NEW(mp) CDouble(local_scale_factor));
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+		CColRef *colref_outer = col_factory->LookupColRef(colid1);
+		CColRef *colref_inner = col_factory->LookupColRef(colid2);
+
+		GPOS_ASSERT(colref_outer != NULL);
+		GPOS_ASSERT(colref_inner != NULL);
+
+		IMDId *mdid_outer = colref_outer->GetMdidTable();
+		IMDId *mdid_inner = colref_inner->GetMdidTable();
+		IMdIdArray *mdid_pair = NULL;
+		if ((mdid_outer != NULL) && (mdid_inner != NULL))
+		{
+			// there should only be two tables involved in a join condition
+			// if the predicate is more complex (i.e. more than 2 tables involved in the predicate such as t1.a=t2.a+t3.a),
+			// the mdid of the base table will be NULL:
+			mdid_pair = GPOS_NEW(mp) IMdIdArray(mp, 2);
+			mdid_outer->AddRef();
+			mdid_inner->AddRef();
+			mdid_pair->Append(mdid_outer);
+			mdid_pair->Append(mdid_inner);
+			mdid_pair->Sort();
+		}
+
+		join_conds_scale_factors->Append(GPOS_NEW(mp) CScaleFactorUtils::SJoinCondition(local_scale_factor, mdid_pair));
 	}
 
 
 	num_join_rows = CStatistics::MinRows;
 	if (!output_is_empty)
 	{
-		num_join_rows = CalcJoinCardinality(stats_config, outer_stats->Rows(), inner_side_stats->Rows(), join_conds_scale_factors, join_type);
+		num_join_rows = CalcJoinCardinality(mp, stats_config, outer_stats->Rows(), inner_side_stats->Rows(), join_conds_scale_factors, join_type);
 	}
 
 	// clean up
@@ -387,17 +411,18 @@ CJoinStatsProcessor::SetResultingJoinStats
 CDouble
 CJoinStatsProcessor::CalcJoinCardinality
 		(
+		CMemoryPool *mp,
 		CStatisticsConfig *stats_config,
 		CDouble left_num_rows,
 		CDouble right_num_rows,
-		CDoubleArray *join_conds_scale_factors,
+		CScaleFactorUtils::SJoinConditionArray *join_conds_scale_factors,
 		IStatistics::EStatsJoinType join_type
 		)
 {
 	GPOS_ASSERT(NULL != stats_config);
 	GPOS_ASSERT(NULL != join_conds_scale_factors);
 
-	CDouble scale_factor = CScaleFactorUtils::CumulativeJoinScaleFactor(stats_config, join_conds_scale_factors);
+	CDouble scale_factor = CScaleFactorUtils::CumulativeJoinScaleFactor(mp, stats_config, join_conds_scale_factors);
 	CDouble cartesian_product_num_rows = left_num_rows * right_num_rows;
 
 	if (IStatistics::EsjtLeftAntiSemiJoin == join_type || IStatistics::EsjtLeftSemiJoin == join_type)

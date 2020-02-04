@@ -17,6 +17,7 @@
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CGroupByStatsProcessor.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "naucrates/statistics/CScaleFactorUtils.h"
 
 namespace gpnaucrates
 {
@@ -30,10 +31,11 @@ namespace gpnaucrates
 			static
 			CDouble CalcJoinCardinality
 				(
+				 CMemoryPool *mp,
 				 CStatisticsConfig *stats_config,
 				 CDouble left_num_rows,
 				 CDouble right_num_rows,
-				 CDoubleArray *join_conds_scale_factors,
+				 CScaleFactorUtils::SJoinConditionArray *join_conds_scale_factors,
 				 IStatistics::EStatsJoinType join_type
 				);
 

@@ -34,7 +34,7 @@ CMDFunctionGPDB::CMDFunctionGPDB
 	IMDId *mdid,
 	CMDName *mdname,
 	IMDId *result_type_mdid,
-								 IMdIdArray *mdid_array,
+	IMdIdArray *mdid_array,
 	BOOL ReturnsSet,
 	EFuncStbl func_stability,
 	EFuncDataAcc func_data_access,

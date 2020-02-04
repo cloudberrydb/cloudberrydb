@@ -92,7 +92,8 @@ CLogical::PdrgpcrCreateMapping
 	(
 	CMemoryPool *mp,
 	const CColumnDescriptorArray *pdrgpcoldesc,
-	ULONG ulOpSourceId
+	ULONG ulOpSourceId,
+	IMDId *mdid_table
 	)
 	const
 {
@@ -106,7 +107,7 @@ CLogical::PdrgpcrCreateMapping
 	{
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[ul];
 		CName name(mp, pcoldesc->Name());
-		CColRef *colref = col_factory->PcrCreate(pcoldesc, name, ulOpSourceId, false /* mark_as_used */ );
+		CColRef *colref = col_factory->PcrCreate(pcoldesc, name, ulOpSourceId, false /* mark_as_used */, mdid_table);
 		colref_array->Append(colref);
 	}
 	

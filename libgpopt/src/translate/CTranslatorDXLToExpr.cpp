@@ -627,6 +627,7 @@ CTranslatorDXLToExpr::PexprLogicalGet
 		// copy key
 		ULONG *pulKey = GPOS_NEW(m_mp) ULONG(pdxlcd->Id());
 		BOOL fres = m_phmulcr->Insert(pulKey, colref);
+		colref->SetMdidTable(ptabdesc->MDId());
 
 		if (!fres)
 		{

@@ -43,7 +43,7 @@ CStatisticsConfig::CStatisticsConfig
 	m_phsmdidcolinfo(NULL)
 {
 	GPOS_ASSERT(CDouble(0.0) < damping_factor_filter);
-	GPOS_ASSERT(CDouble(0.0) < damping_factor_join);
+	GPOS_ASSERT(CDouble(0.0) <= damping_factor_join);
 	GPOS_ASSERT(CDouble(0.0) < damping_factor_groupby);
 
 	//m_phmmdidcolinfo = New(m_mp) HMMDIdMissingstatscol(m_mp);

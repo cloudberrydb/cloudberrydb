@@ -390,6 +390,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	CWStringConst strRelAlias(GPOS_WSZ_LIT("Rel1"));
 	CWStringConst strColA(GPOS_WSZ_LIT("a"));
 	CWStringConst strColB(GPOS_WSZ_LIT("b"));
+	CWStringConst strColC(GPOS_WSZ_LIT("int4_10"));
 	CTableDescriptor *ptabdesc =
 			PtabdescTwoColumnSource(mp, CName(&strRelAlias), pmdtypeint4, strColA, strColB);
 	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp, ptabdesc, &strRelAlias);
@@ -401,6 +402,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 				(
 				pmdtypeint4,
 				default_type_modifier,
+				NULL,
 				0 /* attno */,
 				false /*IsNullable*/,
 				1 /* id */,
@@ -415,12 +417,28 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 				(
 				pmdtypeint4,
 				default_type_modifier,
+				NULL,
 				1 /* attno */,
 				false /*IsNullable*/,
 				2 /* id */,
 				CName(&strColB),
 				pexprGet->Pop()->UlOpId()
 				);
+	}
+
+	if (NULL == col_factory->LookupColRef(10 /*id*/))
+	{
+		(void) col_factory->PcrCreate
+		(
+		 pmdtypeint4,
+		 default_type_modifier,
+		 NULL,
+		 2 /* attno */,
+		 false /*IsNullable*/,
+		 10 /* id */,
+		 CName(&strColC),
+		 pexprGet->Pop()->UlOpId()
+		 );
 	}
 
 	// create hash map from colid -> histogram

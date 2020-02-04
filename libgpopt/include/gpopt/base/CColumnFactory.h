@@ -72,7 +72,8 @@ namespace gpopt
 					ULONG id,
 					const CName &name,
 					ULONG ulOpSource,
-					BOOL mark_as_used=true
+					BOOL mark_as_used=true,
+					IMDId *mdid_table=NULL
 					);
 
 		public:
@@ -98,7 +99,8 @@ namespace gpopt
 				const CColumnDescriptor *pcoldescr,
 				const CName &name,
 				ULONG ulOpSource,
-				BOOL mark_as_used
+				BOOL mark_as_used,
+				IMDId *mdid_table
 				);
 
 			// create a column reference given its type, attno, nullability and name
@@ -106,6 +108,7 @@ namespace gpopt
 				(
 				const IMDType *pmdtype,
 				INT type_modifier,
+				IMDId *mdid_table,
 				INT attno,
 				BOOL is_nullable,
 				ULONG id,

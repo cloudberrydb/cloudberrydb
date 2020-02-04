@@ -43,6 +43,7 @@ CColRef::CColRef
 	m_type_modifier(type_modifier),
 	m_pname(pname),
 	m_used(EUnknown),
+	m_mdid_table(NULL),
 	m_id(id)
 {
 	GPOS_ASSERT(NULL != pmdtype);

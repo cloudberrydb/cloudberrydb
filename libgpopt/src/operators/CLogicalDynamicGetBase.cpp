@@ -138,7 +138,7 @@ CLogicalDynamicGetBase::CLogicalDynamicGetBase
 	GPOS_ASSERT(NULL != pnameAlias);
 	
 	// generate a default column set for the table descriptor
-	m_pdrgpcrOutput = PdrgpcrCreateMapping(mp, m_ptabdesc->Pdrgpcoldesc(), UlOpId());
+	m_pdrgpcrOutput = PdrgpcrCreateMapping(mp, m_ptabdesc->Pdrgpcoldesc(), UlOpId(), m_ptabdesc->MDId());
 	m_pdrgpdrgpcrPart = PdrgpdrgpcrCreatePartCols(mp, m_pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
 	
 	// generate a constraint "true"

@@ -6031,7 +6031,7 @@
                                   <dxl:Filter>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
                                       <dxl:Ident ColId="16" ColName="o_orderstatus" TypeMdid="0.1042.1.0" TypeModifier="5"/>
-                                      <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                                      <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAABUY=" LintValue="160743980"/>
                                     </dxl:Comparison>
                                   </dxl:Filter>
                                   <dxl:TableDescriptor Mdid="0.31262.1.0" TableName="heap_orders">
@@ -6360,7 +6360,7 @@
                                   <dxl:Filter>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
                                       <dxl:Ident ColId="31" ColName="n_name" TypeMdid="0.1042.1.0" TypeModifier="29"/>
-                                      <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAADk1PWkFNQklRVUU=" LintValue="217359228"/>
+                                      <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAADk1PWkFNQklRVUU=" LintValue="217359228"/>
                                     </dxl:Comparison>
                                   </dxl:Filter>
                                   <dxl:TableDescriptor Mdid="0.31259.1.0" TableName="heap_nation">

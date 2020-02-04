@@ -198,6 +198,43 @@ CJoinCardinalityTest::EresUnittest_Join()
 		{"../data/dxl/statistics/Join-Statistics-Text-Input.xml", "../data/dxl/statistics/Join-Statistics-Text-Output.xml", false, PdrgpstatspredjoinSingleJoinPredicate},
 	};
 
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	const IMDTypeInt4 *pmdtypeint4 = COptCtxt::PoctxtFromTLS()->Pmda()->PtMDType<IMDTypeInt4>();
+
+	ULongPtrArray *cols = GPOS_NEW(mp) ULongPtrArray(mp);
+	cols->Append(GPOS_NEW(mp) ULONG(0));
+	cols->Append(GPOS_NEW(mp) ULONG(1));
+	cols->Append(GPOS_NEW(mp) ULONG(2));
+	cols->Append(GPOS_NEW(mp) ULONG(8));
+	cols->Append(GPOS_NEW(mp) ULONG(16));
+	cols->Append(GPOS_NEW(mp) ULONG(31));
+	cols->Append(GPOS_NEW(mp) ULONG(32));
+	cols->Append(GPOS_NEW(mp) ULONG(53));
+	cols->Append(GPOS_NEW(mp) ULONG(54));
+
+	for (ULONG ul  = 0; ul < cols->Size(); ul++)
+	{
+		ULONG id = *((*cols)[ul]);
+		if (NULL == col_factory->LookupColRef(id))
+		{
+			// for this test the col name doesn't matter
+			CWStringConst str(GPOS_WSZ_LIT("col"));
+			// create column references for grouping columns
+			(void) col_factory->PcrCreate
+			(
+			 pmdtypeint4,
+			 default_type_modifier,
+			 NULL,
+			 ul /* attno */,
+			 false /*IsNullable*/,
+			 id,
+			 CName(&str),
+			 0
+			 );
+		}
+	}
+	cols->Release();
+
 	const ULONG ulTestCases = GPOS_ARRAY_SIZE(rgstatsjointc);
 	for (ULONG ul = 0; ul < ulTestCases; ul++)
 	{

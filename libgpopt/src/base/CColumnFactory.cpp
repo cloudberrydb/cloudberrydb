@@ -196,7 +196,8 @@ CColumnFactory::PcrCreate
 	ULONG id,
 	const CName &name,
 	ULONG ulOpSource,
-	BOOL mark_as_used
+	BOOL mark_as_used,
+	IMDId *mdid_table
 	)
 {
 	CName *pnameCopy = GPOS_NEW(m_mp) CName(m_mp, name);
@@ -212,6 +213,10 @@ CColumnFactory::PcrCreate
 	if (mark_as_used)
 	{
 		colref->MarkAsUsed();
+	}
+	if (mdid_table)
+	{
+		colref->SetMdidTable(mdid_table);
 	}
 	
 	return a_pcr.Reset();
@@ -233,6 +238,7 @@ CColumnFactory::PcrCreate
 	(
 	const IMDType *pmdtype,
 	INT type_modifier,
+	IMDId *mdid_table,
 	INT attno,
 	BOOL is_nullable,
 	ULONG id,
@@ -253,6 +259,7 @@ CColumnFactory::PcrCreate
 	GPOS_ASSERT(NULL == LookupColRef(id));
 	m_sht.Insert(colref);
 	colref->MarkAsUsed();
+	colref->SetMdidTable(mdid_table);
 
 	return a_pcr.Reset();
 }
@@ -271,12 +278,13 @@ CColumnFactory::PcrCreate
 	const CColumnDescriptor *pcoldesc,
 	const CName &name,
 	ULONG ulOpSource,
-	BOOL mark_as_used
+	BOOL mark_as_used,
+	IMDId *mdid_table
 	)
 {
 	ULONG id = m_aul++;
 	
-	return PcrCreate(pcoldesc, id, name, ulOpSource, mark_as_used);
+	return PcrCreate(pcoldesc, id, name, ulOpSource, mark_as_used, mdid_table);
 }
 
 //---------------------------------------------------------------------------
@@ -307,6 +315,7 @@ CColumnFactory::PcrCopy
 			(
 			colref->RetrieveType(),
 			colref->TypeModifier(),
+			colref->GetMdidTable(),
 			pcrTable->AttrNum(),
 			pcrTable->IsNullable(),
 			id,

@@ -15,6 +15,7 @@
 #include "gpopt/engine/CStatisticsConfig.h"
 
 #include "naucrates/statistics/CHistogram.h"
+#include "naucrates/statistics/CStatisticsUtils.h"
 
 namespace gpnaucrates
 {
@@ -32,9 +33,62 @@ namespace gpnaucrates
 	{
 		public:
 
+			struct SJoinCondition
+			{
+				// scale factor
+				CDouble m_scale_factor;
+
+				// mdid pair for the predicate
+				IMdIdArray *m_oid_pair;
+
+				//ctor
+				SJoinCondition
+				(
+				 CDouble scale_factor,
+				 IMdIdArray *mdid_pair
+				 )
+				:
+				m_scale_factor(scale_factor),
+				m_oid_pair(mdid_pair)
+				{}
+
+				~SJoinCondition()
+				{
+					CRefCount::SafeRelease(m_oid_pair);
+				}
+
+				// We hash/compare the pointer rather than the contents of the IMdId, as we want to discern between different instances of IMdIds.
+				// For example, when performing a self join, the underlying tables will have different IMdId pointers, but the same contents.
+				// We treat them as different instances and assume independence to calculate the correct join cardinality.
+				static
+				ULONG HashValue(const IMdIdArray *oid_pair)
+				{
+					return CombineHashes(gpos::HashPtr<IMDId>((*oid_pair)[0]), gpos::HashPtr<IMDId>((*oid_pair)[1]));
+				}
+
+				static
+				BOOL Equals(const IMdIdArray *first,
+							const IMdIdArray *second)
+				{ return ((*first)[0] == (*second)[0]) && ((*first)[1] == (*second)[1]); }
+			};
+
+			typedef CDynamicPtrArray<SJoinCondition, CleanupDelete> SJoinConditionArray;
+
+			typedef CHashMap<IMdIdArray, CDoubleArray, SJoinCondition::HashValue, SJoinCondition::Equals, CleanupRelease<IMdIdArray>, CleanupRelease<CDoubleArray> > OIDPairToScaleFactorArrayMap;
+
+			typedef CHashMapIter<IMdIdArray, CDoubleArray, SJoinCondition::HashValue, SJoinCondition::Equals, CleanupRelease<IMdIdArray>, CleanupRelease<CDoubleArray> > OIDPairToScaleFactorArrayMapIter;
+
+			// generate the hashmap of scale factors grouped by pred tables, also produces array of complex join preds
+			static
+			OIDPairToScaleFactorArrayMap* GenerateScaleFactorMap(CMemoryPool *mp, SJoinConditionArray *join_conds_scale_factors, CDoubleArray* complex_join_preds);
+
+			// generate a cumulative scale factor using a modified sqrt algorithm
+			static
+			CDouble CalcCumulativeScaleFactorSqrtAlg(OIDPairToScaleFactorArrayMap *scale_factor_hashmap, CDoubleArray* complex_join_preds);
+
 			// calculate the cumulative join scaling factor
 			static
-			CDouble CumulativeJoinScaleFactor(const CStatisticsConfig *stats_config, CDoubleArray *join_conds_scale_factors);
+			CDouble CumulativeJoinScaleFactor(CMemoryPool *mp, const CStatisticsConfig *stats_config, SJoinConditionArray *join_conds_scale_factors);
 
 			// return scaling factor of the join predicate after apply damping
 			static
@@ -63,6 +117,10 @@ namespace gpnaucrates
 			// comparison function in descending order
 			static
 			INT DescendingOrderCmpFunc(const void *val1, const void *val2);
+
+			// comparison function for joins in descending order
+			static
+			INT DescendingOrderCmpJoinFunc(const void *val1, const void *val2);
 
 			// comparison function in ascending order
 			static
