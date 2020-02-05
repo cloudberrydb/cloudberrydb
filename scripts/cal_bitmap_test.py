@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Optimizer calibration test
+# Optimizer calibration test for bitmap indexes
 #
 # This program runs a set of queries, varying several parameters:
 #
@@ -35,12 +35,14 @@ except ImportError, e:
 # -----------------------------------------------------------------------------
 
 _help = """
-Run optimizer calibration tests. Optionally create the tables before running, and drop them afterwards.
+Run optimizer bitmap calibration tests. Optionally create the tables before running, and drop them afterwards.
 This explains and runs a series of queries and reports the estimated and actual costs.
 The results can be copied and pasted into a spreadsheet for further processing.
 """
 
 TABLE_NAME_PATTERN = r"cal_txtest"
+NDV_TABLE_NAME_PATTERN = r"cal_ndvtest"
+BFV_TABLE_NAME_PATTERN = r"cal_bfvtest"
 
 TABLE_SCAN = "table_scan"
 TABLE_SCAN_PATTERN = r"Seq Scan"
@@ -53,6 +55,14 @@ INDEX_SCAN_PATTERN_V5 = r">  Index Scan"
 BITMAP_SCAN = "bitmap_scan"
 BITMAP_SCAN_PATTERN = r"Bitmap Heap Scan"
 BITMAP_SCAN_PATTERN_V5 = r"Bitmap Table Scan"
+
+HASH_JOIN = "hash_join"
+HASH_JOIN_PATTERN = r"Hash Join"
+HASH_JOIN_PATTERN_V5 = r"Hash Join"
+
+NL_JOIN = "nl_join"
+NL_JOIN_PATTERN = r"Nested Loop"
+NL_JOIN_PATTERN_V5 = r"Nested Loop"
 
 OPTIMIZER_DEFAULT_PLAN = "optimizer"
 
@@ -73,13 +83,13 @@ glob_gpdb_major_version=7
 # -----------------------------------------------------------------------------
 
 _drop_tables = """
-drop table if exists cal_txtest, cal_temp_ids, cal_dim
+DROP TABLE IF EXISTS cal_txtest, cal_temp_ids, cal_dim, cal_bfvtest, cal_bfv_dim, cal_ndvtest;
 """
 
 # create the table. Parameters:
 # - WITH clause (optional), for append-only tables
 _create_cal_table = """
-create table cal_txtest(id int,
+CREATE TABLE cal_txtest(id int,
                         btreeunique int,
                         btree10 int,
                         btree100 int,
@@ -91,7 +101,21 @@ create table cal_txtest(id int,
                         bitmap10000 int,
                         txt text)
 %s
-distributed by (id)
+DISTRIBUTED BY (id);
+"""
+
+_create_bfv_table = """
+CREATE TABLE cal_bfvtest (col1 integer,
+                          wk_id int,
+                          id integer)
+%s
+DISTRIBUTED BY (col1);
+"""
+
+_create_ndv_table = """
+CREATE TABLE cal_ndvtest (id int, val int)
+%s
+DISTRIBUTED BY (id);
 """
 
 _with_appendonly = """
@@ -99,25 +123,28 @@ WITH (appendonly=true, compresslevel=5, compresstype=zlib)
 """
 
 _create_other_tables = [ """
-create table cal_temp_ids(f_id int, f_rand double precision) distributed by (f_id)
+CREATE TABLE cal_temp_ids(f_id int, f_rand double precision) DISTRIBUTED BY (f_id);
 """,
                          """
-create table cal_dim(dim_id int,
+CREATE TABLE cal_dim(dim_id int,
                      dim_id2 int,
                      txt text)
-distributed by (dim_id)
+DISTRIBUTED BY (dim_id);
+""",
+"""
+CREATE TABLE cal_bfv_dim (id integer, col2 integer) DISTRIBUTED BY (id);
 """ ]
 
 # insert into temp table. Parameters:
 # - integer start value (usually 0 or 1)
 # - integer stop value (suggested value is 10000000)
 _insert_into_temp = """
-insert into cal_temp_ids select x, random() from (select * from generate_series(%d,%d)) T(x)
+INSERT INTO cal_temp_ids SELECT x, random() FROM (SELECT * FROM generate_series(%d,%d)) T(x);
 """
 
 _insert_into_table = """
-insert into cal_txtest
-select f_id,
+INSERT INTO cal_txtest
+SELECT f_id,
        f_id,
        f_id%10,
        f_id%100,
@@ -128,53 +155,71 @@ select f_id,
        f_id%1000,
        f_id%10000,
        repeat('a', 900)
-from cal_temp_ids
-order by f_rand
+FROM cal_temp_ids
+order by f_rand;
 """
 
 _insert_into_other_tables = """
-insert into cal_dim select x, x, repeat('d', 100) from (select * from generate_series(%d,%d)) T(x)
+INSERT INTO cal_dim SELECT x, x, repeat('d', 100) FROM (SELECT * FROM generate_series(%d,%d)) T(x);
 """
 
 _create_index_arr = ["""
-create index cal_txtest_i_btree_unique on cal_txtest using btree(btreeunique)
+CREATE INDEX cal_txtest_i_bitmap_10    ON cal_txtest USING bitmap(bitmap10);
 """,
                    """
-create index cal_txtest_i_btree_10     on cal_txtest using btree(btree10)
+CREATE INDEX cal_txtest_i_bitmap_100   ON cal_txtest USING bitmap(bitmap100);
 """,
                    """
-create index cal_txtest_i_btree_100    on cal_txtest using btree(btree100)
+CREATE INDEX cal_txtest_i_bitmap_1000  ON cal_txtest USING bitmap(bitmap1000);
 """,
                    """
-create index cal_txtest_i_btree_1000   on cal_txtest using btree(btree1000)
-""",
-                   """
-create index cal_txtest_i_btree_10000  on cal_txtest using btree(btree10000)
-""",
-                   """
-create index cal_txtest_i_bitmap_10    on cal_txtest using bitmap(bitmap10)
-""",
-                   """
-create index cal_txtest_i_bitmap_100   on cal_txtest using bitmap(bitmap100)
-""",
-                   """
-create index cal_txtest_i_bitmap_1000  on cal_txtest using bitmap(bitmap1000)
-""",
-                   """
-create index cal_txtest_i_bitmap_10000 on cal_txtest using bitmap(bitmap10000)
+CREATE INDEX cal_txtest_i_bitmap_10000 ON cal_txtest USING bitmap(bitmap10000);
 """,
     ]
 
+_create_bfv_index_arr = ["""
+CREATE INDEX idx_cal_bfvtest_bitmap ON cal_bfvtest USING bitmap(id);
+""",
+    ]
+
+_create_ndv_index_arr = ["""
+CREATE INDEX cal_ndvtest_bitmap ON cal_ndvtest USING bitmap(val);
+""",
+    ]
+
+_create_btree_indexes_ao_arr = ["""
+CREATE INDEX cal_txtest_i_btree_unique ON cal_txtest USING btree(btreeunique);
+""",
+                   """
+CREATE INDEX cal_txtest_i_btree_10     ON cal_txtest USING btree(btree10);
+""",
+                   """
+CREATE INDEX cal_txtest_i_btree_100    ON cal_txtest USING btree(btree100);
+""",
+                   """
+CREATE INDEX cal_txtest_i_btree_1000   ON cal_txtest USING btree(btree1000);
+""",
+                   """
+CREATE INDEX cal_txtest_i_btree_10000  ON cal_txtest USING btree(btree10000);
+""",
+                   """
+CREATE INDEX idx_cal_bfvtest_btree ON cal_bfvtest USING btree(id);
+""",
+                   """
+CREATE INDEX cal_ndvtest_btree ON cal_ndvtest USING btree(val);
+""",
+]
+
 _analyze_table = """
-analyze cal_txtest
+ANALYZE cal_txtest;
 """
 
 _allow_system_mods = """
-set allow_system_table_mods to on
+SET allow_system_table_mods to on;
 """
 
 _allow_system_mods_v5 = """
-set allow_system_table_mods to 'dml'
+SET allow_system_table_mods to 'dml';
 """
 
 # Make sure pg_statistics has smooth and precise statistics, so that the cardinality estimates we get are very precise
@@ -184,102 +229,102 @@ set allow_system_table_mods to 'dml'
 # So far, id and btreeunique are not yet used (staattnums 1 and 2), no stats are changed
 
 _fix_statistics = ["""
-update pg_statistic
-  set stadistinct = 10,
+UPDATE pg_statistic
+  SET stadistinct = 10,
       stakind1 = 1,
       stanumbers1 = '{ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 }',
 	  stavalues1 = '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 3
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 3;
 """,
                    """
-update pg_statistic
-  set stadistinct = 100,
+UPDATE pg_statistic
+  SET stadistinct = 100,
       stakind1 = 1,
       stanumbers1 = '{ 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 }',
 	  stavalues1 = '{ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99 }'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 4
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 4;
 """,
                    """
-update pg_statistic
-  set stadistinct = 1000,
+UPDATE pg_statistic
+  SET stadistinct = 1000,
       stakind1 = 1,
       stanumbers1 = '{ 0.001, 0.001, 0.001 }',
 	  stavalues1 = '{100, 200, 300}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 199, 399, 599, 799, 999}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 5
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 5;
 """,
                    """
-update pg_statistic
-  set stadistinct = 10000,
+UPDATE pg_statistic
+  SET stadistinct = 10000,
       stakind1 = 1,
       stanumbers1 = '{ 0.0001, 0.0001, 0.0001 }',
 	  stavalues1 = '{1000, 2000, 3000}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 1999, 3999, 5999, 7999, 9999}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 6
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 6;
 """,
                    """
-update pg_statistic
-  set stadistinct = 10,
+UPDATE pg_statistic
+  SET stadistinct = 10,
       stakind1 = 1,
       stanumbers1 = '{ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 }',
 	  stavalues1 = '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 7
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 7;
 """,
                    """
-update pg_statistic
-  set stadistinct = 100,
+UPDATE pg_statistic
+  SET stadistinct = 100,
       stakind1 = 1,
       stanumbers1 = '{ 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 }',
 	  stavalues1 = '{ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99 }'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 8
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 8;
 """,
                    """
-update pg_statistic
-  set stadistinct = 1000,
+UPDATE pg_statistic
+  SET stadistinct = 1000,
       stakind1 = 1,
       stanumbers1 = '{ 0.001, 0.001, 0.001 }',
 	  stavalues1 = '{100, 200, 300}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 199, 399, 599, 799, 999}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 9
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 9;
 """,
                    """
-update pg_statistic
-  set stadistinct = 10000,
+UPDATE pg_statistic
+  SET stadistinct = 10000,
       stakind1 = 1,
       stanumbers1 = '{ 0.0001, 0.0001, 0.0001 }',
 	  stavalues1 = '{1000, 2000, 3000}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 1999, 3999, 5999, 7999, 9999}'::int[]
-where starelid = 'cal_txtest'::regclass and staattnum = 10
+WHERE starelid = 'cal_txtest'::regclass AND staattnum = 10;
 """,
                    """
-update pg_statistic
-  set stadistinct = 10000,
+UPDATE pg_statistic
+  SET stadistinct = 10000,
       stakind1 = 1,
       stanumbers1 = '{ 0.0001, 0.0001, 0.0001 }',
 	  stavalues1 = '{1000, 2000, 3000}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 1999, 3999, 5999, 7999, 9999}'::int[]
-where starelid = 'cal_dim'::regclass and staattnum = 1
+WHERE starelid = 'cal_dim'::regclass AND staattnum = 1;
 """,
                    """
-update pg_statistic
-  set stadistinct = 10000,
+UPDATE pg_statistic
+  SET stadistinct = 10000,
       stakind1 = 1,
       stanumbers1 = '{ 0.0001, 0.0001, 0.0001 }',
 	  stavalues1 = '{1000, 2000, 3000}'::int[],
 	  stakind2 = 2,
 	  stanumbers2 = '{}',
 	  stavalues2 = '{0, 1999, 3999, 5999, 7999, 9999}'::int[]
-where starelid = 'cal_dim'::regclass and staattnum = 2
+WHERE starelid = 'cal_dim'::regclass AND staattnum = 2;
 """ ]
 
 
@@ -310,7 +355,7 @@ def parseargs():
     parser.add_argument("--appendOnly", action="store_true",
                         help="Create an append-only table (uses only bitmap indexes). Default is a heap table")
     parser.add_argument("--numRows", type=int, default="10000000",
-                        help="Number of rows to insert into the table (default is 10 million)")
+                        help="Number of rows to INSERT INTO the table (default is 10 million)")
 
     parser.set_defaults(verbose=False, filters=[], slice=(None, None))
 
@@ -339,7 +384,7 @@ def connect(host, port_num, db_name):
 
 def select_version(conn):
     global glob_gpdb_major_version
-    sqlStr = "select version()"
+    sqlStr = "SELECT version()"
     curs = dbconn.execSQL(conn, sqlStr)
 
     rows = curs.fetchall()
@@ -349,7 +394,7 @@ def select_version(conn):
         log_output("GPDB major version is %d" % glob_gpdb_major_version)
 
     log_output("Backend pid:")
-    sqlStr = "select pg_backend_pid()"
+    sqlStr = "SELECT pg_backend_pid()"
     curs = dbconn.execSQL(conn, sqlStr)
 
     rows = curs.fetchall()
@@ -436,7 +481,7 @@ def explain_index_scan(conn, sqlStr):
     
         for row in rows:
             log_output(row[0])
-            if re.search(TABLE_NAME_PATTERN, row[0]):
+            if re.search(TABLE_NAME_PATTERN, row[0]) or re.search(NDV_TABLE_NAME_PATTERN, row[0]):
                 if re.search(bitmap_scan_pattern, row[0]):
                     scan_type = BITMAP_SCAN
                     cost = cost_from_explain_line(row[0])
@@ -446,6 +491,52 @@ def explain_index_scan(conn, sqlStr):
                 elif re.search(table_scan_pattern, row[0]):
                     scan_type = TABLE_SCAN
                     cost = cost_from_explain_line(row[0])
+
+    except Exception as e:
+        log_output("\n*** ERROR explaining query:\n%s;\nReason: %s" % ("explain " + sqlStr, e))
+
+    return (scan_type, cost)
+
+
+# Explain a query and find a join in an explain output
+# return the scan type and the corresponding cost.
+# Use this for scan-related tests.
+
+def explain_join_scan(conn, sqlStr):
+    cost = -1.0
+    scan_type = ""
+    try:
+        log_output("")
+        log_output("Executing query: %s" % ("explain " + sqlStr))
+        exp_curs = dbconn.execSQL(conn, "explain " + sqlStr)
+        rows = exp_curs.fetchall()
+        hash_join_pattern = HASH_JOIN_PATTERN
+        nl_join_pattern = NL_JOIN_PATTERN
+        table_scan_pattern = TABLE_SCAN_PATTERN
+        index_scan_pattern = INDEX_SCAN_PATTERN
+        bitmap_scan_pattern = BITMAP_SCAN_PATTERN
+        if (glob_gpdb_major_version) <= 5:
+            hash_join_pattern = HASH_JOIN_PATTERN_V5
+            nl_join_pattern = NL_JOIN_PATTERN_V5
+            table_scan_pattern = TABLE_SCAN_PATTERN_V5
+            index_scan_pattern = INDEX_SCAN_PATTERN_V5
+            bitmap_scan_pattern = BITMAP_SCAN_PATTERN_V5
+
+        # save the cost of the join above the scan type
+        for row in rows:
+            log_output(row[0])
+            if re.search(nl_join_pattern, row[0]):
+                cost = cost_from_explain_line(row[0])
+            elif re.search(hash_join_pattern, row[0]):
+                cost = cost_from_explain_line(row[0])
+            # mark the scan type used underneath the join
+            if re.search(TABLE_NAME_PATTERN, row[0]) or re.search(BFV_TABLE_NAME_PATTERN, row[0]):
+                if re.search(bitmap_scan_pattern, row[0]):
+                    scan_type = BITMAP_SCAN
+                elif re.search(index_scan_pattern, row[0]):
+                    scan_type = INDEX_SCAN
+                elif re.search(table_scan_pattern, row[0]):
+                    scan_type = TABLE_SCAN
 
     except Exception as e:
         log_output("\n*** ERROR explaining query:\n%s;\nReason: %s" % ("explain " + sqlStr, e))
@@ -466,11 +557,12 @@ def cost_from_explain_line(line):
 
 # iterate over one parameterized query, using a range of parameter values, explaining and (optionally) executing the query
 
-def find_crossover(conn, lowParamValue, highParamLimit, parameterizeMethod, explain_method, reset_method, plan_ids, force_methods, execute_n_times):
+def find_crossover(conn, lowParamValue, highParamLimit, setup, parameterizeMethod, explain_method, reset_method, plan_ids, force_methods, execute_n_times):
     # expects the following:
     # - conn:               A connection
     # - lowParamValue:      The lowest (integer) value to try for the parameter
     # - highParamLimit:     The highest (integer) value to try for the parameter + 1
+    # - setup:              A method that runs any sql needed for setup before a particular select run, given a parameterized query and a paramter value
     # - parameterizeMethod: A method to generate the actual query text, given a parameterized query and a parameter value
     # - explain_method:     A method that takes a connection and an SQL string and returns a tuple (plan, cost)
     # - reset_method:       A method to reset all gucs and similar switches, to get the default plan by the optimizer
@@ -515,6 +607,9 @@ def find_crossover(conn, lowParamValue, highParamLimit, parameterizeMethod, expl
     # first part, run through the parameter values and determine the plan and cost chosen by the optimizer
     for paramValue in range(lowParamValue, highParamLimit, incParamValue):
         
+        # do any setup required
+        setupString = setup(paramValue)
+        execute_sql(conn, setupString)
         # explain the query and record which plan it chooses and what the cost is
         sqlString = parameterizeMethod(paramValue)
         (plan, cost) = explain_method(conn, sqlString)
@@ -542,6 +637,10 @@ def find_crossover(conn, lowParamValue, highParamLimit, parameterizeMethod, expl
         log_output("----------- Now forcing a %s plan --------------" % plan_id)
         force_methods[plan_num](conn)
         for paramValue in range(lowParamValue, highParamLimit, incParamValue):
+            # do any setup required
+            setupString = setup(paramValue)
+            execute_sql(conn, setupString)
+      			# explain the query with the forced plan
             sqlString = parameterizeMethod(paramValue)
             (plan, cost) = explain_method(conn, sqlString)
             if plan_id != plan:
@@ -590,7 +689,6 @@ def checkForOptimizerErrors(paramValue, chosenPlan, plan_ids, execDict):
             if (paramValue, pl) in execDict:
                 altExeTime, altStdDev = execDict[(paramValue, pl)]
 
-                
                 # The execution times tend to be fairly unreliable. Try to avoid false positives by
                 # requiring a significantly better alternative, measured in standard deviations.
                 if altExeTime + glob_sigma_diff * max(defaultStdDev, altStdDev) < defaultExeTime:
@@ -735,78 +833,109 @@ def timed_execute_and_check_timeout(conn, sqlString, execute_n_times, paramValue
 # GUC set statements
 
 _reset_index_scan_forces = [ """
-select enable_xform('CXformImplementBitmapTableGet')
+SELECT enable_xform('CXformImplementBitmapTableGet');
 """,
                            """
-select enable_xform('CXformGet2TableScan')
+SELECT enable_xform('CXformGet2TableScan');
 """ ]
 
 _force_sequential_scan = [ """
-select disable_xform('CXformImplementBitmapTableGet')
+SELECT disable_xform('CXformImplementBitmapTableGet');
 """ ]
 
 _force_index_scan = [ """
-select disable_xform('CXformGet2TableScan')
+SELECT disable_xform('CXformGet2TableScan');
 """ ]
 
 _reset_index_join_forces = [ """
-select enable_xform('CXformPushGbBelowJoin')
+SELECT enable_xform('CXformPushGbBelowJoin');
 """,
                      """
-reset optimizer_enable_indexjoin
+RESET optimizer_enable_indexjoin;
 """,
                      """
-reset optimizer_enable_hashjoin
+RESET optimizer_enable_hashjoin;
 """ ]
 
 _force_hash_join = [ """
-select disable_xform('CXformPushGbBelowJoin')
+SELECT disable_xform('CXformPushGbBelowJoin');
 """,
                      """
-set optimizer_enable_indexjoin to off
+SET optimizer_enable_indexjoin to off;
 """ ]
 
 _force_index_nlj = [ """
-select disable_xform('CXformPushGbBelowJoin')
+SELECT disable_xform('CXformPushGbBelowJoin');
 """,
                      """
-set optimizer_enable_hashjoin to off
+SET optimizer_enable_hashjoin to off;
 """ ]
 
+# setup statements
+
+_insert_into_bfv_tables = """
+TRUNCATE cal_bfvtest;
+TRUNCATE cal_bfv_dim;
+INSERT INTO cal_bfvtest SELECT col1, col1, col1 FROM (SELECT generate_series(1,%d) col1)a;
+INSERT INTO cal_bfv_dim SELECT col1, col1 FROM (SELECT generate_series(1,%d,3) col1)a;
+ANALYZE cal_bfvtest;
+ANALYZE cal_bfv_dim;
+"""
+
+_insert_into_ndv_tables= """
+TRUNCATE cal_ndvtest;
+INSERT INTO cal_ndvtest SELECT i, i %% %d FROM (SELECT generate_series(1,1000000) i)a;
+ANALYZE cal_ndvtest;
+"""
+
+# query statements
+
 _bitmap_select_10_pct = """
-select count(*) %s
-from cal_txtest
-where bitmap10 between 0 and %d
+SELECT count(*) %s
+FROM cal_txtest
+WHERE bitmap10 BETWEEN 0 AND %d;
 """
 
 _bitmap_select_1_pct = """
-select count(*) %s
-from cal_txtest
-where bitmap100 between 0 and %d
+SELECT count(*) %s
+FROM cal_txtest
+WHERE bitmap100 BETWEEN 0 AND %d;
 """
 
 _bitmap_select_pt1_pct = """
-select count(*) %s
-from cal_txtest
-where bitmap1000 between 0 and %d
+SELECT count(*) %s
+FROM cal_txtest
+WHERE bitmap1000 BETWEEN 0 AND %d;
 """
 
 _bitmap_select_pt01_pct = """
-select count(*) %s
-from cal_txtest
-where bitmap10000 between 0 and %d
+SELECT count(*) %s
+FROM cal_txtest
+WHERE bitmap10000 BETWEEN 0 AND %d;
 """
 
 _bitmap_select_pt01_pct_multi = """
-select count(*) %s
-from cal_txtest
-where bitmap10000 = 0 or bitmap10000 between 2 and %d+2
+SELECT count(*) %s
+FROM cal_txtest
+WHERE bitmap10000 = 0 OR bitmap10000 BETWEEN 2 AND %d+2;
 """
 
 _bitmap_index_join = """
-select count(*) %s
-from cal_txtest f join cal_dim d on f.bitmap10000 = d.dim_id
-where d.dim_id2 between 0 and %d
+SELECT count(*) %s
+FROM cal_txtest f JOIN cal_dim d ON f.bitmap10000 = d.dim_id
+WHERE d.dim_id2 BETWEEN 0 AND %d;
+"""
+
+_bfv_join = """
+SELECT count(*) 
+FROM cal_bfvtest ft, cal_bfv_dim dt1
+WHERE ft.id = dt1.id;
+"""
+
+_bitmap_index_ndv = """
+SELECT count(*)
+FROM cal_ndvtest
+WHERE val <= 1000000;
 """
 
 # Parameterize methods for the test queries above
@@ -840,6 +969,21 @@ def parameterize_bitmap_join_narrow(paramValue):
 def parameterize_bitmap_join_wide(paramValue):
     return _bitmap_index_join % (", max(f.txt)", paramValue)
 
+def parameterize_insert_join_bfv(paramValue):
+    return _insert_into_bfv_tables % (paramValue, paramValue)
+
+def parameterize_insert_ndv(paramValue):
+    return _insert_into_ndv_tables % (paramValue)
+
+def parameterize_bitmap_join_bfv(paramValue):
+    return _bfv_join
+
+def parameterize_bitmap_index_ndv(paramValue):
+    return _bitmap_index_ndv
+
+def noSetupRequired(paramValue):
+    return "SELECT 1;"
+
 def explain_bitmap_index(conn, sqlStr):
     return explain_index_scan(conn, sqlStr)
 
@@ -865,16 +1009,16 @@ def force_index_join(conn):
 # Helper methods for running tests
 # -----------------------------------------------------------------------------
 
-def run_one_bitmap_scan_test(conn, testTitle, paramValueLow, paramValueHigh, parameterizeMethod, execute_n_times):
+def run_one_bitmap_scan_test(conn, testTitle, paramValueLow, paramValueHigh, setup, parameterizeMethod, execute_n_times):
     plan_ids = [ BITMAP_SCAN, TABLE_SCAN ]
     force_methods = [ force_bitmap_scan, force_table_scan ]
-    explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, parameterizeMethod, explain_bitmap_index, reset_index_test, plan_ids, force_methods, execute_n_times)
+    explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, setup, parameterizeMethod, explain_bitmap_index, reset_index_test, plan_ids, force_methods, execute_n_times)
     print_results(testTitle, explainDict, execDict, errors, plan_ids)
 
-def run_one_bitmap_join_test(conn, testTitle, paramValueLow, paramValueHigh, parameterizeMethod, execute_n_times):
+def run_one_bitmap_join_test(conn, testTitle, paramValueLow, paramValueHigh, setup, parameterizeMethod, execute_n_times):
     plan_ids = [ BITMAP_SCAN, TABLE_SCAN ]
     force_methods = [ force_index_join, force_hash_join ]
-    explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, parameterizeMethod, explain_bitmap_index, reset_index_join, plan_ids, force_methods, execute_n_times)
+    explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, setup, parameterizeMethod, explain_join_scan, reset_index_join, plan_ids, force_methods, execute_n_times)
     print_results(testTitle, explainDict, execDict, errors, plan_ids)
 
 
@@ -887,6 +1031,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, NDV=10, selectivity_pct=10*parameter_value, count(*)",
                              0,
                              10,
+                             noSetupRequired,
                              parameterize_bitmap_index_10_narrow,
                              execute_n_times)
 
@@ -895,6 +1040,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, NDV=10, selectivity_pct=10*parameter_value, max(txt)",
                              0,
                              3,
+                             noSetupRequired,
                              parameterize_bitmap_index_10_wide,
                              execute_n_times)
 
@@ -902,6 +1048,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, NDV=10000, selectivity_pct=0.01*parameter_value, count(*)",
                              0,
                              20,
+                             noSetupRequired,
                              parameterize_bitmap_index_10000_narrow,
                              execute_n_times)
 
@@ -909,6 +1056,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, NDV=10000, selectivity_pct=0.01*parameter_value, count(*), largeNDV test",
                              0,
                              300,
+                             noSetupRequired,
                              parameterize_bitmap_index_10000_narrow,
                              execute_n_times)
 
@@ -916,6 +1064,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, NDV=10000, selectivity_pct=0.01*parameter_value, max(txt)",
                              5,
                              25,
+                             noSetupRequired,
                              parameterize_bitmap_index_10000_wide,
                              execute_n_times)
 
@@ -923,6 +1072,7 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, multi-range, NDV=10000, selectivity_pct=0.01*parameter_value, count(*)",
                              0,
                              100,
+                             noSetupRequired,
                              parameterize_bitmap_index_10000_multi_narrow,
                              execute_n_times)
 
@@ -930,24 +1080,42 @@ def run_bitmap_index_scan_tests(conn, execute_n_times):
                              "Bitmap Scan Test, multi-range, NDV=10000, selectivity_pct=0.01*parameter_value, max(txt)",
                              0,
                              60,
+                             noSetupRequired,
                              parameterize_bitmap_index_10000_multi_wide,
                              execute_n_times)
 
+    run_one_bitmap_scan_test(conn,
+                             "Bitmap Scan Test, ndv test, rows=1000000, parameter = insert statement modulo, count(*)",
+                             1, # modulo ex. would replace x in the following: SELECT i % x FROM generate_series(1,10000)i;
+                             10000, #max here is 10000 (num of rows)
+                             parameterize_insert_ndv,
+                             parameterize_bitmap_index_ndv,
+                             execute_n_times)
 
 def run_bitmap_index_join_tests(conn, execute_n_times):
 
     run_one_bitmap_join_test(conn,
                              "Bitmap Join Test, NDV=10000, selectivity_pct=0.01*parameter_value, count(*)",
                              0,
-                             400,
+                             900,
+                             noSetupRequired,
                              parameterize_bitmap_join_narrow,
                              execute_n_times)
     
     run_one_bitmap_join_test(conn,
                              "Bitmap Join Test, NDV=10000, selectivity_pct=0.01*parameter_value, max(txt)",
                              0,
-                             600,
+                             900,
+                             noSetupRequired,
                              parameterize_bitmap_join_wide,
+                             execute_n_times)
+
+    run_one_bitmap_join_test(conn,
+                             "Bitmap Join BFV Test, Large Data, parameter = num rows inserted",
+                             10000, # num of rows inserted
+                             900000,
+                             parameterize_insert_join_bfv,
+                             parameterize_bitmap_join_bfv,
                              execute_n_times)
     
 
@@ -960,17 +1128,25 @@ def createDB(conn, use_ao, num_rows):
     if use_ao:
         create_options = _with_appendonly
     create_cal_table_stmt = _create_cal_table % create_options
+    create_bfv_table = _create_bfv_table % create_options
+    create_ndv_table = _create_ndv_table % create_options
     insert_into_temp_stmt = _insert_into_temp % (1,num_rows)
     insert_into_other_stmt = _insert_into_other_tables % (1,10000)
         
     execute_sql(conn, _drop_tables)
     execute_sql(conn, create_cal_table_stmt)
+    execute_sql(conn, create_bfv_table)
+    execute_sql(conn, create_ndv_table)
     execute_sql_arr(conn, _create_other_tables)
     commit_db(conn)
     execute_and_commit_sql(conn, insert_into_temp_stmt)
     execute_and_commit_sql(conn, _insert_into_table)
     execute_and_commit_sql(conn, insert_into_other_stmt)
     execute_sql_arr(conn, _create_index_arr)
+    execute_sql_arr(conn, _create_bfv_index_arr)
+    execute_sql_arr(conn, _create_ndv_index_arr)
+    if use_ao:
+      execute_sql_arr(conn, _create_btree_indexes_ao_arr)
     execute_sql(conn, _analyze_table)
     commit_db(conn)
 
