@@ -573,6 +573,8 @@ namespace gpdb {
 	// check whether a type is composite
 	bool IsCompositeType(Oid typid);
 
+	bool IsTextRelatedType(Oid typid);
+
 	// get integer value from an Integer value node
 	int GetIntFromValue(Node *node);
 
@@ -664,9 +666,13 @@ namespace gpdb {
 						   int numsegments);
 
 
+	uint32 HashChar(Datum d);
+
 	uint32 HashBpChar(Datum d);
 
 	uint32 HashText(Datum d);
+
+	uint32 HashName(Datum d);
 
 	uint32 UUIDHash(Datum d);
 
