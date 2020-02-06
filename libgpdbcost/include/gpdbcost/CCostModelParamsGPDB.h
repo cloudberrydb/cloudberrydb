@@ -100,6 +100,7 @@ namespace gpopt
 				EcpBitmapIOCostSmallNDV, // bitmap IO co-efficient for smaller NDV
 				EcpBitmapPageCostLargeNDV, // bitmap page cost for large NDV
 				EcpBitmapPageCostSmallNDV, // bitmap page cost for smaller NDV
+				EcpBitmapPageCost, // bitmap page cost when not considering NDV
 				EcpBitmapNDVThreshold, // bitmap NDV threshold
 				EcpBitmapScanRebindCost, // cost of rebind operation in a bitmap scan
 				EcpPenalizeHJSkewUpperLimit, // upper limit for penalizing a skewed hashjoin operator
@@ -311,6 +312,10 @@ namespace gpopt
 			// default bitmap page cost when NDV is smaller
 			static
 			const CDouble DBitmapPageCostSmallNDV;
+
+			// default bitmap page cost with no assumption about NDV
+			static
+			const CDouble DBitmapPageCost;
 
 			// default threshold of NDV for bitmap costing
 			static

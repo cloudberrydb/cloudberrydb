@@ -212,6 +212,8 @@ namespace gpos
 		// Penalize HashJoins with a skewed hash distribute under them
 		EopttracePenalizeSkewedHashJoin = 104006,
 
+		// Use calibrated bitmap index cost model
+		EopttraceCalibratedBitmapIndexCostModel = 104007,
 		///////////////////////////////////////////////////////
 		/////////// constant expression evaluator flags ///////
 		///////////////////////////////////////////////////////
