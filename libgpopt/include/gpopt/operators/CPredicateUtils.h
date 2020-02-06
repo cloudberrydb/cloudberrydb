@@ -292,9 +292,9 @@ namespace gpopt
 			static
 			BOOL FHasNegatedChild(CExpression *pexpr);
 
-			// is the given expression an inner join
+			// is the given expression an inner join or NAry join
 			static
-			BOOL FInnerJoin
+			BOOL FInnerOrNAryJoin
 				(
 				CExpression *pexpr
 				)

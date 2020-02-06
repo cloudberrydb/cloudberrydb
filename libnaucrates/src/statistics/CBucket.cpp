@@ -731,6 +731,59 @@ CBucket::Subsumes
 //		Create a new bucket by intersecting with another
 //		and return the percentage of each of the buckets that intersect.
 // 		Points will be shared
+//
+//		We can think of this method as looking at the cartesian product of
+//		two histograms, with "this" being a bucket from histogram 1 and
+//		and "bucket" being from histogram 2.
+//
+//		The goal is to build a histogram that reflects the diagonal of
+//		the cartesian product, where the two values are equal, which is
+//		the result of the equi-join.
+//
+//		To do this, we take the overlapping rectangles from the original
+//		buckets and form new "squares" such that their corners lie on
+//		the diagonal. This method will take two overlapping buckets and
+//		return one such result bucket.
+//
+//		Example (shown below): this = [10, 14], bucket = [8,16]
+//
+//		The result will be [10,14] in this example, since "this"
+//		is fully contained in "bucket".
+//
+//		                                       diagonal
+//		                                          V
+//		               +----------------------------------+
+//		 histogram 1   |       |              |  /        |
+//		               |                       /          |
+//		               |       |             /|           |
+//		      +-->  14 *- - - - - -+-------* - - - - - - -|
+//		      |        |       |   |     / |  |           |
+//		   "this"      |           |   /   |              |
+//		      |        |       |   | /     |  |           |
+//		      +-->  10 *- - - -+---*-------+ - - - - - - -|
+//		               |       | / |          |           |
+//		             8 |       *---+                      |
+//		               |     / |              |           |
+//		               |   /                               |
+//		               | /     |              |           |
+//		               +-------+---*-------*--+-----------+
+//		                       8  10      14  16
+//		                       +-- "bucket" --+
+//
+//		                                    histogram 2
+//
+//		The reason why we show this as a two-dimensional picture here instead
+//		of just two overlapping intervals is because of how we compute the frequency
+//		of this resulting square:
+//
+//		This is done by applying the general cardinality formula for
+//		equi-joins: | R join S on R.a = S.b | = |R| * |S| / max(NDV(R.a), NDV(S.b))
+//
+//		The join of the two tables is the union of the join of each of the
+//		squares we produce, so we apply the formula to each generated square
+//		(bucket of the join histogram).
+//		Note that there are no equi-join results outside of these squares that
+//		overlay the diagonal.
 //---------------------------------------------------------------------------
 CBucket *
 CBucket::MakeBucketIntersect
@@ -783,6 +836,8 @@ CBucket::MakeBucketIntersect
 	GPOS_ASSERT(distance_new <= Width());
 	GPOS_ASSERT(distance_new <= bucket->Width());
 
+	// assume the values are equally distributed in the old buckets, so allocate a
+	// proportional value of NDVs to the new bucket
 	CDouble ratio1 = distance_new / Width();
 	CDouble ratio2 = distance_new / bucket->Width();
 
@@ -793,6 +848,9 @@ CBucket::MakeBucketIntersect
 		ratio2 = CDouble(1.0);
 	}
 
+	// we are assuming an equi-join, so the side with the fewest NDVs determines the
+	// NDV of the join, any values on one side that don't match the other side are
+	// discarded
 	CDouble distinct_new
 					(
 					std::min
@@ -802,11 +860,12 @@ CBucket::MakeBucketIntersect
 						)
 					);
 
-	// For computing frequency, we assume that the bucket with larger number
-	// of distinct values corresponds to the dimension. Therefore, selectivity
-	// of the join is:
-	// 1. proportional to the modified frequency values of both buckets
-	// 2. inversely proportional to the max number of distinct values in both buckets
+	// Based on Ramakrishnan and Gehrke, "Database Management Systems, Third Ed", page 484
+	// the cardinality of an equality join is the product of the base table cardinalities
+	// divided by the MAX of the number of distinct values in each of the inputs
+	//
+	// Note that we use frequencies here instead of cardinalities, and the resulting frequency
+	// is a fraction of the cardinality of the cartesian product
 
 	CDouble freq_intersect1 = ratio1 * m_frequency;
 	CDouble freq_intersect2 = ratio2 * bucket->m_frequency;

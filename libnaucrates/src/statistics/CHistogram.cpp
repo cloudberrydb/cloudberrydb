@@ -156,11 +156,11 @@ CHistogram::OsPrint
 	}
 	os << "]" << std::endl;
 
-	os << "Null fraction: " << m_null_freq << std::endl;
-
-	os << "Remaining NDV: " << m_distinct_remaining << std::endl;
-
-	os << "Remaining frequency: " << m_freq_remaining << std::endl;
+	os << "Null fraction      : " << GetNullFreq()        << std::endl;
+	os << "Remaining NDV      : " << GetDistinctRemain()  << std::endl;
+	os << "Total NDV          : " << GetNumDistinct()     << std::endl;
+	os << "Remaining frequency: " << GetFreqRemain()      << std::endl;
+	os << "Total frequency    : " << GetFrequency()       << std::endl;
 
 	if (m_skew_was_measured)
 	{
@@ -731,17 +731,23 @@ CHistogram::MakeJoinHistogramNormalize
 	}
 	
 	CHistogram *result_histogram = MakeJoinHistogram(stats_cmp_type, other_histogram);
+
+	// The returned frequencies are based on the cartesian product, now normalize the histogram.
+	// The returned scale factor will give us the ratio of the cartesian product's cardinality
+	// and the actual join cardinality.
 	*scale_factor = result_histogram->NormalizeHistogram();
 
-	// based on Ramakrishnan and Gehrke, "Database Management Systems, Third Ed", page 484
-	// the scaling factor of equality join is the MAX of the number of distinct
-	// values in each of the inputs
-
-	*scale_factor = std::max
-						(
-						std::max(MinDistinct.Get(), GetNumDistinct().Get()),
-						std::max(MinDistinct.Get(), other_histogram->GetNumDistinct().Get())
-						);
+	// TODO: legacy code, apply the Ramakrishnan and Gehrke method again on the entire table,
+	// ignoring the computation we did on each histogram bucket in
+	// CBucket::MakeBucketIntersect()
+	if (!CJoinStatsProcessor::ComputeScaleFactorFromHistogramBuckets())
+	{
+		*scale_factor = std::max
+							(
+							std::max(MinDistinct.Get(), GetNumDistinct().Get()),
+							std::max(MinDistinct.Get(), other_histogram->GetNumDistinct().Get())
+							);
+	}
 
 	CDouble cartesian_product_num_rows = rows * rows_other;
 	if (result_histogram->IsEmpty())

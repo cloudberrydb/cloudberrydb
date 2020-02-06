@@ -1021,7 +1021,59 @@ CJoinOrderDP::OsPrint
 	)
 	const
 {
+	// increase GPOS_LOG_MESSAGE_BUFFER_SIZE in file ILogger.h if the output of this method gets truncated
+	CHashMapIter<CBitSet, CExpression, UlHashBitSet, FEqualBitSet, CleanupRelease<CBitSet>, CleanupRelease<CExpression> >
+					bitset_to_expr_map_iterator(m_phmbsexpr);
+	CPrintPrefix pref(NULL, "      ");
+
+	while (bitset_to_expr_map_iterator.Advance())
+	{
+		CDouble *cost = m_phmexprcost->Find(bitset_to_expr_map_iterator.Value());
+
+		os << "Bitset: ";
+		bitset_to_expr_map_iterator.Key()->OsPrint(os);
+		os << std::endl;
+		if (NULL != cost)
+		{
+			os << "Cost: " << *cost << std::endl;
+		}
+		else
+		{
+			os << "Cost: None" << std::endl;
+		}
+		os << "Best expression: " << std::endl;
+		bitset_to_expr_map_iterator.Value()->OsPrint(os, &pref);
+	}
+
+	for (ULONG k=0; k<m_pdrgpexprTopKOrders->Size(); k++)
+	{
+		CDouble *cost = m_phmexprcost->Find((*m_pdrgpexprTopKOrders)[k]);
+
+		os << "Best top-level expression [" << k << "]: " << std::endl;
+		if (NULL != cost)
+		{
+			os << "Cost: " << *cost << std::endl;
+		}
+		else
+		{
+			os << "Cost: None" << std::endl;
+		}
+		(*m_pdrgpexprTopKOrders)[k]->OsPrint(os, &pref);
+	}
+	os << std::endl;
+
 	return os;
 }
+
+
+#ifdef GPOS_DEBUG
+void
+CJoinOrderDP::DbgPrint()
+{
+	CAutoTrace at(m_mp);
+
+	OsPrint(at.Os());
+}
+#endif
 
 // EOF

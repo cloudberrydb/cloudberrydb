@@ -309,6 +309,27 @@ namespace gpos
                 m_elems[pos] = new_elem;
             }
 
+			// swap two array entries
+			void Swap(ULONG pos1, ULONG pos2)
+			{
+				GPOS_ASSERT(pos1 < m_size && pos2 < m_size && "Swap positions out of bounds");
+				T *temp = m_elems[pos1];
+
+				m_elems[pos1] = m_elems[pos2];
+				m_elems[pos2] = temp;
+			}
+
+			// return the last element of the array and at the same time remove it from the array
+			T *RemoveLast()
+			{
+				if (0 == m_size)
+				{
+					return NULL;
+				}
+
+				return m_elems[--m_size];
+			}
+
 			// return the indexes of first appearances of elements of the first array
 			// in the second array if the first array is not included in the second,
 			// return null

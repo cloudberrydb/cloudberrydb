@@ -284,6 +284,11 @@ namespace gpnaucrates
 			virtual
 			IOstream &OsPrint(IOstream &os) const;
 
+#ifdef GPOS_DEBUG
+			void
+			DbgPrint() const;
+#endif
+
 			// add upper bound of source cardinality
 			virtual
 			void AddCardUpperBound(CUpperBoundNDVs *upper_bound_NDVs);

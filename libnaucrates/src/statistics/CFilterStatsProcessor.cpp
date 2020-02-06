@@ -59,8 +59,7 @@ CFilterStatsProcessor::MakeStatsFilterForScalarExpr
 													exprhdl,
 													outer_refs_scalar_expr,
 													result_stats,
-													all_outer_stats,
-													IStatistics::EsjtInnerJoin
+													all_outer_stats
 													);
 		result_stats->Release();
 		result_stats = stats;

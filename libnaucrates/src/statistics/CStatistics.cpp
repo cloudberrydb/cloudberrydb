@@ -166,6 +166,18 @@ CStatistics::OsPrint
 	return os;
 }
 
+
+#ifdef GPOS_DEBUG
+void
+CStatistics::DbgPrint() const
+{
+	CAutoTrace at(CTask::Self()->Pmp());
+
+	OsPrint(at.Os());
+}
+#endif
+
+
 //	return the total number of rows for this statistics object
 CDouble
 CStatistics::Rows() const

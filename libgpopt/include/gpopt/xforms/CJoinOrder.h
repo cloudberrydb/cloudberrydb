@@ -55,27 +55,31 @@ namespace gpopt
 			{
 				// cover of edge
 				CBitSet *m_pbs;
-				
+
 				// associated conjunct
 				CExpression *m_pexpr;
 
-				// tracks if the associated join is a LOJ
-				BOOL m_is_loj;
-				
+				// tracks if the associated join is a LOJ:
+				// check the derived classes of CJoinOrder, but here is a high-level summary:
+				// greedy, mincard: 0 means not an LOJ, 1 means this is an LOJ edge
+				// DP: always 0
+				// DPv2: 0 means inner join, >0: the index points to the entry in the array of ON predicates
+				ULONG m_loj_num;
+
 				// a flag to mark edge as used
 				BOOL m_fUsed;
 
 				// ctor
-				SEdge(CMemoryPool *mp, CExpression *pexpr, BOOL is_loj);
-				
+				SEdge(CMemoryPool *mp, CExpression *pexpr, ULONG loj_num);
+
 				// dtor
 				~SEdge();
-				
+
 				// print routine
 				IOstream &OsPrint(IOstream &os) const;
 			};
-			
-		
+
+
 			//---------------------------------------------------------------------------
 			//	@struct:
 			//		SComponent
@@ -98,6 +102,8 @@ namespace gpopt
 				// a flag to component edge as used
 				BOOL m_fUsed;
 
+				// for greedy and mincard:
+				//
 				// number indicating that this component contains
 				// child of LOJ x, where x is a an incremental id
 				// assigned to LOJ operators found in the NAry Join.
@@ -129,10 +135,21 @@ namespace gpopt
 				// contains the left child of LOJ 1.
 				// This helps to track that inner join between t1 and t2
 				// must be the left child of LOJ with t3.
+				//
+				// for DPv2:
+				//
+				// We have n children, and some of them (other than the first) may be right children of
+				// non-inner joins. These non-inner join right children are numbered 1 to j, and that
+				// number is stored here in m_parent_loj_id. Example:
+				// T0 join T1 join T2 left join T3 join T4 left join T5
+				// The components for T0 ... T5 will have the following m_parent_loj_id values:
+				// T0  T1  T2  T3  T4  T5
+				//  0   0   0   1   0   2
 				INT m_parent_loj_id;
 
 				// enum indicating that this component contains left or
 				// right child of the LOJ
+				// (used for greedy and mincard, not used for DPv2)
 				EPosition m_position;
 
 				// ctor
@@ -225,7 +242,7 @@ namespace gpopt
 
 		public:
 
-			// ctor
+			// ctor used in MinCard, Greedy and DP xforms
 			CJoinOrder
 				(
 				CMemoryPool *mp,
@@ -234,6 +251,16 @@ namespace gpopt
 				BOOL include_outer_join_childs
 				);
 		
+			// ctor used in CXformExpandNAryJoinDPv2
+			CJoinOrder
+				(
+				 CMemoryPool *mp,
+				 CExpressionArray *pdrgpexprComponents,
+				 CExpressionArray *innerJoinPredConjuncts,
+				 CExpressionArray *onPreds,
+				 ULongPtrArray *childPredIndexes
+				 );
+
 			// dtor
 			virtual
 			~CJoinOrder();			

@@ -13,7 +13,12 @@
 
 #include "gpos/types.h"
 
+#ifndef GPOS_DEBUG
 #define GPOS_LOG_MESSAGE_BUFFER_SIZE    (1024 * 128)
+#else
+// have a larger buffer size for debug builds (e.g. printing out MEMO)
+#define GPOS_LOG_MESSAGE_BUFFER_SIZE    (8192 * 128)
+#endif
 #define GPOS_LOG_TRACE_BUFFER_SIZE      (1024 * 8)
 #define GPOS_LOG_ENTRY_BUFFER_SIZE      (GPOS_LOG_MESSAGE_BUFFER_SIZE + 256)
 #define GPOS_LOG_WRITE_RETRIES          (10)

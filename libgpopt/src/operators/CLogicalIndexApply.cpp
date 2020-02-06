@@ -107,13 +107,13 @@ CLogicalIndexApply::PstatsDerive
 	statistics_array->Append(outer_stats);
 	inner_side_stats->AddRef();
 	statistics_array->Append(inner_side_stats);
-	IStatistics::EStatsJoinType join_type = IStatistics::EsjtInnerJoin;
-	// we use Inner Join semantics here except in the case of Left Outer Join
-	if (m_fOuterJoin)
-	{
-		join_type = IStatistics::EsjtLeftOuterJoin;
-	}
-	IStatistics *stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, pexprScalar, join_type);
+	IStatistics *stats = CJoinStatsProcessor::CalcAllJoinStats
+													(
+													 mp,
+													 statistics_array,
+													 pexprScalar,
+													 const_cast<CLogicalIndexApply *>(this)
+													);
 	statistics_array->Release();
 
 	return stats;

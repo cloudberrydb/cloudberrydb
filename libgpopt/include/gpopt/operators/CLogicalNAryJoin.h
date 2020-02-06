@@ -169,6 +169,17 @@ namespace gpopt
 				return (NULL == m_lojChildPredIndexes || *((*m_lojChildPredIndexes)[child_num]) == 0);
 			}
 
+			ULongPtrArray*
+			GetLojChildPredIndexes() const
+			{
+				return m_lojChildPredIndexes;
+			}
+
+			// get the true inner join predicates, excluding predicates that use ColRefs
+			// coming from non-inner joins
+			CExpression*
+			GetTrueInnerJoinPreds (CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+
 			virtual
 			IOstream & OsPrint(IOstream &os) const;
 

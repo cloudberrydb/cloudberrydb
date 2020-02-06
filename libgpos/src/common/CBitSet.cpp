@@ -719,7 +719,7 @@ CBitSet::OsPrint
 		}
 	}
 	
-	os << "} " << "Hash:" << HashValue();
+	os << "}";
 	
 	return os;
 }

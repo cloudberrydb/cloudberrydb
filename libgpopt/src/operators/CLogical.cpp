@@ -32,6 +32,7 @@
 #include "gpopt/operators/CLogicalDynamicBitmapTableGet.h"
 #include "gpopt/operators/CLogicalGet.h"
 #include "gpopt/operators/CLogicalDynamicGet.h"
+#include "gpopt/operators/CLogicalNAryJoin.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -670,6 +671,7 @@ CLogical::PpcDeriveConstraintFromPredicates
 		if (exprhdl.FScalarChild(ul))
 		{
 			CExpression *pexprScalar = exprhdl.PexprScalarChild(ul);
+			BOOL needToReleasePexprScalar = false;
 
 			// make sure it is a predicate... boolop, cmp, nulltest,
 			// or a list of join predicates for an NAry join
@@ -677,9 +679,15 @@ CLogical::PpcDeriveConstraintFromPredicates
 			{
 				continue;
 			}
-
+			if (COperator::EopScalarNAryJoinPredList == pexprScalar->Pop()->Eopid())
+			{
+				CLogicalNAryJoin *naryJoin = CLogicalNAryJoin::PopConvert(exprhdl.Pop());
+				pexprScalar = naryJoin->GetTrueInnerJoinPreds(mp,exprhdl);
+				needToReleasePexprScalar = true;
+			}
 			CColRefSetArray *pdrgpcrsChild = NULL;
 			CConstraint *pcnstr = CConstraint::PcnstrFromScalarExpr(mp, pexprScalar, &pdrgpcrsChild);
+
 			if (NULL != pcnstr)
 			{
 				pdrgpcnstr->Append(pcnstr);
@@ -688,6 +696,10 @@ CLogical::PpcDeriveConstraintFromPredicates
 				CColRefSetArray *pdrgpcrsMerged = CUtils::PdrgpcrsMergeEquivClasses(mp, pdrgpcrs, pdrgpcrsChild);
 				pdrgpcrs->Release();
 				pdrgpcrs = pdrgpcrsMerged;
+			}
+			if (needToReleasePexprScalar)
+			{
+				pexprScalar->Release();
 			}
 			CRefCount::SafeRelease(pdrgpcrsChild);
 		}
