@@ -210,6 +210,13 @@ class PgCtlBackendOptions(CmdArgs):
         if restricted:  self.append("-c superuser_reserved_connections=%s" % max_connections)
         return self
 
+    def set_disable_system_indexes(self, disable):
+        """
+        @param disable: true if disabling system indexes
+        """
+        if disable: self.append("-P")
+        return self
+
 
 class PgCtlStartArgs(CmdArgs):
     """
@@ -337,7 +344,8 @@ class SegmentStart(Command):
     def __init__(self, name, gpdb, numContentsInCluster, era, mirrormode,
                  utilityMode=False, ctxt=LOCAL, remoteHost=None,
                  pg_ctl_wait=True, timeout=SEGMENT_TIMEOUT_DEFAULT,
-                 specialMode=None, wrapper=None, wrapper_args=None):
+                 specialMode=None, wrapper=None, wrapper_args=None,
+                 disableSystemIndexes=False):
 
         # This is referenced from calling code
         self.segment = gpdb
@@ -350,6 +358,7 @@ class SegmentStart(Command):
         b = PgCtlBackendOptions(port)
         b.set_utility(utilityMode)
         b.set_special(specialMode)
+        b.set_disable_system_indexes(disableSystemIndexes)
 
         # build pg_ctl command
         c = PgCtlStartArgs(datadir, b, era, wrapper, wrapper_args, pg_ctl_wait, timeout)
