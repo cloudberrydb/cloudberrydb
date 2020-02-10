@@ -61,6 +61,7 @@ const CHAR *rgszAggFileNames[] =
 	"../data/dxl/minidump/ThreeStageAgg-GbandDistinctOnDistrCol.mdp",
 	"../data/dxl/minidump/ThreeStageAgg-GbMultipleCol-DistinctOnDistrCol.mdp",
 	"../data/dxl/minidump/ThreeStageAgg-DistinctOnSameNonDistrCol.mdp",
+	"../data/dxl/minidump/ThreeStageAgg-DistinctOnComputedCol.mdp",
 	"../data/dxl/minidump/ThreeStageAgg-DistinctOnDistrCol.mdp",
 	"../data/dxl/minidump/ThreeStageAgg-ScalarAgg-DistinctDistrCol.mdp",
 	"../data/dxl/minidump/ThreeStageAgg-ScalarAgg-DistinctNonDistrCol.mdp",
