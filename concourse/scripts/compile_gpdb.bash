@@ -194,6 +194,9 @@ function export_gpdb_clients() {
   TARBALL="${GPDB_ARTIFACTS_DIR}/${GPDB_CL_FILENAME}"
   pushd ${GREENPLUM_CL_INSTALL_DIR}
     source ./greenplum_clients_path.sh
+    mkdir -p bin/ext/gppylib
+    cp ${GREENPLUM_INSTALL_DIR}/lib/python/gppylib/__init__.py ./bin/ext/gppylib
+    cp  ${GREENPLUM_INSTALL_DIR}/lib/python/gppylib/gpversion.py ./bin/ext/gppylib
     chmod -R 755 .
     tar -czf "${TARBALL}" ./*
   popd
