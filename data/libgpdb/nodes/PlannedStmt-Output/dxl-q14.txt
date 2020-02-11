@@ -1,1 +1,0 @@
-select DumpPlanToFile('select * from r,s where r.a<s.c or (r.b<s.d and r.b>s.c)', 'dxl-q14.aux');
