@@ -564,17 +564,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 								GetActiveSnapshot(), InvalidSnapshot,
 								dest, params, instrument_option);
 
-	if (gp_enable_gpperfmon && Gp_role == GP_ROLE_DISPATCH)
-	{
-		Assert(queryString);
-		gpmon_qlog_query_submit(queryDesc->gpmon_pkt);
-		gpmon_qlog_query_text(queryDesc->gpmon_pkt,
-				queryString,
-				application_name,
-				GetResqueueName(GetResQueueId()),
-				GetResqueuePriority(GetResQueueId()));
-	}
-
 	/* GPDB hook for collecting query info */
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);

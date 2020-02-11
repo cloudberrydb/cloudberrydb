@@ -28,8 +28,6 @@
 #include "utils/sortsupport.h"
 #include "utils/tuplestore.h"
 
-#include "gpmon/gpmon.h"                /* gpmon_packet_t */
-
 /*
  * partition selector ids start from 1. Sometimes we use 0 to initialize variables
  */
@@ -1398,8 +1396,6 @@ typedef struct PlanState
 								 * nodes point to one EState for the whole
 								 * top-level plan */
 
-	bool		fHadSentGpmon;
-
 	/*
 	 * Common structural data for all Plan types.  These links to subsidiary
 	 * state trees parallel links in the associated plan tree (except for the
@@ -1434,30 +1430,14 @@ typedef struct PlanState
 	void      (*cdbexplainfun)(struct PlanState *planstate, struct StringInfoData *buf);
 	/* callback before ExecutorEnd */
 
-	/*
-	 * GpMon packet
-	 */
-	int		gpmon_plan_tick;
-	gpmon_packet_t gpmon_pkt;
 	bool		fHadSentNodeStart;
 
 	bool		squelched;		/* has ExecSquelchNode() been called already? */
-
 	/* MemoryAccount to use for recording the memory usage of different plan nodes. */
 	MemoryAccountIdType memoryAccountId;
 } PlanState;
 
-/* Gpperfmon helper functions defined in execGpmon.c */
-extern void CheckSendPlanStateGpmonPkt(PlanState *ps);
-extern void EndPlanStateGpmonPkt(PlanState *ps);
-extern void InitPlanNodeGpmonPkt(Plan* plan, gpmon_packet_t *gpmon_pkt, EState *estate);
-
 extern uint64 PlanStateOperatorMemKB(const PlanState *ps);
-
-static inline void Gpmon_Incr_Rows_Out(gpmon_packet_t *pkt)
-{
-    ++pkt->u.qexec.rowsout;
-}
 
 /* ----------------
  *	these are defined to avoid confusion problems with "left"

@@ -3495,8 +3495,6 @@ ExecEndAgg(AggState *node)
 
 	outerPlan = outerPlanState(node);
 	ExecEndNode(outerPlan);
-
-	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /*

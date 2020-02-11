@@ -236,16 +236,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		GpPolicyIsPartitioned(queryDesc->plannedstmt->intoPolicy) ||
 		GpPolicyIsReplicated(queryDesc->plannedstmt->intoPolicy));
 
-	/**
-	 * Perfmon related stuff.
-	 */
-	if (gp_enable_gpperfmon
-		&& Gp_role == GP_ROLE_DISPATCH
-		&& queryDesc->gpmon_pkt)
-	{
-		gpmon_qlog_query_start(queryDesc->gpmon_pkt);
-	}
-
 	/* GPDB hook for collecting query info */
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(METRICS_QUERY_START, queryDesc);
@@ -1192,17 +1182,6 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 	 */
 	FreeExecutorState(estate);
 	
-	/**
-	 * Perfmon related stuff.
-	 */
-	if (gp_enable_gpperfmon 
-			&& Gp_role == GP_ROLE_DISPATCH
-			&& queryDesc->gpmon_pkt)
-	{			
-		gpmon_qlog_query_end(queryDesc->gpmon_pkt);
-		queryDesc->gpmon_pkt = NULL;
-	}
-
 	/* GPDB hook for collecting query info */
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(isInnerQuery ? METRICS_INNER_QUERY_DONE : METRICS_QUERY_DONE, queryDesc);

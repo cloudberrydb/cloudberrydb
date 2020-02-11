@@ -266,8 +266,6 @@ ExecEndHash(HashState *node)
 	 */
 	outerPlan = outerPlanState(node);
 	ExecEndNode(outerPlan);
-
-	EndPlanStateGpmonPkt(&node->ps);
 }
 
 /* ----------------------------------------------------------------
@@ -1085,12 +1083,6 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 			if (ps && ps->instrument)
 			{
 				ps->instrument->workfileCreated = true;
-			}
-
-			/* Gpmon stuff */
-			if(ps)
-			{
-				CheckSendPlanStateGpmonPkt(ps);
 			}
 		}
 	}

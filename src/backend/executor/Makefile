@@ -44,6 +44,6 @@ OBJS += nodeDynamicIndexscan.o \
        execDML.o \
        nodePartitionSelector.o \
        execDynamicScan.o \
-       execHHashagg.o execGpmon.o
+       execHHashagg.o
 
 include $(top_srcdir)/src/backend/common.mk

@@ -1762,36 +1762,6 @@ def impl(context, proc):
     check_return_code(context, 0)  # 0 means one or more processes were matched
 
 
-@when('wait until the results from boolean sql "{sql}" is "{boolean}"')
-@then('wait until the results from boolean sql "{sql}" is "{boolean}"')
-@given('wait until the results from boolean sql "{sql}" is "{boolean}"')
-def impl(context, sql, boolean):
-    cmd = Command(name='psql', cmdStr='psql --tuples-only -d gpperfmon -c "%s"' % sql)
-    start_time = current_time = datetime.now()
-    result = None
-    while (current_time - start_time).seconds < 120:
-        cmd.run()
-        if cmd.get_return_code() != 0:
-            break
-        result = cmd.get_stdout()
-        if _str2bool(result) == _str2bool(boolean):
-            break
-        time.sleep(2)
-        current_time = datetime.now()
-
-    if cmd.get_return_code() != 0:
-        context.ret_code = cmd.get_return_code()
-        context.error_message = 'psql internal error: %s' % cmd.get_stderr()
-        check_return_code(context, 0)
-    else:
-        if _str2bool(result) != _str2bool(boolean):
-            raise Exception("sql output '%s' is not same as '%s'" % (result, boolean))
-
-
-def _str2bool(string):
-    return string.lower().strip() in ['t', 'true', '1', 'yes', 'y']
-
-
 @given('the user creates an index for table "{table_name}" in database "{db_name}"')
 @when('the user creates an index for table "{table_name}" in database "{db_name}"')
 @then('the user creates an index for table "{table_name}" in database "{db_name}"')
@@ -1802,99 +1772,6 @@ def impl(context, table_name, db_name):
     with dbconn.connect(dbconn.DbURL(dbname=db_name), unsetSearchPath=False) as conn:
         dbconn.execSQL(conn, index_qry)
         conn.commit()
-
-@when("the user installs gpperfmon")
-def impl(context):
-    master_port = os.getenv('PGPORT', 15432)
-    cmd = "gpperfmon_install --port {master_port} --enable --password foo".format(master_port=master_port)
-    run_command(context, cmd)
-
-@given('gpperfmon is configured and running in qamode')
-@then('gpperfmon is configured and running in qamode')
-def impl(context):
-    master_port = os.getenv('PGPORT', 15432)
-    target_line = 'qamode = 1'
-    gpperfmon_config_file = "%s/gpperfmon/conf/gpperfmon.conf" % os.getenv("MASTER_DATA_DIRECTORY")
-    if not check_db_exists("gpperfmon", "localhost"):
-        context.execute_steps(u'''
-                              When the user runs "gpperfmon_install --port {master_port} --enable --password foo"
-                              Then gpperfmon_install should return a return code of 0
-                              '''.format(master_port=master_port))
-
-    if not file_contains_line(gpperfmon_config_file, target_line):
-        context.execute_steps(u'''
-                              When the user runs command "echo 'qamode = 1' >> $MASTER_DATA_DIRECTORY/gpperfmon/conf/gpperfmon.conf"
-                              Then echo should return a return code of 0
-                              When the user runs command "echo 'verbose = 1' >> $MASTER_DATA_DIRECTORY/gpperfmon/conf/gpperfmon.conf"
-                              Then echo should return a return code of 0
-                              When the user runs command "echo 'min_query_time = 0' >> $MASTER_DATA_DIRECTORY/gpperfmon/conf/gpperfmon.conf"
-                              Then echo should return a return code of 0
-                              When the user runs command "echo 'quantum = 10' >> $MASTER_DATA_DIRECTORY/gpperfmon/conf/gpperfmon.conf"
-                              Then echo should return a return code of 0
-                              When the user runs command "echo 'harvest_interval = 5' >> $MASTER_DATA_DIRECTORY/gpperfmon/conf/gpperfmon.conf"
-                              Then echo should return a return code of 0
-                              ''')
-
-    if not is_process_running("gpsmon"):
-        context.execute_steps(u'''
-                              When the database is not running
-                              Then wait until the process "postgres" goes down
-                              When the user runs "gpstart -a"
-                              Then gpstart should return a return code of 0
-                              And verify that a role "gpmon" exists in database "gpperfmon"
-                              And verify that the last line of the file "postgresql.conf" in the master data directory contains the string "gpperfmon_log_alert_level=warning"
-                              And verify that there is a "heap" table "database_history" in "gpperfmon"
-                              Then wait until the process "gpmmon" is up
-                              And wait until the process "gpsmon" is up
-                              ''')
-
-
-@given('the setting "{variable_name}" is NOT set in the configuration file "{path_to_file}"')
-@when('the setting "{variable_name}" is NOT set in the configuration file "{path_to_file}"')
-def impl(context, variable_name, path_to_file):
-    path = os.path.join(os.getenv("MASTER_DATA_DIRECTORY"), path_to_file)
-    temp_file = "/tmp/gpperfmon_temp_config"
-    with open(path) as oldfile, open(temp_file, 'w') as newfile:
-        for line in oldfile:
-            if variable_name not in line:
-                newfile.write(line)
-    shutil.move(temp_file, path)
-
-
-@given('the setting "{setting_string}" is placed in the configuration file "{path_to_file}"')
-@when('the setting "{setting_string}" is placed in the configuration file "{path_to_file}"')
-def impl(context, setting_string, path_to_file):
-    path = os.path.join(os.getenv("MASTER_DATA_DIRECTORY"), path_to_file)
-    with open(path, 'a') as f:
-        f.write(setting_string)
-        f.write("\n")
-
-
-@given('the latest gpperfmon gpdb-alert log is copied to a file with a fake (earlier) timestamp')
-@when('the latest gpperfmon gpdb-alert log is copied to a file with a fake (earlier) timestamp')
-def impl(context):
-    gpdb_alert_file_path_src = sorted(glob.glob(os.path.join(os.getenv("MASTER_DATA_DIRECTORY"),
-                                    "gpperfmon",
-                                       "logs",
-                                       "gpdb-alert*")))[-1]
-    # typical filename would be gpdb-alert-2017-04-26_155335.csv
-    # setting the timestamp to a string that starts with `-` (em-dash)
-    #   will be sorted (based on ascii) before numeric timestamps
-    #   without colliding with a real timestamp
-    dest = re.sub(r"_\d{6}\.csv$", "_-takeme.csv", gpdb_alert_file_path_src)
-
-    # Let's wait until there's actually something in the file before actually
-    # doing a copy of the log...
-    for _ in range(60):
-        if os.stat(gpdb_alert_file_path_src).st_size != 0:
-            shutil.copy(gpdb_alert_file_path_src, dest)
-            context.fake_timestamp_file = dest
-            return
-        sleep(1)
-
-    raise Exception("File: %s is empty" % gpdb_alert_file_path_src)
-
-
 
 @then('the file with the fake timestamp no longer exists')
 def impl(context):

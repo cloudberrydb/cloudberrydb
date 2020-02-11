@@ -1021,8 +1021,6 @@ ExecEndMotion(MotionState *node)
 	if (node->outputFunArray)
 		pfree(node->outputFunArray);
 #endif
-
-	EndPlanStateGpmonPkt(&node->ps);
 }
 
 

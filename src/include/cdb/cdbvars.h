@@ -732,25 +732,11 @@ extern int gp_motion_slice_noop;
 /* Disable setting of hint-bits while reading db pages */
 extern bool gp_disable_tuple_hints;
 
-/* Enable gpmon */
-extern bool gp_enable_gpperfmon;
-extern int gp_gpperfmon_send_interval;
+/* Enable metrics */
 extern bool gp_enable_query_metrics;
 extern int gp_instrument_shmem_size;
 
 extern bool dml_ignore_target_partition_check;
-
-/* gpmon alert level, control log alert level used by gpperfmon */
-typedef enum 
-{
-	GPPERFMON_LOG_ALERT_LEVEL_NONE,
-	GPPERFMON_LOG_ALERT_LEVEL_WARNING,
-	GPPERFMON_LOG_ALERT_LEVEL_ERROR,
-	GPPERFMON_LOG_ALERT_LEVEL_FATAL,
-	GPPERFMON_LOG_ALERT_LEVEL_PANIC
-} GpperfmonLogAlertLevel;
-extern int gpperfmon_log_alert_level;
-
 
 extern int gp_workfile_limit_per_segment;
 extern int gp_workfile_limit_per_query;
@@ -841,7 +827,6 @@ extern void increment_command_count(void);
 extern bool gp_create_table_random_default_distribution;
 
 /* Functions in guc_gp.c to lookup values in enum GUCs */
-extern GpperfmonLogAlertLevel lookup_loglevel_by_name(const char *name);
 extern const char * lookup_autostats_mode_by_value(GpAutoStatsModeValue val);
 
 #endif   /* CDBVARS_H */

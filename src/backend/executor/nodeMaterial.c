@@ -148,8 +148,6 @@ ExecMaterial(MaterialState *node)
 			ntuplestore_acc_put_tupleslot(tsa, outerslot);
 		}
 
-		CheckSendPlanStateGpmonPkt(&node->ss.ps);
-
 		if(forward)
 			ntuplestore_acc_seek_bof(tsa);
 		else
@@ -428,7 +426,6 @@ ExecEndMaterial(MaterialState *node)
 	 * shut down the subplan
 	 */
 	ExecEndNode(outerPlanState(node));
-	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ----------------------------------------------------------------

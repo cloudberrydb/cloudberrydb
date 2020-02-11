@@ -662,8 +662,6 @@ ExecEndFunctionScan(FunctionScanState *node)
 	ExecClearTuple(node->ss.ss_ScanTupleSlot);
 
 	ExecEagerFreeFunctionScan(node);
-
-	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ----------------------------------------------------------------

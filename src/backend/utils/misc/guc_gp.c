@@ -227,12 +227,7 @@ double		gp_resource_group_cpu_limit;
 double		gp_resource_group_memory_limit;
 bool		gp_resource_group_bypass;
 
-/* Perfmon segment GUCs */
-int			gp_perfmon_segment_interval;
-
-/* Perfmon debug GUC */
-bool		gp_perfmon_print_packet_info;
-
+/* Metrics collector debug GUC */
 bool		vmem_process_interrupt = false;
 bool		execute_pruned_plan = false;
 
@@ -543,15 +538,6 @@ static const struct config_enum_entry gp_resqueue_memory_policies[] = {
 	{"none", RESMANAGER_MEMORY_POLICY_NONE},
 	{"auto", RESMANAGER_MEMORY_POLICY_AUTO},
 	{"eager_free", RESMANAGER_MEMORY_POLICY_EAGER_FREE},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry gp_gpperfmon_log_alert_level[] = {
-	{"none", GPPERFMON_LOG_ALERT_LEVEL_NONE},
-	{"warning", GPPERFMON_LOG_ALERT_LEVEL_WARNING},
-	{"error", GPPERFMON_LOG_ALERT_LEVEL_ERROR},
-	{"fatal", GPPERFMON_LOG_ALERT_LEVEL_FATAL},
-	{"panic", GPPERFMON_LOG_ALERT_LEVEL_PANIC},
 	{NULL, 0}
 };
 
@@ -1563,16 +1549,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_gpperfmon", PGC_POSTMASTER, UNGROUPED,
-			gettext_noop("Enable gpperfmon monitoring."),
-			NULL,
-		},
-		&gp_enable_gpperfmon,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gp_enable_query_metrics", PGC_POSTMASTER, UNGROUPED,
 			gettext_noop("Enable all query metrics collection."),
 			NULL
@@ -1746,17 +1722,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_partitioning_dynamic_selection_log,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_perfmon_print_packet_info", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print out debugging info for a Perfmon packet"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_perfmon_print_packet_info,
 		false,
 		NULL, NULL, NULL
 	},
@@ -3746,26 +3711,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"gp_gpperfmon_send_interval", PGC_SUSET, LOGGING_WHAT,
-			gettext_noop("Interval in seconds between sending messages to gpperfmon."),
-			NULL
-		},
-		&gp_gpperfmon_send_interval,
-		1, 1, 3600,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gpperfmon_port", PGC_POSTMASTER, UNGROUPED,
-			gettext_noop("Sets the port number of gpperfmon."),
-			NULL,
-		},
-		&gpperfmon_port,
-		8888, 1024, 65535,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gp_instrument_shmem_size", PGC_POSTMASTER, UNGROUPED,
 			gettext_noop("Sets the size of shmem allocated for instrumentation."),
 			NULL,
@@ -3853,17 +3798,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_resqueue_priority_grouping_timeout,
 		1000, 1000, INT_MAX,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_perfmon_segment_interval", PGC_POSTMASTER, STATS,
-			gettext_noop("Interval (in ms) between sending segment statistics to perfmon."),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&gp_perfmon_segment_interval,
-		1000, 500, INT_MAX,
 		NULL, NULL, NULL
 	},
 
@@ -4680,16 +4614,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	},
 
 	{
-		{"gpperfmon_log_alert_level", PGC_USERSET, LOGGING,
-			gettext_noop("Specify the log alert level used by gpperfmon."),
-			gettext_noop("Valid values are 'none', 'warning', 'error', 'fatal', 'panic'.")
-		},
-		&gpperfmon_log_alert_level,
-		GPPERFMON_LOG_ALERT_LEVEL_NONE, gp_gpperfmon_log_alert_level,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"optimizer_join_order", PGC_USERSET, QUERY_TUNING_OTHER,
 			gettext_noop("Set optimizer join heuristic model."),
 			gettext_noop("Valid values are query, greedy, exhaustive and exhaustive2"),
@@ -5048,27 +4972,6 @@ set_gp_replication_config(const char *name, const char *value)
 	AlterSystemStmt alterSystemStmt = {.type = T_AlterSystemStmt, .setstmt = &setstmt};
     
 	AlterSystemSetConfigFile(&alterSystemStmt);
-}
-
-/*
- * lookup_loglevel_by_name
- *
- * Return the enum value for the specified name. This is a specialized version
- * of config_enum_lookup_by_value() for use by syslogger.c where the severity
- * is matched with perfmon log alert levels.
- */
-GpperfmonLogAlertLevel
-lookup_loglevel_by_name(const char *name)
-{
-	const struct config_enum_entry *entry;
-
-	for (entry = gp_gpperfmon_log_alert_level; entry && entry->name; entry++)
-	{
-		if (pg_strcasecmp(entry->name, name) == 0)
-			return entry->val;
-	}
-
-	return GPPERFMON_LOG_ALERT_LEVEL_NONE;
 }
 
 /*

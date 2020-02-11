@@ -323,8 +323,6 @@ void ExecEndShareInputScan(ShareInputScanState *node)
 	 * is NULL
 	 */
 	ExecEndNode(outerPlanState(node));
-
-	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ------------------------------------------------------------------

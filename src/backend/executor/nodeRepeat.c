@@ -178,8 +178,6 @@ ExecEndRepeat(RepeatState *node)
 	
 	/* End the subplans */
 	ExecEndNode(outerPlanState(node));
-	
-	EndPlanStateGpmonPkt(&node->ps);
 }
 
 void

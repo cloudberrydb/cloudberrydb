@@ -332,9 +332,6 @@ ExecReScan(PlanState *node)
 		bms_free(node->chgParam);
 		node->chgParam = NULL;
 	}
-
-	/* Now would be a good time to also send an update to gpmon */
-	CheckSendPlanStateGpmonPkt(node);
 }
 
 /*
@@ -454,9 +451,6 @@ ExecRestrPos(PlanState *node)
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 			break;
 	}
-
-	/* Now would be a good time to also send an update to gpmon */
-	CheckSendPlanStateGpmonPkt(node);
 }
 
 /*

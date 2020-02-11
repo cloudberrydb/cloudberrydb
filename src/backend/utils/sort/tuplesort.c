@@ -149,7 +149,6 @@
 #include "access/genam.h"
 #include "cdb/cdbvars.h"
 #include "executor/instrument.h"        /* Instrumentation */
-#include "executor/nodeSort.h"          /* Gpmon */
 #include "lib/stringinfo.h"             /* StringInfo */
 #include "utils/dynahash.h"             /* my_log2 */
 
@@ -536,10 +535,6 @@ struct Tuplesortstate
 	 */
 	char       *pfile_rwfile_prefix;
 	BufFile *pfile_rwfile_state;
-
-	/* gpmon */
-	gpmon_packet_t *gpmon_pkt;
-	int *gpmon_sort_tick;
 };
 
 #define COMPARETUP(state,a,b)	((*(state)->comparetup) (a, b, state))
@@ -2236,8 +2231,6 @@ tuplesort_gettupleslot_pos(Tuplesortstate *state, TuplesortPos *pos,
 		if (state->sortKeys->abbrev_converter && abbrev)
 			*abbrev = stup.datum1;
 		ExecStoreMinimalTuple(stup.tuple, slot, should_free);
-		if (state->gpmon_pkt)
-			Gpmon_Incr_Rows_Out(state->gpmon_pkt);
 		return true;
 	}
 	else
@@ -3558,9 +3551,6 @@ dumptuples(Tuplesortstate *state, bool alltuples)
 	spilledBytes = state->availMem - spilledBytes;
 	if (spilledBytes > 0)
 		state->spilledBytes += spilledBytes;
-
-	if(state->gpmon_pkt)
-		tuplesort_checksend_gpmonpkt(state->gpmon_pkt, state->gpmon_sort_tick);
 }
 
 /*
@@ -5399,26 +5389,3 @@ tuplesort_set_instrument(Tuplesortstate            *state,
     state->instrument = instrument;
     state->explainbuf = explainbuf;
 }                               /* tuplesort_set_instrument */
-
-void
-tuplesort_set_gpmon(Tuplesortstate *state, gpmon_packet_t *pkt, int *tick)
-{
-	state->gpmon_pkt = pkt;
-	state->gpmon_sort_tick = tick;
-}
-
-void tuplesort_checksend_gpmonpkt(gpmon_packet_t *pkt, int *tick)
-{
-	if(!pkt)
-		return;
-
-	if(gp_enable_gpperfmon)
-	{
-		if(*tick != gpmon_tick)
-			gpmon_send(pkt);
-
-		*tick = gpmon_tick;
-	}
-}
-
-

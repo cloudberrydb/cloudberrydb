@@ -306,6 +306,5 @@ ExecEndSplitUpdate(SplitUpdateState *node)
 	ExecClearTuple(node->insertTuple);
 	ExecClearTuple(node->deleteTuple);
 	ExecEndNode(outerPlanState(node));
-	EndPlanStateGpmonPkt(&node->ps);
 }
 

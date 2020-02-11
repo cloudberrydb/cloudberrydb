@@ -193,8 +193,6 @@ void ExecEndTupleSplit(TupleSplitState *node)
 
 	outerPlan = outerPlanState(node);
 	ExecEndNode(outerPlan);
-
-	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 void ExecReScanTupleSplit(TupleSplitState *node)

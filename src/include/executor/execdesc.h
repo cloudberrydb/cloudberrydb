@@ -19,7 +19,6 @@
 
 #include "nodes/execnodes.h"
 #include "tcop/dest.h"
-#include "gpmon/gpmon.h"
 
 struct CdbExplain_ShowStatCtx;  /* private, in "cdb/cdbexplain.c" */
 
@@ -238,9 +237,6 @@ typedef struct QueryDesc
 
 	/* CDB: EXPLAIN ANALYZE statistics */
 	struct CdbExplain_ShowStatCtx  *showstatctx;
-
-	/* Gpmon */
-	gpmon_packet_t *gpmon_pkt;
 
 	/* This is always set NULL by the core system, but plugins can change it */
 	struct Instrumentation *totaltime;	/* total time spent in ExecutorRun */

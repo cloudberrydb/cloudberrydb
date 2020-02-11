@@ -15269,13 +15269,6 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd)
 						true);
 
 		/*
-		 * bypass gpmon info collecting in following ExecutorStart
-		 * to be consistent with other alter table commands,
-		 * ALTER TABLE SET DISTRIBUTED BY should not be logged in gpperfmon.
-		 */
-		queryDesc->gpmon_pkt = NULL;
-
-		/*
 		 * We need to update our snapshot here to make sure we see all
 		 * committed work. We have an exclusive lock on the table so no one
 		 * will be able to access the table now.
@@ -15818,13 +15811,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 						untransformRelOptions(newOptions),
 						&tmprv,
 						true);
-
-		/*
-		 * bypass gpmon info collecting in following ExecutorStart
-		 * to be consistent with other alter table commands,
-		 * ALTER TABLE SET DISTRIBUTED BY should not be logged in gpperfmon.
-		 */
-		queryDesc->gpmon_pkt = NULL;
 
 		/* 
 		 * We need to update our snapshot here to make sure we see all
