@@ -23,16 +23,15 @@
 #include "commands/trigger.h"
 #include "nodes/makefuncs.h"	/* makeFuncExpr() */
 #include "nodes/relation.h"		/* PlannerInfo, RelOptInfo */
+#include "optimizer/clauses.h"
 #include "optimizer/cost.h"		/* cpu_tuple_cost */
 #include "optimizer/pathnode.h" /* Path, pathnode_walker() */
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
-
 #include "parser/parse_expr.h"	/* exprType() */
 #include "parser/parse_oper.h"
-
 #include "utils/catcache.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"

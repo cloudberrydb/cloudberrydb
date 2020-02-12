@@ -32,12 +32,14 @@
 #include "foreign/fdwapi.h"
 #include "nodes/execnodes.h"
 #include "nodes/relation.h"
+#include "optimizer/clauses.h"
 #include "optimizer/cost.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
 #include "optimizer/var.h"
 #include "utils/guc.h"
+#include "utils/uri.h"
 
 typedef struct
 {
