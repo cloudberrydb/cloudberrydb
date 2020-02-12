@@ -1209,9 +1209,17 @@ ExecPrefetchJoinQual(JoinState *node)
 bool
 ShouldPrefetchJoinQual(EState *estate, Join *join)
 {
-	return (join->prefetch_joinqual &&
-			findSenderMotion(estate->es_plannedstmt,
-							 estate->currentSliceId));
+	ExecSlice  *localSlice;
+
+	if (!join->prefetch_joinqual)
+		return false;
+
+	/* Is this slice the sender of a Motion? */
+	if (!estate->es_sliceTable)
+		return false;
+	localSlice = &estate->es_sliceTable->slices[estate->currentSliceId];
+
+	return (localSlice->parentIndex != -1);
 }
 
 /* ----------------------------------------------------------------
