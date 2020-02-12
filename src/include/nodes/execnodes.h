@@ -654,8 +654,10 @@ typedef struct EState
 
 	/*
 	 * The slice number for the current node that is being processed.
-	 * During the tree traversal in ExecInitPlan stage, this field is set
-	 * by Motion and InitPlan nodes.
+	 * During plan initialization, in ExecInitPlan(), it is set to the
+	 * slice we're currently initializing, even if it's an "alien" node.
+	 * When executing a plan (ExecProcNode()), it is always set to the
+	 * local slice we're currently executing, never to an alien slice.
 	 */
 	int			currentSliceId;
 

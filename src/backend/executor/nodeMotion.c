@@ -926,7 +926,6 @@ void
 ExecEndMotion(MotionState *node)
 {
 	Motion	   *motion = (Motion *) node->ps.plan;
-	uint16		motNodeID = motion->motionID;
 #ifdef MEASURE_MOTION_TIME
 	double		otherTimeSec;
 	double		motionTimeSec;
@@ -943,7 +942,6 @@ ExecEndMotion(MotionState *node)
 	 * Set the slice no for the nodes under this motion.
 	 */
 	Assert(node->ps.state != NULL);
-	node->ps.state->currentSliceId = motNodeID;
 
 	/*
 	 * shut down the subplan
@@ -1015,7 +1013,8 @@ ExecEndMotion(MotionState *node)
 	 *
 	 * TODO: For now, we don't flush the comm-layer.  NO ERRORS DURING AMS!!!
 	 */
-	EndMotionLayerNode(node->ps.state->motionlayer_context, motNodeID, /* flush-comm-layer */ false);
+	EndMotionLayerNode(node->ps.state->motionlayer_context, motion->motionID,
+					   /* flush-comm-layer */ false);
 
 #ifdef CDB_MOTION_DEBUG
 	if (node->outputFunArray)
