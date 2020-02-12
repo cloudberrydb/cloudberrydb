@@ -394,7 +394,6 @@ SysLoggerMain(int argc, char *argv[])
 	{
 		bool		time_based_rotation = false;
 		int			size_rotation_for = 0;
-		bool		size_rotation_for_alert = false;
 		long		cur_timeout;
 		int			cur_flags;
 
