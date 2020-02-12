@@ -1594,7 +1594,6 @@ AC_SUBST(UUID_LIBS)
 # Check for Greenplum Query Optimizer (orca) libraries.
 if test "$enable_orca" = yes; then
   PGAC_CHECK_ORCA_XERCES
-  PGAC_CHECK_ORCA_LIBS
 fi
 
 # OpenBSD requires libexecinfo from ports for backtrace() as it's a glibc addition
@@ -1837,12 +1836,6 @@ if test "$enable_mapreduce" = yes; then
     AC_MSG_ERROR([Greenplum Mapreduce requires Perl, reconfigure with --with-perl])
   fi
   AC_CHECK_HEADERS(yaml.h, [], [AC_MSG_ERROR([header file <yaml.h> is required for Greenplum Mapreduce])])
-fi
-
-# Check for GPORCA and supporting GPORCA OS abstraction layer header files.
-if test "$enable_orca" = yes; then
-  PGAC_CHECK_ORCA_HEADERS
-  PGAC_CHECK_ORCA_VERSION
 fi
 
 if test "$PORTNAME" = "win32" ; then
