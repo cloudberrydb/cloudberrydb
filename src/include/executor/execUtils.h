@@ -24,7 +24,6 @@ extern SliceTable *InitSliceTable(struct EState *estate, PlannedStmt *plannedstm
 extern ExecSlice *getCurrentSlice(struct EState *estate, int sliceIndex);
 extern bool sliceRunsOnQD(ExecSlice *slice);
 extern bool sliceRunsOnQE(ExecSlice *slice);
-extern int sliceCalculateNumSendingProcesses(ExecSlice *slice);
 
 extern void AssignGangs(struct CdbDispatcherState *ds, QueryDesc *queryDesc);
 

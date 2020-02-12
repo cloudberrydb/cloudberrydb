@@ -1418,33 +1418,6 @@ sliceRunsOnQE(ExecSlice *slice)
 	return (slice != NULL && slice->gangType != GANGTYPE_UNALLOCATED);
 }
 
-/**
- * Calculate the number of sending processes that should in be a slice.
- */
-int
-sliceCalculateNumSendingProcesses(ExecSlice *slice)
-{
-	switch(slice->gangType)
-	{
-		case GANGTYPE_UNALLOCATED:
-			return 0; /* does not send */
-
-		case GANGTYPE_ENTRYDB_READER:
-			return 1; /* on master */
-
-		case GANGTYPE_SINGLETON_READER:
-			return 1; /* on segment */
-
-		case GANGTYPE_PRIMARY_WRITER:
-		case GANGTYPE_PRIMARY_READER:
-			return list_length(slice->segments);
-
-		default:
-			Insist(false);
-			return -1;
-	}
-}
-
 /* Forward declarations */
 static void InventorySliceTree(CdbDispatcherState *ds, SliceTable *sliceTable, int sliceIndex);
 
