@@ -111,6 +111,13 @@ ExecReScan(PlanState *node)
 			SubPlanState *sstate = (SubPlanState *) lfirst(l);
 			PlanState  *splan = sstate->planstate;
 
+			/*
+			 * If 'splan' is NULL, then InitPlan() thought it was "alien".  We
+			 * should not get here then, but let's sanity check.
+			 */
+			if (splan == NULL)
+				elog(ERROR, "subplan not initialized in this slice");
+
 			if (splan->plan->extParam != NULL)	/* don't care about child
 												 * local Params */
 				UpdateChangedParamSet(splan, node->chgParam);
@@ -121,6 +128,13 @@ ExecReScan(PlanState *node)
 		{
 			SubPlanState *sstate = (SubPlanState *) lfirst(l);
 			PlanState  *splan = sstate->planstate;
+
+			/*
+			 * If 'splan' is NULL, then InitPlan() thought it was "alien".  We
+			 * should not get here then, but let's sanity check.
+			 */
+			if (splan == NULL)
+				elog(ERROR, "subplan not initialized in this slice");
 
 			if (splan->plan->extParam != NULL)
 				UpdateChangedParamSet(splan, node->chgParam);
