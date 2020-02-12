@@ -1225,8 +1225,7 @@ get_relation_by_qualified_name(ObjectType objtype, List *objname,
 	address.objectSubId = 0;
 
 	relation = relation_openrv_extended(makeRangeVarFromNameList(objname),
-										lockmode, missing_ok,
-										false);
+										lockmode, missing_ok);
 	if (!relation)
 		return address;
 
