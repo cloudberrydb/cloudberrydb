@@ -31,7 +31,6 @@ extern void AssignGangs(struct CdbDispatcherState *ds, QueryDesc *queryDesc);
 extern Motion *findSenderMotion(PlannedStmt *plannedstmt, int sliceIndex);
 extern Bitmapset *getLocallyExecutableSubplans(PlannedStmt *plannedstmt, Plan *root);
 extern void ExtractParamsFromInitPlans(PlannedStmt *plannedstmt, Plan *root, EState *estate);
-extern void AssignParentMotionToPlanNodes(PlannedStmt *plannedstmt);
 
 #ifdef USE_ASSERT_CHECKING
 struct PlannedStmt;
