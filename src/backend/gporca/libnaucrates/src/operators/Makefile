@@ -1,0 +1,163 @@
+#
+# Makefile for optimizer
+#
+# src/backend/gporca/libnaucrates/src/operators/Makefile
+#
+
+subdir = src/backend/gporca/libnaucrates/src/operators
+top_builddir = ../../../../../..
+include $(top_builddir)/src/Makefile.global
+
+include $(top_builddir)/src/backend/gporca/gporca.mk
+
+OBJS        = CDXLColDescr.o \
+              CDXLColRef.o \
+              CDXLCtasStorageOptions.o \
+              CDXLDatum.o \
+              CDXLDatumBool.o \
+              CDXLDatumGeneric.o \
+              CDXLDatumInt2.o \
+              CDXLDatumInt4.o \
+              CDXLDatumInt8.o \
+              CDXLDatumOid.o \
+              CDXLDatumStatsDoubleMappable.o \
+              CDXLDatumStatsLintMappable.o \
+              CDXLDirectDispatchInfo.o \
+              CDXLIndexDescr.o \
+              CDXLLogical.o \
+              CDXLLogicalCTAS.o \
+              CDXLLogicalCTEAnchor.o \
+              CDXLLogicalCTEConsumer.o \
+              CDXLLogicalCTEProducer.o \
+              CDXLLogicalConstTable.o \
+              CDXLLogicalDelete.o \
+              CDXLLogicalExternalGet.o \
+              CDXLLogicalGet.o \
+              CDXLLogicalGroupBy.o \
+              CDXLLogicalInsert.o \
+              CDXLLogicalJoin.o \
+              CDXLLogicalLimit.o \
+              CDXLLogicalProject.o \
+              CDXLLogicalSelect.o \
+              CDXLLogicalSetOp.o \
+              CDXLLogicalTVF.o \
+              CDXLLogicalUpdate.o \
+              CDXLLogicalWindow.o \
+              CDXLNode.o \
+              CDXLOperator.o \
+              CDXLOperatorCost.o \
+              CDXLOperatorFactory.o \
+              CDXLPhysical.o \
+              CDXLPhysicalAbstractBitmapScan.o \
+              CDXLPhysicalAgg.o \
+              CDXLPhysicalAppend.o \
+              CDXLPhysicalAssert.o \
+              CDXLPhysicalBitmapTableScan.o \
+              CDXLPhysicalBroadcastMotion.o \
+              CDXLPhysicalCTAS.o \
+              CDXLPhysicalCTEConsumer.o \
+              CDXLPhysicalCTEProducer.o \
+              CDXLPhysicalDML.o \
+              CDXLPhysicalDynamicBitmapTableScan.o \
+              CDXLPhysicalDynamicIndexScan.o \
+              CDXLPhysicalDynamicTableScan.o \
+              CDXLPhysicalExternalScan.o \
+              CDXLPhysicalGatherMotion.o \
+              CDXLPhysicalHashJoin.o \
+              CDXLPhysicalIndexOnlyScan.o \
+              CDXLPhysicalIndexScan.o \
+              CDXLPhysicalJoin.o \
+              CDXLPhysicalLimit.o \
+              CDXLPhysicalMaterialize.o \
+              CDXLPhysicalMergeJoin.o \
+              CDXLPhysicalMotion.o \
+              CDXLPhysicalNLJoin.o \
+              CDXLPhysicalPartitionSelector.o \
+              CDXLPhysicalProperties.o \
+              CDXLPhysicalRandomMotion.o \
+              CDXLPhysicalRedistributeMotion.o \
+              CDXLPhysicalResult.o \
+              CDXLPhysicalRoutedDistributeMotion.o \
+              CDXLPhysicalRowTrigger.o \
+              CDXLPhysicalSequence.o \
+              CDXLPhysicalSort.o \
+              CDXLPhysicalSplit.o \
+              CDXLPhysicalSubqueryScan.o \
+              CDXLPhysicalTVF.o \
+              CDXLPhysicalTableScan.o \
+              CDXLPhysicalValuesScan.o \
+              CDXLPhysicalWindow.o \
+              CDXLProperties.o \
+              CDXLScalar.o \
+              CDXLScalarAggref.o \
+              CDXLScalarArray.o \
+              CDXLScalarArrayCoerceExpr.o \
+              CDXLScalarArrayComp.o \
+              CDXLScalarArrayRef.o \
+              CDXLScalarArrayRefIndexList.o \
+              CDXLScalarAssertConstraint.o \
+              CDXLScalarAssertConstraintList.o \
+              CDXLScalarBitmapBoolOp.o \
+              CDXLScalarBitmapIndexProbe.o \
+              CDXLScalarBoolExpr.o \
+              CDXLScalarBooleanTest.o \
+              CDXLScalarCaseTest.o \
+              CDXLScalarCast.o \
+              CDXLScalarCoalesce.o \
+              CDXLScalarCoerceBase.o \
+              CDXLScalarCoerceToDomain.o \
+              CDXLScalarCoerceViaIO.o \
+              CDXLScalarComp.o \
+              CDXLScalarConstValue.o \
+              CDXLScalarDMLAction.o \
+              CDXLScalarDistinctComp.o \
+              CDXLScalarFilter.o \
+              CDXLScalarFuncExpr.o \
+              CDXLScalarHashCondList.o \
+              CDXLScalarHashExpr.o \
+              CDXLScalarHashExprList.o \
+              CDXLScalarIdent.o \
+              CDXLScalarIfStmt.o \
+              CDXLScalarIndexCondList.o \
+              CDXLScalarJoinFilter.o \
+              CDXLScalarLimitCount.o \
+              CDXLScalarLimitOffset.o \
+              CDXLScalarMergeCondList.o \
+              CDXLScalarMinMax.o \
+              CDXLScalarNullIf.o \
+              CDXLScalarNullTest.o \
+              CDXLScalarOneTimeFilter.o \
+              CDXLScalarOpExpr.o \
+              CDXLScalarOpList.o \
+              CDXLScalarPartBound.o \
+              CDXLScalarPartBoundInclusion.o \
+              CDXLScalarPartBoundOpen.o \
+              CDXLScalarPartDefault.o \
+              CDXLScalarPartListNullTest.o \
+              CDXLScalarPartListValues.o \
+              CDXLScalarPartOid.o \
+              CDXLScalarProjElem.o \
+              CDXLScalarProjList.o \
+              CDXLScalarRecheckCondFilter.o \
+              CDXLScalarSortCol.o \
+              CDXLScalarSortColList.o \
+              CDXLScalarSubPlan.o \
+              CDXLScalarSubquery.o \
+              CDXLScalarSubqueryAll.o \
+              CDXLScalarSubqueryAny.o \
+              CDXLScalarSubqueryExists.o \
+              CDXLScalarSubqueryNotExists.o \
+              CDXLScalarSubqueryQuantified.o \
+              CDXLScalarSwitch.o \
+              CDXLScalarSwitchCase.o \
+              CDXLScalarValuesList.o \
+              CDXLScalarWindowFrameEdge.o \
+              CDXLScalarWindowRef.o \
+              CDXLSpoolInfo.o \
+              CDXLTableDescr.o \
+              CDXLWindowFrame.o \
+              CDXLWindowKey.o \
+              CDXLWindowSpec.o
+
+include $(top_srcdir)/src/backend/common.mk
+

@@ -9,6 +9,8 @@ subdir = src/backend/gpopt/translate
 top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
+include $(top_builddir)/src/backend/gpopt/gpopt.mk
+
 OBJS =  CMappingColIdVar.o \
 		CMappingVarColId.o \
 		CMappingElementColIdParamId.o \
