@@ -4931,7 +4931,7 @@ create_distinct_paths(PlannerInfo *root,
 		/* Apply the preunique optimization, if enabled and worthwhile. */
 		/* GPDB_84_MERGE_FIXME: pre-unique for hash distinct not implemented. */
 		/* GPDB_96_MERGE_FIXME: disabled altogether */
-		if (root->config->gp_enable_preunique && needMotion && !use_hashed_distinct)
+		if (gp_enable_preunique && needMotion && !use_hashed_distinct)
 		{
 			double		base_cost,
 				alt_cost;
@@ -4946,7 +4946,7 @@ create_distinct_paths(PlannerInfo *root,
 			alt_cost += cpu_operator_cost * numDistinct
 				* list_length(parse->distinctClause);
 
-			if (alt_cost < base_cost || root->config->gp_eager_preunique)
+			if (alt_cost < base_cost || gp_eager_preunique)
 			{
 				/*
 				 * Reduce the number of rows to move by adding a [Sort

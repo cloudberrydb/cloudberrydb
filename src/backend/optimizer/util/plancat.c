@@ -1503,7 +1503,6 @@ relation_excluded_by_constraints(PlannerInfo *root,
 	List	   *constraint_pred;
 	List	   *safe_constraints;
 	ListCell   *lc;
-	int			constraint_exclusion = root->config->constraint_exclusion;
 
 	/*
 	 * Regardless of the setting of constraint_exclusion, detect

@@ -3574,8 +3574,7 @@ create_hashjoin_path(PlannerInfo *root,
 	 * the right row count, in case Broadcast Motion is inserted above an
 	 * input path.
 	 */
-	if (jointype == JOIN_INNER &&
-		root->config->gp_enable_hashjoin_size_heuristic)
+	if (jointype == JOIN_INNER && gp_enable_hashjoin_size_heuristic)
 	{
 		double		outersize;
 		double		innersize;

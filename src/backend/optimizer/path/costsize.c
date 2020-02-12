@@ -1677,7 +1677,7 @@ cost_sort(Path *path, PlannerInfo *root,
 	double		output_tuples;
 	long		sort_mem_bytes = (long) global_work_mem(root);
 
-	if (!(root ? root->config->enable_sort : enable_sort))
+	if (!enable_sort)
 		startup_cost += disable_cost;
 
 	path->rows = tuples;
@@ -2366,7 +2366,7 @@ final_cost_nestloop(PlannerInfo *root, NestPath *path,
 	 * would amount to optimizing for the case where the join method is
 	 * disabled, which doesn't seem like the way to bet.
 	 */
-	if (!(root ? root->config->enable_nestloop: enable_nestloop))
+	if (!enable_nestloop)
 		startup_cost += disable_cost;
 
 	/* cost of inner-relation source data (we already dealt with outer rel) */
@@ -2789,7 +2789,7 @@ final_cost_mergejoin(PlannerInfo *root, MergePath *path,
 	 * would amount to optimizing for the case where the join method is
 	 * disabled, which doesn't seem like the way to bet.
 	 */
-	if (!(root ? root->config->enable_mergejoin : enable_mergejoin))
+	if (!enable_mergejoin)
 		startup_cost += disable_cost;
 
 	/*
@@ -3162,7 +3162,7 @@ final_cost_hashjoin(PlannerInfo *root, HashPath *path,
 	 * would amount to optimizing for the case where the join method is
 	 * disabled, which doesn't seem like the way to bet.
 	 */
-	if (!(root ? root->config->enable_hashjoin : enable_hashjoin))
+	if (!enable_hashjoin)
 		startup_cost += disable_cost;
 
 	/* mark the path with estimated # of batches */
