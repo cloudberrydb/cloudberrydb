@@ -269,12 +269,8 @@ bool		gp_enable_minmax_optimization = true;
 bool		gp_enable_multiphase_agg = true;
 bool		gp_enable_preunique = TRUE;
 bool		gp_eager_preunique = FALSE;
-bool		gp_hashagg_streambottom = true;
 bool		gp_enable_agg_distinct = true;
 bool		gp_enable_dqa_pruning = true;
-bool		gp_eager_dqa_pruning = FALSE;
-bool		gp_eager_one_phase_agg = FALSE;
-bool		gp_eager_two_phase_agg = FALSE;
 bool		gp_dynamic_partition_pruning = true;
 bool		gp_log_dynamic_partition_pruning = false;
 bool		gp_cte_sharing = false;
@@ -749,44 +745,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_eager_agg_distinct_pruning", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Prefer 3-phase aggregation [and join] to compute distinct-qualified aggregates."),
-			gettext_noop("The planner will prefer to use 3-phase aggregation and join to compute "
-				"distinct-qualified aggregates whenever enabled and possible"
-						 "regardless of cost estimates."),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_eager_dqa_pruning,
-		false,
-		NULL, NULL, NULL
-	},
-
-	/* GPDB_96_MERGE_FIXME: This doesn't do anything anymore. Do we need to resurrect it? How? */
-	{
-		{"gp_eager_one_phase_agg", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Prefer 1-phase aggregation."),
-			gettext_noop("The planner will prefer to use 1-phase aggregation whenever possible"
-						 "regardless of cost estimates."),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_eager_one_phase_agg,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_eager_two_phase_agg", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Prefer 2-phase aggregation."),
-			gettext_noop("The planner will prefer to use 2-phase aggregation whenever"
-					   "enabled and possible regardless of cost estimates."),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_eager_two_phase_agg,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gp_enable_explain_allstat", PGC_USERSET, CLIENT_CONN_OTHER,
 			gettext_noop("Experimental feature: dump stats for all segments in EXPLAIN ANALYZE."),
 			NULL,
@@ -842,17 +800,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 #endif
-
-	{
-		{"gp_hashagg_streambottom", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Stream the bottom stage of two stage hashagg"),
-			gettext_noop("Avoid spilling at the bottom stage of two stage hashagg"),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_hashagg_streambottom,
-		true,
-		NULL, NULL, NULL
-	},
 
 	{
 		{"gp_enable_motion_deadlock_sanity", PGC_USERSET, DEVELOPER_OPTIONS,

@@ -600,41 +600,9 @@ extern bool gp_enable_agg_distinct;
  * prune values from DISTINCT-qualified aggregate function arguments?
  *
  * The code uses planner estimates to decide whether to use this feature,
- * when enabled.  See, however, gp_eager_dqa_pruning.
+ * when enabled.
  */
 extern bool gp_enable_dqa_pruning;
-
-/*
- * "gp_eager_agg_distinct_pruning"
- *
- * Should Greenplum bias planner estimates so as to favor the use of grouping
- * in the first phases of 3-phase aggregation to prune values from DISTINCT-
- * qualified aggregate function arguments?
- *
- * Note that this has effect only when gp_enable_dqa_pruning it true.  It
- * provided to facilitate testing and is not a tuning parameter.
- */
-extern bool gp_eager_dqa_pruning;
-
-/*
- * "gp_eager_one_phase_agg"
- *
- * Should Greenplum bias planner estimates so as to favor the use of one
- * phase aggregation?
- *
- * It is provided to facilitate testing and is not a tuning parameter.
- */
-extern bool gp_eager_one_phase_agg;
-
-/*
- * "gp_eager_two_phase_agg"
- *
- * Should Greenplum bias planner estimates so as to favor the use of two
- * phase aggregation?
- *
- * It is provided to facilitate testing and is not a tuning parameter.
- */
-extern bool gp_eager_two_phase_agg;
 
 /* May Greenplum apply Unique operator (and possibly a Sort) in parallel prior
  * to the collocation motion for a Unique operator?  The idea is to reduce
@@ -711,9 +679,6 @@ extern int gp_segworker_relative_priority;
 
 /*  Max size of dispatched plans; 0 if no limit */
 extern int gp_max_plan_size;
-
-/* If we use two stage hashagg, we can stream the bottom half */
-extern bool gp_hashagg_streambottom;
 
 /* The default number of batches to use when the hybrid hashed aggregation
  * algorithm (re-)spills in-memory groups to disk.

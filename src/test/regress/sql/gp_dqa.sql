@@ -9,7 +9,6 @@ from generate_series(0, 99) i;
 insert into dqa_t2 select i%34, i%45, (i%10) || '', '2009-06-10'::date + ( (i%56) || ' days')::interval
 from generate_series(0, 99) i;
 
-set gp_eager_agg_distinct_pruning=on;
 set enable_hashagg=on;
 set enable_groupagg=off;
 

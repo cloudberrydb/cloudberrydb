@@ -317,12 +317,8 @@ PlannerConfig *DefaultPlannerConfig(void)
 	c1->gp_enable_multiphase_agg = gp_enable_multiphase_agg;
 	c1->gp_enable_preunique = gp_enable_preunique;
 	c1->gp_eager_preunique = gp_eager_preunique;
-	c1->gp_hashagg_streambottom = gp_hashagg_streambottom;
 	c1->gp_enable_agg_distinct = gp_enable_agg_distinct;
 	c1->gp_enable_dqa_pruning = gp_enable_dqa_pruning;
-	c1->gp_eager_dqa_pruning = gp_eager_dqa_pruning;
-	c1->gp_eager_one_phase_agg = gp_eager_one_phase_agg;
-	c1->gp_eager_two_phase_agg = gp_eager_two_phase_agg;
 	c1->gp_enable_sort_distinct = gp_enable_sort_distinct;
 
 	c1->gp_enable_direct_dispatch = gp_enable_direct_dispatch;
