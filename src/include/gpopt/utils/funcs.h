@@ -21,7 +21,6 @@ extern "C"
 extern Datum DisableXform(PG_FUNCTION_ARGS);
 extern Datum EnableXform(PG_FUNCTION_ARGS);
 extern Datum LibraryVersion();
-extern const char * OptVersion(void);
 
 }
 

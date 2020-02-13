@@ -13,7 +13,7 @@ m/^NOTICE:  extension "gp_inject_fault" already exists, skipping/
 m/NOTICE:  extension "gp_debug_numsegments" already exists, skipping/
 
 m/^ Optimizer status:.*/
-m/^ Optimizer: Pivotal Optimizer \(GPORCA\) version .*/
+m/^ Optimizer: Pivotal Optimizer \(GPORCA\).*/
 m/^ Optimizer: Postgres query optimizer/
 m/^ Settings:.*/
 

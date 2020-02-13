@@ -28,7 +28,6 @@ extern "C" {
 #include "gpos/_api.h"
 #include "gpopt/gpdbwrappers.h"
 
-#include "gpopt/version.h"
 #include "xercesc/util/XercesVersion.hpp"
 
 //---------------------------------------------------------------------------
@@ -112,7 +111,7 @@ LibraryVersion()
 {
 	StringInfoData str;
 	initStringInfo(&str);
-	appendStringInfo(&str, "GPOPT version: %s", GPORCA_VERSION_STRING);
+	appendStringInfo(&str, "GPOPT version: 4.0.0");
 	appendStringInfo(&str, ", Xerces version: %s", XERCES_FULLVERSIONDOT);
 	text *result = cstring_to_text(str.data);
 
@@ -120,10 +119,3 @@ LibraryVersion()
 }
 }
 
-extern "C" {
-const char *
-OptVersion()
-{
-	return GPORCA_VERSION_STRING;
-}
-}

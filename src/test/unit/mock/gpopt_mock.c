@@ -39,13 +39,6 @@ DisableXform(PG_FUNCTION_ARGS)
 	return (Datum) 0;
 }
 
-StringInfo
-OptVersion(void)
-{
-	elog(ERROR, "mock implementation of OptVersion called");
-	return (Datum) 0;
-}
-
 void
 InitGPOPT ()
 {

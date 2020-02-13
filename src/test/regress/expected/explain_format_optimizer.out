@@ -43,7 +43,7 @@ EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT 
                            Index Cond: (id = boxes.apple_id)
          ->  Index Scan using box_locations_pkey on box_locations  (cost=0.00..12.00 rows=1 width=12)
                Index Cond: (id = boxes.location_id)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.1
+ Optimizer: Pivotal Optimizer (GPORCA)
 (15 rows)
 
 -- explain_processing_on
@@ -72,7 +72,7 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
    (slice2)    Executor memory: 96K bytes avg x 3 workers, 96K bytes max (seg0).
    (slice3)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: Pivotal Optimizer (GPORCA) version 3.23.1
+ Optimizer: Pivotal Optimizer (GPORCA)
  Execution time: 23.433 ms
 (24 rows)
 
@@ -99,7 +99,7 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- m/Segments: \d+/
 -- s/Segments: \d+/Segments: #/
 -- m/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+",?/
--- s/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+",?/Pivotal Optimizer \(GPORCA\) version ##.##.##"/
+-- s/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+",?/Pivotal Optimizer \(GPORCA\)"/
 -- m/ Memory: \d+/
 -- s/ Memory: \d+/ Memory: ###/
 -- m/Maximum Memory Used: \d+/
@@ -226,7 +226,7 @@ QUERY PLAN
             Plan Width: 12
             Index Cond: "(id = boxes.location_id)"
   Settings: 
-    Optimizer: "Pivotal Optimizer (GPORCA) version 3.23.1"
+    Optimizer: "Pivotal Optimizer (GPORCA)"
 (1 row)
 --- Check Explain Analyze YAML output that include the slices information
 -- explain_processing_off
@@ -400,7 +400,7 @@ QUERY PLAN
   Statement statistics: 
     Memory used: 128000
   Settings: 
-    Optimizer: "Pivotal Optimizer (GPORCA) version 3.23.1"
+    Optimizer: "Pivotal Optimizer (GPORCA)"
   Execution Time: 3.332
 (1 row)
 -- explain_processing_on
@@ -413,7 +413,7 @@ QUERY PLAN
 --
 -- start_matchsubs
 -- m/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+/
--- s/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+/Pivotal Optimizer \(GPORCA\) version ##.##.##/
+-- s/Pivotal Optimizer \(GPORCA\) version \d+\.\d+\.\d+/Pivotal Optimizer \(GPORCA\)/
 -- end_matchsubs
 -- explain_processing_off
 EXPLAIN (FORMAT JSON, COSTS OFF) SELECT * FROM generate_series(1, 10);
@@ -430,7 +430,7 @@ QUERY PLAN
       "Alias": "generate_series"
     },
     "Settings": {
-      "Optimizer": "Pivotal Optimizer (GPORCA) version 3.23.1"
+      "Optimizer": "Pivotal Optimizer (GPORCA)"
     }
   }
 ]
@@ -449,7 +449,7 @@ QUERY PLAN
       <Alias>generate_series</Alias>
     </Plan>
     <Settings>
-      <Optimizer>Pivotal Optimizer (GPORCA) version 3.23.1</Optimizer>
+      <Optimizer>Pivotal Optimizer (GPORCA)</Optimizer>
     </Settings>
   </Query>
 </explain>
@@ -510,7 +510,7 @@ QUERY PLAN
       ]
     },
     "Settings": {
-      "Optimizer": "Pivotal Optimizer (GPORCA) version 3.88.0"
+      "Optimizer": "Pivotal Optimizer (GPORCA)"
     }
   }
 ]

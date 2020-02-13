@@ -4,18 +4,6 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(gpopt LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 98)
-set(GPORCA_VERSION_MAJOR 3)
-set(GPORCA_VERSION_MINOR 97)
-set(GPORCA_VERSION_PATCH 1)
-set(GPORCA_VERSION_STRING "${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR}.${GPORCA_VERSION_PATCH}")
-
-# Whenever an ABI-breaking change is made to GPORCA, this should be incremented.
-# ABI changes include removing functions, and adding or removing function
-# parameters. Because GPORCA is a C++ library, there are also several other cases
-# that might cause ABI changes, including adding or removing class members,
-# and things that might change vtables for classes with virtual methods. If in
-# doubt, do the safe thing and increment this number.
-set(GPORCA_ABI_VERSION 3)
 
 # Default to shared libraries.
 option(BUILD_SHARED_LIBS "build shared libraries" ON)

@@ -5,9 +5,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpcost/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libnaucrates/include)
 
 # Generate version-number header.
-configure_file(version.h.in
-        ${PROJECT_BINARY_DIR}/libgpopt/include/libgpopt/version.h)
-
 # for the generated config.h file.
 include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
 
@@ -33,5 +30,3 @@ set_target_properties(gpopt PROPERTIES
 
 install(TARGETS gpopt DESTINATION lib)
 install(DIRECTORY include/gpopt DESTINATION include)
-install(FILES "${PROJECT_BINARY_DIR}/libgpopt/include/libgpopt/version.h"
-        DESTINATION include/gpopt)

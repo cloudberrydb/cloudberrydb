@@ -1,3 +1,3 @@
 -- start_matchignore
-m/^Optimizer: Pivotal Optimizer \(GPORCA\) version .*/
+m/^Optimizer: Pivotal Optimizer \(GPORCA\).*/
 -- end_matchignore
