@@ -349,7 +349,6 @@
 		"optimizer_enable_direct_dispatch",
 		"optimizer_enable_dml",
 		"optimizer_enable_dml_constraints",
-		"optimizer_enable_dml_triggers",
 		"optimizer_enable_dynamictablescan",
 		"optimizer_enable_eageragg",
 		"optimizer_enable_gather_on_segment_for_dml",

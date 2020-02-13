@@ -199,11 +199,6 @@ CTranslatorRelcacheToDXL::RetrieveObjectGPDB
 		return RetrieveFunc(mp, mdid);
 	}
 
-	if (gpdb::TriggerExists(oid))
-	{
-		return RetrieveTrigger(mp, mdid);
-	}
-
 	if (gpdb::CheckConstraintExists(oid))
 	{
 		return RetrieveCheckConstraints(mp, md_accessor, mdid);
@@ -421,48 +416,6 @@ CTranslatorRelcacheToDXL::RetrievePartTableIndexInfo
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorRelcacheToDXL::RetrieveRelTriggers
-//
-//	@doc:
-//		Return the triggers defined on the given relation
-//
-//---------------------------------------------------------------------------
-IMdIdArray *
-CTranslatorRelcacheToDXL::RetrieveRelTriggers
-	(
-	CMemoryPool *mp,
-	Relation rel
-	)
-{
-	GPOS_ASSERT(NULL != rel);
-	if (rel->rd_rel->relhastriggers && NULL == rel->trigdesc)
-	{
-		gpdb::BuildRelationTriggers(rel);
-		if (NULL == rel->trigdesc)
-		{
-			rel->rd_rel->relhastriggers = false;
-		}
-	}
-
-	IMdIdArray *mdid_triggers_array = GPOS_NEW(mp) IMdIdArray(mp);
-	if (rel->rd_rel->relhastriggers)
-	{
-		const ULONG ulTriggers = rel->trigdesc->numtriggers;
-
-		for (ULONG ul = 0; ul < ulTriggers; ul++)
-		{
-			Trigger trigger = rel->trigdesc->triggers[ul];
-			OID trigger_oid = trigger.tgoid;
-			CMDIdGPDB *mdid_trigger = GPOS_NEW(mp) CMDIdGPDB(trigger_oid);
-			mdid_triggers_array->Append(mdid_trigger);
-		}
-	}
-
-	return mdid_triggers_array;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorRelcacheToDXL::RetrieveRelCheckConstraints
 //
 //	@doc:
@@ -577,7 +530,6 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	IMDRelation::Ereldistrpolicy dist = IMDRelation::EreldistrSentinel;
 	ULongPtrArray *distr_cols = NULL;
 	CMDIndexInfoArray *md_index_info_array = NULL;
-	IMdIdArray *mdid_triggers_array = NULL;
 	ULongPtrArray *part_keys = NULL;
 	CharPtrArray *part_types = NULL;
 	ULONG num_leaf_partitions = 0;
@@ -589,6 +541,11 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	BOOL is_partitioned = false;
 	IMDRelation *md_rel = NULL;
 
+	/*
+	 * Pretend that there are no triggers, because we don't want ORCA to handle
+	 * them. The executor can run them fine on its own.
+	 */
+	IMdIdArray *mdid_triggers_array = GPOS_NEW(mp) IMdIdArray(mp);
 
 	GPOS_TRY
 	{
@@ -617,9 +574,6 @@ CTranslatorRelcacheToDXL::RetrieveRel
 
 		// collect relation indexes
 		md_index_info_array = RetrieveRelIndexInfo(mp, rel);
-
-		// collect relation triggers
-		mdid_triggers_array = RetrieveRelTriggers(mp, rel);
 
 		// get partition keys
 		if (IMDRelation::ErelstorageExternal != rel_storage_type)
@@ -1960,67 +1914,6 @@ CTranslatorRelcacheToDXL::RetrieveAgg
 											is_hash_agg_capable
 											);
 	return pmdagg;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorRelcacheToDXL::RetrieveTrigger
-//
-//	@doc:
-//		Retrieve a trigger from the relcache given its metadata id.
-//
-//---------------------------------------------------------------------------
-CMDTriggerGPDB *
-CTranslatorRelcacheToDXL::RetrieveTrigger
-	(
-	CMemoryPool *mp,
-	IMDId *mdid
-	)
-{
-	OID trigger_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
-
-	GPOS_ASSERT(InvalidOid != trigger_oid);
-
-	// get trigger name
-	CHAR *name = gpdb::GetTriggerName(trigger_oid);
-
-	if (NULL == name)
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, mdid->GetBuffer());
-	}
-
-	CWStringDynamic *trigger_name_str = CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
-	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, trigger_name_str);
-	GPOS_DELETE(trigger_name_str);
-
-	// get relation oid
-	OID rel_oid = gpdb::GetTriggerRelid(trigger_oid);
-	GPOS_ASSERT(InvalidOid != rel_oid);
-	CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(rel_oid);
-
-	// get function oid
-	OID func_oid = gpdb::GetTriggerFuncid(trigger_oid);
-	GPOS_ASSERT(InvalidOid != func_oid);
-	CMDIdGPDB *mdid_func = GPOS_NEW(mp) CMDIdGPDB(func_oid);
-
-	// get type
-	INT trigger_type = gpdb::GetTriggerType(trigger_oid);
-
-	// is trigger enabled
-	BOOL is_enabled = gpdb::IsTriggerEnabled(trigger_oid);
-
-	mdid->AddRef();
-	CMDTriggerGPDB *pmdtrigger = GPOS_NEW(mp) CMDTriggerGPDB
-											(
-											mp,
-											mdid,
-											mdname,
-											mdid_rel,
-											mdid_func,
-											trigger_type,
-											is_enabled
-											);
-	return pmdtrigger;
 }
 
 //---------------------------------------------------------------------------

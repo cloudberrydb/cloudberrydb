@@ -763,21 +763,18 @@ ExecDelete(ItemPointer tupleid,
 	}
 	resultRelationDesc = resultRelInfo->ri_RelationDesc;
 
-	if (planGen == PLANGEN_PLANNER)
+	/* BEFORE ROW DELETE Triggers */
+	if (resultRelInfo->ri_TrigDesc &&
+		resultRelInfo->ri_TrigDesc->trig_delete_before_row &&
+		!isUpdate)
 	{
-		/* BEFORE ROW DELETE Triggers */
-		if (resultRelInfo->ri_TrigDesc &&
-			resultRelInfo->ri_TrigDesc->trig_delete_before_row &&
-			!isUpdate)
-		{
-			bool		dodelete;
+		bool		dodelete;
 
-			dodelete = ExecBRDeleteTriggers(estate, epqstate, resultRelInfo,
-											tupleid, oldtuple);
+		dodelete = ExecBRDeleteTriggers(estate, epqstate, resultRelInfo,
+										tupleid, oldtuple);
 
-			if (!dodelete)			/* "do nothing" */
-				return NULL;
-		}
+		if (!dodelete)			/* "do nothing" */
+			return NULL;
 	}
 
 	if (resultRelationDesc->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
@@ -1015,7 +1012,7 @@ ldelete:;
 	 * anyway, since the tuple is still visible to other transactions.
 	 */
 
-	if (!RelationIsAppendOptimized(resultRelationDesc) && planGen == PLANGEN_PLANNER && !isUpdate)
+	if (!RelationIsAppendOptimized(resultRelationDesc) && !isUpdate)
 	{
 		/* AFTER ROW DELETE Triggers */
 		ExecARDeleteTriggers(estate, resultRelInfo, tupleid, oldtuple);

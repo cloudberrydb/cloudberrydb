@@ -129,7 +129,6 @@
 #include "executor/nodeMotion.h"
 #include "executor/nodePartitionSelector.h"
 #include "executor/nodeRepeat.h"
-#include "executor/nodeRowTrigger.h"
 #include "executor/nodeSequence.h"
 #include "executor/nodeShareInputScan.h"
 #include "executor/nodeSplitUpdate.h"
@@ -751,16 +750,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			}
 			END_MEMORY_ACCOUNT();
 			break;
-		case T_RowTrigger:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(node, RowTrigger);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
- 			result = (PlanState *) ExecInitRowTrigger((RowTrigger *) node,
- 												   estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
- 			break;
 		case T_PartitionSelector:
 			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(node, PartitionSelector);
 
@@ -1091,10 +1080,6 @@ ExecProcNode(PlanState *node)
 
 		case T_SplitUpdateState:
 			result = ExecSplitUpdate((SplitUpdateState *) node);
-			break;
-
-		case T_RowTriggerState:
-			result = ExecRowTrigger((RowTriggerState *) node);
 			break;
 
 		case T_AssertOpState:
@@ -1436,9 +1421,6 @@ ExecEndNode(PlanState *node)
 			break;
 		case T_AssertOpState:
 			ExecEndAssertOp((AssertOpState *) node);
-			break;
-		case T_RowTriggerState:
-			ExecEndRowTrigger((RowTriggerState *) node);
 			break;
 		case T_PartitionSelectorState:
 			ExecEndPartitionSelector((PartitionSelectorState *) node);

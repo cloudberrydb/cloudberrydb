@@ -513,7 +513,6 @@ plan_tree_walker(Node *node,
 			break;
 
 		case T_SplitUpdate:
-		case T_RowTrigger:
 		case T_AssertOp:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;

@@ -1148,8 +1148,6 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_LockRows";
 	case MEMORY_OWNER_TYPE_Exec_SplitUpdate:
 		return "X_SplitUpdate";
-	case MEMORY_OWNER_TYPE_Exec_RowTrigger:
-		return "X_RowTrigger";
 	case MEMORY_OWNER_TYPE_Exec_AssertOp:
 		return "X_AssertOp";
 	case MEMORY_OWNER_TYPE_Exec_PartitionSelector:

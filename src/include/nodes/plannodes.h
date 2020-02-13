@@ -1419,20 +1419,6 @@ typedef struct AssertOp
 } AssertOp;
 
 /*
- * RowTrigger Node
- *
- */
-typedef struct RowTrigger
-{
-	Plan		plan;
-	Oid			relid;				/* OID of target relation */
-	int 		eventFlags;			/* TriggerEvent bit flags (see trigger.h).*/
-	List		*oldValuesColIdx;	/* list of old columns */
-	List		*newValuesColIdx;	/* list of new columns */
-
-} RowTrigger;
-
-/*
  * RowMarkType -
  *	  enums for types of row-marking operations
  *

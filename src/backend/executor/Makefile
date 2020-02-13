@@ -38,7 +38,6 @@ OBJS += nodeDynamicIndexscan.o \
        nodeTableFunction.o \
        nodeDynamicSeqscan.o \
        nodeSequence.o \
-       nodeRowTrigger.o \
        nodeAssertOp.o \
        nodeSplitUpdate.o \
        execDML.o \

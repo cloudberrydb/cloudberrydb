@@ -104,7 +104,6 @@ typedef enum NodeTag
 	T_ShareInputScan,
 	T_Repeat,
 	T_SplitUpdate,
-	T_RowTrigger,
 	T_AssertOp,
 	T_PartitionSelector,
 	T_Plan_End,
@@ -170,7 +169,6 @@ typedef enum NodeTag
 	T_ShareInputScanState,
 	T_RepeatState,
 	T_SplitUpdateState,
-	T_RowTriggerState,
 	T_AssertOpState,
 	T_PartitionSelectorState,
 

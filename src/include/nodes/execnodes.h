@@ -2981,21 +2981,6 @@ typedef struct AssertOpState
 	PlanState	ps;
 } AssertOpState;
 
-/*
- * ExecNode for RowTrigger.
- * This operator contains a Plannode that contains the triggers
- * to execute.
- */
-typedef struct RowTriggerState
-{
-	PlanState	ps;
-	TupleTableSlot *newTuple;	/* stores new values */
-	TupleTableSlot *oldTuple;	/* stores old values */
-	TupleTableSlot *triggerTuple;		/* stores returned values by the
-										 * trigger */
-
-} RowTriggerState;
-
 
 typedef enum MotionStateType
 {

@@ -1453,27 +1453,6 @@ _copySplitUpdate(const SplitUpdate *from)
 }
 
 /*
- * _copyRowTrigger
- */
-static RowTrigger *
-_copyRowTrigger(const RowTrigger *from)
-{
-	RowTrigger *newnode = makeNode(RowTrigger);
-
-	/*
-	 * copy node superclass fields
-	 */
-	CopyPlanFields((Plan *) from, (Plan *) newnode);
-
-	COPY_SCALAR_FIELD(relid);
-	COPY_SCALAR_FIELD(eventFlags);
-	COPY_NODE_FIELD(oldValuesColIdx);
-	COPY_NODE_FIELD(newValuesColIdx);
-
-	return newnode;
-}
-
-/*
  * _copyAssertOp
  */
 static AssertOp *
@@ -5658,9 +5637,6 @@ copyObject(const void *from)
 			break;
 		case T_SplitUpdate:
 			retval = _copySplitUpdate(from);
-			break;
-		case T_RowTrigger:
-			retval = _copyRowTrigger(from);
 			break;
 		case T_AssertOp:
 			retval = _copyAssertOp(from);

@@ -617,7 +617,10 @@ namespace gpdb {
 
 	// check permissions on range table 
 	void CheckRTPermissions(List *rtable);
-	
+
+	// throw an error if table has update triggers.
+	bool HasUpdateTriggers(Oid relid);
+
 	// get index operator family properties
 	void IndexOpProperties(Oid opno, Oid opfamily, int *strategy, Oid *subtype);
 	

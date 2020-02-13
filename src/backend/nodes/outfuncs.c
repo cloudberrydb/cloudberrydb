@@ -1326,22 +1326,6 @@ _outSplitUpdate(StringInfo str, const SplitUpdate *node)
 }
 
 /*
- * _outRowTrigger
- */
-static void
-_outRowTrigger(StringInfo str, const RowTrigger *node)
-{
-	WRITE_NODE_TYPE("RowTrigger");
-
-	WRITE_INT_FIELD(relid);
-	WRITE_INT_FIELD(eventFlags);
-	WRITE_NODE_FIELD(oldValuesColIdx);
-	WRITE_NODE_FIELD(newValuesColIdx);
-
-	_outPlanInfo(str, (Plan *) node);
-}
-
-/*
  * _outAssertOp
  */
 static void
@@ -5421,9 +5405,6 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_SplitUpdate:
 				_outSplitUpdate(str, obj);
-				break;
-			case T_RowTrigger:
-				_outRowTrigger(str, obj);
 				break;
 			case T_AssertOp:
 				_outAssertOp(str, obj);

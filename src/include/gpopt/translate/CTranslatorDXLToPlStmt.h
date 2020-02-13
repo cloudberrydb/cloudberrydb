@@ -386,14 +386,6 @@ namespace gpdxl
 				CDXLTranslateContext *output_context,
 				CDXLTranslationContextArray *ctxt_translation_prev_siblings // translation contexts of previous siblings
 				);
-			
-			// translate a row trigger operator
-			Plan *TranslateDXLRowTrigger
-				(
-				const CDXLNode *row_trigger_dxlnode,
-				CDXLTranslateContext *output_context,
-				CDXLTranslationContextArray *ctxt_translation_prev_siblings // translation contexts of previous siblings
-				);
 
 			// translate an Assert operator
 			Plan *TranslateDXLAssert

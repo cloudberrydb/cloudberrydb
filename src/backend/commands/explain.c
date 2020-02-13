@@ -1463,9 +1463,6 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		case T_PartitionSelector:
 			pname = sname = "Partition Selector";
 			break;
-		case T_RowTrigger:
-			pname = sname = "RowTrigger";
- 			break;
 		default:
 			pname = sname = "???";
 			break;

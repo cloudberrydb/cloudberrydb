@@ -333,7 +333,6 @@ bool		optimizer_enable_outerjoin_to_unionall_rewrite;
 bool		optimizer_enable_ctas;
 bool		optimizer_enable_partial_index;
 bool		optimizer_enable_dml;
-bool		optimizer_enable_dml_triggers;
 bool		optimizer_enable_dml_constraints;
 bool		optimizer_enable_master_only_queries;
 bool		optimizer_enable_hashjoin;
@@ -2625,17 +2624,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_enable_dml,
 		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"optimizer_enable_dml_triggers", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Support DML with triggers."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&optimizer_enable_dml_triggers,
-		false,
 		NULL, NULL, NULL
 	},
 

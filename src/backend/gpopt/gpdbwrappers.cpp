@@ -872,96 +872,6 @@ gpdb::GetCommutatorOp
 	return 0;
 }
 
-char *
-gpdb::GetTriggerName
-	(
-	Oid triggerid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return get_trigger_name(triggerid);
-	}
-	GP_WRAP_END;
-	return NULL;
-}
-
-Oid
-gpdb::GetTriggerRelid
-	(
-	Oid triggerid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return get_trigger_relid(triggerid);
-	}
-	GP_WRAP_END;
-	return 0;
-}
-
-Oid
-gpdb::GetTriggerFuncid
-	(
-	Oid triggerid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return get_trigger_funcid(triggerid);
-	}
-	GP_WRAP_END;
-	return 0;
-}
-
-int32
-gpdb::GetTriggerType
-	(
-	Oid triggerid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return get_trigger_type(triggerid);
-	}
-	GP_WRAP_END;
-	return 0;
-}
-
-bool
-gpdb::IsTriggerEnabled
-	(
-	Oid triggerid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return trigger_enabled(triggerid);
-	}
-	GP_WRAP_END;
-	return false;
-}
-
-bool
-gpdb::TriggerExists
-	(
-	Oid oid
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		return trigger_exists(oid);
-	}
-	GP_WRAP_END;
-	return false;
-}
-
 bool
 gpdb::CheckConstraintExists
 	(
@@ -2416,22 +2326,6 @@ gpdb::IsChildPartDistributionMismatched
     return false;
 }
 
-gpos::BOOL
-gpdb::ChildPartHasTriggers
-	(
-	Oid oid,
-	int trigger_type
-	)
-{
-    GP_WRAP_START;
-    {
-		/* catalog tables: pg_inherits, pg_trigger */
-    	return child_triggers(oid, trigger_type);
-    }
-    GP_WRAP_END;
-    return false;
-}
-
 bool
 gpdb::RelationExists
 	(
@@ -2538,21 +2432,6 @@ gpdb::GetLogicalIndexInfo
 	}
 	GP_WRAP_END;
 	return NULL;
-}
-
-void
-gpdb::BuildRelationTriggers
-	(
-	Relation rel
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_trigger */
-		RelationBuildTriggers(rel);
-		return;
-	}
-	GP_WRAP_END;
 }
 
 Relation
@@ -2915,6 +2794,22 @@ gpdb::CheckRTPermissions
 	GP_WRAP_END;
 }
 
+
+// check that a table doesn't have UPDATE triggers.
+bool
+gpdb::HasUpdateTriggers
+	(
+	Oid relid
+	)
+{
+	GP_WRAP_START;
+	{
+		return has_update_triggers(relid);
+	}
+	GP_WRAP_END;
+	return false;
+}
+
 // get index op family properties
 void
 gpdb::IndexOpProperties
@@ -3184,7 +3079,6 @@ register_mdcache_invalidation_callbacks(void)
 		 */
 		/* pg_class */
 		/* pg_index */
-		/* pg_trigger */
 
 		/*
 		 * pg_exttable is only updated when a new external table is dropped/created,

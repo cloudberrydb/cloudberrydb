@@ -2462,35 +2462,40 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 	return false;
 }
 
-
-static void
-failIfUpdateTriggers(Relation relation)
+void
+failIfUpdateTriggers(Oid relid)
 {
-	bool	found = false;
+	Relation		relation;
 
-	if (relation->rd_rel->relhastriggers && NULL == relation->trigdesc)
-		RelationBuildTriggers(relation);
-
-	if (!relation->trigdesc)
-		return;
+	/* Suppose we already hold locks before caller */
+	relation = relation_open(relid, NoLock);
 
 	if (relation->rd_rel->relhastriggers)
 	{
-		for (int i = 0; i < relation->trigdesc->numtriggers && !found; i++)
-		{
-			Trigger trigger = relation->trigdesc->triggers[i];
-			found = trigger_enabled(trigger.tgoid) &&
-					(get_trigger_type(trigger.tgoid) & TRIGGER_TYPE_UPDATE) == TRIGGER_TYPE_UPDATE;
-			if (found)
-				break;
-		}
-	}
+		bool	found = false;
 
-	/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
-	if (found || child_triggers(relation->rd_id, TRIGGER_TYPE_UPDATE))
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
-				 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
+		if (relation->trigdesc == NULL)
+			RelationBuildTriggers(relation);
+
+		if (relation->trigdesc)
+		{
+			for (int i = 0; i < relation->trigdesc->numtriggers && !found; i++)
+			{
+				Trigger trigger = relation->trigdesc->triggers[i];
+				found = trigger_enabled(trigger.tgoid) &&
+					(get_trigger_type(trigger.tgoid) & TRIGGER_TYPE_UPDATE) == TRIGGER_TYPE_UPDATE;
+				if (found)
+					break;
+			}
+		}
+
+		/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
+		if (found || child_triggers(relation->rd_id, TRIGGER_TYPE_UPDATE))
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_YET),
+					 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
+	}
+	relation_close(relation, NoLock);
 }
 
 /*
@@ -2791,15 +2796,15 @@ make_splitupdate_path(PlannerInfo *root, Path *subpath, Index rti)
 	PathTarget		*splitUpdatePathTarget;
 	SplitUpdatePath	*splitupdatepath;
 	DMLActionExpr	*actionExpr;
-	Relation		resultRelation;
 
 	/* Suppose we already hold locks before caller */
 	rte = planner_rt_fetch(rti, root);
-	resultRelation = relation_open(rte->relid, NoLock);
 
-	failIfUpdateTriggers(resultRelation);
-
-	relation_close(resultRelation, NoLock);
+	/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
+	if (has_update_triggers(rte->relid))
+		ereport(ERROR,
+				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
+				 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
 
 	/* Add action column at the end of targetlist */
 	actionExpr = makeNode(DMLActionExpr);
