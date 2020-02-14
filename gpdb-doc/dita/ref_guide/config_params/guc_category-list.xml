@@ -154,10 +154,6 @@
                   >password_encryption</xref>
               </p>
               <p>
-                <xref href="guc-list.xml#password_hash_algorithm" type="section"
-                  >password_hash_algorithm</xref>
-              </p>
-              <p>
                 <xref href="guc-list.xml#ssl" type="section">ssl</xref>
               </p>
               <p>

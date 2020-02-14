@@ -32,7 +32,6 @@
 #include "cdb/memquota.h"
 #include "commands/vacuum.h"
 #include "miscadmin.h"
-#include "libpq/password_hash.h"
 #include "optimizer/cost.h"
 #include "optimizer/planmain.h"
 #include "pgstat.h"
@@ -246,9 +245,6 @@ bool		gp_ignore_window_exclude = false;
 
 /* Time based authentication GUC */
 char	   *gp_auth_time_override_str = NULL;
-
-/* Password hashing */
-int			password_hash_algorithm = PASSWORD_HASH_MD5;
 
 /* include file/line information to stack traces */
 bool		gp_log_stack_trace_lines;
@@ -533,13 +529,6 @@ static const struct config_enum_entry gp_resqueue_memory_policies[] = {
 	{"none", RESMANAGER_MEMORY_POLICY_NONE},
 	{"auto", RESMANAGER_MEMORY_POLICY_AUTO},
 	{"eager_free", RESMANAGER_MEMORY_POLICY_EAGER_FREE},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry password_hash_algorithm_options[] = {
-	/* {"none", PASSWORD_HASH_NONE}, * this option is not exposed */
-	{"MD5", PASSWORD_HASH_MD5},
-	{"SHA-256", PASSWORD_HASH_SHA_256},
 	{NULL, 0}
 };
 
@@ -4399,17 +4388,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		},
 		&optimizer_minidump,
 		OPTIMIZER_MINIDUMP_FAIL, optimizer_minidump_options,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"password_hash_algorithm", PGC_SUSET, CONN_AUTH_SECURITY,
-			gettext_noop("The cryptograph hash algorithm to apply to passwords before storing them."),
-			gettext_noop("Valid values are MD5 or SHA-256."),
-			GUC_SUPERUSER_ONLY
-		},
-		&password_hash_algorithm,
-		PASSWORD_HASH_MD5, password_hash_algorithm_options,
 		NULL, NULL, NULL
 	},
 

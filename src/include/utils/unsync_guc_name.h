@@ -423,7 +423,6 @@
 		"optimizer_use_external_constant_expression_evaluation_for_ints",
 		"optimizer_use_gpdb_allocators",
 		"password_encryption",
-		"password_hash_algorithm",
 		"pljava_classpath_insecure",
 		"pljava_debug",
 		"port",

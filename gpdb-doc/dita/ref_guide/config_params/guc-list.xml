@@ -474,9 +474,6 @@
               <xref href="#password_encryption"/>
             </li>
             <li>
-              <xref href="#password_hash_algorithm"/>
-            </li>
-            <li>
               <xref href="#pljava_classpath"/>
             </li>
             <li>
@@ -7546,37 +7543,6 @@
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">on</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="password_hash_algorithm">
-    <title>password_hash_algorithm</title>
-    <body>
-      <p>Specifies the cryptographic hash algorithm that is used when storing an encrypted Greenplum
-        Database user password. The default algorithm is MD5.</p>
-      <p>For information about setting the password hash algorithm to protect user passwords, see
-        "Protecting Passwords in Greenplum Database" in the <cite>Greenplum Database Administrator
-          Guide</cite>.</p>
-      <table id="password_encryption_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">MD5<p>SHA-256</p></entry>
-              <entry colname="col2">MD5</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p><p>superuser</p></entry>
             </row>
           </tbody>
         </tgroup>
