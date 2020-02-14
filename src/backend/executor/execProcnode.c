@@ -1202,9 +1202,7 @@ ExecEndNode(PlanState *node)
 	if (node == NULL)
 		return;
 
-	EState	   *estate = node->state;
-
-	Assert(estate != NULL);
+	Assert(node->state != NULL);
 
 	if (node->chgParam != NULL)
 	{
