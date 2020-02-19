@@ -29,6 +29,3 @@ endif()
 set_target_properties(gpdbcost PROPERTIES
                       SOVERSION ${GPORCA_ABI_VERSION}
                       VERSION ${GPORCA_VERSION_STRING})
-
-install(TARGETS gpdbcost DESTINATION lib)
-install(DIRECTORY include/gpdbcost DESTINATION include)

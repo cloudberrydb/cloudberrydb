@@ -27,6 +27,3 @@ target_link_libraries(gpopt
 set_target_properties(gpopt PROPERTIES
                       SOVERSION ${GPORCA_ABI_VERSION}
                       VERSION ${GPORCA_VERSION_STRING})
-
-install(TARGETS gpopt DESTINATION lib)
-install(DIRECTORY include/gpopt DESTINATION include)

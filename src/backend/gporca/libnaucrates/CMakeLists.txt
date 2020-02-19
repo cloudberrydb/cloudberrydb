@@ -29,6 +29,3 @@ endif()
 set_target_properties(naucrates PROPERTIES
                       SOVERSION ${GPORCA_ABI_VERSION}
                       VERSION ${GPORCA_VERSION_STRING})
-
-install(TARGETS naucrates DESTINATION lib)
-install(DIRECTORY include/naucrates DESTINATION include)

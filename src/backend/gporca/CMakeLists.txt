@@ -1,7 +1,7 @@
 # Copyright (c) 2015, Pivotal Software, Inc.
 
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
-project(gpopt LANGUAGES CXX C)
+project(gpopt_master LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 98)
 
@@ -112,24 +112,6 @@ include_directories(${XERCES_INCLUDE_DIRS})
 
 # GPOS.
 include_directories(libgpos/include)
-
-# Extra system libs needed on Solaris.
-set(GPORCA_SOLARIS_EXTRA_LIBS)
-if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-  find_library(RT_LIBRARY NAMES rt librt)
-  if (${RT_LIBRARY-NOTFOUND})
-    message(WARNING "rt library not found. Linking may fail.")
-  else()
-    set(GPORCA_SOLARIS_EXTRA_LIBS "${GPORCA_SOLARIS_EXTRA_LIBS} ${RT_LIBRARY}")
-  endif()
-
-  find_library(SOCKET_LIBRARY NAMES socket libsocket)
-  if (${SOCKET_LIBRARY-NOTFOUND})
-    message(WARNING "socket library not found. Linking may fail.")
-  else()
-    set(GPORCA_SOLARIS_EXTRA_LIBS "${GPORCA_SOLARIS_EXTRA_LIBS} ${SOCKET_LIBRARY}")
-  endif()
-endif()
 
 enable_testing()
 
