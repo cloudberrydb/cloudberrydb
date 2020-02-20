@@ -805,6 +805,8 @@ _copyFunctionScan(const FunctionScan *from)
 	 */
 	COPY_NODE_FIELD(functions);
 	COPY_SCALAR_FIELD(funcordinality);
+	COPY_NODE_FIELD(param);
+	COPY_SCALAR_FIELD(resultInTupleStore);
 
 	return newnode;
 }
