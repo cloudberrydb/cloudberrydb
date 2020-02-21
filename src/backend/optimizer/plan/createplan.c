@@ -240,7 +240,7 @@ static Plan *prepare_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
 						   AttrNumber **p_sortColIdx,
 						   Oid **p_sortOperators,
 						   Oid **p_collations,
-						   bool **p_nullsFirst, bool add_keys_to_targetlist);
+						   bool **p_nullsFirst);
 static EquivalenceMember *find_ec_member_for_tle(EquivalenceClass *ec,
 					   TargetEntry *tle,
 					   Relids relids);
@@ -1127,8 +1127,7 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 									  &node->sortColIdx,
 									  &node->sortOperators,
 									  &node->collations,
-									  &node->nullsFirst,
-									  true);
+									  &node->nullsFirst);
 
 	/*
 	 * Now prepare the child plans.  We must apply prepare_sort_from_pathkeys
@@ -1158,8 +1157,7 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 											 &sortColIdx,
 											 &sortOperators,
 											 &collations,
-											 &nullsFirst,
-											 true);
+											 &nullsFirst);
 
 		/*
 		 * Check that we got the same sort key information.  We just Assert
@@ -1622,7 +1620,7 @@ create_sort_plan(PlannerInfo *root, SortPath *best_path, int flags)
 	subplan = create_plan_recurse(root, best_path->subpath,
 								  flags | CP_SMALL_TLIST);
 
-	plan = make_sort_from_pathkeys(subplan, best_path->path.pathkeys, true);
+	plan = make_sort_from_pathkeys(subplan, best_path->path.pathkeys);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
@@ -2055,8 +2053,7 @@ create_windowagg_plan(PlannerInfo *root, WindowAggPath *best_path)
 										 &sortColIdx,
 										 &sortOperators,
 										 &collations,
-										 &nullsFirst,
-										 true);
+										 &nullsFirst);
 
 	/* Now deconstruct that into partition and ordering portions */
 	get_column_info_for_window(root,
@@ -4357,8 +4354,7 @@ create_mergejoin_plan(PlannerInfo *root,
 	if (best_path->outersortkeys)
 	{
 		Sort	   *sort = make_sort_from_pathkeys(outer_plan,
-												   best_path->outersortkeys,
-												   true);
+												   best_path->outersortkeys);
 
 		label_sort_with_costsize(root, sort, -1.0);
 		outer_plan = (Plan *) sort;
@@ -4370,8 +4366,7 @@ create_mergejoin_plan(PlannerInfo *root,
 	if (best_path->innersortkeys)
 	{
 		Sort	   *sort = make_sort_from_pathkeys(inner_plan,
-												   best_path->innersortkeys,
-												   true);
+												   best_path->innersortkeys);
 
 		label_sort_with_costsize(root, sort, -1.0);
 		inner_plan = (Plan *) sort;
@@ -6149,8 +6144,7 @@ prepare_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
 						   AttrNumber **p_sortColIdx,
 						   Oid **p_sortOperators,
 						   Oid **p_collations,
-						   bool **p_nullsFirst,
-						   bool add_keys_to_targetlist)
+						   bool **p_nullsFirst)
 {
 	List	   *tlist = lefttree->targetlist;
 	ListCell   *i;
@@ -6262,9 +6256,6 @@ prepare_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
 			 * WindowFunc in a sort expression, treat it as a variable.
 			 */
 			Expr	   *sortexpr = NULL;
-
-			if (!add_keys_to_targetlist)
-				break;
 
 			foreach(j, ec->ec_members)
 			{
@@ -6426,8 +6417,7 @@ find_ec_member_for_tle(EquivalenceClass *ec,
  *				subplan's tlist.
  */
 Sort *
-make_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
-						bool add_keys_to_targetlist)
+make_sort_from_pathkeys(Plan *lefttree, List *pathkeys)
 {
 	int			numsortkeys;
 	AttrNumber *sortColIdx;
@@ -6444,14 +6434,7 @@ make_sort_from_pathkeys(Plan *lefttree, List *pathkeys,
 										  &sortColIdx,
 										  &sortOperators,
 										  &collations,
-										  &nullsFirst,
-										  add_keys_to_targetlist);
-
-	if (lefttree == NULL)
-	{
-		Assert(!add_keys_to_targetlist);
-		return NULL;
-	}
+										  &nullsFirst);
 
 	/* Now build the Sort node */
 	return make_sort(lefttree, numsortkeys,
@@ -7493,8 +7476,7 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 											  &sortColIdx,
 											  &sortOperators,
 											  &collations,
-											  &nullsFirst,
-											  true /* add_keys_to_targetlist */);
+											  &nullsFirst);
 
 			if (prep)
 			{

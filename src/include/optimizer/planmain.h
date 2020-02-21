@@ -120,7 +120,7 @@ extern Plan *add_sort_cost(PlannerInfo *root, Plan *input,
 extern Plan *plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist);      /*CDB*/
 
 /* External use of these functions is deprecated: */
-extern Sort *make_sort_from_pathkeys(Plan *lefttree, List *pathkeys, bool add_keys_to_targetlist);
+extern Sort *make_sort_from_pathkeys(Plan *lefttree, List *pathkeys);
 extern Sort *make_sort_from_sortclauses(List *sortcls,
 						   Plan *lefttree);
 extern Sort *make_sort_from_groupcols(List *groupcls, AttrNumber *grpColIdx,
