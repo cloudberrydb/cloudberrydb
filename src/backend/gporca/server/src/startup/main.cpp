@@ -197,9 +197,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CCastTest),
 	GPOS_UNITTEST_STD(CConstTblGetTest),
 
-#if !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),
-#endif  // !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CBindingTest),
 	GPOS_UNITTEST_STD(CEngineTest),
 	GPOS_UNITTEST_STD(CEquivalenceClassesTest),
@@ -214,9 +212,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CPredicateUtilsTest),
 	GPOS_UNITTEST_STD(CScalarIsDistinctFromTest),
 	GPOS_UNITTEST_STD(CPartConstraintTest),
-#if !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(CSearchStrategyTest),
-#endif  // !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(COptimizationJobsTest),
 	GPOS_UNITTEST_STD(CStateMachineTest),
 	GPOS_UNITTEST_STD(CTableDescriptorTest),

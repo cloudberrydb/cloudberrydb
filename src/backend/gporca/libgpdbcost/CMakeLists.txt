@@ -17,15 +17,10 @@ add_library(gpdbcost ${srcs})
 target_link_libraries(gpdbcost  
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
                       gpos
-                      ${XERCES_LIBRARIES}
-                      ${GPORCA_SOLARIS_EXTRA_LIBS})
+                      ${XERCES_LIBRARIES})
 
 # Prevent linker errors from undefined symbols on OSX.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set_target_properties(gpdbcost PROPERTIES
                         LINK_FLAGS "-undefined dynamic_lookup")
 endif()
-
-set_target_properties(gpdbcost PROPERTIES
-                      SOVERSION ${GPORCA_ABI_VERSION}
-                      VERSION ${GPORCA_VERSION_STRING})

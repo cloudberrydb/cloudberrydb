@@ -79,11 +79,7 @@ namespace gpos
 	};
 
 	typedef uintptr_t	ULONG_PTR;
-#ifdef GPOS_32BIT
-#define ULONG_PTR_MAX (gpos::ulong_max)
-#else
 #define ULONG_PTR_MAX (gpos::ullong_max)
-#endif
 
 	typedef uint16_t USINT;
 	typedef int16_t SINT;

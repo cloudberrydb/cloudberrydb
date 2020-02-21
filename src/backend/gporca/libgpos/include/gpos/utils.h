@@ -21,39 +21,16 @@
 #include "gpos/error/CException.h"
 #include "gpos/io/COstreamBasic.h"
 
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64) && (GPOS_32BIT)
-#define GPOS_ASMFP asm volatile ("movl %%ebp, %0" : "=g" (ulp));
-#define GPOS_ASMSP asm volatile ("movl %%esp, %0" : "=g" (ulp));
-
-#elif (GPOS_i386 || GPOS_i686 || GPOS_x86_64) && (GPOS_64BIT)
 #define GPOS_ASMFP asm volatile ("movq %%rbp, %0" : "=g" (ulp));
 #define GPOS_ASMSP asm volatile ("movq %%rsp, %0" : "=g" (ulp));
-
-#elif (GPOS_sparc) && (GPOS_32BIT)
-#define GPOS_ASMFP asm volatile ("st %%fp, %0" : "=g" (ulp));
-#define GPOS_ASMSP asm volatile ("st %%sp, %0" : "=g" (ulp));
-
-#elif (GPOS_sparc) && (GPOS_64BIT)
-#define GPOS_ASMFP asm volatile ("stx %%fp, %0" : "=g" (ulp));
-#define GPOS_ASMSP asm volatile ("stx %%sp, %0" : "=g" (ulp));
-
-#endif
 
 #define ALIGNED_16(x) (((ULONG_PTR) x >> 1) << 1 == (ULONG_PTR) x)	// checks 16-bit alignment
 #define ALIGNED_32(x) (((ULONG_PTR) x >> 2) << 2 == (ULONG_PTR) x)	// checks 32-bit alignment
 #define ALIGNED_64(x) (((ULONG_PTR) x >> 3) << 3 == (ULONG_PTR) x)	// checks 64-bit alignment
 
-#if GPOS_32BIT	// align to 32 bits
-#define MAX_ALIGNED(x) ALIGNED_32(x)
-#else			// align to 64 bits
 #define MAX_ALIGNED(x) ALIGNED_64(x)
-#endif
 
-#if GPOS_32BIT	// force alignment to 32 bits
-#define ALIGN_STORAGE __attribute__((aligned (4)))
-#else			// force alignment to 64 bits
 #define	ALIGN_STORAGE __attribute__((aligned (8)))
-#endif
 
 #define GPOS_GET_FRAME_POINTER(x) do { ULONG_PTR ulp; GPOS_ASMFP; x = ulp; } while (0)
 #define GPOS_GET_STACK_POINTER(x) do { ULONG_PTR ulp; GPOS_ASMSP; x = ulp; } while (0)

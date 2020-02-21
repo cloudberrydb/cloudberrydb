@@ -31,61 +31,6 @@
 
 using namespace gpos;
 
-
-#ifdef GPOS_sparc
-
-#include <ucontext.h>
-
-//---------------------------------------------------------------------------
-//	@function:
-//		clib::GetContext
-//
-//	@doc:
-//		Get current user context
-//
-//---------------------------------------------------------------------------
-INT
-gpos::clib::GetContext
-	(
-	ucontext_t *user_ctxt
-	)
-{
-	INT res = getcontext(user_ctxt);
-
-	GPOS_ASSERT_(0 == res && "Failed to retrieve stack context");
-
-	return res;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		clib::WalkContext
-//
-//	@doc:
-//		Call the user-supplied function for each routine found on
-//		the call stack and each signal handler invoked
-//
-//---------------------------------------------------------------------------
-INT
-gpos::clib::WalkContext
-	(
-	const ucontext_t *user_ctxt,
-	Callback callback,
-	void *arg
-	)
-{
-	INT res = walkcontext(user_ctxt, callback, arg);
-
-	GPOS_ASSERT_(0 == res && "Failed to walk stack context");
-
-	return res;
-}
-
-#endif //GPOS_sparc
-
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		clib::USleep

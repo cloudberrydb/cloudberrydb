@@ -28,21 +28,6 @@ namespace gpos
 
 		typedef INT (*Comparator)(const void *, const void *);
 
-#ifdef GPOS_sparc
-
-#include <ucontext.h>
-
-		typedef INT (*Callback)(ULONG_PTR, INT, void *);
-
-		// get current user context
-		INT GetContext(ucontext_t *user_ctxt);
-
-		// call the user-supplied function callback for each routine found on
-		// the call stack and each signal handler invoked
-		INT WalkContext(const ucontext_t *user_ctxt, Callback callback, void *arg);
-
-#endif
-
 		// get an environment variable
 		CHAR *GetEnv(const CHAR *name);
 

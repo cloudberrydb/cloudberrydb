@@ -21,9 +21,4 @@ target_link_libraries(gpopt
                       naucrates
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
                       gpos
-                      ${XERCES_LIBRARIES}
-                      ${GPORCA_SOLARIS_EXTRA_LIBS})
-
-set_target_properties(gpopt PROPERTIES
-                      SOVERSION ${GPORCA_ABI_VERSION}
-                      VERSION ${GPORCA_VERSION_STRING})
+                      ${XERCES_LIBRARIES})

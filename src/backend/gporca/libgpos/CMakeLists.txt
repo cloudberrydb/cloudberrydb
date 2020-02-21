@@ -36,9 +36,5 @@ add_library(gpos ${srcs})
 
 target_link_libraries(gpos ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
-set_target_properties(gpos PROPERTIES
-                      SOVERSION ${GPORCA_ABI_VERSION}
-                      VERSION ${GPORCA_VERSION_STRING})
-
 # Tests reside in the 'server' subdirectory.
 add_subdirectory(server)

@@ -41,11 +41,6 @@ namespace gpos
 			// append formatted symbol description
 			void AppendSymbolInfo(CWString *ws, CHAR *demangling_symbol_buffer, SIZE_T size, const Dl_info &symbol_info_array, ULONG index) const;
 
-#if (GPOS_sparc)
-			//  method called by walkcontext function to store return addresses
-			static INT GetStackFrames(ULONG_PTR func_ptr, INT sig __attribute__((unused)), void *context);
-#endif // GPOS_sparc
-
 			// reset descriptor
 			void Reset()
 			{

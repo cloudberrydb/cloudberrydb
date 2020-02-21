@@ -76,11 +76,7 @@ const CHAR *rgszSubqueryFileNames[] =
 		"../data/dxl/minidump/Subquery-ExistsAllAggregates.mdp",
 		"../data/dxl/minidump/Subquery-ExistsAllAggregatesWithDisjuncts.mdp",
 		"../data/dxl/minidump/Subquery-AnyAllAggregates.mdp",
-	#ifndef GPOS_32BIT
-		// TODO:  - 05/14/2014: the plan generates a different plan only for
-		// 32-bit rhel
 		"../data/dxl/minidump/Join-With-Subq-Preds-2.mdp",
-	#endif // GPOS_32BIT
 	};
 
 

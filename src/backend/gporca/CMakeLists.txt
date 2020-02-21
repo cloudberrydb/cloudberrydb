@@ -21,11 +21,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Override CMAKE_SYSTEM_PROCESSOR if it has been explicitly set in a toolchain file.
-if (FORCED_CMAKE_SYSTEM_PROCESSOR)
-  set(CMAKE_SYSTEM_PROCESSOR ${FORCED_CMAKE_SYSTEM_PROCESSOR})
-endif()
-
 # Turn on compiler flags for all warnings if available.
 include(CheckCXXCompilerFlag)
 
@@ -82,20 +77,6 @@ endif()
 # Turn on platform-specific defines.
 set(GPOS_${CMAKE_SYSTEM_NAME} 1)
 set(GPOS_${CMAKE_SYSTEM_PROCESSOR} 1)
-
-# Autodetect bit-width if not already set by toolchain file.
-if (NOT GPOS_ARCH_BITS)
-  # Autodetect bit-width.
-  if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    set(GPOS_ARCH_BITS 64)
-  elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-    set(GPOS_ARCH_BITS 32)
-  else()
-    message(FATAL_ERROR "Could not detect 32-bit OR 64-bit architecture")
-  endif()
-endif()
-
-set (GPOS_${GPOS_ARCH_BITS}BIT 1)
 
 # Library dependencies for optimizer.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
