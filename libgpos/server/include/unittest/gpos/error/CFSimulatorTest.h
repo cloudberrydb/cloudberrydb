@@ -32,7 +32,6 @@ namespace gpos
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_BasicTracking();
-			static GPOS_RESULT EresUnittest_OOM();
 
 	}; // CFSimulatorTest
 }

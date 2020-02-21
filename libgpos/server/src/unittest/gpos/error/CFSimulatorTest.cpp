@@ -35,8 +35,7 @@ CFSimulatorTest::EresUnittest()
 {
 	CUnittest rgut[] =
 		{
-		GPOS_UNITTEST_FUNC(CFSimulatorTest::EresUnittest_BasicTracking),
-		GPOS_UNITTEST_FUNC(CFSimulatorTest::EresUnittest_OOM)
+		GPOS_UNITTEST_FUNC(CFSimulatorTest::EresUnittest_BasicTracking)
 		};
 		
 	// ignore this test for FP simulation and time slicing check
@@ -102,48 +101,6 @@ CFSimulatorTest::EresUnittest_BasicTracking()
 
 	return GPOS_FAILED;
 }
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CFSimulatorTest::EresOOM
-//
-//	@doc:
-//		Simulate an OOM failure
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CFSimulatorTest::EresUnittest_OOM()
-{
-	// create memory pool of 128KB
-	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	CMemoryPool *mp = amp.Pmp();
-
-	GPOS_RESULT eres = GPOS_FAILED;
-
-	// enable OOM simulation
-	CAutoTraceFlag atf(EtraceSimulateOOM, true);
-
-	GPOS_TRY
-	{
-		// attempt allocation
-		GPOS_NEW_ARRAY(mp, CHAR, 1234);
-	}
-	GPOS_CATCH_EX(ex)
-	{
-		// must throw
-		if(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM))
-		{
-			eres = GPOS_OK;
-		}
-
-		GPOS_RESET_EX;
-	}
-	GPOS_CATCH_END;
-
-	return eres;
-}
-
 
 #endif // GPOS_FPSIMULATOR
 
