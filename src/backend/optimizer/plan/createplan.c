@@ -1622,8 +1622,7 @@ create_sort_plan(PlannerInfo *root, SortPath *best_path, int flags)
 	subplan = create_plan_recurse(root, best_path->subpath,
 								  flags | CP_SMALL_TLIST);
 
-	plan = make_sort_from_pathkeys(subplan, best_path->path.pathkeys,
-								   false /* GPDB_96_MERGE_FIXME: is 'false' correct here? */);
+	plan = make_sort_from_pathkeys(subplan, best_path->path.pathkeys, true);
 
 	copy_generic_path_info(&plan->plan, (Path *) best_path);
 
