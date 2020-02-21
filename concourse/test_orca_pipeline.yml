@@ -176,7 +176,7 @@ jobs:
   - task: untar_build_and_test_debug
     file: orca_main_src/concourse/untar_build_and_test.yml
     params:
-      BUILD_TYPE: --build_type=DEBUG
+      BUILD_TYPE: --build_type=Debug
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ''
   - in_parallel:

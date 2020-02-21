@@ -339,7 +339,7 @@ jobs:
     image: centos5-build
     file: orca_src/concourse/build_and_test.yml
     params:
-      BUILD_TYPE: --build_type=DEBUG
+      BUILD_TYPE: --build_type=Debug
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ''
   - task: package_tarball_debug
@@ -393,7 +393,7 @@ jobs:
     image: centos6-build
     file: orca_src/concourse/build_and_test.yml
     params:
-      BUILD_TYPE: --build_type=DEBUG
+      BUILD_TYPE: --build_type=Debug
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_debug
     image: centos6-build
@@ -446,7 +446,7 @@ jobs:
     image: centos7-build
     file: orca_src/concourse/build_and_test.yml
     params:
-      BUILD_TYPE: --build_type=DEBUG
+      BUILD_TYPE: --build_type=Debug
       OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_debug
     image: centos7-build
@@ -498,7 +498,7 @@ jobs:
   - task: build_and_test_debug
     file: orca_src/concourse/build_and_test.yml
     params:
-      BUILD_TYPE: --build_type=DEBUG
+      BUILD_TYPE: --build_type=Debug
       OUTPUT_DIR: --output_dir=build_and_test/install
       SKIP_TESTS: ""
     image: ubuntu18.04-build

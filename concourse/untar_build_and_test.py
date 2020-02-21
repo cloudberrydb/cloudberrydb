@@ -6,7 +6,7 @@ import sys
 BUILD_TYPE=os.environ['BUILD_TYPE']
 OUTPUT_DIR=os.environ['OUTPUT_DIR']
 SKIP_TESTS=os.environ['SKIP_TESTS']
-if 'DEBUG' in BUILD_TYPE:
+if 'Debug' in BUILD_TYPE:
     path_identifier = 'debug'
 else:
     path_identifier = 'release'

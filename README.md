@@ -219,7 +219,7 @@ Here are a few build flavors (commands run from the ORCA checkout directory):
 
 ```
 # debug build
-cmake -GNinja -D CMAKE_BUILD_TYPE=DEBUG -H. -Bbuild.debug
+cmake -GNinja -D CMAKE_BUILD_TYPE=Debug -H. -Bbuild.debug
 ```
 
 ```

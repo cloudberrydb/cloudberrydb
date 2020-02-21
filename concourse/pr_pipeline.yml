@@ -94,7 +94,7 @@ jobs:
       file: orca_src/concourse/build_and_test.yml
       image: centos5-build
       params:
-        BUILD_TYPE: --build_type=DEBUG
+        BUILD_TYPE: --build_type=Debug
         OUTPUT_DIR: --output_dir=build_and_test/install_debug
       timeout: 30m
     on_failure: &pr_failure
