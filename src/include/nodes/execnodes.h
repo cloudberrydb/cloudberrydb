@@ -3022,9 +3022,11 @@ typedef struct MotionState
 								 * each source segindex */
 
 	/* For sorted Motion recv */
-	struct binaryheap *tupleheap;
-	struct CdbTupleHeapInfo *tupleheap_entries;
-	struct CdbMergeComparatorContext *tupleheap_cxt;
+	int			numSortCols;
+	SortSupport sortKeys;
+	TupleTableSlot **slots;
+	struct binaryheap *tupleheap; /* binary heap of slot indices */
+	int			lastSortColIdx;
 
 	/* The following can be used for debugging, usage stats, etc.  */
 	int			numTuplesFromChild;	/* Number of tuples received from child */
@@ -3047,7 +3049,7 @@ typedef struct MotionState
 	int			numInputSegs;	/* the number of segments on the sending slice */
 } MotionState;
 
-/*zx
+/*
  * ExecNode for PartitionSelector.
  * This operator contains a Plannode in PlanState.
  */
