@@ -5162,6 +5162,13 @@ PostgresMain(int argc, char *argv[],
 						ereport(ERROR,
 								(errcode(ERRCODE_PROTOCOL_VIOLATION),
 								 errmsg("MPP protocol messages are only supported in QD - QE connections")));
+					/*
+					 * QD performs the function body check, hence QE doesn't
+					 * need to do the check again. Turn off the check in QE
+					 * process as an optimization. Also, helps eliminate the
+					 * need for having this GUC in-sync between QD and QE.
+					 */
+					check_function_bodies=false;
 
 					/* Set statement_timestamp() */
  					SetCurrentStatementStartTimestamp();
