@@ -209,28 +209,23 @@ function export_gpdb_clients() {
   popd
 }
 
-function fetch_orca_src {
-  local orca_tag="${1}"
-
-  mkdir orca_src
-  wget --quiet --output-document=- "https://github.com/greenplum-db/gporca/archive/${orca_tag}.tar.gz" \
-    | tar xzf - --strip-components=1 --directory=orca_src
-}
-
 function build_xerces()
 {
     OUTPUT_DIR="gpdb_src/gpAux/ext/${BLD_ARCH}"
     mkdir -p xerces_patch/concourse
-    cp -r orca_src/concourse/xerces-c xerces_patch/concourse
-    cp -r orca_src/patches/ xerces_patch
+    cp -r gpdb_src/src/backend/gporca/concourse/xerces-c xerces_patch/concourse
+    cp -r gpdb_src/src/backend/gporca/patches/ xerces_patch
     /usr/bin/python xerces_patch/concourse/xerces-c/build_xerces.py --output_dir=${OUTPUT_DIR}
     rm -rf build
 }
 
-function build_and_test_orca()
+function test_orca()
 {
-    OUTPUT_DIR="gpdb_src/gpAux/ext/${BLD_ARCH}"
-    orca_src/concourse/build_and_test.py --build_type=RelWithDebInfo --output_dir=${OUTPUT_DIR}
+    OUTPUT_DIR="../../../../gpAux/ext/${BLD_ARCH}"
+    pushd ${GPDB_SRC_PATH}/src/backend/gporca
+    concourse/build_and_test.py --build_type=RelWithDebInfo --output_dir=${OUTPUT_DIR}
+    concourse/build_and_test.py --build_type=Debug --output_dir=${OUTPUT_DIR}
+    popd
 }
 
 function _main() {
@@ -239,9 +234,8 @@ function _main() {
   case "${TARGET_OS}" in
     centos|ubuntu|sles)
       prep_env
-      fetch_orca_src "${ORCA_TAG}"
       build_xerces
-      build_and_test_orca
+      test_orca
       install_deps
       link_python
       ;;

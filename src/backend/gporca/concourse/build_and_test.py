@@ -2,6 +2,7 @@
 
 import optparse
 import os
+import shutil
 import subprocess
 import sys
 
@@ -31,22 +32,19 @@ def install_dependency(dependency_name, output_dir):
     return subprocess.call(
         ["tar -xzf " + dependency_name + "/*.tar.gz -C " + output_dir], shell=True)
 
-def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None, thirty_two_bit = False):
+def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None):
     if os.path.exists("build"):
-        os.removedirs("build")
+        shutil.rmtree("build")
     os.mkdir("build")
     cmake_args = ["cmake",
-                  "-D", "CMAKE_BUILD_TYPE=" + build_type,
-                  "-D", "CMAKE_INSTALL_PREFIX=../" + output_dir]
+                  "-D", "CMAKE_INSTALL_PREFIX=" + output_dir,
+                  "-D", "CMAKE_BUILD_TYPE=" + build_type]
     if cxx_compiler:
         cmake_args.append("-D")
         cmake_args.append("CMAKE_CXX_COMPILER=" + cxx_compiler)
     if cxxflags:
         cmake_args.append("-D")
         cmake_args.append("CMAKE_CXX_FLAGS=" + cxxflags)
-    if thirty_two_bit:
-        cmake_args.append("-D")
-        cmake_args.append("CMAKE_TOOLCHAIN_FILE=../" + src_dir + "/cmake/i386.toolchain.cmake")
 
     cmake_args.append("../" + src_dir)
     cmake_command = " ".join(cmake_args)
@@ -79,16 +77,12 @@ def run_tests():
                             ],
                             cwd="build")
 
-def install():
-    return subprocess.call(["make", "install"], cwd="build")
-
 def main():
     parser = optparse.OptionParser()
     parser.add_option("--build_type", dest="build_type", default="RELEASE")
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
     parser.add_option("--output_dir", dest="output_dir", default="install")
-    parser.add_option("--32", dest="thirty_two_bit", default=False)
     parser.add_option("--skiptests", dest="skiptests", action="store_true", default=False)
 
     (options, args) = parser.parse_args()
@@ -96,12 +90,11 @@ def main():
     status = install_dependencies(args, "/usr/local")
     if status:
         return status
-    status = cmake_configure("orca_src",
+    status = cmake_configure("",
                              options.build_type,
                              options.output_dir,
                              options.compiler,
-                             options.cxxflags,
-                             options.thirty_two_bit)
+                             options.cxxflags)
     if status:
         return status
     status = make()
@@ -111,12 +104,6 @@ def main():
         status = run_tests()
         if status:
             return status
-    status = install()
-    if status:
-        return status
-    status = install_dependencies(args, options.output_dir)
-    if status:
-        return status
     return 0
 
 if __name__ == "__main__":
