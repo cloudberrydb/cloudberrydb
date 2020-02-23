@@ -1530,19 +1530,6 @@ ExecHashTableExplainEnd(PlanState *planstate, struct StringInfoData *buf)
 
 		/* Report on batch in progress, in case the join is being ended early. */
 		ExecHashTableExplainBatchEnd(hashState, hashtable);
-
-		/* Report executor memory used by our memory context. */
-		jinstrument->execmemused +=
-				(double)MemoryContextGetPeakSpace(hashtable->hashCxt);
-	}
-	else
-	{
-		/*
-		 * Memory has been eagerly released. We can't get statistics
-		 * from the memory context. We approximate from stats structure.
-		 */
-
-		jinstrument->execmemused += (double) stats->workmem_max;
 	}
 	
     /* Report actual work_mem high water mark. */

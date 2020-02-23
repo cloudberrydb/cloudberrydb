@@ -5358,10 +5358,6 @@ tuplesort_finalize_stats(Tuplesortstate *state)
         if (state->instrument->workmemused < workmemused)
             state->instrument->workmemused = workmemused;
 
-        /* Report executor memory used by our memory context. */
-        state->instrument->execmemused +=
-            (double)MemoryContextGetPeakSpace(state->sortcontext);
-
 		state->statsFinalized = true;
 		tuplesort_get_stats(state,
 				&state->instrument->sortMethod,

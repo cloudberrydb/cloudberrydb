@@ -135,6 +135,7 @@
 #include "executor/nodeTableFunction.h"
 #include "pg_trace.h"
 #include "tcop/tcopprot.h"
+#include "utils/memutils.h"
 #include "utils/metrics_utils.h"
 
  /* flags bits for planstate walker */
@@ -179,6 +180,8 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	PlanState  *result;
 	List	   *subps;
 	ListCell   *l;
+	MemoryContext nodecxt = NULL;
+	MemoryContext oldcxt = NULL;
 
 	/*
 	 * do nothing when we get to the end of a leaf on tree.
@@ -187,6 +190,24 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		return NULL;
 
 	Assert(estate != NULL);
+
+	/*
+	 * If per-node memory usage was requested
+	 * (explain_memory_verbosity=detail), create a separate memory context
+	 * for every node, so that we can attribute memory usage to each node.
+	 * Otherwise, everything is allocated in the per-query ExecutorState
+	 * context. The extra memory contexts consume some memory on their
+	 * own, and prevent reusing memory allocated in one node in another
+	 * node, so we only want to do this if the level of detail is needed.
+	 */
+	if ((estate->es_instrument & INSTRUMENT_MEMORY_DETAIL) != 0)
+	{
+		nodecxt = AllocSetContextCreate(CurrentMemoryContext,
+										"executor node",
+										ALLOCSET_SMALL_SIZES);
+		MemoryContextDeclareAccountingRoot(nodecxt);
+		oldcxt = MemoryContextSwitchTo(nodecxt);
+	}
 
 	switch (nodeTag(node))
 	{
@@ -442,6 +463,13 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 	}
 
+	if ((estate->es_instrument & INSTRUMENT_MEMORY_DETAIL) != 0)
+	{
+		Assert(CurrentMemoryContext == nodecxt);
+		result->node_context = nodecxt;
+		MemoryContextSwitchTo(oldcxt);
+	}
+
 	/*
 	 * Initialize any initPlans present in this node.  The planner put them in
 	 * a separate list for us.
@@ -533,6 +561,7 @@ TupleTableSlot *
 ExecProcNode(PlanState *node)
 {
 	TupleTableSlot *result = NULL;
+	MemoryContext oldcxt = NULL;
 
 	CHECK_FOR_INTERRUPTS();
 
@@ -557,6 +586,9 @@ ExecProcNode(PlanState *node)
 
 	if (node->instrument)
 		InstrStartNode(node->instrument);
+
+	if ((node->state->es_instrument & INSTRUMENT_MEMORY_DETAIL) != 0)
+		oldcxt = MemoryContextSwitchTo(node->node_context);
 
 	if(!node->fHadSentNodeStart)
 	{
@@ -763,6 +795,12 @@ ExecProcNode(PlanState *node)
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 			result = NULL;
 			break;
+	}
+
+	if ((node->state->es_instrument & INSTRUMENT_MEMORY_DETAIL) != 0)
+	{
+		Assert(CurrentMemoryContext == node->node_context);
+		MemoryContextSwitchTo(oldcxt);
 	}
 
 	if (node->instrument)

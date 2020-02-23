@@ -915,6 +915,9 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 	if (si->bnotes < si->enotes)
 		appendStringInfoChar(ctx->notebuf, '\0');
 
+	if (planstate->node_context)
+		si->execmemused = (double) MemoryContextGetPeakSpace(planstate->node_context);
+
 	/* Transfer this node's statistics from Instrumentation into StatInst. */
 	si->starttime = instr->starttime;
 	si->counter = instr->counter;
@@ -923,7 +926,6 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 	si->total = instr->total;
 	si->ntuples = instr->ntuples;
 	si->nloops = instr->nloops;
-	si->execmemused = instr->execmemused;
 	si->workmemused = instr->workmemused;
 	si->workmemwanted = instr->workmemwanted;
 	si->workfileCreated = instr->workfileCreated;
@@ -1470,7 +1472,7 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 	 * Executor memory used by this individual node, if it allocates from a
 	 * memory context of its own instead of sharing the per-query context.
 	 */
-	if (es->analyze && es->verbose && ns->execmemused.vcnt > 0)
+	if (es->analyze && ns->execmemused.vcnt > 0)
 	{
 		if (es->format == EXPLAIN_FORMAT_TEXT)
 		{

@@ -1076,9 +1076,6 @@ tuplesort_finalize_stats_mk(Tuplesortstate_mk *state)
 	{
 		Size		maxSpaceUsedOnSort = MemoryContextGetPeakSpace(state->sortcontext);
 
-		/* Report executor memory used by our memory context. */
-		state->instrument->execmemused += (double) maxSpaceUsedOnSort;
-
 		if (state->instrument->workmemused < maxSpaceUsedOnSort)
 		{
 			state->instrument->workmemused = maxSpaceUsedOnSort;

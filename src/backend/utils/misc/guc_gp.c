@@ -477,6 +477,7 @@ static const struct config_enum_entry optimizer_cost_model_options[] = {
 static const struct config_enum_entry explain_memory_verbosity_options[] = {
 	{"suppress", EXPLAIN_MEMORY_VERBOSITY_SUPPRESS},
 	{"summary", EXPLAIN_MEMORY_VERBOSITY_SUMMARY},
+	{"detail", EXPLAIN_MEMORY_VERBOSITY_DETAIL},
 	{NULL, 0}
 };
 

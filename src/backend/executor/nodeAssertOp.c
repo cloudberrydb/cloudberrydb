@@ -22,18 +22,6 @@
 #include "executor/instrument.h"
 #include "utils/memutils.h"
 
-/* memory used by node.*/
-#define ASSERTOP_MEM 	1
-
-/*
- * Estimated Memory Usage of AssertOp Node.
- * */
-void
-ExecAssertOpExplainEnd(PlanState *planstate, struct StringInfoData *buf)
-{
-	planstate->instrument->execmemused += ASSERTOP_MEM;
-}
-
 /*
  * Check for assert violations and error out, if any.
  */
@@ -159,10 +147,7 @@ ExecInitAssertOp(AssertOp *node, EState *estate, int eflags)
 
 	if (estate->es_instrument && (estate->es_instrument & INSTRUMENT_CDB))
 	{
-	        assertOpState->ps.cdbexplainbuf = makeStringInfo();
-
-	        /* Request a callback at end of query. */
-	        assertOpState->ps.cdbexplainfun = ExecAssertOpExplainEnd;
+		assertOpState->ps.cdbexplainbuf = makeStringInfo();
 	}
 
 	return assertOpState;
