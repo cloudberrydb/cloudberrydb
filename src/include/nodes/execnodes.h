@@ -1450,8 +1450,6 @@ typedef struct PlanState
 	bool		fHadSentNodeStart;
 
 	bool		squelched;		/* has ExecSquelchNode() been called already? */
-	/* MemoryAccount to use for recording the memory usage of different plan nodes. */
-	MemoryAccountIdType memoryAccountId;
 } PlanState;
 
 extern uint64 PlanStateOperatorMemKB(const PlanState *ps);

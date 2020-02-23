@@ -477,8 +477,6 @@ static const struct config_enum_entry optimizer_cost_model_options[] = {
 static const struct config_enum_entry explain_memory_verbosity_options[] = {
 	{"suppress", EXPLAIN_MEMORY_VERBOSITY_SUPPRESS},
 	{"summary", EXPLAIN_MEMORY_VERBOSITY_SUMMARY},
-	{"detail", EXPLAIN_MEMORY_VERBOSITY_DETAIL},
-	{"debug", EXPLAIN_MEMORY_VERBOSITY_DEBUG},
 	{NULL, 0}
 };
 
@@ -2697,7 +2695,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 
 	{
 		{"optimizer_use_gpdb_allocators", PGC_POSTMASTER, RESOURCES_MEM,
-			gettext_noop("Enable ORCA to use GPDB Memory Accounting"),
+			gettext_noop("Enable ORCA to use GPDB Memory Contexts"),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},

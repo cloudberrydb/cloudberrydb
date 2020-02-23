@@ -560,6 +560,7 @@ tuplesort_begin_common(ScanState *ss, int workMem, bool randomAccess, bool alloc
 										ALLOCSET_DEFAULT_MINSIZE,
 										ALLOCSET_DEFAULT_INITSIZE,
 										ALLOCSET_DEFAULT_MAXSIZE);
+	MemoryContextDeclareAccountingRoot(sortcontext);
 
 	/*
 	 * Make the Tuplesortstate_mk within the per-sort context.  This way, we

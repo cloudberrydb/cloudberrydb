@@ -20,6 +20,7 @@
 #include "commands/tablecmds.h"
 #include "executor/nodeAssertOp.h"
 #include "executor/instrument.h"
+#include "utils/memutils.h"
 
 /* memory used by node.*/
 #define ASSERTOP_MEM 	1

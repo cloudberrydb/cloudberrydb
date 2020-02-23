@@ -28,6 +28,7 @@
 #include "executor/executor.h"
 #include "executor/nodeRepeat.h"
 #include "parser/parsetree.h"
+#include "utils/memutils.h"
 
 static void init_RepeatState(RepeatState *repeatstate);
 

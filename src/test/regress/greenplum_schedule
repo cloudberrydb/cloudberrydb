@@ -147,7 +147,7 @@ test: bfv_catalog bfv_index bfv_olap bfv_aggregate bfv_partition bfv_partition_p
 # NOTE: gporca_faults uses gp_fault_injector - so do not add to a parallel group
 test: gporca_faults
 
-test: bb_memory_quota memconsumption
+test: bb_memory_quota
 
 # Tests for replicated table
 test: rpt rpt_joins rpt_tpch rpt_returning
