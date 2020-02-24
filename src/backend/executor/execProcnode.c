@@ -128,7 +128,6 @@
 #include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeMotion.h"
 #include "executor/nodePartitionSelector.h"
-#include "executor/nodeRepeat.h"
 #include "executor/nodeSequence.h"
 #include "executor/nodeShareInputScan.h"
 #include "executor/nodeSplitUpdate.h"
@@ -437,11 +436,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 		case T_Motion:
 			result = (PlanState *) ExecInitMotion((Motion *) node,
-												  estate, eflags);
-			break;
-
-		case T_Repeat:
-			result = (PlanState *) ExecInitRepeat((Repeat *) node,
 												  estate, eflags);
 			break;
 
@@ -775,10 +769,6 @@ ExecProcNode(PlanState *node)
 			result = ExecShareInputScan((ShareInputScanState *) node);
 			break;
 
-		case T_RepeatState:
-			result = ExecRepeat((RepeatState *) node);
-			break;
-
 		case T_SplitUpdateState:
 			result = ExecSplitUpdate((SplitUpdateState *) node);
 			break;
@@ -1108,10 +1098,6 @@ ExecEndNode(PlanState *node)
 
 		case T_MotionState:
 			ExecEndMotion((MotionState *) node);
-			break;
-
-		case T_RepeatState:
-			ExecEndRepeat((RepeatState *) node);
 			break;
 
 			/*

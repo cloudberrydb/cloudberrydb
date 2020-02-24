@@ -192,11 +192,6 @@ plan_tree_walker(Node *node,
 				return true;
 			break;
 
-		case T_Repeat:
-			if (walk_plan_node_fields((Plan *) node, walker, context))
-				return true;
-			break;
-
 		case T_Append:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;

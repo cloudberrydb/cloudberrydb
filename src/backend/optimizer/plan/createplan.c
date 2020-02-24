@@ -7072,34 +7072,6 @@ make_result(List *tlist,
 }
 
 /*
- * make_repeat
- *	  Build a Repeat plan node
- */
-Repeat *
-make_repeat(List *tlist,
-			List *qual,
-			Expr *repeatCountExpr,
-			uint64 grouping,
-			Plan *subplan)
-{
-	Repeat	   *node = makeNode(Repeat);
-	Plan	   *plan = &node->plan;
-
-	Assert(subplan != NULL);
-	copy_plan_costsize(plan, subplan);
-
-	plan->targetlist = tlist;
-	plan->qual = qual;
-	plan->lefttree = subplan;
-	plan->righttree = NULL;
-
-	node->repeatCountExpr = repeatCountExpr;
-	node->grouping = grouping;
-
-	return node;
-}
-
-/*
  * make_modifytable
  *	  Build a ModifyTable plan node
  */
