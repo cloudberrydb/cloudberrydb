@@ -5844,9 +5844,17 @@ CFLAGS_VECTOR=$CFLAGS_VECTOR
 # supply -g if --enable-debug
 if test "$enable_debug" = yes && test "$ac_cv_prog_cc_g" = yes; then
   if test "$GCC" = yes; then
-  	CFLAGS="$CFLAGS -g -ggdb"
+    CFLAGS="$CFLAGS -g -ggdb"
   else
     CFLAGS="$CFLAGS -g"
+  fi
+fi
+
+if test "$enable_debug" = yes && test "$ac_cv_prog_cxx_g" = yes; then
+  if test "$GCC" = yes; then
+    CXXFLAGS="$CXXFLAGS -g3 -ggdb"
+  else
+    CXXFLAGS="$CXXFLAGS -g3"
   fi
 fi
 
@@ -6270,6 +6278,19 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with ORCA... $enable_orca" >&5
 $as_echo "checking whether to build with ORCA... $enable_orca" >&6; }
 
+
+# Build ORCA in debug if enable-cassert
+if test "$enable_cassert" = yes; then
+
+$as_echo "#define GPOS_DEBUG 1" >>confdefs.h
+
+fi
+
+if test "$PORTNAME" = darwin; then
+
+$as_echo "#define GPOS_Darwin 1" >>confdefs.h
+
+fi
 
 #
 # --enable-mapreduce enables GPMapreduce support

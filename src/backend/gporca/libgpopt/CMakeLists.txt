@@ -19,6 +19,6 @@ add_library(gpopt ${srcs})
 target_link_libraries(gpopt
                       gpdbcost
                       naucrates
-                      ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
+                      ${CMAKE_DL_LIBS}
                       gpos
                       ${XERCES_LIBRARIES})

@@ -27,36 +27,6 @@
 using namespace gpopt;
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		ICmpEdgesByLength
-//
-//	@doc:
-//		Comparison function for simple join ordering: sort edges by length
-//		only to guaranteed that single-table predicates don't end up above
-//		joins;
-//
-//---------------------------------------------------------------------------
-INT ICmpEdgesByLength
-	(
-	const void *pvOne,
-	const void *pvTwo
-	)
-{
-	CJoinOrder::SEdge *pedgeOne = *(CJoinOrder::SEdge**)pvOne;
-	CJoinOrder::SEdge *pedgeTwo = *(CJoinOrder::SEdge**)pvTwo;
-
-
-	INT iDiff = (pedgeOne->m_pbs->Size() - pedgeTwo->m_pbs->Size());
-	if (0 == iDiff)
-	{
-		return (INT)pedgeOne->m_pbs->HashValue() - (INT)pedgeTwo->m_pbs->HashValue();
-	}
-
-	return iDiff;
-}
-
-
 // ctor
 CJoinOrder::SComponent::SComponent
 	(

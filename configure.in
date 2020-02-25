@@ -676,9 +676,17 @@ AC_SUBST(CFLAGS_VECTOR, $CFLAGS_VECTOR)
 # supply -g if --enable-debug
 if test "$enable_debug" = yes && test "$ac_cv_prog_cc_g" = yes; then
   if test "$GCC" = yes; then
-  	CFLAGS="$CFLAGS -g -ggdb"
+    CFLAGS="$CFLAGS -g -ggdb"
   else
     CFLAGS="$CFLAGS -g"
+  fi
+fi
+
+if test "$enable_debug" = yes && test "$ac_cv_prog_cxx_g" = yes; then
+  if test "$GCC" = yes; then
+    CXXFLAGS="$CXXFLAGS -g3 -ggdb"
+  else
+    CXXFLAGS="$CXXFLAGS -g3"
   fi
 fi
 
@@ -807,6 +815,17 @@ PGAC_ARG_BOOL(enable, orca, yes, [disable ORCA optimizer],
                          [Define to 1 to build with Greenplum ORCA optimizer. (--enable-orca)])])
 AC_MSG_RESULT([checking whether to build with ORCA... $enable_orca])
 AC_SUBST(enable_orca)
+
+# Build ORCA in debug if enable-cassert
+if test "$enable_cassert" = yes; then
+  AC_DEFINE([GPOS_DEBUG], 1,
+	    [Define to 1 to build ORCA in debug (GPOS_DEBUG=1)])
+fi
+
+if test "$PORTNAME" = darwin; then
+  AC_DEFINE([GPOS_Darwin], 1,
+	    [Define to 1 to build ORCA for MacOS (GPOS_Darwin=1)])
+fi
 
 #
 # --enable-mapreduce enables GPMapreduce support

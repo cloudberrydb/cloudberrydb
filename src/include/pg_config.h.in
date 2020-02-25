@@ -82,6 +82,12 @@
 # define gettimeofday(a,b) gettimeofday(a)
 #endif
 
+/* Define to 1 to build ORCA in debug (GPOS_DEBUG=1) */
+#undef GPOS_DEBUG
+
+/* Define to 1 to build ORCA for MacOS (GPOS_Darwin=1) */
+#undef GPOS_Darwin
+
 /* Greenplum major version as a string */
 #undef GP_MAJORVERSION
 
@@ -276,15 +282,6 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
-/* Define to 1 if you have the <gpdbcost/CCostModelGPDB.h> header file. */
-#undef HAVE_GPDBCOST_CCOSTMODELGPDB_H
-
-/* Define to 1 if you have the <gpopt/init.h> header file. */
-#undef HAVE_GPOPT_INIT_H
-
-/* Define to 1 if you have the <gpos/_api.h> header file. */
-#undef HAVE_GPOS__API_H
-
 /* Define to 1 if you have the <gssapi/gssapi.h> header file. */
 #undef HAVE_GSSAPI_GSSAPI_H
 
@@ -351,15 +348,6 @@
 /* Define to 1 if you have the `execinfo' library (-lexecinfo). */
 #undef HAVE_LIBEXECINFO
 
-/* Define to 1 if you have the `gpdbcost' library (-lgpdbcost). */
-#undef HAVE_LIBGPDBCOST
-
-/* Define to 1 if you have the `gpopt' library (-lgpopt). */
-#undef HAVE_LIBGPOPT
-
-/* Define to 1 if you have the `gpos' library (-lgpos). */
-#undef HAVE_LIBGPOS
-
 /* Define to 1 if you have the `ldap' library (-lldap). */
 #undef HAVE_LIBLDAP
 
@@ -368,9 +356,6 @@
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
-
-/* Define to 1 if you have the `naucrates' library (-lnaucrates). */
-#undef HAVE_LIBNAUCRATES
 
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
@@ -440,9 +425,6 @@
 
 /* Define to 1 if you have the `mkdtemp' function. */
 #undef HAVE_MKDTEMP
-
-/* Define to 1 if you have the <naucrates/init.h> header file. */
-#undef HAVE_NAUCRATES_INIT_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H

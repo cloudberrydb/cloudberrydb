@@ -69,23 +69,19 @@ endif()
 # Turn on GPOS_DEBUG define for DEBUG builds.
 cmake_policy(SET CMP0043 NEW)
 
-STRING(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
-if (CMAKE_BUILD_TYPE_LOWER STREQUAL  "debug")
-  set(GPOS_DEBUG 1)
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  add_compile_options(-DGPOS_Darwin)
 endif()
 
+add_compile_options(-DUSE_CMAKE)
 # Turn on platform-specific defines.
 set(GPOS_${CMAKE_SYSTEM_NAME} 1)
 set(GPOS_${CMAKE_SYSTEM_PROCESSOR} 1)
 
 # Library dependencies for optimizer.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
-# POSIX threads.
-find_package(Threads REQUIRED)
-if (NOT CMAKE_USE_PTHREADS_INIT)
-  message(FATAL_ERROR "Found a threading library, but it is not pthreads.")
-endif()
 
 # Xerces.
 find_package(Xerces REQUIRED)

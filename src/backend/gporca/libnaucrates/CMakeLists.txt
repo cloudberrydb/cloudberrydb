@@ -15,7 +15,7 @@ list(APPEND srcs ${hdrs})
 add_library(naucrates ${srcs})
 
 target_link_libraries(naucrates
-                      ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
+                      ${CMAKE_DL_LIBS}
                       gpos
                       ${XERCES_LIBRARIES})
 

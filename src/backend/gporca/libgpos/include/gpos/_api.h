@@ -17,7 +17,9 @@
 #ifndef GPOS_api_H
 #define GPOS_api_H
 
-#include "gpos/config.h"
+#ifndef USE_CMAKE
+#include "pg_config.h"
+#endif
 #include "gpos/base.h"
 
 #ifdef __cplusplus
