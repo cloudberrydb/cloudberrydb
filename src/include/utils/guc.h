@@ -23,8 +23,9 @@
 #define MAX_PRE_AUTH_DELAY (60)
 /*
  * One connection must be reserved for FTS to always able to probe
- * primary. So, this acts as lower limit on reserved superuser connections.
-*/
+ * primary. So, this acts as lower limit on reserved superuser connections on
+ * primaries.
+ */
 #define RESERVED_FTS_CONNECTIONS (1)
 
 
