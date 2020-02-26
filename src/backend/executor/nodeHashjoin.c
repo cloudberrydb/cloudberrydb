@@ -918,6 +918,20 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 			BufFileClose(hashtable->outerBatchFile[curbatch]);
 		hashtable->outerBatchFile[curbatch] = NULL;
 	}
+	else	/* we just finished the first batch */
+	{
+		/*
+		 * Reset some of the skew optimization state variables, since we no
+		 * longer need to consider skew tuples after the first batch. The
+		 * memory context reset we are about to do will release the skew
+		 * hashtable itself.
+		 */
+		hashtable->skewEnabled = false;
+		hashtable->skewBucket = NULL;
+		hashtable->skewBucketNums = NULL;
+		hashtable->nSkewBuckets = 0;
+		hashtable->spaceUsedSkew = 0;
+	}
 
 	/*
 	 * If we want to keep the hash table around, for re-scan, then write
@@ -937,21 +951,6 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 	{
 		SpillCurrentBatch(hjstate);
 	}
-	else	/* we just finished the first batch */
-	{
-		/*
-		 * Reset some of the skew optimization state variables, since we no
-		 * longer need to consider skew tuples after the first batch. The
-		 * memory context reset we are about to do will release the skew
-		 * hashtable itself.
-		 */
-		hashtable->skewEnabled = false;
-		hashtable->skewBucket = NULL;
-		hashtable->skewBucketNums = NULL;
-		hashtable->nSkewBuckets = 0;
-		hashtable->spaceUsedSkew = 0;
-	}
-
 	/*
 	 * We can always skip over any batches that are completely empty on both
 	 * sides.  We can sometimes skip over batches that are empty on only one
