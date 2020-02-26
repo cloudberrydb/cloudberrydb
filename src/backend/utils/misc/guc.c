@@ -1890,7 +1890,7 @@ static struct config_int ConfigureNamesInt[] =
 			NULL
 		},
 		&ReservedBackends,
-		3, RESERVED_FTS_CONNECTIONS, MAX_BACKENDS,
+		10, RESERVED_FTS_CONNECTIONS, MAX_BACKENDS,
 		NULL, NULL, NULL
 	},
 
