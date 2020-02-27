@@ -196,6 +196,10 @@ namespace gpos
 
 		// Generate only MinCard join order in DPv2 transform
 		EopttraceMinCardOnlyInDPv2 = 103036,
+
+		// Consider non-equality predicates in Dynamic partition selection
+		EopttraceAllowGeneralPredicatesforDPE = 103037,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

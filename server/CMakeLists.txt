@@ -159,16 +159,13 @@ CPartTbl1Test:
 NoPartConstraint-WhenNoDefaultPartsAndIndices
 PartConstraint-WhenIndicesAndNoDefaultParts PartConstraint-WithOnlyDefaultPartInfo
 PartConstraint-WhenDefaultPartsAndIndices CorrelatedNLJ-PartSelector-Subplan
-DonotPushPartConstThruLimit PartTbl-DPE-Correlated-NLOuter Select-Over-PartTbl
-PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit
+DonotPushPartConstThruLimit Select-Over-PartTbl
 PartSelectorOnJoinSide PartSelectorOnJoinSide2;
 
 CPartTbl2Test:
-DPE-with-unsupported-pred DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
-NLJ-Broadcast-DPE-Outer-Child Part-Selection-IN Part-Selection-NOT-IN
+Part-Selection-IN Part-Selection-NOT-IN
 Part-Selection-ConstArray-1 Part-Selection-ConstArray-2 PartTbl-WindowFunction
-PartTbl-MultiWayJoin PartTbl-MultiWayJoinWithDPE PartTbl-MultiWayJoinWithDPE-2
-PartTbl-AsymmetricRangePredicate PartTbl-NEqPredicate PartTbl-SQExists;
+PartTbl-MultiWayJoin PartTbl-AsymmetricRangePredicate PartTbl-NEqPredicate PartTbl-SQExists;
 
 CPartTbl3Test:
 PartTbl-SQNotExists PartTbl-SQAny PartTbl-SQAll PartTbl-SQScalar PartTbl-HJ3
@@ -188,8 +185,6 @@ PartTbl-ComplexPredicate4 PartTbl-ComplexPredicate5 LargeMultiColumnInList;
 CPartTbl5Test:
 PartTbl-IsNullPredicate PartTbl-IsNotNullPredicate PartTbl-IndexOnDefPartOnly
 PartTbl-SubqueryOuterRef PartTbl-CSQ-PartKey PartTbl-CSQ-NonPartKey
-PartTbl-LeftOuterHashJoin-DPE-IsNull PartTbl-LeftOuterNLJoin-DPE-IsNull
-PartTbl-List-DPE-Varchar-Predicates PartTbl-List-DPE-Int-Predicates
 PartTbl-AggWithExistentialSubquery;
 
 CPartTbl6Test:
@@ -199,6 +194,14 @@ PartTbl-PredicateWithCastList PartTbl-IDFWithCast
 PartTbl-PredicateWithCastMultiLevelList PartTbl-WindowFuncPredPushDown
 PartTbl-WindowFuncPartialPredPushDown PartTbl-WindowFuncNoPredPushDown
 PartTbl-WindowFuncNoDisjunctPredPushDown PartTbl-WindowFuncSinglePredPushDown;
+
+CPartTblDPETest:
+PartTbl-AvoidRangePred-DPE PartTbl-DPE-Correlated-NLOuter
+PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit
+DPE-with-unsupported-pred DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
+NLJ-Broadcast-DPE-Outer-Child PartTbl-MultiWayJoinWithDPE PartTbl-MultiWayJoinWithDPE-2
+PartTbl-LeftOuterHashJoin-DPE-IsNull PartTbl-LeftOuterNLJoin-DPE-IsNull
+PartTbl-List-DPE-Varchar-Predicates PartTbl-List-DPE-Int-Predicates;
 
 CSetop1Test:
 ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll

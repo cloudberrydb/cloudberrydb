@@ -903,7 +903,7 @@ select * from x, y where (x.i > y.j);
                         </dxl:And>
                       </dxl:And>
                       <dxl:ConstValue TypeMdid="0.23.1.0" Value="6"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true"/>
                     </dxl:If>
                   </dxl:If>
                 </dxl:PropagationExpression>

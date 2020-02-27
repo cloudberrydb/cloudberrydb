@@ -165,6 +165,26 @@ CPredicateUtils::FComparison
 	return false;
 }
 
+// Is the given expression a range comparison only between the given column and
+// an expression involving only the allowed columns. If the allowed columns set
+// is NULL, then we only want constant comparisons.
+// Also, the comparison type must be one of: LT, GT, LEq, GEq, Eq
+BOOL
+CPredicateUtils::FRangeComparison
+	(
+	CExpression *pexpr,
+	CColRef *colref,
+	CColRefSet *pcrsAllowedRefs // other column references allowed in the comparison
+	)
+{
+	if (!FComparison(pexpr, colref, pcrsAllowedRefs))
+	{
+		return false;
+	}
+	IMDType::ECmpType cmp_type = CScalarCmp::PopConvert(pexpr->Pop())->ParseCmpType();
+	return (IMDType::EcmptOther != cmp_type && IMDType::EcmptNEq != cmp_type);
+}
+
 BOOL
 CPredicateUtils::FIdentCompareOuterRefExprIgnoreCast
 (
@@ -234,6 +254,8 @@ CPredicateUtils::FValidRefsOnly
 	return CUtils::FVarFreeExpr(pexprScalar) &&
 			IMDFunction::EfsVolatile != pexprScalar->DeriveScalarFunctionProperties()->Efs();
 }
+
+
 
 // is the given expression a conjunction of equality comparisons
 BOOL 
@@ -1091,31 +1113,6 @@ CPredicateUtils::PexprINDFConjunction
 	return PexprConjunction(mp, pdrgpexpr);
 }
 
-// is the given expression a scalar range or equality comparison
-BOOL
-CPredicateUtils::FRangeOrEqComp
-	(
-	CExpression *pexpr
-	)
-{
-	if (!FCompareIdentToConst(pexpr))
-	{
-		return false;
-	}
-	COperator *pop = pexpr->Pop();
-	CScalarCmp *popScCmp = CScalarCmp::PopConvert(pop);
-	IMDType::ECmpType cmptype = popScCmp->ParseCmpType();
-
-	if (cmptype == IMDType::EcmptNEq ||
-		cmptype == IMDType::EcmptIDF ||
-		cmptype == IMDType::EcmptOther)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 // is the given expression a comparison between a scalar ident and a constant
 BOOL
 CPredicateUtils::FCompareIdentToConst
@@ -1427,56 +1424,85 @@ CPredicateUtils::PexprPartPruningPredicate
 	CMemoryPool *mp,
 	const CExpressionArray *pdrgpexpr,
 	CColRef *pcrPartKey,
-	CExpression *pexprCol,	// const selection predicate on the given column obtained from query
-	CColRefSet *pcrsAllowedRefs
+	CExpression *pexprCol,	    // predicate on pcrPartKey obtained from pcnstr
+	CColRefSet *pcrsAllowedRefs // allowed colrefs in exprs (except pcrPartKey)
 	)
 {
-	const ULONG size = pdrgpexpr->Size();
-
 	CExpressionArray *pdrgpexprResult = GPOS_NEW(mp) CExpressionArray(mp);
+
+	// Assert that pexprCol is an expr on pcrPartKey only and no other colref
+	GPOS_ASSERT(pexprCol == NULL ||
+				CUtils::FScalarConstTrue(pexprCol) ||
+				(pexprCol->DeriveUsedColumns()->Size() == 1 &&
+				 pexprCol->DeriveUsedColumns()->PcrFirst() == pcrPartKey));
 	
-	for (ULONG ul = 0; ul < size; ul++)
+	for (ULONG ul = 0; ul < pdrgpexpr->Size(); ul++)
 	{
 		CExpression *pexpr = (*pdrgpexpr)[ul];
 
-		if (FBoolPredicateOnColumn(pexpr, pcrPartKey) ||
-			FNullCheckOnColumn(pexpr, pcrPartKey) ||
-			FDisjunctionOnColumn(mp, pexpr, pcrPartKey, pcrsAllowedRefs))
+		if (NULL != pcrsAllowedRefs && !GPOS_FTRACE(EopttraceAllowGeneralPredicatesforDPE))
 		{
-			pexpr->AddRef();
-			pdrgpexprResult->Append(pexpr);
-			continue;
+			// Only allow equal comparison exprs for dynamic partition selection.
+
+			// This will reduce long execution times for partition selection using
+			// non-equality predicates. These are expensive to execute since (at the
+			// moment) to determine the selected partitions, the executor must, for
+			// each row from its subtree, iterate over all the partition rules, and
+			// for each such rule, execute the non-equality predicate. So, in case of
+			// a large number of rows and/or large number of partitions the execution
+			// time of partition selection may outweigh any potential savings earned
+			// from skipping the scans of eliminated partitions.
+			if (FComparison(pexpr, pcrPartKey, pcrsAllowedRefs) &&
+				!pexpr->DeriveScalarFunctionProperties()->NeedsSingletonExecution())
+			{
+				CScalarCmp *popCmp = CScalarCmp::PopConvert(pexpr->Pop());
+
+				if (popCmp->ParseCmpType() == IMDType::EcmptEq)
+				{
+					pexpr->AddRef();
+					pdrgpexprResult->Append(pexpr);
+				}
+			}
+
+			// pexprCol contains a predicate only on partKey, which is useless for
+			// dynamic partition selection, so ignore it here
+			pexprCol = NULL;
 		}
-
-		if (FComparison(pexpr, pcrPartKey, pcrsAllowedRefs))
+		else
 		{
-			CScalarCmp *popCmp = CScalarCmp::PopConvert(pexpr->Pop());
+			// (NULL == pcrsAllowedRefs) implies static partition elimination, since
+			// the expressions we select can only contain the partition key
+			// If EopttraceAllowGeneralPredicatesforDPE is set, allow a larger set
+			// of partition predicates for DPE as well (see note above).
 
-			if (!pexpr->DeriveScalarFunctionProperties()->NeedsSingletonExecution() && FRangeComparison(popCmp->ParseCmpType()))
+			if (FBoolPredicateOnColumn(pexpr, pcrPartKey) ||
+				FNullCheckOnColumn(pexpr, pcrPartKey) ||
+				IsDisjunctionOfRangeComparison(mp, pexpr, pcrPartKey, pcrsAllowedRefs) ||
+				(FRangeComparison(pexpr, pcrPartKey, pcrsAllowedRefs) &&
+				 !pexpr->DeriveScalarFunctionProperties()->NeedsSingletonExecution()))
 			{
 				pexpr->AddRef();
 				pdrgpexprResult->Append(pexpr);
 			}
-			
-			continue;
 		}
-		
 	}
 
-	// Remove an "IS NOT NULL" partition filter if it is redundant e.g. "a = b AND a is NOT NULL"
-	// For that pcrPartKey must be referenced in pdrgpexprResult because then an "IS NOT NULL" filter
-	// is implicit.
-
-	if (pexprCol != NULL && CPredicateUtils::FNotNullCheckOnColumn(pexprCol, pcrPartKey))
+	// Remove any redundant "IS NOT NULL" filter on the partition key that was derived
+	// from contraints
+	if (pexprCol != NULL &&
+		CPredicateUtils::FNotNullCheckOnColumn(pexprCol, pcrPartKey) &&
+		(pdrgpexprResult->Size() > 0 && ExprsContainsOnlyStrictComparisons(pdrgpexprResult)))
 	{
+#ifdef GPOS_DEBUG
 		CColRefSet *pcrsUsed = CUtils::PcrsExtractColumns(mp, pdrgpexprResult);
-		if (pcrsUsed->FMember(pcrPartKey))
-		{
-			pexprCol = NULL;
-		}
-		pcrsUsed->Release();
+		GPOS_ASSERT_IMP(pdrgpexprResult->Size() > 0, pcrsUsed->FMember(pcrPartKey));
+		CRefCount::SafeRelease(pcrsUsed);
+#endif
+		// pexprCol is a redundent "IS NOT NULL" expr. Ignore it
+		pexprCol = NULL;
 	}
 
+	// Finally, remove duplicate expressions
 	CExpressionArray *pdrgpexprResultNew = PdrgpexprAppendConjunctsDedup(mp, pdrgpexprResult, pexprCol);
 	pdrgpexprResult->Release();
 	pdrgpexprResult = pdrgpexprResultNew;
@@ -1626,7 +1652,7 @@ CPredicateUtils::FScArrayCmpOnColumn
 // check if the given expression is a disjunction of scalar cmp expression
 // on the given column
 BOOL
-CPredicateUtils::FDisjunctionOnColumn
+CPredicateUtils::IsDisjunctionOfRangeComparison
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
@@ -1644,7 +1670,7 @@ CPredicateUtils::FDisjunctionOnColumn
 	for (ULONG ulDisj = 0; ulDisj < ulDisjuncts; ulDisj++)
 	{
 		CExpression *pexprDisj = (*pdrgpexprDisjuncts)[ulDisj];
-		if (!FComparison(pexprDisj, colref, pcrsAllowedRefs) || !FRangeComparison(CScalarCmp::PopConvert(pexprDisj->Pop())->ParseCmpType()))
+		if (!FRangeComparison(pexprDisj, colref, pcrsAllowedRefs))
 		{
 			pdrgpexprDisjuncts->Release();
 			return false;
@@ -1653,17 +1679,6 @@ CPredicateUtils::FDisjunctionOnColumn
 	
 	pdrgpexprDisjuncts->Release();
 	return true;	
-}
-
-// Check if the given comparison type is one of the range comparisons, i.e.
-// LT, GT, LEq, GEq, Eq
-BOOL
-CPredicateUtils::FRangeComparison
-	(
-	IMDType::ECmpType cmp_type
-	)
-{
-	return (IMDType::EcmptOther != cmp_type && IMDType::EcmptNEq != cmp_type);
 }
 
 // extract interesting expressions involving the partitioning keys;
@@ -2958,6 +2973,14 @@ BOOL
 CPredicateUtils::ExprContainsOnlyStrictComparisons(CMemoryPool *mp, CExpression *expr)
 {
 	CExpressionArray *conjuncts = PdrgpexprConjuncts(mp, expr);
+	BOOL result = ExprsContainsOnlyStrictComparisons(conjuncts);
+	conjuncts->Release();
+	return result;
+}
+
+BOOL
+CPredicateUtils::ExprsContainsOnlyStrictComparisons(CExpressionArray *conjuncts)
+{
 	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	BOOL result = true;
@@ -2980,7 +3003,6 @@ CPredicateUtils::ExprContainsOnlyStrictComparisons(CMemoryPool *mp, CExpression 
 		}
 	}
 
-	conjuncts->Release();
 	return result;
 }
 

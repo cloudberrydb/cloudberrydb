@@ -22,7 +22,7 @@ select * from bmao_part as t1 join bmao_part as t2 on t1.a < t2.a where t1.a < 5
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="103027,101013,102024,102025,102115,102116,102119,102120,102128,102131,102132,102133,102134,102135,102136,103001,103014,103015"/>
+      <dxl:TraceFlags Value="103027,101013,102024,102025,102115,102116,102119,102120,102128,102131,102132,102133,102134,102135,102136,103001,103014,103015,103037"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.37336903.1.1" Name="bmao_part" Rows="3000.000000" EmptyRelation="false"/>

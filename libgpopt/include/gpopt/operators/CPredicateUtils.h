@@ -248,10 +248,6 @@ namespace gpopt
 			static
 			BOOL FCompareIdentToConstArray(CExpression *pexpr);
 
-			// is the given expression a scalar range or equality comparison
-			static
-			BOOL FRangeOrEqComp(CExpression *pexpr);
-
 			// is the given expression an AND
 			static
 			BOOL FAnd
@@ -402,12 +398,12 @@ namespace gpopt
 			// check if the given expression is a disjunction of scalar cmp 
 			// expressions on the given column
 			static
-			BOOL FDisjunctionOnColumn(CMemoryPool *mp, CExpression *pexpr, CColRef *colref, CColRefSet *pcrsAllowedRefs);
+			BOOL IsDisjunctionOfRangeComparison(CMemoryPool *mp, CExpression *pexpr, CColRef *colref, CColRefSet *pcrsAllowedRefs);
 			
 			// check if the given comparison type is one of the range comparisons, i.e. 
 			// LT, GT, LEq, GEq, Eq
 			static 
-			BOOL FRangeComparison(IMDType::ECmpType cmp_type);
+			BOOL FRangeComparison(CExpression *expr, CColRef *colref, CColRefSet *pcrsAllowedRefs);
 			
 			// create disjunction
 			static
@@ -608,6 +604,11 @@ namespace gpopt
 			// NB: This does NOT recurse into Boolean AND/OR operations
 			static
 			BOOL ExprContainsOnlyStrictComparisons(CMemoryPool *mp, CExpression *expr);
+
+			// Check if the given exprs only contains conjuncts of strict comparison operators
+			// NB: This does NOT recurse into Boolean AND/OR operations
+			static
+			BOOL ExprsContainsOnlyStrictComparisons(CExpressionArray *conjuncts);
 
 	}; // class CPredicateUtils
 }
