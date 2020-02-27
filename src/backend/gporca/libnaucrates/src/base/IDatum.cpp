@@ -11,6 +11,7 @@
 
 #include "naucrates/base/IDatum.h"
 #include "naucrates/md/CMDTypeGenericGPDB.h"
+#include "naucrates/statistics/CStatistics.h"
 
 using namespace gpnaucrates;
 using namespace gpmd;
@@ -62,7 +63,8 @@ IDatum::StatsAreEqual
 
 	CDouble d1 = this->GetDoubleMapping();
 	CDouble d2 = datum->GetDoubleMapping();
-	return d1 == d2;
+	CDouble diff = d1-d2;
+	return  diff.Absolute() <= CStatistics::Epsilon;
 }
 
 //---------------------------------------------------------------------------
