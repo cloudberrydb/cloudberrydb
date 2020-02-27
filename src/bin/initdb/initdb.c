@@ -2791,7 +2791,7 @@ setlocales(void)
  * usual decimal, octal, or hexadecimal formats.
  */
 static long
-parse_long(const char *value, bool blckszUnit, const char* optname)
+parse_long(const char *value, bool blckszUnit, const char *optname)
 {
     long    val;
     char   *endptr;
@@ -3590,7 +3590,6 @@ main(int argc, char *argv[])
 	 * their short version value
 	 */
 	int			c;
-	int			option_index;
 	char	   *effective_user;
 	char		bin_dir[MAXPGPATH];
 
@@ -3627,27 +3626,8 @@ main(int argc, char *argv[])
 
 	/* process command-line options */
 
-	while ((c = getopt_long(argc, argv, "dD:E:kL:nNU:WA:sST:X:", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "dD:E:kL:nNU:WA:sST:X:", long_options, NULL)) != -1)
 	{
-        const char *optname;
-        char        shortopt[2];
-
-        /* CDB: Get option name for error reporting.  On Solaris, getopt_long
-         * may leave garbage in option_index after parsing a short option, so
-         * check carefully.
-         */
-        if (isalpha(c))
-        {
-            shortopt[0] = (char)c;
-            shortopt[1] = '\0';
-            optname = shortopt;
-        }
-        else if (option_index >= 0 &&
-                 option_index < sizeof(long_options)/sizeof(long_options[0]) - 1)
-            optname = long_options[option_index].name;
-        else
-            optname = "?!?";
-
 		switch (c)
 		{
 			case 'A':
@@ -3738,10 +3718,10 @@ main(int argc, char *argv[])
 				xlog_dir = pg_strdup(optarg);
 				break;
 			case 1001:
-                n_connections = parse_long(optarg, false, optname);
+				n_connections = parse_long(optarg, false, "max_connection");
 				break;
 			case 1003:
-                n_buffers = parse_long(optarg, true, optname);
+				n_buffers = parse_long(optarg, true, "shared_buffers");
 				break;
 			default:
 				/* getopt_long already emitted a complaint */
