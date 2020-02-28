@@ -32,35 +32,15 @@ More information can be found on the [project website](https://greenplum.org/).
 
 ## Building Greenplum Database with GPORCA
 GPORCA is a cost-based optimizer which is used by Greenplum Database in
-conjunction with the PostgreSQL planner.  It is also known as just ORCA,
-and Pivotal Optimizer. The code for GPORCA resides in a
-separate repository, below are steps outlining how to build Greenplum with
-GPORCA enabled.
+conjunction with the PostgreSQL planner.  It is also known as just ORCA, and
+Pivotal Optimizer. The code for GPORCA resides src/backend/gporca. It is built
+automatically by default.
 
 ### Installing dependencies (for macOS developers)
 Follow [these macOS steps](README.macOS.md) for getting your system ready for GPDB
 
 ### Installing dependencies (for Linux developers)
 Follow [appropriate linux steps](README.linux.md) for getting your system ready for GPDB
-
-<a name="buildOrca"></a>
-### Build the optimizer
-#### Automatically with Conan dependency manager
-
-```bash
-cd depends
-./configure
-make
-make install_local
-cd ..
-```
-
-#### Manually
-Follow the directions in the [GPORCA README](https://github.com/greenplum-db/gporca).
-
-**Note**: Get the latest GPORCA `git pull --ff-only` if you see an error message like below:
-
-    checking Checking ORCA version... configure: error: Your ORCA version is expected to be 2.33.XXX
 
 ### Build the database
 
@@ -92,12 +72,6 @@ The TCP port for the regression test can be changed on the fly:
 
 ```
 PGPORT=5555 make installcheck-world
-```
-
-Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
-
-```
-select gp_opt_version();
 ```
 
 To turn GPORCA off and use Postgres planner for query optimization:
@@ -143,10 +117,8 @@ make installcheck-world
 
 ### Building GPDB without GPORCA
 
-Currently, GPDB is built with GPORCA by default so latest GPORCA libraries and headers need
-to be available in the environment. [Build and Install](#buildOrca) the latest GPORCA.
-
-If you want to build GPDB without GPORCA, configure requires `--disable-orca` flag to be set.
+Currently, GPDB is built with GPORCA by default. If you want to build GPDB
+without GPORCA, configure requires `--disable-orca` flag to be set.
 ```
 # Clean environment
 make distclean
@@ -245,6 +217,11 @@ throughout the codebase, but a few larger additions worth noting:
   between the DXL format used by GPORCA, and the PostgreSQL internal
   representation.
 
+* __src/backend/gporca/__
+
+  Contains the GPORCA optimizer code and tests. This is written in C++. See
+  [README.md](src/backend/gporca/README.md) for more information and how to
+  unit-test GPORCA.
 * __src/backend/fts/__
 
   FTS is a process that runs in the master node, and periodically

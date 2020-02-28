@@ -12919,7 +12919,7 @@ fi
 fi
 
 
-# Check for Greenplum Query Optimizer (orca) libraries.
+# Check for xerces if GPORCA is enabled.
 if test "$enable_orca" = yes; then
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for strnicmp in -lxerces-c" >&5

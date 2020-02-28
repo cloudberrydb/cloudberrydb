@@ -46,25 +46,12 @@ There should be just a handful of pipelines in this directory:
 All task yamls should live in this directory.
 If a task file is not referenced in the `pipelines` directory it is considered abandoned and can be removed.
 
-There are some exceptions to this rule.
-Please do not create any more exceptions, and remove these as the occasion arises:
-
-* `package_tarball.yml` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-* `test_icg.yml` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-* `build_with_orca.yml` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-
 #### Scripts Directory
 All script files should live in this directory.
 If a script file is not referenced in any of the directories it is considered abandoned and can be removed.
 
 There are some exceptions to this rule.
 Please do not create any more exceptions, and remove these as the occasion arises:
-
-* `package_tarball.bash` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
 
 ### The Concourse Deployment
 There is a `gpdb` team in the

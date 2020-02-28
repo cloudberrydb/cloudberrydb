@@ -57,13 +57,7 @@ Use dependency script for CentOS.
 ## Common Platform Tasks:
 
 Make sure that you add `/usr/local/lib` to `/etc/ld.so.conf`,
-then run command `ldconfig`. After building the optimizer, run
-`ldconfig` again to make sure necessary links and cache have
-been created for these shared libraries.
-
-1. ORCA requires [CMake](https://cmake.org) 3.x; make sure you have it installed.
-   Installation instructions vary, please check the CMake website.
-
+then run command `ldconfig`.
 1. Create gpadmin and setup ssh keys
    Either use:
 

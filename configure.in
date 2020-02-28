@@ -1610,7 +1610,7 @@ elif test "$with_uuid" = ossp ; then
 fi
 AC_SUBST(UUID_LIBS)
 
-# Check for Greenplum Query Optimizer (orca) libraries.
+# Check for xerces if GPORCA is enabled.
 if test "$enable_orca" = yes; then
   PGAC_CHECK_ORCA_XERCES
 fi

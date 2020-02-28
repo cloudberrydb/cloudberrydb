@@ -6,11 +6,9 @@ modifications that are enumerated in this document.
 
 ## Guiding Principles
 
-1. Although ORCA is maintained in a separate repository, a lot of development
-	 on ORCA is closely related work in Greenplum database. To reduce context
-	 switch costs arising from such a such a development model, we would like to
-	 keep the style in ORCA as close as possible to GPDB. This includes using
-	 tabs instead of spaces for indentation, all cap global constants etc.
+1. We would like to keep the style in ORCA as close as possible to GPDB. This
+	includes using tabs instead of spaces for indentation, all cap global
+	constants etc.
 1. The ORCA code base previously was written completely in a version of
 	 [Hungarian notation](https://en.wikipedia.org/wiki/Hungarian_notation). To
 	 prevent large number of file renames, we also decided to keep the names of

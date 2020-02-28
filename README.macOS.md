@@ -112,8 +112,8 @@ are good to go.  Remember to exit all of your ssh session before moving on.
 
 ## 4. Configure, compile, and install
 
-At this point head back the main [README.md](./README.md#build-the-optimizer),
-and continue from __Build the Optimizer__.
+At this point head back the main [README.md](./README.md#build-the-database),
+and continue from __Build the Database__.
 
 ## Troubleshooting macOS specific issues: 
 
