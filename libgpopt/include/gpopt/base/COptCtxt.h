@@ -102,6 +102,9 @@ namespace gpopt
 			// does the query have replicated tables
 			BOOL m_has_replicated_tables;
 
+			// does this plan have a direct dispatchable filter
+			CExpressionArray  *m_direct_dispatchable_filters;
+
 		public:
 
 			// ctor
@@ -160,6 +163,12 @@ namespace gpopt
 				m_has_replicated_tables = true;
 			}
 
+			void AddDirectDispatchableFilterCandidate(CExpression *filter_expression)
+			{
+				filter_expression->AddRef();
+				m_direct_dispatchable_filters->Append(filter_expression);
+			}
+
 			BOOL HasMasterOnlyTables() const
 			{
 				return m_has_master_only_tables;
@@ -173,6 +182,11 @@ namespace gpopt
 			BOOL HasReplicatedTables() const
 			{
 				return m_has_replicated_tables;
+			}
+
+			CExpressionArray* GetDirectDispatchableFilters() const
+			{
+				return m_direct_dispatchable_filters;
 			}
 
 			BOOL OptimizeDMLQueryWithSingletonSegment() const

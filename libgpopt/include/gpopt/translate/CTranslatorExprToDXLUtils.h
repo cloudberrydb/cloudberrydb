@@ -585,6 +585,10 @@ namespace gpopt
 			// extract the column ids of the ident from project list
 			static
 			void ExtractIdentColIds(CDXLNode *dxlnode, CBitSet *pbs);
+
+			// is this Filter node direct dispatchable?
+			static
+			BOOL FDirectDispatchableFilter (CExpression *pexprFilter);
 	};
 }
 

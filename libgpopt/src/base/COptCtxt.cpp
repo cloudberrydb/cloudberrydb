@@ -67,6 +67,7 @@ COptCtxt::COptCtxt
 	
 	m_pcteinfo = GPOS_NEW(m_mp) CCTEInfo(m_mp);
 	m_cost_model = optimizer_config->GetCostModel();
+	m_direct_dispatchable_filters = GPOS_NEW(mp) CExpressionArray(mp);
 }
 
 
@@ -87,6 +88,7 @@ COptCtxt::~COptCtxt()
 	m_pcteinfo->Release();
 	m_optimizer_config->Release();
 	CRefCount::SafeRelease(m_pdrgpcrSystemCols);
+	CRefCount::SafeRelease(m_direct_dispatchable_filters);
 }
 
 
