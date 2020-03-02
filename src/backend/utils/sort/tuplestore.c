@@ -795,7 +795,7 @@ tuplestore_putvalues(Tuplestorestate *state, TupleDesc tdesc,
 		Assert(state->mt_bind);
 	}
 
-	MemTuple tuple = memtuple_form_to(state->mt_bind, values, isnull, NULL, NULL, false);
+	MemTuple tuple = memtuple_form(state->mt_bind, values, isnull);
 
 	USEMEM(state, GetMemoryChunkSpace(tuple));
 

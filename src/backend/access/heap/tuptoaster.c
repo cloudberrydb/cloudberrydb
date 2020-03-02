@@ -1171,7 +1171,7 @@ toast_insert_or_update_generic(Relation rel, GenericTuple newtup, GenericTuple o
 	{
 		if(ismemtuple)
 		{
-			result_gtuple = (GenericTuple) memtuple_form_to(pbind, toast_values, toast_isnull, NULL, NULL, false);
+			result_gtuple = (GenericTuple) memtuple_form(pbind, toast_values, toast_isnull);
 			if (mtbind_has_oid(pbind))
 			{
 				Oid			oid;

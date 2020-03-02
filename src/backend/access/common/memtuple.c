@@ -558,6 +558,17 @@ static inline unsigned char *memtuple_get_nullp(MemTuple mtup, MemTupleBinding *
 	return mtup->PRIVATE_mt_bits + (mtbind_has_oid(pbind) ? sizeof(Oid) : 0);
 }
 
+/*
+ * Form a memtuple from values and isnull. Returns a palloc'd tuple.
+ *
+ * This corresponds to heap_form_tuple() for HeapTuples.
+ */
+MemTuple
+memtuple_form(MemTupleBinding *pbind, Datum *values, bool *isnull)
+{
+	return memtuple_form_to(pbind, values, isnull, NULL, NULL, false);
+}
+
 /* form a memtuple from values and isnull, to a prespecified buffer */
 MemTuple memtuple_form_to(
 		MemTupleBinding *pbind,

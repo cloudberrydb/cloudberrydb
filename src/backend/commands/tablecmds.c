@@ -6661,10 +6661,7 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 					 * Form the new tuple. Note that we don't explicitly pfree it,
 					 * since the per-tuple memory context will be reset shortly.
 					 */
-					mtuple = memtuple_form_to(mt_bind,
-											  values, isnull,
-											  NULL, NULL, false);
-
+					mtuple = memtuple_form(mt_bind, values, isnull);
 
 					/* Preserve OID, if any */
 					if (newTupDesc->tdhasoid)

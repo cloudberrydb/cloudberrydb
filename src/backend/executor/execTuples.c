@@ -633,7 +633,7 @@ ExecCopySlotMemTuple(TupleTableSlot *slot)
 	/*
 	 * Otherwise we need to build a tuple from the Datum array.
 	 */
-	return memtuple_form_to(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot), NULL, 0, false);
+	return memtuple_form(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot));
 }
 
 MemTuple
