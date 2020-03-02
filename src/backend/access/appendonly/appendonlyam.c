@@ -954,7 +954,7 @@ upgrade_tuple(AppendOnlyExecutorReadBlock *executorReadBlock,
 		/*
 		 * make a modifiable copy
 		 */
-		newtuple = memtuple_copy_to(mtup, NULL, NULL);
+		newtuple = memtuple_copy(mtup);
 	}
 
 	/*
@@ -2865,7 +2865,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 		 * so performance of this case isn't important.
 		 */
 		if (tup == instup)
-			tup = memtuple_copy_to(instup, NULL, NULL);
+			tup = memtuple_copy(instup);
 
 		/*
 		 * If the object id of this tuple has already been assigned, trust the

@@ -147,7 +147,7 @@ extern bool memtuple_attisnull(MemTuple mtup, MemTupleBinding *pbind, int attnum
 
 extern uint32 compute_memtuple_size(MemTupleBinding *pbind, Datum *values, bool *isnull, uint32 *nullsaves, bool *has_nulls);
 
-extern MemTuple memtuple_copy_to(MemTuple mtup, MemTuple dest, uint32 *destlen);
+extern MemTuple memtuple_copy(MemTuple mtup);
 extern MemTuple memtuple_form(MemTupleBinding *pbind, Datum *values, bool *isnull);
 extern void memtuple_form_to(MemTupleBinding *pbind, Datum *values, bool *isnull,
 							 uint32 len, uint32 null_save_len, bool hasnull,

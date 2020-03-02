@@ -1144,7 +1144,7 @@ tuplestore_gettupleslot(Tuplestorestate *state, bool forward,
 		if (copy && !should_free)
 		{
 			if (is_memtuple(tuple))
-				tuple = (GenericTuple) memtuple_copy_to((MemTuple) tuple, NULL, NULL);
+				tuple = (GenericTuple) memtuple_copy((MemTuple) tuple);
 			else
 				tuple = (GenericTuple) heap_copytuple((HeapTuple) tuple);
 			should_free = true;
@@ -1552,9 +1552,9 @@ static void *
 copytup_heap(Tuplestorestate *state, void *tup)
 {
 	if (!is_memtuple((GenericTuple) tup))
-		return heaptuple_copy_to((HeapTuple) tup, NULL, NULL);
+		return heap_copytuple((HeapTuple) tup);
 	else
-		return memtuple_copy_to((MemTuple) tup, NULL, NULL);
+		return memtuple_copy((MemTuple) tup);
 }
 
 static void

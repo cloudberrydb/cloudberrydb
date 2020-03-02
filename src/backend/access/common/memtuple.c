@@ -907,24 +907,18 @@ Datum memtuple_getattr(MemTuple mtup, MemTupleBinding *pbind, int attnum, bool *
 	return memtuple_getattr_by_alignment(mtup, pbind, attnum, isnull, true /* aligned */);
 }
 
-
-MemTuple memtuple_copy_to(MemTuple mtup, MemTuple dest, uint32 *destlen)
+/*
+ * Return a palloc'd copy of 'mtup'.
+ *
+ * This corresponds to heap_copytuple() for HeapTuples.
+ */
+MemTuple
+memtuple_copy(MemTuple mtup)
 {
-	uint32 len = memtuple_get_size(mtup);
+	MemTuple	dest;
+	uint32		len = memtuple_get_size(mtup);
 
-	if(!destlen)
-		dest = (MemTuple) palloc(len);
-	else
-	{
-		if(*destlen < len)
-		{
-			*destlen = len;
-			return NULL;
-		}
-
-		*destlen = len;
-	}
-
+	dest = (MemTuple) palloc(len);
 	memcpy((char *) dest, (char *) mtup, len);
 	return dest;
 }

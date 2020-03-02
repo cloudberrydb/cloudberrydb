@@ -626,7 +626,7 @@ ExecCopySlotMemTuple(TupleTableSlot *slot)
 	 * tts_mintuple since that's a tad cheaper.
 	 */
 	if (slot->PRIVATE_tts_memtuple)
-		return memtuple_copy_to(slot->PRIVATE_tts_memtuple, NULL, NULL);
+		return memtuple_copy(slot->PRIVATE_tts_memtuple);
 	
 	slot_getallattrs(slot);
 
@@ -636,6 +636,15 @@ ExecCopySlotMemTuple(TupleTableSlot *slot)
 	return memtuple_form(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot));
 }
 
+/*
+ * Copy the tuple in 'slot' as a MemTuple, to a pre-allocated buffer.
+ *
+ * On entry, *destlen must be set to the size of the buffer. If the tuple doesn't
+ * fit and 'pctxt' is valid, a new buffer is allocated in that context. If it doesn't
+ * fit, and 'pctxt' is NULL, the function returns NULL.
+ *
+ * In all cases, *destlen is updated with the actual size of the tuple.
+ */
 MemTuple
 ExecCopySlotMemTupleTo(TupleTableSlot *slot, MemoryContext pctxt, char *dest, unsigned int *destlen)
 {
@@ -647,35 +656,53 @@ ExecCopySlotMemTupleTo(TupleTableSlot *slot, MemoryContext pctxt, char *dest, un
 	Assert(destlen);
 	Assert(!TupIsNull(slot));
 	Assert(slot->tts_mt_bind);
-	
+
 	if (TupHasMemTuple(slot))
 	{
-		mtup = memtuple_copy_to(slot->PRIVATE_tts_memtuple, (MemTuple) dest, destlen);
-		if(mtup || !pctxt)
-			return mtup;
+		len = memtuple_get_size(slot->PRIVATE_tts_memtuple);
 
-		mtup = (MemTuple) MemoryContextAlloc(pctxt, *destlen);
-		mtup = memtuple_copy_to(slot->PRIVATE_tts_memtuple, mtup, destlen);
-		Assert(mtup);
+		if (len > *destlen)
+		{
+			if (pctxt == NULL)
+			{
+				*destlen = len;
+				return NULL;
+			}
+			mtup = MemoryContextAlloc(pctxt, len);
+		}
+		else
+			mtup = (MemTuple) dest;
 
+		memcpy((char *) mtup, (char *) slot->PRIVATE_tts_memtuple, len);
+		*destlen = len;
 		return mtup;
 	}
-
-	slot_getallattrs(slot);
-
-	len = compute_memtuple_size(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot),
-								&null_save_len, &has_nulls);
-
-	if (len < *destlen)
-		mtup = MemoryContextAlloc(pctxt, len);
 	else
-		mtup = (MemTuple) dest;
+	{
 
-	memtuple_form_to(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot),
-					 len, null_save_len, has_nulls,
-					 mtup);
-	*destlen = len;
-	return mtup;
+		slot_getallattrs(slot);
+
+		len = compute_memtuple_size(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot),
+									&null_save_len, &has_nulls);
+
+		if (len > *destlen)
+		{
+			if (pctxt == NULL)
+			{
+				*destlen = len;
+				return NULL;
+			}
+			mtup = MemoryContextAlloc(pctxt, len);
+		}
+		else
+			mtup = (MemTuple) dest;
+
+		memtuple_form_to(slot->tts_mt_bind, slot_get_values(slot), slot_get_isnull(slot),
+						 len, null_save_len, has_nulls,
+						 mtup);
+		*destlen = len;
+		return mtup;
+	}
 }
 		
 /* --------------------------------
