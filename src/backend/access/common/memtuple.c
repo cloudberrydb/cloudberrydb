@@ -566,17 +566,16 @@ static inline unsigned char *memtuple_get_nullp(MemTuple mtup, MemTupleBinding *
 MemTuple
 memtuple_form(MemTupleBinding *pbind, Datum *values, bool *isnull)
 {
-	return memtuple_form_to(pbind, values, isnull, NULL, NULL, false);
+	return memtuple_form_to(pbind, values, isnull, NULL, NULL);
 }
 
 /* form a memtuple from values and isnull, to a prespecified buffer */
-MemTuple memtuple_form_to(
-		MemTupleBinding *pbind,
-		Datum *values,
-		bool *isnull,
-		MemTuple mtup,
-		uint32 *destlen,
-		bool inline_toast)
+MemTuple
+memtuple_form_to(MemTupleBinding *pbind,
+				 Datum *values,
+				 bool *isnull,
+				 MemTuple mtup,
+				 uint32 *destlen)
 {
 	bool hasnull = false;
 	bool hasext = false;
@@ -587,18 +586,12 @@ MemTuple memtuple_form_to(
 	char *varlen_start;
 	uint32 null_save_len;
 	MemTupleBindingCols *colbind;
-	Datum *old_values = NULL;
 
 	/*
-	 * Check for nulls and embedded tuples; expand any toasted attributes in
-	 * embedded tuples.  This preserves the invariant that toasting can only
-	 * go one level deep.
+	 * Check for nulls. Dropped attributes are also treated as NULLs.
 	 *
-	 * We can skip calling toast_flatten_tuple_attribute() if the attribute
-	 * couldn't possibly be of composite type.  All composite datums are
-	 * varlena and have alignment 'd'; furthermore they aren't arrays. Also,
-	 * if an attribute is already toasted, it must have been sent to disk
-	 * already and so cannot contain toasted attributes.
+	 * XXX: We modify the caller-supplied isnull array here. That seems
+	 * a bit dangerous, but I guess it's OK for dropped cols?
 	 */
 	for(i=0; i<pbind->tupdesc->natts; ++i)
 	{
@@ -615,22 +608,6 @@ MemTuple memtuple_form_to(
 			hasnull = true;
 			continue;
 		}
-
-		if (attr->attlen == -1 && VARATT_IS_EXTERNAL(DatumGetPointer(values[i])))
-		{
-			if(inline_toast)
-			{
-				if (old_values == NULL)
-					old_values = (Datum *)palloc0(pbind->tupdesc->natts * sizeof(Datum));
-				old_values[i] = values[i];
-				values[i] = PointerGetDatum(heap_tuple_fetch_attr((struct varlena *)DatumGetPointer(values[i])));
-
-				if (old_values[i] == values[i])
-					old_values[i] = 0;
-			}
-			else if (!VARATT_IS_EXTERNAL_EXPANDED(DatumGetPointer(values[i])))
-				hasext = true;
-		}
 	}
 
 	/* compute needed length */
@@ -645,26 +622,6 @@ MemTuple memtuple_form_to(
 	else if(*destlen < len)
 	{
 		*destlen = len;
-
-		/*
-		 * Set values to their old values if we have changed their values
-		 * during de-toasting, and release the space allocated during
-		 * de-toasting.
-		 */
-		if (old_values != NULL)
-		{
-			for(i=0; i<pbind->tupdesc->natts; ++i)
-			{
-				if (DatumGetPointer(old_values[i]) != NULL)
-				{
-					Assert(DatumGetPointer(values[i]) != NULL);
-					pfree(DatumGetPointer(values[i]));
-					values[i] = old_values[i];
-				}
-			}
-			pfree(old_values);
-		}
-		
 		return NULL;
 	}
 	else
@@ -682,9 +639,6 @@ MemTuple memtuple_form_to(
 
 	if(len > MEMTUPLE_LEN_FITSHORT)
 		memtuple_set_islarge(mtup);
-
-	if(hasext)
-		memtuple_set_hasext(mtup);
 
 	/* Clear Oid */ 
 	if(mtbind_has_oid(pbind))
@@ -792,6 +746,8 @@ MemTuple memtuple_form_to(
 						attr_len = VARSIZE_EXTERNAL(DatumGetPointer(values[i]));
 						Assert((varlen_start - (char *) mtup) + attr_len <= len);
 						memcpy(varlen_start, DatumGetPointer(values[i]), attr_len);
+
+						hasext = true;
 					}
 				}
 				else if(VARATT_IS_SHORT(DatumGetPointer(values[i])))
@@ -850,26 +806,10 @@ MemTuple memtuple_form_to(
 		}
 	}
 
-	Assert((varlen_start - (char *) mtup) <= len);
+	if (hasext)
+		memtuple_set_hasext(mtup);
 
-	/*
-	 * Set values to their old values if we have changed their values
-	 * during de-toasting, and release the space allocated during
-	 * de-toasting.
-	 */
-	if (old_values != NULL)
-	{
-		for(i=0; i<pbind->tupdesc->natts; ++i)
-		{
-			if (DatumGetPointer(old_values[i]) != NULL)
-			{
-				Assert(DatumGetPointer(values[i]) != NULL);
-				pfree(DatumGetPointer(values[i]));
-				values[i] = old_values[i];
-			}
-		}
-		pfree(old_values);
-	}
+	Assert((varlen_start - (char *) mtup) <= len);
 
 	return mtup;
 }

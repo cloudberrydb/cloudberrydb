@@ -336,7 +336,7 @@ makeHashAggEntryForInput(AggState *aggstate, TupleTableSlot *inputslot, uint32 h
 													 values,
 													 isnull,
 													 entry->tuple_and_aggs,
-													 &tup_len, false);
+													 &tup_len);
 	Assert(tup_len > 0 && entry->tuple_and_aggs == NULL);
 
 	if (GET_TOTAL_USED_SIZE(hashtable) + MAXALIGN(MAXALIGN(tup_len) + aggs_len) >=
@@ -356,7 +356,7 @@ makeHashAggEntryForInput(AggState *aggstate, TupleTableSlot *inputslot, uint32 h
 													 values,
 													 isnull,
 													 entry->tuple_and_aggs,
-													 &len, false);
+													 &len);
 	Assert(len == tup_len && entry->tuple_and_aggs != NULL);
 
 	MemoryContextSwitchTo(oldcxt);

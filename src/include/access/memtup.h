@@ -149,7 +149,7 @@ extern uint32 compute_memtuple_size(MemTupleBinding *pbind, Datum *values, bool 
 
 extern MemTuple memtuple_copy_to(MemTuple mtup, MemTuple dest, uint32 *destlen);
 extern MemTuple memtuple_form(MemTupleBinding *pbind, Datum *values, bool *isnull);
-extern MemTuple memtuple_form_to(MemTupleBinding *pbind, Datum *values, bool *isnull, MemTuple dest, uint32 *destlen, bool inline_toast);
+extern MemTuple memtuple_form_to(MemTupleBinding *pbind, Datum *values, bool *isnull, MemTuple dest, uint32 *destlen);
 extern void memtuple_deform(MemTuple mtup, MemTupleBinding *pbind, Datum *datum, bool *isnull);
 extern void memtuple_deform_misaligned(MemTuple mtup, MemTupleBinding *pbind, Datum *datum, bool *isnull);
 
