@@ -441,30 +441,32 @@ MemTupleBinding *create_memtuple_binding(TupleDesc tupdesc)
 	return pbind;
 }
 
-static uint32 compute_memtuple_size_using_bind(
-		Datum *values,
-		bool *isnull,
-		bool hasnull,
-		int nullbit_extra,
-		uint32 *nullsaves,
-		MemTupleBindingCols *colbind,
-		TupleDesc tupdesc)
+static uint32
+compute_memtuple_size_using_bind(Datum *values,
+								 bool *isnull,
+								 int nullbit_extra,
+								 int first_null_idx,
+								 uint32 *nullsaves,
+								 MemTupleBindingCols *colbind,
+								 TupleDesc tupdesc)
 {
 	uint32 data_length = colbind->var_start; 
 	int i;
 
 	*nullsaves = 0;
 
-	if(hasnull)
+	if (first_null_idx < tupdesc->natts)
 	{
 		data_length += nullbit_extra;
 
-		for(i=0; i<tupdesc->natts; ++i)
+		for(i = first_null_idx; i < tupdesc->natts; ++i)
 		{
-			if(isnull[i])
+			Form_pg_attribute attr = tupdesc->attrs[i];
+			MemTupleAttrBinding *bind = &colbind->bindings[i];
+
+			if (isnull[i] || attr->attisdropped)
 			{
-				MemTupleAttrBinding *bind = &colbind->bindings[i];
-				int len = 0;
+				int			len;
 
 				Assert(bind->len >= 0);
 				Assert(bind->len_aligned >= 0);
@@ -478,12 +480,15 @@ static uint32 compute_memtuple_size_using_bind(
 		}
 	}
 
-	for(i=0; i<tupdesc->natts; ++i)
+	for(i = 0; i < tupdesc->natts; ++i)
 	{
 		MemTupleAttrBinding *bind = &colbind->bindings[i];
 		Form_pg_attribute attr = tupdesc->attrs[i];
 
-		if(isnull[i] || bind->flag == MTB_ByVal_Native || bind->flag == MTB_ByVal_Ptr)
+		if (isnull[i] || attr->attisdropped)
+			continue;
+
+		if (bind->flag == MTB_ByVal_Native || bind->flag == MTB_ByVal_Ptr)
 			continue;
 
 		/* Varlen stuff */
@@ -514,18 +519,52 @@ static uint32 compute_memtuple_size_using_bind(
 	return MEMTUP_ALIGN(data_length);
 }
 
-/* Compute the memtuple size. 
- * nullsave is an output param
+/*
+ * Compute the memtuple size.
+ *
+ * Returns the size. *nullsaves is an output parameter. It is set to the
+ * length that is "saved" by null attributes; it should of no interest to
+ * the caller, except that if you call memtuple_form_to(), you need to pass
+ * it along as an argument. Similarly *has_nulls is an output parameter that
+ * is set to indicate whether any of the attributes were nulls.
  */
-uint32 compute_memtuple_size(MemTupleBinding *pbind, Datum *values, bool *isnull, bool hasnull, uint32 *nullsaves)
+uint32
+compute_memtuple_size(MemTupleBinding *pbind, Datum *values, bool *isnull,
+					  uint32 *nullsaves, bool *has_nulls)
 {
-	uint32 ret_len = 0;
-	ret_len = compute_memtuple_size_using_bind(values, isnull, hasnull, pbind->null_bitmap_extra_size, nullsaves, &pbind->bind, pbind->tupdesc);
+	int			first_null_idx;
+	uint32		ret_len;
+	int			i;
+
+	/*
+	 * Check for nulls. Dropped attributes are also treated as NULLs.
+	 */
+	*has_nulls = false;
+	for (i = 0; i < pbind->tupdesc->natts; ++i)
+	{
+		Form_pg_attribute attr = pbind->tupdesc->attrs[i];
+
+		/* treat dropped attibutes as null */
+		if (isnull[i] || attr->attisdropped)
+		{
+			*has_nulls = true;
+			break;
+		}
+	}
+	first_null_idx = i;
+
+	ret_len = compute_memtuple_size_using_bind(values, isnull,
+											   pbind->null_bitmap_extra_size,
+											   first_null_idx, nullsaves,
+											   &pbind->bind, pbind->tupdesc);
 
 	if(ret_len <= MEMTUPLE_LEN_FITSHORT) 
 		return ret_len;
 
-	ret_len = compute_memtuple_size_using_bind(values, isnull, hasnull, pbind->null_bitmap_extra_size, nullsaves, &pbind->large_bind, pbind->tupdesc);
+	ret_len = compute_memtuple_size_using_bind(values, isnull,
+											   pbind->null_bitmap_extra_size,
+											   first_null_idx, nullsaves,
+											   &pbind->large_bind, pbind->tupdesc);
 	Assert(ret_len > MEMTUPLE_LEN_FITSHORT);
 
 	return ret_len;
@@ -577,8 +616,8 @@ memtuple_form_to(MemTupleBinding *pbind,
 				 MemTuple mtup,
 				 uint32 *destlen)
 {
-	bool hasnull = false;
-	bool hasext = false;
+	bool		hasnull;
+	bool		hasext = false;
 	int i;
 	uint32 len;
 	unsigned char *nullp = NULL;
@@ -587,31 +626,8 @@ memtuple_form_to(MemTupleBinding *pbind,
 	uint32 null_save_len;
 	MemTupleBindingCols *colbind;
 
-	/*
-	 * Check for nulls. Dropped attributes are also treated as NULLs.
-	 *
-	 * XXX: We modify the caller-supplied isnull array here. That seems
-	 * a bit dangerous, but I guess it's OK for dropped cols?
-	 */
-	for(i=0; i<pbind->tupdesc->natts; ++i)
-	{
-		Form_pg_attribute attr = pbind->tupdesc->attrs[i];
-		
-		/* treat dropped attibutes as null */
-		if (attr->attisdropped)
-		{
-			isnull[i] = true;
-		}
-
-		if(isnull[i])
-		{
-			hasnull = true;
-			continue;
-		}
-	}
-
 	/* compute needed length */
-	len = compute_memtuple_size(pbind, values, isnull, hasnull, &null_save_len);
+	len = compute_memtuple_size(pbind, values, isnull, &null_save_len, &hasnull);
 	colbind = (len <= MEMTUPLE_LEN_FITSHORT) ? &pbind->bind : &pbind->large_bind;
 
 	if(!destlen)
@@ -667,13 +683,18 @@ memtuple_form_to(MemTupleBinding *pbind,
 	 * beginning of next loop), because physical col order is different
 	 * from logical. 
 	 */
-	for(i=0; i<pbind->tupdesc->natts; ++i)
+	if (hasnull)
 	{
-		if(isnull[i])
+		for(i=0; i<pbind->tupdesc->natts; ++i)
 		{
-			MemTupleAttrBinding *bind = &(colbind->bindings[i]);
-			Assert(hasnull);
-			nullp[bind->null_byte] |= bind->null_mask;
+			Form_pg_attribute attr = pbind->tupdesc->attrs[i];
+
+			if (isnull[i] || attr->attisdropped)
+			{
+				MemTupleAttrBinding *bind = &(colbind->bindings[i]);
+				Assert(hasnull);
+				nullp[bind->null_byte] |= bind->null_mask;
+			}
 		}
 	}
 
@@ -685,7 +706,7 @@ memtuple_form_to(MemTupleBinding *pbind,
 
 		uint32 attr_len;
 
-		if(isnull[i])
+		if(isnull[i] || attr->attisdropped)
 			continue;
 
 		Assert(bind->offset != 0);
@@ -805,11 +826,10 @@ memtuple_form_to(MemTupleBinding *pbind,
 				break;
 		}
 	}
+	Assert((varlen_start - (char *) mtup) <= len);
 
 	if (hasext)
 		memtuple_set_hasext(mtup);
-
-	Assert((varlen_start - (char *) mtup) <= len);
 
 	return mtup;
 }
