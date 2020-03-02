@@ -605,47 +605,50 @@ static inline unsigned char *memtuple_get_nullp(MemTuple mtup, MemTupleBinding *
 MemTuple
 memtuple_form(MemTupleBinding *pbind, Datum *values, bool *isnull)
 {
-	return memtuple_form_to(pbind, values, isnull, NULL, NULL);
+	uint32		len;
+	uint32		null_save_len;
+	bool		has_nulls;
+	MemTuple	result;
+
+	len = compute_memtuple_size(pbind, values, isnull, &null_save_len, &has_nulls);
+
+	result = palloc(len);
+
+	memtuple_form_to(pbind, values, isnull, len, null_save_len, has_nulls,
+					 result);
+
+	return result;
 }
 
-/* form a memtuple from values and isnull, to a prespecified buffer */
-MemTuple
+/*
+ * Form a memtuple from values and isnull, to a prespecified buffer
+ *
+ * You must call compute_memtuple_size() before this, and verify that
+ * the buffer is large enough. Pass through the 'len', 'null_save_len'
+ * and 'hasnull' values that compute_memtuple_size() returned.
+ *
+ * The tuple is written to 'mtup', which must be large enough to hold
+ * 'len' bytes.
+ */
+void
 memtuple_form_to(MemTupleBinding *pbind,
 				 Datum *values,
 				 bool *isnull,
-				 MemTuple mtup,
-				 uint32 *destlen)
+				 uint32 len,
+				 uint32 null_save_len,
+				 bool hasnull,
+				 MemTuple mtup)
 {
-	bool		hasnull;
 	bool		hasext = false;
-	int i;
-	uint32 len;
+	int			i;
 	unsigned char *nullp = NULL;
-	char *start;
-	char *varlen_start;
-	uint32 null_save_len;
+	char	   *start;
+	char	   *varlen_start;
 	MemTupleBindingCols *colbind;
 
-	/* compute needed length */
-	len = compute_memtuple_size(pbind, values, isnull, &null_save_len, &hasnull);
 	colbind = (len <= MEMTUPLE_LEN_FITSHORT) ? &pbind->bind : &pbind->large_bind;
 
-	if(!destlen)
-	{
-		Assert(!mtup);
-		mtup = (MemTuple) palloc0(len);
-	}
-	else if(*destlen < len)
-	{
-		*destlen = len;
-		return NULL;
-	}
-	else
-	{
-		*destlen = len;
-		Assert(mtup);
-		memset(mtup, 0, len);
-	}
+	memset(mtup, 0, len);
 
 	/* Set mtlen, this set the lead bit, len, and clears hasnull bit 
 	 * because the len returned from compute size is always max aligned
@@ -830,8 +833,6 @@ memtuple_form_to(MemTupleBinding *pbind,
 
 	if (hasext)
 		memtuple_set_hasext(mtup);
-
-	return mtup;
 }
 
 bool memtuple_attisnull(MemTuple mtup, MemTupleBinding *pbind, int attnum)
