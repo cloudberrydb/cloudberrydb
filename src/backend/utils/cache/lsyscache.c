@@ -4038,6 +4038,8 @@ get_cast_func(Oid oidSrc, Oid oidDest, bool *is_binary_coercible, Oid *oidCastFu
 	*is_binary_coercible = false;
 
 	*pathtype = find_coercion_pathway(oidDest, oidSrc, COERCION_IMPLICIT, oidCastFunc);
+	if (*pathtype == COERCION_PATH_RELABELTYPE)
+		*is_binary_coercible = true;
 	if (*pathtype != COERCION_PATH_NONE)
 		return true;
 	return false;
