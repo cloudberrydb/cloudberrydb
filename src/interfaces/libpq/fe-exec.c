@@ -183,6 +183,8 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 	result->numCompleted = 0;
 	result->naotupcounts = 0;
 	result->aotupcounts = NULL;
+	result->nWaits = 0;
+	result->waitGxids = NULL;
 
 	if (conn)
 	{
@@ -739,6 +741,9 @@ PQclear(PGresult *res)
 		free(res->aotupcounts);
 	res->naotupcounts = 0;
 
+	if (res->waitGxids)
+		free(res->waitGxids);
+	res->nWaits = 0;
 	/* Free the PGresult structure itself */
 	free(res);
 }

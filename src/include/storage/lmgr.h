@@ -119,4 +119,6 @@ extern bool LockTagIsTemp(const LOCKTAG *tag);
 
 extern bool CondUpgradeRelLock(Oid relid, bool noWait);
 
+extern void GxactLockTableInsert(DistributedTransactionId xid);
+extern void GxactLockTableWait(DistributedTransactionId xid);
 #endif   /* LMGR_H */
