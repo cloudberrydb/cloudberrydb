@@ -1,11 +1,16 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/create_external_table.sgml,v 1.105 2006/09/16 00:30:17 momjian Exp $
+doc/src/sgml/ref/create_external_table.sgml
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-CREATEEXTERNALTABLE">
+ <indexterm zone="sql-createexternaltable">
+  <primary>CREATE EXTERNAL TABLE</primary>
+ </indexterm>
+
  <refmeta>
-  <refentrytitle id="sql-createexternaltable-title">CREATE EXTERNAL TABLE</refentrytitle>
+  <refentrytitle>CREATE EXTERNAL TABLE</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -13,10 +18,6 @@ PostgreSQL documentation
   <refname>CREATE EXTERNAL TABLE</refname>
   <refpurpose>define a new external table</refpurpose>
  </refnamediv>
-
- <indexterm zone="sql-createexternaltable">
-  <primary>CREATE EXTERNAL TABLE</primary>
- </indexterm>
 
  <refsynopsisdiv>
 <synopsis> 
