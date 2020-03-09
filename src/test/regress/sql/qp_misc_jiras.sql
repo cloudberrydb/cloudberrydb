@@ -1094,12 +1094,6 @@ select get_ao_distribution('qp_misc_jiras.tbl7126_co_zlib3');
 
 -- end_ignore
 
-select gp_update_ao_master_stats('qp_misc_jiras.tbl7126_ao');
-select gp_update_ao_master_stats('qp_misc_jiras.tbl7126_ao_zlib3');
-select gp_update_ao_master_stats('qp_misc_jiras.tbl7126_co');
-select gp_update_ao_master_stats('qp_misc_jiras.tbl7126_co_zlib3');
-
-
 
 -- drop the objects created
 drop table qp_misc_jiras.tbl7126_ao;

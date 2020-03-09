@@ -245,9 +245,7 @@ struct pg_result
 	int64		numRejected;
 	/* GPDB: number of rows completed when COPY FROM ON SEGMENT */
 	int64		numCompleted;
-	/* GPDB: number of processed tuples for each AO partition */
-	int			naotupcounts;   /* number of aotupcounts, the count in it is an int64 */
-	PQaoRelTupCount *aotupcounts;
+	/* GPDB */
 	int		nWaits;
 	int		*waitGxids;
 };

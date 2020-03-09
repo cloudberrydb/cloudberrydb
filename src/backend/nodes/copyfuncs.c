@@ -119,7 +119,6 @@ _copyPlannedStmt(const PlannedStmt *from)
 	COPY_BITMAPSET_FIELD(rewindPlanIDs);
 
 	COPY_NODE_FIELD(result_partitions);
-	COPY_NODE_FIELD(result_aosegnos);
 	COPY_NODE_FIELD(queryPartOids);
 	COPY_NODE_FIELD(queryPartsMetadata);
 	COPY_NODE_FIELD(numSelectorsPerScanId);
@@ -1553,7 +1552,6 @@ _copyCopyIntoClause(const CopyIntoClause *from)
 	COPY_SCALAR_FIELD(is_program);
 	COPY_STRING_FIELD(filename);
 	COPY_NODE_FIELD(options);
-	COPY_NODE_FIELD(ao_segnos);
 
 	return newnode;
 }
@@ -4453,9 +4451,6 @@ _copyVacuumStmt(const VacuumStmt *from)
 	COPY_SCALAR_FIELD(options);
 	COPY_NODE_FIELD(relation);
 	COPY_NODE_FIELD(va_cols);
-
-	COPY_SCALAR_FIELD(skip_twophase);
-	COPY_NODE_FIELD(ao_vacuum_phase_config);
 
 	return newnode;
 }

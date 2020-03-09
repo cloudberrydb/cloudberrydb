@@ -938,51 +938,6 @@ ExecCloseScanRelation(Relation scanrel)
 }
 
 /*
- * ExecUpdateAOtupCount
- *		Update the tuple count on the master for an append only relation segfile.
- */
-static void
-ExecUpdateAOtupCount(ResultRelInfo *result_rels,
-					 Snapshot shapshot,
-					 int num_result_rels,
-					 EState* estate,
-					 uint64 tupadded)
-{
-	int		i;
-
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	bool was_delete = estate && estate->es_plannedstmt &&
-		(estate->es_plannedstmt->commandType == CMD_DELETE);
-
-	for (i = num_result_rels; i > 0; i--)
-	{
-		if(RelationIsAppendOptimized(result_rels->ri_RelationDesc))
-		{
-			Assert(result_rels->ri_aosegno != InvalidFileSegNumber);
-
-			if (was_delete && tupadded > 0)
-			{
-				/* Touch the ao seg info */
-				UpdateMasterAosegTotals(result_rels->ri_RelationDesc,
-									result_rels->ri_aosegno,
-									0,
-									1);
-			} 
-			else if (!was_delete)
-			{
-				UpdateMasterAosegTotals(result_rels->ri_RelationDesc,
-									result_rels->ri_aosegno,
-									tupadded,
-									1);
-			}
-		}
-
-		result_rels++;
-	}
-}
-
-/*
  * UpdateChangedParamSet
  *		Add changed parameters to a plan node's chgParam set
  */
@@ -1646,7 +1601,6 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		CdbDispatcherState *ds = estate->dispatcherState;
 		DispatchWaitMode waitMode = DISPATCH_WAIT_NONE;
 		ErrorData *qeError = NULL;
-		HTAB *aopartcounts = NULL;
 
 		/*
 		 * If we are finishing a query before all the tuples of the query
@@ -1686,66 +1640,10 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 				cdbdisp_sumCmdTuples(pr, primaryWriterSliceIndex);
 			estate->es_lastoid =
 				cdbdisp_maxLastOid(pr, primaryWriterSliceIndex);
-
-			if (estate->es_result_partitions)
-				aopartcounts = cdbdisp_sumAoPartTupCount(pr);
 		}
 
 		/* sum up rejected rows if any (single row error handling only) */
 		cdbdisp_sumRejectedRows(pr);
-
-		/* sum up inserted rows into any AO relation */
-		if (aopartcounts)
-		{
-			/* counts from a partitioned AO table */
-
-			ListCell *lc;
-
-			foreach(lc, estate->es_result_aosegnos)
-			{
-				SegfileMapNode *map = lfirst(lc);
-				struct {
-					Oid relid;
-			   		int64 tupcount;
-				} *entry;
-				bool found;
-
-				entry = hash_search(aopartcounts,
-									&(map->relid),
-									HASH_FIND,
-									&found);
-
-				/*
-				 * Must update the mod count only for segfiles where actual tuples were touched 
-				 * (added/deleted) based on entry->tupcount.
-				 */
-				if (found && entry->tupcount)
-				{
-					bool was_delete = estate->es_plannedstmt && (estate->es_plannedstmt->commandType == CMD_DELETE);
-
-					Relation r = heap_open(map->relid, AccessShareLock);
-					if (was_delete)
-					{
-						UpdateMasterAosegTotals(r, map->segno, 0, 1);
-					}
-					else
-					{
-						UpdateMasterAosegTotals(r, map->segno, entry->tupcount, 1);	
-					}
-					heap_close(r, NoLock);
-				}
-			}
-		}
-		else
-		{
-			/* counts from a (non partitioned) AO table */
-
-			ExecUpdateAOtupCount(estate->es_result_relations,
-								 estate->es_snapshot,
-								 estate->es_num_result_relations,
-								 estate,
-								 estate->es_processed);
-		}
 
 		/*
 		 * Check and free the results of all gangs. If any QE had an

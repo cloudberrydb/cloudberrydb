@@ -148,8 +148,6 @@
 
  CREATE FUNCTION get_ao_compression_ratio(regclass) RETURNS float8 LANGUAGE internal VOLATILE STRICT READS SQL DATA AS 'get_ao_compression_ratio' WITH (OID=7171, DESCRIPTION="show append only table compression ratio");
 
- CREATE FUNCTION gp_update_ao_master_stats(regclass) RETURNS int8 LANGUAGE internal VOLATILE MODIFIES SQL DATA AS 'gp_update_ao_master_stats' WITH (OID=7173, DESCRIPTION="append only tables utility function");
-
 -- the bitmap index access method routines
  CREATE FUNCTION bmhandler(internal) RETURNS index_am_handler LANGUAGE internal VOLATILE STRICT PARALLEL SAFE AS 'bmhandler' WITH (OID=7050, DESCRIPTION="bitmap(internal)");
 

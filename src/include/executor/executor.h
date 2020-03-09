@@ -439,7 +439,7 @@ extern void fake_outer_params(JoinState *node);
 extern void ExecPrefetchJoinQual(JoinState *node);
 
 /* ResultRelInfo and Append Only segment assignment */
-void ResultRelInfoSetSegno(ResultRelInfo *resultRelInfo, List *mapping);
+extern void ResultRelInfoChooseSegno(ResultRelInfo *resultRelInfo);
 
 /* Additions for MPP Slice table utilities defined in execUtils.c */
 extern GpExecIdentity getGpExecIdentity(QueryDesc *queryDesc,
@@ -450,7 +450,5 @@ extern void mppExecutorCleanup(QueryDesc *queryDesc);
 
 extern ResultRelInfo *targetid_get_partition(Oid targetid, EState *estate, bool openIndices);
 extern ResultRelInfo *slot_get_partition(TupleTableSlot *slot, EState *estate, bool openIndices);
-
-extern void SendAOTupCounts(EState *estate);
 
 #endif   /* EXECUTOR_H  */

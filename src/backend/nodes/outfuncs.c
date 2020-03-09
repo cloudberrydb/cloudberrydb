@@ -342,7 +342,6 @@ _outPlannedStmt(StringInfo str, const PlannedStmt *node)
 
 	WRITE_BITMAPSET_FIELD(rewindPlanIDs);
 	WRITE_NODE_FIELD(result_partitions);
-	WRITE_NODE_FIELD(result_aosegnos);
 	WRITE_NODE_FIELD(queryPartOids);
 	WRITE_NODE_FIELD(queryPartsMetadata);
 	WRITE_NODE_FIELD(numSelectorsPerScanId);
@@ -1412,8 +1411,6 @@ _outCopyIntoClause(StringInfo str, const CopyIntoClause *node)
 	WRITE_BOOL_FIELD(is_program);
 	WRITE_STRING_FIELD(filename);
 	WRITE_NODE_FIELD(options);
-	WRITE_NODE_FIELD(ao_segnos);
-
 }
 
 static void
@@ -3830,7 +3827,6 @@ _outCopyStmt(StringInfo str, const CopyStmt *node)
 	WRITE_NODE_FIELD(options);
 	WRITE_NODE_FIELD(sreh);
 	WRITE_NODE_FIELD(partitions);
-	WRITE_NODE_FIELD(ao_segnos);
 }
 #endif/* COMPILING_BINARY_FUNCS */
 
@@ -4938,17 +4934,6 @@ _outCreatePLangStmt(StringInfo str, const CreatePLangStmt *node)
 }
 
 static void
-_outAOVacuumPhaseConfig(StringInfo str, const AOVacuumPhaseConfig *node)
-{
-	WRITE_NODE_TYPE("AOVACUUMPHASECONFIG");
-
-	WRITE_NODE_FIELD(appendonly_compaction_segno);
-	WRITE_NODE_FIELD(appendonly_compaction_insert_segno);
-	WRITE_BOOL_FIELD(appendonly_relation_empty);
-	WRITE_ENUM_FIELD(appendonly_phase,AOVacuumPhase);
-}
-
-static void
 _outVacuumStmt(StringInfo str, const VacuumStmt *node)
 {
 	WRITE_NODE_TYPE("VACUUMSTMT");
@@ -4956,9 +4941,6 @@ _outVacuumStmt(StringInfo str, const VacuumStmt *node)
 	WRITE_INT_FIELD(options);
 	WRITE_NODE_FIELD(relation);
 	WRITE_NODE_FIELD(va_cols);
-
-	WRITE_BOOL_FIELD(skip_twophase);
-	WRITE_NODE_FIELD(ao_vacuum_phase_config);
 }
 
 static void
@@ -6093,9 +6075,6 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_VacuumStmt:
 				_outVacuumStmt(str, obj);
-				break;
-			case T_AOVacuumPhaseConfig:
-				_outAOVacuumPhaseConfig(str, obj);
 				break;
 			case T_CdbProcess:
 				_outCdbProcess(str, obj);

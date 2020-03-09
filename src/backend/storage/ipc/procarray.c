@@ -502,7 +502,6 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 	pgxact->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
 	pgxact->delayChkpt = false;		/* be sure this is cleared in abort */
 	proc->recoveryConflictPending = false;
-	proc->serializableIsoLevel = false;
 
 	Assert(pgxact->nxids == 0);
 	Assert(pgxact->overflowed == false);
@@ -528,7 +527,6 @@ ProcArrayEndTransactionInternal(PGPROC *proc, PGXACT *pgxact,
 	pgxact->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
 	pgxact->delayChkpt = false; /* be sure this is cleared in abort */
 	proc->recoveryConflictPending = false;
-	proc->serializableIsoLevel = false;
 
 	/* Clear the subtransaction-XID cache too while holding the lock */
 	pgxact->nxids = 0;
@@ -697,7 +695,6 @@ ProcArrayClearTransaction(PGPROC *proc)
 	/* redundant, but just in case */
 	pgxact->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
 	pgxact->delayChkpt = false;
-	proc->serializableIsoLevel = false;
 
 	/* Clear the subtransaction-XID cache too */
 	pgxact->nxids = 0;
@@ -1337,47 +1334,6 @@ TransactionIdIsActive(TransactionId xid)
 		{
 			result = true;
 			break;
-		}
-	}
-
-	LWLockRelease(ProcArrayLock);
-
-	return result;
-}
-
-/*
- * Returns true if there are of serializable backends (except the current
- * one).
- *
- * If allDbs is TRUE then all backends are considered; if allDbs is FALSE
- * then only backends running in my own database are considered.
- */
-bool
-HasSerializableBackends(bool allDbs)
-{
-	ProcArrayStruct *arrayP = procArray;
-	bool result = false; /* Assumes */
-	int			index;
-
-	LWLockAcquire(ProcArrayLock, LW_SHARED);
-
-	for (index = 0; index < arrayP->numProcs; index++)
-	{
-		int			pgprocno = arrayP->pgprocnos[index];
-		volatile PGPROC *proc = &allProcs[pgprocno];
-		volatile PGXACT *pgxact = &allPgXact[pgprocno];
-		if (proc->pid == 0)
-			continue;			/* do not count prepared xacts */
-
-		if (allDbs || proc->databaseId == MyDatabaseId)
-		{
-			if (proc->serializableIsoLevel && proc != MyProc)
-			{
-				ereport((Debug_print_snapshot_dtm ? LOG : DEBUG3),
-						(errmsg("Found serializable transaction: database %d, pid %d, xid %d, xmin %d",
-								proc->databaseId, proc->pid, pgxact->xid, pgxact->xmin)));
-				result = true;
-			}
 		}
 	}
 
@@ -2489,14 +2445,6 @@ GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext)
 		/* Not that these values are not set atomically. However,
 		 * each of these assignments is itself assumed to be atomic. */
 		MyPgXact->xmin = TransactionXmin = xmin;
-	}
-	if (IsolationUsesXactSnapshot())
-	{
-		MyProc->serializableIsoLevel = true;
-
-		ereport((Debug_print_snapshot_dtm ? LOG : DEBUG3),
-				(errmsg("Got serializable snapshot: database %d, pid %d, xid %d, xmin %d",
-						MyProc->databaseId, MyProc->pid, MyPgXact->xid, MyPgXact->xmin)));
 	}
 
 	/* GP: QD takes a distributed snapshot */

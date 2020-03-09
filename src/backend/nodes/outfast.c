@@ -355,7 +355,6 @@ _outCopyStmt(StringInfo str, CopyStmt *node)
 	WRITE_NODE_FIELD(options);
 	WRITE_NODE_FIELD(sreh);
 	WRITE_NODE_FIELD(partitions);
-	WRITE_NODE_FIELD(ao_segnos);
 }
 
 static void
@@ -1988,9 +1987,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_VacuumStmt:
 				_outVacuumStmt(str, obj);
-				break;
-			case T_AOVacuumPhaseConfig:
-				_outAOVacuumPhaseConfig(str, obj);
 				break;
 			case T_CdbProcess:
 				_outCdbProcess(str, obj);

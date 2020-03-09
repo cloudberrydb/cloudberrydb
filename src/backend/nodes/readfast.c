@@ -1370,10 +1370,8 @@ _readCopyStmt(void)
 	READ_NODE_FIELD(options);
 	READ_NODE_FIELD(sreh);
 	READ_NODE_FIELD(partitions);
-	READ_NODE_FIELD(ao_segnos);
 
 	READ_DONE();
-
 }
 
 static GrantRoleStmt *
@@ -2887,9 +2885,6 @@ readNodeBinary(void)
 				break;
 			case T_VacuumStmt:
 				return_value = _readVacuumStmt();
-				break;
-			case T_AOVacuumPhaseConfig:
-				return_value = _readAOVacuumPhaseConfig();
 				break;
 			case T_CdbProcess:
 				return_value = _readCdbProcess();

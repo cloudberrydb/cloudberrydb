@@ -114,7 +114,6 @@ typedef struct CopyIntoClause
 	bool		is_program;		/* is 'filename' a program to popen? */
 	char	   *filename;		/* filename, or NULL for STDIN/STDOUT */
 	List	   *options;		/* List of DefElem nodes */
-	List	   *ao_segnos;		/* AO segno map */
 } CopyIntoClause;
 
 typedef struct RefreshClause
