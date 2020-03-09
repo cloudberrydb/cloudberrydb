@@ -348,6 +348,11 @@ explain select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1
 
 select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1 where t0.t=t1.t HAVING count(*) < 10);
 
+-- subquery contains quals of form 'function(outervar, innervar1) = innvervar2'
+explain select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1 where t0.n + t1.n =t1.i);
+
+select * from csq_pullup t0 where 1= (select count(*) from csq_pullup t1 where t0.n + t1.n =t1.i);
+
 
 --
 -- NOT EXISTS CSQs to joins
