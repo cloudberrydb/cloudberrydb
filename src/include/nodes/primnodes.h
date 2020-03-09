@@ -244,7 +244,6 @@ typedef enum ParamKind
 {
 	PARAM_EXTERN,
 	PARAM_EXEC,
-	PARAM_EXEC_REMOTE, /* MPP ???? */
 	PARAM_SUBLINK,
 	PARAM_MULTIEXPR
 } ParamKind;

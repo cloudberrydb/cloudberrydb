@@ -580,39 +580,11 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			}
 
 			/*
-			 * First, see whether we need to pre-execute any initPlan subplans.
+			 * First, pre-execute any initPlan subplans.
 			 */
 			if (queryDesc->plannedstmt->nParamExec > 0)
 			{
-				ParamListInfoData *pli = queryDesc->params;
-
-				/*
-				 * First, use paramFetch to fetch any "lazy" parameters, so that
-				 * they are dispatched along with the queries. The QE nodes cannot
-				 * call the callback function on their own.
-				 */
-				if (pli && pli->paramFetch)
-				{
-					int			iparam;
-
-					for (iparam = 0; iparam < queryDesc->params->numParams; iparam++)
-					{
-						ParamExternData *prm = &pli->params[iparam];
-
-						if (!OidIsValid(prm->ptype))
-							(*pli->paramFetch) (pli, iparam + 1);
-					}
-				}
-
 				preprocess_initplans(queryDesc);
-
-				/*
-				 * Copy the values of the preprocessed subplans to the
-				 * external parameters.
-				 */
-				queryDesc->params = addRemoteExecParamsToParamList(queryDesc->plannedstmt,
-																   queryDesc->params,
-																   queryDesc->estate->es_param_exec_vals);
 			}
 
 			/*
@@ -625,7 +597,11 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			 */
 			if (estate->es_sliceTable->slices[0].gangType != GANGTYPE_UNALLOCATED ||
 				estate->es_sliceTable->slices[0].children)
-				CdbDispatchPlan(queryDesc, needDtx, true);
+			{
+				CdbDispatchPlan(queryDesc,
+								estate->es_param_exec_vals,
+								needDtx, true);
+			}
 		}
 
 		/*
@@ -2003,11 +1979,11 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	}
 
 	/*
-	 * If this is a query that was dispatched from the QE, extract precomputed
-	 * parameters from all init plans
+	 * If this is a query that was dispatched from the QE, install precomputed
+	 * parameter values from all init plans into our EState.
 	 */
 	if (Gp_role == GP_ROLE_EXECUTE && queryDesc->ddesc)
-		ExtractParamsFromInitPlans(plannedstmt, plannedstmt->planTree, estate);
+		InstallDispatchedExecParams(queryDesc->ddesc, estate);
 
 	/*
 	 * Initialize the private state information for all the nodes in the query

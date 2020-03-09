@@ -1394,10 +1394,49 @@ _readQueryDispatchDesc(void)
 	READ_LOCALS(QueryDispatchDesc);
 
 	READ_STRING_FIELD(intoTableSpaceName);
+	READ_NODE_FIELD(paramInfo);
 	READ_NODE_FIELD(oidAssignments);
 	READ_NODE_FIELD(sliceTable);
 	READ_NODE_FIELD(cursorPositions);
 	READ_BOOL_FIELD(useChangedAOOpts);
+	READ_DONE();
+}
+
+static SerializedParams *
+_readSerializedParams(void)
+{
+	READ_LOCALS(SerializedParams);
+
+	READ_INT_FIELD(nExternParams);
+	local_node->externParams = palloc0(local_node->nExternParams * sizeof(SerializedParamExternData));
+	for (int i = 0; i < local_node->nExternParams; i++)
+	{
+		READ_BOOL_FIELD(externParams[i].isnull);
+		READ_INT_FIELD(externParams[i].pflags);
+		READ_OID_FIELD(externParams[i].ptype);
+		READ_INT_FIELD(externParams[i].plen);
+		READ_BOOL_FIELD(externParams[i].pbyval);
+
+		if (!local_node->externParams[i].isnull)
+			local_node->externParams[i].value = readDatum(local_node->externParams[i].pbyval);
+	}
+
+	READ_INT_FIELD(nExecParams);
+	local_node->execParams = palloc0(local_node->nExecParams * sizeof(SerializedParamExecData));
+	for (int i = 0; i < local_node->nExecParams; i++)
+	{
+		READ_BOOL_FIELD(execParams[i].isnull);
+		READ_BOOL_FIELD(execParams[i].isvalid);
+		READ_INT_FIELD(execParams[i].plen);
+		READ_BOOL_FIELD(execParams[i].pbyval);
+
+		if (local_node->execParams[i].isvalid && !local_node->execParams[i].isnull)
+			local_node->execParams[i].value = readDatum(local_node->execParams[i].pbyval);
+		READ_BOOL_FIELD(execParams[i].pbyval);
+	}
+
+	READ_NODE_FIELD(transientTypes);
+
 	READ_DONE();
 }
 
@@ -1811,23 +1850,6 @@ _readTupleDescNode(void)
 	local_node->tuple->constr = NULL;
 
 	Assert(local_node->tuple->tdtypeid == RECORDOID);
-
-	READ_DONE();
-}
-
-static SerializedParamExternData *
-_readSerializedParamExternData(void)
-{
-	READ_LOCALS(SerializedParamExternData);
-
-	READ_BOOL_FIELD(isnull);
-	READ_INT16_FIELD(pflags);
-	READ_OID_FIELD(ptype);
-	READ_INT16_FIELD(plen);
-	READ_BOOL_FIELD(pbyval);
-
-	if (!local_node->isnull)
-		local_node->value = readDatumBinary(local_node->pbyval);
 
 	READ_DONE();
 }
@@ -2959,8 +2981,8 @@ readNodeBinary(void)
 			case T_TupleDescNode:
 				return_value = _readTupleDescNode();
 				break;
-			case T_SerializedParamExternData:
-				return_value = _readSerializedParamExternData();
+			case T_SerializedParams:
+				return_value = _readSerializedParams();
 				break;
 
 			case T_AlterTSConfigurationStmt:
