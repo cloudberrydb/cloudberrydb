@@ -7422,23 +7422,6 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 			hashOpfamilies = lappend_oid(hashOpfamilies, opfamily);
 		}
 
-		/**
-		 * If there are subplans in the hashExpr, push it down to lower level.
-		 */
-		if (contain_subplans((Node *) hashExprs))
-		{
-			/* make a Result node to do the projection if necessary */
-			if (!is_projection_capable_plan(subplan))
-			{
-				List	   *tlist = copyObject(subplan->targetlist);
-
-				subplan = (Plan *) make_result(tlist, NULL, subplan);
-			}
-			subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
-														 hashExprs,
-														 true /* resjunk */);
-		}
-
 		motion = make_hashed_motion(subplan,
 									hashExprs,
 									hashOpfamilies,
@@ -7525,22 +7508,6 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 		if (!hashExprs)
 			elog(ERROR, "could not find hash distribution key expressions in target list");
 
-		/**
-         * If there are subplans in the hashExpr, push it down to lower level.
-         */
-		if (contain_subplans((Node *) hashExprs))
-		{
-			/* make a Result node to do the projection if necessary */
-			if (!is_projection_capable_plan(subplan))
-			{
-				List	   *tlist = copyObject(subplan->targetlist);
-
-				subplan = (Plan *) make_result(tlist, NULL, subplan);
-			}
-			subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
-														 hashExprs,
-														 true /* resjunk */);
-        }
         motion = make_hashed_motion(subplan,
 									hashExprs,
 									hashOpfamilies,
