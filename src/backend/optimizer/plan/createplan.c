@@ -7588,6 +7588,13 @@ append_initplan_for_function_scan(PlannerInfo *root, Path *best_path, Plan *plan
 	RangeTblFunction	*rtfunc;
 	FuncExpr	*funcexpr;
 
+	/*
+	 * In utility mode (or when planning a local query in QE), ignore EXECUTE
+	 * ON markings and run the function the normal way.
+	 */
+	if (Gp_role != GP_ROLE_DISPATCH)
+		return;
+
 	/* Currently we limit function number to one */
 	if (list_length(fsplan->functions) != 1)
 		return;

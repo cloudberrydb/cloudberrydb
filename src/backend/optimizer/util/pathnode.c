@@ -2718,9 +2718,6 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 {
 	Path	   *pathnode = makeNode(Path);
 	ListCell   *lc;
-	char		exec_location;
-	bool		contain_mutables = false;
-	bool		contain_outer_params = false;
 
 	pathnode->pathtype = T_FunctionScan;
 	pathnode->parent = rel;
@@ -2733,139 +2730,147 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->pathkeys = pathkeys;
 
 	/*
-	 * If the function desires to run on segments, mark randomly-distributed.
-	 * If expression contains mutable functions, evaluate it on entry db.
-	 * Otherwise let it be evaluated in the same slice as its parent operator.
-	 */
-	Assert(rte->rtekind == RTE_FUNCTION);
-
-	foreach (lc, rel->baserestrictinfo)
-	{
-		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
-
-		if (rinfo->contain_outer_query_references)
-		{
-			contain_outer_params = true;
-			break;
-		}
-	}
-
-	/*
 	 * Decide where to execute the FunctionScan.
 	 */
-	contain_mutables = false;
-	exec_location = PROEXECLOCATION_ANY;
-	foreach (lc, rte->functions)
+	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
+		char		exec_location = PROEXECLOCATION_ANY;
+		bool		contain_mutables = false;
+		bool		contain_outer_params = false;
 
-		if (rtfunc->funcexpr && IsA(rtfunc->funcexpr, FuncExpr))
+		/*
+		 * If the function desires to run on segments, mark randomly-distributed.
+		 * If expression contains mutable functions, evaluate it on entry db.
+		 * Otherwise let it be evaluated in the same slice as its parent operator.
+		 */
+		Assert(rte->rtekind == RTE_FUNCTION);
+
+		foreach (lc, rel->baserestrictinfo)
 		{
-			FuncExpr   *funcexpr = (FuncExpr *) rtfunc->funcexpr;
-			char		this_exec_location;
+			RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
 
-			this_exec_location = func_exec_location(funcexpr->funcid);
-
-			switch (this_exec_location)
+			if (rinfo->contain_outer_query_references)
 			{
-				case PROEXECLOCATION_ANY:
-					/*
-					 * This can be executed anywhere. Remember if it was
-					 * mutable (or contained any mutable arguments), that
-					 * will affect the decision after this loop on where
-					 * to actually execute it.
-					 */
-					if (!contain_mutables)
-						contain_mutables = contain_mutable_functions((Node *) funcexpr);
-					break;
-				case PROEXECLOCATION_MASTER:
-					/*
-					 * This function forces the execution to master.
-					 */
-					if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
-					{
-						ereport(ERROR,
-								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 (errmsg("cannot mix EXECUTE ON MASTER and ALL SEGMENTS functions in same function scan"))));
-					}
-					exec_location = PROEXECLOCATION_MASTER;
-					break;
-				case PROEXECLOCATION_INITPLAN:
-					/*
-					 * This function forces the execution to master.
-					 */
-					if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
-					{
-						ereport(ERROR,
-								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 (errmsg("cannot mix EXECUTE ON INITPLAN and ALL SEGMENTS functions in same function scan"))));
-					}
-					exec_location = PROEXECLOCATION_INITPLAN;
-					break;
-				case PROEXECLOCATION_ALL_SEGMENTS:
-					/*
-					 * This function forces the execution to segments.
-					 */
-					if (exec_location == PROEXECLOCATION_MASTER)
-					{
-						ereport(ERROR,
-								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 (errmsg("cannot mix EXECUTE ON MASTER and ALL SEGMENTS functions in same function scan"))));
-					}
-					exec_location = PROEXECLOCATION_ALL_SEGMENTS;
-					break;
-				default:
-					elog(ERROR, "unrecognized proexeclocation '%c'", exec_location);
+				contain_outer_params = true;
+				break;
 			}
 		}
-		else
+
+		foreach (lc, rte->functions)
 		{
-			/*
-			 * The expression might've been simplified into a Const. Which can
-			 * be executed anywhere.
-			 */
+			RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
+
+			if (rtfunc->funcexpr && IsA(rtfunc->funcexpr, FuncExpr))
+			{
+				FuncExpr   *funcexpr = (FuncExpr *) rtfunc->funcexpr;
+				char		this_exec_location;
+
+				this_exec_location = func_exec_location(funcexpr->funcid);
+
+				switch (this_exec_location)
+				{
+					case PROEXECLOCATION_ANY:
+						/*
+						 * This can be executed anywhere. Remember if it was
+						 * mutable (or contained any mutable arguments), that
+						 * will affect the decision after this loop on where
+						 * to actually execute it.
+						 */
+						if (!contain_mutables)
+							contain_mutables = contain_mutable_functions((Node *) funcexpr);
+						break;
+					case PROEXECLOCATION_MASTER:
+						/*
+						 * This function forces the execution to master.
+						 */
+						if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 (errmsg("cannot mix EXECUTE ON MASTER and ALL SEGMENTS functions in same function scan"))));
+						}
+						exec_location = PROEXECLOCATION_MASTER;
+						break;
+					case PROEXECLOCATION_INITPLAN:
+						/*
+						 * This function forces the execution to master.
+						 */
+						if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 (errmsg("cannot mix EXECUTE ON INITPLAN and ALL SEGMENTS functions in same function scan"))));
+						}
+						exec_location = PROEXECLOCATION_INITPLAN;
+						break;
+					case PROEXECLOCATION_ALL_SEGMENTS:
+						/*
+						 * This function forces the execution to segments.
+						 */
+						if (exec_location == PROEXECLOCATION_MASTER)
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 (errmsg("cannot mix EXECUTE ON MASTER and ALL SEGMENTS functions in same function scan"))));
+						}
+						exec_location = PROEXECLOCATION_ALL_SEGMENTS;
+						break;
+					default:
+						elog(ERROR, "unrecognized proexeclocation '%c'", exec_location);
+				}
+			}
+			else
+			{
+				/*
+				 * The expression might've been simplified into a Const. Which can
+				 * be executed anywhere.
+				 */
+			}
+
+			if (!contain_outer_params &&
+				contains_outer_params(rtfunc->funcexpr, root))
+				contain_outer_params = true;
 		}
 
-		if (!contain_outer_params &&
-			contains_outer_params(rtfunc->funcexpr, root))
-			contain_outer_params = true;
-	}
-	switch (exec_location)
-	{
-		case PROEXECLOCATION_ANY:
-			/*
-			 * If all the functions are ON ANY, we presumably could execute
-			 * the function scan anywhere. However, historically, before the
-			 * EXECUTE ON syntax was introduced, we always executed
-			 * non-IMMUTABLE functions on the master. Keep that behavior
-			 * for backwards compatibility.
-			 */
-			if (contain_outer_params)
-				CdbPathLocus_MakeOuterQuery(&pathnode->locus);
-			else if (contain_mutables)
+		switch (exec_location)
+		{
+			case PROEXECLOCATION_ANY:
+				/*
+				 * If all the functions are ON ANY, we presumably could execute
+				 * the function scan anywhere. However, historically, before the
+				 * EXECUTE ON syntax was introduced, we always executed
+				 * non-IMMUTABLE functions on the master. Keep that behavior
+				 * for backwards compatibility.
+				 */
+				if (contain_outer_params)
+					CdbPathLocus_MakeOuterQuery(&pathnode->locus);
+				else if (contain_mutables)
+					CdbPathLocus_MakeEntry(&pathnode->locus);
+				else
+					CdbPathLocus_MakeGeneral(&pathnode->locus);
+				break;
+			case PROEXECLOCATION_MASTER:
+				if (contain_outer_params)
+					elog(ERROR, "cannot execute EXECUTE ON MASTER function in a subquery with arguments from outer query");
 				CdbPathLocus_MakeEntry(&pathnode->locus);
-			else
-				CdbPathLocus_MakeGeneral(&pathnode->locus);
-			break;
-		case PROEXECLOCATION_MASTER:
-			if (contain_outer_params)
-				elog(ERROR, "cannot execute EXECUTE ON MASTER function in a subquery with arguments from outer query");
-			CdbPathLocus_MakeEntry(&pathnode->locus);
-			break;
-		case PROEXECLOCATION_INITPLAN:
-			if (contain_outer_params)
-				elog(ERROR, "cannot execute EXECUTE ON INITPLAN function in a subquery with arguments from outer query");
-			CdbPathLocus_MakeEntry(&pathnode->locus);
-			break;
-		case PROEXECLOCATION_ALL_SEGMENTS:
-			if (contain_outer_params)
-				elog(ERROR, "cannot execute EXECUTE ON ALL SEGMENTS function in a subquery with arguments from outer query");
-			CdbPathLocus_MakeStrewn(&pathnode->locus,
-									getgpsegmentCount());
-			break;
-		default:
-			elog(ERROR, "unrecognized proexeclocation '%c'", exec_location);
+				break;
+			case PROEXECLOCATION_INITPLAN:
+				if (contain_outer_params)
+					elog(ERROR, "cannot execute EXECUTE ON INITPLAN function in a subquery with arguments from outer query");
+				CdbPathLocus_MakeEntry(&pathnode->locus);
+				break;
+			case PROEXECLOCATION_ALL_SEGMENTS:
+				if (contain_outer_params)
+					elog(ERROR, "cannot execute EXECUTE ON ALL SEGMENTS function in a subquery with arguments from outer query");
+				CdbPathLocus_MakeStrewn(&pathnode->locus,
+										getgpsegmentCount());
+				break;
+			default:
+				elog(ERROR, "unrecognized proexeclocation '%c'", exec_location);
+		}
 	}
+	else
+		CdbPathLocus_MakeEntry(&pathnode->locus);
 
 	pathnode->motionHazard = false;
 
