@@ -173,11 +173,6 @@
 
  CREATE FUNCTION gp_truncate_error_log(text) RETURNS bool LANGUAGE INTERNAL STRICT VOLATILE PARALLEL SAFE AS 'gp_truncate_error_log' WITH (OID=7069, DESCRIPTION="truncate the error log for the specified external table");
 
--- elog related
- CREATE FUNCTION gp_elog(text) RETURNS void LANGUAGE internal IMMUTABLE STRICT PARALLEL SAFE AS 'gp_elog' WITH (OID=5044, DESCRIPTION="Insert text into the error log");
-
- CREATE FUNCTION gp_elog(text, bool) RETURNS void LANGUAGE internal IMMUTABLE STRICT PARALLEL SAFE AS 'gp_elog' WITH (OID=5045, DESCRIPTION="Insert text into the error log");
-
 -- Segment and master administration functions, see utils/gp/segadmin.c
  CREATE FUNCTION gp_add_master_standby(text, text, text) RETURNS int2 LANGUAGE internal VOLATILE PARALLEL RESTRICTED AS 'gp_add_master_standby' WITH (OID=5046, DESCRIPTION="Perform the catalog operations necessary for adding a new standby");
 
