@@ -1678,6 +1678,8 @@ ExecuteTruncate(TruncateStmt *stmt)
 	foreach(cell, rels)
 	{
 		Relation	rel = (Relation) lfirst(cell);
+		bool inSubTransaction = mySubid != TopSubTransactionId;
+		bool createdInThisTransactionScope = rel->rd_createSubid != InvalidSubTransactionId;
 
 		Assert(CheckExclusiveAccess(rel));
 
@@ -1687,9 +1689,20 @@ ExecuteTruncate(TruncateStmt *stmt)
 		 * a new relfilenode in the current (sub)transaction, then we can just
 		 * truncate it in-place, because a rollback would cause the whole
 		 * table or the current physical file to be thrown away anyway.
+		 *
+		 * GPDB_11_MERGE_FIXME: Remove this guc and related code once we get
+		 * plpy.commit().
+		 *
+		 * GPDB: Using GUC dev_opt_unsafe_truncate_in_subtransaction can force
+		 * unsafe truncation only if
+
+		 *   - inside sub-transaction and not in top transaction
+		 *   - table was created somewhere within this transaction scope
 		 */
 		if (rel->rd_createSubid == mySubid ||
-			rel->rd_newRelfilenodeSubid == mySubid)
+			rel->rd_newRelfilenodeSubid == mySubid ||
+			(dev_opt_unsafe_truncate_in_subtransaction &&
+			 inSubTransaction && createdInThisTransactionScope))
 		{
 			/* Immediate, non-rollbackable truncation is OK */
 			heap_truncate_one_rel(rel);

@@ -4,6 +4,7 @@
 		"coredump_on_memerror",
 		"DateStyle",
 		"default_tablespace",
+		"dev_opt_unsafe_truncate_in_subtransaction",
 		"dml_ignore_target_partition_check",
 		"execute_pruned_plan",
 		"explain_memory_verbosity",
