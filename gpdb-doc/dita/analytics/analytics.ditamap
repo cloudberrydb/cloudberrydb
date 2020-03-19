@@ -18,6 +18,7 @@
           <topicref href="pl_container.xml#upgrade_plcontainer" navtitle="Upgrade PL/Container" linking="none"/>
           <topicref href="pl_container.xml#uninstall_plcontainer" navtitle="Unistall PL/Container" linking="none"/>
           <topicref href="pl_container.xml#topic_kds_plk_rbb" navtitle="PL/Container References" linking="none"/>
+          <topicref href="pl_container_using.xml" linking="none"/>
           </topicref>
       <topicref href="pl_java.xml" linking="none"/>
       <topicref href="pl_perl.xml" linking="none"/>

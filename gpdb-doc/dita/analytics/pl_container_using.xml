@@ -28,7 +28,7 @@
                     memory resources available to each container instance. The
                         <codeph>cpu_share</codeph> setting identifies the relative weighting of a
                     container's CPU usage compared to other containers. See <xref
-                        href="plcontainer-configuration-xml.xml" format="dita"/> for further
+                        href="../utility_guide/ref/plcontainer-configuration.xml" format="dita"/> for further
                     details.</p>
                 <p>You cannot, by default, restrict the number of executing PL/Container container
                     instances, nor can you restrict the total amount of memory or CPU resources that
@@ -87,7 +87,7 @@
                     <codeblock>plcontainer runtime-add -r python_run1 -i pivotaldata/plcontainer_python_shared:devel -l python -s resource_group_id=16391</codeblock></p>
                 <p>You can also assign a resource group to a PL/Container runtime using the
                         <codeph>plcontainer runtime-edit</codeph> command. For information about the
-                        <codeph>plcontainer</codeph> command, see <xref href="plcontainer_ref.xml"
+                        <codeph>plcontainer</codeph> command, see <xref href="../utility_guide/ref/plcontainer.xml"
                         format="dita"/> reference page.</p>
                 <p>After you assign a resource group to a PL/Container runtime, all container
                     instances that share the same runtime configuration are subject to the memory
@@ -154,7 +154,7 @@
                         <codeblock>plcontainer runtime-add -r python_run1 -i pivotaldata/plcontainer_python_shared:devel -l python -s resource_group_id=16391
                                     plcontainer runtime-replace -r r_run1 -i pivotaldata/plcontainer_r_shared:devel -l r -s resource_group_id=16393</codeblock><p>For
                         information about the <codeph>plcontainer</codeph> command, see <xref
-                            href="plcontainer_ref.xml" format="dita"/> reference page.</p></li>
+                            href="../utility_guide/ref/plcontainer.xml" format="dita"/> reference page.</p></li>
             </ol></section>
             
             <section id="plc_notes">
@@ -236,7 +236,7 @@
                     configuration file <codeph>plcontainer_configuration.xml</codeph>, there is a
                         <codeph>runtime</codeph> XML element that contains a corresponding
                         <codeph>id</codeph> XML element that specifies the Docker container startup
-                    information. See <xref href="plcontainer-configuration-xml.xml#topic_sk1_gdq_dw"
+                    information. See <xref href="../utility_guide/ref/plcontainer-configuration.xml#topic_sk1_gdq_dw"
                         format="dita"/> for information about how PL/Container maps the
                         <varname>ID</varname> to a Docker image. See <xref href="#topic_kwg_qfg_mjb"
                         format="dita"/> for example UDF definitions.</p>
@@ -323,7 +323,7 @@
                     Docker image to be started. If you configured PL/Container with a different ID,
                     change the value of the <codeph># container</codeph> line. For information about
                     configuring PL/Container and viewing the configuration settings, see <xref
-                        href="plcontainer-configuration-xml.xml" format="dita"/>.</p>
+                        href="../utility_guide/ref/plcontainer-configuration.xml" format="dita"/>.</p>
                 <p>This is an example of PL/Python function that runs using the
                         <codeph>plc_python_shared</codeph> container that contains Python
                     2:<codeblock>CREATE OR REPLACE FUNCTION pylog100() RETURNS double precision AS $$

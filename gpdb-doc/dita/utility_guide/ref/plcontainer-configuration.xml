@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_sk1_gdq_dw">
-      <title>PL/Container Configuration File</title>
+      <title>plcontainer Configuration File</title>
       <body>
                 <p>The Greenplum Database utility <codeph>plcontainer</codeph> manages the
                     PL/Container configuration files in a Greenplum Database system. The utility
@@ -213,7 +213,7 @@
                                                 runtime configuration, its container instances are
                                                 limited only by system resources. For information
                                                 about managing PL/Container resources, see <xref
-                                                  href="pl_container_using.xml#topic_resmgmt"
+                                                  href="../../analytics/pl_container_using.xml#topic_resmgmt"
                                                   format="dita">About PL/Container Resource
                                                   Management</xref>.</pd>
                                                 </plentry>
@@ -243,12 +243,12 @@
                                                   logging (the default). </pd>
                                                   <pd>The Greenplum Database server configuration
                                                 parameter <codeph><xref
-                                                  href="../ref_guide/config_params/guc-list.xml#log_min_messages"
-                                                  scope="peer">log_min_messages</xref></codeph>
+                                                  href="../../ref_guide/config_params/guc-list.xml#log_min_messages"
+                                                  scope="local">log_min_messages</xref></codeph>
                                                 controls the PL/Container log level. The default log
                                                 level is <codeph>warning</codeph>. For information
                                                 about PL/Container log information, see <xref
-                                                  href="pl_container_using.xml#plc_notes"
+                                                  href="../../analytics/pl_container_using.xml#plc_notes"
                                                   format="dita">Notes</xref>.</pd>
                                                   <pd>
                                                   <p>By default, the PL/Container log information is

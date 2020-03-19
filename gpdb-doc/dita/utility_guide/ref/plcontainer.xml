@@ -146,7 +146,7 @@
                         for the container. The value is either <codeph>yes</codeph> (enable logging)
                         or <codeph>no</codeph> (disable logging, the default). <p>The Greenplum
                           Database server configuration parameter <codeph><xref
-                              href="../ref_guide/config_params/guc-list.xml#log_min_messages"
+                              href="../../ref_guide/config_params/guc-list.xml#log_min_messages"
                               scope="peer">log_min_messages</xref></codeph> controls the log level.
                           The default log level is <codeph>warning</codeph>. For information about
                           PL/Container log information, see <xref href="#plc_notes" format="dita"
