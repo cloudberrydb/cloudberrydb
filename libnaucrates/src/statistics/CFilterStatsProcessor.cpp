@@ -517,6 +517,8 @@ CFilterStatsProcessor::MakeHistHashMapDisjFilter
 
 	CHistogram *previous_histogram = NULL;
 	ULONG previous_colid = gpos::ulong_max;
+	// This is set to input_rows since SF = 1 / selectivity. So if SF is large, then we are less selective.
+	// We will then get selectivity = 1 / input_rows => gives 1 expected row. It is the min # of rows we can select
 	CDouble previous_scale_factor(input_rows);
 
 	CDouble cumulative_rows(CStatistics::MinRows.Get());
@@ -613,11 +615,21 @@ CFilterStatsProcessor::MakeHistHashMapDisjFilter
 			}
 			else
 			{
-				// statistics operation already conducted on this column
-				CDouble output_rows(0.0);
-				CHistogram *new_histogram = previous_histogram->MakeUnionHistogramNormalize(cumulative_rows, disjunctive_child_col_histogram, num_rows_disj_child, &output_rows);
-				cumulative_rows = output_rows;
+				CHistogram *new_histogram = NULL;
+				// only normalize if the histograms are well defined
+				if (previous_histogram->IsWellDefined() || disjunctive_child_col_histogram->IsWellDefined())
+				{
+					// statistics operation already conducted on this column
+					CDouble output_rows(0.0);
+					new_histogram = previous_histogram->MakeUnionHistogramNormalize(cumulative_rows, disjunctive_child_col_histogram, num_rows_disj_child, &output_rows);
+					cumulative_rows = output_rows;
+				}
+				else
+				{
+					new_histogram = GPOS_NEW(mp) CHistogram(mp, false /* is_well_defined */);
+					cumulative_rows = CDouble(std::max(num_rows_disj_child.Get(), cumulative_rows.Get()));
 
+				}
 				GPOS_DELETE(previous_histogram);
 				GPOS_DELETE(disjunctive_child_col_histogram);
 				previous_histogram = new_histogram;
