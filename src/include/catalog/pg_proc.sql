@@ -128,7 +128,7 @@
 -- Greenplum MPP exposed internally-defined functions. 
  CREATE FUNCTION gp_pgdatabase() RETURNS SETOF record LANGUAGE internal VOLATILE PARALLEL SAFE AS 'gp_pgdatabase__' WITH (OID=5065, DESCRIPTION="view mpp pgdatabase state");
 
- CREATE FUNCTION gp_execution_segment() RETURNS SETOF int4 LANGUAGE internal VOLATILE PARALLEL SAFE AS 'mpp_execution_segment' WITH (OID=6022, DESCRIPTION="segment executing function");
+ CREATE FUNCTION gp_execution_segment() RETURNS int4 LANGUAGE internal VOLATILE PARALLEL SAFE AS 'mpp_execution_segment' WITH (OID=6022, DESCRIPTION="segment executing function");
 -- #define MPP_EXECUTION_SEGMENT_OID 6022
 -- #define MPP_EXECUTION_SEGMENT_TYPE 23
 
