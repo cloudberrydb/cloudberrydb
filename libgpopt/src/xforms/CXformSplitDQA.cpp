@@ -867,6 +867,7 @@ CXformSplitDQA::ExtractDistinctCols
 	GPOS_ASSERT(NULL != phmexprcr);
 
 	const ULONG arity = pexpr->Arity();
+	BOOL hasNonSplittableAgg = false;
 
 	// use a set to deduplicate distinct aggs arguments
 	CColRefSet *pcrsArgDQA = GPOS_NEW(mp) CColRefSet(mp);
@@ -878,8 +879,18 @@ CXformSplitDQA::ExtractDistinctCols
 		// get the scalar child of the project element
 		CExpression *pexprAggFunc = (*pexprPrEl)[0];
 		CScalarAggFunc *popScAggFunc = CScalarAggFunc::PopConvert(pexprAggFunc->Pop());
+		hasNonSplittableAgg = !md_accessor->RetrieveAgg(popScAggFunc->MDId())->IsSplittable();
 
-		if (popScAggFunc->IsDistinct() && md_accessor->RetrieveAgg(popScAggFunc->MDId())->IsSplittable())
+		// if an agg fucntion is missing a combine function, then such an agg is
+		// called non splittable. Non splittable aggs cannot participate in multi-phase DQAs
+		// We do not track missing combine functions per DQA so we cannot have some
+		// as single phase and some as multiple phases.
+		if (hasNonSplittableAgg)
+		{
+			break;
+		}
+
+		if (popScAggFunc->IsDistinct())
 		{
 			GPOS_ASSERT(1 == pexprAggFunc->Arity());
 			
@@ -908,7 +919,7 @@ CXformSplitDQA::ExtractDistinctCols
 		}
 	}
 
-	if (1 == ulDistinct)
+	if (1 == ulDistinct && !hasNonSplittableAgg)
 	{
 		*ppdrgpcrArgDQA = pcrsArgDQA->Pdrgpcr(mp);
 	}

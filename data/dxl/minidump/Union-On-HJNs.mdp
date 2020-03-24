@@ -1892,7 +1892,7 @@
                 <dxl:Ident ColId="43" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="86" Alias="?column?">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="84" Alias="count">
                 <dxl:Ident ColId="84" ColName="count" TypeMdid="0.20.1.0"/>
