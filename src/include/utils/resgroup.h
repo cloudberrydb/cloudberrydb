@@ -100,6 +100,7 @@ extern int gp_resource_group_cpu_priority;
 extern double gp_resource_group_cpu_limit;
 extern double gp_resource_group_memory_limit;
 extern bool gp_resource_group_bypass;
+extern int gp_resource_group_queuing_timeout;
 
 /*
  * Non-GUC global variables.

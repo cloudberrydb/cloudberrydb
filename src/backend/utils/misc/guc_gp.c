@@ -3739,7 +3739,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		1000, 1000, INT_MAX,
 		NULL, NULL, NULL
 	},
-
+	{
+		{"gp_resource_group_queuing_timeout", PGC_USERSET, RESOURCES_MGM,
+			gettext_noop("A transaction gives up on queuing on a resource group after this timeout (in ms)."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_UNIT_MS
+		},
+		&gp_resource_group_queuing_timeout,
+		0, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
 	{
 		{"gp_blockdirectory_entry_min_range", PGC_USERSET, GP_ARRAY_TUNING,
 			gettext_noop("Minimal range in bytes one block directory entry covers."),

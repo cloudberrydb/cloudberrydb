@@ -83,7 +83,8 @@ int							gp_resgroup_memory_policy = RESMANAGER_MEMORY_POLICY_NONE;
 bool						gp_log_resgroup_memory = false;
 int							gp_resgroup_memory_policy_auto_fixed_mem;
 bool						gp_resgroup_print_operator_memory_limits = false;
-int							memory_spill_ratio=20;
+int							memory_spill_ratio = 20;
+int							gp_resource_group_queuing_timeout = 0;
 
 /*
  * Data structures
@@ -2758,6 +2759,8 @@ SwitchResGroupOnSegment(const char *buf, int len)
 static void
 waitOnGroup(ResGroupData *group)
 {
+	int64 timeout = -1;
+	int64 curTime;
 	PGPROC *proc = MyProc;
 
 	Assert(!LWLockHeldExclusiveByMe(ResGroupLock));
@@ -2788,13 +2791,24 @@ waitOnGroup(ResGroupData *group)
 	{
 		for (;;)
 		{
+			if (gp_resource_group_queuing_timeout > 0)
+			{
+				curTime = GetCurrentIntegerTimestamp();
+				if (curTime - groupWaitStart >= gp_resource_group_queuing_timeout)
+					ereport(ERROR,
+							(errcode(ERRCODE_QUERY_CANCELED),
+							 errmsg("canceling statement due to resource group waiting timeout")));
+				timeout = gp_resource_group_queuing_timeout - (curTime - groupWaitStart) / 1000;
+				Assert((long)timeout > 0);
+			}
+
 			ResetLatch(&proc->procLatch);
 
 			CHECK_FOR_INTERRUPTS();
 
 			if (!procIsWaiting(proc))
 				break;
-			WaitLatch(&proc->procLatch, WL_LATCH_SET | WL_POSTMASTER_DEATH, -1);
+			WaitLatch(&proc->procLatch, WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, (long)timeout);
 		}
 	}
 	PG_CATCH();
