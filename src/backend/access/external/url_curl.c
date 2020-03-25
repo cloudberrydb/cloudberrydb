@@ -906,7 +906,7 @@ make_url(const char *url, bool is_ipv6)
 			len = authority_end - hostname_end;
 			if (len > 8)
 				ereport(ERROR,
-						(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+						(errcode(ERRCODE_SYNTAX_ERROR),
 						 errmsg("<port> substring size must not exceed 8 characters")));
 
 			memcpy(portstr, hostname_end + 1, len);
@@ -931,7 +931,7 @@ make_url(const char *url, bool is_ipv6)
 			int len = authority_end - hostname_end;
 			if (len > 8)
 				ereport(ERROR,
-						(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+						(errcode(ERRCODE_SYNTAX_ERROR),
 						 errmsg("<port> substring size must not exceed 8 characters")));
 
 			memcpy(portstr, hostname_end + 1, len);
@@ -942,7 +942,7 @@ make_url(const char *url, bool is_ipv6)
 
 	if (!port)
 		ereport(ERROR,
-				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("<port> substring must contain only digits")));	
 
 	if (hostname_end - hostname_start >= sizeof(hostname))
