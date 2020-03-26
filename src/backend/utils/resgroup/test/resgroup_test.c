@@ -73,6 +73,7 @@ static void
 test__CpusetToBitset_bad_arguments(void **state)
 {
 	char cpuset[200];
+	memset(cpuset, 0, sizeof(cpuset));
 	assert_true(!CpusetToBitset(NULL, -1));
 	assert_true(!CpusetToBitset(cpuset, -1));
 	assert_true(!CpusetToBitset(cpuset, 200));
