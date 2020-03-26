@@ -2791,24 +2791,28 @@ waitOnGroup(ResGroupData *group)
 	{
 		for (;;)
 		{
-			if (gp_resource_group_queuing_timeout > 0)
-			{
-				curTime = GetCurrentIntegerTimestamp();
-				if (curTime - groupWaitStart >= gp_resource_group_queuing_timeout)
-					ereport(ERROR,
-							(errcode(ERRCODE_QUERY_CANCELED),
-							 errmsg("canceling statement due to resource group waiting timeout")));
-				timeout = gp_resource_group_queuing_timeout - (curTime - groupWaitStart) / 1000;
-				Assert((long)timeout > 0);
-			}
-
 			ResetLatch(&proc->procLatch);
 
 			CHECK_FOR_INTERRUPTS();
 
 			if (!procIsWaiting(proc))
 				break;
-			WaitLatch(&proc->procLatch, WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, (long)timeout);
+
+			if (gp_resource_group_queuing_timeout > 0)
+			{
+				curTime = GetCurrentIntegerTimestamp();
+				timeout = gp_resource_group_queuing_timeout - (curTime - groupWaitStart) / 1000;
+				if (timeout < 0)
+					ereport(ERROR,
+							(errcode(ERRCODE_QUERY_CANCELED),
+							 errmsg("canceling statement due to resource group waiting timeout")));
+
+				WaitLatch(&proc->procLatch, WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, (long)timeout);
+			}
+			else
+			{
+				WaitLatch(&proc->procLatch, WL_LATCH_SET | WL_POSTMASTER_DEATH, -1);
+			}
 		}
 	}
 	PG_CATCH();
