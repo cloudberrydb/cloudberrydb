@@ -89,9 +89,7 @@
         final results to the client program.</p>
       <p>Greenplum Database uses Write-Ahead Logging (WAL) for master/standby master mirroring. In
         WAL-based logging, all modifications are written to the log before being applied, to ensure
-        data integrity for any in-process operations.<note>WAL logging is not yet available for
-          segment mirroring.</note>
-      </p>
+        data integrity for any in-process operations. </p>
     </body>
   </topic>
   <topic id="arch_segments" xml:lang="en">
