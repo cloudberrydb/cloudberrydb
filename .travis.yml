@@ -21,6 +21,7 @@ addons:
             - libxerces-c-dev
             - libevent-dev
             - libperl-dev
+            - libuv1-dev
             - g++-8
             - python-dev
             - python-yaml
@@ -153,6 +154,7 @@ script:
             --with-libxml \
             --enable-mapreduce \
             --enable-orafce \
+            --enable-ic-proxy \
             $C
         travis_wait 40 make -s
         make -s install
@@ -176,6 +178,7 @@ script:
             --with-libxml \
             --enable-mapreduce \
             --enable-orafce \
+            --enable-ic-proxy \
             $C
         make -s
         make -s install
