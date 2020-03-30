@@ -569,8 +569,7 @@ forceEosToPeers(ChunkTransportState *transportStates,
  * even if SetupInterconnect did not complete correctly.
  */
 void
-TeardownInterconnect(ChunkTransportState *transportStates,
-					 bool forceEOS, bool hasError)
+TeardownInterconnect(ChunkTransportState *transportStates, bool forceEOS)
 {
 	interconnect_handle_t *h = find_interconnect_handle(transportStates);
 
@@ -580,7 +579,7 @@ TeardownInterconnect(ChunkTransportState *transportStates,
 	}
 	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP)
 	{
-		TeardownTCPInterconnect(transportStates, forceEOS, hasError);
+		TeardownTCPInterconnect(transportStates, forceEOS);
 	}
 
 	if (h != NULL)
@@ -853,7 +852,7 @@ cleanup_interconnect_handle(interconnect_handle_t *h)
 		destroy_interconnect_handle(h);
 		return;
 	}
-	TeardownInterconnect(h->interconnect_context, true /* force EOS */, true);
+	TeardownInterconnect(h->interconnect_context, true /* force EOS */);
 }
 
 static void

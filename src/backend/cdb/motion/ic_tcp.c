@@ -1809,8 +1809,7 @@ SetupTCPInterconnect(EState *estate)
  * adding errors!).
  */
 void
-TeardownTCPInterconnect(ChunkTransportState *transportStates,
-						bool forceEOS, bool hasError)
+TeardownTCPInterconnect(ChunkTransportState *transportStates, bool forceEOS)
 {
 	ListCell   *cell;
 	ChunkTransportStateEntry *pEntry = NULL;
@@ -1928,7 +1927,7 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 
 		getChunkTransportState(transportStates, mySlice->sliceIndex, &pEntry);
 
-		if (forceEOS && !hasError)
+		if (forceEOS)
 			forceEosToPeers(transportStates, mySlice->sliceIndex);
 
 		for (i = 0; i < pEntry->numConns; i++)
@@ -2016,7 +2015,7 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 		 * If some errors are happening, senders can skip this step to avoid hung
 		 * issues, QD will take care of the error handling.
 		 */
-		if (!hasError)
+		if (!forceEOS)
 			waitOnOutbound(pEntry);
 
 		for (i = 0; i < pEntry->numConns; i++)
