@@ -587,14 +587,7 @@ customer_id=123;</codeblock>
                 exist.</p></li>
           </ul></li>
         <li>Functions that manage persistent error log data from external tables that were defined
-          with the <codeph>PERSISTENTLY</codeph> keyword.
-          <note>The functions that manage persistent error log data from external tables are defined
-            in the file <codeph>$GPHOME/share/postgresql/contrib/gpexterrorhandle.sql</codeph>. The
-            functions must be installed in the databases that use persistent error log data from an
-            external table. This <codeph>psql</codeph> command installs the functions into the
-            database
-              <codeph>testdb</codeph>.<codeblock>psql -d test -U gpadmin -f $GPHOME/share/postgresql/contrib/gpexterrorhandle.sql</codeblock></note><ul
-            id="ul_htb_m45_dlb">
+          with the <codeph>PERSISTENTLY</codeph> keyword. <ul id="ul_htb_m45_dlb">
             <li>The SQL function
                 <codeph>gp_read_persistent_error_log('<varname>table_name</varname>')</codeph>
               displays persistent log data for an external table. <p>The function returns no data if
