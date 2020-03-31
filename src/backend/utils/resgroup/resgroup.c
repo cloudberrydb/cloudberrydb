@@ -58,6 +58,7 @@
 #include "storage/procsignal.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
+#include "utils/ps_status.h"
 #include "utils/resgroup-ops.h"
 #include "utils/resgroup.h"
 #include "utils/resource_manager.h"
@@ -2761,10 +2762,26 @@ waitOnGroup(ResGroupData *group)
 {
 	int64 timeout = -1;
 	int64 curTime;
+	const char *old_status;
+	char *new_status = NULL;
+	int len;
 	PGPROC *proc = MyProc;
+	const char *queueStr = " queuing";
 
 	Assert(!LWLockHeldExclusiveByMe(ResGroupLock));
 	Assert(!selfIsAssigned());
+
+	/* set ps status to waiting */
+	if (update_process_title)
+	{
+		old_status = get_real_act_ps_display(&len);
+		new_status = (char *) palloc(len + strlen(queueStr) + 1);
+		memcpy(new_status, old_status, len);
+		strcpy(new_status + len, queueStr);
+		set_ps_display(new_status, false);
+		/* truncate off " queuing" */
+		new_status[len] = '\0';
+	}
 
 	/*
 	 * The eventId is never used, because groupId is an Oid, but
@@ -2818,6 +2835,13 @@ waitOnGroup(ResGroupData *group)
 	PG_CATCH();
 	{
 		pgstat_report_wait_end();
+		/* reset ps status */
+		if (update_process_title)
+		{
+			set_ps_display(new_status, false);
+			pfree(new_status);
+		}
+
 		groupWaitCancel();
 		PG_RE_THROW();
 	}
@@ -2826,6 +2850,13 @@ waitOnGroup(ResGroupData *group)
 	groupAwaited = NULL;
 
 	pgstat_report_wait_end();
+
+	/* reset ps status */
+	if (update_process_title)
+	{
+		set_ps_display(new_status, false);
+		pfree(new_status);
+	}
 }
 
 /*
