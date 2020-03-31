@@ -3743,7 +3743,7 @@ struct config_int ConfigureNamesInt_gp[] =
 		{"gp_resource_group_queuing_timeout", PGC_USERSET, RESOURCES_MGM,
 			gettext_noop("A transaction gives up on queuing on a resource group after this timeout (in ms)."),
 			NULL,
-			GUC_NO_SHOW_ALL | GUC_UNIT_MS
+			GUC_UNIT_MS
 		},
 		&gp_resource_group_queuing_timeout,
 		0, 0, INT_MAX,
