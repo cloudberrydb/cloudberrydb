@@ -110,7 +110,7 @@
               </p>
               <p>
                 <xref href="guc-list.xml#unix_socket_directory" type="section"
-                  >unix_socket_directory</xref>
+                  >unix_socket_directories</xref>
               </p>
               <p>
                 <xref href="guc-list.xml#unix_socket_group" type="section">unix_socket_group</xref>
@@ -815,31 +815,31 @@
       </body>
     </topic>
   </topic>
-    <topic id="query-metrics">
-      <title>Query Metrics Collection Parameters</title>
-      <body>
-        <p>These parameters enable and configure query metrics collection. When enabled, Greenplum
-          Database saves metrics to shared memory during query execution. These metrics are used by
-          Pivotal Greenplum Command Center, which is included with Pivotal's commercial version of
-          Greenplum Database.</p>
-        <simpletable id="query-metrics" frame="none">
-          <strow>
-            <stentry>
-              <p>
-                <xref href="guc-list.xml#gp_enable_query_metrics" type="section"
-                  >gp_enable_query_metrics</xref>
-              </p>
-            </stentry>
-            <stentry>
-              <p>
-                <xref href="guc-list.xml#gp_instrument_shmem_size" type="section"
-                  >gp_instrument_shmem_size</xref>
-              </p>
-            </stentry>
-          </strow>
-        </simpletable>
-      </body>
-    </topic>
+  <topic id="query-metrics">
+    <title>Query Metrics Collection Parameters</title>
+    <body>
+      <p>These parameters enable and configure query metrics collection. When enabled, Greenplum
+        Database saves metrics to shared memory during query execution. These metrics are used by
+        Pivotal Greenplum Command Center, which is included with Pivotal's commercial version of
+        Greenplum Database.</p>
+      <simpletable id="query-metrics" frame="none">
+        <strow>
+          <stentry>
+            <p>
+              <xref href="guc-list.xml#gp_enable_query_metrics" type="section"
+                >gp_enable_query_metrics</xref>
+            </p>
+          </stentry>
+          <stentry>
+            <p>
+              <xref href="guc-list.xml#gp_instrument_shmem_size" type="section"
+                >gp_instrument_shmem_size</xref>
+            </p>
+          </stentry>
+        </strow>
+      </simpletable>
+    </body>
+  </topic>
   <topic id="topic37" xml:lang="en">
     <title id="kh171364">Runtime Statistics Collection Parameters</title>
     <body>

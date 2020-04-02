@@ -274,7 +274,7 @@
             <topicref href="guc-list.xml#transaction_isolation"/>
             <topicref href="guc-list.xml#transaction_read_only"/>
             <topicref href="guc-list.xml#transform_null_equals"/>
-            <topicref href="guc-list.xml#unix_socket_directory"/>
+            <topicref href="guc-list.xml#unix_socket_directories"/>
             <topicref href="guc-list.xml#unix_socket_group"/>
             <topicref href="guc-list.xml#unix_socket_permissions"/>
             <topicref href="guc-list.xml#update_process_title"/>
