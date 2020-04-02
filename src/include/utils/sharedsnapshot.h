@@ -17,19 +17,10 @@
 #include "utils/combocid.h"
 #include "utils/tqual.h"
 
-#define INVALID_SEGMATE 0
-#define IS_VALID_SEGMATE(x)  ((x != INVALID_SEGMATE))
-
-typedef struct SharedSnapshotLockSlot
-{
-	int32			slotindex;  /* where in the array this one is. */
-	int32	 		session_id;
-	LWLock		   *lock;
-}SharedSnapshotLockSlot;
-
 typedef struct SnapshotDump
 {
 	uint32 segmateSync;
+	TransactionId xid;
 	dsm_handle  handle;
 	dsm_segment *segment;
 } SnapshotDump;
@@ -37,40 +28,38 @@ typedef struct SnapshotDump
 #define SNAPSHOTDUMPARRAYSZ 32
 
 /* MPP Shared Snapshot */
-typedef struct SharedSnapshotDesc
+typedef struct SharedSnapshotSlot
 {
+	int32			slotindex;  /* where in the array this one is. */
+	int32	 		slotid;
 	PGPROC			*writer_proc;
 	PGXACT			*writer_xact;
-	volatile uint32	segmateSync;
-	volatile int    cur_dump_id;
-	SnapshotData   snapshot;
+	volatile TransactionId   QDxid;
+	volatile bool			ready;
+	volatile uint32			segmateSync;
+	SnapshotData	snapshot;
+	LWLock		   *slotLock;
 
+	volatile int    cur_dump_id;
 	volatile SnapshotDump    dump[SNAPSHOTDUMPARRAYSZ];
 	/* for debugging only */
 	TransactionId	xid;
 	TimestampTz		startTimestamp;
-} SharedSnapshotDesc;
+} SharedSnapshotSlot;
 
-typedef struct SharedSnapshotData
-{
-	Snapshot                snapshot;
-	volatile SharedSnapshotLockSlot *lockSlot;
-	SharedSnapshotDesc      *desc;
-}SharedSnapshotData;
-
-extern struct SharedSnapshotData SharedSnapshot;
+extern volatile SharedSnapshotSlot *SharedLocalSnapshotSlot;
 
 /* MPP Shared Snapshot */
 extern Size SharedSnapshotShmemSize(void);
 extern void CreateSharedSnapshotArray(void);
 extern char *SharedSnapshotDump(void);
 
-extern void SharedSnapshotRemove(char *creatorDescription);
-extern void addSharedSnapshot(char *creatorDescription, int sessionid);
-extern void lookupSharedSnapshot(char *lookerDescription, char *creatorDescription, int sessionid);
+extern void SharedSnapshotRemove(volatile SharedSnapshotSlot *slot, char *creatorDescription);
+extern void addSharedSnapshot(char *creatorDescription, int id);
+extern void lookupSharedSnapshot(char *lookerDescription, char *creatorDescription, int id);
 
-extern void publishSharedSnapshot(uint32 segmateSync, Snapshot snapshot, bool for_cursor);
-extern void syncSharedSnapshot(uint32 segmateSync, bool for_cursor);
+extern void dumpSharedLocalSnapshot_forCursor(void);
+extern void readSharedLocalSnapshot_forCursor(Snapshot snapshot, DtxContext distributedTransactionContext);
 
 extern void AtEOXact_SharedSnapshot(void);
 
