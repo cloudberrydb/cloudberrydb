@@ -47,7 +47,7 @@ resources:
 - name: gpdb_main_src
   type: git
   source:
-    branch: master
+    branch: 5X_STABLE
     ignore_paths:
     - README.md
     - LICENSE

@@ -50,7 +50,7 @@ resources:
 - name: gpdb_main_src  # used for yml task files
   type: git
   source:
-    branch: master
+    branch: 5X_STABLE
     ignore_paths:
     - README.md
     - LICENSE

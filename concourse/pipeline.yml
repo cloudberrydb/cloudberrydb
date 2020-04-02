@@ -43,7 +43,7 @@ resources:
 - name: gpdb_src
   type: git
   source:
-    branch: master
+    branch: 5X_STABLE
     uri: https://github.com/greenplum-db/gpdb
     paths:
       - config/orca.m4
