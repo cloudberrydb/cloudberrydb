@@ -2031,9 +2031,10 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 			qry->targetList != NIL)
 		{
 			/*
-			 * MPP-15040
-			 * turn distinct clause into grouping clause to make both sort-based
-			 * and hash-based grouping implementations viable plan options
+			 * GPDB: We convert the DISTINCT to an equivalent GROUP BY, when
+			 * possible, because the planner can generate smarter plans for
+			 * GROUP BY. In particular, the "pre-unique" optimization has not
+			 * been implemented for DISTINCT.
 			 */
 			qry->distinctClause = transformDistinctToGroupBy(pstate,
 															 &qry->targetList,
