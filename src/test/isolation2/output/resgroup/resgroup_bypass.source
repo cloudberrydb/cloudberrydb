@@ -20,7 +20,10 @@ CREATE
 CREATE OR REPLACE FUNCTION hold_memory(int, int) RETURNS int AS $$ SELECT * FROM repeatPalloc(1, $2) $$ LANGUAGE sql;
 CREATE
 
-CREATE OR REPLACE VIEW eat_memory_on_qd AS SELECT hold_memory(0,4);
+CREATE OR REPLACE VIEW eat_memory_on_qd_small AS SELECT hold_memory(0,12);
+CREATE
+
+CREATE OR REPLACE VIEW eat_memory_on_qd_large AS SELECT hold_memory(0,100);
 CREATE
 
 CREATE OR REPLACE VIEW eat_memory_on_one_slice AS SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory(t1.dbid,4)=0 ;
@@ -35,7 +38,9 @@ CREATE
 CREATE OR REPLACE VIEW memory_result AS SELECT rsgname, ismaster, round_test(avg(memory_usage), 1) AS avg_mem FROM( SELECT rsgname, CASE (j->'key')::text WHEN '"-1"'::text THEN 1 ELSE 0 END AS ismaster, ((j->'value')->>'used')::int AS memory_usage FROM( SELECT rsgname, row_to_json(json_each(memory_usage::json)) AS j FROM gp_toolkit.gp_resgroup_status WHERE rsgname='rg_bypass_test' )a )b GROUP BY (rsgname, ismaster) ORDER BY rsgname, ismaster;
 CREATE
 
-GRANT ALL ON eat_memory_on_qd TO role_bypass_test;
+GRANT ALL ON eat_memory_on_qd_small TO role_bypass_test;
+GRANT
+GRANT ALL ON eat_memory_on_qd_large TO role_bypass_test;
 GRANT
 GRANT ALL ON eat_memory_on_one_slice TO role_bypass_test;
 GRANT
@@ -151,17 +156,7 @@ SET
 SET
 61: BEGIN;
 BEGIN
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-61: SELECT * FROM eat_memory_on_qd;
+61: SELECT * FROM eat_memory_on_qd_small;
  hold_memory 
 -------------
  0           
@@ -172,33 +167,7 @@ SELECT * FROM memory_result;
  rg_bypass_test | 0        | 0.0     
  rg_bypass_test | 1        | 12.0    
 (2 rows)
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-SELECT * FROM memory_result;
- rsgname        | ismaster | avg_mem 
-----------------+----------+---------
- rg_bypass_test | 0        | 0.0     
- rg_bypass_test | 1        | 24.0    
-(2 rows)
-61: SELECT * FROM eat_memory_on_qd;
- hold_memory 
--------------
- 0           
-(1 row)
-61: SELECT * FROM eat_memory_on_qd;
+61: SELECT * FROM eat_memory_on_qd_large;
 ERROR:  Out of memory
 DETAIL:  Resource group memory limit reached
 CONTEXT:  SQL function "hold_memory" statement 1
@@ -266,12 +235,11 @@ SELECT * FROM memory_result;
 ABORT
 61: BEGIN;
 BEGIN
-SELECT * FROM memory_result;
- rsgname        | ismaster | avg_mem 
-----------------+----------+---------
- rg_bypass_test | 0        | 0.0     
- rg_bypass_test | 1        | 0.0     
-(2 rows)
+SELECT 1 FROM memory_result where avg_mem > 10 and ismaster = 1;
+ ?column? 
+----------
+ 1        
+(1 row)
 61q: ... <quitting>
 
 --
@@ -397,7 +365,9 @@ ERROR:  canceling statement due to user request
 -- cleanup
 --
 
-REVOKE ALL ON eat_memory_on_qd FROM role_bypass_test;
+REVOKE ALL ON eat_memory_on_qd_small FROM role_bypass_test;
+REVOKE
+REVOKE ALL ON eat_memory_on_qd_large FROM role_bypass_test;
 REVOKE
 REVOKE ALL ON eat_memory_on_one_slice FROM role_bypass_test;
 REVOKE
