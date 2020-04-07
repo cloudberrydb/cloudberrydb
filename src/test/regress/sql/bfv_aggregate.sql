@@ -1413,6 +1413,27 @@ select count(*) over (partition by t) from int2vectortab;
 select count(distinct t) from int2vectortab;
 select count(distinct t), count(distinct t2) from int2vectortab;
 
+--
+-- Testing aggregate above FULL JOIN
+--
+
+-- SETUP
+CREATE TABLE pagg_tab1(x int, y int) DISTRIBUTED BY (x);
+CREATE TABLE pagg_tab2(x int, y int) DISTRIBUTED BY (x);
+
+INSERT INTO pagg_tab1 SELECT i % 30, i % 20 FROM generate_series(0, 299, 2) i;
+INSERT INTO pagg_tab2 SELECT i % 20, i % 30 FROM generate_series(0, 299, 3) i;
+
+ANALYZE pagg_tab1;
+ANALYZE pagg_tab2;
+
+-- TEST
+-- should have Redistribute Motion above the FULL JOIN
+EXPLAIN (COSTS OFF)
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+
+
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;

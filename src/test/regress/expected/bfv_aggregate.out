@@ -1663,6 +1663,63 @@ select count(distinct t), count(distinct t2) from int2vectortab;
      4 |     5
 (1 row)
 
+--
+-- Testing aggregate above FULL JOIN
+--
+-- SETUP
+CREATE TABLE pagg_tab1(x int, y int) DISTRIBUTED BY (x);
+CREATE TABLE pagg_tab2(x int, y int) DISTRIBUTED BY (x);
+INSERT INTO pagg_tab1 SELECT i % 30, i % 20 FROM generate_series(0, 299, 2) i;
+INSERT INTO pagg_tab2 SELECT i % 20, i % 30 FROM generate_series(0, 299, 3) i;
+ANALYZE pagg_tab1;
+ANALYZE pagg_tab2;
+-- TEST
+-- should have Redistribute Motion above the FULL JOIN
+EXPLAIN (COSTS OFF)
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: a.x
+   ->  Sort
+         Sort Key: a.x
+         ->  Finalize HashAggregate
+               Group Key: a.x
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: a.x
+                     ->  Partial HashAggregate
+                           Group Key: a.x
+                           ->  Hash Full Join
+                                 Hash Cond: (b.y = a.x)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                       Hash Key: b.y
+                                       ->  Seq Scan on pagg_tab2 b
+                                 ->  Hash
+                                       ->  Seq Scan on pagg_tab1 a
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+ x  | sum  
+----+------
+  0 |  500
+  2 |     
+  4 |     
+  6 | 1100
+  8 |     
+ 10 |     
+ 12 |  700
+ 14 |     
+ 16 |     
+ 18 | 1300
+ 20 |     
+ 22 |     
+ 24 |  900
+ 26 |     
+ 28 |     
+    |  500
+(16 rows)
+
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;
