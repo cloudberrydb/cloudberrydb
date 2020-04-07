@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="cn" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="11" ColName="sum" TypeMdid="0.20.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalWindow>
+      <dxl:WindowSpecList>
+        <dxl:WindowSpec PartitionColumns="">
+          <dxl:SortingColumnList>
+            <dxl:SortingColumn ColId="1" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          </dxl:SortingColumnList>
+          <dxl:WindowFrame FrameSpec="Row" ExclusionStrategy="Nulls">
+            <dxl:TrailingEdge TrailingBoundary="BoundedPreceding">
+              <dxl:ConstValue TypeMdid="0.701.1.0" Value="AAAAAAAA8D8=" DoubleValue="1.000000"/>
+            </dxl:TrailingEdge>
+            <dxl:LeadingEdge LeadingBoundary="CurrentRow"/>
+          </dxl:WindowFrame>
+        </dxl:WindowSpec>
+      </dxl:WindowSpecList>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="1" Alias="cn">
+          <dxl:Ident ColId="1" ColName="cn" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="11" Alias="sum">
+          <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
+            <dxl:Ident ColId="1" ColName="cn" TypeMdid="0.23.1.0"/>
+          </dxl:WindowFunc>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.330308.1.1" TableName="customer">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="cn" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="cname" TypeMdid="0.25.1.0"/>
+            <dxl:Column ColId="3" Attno="3" ColName="cloc" TypeMdid="0.25.1.0"/>
+            <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+            <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="7" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="8" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="9" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+            <dxl:Column ColId="10" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalWindow>
+  </dxl:Query>
+</dxl:DXLMessage>

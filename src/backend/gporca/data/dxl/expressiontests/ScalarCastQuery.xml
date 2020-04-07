@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1043.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalSelect>
+      <dxl:Comparison ComparisonOperator="~~" OperatorMdid="0.1209.1.0">
+        <dxl:Cast TypeMdid="0.25.1.1" FuncId="0.0.0.0">
+          <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1043.1.0"/>
+        </dxl:Cast>
+        <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABXM=" LintValue="160588332"/>
+      </dxl:Comparison>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.1139398.1.1" TableName="d">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalSelect>
+  </dxl:Query>
+</dxl:DXLMessage>

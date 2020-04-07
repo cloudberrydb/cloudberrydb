@@ -1,0 +1,12 @@
+platform: linux
+image_resource:
+  type: docker-image
+inputs:
+  - name: xerces_patch
+outputs:
+  - name: build_xerces
+run:
+  path: /usr/bin/python
+  args:
+    - xerces_patch/concourse/xerces-c/build_xerces.py
+    - --output_dir=build_xerces/install

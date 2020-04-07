@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Statistics>
+    <dxl:DerivedRelationStats Rows="2000.000000">
+      <dxl:DerivedColumnStats ColId="1" Width="10.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
+        <dxl:StatsBucket Frequency="0.05" DistinctValues="55713.884615">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADAAAAgB0A1AU" DoubleValue="884.520000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" Value="AAAADgEAAgABADsjsB0=" DoubleValue="19019.760000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.25" DistinctValues="55894.439399">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgABADsjsB0=" DoubleValue="19019.760000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAN0BhAM=" DoubleValue="30477.090000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.10" DistinctValues="10645.596075">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAN0BhAM=" DoubleValue="30477.090000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAG8MfBU=" DoubleValue="33183.550000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.18" DistinctValues="55713.884615">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAG8MfBU=" DoubleValue="33183.550000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" Value="AAAADgEAAgAEAOYSmAg=" DoubleValue="44838.220000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.12" DistinctValues="20957.448924">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgAEAOYSmAg=" DoubleValue="44838.220000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgAEABIidA4=" DoubleValue="48722.370000"/>
+        </dxl:StatsBucket>
+      </dxl:DerivedColumnStats>
+    </dxl:DerivedRelationStats>
+  </dxl:Statistics>
+</dxl:DXLMessage>

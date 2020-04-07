@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalGroupBy>
+      <dxl:GroupingColumns>
+        <dxl:GroupingColumn ColId="0"/>
+      </dxl:GroupingColumns>
+      <dxl:ProjList/>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.57808.1.0" TableName="m">
+          <dxl:Columns>
+            <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalGroupBy>
+  </dxl:Query>
+</dxl:DXLMessage>

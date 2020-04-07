@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:SearchStrategy>
+    <dxl:SearchStage TimeThreshold="1000" CostThreshold="2E6">
+      <dxl:Xform Name="CXformGet2TableScan"/>
+      <dxl:Xform Name="CXformSelect2Filter"/>
+      <dxl:Xform Name="CXformExpandNAryJoin"/>
+      <dxl:Xform Name="CXformInnerJoin2NLJoin"/>
+    </dxl:SearchStage>
+    <dxl:SearchStage TimeThreshold="5000" CostThreshold="10E6">
+      <dxl:Xform Name="CXformInnerJoin2HashJoin"/>
+    </dxl:SearchStage>
+  </dxl:SearchStrategy>
+</dxl:DXLMessage>

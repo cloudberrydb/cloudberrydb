@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="column_0000" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="2" ColName="column_0001" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="3" ColName="column_0002" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalSelect>
+      <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
+        <dxl:Ident ColId="1" ColName="column_0000" TypeMdid="0.23.1.0"/>
+        <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
+          <dxl:Ident ColId="2" ColName="column_0001" TypeMdid="0.23.1.0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="15"/>
+        </dxl:OpExpr>
+      </dxl:Comparison>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.58045.1.0" TableName="BaseTable">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="column_0000" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="column_0001" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="3" Attno="3" ColName="column_0002" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalSelect>
+  </dxl:Query>
+</dxl:DXLMessage>

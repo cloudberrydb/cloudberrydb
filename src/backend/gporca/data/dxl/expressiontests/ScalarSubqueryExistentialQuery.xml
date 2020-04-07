@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalSelect>
+      <dxl:And>
+        <dxl:SubqueryExists>
+          <dxl:LogicalSelect>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <dxl:Ident ColId="3" ColName="e" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
+            </dxl:Comparison>
+            <dxl:LogicalGet>
+              <dxl:TableDescriptor Mdid="0.17136.1.1" TableName="t">
+                <dxl:Columns>
+                  <dxl:Column ColId="3" Attno="1" ColName="e" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="4" Attno="2" ColName="f" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:LogicalGet>
+          </dxl:LogicalSelect>
+        </dxl:SubqueryExists>
+        <dxl:Not>
+          <dxl:SubqueryExists>
+            <dxl:LogicalSelect>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                <dxl:Ident ColId="6" ColName="d" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+              <dxl:LogicalGet>
+                <dxl:TableDescriptor Mdid="0.17091.1.1" TableName="s">
+                  <dxl:Columns>
+                    <dxl:Column ColId="5" Attno="1" ColName="c" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="6" Attno="2" ColName="d" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:LogicalGet>
+            </dxl:LogicalSelect>
+          </dxl:SubqueryExists>
+        </dxl:Not>
+      </dxl:And>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.18452.1.1" TableName="r">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalSelect>
+  </dxl:Query>
+</dxl:DXLMessage>

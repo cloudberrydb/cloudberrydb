@@ -1,0 +1,27 @@
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: yolo/orcadev
+    tag: centos5
+inputs:
+  - name: orca_main_src
+  - name: orca_tarball
+  - name: bin_xerces
+
+caches:
+  - path: .ccache
+
+outputs:
+  - name: build_and_test
+  - name: package_tarball
+params:
+  BUILD_TYPE:
+  OUTPUT_DIR:
+  SKIP_TESTS:
+run:
+  path: sh 
+  args:
+  - -exc
+  - |
+    orca_main_src/concourse/untar_build_and_test.py ${BUILD_TYPE} ${OUTPUT_DIR} ${SKIP_TESTS} bin_xerces

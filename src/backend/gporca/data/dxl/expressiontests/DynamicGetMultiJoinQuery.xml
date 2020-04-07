@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="31" ColName="count" TypeMdid="0.20.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalGroupBy>
+      <dxl:GroupingColumns>
+        <dxl:GroupingColumn ColId="2"/>
+      </dxl:GroupingColumns>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="31" Alias="count">
+          <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Normal"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:LogicalJoin JoinType="Inner">
+        <dxl:LogicalJoin JoinType="Inner">
+          <dxl:LogicalGet>
+            <dxl:TableDescriptor Mdid="0.25647.1.0" TableName="foo1">
+              <dxl:Columns>
+                <dxl:Column ColId="1" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="2" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="3" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="7" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="8" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="9" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Column ColId="10" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
+          </dxl:LogicalGet>
+          <dxl:LogicalGet>
+            <dxl:TableDescriptor Mdid="0.26031.1.0" TableName="foo2">
+              <dxl:Columns>
+                <dxl:Column ColId="11" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="12" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="13" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="14" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                <dxl:Column ColId="15" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="16" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="17" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="18" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="19" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Column ColId="20" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
+          </dxl:LogicalGet>
+          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+            <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="12" ColName="j" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+        </dxl:LogicalJoin>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.26054.1.0" TableName="foo3">
+            <dxl:Columns>
+              <dxl:Column ColId="21" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="22" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="23" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="25" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="26" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="27" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="28" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="29" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="30" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+          <dxl:Ident ColId="13" ColName="k" TypeMdid="0.23.1.0"/>
+          <dxl:Ident ColId="23" ColName="k" TypeMdid="0.23.1.0"/>
+        </dxl:Comparison>
+      </dxl:LogicalJoin>
+    </dxl:LogicalGroupBy>
+  </dxl:Query>
+</dxl:DXLMessage>

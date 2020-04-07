@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="147" Alias="t.t1">
+          <dxl:Ident ColId="147" ColName="t.t1" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="148" Alias="t.t2">
+          <dxl:Ident ColId="148" ColName="t.t2" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="149" Alias="t.t3">
+          <dxl:Ident ColId="149" ColName="t.t3" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:SortingColumnList/>
+      <dxl:TableScan>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="147" Alias="t.t1">
+            <dxl:Ident ColId="147" ColName="t.t1" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="148" Alias="t.t2">
+            <dxl:Ident ColId="148" ColName="t.t2" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="149" Alias="t.t3">
+            <dxl:Ident ColId="149" ColName="t.t3" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">
+          <dxl:Columns>
+            <dxl:Column ColId="147" Attno="1" ColName="t1" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="148" Attno="2" ColName="t2" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="149" Attno="3" ColName="t3" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="150" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+            <dxl:Column ColId="151" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="152" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="153" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="154" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="155" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+            <dxl:Column ColId="156" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:TableScan>
+    </dxl:GatherMotion>
+  </dxl:Plan>
+</dxl:DXLMessage>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="7" Alias="t.t1">
+          <dxl:Ident ColId="7" ColName="t.t1" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="8" Alias="t.t2">
+          <dxl:Ident ColId="8" ColName="t.t2" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="9" Alias="t.t3">
+          <dxl:Ident ColId="9" ColName="t.t3" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:SortingColumnList/>
+      <dxl:TableScan>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="7" Alias="t.t1">
+            <dxl:Ident ColId="7" ColName="t.t1" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="8" Alias="t.t2">
+            <dxl:Ident ColId="8" ColName="t.t2" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="9" Alias="t.t3">
+            <dxl:Ident ColId="9" ColName="t.t3" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter>
+          <dxl:And>
+            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0" OperatorFuncMdid="0.66.1.0">
+              <dxl:Ident ColId="8" ColName="t.t2" TypeMdid="0.23.1.0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="20"/>
+            </dxl:Comparison>
+            <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0" OperatorFuncMdid="0.147.1.0">
+              <dxl:Ident ColId="7" ColName="t.t1" TypeMdid="0.23.1.0"/>
+              <dxl:SubPlan TypeMdid="0.23.1.0">
+                <dxl:ParamList>
+                  <dxl:Param ColId="8" ColName="t.t2" TypeMdid="0.23.1.0"/>
+                </dxl:ParamList>
+                <dxl:Aggregate AggregationStrategy="Plain">
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="10" TotalCost="100" Rows="1" Width="12"/>
+                  </dxl:Properties>
+                  <dxl:GroupingColumns/>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="13" Alias="min">
+                      <dxl:AggFunc AggMdid="0.2132.1.0" AggDistinct="false" AggStage="Normal">
+                        <dxl:Ident ColId="12" ColName="r.r3" TypeMdid="0.23.1.0"/>
+                      </dxl:AggFunc>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:Result>
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="12" Alias="r.r3">
+                        <dxl:Ident ColId="12" ColName="r.r3" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter>
+                      <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0" OperatorFuncMdid="0.66.1.0">
+                        <dxl:Ident ColId="11" ColName="r.r2" TypeMdid="0.23.1.0"/>
+                        <dxl:Ident ColId="8" ColName="t.t2" TypeMdid="0.23.1.0"/>
+                      </dxl:Comparison>
+                    </dxl:Filter>
+                    <dxl:OneTimeFilter/>
+                    <dxl:Materialize Eager="false">
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="11" Alias="r.r2">
+                          <dxl:Ident ColId="11" ColName="r.r2" TypeMdid="0.23.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="12" Alias="r.r3">
+                          <dxl:Ident ColId="12" ColName="r.r3" TypeMdid="0.23.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter/>
+                      <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                        <dxl:Properties>
+                          <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+                        </dxl:Properties>
+                        <dxl:ProjList>
+                          <dxl:ProjElem ColId="11" Alias="r.r2">
+                            <dxl:Ident ColId="11" ColName="r.r2" TypeMdid="0.23.1.0"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="12" Alias="r.r3">
+                            <dxl:Ident ColId="12" ColName="r.r3" TypeMdid="0.23.1.0"/>
+                          </dxl:ProjElem>
+                        </dxl:ProjList>
+                        <dxl:Filter/>
+                        <dxl:SortingColumnList/>
+                        <dxl:TableScan>
+                          <dxl:Properties>
+                            <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+                          </dxl:Properties>
+                          <dxl:ProjList>
+                            <dxl:ProjElem ColId="11" Alias="r.r2">
+                              <dxl:Ident ColId="11" ColName="r.r2" TypeMdid="0.23.1.0"/>
+                            </dxl:ProjElem>
+                            <dxl:ProjElem ColId="12" Alias="r.r3">
+                              <dxl:Ident ColId="12" ColName="r.r3" TypeMdid="0.23.1.0"/>
+                            </dxl:ProjElem>
+                          </dxl:ProjList>
+                          <dxl:Filter/>
+                          <dxl:TableDescriptor Mdid="0.899640.1.1" TableName="r">
+                            <dxl:Columns>
+                              <dxl:Column ColId="10" Attno="1" ColName="r1" TypeMdid="0.23.1.0"/>
+                              <dxl:Column ColId="11" Attno="2" ColName="r2" TypeMdid="0.23.1.0"/>
+                              <dxl:Column ColId="12" Attno="3" ColName="r3" TypeMdid="0.23.1.0"/>
+                            </dxl:Columns>
+                          </dxl:TableDescriptor>
+                        </dxl:TableScan>
+                      </dxl:BroadcastMotion>
+                    </dxl:Materialize>
+                  </dxl:Result>
+                </dxl:Aggregate>
+              </dxl:SubPlan>
+            </dxl:Comparison>
+          </dxl:And>
+        </dxl:Filter>
+        <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">
+          <dxl:Columns>
+            <dxl:Column ColId="7" Attno="1" ColName="t1" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="8" Attno="2" ColName="t2" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="9" Attno="3" ColName="t3" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:TableScan>
+    </dxl:GatherMotion>
+  </dxl:Plan>
+</dxl:DXLMessage>

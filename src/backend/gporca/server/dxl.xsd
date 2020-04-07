@@ -1,0 +1,1768 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:dxl="http://greenplum.com/dxl/2010/12/"
+	targetNamespace="http://greenplum.com/dxl/2010/12/"
+	elementFormDefault="qualified">
+	
+	<xsd:element name="DXLMessage">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="Comment" minOccurs="0" type="xsd:string"/>
+				<xsd:element name="Metadata" minOccurs="0">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:group ref="dxl:MDObj" minOccurs="0" maxOccurs="unbounded"/>
+					</xsd:sequence>
+					<xsd:attribute name="SystemIds" type="xsd:string" use="optional"/>
+				</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="MDRequest" minOccurs="0">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="Mdid" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="Value" type="xsd:string" use="required"/>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="TypeRequest" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="SystemId" type="xsd:string" use="required"/>
+								<xsd:attribute name="TypeInfo" type="xsd:unsignedLong" use="required"/>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="FuncRequest" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="SystemId" type="xsd:string" use="required"/>
+								<xsd:attribute name="FuncInfo" type="xsd:unsignedLong" use="required"/>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+					<xsd:attribute name="SystemIds" type="xsd:string" use="optional"/>
+				</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="Plan" minOccurs="0">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:group ref="dxl:PhysicalOp"/>
+							<xsd:element name="dxl:DirectDispatchInfo" type="dxl:DirectDispatchInfoType" minOccurs="0" maxOccurs="1"/>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="Query" minOccurs="0">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="OutputColumns" type="dxl:QueryOutputType"/>
+							<xsd:group ref="dxl:LogicalOp"/>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="ScalarExpr" minOccurs="0">
+					<xsd:complexType>
+    					<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="Statistics" minOccurs="0">
+					<xsd:complexType>
+					<xsd:sequence>
+						<xsd:group ref="dxl:StatObj" minOccurs="0" maxOccurs="unbounded"/>
+					</xsd:sequence>
+				  </xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	
+	<xsd:group name="StatObj">
+		<xsd:choice>
+			<xsd:element name="DerivedRelationStats" type="dxl:StatsDerivedRelationType"/>
+		</xsd:choice>
+	</xsd:group>
+	
+	<xsd:group name="MDObj">
+		<xsd:choice>
+			<xsd:element name="Relation" type="dxl:MDRelationType"/>
+			<xsd:element name="ExternalRelation" type="dxl:MDExternalRelationType"/>
+			<xsd:element name="CTASRelation" type="dxl:MDCTASRelationType"/>
+			<xsd:element name="Index" type="dxl:MDIndexType"/>
+			<xsd:element name="CheckConstraint" type="dxl:MDCheckConstraintType"/>
+			<xsd:element name="Type" type="dxl:MDTypeType"/>
+			<xsd:element name="GPDBScalarOp" type="dxl:MDGPDBScalarOpType"/>
+			<xsd:element name="GPDBFunc" type="dxl:MDGPDBFuncType"/>
+			<xsd:element name="GPDBAgg" type="dxl:MDGPDBAggType"/>
+			<xsd:element name="GPDBTrigger" type="dxl:MDGPDBTriggerType"/>
+			<xsd:element name="RelationStatistics" type="dxl:RelStatsType"/>
+			<xsd:element name="ColumnStatistics" type="dxl:ColStatsType"/>
+		</xsd:choice>
+	</xsd:group>
+	
+	<xsd:complexType name="StatsDerivedRelationType">
+		<xsd:sequence>
+			<xsd:element name="DerivedColumnStats" type="dxl:StatsDerivedColumnType" minOccurs="1" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="Rows" type="xsd:string" use="required"/>
+		<xsd:attribute name="EmptyRelation" type="xsd:boolean" use="optional"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="StatsDerivedColumnType">
+		<xsd:sequence>
+			<xsd:element name="Bucket" type="dxl:StatsBucketType" minOccurs="1" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="StatsBucketType">
+		<xsd:sequence>
+		  <xsd:element name="LowerBound" type="dxl:StatsBoundType"/>
+		  <xsd:element name="UpperBound" type="dxl:StatsBoundType"/>
+		</xsd:sequence>
+		<xsd:attribute name="Frequency" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="DistinctVals" type="xsd:unsignedLong" use="required"/>
+	</xsd:complexType>
+		
+	<xsd:complexType name="StatsBoundType">
+		<xsd:sequence>
+			<xsd:element name="ConstValue" type="dxl:ConstValueType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+		
+	<xsd:complexType name="MDRelationType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:MetadataColumnListType"/>
+			<xsd:element name="Indexes" type="dxl:IndexRefListType"/>
+			<xsd:element name="Triggers" type="dxl:TriggerRefListType"/>
+			<xsd:element name="CheckConstraints" type="dxl:CheckConstraintRefListType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsTemporary" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="HasOids" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="ConvertHashToRandom" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="DistributionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="Keys" type="xsd:string" use="optional"/>
+		<xsd:attribute name="PartitionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="StorageType" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="DistributionPolicy" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+	</xsd:complexType>
+	
+	<xsd:complexType name="MDExternalRelationType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:MetadataColumnListType"/>
+			<xsd:element name="Indexes" type="dxl:IndexRefListType"/>
+			<xsd:element name="Triggers" type="dxl:TriggerRefListType"/>
+			<xsd:element name="CheckConstraints" type="dxl:CheckConstraintRefListType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="HasOids" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="DistributionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="Keys" type="xsd:string" use="optional"/>
+		<xsd:attribute name="DistributionPolicy" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+	</xsd:complexType>
+
+	<xsd:complexType name="MDCTASRelationType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:MetadataColumnListType"/>
+			<xsd:element name="CTASOptions" type="dxl:CTASOptionsType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Schema" type="xsd:string" use="optional"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsTemporary" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="HasOids" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="DistributionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="PartitionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="StorageType" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="VarTypeModList" type="xsd:string" use="required"/>
+		<xsd:attribute name="DistributionPolicy" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+	</xsd:complexType>
+	
+	<xsd:complexType name="CTASOptionsType">
+		<xsd:sequence>
+			<xsd:element name="CTASOption" minOccurs="0" maxOccurs="unbounded"> 
+				<xsd:complexType>
+					<xsd:attribute name="CtasOptionType" type="xsd:long" use="required"/>				
+					<xsd:attribute name="Name" type="xsd:string" use="required"/>
+					<xsd:attribute name="Value" type="xsd:string" use="required"/>
+					<xsd:attribute name="IsNull" type="xsd:boolean" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+		<xsd:attribute name="Tablespace" type="xsd:string" use="optional"/>		
+	</xsd:complexType>
+	
+	<xsd:complexType name="MDIndexType">
+		<xsd:sequence>
+			<xsd:element name="Opfamilies" type="dxl:OpfamilyRefListType"/>
+		</xsd:sequence>
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="RelationMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsClustered" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IndexType" use="optional">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="B-tree"/>
+					<xsd:enumeration m_bytearray_value="Bitmap"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="IndexItemType" type="xsd:string" use="optional"/>		
+		<xsd:attribute name="IsPartial" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="KeyColumns" type="xsd:string" use="required"/>
+		<xsd:attribute name="IncludedColumns" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="MDCheckConstraintType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="1" maxOccurs="1"/>	
+		</xsd:sequence>
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="RelationMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:attributeGroup name="MetadataIdAttributes">
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+	</xsd:attributeGroup>
+		
+	<xsd:complexType name="MetadataLocationListType">
+		<xsd:sequence>
+			<xsd:element name="Location" type="dxl:MetadataLocationType" minOccurs="1" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+		
+	<xsd:complexType name="MetadataLocationType">		
+		<xsd:attribute name="Value" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="MetadataColumnListType">
+		<xsd:sequence>
+			<xsd:element name="Column" type="dxl:MetadataColumnType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="MetadataColumnType">		
+		<xsd:sequence>
+			<xsd:element name="DefaultValue">
+				<xsd:complexType>
+					<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+				</xsd:complexType>
+			</xsd:element>	
+		</xsd:sequence>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="Attno" type="xsd:integer" use="required"/>
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="Nullable" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsDropped" type="xsd:boolean" use="optional"/>
+	</xsd:complexType>
+		
+	<xsd:complexType name="IndexRefListType">
+		<xsd:sequence>
+			<xsd:element name="Index" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="TriggerRefListType">
+		<xsd:sequence>
+			<xsd:element name="Trigger" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="CheckConstraintRefListType">
+		<xsd:sequence>
+			<xsd:element name="CheckConstraint" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="MDIdRefType">
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+	</xsd:complexType>
+		
+	<xsd:complexType name="MDIdRefTypes">
+		<xsd:attribute name="TypeMdids" type="xsd:string" use="required"/>
+	</xsd:complexType>
+		
+	<xsd:complexType name="dxl:OpfamilyRefListType">
+		<xsd:sequence>
+			<xsd:element name="Opfamily" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="PartitionRefListType">
+		<xsd:sequence>
+			<xsd:element name="Partition" type="dxl:MDIdRefType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+		
+	<xsd:complexType name="MDTypeType">
+		<xsd:sequence>
+			<xsd:element name="EqualityOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="InequalityOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="LessThanOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="LessThanEqualsOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="GreaterThanOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="GreaterThanEqualsOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="ComparisonOp" type="dxl:MDIdRefType"/>
+			<xsd:element name="ArrayType" type="dxl:MDIdRefType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsRedistributable" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsFixedLength" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="Length" type="xsd:integer" use="optional"/>
+		<xsd:attribute name="PassByValue" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsHashable" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsComposite" type="xsd:boolean" use="optional"/>
+		<xsd:attribute name="BaseRelationMdid" type="xsd:string" use="optional"/>
+	</xsd:complexType>	
+
+	<xsd:complexType name="MDGPDBScalarOpType">
+		<xsd:sequence>
+			<xsd:element name="LeftType" type="dxl:MDIdRefType" minOccurs="0"/>
+			<xsd:element name="RightType" type="dxl:MDIdRefType" minOccurs="0"/>
+			<xsd:element name="ResultType" type="dxl:MDIdRefType"/>
+			<xsd:element name="OpFunc" type="dxl:MDIdRefType"/>
+			<xsd:element name="Commutator" type="dxl:MDIdRefType" minOccurs="0"/>
+			<xsd:element name="InverseOp" type="dxl:MDIdRefType" minOccurs="0"/>
+			<xsd:element name="Opfamilies" type="dxl:OpfamilyRefListType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="ComparisonType" use="required">
+		<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Eq"/>
+					<xsd:enumeration m_bytearray_value="NEq"/>
+					<xsd:enumeration m_bytearray_value="LT"/>
+					<xsd:enumeration m_bytearray_value="LEq"/>
+				    <xsd:enumeration m_bytearray_value="GT"/>
+					<xsd:enumeration m_bytearray_value="GEq"/>
+					<xsd:enumeration m_bytearray_value="Other"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+	</xsd:complexType>	
+		
+	<xsd:complexType name="MDGPDBFuncType">
+		<xsd:sequence>
+			<xsd:element name="ResultType" type="dxl:MDIdRefType"/>
+			<xsd:element name="OutputColumns" type="dxl:MDIdRefTypes" minOccurs="0"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="ReturnsSet" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="Stability" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Immutable"/>
+					<xsd:enumeration m_bytearray_value="Stable"/>
+					<xsd:enumeration m_bytearray_value="Volatile"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="DataAccess" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="NoSQL"/>
+					<xsd:enumeration m_bytearray_value="ContainsSQL"/>
+					<xsd:enumeration m_bytearray_value="ReadsSQLData"/>
+					<xsd:enumeration m_bytearray_value="ModifiesSQLData"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="IsStrict" type="xsd:boolean" use="required"/>
+	</xsd:complexType>	
+	
+	<xsd:complexType name="MDGPDBAggType">
+		<xsd:sequence>
+			<xsd:element name="ResultType" type="dxl:MDIdRefType"/>
+			<xsd:element name="IntermediateResultType" type="dxl:MDIdRefType"/>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsOrdered" type="xsd:boolean" use="optional"/>
+	</xsd:complexType>	
+	
+	<xsd:complexType name="MDGPDBTriggerType">
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="RelationMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="FuncId" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsRow" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsBefore" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsInsert" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsDelete" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsUpdate" type="xsd:boolean" use="required"/>
+	</xsd:complexType>	
+
+	<xsd:complexType name="RelStatsType">
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="Rows" type="xsd:string" use="required"/>
+		<xsd:attribute name="EmptyRelation" type="xsd:boolean" use="optional"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ColStatsType">
+		<xsd:sequence>
+			<xsd:element name="StatsBucket" minOccurs="0" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="LowerBound" type="dxl:DatumType"/>
+						<xsd:element name="UpperBound" type="dxl:DatumType"/>
+					</xsd:sequence>
+					<xsd:attribute name="Frequency" type="xsd:string" use="required"/>
+					<xsd:attribute name="DistinctValues" type="xsd:string" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="dxl:MetadataIdAttributes"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="Width" type="xsd:string" use="required"/>
+		<xsd:attribute name="NullFreq" type="xsd:string" use="optional"/>
+		<xsd:attribute name="NdvRemain" type="xsd:string" use="optional"/>
+		<xsd:attribute name="FreqRemain" type="xsd:string" use="optional"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="DatumType">
+		<xsd:attribute name="IsNull" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="Value" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:group name="PhysicalOp">
+		<xsd:choice>
+			<xsd:element name="TableScan" type="dxl:TableScanType"/>
+			<xsd:element name="BitmapTableScan" type="dxl:BitmapTableScanType"/>
+			<xsd:element name="DynamicBitmapTableScan" type="dxl:DynamicBitmapTableScanType"/>			
+			<xsd:element name="IndexScan" type="dxl:IndexScanType"/>
+			<xsd:element name="IndexOnlyScan" type="dxl:IndexOnlyScanType"/>			
+			<xsd:element name="SubqueryScan" type="dxl:SubqueryScanType"/>
+			<xsd:element name="Result" type="dxl:ResultType"/>
+			<xsd:element name="HashJoin" type="dxl:HashJoinType"/>
+			<xsd:element name="NestedLoopJoin" type="dxl:NestedLoopJoinType"/>
+			<xsd:element name="MergeJoin" type="dxl:MergeJoinType"/>
+			<xsd:element name="GatherMotion" type="dxl:GatherMotionType"/>
+			<xsd:element name="BroadcastMotion" type="dxl:BroadcastMotionType"/>
+			<xsd:element name="RedistributeMotion" type="dxl:RedistributeMotionType"/>
+			<xsd:element name="RoutedDistributeMotion" type="dxl:RoutedDistributeMotionType"/>
+			<xsd:element name="RandomMotion" type="dxl:RandomMotionType"/>
+			<xsd:element name="Aggregate" type="dxl:AggType"/>
+			<xsd:element name="Limit" type="dxl:LimitType"/>
+			<xsd:element name="Sort" type="dxl:SortType"/>
+			<xsd:element name="Append" type="dxl:AppendType"/>
+			<xsd:element name="Materialize" type="dxl:MaterializeType"/>
+			<xsd:element name="DynamicTableScan" type="dxl:DynamicTableScanType"/>
+			<xsd:element name="PartitionSelector" type="dxl:PartitionSelectorType"/>
+			<xsd:element name="Sequence" type="dxl:SequenceType"/>
+			<xsd:element name="TableValuedFunction" type="dxl:TableValuedFunctionType"/>
+			<xsd:element name="RowTrigger" type="dxl:RowTriggerType"/>
+			<xsd:element name="Split" type="dxl:SplitType"/>
+			<xsd:element name="CTEProducer" type="dxl:CTEProducerType"/>
+			<xsd:element name="CTEConsumer" type="dxl:CTEConsumerType"/>
+			<xsd:group ref="dxl:PhysicalDMLOp"/>
+		</xsd:choice>
+	</xsd:group>
+
+	<xsd:group name="PhysicalDMLOp">
+		<xsd:choice>
+			<xsd:element name="DMLInsert" type="dxl:DMLType"/>
+			<xsd:element name="DMLDelete" type="dxl:DMLType"/>
+			<xsd:element name="DMLUpdate" type="dxl:DMLType"/>
+		</xsd:choice>
+	</xsd:group>
+
+	<xsd:group name="ScalarOp">
+		<xsd:choice>
+			<xsd:element name="Ident" type="dxl:IdentType"/>
+			<xsd:element name="OpExpr" type="dxl:OpExprType"/>
+			<xsd:element name="FuncExpr" type="dxl:FuncExprType"/>
+			<xsd:element name="Minimum" type="dxl:MinMaxType"/>
+			<xsd:element name="Maximum" type="dxl:MinMaxType"/>
+			<xsd:element name="AggFunc" type="dxl:AggFuncType"/>
+			<xsd:element name="Cast" type="dxl:CastType"/>
+			<xsd:element name="Coalesce" type="dxl:CoalesceType"/>
+			<xsd:element name="If" type="dxl:IfType"/>
+			<xsd:element name="Switch" type="dxl:SwitchType"/>
+			<xsd:element name="CaseTest" type="dxl:CaseTestType"/>
+			<xsd:element name="InitPlan" type="dxl:InitPlanType"/>
+			<xsd:element name="SubPlan" type="dxl:SubPlanType"/>
+			<xsd:element name="ScalarSubquery" type="dxl:ScalarSubqueryType"/>
+			<xsd:element name="Array" type="dxl:ScalarArrayType"/>
+			<xsd:element name="ArrayRef" type="dxl:ScalarArrayRefType"/>
+			<xsd:element name="BitmapIndexProbe" type="dxl:BitmapIndexProbeType"/>			
+			<xsd:element name="PartOid" type="dxl:ScalarPartOidType"/>
+			<xsd:element name="PartBound" type="dxl:ScalarPartBoundType"/>
+			<xsd:element name="PartBoundInclusion" type="dxl:ScalarPartBoundInclusionType"/>
+			<xsd:group ref="dxl:ScalarBoolOp"/>
+		</xsd:choice>
+	</xsd:group>
+	
+	<xsd:complexType name="DirectDispatchInfoType">
+		<xsd:sequence>
+			<xsd:element name="KeyValue" minOccurs="0" maxOccurs="unbounded">
+				<xsd:complexType>
+				  <xsd:element name="Datum" type="dxl:DatumType" minOccurs="1" maxOccurs="unbounded"/>				  
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:group name="ScalarBoolOp">
+		<xsd:choice>
+			<xsd:element name="ConstValue" type="dxl:ConstValueType"/>
+			<xsd:element name="Comparison" type="dxl:ComparisonType"/>
+			<xsd:element name="Or" type="dxl:OrType"/>
+			<xsd:element name="And" type="dxl:AndType"/>
+			<xsd:element name="Not" type="dxl:NotType"/>
+			<xsd:element name="IsDistinctFrom" type="dxl:DistinctComparisonType"/>
+			<xsd:element name="IsNull" type="dxl:IsNullType"/>
+			<xsd:element name="IsNotNull" type="dxl:IsNotNullType"/>
+			<xsd:element name="ArrayComp" type="dxl:ArrayCompType"/>
+            <xsd:element name="IsTrue" type="dxl:BooleanTestType"/>
+            <xsd:element name="IsNotTrue" type="dxl:BooleanTestType"/>
+            <xsd:element name="IsFalse" type="dxl:BooleanTestType"/>
+            <xsd:element name="IsNotFalse" type="dxl:BooleanTestType"/>
+            <xsd:element name="IsUnknown" type="dxl:BooleanTestType"/>
+            <xsd:element name="IsNotUnknown" type="dxl:BooleanTestType"/>
+            <xsd:element name="SubqueryExists" type="dxl:ScalarSubqueryExistsType"/>
+            <xsd:element name="SubqueryNotExists" type="dxl:ScalarSubqueryNotExistsType"/>
+			<xsd:element name="SubqueryAny" type="dxl:ScalarSubqueryAnyType"/>
+			<xsd:element name="SubqueryAll" type="dxl:ScalarSubqueryAllType"/>
+		</xsd:choice>
+	</xsd:group>
+	
+	<xsd:complexType name="PhysicalOpType">
+		<xsd:annotation>
+			<xsd:documentation>Node in the optimized plan.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="Properties" type="dxl:PhysicalPropertiesType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarOpType"> </xsd:complexType>
+
+	<xsd:complexType name="PhysicalPropertiesType">
+		<xsd:annotation>
+			<xsd:documentation>Properties of a physical plan node including estimated cost, cardinality etc.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="Cost">
+				<xsd:complexType>
+					<xsd:attribute name="StartupCost" type="xsd:string" use="required"/>
+					<xsd:attribute name="TotalCost" type="xsd:string" use="required"/>
+					<xsd:attribute name="Rows" type="xsd:string" use="required"/>
+					<xsd:attribute name="Width" type="xsd:string" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="SplitType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="1" maxOccurs="1"/>
+				</xsd:sequence>
+				<xsd:attribute name="DeleteColumns" type="xsd:string" use="required"/>
+				<xsd:attribute name="InsertColumns" type="xsd:string" use="required"/>
+				<xsd:attribute name="ActionCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="CtidCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="SegmentIdCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="PreserveOids" type="xsd:boolean" use="optional"/> 
+				<xsd:attribute name="TupleOidCol" type="xsd:unsignedLong" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="RowTriggerType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="1" maxOccurs="1"/>
+				</xsd:sequence>
+				<xsd:attribute name="RelationMdid" type="xsd:string" use="required"/>
+				<xsd:attribute name="Type" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="OldColumns" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+				<xsd:attribute name="NewColumns" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="PartitionSelectorType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="ScalarOpList" type="dxl:ScalarOpListType" minOccurs="2" maxOccurs="2"/>
+					<xsd:group ref="dxl:ScalarOp" minOccurs="3" maxOccurs="3"/>
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="0" maxOccurs="1"/>
+				</xsd:sequence>
+				<xsd:attribute name="RelationMdid" type="xsd:string" use="required"/>
+				<xsd:attribute name="PartitionLevels" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="ScanId" type="xsd:unsignedLong" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarOpListType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="DMLType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="0"/>
+				</xsd:sequence>
+				<xsd:attribute name="Columns" type="xsd:string" use="required"/>
+				<xsd:attribute name="ActionCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="OidCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="CtidCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="SegmentIdCol" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="PreserveOids" type="xsd:boolean" use="optional"/> 
+				<xsd:attribute name="TupleOidCol" type="xsd:unsignedLong" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="LogicalCTASType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:ColumnsType"/>
+			<xsd:element name="CTASOptions" type="dxl:CTASOptionsType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+		<xsd:attribute name="Schema" type="xsd:string" use="optional"/>
+		<xsd:attribute name="IsTemporary" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="StorageType" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="DistributionPolicy" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="DistributionColumns" type="xsd:string" use="optional"/>
+		<xsd:attribute name="InsertColumns" type="xsd:string" use="required"/>
+		<xsd:attribute name="VarTypeModList" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="TableScanType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:group name="PhysicalBitmapAccessPathType">
+		<xsd:choice>
+			<xsd:element name="BitmapIndexProbe" type="dxl:BitmapIndexProbeType"/>
+			<xsd:element name="BitmapBoolAnd" type="dxl:BitmapBoolOpType"/>	
+			<xsd:element name="BitmapBoolOr" type="dxl:BitmapBoolOpType"/>			
+		</xsd:choice>
+	</xsd:group>
+
+	<xsd:complexType name="BitmapTableScanType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="RecheckCond" type="dxl:FilterType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="BitmapBoolOpType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:ScalarOpType">
+				<xsd:sequence>
+					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
+					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
+				</xsd:sequence>
+				<xsd:attribute name="TypeId" type="xsd:string" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="DynamicBitmapTableScanType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="RecheckCond" type="dxl:FilterType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
+				</xsd:sequence>
+				<xsd:attribute name="PartIndexId" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="PrintablePartIndexId" type="xsd:unsignedLong" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="DynamicTableScanType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+				</xsd:sequence>
+				<xsd:attribute name="PartIndexId" type="xsd:unsignedLong" use="required"/>
+				<xsd:attribute name="PrintablePartIndexId" type="xsd:unsignedLong" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="SequenceType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="1" maxOccurs="unbounded"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType> 
+
+	<xsd:complexType name="TableValuedFunctionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+				</xsd:sequence>
+				<xsd:attribute name="FuncId" type="xsd:string" use="required"/>
+				<xsd:attribute name="Name" type="xsd:string" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="IndexScanType">
+ 		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- List of index conditions -->
+					<xsd:element name="IndexCondList" type="dxl:CondListType"/>
+					<xsd:element name="IndexDescriptor" type="dxl:IndexDescrType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+				</xsd:sequence>
+				<xsd:attribute name="IndexScanDirection" type="xsd:string" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="IndexOnlyScanType">
+ 		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- List of index conditions -->
+					<xsd:element name="IndexCondList" type="dxl:CondListType"/>
+					<xsd:element name="IndexDescriptor" type="dxl:IndexDescrType"/>
+					<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+				</xsd:sequence>
+				<xsd:attribute name="IndexScanDirection" type="xsd:string" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="BitmapIndexProbeType">
+ 		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<!-- List of index conditions -->
+					<xsd:element name="IndexCondList" type="dxl:CondListType"/>
+					<xsd:element name="IndexDescriptor" type="dxl:IndexDescrType"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="SubqueryScanType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="Alias" type="xsd:string" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="ResultType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="OneTimeFilter" type="dxl:OneTimeFilterType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="CTEProducerType">
+	  <xsd:complexContent>
+		<xsd:extension base="dxl:PhysicalOpType">
+		  <xsd:sequence>
+		    <xsd:element name="ProjList" type="dxl:ProjectListType"/>
+			<!-- Child -->
+		  	<xsd:group ref="dxl:PhysicalOp" minOccurs="0"/>
+	      </xsd:sequence>
+		  <xsd:attribute name="CTEId" type="xsd:unsignedLong" use="required"/>
+		  <xsd:attribute name="Columns" type="xsd:string" use="required"/>
+	    </xsd:extension> 
+	  </xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="CTEConsumerType">
+	  <xsd:complexContent>
+		<xsd:extension base="dxl:PhysicalOpType">
+		  <xsd:sequence>
+		    <xsd:element name="ProjList" type="dxl:ProjectListType"/>
+		  </xsd:sequence>
+		  <xsd:attribute name="CTEId" type="xsd:unsignedLong" use="required"/>
+		  <xsd:attribute name="Columns" type="xsd:string" use="required"/>
+		</xsd:extension> 
+	  </xsd:complexContent>
+	</xsd:complexType>
+		
+	<xsd:complexType name="MaterializeType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="Eager" type="xsd:boolean" use="required"/>
+				<xsd:attribute name="SpoolId" type="xsd:unsignedLong" use="optional"/>
+				<xsd:attribute name="ExecutorSliceId" type="xsd:integer" use="optional"/>
+				<xsd:attribute name="NumberOfConsumersSlices" type="xsd:unsignedLong" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	
+	<xsd:complexType name="PhysicalJoinType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">				
+				<xsd:attribute name="JoinType" use="required" type="dxl:JoinType"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="HashJoinType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalJoinType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="JoinFilter" type="dxl:FilterType"/>
+					<!-- Hash join condition -->
+					<xsd:element name="HashCondList" type="dxl:CondListType"/>
+					<!-- Left child-->
+					<xsd:group ref="dxl:PhysicalOp"/>
+					<!-- Right child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="CondListType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="NestedLoopJoinType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalJoinType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="JoinFilter" type="dxl:FilterType"/>
+
+					<!-- Left child-->
+					<xsd:group ref="dxl:PhysicalOp"/>
+					<!-- Right child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="IndexNestedLoopJoin" type="xsd:boolean" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="MergeJoinType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalJoinType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:element name="JoinFilter" type="dxl:FilterType"/>
+					<!-- Merge join condition -->
+					<xsd:element name="MergeCondList" type="dxl:CondListType"/>
+					<!-- Left child-->
+					<xsd:group ref="dxl:PhysicalOp"/>
+					<!-- Right child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="UniqueOuter" type="xsd:boolean" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="MotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">				
+				<xsd:attribute name="InputSegments" type="xsd:string" use="required"/>
+				<xsd:attribute name="OutputSegments" type="xsd:string" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="BroadcastMotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:MotionType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="GatherMotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:MotionType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+
+	<xsd:complexType name="RedistributeMotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:MotionType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Hash expression list -->
+					<xsd:element name="HashExprList">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="HashExpr" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:sequence>
+											<xsd:group ref="dxl:ScalarOp"/>
+										</xsd:sequence>
+										<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="DuplicateSensitive" type="xsd:boolean" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="RoutedDistributeMotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:MotionType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="SegmentIdCol" type="xsd:unsignedLong" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="RandomMotionType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:MotionType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Child -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="AggType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="GroupingColumns" type="dxl:GroupingColsType"/>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="AggregationStrategy" use="required">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:enumeration m_bytearray_value="Plain"/>
+							<xsd:enumeration m_bytearray_value="Sorted"/>
+							<xsd:enumeration m_bytearray_value="Hashed"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:attribute>
+				<xsd:attribute name="StreamSafe" type="xsd:boolean" use="optional"/>
+			</xsd:extension>
+		</xsd:complexContent>	
+	</xsd:complexType>
+	
+	<xsd:complexType name="LimitType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:group ref="dxl:PhysicalOp"/>
+					<xsd:element name="LimitCount">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="LimitOffset">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="SortType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<!-- Sorting info -->
+					<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+					<!-- Limit -->
+					<xsd:element name="LimitCount">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="LimitOffset">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<!-- Child node -->
+					<xsd:group ref="dxl:PhysicalOp"/>
+				</xsd:sequence>
+				<xsd:attribute name="SortDiscardDuplicates" type="xsd:boolean" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>	
+	</xsd:complexType>
+	
+	<xsd:complexType name="AppendType">
+		<xsd:complexContent>
+			<xsd:extension base="dxl:PhysicalOpType">
+				<xsd:sequence>
+					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+					<xsd:element name="Filter" type="dxl:FilterType"/>
+					<xsd:group ref="dxl:PhysicalOp" minOccurs="1" maxOccurs="unbounded"/>
+				</xsd:sequence>
+				<xsd:attribute name="IsTarget" type="xsd:boolean" use="required"/>
+				<xsd:attribute name="IsZapped" type="xsd:boolean" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>	
+	</xsd:complexType>
+
+	<xsd:complexType name="SubPlanTestExpr">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="SubPlanParamListType">
+		<xsd:sequence>
+			<xsd:element name="Param" type="dxl:SubPlanParamType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ProjectListType">
+		<xsd:sequence>
+			<xsd:element name="ProjElem" type="dxl:ProjElemType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="QueryOutputType">
+		<xsd:sequence>
+			<xsd:element name="Ident" type="dxl:IdentType" minOccurs="1" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="FilterType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="OneTimeFilterType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="GroupingColsType">
+		<xsd:sequence>
+			<xsd:element name="GroupingColumn" minOccurs="0" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="SortColListType">
+		<xsd:sequence>
+			<xsd:element name="SortingColumn" minOccurs="0">
+				<xsd:complexType>
+					<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+					<xsd:attribute name="SortOperatorMdid" type="xsd:string" use="required"/>
+					<xsd:attribute name="SortOperatorName" type="xsd:string" use="required"/>
+					<xsd:attribute name="SortNullsFirst" type="xsd:boolean" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="IndexDescrType">
+		<xsd:attribute name="IndexName" type="xsd:string" use="required"/>
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+		
+	<xsd:complexType name="TableDescrType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:ColumnsType"/>
+		</xsd:sequence>
+		<xsd:attribute name="TableName" type="xsd:string" use="required"/>
+		<xsd:attribute name="Mdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="ExecuteAsUser" type="xsd:unsignedLong" use="optional"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ColumnsType">
+		<xsd:sequence>
+			<xsd:element name="Column" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+					<xsd:attribute name="Attno" type="xsd:long" use="required"/>
+					<xsd:attribute name="ColName" type="xsd:string" use="required"/>
+					<xsd:attribute name="IsDropped" type="xsd:boolean" use="optional"/>
+					<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+					<xsd:attribute name="ColLength" type="xsd:unsignedLong" use="optional"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ProjElemType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="Alias" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="SubPlanParamType">
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="ColName" type="xsd:string" use="required"/>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="IdentType">
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="ColName" type="xsd:string" use="required"/>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ComparisonType">
+		<xsd:sequence>
+			<!-- Left-hand side -->
+			<xsd:choice>
+				<xsd:group ref="dxl:ScalarOp"/>
+				<xsd:group ref="dxl:LogicalOp"/>
+			</xsd:choice>			
+			<!-- Right-hand side -->
+			<xsd:choice>
+				<xsd:group ref="dxl:ScalarOp"/>
+				<xsd:group ref="dxl:LogicalOp"/>
+			</xsd:choice>
+		</xsd:sequence>
+		<xsd:attribute name="ComparisonOperator" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="DistinctComparisonType">
+		<xsd:sequence>
+			<!-- Left-hand side -->
+			<xsd:group ref="dxl:ScalarOp"/>
+			<!-- Right-hand side -->
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="OrType">
+		<xsd:sequence>
+			<!-- Arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="2" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="AndType">
+		<xsd:sequence>
+			<!-- Arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="2" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp"/>
+		</xsd:sequence>					
+	</xsd:complexType>
+
+        <xsd:complexType name="BooleanTestType">
+                <xsd:sequence>
+                        <xsd:group ref="dxl:ScalarBoolOp"/>
+                </xsd:sequence>
+        </xsd:complexType>
+
+	<xsd:complexType name="IsNullType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+		
+	<xsd:complexType name="IsNotNullType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="FuncExprType">
+		<xsd:sequence>
+			<!-- Function arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="FuncId" type="xsd:string" use="required"/>
+		<xsd:attribute name="FuncRetSet" type="xsd:boolean" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="MinMaxType">
+		<xsd:sequence>
+			<!-- arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="CoalesceType">
+		<xsd:sequence>
+			<!-- Function arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="AggFuncType">
+		<xsd:sequence>
+			<!-- Function arguments -->
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="AggMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="AggDistinct" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="AggStage" use="required">
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration m_bytearray_value="Normal"/>
+					<xsd:enumeration m_bytearray_value="Partial"/>
+					<xsd:enumeration m_bytearray_value="Intermediate"/>
+					<xsd:enumeration m_bytearray_value="Final"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="optional"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="OpExprType">
+		<xsd:sequence>
+			<!-- Left-hand side -->
+			<xsd:group ref="dxl:ScalarOp"/>
+			<!-- Right-hand side -->
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="OperatorName" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorType" type="xsd:string" use="optional"/>
+	</xsd:complexType>
+
+     <xsd:complexType name="ArrayCompType">
+		<xsd:sequence>
+           	<!-- Left-hand side -->
+                <xsd:group ref="dxl:ScalarOp"/>
+                <!-- Right-hand side -->
+                <xsd:group ref="dxl:ScalarOp"/>
+           </xsd:sequence>
+           <xsd:attribute name="OperatorName" type="xsd:string" use="required"/>
+           <xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+           <xsd:attribute name="OperatorType" use="required">
+			<xsd:simpleType>
+                	<xsd:restriction base="xsd:string">
+                     		<xsd:enumeration m_bytearray_value="Any"/>
+                     		<xsd:enumeration m_bytearray_value="All"/>
+                	</xsd:restriction>
+           	</xsd:simpleType>
+		</xsd:attribute>
+   </xsd:complexType>
+	
+	<xsd:complexType name="ConstValueType">
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsNull" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsByValue" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="Value" type="xsd:string" use="required"/>
+		<xsd:attribute name="LintValue" type="xsd:string" use="optional"/>
+		<xsd:attribute name="DoubleValue" type="xsd:string" use="optional"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="CastType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+			</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="FuncId" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="InitPlanType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:PhysicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="SubPlanType">
+		<xsd:sequence>
+			<xsd:element name="TestExpr" type="dxl:SubPlanTestExpr"/>
+			<xsd:element name="ParamList" type="dxl:SubPlanParamListType"/>
+			<xsd:group ref="dxl:PhysicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="SubPlanType" type="xsd:unsignedLong" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarSubqueryType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>		
+	</xsd:complexType>
+	
+	<xsd:complexType name="ScalarArrayType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="ArrayType" type="xsd:string" use="required"/>
+		<xsd:attribute name="ElementType" type="xsd:string" use="required"/>
+		<xsd:attribute name="MultiDimensional" type="xsd:boolean" use="required"/>		
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarArrayRefType">
+		<xsd:sequence>
+			<xsd:element name="ArrayIndexList" type="dxl:ArrayIndexListType" minOccurs="2" maxOccurs="2"/>
+			<xsd:element name="RefExpr" type="dxl:ArrayRefExprType" use="required"/>
+			<xsd:element name="AssignExpr" type="dxl:ArrayRefAssignExprType" use="required"/>
+		</xsd:sequence>
+		<xsd:attribute name="ElementType" type="xsd:string" use="required"/>
+		<xsd:attribute name="ArrayType" type="xsd:string" use="required"/>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ArrayIndexListType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="Bound" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ArrayRefExprType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ArrayRefAssignExprType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarPartOidType">
+		<xsd:attribute name="Level" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarPartBoundType">
+		<xsd:attribute name="Level" type="xsd:string" use="required"/>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="LowerBound" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarPartBoundInclusionType">
+		<xsd:attribute name="Level" type="xsd:string" use="required"/>
+		<xsd:attribute name="LowerBound" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarSubqueryExistsType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarSubqueryNotExistsType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ScalarSubqueryAnyType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="ColId" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorName" type="xsd:string" use="required"/>		
+	</xsd:complexType>
+
+	<xsd:complexType name="ScalarSubqueryAllType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="OperatorMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="OperatorName" type="xsd:string" use="required"/>		
+	</xsd:complexType>
+		
+	<xsd:complexType name="SwitchType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+			<xsd:element name="SwitchCase" type="dxl:SwitchCaseType" minOccurs="1" maxOccurs="unbounded"/>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="SwitchCaseType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarOp"/>
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="CaseTestType">
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="IfType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp"/>
+			<xsd:group ref="dxl:ScalarOp"/>
+			<xsd:group ref="dxl:ScalarOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:group name="LogicalOp">
+		<xsd:choice>
+			<xsd:element name="LogicalGet" type="dxl:LogicalGetType"/>
+			<xsd:element name="LogicalSelect" type="dxl:LogicalSelectType"/>
+			<xsd:element name="LogicalProject" type="dxl:LogicalProjectType"/>
+			<xsd:element name="LogicalJoin" type="dxl:LogicalJoinType"/>
+			<xsd:element name="LogicalGroupBy" type="dxl:LogicalGroupByType"/>
+			<xsd:element name="LogicalLimit" type="dxl:LogicalLimitType"/>
+			<xsd:element name="LogicalConstTable" type="dxl:LogicalConstTableType"/>
+			<xsd:element name="LogicalTVF" type="dxl:LogicalTVFType"/>
+			<xsd:element name="Union" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="UnionAll" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="Intersect" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="IntersectAll" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="Difference" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="DifferenceAll" type="dxl:LogicalSetOpType"/>
+			<xsd:element name="LogicalInsert" type="dxl:LogicalInsertType"/>
+			<xsd:element name="LogicalDelete" type="dxl:LogicalDeleteType"/>
+			<xsd:element name="LogicalUpdate" type="dxl:LogicalUpdateType"/>
+			<xsd:element name="LogicalCTAS" type="dxl:LogicalCTASType"/>
+		</xsd:choice>
+	</xsd:group>
+
+	<xsd:complexType name="LogicalSetOpType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:ColumnsType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="InputColumns" type="xsd:string" use="required"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="LogicalGetType">
+		<xsd:sequence>
+			<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="LogicalInsertType">
+		<xsd:sequence>
+			<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="InsertColumns" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalDeleteType">
+		<xsd:sequence>
+			<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="DeleteColumns" type="xsd:string" use="required"/>
+		<xsd:attribute name="CtidCol" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="SegmentIdCol" type="xsd:unsignedLong" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalUpdateType">
+		<xsd:sequence>
+			<xsd:element name="TableDescriptor" type="dxl:TableDescrType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="DeleteColumns" type="xsd:string" use="required"/>
+		<xsd:attribute name="InsertColumns" type="xsd:string" use="required"/>
+		<xsd:attribute name="CtidCol" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="SegmentIdCol" type="xsd:unsignedLong" use="required"/>
+		<xsd:attribute name="PreserveOids" type="xsd:boolean" use="optional"/> 
+		<xsd:attribute name="TupleOidCol" type="xsd:unsignedLong" use="optional"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalTVFType">
+		<xsd:sequence>
+			<xsd:element name="Columns" type="dxl:ColumnsType"/>
+			<xsd:group ref="dxl:ScalarOp" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="FuncId" type="xsd:string" use="required"/>
+		<xsd:attribute name="Name" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalConstTableType">
+		<xsd:sequence>
+			<xsd:sequence>
+				<xsd:element name="Columns" type="dxl:ColumnsType"/>
+				<xsd:element name="ConstTuple" type="dxl:ConstTupleType" minOccurs="0" maxOccurs="unbounded"/>
+			</xsd:sequence>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ConstTupleType">
+		<xsd:attribute name="TypeMdid" type="xsd:string" use="required"/>
+		<xsd:attribute name="IsNull" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="IsByValue" type="xsd:boolean" use="required"/>
+		<xsd:attribute name="Value" type="xsd:string" use="required"/>
+		<xsd:attribute name="LintValue" type="xsd:string" use="optional"/>
+		<xsd:attribute name="DoubleValue" type="xsd:string" use="optional"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="LogicalProjectType">
+		<xsd:sequence>
+			<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalSelectType">
+		<xsd:sequence>
+			<xsd:group ref="dxl:ScalarBoolOp"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="LogicalGroupByType">
+		<xsd:sequence>
+			<xsd:element name="GroupingColumns" type="dxl:GroupingColsType"/>
+			<xsd:element name="ProjList" type="dxl:ProjectListType"/>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:simpleType name="JoinType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration m_bytearray_value="Inner"/>
+			<xsd:enumeration m_bytearray_value="Left"/>
+			<xsd:enumeration m_bytearray_value="Full"/>
+			<xsd:enumeration m_bytearray_value="Right"/>
+			<xsd:enumeration m_bytearray_value="In"/>
+			<xsd:enumeration m_bytearray_value="LeftAntiSemiJoin"/>
+		</xsd:restriction>						
+	</xsd:simpleType>
+
+	<xsd:complexType name="LogicalJoinType">
+		<xsd:sequence>
+			<!-- Children -->
+			<xsd:group ref="dxl:LogicalOp" minOccurs="2" maxOccurs="unbounded"/>
+			<xsd:group ref="dxl:ScalarBoolOp"/>
+		</xsd:sequence>
+		<xsd:attribute name="JoinType" type="dxl:JoinType" use="required"/>
+	</xsd:complexType>
+
+
+	<xsd:complexType name="LogicalLimitType">
+		<xsd:sequence>
+			<!-- Sorting info -->
+			<xsd:element name="SortingColumnList" type="dxl:SortColListType"/>
+			<xsd:element name="LimitCount">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="LimitOffset">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:group ref="dxl:ScalarOp" minOccurs="0"/>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:group ref="dxl:LogicalOp"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="OrderSpecType">
+		<xsd:sequence>
+			<xsd:element name="OrderingColumn" minOccurs="0" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:attribute name="ColId" type="xsd:unsignedLong" use="required"/>
+					<xsd:attribute name="OperatorMdid" type="xsd:unsignedLong" use="required"/>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>
+

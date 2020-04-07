@@ -1,0 +1,35 @@
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2018 Pivotal Software, Inc.
+//---------------------------------------------------------------------------
+#ifndef GPOPT_${test_name}_H
+#define GPOPT_${test_name}_H
+
+#include "gpos/base.h"
+
+namespace gpopt
+{
+	class ${test_name}
+	{
+		private:
+
+			// counter used to mark last successful test
+			static
+			gpos::ULONG m_ulTestCounter;
+
+		public:
+
+			// unittests
+			static
+			gpos::GPOS_RESULT EresUnittest();
+
+			static
+			gpos::GPOS_RESULT EresUnittest_RunTests();
+
+	}; // class ${test_name}
+}
+
+#endif // !GPOPT_${test_name}_H
+
+// EOF
+

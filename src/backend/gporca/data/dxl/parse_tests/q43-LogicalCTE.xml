@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="3" ColName="a" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="4" ColName="b" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList>
+      <dxl:LogicalCTEProducer CTEId="0" Columns="1,2">
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.35039.1.1" TableName="r">
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+      </dxl:LogicalCTEProducer>
+    </dxl:CTEList>
+    <dxl:LogicalCTEAnchor CTEId="0">
+      <dxl:LogicalSelect>
+        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+          <dxl:Ident ColId="3" ColName="a" TypeMdid="0.23.1.0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:Comparison>
+        <dxl:LogicalCTEConsumer CTEId="0" Columns="3,4"/>
+      </dxl:LogicalSelect>
+    </dxl:LogicalCTEAnchor>
+  </dxl:Query>
+</dxl:DXLMessage>

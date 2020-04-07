@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:Result>
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="228" Alias="?column?">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:OneTimeFilter/>
+      <dxl:Result>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="227" Alias="">
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:OneTimeFilter/>
+      </dxl:Result>
+    </dxl:Result>
+  </dxl:Plan>
+</dxl:DXLMessage>

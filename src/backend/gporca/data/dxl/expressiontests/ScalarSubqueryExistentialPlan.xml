@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:HashJoin JoinType="LeftAntiSemiJoin">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="12" Alias="r.a">
+          <dxl:Ident ColId="12" ColName="r.a" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="13" Alias="r.b">
+          <dxl:Ident ColId="13" ColName="r.b" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:JoinFilter/>
+      <dxl:HashCondList>
+        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+          <dxl:Ident ColId="13" ColName="r.b" TypeMdid="0.23.1.0"/>
+          <dxl:Ident ColId="17" ColName="s.d" TypeMdid="0.23.1.0"/>
+        </dxl:Comparison>
+      </dxl:HashCondList>
+      <dxl:HashJoin JoinType="In">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="12" Alias="r.a">
+            <dxl:Ident ColId="12" ColName="r.a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="13" Alias="r.b">
+            <dxl:Ident ColId="13" ColName="r.b" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:JoinFilter/>
+        <dxl:HashCondList>
+          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+            <dxl:Ident ColId="12" ColName="r.a" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="14" ColName="t.e" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+        </dxl:HashCondList>
+        <dxl:TableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="12" Alias="r.a">
+              <dxl:Ident ColId="12" ColName="r.a" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="13" Alias="r.b">
+              <dxl:Ident ColId="13" ColName="r.b" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:TableDescriptor Mdid="0.18452.1.1" TableName="r">
+            <dxl:Columns>
+              <dxl:Column ColId="12" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="13" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:TableScan>
+        <dxl:TableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="14" Alias="t.e">
+              <dxl:Ident ColId="14" ColName="t.e" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:TableDescriptor Mdid="0.17136.1.1" TableName="t">
+            <dxl:Columns>
+              <dxl:Column ColId="14" Attno="1" ColName="e" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="15" Attno="2" ColName="f" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:TableScan>
+      </dxl:HashJoin>
+      <dxl:TableScan>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="17" Alias="s.d">
+            <dxl:Ident ColId="17" ColName="s.d" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:TableDescriptor Mdid="0.17091.1.1" TableName="s">
+          <dxl:Columns>
+            <dxl:Column ColId="16" Attno="1" ColName="c" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="17" Attno="2" ColName="d" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:TableScan>
+    </dxl:HashJoin>
+  </dxl:Plan>
+</dxl:DXLMessage>

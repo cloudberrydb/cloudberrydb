@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="t1" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="3" ColName="t3" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalSelect>
+      <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
+        <dxl:Ident ColId="1" ColName="t1" TypeMdid="0.23.1.0"/>
+        <dxl:ScalarSubquery ColId="7">
+          <dxl:LogicalGroupBy>
+            <dxl:GroupingColumns/>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="7" Alias="min">
+                <dxl:AggFunc AggMdid="0.2132.1.0" AggDistinct="false" AggStage="Normal">
+                  <dxl:Ident ColId="4" ColName="r1" TypeMdid="0.23.1.0"/>
+                </dxl:AggFunc>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:LogicalSelect>
+              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
+                <dxl:Ident ColId="5" ColName="r2" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+              <dxl:LogicalGet>
+                <dxl:TableDescriptor Mdid="0.899640.1.1" TableName="r">
+                  <dxl:Columns>
+                    <dxl:Column ColId="4" Attno="1" ColName="r1" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="5" Attno="2" ColName="r2" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="6" Attno="3" ColName="r3" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:LogicalGet>
+            </dxl:LogicalSelect>
+          </dxl:LogicalGroupBy>
+        </dxl:ScalarSubquery>
+      </dxl:Comparison>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="t1" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="t2" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="3" Attno="3" ColName="t3" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalSelect>
+  </dxl:Query>
+</dxl:DXLMessage>

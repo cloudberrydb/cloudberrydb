@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Statistics>
+    <dxl:DerivedRelationStats Rows="2000.000000">
+      <dxl:DerivedColumnStats ColId="1" Width="10.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
+        <dxl:StatsBucket Frequency="0.2" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgACAAYCgAw=" DoubleValue="20518.320000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgACAAYCgAw=" DoubleValue="20518.320000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.1" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAN0BhAM=" DoubleValue="30477.090000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1700.1.0" Value="AAAADgEAAgADAN0BhAM=" DoubleValue="30477.090000"/>
+        </dxl:StatsBucket>
+      </dxl:DerivedColumnStats>
+    </dxl:DerivedRelationStats>
+  </dxl:Statistics>
+</dxl:DXLMessage>

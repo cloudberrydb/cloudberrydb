@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan Id="0" SpaceSize="0">
+    <dxl:PhysicalCTAS Schema="bla" Name="r" IsTemporary="true" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" InsertColumns="2" VarTypeModList="9">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+      </dxl:Properties>
+      <dxl:Columns>
+        <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+      </dxl:Columns>
+      <dxl:CTASOptions OnCommitAction="Drop">
+        <dxl:CTASOption CtasOptionType="653" Name="compression" Value="zlib" IsNull="false"/>
+        <dxl:CTASOption CtasOptionType="653" Name="appendonly" Value="false" IsNull="false"/>
+      </dxl:CTASOptions>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="1" Alias="?column?">
+          <dxl:Ident ColId="1" ColName="?column?" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Result>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="1.017578" Rows="1.000000" Width="8"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="1" Alias="?column?">
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:OneTimeFilter/>
+        <dxl:Result>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="0.001953" Rows="1.000000" Width="1"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="">
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:OneTimeFilter/>
+        </dxl:Result>
+      </dxl:Result>
+    </dxl:PhysicalCTAS>
+  </dxl:Plan>
+</dxl:DXLMessage>

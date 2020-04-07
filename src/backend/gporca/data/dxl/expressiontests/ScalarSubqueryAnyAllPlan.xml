@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:NestedLoopJoin JoinType="LeftAntiSemiJoin">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="6" Alias="r.a">
+          <dxl:Ident ColId="6" ColName="r.a" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="7" Alias="r.b">
+          <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:JoinFilter>
+        <dxl:IsDistinctFrom OperatorMdid="0.91.1.0">
+          <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.518.1.0">
+            <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="10" ColName="r.a" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+          <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+        </dxl:IsDistinctFrom>
+      </dxl:JoinFilter>
+      <dxl:HashJoin JoinType="In">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="6" Alias="r.a">
+            <dxl:Ident ColId="6" ColName="r.a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="7" Alias="r.b">
+            <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:JoinFilter/>
+        <dxl:HashCondList>
+          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+            <dxl:Ident ColId="6" ColName="r.a" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="9" ColName="r.b" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+        </dxl:HashCondList>
+        <dxl:TableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="6" Alias="r.a">
+              <dxl:Ident ColId="6" ColName="r.a" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="r.b">
+              <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter>
+            <dxl:Not>
+              <dxl:IsNull>
+                <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
+              </dxl:IsNull>
+            </dxl:Not>
+          </dxl:Filter>
+          <dxl:TableDescriptor Mdid="0.17140.1.1" TableName="r">
+            <dxl:Columns>
+              <dxl:Column ColId="6" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="7" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:TableScan>
+        <dxl:TableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="9" Alias="r.b">
+              <dxl:Ident ColId="9" ColName="r.b" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:TableDescriptor Mdid="0.17140.1.1" TableName="r">
+            <dxl:Columns>
+              <dxl:Column ColId="8" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="9" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:TableScan>
+      </dxl:HashJoin>
+      <dxl:TableScan>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="12" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="10" Alias="r.a">
+            <dxl:Ident ColId="10" ColName="r.a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:TableDescriptor Mdid="0.17140.1.1" TableName="r">
+          <dxl:Columns>
+            <dxl:Column ColId="10" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="11" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:TableScan>
+    </dxl:NestedLoopJoin>
+  </dxl:Plan>
+</dxl:DXLMessage>

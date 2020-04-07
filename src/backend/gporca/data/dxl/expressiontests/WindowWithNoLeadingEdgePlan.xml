@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="8"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="10" Alias="avg">
+          <dxl:Ident ColId="10" ColName="avg" TypeMdid="0.1700.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="0" Alias="s.c">
+          <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="2" Alias="s.e">
+          <dxl:Ident ColId="2" ColName="s.e" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:SortingColumnList/>
+      <dxl:Window PartitionColumns="0">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="8"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="10" Alias="avg">
+            <dxl:WindowFunc Mdid="0.2101.1.0" TypeMdid="0.1700.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
+              <dxl:Ident ColId="1" ColName="s.d" TypeMdid="0.23.1.0"/>
+            </dxl:WindowFunc>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="0" Alias="s.c">
+            <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="s.e">
+            <dxl:Ident ColId="2" ColName="s.e" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:Sort SortDiscardDuplicates="false">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="10" TotalCost="100" Rows="8" Width="8"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="s.c">
+              <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="s.d">
+              <dxl:Ident ColId="1" ColName="s.d" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="s.e">
+              <dxl:Ident ColId="2" ColName="s.e" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:SortingColumnList>
+            <dxl:SortingColumn ColId="0" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+            <dxl:SortingColumn ColId="2" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          </dxl:SortingColumnList>
+          <dxl:LimitCount/>
+          <dxl:LimitOffset/>
+          <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="10" TotalCost="100" Rows="8" Width="24"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="0" Alias="s.c">
+                <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="1" Alias="s.d">
+                <dxl:Ident ColId="1" ColName="s.d" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="2" Alias="s.e">
+                <dxl:Ident ColId="2" ColName="s.e" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:SortingColumnList/>
+            <dxl:HashExprList>
+              <dxl:HashExpr TypeMdid="0.23.1.0">
+                <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+              </dxl:HashExpr>
+            </dxl:HashExprList>
+            <dxl:TableScan>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="10" TotalCost="100" Rows="8" Width="24"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="s.c">
+                  <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="s.d">
+                  <dxl:Ident ColId="1" ColName="s.d" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="2" Alias="s.e">
+                  <dxl:Ident ColId="2" ColName="s.e" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:TableDescriptor Mdid="0.1607168.1.1" TableName="s">
+                <dxl:Columns>
+                  <dxl:Column ColId="0" Attno="1" ColName="c" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="1" Attno="2" ColName="d" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="2" Attno="3" ColName="e" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                  <dxl:Column ColId="4" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="5" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="6" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="7" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="8" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="9" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:TableScan>
+          </dxl:RedistributeMotion>
+        </dxl:Sort>
+        <dxl:WindowKeyList>
+          <dxl:WindowKey>
+            <dxl:SortingColumnList>
+              <dxl:SortingColumn ColId="2" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+            </dxl:SortingColumnList>
+            <dxl:WindowFrame FrameSpec="Range" ExclusionStrategy="Nulls">
+              <dxl:TrailingEdge TrailingBoundary="BoundedPreceding">
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+              </dxl:TrailingEdge>
+              <dxl:LeadingEdge LeadingBoundary="CurrentRow"/>
+            </dxl:WindowFrame>
+          </dxl:WindowKey>
+        </dxl:WindowKeyList>
+      </dxl:Window>
+    </dxl:GatherMotion>
+  </dxl:Plan>
+</dxl:DXLMessage>

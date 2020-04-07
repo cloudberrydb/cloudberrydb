@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan Id="0" SpaceSize="0">
+    <dxl:Values>
+      <dxl:Properties>
+        <dxl:Cost StartupCost="0" TotalCost="0.000008" Rows="2.000000" Width="4"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="0" Alias="column1">
+          <dxl:Ident ColId="0" ColName="column1" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:ValuesList>
+        <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+      </dxl:ValuesList>
+      <dxl:ValuesList>
+        <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+      </dxl:ValuesList>
+    </dxl:Values>
+  </dxl:Plan>
+</dxl:DXLMessage>

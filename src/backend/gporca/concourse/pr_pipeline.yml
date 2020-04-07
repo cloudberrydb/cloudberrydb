@@ -1,0 +1,109 @@
+resource_types:
+  - name: pull_request
+    type: docker-image
+    source:
+      repository: jtarchie/pr
+
+resources:
+  - name: orca_pr
+    type: pull_request
+    source:
+      repo: greenplum-db/gporca
+      access_token: {{gporcabot_access_token}}
+      ignore_paths:
+      - README.md
+      - LICENSE
+      - COPYRIGHT
+      - .gitignore
+
+  - name: xerces_patch
+    type: git
+    source:
+      branch: master
+      paths:
+      - patches/xerces-c-gpdb.patch
+      - concourse/xerces-c
+      - concourse/package_tarball.bash
+      uri: https://github.com/greenplum-db/gporca
+  
+  - name: bin_xerces_centos5
+    type: s3
+    source:
+      access_key_id: {{s3_access_key_id}}
+      bucket: {{bucket-name}}
+      region_name: {{aws-region}}
+      secret_access_key: {{s3_secret_access_key}}
+      versioned_file: bin_xerces_centos5.tar.gz
+
+  - name: centos5-build
+    type: docker-image
+    source:
+      repository: yolo/orcadev
+      tag: centos5
+
+
+jobs:
+- name: xerces_centos5
+  public: true
+  max_in_flight: 2
+  plan:
+  - get: xerces_patch
+    trigger: true
+  - get: centos5-build
+  - in_parallel:
+    - task: build
+      file: xerces_patch/concourse/xerces-c/build_xerces.yml
+      image: centos5-build
+  - in_parallel:
+    - task: package_tarball
+      file: xerces_patch/concourse/xerces-c/package_tarball.yml
+      params:
+        dst_tarball: package_tarball/bin_xerces_centos5.tar.gz
+        src_root: build_xerces/install
+  - in_parallel:
+    - put: bin_xerces_centos5
+      params:
+        from: package_tarball/bin_xerces_centos5.tar.gz
+
+- name: compile_and_test_gporca
+  public: true
+  max_in_flight: 2
+  plan:
+  - get: orca_src
+    resource: orca_pr
+    trigger: true
+    version: every
+  - get: bin_xerces
+    resource: bin_xerces_centos5
+    passed:
+    - xerces_centos5
+  - get: centos5-build
+  - put: orca_pr
+    params:
+      path: orca_src
+      status: pending
+  - in_parallel:
+    - task: build_and_test_release
+      file: orca_src/concourse/build_and_test.yml
+      image: centos5-build
+      params:
+        BUILD_TYPE: --build_type=RelWithDebInfo
+        OUTPUT_DIR: --output_dir=build_and_test/install_release
+      timeout: 30m
+    - task: build_and_test_debug
+      file: orca_src/concourse/build_and_test.yml
+      image: centos5-build
+      params:
+        BUILD_TYPE: --build_type=Debug
+        OUTPUT_DIR: --output_dir=build_and_test/install_debug
+      timeout: 30m
+    on_failure: &pr_failure
+      put: orca_pr
+      params:
+        path: orca_src
+        status: failure
+  - put: report_pr_success
+    resource: orca_pr
+    params:
+      path: orca_src
+      status: success

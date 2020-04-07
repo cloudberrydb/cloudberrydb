@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:Result>
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="0" Alias="d.a">
+          <dxl:Ident ColId="0" ColName="d.a" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="1" Alias="d.b">
+          <dxl:Ident ColId="1" ColName="d.b" TypeMdid="0.1043.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter>
+        <dxl:Comparison ComparisonOperator="~~" OperatorMdid="0.1209.1.0">
+          <dxl:Cast TypeMdid="0.25.1.1" FuncId="0.0.0.0">
+            <dxl:Ident ColId="1" ColName="d.b" TypeMdid="0.1043.1.0"/>
+          </dxl:Cast>
+          <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAACyVOSUNLRUw="/>
+        </dxl:Comparison>
+      </dxl:Filter>
+      <dxl:OneTimeFilter/>
+      <dxl:TableScan>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="d.a">
+            <dxl:Ident ColId="0" ColName="d.a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="d.b">
+            <dxl:Ident ColId="1" ColName="d.b" TypeMdid="0.1043.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:TableDescriptor Mdid="0.1139398.1.1" TableName="d">
+          <dxl:Columns>
+            <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:TableScan>
+    </dxl:Result>
+  </dxl:Plan>
+</dxl:DXLMessage>

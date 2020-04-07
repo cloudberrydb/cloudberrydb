@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Plan>
+  <Limit>
+    <Properties>
+      <Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+    </Properties>
+    <ProjList>
+      <ProjElem ColId="1" Alias="A">
+        <Ident ColId="1" ColName="A" TypeMdid="0.23.1.0"/>
+      </ProjElem>
+      <ProjElem ColId="2" Alias="A">
+        <Ident ColId="2" ColName="B" TypeId="0.23.1.0"/>
+      </ProjElem>
+    </ProjList>
+    <TableScan>
+      <Properties>
+        <Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+      </Properties>
+      <ProjList>
+        <ProjElem ColId="1" Alias="A">
+          <Ident ColId="1" ColName="A" TypeId="0.23.1.0"/>
+        </ProjElem>
+        <ProjElem ColId="2" Alias="A">
+          <Ident ColId="2" ColName="B" TypeId="0.23.1.0"/>
+        </ProjElem>
+      </ProjList>
+      <Filter>
+        <Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+          <Ident ColId="1" ColName="A" TypeId="0.23.1.0"/>
+          <Ident ColId="2" ColName="B" TypeId="0.23.1.0"/>
+        </Comparison>
+      </Filter>
+      <TableDescriptor TableName="R">
+        <Columns>
+          <Column ColId="1" Attno="1" ColName="A"/>
+          <Column ColId="2" Attno="2" ColName="B"/>
+        </Columns>
+      </TableDescriptor>
+    </TableScan>
+    <LimitOffset>
+      <ConstValue TypeId="20" ConstByValue="true" Value="AgAAAA=="/>
+    </LimitOffset>
+  </Limit>
+</Plan>

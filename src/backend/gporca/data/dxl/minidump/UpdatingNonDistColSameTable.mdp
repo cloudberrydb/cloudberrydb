@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+<dxl:Comment><![CDATA[
+	CREATE TABLE test
+	(
+	"v_date_old" TIMESTAMP,
+	"v_varchar1_old" CHARACTER VARYING(10),
+	"s_varchar_old" CHARACTER VARYING(10)
+	)
+	DISTRIBUTED BY ("s_varchar_old");
+	insert into test values ('2012-03-16 00:00:00', NULL, 'IR$6D');
+	EXPLAIN UPDATE test SET v_varchar1_old = s_varchar_old;
+	
+	Objective : Since we are not updating the distribution column, we don't need a Redistribute Motion.
+
+	Update  (cost=0.00..431.09 rows=1 width=1)
+   	->  Result  (cost=0.00..431.00 rows=1 width=34)
+        	 ->  Split  (cost=0.00..431.00 rows=1 width=28)
+               		->  Table Scan on test  (cost=0.00..431.00 rows=1 width=24)	
+
+	]]>
+</dxl:Comment>
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
+      <dxl:WindowOids RowNumber="3100" Rank="3101"/>
+      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
+        <dxl:CostParams>
+          <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
+        </dxl:CostParams>
+      </dxl:CostModelConfig>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
+      <dxl:TraceFlags Value="102074,102146,102120,103001,103014,103015,103022,103027,104003,104004,104005,105000,106000"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:RelationStatistics Mdid="2.49159.1.0" Name="test" Rows="1.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.49159.1.0" Name="test" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="2" Keys="9,3" NumberLeafPartitions="0">
+        <dxl:Columns>
+          <dxl:Column Name="v_date_old" Attno="1" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="v_varchar1_old" Attno="2" Mdid="0.1043.1.0" TypeModifier="14" Nullable="true" ColWidth="0">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="s_varchar_old" Attno="3" Mdid="0.1043.1.0" TypeModifier="14" Nullable="true" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.98.1.0"/>
+        <dxl:InequalityOp Mdid="0.531.1.0"/>
+        <dxl:LessThanOp Mdid="0.664.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
+        <dxl:ComparisonOp Mdid="0.360.1.0"/>
+        <dxl:ArrayType Mdid="0.1015.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.607.1.0"/>
+        <dxl:InequalityOp Mdid="0.608.1.0"/>
+        <dxl:LessThanOp Mdid="0.609.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
+        <dxl:ComparisonOp Mdid="0.356.1.0"/>
+        <dxl:ArrayType Mdid="0.1028.1.0"/>
+        <dxl:MinAgg Mdid="0.2118.1.0"/>
+        <dxl:MaxAgg Mdid="0.2134.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.387.1.0"/>
+        <dxl:InequalityOp Mdid="0.402.1.0"/>
+        <dxl:LessThanOp Mdid="0.2799.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2801.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2800.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2802.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2794.1.0"/>
+        <dxl:ArrayType Mdid="0.1010.1.0"/>
+        <dxl:MinAgg Mdid="0.2798.1.0"/>
+        <dxl:MaxAgg Mdid="0.2797.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.385.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1012.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.352.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1011.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.49159.1.0.2" Name="s_varchar_old" Width="6.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:Type Mdid="0.1114.1.0" Name="timestamp" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.2060.1.0"/>
+        <dxl:InequalityOp Mdid="0.2061.1.0"/>
+        <dxl:LessThanOp Mdid="0.2062.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2063.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2064.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2065.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2045.1.0"/>
+        <dxl:ArrayType Mdid="0.1115.1.0"/>
+        <dxl:MinAgg Mdid="0.2142.1.0"/>
+        <dxl:MaxAgg Mdid="0.2126.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="3" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalUpdate DeleteColumns="1,2,3" InsertColumns="1,3,3" CtidCol="4" SegmentIdCol="10" PreserveOids="false">
+        <dxl:TableDescriptor Mdid="0.49159.1.0" TableName="test">
+          <dxl:Columns>
+            <dxl:Column ColId="11" Attno="1" ColName="v_date_old" TypeMdid="0.1114.1.0" ColWidth="8"/>
+            <dxl:Column ColId="12" Attno="2" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="0"/>
+            <dxl:Column ColId="13" Attno="3" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="6"/>
+            <dxl:Column ColId="14" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+            <dxl:Column ColId="15" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="16" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="17" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="18" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="19" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+            <dxl:Column ColId="20" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.49159.1.0" TableName="test">
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="v_date_old" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="2" Attno="2" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="0"/>
+              <dxl:Column ColId="3" Attno="3" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="6"/>
+              <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+              <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+              <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+              <dxl:Column ColId="7" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+              <dxl:Column ColId="8" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+              <dxl:Column ColId="9" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+              <dxl:Column ColId="10" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+      </dxl:LogicalUpdate>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="2">
+      <dxl:DMLUpdate Columns="0,1,2" ActionCol="10" OidCol="11" CtidCol="3" SegmentIdCol="9" InputSorted="false" PreserveOids="false">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="431.109445" Rows="1.000000" Width="1"/>
+        </dxl:Properties>
+        <dxl:DirectDispatchInfo/>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="v_date_old">
+            <dxl:Ident ColId="0" ColName="v_date_old" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="v_varchar1_old">
+            <dxl:Ident ColId="1" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="s_varchar_old">
+            <dxl:Ident ColId="2" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:TableDescriptor Mdid="0.49159.1.0" TableName="test">
+          <dxl:Columns>
+            <dxl:Column ColId="12" Attno="1" ColName="v_date_old" TypeMdid="0.1114.1.0" ColWidth="8"/>
+            <dxl:Column ColId="13" Attno="2" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="0"/>
+            <dxl:Column ColId="14" Attno="3" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="6"/>
+            <dxl:Column ColId="15" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+            <dxl:Column ColId="16" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="17" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="18" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="19" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="20" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+            <dxl:Column ColId="21" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+        <dxl:Result>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="431.000070" Rows="2.000000" Width="42"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="v_date_old">
+              <dxl:Ident ColId="0" ColName="v_date_old" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="v_varchar1_old">
+              <dxl:Ident ColId="1" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="s_varchar_old">
+              <dxl:Ident ColId="2" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="ctid">
+              <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="9" Alias="gp_segment_id">
+              <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="10" Alias="ColRef_0010">
+              <dxl:Ident ColId="10" ColName="ColRef_0010" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="11" Alias="ColRef_0011">
+              <dxl:ConstValue TypeMdid="0.26.1.0" Value="49159"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:OneTimeFilter/>
+          <dxl:Split DeleteColumns="0,1,2" InsertColumns="0,2,2" ActionCol="10" CtidCol="3" SegmentIdCol="9" PreserveOids="false">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="431.000042" Rows="2.000000" Width="28"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="0" Alias="v_date_old">
+                <dxl:Ident ColId="0" ColName="v_date_old" TypeMdid="0.1114.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="1" Alias="v_varchar1_old">
+                <dxl:Ident ColId="1" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="2" Alias="s_varchar_old">
+                <dxl:Ident ColId="2" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="3" Alias="ctid">
+                <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="9" Alias="gp_segment_id">
+                <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="10" Alias="ColRef_0010">
+                <dxl:DMLAction/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:TableScan>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="431.000008" Rows="1.000000" Width="24"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="v_date_old">
+                  <dxl:Ident ColId="0" ColName="v_date_old" TypeMdid="0.1114.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="v_varchar1_old">
+                  <dxl:Ident ColId="1" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="2" Alias="s_varchar_old">
+                  <dxl:Ident ColId="2" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="3" Alias="ctid">
+                  <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="9" Alias="gp_segment_id">
+                  <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:TableDescriptor Mdid="0.49159.1.0" TableName="test">
+                <dxl:Columns>
+                  <dxl:Column ColId="0" Attno="1" ColName="v_date_old" TypeMdid="0.1114.1.0" ColWidth="8"/>
+                  <dxl:Column ColId="1" Attno="2" ColName="v_varchar1_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="0"/>
+                  <dxl:Column ColId="2" Attno="3" ColName="s_varchar_old" TypeMdid="0.1043.1.0" TypeModifier="14" ColWidth="6"/>
+                  <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+                  <dxl:Column ColId="4" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+                  <dxl:Column ColId="5" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+                  <dxl:Column ColId="6" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+                  <dxl:Column ColId="7" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+                  <dxl:Column ColId="8" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+                  <dxl:Column ColId="9" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:TableScan>
+          </dxl:Split>
+        </dxl:Result>
+      </dxl:DMLUpdate>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>

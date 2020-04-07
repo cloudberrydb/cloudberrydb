@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+select count(*) from (select unnest(arr) i, 1 j from (select string_to_array('aa|bb', '|') as arr) a ) b;
+-->
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
+        <dxl:CostParams>
+          <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
+        </dxl:CostParams>
+      </dxl:CostModelConfig>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="1000000"/>
+      <dxl:TraceFlags Value="103027,101013,102120,103001,103003,103014,103015,103022,104004,104005,105000"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.410.1.0"/>
+        <dxl:InequalityOp Mdid="0.411.1.0"/>
+        <dxl:LessThanOp Mdid="0.412.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.413.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1016.1.0"/>
+        <dxl:MinAgg Mdid="0.2131.1.0"/>
+        <dxl:MaxAgg Mdid="0.2115.1.0"/>
+        <dxl:AvgAgg Mdid="0.2100.1.0"/>
+        <dxl:SumAgg Mdid="0.2107.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.98.1.0"/>
+        <dxl:InequalityOp Mdid="0.531.1.0"/>
+        <dxl:LessThanOp Mdid="0.664.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
+        <dxl:ComparisonOp Mdid="0.360.1.0"/>
+        <dxl:ArrayType Mdid="0.1009.1.0"/>
+        <dxl:MinAgg Mdid="0.2145.1.0"/>
+        <dxl:MaxAgg Mdid="0.2129.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:GPDBFunc Mdid="0.3240.1.0" Name="unnest" ReturnsSet="true" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+        <dxl:ResultType Mdid="0.2283.1.0"/>
+      </dxl:GPDBFunc>
+      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.1070.1.0"/>
+        <dxl:InequalityOp Mdid="0.1071.1.0"/>
+        <dxl:LessThanOp Mdid="0.1072.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1074.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1073.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1075.1.0"/>
+        <dxl:ComparisonOp Mdid="0.382.1.0"/>
+        <dxl:ArrayType Mdid="0.0.0.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="5" ColName="count" TypeMdid="0.20.1.0"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalGroupBy>
+        <dxl:GroupingColumns/>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="5" Alias="count">
+            <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Normal"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:LogicalProject>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="3" Alias="i">
+              <dxl:FuncExpr FuncId="0.3240.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
+                <dxl:Ident ColId="2" ColName="arr" TypeMdid="0.1009.1.0"/>
+              </dxl:FuncExpr>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="j">
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:LogicalProject>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="2" Alias="arr">
+                <dxl:ConstValue TypeMdid="0.1009.1.0" Value="AAAAKAEAAAAAAAAAGQAAAAIAAAABAAAAAAAABmFhAAAAAAAGYmIAAA=="/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:LogicalConstTable>
+              <dxl:Columns>
+                <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
+              </dxl:Columns>
+              <dxl:ConstTuple>
+                <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
+              </dxl:ConstTuple>
+            </dxl:LogicalConstTable>
+          </dxl:LogicalProject>
+        </dxl:LogicalProject>
+      </dxl:LogicalGroupBy>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="2">
+      <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="8"/>
+        </dxl:Properties>
+        <dxl:GroupingColumns/>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="4" Alias="count">
+            <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
+              <dxl:Ident ColId="5" ColName="ColRef_0005" TypeMdid="0.20.1.0"/>
+            </dxl:AggFunc>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="0.000010" Rows="1.000000" Width="8"/>
+          </dxl:Properties>
+          <dxl:GroupingColumns/>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="5" Alias="ColRef_0005">
+              <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:Result>
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="0.000010" Rows="1.000000" Width="8"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="2" Alias="i">
+                <dxl:FuncExpr FuncId="0.3240.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
+                  <dxl:Ident ColId="1" ColName="arr" TypeMdid="0.1009.1.0"/>
+                </dxl:FuncExpr>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:OneTimeFilter/>
+            <dxl:Result>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="0.000009" Rows="1.000000" Width="8"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="1" Alias="arr">
+                  <dxl:ConstValue TypeMdid="0.1009.1.0" Value="AAAAKAEAAAAAAAAAGQAAAAIAAAABAAAAAAAABmFhAAAAAAAGYmIAAA=="/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:OneTimeFilter/>
+              <dxl:Result>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="0.000001" Rows="1.000000" Width="1"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="0" Alias="">
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:OneTimeFilter/>
+              </dxl:Result>
+            </dxl:Result>
+          </dxl:Result>
+        </dxl:Aggregate>
+      </dxl:Aggregate>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>

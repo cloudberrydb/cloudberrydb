@@ -1,0 +1,1697 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CREATE TABLE pt (i int, j int, k int) DISTRIBUTED BY (i)
+PARTITION BY RANGE(k)
+  SUBPARTITION BY RANGE(j) SUBPARTITION TEMPLATE (START (1) END (10) EVERY (3))
+( START (1) END (12) EVERY (2));
+
+create table foo (a int, b int) distributed by (a);
+create table bar (a int, b int) distributed by (a);
+
+insert into pt select generate_series(2,10), generate_series(4,9), generate_series(2,11);
+insert into foo select generate_series(1,10), generate_series(1,3);
+insert into bar select generate_series(1,10), generate_series(1,3);
+analyze pt;
+analyze foo;
+analyze bar;
+
+select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
+-->
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2">
+        <dxl:CostParams>
+          <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
+        </dxl:CostParams>
+      </dxl:CostModelConfig>
+      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,103023"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:ColumnStatistics Mdid="1.208136.15779.15780.4" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:GPDBScalarOp Mdid="0.97.15357.15358" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15359.15360"/>
+        <dxl:Commutator Mdid="0.521.15361.15362"/>
+        <dxl:InverseOp Mdid="0.525.15363.15364"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15365.15366"/>
+          <dxl:Opfamily Mdid="0.3027.15367.15368"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15333.15334" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15335.15336"/>
+        <dxl:Commutator Mdid="0.521.15337.15338"/>
+        <dxl:InverseOp Mdid="0.525.15339.15340"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15341.15342"/>
+          <dxl:Opfamily Mdid="0.3027.15343.15344"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15309.15310" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15311.15312"/>
+        <dxl:Commutator Mdid="0.521.15313.15314"/>
+        <dxl:InverseOp Mdid="0.525.15315.15316"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15317.15318"/>
+          <dxl:Opfamily Mdid="0.3027.15319.15320"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15285.15286" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15287.15288"/>
+        <dxl:Commutator Mdid="0.521.15289.15290"/>
+        <dxl:InverseOp Mdid="0.525.15291.15292"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15293.15294"/>
+          <dxl:Opfamily Mdid="0.3027.15295.15296"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15261.15262" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15263.15264"/>
+        <dxl:Commutator Mdid="0.521.15265.15266"/>
+        <dxl:InverseOp Mdid="0.525.15267.15268"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15269.15270"/>
+          <dxl:Opfamily Mdid="0.3027.15271.15272"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15237.15238" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15239.15240"/>
+        <dxl:Commutator Mdid="0.521.15241.15242"/>
+        <dxl:InverseOp Mdid="0.525.15243.15244"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15245.15246"/>
+          <dxl:Opfamily Mdid="0.3027.15247.15248"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15213.15214" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15215.15216"/>
+        <dxl:Commutator Mdid="0.521.15217.15218"/>
+        <dxl:InverseOp Mdid="0.525.15219.15220"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15221.15222"/>
+          <dxl:Opfamily Mdid="0.3027.15223.15224"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15189.15190" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15191.15192"/>
+        <dxl:Commutator Mdid="0.521.15193.15194"/>
+        <dxl:InverseOp Mdid="0.525.15195.15196"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15197.15198"/>
+          <dxl:Opfamily Mdid="0.3027.15199.15200"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15165.15166" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15167.15168"/>
+        <dxl:Commutator Mdid="0.521.15169.15170"/>
+        <dxl:InverseOp Mdid="0.525.15171.15172"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15173.15174"/>
+          <dxl:Opfamily Mdid="0.3027.15175.15176"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15141.15142" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15143.15144"/>
+        <dxl:Commutator Mdid="0.521.15145.15146"/>
+        <dxl:InverseOp Mdid="0.525.15147.15148"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15149.15150"/>
+          <dxl:Opfamily Mdid="0.3027.15151.15152"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15117.15118" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15119.15120"/>
+        <dxl:Commutator Mdid="0.521.15121.15122"/>
+        <dxl:InverseOp Mdid="0.525.15123.15124"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15125.15126"/>
+          <dxl:Opfamily Mdid="0.3027.15127.15128"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15093.15094" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15095.15096"/>
+        <dxl:Commutator Mdid="0.521.15097.15098"/>
+        <dxl:InverseOp Mdid="0.525.15099.15100"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15101.15102"/>
+          <dxl:Opfamily Mdid="0.3027.15103.15104"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15069.15070" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15071.15072"/>
+        <dxl:Commutator Mdid="0.521.15073.15074"/>
+        <dxl:InverseOp Mdid="0.525.15075.15076"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15077.15078"/>
+          <dxl:Opfamily Mdid="0.3027.15079.15080"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15045.15046" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15047.15048"/>
+        <dxl:Commutator Mdid="0.521.15049.15050"/>
+        <dxl:InverseOp Mdid="0.525.15051.15052"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15053.15054"/>
+          <dxl:Opfamily Mdid="0.3027.15055.15056"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15021.15022" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15023.15024"/>
+        <dxl:Commutator Mdid="0.521.15025.15026"/>
+        <dxl:InverseOp Mdid="0.525.15027.15028"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15029.15030"/>
+          <dxl:Opfamily Mdid="0.3027.15031.15032"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.14997.14998" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.14999.15000"/>
+        <dxl:Commutator Mdid="0.521.15001.15002"/>
+        <dxl:InverseOp Mdid="0.525.15003.15004"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15005.15006"/>
+          <dxl:Opfamily Mdid="0.3027.15007.15008"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.14973.14974" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.14975.14976"/>
+        <dxl:Commutator Mdid="0.521.14977.14978"/>
+        <dxl:InverseOp Mdid="0.525.14979.14980"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14981.14982"/>
+          <dxl:Opfamily Mdid="0.3027.14983.14984"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.14949.14950" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.14951.14952"/>
+        <dxl:Commutator Mdid="0.521.14953.14954"/>
+        <dxl:InverseOp Mdid="0.525.14955.14956"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14957.14958"/>
+          <dxl:Opfamily Mdid="0.3027.14959.14960"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.14925.14926" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.14927.14928"/>
+        <dxl:Commutator Mdid="0.521.14929.14930"/>
+        <dxl:InverseOp Mdid="0.525.14931.14932"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14933.14934"/>
+          <dxl:Opfamily Mdid="0.3027.14935.14936"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.14901.14902" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.14903.14904"/>
+        <dxl:Commutator Mdid="0.521.14905.14906"/>
+        <dxl:InverseOp Mdid="0.525.14907.14908"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14909.14910"/>
+          <dxl:Opfamily Mdid="0.3027.14911.14912"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.5" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.4" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="18.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.147.15929.15930"/>
+        <dxl:Commutator Mdid="0.97.15931.15932"/>
+        <dxl:InverseOp Mdid="0.523.15933.15934"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15935.15936"/>
+          <dxl:Opfamily Mdid="0.3027.15937.15938"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.523.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.149.15919.15920"/>
+        <dxl:Commutator Mdid="0.525.15921.15922"/>
+        <dxl:InverseOp Mdid="0.521.15923.15924"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15925.15926"/>
+          <dxl:Opfamily Mdid="0.3027.15927.15928"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15939.15940"/>
+        <dxl:Commutator Mdid="0.523.15941.15942"/>
+        <dxl:InverseOp Mdid="0.97.15943.15944"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15945.15946"/>
+          <dxl:Opfamily Mdid="0.3027.15947.15948"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.208131.15777.15778.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.208131.15777.15778.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.607.1.0"/>
+        <dxl:InequalityOp Mdid="0.608.1.0"/>
+        <dxl:LessThanOp Mdid="0.609.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
+        <dxl:ComparisonOp Mdid="0.356.1.0"/>
+        <dxl:ArrayType Mdid="0.1028.1.0"/>
+        <dxl:MinAgg Mdid="0.2118.1.0"/>
+        <dxl:MaxAgg Mdid="0.2134.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.387.15809.15810"/>
+        <dxl:InequalityOp Mdid="0.402.15811.15812"/>
+        <dxl:LessThanOp Mdid="0.2799.15813.15814"/>
+        <dxl:LessThanEqualsOp Mdid="0.2801.15815.15816"/>
+        <dxl:GreaterThanOp Mdid="0.2800.15817.15818"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2802.15819.15820"/>
+        <dxl:ComparisonOp Mdid="0.2794.15821.15822"/>
+        <dxl:ArrayType Mdid="0.1010.15829.15830"/>
+        <dxl:MinAgg Mdid="0.2798.15823.15824"/>
+        <dxl:MaxAgg Mdid="0.2797.15825.15826"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.15827.15828"/>
+      </dxl:Type>
+      <dxl:RelationStatistics Mdid="2.208131.15777.15778" Name="foo" Rows="30.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.208131.15777.15778" Name="foo" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="4,2">
+        <dxl:Columns>
+          <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:RelationStatistics Mdid="2.208136.15779.15780" Name="bar" Rows="30.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.208136.15779.15780" Name="bar" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="4,2">
+        <dxl:Columns>
+          <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:GPDBScalarOp Mdid="0.525.15753.15754" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15755.15756"/>
+        <dxl:Commutator Mdid="0.523.15757.15758"/>
+        <dxl:InverseOp Mdid="0.97.15759.15760"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15761.15762"/>
+          <dxl:Opfamily Mdid="0.3027.15763.15764"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15729.15730" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15731.15732"/>
+        <dxl:Commutator Mdid="0.523.15733.15734"/>
+        <dxl:InverseOp Mdid="0.97.15735.15736"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15737.15738"/>
+          <dxl:Opfamily Mdid="0.3027.15739.15740"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15705.15706" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15707.15708"/>
+        <dxl:Commutator Mdid="0.523.15709.15710"/>
+        <dxl:InverseOp Mdid="0.97.15711.15712"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15713.15714"/>
+          <dxl:Opfamily Mdid="0.3027.15715.15716"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15681.15682" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15683.15684"/>
+        <dxl:Commutator Mdid="0.523.15685.15686"/>
+        <dxl:InverseOp Mdid="0.97.15687.15688"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15689.15690"/>
+          <dxl:Opfamily Mdid="0.3027.15691.15692"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15657.15658" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15659.15660"/>
+        <dxl:Commutator Mdid="0.523.15661.15662"/>
+        <dxl:InverseOp Mdid="0.97.15663.15664"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15665.15666"/>
+          <dxl:Opfamily Mdid="0.3027.15667.15668"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15633.15634" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15635.15636"/>
+        <dxl:Commutator Mdid="0.523.15637.15638"/>
+        <dxl:InverseOp Mdid="0.97.15639.15640"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15641.15642"/>
+          <dxl:Opfamily Mdid="0.3027.15643.15644"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15609.15610" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15611.15612"/>
+        <dxl:Commutator Mdid="0.523.15613.15614"/>
+        <dxl:InverseOp Mdid="0.97.15615.15616"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15617.15618"/>
+          <dxl:Opfamily Mdid="0.3027.15619.15620"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15585.15586" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15587.15588"/>
+        <dxl:Commutator Mdid="0.523.15589.15590"/>
+        <dxl:InverseOp Mdid="0.97.15591.15592"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15593.15594"/>
+          <dxl:Opfamily Mdid="0.3027.15595.15596"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15561.15562" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15563.15564"/>
+        <dxl:Commutator Mdid="0.523.15565.15566"/>
+        <dxl:InverseOp Mdid="0.97.15567.15568"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15569.15570"/>
+          <dxl:Opfamily Mdid="0.3027.15571.15572"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15537.15538" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15539.15540"/>
+        <dxl:Commutator Mdid="0.523.15541.15542"/>
+        <dxl:InverseOp Mdid="0.97.15543.15544"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15545.15546"/>
+          <dxl:Opfamily Mdid="0.3027.15547.15548"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15513.15514" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15515.15516"/>
+        <dxl:Commutator Mdid="0.523.15517.15518"/>
+        <dxl:InverseOp Mdid="0.97.15519.15520"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15521.15522"/>
+          <dxl:Opfamily Mdid="0.3027.15523.15524"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15489.15490" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15491.15492"/>
+        <dxl:Commutator Mdid="0.523.15493.15494"/>
+        <dxl:InverseOp Mdid="0.97.15495.15496"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15497.15498"/>
+          <dxl:Opfamily Mdid="0.3027.15499.15500"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15465.15466" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15467.15468"/>
+        <dxl:Commutator Mdid="0.523.15469.15470"/>
+        <dxl:InverseOp Mdid="0.97.15471.15472"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15473.15474"/>
+          <dxl:Opfamily Mdid="0.3027.15475.15476"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15441.15442" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15443.15444"/>
+        <dxl:Commutator Mdid="0.523.15445.15446"/>
+        <dxl:InverseOp Mdid="0.97.15447.15448"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15449.15450"/>
+          <dxl:Opfamily Mdid="0.3027.15451.15452"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15417.15418" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15419.15420"/>
+        <dxl:Commutator Mdid="0.523.15421.15422"/>
+        <dxl:InverseOp Mdid="0.97.15423.15424"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15425.15426"/>
+          <dxl:Opfamily Mdid="0.3027.15427.15428"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15393.15394" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15395.15396"/>
+        <dxl:Commutator Mdid="0.523.15397.15398"/>
+        <dxl:InverseOp Mdid="0.97.15399.15400"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15401.15402"/>
+          <dxl:Opfamily Mdid="0.3027.15403.15404"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15369.15370" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15371.15372"/>
+        <dxl:Commutator Mdid="0.523.15373.15374"/>
+        <dxl:InverseOp Mdid="0.97.15375.15376"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15377.15378"/>
+          <dxl:Opfamily Mdid="0.3027.15379.15380"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.208131.15777.15778.3" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:ColumnStatistics Mdid="1.208131.15777.15778.2" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="30.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:ColumnStatistics Mdid="1.208136.15779.15780.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.208136.15779.15780.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:GPDBScalarOp Mdid="0.96.15795.15796" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.65.15797.15798"/>
+        <dxl:Commutator Mdid="0.96.15799.15800"/>
+        <dxl:InverseOp Mdid="0.518.15801.15802"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15803.15804"/>
+          <dxl:Opfamily Mdid="0.1979.15805.15806"/>
+          <dxl:Opfamily Mdid="0.3027.15807.15808"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.96.15781.15782" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.65.15783.15784"/>
+        <dxl:Commutator Mdid="0.96.15785.15786"/>
+        <dxl:InverseOp Mdid="0.518.15787.15788"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15789.15790"/>
+          <dxl:Opfamily Mdid="0.1979.15791.15792"/>
+          <dxl:Opfamily Mdid="0.3027.15793.15794"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15765.15766" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15767.15768"/>
+        <dxl:Commutator Mdid="0.521.15769.15770"/>
+        <dxl:InverseOp Mdid="0.525.15771.15772"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15773.15774"/>
+          <dxl:Opfamily Mdid="0.3027.15775.15776"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15741.15742" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15743.15744"/>
+        <dxl:Commutator Mdid="0.521.15745.15746"/>
+        <dxl:InverseOp Mdid="0.525.15747.15748"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15749.15750"/>
+          <dxl:Opfamily Mdid="0.3027.15751.15752"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15717.15718" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15719.15720"/>
+        <dxl:Commutator Mdid="0.521.15721.15722"/>
+        <dxl:InverseOp Mdid="0.525.15723.15724"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15725.15726"/>
+          <dxl:Opfamily Mdid="0.3027.15727.15728"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15693.15694" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15695.15696"/>
+        <dxl:Commutator Mdid="0.521.15697.15698"/>
+        <dxl:InverseOp Mdid="0.525.15699.15700"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15701.15702"/>
+          <dxl:Opfamily Mdid="0.3027.15703.15704"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15669.15670" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15671.15672"/>
+        <dxl:Commutator Mdid="0.521.15673.15674"/>
+        <dxl:InverseOp Mdid="0.525.15675.15676"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15677.15678"/>
+          <dxl:Opfamily Mdid="0.3027.15679.15680"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15645.15646" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15647.15648"/>
+        <dxl:Commutator Mdid="0.521.15649.15650"/>
+        <dxl:InverseOp Mdid="0.525.15651.15652"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15653.15654"/>
+          <dxl:Opfamily Mdid="0.3027.15655.15656"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15621.15622" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15623.15624"/>
+        <dxl:Commutator Mdid="0.521.15625.15626"/>
+        <dxl:InverseOp Mdid="0.525.15627.15628"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15629.15630"/>
+          <dxl:Opfamily Mdid="0.3027.15631.15632"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15597.15598" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15599.15600"/>
+        <dxl:Commutator Mdid="0.521.15601.15602"/>
+        <dxl:InverseOp Mdid="0.525.15603.15604"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15605.15606"/>
+          <dxl:Opfamily Mdid="0.3027.15607.15608"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15573.15574" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15575.15576"/>
+        <dxl:Commutator Mdid="0.521.15577.15578"/>
+        <dxl:InverseOp Mdid="0.525.15579.15580"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15581.15582"/>
+          <dxl:Opfamily Mdid="0.3027.15583.15584"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15549.15550" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15551.15552"/>
+        <dxl:Commutator Mdid="0.521.15553.15554"/>
+        <dxl:InverseOp Mdid="0.525.15555.15556"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15557.15558"/>
+          <dxl:Opfamily Mdid="0.3027.15559.15560"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15525.15526" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15527.15528"/>
+        <dxl:Commutator Mdid="0.521.15529.15530"/>
+        <dxl:InverseOp Mdid="0.525.15531.15532"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15533.15534"/>
+          <dxl:Opfamily Mdid="0.3027.15535.15536"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15501.15502" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15503.15504"/>
+        <dxl:Commutator Mdid="0.521.15505.15506"/>
+        <dxl:InverseOp Mdid="0.525.15507.15508"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15509.15510"/>
+          <dxl:Opfamily Mdid="0.3027.15511.15512"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15477.15478" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15479.15480"/>
+        <dxl:Commutator Mdid="0.521.15481.15482"/>
+        <dxl:InverseOp Mdid="0.525.15483.15484"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15485.15486"/>
+          <dxl:Opfamily Mdid="0.3027.15487.15488"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15453.15454" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15455.15456"/>
+        <dxl:Commutator Mdid="0.521.15457.15458"/>
+        <dxl:InverseOp Mdid="0.525.15459.15460"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15461.15462"/>
+          <dxl:Opfamily Mdid="0.3027.15463.15464"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15429.15430" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15431.15432"/>
+        <dxl:Commutator Mdid="0.521.15433.15434"/>
+        <dxl:InverseOp Mdid="0.525.15435.15436"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15437.15438"/>
+          <dxl:Opfamily Mdid="0.3027.15439.15440"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15405.15406" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15407.15408"/>
+        <dxl:Commutator Mdid="0.521.15409.15410"/>
+        <dxl:InverseOp Mdid="0.525.15411.15412"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15413.15414"/>
+          <dxl:Opfamily Mdid="0.3027.15415.15416"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.97.15381.15382" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15383.15384"/>
+        <dxl:Commutator Mdid="0.521.15385.15386"/>
+        <dxl:InverseOp Mdid="0.525.15387.15388"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15389.15390"/>
+          <dxl:Opfamily Mdid="0.3027.15391.15392"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.1" Name="j" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.166500" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.0" Name="i" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.111000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.208131.15777.15778.4" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:MDCast Mdid="3.23.1.0;23.1.0" Name="int4" BinaryCoercible="true" SourceTypeId="0.23.1.0" DestinationTypeId="0.23.1.0" CastFuncId="0.0.0.0"/>
+      <dxl:RelationStatistics Mdid="2.312123.14887.14888" Name="pt" Rows="90.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.312123.14887.14888" Name="pt" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="4,5,3" PartitionColumns="2,1" PartitionTypes="r,r">
+        <dxl:Columns>
+          <dxl:Column Name="i" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="j" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="k" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.66.15909.15910"/>
+        <dxl:Commutator Mdid="0.521.15911.15912"/>
+        <dxl:InverseOp Mdid="0.525.15913.15914"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15915.15916"/>
+          <dxl:Opfamily Mdid="0.3027.15917.15918"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.208136.15779.15780.3" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:ColumnStatistics Mdid="1.208136.15779.15780.2" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="30.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.65.15831.15832"/>
+        <dxl:Commutator Mdid="0.96.15833.15834"/>
+        <dxl:InverseOp Mdid="0.518.15835.15836"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15837.15838"/>
+          <dxl:Opfamily Mdid="0.1979.15839.15840"/>
+          <dxl:Opfamily Mdid="0.3027.15841.15842"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.3" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="90.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:ColumnStatistics Mdid="1.312123.14887.14888.2" Name="k" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="4"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="5"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="6"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="7"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="8"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="9"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.099900" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="11"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="11"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:GPDBScalarOp Mdid="0.525.15345.15346" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15347.15348"/>
+        <dxl:Commutator Mdid="0.523.15349.15350"/>
+        <dxl:InverseOp Mdid="0.97.15351.15352"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15353.15354"/>
+          <dxl:Opfamily Mdid="0.3027.15355.15356"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15321.15322" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15323.15324"/>
+        <dxl:Commutator Mdid="0.523.15325.15326"/>
+        <dxl:InverseOp Mdid="0.97.15327.15328"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15329.15330"/>
+          <dxl:Opfamily Mdid="0.3027.15331.15332"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15297.15298" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15299.15300"/>
+        <dxl:Commutator Mdid="0.523.15301.15302"/>
+        <dxl:InverseOp Mdid="0.97.15303.15304"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15305.15306"/>
+          <dxl:Opfamily Mdid="0.3027.15307.15308"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15273.15274" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15275.15276"/>
+        <dxl:Commutator Mdid="0.523.15277.15278"/>
+        <dxl:InverseOp Mdid="0.97.15279.15280"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15281.15282"/>
+          <dxl:Opfamily Mdid="0.3027.15283.15284"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15249.15250" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15251.15252"/>
+        <dxl:Commutator Mdid="0.523.15253.15254"/>
+        <dxl:InverseOp Mdid="0.97.15255.15256"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15257.15258"/>
+          <dxl:Opfamily Mdid="0.3027.15259.15260"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15225.15226" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15227.15228"/>
+        <dxl:Commutator Mdid="0.523.15229.15230"/>
+        <dxl:InverseOp Mdid="0.97.15231.15232"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15233.15234"/>
+          <dxl:Opfamily Mdid="0.3027.15235.15236"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15201.15202" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15203.15204"/>
+        <dxl:Commutator Mdid="0.523.15205.15206"/>
+        <dxl:InverseOp Mdid="0.97.15207.15208"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15209.15210"/>
+          <dxl:Opfamily Mdid="0.3027.15211.15212"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15177.15178" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15179.15180"/>
+        <dxl:Commutator Mdid="0.523.15181.15182"/>
+        <dxl:InverseOp Mdid="0.97.15183.15184"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15185.15186"/>
+          <dxl:Opfamily Mdid="0.3027.15187.15188"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15153.15154" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15155.15156"/>
+        <dxl:Commutator Mdid="0.523.15157.15158"/>
+        <dxl:InverseOp Mdid="0.97.15159.15160"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15161.15162"/>
+          <dxl:Opfamily Mdid="0.3027.15163.15164"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15129.15130" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15131.15132"/>
+        <dxl:Commutator Mdid="0.523.15133.15134"/>
+        <dxl:InverseOp Mdid="0.97.15135.15136"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15137.15138"/>
+          <dxl:Opfamily Mdid="0.3027.15139.15140"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15105.15106" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15107.15108"/>
+        <dxl:Commutator Mdid="0.523.15109.15110"/>
+        <dxl:InverseOp Mdid="0.97.15111.15112"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15113.15114"/>
+          <dxl:Opfamily Mdid="0.3027.15115.15116"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15081.15082" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15083.15084"/>
+        <dxl:Commutator Mdid="0.523.15085.15086"/>
+        <dxl:InverseOp Mdid="0.97.15087.15088"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15089.15090"/>
+          <dxl:Opfamily Mdid="0.3027.15091.15092"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15057.15058" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15059.15060"/>
+        <dxl:Commutator Mdid="0.523.15061.15062"/>
+        <dxl:InverseOp Mdid="0.97.15063.15064"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15065.15066"/>
+          <dxl:Opfamily Mdid="0.3027.15067.15068"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15033.15034" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15035.15036"/>
+        <dxl:Commutator Mdid="0.523.15037.15038"/>
+        <dxl:InverseOp Mdid="0.97.15039.15040"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15041.15042"/>
+          <dxl:Opfamily Mdid="0.3027.15043.15044"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.15009.15010" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.15011.15012"/>
+        <dxl:Commutator Mdid="0.523.15013.15014"/>
+        <dxl:InverseOp Mdid="0.97.15015.15016"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.15017.15018"/>
+          <dxl:Opfamily Mdid="0.3027.15019.15020"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.14985.14986" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.14987.14988"/>
+        <dxl:Commutator Mdid="0.523.14989.14990"/>
+        <dxl:InverseOp Mdid="0.97.14991.14992"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14993.14994"/>
+          <dxl:Opfamily Mdid="0.3027.14995.14996"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.14961.14962" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.14963.14964"/>
+        <dxl:Commutator Mdid="0.523.14965.14966"/>
+        <dxl:InverseOp Mdid="0.97.14967.14968"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14969.14970"/>
+          <dxl:Opfamily Mdid="0.3027.14971.14972"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.14937.14938" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.14939.14940"/>
+        <dxl:Commutator Mdid="0.523.14941.14942"/>
+        <dxl:InverseOp Mdid="0.97.14943.14944"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14945.14946"/>
+          <dxl:Opfamily Mdid="0.3027.14947.14948"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.14913.14914" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.14915.14916"/>
+        <dxl:Commutator Mdid="0.523.14917.14918"/>
+        <dxl:InverseOp Mdid="0.97.14919.14920"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14921.14922"/>
+          <dxl:Opfamily Mdid="0.3027.14923.14924"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.525.14889.14890" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.150.14891.14892"/>
+        <dxl:Commutator Mdid="0.523.14893.14894"/>
+        <dxl:InverseOp Mdid="0.97.14895.14896"/>
+        <dxl:Opfamilies>
+          <dxl:Opfamily Mdid="0.1978.14897.14898"/>
+          <dxl:Opfamily Mdid="0.3027.14899.14900"/>
+        </dxl:Opfamilies>
+      </dxl:GPDBScalarOp>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="7" ColName="a" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="8" ColName="b" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="12" ColName="a" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="13" ColName="b" TypeMdid="0.23.1.0"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalJoin JoinType="Inner">
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.312123.14887.14888" TableName="pt">
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="2" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="3" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="5" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="6" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.208131.15777.15778" TableName="foo">
+            <dxl:Columns>
+              <dxl:Column ColId="7" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="8" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="9" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="10" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="11" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.208136.15779.15780" TableName="bar">
+            <dxl:Columns>
+              <dxl:Column ColId="12" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="13" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="14" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="15" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="16" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+        <dxl:And>
+          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15781.15782">
+            <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="7" ColName="a" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15795.15796">
+            <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="12" ColName="a" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+        </dxl:And>
+      </dxl:LogicalJoin>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="0">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="1293.216628" Rows="810.000000" Width="28"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="i">
+            <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="j">
+            <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="k">
+            <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="6" Alias="a">
+            <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="7" Alias="b">
+            <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="11" Alias="a">
+            <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="12" Alias="b">
+            <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:HashJoin JoinType="Inner">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="1293.114794" Rows="810.000000" Width="28"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="i">
+              <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="j">
+              <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="k">
+              <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="a">
+              <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="b">
+              <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="11" Alias="a">
+              <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="12" Alias="b">
+              <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:JoinFilter/>
+          <dxl:HashCondList>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15795.15796">
+              <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+            </dxl:Comparison>
+          </dxl:HashCondList>
+          <dxl:HashJoin JoinType="Inner">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="862.034622" Rows="270.000000" Width="20"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="0" Alias="i">
+                <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="1" Alias="j">
+                <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="2" Alias="k">
+                <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="6" Alias="a">
+                <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="7" Alias="b">
+                <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:JoinFilter/>
+            <dxl:HashCondList>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.15781.15782">
+                <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+            </dxl:HashCondList>
+            <dxl:DynamicTableScan PartIndexId="1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="431.000644" Rows="90.000000" Width="12"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="i">
+                  <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="j">
+                  <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="2" Alias="k">
+                  <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:TableDescriptor Mdid="0.312123.14887.14888" TableName="pt">
+                <dxl:Columns>
+                  <dxl:Column ColId="0" Attno="1" ColName="i" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="1" Attno="2" ColName="j" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="2" Attno="3" ColName="k" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="3" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                  <dxl:Column ColId="4" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="5" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:DynamicTableScan>
+            <dxl:PartitionSelector RelationMdid="0.312123.14887.14888" PartitionLevels="2" ScanId="1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="6" Alias="a">
+                  <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="7" Alias="b">
+                  <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:PartEqFilters>
+                <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+              </dxl:PartEqFilters>
+              <dxl:PartFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+              </dxl:PartFilters>
+              <dxl:ResidualFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+              </dxl:ResidualFilter>
+              <dxl:PropagationExpression>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+              </dxl:PropagationExpression>
+              <dxl:PrintableFilter>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
+                  <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+                </dxl:Comparison>
+              </dxl:PrintableFilter>
+              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="431.006687" Rows="60.000000" Width="8"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="6" Alias="a">
+                    <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="7" Alias="b">
+                    <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:SortingColumnList/>
+                <dxl:TableScan>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="431.000181" Rows="30.000000" Width="8"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="6" Alias="a">
+                      <dxl:Ident ColId="6" ColName="a" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="7" Alias="b">
+                      <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:TableDescriptor Mdid="0.208131.15777.15778" TableName="foo">
+                    <dxl:Columns>
+                      <dxl:Column ColId="6" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="7" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="8" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                      <dxl:Column ColId="9" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                      <dxl:Column ColId="10" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                    </dxl:Columns>
+                  </dxl:TableDescriptor>
+                </dxl:TableScan>
+              </dxl:BroadcastMotion>
+            </dxl:PartitionSelector>
+          </dxl:HashJoin>
+          <dxl:PartitionSelector RelationMdid="0.312123.14887.14888" PartitionLevels="2" ScanId="1">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="11" Alias="a">
+                <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="12" Alias="b">
+                <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:PartEqFilters>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+              <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+            </dxl:PartEqFilters>
+            <dxl:PartFilters>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+            </dxl:PartFilters>
+            <dxl:ResidualFilter>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+            </dxl:ResidualFilter>
+            <dxl:PropagationExpression>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+            </dxl:PropagationExpression>
+            <dxl:PrintableFilter>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+            </dxl:PrintableFilter>
+            <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="431.006687" Rows="60.000000" Width="8"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="11" Alias="a">
+                  <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="12" Alias="b">
+                  <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:SortingColumnList/>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000181" Rows="30.000000" Width="8"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="11" Alias="a">
+                    <dxl:Ident ColId="11" ColName="a" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="12" Alias="b">
+                    <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.208136.15779.15780" TableName="bar">
+                  <dxl:Columns>
+                    <dxl:Column ColId="11" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="12" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="14" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="15" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:BroadcastMotion>
+          </dxl:PartitionSelector>
+        </dxl:HashJoin>
+      </dxl:GatherMotion>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:TraceFlags Value="103027,101013,103001"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:GPDBFunc Mdid="0.973889.1.0" Name="unnest1" ReturnsSet="true" Stability="Immutable" DataAccess="ContainsSQL" IsStrict="false">
+        <dxl:ResultType Mdid="0.2283.1.0"/>
+      </dxl:GPDBFunc>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="1" ColName="unnest1" TypeMdid="0.23.1.0"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalTVF FuncId="0.973889.1.0" Name="unnest1" TypeMdid="0.23.1.0">
+        <dxl:Columns>
+          <dxl:Column ColId="1" Attno="1" ColName="unnest1" TypeMdid="0.23.1.0"/>
+        </dxl:Columns>
+        <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="123"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="456"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="789"/>
+        </dxl:Array>
+      </dxl:LogicalTVF>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:TableValuedFunction FuncId="0.973889.1.0" Name="unnest1" TypeMdid="0.23.1.0">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="7.812500" Rows="1000.000000" Width="4"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="unnest1">
+            <dxl:Ident ColId="0" ColName="unnest1" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="123"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="456"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="789"/>
+        </dxl:Array>
+      </dxl:TableValuedFunction>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>

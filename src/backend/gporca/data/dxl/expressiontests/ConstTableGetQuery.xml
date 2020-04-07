@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="2" ColName="?column?" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalProject>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="2" Alias="?column?">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:LogicalConstTable>
+        <dxl:Columns>
+          <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
+        </dxl:Columns>
+        <dxl:ConstTuple>
+          <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
+        </dxl:ConstTuple>
+      </dxl:LogicalConstTable>
+    </dxl:LogicalProject>
+  </dxl:Query>
+</dxl:DXLMessage>

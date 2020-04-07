@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="2" ColName="a" TypeMdid="0.1005.1.0"/>
+      <dxl:Ident ColId="3" ColName="b" TypeMdid="0.1007.1.0"/>
+      <dxl:Ident ColId="4" ColName="c" TypeMdid="0.1003.1.0"/>
+      <dxl:Ident ColId="5" ColName="d" TypeMdid="0.1009.1.0"/>
+      <dxl:Ident ColId="6" ColName="f" TypeMdid="0.1014.1.0"/>
+      <dxl:Ident ColId="7" ColName="g" TypeMdid="0.1015.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalInsert InsertColumns="2,3,4,5,22,6,7">
+      <dxl:TableDescriptor Mdid="0.5060573.1.1" TableName="arrtest">
+        <dxl:Columns>
+          <dxl:Column ColId="8" Attno="1" ColName="a" TypeMdid="0.1005.1.0"/>
+          <dxl:Column ColId="9" Attno="2" ColName="b" TypeMdid="0.1007.1.0"/>
+          <dxl:Column ColId="10" Attno="3" ColName="c" TypeMdid="0.1003.1.0"/>
+          <dxl:Column ColId="11" Attno="4" ColName="d" TypeMdid="0.1009.1.0"/>
+          <dxl:Column ColId="12" Attno="5" ColName="e" TypeMdid="0.1022.1.0"/>
+          <dxl:Column ColId="13" Attno="6" ColName="f" TypeMdid="0.1014.1.0"/>
+          <dxl:Column ColId="14" Attno="7" ColName="g" TypeMdid="0.1015.1.0"/>
+          <dxl:Column ColId="15" Attno="-1" ColName="ColId" TypeMdid="0.27.1.0"/>
+          <dxl:Column ColId="16" Attno="-3" ColName="IsDropped" TypeMdid="0.28.1.0"/>
+          <dxl:Column ColId="17" Attno="-4" ColName="ColWidth" TypeMdid="0.29.1.0"/>
+          <dxl:Column ColId="18" Attno="-5" ColName="NullFreq" TypeMdid="0.28.1.0"/>
+          <dxl:Column ColId="19" Attno="-6" ColName="NdvRemain" TypeMdid="0.29.1.0"/>
+          <dxl:Column ColId="20" Attno="-7" ColName="FreqRemain" TypeMdid="0.26.1.0"/>
+          <dxl:Column ColId="21" Attno="-8" ColName="ctid" TypeMdid="0.23.1.0"/>
+        </dxl:Columns>
+      </dxl:TableDescriptor>
+      <dxl:LogicalProject>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="22" Alias="e">
+            <dxl:ConstValue TypeMdid="0.1022.1.0" IsNull="true" IsByValue="false"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:LogicalProject>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="2" Alias="a">
+              <dxl:ArrayRef ElementType="0.21.1.0" ArrayType="0.1005.1.0" TypeMdid="0.1005.1.0">
+                <dxl:ArrayIndexList Bound="Lower">
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                </dxl:ArrayIndexList>
+                <dxl:ArrayIndexList Bound="Upper">
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
+                </dxl:ArrayIndexList>
+                <dxl:RefExpr>
+                  <dxl:ConstValue TypeMdid="0.1005.1.0" IsNull="true" IsByValue="false"/>
+                </dxl:RefExpr>
+                <dxl:AssignExpr>
+                  <dxl:ConstValue TypeMdid="0.1005.1.0" Value="AAAAIgEAAAAAAAAAFQAAAAUAAAABAAAAAQACAAMABAAFAA=="/>
+                </dxl:AssignExpr>
+              </dxl:ArrayRef>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="b">
+              <dxl:ArrayRef ElementType="0.23.1.0" ArrayType="0.1007.1.0" TypeMdid="0.1007.1.0">
+                <dxl:ArrayIndexList Bound="Lower">
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                </dxl:ArrayIndexList>
+                <dxl:ArrayIndexList Bound="Upper">
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
+                </dxl:ArrayIndexList>
+                <dxl:RefExpr>
+                  <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="true" IsByValue="false"/>
+                </dxl:RefExpr>
+                <dxl:AssignExpr>
+                  <dxl:ConstValue TypeMdid="0.1007.1.0" Value="AAAAOAMAAAAAAAAAFwAAAAEAAAACAAAAAgAAAAEAAAABAAAAAQAAAAAAAAAA&#10;AAAAAQAAAAIAAAA="/>
+                </dxl:AssignExpr>
+              </dxl:ArrayRef>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="c">
+              <dxl:ConstValue TypeMdid="0.1003.1.0" Value="AAAAEAAAAAAAAAAAEwAAAA=="/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="5" Alias="d">
+              <dxl:ConstValue TypeMdid="0.1009.1.0" Value="AAAAEAAAAAAAAAAAGQAAAA=="/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="f">
+              <dxl:FuncExpr FuncId="0.1291.1.0" FuncRetSet="false" TypeMdid="0.1014.1.0">
+                <dxl:ConstValue TypeMdid="0.1014.1.0" Value="AAAAEAAAAAAAAAAAEgQAAA=="/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="9"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
+              </dxl:FuncExpr>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="g">
+              <dxl:FuncExpr FuncId="0.1291.1.0" FuncRetSet="false" TypeMdid="0.1015.1.0">
+                <dxl:ConstValue TypeMdid="0.1015.1.0" Value="AAAAEAAAAAAAAAAAEwQAAA=="/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="9"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
+              </dxl:FuncExpr>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:LogicalConstTable>
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
+            </dxl:Columns>
+            <dxl:ConstTuple>
+              <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
+            </dxl:ConstTuple>
+          </dxl:LogicalConstTable>
+        </dxl:LogicalProject>
+      </dxl:LogicalProject>
+    </dxl:LogicalInsert>
+  </dxl:Query>
+</dxl:DXLMessage>

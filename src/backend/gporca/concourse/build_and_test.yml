@@ -1,0 +1,22 @@
+platform: linux
+image_resource:
+  type: docker-image
+inputs:
+  - name: bin_xerces
+  - name: orca_src
+
+caches:
+  - path: .ccache
+
+outputs:
+  - name: build_and_test
+params:
+  BUILD_TYPE:
+  OUTPUT_DIR:
+  SKIP_TESTS:
+run:
+  path: sh
+  args:
+  - -exc
+  - |
+    orca_src/concourse/build_and_test.py ${BUILD_TYPE} ${OUTPUT_DIR} ${SKIP_TESTS} bin_xerces

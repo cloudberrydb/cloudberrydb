@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Plan>
+  <TableScan>
+    <Properties>
+      <Cost StartupCost="1.005" TotalCost="5.8" Rows="5194" Width="10"/>
+    </Properties>
+    <ProjList>
+      <ProjElem ColId="1" Alias="c">
+        <If TypeMdid="0.23.1.0">
+          <BoolExpr OperatorName="or">
+            <Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <Ident ColId="1" ColName="c" TypeId="0.23.1.0"/>
+              <Ident ColId="2" ColName="d" TypeId="0.23.1.0"/>
+            </Comparison>
+            <Comparison ComparisonOperator="=" OpNo="0.96.1.0" OpFuncId="0.65.1.0">
+              <Ident ColId="3" ColName="e" TypeId="0.23.1.0"/>
+              <Ident ColId="4" ColName="f" TypeId="0.23.1.0"/>
+            </Comparison>
+          </BoolExpr>
+          <ConstValue TypeId="0.23.1.0" ConstNull="false" ConstByValue="true" Value="AgAAAA=="/>
+          <ConstValue TypeId="0.23.1.0" ConstNull="false" ConstByValue="true" Value="AgAAAA=="/>
+          <ConstValue TypeId="0.23.1.0" ConstNull="false" ConstByValue="true" Value="AgAAAA=="/>
+        </If>
+      </ProjElem>
+    </ProjList>
+    <Filter>
+      <Comparison ComparisonOperator="=" OpNo="0.96.1.0" OpFuncId="0.65.1.0">
+        <Ident ColId="1" ColName="c" TypeId="0.23.1.0"/>
+        <OpExpr OpName="*" OpNo="514" OpFuncId="141">
+          <ConstValue TypeId="0.23.1.0" ConstNull="false" ConstByValue="true" Value="AgAAAA=="/>
+          <OpExpr OpName="+" OpNo="551" OpFuncId="177">
+            <Ident ColId="2" ColName="d" TypeId="0.23.1.0"/>
+            <Ident ColId="3" ColName="e" TypeId="0.23.1.0"/>
+          </OpExpr>
+        </OpExpr>
+      </Comparison>
+    </Filter>
+    <TableDescriptor TableName="S">
+      <Columns>
+        <Column ColId="1" Attno="1" ColName="c"/>
+        <Column ColId="2" Attno="2" ColName="d"/>
+        <Column ColId="3" Attno="3" ColName="e"/>
+        <Column ColId="4" Attno="4" ColName="f"/>
+      </Columns>
+    </TableDescriptor>
+  </TableScan>
+</Plan>

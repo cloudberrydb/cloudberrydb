@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
+      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalLimit>
+      <dxl:SortingColumnList>
+        <dxl:SortingColumn ColId="1" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+      </dxl:SortingColumnList>
+      <dxl:LimitCount>
+        <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+        </dxl:FuncExpr>
+      </dxl:LimitCount>
+      <dxl:LimitOffset>
+        <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="12"/>
+        </dxl:FuncExpr>
+      </dxl:LimitOffset>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.17005.1.1" TableName="r">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalLimit>
+  </dxl:Query>
+</dxl:DXLMessage>

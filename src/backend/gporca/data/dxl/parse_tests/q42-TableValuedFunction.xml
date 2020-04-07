@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan Id="0" SpaceSize="0">
+    <dxl:TableValuedFunction FuncId="0.1067.1.0" Name="generate_series" TypeMdid="0.23.1.0">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="12"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="269" Alias="generate_series">
+          <dxl:Ident ColId="269" ColName="generate_series" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+      <dxl:ConstValue TypeMdid="0.23.1.0" Value="20"/>
+    </dxl:TableValuedFunction>
+  </dxl:Plan>
+</dxl:DXLMessage>

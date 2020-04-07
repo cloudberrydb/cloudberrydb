@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan Id="0" SpaceSize="0">
+    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="10" TotalCost="100" Rows="2000" Width="24"/>
+      </dxl:Properties>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="3" Alias="A">
+          <dxl:Ident ColId="3" ColName="A" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+        <dxl:ProjElem ColId="4" Alias="B">
+          <dxl:Ident ColId="5" ColName="C" TypeMdid="0.23.1.0"/>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:SortingColumnList/>
+      <dxl:Sequence>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="10" TotalCost="100" Rows="1000" Width="16"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="A">
+            <dxl:Ident ColId="0" ColName="A" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="B">
+            <dxl:Ident ColId="1" ColName="B" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:CTEProducer CTEId="0" Columns="1,2">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="1" Alias="A">
+              <dxl:Ident ColId="1" ColName="A" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="B">
+              <dxl:Ident ColId="2" ColName="B" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:TableScan>
+            <dxl:Properties>
+              <dxl:Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="1" Alias="A">
+                <dxl:Ident ColId="1" ColName="A" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="2" Alias="B">
+                <dxl:Ident ColId="2" ColName="B" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                <dxl:Ident ColId="1" ColName="A" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="2" ColName="B" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+            </dxl:Filter>
+            <dxl:TableDescriptor Mdid="0.1234.1.1" TableName="R">
+              <dxl:Columns>
+                <dxl:Column ColId="1" Attno="1" ColName="A" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="2" Attno="2" ColName="B" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
+          </dxl:TableScan>
+        </dxl:CTEProducer>
+        <dxl:Result>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="1.005" TotalCost="5.8" Rows="5194" Width="10"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="3" Alias="A">
+              <dxl:Ident ColId="3" ColName="A" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="B">
+              <dxl:Ident ColId="4" ColName="B" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <dxl:Ident ColId="3" ColName="a" TypeMdid="0.23.1.0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+            </dxl:Comparison>
+          </dxl:Filter>
+          <dxl:OneTimeFilter/>
+          <dxl:CTEConsumer CTEId="0" Columns="3,4">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="1.005" TotalCost="5.8" Rows="10" Width="8"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="3" Alias="A">
+                <dxl:Ident ColId="3" ColName="A" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="4" Alias="B">
+                <dxl:Ident ColId="4" ColName="B" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+          </dxl:CTEConsumer>
+        </dxl:Result>
+      </dxl:Sequence>
+    </dxl:GatherMotion>
+  </dxl:Plan>
+</dxl:DXLMessage>

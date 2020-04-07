@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="11" ColName="case" TypeMdid="0.25.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalProject>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="11" Alias="case">
+          <dxl:Switch TypeMdid="0.25.1.0">
+            <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
+              <dxl:Ident ColId="1" ColName="t1" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
+            </dxl:OpExpr>
+            <dxl:SwitchCase>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABXM=" LintValue="160588332"/>
+            </dxl:SwitchCase>
+          </dxl:Switch>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:LogicalGet>
+        <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">
+          <dxl:Columns>
+            <dxl:Column ColId="1" Attno="1" ColName="t1" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="2" Attno="2" ColName="t2" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="3" Attno="3" ColName="t3" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+            <dxl:Column ColId="5" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="6" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="7" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+            <dxl:Column ColId="8" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+            <dxl:Column ColId="9" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+            <dxl:Column ColId="10" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+      </dxl:LogicalGet>
+    </dxl:LogicalProject>
+  </dxl:Query>
+</dxl:DXLMessage>

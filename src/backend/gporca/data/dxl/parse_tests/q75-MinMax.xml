@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Query>
+    <dxl:OutputColumns>
+      <dxl:Ident ColId="2" ColName="least" TypeMdid="0.23.1.0"/>
+    </dxl:OutputColumns>
+    <dxl:CTEList/>
+    <dxl:LogicalProject>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="2" Alias="least">
+          <dxl:Minimum TypeMdid="0.23.1.0">
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
+            <dxl:Maximum TypeMdid="0.23.1.0">
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
+            </dxl:Maximum>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="6"/>
+          </dxl:Minimum>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:LogicalConstTable>
+        <dxl:Columns>
+          <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
+        </dxl:Columns>
+        <dxl:ConstTuple>
+          <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
+        </dxl:ConstTuple>
+      </dxl:LogicalConstTable>
+    </dxl:LogicalProject>
+  </dxl:Query>
+</dxl:DXLMessage>

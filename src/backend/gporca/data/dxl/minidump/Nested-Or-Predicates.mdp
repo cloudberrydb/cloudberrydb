@@ -1,0 +1,1185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:TraceFlags Value="103027,102016,103001"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.607.1.0"/>
+        <dxl:InequalityOp Mdid="0.608.1.0"/>
+        <dxl:LessThanOp Mdid="0.609.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
+        <dxl:ComparisonOp Mdid="0.356.1.0"/>
+        <dxl:ArrayType Mdid="0.1028.1.0"/>
+        <dxl:MinAgg Mdid="0.2118.1.0"/>
+        <dxl:MaxAgg Mdid="0.2134.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.352.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1011.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.410.1.0"/>
+        <dxl:InequalityOp Mdid="0.411.1.0"/>
+        <dxl:LessThanOp Mdid="0.412.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.413.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1016.1.0"/>
+        <dxl:MinAgg Mdid="0.2131.1.0"/>
+        <dxl:MaxAgg Mdid="0.2115.1.0"/>
+        <dxl:AvgAgg Mdid="0.2100.1.0"/>
+        <dxl:SumAgg Mdid="0.2107.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:GPDBScalarOp Mdid="0.1054.1.0" Name="=" ComparisonType="Eq">
+        <dxl:LeftType Mdid="0.1042.1.0"/>
+        <dxl:RightType Mdid="0.1042.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.1048.1.0"/>
+        <dxl:Commutator Mdid="0.1054.1.0"/>
+        <dxl:InverseOp Mdid="0.1057.1.0"/>
+      </dxl:GPDBScalarOp>
+      <dxl:Type Mdid="0.1082.1.0" Name="date" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.1093.1.0"/>
+        <dxl:InequalityOp Mdid="0.1094.1.0"/>
+        <dxl:LessThanOp Mdid="0.1095.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1096.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1097.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1098.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1092.1.0"/>
+        <dxl:ArrayType Mdid="0.1182.1.0"/>
+        <dxl:MinAgg Mdid="0.2138.1.0"/>
+        <dxl:MaxAgg Mdid="0.2122.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.1042.1.0" Name="bpchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.1054.1.0"/>
+        <dxl:InequalityOp Mdid="0.1057.1.0"/>
+        <dxl:LessThanOp Mdid="0.1058.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1059.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1060.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1061.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1078.1.0"/>
+        <dxl:ArrayType Mdid="0.1014.1.0"/>
+        <dxl:MinAgg Mdid="0.2245.1.0"/>
+        <dxl:MaxAgg Mdid="0.2244.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.1752.1.0"/>
+        <dxl:InequalityOp Mdid="0.1753.1.0"/>
+        <dxl:LessThanOp Mdid="0.1754.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1755.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1756.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1757.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1769.1.0"/>
+        <dxl:ArrayType Mdid="0.1231.1.0"/>
+        <dxl:MinAgg Mdid="0.2146.1.0"/>
+        <dxl:MaxAgg Mdid="0.2130.1.0"/>
+        <dxl:AvgAgg Mdid="0.2103.1.0"/>
+        <dxl:SumAgg Mdid="0.2114.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.71" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.70" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.63" Name="fully_ins_pd_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.62" Name="aso_pd_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.55" Name="prov_fin_agrmt_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.54" Name="bnft_ctgy_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.47" Name="ocl_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.46" Name="max_lmt_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.39" Name="prov_val_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.38" Name="mkt_val_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.31" Name="mjr_diag_ctgy_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.23" Name="emer_ind" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.22" Name="place_serv_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.15" Name="clm_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.14" Name="dischrg_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.7" Name="ntwk_bnft_excp_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.6" Name="unwrt_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.30" Name="prim_diag_cd" Width="8.000000"/>
+      <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.385.1.0"/>
+        <dxl:InequalityOp Mdid="0.0.0.0"/>
+        <dxl:LessThanOp Mdid="0.0.0.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanOp Mdid="0.0.0.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.0.0.0"/>
+        <dxl:ComparisonOp Mdid="0.0.0.0"/>
+        <dxl:ArrayType Mdid="0.1012.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.387.1.0"/>
+        <dxl:InequalityOp Mdid="0.402.1.0"/>
+        <dxl:LessThanOp Mdid="0.2799.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2801.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2800.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2802.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2794.1.0"/>
+        <dxl:ArrayType Mdid="0.1010.1.0"/>
+        <dxl:MinAgg Mdid="0.2798.1.0"/>
+        <dxl:MaxAgg Mdid="0.2797.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.21.1.0" Name="int2" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="2" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.94.1.0"/>
+        <dxl:InequalityOp Mdid="0.519.1.0"/>
+        <dxl:LessThanOp Mdid="0.95.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.522.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.520.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.524.1.0"/>
+        <dxl:ComparisonOp Mdid="0.350.1.0"/>
+        <dxl:ArrayType Mdid="0.1005.1.0"/>
+        <dxl:MinAgg Mdid="0.2133.1.0"/>
+        <dxl:MaxAgg Mdid="0.2117.1.0"/>
+        <dxl:AvgAgg Mdid="0.2102.1.0"/>
+        <dxl:SumAgg Mdid="0.2109.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.69" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.68" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.61" Name="hra_pd_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.60" Name="facil_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.53" Name="sub_liab_basis_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.52" Name="rate_pool_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.45" Name="deduc_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.44" Name="copay_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.37" Name="bill_chrg_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.36" Name="facil_prim_proc_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.29" Name="drg_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.28" Name="adm_diag_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.21" Name="place_serv_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.20" Name="reimb_prov_in_ntwk_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.13" Name="adm_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.12" Name="adm_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.5" Name="appr_unit_cnt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.4" Name="appr_day_cnt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.67" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.66" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.59" Name="clm_expan_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.58" Name="serv_prov_spcl_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.51" Name="misc_pay_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.50" Name="serv_pd_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.43" Name="coins_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.42" Name="non_cov_bnft_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.35" Name="serv_mod_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.34" Name="hlth_serv_cd_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.27" Name="serv_end_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.26" Name="bill_unit_cnt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.19" Name="pat_age" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.18" Name="pat_brth_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.11" Name="surg_proc_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.10" Name="gl_post_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.3" Name="adjud_dt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.2" Name="pgbk_ind" Width="8.000000"/>
+      <dxl:RelationStatistics Mdid="2.520054.1.1" Name="adj_hcs" Rows="0.000000"/>
+      <dxl:Relation Mdid="0.520054.1.1" Name="adj_hcs" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="71,65">
+        <dxl:Columns>
+          <dxl:Column Name="hcs_key" Attno="1" Mdid="0.20.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="adj_nbr" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="pgbk_ind" Attno="3" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="adjud_dt" Attno="4" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="appr_day_cnt" Attno="5" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="appr_unit_cnt" Attno="6" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="unwrt_typ_cd" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ntwk_bnft_excp_cd" Attno="8" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ntwk_bnft_lvl_cd" Attno="9" Mdid="0.21.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="trans_typ_cd" Attno="10" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gl_post_dt" Attno="11" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="surg_proc_cd" Attno="12" Mdid="0.1042.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="adm_dt" Attno="13" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="adm_typ_cd" Attno="14" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="dischrg_dt" Attno="15" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="clm_id" Attno="16" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_line_nbr" Attno="17" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ocl_cd" Attno="18" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="pat_brth_dt" Attno="19" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="pat_age" Attno="20" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="reimb_prov_in_ntwk_cd" Attno="21" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="place_serv_cd" Attno="22" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="place_serv_typ_cd" Attno="23" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="emer_ind" Attno="24" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="auth_cd" Attno="25" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bill_day_cnt" Attno="26" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bill_unit_cnt" Attno="27" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_end_dt" Attno="28" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="adm_diag_cd" Attno="29" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="drg_cd" Attno="30" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="prim_diag_cd" Attno="31" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="mjr_diag_ctgy_cd" Attno="32" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_diag_cd" Attno="33" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="hlth_serv_cd" Attno="34" Mdid="0.1042.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="hlth_serv_cd_typ_cd" Attno="35" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_mod_cd" Attno="36" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="facil_prim_proc_cd" Attno="37" Mdid="0.1042.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bill_chrg_amt" Attno="38" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="mkt_val_amt" Attno="39" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="prov_val_amt" Attno="40" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="disc_cov_amt" Attno="41" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="undisc_cov_amt" Attno="42" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="non_cov_bnft_reduc_amt" Attno="43" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="coins_reduc_amt" Attno="44" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="copay_reduc_amt" Attno="45" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="deduc_reduc_amt" Attno="46" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="max_lmt_reduc_amt" Attno="47" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ocl_reduc_amt" Attno="48" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="oth_cov_reduc_amt" Attno="49" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_appr_pay_amt" Attno="50" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_pd_amt" Attno="51" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="misc_pay_amt" Attno="52" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="rate_pool_id" Attno="53" Mdid="0.1042.1.0" Nullable="false" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="sub_liab_basis_cd" Attno="54" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bnft_ctgy_cd" Attno="55" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="prov_fin_agrmt_typ_cd" Attno="56" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cust_fin_agrmt_typ_cd" Attno="57" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="reimb_prov_spcl_cd" Attno="58" Mdid="0.1042.1.0" Nullable="false" ColWidth="10">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="serv_prov_spcl_cd" Attno="59" Mdid="0.1042.1.0" Nullable="false" ColWidth="10">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="clm_expan_id" Attno="60" Mdid="0.1042.1.0" Nullable="false" ColWidth="5">
+            <dxl:DefaultValue>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACSAgICAg" LintValue="553648934"/>
+            </dxl:DefaultValue>
+          </dxl:Column>
+          <dxl:Column Name="facil_typ_cd" Attno="61" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="hra_pd_amt" Attno="62" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue>
+              <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
+                <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="589830"/>
+              </dxl:FuncExpr>
+            </dxl:DefaultValue>
+          </dxl:Column>
+          <dxl:Column Name="aso_pd_amt" Attno="63" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue>
+              <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
+                <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="589830"/>
+              </dxl:FuncExpr>
+            </dxl:DefaultValue>
+          </dxl:Column>
+          <dxl:Column Name="fully_ins_pd_amt" Attno="64" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue>
+              <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
+                <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="589830"/>
+              </dxl:FuncExpr>
+            </dxl:DefaultValue>
+          </dxl:Column>
+          <dxl:Column Name="alt_fnd_pd_amt" Attno="65" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue>
+              <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
+                <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="589830"/>
+              </dxl:FuncExpr>
+            </dxl:DefaultValue>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.65" Name="ctid" Width="6.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.64" Name="alt_fnd_pd_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.57" Name="reimb_prov_spcl_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.56" Name="cust_fin_agrmt_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.49" Name="serv_appr_pay_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.48" Name="oth_cov_reduc_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.41" Name="undisc_cov_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.40" Name="disc_cov_amt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.32" Name="serv_diag_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.25" Name="bill_day_cnt" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.24" Name="auth_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.17" Name="ocl_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.16" Name="serv_line_nbr" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.9" Name="trans_typ_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.8" Name="ntwk_bnft_lvl_cd" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.1" Name="adj_nbr" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.0" Name="hcs_key" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.33" Name="hlth_serv_cd" Width="8.000000"/>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="1" ColName="hcs_key" TypeMdid="0.20.1.0"/>
+        <dxl:Ident ColId="2" ColName="adj_nbr" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="3" ColName="pgbk_ind" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="4" ColName="adjud_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="5" ColName="appr_day_cnt" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="6" ColName="appr_unit_cnt" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="7" ColName="unwrt_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="8" ColName="ntwk_bnft_excp_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="9" ColName="ntwk_bnft_lvl_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="10" ColName="trans_typ_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="11" ColName="gl_post_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="12" ColName="surg_proc_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="13" ColName="adm_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="14" ColName="adm_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="15" ColName="dischrg_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="16" ColName="clm_id" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="17" ColName="serv_line_nbr" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="18" ColName="ocl_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="19" ColName="pat_brth_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="20" ColName="pat_age" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="21" ColName="reimb_prov_in_ntwk_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="22" ColName="place_serv_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="23" ColName="place_serv_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="24" ColName="emer_ind" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="25" ColName="auth_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="26" ColName="bill_day_cnt" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="27" ColName="bill_unit_cnt" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="28" ColName="serv_end_dt" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="29" ColName="adm_diag_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="30" ColName="drg_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="31" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="32" ColName="mjr_diag_ctgy_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="33" ColName="serv_diag_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="35" ColName="hlth_serv_cd_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="36" ColName="serv_mod_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="37" ColName="facil_prim_proc_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="38" ColName="bill_chrg_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="39" ColName="mkt_val_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="40" ColName="prov_val_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="41" ColName="disc_cov_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="42" ColName="undisc_cov_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="43" ColName="non_cov_bnft_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="44" ColName="coins_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="45" ColName="copay_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="46" ColName="deduc_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="47" ColName="max_lmt_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="48" ColName="ocl_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="49" ColName="oth_cov_reduc_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="50" ColName="serv_appr_pay_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="51" ColName="serv_pd_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="52" ColName="misc_pay_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="53" ColName="rate_pool_id" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="54" ColName="sub_liab_basis_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="55" ColName="bnft_ctgy_cd" TypeMdid="0.21.1.0"/>
+        <dxl:Ident ColId="56" ColName="prov_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="57" ColName="cust_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="58" ColName="reimb_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="59" ColName="serv_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="60" ColName="clm_expan_id" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="61" ColName="facil_typ_cd" TypeMdid="0.1042.1.0"/>
+        <dxl:Ident ColId="62" ColName="hra_pd_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="63" ColName="aso_pd_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="64" ColName="fully_ins_pd_amt" TypeMdid="0.1700.1.0"/>
+        <dxl:Ident ColId="65" ColName="alt_fnd_pd_amt" TypeMdid="0.1700.1.0"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalSelect>
+        <dxl:Or>
+          <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
+            <dxl:Ident ColId="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+            <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
+              <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUoxNDM4" LintValue="81199916"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUoxNzQ1" LintValue="90088292"/>
+            </dxl:Array>
+          </dxl:ArrayComp>
+          <dxl:And>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
+              <dxl:Ident ColId="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUozNDkw" LintValue="374735660"/>
+            </dxl:Comparison>
+            <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
+              <dxl:Ident ColId="31" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
+              <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
+                <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAABzcxNA==" LintValue="928154476"/>
+                <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACDcxNDA=" LintValue="880149348"/>
+              </dxl:Array>
+            </dxl:ArrayComp>
+          </dxl:And>
+        </dxl:Or>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.520054.1.1" TableName="adj_hcs">
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="hcs_key" TypeMdid="0.20.1.0"/>
+              <dxl:Column ColId="2" Attno="2" ColName="adj_nbr" TypeMdid="0.1042.1.0" ColWidth="4"/>
+              <dxl:Column ColId="3" Attno="3" ColName="pgbk_ind" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="4" Attno="4" ColName="adjud_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="5" Attno="5" ColName="appr_day_cnt" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="6" Attno="6" ColName="appr_unit_cnt" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="7" Attno="7" ColName="unwrt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="8" Attno="8" ColName="ntwk_bnft_excp_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="9" Attno="9" ColName="ntwk_bnft_lvl_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="10" Attno="10" ColName="trans_typ_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="11" Attno="11" ColName="gl_post_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="12" Attno="12" ColName="surg_proc_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="13" Attno="13" ColName="adm_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="14" Attno="14" ColName="adm_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="15" Attno="15" ColName="dischrg_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="16" Attno="16" ColName="clm_id" TypeMdid="0.1042.1.0" ColWidth="15"/>
+              <dxl:Column ColId="17" Attno="17" ColName="serv_line_nbr" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="18" Attno="18" ColName="ocl_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="19" Attno="19" ColName="pat_brth_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="20" Attno="20" ColName="pat_age" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="21" Attno="21" ColName="reimb_prov_in_ntwk_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="22" Attno="22" ColName="place_serv_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="23" Attno="23" ColName="place_serv_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="24" Attno="24" ColName="emer_ind" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="25" Attno="25" ColName="auth_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="26" Attno="26" ColName="bill_day_cnt" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="27" Attno="27" ColName="bill_unit_cnt" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="28" Attno="28" ColName="serv_end_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="29" Attno="29" ColName="adm_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="30" Attno="30" ColName="drg_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="31" Attno="31" ColName="prim_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="32" Attno="32" ColName="mjr_diag_ctgy_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="33" Attno="33" ColName="serv_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="34" Attno="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="35" Attno="35" ColName="hlth_serv_cd_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="36" Attno="36" ColName="serv_mod_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="37" Attno="37" ColName="facil_prim_proc_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="38" Attno="38" ColName="bill_chrg_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="39" Attno="39" ColName="mkt_val_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="40" Attno="40" ColName="prov_val_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="41" Attno="41" ColName="disc_cov_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="42" Attno="42" ColName="undisc_cov_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="43" Attno="43" ColName="non_cov_bnft_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="44" Attno="44" ColName="coins_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="45" Attno="45" ColName="copay_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="46" Attno="46" ColName="deduc_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="47" Attno="47" ColName="max_lmt_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="48" Attno="48" ColName="ocl_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="49" Attno="49" ColName="oth_cov_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="50" Attno="50" ColName="serv_appr_pay_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="51" Attno="51" ColName="serv_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="52" Attno="52" ColName="misc_pay_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="53" Attno="53" ColName="rate_pool_id" TypeMdid="0.1042.1.0" ColWidth="3"/>
+              <dxl:Column ColId="54" Attno="54" ColName="sub_liab_basis_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="55" Attno="55" ColName="bnft_ctgy_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="56" Attno="56" ColName="prov_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="57" Attno="57" ColName="cust_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="58" Attno="58" ColName="reimb_prov_spcl_cd" TypeMdid="0.1042.1.0" ColWidth="10"/>
+              <dxl:Column ColId="59" Attno="59" ColName="serv_prov_spcl_cd" TypeMdid="0.1042.1.0" ColWidth="10"/>
+              <dxl:Column ColId="60" Attno="60" ColName="clm_expan_id" TypeMdid="0.1042.1.0" ColWidth="5"/>
+              <dxl:Column ColId="61" Attno="61" ColName="facil_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="62" Attno="62" ColName="hra_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="63" Attno="63" ColName="aso_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="64" Attno="64" ColName="fully_ins_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="65" Attno="65" ColName="alt_fnd_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="66" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="67" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="68" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="69" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="70" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="71" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="72" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+      </dxl:LogicalSelect>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="2.800781" Rows="1.000000" Width="410"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="hcs_key">
+            <dxl:Ident ColId="0" ColName="hcs_key" TypeMdid="0.20.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="adj_nbr">
+            <dxl:Ident ColId="1" ColName="adj_nbr" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="pgbk_ind">
+            <dxl:Ident ColId="2" ColName="pgbk_ind" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="3" Alias="adjud_dt">
+            <dxl:Ident ColId="3" ColName="adjud_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="4" Alias="appr_day_cnt">
+            <dxl:Ident ColId="4" ColName="appr_day_cnt" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="5" Alias="appr_unit_cnt">
+            <dxl:Ident ColId="5" ColName="appr_unit_cnt" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="6" Alias="unwrt_typ_cd">
+            <dxl:Ident ColId="6" ColName="unwrt_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="7" Alias="ntwk_bnft_excp_cd">
+            <dxl:Ident ColId="7" ColName="ntwk_bnft_excp_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="8" Alias="ntwk_bnft_lvl_cd">
+            <dxl:Ident ColId="8" ColName="ntwk_bnft_lvl_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="9" Alias="trans_typ_cd">
+            <dxl:Ident ColId="9" ColName="trans_typ_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="10" Alias="gl_post_dt">
+            <dxl:Ident ColId="10" ColName="gl_post_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="11" Alias="surg_proc_cd">
+            <dxl:Ident ColId="11" ColName="surg_proc_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="12" Alias="adm_dt">
+            <dxl:Ident ColId="12" ColName="adm_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="13" Alias="adm_typ_cd">
+            <dxl:Ident ColId="13" ColName="adm_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="14" Alias="dischrg_dt">
+            <dxl:Ident ColId="14" ColName="dischrg_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="15" Alias="clm_id">
+            <dxl:Ident ColId="15" ColName="clm_id" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="16" Alias="serv_line_nbr">
+            <dxl:Ident ColId="16" ColName="serv_line_nbr" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="17" Alias="ocl_cd">
+            <dxl:Ident ColId="17" ColName="ocl_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="18" Alias="pat_brth_dt">
+            <dxl:Ident ColId="18" ColName="pat_brth_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="19" Alias="pat_age">
+            <dxl:Ident ColId="19" ColName="pat_age" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="20" Alias="reimb_prov_in_ntwk_cd">
+            <dxl:Ident ColId="20" ColName="reimb_prov_in_ntwk_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="21" Alias="place_serv_cd">
+            <dxl:Ident ColId="21" ColName="place_serv_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="22" Alias="place_serv_typ_cd">
+            <dxl:Ident ColId="22" ColName="place_serv_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="23" Alias="emer_ind">
+            <dxl:Ident ColId="23" ColName="emer_ind" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="24" Alias="auth_cd">
+            <dxl:Ident ColId="24" ColName="auth_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="25" Alias="bill_day_cnt">
+            <dxl:Ident ColId="25" ColName="bill_day_cnt" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="26" Alias="bill_unit_cnt">
+            <dxl:Ident ColId="26" ColName="bill_unit_cnt" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="27" Alias="serv_end_dt">
+            <dxl:Ident ColId="27" ColName="serv_end_dt" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="28" Alias="adm_diag_cd">
+            <dxl:Ident ColId="28" ColName="adm_diag_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="29" Alias="drg_cd">
+            <dxl:Ident ColId="29" ColName="drg_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="30" Alias="prim_diag_cd">
+            <dxl:Ident ColId="30" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="31" Alias="mjr_diag_ctgy_cd">
+            <dxl:Ident ColId="31" ColName="mjr_diag_ctgy_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="32" Alias="serv_diag_cd">
+            <dxl:Ident ColId="32" ColName="serv_diag_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="33" Alias="hlth_serv_cd">
+            <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="34" Alias="hlth_serv_cd_typ_cd">
+            <dxl:Ident ColId="34" ColName="hlth_serv_cd_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="35" Alias="serv_mod_cd">
+            <dxl:Ident ColId="35" ColName="serv_mod_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="36" Alias="facil_prim_proc_cd">
+            <dxl:Ident ColId="36" ColName="facil_prim_proc_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="37" Alias="bill_chrg_amt">
+            <dxl:Ident ColId="37" ColName="bill_chrg_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="38" Alias="mkt_val_amt">
+            <dxl:Ident ColId="38" ColName="mkt_val_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="39" Alias="prov_val_amt">
+            <dxl:Ident ColId="39" ColName="prov_val_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="40" Alias="disc_cov_amt">
+            <dxl:Ident ColId="40" ColName="disc_cov_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="41" Alias="undisc_cov_amt">
+            <dxl:Ident ColId="41" ColName="undisc_cov_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="42" Alias="non_cov_bnft_reduc_amt">
+            <dxl:Ident ColId="42" ColName="non_cov_bnft_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="43" Alias="coins_reduc_amt">
+            <dxl:Ident ColId="43" ColName="coins_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="44" Alias="copay_reduc_amt">
+            <dxl:Ident ColId="44" ColName="copay_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="45" Alias="deduc_reduc_amt">
+            <dxl:Ident ColId="45" ColName="deduc_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="46" Alias="max_lmt_reduc_amt">
+            <dxl:Ident ColId="46" ColName="max_lmt_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="47" Alias="ocl_reduc_amt">
+            <dxl:Ident ColId="47" ColName="ocl_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="48" Alias="oth_cov_reduc_amt">
+            <dxl:Ident ColId="48" ColName="oth_cov_reduc_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="49" Alias="serv_appr_pay_amt">
+            <dxl:Ident ColId="49" ColName="serv_appr_pay_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="50" Alias="serv_pd_amt">
+            <dxl:Ident ColId="50" ColName="serv_pd_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="51" Alias="misc_pay_amt">
+            <dxl:Ident ColId="51" ColName="misc_pay_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="52" Alias="rate_pool_id">
+            <dxl:Ident ColId="52" ColName="rate_pool_id" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="53" Alias="sub_liab_basis_cd">
+            <dxl:Ident ColId="53" ColName="sub_liab_basis_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="54" Alias="bnft_ctgy_cd">
+            <dxl:Ident ColId="54" ColName="bnft_ctgy_cd" TypeMdid="0.21.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="55" Alias="prov_fin_agrmt_typ_cd">
+            <dxl:Ident ColId="55" ColName="prov_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="56" Alias="cust_fin_agrmt_typ_cd">
+            <dxl:Ident ColId="56" ColName="cust_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="57" Alias="reimb_prov_spcl_cd">
+            <dxl:Ident ColId="57" ColName="reimb_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="58" Alias="serv_prov_spcl_cd">
+            <dxl:Ident ColId="58" ColName="serv_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="59" Alias="clm_expan_id">
+            <dxl:Ident ColId="59" ColName="clm_expan_id" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="60" Alias="facil_typ_cd">
+            <dxl:Ident ColId="60" ColName="facil_typ_cd" TypeMdid="0.1042.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="61" Alias="hra_pd_amt">
+            <dxl:Ident ColId="61" ColName="hra_pd_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="62" Alias="aso_pd_amt">
+            <dxl:Ident ColId="62" ColName="aso_pd_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="63" Alias="fully_ins_pd_amt">
+            <dxl:Ident ColId="63" ColName="fully_ins_pd_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="64" Alias="alt_fnd_pd_amt">
+            <dxl:Ident ColId="64" ColName="alt_fnd_pd_amt" TypeMdid="0.1700.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:TableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="1.600586" Rows="1.000000" Width="410"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="hcs_key">
+              <dxl:Ident ColId="0" ColName="hcs_key" TypeMdid="0.20.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="adj_nbr">
+              <dxl:Ident ColId="1" ColName="adj_nbr" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="pgbk_ind">
+              <dxl:Ident ColId="2" ColName="pgbk_ind" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="adjud_dt">
+              <dxl:Ident ColId="3" ColName="adjud_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="appr_day_cnt">
+              <dxl:Ident ColId="4" ColName="appr_day_cnt" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="5" Alias="appr_unit_cnt">
+              <dxl:Ident ColId="5" ColName="appr_unit_cnt" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="unwrt_typ_cd">
+              <dxl:Ident ColId="6" ColName="unwrt_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="ntwk_bnft_excp_cd">
+              <dxl:Ident ColId="7" ColName="ntwk_bnft_excp_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="8" Alias="ntwk_bnft_lvl_cd">
+              <dxl:Ident ColId="8" ColName="ntwk_bnft_lvl_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="9" Alias="trans_typ_cd">
+              <dxl:Ident ColId="9" ColName="trans_typ_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="10" Alias="gl_post_dt">
+              <dxl:Ident ColId="10" ColName="gl_post_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="11" Alias="surg_proc_cd">
+              <dxl:Ident ColId="11" ColName="surg_proc_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="12" Alias="adm_dt">
+              <dxl:Ident ColId="12" ColName="adm_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="13" Alias="adm_typ_cd">
+              <dxl:Ident ColId="13" ColName="adm_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="14" Alias="dischrg_dt">
+              <dxl:Ident ColId="14" ColName="dischrg_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="15" Alias="clm_id">
+              <dxl:Ident ColId="15" ColName="clm_id" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="16" Alias="serv_line_nbr">
+              <dxl:Ident ColId="16" ColName="serv_line_nbr" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="17" Alias="ocl_cd">
+              <dxl:Ident ColId="17" ColName="ocl_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="18" Alias="pat_brth_dt">
+              <dxl:Ident ColId="18" ColName="pat_brth_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="19" Alias="pat_age">
+              <dxl:Ident ColId="19" ColName="pat_age" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="20" Alias="reimb_prov_in_ntwk_cd">
+              <dxl:Ident ColId="20" ColName="reimb_prov_in_ntwk_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="21" Alias="place_serv_cd">
+              <dxl:Ident ColId="21" ColName="place_serv_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="22" Alias="place_serv_typ_cd">
+              <dxl:Ident ColId="22" ColName="place_serv_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="23" Alias="emer_ind">
+              <dxl:Ident ColId="23" ColName="emer_ind" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="24" Alias="auth_cd">
+              <dxl:Ident ColId="24" ColName="auth_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="25" Alias="bill_day_cnt">
+              <dxl:Ident ColId="25" ColName="bill_day_cnt" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="26" Alias="bill_unit_cnt">
+              <dxl:Ident ColId="26" ColName="bill_unit_cnt" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="27" Alias="serv_end_dt">
+              <dxl:Ident ColId="27" ColName="serv_end_dt" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="28" Alias="adm_diag_cd">
+              <dxl:Ident ColId="28" ColName="adm_diag_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="29" Alias="drg_cd">
+              <dxl:Ident ColId="29" ColName="drg_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="30" Alias="prim_diag_cd">
+              <dxl:Ident ColId="30" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="31" Alias="mjr_diag_ctgy_cd">
+              <dxl:Ident ColId="31" ColName="mjr_diag_ctgy_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="32" Alias="serv_diag_cd">
+              <dxl:Ident ColId="32" ColName="serv_diag_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="33" Alias="hlth_serv_cd">
+              <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="34" Alias="hlth_serv_cd_typ_cd">
+              <dxl:Ident ColId="34" ColName="hlth_serv_cd_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="35" Alias="serv_mod_cd">
+              <dxl:Ident ColId="35" ColName="serv_mod_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="36" Alias="facil_prim_proc_cd">
+              <dxl:Ident ColId="36" ColName="facil_prim_proc_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="37" Alias="bill_chrg_amt">
+              <dxl:Ident ColId="37" ColName="bill_chrg_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="38" Alias="mkt_val_amt">
+              <dxl:Ident ColId="38" ColName="mkt_val_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="39" Alias="prov_val_amt">
+              <dxl:Ident ColId="39" ColName="prov_val_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="40" Alias="disc_cov_amt">
+              <dxl:Ident ColId="40" ColName="disc_cov_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="41" Alias="undisc_cov_amt">
+              <dxl:Ident ColId="41" ColName="undisc_cov_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="42" Alias="non_cov_bnft_reduc_amt">
+              <dxl:Ident ColId="42" ColName="non_cov_bnft_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="43" Alias="coins_reduc_amt">
+              <dxl:Ident ColId="43" ColName="coins_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="44" Alias="copay_reduc_amt">
+              <dxl:Ident ColId="44" ColName="copay_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="45" Alias="deduc_reduc_amt">
+              <dxl:Ident ColId="45" ColName="deduc_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="46" Alias="max_lmt_reduc_amt">
+              <dxl:Ident ColId="46" ColName="max_lmt_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="47" Alias="ocl_reduc_amt">
+              <dxl:Ident ColId="47" ColName="ocl_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="48" Alias="oth_cov_reduc_amt">
+              <dxl:Ident ColId="48" ColName="oth_cov_reduc_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="49" Alias="serv_appr_pay_amt">
+              <dxl:Ident ColId="49" ColName="serv_appr_pay_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="50" Alias="serv_pd_amt">
+              <dxl:Ident ColId="50" ColName="serv_pd_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="51" Alias="misc_pay_amt">
+              <dxl:Ident ColId="51" ColName="misc_pay_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="52" Alias="rate_pool_id">
+              <dxl:Ident ColId="52" ColName="rate_pool_id" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="53" Alias="sub_liab_basis_cd">
+              <dxl:Ident ColId="53" ColName="sub_liab_basis_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="54" Alias="bnft_ctgy_cd">
+              <dxl:Ident ColId="54" ColName="bnft_ctgy_cd" TypeMdid="0.21.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="55" Alias="prov_fin_agrmt_typ_cd">
+              <dxl:Ident ColId="55" ColName="prov_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="56" Alias="cust_fin_agrmt_typ_cd">
+              <dxl:Ident ColId="56" ColName="cust_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="57" Alias="reimb_prov_spcl_cd">
+              <dxl:Ident ColId="57" ColName="reimb_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="58" Alias="serv_prov_spcl_cd">
+              <dxl:Ident ColId="58" ColName="serv_prov_spcl_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="59" Alias="clm_expan_id">
+              <dxl:Ident ColId="59" ColName="clm_expan_id" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="60" Alias="facil_typ_cd">
+              <dxl:Ident ColId="60" ColName="facil_typ_cd" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="61" Alias="hra_pd_amt">
+              <dxl:Ident ColId="61" ColName="hra_pd_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="62" Alias="aso_pd_amt">
+              <dxl:Ident ColId="62" ColName="aso_pd_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="63" Alias="fully_ins_pd_amt">
+              <dxl:Ident ColId="63" ColName="fully_ins_pd_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="64" Alias="alt_fnd_pd_amt">
+              <dxl:Ident ColId="64" ColName="alt_fnd_pd_amt" TypeMdid="0.1700.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter>
+            <dxl:Or>
+              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
+                <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+                <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUoxNDM4" LintValue="81199916"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUoxNzQ1" LintValue="90088292"/>
+                </dxl:Array>
+              </dxl:ArrayComp>
+              <dxl:And>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
+                  <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACUozNDkw" LintValue="374735660"/>
+                </dxl:Comparison>
+                <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
+                  <dxl:Ident ColId="30" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
+                  <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
+                    <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAABzcxNA==" LintValue="928154476"/>
+                    <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAACDcxNDA=" LintValue="880149348"/>
+                  </dxl:Array>
+                </dxl:ArrayComp>
+              </dxl:And>
+            </dxl:Or>
+          </dxl:Filter>
+          <dxl:TableDescriptor Mdid="0.520054.1.1" TableName="adj_hcs">
+            <dxl:Columns>
+              <dxl:Column ColId="0" Attno="1" ColName="hcs_key" TypeMdid="0.20.1.0"/>
+              <dxl:Column ColId="1" Attno="2" ColName="adj_nbr" TypeMdid="0.1042.1.0" ColWidth="4"/>
+              <dxl:Column ColId="2" Attno="3" ColName="pgbk_ind" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="3" Attno="4" ColName="adjud_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="4" Attno="5" ColName="appr_day_cnt" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="5" Attno="6" ColName="appr_unit_cnt" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="6" Attno="7" ColName="unwrt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="7" Attno="8" ColName="ntwk_bnft_excp_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="8" Attno="9" ColName="ntwk_bnft_lvl_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="9" Attno="10" ColName="trans_typ_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="10" Attno="11" ColName="gl_post_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="11" Attno="12" ColName="surg_proc_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="12" Attno="13" ColName="adm_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="13" Attno="14" ColName="adm_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="14" Attno="15" ColName="dischrg_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="15" Attno="16" ColName="clm_id" TypeMdid="0.1042.1.0" ColWidth="15"/>
+              <dxl:Column ColId="16" Attno="17" ColName="serv_line_nbr" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="17" Attno="18" ColName="ocl_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="18" Attno="19" ColName="pat_brth_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="19" Attno="20" ColName="pat_age" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="20" Attno="21" ColName="reimb_prov_in_ntwk_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="21" Attno="22" ColName="place_serv_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="22" Attno="23" ColName="place_serv_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="23" Attno="24" ColName="emer_ind" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="24" Attno="25" ColName="auth_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="25" Attno="26" ColName="bill_day_cnt" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="26" Attno="27" ColName="bill_unit_cnt" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="27" Attno="28" ColName="serv_end_dt" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="28" Attno="29" ColName="adm_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="29" Attno="30" ColName="drg_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="30" Attno="31" ColName="prim_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="31" Attno="32" ColName="mjr_diag_ctgy_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="32" Attno="33" ColName="serv_diag_cd" TypeMdid="0.1042.1.0" ColWidth="6"/>
+              <dxl:Column ColId="33" Attno="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="34" Attno="35" ColName="hlth_serv_cd_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="35" Attno="36" ColName="serv_mod_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="36" Attno="37" ColName="facil_prim_proc_cd" TypeMdid="0.1042.1.0" ColWidth="8"/>
+              <dxl:Column ColId="37" Attno="38" ColName="bill_chrg_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="38" Attno="39" ColName="mkt_val_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="39" Attno="40" ColName="prov_val_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="40" Attno="41" ColName="disc_cov_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="41" Attno="42" ColName="undisc_cov_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="42" Attno="43" ColName="non_cov_bnft_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="43" Attno="44" ColName="coins_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="44" Attno="45" ColName="copay_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="45" Attno="46" ColName="deduc_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="46" Attno="47" ColName="max_lmt_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="47" Attno="48" ColName="ocl_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="48" Attno="49" ColName="oth_cov_reduc_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="49" Attno="50" ColName="serv_appr_pay_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="50" Attno="51" ColName="serv_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="51" Attno="52" ColName="misc_pay_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="52" Attno="53" ColName="rate_pool_id" TypeMdid="0.1042.1.0" ColWidth="3"/>
+              <dxl:Column ColId="53" Attno="54" ColName="sub_liab_basis_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="54" Attno="55" ColName="bnft_ctgy_cd" TypeMdid="0.21.1.0"/>
+              <dxl:Column ColId="55" Attno="56" ColName="prov_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="56" Attno="57" ColName="cust_fin_agrmt_typ_cd" TypeMdid="0.1042.1.0" ColWidth="1"/>
+              <dxl:Column ColId="57" Attno="58" ColName="reimb_prov_spcl_cd" TypeMdid="0.1042.1.0" ColWidth="10"/>
+              <dxl:Column ColId="58" Attno="59" ColName="serv_prov_spcl_cd" TypeMdid="0.1042.1.0" ColWidth="10"/>
+              <dxl:Column ColId="59" Attno="60" ColName="clm_expan_id" TypeMdid="0.1042.1.0" ColWidth="5"/>
+              <dxl:Column ColId="60" Attno="61" ColName="facil_typ_cd" TypeMdid="0.1042.1.0" ColWidth="2"/>
+              <dxl:Column ColId="61" Attno="62" ColName="hra_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="62" Attno="63" ColName="aso_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="63" Attno="64" ColName="fully_ins_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="64" Attno="65" ColName="alt_fnd_pd_amt" TypeMdid="0.1700.1.0"/>
+              <dxl:Column ColId="65" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="66" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="67" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="68" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="69" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="70" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="71" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:TableScan>
+      </dxl:GatherMotion>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>
