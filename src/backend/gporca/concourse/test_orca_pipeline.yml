@@ -12,7 +12,7 @@ resources:
 - name: gporca-commits-to-test
   type: git
   source:
-    branch: master
+    branch: test-gpdb
     uri: https://github.com/greenplum-db/gporca-pipeline-misc
 
 - name: gpdb6-centos7-build
@@ -39,6 +39,13 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/centos7/libquicklz-devel-(1\.5\.0-.*)-1.el7.x86_64.rpm
 
+- name: libsigar-centos7
+  type: gcs
+  source:
+    bucket: ((gcs-bucket))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    regexp: gp-internal-artifacts/centos7/sigar-rhel7_x86_64-(1\.6\.5-.*).targz
+
 - name: python-centos7
   type: gcs
   source:
@@ -61,6 +68,8 @@ jobs:
       resource: libquicklz-centos7
     - get: libquicklz-devel-installer
       resource: libquicklz-devel-centos7
+    - get: libsigar-installer
+      resource: libsigar-centos7
     - get: python-tarball
       resource: python-centos7
 
