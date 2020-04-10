@@ -33,8 +33,13 @@
 
 -- suspend at intended points.
 3:SELECT gp_inject_fault('compaction_before_cleanup_phase', 'suspend', '', '', 'crash_before_cleanup_phase', 1, -1, 0, 2);
+3:SELECT gp_inject_fault('vacuum_post_cleanup_committed', 'suspend', 3);
 1&:VACUUM crash_before_cleanup_phase;
 3:SELECT gp_wait_until_triggered_fault('compaction_before_cleanup_phase', 1, 2);
+-- wait seg1 to finish the post-cleanup, this makes the aoseg info of seg1 stable.
+3:SELECT gp_wait_until_triggered_fault('vacuum_post_cleanup_committed', 1, 3);
+-- reset the injection so following commands are not affected.
+3:SELECT gp_inject_fault('vacuum_post_cleanup_committed', 'reset', 3);
 
 3:SELECT gp_inject_fault('compaction_before_segmentfile_drop', 'suspend', '', '', 'crash_before_segmentfile_drop', 1, -1, 0, 2);
 2&:VACUUM crash_before_segmentfile_drop;
