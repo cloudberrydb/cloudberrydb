@@ -1135,6 +1135,7 @@ _readCreateStmt_common(CreateStmt *local_node)
 	READ_OID_FIELD(ownerid);
 	READ_BOOL_FIELD(buildAoBlkdir);
 	READ_NODE_FIELD(attr_encodings);
+	READ_BOOL_FIELD(isCtas);
 
 	/*
 	 * Some extra checks to make sure we didn't get lost

@@ -3400,6 +3400,7 @@ _readCreateStmt(void)
 	READ_OID_FIELD(ownerid);
 	READ_BOOL_FIELD(buildAoBlkdir);
 	READ_NODE_FIELD(attr_encodings);
+	READ_BOOL_FIELD(isCtas);
 
 	READ_DONE();
 }

@@ -3052,6 +3052,7 @@ _outCreateStmtInfo(StringInfo str, const CreateStmt *node)
 	WRITE_OID_FIELD(ownerid);
 	WRITE_BOOL_FIELD(buildAoBlkdir);
 	WRITE_NODE_FIELD(attr_encodings);
+	WRITE_BOOL_FIELD(isCtas);
 }
 
 static void
