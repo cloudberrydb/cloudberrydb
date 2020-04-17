@@ -703,7 +703,7 @@ static inline TupleChunkListItem RecvTupleChunkFromUDPIFC_Internal(ChunkTranspor
 								  int16 motNodeID,
 								  int16 srcRoute);
 static void TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
-									bool forceEOS);
+									bool hasErrors);
 
 static void freeDisorderedPackets(MotionConn *conn);
 
@@ -3364,7 +3364,7 @@ computeNetworkStatistics(uint64 value, uint64 *min, uint64 *max, double *sum)
  */
 static void
 TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
-									bool forceEOS)
+									bool hasErrors)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
 	int			i;
@@ -3402,7 +3402,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 	{
 		int			elevel = 0;
 
-		if (forceEOS || !transportStates->activated)
+		if (hasErrors || !transportStates->activated)
 		{
 			if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 				elevel = LOG;
@@ -3416,7 +3416,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 			ereport(elevel, (errmsg("Interconnect seg%d slice%d cleanup state: "
 									"%s; setup was %s",
 									GpIdentity.segindex, mySlice->sliceIndex,
-									forceEOS ? "force" : "normal",
+									hasErrors ? "hasErrors" : "normal",
 									transportStates->activated ? "completed" : "exited")));
 
 		/* if setup did not complete, log the slicetable */
@@ -3613,7 +3613,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 		 "isSender %d isReceiver %d "
 		 "snd_queue_depth %d recv_queue_depth %d Gp_max_packet_size %d "
 		 "UNACK_QUEUE_RING_SLOTS_NUM %d TIMER_SPAN %lld DEFAULT_RTT %d "
-		 "forceEOS %d, gp_interconnect_id %d ic_id_last_teardown %d "
+		 "hasErrors %d, gp_interconnect_id %d ic_id_last_teardown %d "
 		 "snd_buffer_pool.count %d snd_buffer_pool.maxCount %d snd_sock_bufsize %d recv_sock_bufsize %d "
 		 "snd_pkt_count %d retransmits %d crc_errors %d"
 		 " recv_pkt_count %d recv_ack_num %d"
@@ -3626,7 +3626,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 		 ic_control_info.isSender, isReceiver,
 		 Gp_interconnect_snd_queue_depth, Gp_interconnect_queue_depth, Gp_max_packet_size,
 		 UNACK_QUEUE_RING_SLOTS_NUM, TIMER_SPAN, DEFAULT_RTT,
-		 forceEOS, transportStates->sliceTable->ic_instance_id, rx_control_info.lastTornIcId,
+		 hasErrors, transportStates->sliceTable->ic_instance_id, rx_control_info.lastTornIcId,
 		 snd_buffer_pool.count, snd_buffer_pool.maxCount, ic_control_info.socketSendBufferSize, ic_control_info.socketRecvBufferSize,
 		 ic_statistics.sndPktNum, ic_statistics.retransmits, ic_statistics.crcErrors,
 		 ic_statistics.recvPktNum, ic_statistics.recvAckNum,
@@ -3672,11 +3672,11 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
  */
 void
 TeardownUDPIFCInterconnect(ChunkTransportState *transportStates,
-						   bool forceEOS)
+						   bool hasErrors)
 {
 	PG_TRY();
 	{
-		TeardownUDPIFCInterconnect_Internal(transportStates, forceEOS);
+		TeardownUDPIFCInterconnect_Internal(transportStates, hasErrors);
 
 		Assert(pthread_mutex_unlock(&ic_control_info.lock) != 0);
 	}

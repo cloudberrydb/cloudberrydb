@@ -543,43 +543,23 @@ SetupInterconnect(EState *estate)
 	h->interconnect_context = estate->interconnect_context;
 }
 
-/*
- * Move this out to separate stack frame, so that we don't have to mark
- * tons of stuff volatile in TeardownInterconnect().
- */
-void
-forceEosToPeers(ChunkTransportState *transportStates,
-				int motNodeID)
-{
-	if (!transportStates)
-	{
-		elog(FATAL, "no transport-states.");
-	}
-
-	transportStates->teardownActive = true;
-
-	transportStates->SendEos(transportStates, motNodeID, get_eos_tuplechunklist());
-
-	transportStates->teardownActive = false;
-}
-
 /* TeardownInterconnect() function is used to cleanup interconnect resources that
  * were allocated during SetupInterconnect().  This function should ALWAYS be
  * called after SetupInterconnect to avoid leaking resources (like sockets)
  * even if SetupInterconnect did not complete correctly.
  */
 void
-TeardownInterconnect(ChunkTransportState *transportStates, bool forceEOS)
+TeardownInterconnect(ChunkTransportState *transportStates, bool hasErrors)
 {
 	interconnect_handle_t *h = find_interconnect_handle(transportStates);
 
 	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
 	{
-		TeardownUDPIFCInterconnect(transportStates, forceEOS);
+		TeardownUDPIFCInterconnect(transportStates, hasErrors);
 	}
 	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP)
 	{
-		TeardownTCPInterconnect(transportStates, forceEOS);
+		TeardownTCPInterconnect(transportStates, hasErrors);
 	}
 
 	if (h != NULL)
@@ -825,7 +805,7 @@ cleanup_interconnect_handle(interconnect_handle_t *h)
 		destroy_interconnect_handle(h);
 		return;
 	}
-	TeardownInterconnect(h->interconnect_context, true /* force EOS */);
+	TeardownInterconnect(h->interconnect_context, true);
 }
 
 static void

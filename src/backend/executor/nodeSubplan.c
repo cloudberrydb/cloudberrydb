@@ -1293,9 +1293,18 @@ PG_TRY();
 		queryDesc->estate->dispatcherState &&
 		queryDesc->estate->dispatcherState->primaryResults)
 	{
+		ErrorData *qeError = NULL;
 		CdbDispatcherState *ds = queryDesc->estate->dispatcherState;
 
 		cdbdisp_checkDispatchResult(ds, DISPATCH_WAIT_NONE);
+		cdbdisp_getDispatchResults(ds, &qeError);		
+
+		if (qeError)
+		{
+			queryDesc->estate->dispatcherState = NULL;
+			FlushErrorState();
+			ReThrowError(qeError);
+		}
 
 		/* If EXPLAIN ANALYZE, collect execution stats from qExecs. */
 		if (planstate->instrument && planstate->instrument->need_cdb)
