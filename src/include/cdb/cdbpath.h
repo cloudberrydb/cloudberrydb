@@ -59,6 +59,4 @@ cdbpath_motion_for_join(PlannerInfo    *root,
 
 extern bool cdbpath_contains_wts(Path *path);
 
-extern void failIfUpdateTriggers(Oid relid);
-
 #endif   /* CDBPATH_H */

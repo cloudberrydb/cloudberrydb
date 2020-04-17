@@ -2130,42 +2130,6 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 	return false;
 }
 
-void
-failIfUpdateTriggers(Oid relid)
-{
-	Relation		relation;
-
-	/* Suppose we already hold locks before caller */
-	relation = relation_open(relid, NoLock);
-
-	if (relation->rd_rel->relhastriggers)
-	{
-		bool	found = false;
-
-		if (relation->trigdesc == NULL)
-			RelationBuildTriggers(relation);
-
-		if (relation->trigdesc)
-		{
-			for (int i = 0; i < relation->trigdesc->numtriggers && !found; i++)
-			{
-				Trigger trigger = relation->trigdesc->triggers[i];
-				found = trigger_enabled(trigger.tgoid) &&
-					(get_trigger_type(trigger.tgoid) & TRIGGER_TYPE_UPDATE) == TRIGGER_TYPE_UPDATE;
-				if (found)
-					break;
-			}
-		}
-
-		/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
-		if (found || child_triggers(relation->rd_id, TRIGGER_TYPE_UPDATE))
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_YET),
-					 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
-	}
-	relation_close(relation, NoLock);
-}
-
 /*
  * Add a suitable Motion Path so that the input tuples from 'subpath' are
  * distributed correctly for insertion into target table.
