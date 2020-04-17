@@ -1352,7 +1352,7 @@ spill_hash_table(AggState *aggstate)
 	/* Book keeping. */
 	hashtable->is_spilling = true;
 
-	Assert(hashtable->nbuckets > spill_set->num_spill_files);
+	Assert(hashtable->nbuckets >= spill_set->num_spill_files);
 
 	/*
 	 * Write each spill file. Write the last spill file first, since it will
