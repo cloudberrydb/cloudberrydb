@@ -68,14 +68,12 @@ JOBS_THAT_ARE_GATES = [
 JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE = (
     [
         'combine_cli_coverage',
-        'compile_gpdb_binary_swap_centos6',
+        'compile_gpdb_binary_swap_centos7',
         'compile_gpdb_clients_windows',
         'concourse_unit_tests',
         'test_gpdb_clients_windows',
         'walrep_2',
         'madlib_build_gppkg',
-        'MADlib_Test_planner_centos6',
-        'MADlib_Test_orca_centos6',
         'MADlib_Test_planner_centos7',
         'MADlib_Test_orca_centos7',
         'Publish Server Builds',
@@ -299,8 +297,8 @@ def main():
         '--os_types',
         action='store',
         dest='os_types',
-        default=['centos6'],
-        choices=['centos6', 'centos7', 'ubuntu18.04', 'sles12', 'win'],
+        default=['centos7'],
+        choices=['centos7', 'ubuntu18.04', 'sles12', 'win'],
         nargs='+',
         help='List of OS values to support'
     )

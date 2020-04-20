@@ -79,8 +79,7 @@ function install_python_hacks() {
 }
 
 function _install_python_requirements() {
-    # virtualenv 16.0 and greater does not support python2.6, which is
-    # used on centos6
+    # virtualenv 16.0 and greater does not support python2.6
     pip install --user virtualenv~=15.0
     export PATH=$PATH:~/.local/bin
 
