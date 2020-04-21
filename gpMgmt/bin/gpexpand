@@ -829,8 +829,8 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
                 continue
             # a pathname is like './pg_tblspc/16385/GPDB_7_301911081/16386/6052_vm'
             # we need to change it to './16385/<dummyDBID>/GPDB_7_301911081/16386/6052_vm'
-            pathname = os.sep.join([pathname.split(os.sep)[2], str(dummyDBID)] +
-                                   pathname.split(os.sep)[3:])
+            seps = pathname.split(os.sep)
+            pathname = os.sep.join([seps[2], str(dummyDBID)] + seps[3:])
             full_excludes.append(os.path.join(tablespace_template_dir,
                                               pathname))
 
@@ -855,7 +855,12 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
             # so it is safe to use a check-and-create style to create dirs.
             if not os.path.isdir(dirname):
                 os.makedirs(dirname)
-            open(fullname, 'wb')
+            # the file should not already exist, however in case it does, which
+            # indicates an error in the excluding logic, raise an error.
+            if os.path.exists(fullname):
+                self.logger.error("Could not exclude file '%s' from the template: file exists" % fullname)
+                raise Exception('Invalid exclude list')
+            open(fullname, 'ab')
 
         with open(os.path.join(self.tempDir,
                                "pg_tblspc",
@@ -1021,7 +1026,13 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
                 # so it is safe to use a check-and-create style to create dirs.
                 if not os.path.isdir(dirname):
                     os.makedirs(dirname)
-                open(fullname, 'wb')
+                # the file should not already exist, however in case it does,
+                # which indicates an error in the excluding logic, raise an
+                # error.
+                if os.path.exists(fullname):
+                    self.logger.error("Could not exclude file '%s' from the template: file exists" % fullname)
+                    raise Exception('Invalid exclude list')
+                open(fullname, 'ab')
 
     def _tar_template(self):
         """Tars up the template files"""
