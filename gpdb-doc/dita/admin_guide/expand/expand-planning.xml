@@ -164,9 +164,9 @@
                   <image href="../graphics/green-checkbox.jpg" width="29px" height="28px"
                     id="image_sk2_51m_2r"/>
                 </entry>
-                <entry>Run <codeph>analyze</codeph> to update distribution statistics.<p>During the
-                    expansion, use <codeph>gpexpand -a</codeph>, and post-expansion, use
-                      <codeph>analyze</codeph>.</p></entry>
+                <entry><b>Important:</b> Run <codeph>analyze</codeph> to update distribution
+                    statistics.<p>During the expansion, use <codeph>gpexpand -a</codeph>, and
+                    post-expansion, use <codeph>analyze</codeph>.</p></entry>
               </row>
               <row>
                 <entry namest="c1" nameend="c2"><p><b>Back Up Databases</b></p><ph>* System is up
@@ -208,7 +208,7 @@
           configuration in the particular site and environment. </li>
       </ul>
       <p>After selecting and adding new hardware to your network environment, ensure you perform the
-        burn-in tasks described in <xref href="expand-nodes.xml#topic19" type="topic" format="dita"
+        burn-in tasks described in <xref href="expand-nodes.xml#topic18" type="topic" format="dita"
         />.</p>
     </body>
   </topic>
