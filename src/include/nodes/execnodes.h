@@ -2928,6 +2928,8 @@ typedef struct LimitState
 	LimitStateCond lstate;		/* state machine status, as above */
 	int64		position;		/* 1-based index of last tuple returned */
 	TupleTableSlot *subSlot;	/* tuple last obtained from subplan */
+
+	bool		expect_rescan;
 } LimitState;
 
 /*

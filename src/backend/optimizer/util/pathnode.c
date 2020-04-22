@@ -3249,6 +3249,7 @@ create_nestloop_path(PlannerInfo *root,
 										 &inner_path,       /* INOUT */
 										 &rowidexpr_id,		/* OUT */
 										 redistribution_clauses,
+										 restrict_clauses,
 										 pathkeys,
 										 NIL,
 										 outer_must_be_local,
@@ -3482,6 +3483,7 @@ create_mergejoin_path(PlannerInfo *root,
 										 &inner_path,       /* INOUT */
 										 &rowidexpr_id,
 										 redistribution_clauses,
+										 restrict_clauses,
 										 outermotionkeys,
 										 innermotionkeys,
 										 preserve_outer_ordering,
@@ -3601,6 +3603,7 @@ create_hashjoin_path(PlannerInfo *root,
 										 &inner_path,       /* INOUT */
 										 &rowidexpr_id,
 										 redistribution_clauses,
+										 restrict_clauses,
 										 NIL,   /* don't care about ordering */
 										 NIL,
 										 outer_must_be_local,
