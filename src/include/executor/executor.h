@@ -64,6 +64,8 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
 #define EXEC_FLAG_WITH_OIDS		0x0020	/* force OIDs in returned tuples */
 #define EXEC_FLAG_WITHOUT_OIDS	0x0040	/* force no OIDs in returned tuples */
 #define EXEC_FLAG_WITH_NO_DATA	0x0080	/* rel scannability doesn't matter */
+/* CDB: explain flag to check if it is safe to eliminate alien node on master */
+#define EXEC_FLAG_EXPLAIN		0x0100
 
 
 /*

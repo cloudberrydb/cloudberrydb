@@ -494,13 +494,34 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	else
 		shouldDispatch = false;
 
-	/*
-	 * We don't eliminate aliens if we don't have an MPP plan
-	 * or we are executing on master.
-	 *
-	 * TODO: eliminate aliens even on master, if not EXPLAIN ANALYZE
-	 */
-	estate->eliminateAliens = execute_pruned_plan && estate->es_sliceTable && estate->es_sliceTable->hasMotions && !IS_QUERY_DISPATCHER();
+	/* We don't eliminate aliens if we don't have an MPP plan */
+	estate->eliminateAliens = execute_pruned_plan && estate->es_sliceTable && estate->es_sliceTable->hasMotions;
+
+	if (estate->eliminateAliens && Gp_role == GP_ROLE_DISPATCH)
+	{
+		int subplanSliceId;
+		int i;
+
+		/* Explain or explain analyze needs ExecInitNode all the plan nodes on master */
+		if (eflags & (EXEC_FLAG_EXPLAIN_ONLY | EXEC_FLAG_EXPLAIN))
+			estate->eliminateAliens = false;
+
+		/* For cursor case, should not eliminate alien node on master */
+		if (queryDesc->portal_name || queryDesc->dest != None_Receiver)
+			estate->eliminateAliens = false;
+
+		/* Skip eliminating alien node on master if there exists initplan */
+		for(i = 0; i < list_length(queryDesc->plannedstmt->subplans); i++)
+		{
+			subplanSliceId = queryDesc->plannedstmt->subplan_sliceIds[i];
+			if (queryDesc->plannedstmt->slices[subplanSliceId].parentIndex == -1)
+			{
+				/* subplan is initplan */
+				estate->eliminateAliens = false;
+				break;
+			}
+		}
+	}
 
 	/* If the interconnect has been set up; we need to catch any
 	 * errors to shut it down -- so we have to wrap InitPlan in a PG_TRY() block. */
