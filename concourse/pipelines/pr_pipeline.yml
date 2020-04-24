@@ -23,15 +23,15 @@ resources:
     - gpdb-doc/*
     - README*
 
-- name: gpdb6-centos7-build
+- name: gpdb7-centos7-build
   type: docker-image
   source:
-    repository: pivotaldata/gpdb6-centos7-build
+    repository: pivotaldata/gpdb7-centos7-build
 
-- name: gpdb6-centos7-test
+- name: gpdb7-centos7-test
   type: docker-image
   source:
-    repository: pivotaldata/gpdb6-centos7-test
+    repository: pivotaldata/gpdb7-centos7-test
 
 - name: libquicklz-centos7
   type: gcs
@@ -64,8 +64,8 @@ jobs:
     - get: gpdb_pr
       trigger: true
       version: every
-    - get: gpdb6-centos7-build
-    - get: gpdb6-centos7-test
+    - get: gpdb7-centos7-build
+    - get: gpdb7-centos7-test
     - get: libquicklz-installer
       resource: libquicklz-centos7
     - get: libquicklz-devel-installer
@@ -91,7 +91,7 @@ jobs:
         status: success
     do:
     - task: init gpdb_src  # Fetch tags and submodules, because the PR resource doesn't.
-      image: gpdb6-centos7-build
+      image: gpdb7-centos7-build
       config:
         platform: linux
         run:
@@ -107,7 +107,7 @@ jobs:
         outputs: [{ name: gpdb_src }]
     - task: compile_gpdb_centos7
       file: gpdb_pr/concourse/tasks/compile_gpdb.yml
-      image: gpdb6-centos7-build
+      image: gpdb7-centos7-build
       params:
         CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
         TARGET_OS: centos
@@ -119,7 +119,7 @@ jobs:
     - aggregate:
       - task: icw_planner_centos7
         file: gpdb_pr/concourse/tasks/ic_gpdb.yml
-        image: gpdb6-centos7-test
+        image: gpdb7-centos7-test
         input_mapping:
           gpdb_src: gpdb_pr
           bin_gpdb: gpdb_artifacts
@@ -131,7 +131,7 @@ jobs:
 
       - task: icw_gporca_centos7
         file: gpdb_pr/concourse/tasks/ic_gpdb.yml
-        image: gpdb6-centos7-test
+        image: gpdb7-centos7-test
         input_mapping:
           gpdb_src: gpdb_pr
           bin_gpdb: gpdb_artifacts
