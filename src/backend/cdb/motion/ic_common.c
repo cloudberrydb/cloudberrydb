@@ -195,7 +195,7 @@ RecvTupleChunk(MotionConn *conn, ChunkTransportState *transportStates)
 		tcItem->chunk_length = tcSize;
 		tcItem->inplace = (char *) (conn->msgPos + bytesProcessed);
 
-		bytesProcessed += TYPEALIGN(TUPLE_CHUNK_ALIGN, tcSize);
+		bytesProcessed += tcSize;
 
 		if (firstTcItem == NULL)
 		{

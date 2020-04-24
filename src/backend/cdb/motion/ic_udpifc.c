@@ -5405,7 +5405,7 @@ SendChunkUDPIFC(ChunkTransportState *transportStates,
 				int16 motionId)
 {
 
-	int			length = TYPEALIGN(TUPLE_CHUNK_ALIGN, tcItem->chunk_length);
+	int			length = tcItem->chunk_length;
 	int			retry = 0;
 	bool		doCheckExpiration = false;
 	bool		gotStops = false;
