@@ -2622,7 +2622,7 @@ flushBuffer(ChunkTransportState *transportStates,
 	{
 		struct timeval timeout;
 
-		/* check for stop message before sending anything  */
+		/* check for stop message or peer teardown before sending anything  */
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
 		MPP_FD_ZERO(&rset);
@@ -2646,6 +2646,7 @@ flushBuffer(ChunkTransportState *transportStates,
 
 		if ((n = send(conn->sockfd, sendptr + sent, conn->msgSize - sent, 0)) < 0)
 		{
+			int	send_errno = errno;
 			ML_CHECK_FOR_INTERRUPTS(transportStates->teardownActive);
 			if (errno == EINTR)
 				continue;
@@ -2689,8 +2690,8 @@ flushBuffer(ChunkTransportState *transportStates,
 
 					/*
 					 * as a sender... if there is something to read... it must
-					 * mean its a StopSendingMessage.  we don't even bother to
-					 * read it.
+					 * mean its a StopSendingMessage or receiver has teared down
+					 * the interconnect, we don't even bother to read it.
 					 */
 					if (MPP_FD_ISSET(conn->sockfd, &rset) || transportStates->teardownActive)
 					{
@@ -2716,11 +2717,35 @@ flushBuffer(ChunkTransportState *transportStates,
 					conn->stillActive = false;
 					return false;
 				}
+
+				/* check whether receiver has teared down the interconnect */
+				timeout.tv_sec = 0;
+				timeout.tv_usec = 0;
+				MPP_FD_ZERO(&rset);
+				MPP_FD_SET(conn->sockfd, &rset);
+
+				n = select(conn->sockfd + 1, (fd_set *) &rset, NULL, NULL, &timeout);
+
+				/*
+				 * as a sender... if there is something to read... it must
+				 * mean its a StopSendingMessage or receiver has teared down
+				 * the interconnect, we don't even bother to read it.
+				 */
+				if (n > 0 && MPP_FD_ISSET(conn->sockfd, &rset))
+				{
+#ifdef AMS_VERBOSE_LOGGING
+					print_connection(transportStates, conn->sockfd, "stop from");
+#endif
+					/* got a stop message */
+					conn->stillActive = false;
+					return false;
+				}
+
 				ereport(ERROR,
 						(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 						 errmsg("interconnect error writing an outgoing packet"),
 						 errdetail("Error during send() call (error:%d) for remote connection: contentId=%d at %s",
-								   errno, conn->remoteContentId,
+								   send_errno, conn->remoteContentId,
 								   conn->remoteHostAndPort)));
 			}
 		}
