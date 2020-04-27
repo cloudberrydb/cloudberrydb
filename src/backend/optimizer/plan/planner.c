@@ -764,12 +764,6 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 #endif
 
 	/*
-	 * Ensure that jointree has been normalized. See
-	 * normalize_query_jointree_mutator()
-	 */
-	AssertImply(parse->jointree->fromlist, list_length(parse->jointree->fromlist) == 1);
-
-	/*
 	 * Look for ANY and EXISTS SubLinks in WHERE and JOIN/ON clauses, and try
 	 * to transform them into joins.  Note that this step does not descend
 	 * into subqueries; if we pull up any subqueries below, their SubLinks are
