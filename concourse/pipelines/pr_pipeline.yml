@@ -70,8 +70,6 @@ jobs:
       resource: libquicklz-centos7
     - get: libquicklz-devel-installer
       resource: libquicklz-devel-centos7
-    - get: python-tarball
-      resource: python-centos7
 
   - put: gpdb_pr
     params:

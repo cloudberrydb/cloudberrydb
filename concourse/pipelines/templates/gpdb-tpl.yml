@@ -519,33 +519,6 @@ resources:
 
 {% endif %}
 {% if "centos7" in os_types %}
-- name: python-centos7
-  type: gcs
-  source:
-    bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: gp-internal-artifacts/centos7/python-(2\.7\.12-.*).tar.gz
-
-{% endif %}
-{% if "ubuntu18.04" in os_types %}
-- name: python-ubuntu18.04
-  type: gcs
-  source:
-    bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: gp-internal-artifacts/ubuntu18.04/python-(2\.7\.12-.*).tar.gz
-
-{% endif %}
-{% if "sles12" in os_types %}
-- name: python-sles12
-  type: gcs
-  source:
-    bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: gp-internal-artifacts/sles12/python-(2\.7\.12-.*).tar.gz
-
-{% endif %}
-{% if "centos7" in os_types %}
 - name: gpdb7-centos7-build
   type: docker-image
   source:
@@ -869,8 +842,6 @@ jobs:
         resource: libquicklz-centos7
       - get: libquicklz-devel-installer
         resource: libquicklz-devel-centos7
-      - get: python-tarball
-        resource: python-centos7
   - task: compile_gpdb
     image: gpdb7-centos7-build
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -902,8 +873,6 @@ jobs:
         - get: gpdb7-ubuntu18.04-build
         - get: libquicklz-installer
           resource: libquicklz-ubuntu18.04
-        - get: python-tarball
-          resource: python-ubuntu18.04
     - task: compile_gpdb
       image: gpdb7-ubuntu18.04-build
       file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -937,8 +906,6 @@ jobs:
           resource: libquicklz-sles12
         - get: libquicklz-devel-installer
           resource: libquicklz-devel-sles12
-        - get: python-tarball
-          resource: python-sles12
     - task: compile_gpdb
       image: gpdb7-sles12-build
       file: gpdb_src/concourse/tasks/compile_gpdb.yml

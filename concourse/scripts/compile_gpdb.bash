@@ -64,11 +64,6 @@ function install_deps() {
   esac
 }
 
-function link_python() {
-  tar xf python-tarball/python-*.tar.gz -C $(pwd)/${GPDB_SRC_PATH}/gpAux/ext
-  ln -sf $(pwd)/${GPDB_SRC_PATH}/gpAux/ext/${BLD_ARCH}/python-2.7.12 /opt/python-2.7.12
-}
-
 function generate_build_number() {
   pushd ${GPDB_SRC_PATH}
     #Only if its git repro, add commit SHA as build number
@@ -237,7 +232,6 @@ function _main() {
       build_xerces
       test_orca
       install_deps
-      link_python
       ;;
     win32)
         export BLD_ARCH=win32
