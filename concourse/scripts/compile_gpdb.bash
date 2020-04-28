@@ -140,23 +140,6 @@ function include_quicklz() {
   popd
 }
 
-function include_libstdcxx() {
-  if [ "${TARGET_OS}" == "centos" ] ; then
-    pushd /opt/gcc-6*/lib64
-      for libfile in libstdc++.so.*; do
-        case $libfile in
-          *.py)
-            ;; # we don't vendor libstdc++.so.*-gdb.py
-          *)
-            cp -d "$libfile" ${GREENPLUM_INSTALL_DIR}/lib
-            ;; # vendor everything else
-        esac
-      done
-    popd
-  fi
-
-}
-
 function export_gpdb() {
   TARBALL="${GPDB_ARTIFACTS_DIR}/${GPDB_BIN_FILENAME}"
   local server_version
@@ -265,7 +248,6 @@ function _main() {
   fi
   include_zstd
   include_quicklz
-  include_libstdcxx
   export_gpdb
   export_gpdb_extensions
   export_gpdb_win32_ccl
