@@ -72,6 +72,7 @@
 #include "cdb/cdbvars.h"
 #include "utils/faultinjector.h"
 #include "utils/sharedsnapshot.h"
+#include "libpq/libpq-be.h"
 
 /* Our shared memory area */
 typedef struct ProcArrayStruct
@@ -452,7 +453,12 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 	PGXACT	   *pgxact = &allPgXact[proc->pgprocno];
 	TMGXACT	   *gxact = &allTmGxact[proc->pgprocno];
 
-	SIMPLE_FAULT_INJECTOR("before_xact_end_procarray");
+#ifdef FAULT_INJECTOR
+	FaultInjector_InjectFaultIfSet("before_xact_end_procarray",
+			DDLNotSpecified,
+			MyProcPort ? MyProcPort->database_name : "",  // databaseName
+			""); // tableName
+#endif
 	if (TransactionIdIsValid(latestXid) || TransactionIdIsValid(gxact->gxid))
 	{
 		/*
