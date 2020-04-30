@@ -126,7 +126,7 @@ static HTAB *shareinput_Xslice_hash = NULL;
  * These are allocated in TopMemoryContext, and held in the
  * 'shareinput_Xslice_refs' list.
  */
-typedef struct shareinput_xslice_reference
+typedef struct shareinput_Xslice_reference
 {
 	int			share_id;
 	shareinput_Xslice_state *xslice_state;
@@ -134,7 +134,7 @@ typedef struct shareinput_xslice_reference
 	ResourceOwner owner;
 
 	dlist_node	node;
-} shareinput_reference;
+} shareinput_Xslice_reference;
 
 static dlist_head shareinput_Xslice_refs = DLIST_STATIC_INIT(shareinput_Xslice_refs);
 static bool shareinput_resowner_callback_registered = false;
@@ -161,17 +161,17 @@ typedef struct shareinput_local_state
 
 static void ExecEagerFreeShareInputScan(ShareInputScanState *node);
 
-static shareinput_reference *get_shareinput_reference(int share_id);
-static void release_shareinput_reference(shareinput_reference *ref);
+static shareinput_Xslice_reference *get_shareinput_reference(int share_id);
+static void release_shareinput_reference(shareinput_Xslice_reference *ref);
 static void shareinput_release_callback(ResourceReleasePhase phase,
 										bool isCommit,
 										bool isTopLevel,
 										void *arg);
 
-static void shareinput_writer_notifyready(shareinput_reference *ref);
-static void shareinput_reader_waitready(shareinput_reference *ref);
-static void shareinput_reader_notifydone(shareinput_reference *ref, int nconsumers);
-static void shareinput_writer_waitdone(shareinput_reference *ref, int nconsumers);
+static void shareinput_writer_notifyready(shareinput_Xslice_reference *ref);
+static void shareinput_reader_waitready(shareinput_Xslice_reference *ref);
+static void shareinput_reader_notifydone(shareinput_Xslice_reference *ref, int nconsumers);
+static void shareinput_writer_waitdone(shareinput_Xslice_reference *ref, int nconsumers);
 
 
 /*
@@ -745,13 +745,13 @@ ShareInputShmemInit(void)
  * The reference is tracked by the current ResourceOwner, and will be
  * automatically released on abort.
  */
-static shareinput_reference *
+static shareinput_Xslice_reference *
 get_shareinput_reference(int share_id)
 {
 	shareinput_tag tag;
 	shareinput_Xslice_state *xslice_state;
 	bool		found;
-	shareinput_reference *ref;
+	shareinput_Xslice_reference *ref;
 
 	/* Register our resource owner callback to clean up on first call. */
 	if (!shareinput_resowner_callback_registered)
@@ -761,7 +761,7 @@ get_shareinput_reference(int share_id)
 	}
 
 	ref = MemoryContextAllocZero(TopMemoryContext,
-								 sizeof(shareinput_reference));
+								 sizeof(shareinput_Xslice_reference));
 
 	LWLockAcquire(ShareInputScanLock, LW_EXCLUSIVE);
 
@@ -808,7 +808,7 @@ get_shareinput_reference(int share_id)
  * it reaches zero, it is destroyed.
  */
 static void
-release_shareinput_reference(shareinput_reference *ref)
+release_shareinput_reference(shareinput_Xslice_reference *ref)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 
@@ -850,9 +850,10 @@ shareinput_release_callback(ResourceReleasePhase phase,
 
 	dlist_foreach_modify(miter, &shareinput_Xslice_refs)
 	{
-		shareinput_reference *ref = dlist_container(shareinput_reference,
-													node,
-													miter.cur);
+		shareinput_Xslice_reference *ref =
+			dlist_container(shareinput_Xslice_reference,
+							node,
+							miter.cur);
 
 		if (ref->owner == CurrentResourceOwner)
 		{
@@ -872,7 +873,7 @@ shareinput_release_callback(ResourceReleasePhase phase,
  *  This is a blocking operation.
  */
 static void
-shareinput_reader_waitready(shareinput_reference *ref)
+shareinput_reader_waitready(shareinput_Xslice_reference *ref)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 
@@ -913,7 +914,7 @@ shareinput_reader_waitready(shareinput_reference *ref)
  *  are ready to be read from disk.
  */
 static void
-shareinput_writer_notifyready(shareinput_reference *ref)
+shareinput_writer_notifyready(shareinput_Xslice_reference *ref)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 
@@ -936,7 +937,7 @@ shareinput_writer_notifyready(shareinput_reference *ref)
  *  This is a non-blocking operation.
  */
 static void
-shareinput_reader_notifydone(shareinput_reference *ref, int nconsumers)
+shareinput_reader_notifydone(shareinput_Xslice_reference *ref, int nconsumers)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 	int		ndone;
@@ -963,7 +964,7 @@ shareinput_reader_notifydone(shareinput_reference *ref, int nconsumers)
  *  This is a blocking operation.
  */
 static void
-shareinput_writer_waitdone(shareinput_reference *ref, int nconsumers)
+shareinput_writer_waitdone(shareinput_Xslice_reference *ref, int nconsumers)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 

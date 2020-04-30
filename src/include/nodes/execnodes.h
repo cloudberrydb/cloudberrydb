@@ -2482,6 +2482,7 @@ typedef struct MaterialState
  * ----------------
  */
 struct shareinput_local_state;
+struct shareinput_Xslice_reference;
 
 typedef struct ShareInputScanState
 {
@@ -2495,7 +2496,7 @@ typedef struct ShareInputScanState
 	void	   *ts_pos;
 
 	struct shareinput_local_state *local_state;
-	struct shareinput_reference *ref;
+	struct shareinput_Xslice_reference *ref;
 } ShareInputScanState;
 
 /* XXX Should move into buf file */
