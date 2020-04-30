@@ -2500,7 +2500,6 @@ typedef struct ShareInputScanState
 	 */
 	GenericTupStore *ts_state;
 	void	   *ts_pos;
-	void	   *ts_markpos;
 
 	void	   *share_lk_ctxt;
 	bool		freed; /* is this node already freed? */

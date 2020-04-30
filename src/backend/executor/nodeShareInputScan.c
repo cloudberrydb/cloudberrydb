@@ -19,8 +19,6 @@
  *	ExecInitShareInputScan
  * 	ExecShareInputScan
  * 	ExecEndShareInputScan
- * 	ExecShareInputMarkPosScan
- * 	ExecShareInputRestrPosScan
  * 	ExecShareInputReScanScanv
  */
 
@@ -222,7 +220,6 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 	
 	sisstate->ts_state = NULL;
 	sisstate->ts_pos = NULL;
-	sisstate->ts_markpos = NULL;
 
 	sisstate->share_lk_ctxt = NULL;
 	sisstate->freed = false;
@@ -886,8 +883,6 @@ ExecEagerFreeShareInputScan(ShareInputScanState *node)
 	{
 		if(node->ts_pos != NULL)
 			ntuplestore_destroy_accessor((NTupleStoreAccessor *) node->ts_pos);
-		if(node->ts_markpos != NULL)
-			pfree(node->ts_markpos);
 
 		if(NULL != node->ts_state && NULL != node->ts_state->matstore)
 		{
@@ -913,7 +908,6 @@ ExecEagerFreeShareInputScan(ShareInputScanState *node)
 	 */ 
 	node->ts_state = NULL; 
 	node->ts_pos = NULL;
-	node->ts_markpos = NULL;
 
 	/* This can be called more than once */
 	if (!node->freed &&

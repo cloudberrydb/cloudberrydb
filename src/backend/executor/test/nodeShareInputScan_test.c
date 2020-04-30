@@ -22,7 +22,6 @@ test__ExecEagerFreeShareInputScan_SHARE_NOTSHARED(void **state)
 	ShareInputScan *plan = makeNode(ShareInputScan);
 	sisc->ss.ps.plan = (Plan*) plan;
 
-	sisc->ts_markpos = (void*)FIXED_POINTER_VAL;
 	sisc->ts_pos = (void*)FIXED_POINTER_VAL;
 	sisc->ts_state = (void*)FIXED_POINTER_VAL;
 	sisc->freed = false;
@@ -35,7 +34,6 @@ test__ExecEagerFreeShareInputScan_SHARE_NOTSHARED(void **state)
 
 	ExecEagerFreeShareInputScan(sisc);
 
-	assert_int_equal(sisc->ts_markpos, NULL);
 	assert_int_equal(sisc->ts_pos, NULL);
 	assert_int_equal(sisc->ts_state, NULL);
 	assert_true(sisc->freed);
@@ -56,7 +54,6 @@ test__ExecEagerFreeShareInputScan_SHARE_MATERIAL(void **state)
 	ShareInputScan *plan = makeNode(ShareInputScan);
 	sisc->ss.ps.plan = (Plan *) plan;
 
-	sisc->ts_markpos = NULL;
 	sisc->ts_pos = (void*) FIXED_POINTER_VAL;
 	sisc->ts_state = (GenericTupStore *) palloc0(sizeof(GenericTupStore));
 	sisc->ts_state->matstore = (void *) FIXED_POINTER_VAL;
@@ -88,7 +85,6 @@ test__ExecEagerFreeShareInputScan_SHARE_MATERIAL(void **state)
 
 	ExecEagerFreeShareInputScan(sisc);
 
-	assert_int_equal(sisc->ts_markpos, NULL);
 	assert_int_equal(sisc->ts_pos, NULL);
 	assert_int_equal(sisc->ts_state, NULL);
 	assert_int_equal(shareNodeEntry->refcount, SHARE_NODE_ENTRY_REFCOUNT - 1);
