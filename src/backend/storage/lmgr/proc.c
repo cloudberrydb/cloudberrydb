@@ -47,6 +47,7 @@
 #include "replication/slot.h"
 #include "replication/syncrep.h"
 #include "replication/walsender.h"
+#include "storage/condition_variable.h"
 #include "storage/standby.h"
 #include "storage/ipc.h"
 #include "storage/spin.h"
@@ -999,6 +1000,9 @@ ProcKill(int code, Datum arg)
 	 */
 	LWLockReleaseAll();
 
+	/* Cancel any pending condition variable sleep, too */
+	ConditionVariableCancelSleep();
+
 	MyProc->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
     MyProc->mppLocalProcessSerial = 0;
 	MyProc->mppSessionId = InvalidGpSessionId;
@@ -1111,6 +1115,9 @@ AuxiliaryProcKill(int code, Datum arg)
 
 	/* Release any LW locks I am holding (see notes above) */
 	LWLockReleaseAll();
+
+	/* Cancel any pending condition variable sleep, too */
+	ConditionVariableCancelSleep();
 
 	/*
 	 * Reset MyLatch to the process local one.  This is so that signal
