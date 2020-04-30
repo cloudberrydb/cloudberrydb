@@ -146,7 +146,7 @@ ConditionVariableSleep(ConditionVariable *cv, uint32 wait_event_info)
 		 * Wait for latch to be set.  (If we're awakened for some other
 		 * reason, the code below will cope anyway.)
 		 */
-		WaitEventSetWait(cv_wait_event_set, -1, &event, 1, wait_event_info);
+		WaitEventSetWait(cv_wait_event_set, -1, &event, 1);
 
 		if (event.events & WL_POSTMASTER_DEATH)
 		{

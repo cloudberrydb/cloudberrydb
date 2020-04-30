@@ -1532,7 +1532,9 @@ _readShareInputScan(void)
 
 	READ_ENUM_FIELD(share_type, ShareType);
 	READ_INT_FIELD(share_id);
-	READ_INT_FIELD(driver_slice);
+	READ_INT_FIELD(producer_slice_id);
+	READ_INT_FIELD(this_slice_id);
+	READ_INT_FIELD(nconsumers);
 
 	ReadCommonPlan(&local_node->scan.plan);
 

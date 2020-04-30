@@ -106,11 +106,6 @@ ExecSort(SortState *node)
 		if(plannode->share_type == SHARE_SORT_XSLICE)
 		{
 			char rwfile_prefix[100];
-			if(plannode->driver_slice != currentSliceId)
-			{
-				elog(LOG, "Sort exec on CrossSlice, current slice %d", currentSliceId);
-				return NULL;
-			}
 
 			shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), plannode->share_id);
 			elog(LOG, "Sort node create shareinput rwfile %s", rwfile_prefix);
@@ -212,16 +207,8 @@ ExecSort(SortState *node)
 		{
 			Assert(plannode->share_type == SHARE_SORT || plannode->share_type == SHARE_SORT_XSLICE);
 
-			if(plannode->share_type == SHARE_SORT_XSLICE)
-			{
-				if(plannode->driver_slice == currentSliceId)
-				{
-					tuplesort_flush(tuplesortstate);
-
-					node->share_lk_ctxt = shareinput_writer_notifyready(plannode->share_id, plannode->nsharer_xslice,
-							estate->es_plannedstmt->planGen);
-				}
-			}
+			if (plannode->share_type == SHARE_SORT_XSLICE)
+				tuplesort_flush(tuplesortstate);
 
 			return NULL;
 		}
@@ -289,7 +276,6 @@ ExecInitSort(Sort *node, EState *estate, int eflags)
 	sortstate->bounded = false;
 	sortstate->sort_Done = false;
 	sortstate->tuplesortstate = palloc0(sizeof(GenericTupStore));
-	sortstate->share_lk_ctxt = NULL;
 
 	/* CDB */
 
@@ -377,13 +363,6 @@ ExecInitSort(Sort *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&sortstate->ss.ps);
 	ExecAssignScanTypeFromOuterPlan(&sortstate->ss);
 	sortstate->ss.ps.ps_ProjInfo = NULL;
-
-	if(node->share_type != SHARE_NOTSHARED)
-	{
-		ShareNodeEntry *snEntry = ExecGetShareNodeEntry(estate, node->share_id, true);
-		snEntry->sharePlan = (Node *)node;
-		snEntry->shareState = (Node *)sortstate;
-	}
 
 	SO1_printf("ExecInitSort: %s\n",
 			   "sort node initialized");
@@ -518,29 +497,6 @@ ExecSortExplainEnd(PlanState *planstate, struct StringInfoData *buf)
 static void
 ExecEagerFreeSort(SortState *node)
 {
-	Sort	   *plan = (Sort *) node->ss.ps.plan;
-	EState	   *estate = node->ss.ps.state;
-
-	/*
-	 * If we still have potential readers assocated with this node,
-	 * we shouldn't free the tuplesort too early.  The eager-free message
-	 * doesn't know about upper ShareInputScan nodes, but those nodes
-	 * bumps up the reference count in their initializations and decrement
-	 * it in either EagerFree or ExecEnd.
-	 */
-	Assert(SHARE_MATERIAL != plan->share_type && SHARE_MATERIAL_XSLICE != plan->share_type);
-	if (SHARE_SORT == plan->share_type)
-	{
-		ShareNodeEntry	   *snEntry;
-
-		snEntry = ExecGetShareNodeEntry(estate, plan->share_id, false);
-
-		if (snEntry->refcount > 0)
-		{
-			return;
-		}
-	}
-
 	/* clean out the tuple table */
 	ExecClearTuple(node->ss.ss_ScanTupleSlot);
 
@@ -549,15 +505,6 @@ ExecEagerFreeSort(SortState *node)
 
 	if (NULL != node->tuplesortstate->sortstore)
 	{
-		Sort *sort = (Sort *) node->ss.ps.plan;
-
-		/* If this is a producer for a ShareScan, then wait for all consumers to be done */
-		/* XXX gcaragea: In Materialize, we moved this to End instead of EF, since EF might be too early to do it */
-		if(sort->share_type == SHARE_SORT_XSLICE && NULL != node->share_lk_ctxt)
-		{
-			shareinput_writer_waitdone(node->share_lk_ctxt, sort->share_id, sort->nsharer_xslice);
-		}
-
 		tuplesort_end(node->tuplesortstate->sortstore);
 		node->tuplesortstate->sortstore = NULL;
 	}

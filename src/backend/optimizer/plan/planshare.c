@@ -23,36 +23,12 @@
 #include "optimizer/subselect.h"
 #include "optimizer/planshare.h"
 
-int get_plan_share_id(Plan *p)
-{
-	if(IsA(p, Material))
-		return ((Material *) p)->share_id;
-	
-	if(IsA(p, Sort))
-		return ((Sort *) p)->share_id;
-
-	Assert(IsA(p, ShareInputScan));
-	return ((ShareInputScan *) p)->share_id;
-}
-
-void set_plan_share_id(Plan *p, int share_id)
-{
-	if(IsA(p, Material))
-		((Material *) p)->share_id = share_id;
-	else if(IsA(p, Sort))
-		((Sort *) p)->share_id = share_id;
-	else
-	{
-		Assert(IsA(p, ShareInputScan));
-		((ShareInputScan *) p)->share_id = share_id;
-	}
-}
-
-ShareType get_plan_share_type(Plan *p)
+ShareType
+get_plan_share_type(Plan *p)
 {
 	if(IsA(p, Material))
 		return ((Material *) p)->share_type;
-	
+
 	if(IsA(p, Sort))
 		return ((Sort *) p)->share_type ;
 
@@ -60,90 +36,24 @@ ShareType get_plan_share_type(Plan *p)
 	return ((ShareInputScan *) p)->share_type;
 }
 
-void set_plan_share_type(Plan *p, ShareType share_type)
+static ShareInputScan *
+make_shareinputscan(PlannerInfo *root, Plan *inputplan)
 {
-	if(IsA(p, Material))
-		((Material *) p)->share_type = share_type;
-	else if(IsA(p, Sort))
-		((Sort *) p)->share_type = share_type;
-	else
-	{
-		Assert(IsA(p, ShareInputScan));
-		((ShareInputScan *) p)->share_type = share_type;
-	}
-}
-
-void set_plan_share_type_xslice(Plan *p)
-{
-	ShareType st = get_plan_share_type(p);
-	if(st == SHARE_MATERIAL)
-		set_plan_share_type(p, SHARE_MATERIAL_XSLICE);
-	else
-	{
-		Assert(st == SHARE_SORT);
-		set_plan_share_type(p, SHARE_SORT_XSLICE);
-	}
-}
-
-int get_plan_driver_slice(Plan *p)
-{
-	if(IsA(p, Material))
-		return ((Material *) p)->driver_slice;
-
-	Assert(IsA(p, Sort));
-	return ((Sort *) p)->driver_slice;
-}
-
-void set_plan_driver_slice(Plan *p, int slice)
-{
-	if(IsA(p, Material))
-		((Material *) p)->driver_slice = slice;
-	else
-	{
-		Assert(IsA(p, Sort));
-		((Sort *) p)->driver_slice = slice;
-	}
-}
-
-static void incr_plan_nsharer(Plan *p)
-{
-	if(IsA(p, Material))
-		((Material *) p)->nsharer++;
-	else
-	{
-		Assert(IsA(p, Sort));
-		((Sort *) p)->nsharer++;
-	}
-}
-
-void incr_plan_nsharer_xslice(Plan *p)
-{
-	if(IsA(p, Material))
-		((Material *) p)->nsharer_xslice++;
-	else
-	{
-		Assert(IsA(p, Sort));
-		((Sort *) p)->nsharer_xslice++;
-	}
-}
-
-static ShareInputScan *make_shareinputscan(PlannerInfo *root, Plan *inputplan) 
-{
-	ShareInputScan *sisc = NULL;
-	Path sipath;
+	ShareInputScan *sisc;
+	Path		sipath;
 
 	Assert(IsA(inputplan, Material) || IsA(inputplan, Sort));
 
 	sisc = makeNode(ShareInputScan);
-	incr_plan_nsharer(inputplan);
 
 	sisc->scan.plan.targetlist = copyObject(inputplan->targetlist);
 	sisc->scan.plan.lefttree = inputplan;
 	sisc->scan.plan.flow = copyObject(inputplan->flow);
 
-	set_plan_share_type((Plan *) sisc, get_plan_share_type(inputplan));
-	set_plan_share_id((Plan *) sisc, get_plan_share_id(inputplan));
-	sisc->driver_slice = -1;
+	sisc->share_type = get_plan_share_type(inputplan);
+	sisc->producer_slice_id = -1;
+	sisc->this_slice_id = -1;
+	sisc->nconsumers = 0;
 
 	sisc->scan.plan.qual = NIL;
 	sisc->scan.plan.righttree = NULL;

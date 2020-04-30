@@ -3145,8 +3145,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMaterialize
 	if (materialize_dxlop->IsSpooling())
 	{
 		materialize->share_id = materialize_dxlop->GetSpoolingOpId();
-		materialize->driver_slice = materialize_dxlop->GetExecutorSlice();
-		materialize->nsharer_xslice = materialize_dxlop->GetNumConsumerSlices();
 		materialize->share_type = (0 < materialize_dxlop->GetNumConsumerSlices()) ?
 							SHARE_MATERIAL_XSLICE : SHARE_MATERIAL;
 	}
@@ -3292,15 +3290,12 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 	List *shared_scan_cte_consumer_list = m_dxl_to_plstmt_context->GetCTEConsumerList(share_id);
 	GPOS_ASSERT(NULL != shared_scan_cte_consumer_list);
 
-	const ULONG num_of_shared_scan = gpdb::ListLength(shared_scan_cte_consumer_list);
-
 	ShareType share_type = SHARE_NOTSHARED;
 
 	if (IsA(plan, Material))
 	{
 		Material *materialize = (Material *) plan;
 		materialize->share_id = share_id;
-		materialize->nsharer = num_of_shared_scan;
 		share_type = SHARE_MATERIAL;
 		// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
 		materialize->share_type = share_type;
@@ -3310,7 +3305,6 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 		GPOS_ASSERT(IsA(plan, Sort));
 		Sort *sort = (Sort *) plan;
 		sort->share_id = share_id;
-		sort->nsharer = num_of_shared_scan;
 		share_type = SHARE_SORT;
 		// the share_type is later reset to SHARE_SORT_XSLICE (if needed) the apply_shareinput_xslice
 		sort->share_type = share_type;
@@ -3324,7 +3318,8 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 	{
 		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
 		share_input_scan_consumer->share_type = share_type;
-		share_input_scan_consumer->driver_slice = -1; // default
+		share_input_scan_consumer->producer_slice_id = -1; // default
+		share_input_scan_consumer->this_slice_id = -1; // default
 	}
 }
 

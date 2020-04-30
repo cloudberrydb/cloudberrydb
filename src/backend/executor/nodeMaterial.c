@@ -87,12 +87,6 @@ ExecMaterial(MaterialState *node)
 		{
 			char rwfile_prefix[100];
 
-			if(ma->driver_slice != currentSliceId)
-			{
-				elog(LOG, "Material Exec on CrossSlice, current slice %d", currentSliceId);
-				return NULL;
-			}
-
 			shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), ma->share_id);
 			elog(DEBUG1, "Material node creates shareinput rwfile %s", rwfile_prefix);
 
@@ -163,13 +157,7 @@ ExecMaterial(MaterialState *node)
 			 */
 			if (ma->share_type == SHARE_MATERIAL_XSLICE)
 			{
-				if (ma->driver_slice == currentSliceId)
-				{
-					ntuplestore_flush(ts);
-
-					node->share_lk_ctxt = shareinput_writer_notifyready(ma->share_id, ma->nsharer_xslice,
-							estate->es_plannedstmt->planGen);
-				}
+				ntuplestore_flush(ts);
 			}
 			return NULL;
 		}
@@ -303,7 +291,6 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	matstate->ts_state = palloc0(sizeof(GenericTupStore));
 	matstate->ts_pos = NULL;
 	matstate->ts_markpos = NULL;
-	matstate->share_lk_ctxt = NULL;
 	matstate->ts_destroyed = false;
 
 	/*
@@ -367,16 +354,6 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	ExecAssignScanTypeFromOuterPlan(&matstate->ss);
 	matstate->ss.ps.ps_ProjInfo = NULL;
 
-	/*
-	 * If share input, need to register with range table entry
-	 */
-	if (node->share_type != SHARE_NOTSHARED)
-	{
-		ShareNodeEntry *snEntry = ExecGetShareNodeEntry(estate, node->share_id, true);
-		snEntry->sharePlan = (Node *) node;
-		snEntry->shareState = (Node *) matstate;
-	}
-
 	return matstate;
 }
 
@@ -412,13 +389,7 @@ ExecEndMaterial(MaterialState *node)
 	 */
 	if (node->ts_state->matstore != NULL)
 	{
-		Material   *ma = (Material *) node->ss.ps.plan;
-		if (ma->share_type == SHARE_MATERIAL_XSLICE && node->share_lk_ctxt)
-		{
-			shareinput_writer_waitdone(node->share_lk_ctxt, ma->share_id, ma->nsharer_xslice);
-		}
 		Assert(node->ts_pos);
-
 		DestroyTupleStore(node);
 	}
 
@@ -603,41 +574,11 @@ ExecReScanMaterial(MaterialState *node)
 static void
 ExecEagerFreeMaterial(MaterialState *node)
 {
-	Material   *ma = (Material *) node->ss.ps.plan;
-	EState	   *estate = node->ss.ps.state;
-
-	/*
-	 * If we still have potential readers assocated with this node,
-	 * we shouldn't free the tuplestore too early.  The eager-free message
-	 * doesn't know about upper ShareInputScan nodes, but those nodes
-	 * bumps up the reference count in their initializations and decrement
-	 * it in either EagerFree or ExecEnd.
-	 */
-	if (ma->share_type == SHARE_MATERIAL)
-	{
-		ShareNodeEntry	   *snEntry;
-
-		snEntry = ExecGetShareNodeEntry(estate, ma->share_id, false);
-
-		if (snEntry->refcount > 0)
-			return;
-	}
-
 	/*
 	 * Release tuplestore resources
 	 */
 	if (NULL != node->ts_state->matstore)
 	{
-		if (ma->share_type == SHARE_MATERIAL_XSLICE && node->share_lk_ctxt)
-		{
-			/*
-			 * MPP-22682: If this is a producer shared XSLICE, don't free up
-			 * the tuple store here. For XSLICE producers, that will wait for
-			 * consumers that haven't completed yet, which can cause deadlocks.
-			 * Wait until ExecEndMaterial to free it, which is safer.
-			 */
-			return;
-		}
 		Assert(node->ts_pos);
 
 		DestroyTupleStore(node);

@@ -3034,9 +3034,6 @@ _readMaterial(void)
 
 	READ_ENUM_FIELD(share_type, ShareType);
 	READ_INT_FIELD(share_id);
-	READ_INT_FIELD(driver_slice);
-	READ_INT_FIELD(nsharer);
-	READ_INT_FIELD(nsharer_xslice);
 
 	READ_DONE();
 }
@@ -3062,9 +3059,6 @@ _readSort(void)
 
 	READ_ENUM_FIELD(share_type, ShareType);
 	READ_INT_FIELD(share_id);
-	READ_INT_FIELD(driver_slice);
-	READ_INT_FIELD(nsharer);
-	READ_INT_FIELD(nsharer_xslice);
 
 	READ_DONE();
 }

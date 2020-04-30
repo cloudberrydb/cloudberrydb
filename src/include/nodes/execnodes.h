@@ -429,15 +429,6 @@ typedef struct ResultRelInfo
 	Size		bufferedTuplesSize;
 } ResultRelInfo;
 
-typedef struct ShareNodeEntry
-{
-	NodeTag		type;
-
-	Node	   *sharePlan;
-	Node	   *shareState;
-	int			refcount; /* reference count to guard from too-eager-free risk */
-} ShareNodeEntry;
-
 /*
  * PartitionAccessMethods
  *    Defines the lookup access methods for partitions, one for each level.
@@ -626,7 +617,7 @@ typedef struct EState
 	List	   *es_cursorPositions;
 
 	/* Data structure for node sharing */
-	List	  **es_sharenode;
+	List	   *es_sharenode;
 
 	int			active_recv_id;
 	void	   *motionlayer_context;  /* Motion Layer state */
@@ -2482,7 +2473,6 @@ typedef struct MaterialState
 	GenericTupStore *ts_state;	/* private state of tuplestore.c */
 	void	   *ts_pos;
 	void	   *ts_markpos;
-	void	   *share_lk_ctxt;
 } MaterialState;
 
 /* ----------------
@@ -2491,9 +2481,12 @@ typedef struct MaterialState
  *		State of each scanner of the ShareInput node
  * ----------------
  */
+struct shareinput_local_state;
+
 typedef struct ShareInputScanState
 {
 	ScanState	ss;
+
 	/*
 	 * Depends on share_type, we should have a tuplestore_state, tuplestore_pos
 	 * or tuplesort_state, tuplesort_pos
@@ -2501,15 +2494,11 @@ typedef struct ShareInputScanState
 	GenericTupStore *ts_state;
 	void	   *ts_pos;
 
-	void	   *share_lk_ctxt;
-	bool		freed; /* is this node already freed? */
+	struct shareinput_local_state *local_state;
+	struct shareinput_reference *ref;
 } ShareInputScanState;
 
 /* XXX Should move into buf file */
-extern void *shareinput_reader_waitready(int share_id, PlanGenerator planGen);
-extern void *shareinput_writer_notifyready(int share_id, int nsharer_xslice_notify_ready, PlanGenerator planGen);
-extern void shareinput_reader_notifydone(void *, int share_id);
-extern void shareinput_writer_waitdone(void *, int share_id, int nsharer_xslice_wait_done);
 extern void shareinput_create_bufname_prefix(char* p, int size, int share_id);
 
 /* ----------------
@@ -2530,9 +2519,6 @@ typedef struct SortState
 
 	bool		delayEagerFree;		/* is is safe to free memory used by this node,
 									 * when this node has outputted its last row? */
-
-	void	   *share_lk_ctxt;
-
 } SortState;
 
 /* ---------------------

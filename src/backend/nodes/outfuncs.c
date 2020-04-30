@@ -1115,9 +1115,6 @@ _outMaterial(StringInfo str, const Material *node)
 
 	WRITE_ENUM_FIELD(share_type, ShareType);
 	WRITE_INT_FIELD(share_id);
-	WRITE_INT_FIELD(driver_slice);
-	WRITE_INT_FIELD(nsharer);
-	WRITE_INT_FIELD(nsharer_xslice);
 }
 
 static void
@@ -1127,7 +1124,9 @@ _outShareInputScan(StringInfo str, const ShareInputScan *node)
 
 	WRITE_ENUM_FIELD(share_type, ShareType);
 	WRITE_INT_FIELD(share_id);
-	WRITE_INT_FIELD(driver_slice);
+	WRITE_INT_FIELD(producer_slice_id);
+	WRITE_INT_FIELD(this_slice_id);
+	WRITE_INT_FIELD(nconsumers);
 
 	_outPlanInfo(str, (Plan *) node);
 }
@@ -1165,9 +1164,6 @@ _outSort(StringInfo str, const Sort *node)
 
 	WRITE_ENUM_FIELD(share_type, ShareType);
 	WRITE_INT_FIELD(share_id);
-	WRITE_INT_FIELD(driver_slice);
-	WRITE_INT_FIELD(nsharer);
-	WRITE_INT_FIELD(nsharer_xslice);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 

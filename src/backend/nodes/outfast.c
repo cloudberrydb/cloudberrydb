@@ -470,9 +470,6 @@ _outSort(StringInfo str, Sort *node)
 
 	WRITE_ENUM_FIELD(share_type, ShareType);
 	WRITE_INT_FIELD(share_id);
-	WRITE_INT_FIELD(driver_slice);
-	WRITE_INT_FIELD(nsharer);
-	WRITE_INT_FIELD(nsharer_xslice);
 }
 
 static void

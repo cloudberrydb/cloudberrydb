@@ -100,6 +100,13 @@ typedef enum UpperRelationKind
  * Context for apply shareinput processing during planning.  We could fold
  * this into PlannerGlobal, but this encapsulates it nicely.
  */
+typedef struct ApplyShareInputContextPerShare
+{
+	Plan	   *shared_plan;
+	int			producer_slice_id;
+	Bitmapset  *participant_slices;
+} ApplyShareInputContextPerShare;
+
 typedef struct ApplyShareInputContext
 {
 	List	   *curr_rtable;
@@ -108,9 +115,8 @@ typedef struct ApplyShareInputContext
 	List *motStack;
 	List *qdShares;
 
-	ShareInputScan **producers;
-	int		   *sliceMarks;			/* one for each producer */
-	int			producer_count;
+	ApplyShareInputContextPerShare *shared_inputs; /* one for each share */
+	int			shared_input_count;
 
 	PlanSlice  *slices;
 

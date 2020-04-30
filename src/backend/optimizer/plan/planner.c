@@ -332,9 +332,8 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->numSlices = 0;
 	glob->slices = NULL;
 	/* ApplyShareInputContext initialization. */
-	glob->share.producers = NULL;
-	glob->share.producer_count = 0;
-	glob->share.sliceMarks = NULL;
+	glob->share.shared_inputs = NULL;
+	glob->share.shared_input_count = 0;
 	glob->share.motStack = NIL;
 	glob->share.qdShares = NIL;
 
@@ -596,15 +595,15 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		 * will re-populate it, but clear it for now, just to make sure that
 		 * we don't access the obsolete copies of the nodes.
 		 */
-		if (glob->share.producer_count > 0)
-			memset(glob->share.producers, 0, glob->share.producer_count * sizeof(ShareInputScan *));
+		if (glob->share.shared_input_count > 0)
+			memset(glob->share.shared_inputs, 0, glob->share.shared_input_count * sizeof(ApplyShareInputContextPerShare));
 
 		/*
 		 * cdb_build_slice_table() may create additional slices that may affect
 		 * share input. need to mark material nodes that are split acrossed
 		 * multi slices.
 		 */
-		top_plan = apply_shareinput_xslice(top_plan, root, glob->slices);
+		top_plan = apply_shareinput_xslice(top_plan, root);
 	}
 
 	/* build the PlannedStmt result */
