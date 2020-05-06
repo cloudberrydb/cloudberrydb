@@ -33,13 +33,8 @@
 
 -- suspend at intended points.
 3:SELECT gp_inject_fault('compaction_before_cleanup_phase', 'suspend', '', '', 'crash_before_cleanup_phase', 1, -1, 0, 2);
-3:SELECT gp_inject_fault('vacuum_post_cleanup_committed', 'suspend', 3);
 1&:VACUUM crash_before_cleanup_phase;
 3:SELECT gp_wait_until_triggered_fault('compaction_before_cleanup_phase', 1, 2);
--- wait seg1 to finish the post-cleanup, this makes the aoseg info of seg1 stable.
-3:SELECT gp_wait_until_triggered_fault('vacuum_post_cleanup_committed', 1, 3);
--- reset the injection so following commands are not affected.
-3:SELECT gp_inject_fault('vacuum_post_cleanup_committed', 'reset', 3);
 
 3:SELECT gp_inject_fault('compaction_before_segmentfile_drop', 'suspend', '', '', 'crash_before_segmentfile_drop', 1, -1, 0, 2);
 2&:VACUUM crash_before_segmentfile_drop;
@@ -63,6 +58,14 @@
 
 -- perform post crash validation checks
 -- for crash_before_cleanup_phase
+-- the compaction should be done, but the post-cleanup should not be performed,
+-- so awaiting-dropping segment file should exists in the pg_aoseg* catalog on
+-- seg0, however, the status on the seg1 is undetermined, any concurrent trans
+-- will delay the dropping of dead segment files.
+1:SELECT * FROM gp_toolkit.__gp_aoseg('crash_before_cleanup_phase') where segment_id = 0;
+-- do vacuum again, there should be no await-dropping segment files, no concurrent
+-- transactions exist this time when the VACUUM is performed.
+1:VACUUM crash_before_cleanup_phase;
 1:SELECT * FROM gp_toolkit.__gp_aoseg('crash_before_cleanup_phase');
 1:INSERT INTO crash_before_cleanup_phase VALUES(1, 1, 'c'), (25, 6, 'c');
 1:UPDATE crash_before_cleanup_phase SET b = b+10 WHERE a=25;
