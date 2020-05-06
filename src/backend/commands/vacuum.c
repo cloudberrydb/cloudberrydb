@@ -1833,12 +1833,6 @@ vacuum_rel(Oid relid, RangeVar *relation, int options, VacuumParams *params,
 			DDLNotSpecified,
 			"",	// databaseName
 			RelationGetRelationName(onerel)); // tableName
-
-		FaultInjector_InjectFaultIfSet(
-			"compaction_before_segmentfile_drop",
-			DDLNotSpecified,
-			"",	// databaseName
-			RelationGetRelationName(onerel)); // tableName
 	}
 #endif
 
