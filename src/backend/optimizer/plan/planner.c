@@ -1895,7 +1895,7 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 		(root->config->honor_order_by || !root->parent_root) &&
 		parse->parentStmtType == PARENTSTMTTYPE_NONE &&
 		!parse->isTableValueSelect &&
-		!parse->limitCount && !parse->limitOffset)
+		!limit_needed(parse))
 	{
 		must_gather = true;
 	}
