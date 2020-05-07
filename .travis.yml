@@ -95,6 +95,14 @@ python:
 before_install:
     - eval "${OVERRIDE_CC}"
     - eval "${OVERRIDE_CXX}"
+    # ccache 3.2 (from Ubuntu Xenial) has CCACHE_CPP2 default to off (this
+    # setting defaults to on starting from ccache 3.3). That default leads to
+    # unlegible compiler warning outputs because GCC and Clang will emit
+    # warnings using the preprocessed output...
+    - |
+      if [ "${TRAVIS_DIST}" = xenial ]; then
+        ccache --set-config run_second_cpp=true
+      fi
     - |
       if [ "${TRAVIS_COMPILER}" = clang ]; then
         case "${TRAVIS_OS_NAME}" in
