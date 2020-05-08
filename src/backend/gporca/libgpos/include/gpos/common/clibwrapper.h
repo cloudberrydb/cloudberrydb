@@ -19,6 +19,7 @@
 
 #include <unistd.h>
 #include "gpos/types.h"
+#include "gpos/attributes.h"
 #include "gpos/common/clibtypes.h"
 
 namespace gpos
@@ -89,7 +90,7 @@ namespace gpos
 		INT Vswprintf(WCHAR *wcstr, SIZE_T max_len, const WCHAR * format, VA_LIST vaArgs);
 
 		// format string
-		INT Vsnprintf(CHAR *src, SIZE_T size, const CHAR *format, VA_LIST vaArgs);
+		INT Vsnprintf(CHAR *src, SIZE_T size, const CHAR *format, VA_LIST vaArgs) GPOS_ATTRIBUTE_PRINTF(3, 0);
 
 		// return string describing error number
 		void Strerror_r(INT errnum, CHAR *buf, SIZE_T buf_len);
