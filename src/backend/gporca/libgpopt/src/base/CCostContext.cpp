@@ -145,6 +145,14 @@ CCostContext::FNeedsNewStats() const
 		return false;
 	}
 
+	if (!m_pdpplan->Ppim()->FContainsUnresolved())
+	{
+		// All partition selectors have been resolved at this level.
+		// No need to use DPE stats for the common ancestor join and
+		// nodes above it, that aren't affected by the partition selector.
+		return false;
+	}
+
 	CEnfdPartitionPropagation *pepp = Poc()->Prpp()->Pepp();
 
 	if (GPOS_FTRACE(EopttraceDeriveStatsForDPE) &&
