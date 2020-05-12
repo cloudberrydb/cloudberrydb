@@ -402,6 +402,13 @@ Feature: expand the cluster by adding more segments
         And run rollback
         And verify the gp_segment_configuration has been restored
         And unset fault inject
+		# The rollback will remove the new segment's datadir, but this is not
+		# enough to let it quit, it might stop immediately, it might stop after
+		# tens of minutes.  If it does not quit in time, in later tests the new
+		# segments might fail to be launched due to port conflicts.  So we must
+		# force it to quit now.
+        And the database is not running
+        And the user runs remote command "pkill postgres" on host "sdw1"
 
     @gpexpand_no_mirrors
     @gpexpand_with_special_character
