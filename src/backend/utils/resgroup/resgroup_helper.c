@@ -498,6 +498,11 @@ pg_resgroup_move_query(PG_FUNCTION_ARGS)
 	Oid groupId;
 	const char *groupName;
 
+	if (!IsResGroupEnabled())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("resource group is not enabled"))));
+
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
