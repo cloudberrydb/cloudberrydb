@@ -63,7 +63,7 @@ ExecSort(SortState *node)
 
 	estate = node->ss.ps.state;
 	dir = estate->es_direction;
-	tuplesortstate = node->tuplesortstate->sortstore;
+	tuplesortstate = (Tuplesortstate *) node->tuplesortstate;
 
 	/*
 	 * In Window node, we might need to call ExecSort again even when
@@ -137,7 +137,7 @@ ExecSort(SortState *node)
 
 		if (node->bounded)
 			tuplesort_set_bound(tuplesortstate, node->bound);
-		node->tuplesortstate->sortstore = tuplesortstate;
+		node->tuplesortstate = (void *) tuplesortstate;
 
 		/* CDB */
 		{
@@ -275,7 +275,7 @@ ExecInitSort(Sort *node, EState *estate, int eflags)
 
 	sortstate->bounded = false;
 	sortstate->sort_Done = false;
-	sortstate->tuplesortstate = palloc0(sizeof(GenericTupStore));
+	sortstate->tuplesortstate = NULL;
 
 	/* CDB */
 
@@ -406,7 +406,7 @@ ExecSortMarkPos(SortState *node)
 	if (!node->sort_Done)
 		return;
 
-	tuplesort_markpos(node->tuplesortstate->sortstore);
+	tuplesort_markpos((Tuplesortstate *) node->tuplesortstate);
 }
 
 /* ----------------------------------------------------------------
@@ -427,7 +427,7 @@ ExecSortRestrPos(SortState *node)
 	/*
 	 * restore the scan to the previously marked position
 	 */
-	tuplesort_restorepos(node->tuplesortstate->sortstore);
+	tuplesort_restorepos((Tuplesortstate *) node->tuplesortstate);
 }
 
 void
@@ -457,13 +457,13 @@ ExecReScanSort(SortState *node)
 		node->bounded != node->bounded_Done ||
 		node->bound != node->bound_Done ||
 		!node->randomAccess ||
-		(NULL == node->tuplesortstate->sortstore))
+		(node->tuplesortstate == NULL))
 	{
 		node->sort_Done = false;
 
-		if (NULL != node->tuplesortstate->sortstore)
+		if (node->tuplesortstate != NULL)
 		{
-			tuplesort_end(node->tuplesortstate->sortstore);
+			tuplesort_end((Tuplesortstate *) node->tuplesortstate);
 		}
 
 		/*
@@ -474,7 +474,7 @@ ExecReScanSort(SortState *node)
 			ExecReScan(outerPlan);
 	}
 	else
-		tuplesort_rescan(node->tuplesortstate->sortstore);
+		tuplesort_rescan((Tuplesortstate *) node->tuplesortstate);
 }
 
 
@@ -487,9 +487,9 @@ ExecSortExplainEnd(PlanState *planstate, struct StringInfoData *buf)
 {
 	SortState *sortstate = (SortState *)planstate;
 	
-	if (NULL != sortstate->tuplesortstate->sortstore)
+	if (sortstate->tuplesortstate != NULL)
 	{
-		tuplesort_finalize_stats(sortstate->tuplesortstate->sortstore);
+		tuplesort_finalize_stats((Tuplesortstate *) sortstate->tuplesortstate);
 	}
 
 }                               /* ExecSortExplainEnd */
@@ -503,10 +503,10 @@ ExecEagerFreeSort(SortState *node)
 	/* must drop pointer to sort result tuple */
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 
-	if (NULL != node->tuplesortstate->sortstore)
+	if (node->tuplesortstate != NULL)
 	{
-		tuplesort_end(node->tuplesortstate->sortstore);
-		node->tuplesortstate->sortstore = NULL;
+		tuplesort_end((Tuplesortstate *) node->tuplesortstate);
+		node->tuplesortstate = NULL;
 	}
 }
 

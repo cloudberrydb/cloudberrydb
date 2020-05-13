@@ -41,6 +41,8 @@ struct MemTupleData;
 struct HeapScanDescData;
 struct FileScanDescData;
 struct SliceTable;
+struct NTupleStore;
+struct NTupleStoreAccessor;
 
 /* ----------------
  *	  IndexInfo information
@@ -1153,8 +1155,9 @@ typedef struct SubPlanState
 	FmgrInfo   *tab_eq_funcs;	/* equality functions for table datatype(s) */
 	FmgrInfo   *lhs_hash_funcs; /* hash functions for lefthand datatype(s) */
 	FmgrInfo   *cur_eq_funcs;	/* equality functions for LHS vs. table */
-	void	   *ts_pos;
-	GenericTupStore *ts_state;
+
+	struct NTupleStoreAccessor *ts_pos;
+	struct NTupleStore *ts_state;
 } SubPlanState;
 
 /* ----------------
@@ -2096,8 +2099,8 @@ typedef struct FunctionScanState
 
 	/* tuplestore info when function scan run as initplan */
 	bool		resultInTupleStore; /* function result stored in tuplestore */
-	void       *ts_pos;				/* accessor to the tuplestore */
-	GenericTupStore *ts_state;		/* tuple store state */
+	struct NTupleStoreAccessor *ts_pos; /* accessor to the tuplestore */
+	struct NTupleStore *ts_state;		/* tuple store state */
 } FunctionScanState;
 
 extern void function_scan_create_bufname_prefix(char *p, int size);
@@ -2470,7 +2473,7 @@ typedef struct MaterialState
 	bool		delayEagerFree;		/* is is safe to free memory used by this node,
 									 * when this node has outputted its last row? */
 
-	GenericTupStore *ts_state;	/* private state of tuplestore.c */
+	struct NTupleStore *ts_state;	/* private state of tuplestore.c */
 	void	   *ts_pos;
 	void	   *ts_markpos;
 } MaterialState;
@@ -2515,7 +2518,7 @@ typedef struct SortState
 	bool		sort_Done;		/* sort completed yet? */
 	bool		bounded_Done;	/* value of bounded we did the sort with */
 	int64		bound_Done;		/* value of bound we did the sort with */
-	GenericTupStore *tuplesortstate; /* private state of tuplesort.c */
+	void	   *tuplesortstate; /* private state of tuplesort.c */
 	bool		noduplicates;	/* true if discard duplicate rows */
 
 	bool		delayEagerFree;		/* is is safe to free memory used by this node,

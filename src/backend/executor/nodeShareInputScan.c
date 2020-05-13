@@ -231,7 +231,8 @@ init_tuplestore_state(ShareInputScanState *node)
 		/* The materialstate->ts_state structure should have been initialized already, during init of material node */
 		MaterialState *child = (MaterialState *) local_state->childState;
 
-		node->ts_state = child->ts_state;
+		node->ts_state = palloc0(sizeof(GenericTupStore));
+		node->ts_state->matstore = child->ts_state;
 		Assert(NULL != node->ts_state->matstore);
 		node->ts_pos = (void *) ntuplestore_create_accessor(node->ts_state->matstore, false);
 		ntuplestore_acc_seek_bof((NTupleStoreAccessor *)node->ts_pos);
@@ -262,7 +263,8 @@ init_tuplestore_state(ShareInputScanState *node)
 	{
 		SortState *child = (SortState *) local_state->childState;
 
-		node->ts_state = ((SortState *) child)->tuplesortstate;
+		node->ts_state = palloc0(sizeof(GenericTupStore));
+		node->ts_state->sortstore = ((SortState *) child)->tuplesortstate;
 		Assert(NULL != node->ts_state->sortstore);
 		tuplesort_begin_pos(node->ts_state->sortstore, (TuplesortPos **)(&node->ts_pos));
 		tuplesort_rescan_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos);

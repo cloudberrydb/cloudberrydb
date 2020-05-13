@@ -69,7 +69,7 @@ ExecMaterial(MaterialState *node)
 	dir = estate->es_direction;
 	forward = ScanDirectionIsForward(dir);
 
-	ts = node->ts_state->matstore;
+	ts = node->ts_state;
 	tsa = (NTupleStoreAccessor *) node->ts_pos;
 
 	ma = (Material *) node->ss.ps.plan;
@@ -101,7 +101,7 @@ ExecMaterial(MaterialState *node)
 		}
 
 		Assert(ts && tsa);
-		node->ts_state->matstore = ts;
+		node->ts_state = ts;
 		node->ts_pos = (void *) tsa;
 
         /* CDB: Offer extra info for EXPLAIN ANALYZE. */
@@ -288,7 +288,7 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 		matstate->eflags |= EXEC_FLAG_REWIND;
 
 	matstate->eof_underlying = false;
-	matstate->ts_state = palloc0(sizeof(GenericTupStore));
+	matstate->ts_state = NULL;
 	matstate->ts_pos = NULL;
 	matstate->ts_markpos = NULL;
 	matstate->ts_destroyed = false;
@@ -387,7 +387,7 @@ ExecEndMaterial(MaterialState *node)
 	/*
 	 * Release tuplestore resources for cases where EagerFree doesn't do it
 	 */
-	if (node->ts_state->matstore != NULL)
+	if (node->ts_state != NULL)
 	{
 		Assert(node->ts_pos);
 		DestroyTupleStore(node);
@@ -421,7 +421,7 @@ ExecMaterialMarkPos(MaterialState *node)
 	/*
 	 * if we haven't materialized yet, just return.
 	 */
-	if (NULL == node->ts_state->matstore)
+	if (NULL == node->ts_state)
 	{
 		return;
 	}
@@ -458,7 +458,7 @@ ExecMaterialRestrPos(MaterialState *node)
 	/*
 	 * if we haven't materialized yet, just return.
 	 */
-	if (NULL == node->ts_state->matstore)
+	if (NULL == node->ts_state)
 	{
 		return;
 	}
@@ -476,16 +476,15 @@ DestroyTupleStore(MaterialState *node)
 {
 	Assert(NULL != node);
 	Assert(NULL != node->ts_state);
-	Assert(NULL != node->ts_state->matstore);
 
 	ntuplestore_destroy_accessor((NTupleStoreAccessor *) node->ts_pos);
-	ntuplestore_destroy(node->ts_state->matstore);
+	ntuplestore_destroy(node->ts_state);
 	if(node->ts_markpos)
 	{
 		pfree(node->ts_markpos);
 	}
 
-	node->ts_state->matstore = NULL;
+	node->ts_state = NULL;
 	node->ts_pos = NULL;
 	node->ts_markpos = NULL;
 	node->eof_underlying = false;
@@ -529,7 +528,7 @@ ExecReScanMaterial(MaterialState *node)
 		 * If tuple store is empty, then either we have not materialized yet
 		 * or tuple store was destroyed after a previous execution of materialize.
 		 */
-		if (NULL == node->ts_state->matstore)
+		if (NULL == node->ts_state)
 		{
 			/*
 			 *  If tuple store was destroyed before, then materialize is part of subquery
@@ -577,7 +576,7 @@ ExecEagerFreeMaterial(MaterialState *node)
 	/*
 	 * Release tuplestore resources
 	 */
-	if (NULL != node->ts_state->matstore)
+	if (NULL != node->ts_state)
 	{
 		Assert(node->ts_pos);
 
