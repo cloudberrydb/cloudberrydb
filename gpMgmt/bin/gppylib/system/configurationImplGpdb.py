@@ -316,7 +316,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         Raise an exception when more or fewer than one row is seen and when more
         than one row is seen display up to 10 rows as logger warnings.
         """
-        cursor   = dbconn.execSQL(conn, sql)
+        cursor   = dbconn.query(conn, sql)
         numrows  = cursor.rowcount
         numshown = 0
         res      = None

@@ -369,7 +369,7 @@ class ClusterConfiguration():
 
         try:
             with dbconn.connect(dburl, utility=True, unsetSearchPath=False) as conn:
-               resultsets  = dbconn.execSQL(conn, query).fetchall()
+               resultsets  = dbconn.query(conn, query).fetchall()
         except Exception, e:
             print e
             sys.exit(1)

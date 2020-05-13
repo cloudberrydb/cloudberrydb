@@ -5,7 +5,6 @@ import time
 
 from gppylib import gplog
 from gppylib.db import dbconn
-from gppylib.db.dbconn import execSQL, execSQLForSingleton
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
 from gppylib.userinput import ask_yesno
 
@@ -23,7 +22,7 @@ class GpReload:
 
     def validate_table(self, schema_name, table_name):
         with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
-            c = execSQLForSingleton(conn,
+            c = dbconn.querySingleton(conn,
                                     """SELECT count(*)
                                        FROM pg_class, pg_namespace
                                        WHERE pg_namespace.nspname = '{schema}'
@@ -35,7 +34,7 @@ class GpReload:
     def validate_columns(self, schema_name, table_name, sort_column_list):
         columns = []
         with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
-            res = execSQL(conn,
+            res = dbconn.query(conn,
                           """SELECT attname
                              FROM pg_attribute
                              WHERE attrelid = (SELECT pg_class.oid
@@ -56,7 +55,7 @@ class GpReload:
             if (parent_schema, parent_table) == (schema_name, table_name):
                 return
             try:
-                max_level = dbconn.execSQLForSingleton(conn, 
+                max_level = dbconn.querySingleton(conn,
                                                    """SELECT max(partitionlevel)
                                                       FROM pg_partitions
                                                       WHERE tablename='%s'
@@ -66,7 +65,7 @@ class GpReload:
                 logger.debug('Unable to get the maximum partition level for table %s: (%s)' % (table_name, str(e)))
 
             try:
-                partition_level = dbconn.execSQLForSingleton(conn,
+                partition_level = dbconn.querySingleton(conn,
                                                          """SELECT partitionlevel
                                                             FROM pg_partitions
                                                             WHERE partitiontablename='%s'
@@ -143,12 +142,12 @@ class GpReload:
 
     def get_row_count(self, table_name):
         with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
-            c = execSQLForSingleton(conn, 'SELECT count(*) FROM {table}'.format(table=table_name))
+            c = dbconn.querySingleton(conn, 'SELECT count(*) FROM {table}'.format(table=table_name))
         return c
 
     def check_indexes(self, schema_name, table_name):
         with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
-            c = execSQLForSingleton(conn, """SELECT count(*)
+            c = dbconn.querySingleton(conn, """SELECT count(*)
                                              FROM pg_index
                                              WHERE indrelid = (SELECT pg_class.oid
                                                                FROM pg_class, pg_namespace
@@ -164,7 +163,7 @@ class GpReload:
 
     def get_table_size(self, schema_name, table_name):
         with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
-            size = execSQLForSingleton(conn,
+            size = dbconn.querySingleton(conn,
                                        """SELECT pg_size_pretty(pg_relation_size('{schema}.{table}'))"""
                                        .format(schema=schema_name, table=table_name))
         return size
@@ -176,7 +175,7 @@ class GpReload:
                                                 FROM pg_partitions
                                                 WHERE partitiontablename='%s' 
                                                 AND partitionschemaname='%s'""" % (table, schema)
-                res = execSQL(conn, PARENT_PARTITION_TABLENAME)
+                res = dbconn.query(conn, PARENT_PARTITION_TABLENAME)
                 for r in res:
                     self.parent_partition_map[(schema, table)] = (r[0], r[1]) 
 
@@ -201,8 +200,8 @@ class GpReload:
                 dbconn.execSQL(conn, 'BEGIN')
                 dbconn.execSQL(conn, """CREATE TEMP TABLE temp_{table} AS SELECT * FROM {schema}.{table}"""
                                      .format(schema=schema_name, table=table_name))
-                temp_row_count = dbconn.execSQLForSingleton(conn, """SELECT count(*) FROM temp_{table}""".format(table=table_name))
-                table_row_count = dbconn.execSQLForSingleton(conn, """SELECT count(*) from {schema}.{table}"""
+                temp_row_count = dbconn.querySingleton(conn, """SELECT count(*) FROM temp_{table}""".format(table=table_name))
+                table_row_count = dbconn.querySingleton(conn, """SELECT count(*) from {schema}.{table}"""
                                                                     .format(table=table_name, schema=schema_name))
                 if temp_row_count != table_row_count:
                     raise Exception('Row count for temp table(%s) does not match(%s)' % (temp_row_count, table_row_count))

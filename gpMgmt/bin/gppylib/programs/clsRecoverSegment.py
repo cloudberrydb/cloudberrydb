@@ -112,7 +112,7 @@ class RemoteQueryCommand(Command):
             self.qname, self.query, self.hostname, self.port, self.dbname))
         with dbconn.connect(dbconn.DbURL(hostname=self.hostname, port=self.port, dbname=self.dbname),
                             utility=True) as conn:
-            res = dbconn.execSQL(conn, self.query)
+            res = dbconn.query(conn, self.query)
             self.res = res.fetchall()
 
 
@@ -551,7 +551,7 @@ class GpRecoverSegmentProgram:
     def _get_dblist(self):
         # template0 does not accept any connections so we exclude it
         with dbconn.connect(dbconn.DbURL()) as conn:
-            res = dbconn.execSQL(conn, "SELECT datname FROM PG_DATABASE WHERE datname != 'template0'")
+            res = dbconn.query(conn, "SELECT datname FROM PG_DATABASE WHERE datname != 'template0'")
         return res.fetchall()
 
     def run(self):

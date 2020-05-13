@@ -1208,7 +1208,7 @@ class _GpExpandStatus(object):
         try:
             dburl = dbconn.DbURL(dbname=self.dbname)
             with dbconn.connect(dburl, encoding='UTF8') as conn:
-                status = dbconn.execSQLForSingleton(conn, sql)
+                status = dbconn.querySingleton(conn, sql)
         except Exception:
             # schema table not found
             return False
@@ -1234,7 +1234,7 @@ class _GpExpandStatus(object):
         try:
             dburl = dbconn.DbURL(dbname=self.dbname)
             with dbconn.connect(dburl, encoding='UTF8') as conn:
-                cursor = dbconn.execSQL(conn, sql)
+                cursor = dbconn.query(conn, sql)
                 rows = cursor.fetchall()
         except Exception:
             return False

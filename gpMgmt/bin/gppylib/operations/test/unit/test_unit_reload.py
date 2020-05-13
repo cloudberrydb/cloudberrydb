@@ -181,13 +181,13 @@ class GpReloadTestCase(unittest.TestCase):
                 os.remove(self.reload.table_file)
 
     @patch('gppylib.operations.reload.dbconn.connect')
-    @patch('gppylib.operations.reload.execSQLForSingleton', return_value=0)
+    @patch('gppylib.operations.reload.dbconn.querySingleton', return_value=0)
     def test_validate_table_invalid_table(self, mock1, mock2):
         with self.assertRaisesRegexp(ExceptionNoStackTraceNeeded, "Table public.t1 does not exist"):
             self.reload.validate_table('public', 't1')
 
     @patch('gppylib.operations.reload.dbconn.connect')
-    @patch('gppylib.operations.reload.execSQLForSingleton', return_value=1)
+    @patch('gppylib.operations.reload.dbconn.querySingleton', return_value=1)
     def test_validate_table_valid_table(self, mock1, mock2):
         self.reload.validate_table('public', 't1')
 
@@ -195,7 +195,7 @@ class GpReloadTestCase(unittest.TestCase):
     def test_validate_columns_invalid_column(self, mock1):
         m = Mock()
         m.fetchall.return_value=[['a', 'x'], ['b', 'y']]
-        with patch('gppylib.operations.reload.execSQL', return_value=m) as p:
+        with patch('gppylib.operations.reload.dbconn.query', return_value=m) as p:
             with self.assertRaisesRegexp(ExceptionNoStackTraceNeeded, 'Table public.t1 does not have column c'):
                 self.reload.validate_columns('public', 't1', [('a', 'x'), ('b', 'y'), ('c', 'z')])
 
@@ -203,44 +203,44 @@ class GpReloadTestCase(unittest.TestCase):
     def test_validate_columns_valid_column1(self, mock1):
         m = Mock()
         m.fetchall.return_value=[['a', 'x'], ['b', 'y'], ['c', 'z']]
-        with patch('gppylib.operations.reload.execSQL', return_value=m) as p:
+        with patch('gppylib.operations.reload.dbconn.query', return_value=m) as p:
             self.reload.validate_columns('public', 't1', [('a', 'x'), ('b', 'y'), ('c', 'z')])
 
     @patch('gppylib.operations.reload.dbconn.connect')
     def test_validate_columns_valid_column2(self, mock1):
         m = Mock()
         m.fetchall.return_value=[['a', 'w'], ['b', 'x'], ['c', 'y'], ['d', 'z']]
-        with patch('gppylib.operations.reload.execSQL', return_value=m) as p:
+        with patch('gppylib.operations.reload.dbconn.query', return_value=m) as p:
             self.reload.validate_columns('public', 't1', [('a', 'w'), ('b', 'x'), ('c', 'y'), ('d', 'z')])
 
-    @patch('gppylib.operations.reload.execSQLForSingleton', return_value=0)
+    @patch('gppylib.operations.reload.dbconn.querySingleton', return_value=0)
     @patch('gppylib.operations.reload.dbconn.connect')
     def test_check_indexes_no_indexes(self, mock1, mock2):
         self.assertTrue(self.reload.check_indexes('public', 't1'))
 
     @patch('gppylib.operations.reload.ask_yesno', return_value=True)
     @patch('gppylib.operations.reload.dbconn.connect')
-    @patch('gppylib.operations.reload.execSQLForSingleton', return_value=1)
+    @patch('gppylib.operations.reload.dbconn.querySingleton', return_value=1)
     def test_check_indexes_with_indexes_with_continue(self, mock1, mock2, mock3):
         self.reload.interactive=True
         self.assertTrue(self.reload.check_indexes('public', 't1'))
 
     @patch('gppylib.operations.reload.ask_yesno', return_value=False)
     @patch('gppylib.operations.reload.dbconn.connect')
-    @patch('gppylib.operations.reload.execSQLForSingleton', return_value=1)
+    @patch('gppylib.operations.reload.dbconn.querySingleton', return_value=1)
     def test_check_indexes_with_indexes_without_continue(self, mock1, mock2, mock3):
         self.reload.interactive=True
         self.assertFalse(self.reload.check_indexes('public', 't1'))
 
     @patch('gppylib.operations.reload.dbconn.connect')
-    @patch('gppylib.operations.reload.execSQL', side_effect=[[('public', 'x1')], [('public', 'x2')]])
+    @patch('gppylib.operations.reload.dbconn.query', side_effect=[[('public', 'x1')], [('public', 'x2')]])
     def test_get_parent_partition_map(self, mock1, mock2):
         expected = {('public', 't1'): ('public', 'x1'), ('public', 't2'): ('public', 'x2')}
         self.reload.table_list = [('public', 't1', 'a b c d'), ('public', 't2', 'd e f g')]
         self.assertEqual(expected, self.reload.get_parent_partitions())
 
     @patch('gppylib.operations.reload.dbconn.connect') 
-    @patch('gppylib.operations.reload.execSQL', side_effect=[[('public', 'x1')], []])
+    @patch('gppylib.operations.reload.dbconn.query', side_effect=[[('public', 'x1')], []])
     def test_get_parent_partition_map_non_partition(self, mock1, mock2):
         expected = {('public', 't1'): ('public', 'x1'), ('public', 't2'): ('public', 't2')}
         self.reload.table_list = [('public', 't1', 'a b c d'), ('public', 't2', 'd e f g')]

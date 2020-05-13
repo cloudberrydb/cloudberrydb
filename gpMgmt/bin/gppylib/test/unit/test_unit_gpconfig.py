@@ -21,7 +21,7 @@ db_singleton_side_effect_list = []
 
 
 def singleton_side_effect(unused1, unused2):
-    # this function replaces dbconn.execSQLForSingleton(conn, sql), conditionally raising exception
+    # this function replaces dbconn.querySingleton(conn, sql), conditionally raising exception
     if len(db_singleton_side_effect_list) > 0:
         if db_singleton_side_effect_list[0] == "DatabaseError":
             raise DatabaseError("mock exception")
@@ -82,8 +82,8 @@ class GpConfig(GpTestCase):
         self.apply_patches([
             patch('os.environ', new=self.os_env),
             patch('gpconfig.dbconn.connect', return_value=self.conn),
-            patch('gpconfig.dbconn.execSQL', return_value=self.cursor),
-            patch('gpconfig.dbconn.execSQLForSingleton', side_effect=singleton_side_effect),
+            patch('gpconfig.dbconn.query', return_value=self.cursor),
+            patch('gpconfig.dbconn.querySingleton', side_effect=singleton_side_effect),
             patch('gpconfig.GpHostCache', return_value=self.host_cache),
             patch('gpconfig.GpArray.initFromCatalog', return_value=self.gparray),
             patch('gpconfig.WorkerPool', return_value=self.pool)

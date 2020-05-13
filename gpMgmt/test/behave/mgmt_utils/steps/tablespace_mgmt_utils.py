@@ -77,7 +77,7 @@ class Tablespace:
             tbl_numsegments = dbconn.querySingleton(conn,
                                                          "SELECT numsegments FROM gp_distribution_policy "
                                                          "WHERE localoid = 'tbl'::regclass::oid")
-            num_segments = dbconn.execSQLForSingleton(conn,
+            num_segments = dbconn.querySingleton(conn,
                                                      "SELECT COUNT(DISTINCT(content)) - 1 FROM gp_segment_configuration")
 
         if tbl_numsegments != num_segments:

@@ -991,7 +991,7 @@ class gpexpand:
             try:
                 status_conn = dbconn.connect(dburl, encoding='UTF8')
                 # Get the last status entry
-                cursor = dbconn.execSQL(status_conn, 'SELECT status FROM gpexpand.status ORDER BY updated DESC LIMIT 1')
+                cursor = dbconn.query(status_conn, 'SELECT status FROM gpexpand.status ORDER BY updated DESC LIMIT 1')
                 if cursor.rowcount == 1:
                     gpexpand_db_status = cursor.fetchone()[0]
 
@@ -1012,12 +1012,15 @@ class gpexpand:
 
             Note: -c/--clean will not necessarily work either, as it too has assumptions about the non-emptiness of the gpexpand schema.
             """
-            with dbconn.connect(dburl, encoding='UTF8', utility=True) as conn:
-                count = dbconn.execSQLForSingleton(conn,
+            conn = dbconn.connect(dburl, encoding='UTF8', utility=True)
+            try:
+                count = dbconn.querySingleton(conn,
                                                    "SELECT count(n.nspname) FROM pg_catalog.pg_namespace n WHERE n.nspname = 'gpexpand'")
                 if count > 0:
                     raise ExpansionError(
                         "Existing expansion state could not be determined, but a gpexpand schema already exists. Cannot proceed.")
+            finally:
+                conn.close()
 
         return gpexpand_db_status
 
@@ -1029,8 +1032,9 @@ class gpexpand:
             if self.options.verbose:
                 logger.exception(ex)
             logger.error('Failed to check max_connections GUC')
-            if conn: conn.close()
             raise ex
+        finally:
+            conn.close()
 
         if max_connections < self.options.parallel * 2 + 1:
             self.logger.error('max_connections is too small to expand %d tables at' % self.options.parallel)
@@ -1141,8 +1145,10 @@ class gpexpand:
         return filename
 
     def get_tablespace_oid_names(self):
+        if self.conn is None:
+            self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8', allowSystemTableMods=True)
         sql = "select oid, spcname from pg_tablespace"
-        cursor = dbconn.execSQL(self.conn, sql)
+        cursor = dbconn.query(self.conn, sql)
         return dict(cursor.fetchall())
 
     def addNewSegments(self, inputFileEntryList):
@@ -1255,10 +1261,10 @@ class gpexpand:
     def lock_catalog(self):
         self.conn_catalog_lock = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
         self.logger.info('Locking catalog')
-        dbconn.execSQL(self.conn_catalog_lock, "BEGIN")
+        dbconn.execSQL(self.conn_catalog_lock, "BEGIN", autocommit=False)
         # FIXME: is CHECKPOINT inside BEGIN the one wanted by us?
-        dbconn.execSQL(self.conn_catalog_lock, "select gp_expand_lock_catalog()")
-        dbconn.execSQL(self.conn_catalog_lock, "CHECKPOINT")
+        dbconn.execSQL(self.conn_catalog_lock, "select gp_expand_lock_catalog()", autocommit=False)
+        dbconn.execSQL(self.conn_catalog_lock, "CHECKPOINT", autocommit=False)
         self.logger.info('Locked catalog')
 
     def unlock_catalog(self):
@@ -1454,7 +1460,7 @@ class gpexpand:
                 # Get a list of all the expand primary segments
                 sqlStr = "select dbid from pg_catalog.gp_segment_configuration where dbid not in (%s) and role = 'p'" % str(
                     originalDbIds)
-                curs = dbconn.execSQL(restore_conn, sqlStr)
+                curs = dbconn.query(restore_conn, sqlStr)
                 deleteDbIdList = []
                 rows = curs.fetchall()
                 for row in rows:
@@ -1463,7 +1469,7 @@ class gpexpand:
                 # Get a list of all the expand mirror segments
                 sqlStr = "select content from pg_catalog.gp_segment_configuration where dbid not in (%s) and role = 'm'" % str(
                     originalDbIds)
-                curs = dbconn.execSQL(restore_conn, sqlStr)
+                curs = dbconn.query(restore_conn, sqlStr)
                 deleteContentList = []
                 rows = curs.fetchall()
                 for row in rows:
@@ -1534,8 +1540,6 @@ class gpexpand:
         else:
             dbconn.execSQL(self.conn, progress_view_simple_sql)
 
-        self.conn.commit()
-
         inject_fault('gpexpand retry after releaseing catalog lock fault injection')
 
         self.statusLogger.set_status('SETUP_EXPANSION_SCHEMA_DONE')
@@ -1568,8 +1572,6 @@ class gpexpand:
         nowStr = datetime.datetime.now()
         statusSQL = "INSERT INTO gpexpand.status VALUES ( 'SETUP DONE', '%s' ) " % (nowStr)
         dbconn.execSQL(self.conn, statusSQL)
-
-        self.conn.commit()
 
         self.conn.close()
 
@@ -1621,7 +1623,6 @@ WHERE
 
             self.logger.debug(copySQL)
             dbconn.execSQL(table_conn, copySQL)
-            table_conn.commit()
             table_conn.close()
         except Exception, e:
             raise ExpansionError(e)
@@ -1692,7 +1693,6 @@ ORDER BY fq_name, tableoid desc
 
             self.logger.debug(copySQL)
             dbconn.execSQL(table_conn, copySQL)
-            table_conn.commit()
             table_conn.close()
         except Exception, e:
             raise ExpansionError(e)
@@ -1719,15 +1719,13 @@ ORDER BY fq_name, tableoid desc
         sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STARTED', '%s' ) " % (
             expansionStart)
         dbconn.execSQL(self.conn, sql)
-        self.conn.commit()
 
         sql = """UPDATE gpexpand.status_detail set status = '%s' WHERE status = '%s' """ % (undone_status, start_status)
         dbconn.execSQL(self.conn, sql)
-        self.conn.commit()
 
         # read schema and queue up commands
         sql = "SELECT * FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
-        cursor = dbconn.execSQL(self.conn, sql)
+        cursor = dbconn.query(self.conn, sql)
 
         for row in cursor:
             self.logger.debug(row)
@@ -1770,8 +1768,7 @@ ORDER BY fq_name, tableoid desc
             logger.info('End time reached.  Stopping expansion.')
             sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
                 expansionStopped)
-            cursor = dbconn.execSQL(self.conn, sql)
-            self.conn.commit()
+            dbconn.execSQL(self.conn, sql)
             logger.info('You can resume expansion by running gpexpand again')
         elif table_expand_error:
             logger.warn('**************************************************')
@@ -1785,15 +1782,13 @@ ORDER BY fq_name, tableoid desc
             try:
                 sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
                     expansionStopped)
-                cursor = dbconn.execSQL(self.conn, sql)
-                self.conn.commit()
+                dbconn.execSQL(self.conn, sql)
             except:
                 pass
         else:
             sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION COMPLETE', '%s' ) " % (
                 expansionStopped)
-            cursor = dbconn.execSQL(self.conn, sql)
-            self.conn.commit()
+            dbconn.execSQL(self.conn, sql)
             logger.info("EXPANSION COMPLETED SUCCESSFULLY")
 
     def shutdown(self):
@@ -1811,10 +1806,7 @@ ORDER BY fq_name, tableoid desc
             expansionStopped = datetime.datetime.now()
             sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
                 expansionStopped)
-            cursor = dbconn.execSQL(self.conn, sql)
-            self.conn.commit()
-
-            cursor.close()
+            dbconn.execSQL(self.conn, sql)
             self.conn.close()
         except pgdb.OperationalError:
             pass
@@ -1840,7 +1832,7 @@ ORDER BY fq_name, tableoid desc
             self.logger.warn('schema now will leave the following tables unexpanded:')
             unexpanded_tables_sql = "SELECT fq_name FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
 
-            cursor = dbconn.execSQL(c, unexpanded_tables_sql)
+            cursor = dbconn.query(c, unexpanded_tables_sql)
             unexpanded_tables_text = ''.join("\t%s\n" % row[0] for row in cursor)
 
             c.close()
@@ -1953,8 +1945,7 @@ class ExpandTable():
         if cancel_flag:
             return
         sql = "SELECT pg_relation_size(%s)" % (self.table_oid)
-        cursor = dbconn.execSQL(table_conn, sql)
-        row = cursor.fetchone()
+        row = dbconn.queryRow(table_conn, sql)
         src_bytes = int(row[0])
         logger.debug(" Table: %s has %d bytes" % (self.fq_name.decode('utf-8'), src_bytes))
 
@@ -1968,7 +1959,6 @@ class ExpandTable():
 
         logger.debug("Mark Started: " + sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
-        status_conn.commit()
 
     def reset_started(self, status_conn):
         sql = """UPDATE gpexpand.status_detail
@@ -1979,7 +1969,6 @@ class ExpandTable():
 
         logger.debug('Resetting detailed_status: %s' % sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
-        status_conn.commit()
 
     def expand(self, table_conn, cancel_flag):
         # for root partition, we want to expand whose partition in one shot
@@ -1994,12 +1983,12 @@ class ExpandTable():
         # check is atomic in python
         if not cancel_flag:
             dbconn.execSQL(table_conn, sql)
+            # the ALTER TABLE command requires a commit to execute
             table_conn.commit()
             if self.options.analyze:
                 sql = 'ANALYZE %s' % (self.fq_name)
                 logger.info('Analyzing %s' % (self.fq_name.decode('utf-8')))
                 dbconn.execSQL(table_conn, sql)
-                table_conn.commit()
 
             return True
 
@@ -2014,7 +2003,6 @@ class ExpandTable():
                                             self.dbname.replace("'", "''"), self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
-        status_conn.commit()
 
     def mark_does_not_exist(self, status_conn, finish_time):
         sql = """UPDATE gpexpand.status_detail
@@ -2024,7 +2012,6 @@ class ExpandTable():
                                             self.dbname.replace("'", "''"), self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
-        status_conn.commit()
 
 
 # -----------------------------------------------
@@ -2063,7 +2050,6 @@ class ExecuteSQLStatementsCommand(SQLCommand):
             self.conn = dbconn.connect(self.url, utility=True, encoding='UTF8', allowSystemTableMods=True)
             for statement in self.sqlCommandList:
                 dbconn.execSQL(self.conn, statement)
-            self.conn.commit()
         except Exception, e:
             # traceback.print_exc()
             logger.error("Exception in ExecuteSQLStatements. URL = %s" % str(self.url))
@@ -2132,7 +2118,7 @@ class ExpandCommand(SQLCommand):
         try:
             sql = """select * from pg_class c where c.oid = %d """ % (self.table.table_oid)
 
-            cursor = dbconn.execSQL(table_conn, sql)
+            cursor = dbconn.query(table_conn, sql)
 
             if cursor.rowcount == 0:
                 logger.info('%s no longer exists in database %s' % (self.table.fq_name.decode('utf-8'),
@@ -2495,7 +2481,6 @@ def main(options, args, parser):
             """Clean the schema first"""
             conn = dbconn.connect(_gp_expand.dburl, encoding='UTF8')
             dbconn.execSQL(conn, drop_schema_sql)
-            conn.commit()
             conn.close()
 
             """

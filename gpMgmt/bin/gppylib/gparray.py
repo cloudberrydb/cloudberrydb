@@ -951,14 +951,12 @@ class GpArray:
         hasMirrors = False
         with dbconn.connect(dbURL, utility) as conn:
             # Get the version from the database:
-            version_str = None
-            for row in dbconn.execSQL(conn, "SELECT version()"):
-                version_str = row[0]
+            version_str = dbconn.querySingleton(conn, "SELECT version()")
             version = GpVersion(version_str)
             if not version.isVersionCurrentRelease():
                 raise Exception("Cannot connect to GPDB version %s from installed version %s"%(version.getVersionRelease(), MAIN_VERSION[0]))
 
-            config_rows = dbconn.execSQL(conn, '''
+            config_rows = dbconn.query(conn, '''
             SELECT dbid, content, role, preferred_role, mode, status,
             hostname, address, port, datadir
             FROM pg_catalog.gp_segment_configuration
@@ -1820,7 +1818,7 @@ def get_session_ids(master_port):
     """
     conn = dbconn.connect( dbconn.DbURL(port=master_port), utility=True )
     try:
-        rows = dbconn.execSQL(conn, "SELECT sess_id from pg_stat_activity where sess_id > 0;")
+        rows = dbconn.query(conn, "SELECT sess_id from pg_stat_activity where sess_id > 0;")
         ids  = set(row[0] for row in rows)
         return ids
     finally:

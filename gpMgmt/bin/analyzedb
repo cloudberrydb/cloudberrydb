@@ -161,7 +161,7 @@ def validate_schema_exists(pg_port, dbname, schema):
     try:
         dburl = dbconn.DbURL(port=pg_port, dbname=dbname)
         conn = dbconn.connect(dburl)
-        count = dbconn.execSQLForSingleton(conn, "select count(*) from pg_namespace where nspname='%s';" % pg.escape_string(schema))
+        count = dbconn.querySingleton(conn, "select count(*) from pg_namespace where nspname='%s';" % pg.escape_string(schema))
         if count == 0:
             raise ExceptionNoStackTraceNeeded("Schema %s does not exist in database %s." % (schema, dbname))
     finally:
@@ -171,7 +171,7 @@ def validate_schema_exists(pg_port, dbname, schema):
 def execute_sql(query, master_port, dbname):
     dburl = dbconn.DbURL(port=master_port, dbname=dbname)
     conn = dbconn.connect(dburl)
-    cursor = dbconn.execSQL(conn, query)
+    cursor = dbconn.query(conn, query)
     return cursor.fetchall()
 
 def get_lines_from_file(fname):
@@ -213,7 +213,7 @@ def get_partition_state_tuples(pg_port, dbname, catalog_schema, partition_info):
         for (oid, schemaname, partition_name, tupletable) in partition_info:
             try:
                 modcount_sql = "select to_char(coalesce(sum(modcount::bigint), 0), '999999999999999999999') from gp_dist_random('%s.%s')" % (catalog_schema, tupletable)
-                modcount = dbconn.execSQLForSingleton(conn, modcount_sql)
+                modcount = dbconn.querySingleton(conn, modcount_sql)
             except pg.DatabaseError as e:
                 if "does not exist" in str(e):
                     logger.debug("Table %s.%s (%s) no longer exists", schemaname, partition_name, tupletable)
@@ -913,7 +913,7 @@ def create_psql_command(dbname, query):
 
 def run_sql(conn, query):
     try:
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         res = cursor.fetchall()
     except Exception, db_err:
         raise ExceptionNoStackTraceNeeded("%s" % db_err.__str__())  # .split('\n')[0])
@@ -1238,7 +1238,7 @@ def validate_columns(conn, schema, table, column_list):
 
     sql = VALIDATE_COLUMN_NAMES_SQL % (regclass_schema_tbl(schema, table),
                                        ','.join(["'%s'" % pg.escape_string(x) for x in column_list]))
-    valid_col_count = dbconn.execSQLForSingleton(conn, sql)
+    valid_col_count = dbconn.querySingleton(conn, sql)
 
     if int(valid_col_count) != len(column_list):
         raise Exception(

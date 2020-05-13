@@ -17,7 +17,7 @@ class CatalogError(Exception): pass
 def basicSQLExec(conn,sql):
     cursor=None
     try:
-        cursor=dbconn.execSQL(conn,sql)
+        cursor = dbconn.query(conn,sql)
         rows=cursor.fetchall()
         return rows
     finally:
@@ -46,7 +46,7 @@ def doesSchemaExist(conn,schemaname):
     sql = "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = '%s'" % schemaname
     cursor=None
     try:
-        cursor=dbconn.execSQL(conn,sql)
+        cursor = dbconn.query(conn,sql)
         numrows = cursor.rowcount
         if numrows == 0:
             return False
@@ -63,10 +63,10 @@ def dropSchemaIfExist(conn,schemaname):
     dropsql = "DROP SCHEMA %s" % schemaname
     cursor=None
     try:
-        cursor=dbconn.execSQL(conn,sql)
+        cursor = dbconn.query(conn,sql)
         numrows = cursor.rowcount
         if numrows == 1:
-            cursor=dbconn.execSQL(conn,dropsql)
+            cursor = dbconn.query(conn,dropsql)
         else:
             raise CatalogError("more than one entry in pg_namespace for '%s'" % schemaname)
     except Exception as e:

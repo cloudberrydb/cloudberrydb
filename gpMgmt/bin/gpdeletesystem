@@ -195,13 +195,13 @@ def getTablespaceDirs():
 
     # Get the tablespace oids
     with dbconn.connect(dbconn.DbURL()) as conn:
-        tblspcoids = dbconn.execSQL(conn, gettblspcoids_sql).fetchall()
+        tblspcoids = dbconn.query(conn, gettblspcoids_sql).fetchall()
 
     # Use the tablespace oids to get the tablespace locations
     for row in tblspcoids:
         tblspcoid = row[0]
         with dbconn.connect(dbconn.DbURL()) as conn:
-            query_results = dbconn.execSQL(conn, gettblspclocs_sql % tblspcoid).fetchall()
+            query_results = dbconn.query(conn, gettblspclocs_sql % tblspcoid).fetchall()
 
             for query_result in query_results:
                 if query_result[0] in tblspclocs:

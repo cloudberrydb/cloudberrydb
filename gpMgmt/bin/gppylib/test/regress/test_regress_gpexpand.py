@@ -36,21 +36,21 @@ class GpExpandTestCase(unittest.TestCase):
            creates a expansion input file"""
 
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
-            next_dbid = dbconn.execSQLForSingletonRow(conn,
+            next_dbid = dbconn.queryRow(conn,
                                                       "select max(dbid)+1 \
                                                        from pg_catalog.gp_segment_configuration")[0]
-            next_content = dbconn.execSQL(conn,
+            next_content = dbconn.query(conn,
                                           "select max(content)+1 \
                                            from pg_catalog.gp_segment_configuration").fetchall()[0][0]
-            next_pri_port = dbconn.execSQL(conn,
+            next_pri_port = dbconn.query(conn,
                                            "select max(port)+1 \
                                             from pg_catalog.gp_segment_configuration \
                                             where role='p'").fetchall()[0][0]
-            self.primary_host_name = dbconn.execSQL(conn,
+            self.primary_host_name = dbconn.query(conn,
                                                     "select distinct hostname \
                                                      from gp_segment_configuration \
                                                      where content >= 0 and preferred_role = 'p'").fetchall()[0][0]
-            next_mir_port = dbconn.execSQL(conn,
+            next_mir_port = dbconn.query(conn,
                                            "select max(port)+1 \
                                             from pg_catalog.gp_segment_configuration \
                                             where role='m'").fetchall()[0][0]
@@ -59,18 +59,18 @@ class GpExpandTestCase(unittest.TestCase):
                 mirroring_on = False
             else:
                 mirroring_on = True
-                next_pri_replication_port = dbconn.execSQL(conn,
+                next_pri_replication_port = dbconn.query(conn,
                                                            "select max(replication_port)+1 \
                                                             from pg_catalog.gp_segment_configuration \
                                                             where role='p'").fetchall()[0][0]
-                next_mir_replication_port = dbconn.execSQL(conn,
+                next_mir_replication_port = dbconn.query(conn,
                                                            "select max(replication_port)+1 \
                                                             from pg_catalog.gp_segment_configuration \
                                                             where role='m'").fetchall()[0][0]
                 select_mirror = "select distinct hostname \
                                  from gp_segment_configuration \
                                  where content >= 0 and preferred_role = 'm' and hostname != '%s'" % self.primary_host_name
-                mirror_name_row = dbconn.execSQL(conn, select_mirror).fetchall()
+                mirror_name_row = dbconn.query(conn, select_mirror).fetchall()
                 if mirror_name_row is None or len(mirror_name_row) == 0:
                     self.mirror_host_name = self.primary_host_name
                 else:
@@ -116,7 +116,7 @@ class GpExpandTestCase(unittest.TestCase):
     def _get_dist_policies(self):
         policies = []
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
-            cursor = dbconn.execSQL(conn, 'select * from gp_distribution_policy;').fetchall()
+            cursor = dbconn.query(conn, 'select * from gp_distribution_policy;').fetchall()
             for row in cursor:
                 policies.append(row)
 

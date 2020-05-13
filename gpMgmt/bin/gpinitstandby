@@ -323,7 +323,7 @@ def check_and_start_standby():
  
     conn = dbconn.connect(dburl, utility=True)
     sql = "SELECT * FROM pg_stat_replication"
-    cur = dbconn.execSQL(conn, sql)
+    cur = dbconn.query(conn, sql)
     if cur.rowcount >= 1:
         logger.info("Standy master is already up and running.")
         return

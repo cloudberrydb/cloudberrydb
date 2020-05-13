@@ -73,8 +73,8 @@ class GpRecoversegTestCase(GpTestCase):
         self.apply_patches([
             patch('os.environ', new=self.os_env),
             patch('gppylib.db.dbconn.connect', return_value=self.conn),
-            patch('gppylib.db.dbconn.execSQL', return_value=self.cursor),
-            patch('gppylib.db.dbconn.execSQLForSingletonRow', return_value=["foo"]),
+            patch('gppylib.db.dbconn.query', return_value=self.cursor),
+            patch('gppylib.db.dbconn.queryRow', return_value=["foo"]),
             patch('gppylib.pgconf.readfile', return_value=self.pgconf_dict),
             patch('gppylib.commands.gp.GpVersion'),
             patch('gppylib.system.faultProberInterface.getFaultProber'),

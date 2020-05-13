@@ -64,7 +64,7 @@ class TestDML(threading.Thread):
         self.maxtime = 0;
         while self.running or self.counter == 0:
             sql = self.loop_step()
-            dbconn.execSQL(conn, sql)
+            dbconn.execSQL(conn, sql, autocommit=False)
 
             self.counter = self.counter + 1
 
@@ -108,7 +108,7 @@ class TestInsert(TestDML):
         sql = '''
             select c1 from {tablename} order by c1;
         '''.format(tablename=self.tablename, counter=self.counter)
-        results = dbconn.execSQL(conn, sql).fetchall()
+        results = dbconn.query(conn, sql).fetchall()
 
         for i in range(0, self.counter):
             if i != int(results[i][0]):
@@ -134,7 +134,7 @@ class TestUpdate(TestDML):
         sql = '''
             select c2 from {tablename} order by c1;
         '''.format(tablename=self.tablename, counter=self.counter)
-        results = dbconn.execSQL(conn, sql).fetchall()
+        results = dbconn.query(conn, sql).fetchall()
 
         for i in range(0, self.datasize):
             if i + self.counter - 1 != int(results[i][0]):
@@ -160,7 +160,7 @@ class TestDelete(TestDML):
         sql = '''
             select c1 from {tablename} order by c1;
         '''.format(tablename=self.tablename, counter=self.counter)
-        results = dbconn.execSQL(conn, sql).fetchall()
+        results = dbconn.query(conn, sql).fetchall()
 
         for i in range(self.counter, self.datasize):
             if i != int(results[i - self.counter][0]):

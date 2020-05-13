@@ -3327,7 +3327,7 @@ def getClassOidForRelfilenode(relfilenode):
     try:
         dburl = dbconn.DbURL(hostname=GV.opt['-h'], port=GV.opt['-p'], dbname=GV.dbname)
         conn = dbconn.connect(dburl)
-        oid = dbconn.execSQLForSingletonRow(conn, qry)[0]
+        oid = dbconn.queryRow(conn, qry)[0]
         return oid
     except Exception, e:
         setError(ERROR_NOREPAIR)

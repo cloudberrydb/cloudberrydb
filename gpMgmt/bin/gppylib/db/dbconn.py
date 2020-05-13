@@ -162,9 +162,20 @@ class DbURL:
 class Connection(pgdb.Connection):
     def __init__(self, connection):
         self._notices = collections.deque(maxlen=100)
-
+        # we must do an attribute by attribute copy of the notices here
+        # due to limitations in pg implementation. Wrap with with a
+        # namedtuple for ease of use.
         def handle_notice(notice):
             self._notices.append(notice)
+            received = {}
+            for attr in dir(notice):
+                if attr.startswith('__'):
+                    continue
+                value = getattr(notice, attr)
+                received[attr] = value
+            Notice = collections.namedtuple('Notice', sorted(received))
+            self._notices.append(Notice(**received))
+
 
         self._impl = connection
         self._impl._cnx.set_notice_receiver(handle_notice)
@@ -199,11 +210,11 @@ def connect(dburl, utility=False, verbose=False,
         'user': dburl.pguser,
         'password': dburl.pgpass,
         'host': dburl.pghost,
-        'port': int(dburl.pgport),
+        'port': dburl.pgport,
         'database': dburl.pgdb,
     }
 
-    # building options]
+    # building options
     options = []
     if utility:
         options.append("-c gp_role=utility")
@@ -212,7 +223,6 @@ def connect(dburl, utility=False, verbose=False,
     if unsetSearchPath:
         options.append("-c search_path=")
 
-    # MPP-13779, et al
     if allowSystemTableMods:
         options.append("-c allow_system_table_mods=true")
 
@@ -227,7 +237,7 @@ def connect(dburl, utility=False, verbose=False,
     if options:
         conninfo['options'] = " ".join(options)
 
-    # MPP-14121, use specified connection timeout
+    # use specified connection timeout
     retries = 1
     if dburl.timeout is not None:
         conninfo['connect_timeout'] = dburl.timeout
@@ -256,20 +266,21 @@ def connect(dburl, utility=False, verbose=False,
 
     return Connection(connection)
 
-def execSQL(conn,sql):
+def execSQL(conn, sql, autocommit=True):
     """
-    Execute a sql command that is NOT expected to return any rows and commit immediately.
-    This function does not return a cursor object, and sets connection.autocommit
-    so that statement like `create tablespace` will run successfully.
+    Execute a sql command that is NOT expected to return any rows and expects to commit
+    immediately.
+    This function does not return a cursor object, and sets connection.autocommit = autocommit,
+    which is necessary for queries like "create tablespace" that cannot be run inside a
+    transaction.
     For SQL that captures some expected output, use "query()"
 
     Using with `dbconn.connect() as conn` syntax will override autocommit and complete
     queries in a transaction followed by a commit on context close?
     """
-    conn.autocommit = True
+    conn.autocommit = autocommit
     with conn.cursor() as cursor:
         cursor.execute(sql)
-    conn.autocommit = False
 
 def query(conn, sql):
     """
@@ -282,21 +293,20 @@ def query(conn, sql):
     cursor.execute(sql)
     return cursor
 
-def execSQLForSingletonRow(conn, sql):
+def queryRow(conn, sql):
     """
     Run SQL that returns exactly one row, and return that one row
 
     TODO: Handle like gppylib.system.comfigurationImplGpdb.fetchSingleOutputRow().
     In the event of the wrong number of rows/columns, some logging would be helpful...
     """
-    cursor=conn.cursor()
-    cursor.execute(sql)
+    with conn.cursor() as cursor:
+        cursor.execute(sql)
 
-    if cursor.rowcount != 1 :
-        raise UnexpectedRowsError(1, cursor.rowcount, sql)
+        if cursor.rowcount != 1 :
+            raise UnexpectedRowsError(1, cursor.rowcount, sql)
+        res = cursor.fetchone()
 
-    res = cursor.fetchall()[0]
-    cursor.close()
     return res
 
 class UnexpectedRowsError(Exception):
@@ -305,14 +315,14 @@ class UnexpectedRowsError(Exception):
         Exception.__init__(self, "SQL retrieved %d rows but %d was expected:\n%s" % \
                                  (self.actual, self.expected, self.sql))
 
-def execSQLForSingleton(conn, sql):
+def querySingleton(conn, sql):
     """
     Run SQL that returns exactly one row and one column, and return that cell
 
     TODO: Handle like gppylib.system.comfigurationImplGpdb.fetchSingleOutputRow().
     In the event of the wrong number of rows/columns, some logging would be helpful...
     """
-    row = execSQLForSingletonRow(conn, sql)
+    row = queryRow(conn, sql)
     if len(row) > 1:
         raise Exception("SQL retrieved %d columns but 1 was expected:\n%s" % \
                          (len(row), sql))

@@ -206,7 +206,7 @@ def do_list(skipvalidation):
     try:
         dburl = dbconn.DbURL()
         conn = dbconn.connect(dburl, True)
-        rows = dbconn.execSQL(conn, GucQuery().query)
+        rows = dbconn.query(conn, GucQuery().query)
 
         for row in rows:
             guc = Guc(row)
@@ -227,7 +227,7 @@ def get_gucs_from_database(gucname):
         unsetSearchPath = gucname != 'search_path'
         conn = dbconn.connect(dburl, False, unsetSearchPath=unsetSearchPath)
         query = ToolkitQuery(gucname).query
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         # we assume that all roles are primary due to the query.
         gucs = [DatabaseSegmentGuc(row) for row in cursor]
         conn.close()
@@ -419,7 +419,7 @@ def validate_change_options(options, conn, guc):
         #     1. It is not present with normal gucs in pg_settings
         #     2. It has a valid return from SHOW <guc_name>;
         try:
-            dbconn.execSQLForSingleton(conn, "SHOW %s" % options.entry)
+            dbconn.querySingleton(conn, "SHOW %s" % options.entry)
         except DatabaseError:
             msg = "not a valid GUC: " + options.entry
             LOGGER.fatal(msg)
@@ -444,7 +444,7 @@ def validate_change_options(options, conn, guc):
 
 
 def get_normal_guc(conn, options):
-    cursor = dbconn.execSQL(conn, GucQuery(options.entry).query)
+    cursor = dbconn.query(conn, GucQuery(options.entry).query)
     rows = cursor.fetchall()
     guc = None
     if len(rows) > 1:

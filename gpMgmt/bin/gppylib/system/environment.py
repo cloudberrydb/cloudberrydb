@@ -50,7 +50,7 @@ class GpMasterEnvironment:
             conn = dbconn.connect(dbUrl, utility=True)
 
             # MPP-13807, read/show the master's database version too
-            self.__pgVersion = dbconn.execSQLForSingletonRow(conn, "select version();")[0]
+            self.__pgVersion = dbconn.queryRow(conn, "select version();")[0]
             logger.info("master Greenplum Version: '%s'" % self.__pgVersion)
             conn.close()
         else:

@@ -538,7 +538,7 @@ def impl(context, table_type, tablename, dbname, numrows):
     if not check_table_exists(context, dbname=dbname, table_name=tablename, table_type=table_type):
         raise Exception("Table '%s' of type '%s' does not exist when expected" % (tablename, table_type))
         with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
-            rowcount = dbconn.execSQLForSingleton(conn, "SELECT count(*) FROM %s" % tablename)
+            rowcount = dbconn.querySingleton(conn, "SELECT count(*) FROM %s" % tablename)
             if rowcount != numrows:
                 raise Exception("Expected to find %d rows in table %s, found %d" % (numrows, tablename, rowcount))
 
@@ -590,7 +590,7 @@ def impl(context, row_values, table, dbname):
 def impl(context, dbname):
     with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
         sql = """SELECT datname FROM pg_database"""
-        dbs = dbconn.execSQL(conn, sql)
+        dbs = dbconn.query(conn, sql)
         if dbname in dbs:
             raise Exception('Database exists when it shouldnt "%s"' % dbname)
 
@@ -624,7 +624,7 @@ def impl(context, sql, dbname):
     context.stored_sql_results = []
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
-        curs = dbconn.execSQL(conn, sql)
+        curs = dbconn.query(conn, sql)
         context.stored_sql_results = curs.fetchall()
 
 
@@ -757,7 +757,7 @@ def impl(context, options):
     dbname = 'postgres'
     with dbconn.connect(dbconn.DbURL(port=os.environ.get("PGPORT"), dbname=dbname), unsetSearchPath=False) as conn:
         query = """select distinct content, hostname from gp_segment_configuration order by content limit 2;"""
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
 
     try:
         _, master_hostname = cursor.fetchone()
@@ -931,7 +931,7 @@ def impl(context, dbname):
     context.stored_rows = []
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
-        curs = dbconn.execSQL(conn, context.text)
+        curs = dbconn.query(conn, context.text)
         context.stored_rows = curs.fetchall()
 
 
@@ -940,7 +940,7 @@ def impl(context, sql, dbname):
     context.stored_rows = []
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
-        curs = dbconn.execSQL(conn, sql)
+        curs = dbconn.query(conn, sql)
         context.stored_rows = curs.fetchall()
 
 
@@ -1228,8 +1228,8 @@ def impl(context):
 	check_segment_config_query = "SELECT * FROM gp_segment_configuration WHERE content = -1 AND role = 'm'"
 	check_stat_replication_query = "SELECT * FROM pg_stat_replication"
 	with dbconn.connect(dbconn.DbURL(dbname='postgres'), unsetSearchPath=False) as conn:
-		segconfig = dbconn.execSQL(conn, check_segment_config_query).fetchall()
-		statrep = dbconn.execSQL(conn, check_stat_replication_query).fetchall()
+		segconfig = dbconn.query(conn, check_segment_config_query).fetchall()
+		statrep = dbconn.query(conn, check_stat_replication_query).fetchall()
 
 	context.standby_dbid = segconfig[0][0]
 
@@ -1243,7 +1243,7 @@ def impl(context):
 def impl(context):
 	check_segment_config_query = "SELECT * FROM gp_segment_configuration WHERE content = -1 AND role = 'p' AND preferred_role = 'p' AND dbid = %s" % context.standby_dbid
 	with dbconn.connect(dbconn.DbURL(hostname=context.standby_hostname, dbname='postgres', port=context.standby_port), unsetSearchPath=False) as conn:
-		segconfig = dbconn.execSQL(conn, check_segment_config_query).fetchall()
+		segconfig = dbconn.query(conn, check_segment_config_query).fetchall()
 
 	if len(segconfig) != 1:
 		raise Exception("gp_segment_configuration did not have standby master acting as new master")
@@ -1425,7 +1425,7 @@ def impl(context, filename, some, output):
 def impl(context, filename, some, output):
     try:
         with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
-            curs = dbconn.execSQL(conn, "SELECT hostname, datadir FROM gp_segment_configuration WHERE role='p' AND content > -1;")
+            curs = dbconn.query(conn, "SELECT hostname, datadir FROM gp_segment_configuration WHERE role='p' AND content > -1;")
             result = curs.fetchall()
             segment_info = [(result[s][0], result[s][1]) for s in range(len(result))]
     except Exception as e:
@@ -1463,7 +1463,7 @@ def impl(context, filename, output):
     segment_info = []
     try:
         with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
-            curs = dbconn.execSQL(conn, "SELECT hostname, datadir FROM gp_segment_configuration WHERE role='p' AND content > -1;")
+            curs = dbconn.query(conn, "SELECT hostname, datadir FROM gp_segment_configuration WHERE role='p' AND content > -1;")
             result = curs.fetchall()
             segment_info = [(result[s][0], result[s][1]) for s in range(len(result))]
     except Exception as e:
@@ -2044,7 +2044,7 @@ def _create_cluster(context, master_host, segment_host_list, hba_hostnames='0', 
 
     try:
         with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
-            curs = dbconn.execSQL(conn, "select count(*) from gp_segment_configuration where role='m';")
+            curs = dbconn.query(conn, "select count(*) from gp_segment_configuration where role='m';")
             count = curs.fetchall()[0][0]
             if not with_mirrors and count == 0:
                 print "Skipping creating a new cluster since the cluster is primary only already."
@@ -2227,7 +2227,7 @@ def impl(context, tabname, numsegments):
     dbname = 'gptest'
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = "select numsegments from gp_distribution_policy where localoid = '{tabname}'::regclass".format(tabname=tabname)
-        ns = dbconn.execSQLForSingleton(conn, query)
+        ns = dbconn.querySingleton(conn, query)
 
     if ns == int(numsegments):
         return
@@ -2242,7 +2242,7 @@ def impl(context):
     dbname = 'gptest'
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = """SELECT count(*) from gp_segment_configuration where -1 < content"""
-        context.start_data_segments = dbconn.execSQLForSingleton(conn, query)
+        context.start_data_segments = dbconn.querySingleton(conn, query)
 
 @given('the gp_segment_configuration have been saved')
 @when('the gp_segment_configuration have been saved')
@@ -2252,9 +2252,9 @@ def impl(context):
     gp_segment_conf_backup = {}
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = """SELECT count(*) from gp_segment_configuration where -1 < content"""
-        segment_count = int(dbconn.execSQLForSingleton(conn, query))
+        segment_count = int(dbconn.querySingleton(conn, query))
         query = """SELECT * from gp_segment_configuration where -1 < content order by dbid"""
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         for i in range(0, segment_count):
             dbid, content, role, preferred_role, mode, status,\
             port, hostname, address, datadir = cursor.fetchone();
@@ -2278,9 +2278,9 @@ def impl(context):
     gp_segment_conf_backup = {}
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = """SELECT count(*) from gp_segment_configuration where -1 < content"""
-        segment_count = int(dbconn.execSQLForSingleton(conn, query))
+        segment_count = int(dbconn.querySingleton(conn, query))
         query = """SELECT * from gp_segment_configuration where -1 < content order by dbid"""
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         for i in range(0, segment_count):
             dbid, content, role, preferred_role, mode, status,\
             port, hostname, address, datadir = cursor.fetchone();
@@ -2312,11 +2312,11 @@ def impl(context, table_name):
     context.long_run_select_only_conn = conn
 
     query = """SELECT gp_segment_id, * from %s order by 1, 2""" % table_name
-    data_result = dbconn.execSQL(conn, query).fetchall()
+    data_result = dbconn.query(conn, query).fetchall()
     context.long_run_select_only_data_result = data_result
 
     query = """SELECT txid_current()"""
-    xid = dbconn.execSQLForSingleton(conn, query)
+    xid = dbconn.querySingleton(conn, query)
     context.long_run_select_only_xid = xid
 
 @then('verify that long-run read-only transaction still exists on {table_name}')
@@ -2325,10 +2325,10 @@ def impl(context, table_name):
     conn = context.long_run_select_only_conn
 
     query = """SELECT gp_segment_id, * from %s order by 1, 2""" % table_name
-    data_result = dbconn.execSQL(conn, query).fetchall()
+    data_result = dbconn.query(conn, query).fetchall()
 
     query = """SELECT txid_current()"""
-    xid = dbconn.execSQLForSingleton(conn, query)
+    xid = dbconn.querySingleton(conn, query)
 
     if (xid != context.long_run_select_only_xid or
         data_result != context.long_run_select_only_data_result):
@@ -2343,7 +2343,7 @@ def impl(context):
     context.long_run_conn = conn
 
     query = """SELECT txid_current()"""
-    xid = dbconn.execSQLForSingleton(conn, query)
+    xid = dbconn.querySingleton(conn, query)
     context.long_run_xid = xid
 
 @then('verify that long-run transaction aborted for changing the catalog by creating table {table_name}')
@@ -2352,14 +2352,14 @@ def impl(context, table_name):
     conn = context.long_run_conn
 
     query = """SELECT txid_current()"""
-    xid = dbconn.execSQLForSingleton(conn, query)
+    xid = dbconn.querySingleton(conn, query)
     if context.long_run_xid != xid:
         raise Exception("Incorrect xid of long run transaction: before %s, after %s" %
                         (context.long_run_xid, xid));
 
     query = """CREATE TABLE %s (a INT)""" % table_name
     try:
-        data_result = dbconn.execSQL(conn, query)
+        data_result = dbconn.query(conn, query)
     except Exception, msg:
         key_msg = "FATAL:  cluster is expaneded"
         if key_msg not in msg.__str__():
@@ -2373,7 +2373,7 @@ def impl(context, num_of_segments):
     dbname = 'gptest'
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = """SELECT dbid, content, role, preferred_role, mode, status, port, hostname, address, datadir from gp_segment_configuration;"""
-        rows = dbconn.execSQL(conn, query).fetchall()
+        rows = dbconn.query(conn, query).fetchall()
         end_data_segments = 0
         for row in rows:
             content = row[1]
@@ -2441,7 +2441,7 @@ def impl(context):
     dbname = 'postgres'
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = """select fq_name from gpexpand.status_detail WHERE expansion_finished IS NULL"""
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
 
         row = cursor.fetchone()
         if row:
@@ -2451,7 +2451,7 @@ def impl(context):
 @when('an FTS probe is triggered')
 def impl(context):
     with dbconn.connect(dbconn.DbURL(dbname='postgres'), unsetSearchPath=False) as conn:
-        dbconn.execSQLForSingleton(conn, "SELECT gp_request_fts_probe_scan()")
+        dbconn.querySingleton(conn, "SELECT gp_request_fts_probe_scan()")
 
 @then('verify that gpstart on original master fails due to lower Timeline ID')
 def step_impl(context):
@@ -2490,7 +2490,7 @@ def step_impl(context, options):
         dbname = 'postgres'
         with dbconn.connect(dbconn.DbURL(hostname=context.standby_hostname, port=context.standby_port, dbname=dbname), unsetSearchPath=False) as conn:
             query = """select datadir, port from pg_catalog.gp_segment_configuration where role='m' and content <> -1;"""
-            cursor = dbconn.execSQL(conn, query)
+            cursor = dbconn.query(conn, query)
 
             for i in range(cursor.rowcount):
                 datadir, port = cursor.fetchone()
@@ -2525,7 +2525,7 @@ def impl(context, config_file):
 def step_impl(context):
     query = "select dbid, port, hostname, datadir from gp_segment_configuration where content >= 0"
     conn = dbconn.connect(dbconn.DbURL(dbname='postgres'), unsetSearchPath=False)
-    segments = dbconn.execSQL(conn, query).fetchall()
+    segments = dbconn.query(conn, query).fetchall()
     for segment in segments:
         dbid = "'%s'" % segment[0]
         port = "'%s'" % segment[1]
@@ -2586,7 +2586,7 @@ def impl(context, table, dbname):
     post_distribution_num_segments = 0
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = "SELECT count(DISTINCT content) FROM gp_segment_configuration WHERE content != -1;"
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         post_distribution_num_segments = cursor.fetchone()[0]
 
     if len(post_distribution_row_count) != post_distribution_num_segments:
@@ -2608,7 +2608,7 @@ def impl(context, table, dbname):
 def _get_row_count_per_segment(table, dbname):
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         query = "SELECT gp_segment_id,COUNT(i) FROM %s GROUP BY gp_segment_id;" % table
-        cursor = dbconn.execSQL(conn, query)
+        cursor = dbconn.query(conn, query)
         rows = cursor.fetchall()
         return [row[1] for row in rows] # indices are the gp segment id's, so no need to store them explicitly
 
@@ -2842,7 +2842,7 @@ def impl(context):
 
     query = "select hostname, datadir from gp_segment_configuration where content = -1 order by dbid"
     conn = dbconn.connect(dbconn.DbURL(dbname='postgres'), unsetSearchPath=False)
-    res = dbconn.execSQL(conn, query).fetchall()
+    res = dbconn.query(conn, query).fetchall()
     master = res[0]
     standby = res[1]
 

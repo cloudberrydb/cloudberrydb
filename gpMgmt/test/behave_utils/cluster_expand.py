@@ -77,7 +77,7 @@ class Gpexpand:
         sql = 'select status from gpexpand.status order by updated desc limit 1'
         dburl = dbconn.DbURL(dbname=self.database)
         conn = dbconn.connect(dburl, encoding='UTF8', unsetSearchPath=False)
-        status = dbconn.execSQLForSingleton(conn, sql)
+        status = dbconn.querySingleton(conn, sql)
         if status == 'EXPANSION COMPLETE':
             rc = 0
         else:

@@ -36,7 +36,7 @@ class GpExpand(GpTestCase):
             patch('__builtin__.open', mock_open(), create=True),
             patch('__builtin__.raw_input'),
             patch('gpexpand.copy.deepcopy', return_value=Mock()),
-            patch('gpexpand.dbconn.execSQL', return_value=FakeCursor()),
+            patch('gpexpand.dbconn.query', return_value=FakeCursor()),
             patch('gpexpand.GpExpandStatus', return_value=Mock()),
             patch('gpexpand.GpExpandStatus.return_value.get_current_status', return_value=(None, None)),
             patch('gpexpand.GpStart.local', return_value=Mock()),
