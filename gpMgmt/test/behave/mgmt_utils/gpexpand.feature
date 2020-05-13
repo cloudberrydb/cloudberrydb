@@ -408,7 +408,7 @@ Feature: expand the cluster by adding more segments
 		# segments might fail to be launched due to port conflicts.  So we must
 		# force it to quit now.
         And the database is not running
-        And the user runs remote command "pkill postgres" on host "sdw1"
+        And the user runs remote command "pkill postgres || true" on host "sdw1"
 
     @gpexpand_no_mirrors
     @gpexpand_with_special_character
