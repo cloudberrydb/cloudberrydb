@@ -168,12 +168,6 @@ def validate_schema_exists(pg_port, dbname, schema):
         if conn:
             conn.close()
 
-def execute_sql(query, master_port, dbname):
-    dburl = dbconn.DbURL(port=master_port, dbname=dbname)
-    conn = dbconn.connect(dburl)
-    cursor = dbconn.query(conn, query)
-    return cursor.fetchall()
-
 def get_lines_from_file(fname):
     content = []
     with open(fname) as fd:
@@ -209,7 +203,7 @@ def get_partition_state_tuples(pg_port, dbname, catalog_schema, partition_info):
     partition_list = list()
     dburl = dbconn.DbURL(port=pg_port, dbname=dbname)
     num_sqls = 0
-    with dbconn.connect(dburl) as conn:
+    with closing(dbconn.connect(dburl)) as conn:
         for (oid, schemaname, partition_name, tupletable) in partition_info:
             try:
                 modcount_sql = "select to_char(coalesce(sum(modcount::bigint), 0), '999999999999999999999') from gp_dist_random('%s.%s')" % (catalog_schema, tupletable)

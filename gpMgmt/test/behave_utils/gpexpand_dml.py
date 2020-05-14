@@ -35,6 +35,7 @@ class TestDML(threading.Thread):
         self.verify(conn)
 
         conn.commit()
+        conn.close()
 
     def prepare(self):
         sql = '''
@@ -52,6 +53,7 @@ class TestDML(threading.Thread):
         self.prepare_extra(conn)
 
         conn.commit()
+        conn.close()
 
     def prepare_extra(self, conn):
         pass

@@ -17,6 +17,7 @@ import difflib
 import pg
 import yaml
 
+from contextlib import closing
 from datetime import datetime
 from gppylib.commands.base import Command, ExecutionError, REMOTE
 from gppylib.commands.gp import chk_local_db_running
@@ -37,7 +38,6 @@ def query_sql(dbname, sql):
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         result = dbconn.query(conn, sql)
-        conn.commit()
     return result
 
 def execute_sql(dbname, sql):
@@ -45,13 +45,14 @@ def execute_sql(dbname, sql):
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         dbconn.execSQL(conn, sql)
-        conn.commit()
+    conn.close()
 
 def execute_sql_singleton(dbname, sql):
     result = None
     with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
         result = dbconn.querySingleton(conn, sql)
 
+    conn.close()
     if result is None:
         raise Exception("error running query: %s" % sql)
 
@@ -214,7 +215,7 @@ def stop_database(context):
 
 def stop_primary(context, content_id):
     get_psegment_sql = 'select datadir, hostname from gp_segment_configuration where content=%i and role=\'p\';' % content_id
-    with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False)) as conn:
         cur = dbconn.query(conn, get_psegment_sql)
         rows = cur.fetchall()
         seg_data_dir = rows[0][0]
@@ -237,16 +238,15 @@ def run_gprecoverseg():
 
 
 def getRows(dbname, exec_sql):
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         curs = dbconn.query(conn, exec_sql)
         results = curs.fetchall()
     return results
 
 
 def getRow(dbname, exec_sql):
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
-        curs = dbconn.query(conn, exec_sql)
-        result = curs.fetchone()
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
+        result = dbconn.queryRow(conn, exec_sql)
     return result
 
 
@@ -254,10 +254,9 @@ def check_db_exists(dbname, host=None, port=0, user=None):
     LIST_DATABASE_SQL = 'SELECT datname FROM pg_database'
 
     results = []
-    with dbconn.connect(dbconn.DbURL(hostname=host, username=user, port=port, dbname='template1'), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, username=user, port=port, dbname='template1'), unsetSearchPath=False)) as conn:
         curs = dbconn.query(conn, LIST_DATABASE_SQL)
         results = curs.fetchall()
-
     for result in results:
         if result[0] == dbname:
             return True
@@ -303,7 +302,7 @@ def get_segment_hostnames(context, dbname):
 
 
 def check_table_exists(context, dbname, table_name, table_type=None, host=None, port=0, user=None):
-    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False)) as conn:
         if '.' in table_name:
             schemaname, tablename = table_name.split('.')
             SQL_format = """
@@ -356,16 +355,14 @@ def drop_external_table_if_exists(context, table_name, dbname):
 
 def drop_table_if_exists(context, table_name, dbname, host=None, port=0, user=None):
     SQL = 'drop table if exists %s' % table_name
-    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, SQL)
-        conn.commit()
 
 
 def drop_external_table(context, table_name, dbname, host=None, port=0, user=None):
     SQL = 'drop external table %s' % table_name
-    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, SQL)
-        conn.commit()
 
     if check_table_exists(context, table_name=table_name, dbname=dbname, table_type='external', host=host, port=port,
                           user=user):
@@ -374,9 +371,8 @@ def drop_external_table(context, table_name, dbname, host=None, port=0, user=Non
 
 def drop_table(context, table_name, dbname, host=None, port=0, user=None):
     SQL = 'drop table %s' % table_name
-    with dbconn.connect(dbconn.DbURL(hostname=host, username=user, port=port, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, username=user, port=port, dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, SQL)
-        conn.commit()
 
     if check_table_exists(context, table_name=table_name, dbname=dbname, host=host, port=port, user=user):
         raise Exception('Unable to successfully drop the table %s' % table_name)
@@ -396,9 +392,8 @@ def drop_schema_if_exists(context, schema_name, dbname):
 
 def drop_schema(context, schema_name, dbname):
     SQL = 'drop schema %s cascade' % schema_name
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, SQL)
-        conn.commit()
     if check_schema_exists(context, schema_name, dbname):
         raise Exception('Unable to successfully drop the schema %s' % schema_name)
 
@@ -454,12 +449,11 @@ def create_external_partition(context, tablename, dbname, port, filename):
 
     drop_table_str = "Drop table %s_ret;" % (tablename)
 
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, create_table_str)
         dbconn.execSQL(conn, create_ext_table_str)
         dbconn.execSQL(conn, alter_table_str)
         dbconn.execSQL(conn, drop_table_str)
-        conn.commit()
 
     populate_partition(tablename, '2010-01-01', dbname, 0, 100)
 
@@ -493,9 +487,8 @@ def create_partition(context, tablename, storage_type, dbname, compression_type=
 
     create_table_str = create_table_str + ";"
 
-    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, create_table_str)
-        conn.commit()
 
     if with_data:
         populate_partition(tablename, PARTITION_START_DATE, dbname, 0, rowcount, host, port, user)
@@ -508,18 +501,16 @@ def populate_partition(tablename, start_date, dbname, data_offset, rowcount=1094
     insert_sql_str += "; insert into %s select i+%d, 'restore', i + date '%s' from generate_series(0,%d) as i" % (
     tablename, data_offset, start_date, rowcount)
 
-    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, insert_sql_str)
-        conn.commit()
 
 
 def create_indexes(context, table_name, indexname, dbname):
     btree_index_sql = "create index btree_%s on %s using btree(column1);" % (indexname, table_name)
     bitmap_index_sql = "create index bitmap_%s on %s using bitmap(column3);" % (indexname, table_name)
     index_sql = btree_index_sql + bitmap_index_sql
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, index_sql)
-        conn.commit()
     validate_index(context, table_name, dbname)
 
 
@@ -533,9 +524,8 @@ def validate_index(context, table_name, dbname):
 def create_schema(context, schema_name, dbname):
     if not check_schema_exists(context, schema_name, dbname):
         schema_sql = "create schema %s" % schema_name
-        with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+        with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
             dbconn.execSQL(conn, schema_sql)
-            conn.commit()
 
 
 def create_int_table(context, table_name, table_type='heap', dbname='testdb'):
@@ -556,9 +546,8 @@ def create_int_table(context, table_name, table_type='heap', dbname='testdb'):
         raise Exception('Invalid table type specified')
 
     SELECT_TABLE_SQL = 'select count(*) from %s' % table_name
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         dbconn.execSQL(conn, CREATE_TABLE_SQL)
-        conn.commit()
 
         result = dbconn.querySingleton(conn, SELECT_TABLE_SQL)
         if result != NROW:
@@ -614,7 +603,7 @@ def check_row_count(context, tablename, dbname, nrows):
     else:
         dburl = dbconn.DbURL(dbname=dbname)
 
-    with dbconn.connect(dburl, unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dburl, unsetSearchPath=False)) as conn:
         result = dbconn.querySingleton(conn, NUM_ROWS_QUERY)
     if result != nrows:
         raise Exception('%d rows in table %s.%s, expected row count = %d' % (result, dbname, tablename, nrows))
@@ -708,7 +697,7 @@ def create_dir(host, directory):
 def check_count_for_specific_query(dbname, query, nrows):
     NUM_ROWS_QUERY = '%s' % query
     # We want to bubble up the exception so that if table does not exist, the test fails
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)) as conn:
         result = dbconn.querySingleton(conn, NUM_ROWS_QUERY)
     if result != nrows:
         raise Exception('%d rows in query: %s. Expected row count = %d' % (result, query, nrows))
@@ -720,7 +709,7 @@ def get_primary_segment_host_port():
     """
     FIRST_PRIMARY_DBID = 2
     get_psegment_sql = 'select hostname, port from gp_segment_configuration where dbid=%i;' % FIRST_PRIMARY_DBID
-    with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False)) as conn:
         cur = dbconn.query(conn, get_psegment_sql)
         rows = cur.fetchall()
         primary_seg_host = rows[0][0]
@@ -790,7 +779,7 @@ def wait_for_unblocked_transactions(context, num_retries=150):
     attempt = 0
     while attempt < num_retries:
         try:
-            with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
+            with closing(dbconn.connect(dbconn.DbURL(), unsetSearchPath=False)) as conn:
                 # Cursor.execute() will issue an implicit BEGIN for us.
                 # Empty block of 'BEGIN' and 'END' won't start a distributed transaction,
                 # execute a DDL query to start a distributed transaction.

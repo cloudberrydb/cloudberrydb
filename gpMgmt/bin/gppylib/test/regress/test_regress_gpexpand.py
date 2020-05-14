@@ -36,37 +36,37 @@ class GpExpandTestCase(unittest.TestCase):
            creates a expansion input file"""
 
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
-            next_dbid = dbconn.queryRow(conn,
+            next_dbid = dbconn.querySingleton(conn,
                                                       "select max(dbid)+1 \
-                                                       from pg_catalog.gp_segment_configuration")[0]
-            next_content = dbconn.query(conn,
+                                                       from pg_catalog.gp_segment_configuration")
+            next_content = dbconn.querySingleton(conn,
                                           "select max(content)+1 \
-                                           from pg_catalog.gp_segment_configuration").fetchall()[0][0]
-            next_pri_port = dbconn.query(conn,
+                                           from pg_catalog.gp_segment_configuration")
+            next_pri_port = dbconn.querySingleton(conn,
                                            "select max(port)+1 \
                                             from pg_catalog.gp_segment_configuration \
-                                            where role='p'").fetchall()[0][0]
-            self.primary_host_name = dbconn.query(conn,
+                                            where role='p'")
+            self.primary_host_name = dbconn.querySingleton(conn,
                                                     "select distinct hostname \
                                                      from gp_segment_configuration \
-                                                     where content >= 0 and preferred_role = 'p'").fetchall()[0][0]
-            next_mir_port = dbconn.query(conn,
+                                                     where content >= 0 and preferred_role = 'p'")
+            next_mir_port = dbconn.querySingleton(conn,
                                            "select max(port)+1 \
                                             from pg_catalog.gp_segment_configuration \
-                                            where role='m'").fetchall()[0][0]
+                                            where role='m'")
 
             if next_mir_port is None or next_mir_port == ' ' or next_mir_port == 0:
                 mirroring_on = False
             else:
                 mirroring_on = True
-                next_pri_replication_port = dbconn.query(conn,
+                next_pri_replication_port = dbconn.querySingleton(conn,
                                                            "select max(replication_port)+1 \
                                                             from pg_catalog.gp_segment_configuration \
-                                                            where role='p'").fetchall()[0][0]
-                next_mir_replication_port = dbconn.query(conn,
+                                                            where role='p'")
+                next_mir_replication_port = dbconn.querySingleton(conn,
                                                            "select max(replication_port)+1 \
                                                             from pg_catalog.gp_segment_configuration \
-                                                            where role='m'").fetchall()[0][0]
+                                                            where role='m'")
                 select_mirror = "select distinct hostname \
                                  from gp_segment_configuration \
                                  where content >= 0 and preferred_role = 'm' and hostname != '%s'" % self.primary_host_name
@@ -78,40 +78,41 @@ class GpExpandTestCase(unittest.TestCase):
 
                 self.primary_host_address = socket.getaddrinfo(self.primary_host_name, None)[0][4][0]
                 self.mirror_host_address = socket.getaddrinfo(self.mirror_host_name, None)[0][4][0]
+        conn.close()
 
-            with open(self.EXPANSION_INPUT_FILE, 'w') as outfile:
-                for i in range(self.SEGMENTS):
-                    pri_datadir = os.path.join(os.getcwd(), 'new_pri_seg%d' % i)
-                    mir_datadir = os.path.join(os.getcwd(), 'new_mir_seg%d' % i)
+        with open(self.EXPANSION_INPUT_FILE, 'w') as outfile:
+            for i in range(self.SEGMENTS):
+                pri_datadir = os.path.join(os.getcwd(), 'new_pri_seg%d' % i)
+                mir_datadir = os.path.join(os.getcwd(), 'new_mir_seg%d' % i)
 
-                    temp_str = "%s:%s:%d:%s:%d:%d:%s" % (self.primary_host_name, self.primary_host_address, next_pri_port, pri_datadir, next_dbid, next_content, 'p')
-                    if mirroring_on:
-                        temp_str = temp_str + ":" + str(next_pri_replication_port)
-                    temp_str = temp_str + "\n"
-                    outfile.write(temp_str)
+                temp_str = "%s:%s:%d:%s:%d:%d:%s" % (self.primary_host_name, self.primary_host_address, next_pri_port, pri_datadir, next_dbid, next_content, 'p')
+                if mirroring_on:
+                    temp_str = temp_str + ":" + str(next_pri_replication_port)
+                temp_str = temp_str + "\n"
+                outfile.write(temp_str)
 
-                    if mirroring_on: # The content number for mirror is same as the primary segment's content number
-                        next_dbid += 1
-                        outfile.write("%s:%s:%d:%s:%d:%d:%s:%s\n" % (self.mirror_host_name, self.mirror_host_address, next_mir_port, mir_datadir, next_dbid, next_content, 'm', str(next_mir_replication_port)))
-                        next_mir_port += 1
-                        next_pri_replication_port += 1
-                        next_mir_replication_port += 1
-
-                    next_pri_port += 1
+                if mirroring_on: # The content number for mirror is same as the primary segment's content number
                     next_dbid += 1
-                    next_content += 1
+                    outfile.write("%s:%s:%d:%s:%d:%d:%s:%s\n" % (self.mirror_host_name, self.mirror_host_address, next_mir_port, mir_datadir, next_dbid, next_content, 'm', str(next_mir_replication_port)))
+                    next_mir_port += 1
+                    next_pri_replication_port += 1
+                    next_mir_replication_port += 1
+
+                next_pri_port += 1
+                next_dbid += 1
+                next_content += 1
 
     def _create_tables(self):
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
             for i in range(self.NUM_TABLES):
                 dbconn.execSQL(conn, 'create table tab%d(i integer)' % i)
-            conn.commit()
+        conn.close()
 
     def _drop_tables(self):
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
             for i in range(self.NUM_TABLES):
                 dbconn.execSQL(conn, 'drop table tab%d' % i)
-            conn.commit()
+        conn.close()
 
     def _get_dist_policies(self):
         policies = []
@@ -119,7 +120,7 @@ class GpExpandTestCase(unittest.TestCase):
             cursor = dbconn.query(conn, 'select * from gp_distribution_policy;').fetchall()
             for row in cursor:
                 policies.append(row)
-
+        conn.close()
         return policies
 
     def test00_pg_hba_conf_file(self):

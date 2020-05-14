@@ -17,7 +17,6 @@ try:
     from gppylib.gparray import *
     from gppylib.gplog import *
     from gppylib.commands import unix, gp, base
-    from gppylib.db import dbconn
     from gppylib import gparray, pgconf
     from gppylib.operations.deletesystem import validate_pgport
     from gppylib.userinput import *
@@ -197,17 +196,16 @@ def getTablespaceDirs():
     with dbconn.connect(dbconn.DbURL()) as conn:
         tblspcoids = dbconn.query(conn, gettblspcoids_sql).fetchall()
 
-    # Use the tablespace oids to get the tablespace locations
-    for row in tblspcoids:
-        tblspcoid = row[0]
-        with dbconn.connect(dbconn.DbURL()) as conn:
+        # Use the tablespace oids to get the tablespace locations
+        for row in tblspcoids:
+            tblspcoid = row[0]
             query_results = dbconn.query(conn, gettblspclocs_sql % tblspcoid).fetchall()
-
             for query_result in query_results:
                 if query_result[0] in tblspclocs:
-                    tblspclocs[query_result[0]].append(query_result[1])
+                   tblspclocs[query_result[0]].append(query_result[1])
                 else:
-                    tblspclocs[query_result[0]] = [query_result[1]]
+                   tblspclocs[query_result[0]] = [query_result[1]]
+    conn.close()
 
     return tblspclocs
 

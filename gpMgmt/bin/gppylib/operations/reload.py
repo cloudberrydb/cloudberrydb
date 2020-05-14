@@ -3,6 +3,8 @@
 import os
 import time
 
+from contextlib import closing
+
 from gppylib import gplog
 from gppylib.db import dbconn
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
@@ -21,7 +23,8 @@ class GpReload:
         self.parent_partition_map = {}
 
     def validate_table(self, schema_name, table_name):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        conn = dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))
+        try:
             c = dbconn.querySingleton(conn,
                                     """SELECT count(*)
                                        FROM pg_class, pg_namespace
@@ -30,10 +33,13 @@ class GpReload:
             if not c:
                 raise ExceptionNoStackTraceNeeded('Table {schema}.{table} does not exist'
                                                   .format(schema=schema_name, table=table_name))
+        finally:
+            conn.close()
 
     def validate_columns(self, schema_name, table_name, sort_column_list):
         columns = []
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        conn = dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))
+        try:
             res = dbconn.query(conn,
                           """SELECT attname
                              FROM pg_attribute
@@ -47,10 +53,13 @@ class GpReload:
                 if c[0] not in columns:
                     raise ExceptionNoStackTraceNeeded('Table {schema}.{table} does not have column {col}'
                                                        .format(schema=schema_name, table=table_name, col=c[0]))
+        finally:
+            conn.close()
 
     def validate_mid_level_partitions(self, schema_name, table_name):
         partition_level, max_level = None, None
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        conn = dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))
+        try:
             parent_schema, parent_table = self.parent_partition_map[(schema_name, table_name)]
             if (parent_schema, parent_table) == (schema_name, table_name):
                 return
@@ -77,6 +86,8 @@ class GpReload:
             if partition_level != max_level:
                 logger.error('Partition level of the table = %s, Max partition level = %s' % (partition_level, max_level))
                 raise Exception('Mid Level partition %s.%s is not supported by gpreload. Please specify only leaf partitions or parent table name' % (schema_name, table_name))
+        finally:
+            conn.close()
 
     def validate_options(self):
         if self.table_file is None:
@@ -141,12 +152,12 @@ class GpReload:
             self.validate_columns(schema_name, table_name, sort_column_list)
 
     def get_row_count(self, table_name):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        with closing(dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))) as conn:
             c = dbconn.querySingleton(conn, 'SELECT count(*) FROM {table}'.format(table=table_name))
         return c
 
     def check_indexes(self, schema_name, table_name):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        with closing(dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))) as conn:
             c = dbconn.querySingleton(conn, """SELECT count(*)
                                              FROM pg_index
                                              WHERE indrelid = (SELECT pg_class.oid
@@ -162,14 +173,14 @@ class GpReload:
         return True
 
     def get_table_size(self, schema_name, table_name):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        with closing(dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))) as conn:
             size = dbconn.querySingleton(conn,
                                        """SELECT pg_size_pretty(pg_relation_size('{schema}.{table}'))"""
                                        .format(schema=schema_name, table=table_name))
         return size
 
     def get_parent_partitions(self):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        with closing(dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))) as conn:
             for schema, table, col_list in self.table_list:
                 PARENT_PARTITION_TABLENAME = """SELECT schemaname, tablename
                                                 FROM pg_partitions
@@ -182,10 +193,11 @@ class GpReload:
                 if (schema, table) not in self.parent_partition_map:
                     self.parent_partition_map[(schema, table)] = (schema, table)
 
-            return self.parent_partition_map 
+        return self.parent_partition_map
 
     def reload_tables(self):
-        with dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port)) as conn:
+        conn =  dbconn.connect(dbconn.DbURL(dbname=self.database, port=self.port))
+        try:
             conn.commit()   #Commit the implicit transaction started by connect
             for schema_name, table_name, sort_column_list in self.table_list:
                 logger.info('Starting reload for table {schema}.{table}'.format(schema=schema_name, table=table_name))
@@ -215,6 +227,8 @@ class GpReload:
                 end = time.time()
                 logger.info('Finished reload for table {schema}.{table} in time {sec} seconds'
                             .format(schema=schema_name, table=table_name, sec=(end-start)))
+        finally:
+            conn.close()
 
     def run(self):
         self.validate_options()

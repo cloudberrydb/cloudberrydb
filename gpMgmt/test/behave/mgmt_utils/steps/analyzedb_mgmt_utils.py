@@ -219,11 +219,14 @@ def impl(context, mod_count, table, schema, dbname):
 
 @then('root stats are populated for partition table "{tablename}" for database "{dbname}"')
 def impl(context, tablename, dbname):
-    with dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False) as conn:
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname), unsetSearchPath=False)
+    try:
         query = "select count(*) from pg_statistic where starelid='%s'::regclass;" % tablename
         num_tuples = dbconn.querySingleton(conn, query)
         if num_tuples == 0:
             raise Exception("Expected partition table %s to contain root statistics" % tablename)
+    finally:
+        conn.close()
 
 def get_mod_count_in_state_file(dbname, schema, table):
     file = get_latest_aostate_file(dbname)

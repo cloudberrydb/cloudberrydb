@@ -89,7 +89,8 @@ def _get_mirror_count():
     with dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False) as conn:
         sql = """SELECT count(*) FROM gp_segment_configuration WHERE role='m'"""
         count_row = dbconn.query(conn, sql).fetchone()
-        return count_row[0]
+    conn.close()
+    return count_row[0]
 
 # take the item in search_item_list, search pg_hba if it contains atleast one entry
 # for the item

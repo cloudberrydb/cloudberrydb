@@ -18,6 +18,8 @@ from datetime import date
 import copy
 import traceback
 
+from contextlib import closing
+
 from gppylib.utils import checkNotNone, checkIsInt
 from gppylib    import gplog
 from gppylib.db import dbconn
@@ -949,7 +951,7 @@ class GpArray:
         """
 
         hasMirrors = False
-        with dbconn.connect(dbURL, utility) as conn:
+        with closing(dbconn.connect(dbURL, utility)) as conn:
             # Get the version from the database:
             version_str = dbconn.querySingleton(conn, "SELECT version()")
             version = GpVersion(version_str)
@@ -984,6 +986,7 @@ class GpArray:
                 seg = Segment(content, preferred_role, dbid, role, mode, status,
                                   hostname, address, port, datadir)
                 segments.append(seg)
+
 
         origSegments = [seg.copy() for seg in segments]
 
@@ -1424,22 +1427,21 @@ class GpArray:
                     if segPair.mirrorDB and segPair.mirrorDB.dbid in self.recoveredSegmentDbids:
                         recovered_contents.append((segPair.primaryDB.content, segPair.primaryDB.dbid, segPair.mirrorDB.dbid))
 
-        conn = dbconn.connect(dbURL, True, allowSystemTableMods = True)
-        for (content_id, primary_dbid, mirror_dbid) in recovered_contents:
-            sql = "UPDATE gp_segment_configuration SET role=preferred_role where content = %d" % content_id
-            dbconn.executeUpdateOrInsert(conn, sql, 2)
+        with dbconn.connect(dbURL, True, allowSystemTableMods = True) as conn:
+            for (content_id, primary_dbid, mirror_dbid) in recovered_contents:
+                sql = "UPDATE gp_segment_configuration SET role=preferred_role where content = %d" % content_id
+                dbconn.executeUpdateOrInsert(conn, sql, 2)
 
-            # NOTE: primary-dbid (right now) is the mirror.
-            sql = "INSERT INTO gp_configuration_history VALUES (now(), %d, 'Reassigned role for content %d to MIRROR')" % (primary_dbid, content_id)
-            dbconn.executeUpdateOrInsert(conn, sql, 1)
+                # NOTE: primary-dbid (right now) is the mirror.
+                sql = "INSERT INTO gp_configuration_history VALUES (now(), %d, 'Reassigned role for content %d to MIRROR')" % (primary_dbid, content_id)
+                dbconn.executeUpdateOrInsert(conn, sql, 1)
 
-            # NOTE: mirror-dbid (right now) is the primary.
-            sql = "INSERT INTO gp_configuration_history VALUES (now(), %d, 'Reassigned role for content %d to PRIMARY')" % (mirror_dbid, content_id)
-            dbconn.executeUpdateOrInsert(conn, sql, 1)
+                # NOTE: mirror-dbid (right now) is the primary.
+                sql = "INSERT INTO gp_configuration_history VALUES (now(), %d, 'Reassigned role for content %d to PRIMARY')" % (mirror_dbid, content_id)
+                dbconn.executeUpdateOrInsert(conn, sql, 1)
 
-            # We could attempt to update the segments-array.
-            # But the caller will re-read the configuration from the catalog.
-        dbconn.execSQL(conn, "COMMIT")
+                # We could attempt to update the segments-array.
+                # But the caller will re-read the configuration from the catalog.
         conn.close()
 
     # --------------------------------------------------------------------
