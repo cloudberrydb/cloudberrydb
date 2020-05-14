@@ -762,6 +762,7 @@ sendRegisterMessage(ChunkTransportState *transportStates, ChunkTransportStateEnt
 {
 	int			bytesToSend;
 	int			bytesSent;
+	SliceTable	*sliceTbl = transportStates->sliceTable;
 
 	if (conn->state != mcsSendRegMsg)
 	{
@@ -806,7 +807,7 @@ sendRegisterMessage(ChunkTransportState *transportStates, ChunkTransportStateEnt
 		regMsg->srcListenerPort = Gp_listener_port & 0x0ffff;
 		regMsg->srcPid = MyProcPid;
 		regMsg->srcSessionId = gp_session_id;
-		regMsg->srcCommandCount = gp_interconnect_id;
+		regMsg->srcCommandCount = sliceTbl->ic_instance_id;
 
 
 		conn->state = mcsSendRegMsg;
@@ -873,6 +874,7 @@ readRegisterMessage(ChunkTransportState *transportStates,
 	ChunkTransportStateEntry *pEntry = NULL;
 	CdbProcess *cdbproc = NULL;
 	ListCell	*lc;
+	SliceTable	*sliceTbl = transportStates->sliceTable;
 
 	/* Get ready to receive the Register message. */
 	if (conn->state != mcsRecvRegMsg)
@@ -946,7 +948,7 @@ readRegisterMessage(ChunkTransportState *transportStates,
 
 	/* get rid of old connections first */
 	if (msg.srcSessionId != gp_session_id ||
-		msg.srcCommandCount < gp_interconnect_id)
+		msg.srcCommandCount < sliceTbl->ic_instance_id)
 	{
 		/*
 		 * This is an old connection, which can be safely ignored. We get this
@@ -957,7 +959,7 @@ readRegisterMessage(ChunkTransportState *transportStates,
 		elog(LOG, "Received invalid, old registration message: "
 			 "will ignore ('expected:received' session %d:%d ic-id %d:%d)",
 			 gp_session_id, msg.srcSessionId,
-			 gp_interconnect_id, msg.srcCommandCount);
+			 sliceTbl->ic_instance_id, msg.srcCommandCount);
 
 		goto old_conn;
 	}
@@ -1262,8 +1264,6 @@ SetupTCPInterconnect(EState *estate)
 
 	Assert(sliceTable &&
 		   mySlice->sliceIndex == sliceTable->localSlice);
-
-	gp_interconnect_id = interconnect_context->sliceTable->ic_instance_id;
 
 	gp_set_monotonic_begin_time(&startTime);
 
