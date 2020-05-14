@@ -56,7 +56,9 @@ DBNAME = 'postgres'
 # an empty b-tree index file is considered invalid, it needs to contain a meta
 # page, so we use the pg_partition_oid_index of template0 as a template of
 # empty index file.
-EMPTY_INDEX = 'base/13199/5112'
+# NOTE: the database oid of template0 is not a fixed value, it must be filled
+# with the real oid before using.
+EMPTY_INDEX = 'base/<template0 database oid>/5112'
 
 #global var
 _gp_expand = None
@@ -699,6 +701,11 @@ SELECT pg_catalog.pg_relation_filepath(i.indexrelid)
    AND c.relfilenode <> 0
 """ % (regclasses)
 
+        dboid_of_template0_sql = """
+SELECT oid
+  FROM pg_catalog.pg_database
+ WHERE datname = 'template0'
+"""
         self.master_only_relation_paths = []
         self.master_only_index_paths = []
 
@@ -740,6 +747,12 @@ SELECT pg_catalog.pg_relation_filepath(i.indexrelid)
             databases = [str(row[0])
                          for row in catalog.getDatabaseList(conn)]
             self.logger.debug("list of databases: %s" % databases)
+
+            # also get the database oid of template0 and build the real path
+            # for EMPTY_INDEX
+            dboid0 = dbconn.execSQLForSingleton(conn, dboid_of_template0_sql)
+            global EMPTY_INDEX
+            EMPTY_INDEX = 'base/%s/5112' % dboid0
 
         # then list the per-database master-only tables
         for database in databases:
