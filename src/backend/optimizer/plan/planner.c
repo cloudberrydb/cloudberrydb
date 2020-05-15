@@ -335,7 +335,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->share.shared_inputs = NULL;
 	glob->share.shared_input_count = 0;
 	glob->share.motStack = NIL;
-	glob->share.qdShares = NIL;
+	glob->share.qdShares = NULL;
 
 	if ((cursorOptions & CURSOR_OPT_UPDATABLE) != 0)
 		glob->simplyUpdatable = isSimplyUpdatableQuery(parse);
@@ -589,15 +589,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		/*
-		 * cdb_build_slice_table() can modify nodes, so the producer nodes we
-		 * memorized earlier are no longer valid. apply_shareinput_xslice()
-		 * will re-populate it, but clear it for now, just to make sure that
-		 * we don't access the obsolete copies of the nodes.
-		 */
-		if (glob->share.shared_input_count > 0)
-			memset(glob->share.shared_inputs, 0, glob->share.shared_input_count * sizeof(ApplyShareInputContextPerShare));
-
 		/*
 		 * cdb_build_slice_table() may create additional slices that may affect
 		 * share input. need to mark material nodes that are split acrossed

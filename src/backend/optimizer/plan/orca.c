@@ -102,7 +102,7 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->share.shared_inputs = NULL;
 	glob->share.shared_input_count = 0;
 	glob->share.motStack = NIL;
-	glob->share.qdShares = NIL;
+	glob->share.qdShares = NULL;
 	/* these will be filled in below, in the pre- and post-processing steps */
 	glob->finalrtable = NIL;
 	glob->subplans = NIL;

@@ -560,11 +560,10 @@ create_shareinput_producer_rte(ApplyShareInputContext *ctxt, int share_id,
 	List	   *coltypes = NIL;
 	List	   *coltypmods = NIL;
 	List	   *colcollations = NIL;
-	ApplyShareInputContextPerShare *pershare;
 
+	Assert(ctxt->shared_plans);
 	Assert(ctxt->shared_input_count > share_id);
-	pershare = &ctxt->shared_inputs[share_id];
-	subplan = pershare->shared_plan;
+	subplan = ctxt->shared_plans[share_id];
 
 	foreach(lc, subplan->targetlist)
 	{
@@ -623,8 +622,7 @@ create_shareinput_producer_rte(ApplyShareInputContext *ctxt, int share_id,
 }
 
 /*
- * Memorize the producer of a shared input in an array of producers, one
- * producer per share_id.
+ * Memorize the shared plan of a shared input in an array, one per share_id.
  */
 static void
 shareinput_save_producer(ShareInputScan *plan, ApplyShareInputContext *ctxt)
@@ -634,20 +632,20 @@ shareinput_save_producer(ShareInputScan *plan, ApplyShareInputContext *ctxt)
 
 	Assert(plan->share_id >= 0);
 
-	if (ctxt->shared_inputs == NULL)
+	if (ctxt->shared_plans == NULL)
 	{
-		ctxt->shared_inputs = palloc0(sizeof(ApplyShareInputContextPerShare) * new_shared_input_count);
+		ctxt->shared_plans = palloc0(sizeof(Plan *) * new_shared_input_count);
 		ctxt->shared_input_count = new_shared_input_count;
 	}
 	else if (ctxt->shared_input_count < new_shared_input_count)
 	{
-		ctxt->shared_inputs = repalloc(ctxt->shared_inputs, new_shared_input_count * sizeof(ApplyShareInputContextPerShare));
-		memset(&ctxt->shared_inputs[ctxt->shared_input_count], 0, (new_shared_input_count - ctxt->shared_input_count) * sizeof(ApplyShareInputContextPerShare));
+		ctxt->shared_plans = repalloc(ctxt->shared_plans, new_shared_input_count * sizeof(Plan *));
+		memset(&ctxt->shared_plans[ctxt->shared_input_count], 0, (new_shared_input_count - ctxt->shared_input_count) * sizeof(Plan *));
 		ctxt->shared_input_count = new_shared_input_count;
 	}
 
-	Assert(ctxt->shared_inputs[share_id].shared_plan == NULL);
-	ctxt->shared_inputs[share_id].shared_plan = plan->scan.plan.lefttree;
+	Assert(ctxt->shared_plans[share_id] == NULL);
+	ctxt->shared_plans[share_id] = plan->scan.plan.lefttree;
 }
 
 /*
@@ -679,11 +677,13 @@ shareinput_mutator_dag_to_tree(Node *node, PlannerInfo *root, bool fPop)
 		int			attno;
 		ListCell   *lc;
 
+		/* on entry, all ShareInputScans should have a child */
+		Assert(subplan);
+
 		/* Is there a producer for this sub-tree already? */
 		for (share_id = 0; share_id < ctxt->shared_input_count; share_id++)
 		{
-			if (ctxt->shared_inputs[share_id].shared_plan &&
-				ctxt->shared_inputs[share_id].shared_plan == subplan)
+			if (ctxt->shared_plans[share_id] == subplan)
 			{
 				/*
 				 * Yes. This is a consumer. Remove the subtree, and assign the
@@ -943,20 +943,12 @@ shareinput_mutator_xslice_1(Node *node, PlannerInfo *root, bool fPop)
 		if (currentSlice->gangType == GANGTYPE_UNALLOCATED ||
 			currentSlice->gangType == GANGTYPE_ENTRYDB_READER)
 		{
-				ctxt->qdShares = list_append_unique_int(ctxt->qdShares, sisc->share_id);
+			ctxt->qdShares = bms_add_member(ctxt->qdShares, sisc->share_id);
 		}
 
+		/* Remember information about the slice that this instance appears in. */
 		if (shared)
-		{
-			/*
-			 * We need to repopulate the producers array. The plan tree might
-			 * have been modified between shareinput_mutator_dag_to_tree() and
-			 * here, destroying the producers array in the process.
-			 */
-			ctxt->shared_inputs[sisc->share_id].shared_plan = shared;
 			ctxt->shared_inputs[sisc->share_id].producer_slice_id = motId;
-		}
-
 		share_info->participant_slices = bms_add_member(share_info->participant_slices, motId);
 
 		sisc->this_slice_id = motId;
@@ -1012,7 +1004,7 @@ shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
 		/*
 		 * If this share needs to run in the QD, mark the slice accordingly.
 		 */
-		if (list_member_int(ctxt->qdShares, sisc->share_id))
+		if (bms_is_member(sisc->share_id, ctxt->qdShares))
 		{
 			PlanSlice  *currentSlice = &ctxt->slices[motId];
 
