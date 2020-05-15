@@ -6092,9 +6092,6 @@ make_sort(Plan *lefttree, int numCols,
 
 	node->noduplicates = false; /* CDB */
 
-	node->share_type = SHARE_NOTSHARED;
-	node->share_id = SHARE_ID_NOT_SHARED;
-
 	return node;
 }
 

@@ -2080,8 +2080,8 @@ cost_group(Path *path, PlannerInfo *root,
 /* 
  * cost_shareinputscan
  * 		compute the cost of shareinputscan.  Shareinput scan scans from 
- * 		a material or sort.  It may read disk, but should be costed
- *   	less than material node.
+ * 		a material.  It may read disk, but should be costed less than
+ *		material node.
  */
 void 
 cost_shareinputscan(Path *path, PlannerInfo *root, Cost sharecost, double tuples, int width)

@@ -467,9 +467,6 @@ _outSort(StringInfo str, Sort *node)
 
     /* CDB */
     WRITE_BOOL_FIELD(noduplicates);
-
-	WRITE_ENUM_FIELD(share_type, ShareType);
-	WRITE_INT_FIELD(share_id);
 }
 
 static void

@@ -29,9 +29,6 @@ get_plan_share_type(Plan *p)
 	if(IsA(p, Material))
 		return ((Material *) p)->share_type;
 
-	if(IsA(p, Sort))
-		return ((Sort *) p)->share_type ;
-
 	Assert(IsA(p, ShareInputScan));
 	return ((ShareInputScan *) p)->share_type;
 }
@@ -42,7 +39,7 @@ make_shareinputscan(PlannerInfo *root, Plan *inputplan)
 	ShareInputScan *sisc;
 	Path		sipath;
 
-	Assert(IsA(inputplan, Material) || IsA(inputplan, Sort));
+	Assert(IsA(inputplan, Material));
 
 	sisc = makeNode(ShareInputScan);
 
@@ -73,7 +70,7 @@ make_shareinputscan(PlannerInfo *root, Plan *inputplan)
 
 /*
  * Prepare a subplan for sharing. This creates a Materialize node,
- * or marks the existing Materialize or Sort node as shared. After
+ * or marks the existing Materialize node as shared. After
  * this, you can call share_prepared_plan() as many times as you
  * want to share this plan.
  */
@@ -96,14 +93,6 @@ prepare_plan_for_sharing(PlannerInfo *root, Plan *common)
 
 		m->share_id = SHARE_ID_NOT_ASSIGNED;
 		m->share_type = SHARE_MATERIAL;
-	}
-	else if (IsA(common, Sort))
-	{
-		Sort *s = (Sort *) common;
-
-		Assert(s->share_type == SHARE_NOTSHARED);
-		s->share_id = SHARE_ID_NOT_ASSIGNED;
-		s->share_type = SHARE_SORT;
 	}
 	else
 	{

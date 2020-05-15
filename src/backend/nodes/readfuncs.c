@@ -3057,9 +3057,6 @@ _readSort(void)
     /* CDB */
 	READ_BOOL_FIELD(noduplicates);
 
-	READ_ENUM_FIELD(share_type, ShareType);
-	READ_INT_FIELD(share_id);
-
 	READ_DONE();
 }
 

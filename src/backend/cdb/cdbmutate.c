@@ -1011,11 +1011,6 @@ shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
 				Assert(sisc->share_type == SHARE_MATERIAL);
 				sisc->share_type = SHARE_MATERIAL_XSLICE;
 			}
-			else if (IsA(childPlan, Sort))
-			{
-				Assert(sisc->share_type == SHARE_SORT);
-				sisc->share_type = SHARE_SORT_XSLICE;
-			}
 			else
 				elog(ERROR, "child of ShareInputScan is of unexpected type");
 		}
@@ -1028,11 +1023,6 @@ shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
 		{
 			((Material *) childPlan)->share_type = sisc->share_type;
 			((Material *) childPlan)->share_id = sisc->share_id;
-		}
-		else if (IsA(childPlan, Sort))
-		{
-			((Sort *) childPlan)->share_type = sisc->share_type;
-			((Sort *) childPlan)->share_id = sisc->share_id;
 		}
 		else
 			elog(ERROR, "child of ShareInputScan is of unexpected type");

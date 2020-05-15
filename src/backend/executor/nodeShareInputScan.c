@@ -7,7 +7,7 @@
  *
  * These come in two variants: local, and cross-slice.
  *
- * Local shares (SHARE_MATERIAL or SHARE_SORT)
+ * Local shares (SHARE_MATERIAL)
  * ------------
  *
  * In local mode, all the consumers are in the same slice as the producer.
@@ -24,10 +24,10 @@
  * but there are some implementation differences. CteScan uses a special
  * PARAM_EXEC entry to hold the shared state, while ShareInputScan uses
  * an entry in es_sharenode instead. CteScan creates a tuplestore to hold
- * the data, while ShareInputScan "borrows" the child Material/Sort node's
+ * the data, while ShareInputScan "borrows" the child Material node's
  * store.
  *
- * Cross-slice shares (SHARE_MATERIAL_XSLICE and SHARE_MATERIAL_SORT_XSLICE)
+ * Cross-slice shares (SHARE_MATERIAL_XSLICE)
  * ------------------
  *
  * A cross-slice share works basically the same as a local one, except
@@ -68,7 +68,6 @@
 #include "utils/faultinjector.h"
 #include "utils/memutils.h"
 #include "utils/resowner.h"
-#include "utils/tuplesort.h"
 #include "utils/tuplestorenew.h"
 
 /*
@@ -153,7 +152,7 @@ typedef struct shareinput_local_state
 	int			nsharers;
 
 	/*
-	 * This points to the Material/Sort node that's being shared. Set
+	 * This points to the Material node that's being shared. Set
 	 * by ExecInitShareInputScan() of the instance that has the child.
 	 */
 	PlanState  *childState;
@@ -195,16 +194,12 @@ init_tuplestore_state(ShareInputScanState *node)
 		{
 			ExecProcNode(local_state->childState);
 
-			if (share_type == SHARE_MATERIAL_XSLICE ||
-				share_type == SHARE_SORT_XSLICE)
-			{
+			if (share_type == SHARE_MATERIAL_XSLICE)
 				shareinput_writer_notifyready(node->ref);
-			}
 		}
 		else
 		{
-			Assert(share_type == SHARE_MATERIAL_XSLICE ||
-				   share_type == SHARE_SORT_XSLICE);
+			Assert(share_type == SHARE_MATERIAL_XSLICE);
 
 			shareinput_reader_waitready(node->ref);
 		}
@@ -212,7 +207,7 @@ init_tuplestore_state(ShareInputScanState *node)
 	}
 
 	/*
-	 * The tuplestore/sort has now been fully materialized. Open a new read
+	 * The tuplestore has now been fully materialized. Open a new read
 	 * position on it.
 	 */
 	if(share_type == SHARE_MATERIAL_XSLICE)
@@ -237,43 +232,11 @@ init_tuplestore_state(ShareInputScanState *node)
 		node->ts_pos = (void *) ntuplestore_create_accessor(node->ts_state->matstore, false);
 		ntuplestore_acc_seek_bof((NTupleStoreAccessor *)node->ts_pos);
 	}
-	else if(share_type == SHARE_SORT_XSLICE)
-	{
-		char rwfile_prefix[100];
-		shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), sisc->share_id);
-
-		node->ts_state = palloc0(sizeof(GenericTupStore));
-		node->ts_state->sortstore = tuplesort_begin_heap_file_readerwriter(
-			&node->ss,
-			rwfile_prefix,
-			false, /* isWriter */
-			NULL, /* tupDesc */
-			0, /* nkeys */
-			NULL, /* attNums */
-			NULL, /* sortOperators */
-			NULL, /* sortCollations */
-			NULL, /* nullsFirstFlags */
-			PlanStateOperatorMemKB((PlanState *) node),
-			true /* randomAccess */);
-
-		tuplesort_begin_pos(node->ts_state->sortstore, (TuplesortPos **)(&node->ts_pos));
-		tuplesort_rescan_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos);
-	}
-	else if(share_type == SHARE_SORT)
-	{
-		SortState *child = (SortState *) local_state->childState;
-
-		node->ts_state = palloc0(sizeof(GenericTupStore));
-		node->ts_state->sortstore = ((SortState *) child)->tuplesortstate;
-		Assert(NULL != node->ts_state->sortstore);
-		tuplesort_begin_pos(node->ts_state->sortstore, (TuplesortPos **)(&node->ts_pos));
-		tuplesort_rescan_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos);
-	}
 	else
 		elog(ERROR, "unexpected share_type %d", share_type);
 
 	Assert(NULL != node->ts_state);
-	Assert(NULL != node->ts_state->matstore || NULL != node->ts_state->sortstore);
+	Assert(NULL != node->ts_state->matstore);
 }
 
 
@@ -285,12 +248,11 @@ init_tuplestore_state(ShareInputScanState *node)
 TupleTableSlot *
 ExecShareInputScan(ShareInputScanState *node)
 {
+	ShareInputScan *sisc = (ShareInputScan *) node->ss.ps.plan;
 	EState	   *estate;
 	ScanDirection dir;
 	bool		forward;
 	TupleTableSlot *slot;
-	ShareInputScan * sisc = (ShareInputScan *) node->ss.ps.plan;
-	ShareType	share_type = sisc->share_type;
 
 	/*
 	 * get state info from node
@@ -318,18 +280,8 @@ ExecShareInputScan(ShareInputScanState *node)
 	{
 		bool		gotOK;
 
-		if (share_type == SHARE_MATERIAL || share_type == SHARE_MATERIAL_XSLICE)
-		{
-			ntuplestore_acc_advance((NTupleStoreAccessor *) node->ts_pos, forward ? 1 : -1);
-			gotOK = ntuplestore_acc_current_tupleslot((NTupleStoreAccessor *) node->ts_pos, slot);
-		}
-		else
-		{
-			gotOK = tuplesort_gettupleslot_pos(node->ts_state->sortstore,
-											   (TuplesortPos *) node->ts_pos, forward, slot, NULL,
-											   CurrentMemoryContext);
-		}
-
+		ntuplestore_acc_advance((NTupleStoreAccessor *) node->ts_pos, forward ? 1 : -1);
+		gotOK = ntuplestore_acc_current_tupleslot((NTupleStoreAccessor *) node->ts_pos, slot);
 		if (!gotOK)
 			return NULL;
 
@@ -440,8 +392,7 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 	 * it's kept in estate->es_sharenode, and if this is a cross-slice share
 	 * node, it's kept in the shared memory hash table.
 	 */
-	if (node->share_type == SHARE_MATERIAL_XSLICE ||
-		node->share_type == SHARE_SORT_XSLICE)
+	if (node->share_type == SHARE_MATERIAL_XSLICE)
 	{
 		sisstate->ref = get_shareinput_reference(node->share_id);
 	}
@@ -529,11 +480,6 @@ ExecReScanShareInputScan(ShareInputScanState *node)
 		Assert(NULL != node->ts_state->matstore);
 		ntuplestore_acc_seek_bof((NTupleStoreAccessor *) node->ts_pos);
 	}
-	else if (sisc->share_type == SHARE_SORT || sisc->share_type == SHARE_SORT_XSLICE)
-	{
-		Assert(NULL != node->ts_state->sortstore);
-		tuplesort_rescan_pos(node->ts_state->sortstore, (TuplesortPos *) node->ts_pos);
-	}
 	else
 	{
 		Assert(!"ExecShareInputScanReScan: invalid share type ");
@@ -571,21 +517,6 @@ ExecEagerFreeShareInputScan(ShareInputScanState *node)
 	{
 		if (node->ts_pos != NULL)
 			ntuplestore_destroy_accessor((NTupleStoreAccessor *) node->ts_pos);
-	}
-	if (sisc->share_type == SHARE_SORT_XSLICE)
-	{
-		if (node->ts_state != NULL && node->ts_state->sortstore != NULL)
-		{
-			tuplesort_end(node->ts_state->sortstore);
-			node->ts_state->sortstore = NULL;
-		}
-	}
-	if (sisc->share_type == SHARE_SORT)
-	{
-		/*
-		 * There is no tuplesort_end_pos() call to close the read pointer in a
-		 * non-shared tuplesort.
-		 */
 	}
 
 	/*
@@ -627,12 +558,10 @@ ExecSquelchShareInputScan(ShareInputScanState *node)
 	switch (share_type)
 	{
 		case SHARE_MATERIAL:
-		case SHARE_SORT:
 			/* don't recurse into child */
 			return;
 
 		case SHARE_MATERIAL_XSLICE:
-		case SHARE_SORT_XSLICE:
 			if (node->ref)
 			{
 				if (currentSliceId == sisc->producer_slice_id || estate->es_plannedstmt->numSlices == 1)
@@ -690,7 +619,7 @@ ExecSquelchShareInputScan(ShareInputScanState *node)
  **************************************************************************/
 
 /*
- * When creating a tuplestore/tuplesort file that will be accessed by
+ * When creating a tuplestore file that will be accessed by
  * multiple processes, shareinput_create_bufname_prefix() is used to
  * construct the name for it.
  */

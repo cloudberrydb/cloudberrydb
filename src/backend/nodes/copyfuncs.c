@@ -1144,9 +1144,6 @@ _copySort(const Sort *from)
     /* CDB */
 	COPY_SCALAR_FIELD(noduplicates);
 
-	COPY_SCALAR_FIELD(share_type);
-	COPY_SCALAR_FIELD(share_id);
-
 	return newnode;
 }
 

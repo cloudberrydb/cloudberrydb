@@ -1031,8 +1031,6 @@ typedef enum ShareType
 	SHARE_NOTSHARED,
 	SHARE_MATERIAL,          	/* Sharing a material node */
 	SHARE_MATERIAL_XSLICE,		/* Sharing a material node, across slice */
-	SHARE_SORT,					/* Sharing a sort */
-	SHARE_SORT_XSLICE			/* Sharing a sort, across slice */
 	/* Other types maybe added later, like sharing a hash */
 } ShareType;
 
@@ -1104,10 +1102,6 @@ typedef struct Sort
 	bool	   *nullsFirst;		/* NULLS FIRST/LAST directions */
     /* CDB */
 	bool		noduplicates;   /* TRUE if sort should discard duplicates */
-
-	/* Sort node can be shared */
-	ShareType 	share_type;
-	int 		share_id;
 } Sort;
 
 /* ---------------

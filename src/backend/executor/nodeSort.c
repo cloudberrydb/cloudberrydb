@@ -103,37 +103,14 @@ ExecSort(SortState *node)
 		outerNode = outerPlanState(node);
 		tupDesc = ExecGetResultType(outerNode);
 
-		if(plannode->share_type == SHARE_SORT_XSLICE)
-		{
-			char rwfile_prefix[100];
-
-			shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), plannode->share_id);
-			elog(LOG, "Sort node create shareinput rwfile %s", rwfile_prefix);
-
-			tuplesortstate = tuplesort_begin_heap_file_readerwriter(
-				&node->ss,
-				rwfile_prefix, true,
-				tupDesc,
-				plannode->numCols,
-				plannode->sortColIdx,
-				plannode->sortOperators,
-				plannode->collations,
-				plannode->nullsFirst,
-				PlanStateOperatorMemKB((PlanState *) node),
-				true
-				);
-		}
-		else
-		{
-			tuplesortstate = tuplesort_begin_heap(&node->ss, tupDesc,
-												  plannode->numCols,
-												  plannode->sortColIdx,
-												  plannode->sortOperators,
-												  plannode->collations,
-												  plannode->nullsFirst,
-												  PlanStateOperatorMemKB((PlanState *) node),
-												  node->randomAccess);
-		}
+		tuplesortstate = tuplesort_begin_heap(&node->ss, tupDesc,
+											  plannode->numCols,
+											  plannode->sortColIdx,
+											  plannode->sortOperators,
+											  plannode->collations,
+											  plannode->nullsFirst,
+											  PlanStateOperatorMemKB((PlanState *) node),
+											  node->randomAccess);
 
 		if (node->bounded)
 			tuplesort_set_bound(tuplesortstate, node->bound);
@@ -156,17 +133,6 @@ ExecSort(SortState *node)
 			tuplesort_set_instrument(tuplesortstate,
 									 node->ss.ps.instrument,
 									 node->ss.ps.cdbexplainbuf);
-	}
-
-	/*
-	 * If first time through,
-	 * read all tuples from outer plan and pass them to
-	 * tuplesort.c. Subsequent calls just fetch tuples from tuplesort.
-	 */
-	if (!node->sort_Done)
-	{
-
-		Assert(outerNode != NULL);
 
 		/*
 		 * Scan the subplan and feed all the tuples to tuplesort.
@@ -201,22 +167,7 @@ ExecSort(SortState *node)
 		node->bounded_Done = node->bounded;
 		node->bound_Done = node->bound;
 		SO1_printf("ExecSort: %s\n", "sorting done");
-
-		/* for share input, do not need to return any tuple */
-		if(plannode->share_type != SHARE_NOTSHARED) 
-		{
-			Assert(plannode->share_type == SHARE_SORT || plannode->share_type == SHARE_SORT_XSLICE);
-
-			if (plannode->share_type == SHARE_SORT_XSLICE)
-				tuplesort_flush(tuplesortstate);
-
-			return NULL;
-		}
-
-	} /* if (!node->sort_Done) */
-
-	if(plannode->share_type != SHARE_NOTSHARED)
-		return NULL;
+	}
 				
 	SO1_printf("ExecSort: %s\n",
 			   "retrieving tuple from tuplesort");
@@ -268,10 +219,6 @@ ExecInitSort(Sort *node, EState *estate, int eflags)
 	sortstate->randomAccess = (eflags & (EXEC_FLAG_REWIND |
 										 EXEC_FLAG_BACKWARD |
 										 EXEC_FLAG_MARK)) != 0;
-
-	/* If the sort is shared, we need random access */
-	if(node->share_type != SHARE_NOTSHARED) 
-		sortstate->randomAccess = true;
 
 	sortstate->bounded = false;
 	sortstate->sort_Done = false;

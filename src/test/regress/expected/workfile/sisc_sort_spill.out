@@ -57,9 +57,10 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
 ;');
  is_workfile_created 
 ---------------------
+                   0
                    1
                    1
-(2 rows)
+(3 rows)
 
 select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
   with ctesisc as (select * from testsisc order by i2)
@@ -69,9 +70,10 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
 limit 50000;');
  is_workfile_created 
 ---------------------
+                   0
                    1
                    1
-(2 rows)
+(3 rows)
 
 set gp_enable_mk_sort=off;
 select avg(i3) from (
@@ -93,9 +95,10 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
 ;');
  is_workfile_created 
 ---------------------
+                   0
                    1
                    1
-(2 rows)
+(3 rows)
 
 select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
   with ctesisc as (select * from testsisc order by i2)
@@ -105,9 +108,10 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
 limit 50000;');
  is_workfile_created 
 ---------------------
+                   0
                    1
                    1
-(2 rows)
+(3 rows)
 
 drop schema sisc_sort_spill cascade;
 NOTICE:  drop cascades to 2 other objects

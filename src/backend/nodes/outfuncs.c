@@ -1161,9 +1161,6 @@ _outSort(StringInfo str, const Sort *node)
 
 	/* CDB */
     WRITE_BOOL_FIELD(noduplicates);
-
-	WRITE_ENUM_FIELD(share_type, ShareType);
-	WRITE_INT_FIELD(share_id);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 

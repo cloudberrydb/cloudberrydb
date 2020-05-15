@@ -3219,7 +3219,7 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 							);
 
 	// if the child node is neither a sort or materialize node then add a materialize node
-	if (!IsA(child_plan, Material) && !IsA(child_plan, Sort))
+	if (!IsA(child_plan, Material))
 	{
 		Material *materialize = MakeNode(Material);
 		materialize->cdb_strict = false; // eager-free
@@ -3276,7 +3276,7 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 //		CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 //
 //	@doc:
-//		Initialize spooling information for (1) the materialize/sort node under the
+//		Initialize spooling information for (1) the materialize node under the
 //		shared input scan nodes representing the CTE producer node and
 //		(2) SIS nodes representing the producer/consumer nodes
 //---------------------------------------------------------------------------
@@ -3290,34 +3290,18 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 	List *shared_scan_cte_consumer_list = m_dxl_to_plstmt_context->GetCTEConsumerList(share_id);
 	GPOS_ASSERT(NULL != shared_scan_cte_consumer_list);
 
-	ShareType share_type = SHARE_NOTSHARED;
-
-	if (IsA(plan, Material))
-	{
-		Material *materialize = (Material *) plan;
-		materialize->share_id = share_id;
-		share_type = SHARE_MATERIAL;
-		// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
-		materialize->share_type = share_type;
-	}
-	else
-	{
-		GPOS_ASSERT(IsA(plan, Sort));
-		Sort *sort = (Sort *) plan;
-		sort->share_id = share_id;
-		share_type = SHARE_SORT;
-		// the share_type is later reset to SHARE_SORT_XSLICE (if needed) the apply_shareinput_xslice
-		sort->share_type = share_type;
-	}
-
-	GPOS_ASSERT(SHARE_NOTSHARED != share_type);
+	GPOS_ASSERT(IsA(plan, Material));
+	Material *materialize = (Material *) plan;
+	materialize->share_id = share_id;
+	// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
+	materialize->share_type = SHARE_MATERIAL;
 
 	// set the share type of the consumer nodes based on the producer
 	ListCell *lc_sh_scan_cte_consumer = NULL;
 	ForEach (lc_sh_scan_cte_consumer, shared_scan_cte_consumer_list)
 	{
 		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
-		share_input_scan_consumer->share_type = share_type;
+		share_input_scan_consumer->share_type = SHARE_MATERIAL;
 		share_input_scan_consumer->producer_slice_id = -1; // default
 		share_input_scan_consumer->this_slice_id = -1; // default
 	}
