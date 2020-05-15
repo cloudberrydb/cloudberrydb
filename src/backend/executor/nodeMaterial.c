@@ -78,27 +78,11 @@ ExecMaterial(MaterialState *node)
 	/*
 	 * If first time through, and we need a tuplestore, initialize it.
 	 */
-	if (ts == NULL && (ma->share_type != SHARE_NOTSHARED || node->eflags != 0))
+	if (ts == NULL && node->eflags != 0)
 	{
-		/*
-		 * For cross slice material, we only run ExecMaterial on DriverSlice
-		 */
-		if(ma->share_type == SHARE_MATERIAL_XSLICE)
-		{
-			char rwfile_prefix[100];
-
-			shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), ma->share_id);
-			elog(DEBUG1, "Material node creates shareinput rwfile %s", rwfile_prefix);
-
-			ts = ntuplestore_create_readerwriter(rwfile_prefix, PlanStateOperatorMemKB((PlanState *)node) * 1024, true, true);
-			tsa = ntuplestore_create_accessor(ts, true);
-		}
-		else
-		{
-			/* Non-shared Materialize node */
-			ts = ntuplestore_create(PlanStateOperatorMemKB((PlanState *) node) * 1024, "Materialize");
-			tsa = ntuplestore_create_accessor(ts, true /* isWriter */);
-		}
+		/* Non-shared Materialize node */
+		ts = ntuplestore_create(PlanStateOperatorMemKB((PlanState *) node) * 1024, "Materialize");
+		tsa = ntuplestore_create_accessor(ts, true /* isWriter */);
 
 		Assert(ts && tsa);
 		node->ts_state = ts;
@@ -126,8 +110,7 @@ ExecMaterial(MaterialState *node)
 		 * is used to share input, we will need to fetch all rows and put
 		 * them in tuple store
 		 */
-		while (((Material *) node->ss.ps.plan)->cdb_strict
-				|| ma->share_type != SHARE_NOTSHARED)
+		while (((Material *) node->ss.ps.plan)->cdb_strict)
 		{
 			TupleTableSlot *outerslot = ExecProcNode(outerPlanState(node));
 
@@ -146,25 +129,7 @@ ExecMaterial(MaterialState *node)
 			ntuplestore_acc_seek_bof(tsa);
 		else
 			ntuplestore_acc_seek_eof(tsa);
-
-		/* for share input, material do not need to return any tuple */
-		if(ma->share_type != SHARE_NOTSHARED)
-		{
-			Assert(ma->share_type == SHARE_MATERIAL || ma->share_type == SHARE_MATERIAL_XSLICE);
-			/*
-			 * if the material is shared across slice, notify consumers that
-			 * it is ready.
-			 */
-			if (ma->share_type == SHARE_MATERIAL_XSLICE)
-			{
-				ntuplestore_flush(ts);
-			}
-			return NULL;
-		}
 	}
-
-	if(ma->share_type != SHARE_NOTSHARED)
-		return NULL;
 
 	/*
 	 * If we can fetch another tuple from the tuplestore, return it.

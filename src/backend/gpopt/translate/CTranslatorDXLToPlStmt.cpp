@@ -3141,18 +3141,6 @@ CTranslatorDXLToPlStmt::TranslateDXLMaterialize
 
 	plan->lefttree = child_plan;
 
-	// set spooling info
-	if (materialize_dxlop->IsSpooling())
-	{
-		materialize->share_id = materialize_dxlop->GetSpoolingOpId();
-		materialize->share_type = (0 < materialize_dxlop->GetNumConsumerSlices()) ?
-							SHARE_MATERIAL_XSLICE : SHARE_MATERIAL;
-	}
-	else
-	{
-		materialize->share_type = SHARE_NOTSHARED;
-	}
-
 	SetParamIds(plan);
 
 	// cleanup
@@ -3218,49 +3206,6 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 							output_context
 							);
 
-	// if the child node is neither a sort or materialize node then add a materialize node
-	if (!IsA(child_plan, Material))
-	{
-		Material *materialize = MakeNode(Material);
-		materialize->cdb_strict = false; // eager-free
-
-		Plan *materialize_plan = &(materialize->plan);
-		materialize_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-
-		TranslatePlanCosts
-			(
-			CDXLPhysicalProperties::PdxlpropConvert(cte_producer_dxlnode->GetProperties())->GetDXLOperatorCost(),
-			&(materialize_plan->startup_cost),
-			&(materialize_plan->total_cost),
-			&(materialize_plan->plan_rows),
-			&(materialize_plan->plan_width)
-			);
-
-		// create a target list for the newly added materialize
-		ListCell *lc_target_entry = NULL;
-		materialize_plan->targetlist = NIL;
-		ForEach (lc_target_entry, plan->targetlist)
-		{
-			TargetEntry *target_entry = (TargetEntry *) lfirst(lc_target_entry);
-			Expr *expr = target_entry->expr;
-			GPOS_ASSERT(IsA(expr, Var));
-
-			Var *var = (Var *) expr;
-			Var *var_new = gpdb::MakeVar(OUTER_VAR, var->varattno, var->vartype, var->vartypmod,	0 /* varlevelsup */);
-			var_new->varnoold = var->varnoold;
-			var_new->varoattno = var->varoattno;
-
-			TargetEntry *te_new = gpdb::MakeTargetEntry((Expr *) var_new, var->varattno, PStrDup(target_entry->resname), target_entry->resjunk);
-			materialize_plan->targetlist = gpdb::LAppend(materialize_plan->targetlist, te_new);
-		}
-
-		materialize_plan->lefttree = child_plan;
-
-		child_plan = materialize_plan;
-	}
-
-	InitializeSpoolingInfo(child_plan, cte_id);
-
 	plan->lefttree = child_plan;
 	plan->qual = NIL;
 	SetParamIds(plan);
@@ -3269,42 +3214,6 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 	child_contexts->Release();
 
 	return (Plan *) shared_input_scan;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::InitializeSpoolingInfo
-//
-//	@doc:
-//		Initialize spooling information for (1) the materialize node under the
-//		shared input scan nodes representing the CTE producer node and
-//		(2) SIS nodes representing the producer/consumer nodes
-//---------------------------------------------------------------------------
-void
-CTranslatorDXLToPlStmt::InitializeSpoolingInfo
-	(
-	Plan *plan,
-	ULONG share_id
-	)
-{
-	List *shared_scan_cte_consumer_list = m_dxl_to_plstmt_context->GetCTEConsumerList(share_id);
-	GPOS_ASSERT(NULL != shared_scan_cte_consumer_list);
-
-	GPOS_ASSERT(IsA(plan, Material));
-	Material *materialize = (Material *) plan;
-	materialize->share_id = share_id;
-	// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
-	materialize->share_type = SHARE_MATERIAL;
-
-	// set the share type of the consumer nodes based on the producer
-	ListCell *lc_sh_scan_cte_consumer = NULL;
-	ForEach (lc_sh_scan_cte_consumer, shared_scan_cte_consumer_list)
-	{
-		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
-		share_input_scan_consumer->share_type = SHARE_MATERIAL;
-		share_input_scan_consumer->producer_slice_id = -1; // default
-		share_input_scan_consumer->this_slice_id = -1; // default
-	}
 }
 
 //---------------------------------------------------------------------------

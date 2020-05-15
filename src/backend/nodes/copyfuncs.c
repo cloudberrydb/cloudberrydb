@@ -1091,7 +1091,7 @@ _copyShareInputScan(const ShareInputScan *from)
 
 	/* copy node superclass fields */
 	CopyPlanFields((Plan *) from, (Plan *) newnode);
-	COPY_SCALAR_FIELD(share_type);
+	COPY_SCALAR_FIELD(cross_slice);
 	COPY_SCALAR_FIELD(share_id);
 	COPY_SCALAR_FIELD(producer_slice_id);
 	COPY_SCALAR_FIELD(this_slice_id);
@@ -1115,8 +1115,6 @@ _copyMaterial(const Material *from)
 	CopyPlanFields((const Plan *) from, (Plan *) newnode);
 	COPY_SCALAR_FIELD(cdb_strict);
 	COPY_SCALAR_FIELD(cdb_shield_child_from_rescans);
-	COPY_SCALAR_FIELD(share_type);
-	COPY_SCALAR_FIELD(share_id);
 
     return newnode;
 }

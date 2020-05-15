@@ -1112,9 +1112,6 @@ _outMaterial(StringInfo str, const Material *node)
 
 	WRITE_BOOL_FIELD(cdb_strict);
 	WRITE_BOOL_FIELD(cdb_shield_child_from_rescans);
-
-	WRITE_ENUM_FIELD(share_type, ShareType);
-	WRITE_INT_FIELD(share_id);
 }
 
 static void
@@ -1122,7 +1119,7 @@ _outShareInputScan(StringInfo str, const ShareInputScan *node)
 {
 	WRITE_NODE_TYPE("SHAREINPUTSCAN");
 
-	WRITE_ENUM_FIELD(share_type, ShareType);
+	WRITE_BOOL_FIELD(cross_slice);
 	WRITE_INT_FIELD(share_id);
 	WRITE_INT_FIELD(producer_slice_id);
 	WRITE_INT_FIELD(this_slice_id);

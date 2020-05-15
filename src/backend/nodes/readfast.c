@@ -1530,7 +1530,7 @@ _readShareInputScan(void)
 {
 	READ_LOCALS(ShareInputScan);
 
-	READ_ENUM_FIELD(share_type, ShareType);
+	READ_BOOL_FIELD(cross_slice);
 	READ_INT_FIELD(share_id);
 	READ_INT_FIELD(producer_slice_id);
 	READ_INT_FIELD(this_slice_id);

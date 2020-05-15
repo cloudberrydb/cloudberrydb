@@ -848,19 +848,6 @@ typedef struct GenericExprState
 } GenericExprState;
 
 /* ----------------
- *         Generic tuplestore structure
- *	 used to communicate between ShareInputScan nodes,
- *	 Materialize and Sort
- *
- * ----------------
- */
-typedef union GenericTupStore
-{
-	struct NTupleStore        *matstore;     /* Used by Materialize */
-	void	   *sortstore;	/* Used by Sort */
-} GenericTupStore;
-
-/* ----------------
  *		WholeRowVarExprState node
  * ----------------
  */
@@ -2486,20 +2473,20 @@ typedef struct MaterialState
  */
 struct shareinput_local_state;
 struct shareinput_Xslice_reference;
+struct NTupleStore;
+struct NTupleStoreAccessor;
 
 typedef struct ShareInputScanState
 {
 	ScanState	ss;
 
-	/*
-	 * Depends on share_type, we should have a tuplestore_state, tuplestore_pos
-	 * or tuplesort_state, tuplesort_pos
-	 */
-	GenericTupStore *ts_state;
-	void	   *ts_pos;
+	struct NTupleStore *ts_state;
+	struct NTupleStoreAccessor *ts_pos;
 
 	struct shareinput_local_state *local_state;
 	struct shareinput_Xslice_reference *ref;
+
+	bool		isready;
 } ShareInputScanState;
 
 /* XXX Should move into buf file */

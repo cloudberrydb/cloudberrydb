@@ -3032,9 +3032,6 @@ _readMaterial(void)
 	READ_BOOL_FIELD(cdb_strict);
 	READ_BOOL_FIELD(cdb_shield_child_from_rescans);
 
-	READ_ENUM_FIELD(share_type, ShareType);
-	READ_INT_FIELD(share_id);
-
 	READ_DONE();
 }
 

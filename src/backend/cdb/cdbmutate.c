@@ -997,35 +997,17 @@ shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
 		ShareInputScan *sisc = (ShareInputScan *) plan;
 		int			motId = shareinput_peekmot(ctxt);
 		ApplyShareInputContextPerShare *pershare;
-		Plan	   *childPlan;
 
 		pershare = &ctxt->shared_inputs[sisc->share_id];
-		childPlan = pershare->shared_plan;
-		if (!childPlan)
-			elog(ERROR, "sub-plan for share_id %d cannot be NULL", sisc->share_id);
 
 		if (bms_num_members(pershare->participant_slices) > 1)
 		{
-			if (IsA(childPlan, Material))
-			{
-				Assert(sisc->share_type == SHARE_MATERIAL);
-				sisc->share_type = SHARE_MATERIAL_XSLICE;
-			}
-			else
-				elog(ERROR, "child of ShareInputScan is of unexpected type");
+			Assert(!sisc->cross_slice);
+			sisc->cross_slice = true;
 		}
 
 		sisc->producer_slice_id = pershare->producer_slice_id;
 		sisc->nconsumers = bms_num_members(pershare->participant_slices) - 1;
-
-		/* Tell the child node that it's part of a ShareInputScan */
-		if (IsA(childPlan, Material))
-		{
-			((Material *) childPlan)->share_type = sisc->share_type;
-			((Material *) childPlan)->share_id = sisc->share_id;
-		}
-		else
-			elog(ERROR, "child of ShareInputScan is of unexpected type");
 
 		/*
 		 * If this share needs to run in the QD, mark the slice accordingly.

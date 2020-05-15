@@ -6650,8 +6650,6 @@ make_material(Plan *lefttree)
 	plan->righttree = NULL;
 
 	node->cdb_strict = false;
-	node->share_type = SHARE_NOTSHARED;
-	node->share_id = SHARE_ID_NOT_SHARED;
 
 	return node;
 }

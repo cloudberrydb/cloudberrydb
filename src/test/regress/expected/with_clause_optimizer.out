@@ -2217,12 +2217,10 @@ SELECT count(a1.i)
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Sequence
          ->  Shared Scan (share slice:id 1:0)
-               ->  Materialize
-                     ->  Seq Scan on foo foo_1
+               ->  Seq Scan on foo foo_1
          ->  Sequence
                ->  Shared Scan (share slice:id 1:1)
-                     ->  Materialize
-                           ->  Seq Scan on foo
+                     ->  Seq Scan on foo
                ->  Append
                      ->  Hash Join
                            Hash Cond: (share0_ref2.i = share1_ref2.i)
@@ -2238,7 +2236,7 @@ SELECT count(a1.i)
                                              ->  Hash
                                                    ->  Shared Scan (share slice:id 3:1)
  Optimizer: Pivotal Optimizer (GPORCA)
-(24 rows)
+(22 rows)
 
 -- Another cross-slice ShareInputScan test. There is one producing slice,
 -- and two consumers in second slice. Make sure the Share Input Scan
@@ -2268,8 +2266,7 @@ UNION ALL
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Sequence
          ->  Shared Scan (share slice:id 1:0)
-               ->  Materialize
-                     ->  Seq Scan on foo
+               ->  Seq Scan on foo
          ->  Append
                ->  GroupAggregate
                      Group Key: ('a'::text), share0_ref2.j
@@ -2285,14 +2282,14 @@ UNION ALL
                      ->  Hash
                            ->  Shared Scan (share slice:id 1:0)
                ->  Result
-                     One-Time Filter: (gp_execution_segment() = 1)
+                     One-Time Filter: (gp_execution_segment() = 0)
                      ->  Result
                            Filter: (NOT (pg_sleep('1'::double precision) IS NULL))
                            ->  Result
                ->  Result
                      ->  Shared Scan (share slice:id 1:0)
  Optimizer: Pivotal Optimizer (GPORCA)
-(27 rows)
+(26 rows)
 
 WITH cte AS (SELECT * FROM foo)
   (SELECT DISTINCT 'a' as branch, j FROM cte)
