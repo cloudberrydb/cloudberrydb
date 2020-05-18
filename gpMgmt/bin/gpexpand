@@ -8,7 +8,6 @@ from gppylib.mainUtils import getProgramName
 
 import copy
 import datetime
-import glob
 import os
 import random
 import sys
@@ -627,9 +626,8 @@ class SegmentTemplate:
         """Builds segment template tar file"""
         self.statusLogger.set_status('BUILD_SEGMENT_TEMPLATE_STARTED', self.tempDir)
         # build segment template should consider tablespace files
-        excludes = self._list_master_only_files()
-        self._create_template(newTableSpaceInfo, excludes=excludes)
-        self._fixup_template(excludes=excludes)
+        self._create_template(newTableSpaceInfo)
+        self._fixup_template()
         self._tar_template()
         self.statusLogger.set_status('BUILD_SEGMENT_TEMPLATE_DONE')
 
@@ -642,108 +640,7 @@ class SegmentTemplate:
         numNewSegments = len(self.gparray.getExpansionSegDbList())
         self.statusLogger.set_status('BUILD_SEGMENTS_DONE', numNewSegments)
 
-    def _list_master_only_files(self):
-        """Build a list of files of master only tables and their indexes.
-
-        The content of master only tables should be cleared or refilled on the
-        new segments, by including an empty copy of the heap & index files less
-        data is transferred via network and there is no need to delete the
-        content on the segments explicitly.
-
-        However empty index files are actually invalid, we need to reindex the
-        master only tables on the new segments to rebuild the index files, this
-        is fast as the heap files are all empty.
-        """
-
-        self.logger.info("Building the file list of master only tables")
-
-        regclasses = ["'%s'::regclass::oid" % tab
-                      for tab in MASTER_ONLY_TABLES]
-        regclasses = "(" + ", ".join(regclasses) + ")"
-        self.logger.debug("master only tables: %s" % regclasses)
-
-        global_sql = """
-/* relation files */
-SELECT pg_catalog.pg_relation_filepath(c.oid)
-  FROM pg_catalog.pg_class c
- WHERE c.oid IN %s
-   AND c.relfilenode = 0
-
-UNION ALL
-
-/* index files */
-SELECT pg_catalog.pg_relation_filepath(i.indexrelid)
-  FROM pg_catalog.pg_index i
-  JOIN pg_catalog.pg_class c
-    ON i.indexrelid = c.oid
- WHERE i.indrelid IN %s
-   AND c.relfilenode = 0
-""" % (regclasses, regclasses)
-
-        per_db_sql = """
-/* relation files */
-SELECT pg_catalog.pg_relation_filepath(c.oid)
-  FROM pg_catalog.pg_class c
- WHERE c.oid IN %s
-   AND c.relfilenode <> 0
-""" % (regclasses)
-
-        result = []
-
-        def add_paths(paths):
-            """we need to include not only the relation/index files,
-            but also visibility, free space and seg files"""
-            for path in paths:
-                # ${filenode}: the relation file itself
-                result.append(os.path.join('.', path))
-                # ${filenode}_vm: the visibility map
-                # ${filenode}_fsm: the free space map
-                result.extend(glob.glob('./%s_*' % path))
-                # ${filenode}.[1-9][0-9]*: the seg files
-                result.extend(glob.glob('./%s.*' % path))
-
-        # the file list will be passed to pg_basebackup as the exclude list,
-        # it expects the paths are like "./global/1234", so we must chdir to
-        # the master data dir.
-        oldcwd = os.getcwd()
-        os.chdir(self.masterDataDirectory)
-
-        # first list the global master-only tables
-        with dbconn.connect(self.dburl, encoding='UTF8') as conn:
-            paths = [str(row[0])
-                     for row in dbconn.execSQL(conn, global_sql).fetchall()]
-            self.logger.debug("raw files of global master-only tables: %s" % paths)
-            add_paths(paths)
-
-            # also get a list of all the databases
-            databases = [str(row[0])
-                         for row in catalog.getDatabaseList(conn)]
-            self.logger.debug("list of databases: %s" % databases)
-
-        # then list the per-database master-only tables
-        for database in databases:
-            # template0 does not accept connections, so we have no chance to
-            # clear the master-only tables on it, however we expect this
-            # database to be small enough, so it can be safely ignored.
-            if database == 'template0':
-                continue
-
-            dburl = dbconn.DbURL( hostname=self.dburl.pghost
-                                , port=self.dburl.pgport
-                                , dbname=database)
-            with dbconn.connect(dburl, encoding='UTF8') as conn:
-                paths = [str(row[0])
-                         for row in dbconn.execSQL(conn, per_db_sql).fetchall()]
-                self.logger.debug("raw files of per-database master-only tables: %s" % paths)
-                add_paths(paths)
-
-        self.logger.debug("files of master only tables: %s" % result)
-
-        os.chdir(oldcwd)
-
-        return result
-
-    def _create_template(self, newTableSpaceInfo=None, excludes=[]):
+    def _create_template(self, newTableSpaceInfo=None):
         """Creates the schema template that is used by new segments"""
         self.logger.info('Creating segment template')
 
@@ -766,7 +663,6 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
                                host=masterSeg.getSegmentHostName(),
                                port=str(masterSeg.getSegmentPort()),
                                recovery_mode=False,
-                               excludePaths=excludes,
                                target_gp_dbid=dummyDBID)
             cmd.run(validateAfter=True)
         except Exception, msg:
@@ -777,11 +673,9 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
         # then there are no user-created tablespaces in the system,
         # no need to consider tablespace problems in gpexpand.
         if newTableSpaceInfo:
-            self._handle_tablespace_template(dummyDBID, newTableSpaceInfo,
-                                             excludes)
+            self._handle_tablespace_template(dummyDBID, newTableSpaceInfo)
 
-    def _handle_tablespace_template(self, dummyDBID, newTableSpaceInfo,
-                                    excludes=[]):
+    def _handle_tablespace_template(self, dummyDBID, newTableSpaceInfo):
         """
         If there are user-created tablespaces in GreenplumDB cluster, we
         have to pack them into the template. The logic here contains two
@@ -820,42 +714,15 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
                                                "dumps")
         os.mkdir(tablespace_template_dir)
 
-        # build a list of master-only files that are under tablespaces, these
-        # files will be ignored during the dumping.
-        full_excludes = []
-        for pathname in excludes:
-            if not pathname.startswith('./pg_tblspc/'):
-                # only tablespaces are handled here
-                continue
-            # a pathname is like './pg_tblspc/16385/GPDB_7_301911081/16386/6052_vm'
-            # we need to change it to './16385/<dummyDBID>/GPDB_7_301911081/16386/6052_vm'
-            pathname = os.sep.join([pathname.split(os.sep)[2], str(dummyDBID)] +
-                                   pathname.split(os.sep)[3:])
-            full_excludes.append(os.path.join(tablespace_template_dir,
-                                              pathname))
-
         for tbcspc_oid in tbcspc_oids:
             symlink_path = os.path.join(master_tblspc_dir, tbcspc_oid)
             target_path = os.readlink(symlink_path)
             os.mkdir(os.path.join(tablespace_template_dir, tbcspc_oid))
             # the target name for copytree does not impact anything
             shutil.copytree(target_path,
-                            os.path.join(tablespace_template_dir,
-                                         tbcspc_oid, str(dummyDBID)),
-                            shutil.ignore_patterns(full_excludes))
+                        os.path.join(tablespace_template_dir, tbcspc_oid, str(dummyDBID)))
             shutil.rmtree(os.path.join(os.path.dirname(target_path),
                                        str(dummyDBID)))
-
-        # the files of the master only tables are already deleted, now add an
-        # empty copy of them, so they are seen as empty on the new segments,
-        # and we do not need to delete them via sql separately.
-        for fullname in full_excludes:
-            dirname = os.path.dirname(fullname)
-            # the template dir is not expected to be updated concurrently,
-            # so it is safe to use a check-and-create style to create dirs.
-            if not os.path.isdir(dirname):
-                os.makedirs(dirname)
-            open(fullname, 'wb')
 
         with open(os.path.join(self.tempDir,
                                "pg_tblspc",
@@ -980,7 +847,7 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
         self._start_new_primary_segments()
         self._stop_new_primary_segments()
 
-    def _fixup_template(self, excludes=[]):
+    def _fixup_template(self):
         """Copies postgresql.conf and pg_hba.conf files from a valid segment on the system.
         Then modifies the template copy of pg_hba.conf"""
 
@@ -1001,27 +868,6 @@ SELECT pg_catalog.pg_relation_filepath(c.oid)
                     dstFile=self.tempDir, dstHost=localHostname,ctxt=REMOTE,
                     remoteHost=self.srcSegHostname)
         cpCmd.run(validateAfter=True)
-
-        # the files of the master only tables are already deleted, now add an
-        # empty copy of them, so they are seen as empty on the new segments,
-        # and we do not need to delete them via sql separately.
-        if excludes:
-            self.logger.info('Creating an empty copy of excluded files')
-            for pathname in excludes:
-                if pathname.startswith('./pg_tblspc/'):
-                    # tablespaces are handled separately
-                    continue
-                fullname = os.path.join(self.tempDir, pathname)
-                filename = os.path.basename(fullname)
-                dirname = os.path.dirname(fullname)
-                if '.' in filename:
-                    # ignore seg files
-                    continue
-                # the template dir is not expected to be updated concurrently,
-                # so it is safe to use a check-and-create style to create dirs.
-                if not os.path.isdir(dirname):
-                    os.makedirs(dirname)
-                open(fullname, 'wb')
 
     def _tar_template(self):
         """Tars up the template files"""
@@ -1523,15 +1369,8 @@ class gpexpand:
         conn.close()
 
         """
-        Connect to each database in each segment and do some cleanup of tables
-        that have stuff in them as a result of copying the segment from the
-        master.  Note, this functionality used to be in segcopy and was
-        therefore done just once to the original copy of the master.
-
-        Need to start the new segments with the system indexes disabled, this
-        is necessary because the master-only catalog tables are copied as empty
-        files, as well as their index files, the indexes are invalid and should
-        not be used until being reindexed.
+        Connect to each database in each segment and do some cleanup of tables that have stuff in them as a result of copying the segment from the master.
+        Note, this functionality used to be in segcopy and was therefore done just once to the original copy of the master.
         """
         for seg in newSegments:
             if seg.isSegmentMirror() == True:
@@ -1547,18 +1386,16 @@ class gpexpand:
                 , ctxt=REMOTE
                 , remoteHost=seg.getSegmentHostName()
                 , pg_ctl_wait=True
-                , timeout=SEGMENT_TIMEOUT_DEFAULT
-                , disableSystemIndexes=True)
+                , timeout=SEGMENT_TIMEOUT_DEFAULT)
             self.pool.addCommand(segStartCmd)
         self.pool.join()
         self.pool.check_results()
 
         """
-        Build the list of reindex statements based on the MASTER_ONLY_TABLES
+        Build the list of delete statements based on the MASTER_ONLY_TABLES
         defined in gpcatalog.py
         """
-        statements = ["REINDEX TABLE pg_catalog.%s" % tab
-                      for tab in MASTER_ONLY_TABLES]
+        statements = ["delete from pg_catalog.%s" % tab for tab in MASTER_ONLY_TABLES]
 
         """
           Connect to each database in the new segments, and clean up the catalog tables.
@@ -1585,43 +1422,6 @@ class gpexpand:
         ### need to fix self.pool.check_results(). Call getCompletedItems to clear the queue for now.
         self.pool.check_results()
         self.pool.getCompletedItems()
-
-        # stop the segments
-        for seg in newSegments:
-            if seg.isSegmentMirror():
-                continue
-            """ Stop all the new segments. """
-            segStartCmd = SegmentStop(
-                name="Stopping new segment dbid %s on host %s." % (str(seg.getSegmentDbId()),
-                                                                   seg.getSegmentHostName())
-                , dataDir=seg.getSegmentDataDirectory()
-                , ctxt=REMOTE
-                , remoteHost=seg.getSegmentHostName()
-                , timeout=SEGMENT_TIMEOUT_DEFAULT)
-            self.pool.addCommand(segStartCmd)
-        self.pool.join()
-        self.pool.check_results()
-
-        # restart the segments with index enabled
-        for seg in newSegments:
-            if seg.isSegmentMirror() == True:
-                continue
-            """ Start all the new segments in utilty mode. """
-            segStartCmd = SegmentStart(
-                name="Starting new segment dbid %s on host %s." % (str(seg.getSegmentDbId()),
-                                                                   seg.getSegmentHostName())
-                , gpdb=seg
-                , numContentsInCluster=self.newPrimaryCount  # Starting seg on it's own.
-                , era=None
-                , mirrormode=MIRROR_MODE_MIRRORLESS
-                , utilityMode=True
-                , ctxt=REMOTE
-                , remoteHost=seg.getSegmentHostName()
-                , pg_ctl_wait=True
-                , timeout=SEGMENT_TIMEOUT_DEFAULT)
-            self.pool.addCommand(segStartCmd)
-        self.pool.join()
-        self.pool.check_results()
 
     # --------------------------------------------------------------------------
     def restore_master(self):
