@@ -29,6 +29,8 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp.h"
 
+#include "ic_proxy_backend.h"
+
 #include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
@@ -599,6 +601,28 @@ setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStat
 		closesocket(conn->sockfd);
 		conn->sockfd = -1;
 	}
+
+#ifdef HAVE_LIBUV
+	if (Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
+	{
+		/* TODO: setup the connections in parallel */
+		conn->sockfd = ic_proxy_backend_connect(pEntry, conn);
+		if (conn->sockfd == -1)
+			return;
+		pg_set_noblock(conn->sockfd);
+
+		conn->pBuff = palloc(Gp_max_packet_size);
+		conn->recvBytes = 0;
+		conn->msgPos = NULL;
+		conn->msgSize = PACKET_HEADER_SIZE;
+
+		conn->state = mcsStarted;
+		conn->stillActive = true;
+		conn->tupleCount = 0;
+		conn->remoteContentId = conn->cdbProc->contentid;
+		return;
+	}
+#endif  /* HAVE_LIBUV */
 
 	/* Initialize hint structure */
 	MemSet(&hint, 0, sizeof(hint));
@@ -1272,6 +1296,7 @@ SetupTCPInterconnect(EState *estate)
 	{
 		int			totalNumProcs;
 		int			childId = lfirst_int(cell);
+		ChunkTransportStateEntry *pEntry = NULL;
 
 #ifdef AMS_VERBOSE_LOGGING
 		elog(DEBUG5, "Setting up RECEIVING motion node %d", childId);
@@ -1284,6 +1309,9 @@ SetupTCPInterconnect(EState *estate)
 		 * entries, so we count the entries.
 		 */
 		totalNumProcs = list_length(aSlice->primaryProcesses);
+
+		pEntry = createChunkTransportState(interconnect_context, aSlice, mySlice, totalNumProcs);
+
 		for (i = 0; i < totalNumProcs; i++)
 		{
 			CdbProcess *cdbProc;
@@ -1291,9 +1319,43 @@ SetupTCPInterconnect(EState *estate)
 			cdbProc = list_nth(aSlice->primaryProcesses, i);
 			if (cdbProc)
 				expectedTotalIncoming++;
-		}
 
-		(void) createChunkTransportState(interconnect_context, aSlice, mySlice, totalNumProcs);
+#ifdef HAVE_LIBUV
+			if (Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
+			{
+				conn = &pEntry->conns[i];
+				conn->cdbProc = list_nth(aSlice->primaryProcesses, i);
+
+				if (conn->cdbProc)
+				{
+					incoming_count++;
+
+					/* TODO: setup the connections in parallel */
+					conn->sockfd = ic_proxy_backend_connect(pEntry, conn);
+					if (conn->sockfd == -1)
+						continue;
+					pg_set_noblock(conn->sockfd);
+
+					MPP_FD_SET(conn->sockfd, &pEntry->readSet);
+
+					if (conn->sockfd > pEntry->highReadSock)
+						pEntry->highReadSock = conn->sockfd;
+
+					conn->pBuff = palloc(Gp_max_packet_size);
+					conn->recvBytes = 0;
+					conn->msgPos = NULL;
+					conn->msgSize = 0;
+
+					conn->state = mcsStarted;
+					conn->stillActive = true;
+					conn->tupleCount = 0;
+					conn->remoteContentId = conn->cdbProc->contentid;
+
+					conn->remapper = CreateTupleRemapper();
+				}
+			}
+#endif  /* HAVE_LIBUV */
+		}
 	}
 
 	/*
@@ -1306,6 +1368,19 @@ SetupTCPInterconnect(EState *estate)
 	 */
 	if (mySlice->parentIndex != -1)
 		sendingChunkTransportState = startOutgoingConnections(interconnect_context, mySlice, &expectedTotalOutgoing);
+
+#ifdef HAVE_LIBUV
+	if (Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
+	{
+		for (i = 0; i < expectedTotalOutgoing; i++)
+		{
+			conn = &sendingChunkTransportState->conns[i];
+			setupOutgoingConnection(interconnect_context,
+									sendingChunkTransportState, conn);
+		}
+		outgoing_count = expectedTotalOutgoing;
+	}
+#endif  /* HAVE_LIBUV */
 
 	if (expectedTotalIncoming > listenerBacklog)
 		ereport(WARNING, (errmsg("SetupTCPInterconnect: too many expected incoming connections(%d), Interconnect setup might possibly fail", expectedTotalIncoming),
