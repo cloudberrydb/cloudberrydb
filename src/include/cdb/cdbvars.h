@@ -280,6 +280,7 @@ typedef enum GpVars_Interconnect_Type
 {
 	INTERCONNECT_TYPE_TCP = 0,
 	INTERCONNECT_TYPE_UDPIFC,
+	INTERCONNECT_TYPE_PROXY,
 } GpVars_Interconnect_Type;
 
 extern int Gp_interconnect_type;
