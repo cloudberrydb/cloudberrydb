@@ -200,6 +200,15 @@ bool		gp_interconnect_log_stats = false;	/* emit stats at log-level */
 
 bool		gp_interconnect_cache_future_packets = true;
 
+/*
+ * format: dbid:content:address:port,dbid:content:address:port ...
+ * example: 1:-1:10.0.0.1:2000 2:0:10.0.0.2:2000 3:1:10.0.0.2:2001
+ *
+ * FIXME: at the moment:
+ * - the address must be specified as IP;
+ */
+char	   *gp_interconnect_proxy_addresses = NULL;
+
 int			Gp_udp_bufsize_k;	/* UPD recv buf size, in KB */
 
 #ifdef USE_ASSERT_CHECKING

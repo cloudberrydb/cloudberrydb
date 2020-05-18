@@ -284,6 +284,8 @@ typedef enum GpVars_Interconnect_Type
 
 extern int Gp_interconnect_type;
 
+extern char *gp_interconnect_proxy_addresses;
+
 typedef enum GpVars_Interconnect_Method
 {
 	INTERCONNECT_FC_METHOD_CAPACITY = 0,

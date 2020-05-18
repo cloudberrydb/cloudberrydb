@@ -722,6 +722,7 @@ GREP
 with_apr_config
 with_libcurl
 with_rt
+with_libuv
 with_quicklz
 with_zstd
 with_libbz2
@@ -887,6 +888,7 @@ with_zlib
 with_libbz2
 with_zstd
 with_quicklz
+with_libuv
 with_rt
 with_libcurl
 with_apr_config
@@ -1593,6 +1595,7 @@ Optional Packages:
   --without-zstd          do not build with Zstandard
   --with-quicklz          build with QuickLZ support (requires quicklz
                           library)
+  --without-libuv         do not use libuv
   --without-rt            do not use Realtime Library
   --without-libcurl       do not use libcurl
   --with-apr-config=PATH  path to apr-1-config utility
@@ -8068,6 +8071,35 @@ fi
 
 
 #
+# libuv. Used for ic-proxy
+#
+
+
+
+# Check whether --with-libuv was given.
+if test "${with_libuv+set}" = set; then :
+  withval=$with_libuv;
+  case $withval in
+    yes)
+      :
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --with-libuv option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  with_libuv=yes
+
+fi
+
+
+
+
+#
 # Realtime library
 #
 
@@ -11647,6 +11679,56 @@ _ACEOF
 
 else
   as_fn_error $? "quicklz library not found." "$LINENO" 5
+fi
+
+fi
+
+if test "$with_libuv" = yes; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uv_default_loop in -luv" >&5
+$as_echo_n "checking for uv_default_loop in -luv... " >&6; }
+if ${ac_cv_lib_uv_uv_default_loop+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-luv  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char uv_default_loop ();
+int
+main ()
+{
+return uv_default_loop ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_uv_uv_default_loop=yes
+else
+  ac_cv_lib_uv_uv_default_loop=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uv_uv_default_loop" >&5
+$as_echo "$ac_cv_lib_uv_uv_default_loop" >&6; }
+if test "x$ac_cv_lib_uv_uv_default_loop" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUV 1
+_ACEOF
+
+  LIBS="-luv $LIBS"
+
+else
+  as_fn_error $? "libuv library not found." "$LINENO" 5
 fi
 
 fi
