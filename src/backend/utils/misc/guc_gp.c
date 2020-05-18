@@ -4355,6 +4355,19 @@ struct config_string ConfigureNamesString_gp[] =
 		NULL, NULL, NULL
 	},
 
+#ifdef HAVE_LIBUV
+	{
+		{"gp_interconnect_proxy_addresses", PGC_POSTMASTER, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the ic-proxy addresses as \"content:ip:port ...\", must be ordered by content, the port is ignored at the moment."),
+			gettext_noop("e.g. \"-1:10.0.0.1:2000 0:10.0.0.2:2000 1:10.0.0.2:2001\""),
+			GUC_NO_SHOW_ALL | GUC_GPDB_NO_SYNC
+		},
+		&gp_interconnect_proxy_addresses,
+		"",
+		NULL, NULL, NULL
+	},
+#endif  /* HAVE_LIBUV */
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, NULL, NULL, NULL
