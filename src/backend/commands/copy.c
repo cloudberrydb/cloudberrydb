@@ -37,6 +37,7 @@
 #include "commands/defrem.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
+#include "foreign/fdwapi.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "mb/pg_wchar.h"
@@ -56,7 +57,7 @@
 #include "utils/snapmgr.h"
 
 #include "access/appendonlywriter.h"
-#include "access/fileam.h"
+#include "access/url.h"
 #include "catalog/namespace.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
@@ -3446,6 +3447,16 @@ CopyOneRowTo(CopyState cstate, Oid tupleOid, Datum *values, bool *nulls)
 	MemoryContextSwitchTo(oldcontext);
 }
 
+static char *
+linenumber_atoi(char *buffer, size_t bufsz, int64 linenumber)
+{
+	if (linenumber < 0)
+		snprintf(buffer, bufsz, "%s", "N/A");
+	else
+		snprintf(buffer, bufsz, INT64_FORMAT, linenumber);
+
+	return buffer;
+}
 
 /*
  * error context callback for COPY FROM
@@ -3620,8 +3631,9 @@ CopyFrom(CopyState cstate)
 	ResultRelInfo *parentResultRelInfo;
 	List *resultRelInfoList = NULL;
 	EState	   *estate = CreateExecutorState(); /* for ExecConstraints() */
-	TupleTableSlot *baseSlot;
+	ModifyTableState *mtstate;
 	ExprContext *econtext;		/* used for ExecEvalExpr for default atts */
+	TupleTableSlot *baseSlot;
 	MemoryContext oldcontext = CurrentMemoryContext;
 
 	ErrorContextCallback errcallback;
@@ -3640,13 +3652,14 @@ CopyFrom(CopyState cstate)
 	bool	   *baseNulls;
 	GpDistributionData *part_distData = NULL;
 	int			firstBufferedLineNo = 0;
-	bool		is_external_table;
 
 	Assert(cstate->rel);
 
-	is_external_table = (cstate->rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE &&
-						 rel_is_external_table(RelationGetRelid(cstate->rel)));
-	if (cstate->rel->rd_rel->relkind != RELKIND_RELATION && !is_external_table)
+	/*
+	 * The target must be a plain or foreign relation.
+	 */
+	if (cstate->rel->rd_rel->relkind != RELKIND_RELATION &&
+		cstate->rel->rd_rel->relkind != RELKIND_FOREIGN_TABLE)
 	{
 		if (cstate->rel->rd_rel->relkind == RELKIND_VIEW)
 			ereport(ERROR,
@@ -3657,11 +3670,6 @@ CopyFrom(CopyState cstate)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("cannot copy to materialized view \"%s\"",
-							RelationGetRelationName(cstate->rel))));
-		else if (cstate->rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("cannot copy to foreign table \"%s\"",
 							RelationGetRelationName(cstate->rel))));
 		else if (cstate->rel->rd_rel->relkind == RELKIND_SEQUENCE)
 			ereport(ERROR,
@@ -3782,6 +3790,9 @@ CopyFrom(CopyState cstate)
 
 	parentResultRelInfo = resultRelInfo;
 
+	/* Verify the named relation is a valid target for INSERT */
+	CheckValidResultRel(resultRelInfo->ri_RelationDesc, CMD_INSERT);
+
 	ExecOpenIndices(resultRelInfo, false);
 
 	resultRelInfo->ri_resultSlot = MakeSingleTupleTableSlot(resultRelInfo->ri_RelationDesc->rd_att);
@@ -3818,11 +3829,13 @@ CopyFrom(CopyState cstate)
 	 * BEFORE/INSTEAD OF triggers, or we need to evaluate volatile default
 	 * expressions. Such triggers or expressions might query the table we're
 	 * inserting to, and act differently if the tuples that have already been
-	 * processed and prepared for insertion are not there.
+	 * processed and prepared for insertion are not there.  We also can't do
+	 * it if the table is foreign.
 	 */
 	if ((resultRelInfo->ri_TrigDesc != NULL &&
 		 (resultRelInfo->ri_TrigDesc->trig_insert_before_row ||
 		  resultRelInfo->ri_TrigDesc->trig_insert_instead_row)) ||
+		  resultRelInfo->ri_FdwRoutine != NULL ||
 		cstate->volatile_defexprs || cstate->oids)
 	{
 		useHeapMultiInsert = false;
@@ -3831,6 +3844,21 @@ CopyFrom(CopyState cstate)
 	{
 		useHeapMultiInsert = true;
 	}
+
+	/*
+	 * Set up a ModifyTableState so we can let FDW(s) init themselves for
+	 * foreign-table result relation(s).
+	 */
+	mtstate = makeNode(ModifyTableState);
+	mtstate->ps.plan = NULL;
+	mtstate->ps.state = estate;
+	mtstate->operation = CMD_INSERT;
+	mtstate->resultRelInfo = estate->es_result_relations;
+
+	if (resultRelInfo->ri_FdwRoutine != NULL &&
+		resultRelInfo->ri_FdwRoutine->BeginForeignInsert != NULL)
+		resultRelInfo->ri_FdwRoutine->BeginForeignInsert(mtstate,
+														 resultRelInfo);
 
 	/* Prepare to catch AFTER triggers. */
 	AfterTriggerBeginQuery();
@@ -4156,12 +4184,6 @@ CopyFrom(CopyState cstate)
 					aocs_insert_init(resultRelInfo->ri_RelationDesc,
 									 resultRelInfo->ri_aosegno, false);
 			}
-			else if (is_external_table &&
-					 resultRelInfo->ri_extInsertDesc == NULL)
-			{
-				resultRelInfo->ri_extInsertDesc =
-					external_insert_init(resultRelInfo->ri_RelationDesc);
-			}
 		}
 
 		if (cstate->dispatch_mode == COPY_DISPATCH)
@@ -4207,7 +4229,8 @@ CopyFrom(CopyState cstate)
 			ItemPointerData insertedTid;
 
 			/* Check the constraints of the tuple */
-			if (resultRelInfo->ri_RelationDesc->rd_att->constr)
+			if (resultRelInfo->ri_FdwRoutine == NULL &&
+				resultRelInfo->ri_RelationDesc->rd_att->constr)
 				ExecConstraints(resultRelInfo, slot, estate);
 
 			/* OK, store the tuple and create index entries for it */
@@ -4272,12 +4295,27 @@ CopyFrom(CopyState cstate)
 					aocs_insert(resultRelInfo->ri_aocsInsertDesc, slot);
 					insertedTid = *slot_get_ctid(slot);
 				}
-				else if (is_external_table)
+				else if (resultRelInfo->ri_FdwRoutine != NULL)
 				{
 					HeapTuple tuple;
 
-					tuple = ExecFetchSlotHeapTuple(slot);
-					external_insert(resultRelInfo->ri_extInsertDesc, tuple);
+					slot = resultRelInfo->ri_FdwRoutine->ExecForeignInsert(estate,
+																		   resultRelInfo,
+																		   slot,
+																		   NULL);
+
+					if (slot == NULL)		/* "do nothing" */
+						continue;
+
+					/*
+					 * AFTER ROW Triggers might reference the tableoid
+					 * column, so (re-)initialize tts_tableOid before
+					 * evaluating them.
+					 */
+					slot->tts_tableOid = RelationGetRelid(resultRelInfo->ri_RelationDesc);
+
+					/* FDW might have changed tuple */
+					tuple = ExecMaterializeSlot(slot);
 					ItemPointerSetInvalid(&insertedTid);
 				}
 				else
@@ -4296,7 +4334,7 @@ CopyFrom(CopyState cstate)
 
 				if (resultRelInfo->ri_NumIndices > 0)
 					recheckIndexes = ExecInsertIndexTuples(slot, &insertedTid,
-														 estate, false, NULL,
+														   estate, false, NULL,
 														   NIL);
 
 				/* AFTER ROW INSERT Triggers */
@@ -4443,6 +4481,12 @@ CopyFrom(CopyState cstate)
 	 * there may be duplicate free in ExecDropSingleTupleTableSlot; if not, they
 	 * would be freed by FreeExecutorState anyhow */
 	ExecResetTupleTable(estate->es_tupleTable, false);
+
+	/* Allow the FDW to shut down */
+	if (parentResultRelInfo->ri_FdwRoutine != NULL &&
+		parentResultRelInfo->ri_FdwRoutine->EndForeignInsert != NULL)
+		parentResultRelInfo->ri_FdwRoutine->EndForeignInsert(estate,
+															 parentResultRelInfo);
 
 	/*
 	 * Finalize appends and close relations we opened.
