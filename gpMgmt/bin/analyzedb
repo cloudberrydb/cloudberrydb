@@ -21,17 +21,19 @@ import fnmatch
 import tempfile
 import time
 from datetime import datetime
+from contextlib import closing
 import pipes  # for shell-quoting, pipes.quote()
 import fcntl
 
 try:
+    import pg
+
     from gppylib import gplog, pgconf, userinput
     from gppylib.commands.base import Command, WorkerPool, Worker
     from gppylib.operations import Operation
     from gppylib.gpversion import GpVersion
     from gppylib.db import dbconn
     from gppylib.operations.unix import CheckDir, CheckFile, MakeDir
-    from pygresql import pg
 
 except ImportError, e:
     sys.exit('Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(e))
@@ -77,8 +79,10 @@ GET_REQUESTED_AO_DATA_TABLE_INFO_SQL = """
     AND OUTER_PG_CLASS.oid = pg_appendonly.segrelid
 """
 
+# pygresql 5 automatically converts psql timestamp to type datetime.datetime.
+# We need to cast it as text for easy comparison to the state file on disk
 GET_REQUESTED_LAST_OP_INFO_SQL = """
-    SELECT PGN.nspname, PGC.relname, objid, staactionname, stasubtype, statime FROM pg_stat_last_operation, pg_class PGC, pg_namespace PGN
+    SELECT PGN.nspname, PGC.relname, objid, staactionname, stasubtype, cast(statime AS TEXT) FROM pg_stat_last_operation, pg_class PGC, pg_namespace PGN
     WHERE objid = PGC.oid
     AND objid in (%s)
     AND PGC.relnamespace = PGN.oid
@@ -574,8 +578,11 @@ class AnalyzeDb(Operation):
                 (schema, table) = canonical_tables[orig_table]
                 included_cols = self._get_include_or_exclude_cols(toks, '-i')
                 excluded_cols = self._get_include_or_exclude_cols(toks, '-x')
-                self._parse_column(col_dict, orig_table, schema, table, included_cols, excluded_cols,
-                                   [orig_table] in all_root_partitions)
+                is_root_part = False
+                for row in all_root_partitions:
+                    if orig_table in row:
+                        is_root_part = True
+                self._parse_column(col_dict, orig_table, schema, table, included_cols, excluded_cols, is_root_part)
 
         else:  # all user tables in database
             alltables = run_sql(self.conn, GET_ALL_DATA_TABLES_SQL)

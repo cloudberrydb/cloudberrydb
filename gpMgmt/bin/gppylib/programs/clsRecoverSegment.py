@@ -19,9 +19,8 @@
 from gppylib.mainUtils import *
 
 from optparse import OptionGroup
-import os, sys, signal, time
+import os, sys, signal, time, pg
 
-from pygresql import pg
 
 from gppylib import gparray, gplog, userinput, utils
 from gppylib.util import gp_utils

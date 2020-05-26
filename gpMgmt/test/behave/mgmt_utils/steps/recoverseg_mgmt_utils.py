@@ -75,7 +75,7 @@ def impl(context, sql_cmd, dbname):
         dbname, context.remote_pair_primary_host, context.remote_pair_primary_port, sql_cmd)
     cmd = Command(name='Running Remote command: %s' % psql_cmd, cmdStr = psql_cmd)
     cmd.run(validateAfter=True)
-    if [cmd.get_results().stdout.strip()] not in context.stored_sql_results:
+    if cmd.get_results().stdout.strip() not in context.stored_sql_results[0]:
         raise Exception("cmd results do not match\n expected: '%s'\n received: '%s'" % (
             context.stored_sql_results, cmd.get_results().stdout.strip()))
 

@@ -14,7 +14,6 @@ try:
     import subprocess32 as subprocess
 except:
     import subprocess
-from pygresql import pg
 
 """
 Global Values

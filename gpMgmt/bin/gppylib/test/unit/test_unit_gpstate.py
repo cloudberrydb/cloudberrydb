@@ -1,7 +1,6 @@
 import unittest
 import mock
-
-from pygresql import pgdb
+import pgdb
 
 from gppylib import gparray
 from gppylib.programs.clsSystemState import *

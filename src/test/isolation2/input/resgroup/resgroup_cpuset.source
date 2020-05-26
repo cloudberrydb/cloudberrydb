@@ -16,7 +16,7 @@ CREATE ROLE role1_cpuset_test RESOURCE GROUP rg1_cpuset_test;
 -- @return bool: true/false indicating whether it corresponds to the rule
 CREATE FUNCTION check_cpuset(grp TEXT, cpuset TEXT) RETURNS BOOL AS $$
 import subprocess
-import pygresql.pg as pg
+import pg
 import time
 import re
 
@@ -69,7 +69,7 @@ $$ LANGUAGE plpythonu;
 
 -- create a resource group that contains all the cpu cores
 CREATE FUNCTION create_allcores_group(grp TEXT) RETURNS BOOL AS $$
-import pygresql.pg as pg
+import pg
 conn = pg.connect(dbname="isolation2resgrouptest")
 file = "@cgroup_mnt_point@/cpuset/gpdb/cpuset.cpus"
 fd = open(file)
@@ -93,7 +93,7 @@ $$ LANGUAGE plpythonu;
 
 -- check whether the cpuset value in cgroup is valid according to the rule
 CREATE FUNCTION check_rules() RETURNS BOOL AS $$
-import pygresql.pg as pg
+import pg
 
 def get_all_group_which_cpuset_is_set():
 	sql = "select groupid,cpuset from gp_toolkit.gp_resgroup_config where cpuset != '-1'"

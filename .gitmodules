@@ -4,8 +4,8 @@
 	branch = pgbouncer_1_8_1
 [submodule "gpMgmt/bin/pythonSrc/ext"]
 	path = gpMgmt/bin/pythonSrc/ext
-	url = https://github.com/greenplum-db/pythonsrc-ext.git
-	branch = master
+	url = https://github.com/tylarb/pythonsrc-ext.git
+	branch = pygresql
 [submodule "gpcontrib/gpcloud/test/googletest"]
 	path = gpcontrib/gpcloud/test/googletest
 	url = https://github.com/google/googletest.git

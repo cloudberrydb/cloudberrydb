@@ -11,7 +11,7 @@ import re
 from contextlib import closing
 from distutils.version import LooseVersion
 from optparse import OptionParser
-from pygresql import pgdb
+import pgdb
 
 gpsd_version = '%prog 1.0'
 

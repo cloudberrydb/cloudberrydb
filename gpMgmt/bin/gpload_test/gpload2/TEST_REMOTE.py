@@ -14,7 +14,7 @@ try:
 except:
     import subprocess
 from shutil import copyfile
-from pygresql import pg
+import pg
 
 """
 Global Values

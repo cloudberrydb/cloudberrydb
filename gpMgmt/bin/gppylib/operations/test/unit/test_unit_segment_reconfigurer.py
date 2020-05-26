@@ -4,11 +4,11 @@ import time
 from gppylib.operations.segment_reconfigurer import SegmentReconfigurer, FTS_PROBE_QUERY
 
 from gppylib.test.unit.gp_unittest import GpTestCase
-from pygresql import pgdb
+import pg
+import pgdb
 import mock
 from mock import Mock, patch, call, MagicMock
 import contextlib
-import pygresql.pg
 
 
 class MyDbUrl:
@@ -38,7 +38,7 @@ class SegmentReconfiguerTestCase(GpTestCase):
         cm = contextlib.nested(
                 patch('gppylib.db.dbconn.connect', new=self.connect),
                 patch('gppylib.db.dbconn.DbURL', return_value=self.db_url),
-                patch('pygresql.pg.connect'),
+                patch('pg.connect'),
                 )
         cm.__enter__()
         self.cm = cm
@@ -50,7 +50,7 @@ class SegmentReconfiguerTestCase(GpTestCase):
         reconfigurer = SegmentReconfigurer(logger=self.logger,
                 worker_pool=self.worker_pool, timeout=self.timeout)
         reconfigurer.reconfigure()
-        pygresql.pg.connect.assert_has_calls([
+        pg.connect.assert_has_calls([
             call(self.db, self.host, self.port, None, self.user, self.passwd),
             call().query(FTS_PROBE_QUERY),
             call().close(),

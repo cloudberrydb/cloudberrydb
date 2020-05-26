@@ -36,7 +36,7 @@ except ImportError:
 
 import platform
 try:
-    from pygresql import pg
+    import pg
 except Exception, e:
     errorMsg = "gpload was unable to import The PyGreSQL Python module (pg.py) - %s\n" % str(e)
     sys.stderr.write(str(errorMsg))
@@ -703,13 +703,13 @@ def quote_unident(val):
     return val
 
 
-def notice_processor(self):
+def notice_processor(notice):
     if windowsPlatform == True:
        # We don't have a pygresql with our notice fix, so skip for windows.
        # This means we will not get any warnings on windows (MPP10989).
        return
 
-    theNotices = self.db.notices()
+    theNotices = notice
     r = re.compile("^NOTICE:  found (\d+) data formatting errors.*")
     messageNumber = 0
     m = None
@@ -1959,10 +1959,7 @@ class gpload:
                ct = 'int4'
             name = unicode(row['column_name'], 'utf-8')
             name = quote_ident(name)
-            if unicode(row['has_sequence']) != unicode('f'):
-                has_seq = True
-            else:
-                has_seq = False
+            has_seq = row['has_sequence']
             i = [name,ct,None, has_seq]
             self.into_columns.append(i)
             self.into_columns_dict[name] = i
@@ -2527,7 +2524,7 @@ class gpload:
 
 
     def count_errors(self):
-        notice_processor(self)
+        self.db.set_notice_receiver(notice_processor)
         if self.log_errors and not self.options.D:
             # make sure we only get errors for our own instance
             if not self.reuse_tables:

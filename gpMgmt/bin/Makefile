@@ -71,34 +71,15 @@ endif
 #
 # PyGreSQL
 #
-PYGRESQL_VERSION=4.0
+PYGRESQL_VERSION=5.1.2
 PYGRESQL_DIR=PyGreSQL-$(PYGRESQL_VERSION)
-
 pygresql:
 	@echo "--- PyGreSQL"
-	if [ ! -f $(DESTDIR)$(prefix)/greenplum_path.sh ]; then \
-		unset LIBPATH; \
-		./generate-greenplum-path.sh $(prefix) > $(DESTDIR)$(prefix)/greenplum_path.sh ; \
-	fi
-	. $(DESTDIR)$(prefix)/greenplum_path.sh && \
-	if [ "$(BLD_ARCH)" = 'aix7_ppc_64' ]; then \
-	    unset PYTHONPATH && cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" CC="$(CC)" python_64 setup.py build; \
-	elif [ `uname -s` = 'OpenBSD' ]; then \
-	    cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" CC=cc python setup.py build; \
-	else \
-	    cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" env -u CC python setup.py build; \
-	fi
-	mkdir -p $(PYLIB_DIR)/pygresql
-	if [ `uname -s` = 'Darwin' ]; then \
-	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.macosx*/* $(PYLIB_DIR)/pygresql; \
-	elif [ `uname -s` = 'AIX' ]; then \
-	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.aix*/* $(PYLIB_DIR)/pygresql; \
-	elif [ `uname -s` = 'OpenBSD' ]; then \
-	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.openbsd*/* $(PYLIB_DIR)/pygresql; \
-	else \
-	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.linux*/* $(PYLIB_DIR)/pygresql; \
-	fi
-	touch $(PYLIB_DIR)/__init__.py
+	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PYGRESQL_DIR).tar.gz
+	cd $(PYLIB_SRC_EXT)/$(PYGRESQL_DIR)/ && PATH=$(bindir):$$PATH python setup.py build
+	cp -r $(PYLIB_SRC_EXT)/$(PYGRESQL_DIR)/build/lib*/* $(PYLIB_DIR)/
+
+
 
 #
 # LOCKFILE

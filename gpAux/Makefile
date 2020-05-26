@@ -422,8 +422,11 @@ define tmpCLIENTS_FILESET_BIN
 endef
 CLIENTS_FILESET_BIN = $(strip $(tmpCLIENTS_FILESET_BIN))
 
+# pg.py, pgdb.py, _pg.so are from pygresql which does not install into a single module
 define tmpCLIENTS_FILESET_BINEXT
-	pygresql
+	pg.py
+	pgdb.py
+	_pg.so
 	yaml
 endef
 CLIENTS_FILESET_BINEXT = $(strip $(tmpCLIENTS_FILESET_BINEXT))

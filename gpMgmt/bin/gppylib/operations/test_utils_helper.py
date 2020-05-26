@@ -42,5 +42,5 @@ class ExceptionWithArgsUnsafe(Exception):
 
 class RaiseOperation_Unpicklable(Operation):
     def execute(self):
-        from pygresql import pg
+        import pg
         raise pg.DatabaseError()

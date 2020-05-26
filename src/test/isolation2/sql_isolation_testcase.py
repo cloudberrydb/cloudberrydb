@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import pygresql.pg
+import pg
 import os
 try:
     import subprocess32 as subprocess
@@ -50,6 +50,14 @@ def parse_include_statement(sql):
         return stripped_command.replace(";", "")
     else:
         raise SyntaxError("expected 'include: %s' to end with a semicolon." % stripped_command)
+
+
+def null_notice_receiver(notice):
+    '''
+        Tests ignore notice messages when analyzing results,
+        so silently drop notices from the pg.connection
+    '''
+    return
 
 
 class SQLIsolationExecutor(object):
@@ -170,11 +178,11 @@ class SQLIsolationExecutor(object):
             while retry:
                 try:
                     if (given_port is None):
-                        con = pygresql.pg.connect(host= given_host,
+                        con = pg.connect(host= given_host,
                                           opt= given_opt,
                                           dbname= given_dbname)
                     else:
-                        con = pygresql.pg.connect(host= given_host,
+                        con = pg.connect(host= given_host,
                                                   port= given_port,
                                                   opt= given_opt,
                                                   dbname= given_dbname)
@@ -187,6 +195,7 @@ class SQLIsolationExecutor(object):
                         time.sleep(0.1)
                     else:
                         raise
+            con.set_notice_receiver(null_notice_receiver)
             return con
 
         def get_hostname_port(self, contentid, role):
@@ -205,16 +214,18 @@ class SQLIsolationExecutor(object):
                 return (None, int(r[0][1]))
             return (r[0][0], int(r[0][1]))
 
-        # Print out a pygresql result set (a Query object, after the query
-        # has been executed), in a format that imitates the default
-        # formatting of psql. This isn't a perfect imitation: we left-justify
-        # all the fields and headers, whereas psql centers the header, and
-        # right-justifies numeric fields. But this is close enough, to make
-        # gpdiff.pl recognize the result sets as such. (We used to just call
-        # str(r), and let PyGreSQL do the formatting. But even though
-        # PyGreSQL's default formatting is close to psql's, it's not close
-        # enough.)
         def printout_result(self, r):
+            """
+            Print out a pygresql result set (a Query object, after the query
+            has been executed), in a format that imitates the default
+            formatting of psql. This isn't a perfect imitation: we left-justify
+            all the fields and headers, whereas psql centers the header, and
+            right-justifies numeric fields. But this is close enough, to make
+            gpdiff.pl recognize the result sets as such. (We used to just call
+            str(r), and let PyGreSQL do the formatting. But even though
+            PyGreSQL's default formatting is close to psql's, it's not close
+            enough.)
+            """
             widths = []
 
             # Figure out the widths of each column.
@@ -256,7 +267,14 @@ class SQLIsolationExecutor(object):
                 for col in row:
                     if colno > 0:
                         result += "|"
-                    if col is None:
+                    if isinstance(col, float):
+                        col = format(col, "g")
+                    elif isinstance(col, bool):
+                        if col:
+                            col = 't'
+                        else:
+                            col = 'f'
+                    elif col is None:
                         col = ""
                     result += " " + str(col).ljust(widths[colno]) + " "
                     colno = colno + 1
@@ -266,7 +284,7 @@ class SQLIsolationExecutor(object):
             if len(rset) == 1:
                 result += "(1 row)\n"
             else:
-                result += "(" + str(len(rset)) +" rows)\n"
+                result += "(" + str(len(rset)) + " rows)\n"
 
             return result
 
@@ -276,12 +294,16 @@ class SQLIsolationExecutor(object):
             """
             try:
                 r = self.con.query(command)
-                if r and type(r) == str:
-                    echo_content = command[:-1].partition(" ")[0].upper()
-                    return "%s %s" % (echo_content, r)
-                elif r:
-                    return self.printout_result(r)
+                if r is not None:
+                    if type(r) == str:
+                        # INSERT, UPDATE, etc that returns row count but not result set
+                        echo_content = command[:-1].partition(" ")[0].upper()
+                        return "%s %s" % (echo_content, r)
+                    else:
+                        # SELECT or similar, print the result set without the command (type pg.Query)
+                        return self.printout_result(r)
                 else:
+                    # CREATE or other DDL without a result set or count
                     echo_content = command[:-1].partition(" ")[0].upper()
                     return echo_content
             except Exception as e:
@@ -341,7 +363,7 @@ class SQLIsolationExecutor(object):
         if not dbname:
             dbname = self.dbname
 
-        con = pygresql.pg.connect(dbname=dbname)
+        con = pg.connect(dbname=dbname)
         result = con.query("SELECT content FROM gp_segment_configuration WHERE role = 'p'").getresult()
         if len(result) == 0:
             raise Exception("Invalid gp_segment_configuration contents")

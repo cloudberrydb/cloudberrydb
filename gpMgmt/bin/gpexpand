@@ -19,6 +19,8 @@ from collections import defaultdict
 from time import strftime, sleep
 
 try:
+    import pg, pgdb
+
     from gppylib.commands.unix import *
     from gppylib.fault_injection import inject_fault
     from gppylib.commands.gp import *
@@ -31,8 +33,7 @@ try:
     from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
     from gppylib.system import configurationInterface, configurationImplGpdb
     from gppylib.system.environment import GpMasterEnvironment
-    from pygresql.pgdb import DatabaseError
-    from pygresql import pg
+    from pgdb import DatabaseError
     from gppylib.gpcatalog import MASTER_ONLY_TABLES
     from gppylib.operations.package import SyncPackages
     from gppylib.operations.utils import ParallelOperation
@@ -1815,7 +1816,7 @@ ORDER BY fq_name, tableoid desc
 
             cursor.close()
             self.conn.close()
-        except pg.OperationalError:
+        except pgdb.OperationalError:
             pass
         except Exception:
             # schema doesn't exist.  Cancel or error during setup

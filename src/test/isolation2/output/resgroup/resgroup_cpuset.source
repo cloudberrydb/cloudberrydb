@@ -11,7 +11,7 @@ CREATE
 -- @param grp: the resource group queries running in
 -- @param cpuset: cpu cores which the queries should only be run on them, e.g. 0,1
 -- @return bool: true/false indicating whether it corresponds to the rule
-CREATE FUNCTION check_cpuset(grp TEXT, cpuset TEXT) RETURNS BOOL AS $$ import subprocess import pygresql.pg as pg import time import re 
+CREATE FUNCTION check_cpuset(grp TEXT, cpuset TEXT) RETURNS BOOL AS $$ import subprocess import pg import time import re 
 conn = pg.connect(dbname="isolation2resgrouptest") pt = re.compile(r'con(\d+)') 
 def check(expect_cpus, sess_ids): procs = subprocess.check_output(['ps', '-eF']).split('\n') head, proc_stats = procs[0], procs[1:] PSR = [id for id, attr in enumerate(head.split()) if attr.strip() == 'PSR'][0] cpus = [proc_stat.split()[PSR].strip() for proc_stat in proc_stats if 'postgres' in proc_stat and pt.findall(proc_stat) and set(pt.findall(proc_stat)).issubset(sess_ids)] return set(cpus).issubset(set(expect_cpus)) 
 def get_all_sess_ids_in_group(group_name): sql = "select sess_id from pg_stat_activity where rsgname = '%s'" % group_name result = conn.query(sql).getresult() return set([str(r[0]) for r in result]) 
@@ -22,13 +22,13 @@ return True $$ LANGUAGE plpythonu;
 CREATE
 
 -- create a resource group that contains all the cpu cores
-CREATE FUNCTION create_allcores_group(grp TEXT) RETURNS BOOL AS $$ import pygresql.pg as pg conn = pg.connect(dbname="isolation2resgrouptest") file = "@cgroup_mnt_point@/cpuset/gpdb/cpuset.cpus" fd = open(file) line = fd.readline() fd.close() line = line.strip('\n') sql = "create resource group " + grp + " with (" \ + "memory_limit=1, cpuset='" + line + "')" result = conn.query(sql) 
+CREATE FUNCTION create_allcores_group(grp TEXT) RETURNS BOOL AS $$ import pg conn = pg.connect(dbname="isolation2resgrouptest") file = "@cgroup_mnt_point@/cpuset/gpdb/cpuset.cpus" fd = open(file) line = fd.readline() fd.close() line = line.strip('\n') sql = "create resource group " + grp + " with (" \ + "memory_limit=1, cpuset='" + line + "')" result = conn.query(sql) 
 file = "@cgroup_mnt_point@/cpuset/gpdb/1/cpuset.cpus" fd = open(file) line = fd.readline() fd.close() line = line.strip('\n') if line != "0": return False 
 return True $$ LANGUAGE plpythonu;
 CREATE
 
 -- check whether the cpuset value in cgroup is valid according to the rule
-CREATE FUNCTION check_rules() RETURNS BOOL AS $$ import pygresql.pg as pg 
+CREATE FUNCTION check_rules() RETURNS BOOL AS $$ import pg 
 def get_all_group_which_cpuset_is_set(): sql = "select groupid,cpuset from gp_toolkit.gp_resgroup_config where cpuset != '-1'" result = conn.query(sql).getresult() return result 
 def parse_cpuset(line): line = line.strip('\n') if len(line) == 0: return set([]) tokens = line.split(",") cpuset = [] for token in tokens: if token.find('-') != -1: interval = token.split("-") num1 = interval[0] num2 = interval[1] for num in range(int(num1), int(num2) + 1): cpuset.append(str(num)) else: cpuset.append(token) return set(cpuset) 
 def get_cgroup_cpuset(group): group = str(group) if group == '0': file = "@cgroup_mnt_point@/cpuset/gpdb/cpuset.cpus" else: file = "@cgroup_mnt_point@/cpuset/gpdb/" + group + "/cpuset.cpus" fd = open(file) line = fd.readline() fd.close() return parse_cpuset(line) 

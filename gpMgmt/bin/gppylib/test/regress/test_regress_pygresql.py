@@ -8,9 +8,8 @@
 import logging
 import unittest
 
-
-from pygresql import pg
-from pygresql import pgdb
+import pg
+import pgdb
 
 from gppylib import gplog
 from gppylib.db.dbconn import *

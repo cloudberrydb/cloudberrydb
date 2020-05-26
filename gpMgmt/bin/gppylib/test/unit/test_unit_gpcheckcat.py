@@ -26,7 +26,6 @@ class GpCheckCatTestCase(GpTestCase):
             patch("gpcheckcat.UniqueIndexViolationCheck", return_value=self.unique_index_violation_check),
             patch("gpcheckcat.ForeignKeyCheck", return_value=self.foreign_key_check),
             patch('os.environ', new={}),
-            patch('pygresql.pgdb'),
         ])
 
         self.subject.logger = Mock(spec=['log', 'info', 'debug', 'error', 'fatal'])

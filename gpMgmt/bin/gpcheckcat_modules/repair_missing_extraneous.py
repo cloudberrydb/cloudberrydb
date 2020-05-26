@@ -43,20 +43,20 @@ class RepairMissingExtraneous:
             return
 
         #   issues look like this
-        #   [(49401, "extra", '{1,2}'),
-        #    (49401, "extra", '{1,2}')]
+        #   [(49401, "extra", [1,2]),
+        #    (49401, "extra", [1,2])]
         #               OR
-        #   [(49401, 'cmax', "extra", '{1,2}'),
-        #    (49401, 'cmax', "extra", '{1,2}')]
+        #   [(49401, 'cmax', "extra", [1,2]),
+        #    (49401, 'cmax', "extra", [1,2])]
 
-        all_seg_ids = set([str(seg_id) for seg_id in all_seg_ids])
+        all_seg_ids = set([seg_id for seg_id in all_seg_ids])
         oids_to_segment_mapping = {}
         for issue in self._issues:
 
             oid = issue[0]
 
             issue_type = issue[-2]
-            seg_ids = issue[-1].strip('{}').split(',')
+            seg_ids = issue[-1]
 
             # if an oid is missing from a segment(s) , then it is considered to be extra
             # on all the other segments/master
@@ -64,7 +64,6 @@ class RepairMissingExtraneous:
                 seg_ids = all_seg_ids - set(seg_ids)
 
             for seg_id in seg_ids:
-                seg_id = int(seg_id)
 
                 if not oids_to_segment_mapping.has_key(seg_id):
                     oids_to_segment_mapping[seg_id] = set()

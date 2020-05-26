@@ -32,7 +32,7 @@ CREATE LANGUAGE plpythonu;
 
 CREATE OR REPLACE FUNCTION is_session_in_group(pid integer, groupname text) RETURNS BOOL AS $$
 import subprocess
-import pygresql.pg as pg
+import pg
 import time
 import re 
 

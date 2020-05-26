@@ -24,8 +24,10 @@ install: generate_greenplum_path_file
 	if [ -e bin/ext/psutil ]; then \
 	    cp -rp bin/ext/psutil $(DESTDIR)$(prefix)/lib/python ; \
 	fi
-	if [ -e bin/ext/pygresql ]; then \
-	    cp -rp bin/ext/pygresql $(DESTDIR)$(prefix)/lib/python ; \
+	if [ -e bin/ext/pgdb.py ]; then \
+	    cp -rp bin/ext/pgdb.py $(DESTDIR)$(prefix)/lib/python && \
+	    cp -rp bin/ext/pg.py $(DESTDIR)$(prefix)/lib/python && \
+	    cp -rp bin/ext/_pg.so $(DESTDIR)$(prefix)/lib/python ; \
 	fi
 	if [ -e bin/ext/yaml ]; then \
 	    cp -rp bin/ext/yaml $(DESTDIR)$(prefix)/lib/python ; \

@@ -31,14 +31,14 @@ try:
     from gppylib.commands.unix import *
     from gppylib.commands.gp import conflict_with_gpexpand
     from gppylib.system.info import *
-    from pygresql.pgdb import DatabaseError
-    from pygresql import pg
+    from pgdb import DatabaseError
     from gpcheckcat_modules.unique_index_violation_check import UniqueIndexViolationCheck
     from gpcheckcat_modules.leaked_schema_dropper import LeakedSchemaDropper
     from gpcheckcat_modules.repair import Repair
     from gpcheckcat_modules.foreign_key_check import ForeignKeyCheck
     from gpcheckcat_modules.orphaned_toast_tables_check import OrphanedToastTablesCheck
 
+    import pg
 
 except ImportError, e:
     sys.exit('Error: unable to import module: ' + str(e))
@@ -458,7 +458,7 @@ def getGPConfiguration():
           '''
     curs = db.query(qry)
     for row in curs.dictresult():
-        if row['content'] == -1 and row['isprimary'] != 't':
+        if row['content'] == -1 and not row['isprimary']:
             continue  # skip standby master
         cfg[row['dbid']] = row
     db.close()
@@ -3389,7 +3389,8 @@ def processMissingDuplicateEntryResult(catname, colname, allValues, type):
     # Process entries
     for row in allValues:
         rowObjName = gpObjName
-        segids = row[-1]
+        # pygresql 4 to 5 update means that this segid is now a list of int (i.e. [-1, 0, 1]) instead of a string like "{-1,0,1}"
+        segids = "{" + ",".join(str(i) for i in row[-1]) + "}"
         pkeys = dict((pk, row[colname.index(pk)]) for pk in pknames)
 
         if gpColName != None:
@@ -3591,8 +3592,8 @@ def processACLResult(catname, colname, allValues):
             oid = getOidFromPK(catname, pkeys)
             pkeys = {'oid': oid}
 
-        macl = row[-2][1:-1].split(',') if row[-2] != None else []
-        sacl = row[-1][1:-1].split(',') if row[-1] != None else []
+        macl = row[-2] if row[-2] != None else []
+        sacl = row[-1] if row[-1] != None else []
         macl_only = list(set(macl).difference(sacl))
         sacl_only = list(set(sacl).difference(macl))
 
@@ -3615,7 +3616,7 @@ class CatInconsistentIssue:
             if segids == '{NULL}':
                 idstr = 'all other segments'
             else:
-                ids = [int(i) for i in segids[1:-1].split(',')]
+                ids =  segids
                 idstr = ''
                 for i in ids:
                     idstr += '%s (%s:%d) ' % \
@@ -3642,7 +3643,7 @@ class CatForeignKeyIssue:
 
     def report(self):
 
-        ids = [int(i) for i in self.segids[1:-1].split(',')]
+        ids = self.segids
         idstr = ''
         if len(ids) == len(GV.report_cfg):
             idstr = 'all segments'

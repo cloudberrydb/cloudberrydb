@@ -10,10 +10,11 @@ import tempfile
 from gppylib.gparray import Segment, GpArray, SegmentPair
 from gppylib.gphostcache import GpHost
 from gpconfig_modules.parse_guc_metadata import ParseGuc
+import errno
+from pg import DatabaseError
 
 from gp_unittest import *
 from mock import *
-from pygresql.pg import DatabaseError
 from StringIO import StringIO
 
 db_singleton_side_effect_list = []

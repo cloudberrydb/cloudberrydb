@@ -15,6 +15,7 @@ for executing this set of commands.
 
 
 """
+from __future__ import absolute_import
 
 from Queue import Queue, Empty
 from threading import Thread
@@ -30,7 +31,7 @@ import time
 
 from gppylib import gplog
 from gppylib import gpsubprocess
-from pygresql.pg import DB
+from pg import DB
 
 logger = gplog.get_default_logger()
 

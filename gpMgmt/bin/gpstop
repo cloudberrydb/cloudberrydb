@@ -11,6 +11,7 @@ from gppylib.mainUtils import *
 import os, sys
 import signal
 import time
+import pprint
 from optparse import Option, OptionGroup, OptionParser, OptionValueError, SUPPRESS_USAGE
 import socket
 
@@ -422,10 +423,9 @@ class GpStop:
                     warn_text = """Smart mode failed to shutdown the master.\n"""
                     if len(user_connections):
                         warn_text += """  There were {} user connections at the start of the shutdown. Note: These connections may be outdated.
-  The following connections were found before shutting down:
-  {}\n""".format(len(user_connections), user_connections_header)
+  The following connections were found before shutting down:\n""".format(len(user_connections))
                         for user_conn in user_connections:
-                            warn_text += "  %s" % user_conn
+                            warn_text += "  %s" % pprint.pformat(user_conn)
 
                     logger.warn(warn_text)
                     logger.info("Continue waiting in smart mode, stop in fast mode, or stop in immediate mode.")

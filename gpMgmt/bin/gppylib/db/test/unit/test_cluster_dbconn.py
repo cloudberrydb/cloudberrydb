@@ -1,6 +1,5 @@
 import unittest
-
-from pygresql import pg
+import pg
 
 from gppylib.db import dbconn
 

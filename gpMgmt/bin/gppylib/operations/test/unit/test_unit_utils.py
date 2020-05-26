@@ -12,6 +12,7 @@ from gppylib.operations.test_utils_helper import TestOperation, RaiseOperation, 
     RaiseOperation_Unsafe, RaiseOperation_Unpicklable, RaiseOperation_Safe, MyException, ExceptionWithArgs
 from operations.unix import ListFiles
 from test.unit.gp_unittest import GpTestCase, run_tests
+from pg import DatabaseError
 
 class UtilsTestCase(GpTestCase):
     """
@@ -77,10 +78,10 @@ class UtilsTestCase(GpTestCase):
         # nicely in terms of imports and namespacing. """
         try:
             RemoteOperation(RaiseOperation_Unpicklable(), "localhost").run()
-        except ExecutionError, e:
-            self.assertTrue(e.cmd.get_results().stderr.strip().endswith("raise pg.DatabaseError()"))
+        except DatabaseError:
+            pass
         else:
-            self.fail("""A pg.DatabaseError should have been raised remotely, and because it cannot
+            self.fail("""A DatabaseError should have been raised remotely, and because it cannot
                          be pickled cleanly (due to a strange import in pickle.py),
                          an ExecutionError should have ultimately been caused.""")
             # TODO: Check logs on disk. With gplogfilter?

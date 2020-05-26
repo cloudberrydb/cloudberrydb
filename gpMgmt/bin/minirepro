@@ -60,8 +60,8 @@ minirepro gptest -h locahost -U gpadmin -p 4444 -q ~/in.sql -f ~/out.sql
 '''
 
 import os, sys, re, json, platform, subprocess
+import pgdb
 from optparse import OptionParser
-from pygresql import pgdb
 from datetime import datetime
 
 version = '1.13'

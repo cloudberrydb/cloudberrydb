@@ -8,7 +8,7 @@ CREATE LANGUAGE plpythonu;
 CREATE FUNCTION dump_test_check() RETURNS bool
 as $$
 import json
-import pygresql.pg as pg
+import pg
 
 def validate(json_obj, segnum):
    array = json_obj.get("info")

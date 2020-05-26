@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 
 # import GPDB modules
 try:
-    from pygresql import pg as pygresql
+    import pg as pygresql
     from gppylib.commands import unix, gp, pg
     from gppylib.db import dbconn
     from gppylib.gpparseopts import OptParser, OptChecker, OptionGroup, SUPPRESS_HELP

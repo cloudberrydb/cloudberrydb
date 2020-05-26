@@ -2,7 +2,6 @@ import pipes
 import tempfile
 
 from behave import given, then
-from pygresql import pg
 
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray
@@ -21,29 +20,26 @@ class Tablespace:
             run_cmd('ssh %s mkdir -p %s' % (pipes.quote(host), pipes.quote(self.path)))
 
         with dbconn.connect(dbconn.DbURL(), unsetSearchPath=False) as conn:
-            db = pg.DB(conn)
-            db.query("CREATE TABLESPACE %s LOCATION '%s'" % (self.name, self.path))
-            db.query("CREATE DATABASE %s TABLESPACE %s" % (self.dbname, self.name))
+            dbconn.execSQL(conn, "CREATE TABLESPACE %s LOCATION '%s'" % (self.name, self.path))
+            dbconn.execSQL(conn, "CREATE DATABASE %s TABLESPACE %s" % (self.dbname, self.name))
 
         with dbconn.connect(dbconn.DbURL(dbname=self.dbname), unsetSearchPath=False) as conn:
-            db = pg.DB(conn)
-            db.query("CREATE TABLE tbl (i int) DISTRIBUTED RANDOMLY")
-            db.query("INSERT INTO tbl VALUES (GENERATE_SERIES(0, 25))")
+            dbconn.execSQL(conn, "CREATE TABLE tbl (i int) DISTRIBUTED RANDOMLY")
+            dbconn.execSQL(conn, "INSERT INTO tbl VALUES (GENERATE_SERIES(0, 25))")
             # save the distributed data for later verification
             self.initial_data = db.query("SELECT gp_segment_id, i FROM tbl").getresult()
 
     def cleanup(self):
         with dbconn.connect(dbconn.DbURL(dbname="postgres"), unsetSearchPath=False) as conn:
-            db = pg.DB(conn)
-            db.query("DROP DATABASE IF EXISTS %s" % self.dbname)
-            db.query("DROP TABLESPACE IF EXISTS %s" % self.name)
+            dbconn.execSQL(conn, "DROP DATABASE IF EXISTS %s" % self.dbname)
+            dbconn.execSQL(conn, "DROP TABLESPACE IF EXISTS %s" % self.name)
 
             # Without synchronous_commit = 'remote_apply' introduced in 9.6, there
             # is no guarantee that the mirrors have removed their tablespace
             # directories by the time the DROP TABLESPACE command returns.
             # We need those directories to no longer be in use by the mirrors
             # before removing them below.
-            _checkpoint_and_wait_for_replication_replay(db)
+            _checkpoint_and_wait_for_replication_replay(conn)
 
         gparray = GpArray.initFromCatalog(dbconn.DbURL())
         for host in gparray.getHostList():
@@ -57,13 +53,13 @@ class Tablespace:
         """
         url = dbconn.DbURL(hostname=hostname, port=port, dbname=self.dbname)
         with dbconn.connect(url, unsetSearchPath=False) as conn:
-            db = pg.DB(conn)
-            data = db.query("SELECT gp_segment_id, i FROM tbl").getresult()
+            data = dbconn.query(conn, "SELECT gp_segment_id, i FROM tbl").fetchall()
 
             # verify that we can still write to the tablespace
             self.table_counter += 1
-            db.query("CREATE TABLE tbl_%s (i int) DISTRIBUTED RANDOMLY" % self.table_counter)
-            db.query("INSERT INTO tbl_%s VALUES (GENERATE_SERIES(0, 25))" % self.table_counter)
+            dbconn.execSQL(conn, "CREATE TABLE tbl_%s (i int) DISTRIBUTED RANDOMLY" % self.table_counter)
+            dbconn.execSQL(conn, "INSERT INTO tbl_%s VALUES (GENERATE_SERIES(0, 25))" % self.table_counter)
+        conn.close()
 
         if sorted(data) != sorted(self.initial_data):
             raise Exception("Tablespace data is not identically distributed. Expected:\n%r\n but found:\n%r" % (
@@ -77,9 +73,8 @@ class Tablespace:
         """
         url = dbconn.DbURL(hostname=hostname, port=port, dbname=self.dbname)
         with dbconn.connect(url, unsetSearchPath=False) as conn:
-            db = pg.DB(conn)
-            data = db.query("SELECT gp_segment_id, i FROM tbl").getresult()
-            tbl_numsegments = dbconn.execSQLForSingleton(conn,
+            data = dbconn.query(conn, "SELECT gp_segment_id, i FROM tbl").fetchall()
+            tbl_numsegments = dbconn.querySingleton(conn,
                                                          "SELECT numsegments FROM gp_distribution_policy "
                                                          "WHERE localoid = 'tbl'::regclass::oid")
             num_segments = dbconn.execSQLForSingleton(conn,
@@ -97,11 +92,11 @@ class Tablespace:
                                 sorted(self.initial_data), sorted(data)))
 
 
-def _checkpoint_and_wait_for_replication_replay(db):
+def _checkpoint_and_wait_for_replication_replay(conn):
     """
     Taken from src/test/walrep/sql/missing_xlog.sql
     """
-    db.query("""
+    dbconn.execSQL(conn, """
 -- checkpoint to ensure clean xlog replication before bring down mirror
 create or replace function checkpoint_and_wait_for_replication_replay (retries int) returns bool as
 $$

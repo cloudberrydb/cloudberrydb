@@ -9,9 +9,8 @@ from gppylib.mainUtils import *
 from optparse import OptionGroup
 import sys
 import collections
+import pgdb
 from contextlib import closing
-
-from pygresql import pgdb
 
 from gppylib import gparray, gplog
 from gppylib.commands import base, gp
