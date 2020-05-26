@@ -2480,8 +2480,8 @@ typedef struct ShareInputScanState
 {
 	ScanState	ss;
 
-	struct NTupleStore *ts_state;
-	struct NTupleStoreAccessor *ts_pos;
+	Tuplestorestate *ts_state;
+	int			ts_pos;
 
 	struct shareinput_local_state *local_state;
 	struct shareinput_Xslice_reference *ref;
