@@ -22,7 +22,7 @@
 #include "cdb/cdbllize.h"
 #include "cdb/cdbsubplan.h"
 #include "cdb/cdbvars.h"		/* currentSliceId */
-#include "utils/tuplestorenew.h"
+#include "utils/tuplestore.h"
 
 static bool isParamExecutableNow(SubPlanState *spstate, ParamExecData *prmList);
 
@@ -168,10 +168,11 @@ postprocess_initplans(QueryDesc *queryDesc)
 	{
 		prm = &estate->es_param_exec_vals[i];
 		sps = (SubPlanState *) prm->execPlan;
-		if(sps && sps->ts_pos)
-			ntuplestore_destroy_accessor(sps->ts_pos);
-		if(sps && sps->ts_state)
-			ntuplestore_destroy(sps->ts_state);
+		if (sps && sps->ts_state)
+		{
+			tuplestore_end(sps->ts_state);
+			sps->ts_state = NULL;
+		}
 	}
 }
 
