@@ -372,7 +372,7 @@ _outQueryDispatchDesc(StringInfo str, const QueryDispatchDesc *node)
 {
 	WRITE_NODE_TYPE("QUERYDISPATCHDESC");
 
-	WRITE_STRING_FIELD(intoTableSpaceName);
+	WRITE_NODE_FIELD(intoCreateStmt);
 	WRITE_NODE_FIELD(paramInfo);
 	WRITE_NODE_FIELD(oidAssignments);
 	WRITE_NODE_FIELD(sliceTable);

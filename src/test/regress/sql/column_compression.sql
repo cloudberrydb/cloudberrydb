@@ -520,7 +520,9 @@ create table a (i int, j int) with (appendonly=true, orientation=column)
                             start(10) end(20))
 (partition p1 start(1) end(10));
 
--- partition level mention of column encoding but the table isn't heap oriented
+-- Partition level mention of column encoding but the table is not column
+-- oriented. This used to throw an error, but we're more lenient now. The
+-- ENCODING clause is simply ignored.
 CREATE TABLE ccddl
 (a1 int,a2 char(5),a3 text,a4 timestamp ,a5 date) 
 partition by range(a1) 
@@ -528,6 +530,8 @@ partition by range(a1)
 		start(1) end(1000) every(500),
 		COLUMN a1 ENCODING (compresstype=zlib,compresslevel=4,blocksize=32768)
 	);
+execute ccddlcheck;
+drop table ccddl;
 
 -----------------------------------------------------------------------
 -- Type support

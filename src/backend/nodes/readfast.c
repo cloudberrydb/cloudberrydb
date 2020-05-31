@@ -1395,7 +1395,7 @@ _readQueryDispatchDesc(void)
 {
 	READ_LOCALS(QueryDispatchDesc);
 
-	READ_STRING_FIELD(intoTableSpaceName);
+	READ_NODE_FIELD(intoCreateStmt);
 	READ_NODE_FIELD(paramInfo);
 	READ_NODE_FIELD(oidAssignments);
 	READ_NODE_FIELD(sliceTable);

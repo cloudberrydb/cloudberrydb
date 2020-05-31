@@ -311,8 +311,6 @@ struct DropRelationCallbackState
 
 static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd);
 
-static bool co_explicitly_disabled(List *opts);
-
 static void truncate_check_rel(Relation rel);
 static void MergeAttributesIntoExisting(Relation child_rel, Relation parent_rel,
 						List *inhAttrNameList, bool is_partition);
@@ -698,8 +696,7 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		/* 
 		 * MPP-8238 : inconsistent tablespaces between segments and master 
 		 */
-		if (shouldDispatch)
-			stmt->tablespacename = get_tablespace_name(tablespaceId);
+		stmt->tablespacename = get_tablespace_name(tablespaceId);
 	}
 
 	/* Check permissions except when using database's default */
@@ -855,37 +852,42 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		}
 	}
 
-	/*-----------
-	 * Analyze attribute encoding clauses.
+	/*
+	 * Analyze AOCS attribute encoding clauses.
 	 *
-	 * Partitioning configurations may have things like:
-	 *
-	 * CREATE TABLE ...
-	 *  ( a int ENCODING (...))
-	 * WITH (appendonly=true, orientation=column)
-	 * PARTITION BY ...
-	 * (PARTITION ... WITH (appendonly=false));
-	 *
-	 * We don't want to throw an error when we try to apply the ENCODING clause
-	 * to the partition which the user wants to be non-AO. Just ignore it
-	 * instead.
-	 *-----------
+	 * This is done in dispatcher (and in utility mode). In QE, we receive
+	 * the already-processed options from the QD.
 	 */
-	if (relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW)
+	if ((relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW) &&
+		Gp_role != GP_ROLE_EXECUTE)
 	{
-		if (!is_aocs(stmt->options) && stmt->is_part_child)
+		bool		found_enc;
+
+		stmt->attr_encodings = transformAttributeEncoding(schema,
+														  stmt->attr_encodings,
+														  stmt->options,
+														  &found_enc);
+		if (!is_aocs(stmt->options))
 		{
-			if (co_explicitly_disabled(stmt->options) || !stmt->attr_encodings)
-				stmt->attr_encodings = NIL;
-			else
+			/*
+			 * ENCODING options were specified, but the table is not
+			 * column-oriented.
+			 *
+			 * That's normally an error. But if we're creating a partition as
+			 * part of a CREATE TABLE ... PARTITION BY ... command, ignore the
+			 * ENCODING options instead. The parent table might be AOCS, while
+			 * some of the partitions are not, or vice versa, so options can
+			 * make sense for some parts of the partition hierarchy, even if
+			 * it doesn't for this partition.
+			 */
+			if (found_enc && !stmt->is_part_child && !stmt->is_part_parent)
 			{
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("ENCODING clause only supported with column oriented partitioned tables")));
+						 errmsg("ENCODING clause only supported with column oriented tables")));
 			}
+			stmt->attr_encodings = NIL;
 		}
-		else
-			stmt->attr_encodings = transformAttributeEncoding(stmt->attr_encodings, stmt, schema);
 	}
 
 	/*
@@ -897,7 +899,14 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	if (Gp_role != GP_ROLE_EXECUTE)
 		cooked_constraints = list_concat(cookedDefaults, old_constraints);
 
-	if (shouldDispatch)
+	/*
+	 * Store the deduced options back in the CreateStmt, for later dispatch.
+	 *
+	 * NOTE: We do this even if !shouldDispatch, because it means that the
+	 * caller will dispatch the statement later, not that we won't need to
+	 * dispatch at all.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		Relation		pg_class_desc;
 		Relation		pg_type_desc;
@@ -911,8 +920,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		pg_type_desc = heap_open(TypeRelationId, RowExclusiveLock);
 
 		LockRelationOid(DependRelationId, RowExclusiveLock);
-
-		cdb_sync_oid_to_segments();
 
 		heap_close(pg_class_desc, NoLock);  /* gonna update, so don't unlock */
 
@@ -932,11 +939,9 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	{
 		Assert(stmt->ownerid != InvalidOid);
 	}
-	else
-	{
-		if (!OidIsValid(stmt->ownerid))
-			stmt->ownerid = ownerId;
-	}
+
+	if (shouldDispatch)
+		cdb_sync_oid_to_segments();
 
 	/* MPP-8405: disallow OIDS on partitioned tables */
 	if (descriptor->tdhasoid && IsNormalProcessingMode() && Gp_role == GP_ROLE_DISPATCH)
@@ -1099,52 +1104,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	relation_close(rel, NoLock);
 
 	return address;
-}
-
-
-/*
- * Tells the caller if CO is explicitly disabled, to handle cases where we
- * want to ignore encoding clauses in partition expansion.
- *
- * This is an ugly special case that backup expects to work and since we've got
- * tonnes of dumps out there and the possibility that users have learned this
- * grammar from them, we must continue to support it.
- */
-static bool
-co_explicitly_disabled(List *opts)
-{
-	ListCell *lc;
-
-	foreach(lc, opts)
-	{
-		DefElem *el = lfirst(lc);
-		char *arg = NULL;
-
-		/* Argument will be a Value */
-		if (!el->arg)
-		{
-			continue;
-		}
-
-		arg = defGetString(el);
-		bool result = false;
-		if (pg_strcasecmp("appendonly", el->defname) == 0 &&
-			pg_strcasecmp("false", arg) == 0)
-		{
-			result = true;
-		}
-		else if (pg_strcasecmp("orientation", el->defname) == 0 &&
-				 pg_strcasecmp("column", arg) != 0)
-		{
-			result = true;
-		}
-
-		if (result)
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 /*

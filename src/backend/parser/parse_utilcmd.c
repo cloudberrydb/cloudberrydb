@@ -4526,29 +4526,38 @@ form_default_storage_directive(List *enc)
 /*
  * Parse and validate COLUMN <col> ENCODING ... directives.
  *
+ * The 'columns', 'stenc' and 'taboptions' arguments are parts of the
+ * CREATE TABLE command:
+ *
+ * 'columns' - list of ColumnDefs
+ * 'stenc' - list of ColumnReferenceStorageDirectives
+ * 'taboptions' - list of WITH options
+ *
+ * ENCODING options can be attached to column definitions, like
+ * "mycolumn integer ENCODING ..."; these go into ColumnDefs. They
+ * can also be specified with the "COLUMN mycolumn ENCODING ..." syntax;
+ * they go into the ColumnReferenceStorageDirectives. And table-wide
+ * defaults can be given in the WITH clause.
+ *
+ * If any ENCODING clauses were given, *found_enc is set to true.
+ * That's a separate output argument, because the returned list will
+ * include defaults from the GUCs etc. even if no ENCODING clause was
+ * given in this CREATE TABLE command.
+ *
  * NOTE: This is *not* performed during the parse analysis phase, like
  * most transformation, but only later in DefineRelation(). This needs
  * access to possible inherited columns, so it can only be done after
  * expanding them.
  */
 List *
-transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
+transformAttributeEncoding(List *columns, List *stenc, List *taboptions, bool *found_enc)
 {
 	ListCell *lc;
-	bool found_enc = stenc != NIL;
-	bool can_enc = is_aocs(stmt->options);
 	ColumnReferenceStorageDirective *deflt = NULL;
 	List *newenc = NIL;
 	List *tmpenc;
 
-#define UNSUPPORTED_ORIENTATION_ERROR() \
-	ereport(ERROR, \
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED), \
-			 errmsg("ENCODING clause only supported with column oriented tables")))
-
-	/* We only support the attribute encoding clause on AOCS tables */
-	if (stenc && !can_enc)
-		UNSUPPORTED_ORIENTATION_ERROR();
+	*found_enc = false;
 
 	validateColumnStorageEncodingClauses(stenc, columns);
 
@@ -4574,18 +4583,20 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 			 * The default encoding and the with clause better not
 			 * try and set the same options!
 			 */
-			if (encodings_overlap(stmt->options, deflt->encoding, false))
+			if (encodings_overlap(taboptions, deflt->encoding, false))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 						 errmsg("DEFAULT COLUMN ENCODING clause cannot override values set in WITH clause")));
 		}
+
+		*found_enc = true;
 	}
 
 	/*
 	 * If no default has been specified, we might create one out of the
 	 * WITH clause.
 	 */
-	tmpenc = form_default_storage_directive(stmt->options);
+	tmpenc = form_default_storage_directive(taboptions);
 
 	if (tmpenc)
 	{
@@ -4619,8 +4630,8 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 		 */
 		if (d->encoding)
 		{
-			found_enc = true;
 			c->encoding = transformStorageEncodingClause(d->encoding);
+			*found_enc = true;
 		}
 		else
 		{
@@ -4649,15 +4660,6 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 			}
 		}
 		newenc = lappend(newenc, c);
-	}
-
-	/* Check again in case we expanded a some column encoding clauses */
-	if (!can_enc)
-	{
-		if (found_enc)
-			UNSUPPORTED_ORIENTATION_ERROR();
-		else
-			newenc = NULL;
 	}
 
 	return newenc;

@@ -58,6 +58,7 @@
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbdisp_query.h"
+#include "cdb/cdboidsync.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
@@ -110,10 +111,21 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 	int         relstorage;
 	StdRdOptions *stdRdOptions;
 
+	/* Sync OIDs for into relation, if any */
+	cdb_sync_oid_to_segments();
+
 	/* This code supports both CREATE TABLE AS and CREATE MATERIALIZED VIEW */
 	is_matview = (into->viewQuery != NULL);
 	relkind = is_matview ? RELKIND_MATVIEW : RELKIND_RELATION;
 
+	if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		create = queryDesc->ddesc->intoCreateStmt;
+		relstorage = create->relStorage;
+	}
+	/* funny indentation to avoid re-indenting a lot of upstream code */
+	else
+  {
 	/*
 	 * Create the target relation by faking up a CREATE TABLE parsetree and
 	 * passing it to DefineRelation.
@@ -125,29 +137,9 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 	create->constraints = NIL;
 	create->options = into->options;
 	create->oncommit = into->onCommit;
-
-	/*
-	 * Select tablespace to use.  If not specified, use default tablespace
-	 * (which may in turn default to database's default).
-	 *
-	 * In PostgreSQL, we resolve default tablespace here. In GPDB, that's
-	 * done earlier, because we need to dispatch the final tablespace name,
-	 * after resolving any defaults, to the segments. (Otherwise, we would
-	 * rely on the assumption that default_tablespace GUC is kept in sync
-	 * in all segment connections. That actually seems to be the case, as of
-	 * this writing, but better to not rely on it.) So usually, we already
-	 * have the fully-resolved tablespace name stashed in queryDesc->ddesc->
-	 * intoTableSpaceName. In the dispatcher, we filled it in earlier, and
-	 * in executor nodes, we received it from the dispatcher along with the
-	 * query. In utility mode, however, queryDesc->ddesc is not set at all,
-	 * and we follow the PostgreSQL codepath, resolving the defaults here.
-	 */
-	if (queryDesc->ddesc)
-		create->tablespacename = queryDesc->ddesc->intoTableSpaceName;
-	else
-		create->tablespacename = into->tableSpaceName;
+	create->tablespacename = into->tableSpaceName;
 	create->if_not_exists = false;
-	
+
 	/* Parse and validate any reloptions */
 	reloptions = transformRelOptions((Datum) 0,
 									 into->options,
@@ -180,6 +172,8 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 	create->relStorage = relstorage;
 	create->ownerid = GetUserId();
 	create->isCtas = true;
+  }
+	/* end of funny indentation */
 
 	/*
 	 * Create the relation.  (This will error out if there's an existing view,
@@ -198,6 +192,11 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 									  false,
 									  queryDesc->ddesc ? queryDesc->ddesc->useChangedAOOpts : true,
 									  queryDesc->plannedstmt->intoPolicy);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		queryDesc->ddesc->intoCreateStmt = create;
+	}
 
 	/*
 	 * If necessary, create a TOAST table for the target table.  Note that
@@ -442,6 +441,7 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 		 * similar to CREATE VIEW.  This avoids dump/restore problems stemming
 		 * from running the planner before all dependencies are set up.
 		 */
+		queryDesc->ddesc = makeNode(QueryDispatchDesc);
 		address = create_ctas_nodata(query->targetList, into, queryDesc);
 	}
 	else
