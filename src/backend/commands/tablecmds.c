@@ -311,6 +311,8 @@ struct DropRelationCallbackState
 
 static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd);
 
+static bool co_explicitly_disabled(List *opts);
+
 static void truncate_check_rel(Relation rel);
 static void MergeAttributesIntoExisting(Relation child_rel, Relation parent_rel,
 						List *inhAttrNameList, bool is_partition);
@@ -605,11 +607,13 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		Node	   *node = lfirst(listptr);
 
 		if (IsA(node, CookedConstraint))
+		{
+			Assert(Gp_role == GP_ROLE_EXECUTE);
 			cooked_constraints = lappend(cooked_constraints, node);
+		}
 		else
 			schema = lappend(schema, node);
 	}
-	Assert(cooked_constraints == NIL || Gp_role == GP_ROLE_EXECUTE);
 	static char *validnsps[] = HEAP_RELOPT_NAMESPACES;
 	Oid			ofTypeId;
 	ObjectAddress address;
@@ -851,6 +855,39 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		}
 	}
 
+	/*-----------
+	 * Analyze attribute encoding clauses.
+	 *
+	 * Partitioning configurations may have things like:
+	 *
+	 * CREATE TABLE ...
+	 *  ( a int ENCODING (...))
+	 * WITH (appendonly=true, orientation=column)
+	 * PARTITION BY ...
+	 * (PARTITION ... WITH (appendonly=false));
+	 *
+	 * We don't want to throw an error when we try to apply the ENCODING clause
+	 * to the partition which the user wants to be non-AO. Just ignore it
+	 * instead.
+	 *-----------
+	 */
+	if (relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW)
+	{
+		if (!is_aocs(stmt->options) && stmt->is_part_child)
+		{
+			if (co_explicitly_disabled(stmt->options) || !stmt->attr_encodings)
+				stmt->attr_encodings = NIL;
+			else
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("ENCODING clause only supported with column oriented partitioned tables")));
+			}
+		}
+		else
+			stmt->attr_encodings = transformAttributeEncoding(stmt->attr_encodings, stmt, schema);
+	}
+
 	/*
 	 * In executor mode, we received all the defaults and constraints
 	 * in pre-cooked form from the QD, so forget about the lists we
@@ -1062,6 +1099,52 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	relation_close(rel, NoLock);
 
 	return address;
+}
+
+
+/*
+ * Tells the caller if CO is explicitly disabled, to handle cases where we
+ * want to ignore encoding clauses in partition expansion.
+ *
+ * This is an ugly special case that backup expects to work and since we've got
+ * tonnes of dumps out there and the possibility that users have learned this
+ * grammar from them, we must continue to support it.
+ */
+static bool
+co_explicitly_disabled(List *opts)
+{
+	ListCell *lc;
+
+	foreach(lc, opts)
+	{
+		DefElem *el = lfirst(lc);
+		char *arg = NULL;
+
+		/* Argument will be a Value */
+		if (!el->arg)
+		{
+			continue;
+		}
+
+		arg = defGetString(el);
+		bool result = false;
+		if (pg_strcasecmp("appendonly", el->defname) == 0 &&
+			pg_strcasecmp("false", arg) == 0)
+		{
+			result = true;
+		}
+		else if (pg_strcasecmp("orientation", el->defname) == 0 &&
+				 pg_strcasecmp("column", arg) != 0)
+		{
+			result = true;
+		}
+
+		if (result)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 /*

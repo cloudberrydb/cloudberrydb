@@ -31,4 +31,6 @@ extern List *transformCreateSchemaStmt(CreateSchemaStmt *stmt);
 
 extern GpPolicy *getPolicyForDistributedBy(DistributedBy *distributedBy, TupleDesc tupdesc);
 
+extern List *transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns);
+
 #endif   /* PARSE_UTILCMD_H */

@@ -98,7 +98,7 @@ static void transformTableConstraint(CreateStmtContext *cxt,
 						 Constraint *constraint);
 static void transformTableLikeClause(CreateStmtContext *cxt,
 						 TableLikeClause *table_like_clause,
-						 bool forceBareCol, CreateStmt *stmt, List **stenc);
+						 bool forceBareCol, CreateStmt *stmt);
 static void transformOfType(CreateStmtContext *cxt,
 				TypeName *ofTypename);
 static IndexStmt *generateClonedIndexStmt(CreateStmtContext *cxt,
@@ -120,13 +120,10 @@ static void transformColumnType(CreateStmtContext *cxt, ColumnDef *column);
 static void setSchemaName(char *context_schema, char **stmt_schema_name);
 
 static DistributedBy *getLikeDistributionPolicy(TableLikeClause *e);
-static bool co_explicitly_disabled(List *opts);
 static DistributedBy *transformDistributedBy(CreateStmtContext *cxt,
 					   DistributedBy *distributedBy,
 					   DistributedBy *likeDistributedBy,
 					   bool bQuiet);
-static List *transformAttributeEncoding(List *stenc, CreateStmt *stmt,
-										CreateStmtContext *cxt);
 static bool encodings_overlap(List *a, List *b, bool test_conflicts);
 
 static AlterTableCmd *transformAlterTable_all_PartitionStmt(ParseState *pstate,
@@ -163,7 +160,6 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
-	List	   *stenc = NIL;		/* column reference storage encoding clauses */
 
  	/*
 	 * We don't normally care much about the memory consumption of parsing,
@@ -252,6 +248,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	cxt.fkconstraints = NIL;
 	cxt.ixconstraints = NIL;
 	cxt.inh_indexes = NIL;
+	cxt.attr_encodings = NIL;
 	cxt.blist = NIL;
 	cxt.alist = NIL;
 	cxt.dlist = NIL; /* for deferred analysis requiring the created table */
@@ -328,7 +325,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 				bool            isBeginning = (cxt.columns == NIL);
 				like_found = true;
 
-				transformTableLikeClause(&cxt, (TableLikeClause *) element, false, stmt, &stenc);
+				transformTableLikeClause(&cxt, (TableLikeClause *) element, false, stmt);
 
 				if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
 					stmt->distributedBy == NULL &&
@@ -340,8 +337,8 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 			}
 
 			case T_ColumnReferenceStorageDirective:
-				/* processed below in transformAttributeEncoding() */
-				stenc = lappend(stenc, element);
+				/* processed later, in DefineRelation() */
+				cxt.attr_encodings = lappend(cxt.attr_encodings, element);
 				break;
 
 			default:
@@ -396,36 +393,6 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	 */
 	if (!stmt->is_part_child)
 		transformFKConstraints(&cxt, true, false);
-
-	/*-----------
-	 * Analyze attribute encoding clauses.
-	 *
-	 * Partitioning configurations may have things like:
-	 *
-	 * CREATE TABLE ...
-	 *  ( a int ENCODING (...))
-	 * WITH (appendonly=true, orientation=column)
-	 * PARTITION BY ...
-	 * (PARTITION ... WITH (appendonly=false));
-	 *
-	 * We don't want to throw an error when we try to apply the ENCODING clause
-	 * to the partition which the user wants to be non-AO. Just ignore it
-	 * instead.
-	 *-----------
-	 */
-	if (!is_aocs(stmt->options) && stmt->is_part_child)
-	{
-		if (co_explicitly_disabled(stmt->options) || !stenc)
-			stmt->attr_encodings = NIL;
-		else
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("ENCODING clause only supported with column oriented partitioned tables")));
-		}
-	}
-	else
-		stmt->attr_encodings = transformAttributeEncoding(stenc, stmt, &cxt);
 
 	/*
 	 * Postprocess Greenplum Database distribution columns
@@ -520,6 +487,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	 */
 	stmt->tableElts = cxt.columns;
 	stmt->constraints = cxt.ckconstraints;
+	stmt->attr_encodings = cxt.attr_encodings;
 
 	result = lappend(cxt.blist, stmt);
 	result = list_concat(result, cxt.alist);
@@ -929,7 +897,7 @@ transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
  */
 static void
 transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_clause,
-						 bool forceBareCol, CreateStmt *stmt, List **stenc)
+						 bool forceBareCol, CreateStmt *stmt)
 {
 	AttrNumber	parent_attno;
 	Relation	relation;
@@ -1238,7 +1206,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 		/*
 		 * Set the attribute encodings.
 		 */
-		*stenc = list_union(*stenc, rel_get_column_encodings(relation));
+		cxt->attr_encodings = list_union(cxt->attr_encodings, rel_get_column_encodings(relation));
 		MemoryContextSwitchTo(oldcontext);
 	}
 
@@ -1732,6 +1700,7 @@ transformCreateExternalStmt(CreateExternalStmt *stmt, const char *queryString)
 	cxt.ckconstraints = NIL;
 	cxt.fkconstraints = NIL;
 	cxt.ixconstraints = NIL;
+	cxt.attr_encodings = NIL;
 	cxt.pkey = NULL;
 	cxt.rel = NULL;
 
@@ -1765,7 +1734,7 @@ transformCreateExternalStmt(CreateExternalStmt *stmt, const char *queryString)
 					/* LIKE */
 					bool	isBeginning = (cxt.columns == NIL);
 
-					transformTableLikeClause(&cxt, (TableLikeClause *) element, true, NULL, NULL);
+					transformTableLikeClause(&cxt, (TableLikeClause *) element, true, NULL);
 
 					if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
 						stmt->distributedBy == NULL &&
@@ -3744,6 +3713,7 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
 	cxt.fkconstraints = NIL;
 	cxt.ixconstraints = NIL;
 	cxt.inh_indexes = NIL;
+	cxt.attr_encodings = NIL;
 	cxt.blist = NIL;
 	cxt.alist = NIL;
 	cxt.dlist = NIL; /* used by transformCreateStmt, not here */
@@ -4337,7 +4307,7 @@ transformStorageEncodingClause(List *options)
  * 2. Ensure that each column is referenced either zero times or once.
  */
 static void
-validateColumnStorageEncodingClauses(List *stenc, CreateStmt *stmt)
+validateColumnStorageEncodingClauses(List *stenc, List *columns)
 {
 	ListCell *lc;
 	struct HTAB *ht = NULL;
@@ -4350,7 +4320,7 @@ validateColumnStorageEncodingClauses(List *stenc, CreateStmt *stmt)
 		return;
 
 	/* Generate a hash table for all the columns */
-	foreach(lc, stmt->tableElts)
+	foreach(lc, columns)
 	{
 		Node *n = lfirst(lc);
 
@@ -4378,7 +4348,7 @@ validateColumnStorageEncodingClauses(List *stenc, CreateStmt *stmt)
 				cacheFlags = HASH_ELEM;
 
 				ht = hash_create("column info cache",
-								 list_length(stmt->tableElts),
+								 list_length(columns),
 								 &cacheInfo, cacheFlags);
 			}
 
@@ -4553,8 +4523,16 @@ form_default_storage_directive(List *enc)
 	return out;
 }
 
-static List *
-transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt)
+/*
+ * Parse and validate COLUMN <col> ENCODING ... directives.
+ *
+ * NOTE: This is *not* performed during the parse analysis phase, like
+ * most transformation, but only later in DefineRelation(). This needs
+ * access to possible inherited columns, so it can only be done after
+ * expanding them.
+ */
+List *
+transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 {
 	ListCell *lc;
 	bool found_enc = stenc != NIL;
@@ -4562,7 +4540,6 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 	ColumnReferenceStorageDirective *deflt = NULL;
 	List *newenc = NIL;
 	List *tmpenc;
-	MemoryContext oldCtx;
 
 #define UNSUPPORTED_ORIENTATION_ERROR() \
 	ereport(ERROR, \
@@ -4572,9 +4549,6 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 	/* We only support the attribute encoding clause on AOCS tables */
 	if (stenc && !can_enc)
 		UNSUPPORTED_ORIENTATION_ERROR();
-
-	/* Use the temporary context to avoid leaving behind so much garbage. */
-	oldCtx = MemoryContextSwitchTo(cxt->tempCtx);
 
 	/* get the default clause, if there is one. */
 	foreach(lc, stenc)
@@ -4623,7 +4597,7 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 	 * -- i.e., COLUMN name ENCODING () -- apply that. Otherwise, apply the
 	 * default.
 	 */
-	foreach(lc, cxt->columns)
+	foreach(lc, columns)
 	{
 		ColumnDef *d = (ColumnDef *) lfirst(lc);
 		ColumnReferenceStorageDirective *c;
@@ -4684,58 +4658,9 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 			newenc = NULL;
 	}
 
-	validateColumnStorageEncodingClauses(newenc, stmt);
-
-	/* copy the result out of the temporary memory context */
-	MemoryContextSwitchTo(oldCtx);
-	newenc = copyObject(newenc);
+	validateColumnStorageEncodingClauses(newenc, columns);
 
 	return newenc;
-}
-
-/*
- * Tells the caller if CO is explicitly disabled, to handle cases where we
- * want to ignore encoding clauses in partition expansion.
- *
- * This is an ugly special case that backup expects to work and since we've got
- * tonnes of dumps out there and the possibility that users have learned this
- * grammar from them, we must continue to support it.
- */
-static bool
-co_explicitly_disabled(List *opts)
-{
-	ListCell *lc;
-
-	foreach(lc, opts)
-	{
-		DefElem *el = lfirst(lc);
-		char *arg = NULL;
-
-		/* Argument will be a Value */
-		if (!el->arg)
-		{
-			continue;
-		}
-
-		arg = defGetString(el);
-		bool result = false;
-		if (pg_strcasecmp("appendonly", el->defname) == 0 &&
-			pg_strcasecmp("false", arg) == 0)
-		{
-			result = true;
-		}
-		else if (pg_strcasecmp("orientation", el->defname) == 0 &&
-				 pg_strcasecmp("column", arg) != 0)
-		{
-			result = true;
-		}
-
-		if (result)
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 /*
