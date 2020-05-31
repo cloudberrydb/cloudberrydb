@@ -4550,6 +4550,8 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 	if (stenc && !can_enc)
 		UNSUPPORTED_ORIENTATION_ERROR();
 
+	validateColumnStorageEncodingClauses(stenc, columns);
+
 	/* get the default clause, if there is one. */
 	foreach(lc, stenc)
 	{
@@ -4657,8 +4659,6 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, List *columns)
 		else
 			newenc = NULL;
 	}
-
-	validateColumnStorageEncodingClauses(newenc, columns);
 
 	return newenc;
 }

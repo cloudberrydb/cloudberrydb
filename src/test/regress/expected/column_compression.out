@@ -479,6 +479,17 @@ ERROR:  compresslevel=19 is out of range for zlib (should be in the range 1 to 9
 create table t1 (i int encoding (compresstype=zlib, ahhhh=boooooo))
 with (appendonly=true, orientation=column);
 ERROR:  unrecognized parameter "ahhhh"
+-- Invalid column references in COLUMN ENCODING clause
+create table t1 (i text,
+                 column non_existent encoding (compresstype=zlib))
+with (appendonly=true, orientation=column);
+ERROR:  column "non_existent" does not exist
+-- Conflicting column references for the same column
+create table t1 (dupe text,
+                 column dupe encoding (compresstype=zlib),
+		 column dupe encoding (compresstype=zlib))
+with (appendonly=true, orientation=column);
+ERROR:  column "dupe" referenced in more than one COLUMN ENCODING clause
 -- Inheritance: check that we don't support inheritance on tables using
 -- column compression
 create table ccddlparent (i int encoding (compresstype=zlib))

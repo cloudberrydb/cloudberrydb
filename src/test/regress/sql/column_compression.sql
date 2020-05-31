@@ -180,6 +180,17 @@ with (appendonly=true, orientation=column);
 create table t1 (i int encoding (compresstype=zlib, ahhhh=boooooo))
 with (appendonly=true, orientation=column);
 
+-- Invalid column references in COLUMN ENCODING clause
+create table t1 (i text,
+                 column non_existent encoding (compresstype=zlib))
+with (appendonly=true, orientation=column);
+
+-- Conflicting column references for the same column
+create table t1 (dupe text,
+                 column dupe encoding (compresstype=zlib),
+		 column dupe encoding (compresstype=zlib))
+with (appendonly=true, orientation=column);
+
 -- Inheritance: check that we don't support inheritance on tables using
 -- column compression
 create table ccddlparent (i int encoding (compresstype=zlib))
