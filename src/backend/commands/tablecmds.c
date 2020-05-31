@@ -2137,13 +2137,6 @@ MergeAttributes(List *schema, List *supers, char relpersistence,
 					 errmsg("cannot inherit from temporary relation \"%s\"",
 							parent->relname)));
 
-		/* Reject if parent is CO for non-partitioned table */
-		if (RelationIsAoCols(relation) && !is_partition)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("cannot inherit relation \"%s\" as it is column oriented",
-							parent->relname)));
-
 		/* If existing rel is temp, it must belong to this session */
 		if (relation->rd_rel->relpersistence == RELPERSISTENCE_TEMP &&
 			!relation->rd_islocaltemp)

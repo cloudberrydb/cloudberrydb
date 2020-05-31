@@ -277,12 +277,6 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("cannot mix inheritance with partitioning")));
 
-	/* Disallow inheritance for CO table */
-	if (stmt->inhRelations && is_aocs(stmt->options))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("INHERITS clause cannot be used with column oriented tables")));
-
 	/*
 	 * GPDB_91_MERGE_FIXME: Previous gpdb does not allow create
 	 * partition on temp table. Let's follow this at this moment
