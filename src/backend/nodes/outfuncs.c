@@ -3072,6 +3072,16 @@ _outCreateForeignTableStmt(StringInfo str, const CreateForeignTableStmt *node)
 #endif /* COMPILING_BINARY_FUNCS */
 
 static void
+_outDistributionKeyElem(StringInfo str, const DistributionKeyElem *node)
+{
+	WRITE_NODE_TYPE("DISTRIBUTIONKEYELEM");
+
+	WRITE_STRING_FIELD(name);
+	WRITE_NODE_FIELD(opclass);
+	WRITE_LOCATION_FIELD(location);
+}
+
+static void
 _outColumnReferenceStorageDirective(StringInfo str, const ColumnReferenceStorageDirective *node)
 {
 	WRITE_NODE_TYPE("COLUMNREFERENCESTORAGEDIRECTIVE");
@@ -5765,6 +5775,9 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_CreateForeignTableStmt:
 				_outCreateForeignTableStmt(str, obj);
+				break;
+			case T_DistributionKeyElem:
+				_outDistributionKeyElem(str, obj);
 				break;
 			case T_ColumnReferenceStorageDirective:
 				_outColumnReferenceStorageDirective(str, obj);

@@ -1635,6 +1635,9 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateForeignTableStmt:
 				_outCreateForeignTableStmt(str, obj);
 				break;
+			case T_DistributionKeyElem:
+				_outDistributionKeyElem(str, obj);
+				break;
 			case T_ColumnReferenceStorageDirective:
 				_outColumnReferenceStorageDirective(str, obj);
 				break;

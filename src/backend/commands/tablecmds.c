@@ -15681,8 +15681,8 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			{
 				foreach(lc, ldistro->keyCols)
 				{
-					IndexElem  *ielem = (IndexElem *) lfirst(lc);
-					char	   *colName = ielem->name;
+					DistributionKeyElem *dkelem = (DistributionKeyElem *) lfirst(lc);
+					char	   *colName = dkelem->name;
 					HeapTuple	tuple;
 					AttrNumber	attnum;
 					Form_pg_attribute attform;
@@ -15709,7 +15709,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 					/*
 					 * Look up the opclass, like we do in for CREATE TABLE.
 					 */
-					opclass = cdb_get_opclass_for_column_def(ielem->opclass, attform->atttypid);
+					opclass = cdb_get_opclass_for_column_def(dkelem->opclass, attform->atttypid);
 					policykeys = lappend_int(policykeys, attnum);
 					policyopclasses = lappend_oid(policyopclasses, opclass);
 
@@ -15753,11 +15753,11 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 						initStringInfo(&buf);
 						foreach(lc, ldistro->keyCols)
 						{
-							IndexElem *ielem = (IndexElem *) lfirst(lc);
+							DistributionKeyElem *dkelem = (DistributionKeyElem *) lfirst(lc);
 
 							if (buf.len > 0)
 								appendStringInfo(&buf, ", ");
-							appendStringInfoString(&buf, ielem->name);
+							appendStringInfoString(&buf, dkelem->name);
 						}
 						ereport(WARNING,
 							(errcode(ERRCODE_DUPLICATE_OBJECT),
@@ -17952,7 +17952,7 @@ make_distributedby_for_rel(Relation rel)
 			int			attno = policy->attrs[i];
 			Oid			opclassoid = policy->opclasses[i];
 			char	   *attname = pstrdup(NameStr(tupdesc->attrs[attno - 1]->attname));
-			IndexElem  *ielem;
+			DistributionKeyElem *dkelem;
 			HeapTuple	ht_opc;
 			Form_pg_opclass opcrec;
 			char	   *opcname;
@@ -17965,11 +17965,12 @@ make_distributedby_for_rel(Relation rel)
 			nspname = get_namespace_name(opcrec->opcnamespace);
 			opcname = pstrdup(NameStr(opcrec->opcname));
 
-			ielem = makeNode(IndexElem);
-			ielem->name = attname;
-			ielem->opclass = list_make2(makeString(nspname), makeString(opcname));
+			dkelem = makeNode(DistributionKeyElem);
+			dkelem->name = attname;
+			dkelem->opclass = list_make2(makeString(nspname), makeString(opcname));
+			dkelem->location = -1;
 
-			keys = lappend(keys, ielem);
+			keys = lappend(keys, dkelem);
 
 			ReleaseSysCache(ht_opc);
 		}

@@ -2582,6 +2582,9 @@ readNodeBinary(void)
 			case T_CreateForeignTableStmt:
 				return_value = _readCreateForeignTableStmt();
 				break;
+			case T_DistributionKeyElem:
+				return_value = _readDistributionKeyElem();
+				break;
 			case T_ColumnReferenceStorageDirective:
 				return_value = _readColumnReferenceStorageDirective();
 				break;

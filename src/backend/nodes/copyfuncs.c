@@ -3180,6 +3180,18 @@ _copyColumnDef(const ColumnDef *from)
 	return newnode;
 }
 
+static DistributionKeyElem *
+_copyDistributionKeyElem(const DistributionKeyElem *from)
+{
+	DistributionKeyElem  *newnode = makeNode(DistributionKeyElem);
+
+	COPY_STRING_FIELD(name);
+	COPY_NODE_FIELD(opclass);
+	COPY_LOCATION_FIELD(location);
+
+	return newnode;
+}
+
 static ColumnReferenceStorageDirective *
 _copyColumnReferenceStorageDirective(const ColumnReferenceStorageDirective *from)
 {
@@ -6334,6 +6346,9 @@ copyObject(const void *from)
 			break;
 		case T_ColumnDef:
 			retval = _copyColumnDef(from);
+			break;
+		case T_DistributionKeyElem:
+			retval = _copyDistributionKeyElem(from);
 			break;
 		case T_ColumnReferenceStorageDirective:
 			retval = _copyColumnReferenceStorageDirective(from);
