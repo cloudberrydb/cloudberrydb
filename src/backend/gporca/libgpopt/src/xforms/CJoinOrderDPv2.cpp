@@ -1664,17 +1664,17 @@ CJoinOrderDPv2::OsPrint
 				if (lev == 1)
 				{
 					os << "   Atom: " << std::endl;
-					expr_info->m_expr->OsPrint(os, &pref);
+					expr_info->m_expr->OsPrintExpression(os, &pref);
 				}
 				else if (lev < num_levels-1)
 				{
 					os << "   Join predicate: " << std::endl;
-					(*expr_info->m_expr)[2]->OsPrint(os, &pref);
+					(*expr_info->m_expr)[2]->OsPrintExpression(os, &pref);
 				}
 				else
 				{
 					os << "   Top-level expression: " << std::endl;
-					expr_info->m_expr->OsPrint(os, &pref);
+					expr_info->m_expr->OsPrintExpression(os, &pref);
 				}
 
 				os << std::endl;
