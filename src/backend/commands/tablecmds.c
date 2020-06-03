@@ -12779,14 +12779,6 @@ ATExecClusterOn(Relation rel, const char *indexName, LOCKMODE lockmode)
 	Oid			indexOid;
 	ObjectAddress address;
 
-	if (RelationIsAppendOptimized(rel))
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("cannot cluster append-only table \"%s\": not supported",
-						RelationGetRelationName(rel))));
-	}
-
 	indexOid = get_relname_relid(indexName, rel->rd_rel->relnamespace);
 
 	if (!OidIsValid(indexOid))
@@ -12794,6 +12786,21 @@ ATExecClusterOn(Relation rel, const char *indexName, LOCKMODE lockmode)
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("index \"%s\" for table \"%s\" does not exist",
 						indexName, RelationGetRelationName(rel))));
+
+	if (RelationIsAppendOptimized(rel))
+	{
+		bool isBtree = false;
+		Relation oldIndex = index_open(indexOid, AccessExclusiveLock);
+		isBtree = oldIndex->rd_rel->relam == BTREE_AM_OID;
+		index_close(oldIndex, NoLock);
+
+		if (!isBtree)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("cannot cluster append-optimized table \"%s\"", RelationGetRelationName(rel)),
+					errdetail("Append-optimized tables can only be clustered against a B-tree index")));
+	}
+
 
 	/* Check index is valid to cluster on */
 	check_index_is_clusterable(rel, indexOid, false, lockmode);
