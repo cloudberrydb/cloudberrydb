@@ -477,10 +477,10 @@
     <topic id="topic_zkq_j5b_hbb">
       <title>Greenplum Command Center</title>
       <body>
-        <p>Pivotal Greenplum Database 6 is compatible with Pivotal Greenplum Command Center 6.0.0
-          and later. See the <xref href="http://gpcc.docs.pivotal.io" format="html" scope="external"
-            >Greenplum Command Center documentation</xref> for additional compatibility information.
-        </p>
+        <p>Pivotal Greenplum Database 6.8 is compatible only with Pivotal Greenplum Command Center
+          6.2 and later. See the <xref href="http://gpcc.docs.pivotal.io" format="html"
+            scope="external">Greenplum Command Center documentation</xref> for additional
+          compatibility information. </p>
       </body>
     </topic>
   </topic>
