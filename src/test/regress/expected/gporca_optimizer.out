@@ -12264,32 +12264,35 @@ WHERE L1.lid = int4in(unknownout(meta.load_id));
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Result  (cost=0.00..437.37 rows=134 width=8)
+ Result  (cost=0.00..431.10 rows=1 width=8)
    Output: c, lid
-   ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.12 rows=134 width=8)
+   ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.08 rows=1 width=8)
          Output: c, lid
-         ->  HashAggregate  (cost=0.00..431.12 rows=134 width=8)
+         ->  GroupAggregate  (cost=0.00..431.08 rows=1 width=8)
                Output: c, lid
                Group Key: t55.c, t55.lid
-               ->  Hash Join  (cost=0.00..431.08 rows=134 width=8)
+               ->  Sort  (cost=0.00..431.08 rows=1 width=8)
                      Output: c, lid
-                     Hash Cond: (t55.lid = int4in(unknownout(('99'))))
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.02 rows=334 width=8)
+                     Sort Key: t55.c, t55.lid
+                     ->  Hash Join  (cost=0.00..431.08 rows=1 width=8)
                            Output: c, lid
-                           Hash Key: lid
-                           ->  Seq Scan on orca.t55  (cost=0.00..431.01 rows=334 width=8)
+                           Hash Cond: (t55.lid = int4in(unknownout(('99'))))
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.02 rows=334 width=8)
                                  Output: c, lid
-                     ->  Hash  (cost=0.00..0.00 rows=1 width=8)
-                           Output: ('99')
-                           ->  Result  (cost=0.00..0.00 rows=1 width=8)
+                                 Hash Key: lid
+                                 ->  Seq Scan on orca.t55  (cost=0.00..431.01 rows=334 width=8)
+                                       Output: c, lid
+                           ->  Hash  (cost=0.00..0.00 rows=1 width=8)
                                  Output: ('99')
                                  ->  Result  (cost=0.00..0.00 rows=1 width=8)
-                                       Output: ('99'), int4in(unknownout(('99')))
-                                       ->  Result  (cost=0.00..0.00 rows=1 width=1)
-                                             Output: '99'
+                                       Output: ('99')
+                                       ->  Result  (cost=0.00..0.00 rows=1 width=8)
+                                             Output: ('99'), int4in(unknownout(('99')))
+                                             ->  Result  (cost=0.00..0.00 rows=1 width=1)
+                                                   Output: '99'
  Optimizer: Pivotal Optimizer (GPORCA)
  Settings: optimizer=on, optimizer_cte_inlining_bound=1000, optimizer_join_order=query, optimizer_metadata_caching=on
-(25 rows)
+(28 rows)
 
 CREATE TABLE TP AS
 WITH META AS (SELECT '2020-01-01' AS VALID_DT, '99' AS LOAD_ID)
