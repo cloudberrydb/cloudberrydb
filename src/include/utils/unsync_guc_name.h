@@ -434,6 +434,7 @@
 		"quote_all_identifiers",
 		"random_page_cost",
 		"readable_external_table_timeout",
+		"write_to_gpfdist_timeout",
 		"repl_catchup_within_range",
 		"resource_cleanup_gangs_on_wait",
 		"resource_scheduler",
