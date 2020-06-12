@@ -45,7 +45,6 @@
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_constraint_fn.h"
 #include "catalog/pg_depend.h"
-#include "catalog/pg_exttable.h"
 #include "catalog/pg_foreign_table.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_inherits_fn.h"
@@ -128,6 +127,7 @@
 #include "utils/typcache.h"
 
 #include "access/appendonly_compaction.h"
+#include "access/external.h"
 #include "catalog/aocatalog.h"
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbdisp.h"
@@ -4020,7 +4020,6 @@ ATController(AlterTableStmt *parsetree,
 	List	   *wqueue = NIL;
 	ListCell   *lcmd;
 	bool is_partition = false;
-	bool is_external = rel_is_external_table(RelationGetRelid(rel));
 
 	cdb_sync_oid_to_segments();
 
@@ -4119,20 +4118,9 @@ ATController(AlterTableStmt *parsetree,
 		}
 	}
 
-	/* 
-	 * Phase 3: scan/rewrite tables as needed. If the data is in an external
-	 * table, no need to rewrite it or to add toast.
-	 *
-	 * We should skip this for foreign table as well, but it's handled inside of
-	 * ATRewriteTables() and ATAddToastIfNeeded(), we keep it that way to align
-	 * with upstream.
-	 */
-	if (!is_external)
-	{
-		ATRewriteTables(parsetree, &wqueue, lockmode);
-
-		ATAddToastIfNeeded(&wqueue, lockmode);
-	}
+	/* Phase 3: scan/rewrite tables as needed */
+	ATRewriteTables(parsetree, &wqueue, lockmode);
+	ATAddToastIfNeeded(&wqueue, lockmode);
 }
 
 /*
