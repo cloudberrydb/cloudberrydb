@@ -722,7 +722,6 @@ GREP
 with_apr_config
 with_libcurl
 with_rt
-with_libuv
 with_quicklz
 with_zstd
 with_libbz2
@@ -742,6 +741,7 @@ with_perl
 with_tcl
 enable_thread_safety
 INCLUDES
+enable_ic_proxy
 HAVE_CXX14
 enable_gpcloud
 enable_mapreduce
@@ -863,6 +863,7 @@ enable_cassert
 enable_orca
 enable_mapreduce
 enable_gpcloud
+enable_ic_proxy
 enable_thread_safety
 with_tcl
 with_tclconfig
@@ -888,7 +889,6 @@ with_zlib
 with_libbz2
 with_zstd
 with_quicklz
-with_libuv
 with_rt
 with_libcurl
 with_apr_config
@@ -1546,6 +1546,8 @@ Optional Features:
   --disable-orca          disable ORCA optimizer
   --enable-mapreduce      enable Greenplum Mapreduce support
   --disable-gpcloud       disable gpcloud support
+  --enable-ic-proxy       enable interconnect proxy mode (requires libuv
+                          library)
   --disable-thread-safety disable thread-safety in client libraries
   --disable-largefile     omit support for large files
 
@@ -1595,7 +1597,6 @@ Optional Packages:
   --without-zstd          do not build with Zstandard
   --with-quicklz          build with QuickLZ support (requires quicklz
                           library)
-  --without-libuv         do not use libuv
   --without-rt            do not use Realtime Library
   --without-libcurl       do not use libcurl
   --with-apr-config=PATH  path to apr-1-config utility
@@ -7143,6 +7144,36 @@ $as_echo "#define HAVE_CXX14 1" >>confdefs.h
 fi # fi
 
 #
+# ic-proxy
+#
+
+
+# Check whether --enable-ic-proxy was given.
+if test "${enable_ic_proxy+set}" = set; then :
+  enableval=$enable_ic_proxy;
+  case $enableval in
+    yes)
+
+$as_echo "#define ENABLE_IC_PROXY 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-ic-proxy option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_ic_proxy=no
+
+fi
+
+
+
+
+#
 # Include directories
 #
 ac_save_IFS=$IFS
@@ -8064,35 +8095,6 @@ if test "${with_quicklz+set}" = set; then :
 
 else
   with_quicklz=no
-
-fi
-
-
-
-
-#
-# libuv. Used for ic-proxy
-#
-
-
-
-# Check whether --with-libuv was given.
-if test "${with_libuv+set}" = set; then :
-  withval=$with_libuv;
-  case $withval in
-    yes)
-      :
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --with-libuv option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  with_libuv=yes
 
 fi
 
@@ -11683,7 +11685,7 @@ fi
 
 fi
 
-if test "$with_libuv" = yes; then
+if test "$enable_ic_proxy" = yes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uv_default_loop in -luv" >&5
 $as_echo_n "checking for uv_default_loop in -luv... " >&6; }
 if ${ac_cv_lib_uv_uv_default_loop+:} false; then :
@@ -11728,7 +11730,7 @@ _ACEOF
   LIBS="-luv $LIBS"
 
 else
-  as_fn_error $? "libuv library not found." "$LINENO" 5
+  as_fn_error $? "libuv library not found, it is required by --enable-ic-proxy." "$LINENO" 5
 fi
 
 fi

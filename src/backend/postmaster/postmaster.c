@@ -407,14 +407,14 @@ static BackgroundWorker PMAuxProcList[MaxPMAuxProc] =
 	 BackoffSweeperMain, {0}, {0}, 0, {0}, 0,
 	 BackoffSweeperStartRule},
 
-#ifdef HAVE_LIBUV
+#ifdef ENABLE_IC_PROXY
 	{"ic proxy process",
 	 0,
 	 BgWorkerStart_RecoveryFinished,
 	 0, /* restart immediately if ic proxy process exits with non-zero code */
 	 ICProxyMain, {0}, {0}, 0, {0}, 0,
 	 ICProxyStartRule},
-#endif  /* HAVE_LIBUV */
+#endif  /* ENABLE_IC_PROXY */
 
 	/*
 	 * Remember to set the MaxPMAuxProc to the number of items in this list

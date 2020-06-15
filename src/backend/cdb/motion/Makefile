@@ -15,7 +15,7 @@ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 OBJS = cdbmotion.o tupchunklist.o tupser.o  \
 	ic_common.o ic_tcp.o ic_udpifc.o htupfifo.o tupleremap.o
 
-ifeq ($(with_libuv),yes)
+ifeq ($(enable_ic_proxy),yes)
 # server
 OBJS += ic_proxy_bgworker.o
 OBJS += ic_proxy_main.o
@@ -32,6 +32,6 @@ OBJS += ic_proxy_key.o
 OBJS += ic_proxy_packet.o
 OBJS += ic_proxy_pkt_cache.o
 OBJS += ic_proxy_iobuf.o
-endif  # with_libuv
+endif  # enable_ic_proxy
 
 include $(top_srcdir)/src/backend/common.mk

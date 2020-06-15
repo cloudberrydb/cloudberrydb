@@ -220,6 +220,7 @@ enable_debug_extensions = @enable_debug_extensions@
 enable_orafce		= @enable_orafce@
 enable_mapreduce    = @enable_mapreduce@
 enable_gpcloud 	    = @enable_gpcloud@
+enable_ic_proxy     = @enable_ic_proxy@
 
 enable_tap_tests = @enable_tap_tests@
 
@@ -247,7 +248,6 @@ YAML_LIBS		= @YAML_LIBS@
 with_zstd 		= @with_zstd@
 with_quicklz		= @with_quicklz@
 EVENT_LIBS		= @EVENT_LIBS@
-with_libuv		= @with_libuv@
 
 
 ##########################################################################
