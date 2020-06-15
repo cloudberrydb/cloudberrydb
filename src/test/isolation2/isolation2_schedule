@@ -234,3 +234,5 @@ ignore: restore_memory_accounting_default
 test: setup_startup_memory_accounting
 test: oom_startup_memory
 test: restore_memory_accounting_default
+
+test: distributed_transactions

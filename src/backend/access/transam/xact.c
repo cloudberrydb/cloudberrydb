@@ -1918,7 +1918,8 @@ RecordTransactionAbort(bool isSubXact)
 	 */
 	if (isQEReader ||
 		getCurrentDtxState() == DTX_STATE_NOTIFYING_COMMIT_PREPARED ||
-		CurrentDtxIsRollingback())
+		CurrentDtxIsRollingback() ||
+		MyProc->localDistribXactData.state == LOCALDISTRIBXACT_STATE_ABORTED)
 		xid = InvalidTransactionId;
 	else
 		xid = GetCurrentTransactionIdIfAny();
@@ -2342,6 +2343,12 @@ StartTransaction(void)
 		case DTX_CONTEXT_QD_RETRY_PHASE_2:
 		case DTX_CONTEXT_QE_FINISH_PREPARED:
 		{
+			if (DistributedTransactionContext == DTX_CONTEXT_LOCAL_ONLY &&
+				Gp_role == GP_ROLE_UTILITY)
+			{
+				LocalDistribXactData *ele = &MyProc->localDistribXactData;
+				ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
+			}
 			/*
 			 * MPP: we're in utility-mode or a QE starting a pure-local
 			 * transaction without any synchronization to segmates!
@@ -2363,6 +2370,8 @@ StartTransaction(void)
 				SharedLocalSnapshotSlot->startTimestamp = stmtStartTimestamp;
 				LWLockRelease(SharedLocalSnapshotSlot->slotLock);
 			}
+			LocalDistribXactData *ele = &MyProc->localDistribXactData;
+			ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
 		}
 		break;
 
@@ -2767,8 +2776,6 @@ CommitTransaction(void)
 
 	TRACE_POSTGRESQL_TRANSACTION_COMMIT(MyProc->lxid);
 
-	EndLocalDistribXact(true);
-
 	/*
 	 * Do 2nd phase of commit to all QE. NOTE: we can't process
 	 * signals (which may attempt to abort our now partially-completed
@@ -2794,6 +2801,8 @@ CommitTransaction(void)
 	 * RecordTransactionCommit.
 	 */
 	ProcArrayEndTransaction(MyProc, latestXid);
+
+	EndLocalDistribXact(true);
 
 	/*
 	 * This is all post-commit cleanup.  Note that if an error is raised here,
@@ -3380,8 +3389,6 @@ AbortTransaction(void)
 
 	TRACE_POSTGRESQL_TRANSACTION_ABORT(MyProc->lxid);
 
-	EndLocalDistribXact(false);
-
 	/*
 	 * Do abort to all QE. NOTE: we don't process
 	 * signals to prevent recursion until we've notified the QEs.
@@ -3395,6 +3402,9 @@ AbortTransaction(void)
 	 */
 	ProcArrayEndTransaction(MyProc, latestXid);
 
+	EndLocalDistribXact(false);
+
+	SIMPLE_FAULT_INJECTOR("abort_after_procarray_end");
 	/*
 	 * Post-abort cleanup.  See notes in CommitTransaction() concerning
 	 * ordering.  We can skip all of it if the transaction failed before
@@ -6277,7 +6287,6 @@ TransStateAsString(TransState state)
 
 /*
  * EndLocalDistribXact
- *		Debug support
  */
 static void
 EndLocalDistribXact(bool isCommit)
@@ -6286,15 +6295,19 @@ EndLocalDistribXact(bool isCommit)
 		return;
 
 	/*
-	 * MyProc->localDistribXactData is only used for debugging purpose by
-	 * backend itself on segments only hence okay to modify without holding
-	 * the lock.
+	 * MyProc->localDistribXactData is access by backend itself only hence okay
+	 * to modify without holding the lock.
 	 */
 	switch (DistributedTransactionContext)
 	{
 		case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
 		case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
 		case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
+		case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
+		case DTX_CONTEXT_QD_RETRY_PHASE_2:
+		case DTX_CONTEXT_LOCAL_ONLY:
+			AssertImply(DistributedTransactionContext == DTX_CONTEXT_LOCAL_ONLY,
+						Gp_role == GP_ROLE_UTILITY);
 			LocalDistribXact_ChangeState(MyProc->pgprocno,
 										 isCommit ?
 										 LOCALDISTRIBXACT_STATE_COMMITTED :
@@ -6306,8 +6319,6 @@ EndLocalDistribXact(bool isCommit)
 			// QD or QE Writer will handle it.
 			break;
 
-		case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
-		case DTX_CONTEXT_QD_RETRY_PHASE_2:
 		case DTX_CONTEXT_QE_PREPARED:
 		case DTX_CONTEXT_QE_FINISH_PREPARED:
 			elog(PANIC, "Unexpected distribute transaction context: '%s'",
