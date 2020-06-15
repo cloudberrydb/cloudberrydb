@@ -4785,8 +4785,11 @@ ResGroupGetGroupAvailableMem(Oid groupId)
 	LWLockAcquire(ResGroupLock, LW_SHARED);
 	group = groupHashFind(groupId, true);
 	Assert(group != NULL);
-	availMem = slotGetMemQuotaExpected(&group->caps) +
-						group->memSharedGranted - group->memSharedUsage;
+	if (group->caps.memLimit == RESGROUP_UNLIMITED_MEMORY_LIMIT)
+		availMem = (uint32) pg_atomic_read_u32(&pResGroupControl->freeChunks);
+	else
+		availMem = slotGetMemQuotaExpected(&group->caps) +
+				   group->memSharedGranted - group->memSharedUsage;
 	LWLockRelease(ResGroupLock);
 	return availMem;
 }
