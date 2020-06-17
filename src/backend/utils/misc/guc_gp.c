@@ -2688,17 +2688,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"dml_ignore_target_partition_check", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Ignores checking whether the user provided correct partition during a direct insert to a leaf partition"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&dml_ignore_target_partition_check,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"optimizer_force_three_stage_scalar_dqa", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Force optimizer to always pick 3 stage aggregate plan for scalar distinct qualified aggregate."),
 			NULL,
