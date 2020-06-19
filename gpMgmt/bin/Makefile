@@ -76,7 +76,7 @@ PYGRESQL_DIR=PyGreSQL-$(PYGRESQL_VERSION)
 pygresql:
 	@echo "--- PyGreSQL"
 	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PYGRESQL_DIR).tar.gz
-	cd $(PYLIB_SRC_EXT)/$(PYGRESQL_DIR)/ && PATH=$(bindir):$$PATH python setup.py build
+	cd $(PYLIB_SRC_EXT)/$(PYGRESQL_DIR)/ && PATH=$(bindir):$$PATH LDFLAGS='$(LDFLAGS) $(PYGRESQL_LDFLAGS)' python setup.py build
 	cp -r $(PYLIB_SRC_EXT)/$(PYGRESQL_DIR)/build/lib*/* $(PYLIB_DIR)/
 
 #
