@@ -8,5 +8,6 @@ MarkupSafe==1.0
 mock==1.0.1
 parse==1.8.2
 psutil==5.7.0
+pygresql==5.2
 setuptools==36.6.0
 unittest2==0.5.1
