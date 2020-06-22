@@ -719,3 +719,26 @@ select * from foo where exists (select 1 from bar where foo.a = bar.b);
 reset enable_hashagg;
 drop table foo;
 drop table bar;
+
+-- Fix github issue 10012
+create table fix_param_a (i int, j int);
+create table fix_param_b (i int UNIQUE, j int);
+create table fix_param_c (i int, j int);
+
+insert into fix_param_a select i, i from generate_series(1,20)i;
+insert into fix_param_b select i, i from generate_series(1,2000)i;
+insert into fix_param_c select i, i from generate_series(1,2000)i;
+
+analyze fix_param_a;
+analyze fix_param_b;
+analyze fix_param_c;
+
+explain (costs off)
+select * from fix_param_a left join fix_param_b on
+	fix_param_a.i = fix_param_b.i and fix_param_b.j in
+		(select j from fix_param_c where fix_param_b.i = fix_param_c.i)
+	order by 1;
+select * from fix_param_a left join fix_param_b on
+	fix_param_a.i = fix_param_b.i and fix_param_b.j in
+		(select j from fix_param_c where fix_param_b.i = fix_param_c.i)
+	order by 1;
