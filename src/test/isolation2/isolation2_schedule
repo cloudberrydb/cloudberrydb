@@ -238,3 +238,6 @@ test: oom_startup_memory
 test: restore_memory_accounting_default
 
 test: distributed_transactions
+
+# Test for tablespace
+test: concurrent_drop_truncate_tablespace
