@@ -59,7 +59,7 @@ core: subprocess32
 	python gpconfig_modules/parse_guc_metadata.py $(DESTDIR)$(prefix)
 
 ifneq "$(wildcard $(CURDIR)/pythonSrc/ext/*.tar.gz)" ""
-install: installdirs installprograms core psutil pygresql
+install: installdirs installprograms core psutil pygresql pyyaml
 else
 install: installdirs installprograms core
 endif
@@ -103,6 +103,18 @@ ifeq "$(findstring $(BLD_ARCH),aix7_ppc_64 )" ""
 	cd $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/ && env -u CC python setup.py build
 	cp -r $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/build/lib.*/psutil $(PYLIB_DIR)
 endif
+
+#
+# PYYAML
+#
+PYYAML_VERSION=5.3.1
+PYYAML_DIR=PyYAML-$(PYYAML_VERSION)
+
+pyyaml:
+	@echo "--- pyyaml"
+	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PYYAML_DIR).tar.gz
+	cd $(PYLIB_SRC_EXT)/$(PYYAML_DIR)/ && env -u CC python setup.py build
+	cp -r $(PYLIB_SRC_EXT)/$(PYYAML_DIR)/build/lib*/* $(PYLIB_DIR)
 
 #
 # PYLINT

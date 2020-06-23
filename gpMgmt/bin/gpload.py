@@ -1270,7 +1270,7 @@ class gpload:
         try:
             # do an initial parse, validating the config file
             doc = f.read()
-            self.config = yaml.load(doc)
+            self.config = yaml.safe_load(doc)
 
             self.configOriginal = changeToUnicode(self.config)
             self.config = dictKeyToLower(self.config)
