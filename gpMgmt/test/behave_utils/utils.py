@@ -15,7 +15,6 @@ except:
 import difflib
 
 import pg
-import yaml
 
 from contextlib import closing
 from datetime import datetime

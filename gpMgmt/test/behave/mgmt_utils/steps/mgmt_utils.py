@@ -1,32 +1,27 @@
 import codecs
 import math
 import fnmatch
-import getpass
 import glob
 import json
-import yaml
 import os
 import re
 import pipes
 import platform
 import shutil
 import socket
-import tarfile
 import tempfile
 import thread
-import json
+import time
 try:
     from subprocess32 import check_output, Popen, PIPE
 except:
     from subprocess import check_output, Popen, PIPE
 import commands
-import signal
 from collections import defaultdict
 
 import psutil
 from behave import given, when, then
 from datetime import datetime, timedelta
-from time import sleep
 from os import path
 
 from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR

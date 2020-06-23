@@ -19,7 +19,6 @@ try:
     from gppylib.userinput import ask_yesno
     from gppylib.operations.unix import ListFilesByPattern
 
-    import yaml
     import platform
 except ImportError, ex:
     sys.exit('Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(ex))
