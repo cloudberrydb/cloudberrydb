@@ -1,4 +1,4 @@
-/* contrib/orafce--3.4.sql */
+/* orafce--3.12.sql */
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION orafce" to load this file. \quit
@@ -93,25 +93,10 @@ AS $$ SELECT pg_catalog.nlssort($1, null); $$
 LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pg_catalog.nlssort(text)IS '';
 
-CREATE FUNCTION pg_catalog._set_nls_sort_master(text)
-RETURNS void
-AS 'MODULE_PATHNAME', 'ora_set_nls_sort'
-LANGUAGE C IMMUTABLE STRICT EXECUTE ON MASTER;
-COMMENT ON FUNCTION pg_catalog._set_nls_sort_master(text) IS '';
-
-CREATE FUNCTION pg_catalog._set_nls_sort_segments(text)
-RETURNS void
-AS 'MODULE_PATHNAME', 'ora_set_nls_sort'
-LANGUAGE C IMMUTABLE STRICT EXECUTE ON ALL SEGMENTS;
-COMMENT ON FUNCTION pg_catalog._set_nls_sort_segments(text) IS '';
-
 CREATE FUNCTION pg_catalog.set_nls_sort(text)
 RETURNS void
-AS $$
-SELECT pg_catalog._set_nls_sort_master($1);
-SELECT pg_catalog._set_nls_sort_segments($1);
-$$
-LANGUAGE SQL IMMUTABLE STRICT;
+AS 'MODULE_PATHNAME', 'ora_set_nls_sort'
+LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION pg_catalog.set_nls_sort(text) IS '';
 
 CREATE FUNCTION pg_catalog.instr(str text, patt text, start int, nth int)
@@ -429,7 +414,7 @@ CREATE OPERATOR oracle.- (
 
 CREATE FUNCTION oracle.add_months(TIMESTAMP WITH TIME ZONE,INTEGER)
 RETURNS TIMESTAMP
-AS $$ SELECT ($1 + interval '1 month' * $2)::oracle.date; $$
+AS $$ SELECT (pg_catalog.add_months($1::pg_catalog.date, $2) + $1::time)::oracle.date; $$
 LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION oracle.last_day(TIMESTAMPTZ)
@@ -563,60 +548,331 @@ AS 'MODULE_PATHNAME','ora_nvl2'
 LANGUAGE C IMMUTABLE;
 COMMENT ON FUNCTION nvl2(anyelement, anyelement, anyelement) IS '';
 
+CREATE FUNCTION public.decode(anyelement, anyelement, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, text, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, text, anyelement, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, text, anyelement, text, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, text, anyelement, text, anyelement, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, text, anyelement, text, anyelement, text, text)
+RETURNS text
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar, anyelement, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar, anyelement, bpchar, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar, anyelement, bpchar, anyelement, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bpchar, anyelement, bpchar, anyelement, bpchar, bpchar)
+RETURNS bpchar
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer, anyelement, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer, anyelement, integer, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer, anyelement, integer, anyelement, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, integer, anyelement, integer, anyelement, integer, integer)
+RETURNS integer
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint, anyelement, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint, anyelement, bigint, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint, anyelement, bigint, anyelement, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, bigint, anyelement, bigint, anyelement, bigint, bigint)
+RETURNS bigint
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric, anyelement, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric, anyelement, numeric, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric, anyelement, numeric, anyelement, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, numeric, anyelement, numeric, anyelement, numeric, numeric)
+RETURNS numeric
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date, anyelement, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date, anyelement, date, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date, anyelement, date, anyelement, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, date, anyelement, date, anyelement, date, date)
+RETURNS date
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time, anyelement, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time, anyelement, time, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time, anyelement, time, anyelement, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, time, anyelement, time, anyelement, time, time)
+RETURNS time
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp, anyelement, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp, anyelement, timestamp, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp, anyelement, timestamp, anyelement, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamp, anyelement, timestamp, anyelement, timestamp, timestamp)
+RETURNS timestamp
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, anyelement, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, anyelement, timestamptz, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, anyelement, timestamptz, anyelement, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, anyelement, timestamptz, anyelement, timestamptz, timestamptz)
+RETURNS timestamptz
+AS 'MODULE_PATHNAME', 'ora_decode'
+LANGUAGE C IMMUTABLE;
+
+
 CREATE SCHEMA dbms_pipe;
 
 CREATE FUNCTION dbms_pipe.pack_message(text)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_text'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(text) IS 'Add text field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_text()
 RETURNS text
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_text'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_text() IS 'Get text fiedl from message';
 
 CREATE FUNCTION dbms_pipe.receive_message(text, int)
 RETURNS int
 AS 'MODULE_PATHNAME','dbms_pipe_receive_message'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.receive_message(text, int) IS 'Receive message from pipe';
 
 CREATE FUNCTION dbms_pipe.receive_message(text)
 RETURNS int
 AS $$SELECT dbms_pipe.receive_message($1,NULL::int);$$
-LANGUAGE SQL VOLATILE EXECUTE ON MASTER;
+LANGUAGE SQL VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.receive_message(text) IS 'Receive message from pipe';
 
 CREATE FUNCTION dbms_pipe.send_message(text, int, int)
 RETURNS int
 AS 'MODULE_PATHNAME','dbms_pipe_send_message'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.send_message(text, int, int) IS 'Send message to pipe';
 
 CREATE FUNCTION dbms_pipe.send_message(text, int)
 RETURNS int
 AS $$SELECT dbms_pipe.send_message($1,$2,NULL);$$
-LANGUAGE SQL VOLATILE EXECUTE ON MASTER;
+LANGUAGE SQL VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.send_message(text, int) IS 'Send message to pipe';
 
 CREATE FUNCTION dbms_pipe.send_message(text)
 RETURNS int
 AS $$SELECT dbms_pipe.send_message($1,NULL,NULL);$$
-LANGUAGE SQL VOLATILE EXECUTE ON MASTER;
+LANGUAGE SQL VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.send_message(text) IS 'Send message to pipe';
 
 CREATE FUNCTION dbms_pipe.unique_session_name()
 RETURNS varchar
 AS 'MODULE_PATHNAME','dbms_pipe_unique_session_name'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unique_session_name() IS 'Returns unique session name';
 
 CREATE FUNCTION dbms_pipe.__list_pipes()
 RETURNS SETOF RECORD
 AS 'MODULE_PATHNAME','dbms_pipe_list_pipes'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.__list_pipes() IS '';
 
 CREATE VIEW dbms_pipe.db_pipes
@@ -625,115 +881,115 @@ AS SELECT * FROM dbms_pipe.__list_pipes() AS (Name varchar, Items int, Size int,
 CREATE FUNCTION dbms_pipe.next_item_type()
 RETURNS int
 AS 'MODULE_PATHNAME','dbms_pipe_next_item_type'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.next_item_type() IS 'Returns type of next field in message';
 
 CREATE FUNCTION dbms_pipe.create_pipe(text, int, bool)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_create_pipe'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.create_pipe(text, int, bool) IS 'Create named pipe';
 
 CREATE FUNCTION dbms_pipe.create_pipe(text, int)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_create_pipe_2'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.create_pipe(text, int) IS 'Create named pipe';
 
 CREATE FUNCTION dbms_pipe.create_pipe(text)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_create_pipe_1'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.create_pipe(text) IS 'Create named pipe';
 
 CREATE FUNCTION dbms_pipe.reset_buffer()
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_reset_buffer'
-LANGUAGE C VOLATILE EXECUTE ON MASTER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION dbms_pipe.reset_buffer() IS 'Clean input buffer';
 
 CREATE FUNCTION dbms_pipe.purge(text)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_purge'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.purge(text) IS 'Clean pipe';
 
 CREATE FUNCTION dbms_pipe.remove_pipe(text)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_remove_pipe'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.remove_pipe(text) IS 'Destroy pipe';
 
 CREATE FUNCTION dbms_pipe.pack_message(date)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_date'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(date) IS 'Add date field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_date()
 RETURNS date
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_date'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_date() IS 'Get date field from message';
 
 CREATE FUNCTION dbms_pipe.pack_message(timestamp with time zone)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_timestamp'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(timestamp with time zone) IS 'Add timestamp field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_timestamp()
 RETURNS timestamp with time zone
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_timestamp'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_timestamp() IS 'Get timestamp field from message';
 
 CREATE FUNCTION dbms_pipe.pack_message(numeric)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_number'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(numeric) IS 'Add numeric field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_number()
 RETURNS numeric
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_number'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_number() IS 'Get numeric field from message';
 
 CREATE FUNCTION dbms_pipe.pack_message(integer)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_integer'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(integer) IS 'Add numeric field to message';
 
 CREATE FUNCTION dbms_pipe.pack_message(bigint)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_bigint'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(bigint) IS 'Add numeric field to message';
 
 CREATE FUNCTION dbms_pipe.pack_message(bytea)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_bytea'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(bytea) IS 'Add bytea field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_bytea()
 RETURNS bytea
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_bytea'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_bytea() IS 'Get bytea field from message';
 
 CREATE FUNCTION dbms_pipe.pack_message(record)
 RETURNS void
 AS 'MODULE_PATHNAME','dbms_pipe_pack_message_record'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.pack_message(record) IS 'Add record field to message';
 
 CREATE FUNCTION dbms_pipe.unpack_message_record()
 RETURNS record
 AS 'MODULE_PATHNAME','dbms_pipe_unpack_message_record'
-LANGUAGE C VOLATILE STRICT EXECUTE ON MASTER;
+LANGUAGE C VOLATILE STRICT;
 COMMENT ON FUNCTION dbms_pipe.unpack_message_record() IS 'Get record field from message';
 
 
@@ -1218,8 +1474,63 @@ AS $$ SELECT TRANSLATE($1, 'A'||$2, 'A'); $$
 LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION plvchr.stripped(text, text) IS 'Strips a string of all instances of the specified characters';
 
--- dbms_alert is removed in GPDB because it is not possible to run it in MPP
--- environments as implemented in postgres.
+-- dbms_alert
+
+CREATE SCHEMA dbms_alert;
+
+CREATE FUNCTION dbms_alert.register(name text)
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_register'
+LANGUAGE C VOLATILE STRICT;
+COMMENT ON FUNCTION dbms_alert.register(text) IS 'Register session as recipient of alert name';
+
+CREATE FUNCTION dbms_alert.remove(name text)
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_remove'
+LANGUAGE C VOLATILE STRICT;
+COMMENT ON FUNCTION dbms_alert.remove(text) IS 'Remove session as recipient of alert name';
+
+CREATE FUNCTION dbms_alert.removeall()
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_removeall'
+LANGUAGE C VOLATILE;
+COMMENT ON FUNCTION dbms_alert.removeall() IS 'Remove registration for all alerts';
+
+CREATE FUNCTION dbms_alert._signal(name text, message text)
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_signal'
+LANGUAGE C VOLATILE;
+COMMENT ON FUNCTION dbms_alert._signal(text, text) IS '';
+
+CREATE FUNCTION dbms_alert.waitany(OUT name text, OUT message text, OUT status integer, timeout float8)
+RETURNS record
+AS 'MODULE_PATHNAME','dbms_alert_waitany'
+LANGUAGE C VOLATILE;
+COMMENT ON FUNCTION dbms_alert.waitany(OUT text, OUT text, OUT integer, float8) IS 'Wait for any signal';
+
+CREATE FUNCTION dbms_alert.waitone(name text, OUT message text, OUT status integer, timeout float8)
+RETURNS record
+AS 'MODULE_PATHNAME','dbms_alert_waitone'
+LANGUAGE C VOLATILE;
+COMMENT ON FUNCTION dbms_alert.waitone(text, OUT text, OUT integer, float8) IS 'Wait for specific signal';
+
+CREATE FUNCTION dbms_alert.set_defaults(sensitivity float8)
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_set_defaults'
+LANGUAGE C VOLATILE;
+COMMENT ON FUNCTION dbms_alert.set_defaults(float8) IS '';
+
+CREATE FUNCTION dbms_alert.defered_signal()
+RETURNS trigger
+AS 'MODULE_PATHNAME','dbms_alert_defered_signal'
+LANGUAGE C SECURITY DEFINER;
+REVOKE ALL ON FUNCTION dbms_alert.defered_signal() FROM PUBLIC;
+
+CREATE FUNCTION dbms_alert.signal(_event text, _message text)
+RETURNS void
+AS 'MODULE_PATHNAME','dbms_alert_signal'
+LANGUAGE C SECURITY DEFINER;
+COMMENT ON FUNCTION dbms_alert.signal(text, text) IS 'Emit signal to all recipients';
 
 CREATE SCHEMA plvsubst;
 
@@ -1300,13 +1611,13 @@ CREATE DOMAIN utl_file.file_type integer;
 CREATE FUNCTION utl_file.fopen(location text, filename text, open_mode text, max_linesize integer, encoding name)
 RETURNS utl_file.file_type
 AS 'MODULE_PATHNAME','utl_file_fopen'
-LANGUAGE C VOLATILE SECURITY DEFINER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION utl_file.fopen(text,text,text,integer,name) IS 'The FOPEN function open file and return file handle';
 
 CREATE FUNCTION utl_file.fopen(location text, filename text, open_mode text, max_linesize integer)
 RETURNS utl_file.file_type
 AS 'MODULE_PATHNAME','utl_file_fopen'
-LANGUAGE C VOLATILE SECURITY DEFINER;
+LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION utl_file.fopen(text,text,text,integer) IS 'The FOPEN function open file and return file handle';
 
 CREATE FUNCTION utl_file.fopen(location text, filename text, open_mode text)
@@ -1474,9 +1785,11 @@ LANGUAGE C VOLATILE;
 COMMENT ON FUNCTION utl_file.tmpdir() IS 'Get temp directory path.';
 
 /* carry all safe directories */
-CREATE TABLE utl_file.utl_file_dir(dir text);
+CREATE TABLE utl_file.utl_file_dir(dir text, dirname text unique);
 REVOKE ALL ON utl_file.utl_file_dir FROM PUBLIC;
-REVOKE ALL ON FUNCTION utl_file.tmpdir() FROM PUBLIC;
+
+/* allow only read on utl_file.utl_file_dir to unprivileged users */
+GRANT SELECT ON TABLE utl_file.utl_file_dir TO PUBLIC;
 
 -- dbms_assert
 
@@ -1811,8 +2124,8 @@ IMMUTABLE;
 
 CREATE FUNCTION varchar2_transform(internal)
 RETURNS internal
-AS 'varchar_transform'
-LANGUAGE internal
+AS 'MODULE_PATHNAME','orafce_varchar_transform'
+LANGUAGE C
 STRICT
 IMMUTABLE;
 
@@ -1863,6 +2176,11 @@ typmod_in = varchar2typmodin,
 typmod_out = varchar2typmodout,
 collatable = true
 );
+
+CREATE FUNCTION oracle.orafce_concat2(varchar2, varchar2)
+RETURNS varchar2
+AS 'MODULE_PATHNAME','orafce_concat2'
+LANGUAGE C STABLE;
 
 /* CREATE CAST */
 CREATE CAST (varchar2 AS text)
@@ -1965,19 +2283,15 @@ CREATE CAST (interval AS varchar2)
 WITH INOUT
 AS IMPLICIT;
 
--- XXX: This is disabled in gpdb because we have no way of dispatching this
--- change to the segments. There is no DDL to support setting a protransform
--- function in upstream, because of security concerns. We need to understand
--- exactly what these security concerns are, and have a strategy to deal with
--- the (probably rare) cases where a user might want to use this feature in
--- GPDB.
---SET allow_system_table_mods=true;
-
---UPDATE pg_proc
---SET protransform=(SELECT oid FROM pg_proc WHERE proname='varchar2_transform')
---WHERE proname='varchar2';
-
---RESET allow_system_table_mods;
+do $$
+BEGIN
+  IF EXISTS(SELECT * FROM pg_settings WHERE name = 'server_version_num' AND setting::int >= 120000) THEN
+    UPDATE pg_proc SET prosupport= 'varchar2_transform'::regproc::oid WHERE proname='varchar2';
+  ELSE
+    UPDATE pg_proc SET protransform= 'varchar2_transform'::regproc::oid WHERE proname='varchar2';
+  END IF;
+END
+$$;
 
 -- string functions for varchar2 type
 -- these are 'byte' versions of corresponsing text/varchar functions
@@ -1992,7 +2306,7 @@ CREATE OR REPLACE FUNCTION pg_catalog.substrb(varchar2, integer) RETURNS varchar
 AS 'bytea_substr_no_len'
 LANGUAGE internal
 STRICT IMMUTABLE;
-COMMENT ON FUNCTION pg_catalog.substrb(varchar2, integer, integer) IS 'extracts specified number of bytes from the input varchar2 string starting at the specified byte position (1-based) and returns as a varchar2 string';
+COMMENT ON FUNCTION pg_catalog.substrb(varchar2, integer) IS 'extracts specified number of bytes from the input varchar2 string starting at the specified byte position (1-based) and returns as a varchar2 string';
 
 CREATE OR REPLACE FUNCTION pg_catalog.lengthb(varchar2) RETURNS integer
 AS 'byteaoctetlen'
@@ -2024,8 +2338,8 @@ IMMUTABLE;
 
 CREATE FUNCTION nvarchar2_transform(internal)
 RETURNS internal
-AS 'varchar_transform'
-LANGUAGE internal
+AS 'MODULE_PATHNAME','orafce_varchar_transform'
+LANGUAGE C
 STRICT
 IMMUTABLE;
 
@@ -2076,6 +2390,11 @@ typmod_in = nvarchar2typmodin,
 typmod_out = nvarchar2typmodout,
 collatable = true
 );
+
+CREATE FUNCTION oracle.orafce_concat2(nvarchar2, nvarchar2)
+RETURNS nvarchar2
+AS 'MODULE_PATHNAME','orafce_concat2'
+LANGUAGE C IMMUTABLE;
 
 /* CREATE CAST */
 CREATE CAST (nvarchar2 AS text)
@@ -2178,13 +2497,23 @@ CREATE CAST (interval AS nvarchar2)
 WITH INOUT
 AS IMPLICIT;
 
--- SET allow_system_table_mods=true;
+do $$
+BEGIN
+  IF EXISTS(SELECT * FROM pg_settings WHERE name = 'server_version_num' AND setting::int >= 120000) THEN
+    UPDATE pg_proc SET prosupport='nvarchar2_transform'::regproc::oid WHERE proname='nvarchar2';
+  ELSE
+    UPDATE pg_proc SET protransform='nvarchar2_transform'::regproc::oid WHERE proname='nvarchar2';
+  END IF;
+END
+$$;
 
--- UPDATE pg_proc
--- SET protransform=(SELECT oid FROM pg_proc WHERE proname='varchar2_transform')
--- WHERE proname='nvarchar2';
-
--- RESET allow_system_table_mods;
+/*
+ * Note - a procedure keyword is depraceted from PostgreSQL 11, but it used
+ * because older release doesn't know function.
+ *
+ */
+CREATE OPERATOR || (procedure = oracle.orafce_concat2, leftarg = varchar2, rightarg = varchar2);
+CREATE OPERATOR || (procedure = oracle.orafce_concat2, leftarg = nvarchar2, rightarg = nvarchar2);
 
 /* PAD */
 
@@ -2934,6 +3263,7 @@ STRICT IMMUTABLE
 ;
 
 GRANT USAGE ON SCHEMA dbms_pipe TO PUBLIC;
+GRANT USAGE ON SCHEMA dbms_alert TO PUBLIC;
 GRANT USAGE ON SCHEMA plvdate TO PUBLIC;
 GRANT USAGE ON SCHEMA plvstr TO PUBLIC;
 GRANT USAGE ON SCHEMA plvchr TO PUBLIC;
@@ -3040,7 +3370,7 @@ create view oracle.user_tab_columns as
 create view oracle.user_tables as
     select table_name
       from information_schema.tables
-     where table_type = 'BASE_TABLE';
+     where table_type = 'BASE TABLE';
 
 create view oracle.user_cons_columns as
    select constraint_name, column_name, table_name
@@ -3050,7 +3380,7 @@ create view oracle.user_constraints as
     select conname as constraint_name,
            conindid::regclass as index_name,
            case contype when 'p' then 'P' when 'f' then 'R' end as constraint_type,
-           relname as table_name,
+           conrelid::regclass as table_name,
            case contype when 'f' then (select conname
                                          from pg_constraint c2
                                         where contype = 'p' and c2.conindid = c1.conindid)
@@ -3180,14 +3510,29 @@ $$ LANGUAGE sql IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION oracle.nvl(bigint, int)
 RETURNS bigint AS $$
 SELECT coalesce($1, $2)
-$$ LANGUAGE sql IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION oracle.nvl(numeric, int)
 RETURNS numeric AS $$
 SELECT coalesce($1, $2)
-$$ LANGUAGE sql IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION oracle.nvl(int, int)
+RETURNS int AS $$
+SELECT coalesce($1, $2)
+$$ LANGUAGE sql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION oracle.numtodsinterval(double precision, text)
 RETURNS interval AS $$
   SELECT $1 * ('1' || $2)::interval
 $$ LANGUAGE sql IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION oracle.replace_empty_strings()
+RETURNS TRIGGER
+AS 'MODULE_PATHNAME','orafce_replace_empty_strings'
+LANGUAGE 'c';
+
+CREATE OR REPLACE FUNCTION oracle.replace_null_strings()
+RETURNS TRIGGER
+AS 'MODULE_PATHNAME','orafce_replace_null_strings'
+LANGUAGE 'c';

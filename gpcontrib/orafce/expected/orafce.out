@@ -144,7 +144,7 @@ SELECT add_months ('2008-02-28 02:12:12', 1);
 SELECT add_months ('2008-02-29 12:12:12', 1);
      add_months      
 ---------------------
- 2008-03-29 12:12:12
+ 2008-03-31 12:12:12
 (1 row)
 
 SELECT add_months ('2008-01-31 11:11:21', 12);
@@ -168,7 +168,7 @@ SELECT add_months ('2008-01-31 12:12:12', 95903);
 SELECT add_months ('2008-01-31 11:32:12', -80640);
        add_months       
 ------------------------
- 4713-01-31 11:32:12 BC
+ 4712-01-31 11:32:12 BC
 (1 row)
 
 SELECT add_months ('03-21-2008 08:12:22',3);
@@ -331,7 +331,11 @@ SELECT next_day ('2008-01-01', 'sun');
 (1 row)
 
 SELECT next_day ('2008-01-01', 'sunAAA');
-ERROR:  invalid day name "sunAAA"
+  next_day  
+------------
+ 2008-01-06
+(1 row)
+
 SELECT next_day ('2008-01-01', 1);
   next_day  
 ------------
@@ -370,8 +374,11 @@ SELECT next_day ('2008-01-01 111343', 'sun');
 (1 row)
 
 SELECT next_day ('2008-01-01 121212', 'sunAAA');
-ERROR:  invalid day name "sunAAA"
-CONTEXT:  SQL function "next_day" statement 1
+      next_day       
+---------------------
+ 2008-01-06 12:12:12
+(1 row)
+
 SELECT next_day ('2008-01-01 111213', 1);
       next_day       
 ---------------------
@@ -1513,6 +1520,775 @@ select lnnvl(NULL);
  t
 (1 row)
 
+select decode(1, 1, 100, 2, 200);
+ decode 
+--------
+    100
+(1 row)
+
+select decode(2, 1, 100, 2, 200);
+ decode 
+--------
+    200
+(1 row)
+
+select decode(3, 1, 100, 2, 200);
+ decode 
+--------
+       
+(1 row)
+
+select decode(3, 1, 100, 2, 200, 300);
+ decode 
+--------
+    300
+(1 row)
+
+select decode(NULL, 1, 100, NULL, 200, 300);
+ decode 
+--------
+    200
+(1 row)
+
+select decode('1'::text, '1', 100, '2', 200);
+ decode 
+--------
+    100
+(1 row)
+
+select decode(2, 1, 'ABC', 2, 'DEF');
+ decode 
+--------
+ DEF
+(1 row)
+
+select decode('2009-02-05'::date, '2009-02-05', 'ok');
+ decode 
+--------
+ ok
+(1 row)
+
+select decode('2009-02-05 01:02:03'::timestamp, '2009-02-05 01:02:03', 'ok');
+ decode 
+--------
+ ok
+(1 row)
+
+-- For type 'bpchar'
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('c'::bpchar, 'a'::bpchar,'postgres'::bpchar);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar,'default value'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('c', 'a'::bpchar,'postgres'::bpchar,'default value'::bpchar);
+    decode     
+---------------
+ default value
+(1 row)
+
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('d'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar,'default value'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('d'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar,'default value'::bpchar);
+    decode     
+---------------
+ default value
+(1 row)
+
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar, 'c'::bpchar, 'system'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('d'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar, 'c'::bpchar, 'system'::bpchar);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('a'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar, 'c'::bpchar, 'system'::bpchar,'default value'::bpchar);
+  decode  
+----------
+ postgres
+(1 row)
+
+select decode('d'::bpchar, 'a'::bpchar,'postgres'::bpchar,'b'::bpchar,'database'::bpchar, 'c'::bpchar, 'system'::bpchar,'default value'::bpchar);
+    decode     
+---------------
+ default value
+(1 row)
+
+select decode(NULL, 'a'::bpchar, 'postgres'::bpchar, NULL,'database'::bpchar);
+  decode  
+----------
+ database
+(1 row)
+
+select decode(NULL, 'a'::bpchar, 'postgres'::bpchar, 'b'::bpchar,'database'::bpchar);
+ decode 
+--------
+ 
+(1 row)
+
+select decode(NULL, 'a'::bpchar, 'postgres'::bpchar, NULL,'database'::bpchar,'default value'::bpchar);
+  decode  
+----------
+ database
+(1 row)
+
+select decode(NULL, 'a'::bpchar, 'postgres'::bpchar, 'b'::bpchar,'database'::bpchar,'default value'::bpchar);
+    decode     
+---------------
+ default value
+(1 row)
+
+-- For type 'bigint'
+select decode(2147483651::bigint, 2147483650::bigint,2147483650::bigint);
+ decode 
+--------
+       
+(1 row)
+
+select decode(2147483653::bigint, 2147483651::bigint,2147483650::bigint);
+ decode 
+--------
+       
+(1 row)
+
+select decode(2147483653::bigint, 2147483651::bigint,2147483650::bigint,9999999999::bigint);
+   decode   
+------------
+ 9999999999
+(1 row)
+
+select decode(2147483653::bigint, 2147483651::bigint,2147483650::bigint,9999999999::bigint);
+   decode   
+------------
+ 9999999999
+(1 row)
+
+select decode(2147483651::bigint, 2147483651::bigint,2147483650::bigint,2147483652::bigint,2147483651::bigint);
+   decode   
+------------
+ 2147483650
+(1 row)
+
+select decode(2147483654::bigint, 2147483651::bigint,2147483650::bigint,2147483652::bigint,2147483651::bigint);
+ decode 
+--------
+       
+(1 row)
+
+select decode(2147483651::bigint, 2147483651::bigint,2147483650::bigint,2147483652::bigint,2147483651::bigint,9999999999::bigint);
+   decode   
+------------
+ 2147483650
+(1 row)
+
+select decode(2147483654::bigint, 2147483651::bigint,2147483650::bigint,2147483652::bigint,2147483651::bigint,9999999999::bigint);
+   decode   
+------------
+ 9999999999
+(1 row)
+
+select decode(2147483651::bigint, 2147483651::bigint,2147483650::bigint, 2147483652::bigint,2147483651::bigint, 2147483653::bigint, 2147483652::bigint);
+   decode   
+------------
+ 2147483650
+(1 row)
+
+select decode(2147483654::bigint, 2147483651::bigint,2147483650::bigint, 2147483652::bigint,2147483651::bigint, 2147483653::bigint, 2147483652::bigint);
+ decode 
+--------
+       
+(1 row)
+
+select decode(2147483651::bigint, 2147483651::bigint,2147483650::bigint, 2147483652::bigint,2147483651::bigint, 2147483653::bigint, 2147483652::bigint,9999999999::bigint);
+   decode   
+------------
+ 2147483650
+(1 row)
+
+select decode(2147483654::bigint, 2147483651::bigint,2147483650::bigint, 2147483652::bigint,2147483651::bigint, 2147483653::bigint, 2147483652::bigint,9999999999::bigint);
+   decode   
+------------
+ 9999999999
+(1 row)
+
+select decode(NULL, 2147483651::bigint, 2147483650::bigint, NULL,2147483651::bigint);
+   decode   
+------------
+ 2147483651
+(1 row)
+
+select decode(NULL, 2147483651::bigint, 2147483650::bigint, 2147483652::bigint,2147483651::bigint);
+ decode 
+--------
+       
+(1 row)
+
+select decode(NULL, 2147483651::bigint, 2147483650::bigint, NULL,2147483651::bigint,9999999999::bigint);
+   decode   
+------------
+ 2147483651
+(1 row)
+
+select decode(NULL, 2147483651::bigint, 2147483650::bigint, 2147483652::bigint,2147483651::bigint,9999999999::bigint);
+   decode   
+------------
+ 9999999999
+(1 row)
+
+-- For type 'numeric'
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.003::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4));
+ decode 
+--------
+       
+(1 row)
+
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.003::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 999999.9999
+(1 row)
+
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.004::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4));
+ decode 
+--------
+       
+(1 row)
+
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.004::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 999999.9999
+(1 row)
+
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4), 12.003::numeric(5,3), 214748.3652::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.004::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4), 12.003::numeric(5,3), 214748.3652::numeric(10,4));
+ decode 
+--------
+       
+(1 row)
+
+select decode(12.001::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4), 12.003::numeric(5,3), 214748.3652::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 214748.3650
+(1 row)
+
+select decode(12.004::numeric(5,3), 12.001::numeric(5,3),214748.3650::numeric(10,4),12.002::numeric(5,3),214748.3651::numeric(10,4), 12.003::numeric(5,3), 214748.3652::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 999999.9999
+(1 row)
+
+select decode(NULL, 12.001::numeric(5,3), 214748.3650::numeric(10,4), NULL,214748.3651::numeric(10,4));
+   decode    
+-------------
+ 214748.3651
+(1 row)
+
+select decode(NULL, 12.001::numeric(5,3), 214748.3650::numeric(10,4), 12.002::numeric(5,3),214748.3651::numeric(10,4));
+ decode 
+--------
+       
+(1 row)
+
+select decode(NULL, 12.001::numeric(5,3), 214748.3650::numeric(10,4), NULL,214748.3651::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 214748.3651
+(1 row)
+
+select decode(NULL, 12.001::numeric(5,3), 214748.3650::numeric(10,4), 12.002::numeric(5,3),214748.3651::numeric(10,4),999999.9999::numeric(10,4));
+   decode    
+-------------
+ 999999.9999
+(1 row)
+
+--For type 'date'
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-03'::date, '2020-01-01'::date,'2012-12-20'::date);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date,'2012-12-21'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-03'::date, '2020-01-01'::date,'2012-12-20'::date,'2012-12-21'::date);
+   decode   
+------------
+ 2012-12-21
+(1 row)
+
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-04'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date,'2012-12-31'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-04'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date,'2012-12-31'::date);
+   decode   
+------------
+ 2012-12-31
+(1 row)
+
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date, '2020-01-03'::date, '2012-12-31'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-04'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date, '2020-01-03'::date, '2012-12-31'::date);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date, '2020-01-03'::date, '2012-12-31'::date,'2013-01-01'::date);
+   decode   
+------------
+ 2012-12-20
+(1 row)
+
+select decode('2020-01-04'::date, '2020-01-01'::date,'2012-12-20'::date,'2020-01-02'::date,'2012-12-21'::date, '2020-01-03'::date, '2012-12-31'::date,'2013-01-01'::date);
+   decode   
+------------
+ 2013-01-01
+(1 row)
+
+select decode(NULL, '2020-01-01'::date, '2012-12-20'::date, NULL,'2012-12-21'::date);
+   decode   
+------------
+ 2012-12-21
+(1 row)
+
+select decode(NULL, '2020-01-01'::date, '2012-12-20'::date, '2020-01-02'::date,'2012-12-21'::date);
+ decode 
+--------
+ 
+(1 row)
+
+select decode(NULL, '2020-01-01'::date, '2012-12-20'::date, NULL,'2012-12-21'::date,'2012-12-31'::date);
+   decode   
+------------
+ 2012-12-21
+(1 row)
+
+select decode(NULL, '2020-01-01'::date, '2012-12-20'::date, '2020-01-02'::date,'2012-12-21'::date,'2012-12-31'::date);
+   decode   
+------------
+ 2012-12-31
+(1 row)
+
+-- For type 'time'
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:03'::time, '01:00:01'::time,'09:00:00'::time);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:03'::time, '01:00:01'::time,'09:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 00:00:00
+(1 row)
+
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:04'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:04'::time, '01:00:01'::time,'09:00:00'::time,'01:00:01'::time,'12:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 00:00:00
+(1 row)
+
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time, '01:00:03'::time, '15:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:04'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time, '01:00:03'::time, '15:00:00'::time);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('01:00:01'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time, '01:00:03'::time, '15:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 09:00:00
+(1 row)
+
+select decode('01:00:04'::time, '01:00:01'::time,'09:00:00'::time,'01:00:02'::time,'12:00:00'::time, '01:00:03'::time, '15:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 00:00:00
+(1 row)
+
+select decode(NULL, '01:00:01'::time, '09:00:00'::time, NULL,'12:00:00'::time);
+  decode  
+----------
+ 12:00:00
+(1 row)
+
+select decode(NULL, '01:00:01'::time, '09:00:00'::time, '01:00:02'::time,'12:00:00'::time);
+ decode 
+--------
+ 
+(1 row)
+
+select decode(NULL, '01:00:01'::time, '09:00:00'::time, NULL,'12:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 12:00:00
+(1 row)
+
+select decode(NULL, '01:00:01'::time, '09:00:00'::time, '01:00:02'::time,'12:00:00'::time,'00:00:00'::time);
+  decode  
+----------
+ 00:00:00
+(1 row)
+
+-- For type 'timestamp'
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-03 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-03 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 00:00:00
+(1 row)
+
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-04 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-04 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 00:00:00
+(1 row)
+
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp, '2020-01-03 01:00:01'::timestamp, '2012-12-20 15:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-04 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp, '2020-01-03 01:00:01'::timestamp, '2012-12-20 15:00:00'::timestamp);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp, '2020-01-03 01:00:01'::timestamp, '2012-12-20 15:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 09:00:00
+(1 row)
+
+select decode('2020-01-04 01:00:01'::timestamp, '2020-01-01 01:00:01'::timestamp,'2012-12-20 09:00:00'::timestamp,'2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp, '2020-01-03 01:00:01'::timestamp, '2012-12-20 15:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 00:00:00
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01'::timestamp, '2012-12-20 09:00:00'::timestamp, NULL,'2012-12-20 12:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 12:00:00
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01'::timestamp, '2012-12-20 09:00:00'::timestamp, '2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp);
+ decode 
+--------
+ 
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01'::timestamp, '2012-12-20 09:00:00'::timestamp, NULL,'2012-12-20 12:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 12:00:00
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01'::timestamp, '2012-12-20 09:00:00'::timestamp, '2020-01-02 01:00:01'::timestamp,'2012-12-20 12:00:00'::timestamp,'2012-12-20 00:00:00'::timestamp);
+       decode        
+---------------------
+ 2012-12-20 00:00:00
+(1 row)
+
+-- For type 'timestamptz'
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode('2020-01-03 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode('2020-01-03 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 00:00:00-08
+(1 row)
+
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode('2020-01-04 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode('2020-01-04 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 00:00:00-08
+(1 row)
+
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz, '2020-01-03 01:00:01-08'::timestamptz, '2012-12-20 15:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode('2020-01-04 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz, '2020-01-03 01:00:01-08'::timestamptz, '2012-12-20 15:00:00-08'::timestamptz);
+ decode 
+--------
+ 
+(1 row)
+
+select decode('2020-01-01 01:00:01-08'::timestamptz, '2020-01-01 01:00:01-08'::timestamptz,'2012-12-20 09:00:00-08'::timestamptz,'2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz, '2020-01-03 01:00:01-08'::timestamptz, '2012-12-20 15:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 09:00:00-08
+(1 row)
+
+select decode(4, 1,'2012-12-20 09:00:00-08'::timestamptz,2,'2012-12-20 12:00:00-08'::timestamptz, 3, '2012-12-20 15:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 00:00:00-08
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01-08'::timestamptz, '2012-12-20 09:00:00-08'::timestamptz, NULL,'2012-12-20 12:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 12:00:00-08
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01-08'::timestamptz, '2012-12-20 09:00:00-08'::timestamptz, '2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz);
+ decode 
+--------
+ 
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01-08'::timestamptz, '2012-12-20 09:00:00-08'::timestamptz, NULL,'2012-12-20 12:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 12:00:00-08
+(1 row)
+
+select decode(NULL, '2020-01-01 01:00:01-08'::timestamptz, '2012-12-20 09:00:00-08'::timestamptz, '2020-01-02 01:00:01-08'::timestamptz,'2012-12-20 12:00:00-08'::timestamptz,'2012-12-20 00:00:00-08'::timestamptz);
+         decode         
+------------------------
+ 2012-12-20 00:00:00-08
+(1 row)
+
+--Test case to check if decode accepts other expressions as a key
+CREATE OR REPLACE FUNCTION five() RETURNS integer AS $$
+BEGIN
+	RETURN 5;
+END; 
+$$ LANGUAGE plpgsql;
+select decode(five(), 1, 'one', 2, 'two', 5, 'five');
+ decode 
+--------
+ five
+(1 row)
+
+DROP FUNCTION five();
+-- Test case to check duplicate keys in search list
+select decode(1, 1, 'one', 2, 'two', 1, 'one-again') = 'one';
+ ?column? 
+----------
+ t
+(1 row)
+
+/* Test case to check explicit type casting of keys in search list in 
+ * case of ambiguous key (1st argument) provided.
+ */
+-- 1) succeed and return 'result-1'
+select decode('2012-01-01', '2012-01-01'::date,'result-1','2012-01-02', 'result-2');
+  decode  
+----------
+ result-1
+(1 row)
+
+select decode('2012-01-01', '2012-01-01', 'result-1', '2012-02-01'::date, 'result-2');
+  decode  
+----------
+ result-1
+(1 row)
+
 select PLVstr.rvrs ('Jumping Jack Flash') ='hsalF kcaJ gnipmuJ';
  ?column? 
 ----------
@@ -1626,15 +2402,15 @@ select to_char(1234567890123456::bigint);
 (1 row)
 
 select to_char(123.456::real);
-  to_char   
-------------
- 123.456001
+ to_char 
+---------
+ 123.456
 (1 row)
 
 select to_char(1234.5678::double precision);
-   to_char   
--------------
- 1234.567800
+  to_char  
+-----------
+ 1234.5678
 (1 row)
 
 select to_char(12345678901234567890::numeric);
@@ -1751,10 +2527,10 @@ SELECT bitand(5,1), bitand(5,2), bitand(5,4);
       1 |      0 |      4
 (1 row)
 
-SELECT sinh(1.570796), cosh(1.570796), tanh(4);
-      sinh       |       cosh       |       tanh        
------------------+------------------+-------------------
- 2.3012980823207 | 2.50917772660545 | 0.999329299739067
+SELECT sinh(1.570796)::numeric(10, 8), cosh(1.570796)::numeric(10, 8), tanh(4)::numeric(10, 8);
+    sinh    |    cosh    |    tanh    
+------------+------------+------------
+ 2.30129808 | 2.50917773 | 0.99932930
 (1 row)
 
 SELECT nanvl(12345, 1), nanvl('NaN', 1);
@@ -3565,3 +4341,35 @@ SELECT pos, token, class, mod FROM plvlex.tokens('select * from a.b.c join d on 
   32 | y      | IDENT   | 
 (10 rows)
 
+--
+-- trigger functions
+--
+CREATE TABLE trg_test(a varchar, b int, c varchar, d date, e int);
+CREATE TRIGGER trg_test_xx BEFORE INSERT OR UPDATE
+  ON trg_test FOR EACH ROW EXECUTE PROCEDURE oracle.replace_empty_strings(true);
+\pset null ***
+INSERT INTO trg_test VALUES('',10, 'AHOJ', NULL, NULL);
+WARNING:  Field "a" of table "trg_test" is empty string (replaced by NULL).
+INSERT INTO trg_test VALUES('AHOJ', NULL, '', '2020-01-01', 100);
+WARNING:  Field "c" of table "trg_test" is empty string (replaced by NULL).
+SELECT * FROM trg_test;
+  a   |  b  |  c   |     d      |  e  
+------+-----+------+------------+-----
+ ***  |  10 | AHOJ | ***        | ***
+ AHOJ | *** | ***  | 2020-01-01 | 100
+(2 rows)
+
+DELETE FROM trg_test;
+DROP TRIGGER trg_test_xx ON trg_test;
+CREATE TRIGGER trg_test_xx BEFORE INSERT OR UPDATE
+  ON trg_test FOR EACH ROW EXECUTE PROCEDURE oracle.replace_null_strings();
+INSERT INTO trg_test VALUES(NULL, 10, 'AHOJ', NULL, NULL);
+INSERT INTO trg_test VALUES('AHOJ', NULL, NULL, '2020-01-01', 100);
+SELECT * FROM trg_test;
+  a   |  b  |  c   |     d      |  e  
+------+-----+------+------------+-----
+      |  10 | AHOJ | ***        | ***
+ AHOJ | *** |      | 2020-01-01 | 100
+(2 rows)
+
+DROP TABLE trg_test;
