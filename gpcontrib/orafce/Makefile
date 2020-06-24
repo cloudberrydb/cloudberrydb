@@ -15,6 +15,7 @@ REGRESS = orafce orafce2 dbms_output dbms_utility files varchar2 nvarchar2 aggre
 
 #REGRESS_OPTS = --load-language=plpgsql --schedule=parallel_schedule --encoding=utf8
 REGRESS_OPTS = --schedule=parallel_schedule --encoding=utf8
+REGRESS_OPTS += --init-file=init_file
 
 #override CFLAGS += -Wextra -Wimplicit-fallthrough=0
 

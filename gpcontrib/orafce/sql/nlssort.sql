@@ -2,7 +2,7 @@
 \set ECHO none
 SET client_min_messages = error;
 DROP DATABASE IF EXISTS regression_sort;
-CREATE DATABASE regression_sort WITH TEMPLATE = template0 ENCODING='SQL_ASCII' LC_COLLATE='C' LC_CTYPE='C';
+CREATE DATABASE regression_sort WITH TEMPLATE = template0 ENCODING='UTF-8' LC_COLLATE='C' LC_CTYPE='C';
 \c regression_sort
 SET client_min_messages = error;
 CREATE EXTENSION orafce;

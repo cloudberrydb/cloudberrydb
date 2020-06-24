@@ -21,8 +21,14 @@
  
 (1 row)
 
-ERROR:  failed to set the requested LC_COLLATE value [invalid]
-CONTEXT:  SQL function "nlssort" statement 1
+  name  
+--------
+ Purple
+ brown
+ red
+ yellow
+(4 rows)
+
  set_nls_sort 
 --------------
  

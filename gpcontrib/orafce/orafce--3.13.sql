@@ -548,6 +548,9 @@ AS 'MODULE_PATHNAME','ora_nvl2'
 LANGUAGE C IMMUTABLE;
 COMMENT ON FUNCTION nvl2(anyelement, anyelement, anyelement) IS '';
 
+-- decode functions are left out in GPDB, because GPDB has a built-in parser
+-- hack to transform DECODE() into CASE-WHEN.
+/*
 CREATE FUNCTION public.decode(anyelement, anyelement, text)
 RETURNS text
 AS 'MODULE_PATHNAME', 'ora_decode'
@@ -817,7 +820,7 @@ CREATE FUNCTION public.decode(anyelement, anyelement, timestamptz, anyelement, t
 RETURNS timestamptz
 AS 'MODULE_PATHNAME', 'ora_decode'
 LANGUAGE C IMMUTABLE;
-
+*/
 
 CREATE SCHEMA dbms_pipe;
 
@@ -1474,8 +1477,9 @@ AS $$ SELECT TRANSLATE($1, 'A'||$2, 'A'); $$
 LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION plvchr.stripped(text, text) IS 'Strips a string of all instances of the specified characters';
 
--- dbms_alert
-
+-- dbms_alert is removed in GPDB because it is not possible to run it in MPP
+-- environments as implemented in postgres.
+/*
 CREATE SCHEMA dbms_alert;
 
 CREATE FUNCTION dbms_alert.register(name text)
@@ -1531,6 +1535,7 @@ RETURNS void
 AS 'MODULE_PATHNAME','dbms_alert_signal'
 LANGUAGE C SECURITY DEFINER;
 COMMENT ON FUNCTION dbms_alert.signal(text, text) IS 'Emit signal to all recipients';
+*/
 
 CREATE SCHEMA plvsubst;
 
@@ -2283,6 +2288,14 @@ CREATE CAST (interval AS varchar2)
 WITH INOUT
 AS IMPLICIT;
 
+-- XXX: This is disabled in gpdb because we have no way of dispatching this
+-- change to the segments. There is no DDL to support setting a protransform
+-- function in upstream, because of security concerns. We need to understand
+-- exactly what these security concerns are, and have a strategy to deal with
+-- the (probably rare) cases where a user might want to use this feature in
+-- GPDB.
+--SET allow_system_table_mods=true;
+/*
 do $$
 BEGIN
   IF EXISTS(SELECT * FROM pg_settings WHERE name = 'server_version_num' AND setting::int >= 120000) THEN
@@ -2292,6 +2305,8 @@ BEGIN
   END IF;
 END
 $$;
+*/
+--RESET allow_system_table_mods;
 
 -- string functions for varchar2 type
 -- these are 'byte' versions of corresponsing text/varchar functions
@@ -2497,6 +2512,8 @@ CREATE CAST (interval AS nvarchar2)
 WITH INOUT
 AS IMPLICIT;
 
+-- disabled in GPDB; see similar chunk on varchar2_transform above
+/*
 do $$
 BEGIN
   IF EXISTS(SELECT * FROM pg_settings WHERE name = 'server_version_num' AND setting::int >= 120000) THEN
@@ -2506,6 +2523,7 @@ BEGIN
   END IF;
 END
 $$;
+*/
 
 /*
  * Note - a procedure keyword is depraceted from PostgreSQL 11, but it used
@@ -3263,7 +3281,7 @@ STRICT IMMUTABLE
 ;
 
 GRANT USAGE ON SCHEMA dbms_pipe TO PUBLIC;
-GRANT USAGE ON SCHEMA dbms_alert TO PUBLIC;
+--GRANT USAGE ON SCHEMA dbms_alert TO PUBLIC;
 GRANT USAGE ON SCHEMA plvdate TO PUBLIC;
 GRANT USAGE ON SCHEMA plvstr TO PUBLIC;
 GRANT USAGE ON SCHEMA plvchr TO PUBLIC;
