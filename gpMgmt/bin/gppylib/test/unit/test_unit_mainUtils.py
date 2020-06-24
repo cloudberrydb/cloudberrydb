@@ -24,7 +24,7 @@ class MainUtilsTestCase(GpTestCase):
         self.assertEquals(False, os.path.exists(self.lockfile))
 
     def test_lock_owned_by_parent(self):
-        with self.lock:
+        with self.lock as l:
             self.assertEquals(l.read_pid(), self.ppid)
 
 
@@ -34,7 +34,7 @@ class MainUtilsTestCase(GpTestCase):
                 self.lock.acquire()
 
     def test_child_can_read_lock_owner(self):
-        with self.lock:
+        with self.lock as l:
             pid = os.fork()
             if pid == 0:
                 self.assertEquals(l.read_pid(), self.ppid)
