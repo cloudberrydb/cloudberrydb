@@ -201,7 +201,8 @@ SyncRepWaitForLSN(XLogRecPtr lsn, bool commit)
 			syncStandbyPresent = (walsnd->pid != 0)
 				&& ((walsnd->state == WALSNDSTATE_STREAMING)
 					|| (walsnd->state == WALSNDSTATE_CATCHUP &&
-						walsnd->caughtup_within_range));
+						walsnd->caughtup_within_range))
+				&& walsnd->is_for_gp_walreceiver;
 			SpinLockRelease(&walsnd->mutex);
 
 			if (syncStandbyPresent)
