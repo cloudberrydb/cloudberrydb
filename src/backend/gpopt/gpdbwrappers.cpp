@@ -3056,6 +3056,7 @@ gpdb::RunStaticPartitionSelection
 	return NULL;
 }
 
+#ifdef FAULT_INJECTOR
 FaultInjectorType_e
 gpdb::InjectFaultInOptTasks
 	(
@@ -3069,6 +3070,7 @@ gpdb::InjectFaultInOptTasks
 	GP_WRAP_END;
 	return FaultInjectorTypeNotSpecified;
 }
+#endif
 
 gpos::ULONG
 gpdb::CountLeafPartTables
