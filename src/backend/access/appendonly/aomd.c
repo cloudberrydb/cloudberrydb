@@ -140,24 +140,13 @@ MakeAOSegmentFileName(Relation rel,
 File
 OpenAOSegmentFile(Relation rel, 
 				  char *filepathname, 
-				  int32	segmentFileNum,
 				  int64	logicalEof)
-{	
-	char	   *dbPath;
-	char		path[MAXPGPATH];
+{
 	int			fileFlags = O_RDWR | PG_BINARY;
 	File		fd;
 
-	dbPath = GetDatabasePath(rel->rd_node.dbNode, rel->rd_node.spcNode);
-
-	if (segmentFileNum == 0)
-		snprintf(path, MAXPGPATH, "%s/%u", dbPath, rel->rd_node.relNode);
-	else
-		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, rel->rd_node.relNode, segmentFileNum);
-
 	errno = 0;
-
-	fd = PathNameOpenFile(path, fileFlags, 0600);
+	fd = PathNameOpenFile(filepathname, fileFlags, 0600);
 	if (fd < 0)
 	{
 		if (logicalEof == 0 && errno == ENOENT)
@@ -168,8 +157,6 @@ OpenAOSegmentFile(Relation rel,
 				 errmsg("could not open Append-Only segment file \"%s\": %m",
 						filepathname)));
 	}
-	pfree(dbPath);
-
 	return fd;
 }
 
@@ -478,7 +465,7 @@ truncate_ao_perFile(const int segno, void *ctx)
 
 	sprintf(segPathSuffixPosition, ".%u", segno);
 
-	fd = OpenAOSegmentFile(aorel, segPath, segno, 0);
+	fd = OpenAOSegmentFile(aorel, segPath, 0);
 
 	if (fd >= 0)
 	{

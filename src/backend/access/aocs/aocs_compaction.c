@@ -70,7 +70,7 @@ AOCSCompaction_DropSegmentFile(Relation aorel, int segno)
 			   "segno %d",
 			   pseudoSegNo);
 
-		fd = OpenAOSegmentFile(aorel, filenamepath, pseudoSegNo, 0);
+		fd = OpenAOSegmentFile(aorel, filenamepath, 0);
 		if (fd >= 0)
 		{
 			TruncateAOSegmentFile(fd, aorel, pseudoSegNo, 0);
@@ -133,7 +133,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
 			   fileSegNo,
 			   segeof);
 
-		fd = OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof);
+		fd = OpenAOSegmentFile(aorel, filenamepath, segeof);
 		if (fd >= 0)
 		{
 			TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof);

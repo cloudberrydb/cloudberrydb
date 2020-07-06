@@ -858,8 +858,8 @@ select count(*) from temp_tenk_aocs5;
  10000
 (1 row)
 
-truncate table temp_tenk_aocs5;
 vacuum analyze temp_tenk_aocs5;
+truncate table temp_tenk_aocs5;
 \d temp_tenk_aocs5
 Append-Only Columnar Table "pg_temp_274.temp_tenk_aocs5"
    Column    |  Type   | Modifiers 

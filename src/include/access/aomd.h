@@ -37,7 +37,6 @@ extern void MakeAOSegmentFileName(
 
 extern File OpenAOSegmentFile(Relation rel,
 				  char *filepathname,
-				  int32 segmentFileNum,
 				  int64	logicalEof);
 
 extern void CloseAOSegmentFile(File fd);

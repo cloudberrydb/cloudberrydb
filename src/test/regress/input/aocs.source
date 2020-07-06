@@ -423,8 +423,8 @@ insert into temp_tenk_aocs5(unique1, unique2) values (99998888, 99998888);
 update temp_tenk_aocs5 set unique2 = 99998889 where unique2 = 99998888;
 delete from temp_tenk_aocs5 where unique2 = 99998889;
 select count(*) from temp_tenk_aocs5;
-truncate table temp_tenk_aocs5;
 vacuum analyze temp_tenk_aocs5;
+truncate table temp_tenk_aocs5;
 \d temp_tenk_aocs5
 insert into temp_tenk_aocs5(unique1, unique2) values (99998888, 99998888);
 select unique1 from temp_tenk_aocs5;

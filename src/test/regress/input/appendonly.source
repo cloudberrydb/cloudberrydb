@@ -446,7 +446,7 @@ insert into ao select i, 2, 'a' from generate_series(1, 20) i;
 select distinct j from ao where j > -1 and j < 3 order by j;
 
 -- TEMP TABLES w/ INDEXES
-create temp table temp_tenk_ao5 with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
+create temp table temp_tenk_ao5 with (appendonly=true, compresstype=zlib, compresslevel=1)
     as select * from tenk_ao5 distributed by (unique1);
 create index temp_even_index on temp_tenk_ao5 (even);
 select count(*) from temp_tenk_ao5;
@@ -455,8 +455,8 @@ insert into temp_tenk_ao5(unique1, unique2) values (99998888, 99998888);
 update temp_tenk_ao5 set unique2 = 99998889 where unique2 = 99998888;
 delete from temp_tenk_ao5 where unique2 = 99998889;
 select count(*) from temp_tenk_ao5;
-truncate table temp_tenk_ao5;
 vacuum analyze temp_tenk_ao5;
+truncate table temp_tenk_ao5;
 \d temp_tenk_ao5
 insert into temp_tenk_ao5(unique1, unique2) values (99998888, 99998888);
 select unique1 from temp_tenk_ao5;
@@ -464,7 +464,7 @@ select unique1 from temp_tenk_ao5;
 -- TEMP TABLES w/ COMMIT DROP AND USING PREPARE
 begin;
 prepare tenk_ao5_prep(int4) as select * from tenk_ao5 where unique1 > 8000;
-create temp table tenk_ao5_temp_drop with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
+create temp table tenk_ao5_temp_drop with (appendonly=true, compresstype=zlib, compresslevel=1)
     on commit drop as execute tenk_ao5_prep(8095);
 select count(*) from tenk_ao5_temp_drop;
 commit;
@@ -472,7 +472,7 @@ select count(*) from tenk_ao5_temp_drop;
 
 -- TEMP TABLES w/ COMMIT DELETE ROWS
 begin;
-create temp table tenk_ao5_temp_delete_rows with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
+create temp table tenk_ao5_temp_delete_rows with (appendonly=true, compresstype=zlib, compresslevel=1)
     on commit delete rows as select * from tenk_ao5 where unique1 > 8000 distributed by (unique1);
 select count(*) from tenk_ao5_temp_delete_rows;
 commit;
@@ -480,7 +480,7 @@ select count(*) from tenk_ao5_temp_delete_rows;
 
 -- TEMP TABLES w/ COMMIT PRESERVE ROWS
 begin;
-create temp table tenk_ao5_temp_pres_rows with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
+create temp table tenk_ao5_temp_pres_rows with (appendonly=true, compresstype=zlib, compresslevel=1)
     on commit preserve rows as select * from tenk_ao5 where unique1 > 8000 distributed by (unique1);
 select count(*) from tenk_ao5_temp_pres_rows;
 commit;
