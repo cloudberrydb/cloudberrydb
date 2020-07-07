@@ -26,7 +26,7 @@
 /*
  * How many seconds to wait for checkpoint record to be applied in standby?
  */
-#define NUM_CHECKPOINT_SYNC_TIMEOUT 60
+#define NUM_CHECKPOINT_SYNC_TIMEOUT 600
 
 /*
  * This value is used as divisor to split a sec, used to speficy sleep time
