@@ -7808,7 +7808,7 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
 			c->encoding = TypeNameGetStorageDirective(colDef->typeName);
 			
 			if (!c->encoding)
-				c->encoding = default_column_encoding_clause();
+				c->encoding = default_column_encoding_clause(rel);
 		}
 
 		AddRelationAttributeEncodings(rel, list_make1(c));

@@ -4657,7 +4657,7 @@ transformAttributeEncoding(List *columns, List *stenc, List *taboptions, bool *f
 					if (te)
 						c->encoding = copyObject(te);
 					else
-						c->encoding = default_column_encoding_clause();
+						c->encoding = default_column_encoding_clause(NULL);
 				}
 			}
 		}

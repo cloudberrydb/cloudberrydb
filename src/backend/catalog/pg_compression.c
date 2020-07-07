@@ -529,27 +529,46 @@ compresstype_is_valid(char *comptype)
 }
 
 /*
- * Make encoding (compresstype = none, blocksize=...) based on
+ * Make encoding (compresstype = ..., blocksize=...) based on
  * currently configured defaults.
  */
 List *
-default_column_encoding_clause(void)
+default_column_encoding_clause(Relation rel)
 {
-	const StdRdOptions *ao_opts = currentAOStorageOptions();
 	DefElem *e1, *e2, *e3;
-	if (ao_opts->compresstype[0])
-	{
+	const StdRdOptions *ao_opts = currentAOStorageOptions();
+	Form_pg_appendonly appendonly = rel ? rel->rd_appendonly : NULL;
+	char *compresstype = appendonly ? NameStr(appendonly->compresstype) : NULL;
+
+	if (compresstype && compresstype[0])
 		e1 = makeDefElem("compresstype",
-						 (Node *)makeString(pstrdup(ao_opts->compresstype)));
-	}
+				(Node *)makeString(pstrdup(compresstype)));
+	else if (ao_opts->compresstype[0])
+		e1 = makeDefElem("compresstype",
+				(Node *)makeString(pstrdup(ao_opts->compresstype)));
 	else
-	{
 		e1 = makeDefElem("compresstype", (Node *)makeString("none"));
-	}
-	e2 = makeDefElem("blocksize",
-					 (Node *)makeInteger(ao_opts->blocksize));
-	e3 = makeDefElem("compresslevel",
-					 (Node *)makeInteger(ao_opts->compresslevel));
+
+	if (appendonly)
+		e2 = makeDefElem("blocksize",
+				(Node *)makeInteger(appendonly->blocksize));
+	else if (ao_opts->blocksize != 0)
+		e2 = makeDefElem("blocksize",
+				(Node *)makeInteger(ao_opts->blocksize));
+	else
+		e2 = makeDefElem("blocksize",
+				(Node *)makeInteger(AO_DEFAULT_BLOCKSIZE));
+
+	if (appendonly && appendonly->compresslevel != 0)
+		e3 = makeDefElem("compresslevel",
+				(Node *)makeInteger(appendonly->compresslevel));
+	else if (ao_opts->compresslevel != 0)
+		e3 = makeDefElem("compresslevel",
+				(Node *)makeInteger(ao_opts->compresslevel));
+	else
+		e3 = makeDefElem("compresslevel",
+				(Node *)makeInteger(AO_DEFAULT_COMPRESSLEVEL));
+
 	return list_make3(e1, e2, e3);
 }
 
