@@ -498,6 +498,16 @@ Feature: gpcheckcat tests
           And the user runs "dropdb gpcheckcat_orphans"
           And the path "repair_dir" is removed from current working directory
 
+    Scenario: gpcheckcat should report vpinfo inconsistent error 
+        Given database "vpinfo_inconsistent_db" is dropped and recreated
+        And there is a "co" table "public.co_vpinfo" in "vpinfo_inconsistent_db" with data
+        When the user runs "gpcheckcat vpinfo_inconsistent_db"
+        Then gpcheckcat should return a return code of 0
+        When an attribute of table "co_vpinfo" in database "vpinfo_inconsistent_db" is deleted on segment with content id "0"
+        Then psql should return a return code of 0
+        When the user runs "gpcheckcat -R aoseg_table vpinfo_inconsistent_db" 
+        Then gpcheckcat should print "Failed test\(s\) that are not reported here: aoseg_table" to stdout
+
 ########################### @concourse_cluster tests ###########################
 # The @concourse_cluster tag denotes the scenario that requires a remote cluster
 

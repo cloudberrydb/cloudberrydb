@@ -2425,6 +2425,90 @@ def checkTableMissingEntry(cat):
         myprint(qry)
 
 
+class checkAOSegVpinfoThread(execThread):
+    def __init__(self, cfg, db):
+        execThread.__init__(self, cfg, db, None)
+
+    def run(self):
+        aoseg_query = """
+           SELECT a.relname, a.relid, a.segrelid, cl.relname
+           FROM (SELECT p.relid, p.segrelid, c.relname FROM pg_appendonly p LEFT JOIN pg_class c ON p.relid = c.oid WHERE p.columnstore = true) a
+           LEFT JOIN pg_class cl ON a.segrelid = cl.oid;
+        """
+
+        try:
+            # Read the list of aoseg tables from the database
+            curs = self.db.query(aoseg_query)
+
+            for relname, relid, segrelid, segrelname in curs.getresult():
+                qry = "SELECT count(*) FROM pg_attribute WHERE attrelid=%d AND attnum > 0;" % (relid)
+                attr_count = self.db.query(qry).single()[0]
+
+                qry = "SELECT distinct(length(vpinfo)) FROM pg_aoseg.%s where xmax = 0;" % (segrelname)
+                vpinfo_curs = self.db.query(qry)
+                nrows = len(vpinfo_curs)
+                if nrows == 0:
+                    continue
+                elif nrows > 1:
+                    GV.checkStatus = False
+                    setError(ERROR_NOREPAIR)
+                    logger.info('[FAIL] inconsistent vpinfo')
+                    logger.error("found {nrows} vpinfo(s) with different length in 'pg_aoseg.{segrelname}' of table '{relname}' on segment {content}"
+                                 .format(nrows = nrows,
+                                         segrelname = segrelname,
+                                         relname = relname,
+                                         content = self.cfg['content']))
+                    logger.error(qry)
+                    continue
+
+                vpinfo_length = vpinfo_curs.single()[0]
+
+                # vpinfo is bytea type, the length of the first 3 fields is 12 bytes, and the size of AOCSVPInfoEntry is 16
+                # typedef struct AOCSVPInfo
+                # {
+                # 	int32		_len;
+                # 	int32		version;
+                # 	int32		nEntry;
+                #
+                # 	AOCSVPInfoEntry entry[1];
+                # } AOCSVPInfo;
+                vpinfo_attr_count = (vpinfo_length - 12) / 16
+                if vpinfo_attr_count != attr_count:
+                    GV.checkStatus = False
+                    setError(ERROR_NOREPAIR)
+                    logger.info('[FAIL] inconsistent vpinfo')
+                    logger.error("vpinfo in 'pg_aoseg.{segrelname}' of table '{relname}' contains {vpinfo_attr_count} attributes, while pg_attribute has {attr_count} attributes on segment {content}"
+                                 .format(segrelname = segrelname,
+                                         relname = relname,
+                                         vpinfo_attr_count = vpinfo_attr_count,
+                                         attr_count = attr_count,
+                                         content = self.cfg['content']))
+                    logger.error(qry)
+        except Exception, e:
+            GV.checkStatus = False
+            self.error = e
+
+def checkAOSegVpinfo():
+    threads = []
+    i = 1
+    # parallelise check
+    for dbid in GV.cfg:
+        cfg = GV.cfg[dbid]
+        db_connection = connect2(cfg)
+        thread = checkAOSegVpinfoThread(cfg, db_connection)
+        thread.start()
+        logger.debug('launching check thread %s for dbid %i' %
+                     (thread.getName(), dbid))
+        threads.append(thread)
+
+        if (i % GV.opt['-B']) == 0:
+            processThread(threads)
+            threads = []
+
+        i += 1
+
+    processThread(threads)
+
 # -------------------------------------------------------------------------------
 
 # Exclude these tuples from the catalog table scan
@@ -2969,6 +3053,14 @@ all_checks = {
             "order": 14,
             "online": True
         },
+    "aoseg_table":
+        {
+            "description": "Check that vpinfo in aoseg table is consistent with pg_attribute",
+            "fn": lambda: checkAOSegVpinfo(),
+            "version": 'main',
+            "order": 15,
+            "online": False
+        }
 }
 
 
