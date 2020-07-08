@@ -2444,7 +2444,7 @@ class checkAOSegVpinfoThread(execThread):
                 qry = "SELECT count(*) FROM pg_attribute WHERE attrelid=%d AND attnum > 0;" % (relid)
                 attr_count = self.db.query(qry).single()[0]
 
-                qry = "SELECT distinct(length(vpinfo)) FROM pg_aoseg.%s where xmax = 0;" % (segrelname)
+                qry = "SELECT distinct(length(vpinfo)) FROM pg_aoseg.%s where state = 1;" % (segrelname)
                 vpinfo_curs = self.db.query(qry)
                 nrows = len(vpinfo_curs)
                 if nrows == 0:
