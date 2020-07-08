@@ -240,7 +240,7 @@ class Gppkg:
             for cur_file in archive_list:
                 if cur_file.endswith(SPECFILE_NAME):
                     specfile = tarinfo.extractfile(cur_file)
-                    yamlfile = yaml.load(specfile)
+                    yamlfile = yaml.safe_load(specfile)
                     keys = yamlfile.keys()
                     break
 
@@ -1345,7 +1345,7 @@ class BuildGppkg(Operation):
         cur_file = None
 
         with open(specfile) as cur_file:
-            yamlfile = yaml.load(cur_file)
+            yamlfile = yaml.safe_load(cur_file)
 
             tags = yamlfile.keys()
 
@@ -1368,7 +1368,7 @@ class BuildGppkg(Operation):
 
         try:
             with open(specfile) as cur_file:
-                yamlfile = yaml.load(cur_file)
+                yamlfile = yaml.safe_load(cur_file)
 
                 if not self._verify_tags(yamlfile):
                     return False
