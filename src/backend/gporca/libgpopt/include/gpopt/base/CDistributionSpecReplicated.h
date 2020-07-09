@@ -34,6 +34,10 @@ public:
 		CDistributionSpec::EDistributionType replicated_type)
 		: m_replicated(replicated_type)
 	{
+		GPOS_ASSERT(replicated_type == CDistributionSpec::EdtReplicated ||
+					replicated_type ==
+						CDistributionSpec::EdtTaintedReplicated ||
+					replicated_type == CDistributionSpec::EdtStrictReplicated);
 	}
 
 	// accessor
@@ -50,7 +54,6 @@ public:
 	void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
 						 CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr,
 						 CExpression *pexpr) override;
-
 
 	// return distribution partitioning type
 	EDistributionPartitioningType

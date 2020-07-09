@@ -7403,7 +7403,9 @@ CTranslatorExprToDXL::GetProperties(const CExpression *pexpr)
 	}
 
 	if (CDistributionSpec::EdtStrictReplicated ==
-		pexpr->GetDrvdPropPlan()->Pds()->Edt())
+			pexpr->GetDrvdPropPlan()->Pds()->Edt() ||
+		CDistributionSpec::EdtTaintedReplicated ==
+			pexpr->GetDrvdPropPlan()->Pds()->Edt())
 	{
 		// if distribution is replicated, multiply number of rows by number of segments
 		ULONG ulSegments = COptCtxt::PoctxtFromTLS()->GetCostModel()->UlHosts();
