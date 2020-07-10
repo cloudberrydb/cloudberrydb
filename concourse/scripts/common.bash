@@ -48,6 +48,31 @@ function make_cluster() {
   export STATEMENT_MEM=250MB
   pushd gpdb_src/gpAux/gpdemo
   su gpadmin -c "source /usr/local/greenplum-db-devel/greenplum_path.sh; make create-demo-cluster"
+
+  if [[ "$MAKE_TEST_COMMAND" =~ gp_interconnect_type=proxy ]]; then
+    # generate the addresses for proxy mode
+    su gpadmin -c bash -- -e <<EOF
+      source /usr/local/greenplum-db-devel/greenplum_path.sh
+      source $PWD/gpdemo-env.sh
+
+      delta=-3000
+
+      psql -tqA -d postgres -P pager=off -F ' ' \
+          -c "select dbid, content, port+\$delta as port, address from gp_segment_configuration order by 1" \
+      | while read -r dbid content port addr; do
+          ip=127.0.0.1
+          echo "\$dbid:\$content:\$ip:\$port"
+        done \
+      | paste -sd, - \
+      | xargs -rI'{}' gpconfig --skipvalidation -c gp_interconnect_proxy_addresses -v "'{}'"
+
+      # also have to enlarge gp_interconnect_tcp_listener_backlog
+      gpconfig -c gp_interconnect_tcp_listener_backlog -v 1024
+
+      gpstop -raqi
+EOF
+  fi
+
   popd
 }
 

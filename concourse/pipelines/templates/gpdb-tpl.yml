@@ -203,6 +203,8 @@ groups:
 {% if "centos7" in os_types %}
   - icw_gporca_centos7
   - icw_planner_centos7
+  - icw_gporca_icproxy_centos7
+  - icw_planner_icproxy_centos7
   - icw_gporca_ictcp_centos7
 {% endif %}
 {% if "centos7" in os_types and "CLI" in test_sections %}
@@ -212,6 +214,8 @@ groups:
 {% if "ubuntu18.04" in os_types %}
   - icw_gporca_ubuntu18.04
   - icw_planner_ubuntu18.04
+  - icw_gporca_icproxy_ubuntu18.04
+  - icw_planner_icproxy_ubuntu18.04
 {% endif %}
   - gate_icw_end
 {% endif %}
@@ -291,6 +295,8 @@ groups:
 {% if "centos7" in os_types %}
   - icw_gporca_centos7
   - icw_planner_centos7
+  - icw_gporca_icproxy_centos7
+  - icw_planner_icproxy_centos7
   - icw_gporca_ictcp_centos7
   - compile_gpdb_centos7
 {% endif %}
@@ -300,6 +306,8 @@ groups:
 {% if "ubuntu18.04" in os_types %}
   - icw_gporca_ubuntu18.04
   - icw_planner_ubuntu18.04
+  - icw_gporca_icproxy_ubuntu18.04
+  - icw_planner_icproxy_ubuntu18.04
   - compile_gpdb_ubuntu18.04
 {% endif %}
   - gate_icw_end
@@ -956,6 +964,44 @@ jobs:
     params:
       file: sqldump/dump.sql.xz
 
+- name: icw_gporca_icproxy_centos7
+  plan:
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [compile_gpdb_centos7]
+        trigger: [[ test_trigger ]]
+      - get: gpdb7-centos7-test
+  - task: ic_gpdb
+    file: gpdb_src/concourse/tasks/ic_gpdb.yml
+    image: gpdb7-centos7-test
+    params:
+      MAKE_TEST_COMMAND: -k PGOPTIONS='-c gp_interconnect_type=proxy -c optimizer=on' EXTRA_REGRESS_OPTS=--exclude-tests=external_table,copydml installcheck-world
+      TEST_OS: centos
+      CONFIGURE_FLAGS: {{configure_flags}}
+
+- name: icw_planner_icproxy_centos7
+  plan:
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb
+        passed: [compile_gpdb_centos7]
+        resource: bin_gpdb_centos7
+        trigger: [[ test_trigger ]]
+      - get: gpdb7-centos7-test
+  - task: ic_gpdb
+    file: gpdb_src/concourse/tasks/ic_gpdb.yml
+    image: gpdb7-centos7-test
+    params:
+      MAKE_TEST_COMMAND: -k PGOPTIONS='-c gp_interconnect_type=proxy -c optimizer=off' EXTRA_REGRESS_OPTS=--exclude-tests=external_table,copydml installcheck-world
+      TEST_OS: centos
+      CONFIGURE_FLAGS: {{configure_flags}}
+
 - name: icw_gporca_ictcp_centos7
   plan:
   - in_parallel:
@@ -1014,6 +1060,44 @@ jobs:
         TEST_OS: ubuntu
         CONFIGURE_FLAGS: {{configure_flags}}
 
+- name: icw_gporca_icproxy_ubuntu18.04
+  plan:
+    - in_parallel:
+        steps:
+        - get: gpdb_src
+          passed: [compile_gpdb_ubuntu18.04]
+        - get: bin_gpdb
+          resource: bin_gpdb_ubuntu18.04
+          passed: [compile_gpdb_ubuntu18.04]
+          trigger: [[ test_trigger ]]
+        - get: gpdb7-ubuntu18.04-test
+    - task: ic_gpdb
+      file: gpdb_src/concourse/tasks/ic_gpdb.yml
+      image: gpdb7-ubuntu18.04-test
+      params:
+        MAKE_TEST_COMMAND: -k PGOPTIONS='-c gp_interconnect_type=proxy -c optimizer=on' EXTRA_REGRESS_OPTS=--exclude-tests=external_table,copydml installcheck-world
+        TEST_OS: ubuntu
+        CONFIGURE_FLAGS: {{configure_flags}}
+
+- name: icw_planner_icproxy_ubuntu18.04
+  plan:
+    - in_parallel:
+        steps:
+        - get: gpdb_src
+          passed: [compile_gpdb_ubuntu18.04]
+        - get: bin_gpdb
+          passed: [compile_gpdb_ubuntu18.04]
+          resource: bin_gpdb_ubuntu18.04
+          trigger: [[ test_trigger ]]
+        - get: gpdb7-ubuntu18.04-test
+    - task: ic_gpdb
+      file: gpdb_src/concourse/tasks/ic_gpdb.yml
+      image: gpdb7-ubuntu18.04-test
+      params:
+        MAKE_TEST_COMMAND: -k PGOPTIONS='-c gp_interconnect_type=proxy -c optimizer=off' EXTRA_REGRESS_OPTS=--exclude-tests=external_table,copydml installcheck-world
+        TEST_OS: ubuntu
+        CONFIGURE_FLAGS: {{configure_flags}}
+
 {% endif %}
 - name: gate_icw_end
   plan:
@@ -1024,6 +1108,8 @@ jobs:
         passed:
         - icw_gporca_centos7
         - icw_planner_centos7
+        - icw_gporca_icproxy_centos7
+        - icw_planner_icproxy_centos7
         - icw_gporca_ictcp_centos7
 {% if "Extensions" in test_sections %}
         - icw_extensions_gpcloud_centos7
@@ -1037,6 +1123,8 @@ jobs:
 {% if "centos7" in os_types %}
         - icw_gporca_centos7
         - icw_planner_centos7
+        - icw_gporca_icproxy_centos7
+        - icw_planner_icproxy_centos7
         - icw_gporca_ictcp_centos7
 {% if "Extensions" in test_sections %}
         - icw_extensions_gpcloud_centos7
@@ -1735,11 +1823,15 @@ jobs:
         - compile_gpdb_ubuntu18.04
         - icw_gporca_centos7
         - icw_planner_centos7
+        - icw_gporca_icproxy_centos7
+        - icw_planner_icproxy_centos7
         - icw_gporca_ictcp_centos7
         - icw_extensions_gpcloud_centos7
         - resource_group_centos7
         - icw_gporca_ubuntu18.04
         - icw_planner_ubuntu18.04
+        - icw_gporca_icproxy_ubuntu18.04
+        - icw_planner_icproxy_ubuntu18.04
         - test_gpdb_clients_windows
         - cli_cross_subnet
 {% for test in CLI_BEHAVE_TESTS %}
@@ -1761,6 +1853,8 @@ jobs:
         - compile_gpdb_centos7
         - icw_planner_centos7
         - icw_gporca_centos7
+        - icw_gporca_icproxy_centos7
+        - icw_planner_icproxy_centos7
         - icw_gporca_ictcp_centos7
         - icw_extensions_gpcloud_centos7
         - resource_group_centos7
@@ -1782,6 +1876,8 @@ jobs:
         - compile_gpdb_ubuntu18.04
         - icw_gporca_ubuntu18.04
         - icw_planner_ubuntu18.04
+        - icw_gporca_icproxy_ubuntu18.04
+        - icw_planner_icproxy_ubuntu18.04
 {% for test in CLI_BEHAVE_TESTS %}
         - [[ test.name ]]_ubuntu18
 {% endfor %}
