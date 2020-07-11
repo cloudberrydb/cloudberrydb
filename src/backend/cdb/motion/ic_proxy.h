@@ -26,7 +26,7 @@
 #define IC_PROXY_TRESHOLD_RESUME 2
 
 #ifndef IC_PROXY_LOG_LEVEL
-#define IC_PROXY_LOG_LEVEL LOG
+#define IC_PROXY_LOG_LEVEL WARNING
 #endif
 
 #define ic_proxy_alloc(size) palloc(size)
