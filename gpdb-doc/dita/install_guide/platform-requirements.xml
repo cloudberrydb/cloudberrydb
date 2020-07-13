@@ -158,10 +158,7 @@
       <!--OSS only-->
       <p otherprops="oss-only">The following table lists minimum recommended specifications for
         hardware servers intended to support Greenplum Database on Linux systems. All host servers
-        in your Greenplum Database system must have the same hardware and software configuration.
-        <note type="warning">Running Greenplum Database on hyper-converged infrastructure (HCI) has
-          known issues with performance, scalability, and stability and is not
-        recommended.</note></p>
+        in your Greenplum Database system must have the same hardware and software configuration. </p>
       <table id="ji162790">
         <title>Minimum Hardware Requirements</title>
         <tgroup cols="2">
@@ -222,13 +219,7 @@
           with the expected operation of Greenplum Database.</ph></p>
       <p>Greenplum Database can be deployed to virtualized systems only if the storage is presented
         as block devices and the XFS file system is mounted for the storage of the segment
-        directories.
-        <note type="warning">Running Greenplum Database on hyper-converged infrastructure (HCI) has
-          known issues with performance, scalability, and stability and is not recommended<ph> as a
-            scalable solution for Pivotal Greenplum Database and may not be supported by Pivotal if
-            stability problems appear related to the infrastructure. HCI virtualizes all of the
-            elements of conventional hardware systems and includes, at a minimum, virtualized
-            computing, a virtualised SAN, and virtualized networking</ph>.</note></p>
+        directories. </p>
       <p>Greenplum Database <ph otherprops="pivotal">is supported </ph><ph otherprops="oss-only">can
           run </ph>on Amazon Web Services (AWS) servers using either Amazon instance store (Amazon
         uses the volume names <codeph>ephemeral[0-20]</codeph>) or Amazon Elastic Block Store
