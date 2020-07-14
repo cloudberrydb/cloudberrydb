@@ -1176,17 +1176,12 @@ COPY copy_from_same_txn FROM stdin;
 \.
 COMMIT;
 
--- Test that issuing a cancel requests during COPY aborts the processing before
--- the entire contents has been copied out. The hardcoded rowcount 57190 is the
--- number of rows in the lineitem table.
+-- Test that COPY can be aborted by cancel request after the COPY is dispatched.
 
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'reset', 1);
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'interrupt', 1);
 
 COPY lineitem TO '/tmp/aborted.data';
-CREATE TABLE lineitem_aborted (LIKE lineitem);
-COPY lineitem_aborted FROM '/tmp/aborted.data';
-SELECT count(*) < 57190 FROM lineitem_aborted;
 
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'reset', 1);
 
