@@ -622,7 +622,13 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 			Assert(nbatch_lower <= nbatch);
 			if (nbatch_lower != nbatch)
 			{
-				elog(LOG, "HashJoin: Too many batches computed: nbatch=%d. gp_workfile_limit_files_per_query=%d, using nbatch=%d instead",
+				/*
+				 * ExecChooseHashTableSize() is a hot function which is not only called by executor,
+				 * but also by planner. Planner will call this function when calcualting cost for
+				 * each join path. The number of join path grow exponentially with the number of
+				 * table. As a result, do not using elog(LOG) to avoid generating too many logs.
+				 */
+				elog(DEBUG1, "HashJoin: Too many batches computed: nbatch=%d. gp_workfile_limit_files_per_query=%d, using nbatch=%d instead",
 					 nbatch, gp_workfile_limit_files_per_query, nbatch_lower);
 				nbatch = nbatch_lower;
 			}
