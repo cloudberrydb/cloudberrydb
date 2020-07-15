@@ -1711,7 +1711,7 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 
 		/* Close child relations, but keep locks */
 		if (childOID != parentOID)
-			heap_close(newrelation, rel_needs_long_lock(childOID) ? NoLock: lockmode);
+			heap_close(newrelation, NoLock);
 	}
 
 	heap_close(oldrelation, NoLock);

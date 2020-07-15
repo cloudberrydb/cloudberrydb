@@ -2345,7 +2345,6 @@ void
 heap_drop_with_catalog(Oid relid)
 {
 	Relation	rel;
-	bool		is_part_child = false;
 	bool		is_appendonly_rel;
 	char		relkind;
 
@@ -2404,15 +2403,11 @@ heap_drop_with_catalog(Oid relid)
 	}
 
 	/*
-	 * Close relcache entry, but *keep* AccessExclusiveLock (unless this is
-	 * a child partition) on the relation until transaction commit.  This
-	 * ensures no one else will try to do something with the doomed relation.
+	 * Close relcache entry, but *keep* AccessExclusiveLock on the relation
+	 * until transaction commit.  This ensures no one else will try to do
+	 * something with the doomed relation.
 	 */
-	is_part_child = !rel_needs_long_lock(RelationGetRelid(rel));
-	if (is_part_child)
-		relation_close(rel, AccessExclusiveLock);
-	else
-		relation_close(rel, NoLock);
+	relation_close(rel, NoLock);
 
 	/*
 	 * Forget any ON COMMIT action for the rel

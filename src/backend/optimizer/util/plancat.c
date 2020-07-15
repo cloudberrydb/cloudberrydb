@@ -108,7 +108,6 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	Relation	relation;
 	bool		hasindex;
 	List	   *indexinfos = NIL;
-	bool		needs_longlock;
 
 	/*
 	 * We need not lock the relation since it was already locked, either by
@@ -116,7 +115,6 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	 * rangetable.
 	 */
 	relation = heap_open(relationObjectId, NoLock);
-	needs_longlock = rel_needs_long_lock(relationObjectId);
 
 	/* Temporary and unlogged relations are inaccessible during recovery. */
 	if (!RelationNeedsWAL(relation) && RecoveryInProgress())
@@ -409,7 +407,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 				info->tree_height = -1;
 			}
 
-			index_close(indexRelation, needs_longlock ? NoLock : lmode);
+			index_close(indexRelation, NoLock);
 
 			indexinfos = lcons(info, indexinfos);
 		}

@@ -21,8 +21,7 @@ DELETE 10
 1: SELECT 1 FROM pg_locks WHERE relation='part_tbl_upd_del_1_prt_1'::regclass::oid AND gp_segment_id = -1;
  ?column? 
 ----------
- 1        
-(1 row)
+(0 rows)
 1: SELECT 1 FROM pg_locks WHERE relation='part_tbl_upd_del'::regclass::oid AND gp_segment_id = -1;
  ?column? 
 ----------
@@ -40,8 +39,7 @@ UPDATE 1
 1: SELECT 1 FROM pg_locks WHERE relation='part_tbl_upd_del_1_prt_1'::regclass::oid AND gp_segment_id = -1;
  ?column? 
 ----------
- 1        
-(1 row)
+(0 rows)
 1: SELECT 1 FROM pg_locks WHERE relation='part_tbl_upd_del'::regclass::oid AND gp_segment_id = -1;
  ?column? 
 ----------

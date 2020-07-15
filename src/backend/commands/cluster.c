@@ -715,7 +715,7 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace, char relpersistence,
 	OldHeap = heap_open(OIDOldHeap, lockmode);
 	OldHeapDesc = RelationGetDescr(OldHeap);
 
-	is_part_child = !rel_needs_long_lock(OIDOldHeap);
+	is_part_child = rel_is_part_child(OIDOldHeap);
 
 	/*
 	 * Check pg_inherits to determine if the OldHeap relation is a non-leaf

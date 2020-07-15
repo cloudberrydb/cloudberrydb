@@ -556,7 +556,6 @@ RemoveConstraintById(Oid conId)
 	if (OidIsValid(con->conrelid))
 	{
 		Relation	rel;
-		bool		is_part_child = false;
 
 		/*
 		 * If the constraint is for a relation, open and exclusive-lock the
@@ -597,14 +596,8 @@ RemoveConstraintById(Oid conId)
 			heap_close(pgrel, RowExclusiveLock);
 		}
 
-		is_part_child = !rel_needs_long_lock(RelationGetRelid(rel));
-
-		if (is_part_child)
-			/* sufficiently locked, in the case of a partitioned table */
-			heap_close(rel, AccessExclusiveLock);
-		else
-			/* Keep lock on constraint's rel until end of xact */
-			heap_close(rel, NoLock);
+		/* Keep lock on constraint's rel until end of xact */
+		heap_close(rel, NoLock);
 	}
 	else if (OidIsValid(con->contypid))
 	{

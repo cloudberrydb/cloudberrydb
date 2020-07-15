@@ -443,7 +443,6 @@ DefineIndex(Oid relationId,
 	LOCKTAG		heaplocktag;
 	LOCKMODE	lockmode;
 	Snapshot	snapshot;
-	bool		need_longlock = true;
 	bool		shouldDispatch;
 	int			i;
 
@@ -944,14 +943,6 @@ DefineIndex(Oid relationId,
 		 */
 	}
 
-	if (rel_needs_long_lock(RelationGetRelid(rel)))
-		need_longlock = true;
-	/* if this is a concurrent build, we must lock you long time */
-	else if (stmt->concurrent)
-		need_longlock = true;
-	else
-		need_longlock = false;
-
 	/*
 	 * A valid stmt->oldNode implies that we already have a built form of the
 	 * index.  The caller should also decline any index build.
@@ -1028,10 +1019,7 @@ DefineIndex(Oid relationId,
 			for (i = 0; i < numberOfAttributes; i++)
 				opfamOids[i] = get_opclass_family(classObjectId[i]);
 
-			if (need_longlock)
-				heap_close(rel, NoLock);
-			else
-				heap_close(rel, lockmode);
+			heap_close(rel, NoLock);
 
 			/*
 			 * For each partition, scan all existing indexes; if one matches
@@ -1218,10 +1206,7 @@ DefineIndex(Oid relationId,
 		 */
 		else
 		{
-			if (need_longlock)
-				heap_close(rel, NoLock);
-			else
-				heap_close(rel, lockmode);
+			heap_close(rel, NoLock);
 		}
 		/*
 		 * Indexes on partitioned tables are not themselves built, so we're
@@ -1233,10 +1218,7 @@ DefineIndex(Oid relationId,
 	if (!stmt->concurrent)
 	{
 		/* Close the heap and we're done, in the non-concurrent case */
-		if (need_longlock)
-			heap_close(rel, NoLock);
-		else
-			heap_close(rel, lockmode);
+		heap_close(rel, NoLock);
 		return address;
 	}
 
@@ -1254,10 +1236,7 @@ DefineIndex(Oid relationId,
 	/* save lockrelid and locktag for below, then close rel */
 	heaprelid = rel->rd_lockInfo.lockRelId;
 	SET_LOCKTAG_RELATION(heaplocktag, heaprelid.dbId, heaprelid.relId);
-	if (need_longlock)
-		heap_close(rel, NoLock);
-	else
-		heap_close(rel, lockmode);
+	heap_close(rel, NoLock);
 
 	/*
 	 * For a concurrent build, it's important to make the catalog entries
