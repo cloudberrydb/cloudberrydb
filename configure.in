@@ -1916,6 +1916,7 @@ PGAC_C_BUILTIN_BSWAP32
 PGAC_C_BUILTIN_BSWAP64
 PGAC_C_BUILTIN_CONSTANT_P
 PGAC_C_BUILTIN_UNREACHABLE
+PGAC_C_BUILTIN_FRAME_ADDRESS
 PGAC_C_VA_ARGS
 PGAC_STRUCT_TIMEZONE
 PGAC_UNION_SEMUN
@@ -1940,6 +1941,13 @@ AC_CHECK_TYPES([struct option], [], [],
 [#ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif])
+
+if test x"$pgac_cv__builtin_frame_address" = xno && test "$enable_orca" = yes; then :
+    AC_MSG_ERROR([[
+Built-in function __builtin_frame_address() is required for ORCA.
+Use --disable-orca to disable ORCA support.
+]])
+fi
 
 if test "$with_zlib" = yes; then
   # Check that <zlib.h> defines z_streamp (versions before about 1.0.4

@@ -773,6 +773,9 @@
 /* Define to 1 if your compiler understands __builtin_constant_p. */
 #undef HAVE__BUILTIN_CONSTANT_P
 
+/* Define to 1 if your compiler understands __builtin_frame_address. */
+#undef HAVE__BUILTIN_FRAME_ADDRESS
+
 /* Define to 1 if your compiler understands __builtin_types_compatible_p. */
 #undef HAVE__BUILTIN_TYPES_COMPATIBLE_P
 
