@@ -206,7 +206,7 @@
                             <codeph>QD_PRIMARY_ARRAY</codeph>, <codeph>PRIMARY_ARRAY</codeph>, and
                             <codeph>MIRROR_ARRAY</codeph> parameters. Use this file as a template
                         for the <codeph>-I </codeph><varname>input_configuration_file</varname>
-                        option.  See <xref href="#topic1/section6" format="dita">Examples</xref> for
+                        option. See <xref href="#topic1/section6" format="dita">Examples</xref> for
                         more information. </pd>
                 </plentry>
                 <plentry>
@@ -284,7 +284,8 @@
                 </plentry>
                 <plentry>
                     <pt>-? | --help</pt>
-                    <pd>Show help about <codeph>gpinitsystem</codeph> command line arguments, and exit.</pd>
+                    <pd>Show help about <codeph>gpinitsystem</codeph> command line arguments, and
+                        exit.</pd>
                 </plentry>
             </parml>
         </section>
@@ -423,7 +424,7 @@ MIRROR_PORT_BASE = 7000</codeblock>
 /data2/mirror)</codeblock>
                     </pd>
                 </plentry>
-                <plentry>
+                <plentry id="array_params">
                     <pt>QD_PRIMARY_ARRAY, PRIMARY_ARRAY, MIRROR_ARRAY</pt>
                     <pd><b>Required</b> when using <codeph>input_configuration file</codeph> with
                             <codeph>-I</codeph> option. These parameters specify the Greenplum
@@ -442,24 +443,31 @@ MIRROR_PORT_BASE = 7000</codeblock>
                         <codeblock><varname>host</varname>~<varname>port</varname>~<varname>data_directory</varname>/<varname>seg_prefix&lt;segment_id></varname>~<varname>dbid</varname>~<varname>content_id</varname></codeblock></pd>
                     <pd>The first format populates the <codeph>hostname</codeph> and
                             <codeph>address</codeph> fields in the
-                            <codeph>gp_segment_configuration</codeph> catalog with the
-                            <i>hostname</i> and <i>address</i> values provided in the input
-                        configuration file. The second format populates <codeph>hostname</codeph>
-                        and <codeph>address</codeph> with the same value, derived from
-                        <i>host</i>.</pd>
+                            <codeph>gp_segment_configuration</codeph> catalog table with the
+                            <varname>hostname</varname> and <varname>address</varname> values
+                        provided in the input configuration file. The second format populates
+                            <codeph>hostname</codeph> and <codeph>address</codeph> fields with the
+                        same value, derived from <varname>host</varname>.</pd>
                     <pd>The Greenplum Database master always uses the value -1 for the segment ID
-                        and content ID. For
-                        example:<codeblock>QD_PRIMARY_ARRAY=127.0.0.1~5432~/gpmaster/gpsne-1~1~-1~0 
+                        and content ID. For example, <varname>seg_prefix&lt;segment_id></varname>
+                        and <varname>dbid</varname> values for <codeph>QD_PRIMARY_ARRAY</codeph> use
+                            <codeph>-1</codeph> to indicate the master
+                        instance:<codeblock>QD_PRIMARY_ARRAY=mdw~mdw~5432~/gpdata/master/gpseg<b>-1</b>~1~<b>-1</b>
 declare -a PRIMARY_ARRAY=(
-localhost~127.0.0.1~40000~/gpdata1/gpsne0~2~0~6000
-localhost~127.0.0.1~40001~/gpdata2/gpsne1~3~1~6001 
-) 
+sdw1~sdw1~40000~/gpdata/data1/gpseg0~2~0
+sdw1~sdw1~40001~/gpdata/data2/gpseg1~3~1
+sdw2~sdw2~40000~/gpdata/data1/gpseg2~4~2
+sdw2~sdw2~40001~/gpdata/data2/gpseg3~5~3
+)
 declare -a MIRROR_ARRAY=(
-localhost~127.0.0.1~50000~/gpmirror1/gpsne0~4~0~51000
-localhost~127.0.0.1~50001~/gpmirror2/gpsne1~5~1~51001 
+sdw2~sdw2~50000~/gpdata/mirror1/gpseg0~6~0
+sdw2~sdw2~50001~/gpdata/mirror2/gpseg1~7~1
+sdw1~sdw1~50000~/gpdata/mirror1/gpseg2~8~2
+sdw1~sdw1~50001~/gpdata/mirror2/gpseg3~9~3
 )</codeblock></pd>
-                    <pd>For recovery purposes, you can edit the segment and content IDs to match the
-                        values of an existing Greenplum Database backup.</pd>
+                    <pd>To re-create a cluster using a known Greenplum Database system
+                        configuration, you can edit the segment and content IDs to match the values
+                        of the system.</pd>
                 </plentry>
                 <plentry>
                     <pt>HEAP_CHECKSUM</pt>
@@ -476,7 +484,7 @@ localhost~127.0.0.1~50001~/gpmirror2/gpsne1~5~1~51001
                         parameter with the <codeph>gpconfig</codeph> management
                         utility:<codeblock>$ gpconfig -s data_checksums</codeblock></pd>
                 </plentry>
-                <plentry>
+                <plentry id="hba_hostnames">
                     <pt>HBA_HOSTNAMES</pt>
                     <pd><b>Optional.</b> This parameter controls whether
                             <codeph>gpinitsystem</codeph> uses IP addresses or host names in the
@@ -491,6 +499,40 @@ localhost~127.0.0.1~50001~/gpmirror2/gpsne1~5~1~51001
                             href="../../admin_guide/client_auth.xml#topic1"/>.</pd>
                 </plentry>
             </parml>
+        </section>
+        <section>
+            <title>Specifying Hosts using Hostnames or IP Addresses</title>
+            <p>When initializing a Greenplum Database system with <codeph>gpinitsystem</codeph>, you
+                can specify segment hosts using either hostnames or IP addresses. For example, you
+                can use hostnames or IP addresses in the file specified with the <codeph>-h</codeph>
+                    option.<ul id="ul_ijf_tvq_bmb">
+                    <li>If you specify a hostname, the resolution of the hostname to an IP address
+                        should be done locally for security. For example, you should use entries in
+                        a local <codeph>/etc/hosts</codeph> file to map a hostname to an IP address.
+                        The resolution of a hostname to an IP address should not be performed by an
+                        external service such as a public DNS server. You must stop the Greenplum
+                        system before you change the mapping of a hostname to a different IP
+                        address.</li>
+                    <li>If you specify an IP address, the address should not be changed after the
+                        initial configuration. When segment mirroring is enabled, replication from
+                        the primary to the mirror segment will fail if the IP address changes from
+                        the configured value. For this reason, you should use a hostname when
+                        initializing a Greenplum Database system unless you have a specific
+                        requirement to use IP addresses.</li>
+                </ul></p>
+            <p>When initializing the Greenplum Database system, <codeph>gpinitsystem</codeph> uses
+                the initialization information to populate the <codeph><xref
+                        href="../../ref_guide/system_catalogs/gp_segment_configuration.xml"
+                        >gp_segment_configuration</xref></codeph> catalog table and adds hosts to
+                the <codeph>pg_hba.conf</codeph> file. By default, the host IP address is added to
+                the file. Specify the <codeph>gpinitsystem</codeph> configuration file parameter
+                        <codeph><xref href="#topic1/hba_hostnames" format="dita"
+                        >HBA_HOSTNAMES</xref>=1</codeph> to add hostnames to the file.</p>
+            <p>Greenplum Database uses the <codeph>address</codeph> value of the
+                    <codeph>gp_segment_configuration</codeph> catalog table when looking up host
+                systems for Greenplum interconnect (internal) communication between the master and
+                segment instances and between segment instances, and for other internal
+                communication.</p>
         </section>
         <section id="section6">
             <title>Examples</title>
@@ -526,11 +568,37 @@ mwd~mwd.local~7001~/data/mirror1/gpseg0~3~0
                 defines the Greenplum Database cluster) using <codeph>QD_PRIMARY_ARRAY</codeph> and
                     <codeph>PRIMARY_ARRAY</codeph> parameters:</p>
             <codeblock>$ gpinitsystem -I cluster_init.config</codeblock>
+            <p>The following example uses a host system configured with mulitple NICs. If host
+                systems are configured with multiple NICs, you can initialize a Greenplum Database
+                system to use each NIC as a Greenplum host system. You must ensure that the host
+                systems are configured with sufficient resources to support all the segment
+                instances being added to the host. Also, if high availability is enabled, you must
+                ensure that the Greenplum system configuration supports failover if a host system
+                fails. For information about Greenplum Database mirroring schemes, see <xref
+                    href="../../best_practices/ha.xml#topic_ngz_qf4_tt"/>.</p>
+            <p>For this simple master and segment instance configuration, the host system
+                    <codeph>gp6m</codeph> is configured with two NICs <codeph>gp6m-1</codeph> and
+                    <codeph>gp6m-2</codeph>. In the configuration, the <codeph><xref
+                        href="#topic1/array_params" format="dita">QD_PRIMARY_ARRAY</xref></codeph>
+                parameter defines the master segment using <codeph>gp6m-1</codeph>. The
+                        <codeph><xref href="#topic1/array_params" format="dita"
+                    >PRIMARY_ARRAY</xref></codeph> and <codeph><xref href="#topic1/array_params"
+                        format="dita">MIRROR_ARRAY</xref></codeph> parameters use
+                    <codeph>gp6m-2</codeph> to define a primary and mirror segment instance.
+                <codeblock>QD_PRIMARY_ARRAY=gp6m~<b>gp6m-1</b>~5432~/data/master/gpseg-1~1~-1
+declare -a PRIMARY_ARRAY=(
+gp6m~<b>gp6m-2</b>~40000~/data/data1/gpseg0~2~0
+gp6s~gp6s~40000~/data/data1/gpseg1~3~1
+)
+declare -a MIRROR_ARRAY=(
+gp6s~gp6s~50000~/data/mirror1/gpseg0~4~0
+gp6m~<b>gp6m-2</b>~50000~/data/mirror1/gpseg1~5~1
+)</codeblock></p>
         </section>
         <section id="section7"><title>See Also</title><codeph><xref href="./gpssh-exkeys.xml#topic1"
                     type="topic" format="dita"/></codeph>, <codeph><xref
                     href="gpdeletesystem.xml#topic1" type="topic" format="dita"/></codeph>, <xref
-                href="../../install_guide/init_gpdb.xml" type="topic" scope="peer">Initializing Greenplum
-                Database</xref>.</section>
+                href="../../install_guide/init_gpdb.xml" type="topic" scope="peer">Initializing
+                Greenplum Database</xref>.</section>
     </body>
 </topic>
