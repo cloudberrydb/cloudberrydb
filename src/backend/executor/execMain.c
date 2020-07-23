@@ -849,25 +849,6 @@ standard_ExecutorRun(QueryDesc *queryDesc,
     }
 	PG_CATCH();
 	{
-        /* If EXPLAIN ANALYZE, let qExec try to return stats to qDisp. */
-        if (estate->es_sliceTable &&
-            estate->es_sliceTable->instrument_options &&
-            (estate->es_sliceTable->instrument_options & INSTRUMENT_CDB) &&
-            Gp_role == GP_ROLE_EXECUTE)
-        {
-            PG_TRY();
-            {
-                cdbexplain_sendExecStats(queryDesc);
-            }
-            PG_CATCH();
-            {
-                /* Close down interconnect etc. */
-				mppExecutorCleanup(queryDesc);
-		        PG_RE_THROW();
-            }
-            PG_END_TRY();
-        }
-
         /* Close down interconnect etc. */
 		mppExecutorCleanup(queryDesc);
 		PG_RE_THROW();
@@ -2817,6 +2798,11 @@ ExecutePlan(EState *estate,
 	 */
 	if (use_parallel_mode)
 		EnterParallelMode();
+
+#ifdef FAULT_INJECTOR
+	/* Inject a fault before tuple processing started */
+	SIMPLE_FAULT_INJECTOR("executor_pre_tuple_processed");
+#endif /* FAULT_INJECTOR */
 
 	/*
 	 * Loop until we've processed the proper number of tuples from the plan.

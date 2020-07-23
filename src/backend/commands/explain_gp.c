@@ -553,6 +553,11 @@ cdbexplain_sendExecStats(QueryDesc *queryDesc)
 	 */
 	memcpy(ctx.buf.data + hoff, (char *) &ctx.hdr, sizeof(ctx.hdr) - sizeof(ctx.hdr.inst));
 
+#ifdef FAULT_INJECTOR
+	/* Inject a fault before sending a message to qDisp process */
+	SIMPLE_FAULT_INJECTOR("send_exec_stats");
+#endif /* FAULT_INJECTOR */
+
 	/* Send message to qDisp process. */
 	pq_endmessage(&ctx.buf);
 }								/* cdbexplain_sendExecStats */
@@ -700,7 +705,7 @@ cdbexplain_recvExecStats(struct PlanState *planstate,
 			ctx.nStatInst = hdr->nInst;
 		else
 		{
-			/* MPP-2140: what causes this ? */
+			/* Check for stats corruption */
 			if (ctx.nStatInst != hdr->nInst)
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 								errmsg("Invalid execution statistics "
