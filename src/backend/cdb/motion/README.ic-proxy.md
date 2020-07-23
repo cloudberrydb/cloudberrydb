@@ -26,7 +26,7 @@ segments, for each segment it contains below information:
 It is important to specify the value as a single-quoted string, otherwise it
 will be parsed as an interger with invalid format.
 
-It is recommended to setup this GUC with a script like below:
+An example script to setup this GUC automatically:
 
     #!/usr/bin/env bash
     
@@ -606,18 +606,18 @@ the proxy-proxy connections unconditionally.
 
 ### Cluster Expansion
 
-A cluster can be expanded online with the `gpexpand` command, however the
-ic-proxy does not support online expansion at the moment: the GUC
-`gp_interconnect_proxy_addresses` must be updated to include the information
-for the new segments, however changes to this GUC only take effect after a
-cluster restart.
+A cluster can be expanded online with the `gpexpand` command, it includes two
+stages:
 
-TODO: make below changes to support online expansion:
+1. the cluster expansion (adding new segments to the cluster);
+2. the data expansion (expand the data to the new segments);
 
-1. let the `gpexpand` utility updates the `gp_interconnect_proxy_addresses`
-   automatically;
-2. let the `gp_interconnect_proxy_addresses` be able to be reloaded without a
-   cluster restart;
+When ic-proxy is enabled we need a stage 1.5 between them:
+
+1.5. update the GUC `gp_interconnect_proxy_addresses` to include the new
+     segments, then reload with SIGHUP by `gpstop -u`;
+
+TODO: we may want to introduce a hook in `gpexpand` to automate this job.
  
 ## Misc
 

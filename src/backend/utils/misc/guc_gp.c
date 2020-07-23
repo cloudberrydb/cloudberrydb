@@ -4360,7 +4360,7 @@ struct config_string ConfigureNamesString_gp[] =
 
 #ifdef ENABLE_IC_PROXY
 	{
-		{"gp_interconnect_proxy_addresses", PGC_POSTMASTER, DEVELOPER_OPTIONS,
+		{"gp_interconnect_proxy_addresses", PGC_SIGHUP, GP_ARRAY_CONFIGURATION,
 			gettext_noop("Sets the ic-proxy addresses as \"content:ip:port ...\", must be ordered by content, the port is ignored at the moment."),
 			gettext_noop("e.g. \"-1:10.0.0.1:2000 0:10.0.0.2:2000 1:10.0.0.2:2001\""),
 			GUC_NO_SHOW_ALL | GUC_GPDB_NO_SYNC
