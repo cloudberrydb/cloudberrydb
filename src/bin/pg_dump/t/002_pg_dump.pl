@@ -2152,7 +2152,9 @@ my %tests = (
 		regexp => qr/^DROP /m,
 		like   => {},            # use more-specific options above
 		unlike => {
-			binary_upgrade           => 1,
+			# GPDB: we dump a DROP + CREATE SCHEMA public in binary upgrade mode,
+			# so don't check this with binary upgrade.
+			#binary_upgrade           => 1,
 			column_inserts           => 1,
 			createdb                 => 1,
 			data_only                => 1,
@@ -2425,28 +2427,6 @@ qr/^GRANT SELECT ON TABLE dump_test_second_schema.test_third_table TO regress_du
 			only_dump_test_schema  => 1,
 			only_dump_test_table   => 1,
 			test_schema_plus_blobs => 1, }, },
-	'GRANT USAGE ON SCHEMA public TO public' => {
-		regexp       => qr/^
-			\Q--\E\n\n
-			\QGRANT USAGE ON SCHEMA public TO PUBLIC;\E
-			/xm,
-		like => {
-			clean                    => 1,
-			clean_if_exists          => 1, },
-		unlike => {
-			binary_upgrade           => 1,
-			createdb                 => 1,
-			defaults                 => 1,
-			exclude_dump_test_schema => 1,
-			exclude_test_table       => 1,
-			exclude_test_table_data  => 1,
-			no_owner                 => 1,
-			pg_dumpall_dbprivs       => 1,
-			schema_only              => 1,
-			section_pre_data         => 1,
-			only_dump_test_schema    => 1,
-			only_dump_test_table     => 1,
-			test_schema_plus_blobs   => 1, }, },
 	'GRANT commands' => {    # catch-all for GRANT commands
 		regexp => qr/^GRANT /m,
 		like   => {},             # use more-specific options above
@@ -2580,6 +2560,8 @@ qr/^GRANT SELECT ON TABLE dump_test_second_schema.test_third_table TO regress_du
 			/xm,
 		like => {
 			binary_upgrade           => 1,
+			clean                  => 1,
+			clean_if_exists        => 1,
 			createdb                 => 1,
 			defaults                 => 1,
 			exclude_dump_test_schema => 1,
@@ -2590,8 +2572,6 @@ qr/^GRANT SELECT ON TABLE dump_test_second_schema.test_third_table TO regress_du
 			schema_only              => 1,
 			section_pre_data         => 1, },
 		unlike => {
-			clean                  => 1,
-			clean_if_exists        => 1,
 			only_dump_test_schema  => 1,
 			only_dump_test_table   => 1,
 			test_schema_plus_blobs => 1, }, },
