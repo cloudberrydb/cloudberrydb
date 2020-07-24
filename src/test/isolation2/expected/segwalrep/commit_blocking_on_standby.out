@@ -8,6 +8,9 @@
 
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
+include: helpers/server_helpers.sql;
+CREATE
+
 select application_name, state from pg_stat_replication;
  application_name | state     
 ------------------+-----------
@@ -121,13 +124,10 @@ show repl_catchup_within_range;
 begin;
 BEGIN
 
-create or replace function wait_until_standby_in_state(targetstate text) returns void as $$ declare replstate text; /* in func */ begin loop select state into replstate from pg_stat_replication; /* in func */ exit when replstate = targetstate; /* in func */ perform pg_sleep(0.1); /* in func */ end loop; /* in func */ end; /* in func */ $$ language plpgsql;
-CREATE
-
 select wait_until_standby_in_state('catchup');
  wait_until_standby_in_state 
 -----------------------------
-                             
+ catchup                     
 (1 row)
 
 select gp_wait_until_triggered_fault('wal_sender_loop', 1, dbid) from gp_segment_configuration where content=-1 and role='p';
@@ -205,5 +205,5 @@ INSERT 1
 select wait_until_standby_in_state('streaming');
  wait_until_standby_in_state 
 -----------------------------
-                             
+ streaming                   
 (1 row)

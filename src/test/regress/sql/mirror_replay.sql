@@ -42,6 +42,7 @@ begin
       return false;
     end if;
     perform pg_sleep(0.1);
+    perform pg_stat_clear_snapshot();
     i := i + 1;
   end loop;
 end;

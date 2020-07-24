@@ -8,6 +8,8 @@
 
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
+include: helpers/server_helpers.sql;
+
 select application_name, state from pg_stat_replication;
 
 -- Inject fault on standby to skip WAL flush.
@@ -98,19 +100,6 @@ show repl_catchup_within_range;
 -- Start a transaction, execute a DDL and commit.  The commit should
 -- not block.
 begin;
-
-create or replace function wait_until_standby_in_state(targetstate text)
-returns void as $$
-declare
-   replstate text; /* in func */
-begin
-   loop
-      select state into replstate from pg_stat_replication; /* in func */
-      exit when replstate = targetstate; /* in func */
-      perform pg_sleep(0.1); /* in func */
-   end loop; /* in func */
-end; /* in func */
-$$ language plpgsql;
 
 select wait_until_standby_in_state('catchup');
 

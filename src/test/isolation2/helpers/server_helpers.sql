@@ -41,7 +41,6 @@ returns text as $$
         raise PgCtlError(stdout+'|'+stderr)
 $$ language plpythonu;
 
-
 --
 -- pg_ctl_start:
 --
@@ -131,7 +130,7 @@ $$ language sql;
 
 create or replace function wait_until_segment_synchronized(segment_number int) returns text as $$
 begin
-	for i in 1..600 loop
+	for i in 1..1200 loop
 		if (select count(*) = 0 from gp_segment_configuration where content = segment_number and mode != 's') then
 			return 'OK';
 		end if;
@@ -144,24 +143,12 @@ $$ language plpgsql;
 
 create or replace function wait_until_all_segments_synchronized() returns text as $$
 begin
-	for i in 1..600 loop
+	for i in 1..1200 loop
 		if (select count(*) = 0 from gp_segment_configuration where content != -1 and mode != 's') then
 			return 'OK';
 		end if;
 		perform pg_sleep(0.1);
 		perform gp_request_fts_probe_scan();
-	end loop;
-	return 'Fail';
-end;
-$$ language plpgsql;
-
-create or replace function wait_until_master_standby_insync() returns text as $$
-begin
-	for i in 1..1200 loop
-		if (select count(*) = 1 from pg_stat_replication) then
-			return 'OK';
-		end if;
-		perform pg_sleep(0.1);
 	end loop;
 	return 'Fail';
 end;
@@ -185,7 +172,28 @@ begin
 		   return false;
 		end if;
 		perform pg_sleep(0.1);
+		perform pg_stat_clear_snapshot();
 		i := i + 1;
 	end loop;
+end;
+$$ language plpgsql;
+
+create or replace function wait_until_standby_in_state(targetstate text)
+returns text as $$
+declare
+   replstate text;
+   i int;
+begin
+   i := 0;
+   while i < 1200 loop
+      select state into replstate from pg_stat_replication;
+      if replstate = targetstate then
+          return replstate;
+      end if;
+      perform pg_sleep(0.1);
+      perform pg_stat_clear_snapshot();
+      i := i + 1;
+   end loop;
+   return replstate;
 end;
 $$ language plpgsql;

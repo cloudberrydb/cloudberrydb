@@ -96,4 +96,4 @@ select reinitialize_standby();
 -- end_ignore
 
 -- Sync state between master and standby must be restored at the end.
-select wait_until_master_standby_insync();
+select wait_until_standby_in_state('streaming');
