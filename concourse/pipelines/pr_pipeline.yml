@@ -47,6 +47,13 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/centos7/libquicklz-devel-(1\.5\.0-.*)-1.el7.x86_64.rpm
 
+- name: libuv-centos7
+  type: gcs
+  source:
+    bucket: ((gcs-bucket))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    regexp: gp-internal-artifacts/centos7/libuv-(1\.38\.0.*).tar.gz
+
 
 jobs:
 - name: compile_and_test_gpdb
@@ -63,6 +70,8 @@ jobs:
       resource: libquicklz-centos7
     - get: libquicklz-devel-installer
       resource: libquicklz-devel-centos7
+    - get: libuv-installer
+      resource: libuv-centos7
 
   - put: gpdb_pr
     params:
