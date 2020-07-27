@@ -29,6 +29,7 @@ EXCL_OBJS=\
 	src/backend/gpopt/relcache/%.o \
 	src/backend/gpopt/translate/%.o \
 	src/backend/gpopt/utils/%.o \
+	src/backend/gporca/%.o \
 
 # More files that are not linked into test programs. There's no particular
 # reason these couldn't be linked into, if necessary, but currently none of
