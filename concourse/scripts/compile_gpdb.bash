@@ -57,23 +57,19 @@ function install_libuv() {
     ubuntu) libdir=/usr/lib/x86_64-linux-gnu ;;
     *) return ;;
   esac
-
-  tar xf libuv-installer/libuv-*.tar.gz -C /tmp
-
-  mkdir -p ${includedir} ${libdir}
-  cp -a /tmp/libuv-*/include/* ${includedir}/
-  cp -a /tmp/libuv-*/lib/* ${libdir}/
+  # provided by build container
+  cp -a /usr/local/include/uv* ${includedir}/
+  cp -a /usr/local/lib/libuv* ${libdir}/
 }
+
 
 function install_deps_for_centos_or_sles() {
   rpm -i libquicklz-installer/libquicklz-*.rpm
   rpm -i libquicklz-devel-installer/libquicklz-*.rpm
-  install_libuv
 }
 
 function install_deps_for_ubuntu() {
   dpkg --install libquicklz-installer/libquicklz-*.deb
-  install_libuv
 }
 
 function install_deps() {
@@ -81,6 +77,7 @@ function install_deps() {
     centos | sles) install_deps_for_centos_or_sles;;
     ubuntu) install_deps_for_ubuntu;;
   esac
+  install_libuv
 }
 
 function generate_build_number() {

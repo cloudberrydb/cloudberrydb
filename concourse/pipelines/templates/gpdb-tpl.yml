@@ -486,13 +486,6 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/centos7/libquicklz-devel-(1\.5\.0-.*)-1.el7.x86_64.rpm
 
-- name: libuv-centos7
-  type: gcs
-  source:
-    bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: gp-internal-artifacts/centos7/libuv-(1\.38\.0.*).tar.gz
-
 {% endif %}
 {% if "ubuntu18.04" in os_types %}
 - name: libquicklz-ubuntu18.04
@@ -501,13 +494,6 @@ resources:
     bucket: ((gcs-bucket))
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/ubuntu18.04/libquicklz-dev_(1\.5\.0-.*)-1_amd64.deb
-
-- name: libuv-ubuntu18.04
-  type: gcs
-  source:
-    bucket: ((gcs-bucket))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: gp-internal-artifacts/ubuntu18.04/libuv-(1\.38\.0.*).tar.gz
 
 {% endif %}
 {% if "centos7" in os_types %}
@@ -799,8 +785,6 @@ jobs:
         resource: libquicklz-centos7
       - get: libquicklz-devel-installer
         resource: libquicklz-devel-centos7
-      - get: libuv-installer
-        resource: libuv-centos7
   - task: compile_gpdb
     image: gpdb7-centos7-build
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -832,8 +816,6 @@ jobs:
         - get: gpdb7-ubuntu18.04-build
         - get: libquicklz-installer
           resource: libquicklz-ubuntu18.04
-        - get: libuv-installer
-          resource: libuv-ubuntu18.04
     - task: compile_gpdb
       image: gpdb7-ubuntu18.04-build
       file: gpdb_src/concourse/tasks/compile_gpdb.yml
