@@ -139,7 +139,26 @@ where <varname>action</varname> is one of:
                                                   href="CREATE_TABLE.xml">CREATE
                                                 TABLE</xref></codeph>. The <codeph>ENCODING</codeph>
                                         clause is valid only for append-optimized, column-oriented
-                                        tables.</li>
+                                                tables.<p>When you add a column to an
+                                                append-optimized, column-oriented table, Greenplum
+                                                Database sets each data compression parameter for
+                                                the column (<codeph>compresstype</codeph>,
+                                                  <codeph>compresslevel</codeph>, and
+                                                  <codeph>blocksize</codeph>) based on the following
+                                                setting, in order of preference.<ol
+                                                  id="ol_hqk_l4w_kmb">
+                                                  <li>The compression parameter setting specified in
+                                                  the <codeph>ALTER TABLE</codeph> command
+                                                  <codeph>ENCODING</codeph> clause.</li>
+                                                  <li>The table's data compression setting specified
+                                                  in the <codeph>WITH</codeph> clause when the table
+                                                  was created.</li>
+                                                  <li>The compression parameter setting specified in
+                                                  the server configuration parameter <codeph><xref
+                                                  href="../config_params/guc-list.xml#gp_default_storage_options"
+                                                  >gp_default_storage_option</xref></codeph>.</li>
+                                                  <li>The default compression parameter value.</li>
+                                                </ol></p></li>
                                 <li><b>DROP COLUMN [IF EXISTS]</b> — Drops a column from a table.
                                         Note that if you drop table columns that are being used as
                                         the Greenplum Database distribution key, the distribution
