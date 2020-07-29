@@ -46,12 +46,13 @@
  * Every proxy on the same host must use a different path, this is important to
  * let proxies from different segments or even different clusters to coexist.
  *
- * This is ensured by including the postmaster port in the path.
+ * This is ensured by including the postmaster port & pid in the path.
  */
 static inline void
 ic_proxy_build_server_sock_path(char *buf, size_t bufsize)
 {
-	snprintf(buf, bufsize, "/tmp/.s.proxy.%d", PostPortNumber);
+	snprintf(buf, bufsize, "/tmp/.s.PGSQL.ic_proxy.%d.%d",
+			 PostPortNumber, PostmasterPid);
 }
 
 #endif   /* IC_PROXY_H */
