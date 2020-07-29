@@ -12643,6 +12643,7 @@ dumpTransform(Archive *fout, TransformInfo *transform)
 	destroyPQExpBuffer(defqry);
 	destroyPQExpBuffer(delqry);
 	destroyPQExpBuffer(labelq);
+	destroyPQExpBuffer(transformargs);
 }
 
 
@@ -14135,6 +14136,7 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 		if (aggfullsig)
 			free(aggfullsig);
 
+		free(query);
 		free(aggsig);
 
 		return;
@@ -16093,6 +16095,7 @@ dumpExternal(Archive *fout, TableInfo *tbinfo, PQExpBuffer q, PQExpBuffer delq)
 
 
 		destroyPQExpBuffer(query);
+		free(qualrelname);
 }
 
 /*

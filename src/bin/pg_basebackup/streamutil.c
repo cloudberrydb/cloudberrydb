@@ -392,6 +392,7 @@ CreateReplicationSlot(PGconn *conn, const char *slot_name, const char *plugin,
 
 	if (replication_slot_already_exists_error(res))
 	{
+		destroyPQExpBuffer(query);
 		PQclear(res);
 		return true;
 	}
