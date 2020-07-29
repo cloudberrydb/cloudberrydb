@@ -58,7 +58,7 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">1.0.0</entry>
+              <entry colname="col1">1,1,0, 1.0.0</entry>
               <entry colname="col2">3.6+</entry>
               <entry colname="col3">6.1+</entry>
               <entry colname="col4">3.0.2+</entry>
