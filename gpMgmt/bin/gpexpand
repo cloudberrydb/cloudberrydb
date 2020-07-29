@@ -22,7 +22,6 @@ try:
     import pg, pgdb
 
     from gppylib.commands.unix import *
-    from gppylib.fault_injection import inject_fault
     from gppylib.commands.gp import *
     from gppylib.gparray import GpArray, MODE_NOT_SYNC, STATUS_DOWN
     from gppylib.gpparseopts import OptParser, OptChecker
@@ -1356,8 +1355,6 @@ class gpexpand:
         dbconn.execSQL(self.conn, "select gp_expand_bump_version()")
         self.conn.close()
 
-        inject_fault('gpexpand rollback test fault injection')
-
         self.statusLogger.set_status('UPDATE_CATALOG_DONE')
         self.pastThePointOfNoReturn = True;
 
@@ -1540,8 +1537,6 @@ class gpexpand:
         else:
             dbconn.execSQL(self.conn, progress_view_simple_sql)
 
-        inject_fault('gpexpand retry after releaseing catalog lock fault injection')
-
         self.statusLogger.set_status('SETUP_EXPANSION_SCHEMA_DONE')
 
     def prepare_schema(self):
@@ -1567,7 +1562,6 @@ class gpexpand:
                 dbname.decode('utf-8')))
             self._populate_regular_tables(dbname)
             self._populate_partitioned_tables(dbname)
-            inject_fault('gpexpand MPP-14620 fault injection')
 
         nowStr = datetime.datetime.now()
         statusSQL = "INSERT INTO gpexpand.status VALUES ( 'SETUP DONE', '%s' ) " % (nowStr)
@@ -2031,13 +2025,6 @@ class ExecuteSQLStatementsCommand(SQLCommand):
 
     def run(self, validateAfter=False):
         statement = None
-
-        faultPoint = os.getenv('GP_COMMAND_FAULT_POINT')
-        if faultPoint and self.name and self.name.startswith(faultPoint):
-            # simulate error
-            self.results = CommandResult(1, 'Fault Injection', 'Fault Injection', False, True)
-            self.error = "Fault Injection"
-            return
 
         self.results = CommandResult(rc=0
                                      , stdout=""

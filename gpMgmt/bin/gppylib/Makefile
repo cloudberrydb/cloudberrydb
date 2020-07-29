@@ -11,7 +11,6 @@ PROGRAMS= gparray.py gpunit unit2
 
 DATA= __init__.py \
 	datetimeutils.py \
-	fault_injection.py \
 	gp_era.py \
 	gpcatalog.py \
 	gplog.py \

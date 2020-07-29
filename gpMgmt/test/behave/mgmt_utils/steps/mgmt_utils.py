@@ -2647,18 +2647,6 @@ def _get_row_count_per_segment(table, dbname):
     conn.close()
     return [row[1] for row in rows] # indices are the gp segment id's, so no need to store them explicitly
 
-@given('set fault inject "{fault}"')
-@then('set fault inject "{fault}"')
-@when('set fault inject "{fault}"')
-def impl(context, fault):
-    os.environ['GPMGMT_FAULT_POINT'] = fault
-
-@given('unset fault inject')
-@then('unset fault inject')
-@when('unset fault inject')
-def impl(context):
-    os.environ['GPMGMT_FAULT_POINT'] = ""
-
 @given('run rollback')
 @then('run rollback')
 @when('run rollback')

@@ -178,11 +178,6 @@ checkcode: pylint
 	@echo -n "pylint_score=" > $(SRC)/../pylint_score.properties
 	@grep "Your code has been rated at" $(SRC)/../pylint.txt | sed -e "s|Your .* \(.*\)/.*|\1|" >> $(SRC)/../pylint_score.properties
 
-check-regress:
-	@echo "Running regression tests..."
-	@PYTHONPATH=$(SRC):$(SRC)/ext:$(PYTHONPATH) \
-	gppylib/gpunit discover --verbose -s gppylib -p "test_regress*.py" 2> $(SRC)/../gpMgmt_testregress_results.log 1> $(SRC)/../gpMgmt_testregress_output.log
-
 check: $(MOCK_BIN)
 	@echo "Running pure unit and also "unit" tests that require cluster to be up..."
 	@TMPDIR=/tmp PYTHONPATH=$(SERVER_SRC):$(SERVER_SBIN):$(PYTHONPATH):$(PYTHONSRC_INSTALL_PYTHON_PATH):$(SRC)/ext:$(SBIN_DIR):$(LIB_DIR):$(PYLIB_DIR)/mock-1.0.1 \

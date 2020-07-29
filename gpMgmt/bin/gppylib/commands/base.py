@@ -544,19 +544,12 @@ class Command(object):
     # Start a process that will execute the command but don't wait for
     # it to complete.  Return the Popen object instead.
     def runNoWait(self):
-        faultPoint = os.getenv('GP_COMMAND_FAULT_POINT')
-        if not faultPoint or (self.name and not self.name.startswith(faultPoint)):
-            self.exec_context.execute(self, wait=False)
-            return self.exec_context.proc
+        self.exec_context.execute(self, wait=False)
+        return self.exec_context.proc
 
     def run(self, validateAfter=False):
         self.logger.debug("Running Command: %s" % self.cmdStr)
-        faultPoint = os.getenv('GP_COMMAND_FAULT_POINT')
-        if not faultPoint or (self.name and not self.name.startswith(faultPoint)):
-            self.exec_context.execute(self)
-        else:
-            # simulate error
-            self.results = CommandResult(1, 'Fault Injection', 'Fault Injection', False, True)
+        self.exec_context.execute(self)
 
         if validateAfter:
             self.validate()
