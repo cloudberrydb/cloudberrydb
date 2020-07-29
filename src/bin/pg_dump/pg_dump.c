@@ -4891,6 +4891,7 @@ getTypeStorageOptions(Archive *fout, int *numTypes)
 	{
 		numTypes = 0;
 		tstorageoptions = (TypeStorageOptions *) pg_malloc(0);
+		destroyPQExpBuffer(query);
 		return tstorageoptions;
 	}
 
