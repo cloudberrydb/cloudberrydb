@@ -592,6 +592,13 @@ gp_hll_compress_dense(GpHLLCounter hloglog)
     	}
     	return hloglog;
     }
+
+	if (len < 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("LZ compression failed"),
+				 errdetail("LZ compression return value: %d", len)));
+
     memcpy(hloglog->data,dest,len);
 
     /* resize the counter to only encompass the compressed data and the struct
@@ -649,6 +656,13 @@ gp_hll_compress_dense_unpacked(GpHLLCounter hloglog)
 		}
 		return hloglog;
 	}
+
+	if (len < 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("LZ compression failed"),
+				 errdetail("LZ compression return value: %d", len)));
+
 	memcpy(hloglog->data, dest, len);
 
 	/* resize the counter to only encompass the compressed data and the struct

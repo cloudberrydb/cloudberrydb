@@ -283,7 +283,7 @@ AppendOnlyStorageRead_FinishOpenFile(AppendOnlyStorageRead *storageRead,
 				 errmsg("append-only storage read error on segment file '%s' for relation '%s'",
 						filePathName, storageRead->relationName),
 				 errdetail("FileSeek offset = 0.  Error code = %d (%s).",
-						(int) seekResult, strerror((int) seekResult))));
+						errno, strerror(errno))));
 	}
 
 	storageRead->file = file;
