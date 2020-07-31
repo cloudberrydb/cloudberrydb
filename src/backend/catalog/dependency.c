@@ -177,10 +177,11 @@ static const Oid object_classes[] = {
 	DefaultAclRelationId,		/* OCLASS_DEFACL */
 	ExtensionRelationId,		/* OCLASS_EXTENSION */
 	EventTriggerRelationId,		/* OCLASS_EVENT_TRIGGER */
-	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
-	CompressionRelationId,		/* OCLASS_COMPRESSION */
 	PolicyRelationId,			/* OCLASS_POLICY */
 	TransformRelationId			/* OCLASS_TRANSFORM */
+
+	,
+	ExtprotocolRelationId		/* OCLASS_EXTPROTOCOL */
 };
 
 
@@ -1330,10 +1331,6 @@ doDeletion(const ObjectAddress *object, int flags)
 
 		case OCLASS_EXTPROTOCOL:
 			RemoveExtProtocolById(object->objectId);
-			break;
-
-		case OCLASS_COMPRESSION:
-			elog(NOTICE, "dependency: not yet implemented!");
 			break;
 
 		case OCLASS_POLICY:
@@ -2546,10 +2543,6 @@ getObjectClass(const ObjectAddress *object)
 		case ExtprotocolRelationId:
 			Assert(object->objectSubId == 0);
 			return OCLASS_EXTPROTOCOL;
-
-		case CompressionRelationId:
-			Assert(object->objectSubId == 0);
-			return OCLASS_COMPRESSION;
 
 		case PolicyRelationId:
 			return OCLASS_POLICY;

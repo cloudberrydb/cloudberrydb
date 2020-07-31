@@ -1185,8 +1185,6 @@ EventTriggerSupportsObjectClass(ObjectClass objclass)
 			return true;
 		case OCLASS_EXTPROTOCOL:
 			return true;
-		case OCLASS_COMPRESSION:
-			return false;
 	}
 
 	return true;

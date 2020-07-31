@@ -177,11 +177,12 @@ typedef enum ObjectClass
 	OCLASS_EVENT_TRIGGER,		/* pg_event_trigger */
 	OCLASS_POLICY,				/* pg_policy */
 	OCLASS_TRANSFORM,			/* pg_transform */
-	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
-	OCLASS_COMPRESSION			/* pg_compression */
+
+	/* GPDB additions */
+	OCLASS_EXTPROTOCOL			/* pg_extprotocol */
 } ObjectClass;
 
-#define LAST_OCLASS		OCLASS_COMPRESSION
+#define LAST_OCLASS		OCLASS_EXTPROTOCOL
 
 
 /* in dependency.c */
