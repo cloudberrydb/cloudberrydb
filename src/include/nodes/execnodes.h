@@ -2562,12 +2562,6 @@ typedef enum HashAggStatus
 	HASHAGG_END_OF_PASSES
 } HashAggStatus;
 
-typedef struct SplitAggInfo
-{
-	int             idx;
-	TupleTableSlot  *outerslot;
-} SplitAggInfo;
-
 typedef struct AggState
 {
 	ScanState	ss;				/* its first field is NodeTag */
