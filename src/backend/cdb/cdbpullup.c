@@ -28,6 +28,7 @@
 
 
 static bool cdbpullup_missingVarWalker(Node *node, void *targetlist);
+static Expr *cdbpullup_make_expr(Index varno, AttrNumber varattno, Expr *oldexpr, bool modifyOld);
 
 /*
  * cdbpullup_expr
@@ -412,7 +413,7 @@ cdbpullup_isExprCoveredByTargetlist(Expr *expr, List *targetlist)
  * correctly for successful lookups by list_member(), tlist_member(),
  * make_canonical_pathkey(), etc.
  */
-Expr *
+static Expr *
 cdbpullup_make_expr(Index varno, AttrNumber varattno, Expr *oldexpr, bool modifyOld)
 {
 	Assert(oldexpr);
