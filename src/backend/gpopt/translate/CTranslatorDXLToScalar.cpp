@@ -12,6 +12,8 @@
 //	@test:
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 #include "nodes/plannodes.h"
 #include "nodes/parsenodes.h"
@@ -20,6 +22,7 @@
 #include "nodes/nodes.h"
 #include "catalog/pg_collation.h"
 #include "utils/datum.h"
+}
 
 #include "gpos/base.h"
 

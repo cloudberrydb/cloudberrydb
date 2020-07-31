@@ -22,7 +22,10 @@
 #include "gpos/base.h"
 #include "gpos/common/CHashMap.h"
 
+extern "C"
+{
 #include "postgres.h"	// Index
+}
 
 #include "naucrates/dxl/gpdb_types.h"
 

@@ -14,8 +14,11 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 #include "nodes/primnodes.h"
+}
 
 #include "gpopt/translate/CMappingColIdVarPlStmt.h"
 #include "gpopt/translate/CDXLTranslateContextBaseTable.h"

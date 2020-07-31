@@ -47,15 +47,6 @@
 #ifndef C_H
 #define C_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/*
- * We have to include stdlib.h here because it defines many of these macros
- * on some platforms, and we only want our definitions used if stdlib.h doesn't
- * have its own.  The same goes for stddef and stdarg if present.
- */
 #include "postgres_ext.h"
 
 /* Must undef pg_config_ext.h symbols before including pg_config.h */
@@ -1268,9 +1259,5 @@ extern unsigned long long strtoull(const char *str, char **endptr, int base);
 
 /* /port compatibility functions */
 #include "port.h"
-
-#ifdef __cplusplus
-}   /* extern "C" */
-#endif
 
 #endif   /* C_H */

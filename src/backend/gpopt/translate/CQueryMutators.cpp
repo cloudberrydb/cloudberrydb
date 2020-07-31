@@ -13,9 +13,8 @@
 //
 //---------------------------------------------------------------------------
 
-#include "postgres.h"
-
 extern "C" {
+#include "postgres.h"
 #include "nodes/plannodes.h"
 #include "nodes/parsenodes.h"
 #include "nodes/makefuncs.h"

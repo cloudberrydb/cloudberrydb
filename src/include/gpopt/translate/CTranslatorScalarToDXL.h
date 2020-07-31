@@ -18,8 +18,11 @@
 
 #include "gpos/base.h"
 
+extern "C"
+{
 #include "postgres.h"
 #include "nodes/primnodes.h"
+}
 
 #include "gpopt/translate/CContextQueryToDXL.h"
 #include "gpopt/translate/CMappingVarColId.h"

@@ -16,10 +16,13 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
 #include "utils/rel.h"
+}
 
 #include "gpopt/translate/CContextDXLToPlStmt.h"
 #include "gpopt/gpdbwrappers.h"

@@ -14,6 +14,8 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 
 #include "utils/guc.h"
@@ -26,6 +28,7 @@
 #include "catalog/pg_statistic.h"
 #include "optimizer/walkers.h"
 #include "utils/rel.h"
+}
 
 #define GPDB_NEXTVAL 1574
 #define GPDB_CURRVAL 1575

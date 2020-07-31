@@ -12,12 +12,14 @@
 //
 //
 //---------------------------------------------------------------------------
+extern "C"
+{
 #include "postgres.h"
-#include "gpopt/translate/CMappingVarColId.h"
-#include "gpopt/translate/CTranslatorUtils.h"
-
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
+}
+#include "gpopt/translate/CMappingVarColId.h"
+#include "gpopt/translate/CTranslatorUtils.h"
 
 
 #include "naucrates/dxl/CDXLUtils.h"

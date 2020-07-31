@@ -16,7 +16,11 @@
 #ifndef GPDXL_CTranslatorDxlToPlStmt_H
 #define GPDXL_CTranslatorDxlToPlStmt_H
 
+extern "C"
+{
 #include "postgres.h"
+}
+
 #include "gpopt/translate/CContextDXLToPlStmt.h"
 #include "gpopt/translate/CDXLTranslateContext.h"
 #include "gpopt/translate/CTranslatorDXLToScalar.h"

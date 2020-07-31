@@ -14,6 +14,8 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 
 #include "nodes/nodes.h"
@@ -28,6 +30,7 @@
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 #include "utils/uri.h"
+}
 #include "gpos/base.h"
 
 #include "gpopt/mdcache/CMDAccessor.h"

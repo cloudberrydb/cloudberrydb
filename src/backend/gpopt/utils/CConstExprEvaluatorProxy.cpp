@@ -14,9 +14,12 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 
 #include "executor/executor.h"
+}
 
 #include "gpopt/utils/CConstExprEvaluatorProxy.h"
 

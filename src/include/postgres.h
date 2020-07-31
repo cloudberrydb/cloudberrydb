@@ -45,11 +45,6 @@
 #define POSTGRES_H
 
 #include "c.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "utils/elog.h"
 #include "utils/palloc.h"
 #include "storage/itemptr.h"
@@ -523,10 +518,5 @@ static inline bool IsAligned(void *p, int align)
 extern void ExceptionalCondition(const char *conditionName,
 					 const char *errorType,
 			   const char *fileName, int lineNumber) pg_attribute_noreturn();
-
-
-#ifdef __cplusplus
-}   /* extern "C" */
-#endif
 
 #endif   /* POSTGRES_H */

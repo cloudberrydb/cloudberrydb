@@ -35,10 +35,6 @@ extern bool walk_plan_node_fields(Plan *plan, bool (*walker) (), void *context);
 
 extern bool plan_tree_walker(Node *node, bool (*walker) (), void *context, bool recurse_into_subplans);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Useful functions that aggregate information from expressions or plans.
  */
@@ -47,9 +43,5 @@ extern List *extract_nodes_plan(Plan *pl, int nodeTag, bool descendIntoSubquerie
 extern List *extract_nodes_expression(Node *node, int nodeTag, bool descendIntoSubqueries);
 extern int find_nodes(Node *node, List *nodeTags);
 extern int check_collation(Node *node);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* WALKERS_H_ */

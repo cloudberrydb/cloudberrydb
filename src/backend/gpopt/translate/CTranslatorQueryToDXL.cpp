@@ -14,6 +14,8 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 
 #include "access/sysattr.h"
@@ -23,6 +25,7 @@
 #include "nodes/makefuncs.h"
 #include "optimizer/walkers.h"
 #include "utils/rel.h"
+}
 
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"

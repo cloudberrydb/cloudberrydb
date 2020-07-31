@@ -13,6 +13,8 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
 
 #include "nodes/plannodes.h"
@@ -21,6 +23,7 @@
 #include "utils/datum.h"
 #include "utils/date.h"
 #include "utils/uuid.h"
+}
 
 #include "gpopt/translate/CTranslatorScalarToDXL.h"
 #include "gpopt/translate/CTranslatorQueryToDXL.h"

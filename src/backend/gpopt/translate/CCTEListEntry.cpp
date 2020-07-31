@@ -14,11 +14,12 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C"
+{
 #include "postgres.h"
-#include "gpopt/translate/CCTEListEntry.h"
-
 #include "nodes/parsenodes.h"
-
+}
+#include "gpopt/translate/CCTEListEntry.h"
 #include "gpos/base.h"
 #include "gpopt/gpdbwrappers.h"
 using namespace gpdxl;
