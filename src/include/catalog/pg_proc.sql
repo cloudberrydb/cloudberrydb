@@ -24,7 +24,7 @@
 
  CREATE FUNCTION pg_get_partition_template_def(oid, bool, bool) RETURNS text LANGUAGE internal STABLE STRICT PARALLEL SAFE AS 'pg_get_partition_template_def' WITH (OID=5037, DESCRIPTION="ALTER statement to recreate subpartition templates for a give relation");
 
- CREATE FUNCTION numeric_dec("numeric") RETURNS "numeric" LANGUAGE internal IMMUTABLE STRICT PARALLEL SAFE AS 'numeric_dec' WITH (OID=6997, DESCRIPTION="increment by one");
+ CREATE FUNCTION numeric_dec("numeric") RETURNS "numeric" LANGUAGE internal IMMUTABLE STRICT PARALLEL SAFE AS 'numeric_dec' WITH (OID=6997, DESCRIPTION="decrement by one");
 
 
 -- Sequences and time series
