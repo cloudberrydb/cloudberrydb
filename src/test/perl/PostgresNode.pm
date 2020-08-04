@@ -438,6 +438,10 @@ sub init
 		print $conf "unix_socket_directories = '$host'\n";
 		print $conf "listen_addresses = ''\n";
 	}
+
+	# GPDB: Enable Global Deadlock Detector
+	print $conf "gp_enable_global_deadlock_detector = on\n";
+
 	close $conf;
 
 	$self->set_replication_conf if $params{hba_permit_replication};
