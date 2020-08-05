@@ -6,6 +6,8 @@
                        'use_concourse_cluster': true},
                       {'name': 'analyzedb',
                        'use_concourse_cluster': false},
+                      {'name': 'gpreload',
+                       'use_concourse_cluster': false},
                       {'name': 'gpinitsystem',
                        'use_concourse_cluster': false},
                       {'name': 'gpstate',

@@ -45,6 +45,13 @@ def before_feature(context, feature):
         And there is a hard coded ao partition table "sales" with 4 child partitions in schema "public"
         """)
 
+    if 'gpreload' in feature.tags:
+        start_database_if_not_started(context)
+        drop_database_if_exists(context, 'gpreload_db')
+        create_database(context, 'gpreload_db')
+        context.conn = dbconn.connect(dbconn.DbURL(dbname='gpreload_db'), unsetSearchPath=False)
+        context.dbname = 'gpreload_db'
+
     if 'minirepro' in feature.tags:
         start_database_if_not_started(context)
         minirepro_db = 'minireprodb'
@@ -70,6 +77,8 @@ def before_feature(context, feature):
 
 def after_feature(context, feature):
     if 'analyzedb' in feature.tags:
+        context.conn.close()
+    if 'gpreload' in feature.tags:
         context.conn.close()
     if 'minirepro' in feature.tags:
         context.conn.close()
