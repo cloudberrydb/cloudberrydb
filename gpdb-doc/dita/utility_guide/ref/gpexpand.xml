@@ -49,6 +49,12 @@
           <li><codeph>gppkg</codeph></li>
           <li><codeph>gprestore</codeph></li>
         </ul></note>
+      <note type="important">When expanding a Greenplum Database system, you must disable Greenplum
+        interconnect proxies before adding new hosts and segment instances to the system, and you
+        must update the <codeph>gp_interconnect_proxy_addresses</codeph> parameter with the
+        newly-added segment instances before you re-enable interconnect proxies. For information
+        about Greenplum interconnect proxies, see <xref
+          href="../../admin_guide/managing/proxy-ic.xml"/>.</note>
       <p>For information about preparing a system for expansion, see <xref
           href="../../admin_guide/expand/expand-main.xml" scope="peer">Expanding a Greenplum
           System</xref><ph otherprops="op-print"> in the <cite>Greenplum Database Administrator

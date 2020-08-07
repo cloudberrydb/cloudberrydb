@@ -1338,6 +1338,9 @@
                   >gp_interconnect_fc_method</xref>
               </p>
               <p>
+                <xref href="guc-list.xml#gp_interconnect_proxy_addresses" type="section"
+                  >gp_interconnect_proxy_addresses</xref></p>
+              <p>
                 <xref href="guc-list.xml#gp_interconnect_queue_depth" type="section"
                   >gp_interconnect_queue_depth</xref>
               </p>
