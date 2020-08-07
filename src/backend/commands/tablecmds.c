@@ -5340,16 +5340,6 @@ ATRewriteCatalogs(List **wqueue, LOCKMODE lockmode)
 				AlterTableCmd	*atc = (AlterTableCmd *) lfirst(lcmd);
 
 				ATExecCmd(wqueue, tab, &rel, atc, lockmode);
-
-				/*
-				 * SET DISTRIBUTED BY() calls RelationForgetRelation(),
-				 * which will scribble on rel, so we must re-open it.
-				 */
-				if (atc->subtype == AT_SetDistributedBy)
-					rel = relation_open(tab->relid, NoLock);
-				/* ATExecExpandTable() may close the relation temporarily */
-				else if (atc->subtype == AT_ExpandTable)
-					rel = relation_open(tab->relid, NoLock);
 			}
 
 			/*
@@ -15265,18 +15255,14 @@ ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
 				 * Skip expanding readable external table, since data is not
 				 * located inside gpdb
 				 */
-				relation_close(rel, NoLock);
 				return;
 			}
 		}
 		else
 		{
 			/* Skip expanding foreign table, since data is not located inside gpdb */
-			relation_close(rel, NoLock);
 			return;
 		}
-
-		relation_close(rel, NoLock);
 	}
 	else
 	{
@@ -15406,14 +15392,7 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd)
 
 	/*
 	 * Step (f) - swap relfilenodes and MORE !!!
-	 *
-	 * Just lookup the Oid and pass it to swap_relation_files(). To do
-	 * this we must close the rel, since it needs to be forgotten by
-	 * the cache, we keep the lock though. ATRewriteCatalogs() knows
-	 * that we've closed the relation here.
 	 */
-	heap_close(rel, NoLock);
-	rel = NULL;
 	tmprelid = RangeVarGetRelid(tmprv, NoLock, false);
 	swap_relation_files(relid, tmprelid,
 						false, /* target_is_pg_class */
@@ -15601,11 +15580,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 				/* only need to rebuild if have new storage options */
 				if (!(DatumGetPointer(newOptions) || force_reorg))
 				{
-					/*
-					 * caller expects ATExecSetDistributedBy() to close rel
-					 * (see the non-random distribution case below for why.
-					 */
-					heap_close(rel, NoLock);
 					lsecond(lprime) = makeNode(SetDistributionCmd);
 					lprime = lappend(lprime, policy);
 					goto l_distro_fini;
@@ -15631,11 +15605,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			if (!DatumGetPointer(newOptions) &&
 				GpPolicyIsReplicated(rel->rd_cdbpolicy))
 			{
-				/*
-				 * caller expects ATExecSetDistributedBy() to close rel
-				 * (see the non-random distribution case below for why.
-				 */
-				heap_close(rel, NoLock);
 				lsecond(lprime) = makeNode(SetDistributionCmd);
 				lprime = lappend(lprime, policy);
 				goto l_distro_fini;
@@ -15790,7 +15759,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 								"to force redistribution",
 								RelationGetRelationName(rel),
 								buf.data)));
-						heap_close(rel, NoLock);
 						/* Tell QEs to do nothing */
 						linitial(lprime) = NULL;
 						lsecond(lprime) = makeNode(SetDistributionCmd);
@@ -15945,14 +15913,11 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		/* Set to random distribution on master with no reorganisation */
 		if (!reorg && qe_data->backendId == 0)
 		{
-			/* caller expects rel to be closed for this AT type */
-			heap_close(rel, NoLock);
 			goto l_distro_fini;			
 		}
 
 		if (!list_member_oid(qe_data->relids, tarrelid))
 		{
-			heap_close(rel, NoLock);
 			goto l_distro_fini;			
 		}
 
@@ -15983,14 +15948,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 
 	/*
 	 * Step (f) - swap relfilenodes and MORE !!!
-	 *
-	 * Just lookup the Oid and pass it to swap_relation_files(). To do
-	 * this we must close the rel, since it needs to be forgotten by
-	 * the cache, we keep the lock though. ATRewriteCatalogs() knows
-	 * that we've closed the relation here.
 	 */
-	heap_close(rel, NoLock);
-	rel = NULL;
 	tmprelid = RangeVarGetRelid(tmprv, NoLock, false);
 	swap_relation_files(tarrelid, tmprelid,
 						false, /* target_is_pg_class */
@@ -16643,15 +16601,8 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 	/* execute the command */
 	ATExecCmd(wqueue, tab, (rel2 ? &rel2 : rel), atc, AccessExclusiveLock);
 
-	if (!bPartitionCmd)
-	{
-		/* NOTE: for the case of Set Distro,
-		 * ATExecSetDistributedBy rebuilds the relation, so rel2
-		 * is already gone!
-		 */
-		if (atc->subtype != AT_SetDistributedBy && rel2)
-			heap_close(rel2, NoLock);
-	}
+	if (rel2)
+		heap_close(rel2, NoLock);
 
 	/* MPP-6929: metadata tracking - don't track this! */
 
