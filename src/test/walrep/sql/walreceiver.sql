@@ -1,5 +1,4 @@
 -- negative cases
-SELECT test_receive();
 SELECT test_send();
 SELECT test_disconnect();
 
@@ -60,5 +59,4 @@ insert into testwalreceiver select * from generate_series(0, 9);
 SELECT test_connect('');
 SELECT test_receive_and_verify(:'lsn', pg_current_xlog_location());
 SELECT test_send();
-SELECT test_receive();
 SELECT test_disconnect();
