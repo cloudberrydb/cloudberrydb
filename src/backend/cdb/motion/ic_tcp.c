@@ -29,7 +29,9 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp.h"
 
+#ifdef ENABLE_IC_PROXY
 #include "ic_proxy_backend.h"
+#endif  /* ENABLE_IC_PROXY */
 
 #include <fcntl.h>
 #include <limits.h>
