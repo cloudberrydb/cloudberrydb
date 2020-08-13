@@ -8,13 +8,6 @@
 static void
 KeepLogSeg_wrapper(XLogRecPtr recptr, XLogSegNo *logSegNo)
 {
-#ifdef FAULT_INJECTOR
-	expect_value(FaultInjector_InjectFaultIfSet, faultName, "keep_log_seg");
-	expect_value(FaultInjector_InjectFaultIfSet, ddlStatement, DDLNotSpecified);
-	expect_value(FaultInjector_InjectFaultIfSet, databaseName, "");
-	expect_value(FaultInjector_InjectFaultIfSet, tableName, "");
-	will_be_called(FaultInjector_InjectFaultIfSet);
-#endif
 	KeepLogSeg(recptr, logSegNo);
 }
 
