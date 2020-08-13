@@ -42,9 +42,6 @@ namespace gpdxl
 		// private copy ctor
 		CParseHandlerValuesScan(const CParseHandlerValuesScan &);
 
-		// set up initial handlers
-		void SetupInitialHandlers();
-
 		// process the start of an element
 		void StartElement
 		(
