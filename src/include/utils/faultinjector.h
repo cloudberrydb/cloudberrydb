@@ -97,11 +97,11 @@ extern FaultInjectorType_e FaultInjector_InjectFaultIfSet_out_of_line(
 							   const char*				 tableName);
 
 #define FaultInjector_InjectFaultIfSet(faultName, ddlStatement, databaseName, tableName) \
-	(((*faultInjectorSlots_ptr) > 0) ? \
+	(((*numActiveFaults_ptr) > 0) ? \
 	 FaultInjector_InjectFaultIfSet_out_of_line(faultName, ddlStatement, databaseName, tableName) : \
 	 FaultInjectorTypeNotSpecified)
 
-extern int *faultInjectorSlots_ptr;
+extern int *numActiveFaults_ptr;
 
 
 extern char *InjectFault(
