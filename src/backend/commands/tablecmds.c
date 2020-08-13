@@ -1957,15 +1957,12 @@ storage_name(char c)
  * 'supers' is a list of names (as RangeVar nodes) of parent relations.
  * 'relpersistence' is a persistence type of the table.
  * 'is_partition' tells if the table is a partition
- * 'GpPolicy *' is NULL if the distribution policy is not to be updated
  *
  * Output arguments:
  * 'supOids' receives a list of the OIDs of the parent relations.
  * 'supconstr' receives a list of constraints belonging to the parents,
  *		updated as necessary to be valid for the child.
  * 'supOidCount' is set to the number of parents that have OID columns.
- * 'GpPolicy' is updated with the offsets of the distribution
- *      attributes in the new schema
  *
  * Return value:
  * Completed schema list.
