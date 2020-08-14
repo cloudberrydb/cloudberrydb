@@ -1537,7 +1537,8 @@ gp_proto1_read(char *buf, int bufsz, URL_CURL_FILE *file, CopyState pstate, char
 
 				memcpy(fname, file->in.ptr + file->in.bot, len);
 				fname[len] = 0;
-				snprintf(pstate->cdbsreh->filename, sizeof pstate->cdbsreh->filename,"%s [%s]", pstate->filename, fname);
+				snprintf(pstate->cdbsreh->filename, sizeof pstate->cdbsreh->filename, "%s [%s]",
+						 file->common.url, fname);
 			}
 
 			file->in.bot += len;

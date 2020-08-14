@@ -320,11 +320,22 @@ NOTICE:  found 10 data formatting errors (10 or more input rows), rejected relat
  14 | 14 | 14
 (6 rows)
 
-WITH error_log AS (SELECT gp_read_error_log('sreh_ext_err_tbl')) select count(*) from error_log;
- count 
--------
-    10
-(1 row)
+-- Verify the fields that we easily can.
+WITH error_log AS (SELECT * FROM gp_read_error_log('sreh_ext_err_tbl'))
+  SELECT relname, filename LIKE 'gpfdist://@hostname@:8080/bad_data1.data [%]' as filename_ok, linenum, errmsg from error_log;
+     relname      | filename_ok | linenum |                        errmsg                         
+------------------+-------------+---------+-------------------------------------------------------
+ sreh_ext_err_tbl | t           |       2 | missing data for column "b"
+ sreh_ext_err_tbl | t           |       3 | invalid input syntax for integer: "", column b
+ sreh_ext_err_tbl | t           |       4 | extra data after last expected column, column b
+ sreh_ext_err_tbl | t           |       7 | invalid input syntax for integer: "bad", column c
+ sreh_ext_err_tbl | t           |       8 | invalid input syntax for integer: "bad", column a
+ sreh_ext_err_tbl | t           |      11 | invalid input syntax for integer: "eleven", column a
+ sreh_ext_err_tbl | t           |      12 | extra data after last expected column, column a
+ sreh_ext_err_tbl | t           |      13 | invalid input syntax for integer: ",13,", column b
+ sreh_ext_err_tbl | t           |      15 | missing data for column "b"
+ sreh_ext_err_tbl | t           |      16 | invalid input syntax for integer: "sixteen", column a
+(10 rows)
 
 CREATE EXTERNAL TABLE sreh_ext(a int, b int, c int)
 LOCATION ('gpfdist://@hostname@:8080/bad_data1.data' )
