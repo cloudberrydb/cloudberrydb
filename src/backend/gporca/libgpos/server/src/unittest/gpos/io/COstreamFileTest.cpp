@@ -180,8 +180,6 @@ COstreamFileTest::Unittest_DeleteTmpFile
 	GPOS_ASSERT(NULL != szDir);
 	GPOS_ASSERT(NULL != szFile);
 
-	CAutoTraceFlag atf(EtraceSimulateIOError, false);
-
 	if (ioutils::PathExists(szFile))
 	{
 		// delete temporary file

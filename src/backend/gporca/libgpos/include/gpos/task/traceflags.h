@@ -21,15 +21,6 @@ namespace gpos
 		// test flag
 		EtraceTest = 0,
 
-		// enable OOM simulation
-		EtraceSimulateOOM = 1,
-
-		// enable Abort simulation
-		EtraceSimulateAbort = 2,
-
-		// enable I/O error simulation
-		EtraceSimulateIOError = 3,
-
 		// disable printing memory leaks
 		EtraceDisablePrintMemoryLeak = 100,
 

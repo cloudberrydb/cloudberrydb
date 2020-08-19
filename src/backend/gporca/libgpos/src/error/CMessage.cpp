@@ -226,12 +226,6 @@ CMessage::GetMessage
 				1, // # params
 				GPOS_WSZ_WSZLEN("Delete operation failed; use error code to identify the error type")),
 
-		CMessage(CException(CException::ExmaSystem, CException::ExmiUnexpectedOOMDuringFaultSimulation),
-				 CException::ExsevError,
-				 GPOS_WSZ_WSZLEN("Unexpected out of memory during fault simulation"),
-				 0, // # params
-				 GPOS_WSZ_WSZLEN("Unexpected out of memory during fault simulation")),
-
 		CMessage(CException(CException::ExmaSystem, CException::ExmiDummyWarning),
 				 CException::ExsevWarning,
 				 GPOS_WSZ_WSZLEN("This is a dummy warning"),

@@ -3506,25 +3506,6 @@ CTestUtils::PdrgpiSegments
 	return pdrgpiSegments;
 }
 
-#ifdef GPOS_DEBUG
-//---------------------------------------------------------------------------
-//	@function:
-//		CTestUtils::FFaultSimulation
-//
-//	@doc:
-//		Check if we are in fault simulation mode
-//
-//---------------------------------------------------------------------------
-BOOL
-CTestUtils::FFaultSimulation()
-{
-	return GPOS_FTRACE(EtraceSimulateAbort) 
-			|| GPOS_FTRACE(EtraceSimulateIOError) 
-			|| GPOS_FTRACE(EtraceSimulateOOM);
-}
-#endif // GPOS_DEBUG
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CTestUtils::SzMinidumpFileName

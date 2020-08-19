@@ -118,9 +118,6 @@ namespace gpos
 				ExmiOverflow,
 				ExmiInvalidDeletion,
 	
-				// unexpected OOM during fault simulation 
-				ExmiUnexpectedOOMDuringFaultSimulation,
-				
 				// sql exceptions
 				ExmiSQLDefault,
 				ExmiSQLNotNullViolation,

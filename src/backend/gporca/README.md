@@ -221,14 +221,6 @@ Show all command lines while building (for debugging purpose)
 ninja -v -C build
 ```
 
-### Extended Tests
-
-Debug builds of GPORCA include a couple of "extended" tests for features like
-fault-simulation that work by running the entire test suite
-in combination with the feature being tested. These tests can take a long time
-to run and are not enabled by default. To turn extended tests on, add the cmake
-arguments `-D ENABLE_EXTENDED_TESTS=1`.
-
 <a name="contribute"></a>
 # How to Contribute
 
