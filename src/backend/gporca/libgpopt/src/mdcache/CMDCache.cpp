@@ -126,7 +126,6 @@ CMDCache::Reset()
 	CAutoTraceFlag atf1(EtraceSimulateOOM, false);
 	CAutoTraceFlag atf2(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
-	CAutoTraceFlag atf4(EtraceSimulateNetError, false);
 
 	Shutdown();
 	Init();

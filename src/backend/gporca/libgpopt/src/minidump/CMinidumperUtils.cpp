@@ -227,8 +227,7 @@ CMinidumperUtils::Finalize
 {
 	CAutoTraceFlag atf1(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf2(EtraceSimulateOOM, false);
-	CAutoTraceFlag atf3(EtraceSimulateNetError, false);
-	CAutoTraceFlag atf4(EtraceSimulateIOError, false);
+	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
 
 	if (fSerializeErrCtx)
 	{

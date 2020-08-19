@@ -209,7 +209,6 @@ CMemoryPoolManager::PrintOverSizedPools
 {
 	CAutoTraceFlag Abort(EtraceSimulateAbort, false);
 	CAutoTraceFlag OOM(EtraceSimulateOOM, false);
-	CAutoTraceFlag Net(EtraceSimulateNetError, false);
 	CAutoTraceFlag IO(EtraceSimulateIOError, false);
 
 	MemoryPoolIter iter(*m_ht_all_pools);

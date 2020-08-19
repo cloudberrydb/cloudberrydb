@@ -136,7 +136,6 @@ CMDAccessorUtils::GetScCmpMdid
 	CAutoTraceFlag atf1(EtraceSimulateOOM, false);
 	CAutoTraceFlag atf2(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
-	CAutoTraceFlag atf4(EtraceSimulateNetError, false);
 
 	IMDId *sc_cmp_mdid;
 
@@ -364,7 +363,6 @@ CMDAccessorUtils::FCastExists
 	CAutoTraceFlag atf1(EtraceSimulateOOM, false);
 	CAutoTraceFlag atf2(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
-	CAutoTraceFlag atf4(EtraceSimulateNetError, false);
 
 	GPOS_TRY
 	{
@@ -409,7 +407,6 @@ CMDAccessorUtils::FScalarOpReturnsNullOnNullInput
 	CAutoTraceFlag atf1(EtraceSimulateOOM, false);
 	CAutoTraceFlag atf2(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
-	CAutoTraceFlag atf4(EtraceSimulateNetError, false);
 
 	GPOS_TRY
 	{

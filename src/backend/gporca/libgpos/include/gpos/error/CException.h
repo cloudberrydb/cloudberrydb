@@ -115,7 +115,6 @@ namespace gpos
 				ExmiOutOfStack,
 				ExmiAbortTimeout,
 				ExmiIOError,
-				ExmiNetError,
 				ExmiOverflow,
 				ExmiInvalidDeletion,
 	

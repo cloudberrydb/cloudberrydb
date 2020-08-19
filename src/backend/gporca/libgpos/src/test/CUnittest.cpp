@@ -230,10 +230,6 @@ CUnittest::EresExecLoop
 			{
 				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIOError));
 			}
-			else if (ITask::Self()->IsTraceSet(EtraceSimulateNetError))
-			{
-				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiNetError));
-			}
 			else
 			{
 				// unexpected exception
@@ -341,10 +337,7 @@ CUnittest::FSimulated
 		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort)) ||
 
 		(ptsk->IsTraceSet(EtraceSimulateIOError) &&
-		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIOError)) ||
-
-		(ptsk->IsTraceSet(EtraceSimulateNetError) &&
-		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiNetError));
+		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIOError));
 }
 
 //---------------------------------------------------------------------------

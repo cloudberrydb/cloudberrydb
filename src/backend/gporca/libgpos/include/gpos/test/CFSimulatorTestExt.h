@@ -34,7 +34,6 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_OOM();
 			static GPOS_RESULT EresUnittest_Abort();
 			static GPOS_RESULT EresUnittest_IOError();
-			static GPOS_RESULT EresUnittest_NetError();
 
 			// simulate exceptions of given type
 			static GPOS_RESULT EresUnittest_SimulateException(ULONG major, ULONG minor);

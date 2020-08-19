@@ -30,9 +30,6 @@ namespace gpos
 		// enable I/O error simulation
 		EtraceSimulateIOError = 3,
 
-		// enable I/O error simulation
-		EtraceSimulateNetError = 4,
-
 		// disable printing memory leaks
 		EtraceDisablePrintMemoryLeak = 100,
 

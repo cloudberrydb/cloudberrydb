@@ -46,8 +46,7 @@ void SetTraceflags
 	// suppress error simulation while setting trace flags
 	CAutoTraceFlag atf1(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf2(EtraceSimulateOOM, false);
-	CAutoTraceFlag atf3(EtraceSimulateNetError, false);
-	CAutoTraceFlag atf4(EtraceSimulateIOError, false);
+	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
 
 	*ppbsEnabled = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
 	*ppbsDisabled = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
@@ -106,8 +105,7 @@ void ResetTraceflags
 	// suppress error simulation while resetting trace flags
 	CAutoTraceFlag atf1(EtraceSimulateAbort, false);
 	CAutoTraceFlag atf2(EtraceSimulateOOM, false);
-	CAutoTraceFlag atf3(EtraceSimulateNetError, false);
-	CAutoTraceFlag atf4(EtraceSimulateIOError, false);
+	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
 
 	CBitSetIter bsiterEnabled(*pbsEnabled);
 	while (bsiterEnabled.Advance())

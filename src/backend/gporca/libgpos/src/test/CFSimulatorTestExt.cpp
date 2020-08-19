@@ -40,7 +40,6 @@ CFSimulatorTestExt::EresUnittest()
 		GPOS_UNITTEST_FUNC(CFSimulatorTestExt::EresUnittest_OOM),
 		GPOS_UNITTEST_FUNC(CFSimulatorTestExt::EresUnittest_Abort),
 		GPOS_UNITTEST_FUNC(CFSimulatorTestExt::EresUnittest_IOError),
-		GPOS_UNITTEST_FUNC(CFSimulatorTestExt::EresUnittest_NetError),
 		};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -103,25 +102,6 @@ CFSimulatorTestExt::EresUnittest_IOError()
 
 	// run simulation
 	return EresUnittest_SimulateException(CException::ExmaSystem, CException::ExmiIOError);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CFSimulatorTestExt::EresUnittest_NetError
-//
-//	@doc:
-//		Simulate an networking error
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CFSimulatorTestExt::EresUnittest_NetError()
-{
-	// enable networking error simulation
-	CAutoTraceFlag atfSet(EtraceSimulateNetError, true);
-
-	// run simulation
-	return EresUnittest_SimulateException(CException::ExmaSystem, CException::ExmiNetError);
 }
 
 

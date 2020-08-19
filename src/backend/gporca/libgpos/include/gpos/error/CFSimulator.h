@@ -216,8 +216,7 @@ namespace gpos
 				return
 					task->IsTraceSet(EtraceSimulateOOM) ||
 					task->IsTraceSet(EtraceSimulateAbort) ||
-					task->IsTraceSet(EtraceSimulateIOError) ||
-					task->IsTraceSet(EtraceSimulateNetError);
+					task->IsTraceSet(EtraceSimulateIOError);
 			}
 
 	}; // class CFSimulator
