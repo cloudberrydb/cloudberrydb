@@ -296,44 +296,6 @@ gpos::ioutils::RemoveDir
 
 //---------------------------------------------------------------------------
 //	@function:
-//		ioutils::Move
-//
-//	@doc:
-//		Move file from old path to new path;
-//		any file currently mapped to new path is deleted
-//
-//---------------------------------------------------------------------------
-void
-gpos::ioutils::Move
-	(
-	const CHAR *old_path,
-	const CHAR *szNew
-	)
-{
-	GPOS_ASSERT(NULL != old_path);
-	GPOS_ASSERT(NULL != szNew);
-	GPOS_ASSERT(IsFile(old_path));
-
-	// delete any existing file with the new path
-	if (PathExists(szNew))
-	{
-		Unlink(szNew);
-	}
-
-	INT res = -1;
-
-	// rename file and check to simulate I/O error
-	GPOS_CHECK_SIM_IO_ERR(&res, rename(old_path, szNew));
-
-	if (0 != res)
-	{
-		GPOS_RAISE(CException::ExmaSystem, CException::ExmiIOError, errno);
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		ioutils::Unlink
 //
 //	@doc:

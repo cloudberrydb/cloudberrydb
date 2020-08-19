@@ -82,9 +82,6 @@ namespace gpos
 		// delete file
 		void RemoveDir(const CHAR *file_path);
 
-		// move file
-		void Move(const CHAR *old_path, const CHAR *szNew);
-
 		// delete file
 		void Unlink(const CHAR *file_path);
 
