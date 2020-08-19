@@ -494,9 +494,6 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
   if (ENABLE_EXTENDED_TESTS)
     # fault-simulation while running other tests
     add_orca_test(CFSimulatorTestExt)
-
-    # time-slicing
-    add_orca_test(CTimeSliceTest)
   endif()
 endif()
 

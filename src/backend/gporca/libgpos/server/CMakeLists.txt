@@ -52,7 +52,7 @@ function(add_gpos_custom_alloc_test TEST_NAME)
 endfunction()
 
 option(ENABLE_EXTENDED_TESTS
-       "Enable extended tests for fault-injection and timing that may take a long time to run."
+       "Enable extended tests for fault-injection that may take a long time to run."
        OFF)
 
 # Individual unit tests are added here in the same order they appear in
@@ -119,8 +119,5 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
   if (ENABLE_EXTENDED_TESTS)
     # fault-simulation while running other tests
     add_gpos_test(CFSimulatorTestExt)
-
-    # time-slicing
-    add_gpos_test(CTimeSliceTest)
   endif()
 endif()
