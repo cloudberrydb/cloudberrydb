@@ -2565,6 +2565,10 @@ make_splitupdate_path(PlannerInfo *root, Path *subpath, Index rti)
 	rte = planner_rt_fetch(rti, root);
 
 	/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
+	/* GPDB_12_MERGE_FIXME: PostgreSQL fires the DELETE+INSERT trigger, if
+	 * you UPDATE a partitioning key column. We could probably do the same with
+	 * update on the distribution key column.
+	 */
 	if (has_update_triggers(rte->relid))
 		ereport(ERROR,
 				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
