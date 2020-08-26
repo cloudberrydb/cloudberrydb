@@ -78,6 +78,14 @@ typedef struct
 
 } cdb_multi_dqas_info;
 
+
+static CdbPathLocus choose_grouping_locus(PlannerInfo *root, Path *path,
+										  PathTarget *target,
+										  List *groupClause,
+										  List *rollup_lists,
+										  List *rollup_groupclauses,
+										  bool *need_redistribute_p);
+
 static Index add_gsetid_tlist(List *tlist);
 
 static List *add_gsetid_groupclause(List *groupClause, Index groupref);
@@ -424,11 +432,11 @@ add_twostage_group_agg_path(PlannerInfo *root,
 									 (Expr *)gsetid, groupref);
 	}
 
-	group_locus = cdb_choose_grouping_locus(root, path, ctx->target,
-											parse->groupClause,
-											ctx->rollup_lists,
-											ctx->rollup_groupclauses,
-											&need_redistribute);
+	group_locus = choose_grouping_locus(root, path, ctx->target,
+										parse->groupClause,
+										ctx->rollup_lists,
+										ctx->rollup_groupclauses,
+										&need_redistribute);
 	/*
 	 * If the distribution of this path is suitable, two-stage aggregation
 	 * is not applicable.
@@ -457,10 +465,10 @@ add_twostage_group_agg_path(PlannerInfo *root,
 		 */
 		path = apply_projection_to_path(root, path->parent, path, info.input_proj_target);
 
-		distinct_locus = cdb_choose_grouping_locus(root, path,
-												   info.input_proj_target,
-												   info.dqa_group_clause, NIL, NIL,
-												   &distinct_need_redistribute);
+		distinct_locus = choose_grouping_locus(root, path,
+											   info.input_proj_target,
+											   info.dqa_group_clause, NIL, NIL,
+											   &distinct_need_redistribute);
 
 		/* If the input distribution matches the distinct, we can proceed */
 		if (distinct_need_redistribute)
@@ -612,9 +620,9 @@ add_twostage_hash_agg_path(PlannerInfo *root,
 	bool		need_redistribute;
 	HashAggTableSizes hash_info;
 
-	group_locus = cdb_choose_grouping_locus(root, path, ctx->target,
-											parse->groupClause, NIL, NIL,
-											&need_redistribute);
+	group_locus = choose_grouping_locus(root, path, ctx->target,
+										parse->groupClause, NIL, NIL,
+										&need_redistribute);
 	/*
 	 * If the distribution of this path is suitable, two-stage aggregation
 	 * is not applicable.
@@ -729,14 +737,14 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 	 */
 	path = apply_projection_to_path(root, path->parent, path, input_target);
 
-	distinct_locus = cdb_choose_grouping_locus(root, path,
-	                                           input_target,
-	                                           dqa_group_clause, NIL, NIL,
-	                                           &distinct_need_redistribute);
-	group_locus = cdb_choose_grouping_locus(root, path,
-	                                        input_target,
-	                                        parse->groupClause, NIL, NIL,
-	                                        &group_need_redistribute);
+	distinct_locus = choose_grouping_locus(root, path,
+										   input_target,
+										   dqa_group_clause, NIL, NIL,
+										   &distinct_need_redistribute);
+	group_locus = choose_grouping_locus(root, path,
+										input_target,
+										parse->groupClause, NIL, NIL,
+										&group_need_redistribute);
 	if (!parse->groupClause)
 	{
 		Path	    *dqa_dist_path = path;
@@ -828,14 +836,14 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 											 path->rows,
 											 NULL);
 
-	distinct_locus = cdb_choose_grouping_locus(root, path,
-											   input_target,
-											   dqa_group_clause, NIL, NIL,
-											   &distinct_need_redistribute);
-	group_locus = cdb_choose_grouping_locus(root, path,
-											input_target,
-											parse->groupClause, NIL, NIL,
-											&group_need_redistribute);
+	distinct_locus = choose_grouping_locus(root, path,
+										   input_target,
+										   dqa_group_clause, NIL, NIL,
+										   &distinct_need_redistribute);
+	group_locus = choose_grouping_locus(root, path,
+										input_target,
+										parse->groupClause, NIL, NIL,
+										&group_need_redistribute);
 	if (!distinct_need_redistribute || ! group_need_redistribute)
 	{
 		/*
@@ -1135,10 +1143,10 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 		((AggPath *)path)->groupClause = info->dqa_group_clause;
 	}
 
-	distinct_locus = cdb_choose_grouping_locus(root, path,
-											   info->tup_split_target,
-											   info->dqa_group_clause, NIL, NIL,
-											   &distinct_need_redistribute);
+	distinct_locus = choose_grouping_locus(root, path,
+										   info->tup_split_target,
+										   info->dqa_group_clause, NIL, NIL,
+										   &distinct_need_redistribute);
 
 	if (distinct_need_redistribute)
 		path = cdbpath_create_motion_path(root, path, NIL, false,
@@ -1217,8 +1225,8 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
  * entries, and distribute based on that. For example, if you do
  * GROUP BY GROUPING SETS ((a, b, c), (b, c)), the common cols are b and c.
  */
-CdbPathLocus
-cdb_choose_grouping_locus(PlannerInfo *root, Path *path,
+static CdbPathLocus
+choose_grouping_locus(PlannerInfo *root, Path *path,
 					  PathTarget *target,
 					  List *groupClause,
 					  List *rollup_lists,
@@ -1643,4 +1651,171 @@ fetch_single_dqa_info(PlannerInfo *root,
 
 	info->dqa_group_clause = list_concat(list_copy(root->parse->groupClause),
 										 info->dqa_group_clause);
+}
+
+/*
+ * Prepare the input path for sorted Agg node.
+ *
+ * The input to a (sorted) Agg node must be:
+ *
+ * 1. distributed so that rows belonging to the same group reside on the
+ *    same segment, and
+ *
+ * 2. sorted according to the pathkeys.
+ *
+ * If the input is already suitably distributed, this is no different from
+ * upstream, and we just add a Sort node if the input isn't already sorted.
+ *
+ * This also works for the degenerate case with no pathkeys, which means
+ * simple aggregation without grouping. For that, all the rows must be
+ * brought to a single node, but no sorting is needed.
+ */
+Path *
+cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
+								bool is_sorted,
+								/* args corresponding to create_sort_path */
+								RelOptInfo *rel,
+								Path *subpath,
+								PathTarget *target,
+								List *group_pathkeys,
+								double limit_tuples,
+								/* extra arguments */
+								List *groupClause,
+								List *rollup_lists,
+								List *rollup_groupclauses)
+{
+	CdbPathLocus locus;
+	bool		need_redistribute;
+
+	locus = choose_grouping_locus(root,
+								  subpath,
+								  target,
+								  groupClause,
+								  rollup_lists,
+								  rollup_groupclauses,
+								  &need_redistribute);
+
+	if (!need_redistribute)
+	{
+		/*
+		 * The input is already suitably distributed. Just add a Sort node,
+		 * if needed.
+		 */
+		if (!is_sorted)
+		{
+			subpath = (Path *) create_sort_path(root,
+												rel,
+												subpath,
+												group_pathkeys,
+												-1.0);
+		}
+		return subpath;
+	}
+
+	if (is_sorted && group_pathkeys)
+	{
+		/*
+		 * The input is already conveniently sorted. We could redistribute
+		 * it by the grouping keys, but then we'd need to re-sort it. That
+		 * doesn't seem like a good idea, so we prefer to gather it all, and
+		 * take advantage of the sort order.
+		 */
+		CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
+		subpath = cdbpath_create_motion_path(root,
+											 subpath,
+											 group_pathkeys,
+											 false, locus);
+	}
+	else if (!is_sorted && group_pathkeys)
+	{
+		/*
+		 * If we need to redistribute, it's usually best to redistribute
+		 * the data first, and then sort in parallel on each segment.
+		 *
+		 * But if we don't have any expressions to redistribute on, i.e.
+		 * if we are gathering all data to a single node to perform the
+		 * aggregation, then it's better to sort all the data on the
+		 * segments first, in parallel, and do a order-preserving motion
+		 * to merge the inputs.
+		 */
+		if (CdbPathLocus_IsPartitioned(locus))
+			subpath = cdbpath_create_motion_path(root, subpath, NIL,
+												 false, locus);
+
+		subpath = (Path *) create_sort_path(root,
+											rel,
+											subpath,
+											group_pathkeys,
+											-1.0);
+
+		if (!CdbPathLocus_IsPartitioned(locus))
+			subpath = cdbpath_create_motion_path(root, subpath,
+												 group_pathkeys,
+												 false, locus);
+	}
+	else
+	{
+		/*
+		 * The grouping doesn't require any sorting, i.e. the GROUP BY
+		 * consists entirely of (pseudo-)constants.
+		 *
+		 * The locus could be Hashed, which is a bit silly because with
+		 * all-constant grouping keys, all the rows will end up on a
+		 * single QE anyway. We could mark the locus as SingleQE here, so
+		 * that in simple cases where the result needs to end up in the QD,
+		 * the planner could Gather the result there directly. However, in
+		 * other cases hashing the result to one QE node is more helpful
+		 * for the plan above this.
+		 */
+		Assert(!group_pathkeys);
+		subpath = cdbpath_create_motion_path(root,
+											 subpath,
+											 NIL,
+											 false, locus);
+	}
+
+	return subpath;
+}
+
+/*
+ * Prepare the input path for hashed Agg node.
+ *
+ * This is much simpler than the sorted case. We only need to care about
+ * distribution, not sorting.
+ */
+Path *
+cdb_prepare_path_for_hashed_agg(PlannerInfo *root,
+								Path *subpath,
+								PathTarget *target,
+								/* extra arguments */
+								List *groupClause,
+								List *rollup_lists,
+								List *rollup_groupclauses)
+{
+	CdbPathLocus locus;
+	bool		need_redistribute;
+
+	locus = choose_grouping_locus(root,
+								  subpath,
+								  target,
+								  groupClause,
+								  rollup_lists,
+								  rollup_groupclauses,
+								  &need_redistribute);
+
+	/*
+	 * Redistribute if needed.
+	 *
+	 * The hash agg doesn't care about input order, and it destroys any
+	 * order there was, so don't bother with a order-preserving Motion even
+	 * if we could.
+	 */
+	if (need_redistribute)
+		subpath = cdbpath_create_motion_path(root,
+											 subpath,
+											 NIL /* pathkeys */,
+											 false,
+											 locus);
+
+	return subpath;
 }

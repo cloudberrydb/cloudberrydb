@@ -375,7 +375,7 @@ select count(distinct j), count(distinct k), count(distinct m) from (select j,k,
  GroupAggregate
    Group Key: multiagg_with_subquery.j
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: multiagg_with_subquery.j, multiagg_with_subquery.k, multiagg_with_subquery.m
+         Merge Key: multiagg_with_subquery.j
          ->  GroupAggregate
                Group Key: multiagg_with_subquery.j, multiagg_with_subquery.k, multiagg_with_subquery.m
                ->  Sort

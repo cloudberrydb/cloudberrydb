@@ -198,10 +198,6 @@ static Path *create_scatter_path(PlannerInfo *root, List *scatterClause, Path *p
 
 static bool isSimplyUpdatableQuery(Query *query);
 
-static CdbPathLocus choose_one_window_locus(PlannerInfo *root, Path *path,
-											WindowClause *wc,
-											bool *need_redistribute_p);
-
 /*****************************************************************************
  *
  *	   Query optimizer entry point
@@ -4261,68 +4257,18 @@ create_grouping_paths(PlannerInfo *root,
 											  path->pathkeys);
 			if (path == cheapest_path || is_sorted)
 			{
-				CdbPathLocus locus;
-				bool		need_redistribute;
-
-				locus = cdb_choose_grouping_locus(root, path, target,
-												  parse->groupClause,
-												  rollup_lists, rollup_groupclauses,
-												  &need_redistribute);
-
-				/* Sort the cheapest-total path if it isn't already sorted */
-				if (!is_sorted)
-				{
-					/*
-					 * If we need to redistribute, it's usually best to
-					 * redistribute the data first, and then sort in parallel
-					 * on each segment.
-					 *
-					 * But if we don't have any expressions to redistribute
-					 * on, i.e. if we are gathering all data to a single node
-					 * to perform the aggregation, then it's better to sort
-					 * all the data on the segments first, in parallel, and
-					 * do a order-preserving motion to merge the inputs.
-					 */
-					if (need_redistribute && CdbPathLocus_IsPartitioned(locus))
-						path = cdbpath_create_motion_path(root, path, NIL, false, locus);
-
-					path = (Path *) create_sort_path(root,
-													 grouped_rel,
-													 path,
-													 root->group_pathkeys,
-													 -1.0);
-
-					if (need_redistribute && !CdbPathLocus_IsPartitioned(locus))
-						path = cdbpath_create_motion_path(root, path, path->pathkeys, false, locus);
-				}
-				else
-				{
-					/*
-					 * The input is already conveniently sorted. We could
-					 * redistribute it by hash, but then we'd need to re-sort
-					 * it. That doesn't seem like a good idea, so we prefer to
-					 * gather it all, and take advantage of the sort order.
-					 *
-					 * If the grouping doesn't require any sorting (I think that
-					 * case only arises with plain aggregates, and no GROUP BY)
-					 * then we do redistribute so that we can run the aggregation
-					 * in parallel.
-					 */
-					if (need_redistribute)
-					{
-						if (root->group_pathkeys)
-						{
-							CdbPathLocus locus;
-
-							CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
-							path = cdbpath_create_motion_path(root, path, path->pathkeys, false, locus);
-						}
-						else
-						{
-							path = cdbpath_create_motion_path(root, path, NIL, false, locus);
-						}
-					}
-				}
+				/*
+				 * Sort the cheapest-total path if it isn't already sorted.
+				 * This also adds a Motion to redistribute it if needed.
+				 */
+				path = cdb_prepare_path_for_sorted_agg(root,
+													   is_sorted,
+													   grouped_rel,
+													   path, target,
+													   root->group_pathkeys,
+													   -1.0,
+													   parse->groupClause,
+													   rollup_lists, rollup_groupclauses);
 
 				/* Now decide what to stick atop it */
 				if (parse->groupingSets)
@@ -4451,13 +4397,6 @@ create_grouping_paths(PlannerInfo *root,
 
 	if (can_hash)
 	{
-		CdbPathLocus locus;
-		bool		need_redistribute;
-
-		locus = cdb_choose_grouping_locus(root, cheapest_path, target,
-										  parse->groupClause, rollup_lists, rollup_groupclauses,
-										  &need_redistribute);
-
 		/*
 		 * Provided that the estimated size of the hashtable does not exceed
 		 * work_mem, we'll generate a HashAgg Path, although if we were unable
@@ -4474,15 +4413,15 @@ create_grouping_paths(PlannerInfo *root,
 								  &hash_info) ||
 			grouped_rel->pathlist == NIL)
 		{
-			/*
-			 * Redistribute if needed.
-			 *
-			 * The hash agg doesn't care about input order, and it destroys any order there was,
-			 * so don't bother doing a order-preserving Motion even if we could.
-			 */
-			if (need_redistribute)
-				cheapest_path = cdbpath_create_motion_path(root, cheapest_path,
-														   NIL /* pathkeys */, false, locus);
+			Path	   *path;
+
+			/* Redistribute the input if needed. */
+			path = cdb_prepare_path_for_hashed_agg(root,
+												   cheapest_path,
+												   cheapest_path->pathtarget,
+												   parse->groupClause,
+												   rollup_lists,
+												   rollup_groupclauses);
 
 			/*
 			 * We just need an Agg over the cheapest-total input path, since
@@ -4490,7 +4429,7 @@ create_grouping_paths(PlannerInfo *root,
 			 */
 			add_path(grouped_rel, (Path *)
 					 create_agg_path(root, grouped_rel,
-									 cheapest_path,
+									 path,
 									 target,
 									 AGG_HASHED,
 									 AGGSPLIT_SIMPLE,
@@ -4586,80 +4525,6 @@ create_grouping_paths(PlannerInfo *root,
 	set_cheapest(grouped_rel);
 
 	return grouped_rel;
-}
-
-/*
- * Figure out the desired data distribution to perform windowing
- */
-static CdbPathLocus
-choose_one_window_locus(PlannerInfo *root, Path *path,
-						WindowClause *wc,
-						bool *need_redistribute_p)
-{
-	CdbPathLocus locus;
-	bool		need_redistribute;
-
-	if (CdbPathLocus_IsGeneral(path->locus))
-	{
-		need_redistribute = false;
-		locus = path->locus;
-	}
-	/*
-	 * If the input is already collected to a single segment, just perform the
-	 * aggregation there. We could redistribute it, so that we could perform
-	 * the aggregation in parallel, but Motions are pretty expensive so it's
-	 * probably not worthwhile.
-	 */
-	else if (CdbPathLocus_IsBottleneck(path->locus))
-	{
-		need_redistribute = false;
-		locus = path->locus;
-	}
-	else
-	{
-		List	   *partition_dist_pathkeys;
-		List	   *partition_dist_exprs;
-		List	   *partition_dist_opfamilies;
-		List	   *partition_dist_sortrefs;
-
-		make_distribution_exprs_for_groupclause(root,
-												wc->partitionClause,
-												make_tlist_from_pathtarget(path->pathtarget),
-												&partition_dist_pathkeys,
-												&partition_dist_exprs,
-												&partition_dist_opfamilies,
-												&partition_dist_sortrefs);
-		if (!partition_dist_exprs)
-		{
-			/*
-			 * There is no PARTITION BY, or none of the PARTITION BY
-			 * expressions can be used as a distribution key. Have to
-			 * gather everything to a single node.
-			 */
-			CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
-			need_redistribute = true;
-		}
-		else if (cdbpathlocus_collocates_pathkeys(root, path->locus, partition_dist_pathkeys, false))
-		{
-			/*
-			 * The current locus matches the PARTITION BY.
-			 */
-			need_redistribute = false;
-			locus = path->locus;
-		}
-		else
-		{
-			locus = cdbpathlocus_from_exprs(root,
-											partition_dist_exprs,
-											partition_dist_opfamilies,
-											partition_dist_sortrefs,
-											getgpsegmentCount());
-			need_redistribute = true;
-		}
-	}
-
-	*need_redistribute_p = need_redistribute;
-	return locus;
 }
 
 /*
@@ -4797,8 +4662,6 @@ create_one_window_path(PlannerInfo *root,
 	{
 		WindowClause *wc = (WindowClause *) lfirst(l);
 		List	   *window_pathkeys;
-		CdbPathLocus locus;
-		bool		need_redistribute;
 
 		window_pathkeys = make_pathkeys_for_window(root,
 												   wc,
@@ -4813,33 +4676,19 @@ create_one_window_path(PlannerInfo *root,
 		 * partition, so we need to gather all the tuples to a single
 		 * node. But we'll do that after the Sort, so that the Sort
 		 * is parallelized.
+		 *
+		 * This is the same logic that is used for sorted Aggregates.
 		 */
-		locus = choose_one_window_locus(root, path, wc, &need_redistribute);
-		if (need_redistribute && CdbPathLocus_IsPartitioned(locus))
-			path = cdbpath_create_motion_path(root, path, NIL, false, locus);
-
-		/* Sort if necessary */
-		if (!pathkeys_contained_in(window_pathkeys, path->pathkeys))
-		{
-			path = (Path *) create_sort_path(root, window_rel,
-											 path,
-											 window_pathkeys,
-											 -1.0);
-		}
-
-		if (need_redistribute && !CdbPathLocus_IsPartitioned(locus))
-		{
-			/*
-			 * The subpath might be ordered by TLEs that we don't need
-			 * in the final result, and will therefore not be present in the
-			 * final target list. We can't preserve them in the Motion node,
-			 * because we don't have them available anymore.
-			 */
-			List	   *pathkeys =
-				cdbpullup_truncatePathKeysForTargetList(path->pathkeys,
-														make_tlist_from_pathtarget(path->pathtarget));
-			path = cdbpath_create_motion_path(root, path, pathkeys, false, locus);
-		}
+		path = cdb_prepare_path_for_sorted_agg(root,
+											   pathkeys_contained_in(window_pathkeys, path->pathkeys),
+											   window_rel,
+											   path,
+											   path->pathtarget,
+											   window_pathkeys,
+											   -1.0,
+											   wc->partitionClause,
+											   NIL,
+											   NIL);
 
 		if (lnext(l))
 		{
