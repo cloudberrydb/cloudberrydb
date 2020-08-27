@@ -1612,9 +1612,7 @@ CTranslatorDXLToPlStmt::TranslateDXLNLJoin
 			if (NULL == right_dxl_translate_ctxt.GetParamIdMappingElement(ulColid))
 			{
 				CMappingElementColIdParamId *pmecolidparamid = GPOS_NEW(m_mp) CMappingElementColIdParamId(ulColid, m_dxl_to_plstmt_context->GetNextParamId(), pmdid, iTypeModifier);
-#ifdef GPOS_DEBUG
-					BOOL fInserted =
-#endif
+					BOOL fInserted GPOS_ASSERTS_ONLY =
 						right_dxl_translate_ctxt.FInsertParamMapping(ulColid, pmecolidparamid);
 					GPOS_ASSERT(fInserted);
 			}

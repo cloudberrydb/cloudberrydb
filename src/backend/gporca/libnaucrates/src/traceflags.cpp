@@ -52,18 +52,14 @@ void SetTraceflags
 		if (GPOS_FTRACE(ulTraceFlag))
 		{
 			// set trace flag in the enabled set
-#ifdef GPOS_DEBUG
-			BOOL fSet =
-#endif	// GPOS_DEBUG
+			BOOL fSet GPOS_ASSERTS_ONLY =
 				(*ppbsEnabled)->ExchangeSet(ulTraceFlag);
 			GPOS_ASSERT(!fSet);
 		}
 		else
 		{
 			// set trace flag in the disabled set
-#ifdef GPOS_DEBUG
-			BOOL fSet =
-#endif	// GPOS_DEBUG
+			BOOL fSet GPOS_ASSERTS_ONLY =
 				(*ppbsDisabled)->ExchangeSet(ulTraceFlag);
 			GPOS_ASSERT(!fSet);
 		}

@@ -1560,9 +1560,7 @@ CTranslatorExprToDXLUtils::ReplaceSubplan
 	CDXLColRef *dxl_colref = GPOS_NEW(mp) CDXLColRef(mp, mdname, pdxlopPrEl->Id(), mdid_type, colref->TypeModifier());
 	CDXLScalarIdent *pdxlnScId = GPOS_NEW(mp) CDXLScalarIdent(mp, dxl_colref);
 	CDXLNode *dxlnode = GPOS_NEW(mp) CDXLNode(mp, pdxlnScId);
-#ifdef GPOS_DEBUG
-	BOOL fReplaced =
-#endif // GPOS_DEBUG
+	BOOL fReplaced GPOS_ASSERTS_ONLY =
 		phmcrdxlnSubplans->Replace(colref, dxlnode);
 	GPOS_ASSERT(fReplaced);
 }

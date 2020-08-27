@@ -833,9 +833,7 @@ CDXLTokens::XmlstrFromWsz
 	ULONG length = GPOS_WSZ_LENGTH(wsz);
 	CHAR *sz = GPOS_NEW_ARRAY(m_mp, CHAR, 1 + length);
 
-#ifdef GPOS_DEBUG
-	LINT  iLen =
-#endif
+	LINT  iLen GPOS_ASSERTS_ONLY =
 	clib::Wcstombs(sz, const_cast<WCHAR *>(wsz), 1 + length);
 	
 	GPOS_ASSERT(0 <= iLen);
