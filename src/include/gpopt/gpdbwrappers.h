@@ -58,6 +58,8 @@ struct Var;
 struct Const;
 struct ArrayExpr;
 
+#include "gpopt/utils/RelationWrapper.h"
+
 namespace gpdb {
 
 	// convert datum to bool
@@ -562,7 +564,7 @@ namespace gpdb {
 	void BuildRelationTriggers(Relation rel);
 
 	// get relation with given oid
-	Relation GetRelation(Oid rel_oid);
+	RelationWrapper GetRelation(Oid rel_oid);
 
 	// get external table entry with given oid
 	ExtTableEntry *GetExternalTableEntry(Oid rel_oid);
