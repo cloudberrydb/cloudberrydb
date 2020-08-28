@@ -624,7 +624,15 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 	 * all analyzable columns.  We use a lower bound of 100 rows to avoid
 	 * possible overflow in Vitter's algorithm.  (Note: that will also be the
 	 * target in the corner case where there are no analyzable columns.)
+	 *
+	 * GPDB: If the caller specified the 'targrows', just use that.
 	 */
+	if (ctx)
+	{
+		targrows = ctx->targrows;
+	}
+	else /* funny indentation to avoid re-indenting upstream code */
+  {
 	targrows = 100;
 	for (i = 0; i < attr_cnt; i++)
 	{
@@ -641,6 +649,8 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 				targrows = thisdata->vacattrstats[i]->minrows;
 		}
 	}
+  }
+	/* end of funny indentation */
 
 	/*
 	 * Maintain information if the row of a column exceeds WIDTH_THRESHOLD

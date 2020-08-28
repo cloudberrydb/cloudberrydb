@@ -183,6 +183,7 @@ typedef struct
 {
 	/* Table being sampled */
 	Relation	onerel;
+	int32		targrows;
 
 	/* Sampled rows and estimated total number of rows in the table. */
 	HeapTuple  *sample_rows;
