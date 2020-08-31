@@ -4928,20 +4928,16 @@ create_distinct_paths(PlannerInfo *root,
 				if (!cdbpathlocus_collocates_pathkeys(root, path->locus,
 													  distinct_dist_pathkeys, false /* exact_match */ ))
 				{
+					/*
+					 * If the input path's locus is not suitable, gather the
+					 * result. We don't want to redistribute it because that
+					 * would break the input ordering, and we'd need to re-Sort
+					 * it. (We'll consider the explicit-sort case below, on top
+					 * of the cheapest overall path.)
+					 */
 					CdbPathLocus locus;
 
-					if (distinct_dist_exprs)
-					{
-						locus = cdbpathlocus_from_exprs(root,
-														distinct_dist_exprs,
-														distinct_dist_opfamilies,
-														distinct_dist_sortrefs,
-														getgpsegmentCount());
-					}
-					else
-					{
-						CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
-					}
+					CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
 
 					path = cdbpath_create_motion_path(root, path, path->pathkeys, false, locus);
 				}
