@@ -419,6 +419,15 @@ vacuum(int options, RangeVar *relation, Oid relid, VacuumParams *params,
 				analyze_rel(relid, relation, options, params,
 							va_cols, in_outer_xact, vac_strategy, NULL);
 
+#ifdef FAULT_INJECTOR
+				if (IsAutoVacuumWorkerProcess())
+				{
+					FaultInjector_InjectFaultIfSet(
+						"analyze_finished_one_relation", DDLNotSpecified,
+						"", relation->relname);
+				}
+#endif
+
 				if (use_own_xacts)
 				{
 					PopActiveSnapshot();

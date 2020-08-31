@@ -132,6 +132,7 @@
 #include "funcapi.h"
 #include "libpq-fe.h"
 #include "utils/builtins.h"
+#include "utils/faultinjector.h"
 #include "utils/hyperloglog/gp_hyperloglog.h"
 #include "utils/snapmgr.h"
 
@@ -276,6 +277,12 @@ analyze_rel_internal(Oid relid, RangeVar *relation, int options,
 	}
 	if (!onerel)
 		return;
+
+#ifdef FAULT_INJECTOR
+	FaultInjector_InjectFaultIfSet(
+		"analyze_after_hold_lock", DDLNotSpecified,
+		"", RelationGetRelationName(onerel));
+#endif
 
 	/*
 	 * Check permissions --- this should match vacuum's check!
