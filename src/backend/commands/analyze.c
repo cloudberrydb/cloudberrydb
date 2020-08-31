@@ -393,16 +393,22 @@ analyze_rel_internal(Oid relid, RangeVar *relation, int options,
 	 *
 	 * Skip this for partitioned tables. A partitioned table, i.e. the
 	 * "root partition", doesn't contain any rows.
+	 *
+	 * On QE, when receiving ANALYZE request through gp_acquire_sample_rows.
+	 * We should only perform do_analyze_rel for the parent table only
+	 * or all it's children tables. Because, QD will send two acquire sample
+	 * rows requests to QE.
+	 * To distinguish the two requests, we check the ctx->inherited value here.
 	 */
 	PartStatus ps = rel_part_status(relid);
-	if (!(ps == PART_STATUS_ROOT || ps == PART_STATUS_INTERIOR))
+	if (!(ps == PART_STATUS_ROOT || ps == PART_STATUS_INTERIOR) && (!ctx || !ctx->inherited))
 		do_analyze_rel(onerel, options, params, va_cols, acquirefunc, relpages,
 					   false, in_outer_xact, elevel, ctx);
 
 	/*
 	 * If there are child tables, do recursive ANALYZE.
 	 */
-	if (onerel->rd_rel->relhassubclass)
+	if (onerel->rd_rel->relhassubclass && (!ctx || ctx->inherited))
 		do_analyze_rel(onerel, options, params, va_cols, acquirefunc, relpages,
 					   true, in_outer_xact, elevel, ctx);
 
