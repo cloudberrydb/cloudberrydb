@@ -74,11 +74,20 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	Cost		motioncost;
 	double		recvrows;
 	double		sendrows;
+	double		send_segments;
+	double		recv_segments;
 
-	if (CdbPathLocus_IsReplicated(motionpath->path.locus))
-		motionpath->path.rows = subpath->rows * CdbPathLocus_NumSegments(motionpath->path.locus);
+	if (CdbPathLocus_IsPartitioned(subpath->locus))
+		send_segments = CdbPathLocus_NumSegments(subpath->locus);
 	else
-		motionpath->path.rows = subpath->rows;
+		send_segments = 1;
+
+	if (CdbPathLocus_IsPartitioned(motionpath->path.locus))
+		recv_segments = CdbPathLocus_NumSegments(motionpath->path.locus);
+	else
+		recv_segments = 1;
+
+	motionpath->path.rows = clamp_row_est(subpath->rows * (send_segments / recv_segments));
 
 	cost_per_row = (gp_motion_cost_per_row > 0.0)
 		? gp_motion_cost_per_row

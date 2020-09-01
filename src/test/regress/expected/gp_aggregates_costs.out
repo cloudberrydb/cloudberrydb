@@ -13,16 +13,16 @@ set statement_mem= '1800 kB';
 -- There are only 2000 distinct values of 'c' in the table, which fits
 -- comfortably in an in-memory hash table.
 explain select avg(b) from cost_agg_t1 group by c;
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=16552.97..16577.97 rows=2000 width=36)
-   ->  Finalize HashAggregate  (cost=16552.97..16577.97 rows=667 width=36)
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5519.00..5554.00 rows=2000 width=36)
+   ->  Finalize HashAggregate  (cost=5519.00..5527.33 rows=667 width=36)
          Group Key: c
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=16345.00..16525.00 rows=2000 width=36)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=5449.00..5509.00 rows=2000 width=36)
                Hash Key: c
-               ->  Partial HashAggregate  (cost=16345.00..16405.00 rows=2000 width=36)
+               ->  Partial HashAggregate  (cost=5449.00..5469.00 rows=2000 width=36)
                      Group Key: c
-                     ->  Seq Scan on cost_agg_t1  (cost=0.00..11345.00 rows=333334 width=8)
+                     ->  Seq Scan on cost_agg_t1  (cost=0.00..3782.33 rows=333333 width=8)
  Optimizer: Postgres query optimizer
 (9 rows)
 
@@ -36,12 +36,12 @@ explain select avg(b) from cost_agg_t1 group by c;
 explain select avg(b) from cost_agg_t2 group by c;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=36645.07..40332.35 rows=294982 width=36)
-   ->  HashAggregate  (cost=36645.07..40332.35 rows=98328 width=36)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=12115.67..17035.13 rows=281112 width=36)
+   ->  HashAggregate  (cost=12115.67..13286.97 rows=93704 width=36)
          Group Key: c
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..31345.00 rows=333334 width=8)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..10449.00 rows=333333 width=8)
                Hash Key: c
-               ->  Seq Scan on cost_agg_t2  (cost=0.00..11345.00 rows=333334 width=8)
+               ->  Seq Scan on cost_agg_t2  (cost=0.00..3782.33 rows=333333 width=8)
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -50,16 +50,16 @@ explain select avg(b) from cost_agg_t2 group by c;
 insert into cost_agg_t2 select i, random() * 99999,1 from generate_series(1, 200000) i;
 analyze cost_agg_t2;
 explain select avg(b) from cost_agg_t2 group by c;
-                                                 QUERY PLAN                                                 
-------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=30914.97..32210.13 rows=103613 width=36)
-   ->  Finalize HashAggregate  (cost=30914.97..32210.13 rows=34538 width=36)
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10057.78..11832.30 rows=101401 width=36)
+   ->  Finalize HashAggregate  (cost=10057.78..10480.28 rows=33800 width=36)
          Group Key: c
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=19930.20..29255.37 rows=103613 width=36)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=6538.00..9554.95 rows=100565 width=36)
                Hash Key: c
-               ->  Partial HashAggregate  (cost=19930.20..23038.59 rows=103613 width=36)
+               ->  Partial HashAggregate  (cost=6538.00..7543.65 rows=100565 width=36)
                      Group Key: c
-                     ->  Seq Scan on cost_agg_t2  (cost=0.00..13614.00 rows=400000 width=8)
+                     ->  Seq Scan on cost_agg_t2  (cost=0.00..4538.00 rows=400000 width=8)
  Optimizer: Postgres query optimizer
 (9 rows)
 
