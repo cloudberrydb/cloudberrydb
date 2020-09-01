@@ -2174,7 +2174,7 @@ CTranslatorExprToDXLUtils::GetDXLDirectDispatchInfo
 	
 	CDXLDatum2dArray *pdrgpdrgpdxldatum = GPOS_NEW(mp) CDXLDatum2dArray(mp);
 	pdrgpdrgpdxldatum->Append(pdrgpdxldatum);
-	return GPOS_NEW(mp) CDXLDirectDispatchInfo(pdrgpdrgpdxldatum);
+	return GPOS_NEW(mp) CDXLDirectDispatchInfo(pdrgpdrgpdxldatum, false);
 }
 
 //---------------------------------------------------------------------------
@@ -2203,7 +2203,21 @@ CTranslatorExprToDXLUtils::PdxlddinfoSingleDistrKey
 	
 	const CColRef *pcrDistrCol = CScalarIdent::PopConvert(pexprHashed->Pop())->Pcr();
 	
+	BOOL useRawValues = false;
 	CConstraint *pcnstrDistrCol = pcnstr->Pcnstr(mp, pcrDistrCol);
+	CConstraintInterval *pcnstrInterval;
+	if (pcnstrDistrCol == NULL && (pcnstrInterval = dynamic_cast<CConstraintInterval *>(pcnstr)))
+	{
+		if (pcnstrInterval->FConstraintOnSegmentId())
+		{
+			// If the constraint is on gp_segment_id then we trick ourselves into
+			// considering the constraint as being on a distribution column.
+			pcnstrDistrCol = pcnstr;
+			pcnstrDistrCol->AddRef();
+			pcrDistrCol = pcnstrInterval->Pcr();
+			useRawValues = true;
+		}
+	}
 	
 	CDXLDatum2dArray *pdrgpdrgpdxldatum = NULL;
 	
@@ -2229,7 +2243,7 @@ CTranslatorExprToDXLUtils::PdxlddinfoSingleDistrKey
 	{
 		pdrgpdrgpdxldatum = PdrgpdrgpdxldatumFromDisjPointConstraint(mp, md_accessor, pcrDistrCol, pcnstrDistrCol);
 	}
-	
+
 	CRefCount::SafeRelease(pcnstrDistrCol);
 
 	if (NULL == pdrgpdrgpdxldatum)
@@ -2237,7 +2251,7 @@ CTranslatorExprToDXLUtils::PdxlddinfoSingleDistrKey
 		return NULL;
 	}
 	
-	return GPOS_NEW(mp) CDXLDirectDispatchInfo(pdrgpdrgpdxldatum);
+	return GPOS_NEW(mp) CDXLDirectDispatchInfo(pdrgpdrgpdxldatum, useRawValues);
 }
 
 
