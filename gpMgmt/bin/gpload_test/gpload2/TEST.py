@@ -98,7 +98,8 @@ d = mkpath('config')
 if not os.path.exists(d):
     os.mkdir(d)
 
-def write_config_file(mode='insert', reuse_flag='',columns_flag='0',mapping='0',portNum='8081',database='reuse_gptest',host='localhost',formatOpts='text',file='data/external_file_01.txt',table='texttable',format='text',delimiter="'|'",escape='',quote='',truncate='False',log_errors=None, error_limit='0',error_table=None,externalSchema=None,staging_table=None,fast_match='false', encoding=None, preload=True, fill=False, config='config/config_file', match_columns='true', update_columns='n2'):
+def write_config_file(mode='insert', reuse_flag='',columns_flag='0',mapping='0',portNum='8081',database='reuse_gptest',host='localhost',formatOpts='text',file='data/external_file_01.txt',table='texttable',format='text',delimiter="'|'",escape='',quote='',truncate='False',log_errors=None, error_limit='0',error_table=None,externalSchema=None,staging_table=None,fast_match='false', encoding=None, preload=True, fill=False, config='config/config_file'):
+
     f = open(mkpath(config),'w')
     f.write("VERSION: 1.0.0.1")
     if database:
@@ -163,16 +164,11 @@ def write_config_file(mode='insert', reuse_flag='',columns_flag='0',mapping='0',
         if mode == 'merge':
             f.write("\n    - MODE: "+'merge')
     f.write("\n    - UPDATE_COLUMNS:")
-    f.write("\n           - "+update_columns)
-    if match_columns=='true':
-        f.write("\n    - MATCH_COLUMNS:")
-        f.write("\n           - n1")
-        f.write("\n           - s1")
-        f.write("\n           - s2")
-    if match_columns=='2':
-        f.write("\n    - MATCH_COLUMNS:")
-        f.write("\n           - '\"Field1\"'")
-        f.write("\n           - '\"Field#2\"'")
+    f.write("\n           - n2")
+    f.write("\n    - MATCH_COLUMNS:")
+    f.write("\n           - n1")
+    f.write("\n           - s1")
+    f.write("\n           - s2")
     if mapping=='1':
         f.write("\n    - MAPPING:")
         f.write("\n           s1: s_s1")
@@ -804,11 +800,6 @@ class GPLoad_FormatOpts_TestCase(unittest.TestCase):
         runfile(file)
         copy_data('external_file_15.txt','data_file.txt')
         write_config_file(mode='insert',reuse_flag='true',fast_match='false', file='data_file.txt',table='testSpecialChar',columns_flag='2', delimiter=";")
-        copy_data('external_file_16.txt','data_file2.txt')
-        write_config_file(update_columns='\'"Field#2"\'',config='config/config_file2', mode='merge',reuse_flag='true',fast_match='false', file='data_file2.txt',table='testSpecialChar',columns_flag='2', delimiter=";",match_columns='2')
-        f = open(mkpath('query41.sql'),'a')
-        f.write("\! gpload -f "+mkpath('config/config_file2')+ " -d reuse_gptest\n")
-        f.close()
         self.doTest(41)
 
 
