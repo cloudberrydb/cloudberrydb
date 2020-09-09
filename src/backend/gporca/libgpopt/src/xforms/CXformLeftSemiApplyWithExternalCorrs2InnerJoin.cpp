@@ -130,13 +130,14 @@ CXformLeftSemiApplyWithExternalCorrs2InnerJoin::FDecorrelate
 	GPOS_ASSERT(NULL != ppdrgpexprCorr);
 
 	// extract children
+	CExpression *pexprOuter = (*pexpr)[0];
 	CExpression *pexprInner = (*pexpr)[1];
 	CExpression *pexprScalar = (*pexpr)[2];
 
 	// collect all correlations from inner child
 	pexprInner->ResetDerivedProperties();
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	if (!CDecorrelator::FProcess(mp, pexprInner, true /* fEqualityOnly */, ppexprInnerNew, pdrgpexpr))
+	if (!CDecorrelator::FProcess(mp, pexprInner, true /* fEqualityOnly */, ppexprInnerNew, pdrgpexpr, pexprOuter->DeriveOutputColumns()))
 	{
 		// decorrelation failed
 		pdrgpexpr->Release();

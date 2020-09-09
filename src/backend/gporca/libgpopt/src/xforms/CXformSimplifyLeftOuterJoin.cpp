@@ -65,8 +65,8 @@ CXformSimplifyLeftOuterJoin::Exfp
 	)
 	const
 {
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
-	if (CUtils::FScalarConstFalse(pexprScalar))
+	CExpression *pexprScalar = exprhdl.PexprScalarExactChild(2 /*child_index*/);
+	if (NULL != pexprScalar && CUtils::FScalarConstFalse(pexprScalar))
 	{
 		// if LOJ predicate is False, we can replace inner child with empty table
 		return CXform::ExfpHigh;

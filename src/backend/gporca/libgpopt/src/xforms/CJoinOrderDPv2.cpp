@@ -65,7 +65,8 @@ CJoinOrderDPv2::CJoinOrderDPv2
 	CExpressionArray *pdrgpexprAtoms,
 	CExpressionArray *innerJoinConjuncts,
 	CExpressionArray *onPredConjuncts,
-	ULongPtrArray *childPredIndexes
+	ULongPtrArray *childPredIndexes,
+	CColRefSet *outerRefs
 	)
 	:
 	CJoinOrder(mp, pdrgpexprAtoms, innerJoinConjuncts, onPredConjuncts, childPredIndexes),
@@ -73,7 +74,8 @@ CJoinOrderDPv2::CJoinOrderDPv2
 	m_on_pred_conjuncts(onPredConjuncts),
 	m_child_pred_indexes(childPredIndexes),
 	m_non_inner_join_dependencies(NULL),
-	m_cross_prod_penalty(GPOPT_DPV2_CROSS_JOIN_DEFAULT_PENALTY)
+	m_cross_prod_penalty(GPOPT_DPV2_CROSS_JOIN_DEFAULT_PENALTY),
+	m_outer_refs(outerRefs)
 {
 	m_join_levels = GPOS_NEW(mp) DPv2Levels(mp, m_ulComps+1);
 	// populate levels array with n+1 levels for an n-way join
@@ -132,8 +134,8 @@ CJoinOrderDPv2::CJoinOrderDPv2
 				nijBitSet->ExchangeClear(logicalChildNum);
 			}
 		}
-		PopulateExpressionToEdgeMapIfNeeded();
 	}
+	PopulateExpressionToEdgeMapIfNeeded();
 }
 
 
@@ -159,7 +161,7 @@ CJoinOrderDPv2::~CJoinOrderDPv2()
 	m_top_k_part_expressions->Release();
 	m_join_levels->Release();
 	m_on_pred_conjuncts->Release();
-
+	m_outer_refs->Release();
 #endif // GPOS_DEBUG
 }
 
@@ -331,6 +333,13 @@ CJoinOrderDPv2::GetJoinExpr
 	)
 {
 	SGroupInfo *left_group_info      = left_child_expr.m_group_info;
+
+	if (IsRightChildOfNIJ(left_group_info))
+	{
+		// can't use the right child of an NIJ on the left side
+		return NULL;
+	}
+
 	SExpressionInfo *left_expr_info  = left_child_expr.GetExprInfo();
 	SGroupInfo *right_group_info     = right_child_expr.m_group_info;
 	SExpressionInfo *right_expr_info = right_child_expr.GetExprInfo();
@@ -669,46 +678,55 @@ CJoinOrderDPv2::AddExprToGroupIfNecessary
 //		we'll create a map from expressions to edges, so that we can find any
 //		unused edges to be placed in a select node on top of the join.
 //
-//		Example:
+//		Examples:
 //		select * from foo left join bar on foo.a=bar.a where coalesce(bar.b, 0) < 10;
+//		select * from foo left join bar on foo.a=bar.a where foo.a = outer_ref;
 //
 //---------------------------------------------------------------------------
 void
 CJoinOrderDPv2::PopulateExpressionToEdgeMapIfNeeded()
 {
-	if (0 == m_child_pred_indexes->Size())
-	{
-		// all inner joins, all predicates will be placed
-		return;
-	}
-
 	BOOL populate = false;
-	// make a bitset b with all the LOJ right children
-	CBitSet *loj_right_children = GPOS_NEW(m_mp) CBitSet(m_mp);
 
-	for (ULONG c=0; c<m_child_pred_indexes->Size(); c++)
+	if (0 < m_outer_refs->Size())
 	{
-		if (0 < *((*m_child_pred_indexes)[c]))
-		{
-			loj_right_children->ExchangeSet(c);
-		}
+		// with outer refs we can get predicates like <col> = <outer ref>
+		// that are not real join predicates
+		populate = true;
 	}
 
-	for (ULONG en1 = 0; en1 < m_ulEdges; en1++)
+	if (!populate && NULL != m_child_pred_indexes)
 	{
-		SEdge *pedge = m_rgpedge[en1];
+		// check for WHERE predicates involving LOJ right children
 
-		if (pedge->m_loj_num == 0)
+		// make a bitset b with all the LOJ right children
+		CBitSet *loj_right_children = GPOS_NEW(m_mp) CBitSet(m_mp);
+
+		for (ULONG c=0; c<m_child_pred_indexes->Size(); c++)
 		{
-			// check whether this inner join (WHERE) predicate refers to any LOJ right child
-			// (whether its bitset overlaps with b)
-			// or whether we see any local predicates (this should be uncommon)
-			if (!loj_right_children->IsDisjoint(pedge->m_pbs) || 1 == pedge->m_pbs->Size())
+			if (0 < *((*m_child_pred_indexes)[c]))
 			{
-				populate = true;
-				break;
+				loj_right_children->ExchangeSet(c);
 			}
 		}
+
+		for (ULONG en1 = 0; en1 < m_ulEdges; en1++)
+		{
+			SEdge *pedge = m_rgpedge[en1];
+
+			if (pedge->m_loj_num == 0)
+			{
+				// check whether this inner join (WHERE) predicate refers to any LOJ right child
+				// (whether its bitset overlaps with b)
+				// or whether we see any local predicates (this should be uncommon)
+				if (!loj_right_children->IsDisjoint(pedge->m_pbs) || 1 == pedge->m_pbs->Size())
+				{
+					populate = true;
+					break;
+				}
+			}
+		}
+		loj_right_children->Release();
 	}
 
 	if (populate)
@@ -724,8 +742,6 @@ CJoinOrderDPv2::PopulateExpressionToEdgeMapIfNeeded()
 			m_expression_to_edge_map->Insert(pedge->m_pexpr, pedge);
 		}
 	}
-
-	loj_right_children->Release();
 }
 
 
@@ -1658,8 +1674,8 @@ CJoinOrderDPv2::IsRightChildOfNIJ
 	 CBitSet **requiredBitsOnLeft
 	)
 {
-	*onPredToUse = NULL;
-	*requiredBitsOnLeft = NULL;
+	GPOS_ASSERT(NULL == onPredToUse || NULL == *onPredToUse);
+	GPOS_ASSERT(NULL == requiredBitsOnLeft || NULL == *requiredBitsOnLeft);
 
 	if (1 != groupInfo->m_atoms->Size() || 0 == m_on_pred_conjuncts->Size())
 	{
@@ -1680,10 +1696,16 @@ CJoinOrderDPv2::IsRightChildOfNIJ
 	if (GPOPT_ZERO_INNER_JOIN_PRED_INDEX != childPredIndex)
 	{
 		// this non-join vertex component is the right child of an
-		// NIJ, return the ON predicate to use and also return TRUE
-		*onPredToUse = (*m_on_pred_conjuncts)[childPredIndex-1];
-		// also return the required minimal component on the left side of the join
-		*requiredBitsOnLeft = (*m_non_inner_join_dependencies)[childPredIndex-1];
+		// NIJ, return the ON predicate to use (if requested) and also return TRUE
+		if (NULL != onPredToUse)
+		{
+			*onPredToUse = (*m_on_pred_conjuncts)[childPredIndex-1];
+		}
+		if (NULL != requiredBitsOnLeft)
+		{
+			// also return the required minimal component on the left side of the join
+			*requiredBitsOnLeft = (*m_non_inner_join_dependencies)[childPredIndex-1];
+		}
 		return true;
 	}
 

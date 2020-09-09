@@ -203,8 +203,8 @@ namespace gpopt
 			// remove outer references from Order By/ Partition By clauses, and return a new operator
 			CLogicalSequenceProject *PopRemoveLocalOuterRefs(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
-			// return true if outer references are included in Partition/Order, or window frame edges
-			BOOL FHasLocalOuterRefs(CExpressionHandle &exprhdl) const;
+			// check for outer references in Partition/Order, or window frame edges
+			BOOL FHasLocalReferencesTo(const CColRefSet *outerRefsToCheck) const;
 
 			// conversion function
 			static

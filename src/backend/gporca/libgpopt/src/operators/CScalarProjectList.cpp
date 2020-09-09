@@ -90,7 +90,10 @@ CScalarProjectList::UlDistinctAggs
 	CExpressionHandle &exprhdl
 	)
 {
-	CExpression *pexprPrjList =  exprhdl.PexprScalar();
+	// We make do with an inexact representative expression returned by exprhdl.PexprScalarRep(),
+	// knowing that at this time, aggregate functions are accurately contained in it. What's not
+	// exact are subqueries. This is better than just returning 0 for project lists with subqueries.
+	CExpression *pexprPrjList =  exprhdl.PexprScalarRep();
 
 	GPOS_ASSERT(NULL != pexprPrjList);
 	GPOS_ASSERT(COperator::EopScalarProjectList == pexprPrjList->Pop()->Eopid());
@@ -142,9 +145,11 @@ CScalarProjectList::FHasMultipleDistinctAggs
 	CExpressionHandle &exprhdl
 	)
 {
-	CExpression *pexprPrjList = exprhdl.PexprScalar();
+	// We make do with an inexact representative expression returned by exprhdl.PexprScalarRep(),
+	// knowing that at this time, aggregate functions are accurately contained in it. What's not
+	// exact are subqueries. This is better than just returning false for project lists with subqueries.
+	CExpression *pexprPrjList = exprhdl.PexprScalarRep();
 
-	GPOS_ASSERT(NULL != pexprPrjList);
 	GPOS_ASSERT(COperator::EopScalarProjectList == pexprPrjList->Pop()->Eopid());
 	if (0 == UlDistinctAggs(exprhdl))
 	{

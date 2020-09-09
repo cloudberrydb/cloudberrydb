@@ -144,7 +144,7 @@ namespace gpopt
                 (*pexprApply)[1]->ResetDerivedProperties();
 
                 // decorrelate inner child
-                if (!CDecorrelator::FProcess(mp, (*pexprApply)[1], false /*fEqualityOnly*/, ppexprInner, *ppdrgpexpr))
+                if (!CDecorrelator::FProcess(mp, (*pexprApply)[1], false /*fEqualityOnly*/, ppexprInner, *ppdrgpexpr, (*pexprApply)[0]->DeriveOutputColumns()))
                 {
                     // decorrelation filed
                     (*ppdrgpexpr)->Release();

@@ -35,6 +35,7 @@
 #include "gpopt/operators/CExpressionPreprocessor.h"
 
 #include "naucrates/exception.h"
+#include "naucrates/base/CDatumGenericGPDB.h"
 #include "naucrates/base/IDatumBool.h"
 #include "naucrates/base/IDatumInt2.h"
 #include "naucrates/base/IDatumInt4.h"
@@ -45,6 +46,7 @@
 #include "naucrates/md/IMDScCmp.h"
 #include "naucrates/md/IMDType.h"
 #include "naucrates/md/IMDTypeBool.h"
+#include "naucrates/md/IMDTypeInt2.h"
 #include "naucrates/md/IMDTypeInt4.h"
 #include "naucrates/md/IMDTypeInt8.h"
 #include "naucrates/md/IMDTypeOid.h"
@@ -1903,6 +1905,75 @@ CUtils::PexprScalarConstOid
 			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum*) datum));
 
 	return pexpr;
+}
+
+// generate a NULL constant of a given type
+CExpression *
+CUtils::PexprScalarConstNull(CMemoryPool *mp, const IMDType *typ, INT type_modifier)
+{
+	IDatum *datum = NULL;
+	IMDId *mdid = typ->MDId();
+	mdid->AddRef();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	switch (typ->GetDatumType())
+	{
+		case IMDType::EtiInt2:
+			{
+				const IMDTypeInt2 *pmdtypeint2 = md_accessor->PtMDType<IMDTypeInt2>();
+				datum =  pmdtypeint2->CreateInt2Datum(mp, 0, true);
+			}
+			break;
+
+		case IMDType::EtiInt4:
+			{
+				const IMDTypeInt4 *pmdtypeint4 = md_accessor->PtMDType<IMDTypeInt4>();
+				datum =  pmdtypeint4->CreateInt4Datum(mp, 0, true);
+			}
+			break;
+
+		case IMDType::EtiInt8:
+			{
+				const IMDTypeInt8 *pmdtypeint8 = md_accessor->PtMDType<IMDTypeInt8>();
+				datum =  pmdtypeint8->CreateInt8Datum(mp, 0, true);
+			}
+			break;
+
+		case IMDType::EtiBool:
+			{
+				const IMDTypeBool *pmdtypebool = md_accessor->PtMDType<IMDTypeBool>();
+				datum =  pmdtypebool->CreateBoolDatum(mp, false, true);
+			}
+			break;
+
+		case IMDType::EtiOid:
+			{
+				const IMDTypeOid *pmdtypeoid = md_accessor->PtMDType<IMDTypeOid>();
+				datum =  pmdtypeoid->CreateOidDatum(mp, 0, true);
+			}
+			break;
+
+		case IMDType::EtiGeneric:
+			// sorry, no IMDType interface to generate a generic datum
+			datum = GPOS_NEW(mp) CDatumGenericGPDB
+									(
+									 mp,
+									 mdid,
+									 type_modifier,
+									 NULL, // source value buffer
+									 0,    // source value buffer length
+									 true, // is NULL
+									 0,    // LINT mapping for stats
+									 0.0   // CDouble mapping for stats
+									);
+			break;
+
+		default:
+			// shouldn't come here
+			GPOS_RTL_ASSERT(!"Invalid operator type");
+	}
+
+	return GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, datum));
 }
 
 // get column reference defined by project element
@@ -5296,7 +5367,8 @@ CUtils::MakeJoinWithoutInferredPreds
 
 	CExpressionHandle expression_handle(mp);
 	expression_handle.Attach(join_expr);
-	CExpression *scalar_expr = expression_handle.PexprScalarChild(join_expr->Arity() - 1);
+	CExpression *scalar_expr = expression_handle.PexprScalarExactChild(join_expr->Arity() - 1);
+	GPOS_ASSERT(NULL != scalar_expr);
 	CExpression *scalar_expr_without_inferred_pred = CPredicateUtils::PexprRemoveImpliedConjuncts(mp, scalar_expr, expression_handle);
 
 	// create a new join expression using the scalar expr without inferred predicate

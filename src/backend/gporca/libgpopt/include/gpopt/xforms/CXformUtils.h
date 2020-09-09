@@ -561,7 +561,7 @@ namespace gpopt
 
 			// check the applicability of N-ary join expansion
 			static
-			CXform::EXformPromise ExfpExpandJoinOrder(CExpressionHandle &exprhdl);
+			CXform::EXformPromise ExfpExpandJoinOrder(CExpressionHandle &exprhdl, const CXform *xform);
 
 			// extract foreign key
 			static

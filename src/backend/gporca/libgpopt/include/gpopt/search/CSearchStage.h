@@ -139,7 +139,7 @@ namespace gpopt
 
 			// print function
 			virtual
-			IOstream &OsPrint(IOstream &);
+			IOstream &OsPrint(IOstream &) const;
 
 			// generate default search strategy
 			static

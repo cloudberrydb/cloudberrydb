@@ -14,6 +14,7 @@
 #include "gpopt/operators/CLogicalSelect.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CPatternLeaf.h"
+#include "gpopt/search/CGroupProxy.h"
 #include "gpopt/xforms/CXformUtils.h"
 #include "gpopt/xforms/CXformRemoveSubqDistinct.h"
 
@@ -50,7 +51,8 @@ CXformRemoveSubqDistinct::Exfp
 		return CXform::ExfpNone;
 	}
 
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(1);
+	CGroupProxy gp((*exprhdl.Pgexpr())[1]);
+	CGroupExpression *pexprScalar = gp.PgexprFirst();
 	COperator *pop = pexprScalar->Pop();
 	if (CUtils::FQuantifiedSubquery(pop) || CUtils::FExistentialSubquery(pop))
 	{
@@ -103,7 +105,6 @@ CXformRemoveSubqDistinct::Transform
 {
 	GPOS_ASSERT(NULL != pxfctxt);
 	GPOS_ASSERT(NULL != pxfres);
-	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CMemoryPool *mp = pxfctxt->Pmp();

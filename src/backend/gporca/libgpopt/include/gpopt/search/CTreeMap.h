@@ -583,7 +583,7 @@ namespace gpopt
             }
 			
 			// debug print of entire map
-			IOstream &OsPrint(IOstream &os)
+			IOstream &OsPrint(IOstream &os) const
             {
                 TMapIter mi(m_ptmap);
                 ULONG ulNodes = 0;

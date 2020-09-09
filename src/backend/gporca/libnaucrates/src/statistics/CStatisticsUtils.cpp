@@ -1208,7 +1208,7 @@ CStatisticsUtils::DeriveStatsForIndexGet
 		}
 	}
 
-	CExpression *scalar_expr = expr_handle.PexprScalarChild(0 /*ulChidIndex*/);
+	CExpression *scalar_expr = expr_handle.PexprScalarRepChild(0 /*ulChidIndex*/);
 	CExpression *local_expr = NULL;
 	CExpression *outer_refs_expr = NULL;
 
@@ -1261,7 +1261,7 @@ CStatisticsUtils::DeriveStatsForBitmapTableGet
 	CColRefSet *outer_col_refset = expr_handle.DeriveOuterReferences();
 	CExpression *local_expr = NULL;
 	CExpression *outer_refs_expr = NULL;
-	CExpression *scalar_expr = expr_handle.PexprScalarChild(child_cond_index);
+	CExpression *scalar_expr = expr_handle.PexprScalarRepChild(child_cond_index);
 	CPredicateUtils::SeparateOuterRefs(mp, scalar_expr, outer_col_refset, &local_expr, &outer_refs_expr);
 
 	// collect columns used by the index

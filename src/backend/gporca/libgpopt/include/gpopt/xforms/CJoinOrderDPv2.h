@@ -391,6 +391,9 @@ namespace gpopt
 			// current penalty for cross products (depends on enumeration algorithm)
 			CDouble m_cross_prod_penalty;
 
+			// outer references, if any
+			CColRefSet *m_outer_refs;
+
 			CMemoryPool *m_mp;
 
 			SLevelInfo *Level(ULONG l) { return (*m_join_levels)[l]; }
@@ -484,7 +487,8 @@ namespace gpopt
 				CExpressionArray *pdrgpexprAtoms,
 				CExpressionArray *innerJoinConjuncts,
 				CExpressionArray *onPredConjuncts,
-				ULongPtrArray *childPredIndexes
+				ULongPtrArray *childPredIndexes,
+				CColRefSet *outerRefs
 				);
 
 			// dtor
@@ -501,8 +505,8 @@ namespace gpopt
 			BOOL
 			IsRightChildOfNIJ
 				(SGroupInfo *groupInfo,
-				 CExpression **onPredToUse,
-				 CBitSet **requiredBitsOnLeft
+				 CExpression **onPredToUse = NULL,
+				 CBitSet **requiredBitsOnLeft = NULL
 				);
 
 			// print function

@@ -203,7 +203,7 @@ CPhysicalDynamicIndexScan::PstatsDerive
 	IStatistics *pstatsBaseTable = CStatisticsUtils::DeriveStatsForDynamicScan(mp, exprhdl, ScanId(), prpplan->Pepp()->PpfmDerived());
 
 	// create a conjunction of index condition and additional filters
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(0 /*ulChidIndex*/);
+	CExpression *pexprScalar = exprhdl.PexprScalarRepChild(0 /*ulChidIndex*/);
 	CExpression *local_expr = NULL;
 	CExpression *expr_with_outer_refs = NULL;
 

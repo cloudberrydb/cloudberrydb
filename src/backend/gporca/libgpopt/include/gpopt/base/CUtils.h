@@ -383,6 +383,10 @@ namespace gpopt
 			static
 			CExpression *PexprScalarConstOid(CMemoryPool *mp, OID oid_val);
 
+			// generate a NULL constant of a given type
+			static
+			CExpression *PexprScalarConstNull(CMemoryPool *mp, const IMDType *typ, INT type_modifier);
+
 			// comparison operator type
 			static
 			IMDType::ECmpType ParseCmpType(IMDId *mdid);

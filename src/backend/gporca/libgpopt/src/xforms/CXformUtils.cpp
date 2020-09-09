@@ -148,10 +148,17 @@ CXformUtils::ExfpSemiJoin2CrossProduct
 CXform::EXformPromise
 CXformUtils::ExfpExpandJoinOrder
 	(
-	CExpressionHandle &exprhdl
+	 CExpressionHandle &exprhdl,
+	 const CXform *xform
 	)
 {
-	if (exprhdl.DeriveHasSubquery(exprhdl.Arity() - 1) || exprhdl.HasOuterRefs())
+	// With optimizer_join_order set to 'query' or 'exhaustive', the
+	// 'query' join order will expand the join even if it contains
+	// outer refs, using another method to get the promise.
+	// Therefore we also allow expansion for 'exhaustive2'
+	// when we have outer refs.
+	if (exprhdl.DeriveHasSubquery(exprhdl.Arity() - 1) ||
+		(exprhdl.HasOuterRefs() && CXform::ExfExpandNAryJoinDPv2 != xform->Exfid()))
 	{
 		// subqueries must be unnested before applying xform
 		return CXform::ExfpNone;
@@ -1088,13 +1095,12 @@ CXformUtils::SubqueryAllToAgg
 
 
 //---------------------------------------------------------------------------
-//	@function:
-//		CXformUtils::PexprSeparateSubqueryPreds
+// CXformUtils::PexprSeparateSubqueryPreds
 //
-//	@doc:
-//		Helper function to separate subquery predicates in a top Select node
-//
-//
+// Helper function to separate subquery predicates in a top Select node.
+// Transforms a join expression join(<logical children>, <expr with SQ>)
+// into select(join(<logical children>, <expr>), <subquery preds>).
+// Returns NULL if there are no subqueries in the inner join predicates.
 //---------------------------------------------------------------------------
 CExpression *
 CXformUtils::PexprSeparateSubqueryPreds
@@ -1105,13 +1111,19 @@ CXformUtils::PexprSeparateSubqueryPreds
 {
 	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
 	GPOS_ASSERT(COperator::EopLogicalInnerJoin == op_id ||
-			COperator::EopLogicalNAryJoin == op_id);
+				COperator::EopLogicalNAryJoin == op_id);
 
 	// split scalar expression into a conjunction of predicates with and without
 	// subqueries
 	const ULONG arity = pexpr->Arity();
 	CExpression *pexprScalar = (*pexpr)[arity - 1];
-	CExpressionArray *pdrgpexprConjuncts = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+	CLogicalNAryJoin *naryLOJOp = CLogicalNAryJoin::PopConvertNAryLOJ(pexpr->Pop());
+	CExpression *innerJoinPreds = pexprScalar;
+	if (NULL != naryLOJOp)
+	{
+		innerJoinPreds = naryLOJOp->GetInnerJoinPreds(pexpr);
+	}
+	CExpressionArray *pdrgpexprConjuncts = CPredicateUtils::PdrgpexprConjuncts(mp, innerJoinPreds);
 	CExpressionArray *pdrgpexprSQ = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArray *pdrgpexprNonSQ = GPOS_NEW(mp) CExpressionArray(mp);
 
@@ -1130,12 +1142,20 @@ CXformUtils::PexprSeparateSubqueryPreds
 			pdrgpexprNonSQ->Append(pexprConj);
 		}
 	}
-	GPOS_ASSERT(0 < pdrgpexprSQ->Size());
 
 	pdrgpexprConjuncts->Release();
 
-	// build children array from logical children and a conjunction of
-	// non-subquery predicates
+	if (0 == pdrgpexprSQ->Size())
+	{
+		// no subqueries found in inner join predicates, they must be in the LOJ preds
+		GPOS_ASSERT(NULL != naryLOJOp);
+		pdrgpexprSQ->Release();
+		pdrgpexprNonSQ->Release();
+
+		return NULL;
+	}
+
+	// build children array from logical children
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
@@ -1143,18 +1163,35 @@ CXformUtils::PexprSeparateSubqueryPreds
 		pexprChild->AddRef();
 		pdrgpexpr->Append(pexprChild);
 	}
-	pdrgpexpr->Append(CPredicateUtils::PexprConjunction(mp, pdrgpexprNonSQ));
 
-	// build a new join
+	// build a new join with the new non-subquery predicates
 	COperator *popJoin = NULL;
-	if (COperator::EopLogicalInnerJoin == op_id)
+
+	if (NULL == naryLOJOp)
 	{
-		popJoin = GPOS_NEW(mp) CLogicalInnerJoin(mp);
+		if (COperator::EopLogicalInnerJoin == op_id)
+		{
+			popJoin = GPOS_NEW(mp) CLogicalInnerJoin(mp);
+		}
+		else
+		{
+			popJoin = GPOS_NEW(mp) CLogicalNAryJoin(mp);
+		}
+		pdrgpexpr->Append(CPredicateUtils::PexprConjunction(mp, pdrgpexprNonSQ));
 	}
 	else
 	{
-		popJoin = GPOS_NEW(mp) CLogicalNAryJoin(mp);
+		// nary LOJ, make sure to include the indexes assigning children
+		// to LOJs and to preserve the CScalarNAryJoinPredList
+		ULongPtrArray *childIndexes = naryLOJOp->GetLojChildPredIndexes();
+
+		childIndexes->AddRef();
+
+		popJoin = GPOS_NEW(mp) CLogicalNAryJoin(mp, childIndexes);
+
+		pdrgpexpr->Append(naryLOJOp->ReplaceInnerJoinPredicates(mp, pexprScalar, CPredicateUtils::PexprConjunction(mp, pdrgpexprNonSQ)));
 	}
+
 	CExpression *pexprJoin = GPOS_NEW(mp) CExpression(mp, popJoin, pdrgpexpr);
 
 	// return a Select node with a conjunction of subquery predicates
@@ -4488,7 +4525,8 @@ CXformUtils::FJoinPredOnSingleChild
 		pdrgpcrs->Append(pcrsOutput);
 	}
 
-	CExpressionArray *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(mp, exprhdl.PexprScalarChild(arity- 1));
+	GPOS_ASSERT(NULL != exprhdl.PexprScalarExactChild(arity- 1));
+	CExpressionArray *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(mp, exprhdl.PexprScalarExactChild(arity- 1));
 	const ULONG ulPreds = pdrgpexprPreds->Size();
 	BOOL fPredUsesSingleChild = false;
 	for (ULONG ulPred = 0; !fPredUsesSingleChild && ulPred < ulPreds; ulPred++)

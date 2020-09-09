@@ -196,7 +196,7 @@ CPhysicalScan::PdsDerive
 		//
 		// This way the equiv spec stays incomplete only as long as it needs to be.
 
-		CExpression *pexprIndexPred = exprhdl.PexprScalarChild(0 /*child_index*/);
+		CExpression *pexprIndexPred = exprhdl.PexprScalarExactChild(0 /*child_index*/);
 
 		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(m_pds);
 		CDistributionSpecHashed *pdshashedEquiv = CDistributionSpecHashed::CompleteEquivSpec(mp, pdshashed, pexprIndexPred);

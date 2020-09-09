@@ -1174,7 +1174,7 @@ CPhysicalJoin::PppsRequiredCompute
 			else
 			{
 				// check if there is an interesting condition involving the partition key
-				CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
+				CExpression *pexprScalar = exprhdl.PexprScalarExactChild(2 /*child_index*/);
 				AddFilterOnPartKey(mp, true /*fNLJoin*/, pexprScalar, ppim, ppfm, child_index, part_idx_id, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
 			}
 		}
@@ -1193,7 +1193,7 @@ CPhysicalJoin::PppsRequiredCompute
 			else
 			{
 				// look for a filter on the part key
-				CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
+				CExpression *pexprScalar = exprhdl.PexprScalarExactChild(2 /*child_index*/);
 				AddFilterOnPartKey(mp, false /*fNLJoin*/, pexprScalar, ppim, ppfm, child_index, part_idx_id, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
 			}
 		}

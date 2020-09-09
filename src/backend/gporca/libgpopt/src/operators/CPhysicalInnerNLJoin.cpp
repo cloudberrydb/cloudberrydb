@@ -118,7 +118,7 @@ CPhysicalInnerNLJoin::PdsRequired
 			if(CDistributionSpec::EdtHashed == pdsOuter->Edt())
 			{
 				// require inner child to have matching hashed distribution
-				CExpression *pexprScPredicate = exprhdl.PexprScalarChild(2);
+				CExpression *pexprScPredicate = exprhdl.PexprScalarExactChild(2);
 				CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScPredicate);
 
 				CExpressionArray *pdrgpexprMatching = GPOS_NEW(mp) CExpressionArray(mp);

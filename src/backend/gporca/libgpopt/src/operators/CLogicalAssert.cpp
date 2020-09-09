@@ -162,10 +162,9 @@ CLogicalAssert::DeriveMaxCard
 	const
 {
 	// in case of a false condition or a contradiction, maxcard should be 1
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(1);
-	GPOS_ASSERT(NULL != pexprScalar);
+	CExpression *pexprScalar = exprhdl.PexprScalarExactChild(1);
 
-	if (CUtils::FScalarConstFalse(pexprScalar) ||
+	if ((NULL != pexprScalar && CUtils::FScalarConstFalse(pexprScalar)) ||
 		exprhdl.DerivePropertyConstraint()->FContradiction())
 	{
 		return CMaxCard(1 /*ull*/);

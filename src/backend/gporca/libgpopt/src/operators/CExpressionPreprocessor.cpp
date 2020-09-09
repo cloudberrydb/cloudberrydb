@@ -659,7 +659,7 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 			exprhdl.Attach(pexpr);
 			exprhdl.DeriveProps(NULL /*pdpctxt*/);
 			CLogicalSequenceProject *popSequenceProject = CLogicalSequenceProject::PopConvert(pop);
-			if (popSequenceProject->FHasLocalOuterRefs(exprhdl))
+			if (popSequenceProject->FHasLocalReferencesTo(exprhdl.DeriveOuterReferences()))
 			{
 				COperator *popNew = popSequenceProject->PopRemoveLocalOuterRefs(mp, exprhdl);
 				pop->Release();

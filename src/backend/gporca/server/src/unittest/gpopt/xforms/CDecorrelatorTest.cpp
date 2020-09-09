@@ -95,10 +95,11 @@ CDecorrelatorTest::EresUnittest_Decorrelate()
 
 		CExpression *pexprResult = NULL;
 		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		CColRefSet *outerRefs = pexpr->DeriveOuterReferences();
 #ifdef GPOS_DEBUG
 		BOOL fSuccess = 
 #endif // GPOS_DEBUG
-		CDecorrelator::FProcess(mp, pexpr, false /*fEqualityOnly*/, &pexprResult, pdrgpexpr);
+		CDecorrelator::FProcess(mp, pexpr, false /*fEqualityOnly*/, &pexprResult, pdrgpexpr, outerRefs);
 		GPOS_ASSERT(fSuccess);
 		
 		// convert residuals into one single conjunct

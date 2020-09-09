@@ -81,7 +81,7 @@ CPhysicalFullMergeJoin::PdsRequired
 	}
 
 	BOOL nulls_collocated = true;
-	if (CPredicateUtils::ExprContainsOnlyStrictComparisons(mp, exprhdl.PexprScalarChild(2)))
+	if (CPredicateUtils::ExprContainsOnlyStrictComparisons(mp, exprhdl.PexprScalarExactChild(2)))
 	{
 		// There is no need to require NULL rows to be collocated if the merge clauses
 		// only contain STRICT operators. This is because any NULL row will automatically

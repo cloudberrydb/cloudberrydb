@@ -128,7 +128,7 @@ CXformInnerApplyWithOuterKey2InnerJoin::Transform
 	(*pexprGb)[0]->ResetDerivedProperties();
 	CExpression *pexprInner = NULL;
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	if (!CDecorrelator::FProcess(mp, (*pexprGb)[0], false /*fEqualityOnly*/, &pexprInner, pdrgpexpr))
+	if (!CDecorrelator::FProcess(mp, (*pexprGb)[0], false /*fEqualityOnly*/, &pexprInner, pdrgpexpr, pexprOuter->DeriveOutputColumns()))
 	{
 		pdrgpexpr->Release();
 		return;

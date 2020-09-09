@@ -449,7 +449,7 @@ namespace gpopt
 	IOstream &operator <<
 		(
 		IOstream &os,
-		CEngine &eng
+		const CEngine &eng
 		)
 	{
 		return eng.OsPrint(os);

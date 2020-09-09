@@ -671,8 +671,7 @@ CLogical::PpcDeriveConstraintFromPredicates
 	{
 		if (exprhdl.FScalarChild(ul))
 		{
-			CExpression *pexprScalar = exprhdl.PexprScalarChild(ul);
-			BOOL needToReleasePexprScalar = false;
+			CExpression *pexprScalar = exprhdl.PexprScalarExactChild(ul);
 
 			// make sure it is a predicate... boolop, cmp, nulltest,
 			// or a list of join predicates for an NAry join
@@ -680,12 +679,7 @@ CLogical::PpcDeriveConstraintFromPredicates
 			{
 				continue;
 			}
-			if (COperator::EopScalarNAryJoinPredList == pexprScalar->Pop()->Eopid())
-			{
-				CLogicalNAryJoin *naryJoin = CLogicalNAryJoin::PopConvert(exprhdl.Pop());
-				pexprScalar = naryJoin->GetTrueInnerJoinPreds(mp,exprhdl);
-				needToReleasePexprScalar = true;
-			}
+			GPOS_ASSERT(COperator::EopScalarNAryJoinPredList != pexprScalar->Pop()->Eopid());
 			CColRefSetArray *pdrgpcrsChild = NULL;
 			CConstraint *pcnstr = CConstraint::PcnstrFromScalarExpr(mp, pexprScalar, &pdrgpcrsChild);
 
@@ -697,10 +691,6 @@ CLogical::PpcDeriveConstraintFromPredicates
 				CColRefSetArray *pdrgpcrsMerged = CUtils::PdrgpcrsMergeEquivClasses(mp, pdrgpcrs, pdrgpcrsChild);
 				pdrgpcrs->Release();
 				pdrgpcrs = pdrgpcrsMerged;
-			}
-			if (needToReleasePexprScalar)
-			{
-				pexprScalar->Release();
 			}
 			CRefCount::SafeRelease(pdrgpcrsChild);
 		}
@@ -1151,7 +1141,7 @@ CLogical::Maxcard
 	)
 {
 	// in case of a false condition (when the operator is not Full / Left Outer Join) or a contradiction, maxcard should be zero
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(ulScalarIndex);
+	CExpression *pexprScalar = exprhdl.PexprScalarExactChild(ulScalarIndex);
 
 	if (NULL != pexprScalar)
 	{

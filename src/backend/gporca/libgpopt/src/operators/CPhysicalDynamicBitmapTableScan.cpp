@@ -102,7 +102,7 @@ CPhysicalDynamicBitmapTableScan::PstatsDerive
 									prpplan->Pepp()->PpfmDerived()
 									);
 
-	CExpression *pexprCondChild = exprhdl.PexprScalarChild(0 /*ulChidIndex*/);
+	CExpression *pexprCondChild = exprhdl.PexprScalarRepChild(0 /*ulChidIndex*/);
 	CExpression *local_expr = NULL;
 	CExpression *expr_with_outer_refs = NULL;
 

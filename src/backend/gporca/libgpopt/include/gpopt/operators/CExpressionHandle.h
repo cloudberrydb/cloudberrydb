@@ -269,11 +269,17 @@ namespace gpopt
 			// check whether an expression's children have a volatile function
 			BOOL FChildrenHaveVolatileFuncScan();
 
-			// return the scalar child at given index
-			CExpression *PexprScalarChild(ULONG child_index) const;
+			// return a representative (inexact) scalar child at given index
+			CExpression *PexprScalarRepChild(ULONG child_index) const;
 
-			// return the scalar expression attached to handle
-			CExpression *PexprScalar() const;
+			// return a representative (inexact) scalar expression attached to handle
+			CExpression *PexprScalarRep() const;
+
+			// return an exact scalar child at given index or return null if not possible
+			CExpression *PexprScalarExactChild(ULONG child_index) const;
+
+			// return an exact scalar expression attached to handle or null if not possible
+			CExpression *PexprScalarExact() const;
 
 			void DeriveProducerStats(ULONG child_index, CColRefSet *pcrsStat);
 

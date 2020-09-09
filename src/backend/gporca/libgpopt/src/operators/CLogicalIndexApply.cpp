@@ -99,7 +99,7 @@ CLogicalIndexApply::PstatsDerive
 
 	IStatistics *outer_stats = exprhdl.Pstats(0);
 	IStatistics *inner_side_stats = exprhdl.Pstats(1);
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
+	CExpression *pexprScalar = exprhdl.PexprScalarRepChild(2 /*child_index*/);
 
 	// join stats of the children
 	IStatisticsArray *statistics_array = GPOS_NEW(mp) IStatisticsArray(mp);

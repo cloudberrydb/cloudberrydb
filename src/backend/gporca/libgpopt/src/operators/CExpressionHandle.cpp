@@ -1413,15 +1413,16 @@ CExpressionHandle::DeriveProducerStats
 }
 
 //---------------------------------------------------------------------------
-//	@function:
-//		CExpressionHandle::PexprScalarChild
+// CExpressionHandle::PexprScalarRepChild
 //
-//	@doc:
-//		Get the scalar child at given index
+// Get a representative (inexact) scalar child at given index. Subqueries
+// in the child are replaced by a TRUE or NULL constant. Use this method
+// where exactness is not required, e. g. for statistics derivation,
+// costing, or for heuristics.
 //
 //---------------------------------------------------------------------------
 CExpression *
-CExpressionHandle::PexprScalarChild
+CExpressionHandle::PexprScalarRepChild
 	(
 	ULONG child_index
 	)
@@ -1434,8 +1435,8 @@ CExpressionHandle::PexprScalarChild
 		// access scalar expression cached on the child scalar group
 		GPOS_ASSERT((*m_pgexpr)[child_index]->FScalar());
 
-		CExpression *pexprScalar = (*m_pgexpr)[child_index]->PexprScalar();
-		GPOS_ASSERT_IMP(NULL == pexprScalar, CDrvdPropScalar::GetDrvdScalarProps((*m_pgexpr)[child_index]->Pdp())->HasSubquery());
+		CExpression *pexprScalar = (*m_pgexpr)[child_index]->PexprScalarRep();
+		GPOS_ASSERT(NULL != pexprScalar);
 
 		return pexprScalar;
 	}
@@ -1445,8 +1446,8 @@ CExpressionHandle::PexprScalarChild
 		// if the expression does not come from a group, but its child does then
 		// get the scalar child from that group
 		CGroupExpression *pgexpr = (*m_pexpr)[child_index]->Pgexpr();
-		CExpression *pexprScalar = pgexpr->Pgroup()->PexprScalar();
-		GPOS_ASSERT_IMP(NULL == pexprScalar, (*m_pexpr)[child_index]->DeriveHasSubquery());
+		CExpression *pexprScalar = pgexpr->Pgroup()->PexprScalarRep();
+		GPOS_ASSERT(NULL != pexprScalar);
 
 		return pexprScalar;
 	}
@@ -1459,16 +1460,18 @@ CExpressionHandle::PexprScalarChild
 
 
 //---------------------------------------------------------------------------
-//	@function:
-//		CExpressionHandle::PexprScalar
+// CExpressionHandle::PexprScalarRep
 //
-//	@doc:
-//		Get the scalar expression attached to handle,
-//		return NULL if handle is not attached to a scalar expression
+// Get a representative scalar expression attached to handle,
+// return NULL if handle is not attached to a scalar expression.
+// Note that this may be inexact if handle is attached to a
+// CGroupExpression - subqueries will be replaced by a TRUE or NULL
+// constant. Use this method where exactness is not required, e. g.
+// for statistics derivation, costing, or for heuristics.
 //
 //---------------------------------------------------------------------------
 CExpression *
-CExpressionHandle::PexprScalar() const
+CExpressionHandle::PexprScalarRep() const
 {
 	if (!Pop()->FScalar())
 	{
@@ -1482,12 +1485,47 @@ CExpressionHandle::PexprScalar() const
 
 	if (NULL != m_pgexpr)
 	{
-		return m_pgexpr->Pgroup()->PexprScalar();
+		return m_pgexpr->Pgroup()->PexprScalarRep();
 	}
 
 	return NULL;
 }
 
+
+// return an exact scalar child at given index or return null if not possible
+// (use this where exactness is required, e.g. for constraint derivation)
+CExpression *
+CExpressionHandle::PexprScalarExactChild(ULONG child_index) const
+{
+	if (NULL != m_pgexpr && !(*m_pgexpr)[child_index]->FScalarRepIsExact())
+	{
+		return NULL;
+	}
+
+	if (NULL != m_pexpr &&
+		NULL != (*m_pexpr)[child_index]->Pgexpr() &&
+		!((*m_pexpr)[child_index]->Pgexpr()->Pgroup()->FScalarRepIsExact()))
+	{
+		// the expression does not come from a group, but its child does and
+		// the child group does not have an exact expression
+		return NULL;
+	}
+
+	return PexprScalarRepChild(child_index);
+}
+
+// return an exact scalar expression attached to handle or null if not possible
+// (use this where exactness is required, e.g. for constraint derivation)
+CExpression *
+CExpressionHandle::PexprScalarExact() const
+{
+	if (NULL != m_pgexpr && !m_pgexpr->Pgroup()->FScalarRepIsExact())
+	{
+		return NULL;
+	}
+
+	return PexprScalarRep();
+}
 
 //---------------------------------------------------------------------------
 //	@function:

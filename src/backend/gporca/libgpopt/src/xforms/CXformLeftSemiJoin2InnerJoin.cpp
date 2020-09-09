@@ -77,11 +77,11 @@ CXformLeftSemiJoin2InnerJoin::Exfp
 	}
 
 	CColRefSet *pcrsInnerOutput = exprhdl.DeriveOutputColumns(1 /*child_index*/);
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
+	CExpression *pexprScalar = exprhdl.PexprScalarExactChild(2 /*child_index*/);
 	CAutoMemoryPool amp;
 
 	// examine join predicate to determine xform applicability
-	if (!CPredicateUtils::FSimpleEqualityUsingCols(amp.Pmp(), pexprScalar, pcrsInnerOutput))
+	if (NULL == pexprScalar || !CPredicateUtils::FSimpleEqualityUsingCols(amp.Pmp(), pexprScalar, pcrsInnerOutput))
 	{
 		return ExfpNone;
 	}
