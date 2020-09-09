@@ -26,8 +26,7 @@
 #include "optimizer/clauses.h" /* AggClauseCosts */
 
 extern bool cdbpathlocus_collocates_pathkeys(PlannerInfo *root, CdbPathLocus locus, List *pathkeys, bool exact_match);
-extern bool cdbpathlocus_collocates_expressions(PlannerInfo *root, CdbPathLocus locus, List *exprs,
-											   bool exact_match);
+extern bool cdbpathlocus_collocates_tlist(PlannerInfo *root, CdbPathLocus locus, List *tlist);
 
 extern void UpdateScatterClause(Query *query, List *newtlist);
 

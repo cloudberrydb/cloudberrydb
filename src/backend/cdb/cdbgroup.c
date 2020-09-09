@@ -106,19 +106,24 @@ cdbpathlocus_collocates_pathkeys(PlannerInfo *root, CdbPathLocus locus, List *pa
 	return cdbpathlocus_is_hashed_on_eclasses(locus, pk_eclasses, true);
 }
 
-
 /*
- * Function: cdbpathlocus_collocates_expressions
+ * Function: cdbpathlocus_collocates_tlist
  *
- * Like cdbpathlocus_collocates_pathkeys, but the key list is given as a list
- * of plain expressions, instead of PathKeys.
+ * Like cdbpathlocus_collocates_pathkeys, but the key list is given
+ * as a target list, instead of PathKeys.
  */
 bool
-cdbpathlocus_collocates_expressions(PlannerInfo *root, CdbPathLocus locus, List *exprs,
-								   bool exact_match)
+cdbpathlocus_collocates_tlist(PlannerInfo *root, CdbPathLocus locus, List *tlist)
 {
 	if (CdbPathLocus_IsBottleneck(locus))
 		return true;
+
+	/*
+	 * If there are no GROUP BY columns, the aggregation needs all rows in a
+	 * single node.
+	 */
+	if (tlist == NIL)
+		return false;
 
 	if (!CdbPathLocus_IsHashed(locus))
 	{
@@ -130,16 +135,13 @@ cdbpathlocus_collocates_expressions(PlannerInfo *root, CdbPathLocus locus, List 
 		return false;
 	}
 
-	if (exact_match && list_length(exprs) != list_length(locus.distkey))
-		return false;
-
 	/*
 	 * Check for containment of locus in pk_eclasses.
 	 *
 	 * We ignore constants in the locus hash key. A constant has the same
 	 * value everywhere, so it doesn't affect collocation.
 	 */
-	return cdbpathlocus_is_hashed_on_exprs(locus, exprs, true);
+	return cdbpathlocus_is_hashed_on_tlist(locus, tlist, true);
 }
 
 /**

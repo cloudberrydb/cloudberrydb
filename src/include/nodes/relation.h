@@ -88,6 +88,7 @@ typedef enum UpperRelationKind
 {
 	UPPERREL_SETOP,				/* result of UNION/INTERSECT/EXCEPT, if any */
 	UPPERREL_GROUP_AGG,			/* result of grouping/aggregation, if any */
+	UPPERREL_CDB_FIRST_STAGE_GROUP_AGG,
 	UPPERREL_WINDOW,			/* result of window functions, if any */
 	UPPERREL_DISTINCT,			/* result of "SELECT DISTINCT", if any */
 	UPPERREL_ORDERED,			/* result of ORDER BY, if any */
@@ -332,6 +333,9 @@ typedef struct PlannerInfo
 	List	   *window_pathkeys;	/* pathkeys of bottom window, if any */
 	List	   *distinct_pathkeys;		/* distinctClause pathkeys, if any */
 	List	   *sort_pathkeys;	/* sortClause pathkeys, if any */
+
+	/* hint on where the result of the query will be needed. Null if not known */
+	CdbPathLocus final_locus;
 
 	List	   *initial_rels;	/* RelOptInfos we are now trying to join */
 

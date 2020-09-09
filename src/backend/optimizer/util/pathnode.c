@@ -509,6 +509,36 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 			old_path_pathkeys = old_path->param_info ? NIL : old_path->pathkeys;
 			keyscmp = compare_pathkeys(new_path_pathkeys,
 									   old_path_pathkeys);
+
+			/*
+			 * GPDB: If the new path has different locus than the other path,
+			 * keep it, like we keep paths with different pathkeys. We can
+			 * avoid the (Gather) Motion at the top of the plan, if we choose
+			 * a plan that produces the result at the right locus to begin
+			 * with. In particular, if it's a two-stage aggregate plan, it might
+			 * be cheaper to perform the Finalize Aggregate stage in the QD than
+			 * redistribute it to all segments, if that avoids a Gather Motion
+			 * at the top.
+			 *
+			 * Only do this for the "upper rels". The join planning code hasn't
+			 * been updated to consider plans with multiple loci. Keeping extra
+			 * paths might be a win, but it might also lead to erratic behavior.
+			 * For example, a Hash Join only considers the cheapest input paths,
+			 * but a Merge Join would consider all paths with sorted input. A
+			 * path with a suitable locus migh therefore win with a Merge Join
+			 * but not even be considered a Hash Join, even though the Hash Join
+			 * path would be cheaper.
+			 *
+			 * Parts of the upper planner functions could have similar issues,
+			 * but it seems more limited in scope.
+			 */
+			if (keyscmp != PATHKEYS_DIFFERENT &&
+				parent_rel->reloptkind == RELOPT_UPPER_REL &&
+				!cdbpathlocus_equal(new_path->locus, old_path->locus))
+			{
+				keyscmp = PATHKEYS_DIFFERENT;
+			}
+
 			if (keyscmp != PATHKEYS_DIFFERENT)
 			{
 				switch (costcmp)
@@ -4155,7 +4185,19 @@ create_groupingsets_path(PlannerInfo *root,
 	pathnode->path.total_cost += target->cost.startup +
 		target->cost.per_tuple * pathnode->path.rows;
 
-	pathnode->path.locus = subpath->locus;
+	/*
+	 * If this is a one-stage aggregate, the caller should already have
+	 * ensured that the data is distributed so that a one-stage aggregate
+	 * works, and the distribution is preserved. But if this is the first
+	 * stage of a multi-stage aggregate, if any distribution key columns
+	 * are part of rollups, they will be set to NULLs for the rolled up
+	 * rows. That breaks the distribution.
+	 */
+	if (CdbPathLocus_IsPartitioned(subpath->locus))
+		CdbPathLocus_MakeStrewn(&pathnode->path.locus,
+								CdbPathLocus_NumSegments(subpath->locus));
+	else
+		pathnode->path.locus = subpath->locus;
 
 	return pathnode;
 }

@@ -114,7 +114,6 @@
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_constraint.h"
-#include "cdb/cdbgroup.h" /* cdbpathlocus_collocates_expressions */
 #include "executor/executor.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"

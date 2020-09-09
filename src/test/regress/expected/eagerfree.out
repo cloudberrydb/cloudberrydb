@@ -266,26 +266,27 @@ select d, count(*) from smallt group by d limit 5; --ignore
 (5 rows)
 
 explain analyze select d, count(*) from smallt group by d limit 5;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=7.32..9.28 rows=5 width=12) (actual time=0.880..0.909 rows=5 loops=1)
-   ->  Finalize GroupAggregate  (cost=7.32..15.53 rows=21 width=12) (actual time=0.877..0.897 rows=5 loops=1)
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=2.05..3.03 rows=5 width=12) (actual time=0.630..0.639 rows=5 loops=1)
+   ->  Finalize GroupAggregate  (cost=2.05..6.17 rows=21 width=12) (actual time=0.629..0.637 rows=5 loops=1)
          Group Key: d
-         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=7.32..15.00 rows=63 width=12) (actual time=0.866..0.879 rows=6 loops=1)
+         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.05..5.69 rows=54 width=12) (actual time=0.624..0.626 rows=6 loops=1)
                Merge Key: d
-               ->  Partial GroupAggregate  (cost=7.32..8.70 rows=21 width=12) (actual time=0.109..0.144 rows=10 loops=1)
-                     Group Key: d
-                     ->  Sort  (cost=7.32..7.57 rows=34 width=4) (actual time=0.102..0.116 rows=50 loops=1)
-                           Sort Key: d
-                           Sort Method:  quicksort  Memory: 99kB
-                           ->  Seq Scan on smallt  (cost=0.00..4.00 rows=34 width=4) (actual time=0.021..0.041 rows=50 loops=1)
- Planning time: 0.491 ms
-   (slice0)    Executor memory: 127K bytes.
-   (slice1)    Executor memory: 92K bytes avg x 3 workers, 92K bytes max (seg0).  Work_mem: 33K bytes max.
+               ->  Sort  (cost=2.05..2.10 rows=18 width=12) (actual time=0.173..0.178 rows=10 loops=1)
+                     Sort Key: d
+                     Sort Method:  quicksort  Memory: 81kB
+                     ->  Partial HashAggregate  (cost=1.50..1.68 rows=18 width=12) (actual time=0.108..0.130 rows=10 loops=1)
+                           Group Key: d
+                           Extra Text: (seg0)   Hash chain length 1.1 avg, 2 max, using 9 of 32 buckets; total 0 expansions.
+                           ->  Seq Scan on smallt  (cost=0.00..1.33 rows=33 width=4) (actual time=0.025..0.036 rows=50 loops=1)
+ Planning time: 0.396 ms
+   (slice0)    Executor memory: 54K bytes.
+   (slice1)    Executor memory: 96K bytes avg x 3 workers, 96K bytes max (seg0).  Work_mem: 27K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 1.626 ms
-(17 rows)
+ Execution time: 1.363 ms
+(18 rows)
 
 -- HashJoin
 select t1.* from smallt as t1, smallt as t2 where t1.i = t2.i order by 1,2,3;

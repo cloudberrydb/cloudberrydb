@@ -10870,13 +10870,13 @@ explain select count(*) from foo group by cube(a,b);
 LOG:  2019-05-31 15:13:50:374760 PDT,THD000,NOTICE,"Feature not supported: Grouping Sets",
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: Grouping Sets
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Finalize GroupAggregate  (cost=10968.89..11841.18 rows=10611 width=16)
-   Group Key: (GROUPINGSET_ID()), a, b
-   ->  Sort  (cost=10968.89..11122.13 rows=61294 width=16)
-         Sort Key: (GROUPINGSET_ID()), a, b
-         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2446.06..6094.94 rows=61294 width=16)
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=5890.62..6067.47 rows=10611 width=16)
+   ->  Finalize HashAggregate  (cost=5890.62..5925.99 rows=3537 width=16)
+         Group Key: (GROUPINGSET_ID()), a, b
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=2446.06..5686.31 rows=20431 width=16)
+               Hash Key: a, b, (GROUPINGSET_ID())
                ->  Partial GroupAggregate  (cost=2446.06..5277.68 rows=20431 width=16)
                      Group Key: a, b
                      Group Key: a

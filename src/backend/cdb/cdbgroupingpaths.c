@@ -3,8 +3,38 @@
  * cdbgroupingpaths.c
  *	  Routines to aid in planning grouping queries for parallel
  *    execution.  This is, essentially, an extension of the file
- *    optimizer/prep/planner.c, although some functions are not
+ *    optimizer/plan/planner.c, although some functions are not
  *    externalized.
+
+ *
+ * The general shape of the generated plan is similar to the parallel
+ * aggregation plans in upstream:
+ *
+ * Finalize Aggregate [3]
+ *    Motion             [2]
+ *       Partial Aggregate  [1]
+ *
+ * but there are many different variants of this basic shape:
+ *
+ * [1] The Partial stage can be sorted or hashed. Furthermore,
+ *     the sorted Agg can be construct from sorting the cheapest input Path,
+ *     or from pre-sorted Paths.
+ *
+ * [2] The partial results need to be gathered for the second stage.
+ *     For plain aggregation, with no GROUP BY, the results need to be
+ *     gathered to a single node. With GROUP BY, they can be redistributed
+ *     according to the GROUP BY columns.
+ *
+ * [3] Like the first tage, the second stage can likewise be sorted or hashed.
+ *
+ *
+ * Things get more complicated if any of the aggregates have DISTINCT
+ * arguments, also known as DQAs or Distinct-Qualified Aggregates. If there
+ * is only one DQA, and the input path happens to be collocated with the
+ * DISTINCT argument, then we can proceed with a two-stage path like above.
+ * But otherwise, three stages and possibly TupleSplit node is needed. See
+ * add_single_dqa_hash_agg_path() and add_multi_dqas_hash_agg_path() for
+ * details.
  *
  * Portions Copyright (c) 2019-Present Pivotal Software, Inc.
  *
@@ -17,9 +47,11 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbgroup.h"
 #include "cdb/cdbgroupingpaths.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbpath.h"
+#include "cdb/cdbpathlocus.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "executor/execHHashagg.h"
@@ -53,14 +85,24 @@ typedef struct
 {
 	/* Inputs from the caller */
 	DQAType     type;
-	PathTarget *target;
-	PathTarget *partial_grouping_target;
+	PathTarget *target;			/* targetlist of final aggregated result */
 	double		dNumGroupsTotal;		/* total number of groups in the result, across all QEs */
 	const AggClauseCosts *agg_costs;
 	const AggClauseCosts *agg_partial_costs;
 	const AggClauseCosts *agg_final_costs;
-	List *rollup_lists;
-	List *rollup_groupclauses;
+	List	   *rollup_lists;
+	List	   *rollup_groupclauses;
+
+	List	   *group_tles;
+
+	PathTarget *partial_grouping_target;	/* targetlist of partially aggregated result */
+	List	   *final_groupClause;			/* SortGroupClause for final grouping */
+	List	   *final_group_tles;
+
+	/*
+	 * partial_rel holds the partially aggregated results from the first stage.
+	 */
+	RelOptInfo *partial_rel;
 } cdb_agg_planning_context;
 
 typedef struct
@@ -80,29 +122,34 @@ typedef struct
 
 } cdb_multi_dqas_info;
 
-
+static List *get_common_group_tles(PathTarget *target,
+								   List *groupClause,
+								   List *rollup_lists,
+								   List *rollup_groupclauses);
 static CdbPathLocus choose_grouping_locus(PlannerInfo *root, Path *path,
-										  PathTarget *target,
-										  List *groupClause,
-										  List *rollup_lists,
-										  List *rollup_groupclauses,
+										  List *group_tles,
 										  bool *need_redistribute_p);
 
 static Index add_gsetid_tlist(List *tlist);
 
 static List *add_gsetid_groupclause(List *groupClause, Index groupref);
 
-static void add_twostage_group_agg_path(PlannerInfo *root,
-										Path *path,
-										bool is_sorted,
-										cdb_agg_planning_context *ctx,
-										RelOptInfo *output_rel);
-
-static void add_twostage_hash_agg_path(PlannerInfo *root,
-									   Path *path,
-									   cdb_agg_planning_context *ctx,
-									   RelOptInfo *output_rel);
-
+static void add_first_stage_group_agg_path(PlannerInfo *root,
+										   Path *path,
+										   bool is_sorted,
+										   cdb_agg_planning_context *ctx);
+static void add_first_stage_hash_agg_path(PlannerInfo *root,
+										  Path *path,
+										  cdb_agg_planning_context *ctx);
+static void add_second_stage_group_agg_path(PlannerInfo *root,
+											Path *path,
+											bool is_sorted,
+											cdb_agg_planning_context *ctx,
+											RelOptInfo *output_rel);
+static void add_second_stage_hash_agg_path(PlannerInfo *root,
+										   Path *path,
+										   cdb_agg_planning_context *ctx,
+										   RelOptInfo *output_rel);
 static void add_single_dqa_hash_agg_path(PlannerInfo *root,
 										 Path *path,
 										 cdb_agg_planning_context *ctx,
@@ -110,7 +157,6 @@ static void add_single_dqa_hash_agg_path(PlannerInfo *root,
 										 PathTarget *input_target,
 										 List       *dqa_group_clause,
 										 double dNumDistinctGroups);
-
 static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
                                                Path *path,
                                                cdb_agg_planning_context *ctx,
@@ -148,6 +194,9 @@ strip_aggdistinct(PathTarget *target);
  * This is basically an extension of the function create_grouping_paths() from
  * planner.c.  It creates two- and three-stage Paths to implement aggregates
  * and/or GROUP BY.
+ *
+ * The caller already constructed a one-stage plan, we are only concerned
+ * about more complicated multi-stage plans here.
  */
 void
 cdb_create_twostage_grouping_paths(PlannerInfo *root,
@@ -171,6 +220,7 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 
 	/* The caller should've checked these already */
 	Assert(parse->hasAggs || parse->groupClause);
+
 	/*
 	 * This prohibition could be relaxed if we tracked missing combine
 	 * functions per DQA and were willing to plan some DQAs as single and
@@ -178,8 +228,6 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 	 */
 	Assert(!agg_costs->hasNonCombine && !agg_costs->hasNonSerial);
 	Assert(root->config->gp_enable_multiphase_agg);
-
-	/* The caller already constructed a one-stage plan. */
 
 	/*
 	 * Ordered aggregates need to run the transition function on the
@@ -196,18 +244,114 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 	if (!CdbPathLocus_IsPartitioned(cheapest_path->locus))
 		return;
 
+	/*
+	 * Prepare a struct to hold the arguments and intermediate results
+	 * across subroutines.
+	 */
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.target = target;
-	ctx.partial_grouping_target = partial_grouping_target;
 	ctx.dNumGroupsTotal = dNumGroupsTotal;
 	ctx.agg_costs = agg_costs;
 	ctx.agg_partial_costs = agg_partial_costs;
 	ctx.agg_final_costs = agg_final_costs;
 	ctx.rollup_lists = rollup_lists;
 	ctx.rollup_groupclauses = rollup_groupclauses;
+	ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_GROUP_AGG, NULL);
+
+	ctx.group_tles = get_common_group_tles(target,
+										   parse->groupClause,
+										   ctx.rollup_lists,
+										   ctx.rollup_groupclauses);
 
 	/*
-	 * Consider 2-phase aggs
+	 * For twostage grouping sets, we perform grouping sets aggregation in
+	 * partial stage and normal aggregation in final stage.
+	 *
+	 * With this method, there is a problem, i.e., in the final stage of
+	 * aggregation, we don't have a way to distinguish which tuple comes from
+	 * which grouping set, which is needed for merging the partial results.
+	 *
+	 * For instance, suppose we have a table t(c1, c2, c3) containing one row
+	 * (1, NULL, 3), and we are selecting agg(c3) group by grouping sets
+	 * ((c1,c2), (c1)). Then there would be two tuples as partial results for
+	 * that row, both are (1, NULL, agg(3)), one is from group by (c1,c2) and
+	 * one is from group by (c1). If we cannot tell that the two tuples are
+	 * from two different grouping sets, we will merge them incorrectly.
+	 *
+	 * So we add a hidden column 'GROUPINGSET_ID', representing grouping set
+	 * id, to the targetlist of Partial Aggregate node, as well as to the sort
+	 * keys and group keys for Finalize Aggregate node. So only tuples coming
+	 * from the same grouping set can get merged in the final stage of
+	 * aggregation. Note that we need to keep 'GROUPINGSET_ID' at the head of
+	 * sort keys in final stage to ensure correctness.
+	 *
+	 * Below is a plan to illustrate this idea:
+	 *
+	 * # explain (costs off, verbose)
+	 * select c1, c2, c3, avg(c3) from gstest group by grouping sets((c1,c2),(c1),(c2,c3));
+	 *                                 QUERY PLAN
+	 * ---------------------------------------------------------------------------
+	 *  Finalize GroupAggregate
+	 *    Output: c1, c2, c3, avg(c3)
+	 *    Group Key: (GROUPINGSET_ID()), gstest.c1, gstest.c2, gstest.c3
+	 *    ->  Sort
+	 *          Output: c1, c2, c3, (PARTIAL avg(c3)), (GROUPINGSET_ID())
+	 *          Sort Key: (GROUPINGSET_ID()), gstest.c1, gstest.c2, gstest.c3
+	 *          ->  Gather Motion 3:1  (slice1; segments: 3)
+	 *                Output: c1, c2, c3, (PARTIAL avg(c3)), (GROUPINGSET_ID())
+	 *                ->  Partial GroupAggregate
+	 *                      Output: c1, c2, c3, PARTIAL avg(c3), GROUPINGSET_ID()
+	 *                      Group Key: gstest.c1, gstest.c2
+	 *                      Group Key: gstest.c1
+	 *                      Sort Key: gstest.c2, gstest.c3
+	 *                        Group Key: gstest.c2, gstest.c3
+	 *                      ->  Sort
+	 *                            Output: c1, c2, c3
+	 *                            Sort Key: gstest.c1, gstest.c2
+	 *                            ->  Seq Scan on public.gstest
+	 *                                  Output: c1, c2, c3
+	 *  Optimizer: Postgres query optimizer
+	 * (20 rows)
+	 *
+	 * Here, we prepare a target list and a corresponding list of SortGroupClauses
+	 * for the result of the Partial Aggregate stage.
+	 */
+	if (parse->groupingSets)
+	{
+		Index		groupref;
+		GroupingSetId *gsetid = makeNode(GroupingSetId);
+		List	   *grouping_sets_tlist;
+
+		grouping_sets_tlist = copyObject(root->processed_tlist);
+		groupref = add_gsetid_tlist(grouping_sets_tlist);
+
+		ctx.final_groupClause =
+			add_gsetid_groupclause(copyObject(parse->groupClause), groupref);
+
+		ctx.partial_grouping_target = copyObject(partial_grouping_target);
+		if (!list_member(ctx.partial_grouping_target->exprs, gsetid))
+			add_column_to_pathtarget(ctx.partial_grouping_target,
+									 (Expr *) gsetid, groupref);
+	}
+	else
+	{
+		ctx.partial_grouping_target = partial_grouping_target;
+		ctx.final_groupClause = parse->groupClause;
+	}
+	ctx.final_group_tles = get_common_group_tles(ctx.partial_grouping_target,
+												 ctx.final_groupClause,
+												 NIL,
+												 NIL);
+
+	/*
+	 * Consider ways to do the first Aggregate stage.
+	 *
+	 * The first stage's output is Partially Aggregated. The paths are
+	 * collected to the ctx->partial_rel, by calling add_path(). We do *not*
+	 * use add_partial_path(), these partially aggregated paths are considered
+	 * more like MPP paths in Greenplum in general.
+	 *
+	 * First consider sorted Aggregate paths.
 	 */
 	if (can_sort)
 	{
@@ -218,28 +362,97 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 			Path	   *path = (Path *) lfirst(lc);
 			bool		is_sorted;
 
+			/*
+			 * If the input is neatly distributed along the GROUP BY columns,
+			 * there's no point in a two-stage plan. The code in planner.c
+			 * already created the straightforward one-stage plan.
+			 */
+			if (cdbpathlocus_collocates_tlist(root, path->locus, ctx.group_tles))
+				continue;
+
+			/*
+			 * Consider input paths that are already sorted, and the one with
+			 * the lowest total cost.
+			 */
 			is_sorted = pathkeys_contained_in(root->group_pathkeys,
 											  path->pathkeys);
 			if (path == cheapest_path || is_sorted)
-			{
-				add_twostage_group_agg_path(root,
-											path,
-											is_sorted,
-											&ctx,
-											output_rel);
-			}
+				add_first_stage_group_agg_path(root, path, is_sorted, &ctx);
 		}
 	}
 
-	if (can_hash && list_length(agg_costs->distinctAggrefs) == 0)
+	/*
+	 * Consider Hash Aggregate over the cheapest input path.
+	 *
+	 * Hashing is not possible with DQAs.
+	 *
+	 * GPDB_12_MERGE_FIXME: hashing not supported on GROUPING SETS, until
+	 * PostgreSQL v12. We do support hashing in the second stage even with
+	 * GROUPING SETS, though.
+	 */
+	if (can_hash &&
+		list_length(agg_costs->distinctAggrefs) == 0 &&
+		parse->groupingSets == NIL)
 	{
-		add_twostage_hash_agg_path(root,
-								   cheapest_path,
-								   &ctx,
-								   output_rel);
+		/*
+		 * If the input is neatly distributed along the GROUP BY columns,
+		 * there's no point in a two-stage plan. The code in planner.c already
+		 * created the straightforward one-stage plan.
+		 */
+		if (!cdbpathlocus_collocates_tlist(root, cheapest_path->locus, ctx.group_tles))
+			add_first_stage_hash_agg_path(root, cheapest_path, &ctx);
 	}
 
-	if ((can_hash || parse->groupClause == NIL) && list_length(agg_costs->distinctAggrefs) > 0)
+	/*
+	 * We now have partially aggregated paths in ctx->partial_rel. Consider
+	 * different ways of performing the Finalize Aggregate stage.
+	 */
+	if (ctx.partial_rel->pathlist)
+	{
+		Path	   *cheapest_first_stage_path;
+
+		set_cheapest(ctx.partial_rel);
+		cheapest_first_stage_path = ctx.partial_rel->cheapest_total_path;
+		if (can_sort)
+		{
+			ListCell   *lc;
+
+			foreach(lc, ctx.partial_rel->pathlist)
+			{
+				Path	   *path = (Path *) lfirst(lc);
+				bool		is_sorted;
+
+				/*
+				 * In two-stage GROUPING SETS paths, the second stage's grouping
+				 * will include GROUPINGSET_ID(), which is not included in
+				 * root->pathkeys. The first stage's sort order does not include
+				 * that, so we know it's not sorted.
+				 */
+				if (!parse->groupingSets)
+					is_sorted = pathkeys_contained_in(root->group_pathkeys,
+													  path->pathkeys);
+				else
+					is_sorted = false;
+				if (path == cheapest_first_stage_path || is_sorted)
+					add_second_stage_group_agg_path(root, path, is_sorted,
+													&ctx, output_rel);
+			}
+		}
+
+		if (can_hash && list_length(agg_costs->distinctAggrefs) == 0)
+			add_second_stage_hash_agg_path(root, cheapest_first_stage_path,
+										   &ctx, output_rel);
+	}
+
+	/*
+	 * Aggregates with DISTINCT arguments are more complicated, and are not
+	 * handled above (except for the case of a single DQA that happens to
+	 * be collocated with the input, see add_first_stage_group_agg_path()).
+	 * Consider ways to implement them, too.
+	 */
+	if ((can_hash || parse->groupClause == NIL) &&
+		!parse->groupingSets &&
+		list_length(agg_costs->distinctAggrefs) > 0)
 	{
 		/*
 		 * Try possible plans for DISTINCT-qualified aggregate.
@@ -348,111 +561,28 @@ add_gsetid_groupclause(List *groupClause, Index groupref)
 	return groupClause;
 }
 
+/*
+ * Create a partially aggregated path from given input 'path' by sorting (if
+ * input isn't sorted already).
+ */
 static void
-add_twostage_group_agg_path(PlannerInfo *root,
-							Path *path,
-							bool is_sorted,
-							cdb_agg_planning_context *ctx,
-							RelOptInfo *output_rel)
+add_first_stage_group_agg_path(PlannerInfo *root,
+							   Path *path,
+							   bool is_sorted,
+							   cdb_agg_planning_context *ctx)
 {
 	Query	   *parse = root->parse;
-	CdbPathLocus singleQE_locus;
-	Path	   *initial_agg_path = NULL;
 	DQAType     dqa_type;
-	CdbPathLocus group_locus;
-	bool		need_redistribute;
-	List		*motion_pathkeys = NIL;
-	List		*grouping_sets_tlist = NIL;
-	List		*grouping_sets_groupClause = NIL;
-	PathTarget	*grouping_sets_partial_target = NULL;
 
 	/*
-	 * For twostage grouping sets, we perform grouping sets aggregation in
-	 * partial stage and normal aggregation in final stage.
-	 *
-	 * With this method, there is a problem, i.e., in the final stage of
-	 * aggregation, we don't have a way to distinguish which tuple comes from
-	 * which grouping set, which turns out to be needed for merging the partial
-	 * results.
-	 *
-	 * For instance, suppose we have a table t(c1, c2, c3) containing one row
-	 * (1, NULL, 3), and we are selecting agg(c3) group by grouping sets
-	 * ((c1,c2), (c1)). Then there would be two tuples as partial results for
-	 * that row, both are (1, NULL, agg(3)), one is from group by (c1,c2) and
-	 * one is from group by (c1). If we cannot tell that the two tuples are
-	 * from two different grouping sets, we will merge them incorrectly.
-	 *
-	 * So we add a hidden column 'GROUPINGSET_ID', representing grouping set
-	 * id, to the targetlist of Partial Aggregate node, as well as to the sort
-	 * keys and group keys for Finalize Aggregate node. So only tuples coming
-	 * from the same grouping set can get merged in the final stage of
-	 * aggregation. Note that we need to keep 'GROUPINGSET_ID' at the head of
-	 * sort keys in final stage to ensure correctness.
-	 *
-	 *
-	 * Below is a plan to illustrate this idea:
-	 *
-	 * # explain (costs off, verbose)
-	 * select c1, c2, c3, avg(c3) from gstest group by grouping sets((c1,c2),(c1),(c2,c3));
-	 *                                 QUERY PLAN
-	 * ---------------------------------------------------------------------------
-	 *  Finalize GroupAggregate
-	 *    Output: c1, c2, c3, avg(c3)
-	 *    Group Key: (GROUPINGSET_ID()), gstest.c1, gstest.c2, gstest.c3
-	 *    ->  Sort
-	 *          Output: c1, c2, c3, (PARTIAL avg(c3)), (GROUPINGSET_ID())
-	 *          Sort Key: (GROUPINGSET_ID()), gstest.c1, gstest.c2, gstest.c3
-	 *          ->  Gather Motion 3:1  (slice1; segments: 3)
-	 *                Output: c1, c2, c3, (PARTIAL avg(c3)), (GROUPINGSET_ID())
-	 *                ->  Partial GroupAggregate
-	 *                      Output: c1, c2, c3, PARTIAL avg(c3), GROUPINGSET_ID()
-	 *                      Group Key: gstest.c1, gstest.c2
-	 *                      Group Key: gstest.c1
-	 *                      Sort Key: gstest.c2, gstest.c3
-	 *                        Group Key: gstest.c2, gstest.c3
-	 *                      ->  Sort
-	 *                            Output: c1, c2, c3
-	 *                            Sort Key: gstest.c1, gstest.c2
-	 *                            ->  Seq Scan on public.gstest
-	 *                                  Output: c1, c2, c3
-	 *  Optimizer: Postgres query optimizer
-	 * (20 rows)
-	 *
+	 * DISTINCT-qualified aggregates are accepted only in the special
+	 * case that the input happens to be collocated with the DISTINCT
+	 * argument.
 	 */
-	if (parse->groupingSets)
-	{
-		Index groupref;
-		GroupingSetId *gsetid = makeNode(GroupingSetId);
-
-		grouping_sets_tlist = copyObject(root->processed_tlist);
-		groupref = add_gsetid_tlist(grouping_sets_tlist);
-
-		grouping_sets_groupClause =
-			add_gsetid_groupclause(copyObject(parse->groupClause), groupref);
-
-		grouping_sets_partial_target = copyObject(ctx->partial_grouping_target);
-		if (!list_member(grouping_sets_partial_target->exprs, gsetid))
-			add_column_to_pathtarget(grouping_sets_partial_target,
-									 (Expr *)gsetid, groupref);
-	}
-
-	group_locus = choose_grouping_locus(root, path, ctx->target,
-										parse->groupClause,
-										ctx->rollup_lists,
-										ctx->rollup_groupclauses,
-										&need_redistribute);
-	/*
-	 * If the distribution of this path is suitable, two-stage aggregation
-	 * is not applicable.
-	 */
-	if (!need_redistribute)
-		return;
-
 	if (ctx->agg_costs->distinctAggrefs)
 	{
 		cdb_multi_dqas_info info = {};
-		CdbPathLocus distinct_locus;
-		bool		distinct_need_redistribute;
+		List	   *dqa_group_tles;
 
 		dqa_type = recognize_dqa_type(ctx);
 
@@ -469,20 +599,19 @@ add_twostage_group_agg_path(PlannerInfo *root,
 		 */
 		path = apply_projection_to_path(root, path->parent, path, info.input_proj_target);
 
-		distinct_locus = choose_grouping_locus(root, path,
-											   info.input_proj_target,
-											   info.dqa_group_clause, NIL, NIL,
-											   &distinct_need_redistribute);
-
 		/* If the input distribution matches the distinct, we can proceed */
-		if (distinct_need_redistribute)
+		dqa_group_tles = get_common_group_tles(info.input_proj_target,
+											   info.dqa_group_clause,
+											   ctx->rollup_lists,
+											   ctx->rollup_groupclauses);
+		if (!cdbpathlocus_collocates_tlist(root, path->locus, dqa_group_tles))
 			return;
 	}
 
 	if (!is_sorted)
 	{
 		path = (Path *) create_sort_path(root,
-										 output_rel,
+										 ctx->partial_rel,
 										 path,
 										 root->group_pathkeys,
 										 -1.0);
@@ -498,11 +627,13 @@ add_twostage_group_agg_path(PlannerInfo *root,
 		 * only be evaluated in the Finalize stage, after computing the
 		 * final aggregate values.
 		 */
-		initial_agg_path =
+		Path	   *first_stage_agg_path;
+
+		first_stage_agg_path =
 			(Path *) create_groupingsets_path(root,
-											  output_rel,
+											  ctx->partial_rel,
 											  path,
-											  grouping_sets_partial_target,
+											  ctx->partial_grouping_target,
 											  AGGSPLIT_INITIAL_SERIAL,
 											  NIL,
 											  ctx->rollup_lists,
@@ -510,14 +641,13 @@ add_twostage_group_agg_path(PlannerInfo *root,
 											  ctx->agg_partial_costs,
 											  estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
 																			 path->rows, path->locus));
-
-		motion_pathkeys = NIL;
+		add_path(ctx->partial_rel, first_stage_agg_path);
 	}
 	else if (parse->hasAggs || parse->groupClause)
 	{
-		initial_agg_path =
+		add_path(ctx->partial_rel,
 			(Path *) create_agg_path(root,
-									 output_rel,
+									 ctx->partial_rel,
 									 path,
 									 ctx->partial_grouping_target,
 									 parse->groupClause ? AGG_SORTED : AGG_PLAIN,
@@ -528,44 +658,67 @@ add_twostage_group_agg_path(PlannerInfo *root,
 									 ctx->agg_partial_costs,
 									 estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
 																	path->rows, path->locus),
-									 NULL);
-
-		motion_pathkeys = initial_agg_path->pathkeys;
+									 NULL));
 	}
 	else
 	{
 		Assert(false);
 	}
+}
+
+/*
+ * Create Finalize Aggregate path, from a partially aggregated input.
+ */
+static void
+add_second_stage_group_agg_path(PlannerInfo *root,
+								Path *initial_agg_path,
+								bool is_sorted,
+								cdb_agg_planning_context *ctx,
+								RelOptInfo *output_rel)
+{
+	Query	   *parse = root->parse;
+	Path	   *path;
+	List	   *pathkeys;
+	CdbPathLocus singleQE_locus;
+	CdbPathLocus group_locus;
+	bool		need_redistribute;
+
+	/* The input should be distributed, otherwise no point in a two-stage Agg. */
+	Assert(CdbPathLocus_IsPartitioned(initial_agg_path->locus));
+
+	group_locus = choose_grouping_locus(root,
+										initial_agg_path,
+										ctx->final_group_tles,
+										&need_redistribute);
+	Assert(need_redistribute);
 
 	/*
-	 * GroupAgg -> GATHER MOTION -> GroupAgg.
+	 * We consider two different loci for the final result:
 	 *
-	 * This has the advantage that it retains the input order. The
-	 * downside is that it gathers everything to a single node. If that's
-	 * where the final result is needed anyway, that's quite possibly better
-	 * than scattering the partial aggregate results and having another
-	 * motion to gather the final results, though,
+	 * 1. Redistribute the partial result according to GROUP BY columns,
+	 *    Sort, Aggregate.
 	 *
-	 * Alternatively, we could redistribute based on the GROUP BY key. That
-	 * would have the advantage that the Finalize Agg stage could run in
-	 * parallel. However, it would destroy the sort order, so it's probaly
-	 * not a good idea.
+	 * 2. Gather the partial result to a single process, Sort if needed,
+	 *    Aggregate.
+	 *
+	 * Redistributing the partial result has the advantage that the Finalize
+	 * stage can run in parallel. The downside is that a Redistribute Motion
+	 * loses any possible input order, so we'll need an extra Sort step even
+	 * if the input was already ordered. Also, gathering the partial result
+	 * directly to the QD will avoid one Motion, if the final result is needed
+	 * in the QD anyway.
+	 *
+	 * We generate a Path for both, and let add_path() decide which ones
+	 * to keep.
 	 */
-	CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
-	path = cdbpath_create_motion_path(root,
-									  initial_agg_path,
-									  motion_pathkeys,
-									  false,
-									  singleQE_locus);
+	pathkeys = make_pathkeys_for_sortclauses(root, ctx->final_groupClause,
+											 make_tlist_from_pathtarget(ctx->partial_grouping_target));
 
-	if (parse->groupingSets)
+	/* Alternative 1: Redistribute -> Sort -> Agg */
+	if (CdbPathLocus_IsHashed(group_locus))
 	{
-
-		List		*pathkeys;
-
-		pathkeys = make_pathkeys_for_sortclauses(root,
-												 grouping_sets_groupClause,
-												 grouping_sets_tlist);
+		path = cdbpath_create_motion_path(root, initial_agg_path, NIL,
+											 false, group_locus);
 
 		path = (Path *) create_sort_path(root,
 										 output_rel,
@@ -577,60 +730,109 @@ add_twostage_group_agg_path(PlannerInfo *root,
 										output_rel,
 										path,
 										ctx->target,
-										AGG_SORTED,
+										(ctx->final_groupClause ? AGG_SORTED : AGG_PLAIN),
 										AGGSPLIT_FINAL_DESERIAL,
 										false, /* streaming */
-										grouping_sets_groupClause,
+										ctx->final_groupClause,
 										(List *) parse->havingQual,
 										ctx->agg_final_costs,
 										ctx->dNumGroupsTotal,
 										NULL);
-	}
-	else if (parse->hasAggs || parse->groupClause)
-	{
-		path = (Path *) create_agg_path(root,
-										output_rel,
-										path,
-										ctx->target,
-										parse->groupClause ? AGG_SORTED : AGG_PLAIN,
-										AGGSPLIT_FINAL_DESERIAL,
-										false, /* streaming */
-										parse->groupClause,
-										(List *) parse->havingQual,
-										ctx->agg_final_costs,
-										ctx->dNumGroupsTotal,
-										NULL);
-	}
-	else
-	{
-		Assert(false);
+		add_path(output_rel, path);
 	}
 
+	/*
+	 * Alternative 2: [Sort if needed] -> Gather -> Agg
+	 */
+	CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
+
+	path = initial_agg_path;
+	if (!is_sorted)
+	{
+		path = (Path *) create_sort_path(root,
+										 output_rel,
+										 path,
+										 pathkeys,
+										 -1.0);
+	}
+
+	path = cdbpath_create_motion_path(root, path,
+									  pathkeys,
+									  false, singleQE_locus);
+
+	path = (Path *) create_agg_path(root,
+									output_rel,
+									path,
+									ctx->target,
+									(ctx->final_groupClause ? AGG_SORTED : AGG_PLAIN),
+									AGGSPLIT_FINAL_DESERIAL,
+									false, /* streaming */
+									ctx->final_groupClause,
+									(List *) parse->havingQual,
+									ctx->agg_final_costs,
+									ctx->dNumGroupsTotal,
+									NULL);
 	add_path(output_rel, path);
 }
 
+/*
+ * Create a partially aggregated path from given input 'path' by hashing.
+ */
 static void
-add_twostage_hash_agg_path(PlannerInfo *root,
-						   Path *path,
-						   cdb_agg_planning_context *ctx,
-						   RelOptInfo *output_rel)
+add_first_stage_hash_agg_path(PlannerInfo *root,
+							  Path *path,
+							  cdb_agg_planning_context *ctx)
 {
 	Query	   *parse = root->parse;
-	Path	   *initial_agg_path;
-	CdbPathLocus group_locus;
-	bool		need_redistribute;
 	HashAggTableSizes hash_info;
 	double		dNumGroups;
 
-	group_locus = choose_grouping_locus(root, path, ctx->target,
-										parse->groupClause, NIL, NIL,
-										&need_redistribute);
-	/*
-	 * If the distribution of this path is suitable, two-stage aggregation
-	 * is not applicable.
-	 */
-	if (!need_redistribute)
-		return;
+	dNumGroups = estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
+												path->rows, path->locus);
+
+	if (!calcHashAggTableSizes(work_mem * 1024L,
+							   dNumGroups,
+							   path->pathtarget->width,
+							   false,	/* force */
+							   &hash_info))
+		return;	/* don't try to hash */
+
+	add_path(ctx->partial_rel,
+			 (Path *) create_agg_path(root,
+									  ctx->partial_rel,
+									  path,
+									  ctx->partial_grouping_target,
+									  AGG_HASHED,
+									  AGGSPLIT_INITIAL_SERIAL,
+									  false, /* streaming */
+									  parse->groupClause,
+									  NIL,
+									  ctx->agg_partial_costs,
+									  dNumGroups,
+									  &hash_info));
+}
+
+/*
+ * Create Finalize Aggregate path from a partially aggregated input by hashing.
+ */
+static void
+add_second_stage_hash_agg_path(PlannerInfo *root,
+							   Path *initial_agg_path,
+							   cdb_agg_planning_context *ctx,
+							   RelOptInfo *output_rel)
+{
+	Query	   *parse = root->parse;
+	CdbPathLocus group_locus;
+	bool		needs_redistribute;
+	double		dNumGroups;
+	HashAggTableSizes hash_info;
+
+	group_locus = choose_grouping_locus(root,
+										initial_agg_path,
+										ctx->final_group_tles,
+										&needs_redistribute);
+	/* if no redistribution is needed, why are we here? */
+	Assert(needs_redistribute);
 
 	/*
 	 * Calculate the number of groups in the second stage, per segment.
@@ -641,46 +843,73 @@ add_twostage_hash_agg_path(PlannerInfo *root,
 	else
 		dNumGroups = ctx->dNumGroupsTotal;
 
-	if (!calcHashAggTableSizes(work_mem * 1024L,
+	/* Would the hash table fit in memory? */
+	if (calcHashAggTableSizes(work_mem * 1024L,
 							   dNumGroups,
-							   path->pathtarget->width,
+							   initial_agg_path->pathtarget->width,
 							   false,	/* force */
 							   &hash_info))
-		return;	/* don't try to hash */
+	{
+		Path	   *path;
 
-	initial_agg_path = (Path *) create_agg_path(root,
-												output_rel,
-												path,
-												ctx->partial_grouping_target,
-												AGG_HASHED,
-												AGGSPLIT_INITIAL_SERIAL,
-												false, /* streaming */
-												parse->groupClause,
-												NIL,
-												ctx->agg_partial_costs,
-												estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																			   path->rows, path->locus),
-												&hash_info);
+		path = cdbpath_create_motion_path(root, initial_agg_path, NIL, false,
+										  group_locus);
+
+		path = (Path *) create_agg_path(root,
+										output_rel,
+										path,
+										ctx->target,
+										AGG_HASHED,
+										AGGSPLIT_FINAL_DESERIAL,
+										false, /* streaming */
+										ctx->final_groupClause,
+										(List *) parse->havingQual,
+										ctx->agg_final_costs,
+										dNumGroups,
+										&hash_info);
+		add_path(output_rel, path);
+	}
 
 	/*
-	 * HashAgg -> Redistribute or Gather Motion -> HashAgg.
+	 * Like in the Group Agg case, if the final result needs to be brough to
+	 * the QD, we consider doing the Finalize Aggregate in the QD directly to
+	 * avoid another Gather Motion above the Finalize Aggregate. It's less
+	 * likely to be a win than with sorted Aggs, because a hashed agg won't
+	 * benefit from preserving the input order, but it can still be cheaper if
+	 * there are only a few groups.
 	 */
-	path = cdbpath_create_motion_path(root, initial_agg_path, NIL, false,
-									  group_locus);
+	if (!CdbPathLocus_IsBottleneck(group_locus))
+	{
+		CdbPathLocus singleQE_locus;
+		CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
 
-	path = (Path *) create_agg_path(root,
-									output_rel,
-									path,
-									ctx->target,
-									AGG_HASHED,
-									AGGSPLIT_FINAL_DESERIAL,
-									false, /* streaming */
-									parse->groupClause,
-									(List *) parse->havingQual,
-									ctx->agg_final_costs,
-									dNumGroups,
-									&hash_info);
-	add_path(output_rel, path);
+		if (calcHashAggTableSizes(work_mem * 1024L,
+								  ctx->dNumGroupsTotal,
+								  initial_agg_path->pathtarget->width,
+								  false,	/* force */
+								  &hash_info))
+		{
+			Path	   *path;
+
+			path = cdbpath_create_motion_path(root, initial_agg_path,
+											  NIL, false,
+											  singleQE_locus);
+
+			path = (Path *) create_agg_path(root,
+											output_rel,
+											path,
+											ctx->target,
+											AGG_HASHED,
+											AGGSPLIT_FINAL_DESERIAL,
+											false, /* streaming */
+											ctx->final_groupClause,
+											(List *) parse->havingQual,
+											ctx->agg_final_costs,
+											ctx->dNumGroupsTotal,
+											&hash_info);
+			add_path(output_rel, path);
+		}
+	}
 }
 
 static Node *
@@ -723,6 +952,7 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
                                                List       *dqa_group_clause)
 {
 	Query	   *parse = root->parse;
+	List	   *dqa_group_tles;
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
 	HashAggTableSizes hash_info;
@@ -742,9 +972,9 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 	 */
 	path = apply_projection_to_path(root, path->parent, path, input_target);
 
+	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL, NIL);
 	distinct_locus = choose_grouping_locus(root, path,
-										   input_target,
-										   dqa_group_clause, NIL, NIL,
+										   dqa_group_tles,
 										   &distinct_need_redistribute);
 
 	if (!CdbPathLocus_IsPartitioned(distinct_locus))
@@ -799,7 +1029,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 							 double dNumDistinctGroups)
 {
 	Query	   *parse = root->parse;
+	List	   *dqa_group_tles;
 	int			num_input_segments;
+	List	   *group_tles;
 	CdbPathLocus group_locus;
 	double		dNumGroups;
 	bool		group_need_redistribute;
@@ -823,18 +1055,18 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	else
 		num_input_segments = 1;
 
+	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL, NIL);
 	distinct_locus = choose_grouping_locus(root, path,
-										   input_target,
-										   dqa_group_clause, NIL, NIL,
+										   dqa_group_tles,
 										   &distinct_need_redistribute);
 
 	/*
 	 * Calculate the number of groups in the final stage, per segment.
 	 * group_locus is the corresponding locus for the final stage.
 	 */
+	group_tles = get_common_group_tles(input_target, parse->groupClause, NIL, NIL);
 	group_locus = choose_grouping_locus(root, path,
-										input_target,
-										parse->groupClause, NIL, NIL,
+										group_tles,
 										&group_need_redistribute);
 	if (CdbPathLocus_IsPartitioned(group_locus))
 		dNumGroups = clamp_row_est(ctx->dNumGroupsTotal /
@@ -1071,6 +1303,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 							 RelOptInfo *output_rel,
 							 cdb_multi_dqas_info *info)
 {
+	List	   *dqa_group_tles;
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
 	HashAggTableSizes hash_info;
@@ -1149,9 +1382,9 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 		((AggPath *)path)->groupClause = info->dqa_group_clause;
 	}
 
-	distinct_locus = choose_grouping_locus(root, path,
-										   info->tup_split_target,
-										   info->dqa_group_clause, NIL, NIL,
+	dqa_group_tles = get_common_group_tles(info->tup_split_target,
+										   info->dqa_group_clause, NIL, NIL);
+	distinct_locus = choose_grouping_locus(root, path, dqa_group_tles,
 										   &distinct_need_redistribute);
 
 	if (distinct_need_redistribute)
@@ -1222,22 +1455,92 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 }
 
 /*
- * Figure out the desired data distribution to perform the grouping.
+ * Get the common expressions in all grouping sets as a target list.
  *
- * In case of a simple GROUP BY, we prefer to distribute the data according to
- * the GROUP BY. With multiple grouping sets, identify the set of common
- * entries, and distribute based on that. For example, if you do
- * GROUP BY GROUPING SETS ((a, b, c), (b, c)), the common cols are b and c.
+ * In case of a simple GROUP BY, it's just all the grouping column. With
+ * multiple grouping sets, identify the set of common entries, and return
+ * a list of those. For example, if you do:
+ *
+ *   GROUP BY GROUPING SETS ((a, b, c), (b, c))
+ *
+ * the common cols are b and c.
+ */
+static List *
+get_common_group_tles(PathTarget *target,
+					  List *groupClause,
+					  List *rollup_lists,
+					  List *rollup_groupclauses)
+{
+	List	   *tlist = make_tlist_from_pathtarget(target);
+	List	   *group_tles;
+	ListCell   *lc;
+	Bitmapset  *common_groupcols = NULL;
+	bool		first = true;
+	int			x;
+
+	if (rollup_lists)
+	{
+		ListCell   *lcl, *lcc;
+
+		forboth(lcl, rollup_lists, lcc, rollup_groupclauses)
+		{
+			List	   *rlist = (List *) lfirst(lcl);
+			List	   *rclause = (List *) lfirst(lcc);
+			List	   *last_list = (List *) llast(rlist);
+			Bitmapset  *this_groupcols = NULL;
+
+			foreach (lc, last_list)
+			{
+				SortGroupClause *sc = list_nth(rclause, lfirst_int(lc));
+
+				this_groupcols = bms_add_member(this_groupcols, sc->tleSortGroupRef);
+			}
+
+			if (first)
+				common_groupcols = this_groupcols;
+			else
+			{
+				common_groupcols = bms_int_members(common_groupcols, this_groupcols);
+				bms_free(this_groupcols);
+			}
+			first = false;
+		}
+	}
+	else
+	{
+		foreach(lc, groupClause)
+		{
+			SortGroupClause *sc = lfirst(lc);
+
+			common_groupcols = bms_add_member(common_groupcols, sc->tleSortGroupRef);
+		}
+	}
+
+	x = -1;
+	group_tles = NIL;
+	while ((x = bms_next_member(common_groupcols, x)) >= 0)
+	{
+		TargetEntry *tle = get_sortgroupref_tle(x, tlist);
+
+		group_tles = lappend(group_tles, tle);
+	}
+
+	return group_tles;
+}
+
+/*
+ * Choose a data distribution to perform the grouping.
+ *
+ * 'group_tles' is a target list that represents the grouping columns,
+ * or all the common columns in all the grouping sets if there are
+ * multple grouping sets. Use get_common_group_tles() to build that
+ * list.
  */
 static CdbPathLocus
 choose_grouping_locus(PlannerInfo *root, Path *path,
-					  PathTarget *target,
-					  List *groupClause,
-					  List *rollup_lists,
-					  List *rollup_groupclauses,
+					  List *group_tles,
 					  bool *need_redistribute_p)
 {
-	List	   *tlist = make_tlist_from_pathtarget(target);
 	CdbPathLocus locus;
 	bool		need_redistribute;
 
@@ -1252,69 +1555,42 @@ choose_grouping_locus(PlannerInfo *root, Path *path,
 		need_redistribute = false;
 		CdbPathLocus_MakeNull(&locus);
 	}
+	/* If there are no GROUP BY columns, we have no choice but gather everything to a single node */
+	else if (!group_tles)
+	{
+		need_redistribute = true;
+		CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
+	}
+	/* If the input is already suitably distributed, no need to redistribute */
+	else if (cdbpathlocus_is_hashed_on_tlist(path->locus, group_tles, true))
+	{
+		need_redistribute = false;
+		CdbPathLocus_MakeNull(&locus);
+	}
+	/*
+	 * If the query's final result locus collocates with the GROUP BY, then
+	 * redistribute directly to that locus and avoid a possible redistribute
+	 * step later. (We might still need to redistribute the data for later
+	 * windowing, LIMIT or similar, but this is a pretty good heuristic.)
+	 */
+	else if (CdbPathLocus_IsHashed(root->final_locus) &&
+			 cdbpathlocus_is_hashed_on_tlist(root->final_locus, group_tles, true))
+	{
+		need_redistribute = true;
+		locus = root->final_locus;
+	}
+	/*
+	 * Construct a new locus from the GROUP BY columns. We greedily use as
+	 * many columns as possible, to maximimize distribution. (It might be
+	 * cheaper to pick only one or two columns, as long as they distribute
+	 * the data evenly enough, but we're not that smart.)
+	 */
 	else
 	{
-		List	   *group_tles;
 		List	   *hash_exprs;
 		List	   *hash_opfamilies;
 		List	   *hash_sortrefs;
 		ListCell   *lc;
-		Bitmapset  *common_groupcols = NULL;
-		bool		first = true;
-		int			x;
-
-		if (rollup_lists)
-		{
-			ListCell   *lcl, *lcc;
-
-			forboth(lcl, rollup_lists, lcc, rollup_groupclauses)
-			{
-				List *rlist = (List *) lfirst(lcl);
-				List *rclause = (List *) lfirst(lcc);
-				List *last_list = (List *) llast(rlist);
-				Bitmapset *this_groupcols = NULL;
-
-				this_groupcols = NULL;
-				foreach (lc, last_list)
-				{
-					SortGroupClause *sc = list_nth(rclause, lfirst_int(lc));
-
-					this_groupcols = bms_add_member(this_groupcols, sc->tleSortGroupRef);
-				}
-
-				if (first)
-					common_groupcols = this_groupcols;
-				else
-				{
-					common_groupcols = bms_int_members(common_groupcols, this_groupcols);
-					bms_free(this_groupcols);
-				}
-				first = false;
-			}
-		}
-		else
-		{
-			foreach(lc, groupClause)
-			{
-				SortGroupClause *sc = lfirst(lc);
-
-				common_groupcols = bms_add_member(common_groupcols, sc->tleSortGroupRef);
-			}
-		}
-
-		x = -1;
-		group_tles = NIL;
-		while ((x = bms_next_member(common_groupcols, x)) >= 0)
-		{
-			TargetEntry *tle = get_sortgroupref_tle(x, tlist);
-
-			group_tles = lappend(group_tles, tle);
-		}
-
-		if (!group_tles)
-			need_redistribute = true;
-		else
-			need_redistribute = !cdbpathlocus_is_hashed_on_tlist(path->locus, group_tles, true);
 
 		hash_exprs = NIL;
 		hash_opfamilies = NIL;
@@ -1343,15 +1619,15 @@ choose_grouping_locus(PlannerInfo *root, Path *path,
 			hash_sortrefs = lappend_int(hash_sortrefs, tle->ressortgroupref);
 		}
 
-		if (need_redistribute)
-		{
-			if (hash_exprs)
-				locus = cdbpathlocus_from_exprs(root, hash_exprs, hash_opfamilies, hash_sortrefs, getgpsegmentCount());
-			else
-				CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
-		}
+		if (hash_exprs)
+			locus = cdbpathlocus_from_exprs(root,
+											hash_exprs,
+											hash_opfamilies,
+											hash_sortrefs,
+											getgpsegmentCount());
 		else
-			CdbPathLocus_MakeNull(&locus);
+			CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
+		need_redistribute = true;
 	}
 
 	*need_redistribute_p = need_redistribute;
@@ -1729,6 +2005,12 @@ fetch_single_dqa_info(PlannerInfo *root,
  * This also works for the degenerate case with no pathkeys, which means
  * simple aggregation without grouping. For that, all the rows must be
  * brought to a single node, but no sorting is needed.
+ *
+ * For non-sorted input, the logic is the same as in choose_grouping_locus()
+ * (in fact this uses choose_grouping_locus()), except that if the input
+ * is already sorted, we prefer to gather it to a single node to make
+ * use of the pre-existing order, instead of redistributing and resorting
+ * it.
  */
 Path *
 cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
@@ -1747,20 +2029,30 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 	CdbPathLocus locus;
 	bool		need_redistribute;
 
-	locus = choose_grouping_locus(root,
-								  subpath,
-								  target,
-								  groupClause,
-								  rollup_lists,
-								  rollup_groupclauses,
-								  &need_redistribute);
+	/*
+	 * If the input is already collected to a single segment, just add a Sort
+	 * node (if needed). We could redistribute it, so that we could perform the
+	 * aggregation in parallel, but Motions are pretty expensive so it's
+	 * probably not worthwhile.
+	 */
+	if (CdbPathLocus_IsBottleneck(subpath->locus))
+	{
+		need_redistribute = false;
+	}
+	else
+	{
+		List	   *group_tles;
 
+		group_tles = get_common_group_tles(target,
+										   groupClause,
+										   rollup_lists,
+										   rollup_groupclauses);
+
+		locus = choose_grouping_locus(root, subpath, group_tles,
+									  &need_redistribute);
+	}
 	if (!need_redistribute)
 	{
-		/*
-		 * The input is already suitably distributed. Just add a Sort node,
-		 * if needed.
-		 */
 		if (!is_sorted)
 		{
 			subpath = (Path *) create_sort_path(root,
@@ -1852,15 +2144,20 @@ cdb_prepare_path_for_hashed_agg(PlannerInfo *root,
 								List *rollup_lists,
 								List *rollup_groupclauses)
 {
+	List	   *group_tles;
 	CdbPathLocus locus;
 	bool		need_redistribute;
 
+	if (CdbPathLocus_IsBottleneck(subpath->locus))
+		return subpath;
+
+	group_tles = get_common_group_tles(target,
+									   groupClause,
+									   rollup_lists,
+									   rollup_groupclauses);
 	locus = choose_grouping_locus(root,
 								  subpath,
-								  target,
-								  groupClause,
-								  rollup_lists,
-								  rollup_groupclauses,
+								  group_tles,
 								  &need_redistribute);
 
 	/*

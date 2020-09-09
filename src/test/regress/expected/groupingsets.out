@@ -628,19 +628,25 @@ select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 or
 
 explain (costs off)
   select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
-                   QUERY PLAN                   
-------------------------------------------------
- GroupAggregate
-   Group Key: a
-   Group Key: ()
-   Filter: (a IS DISTINCT FROM 1)
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a
-         ->  Sort
-               Sort Key: a
-               ->  Seq Scan on gstest2
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: a
+   ->  Sort
+         Sort Key: a
+         ->  Finalize HashAggregate
+               Group Key: (GROUPINGSET_ID()), a
+               Filter: (a IS DISTINCT FROM 1)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: a, (GROUPINGSET_ID())
+                     ->  Partial GroupAggregate
+                           Group Key: a
+                           Group Key: ()
+                           ->  Sort
+                                 Sort Key: a
+                                 ->  Seq Scan on gstest2
  Optimizer: Postgres query optimizer
-(10 rows)
+(16 rows)
 
 select v.c, (select count(*) from gstest2 group by () having v.c)
   from (values (false),(true)) v(c) order by v.c;

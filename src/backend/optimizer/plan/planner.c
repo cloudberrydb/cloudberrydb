@@ -2074,6 +2074,38 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 		expand_security_quals(root, tlist);
 
 		/*
+		 * In the top query, determine a locus to indicate where the final
+		 * result will be needed.
+		 *
+		 * (This is just a hint to the planner, standard_planner() will tack
+		 * a Motion on top of the final path if needed.)
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH && !root->parent_root)
+		{
+			PathTarget *target = make_pathtarget_from_tlist(tlist);
+
+			root->final_locus = cdbllize_get_final_locus(root, target);
+
+			/*
+			 * cdbllize_get_final_locus() can assign sortgrouprefs.
+			 * Copy them back to the original tlist.
+			 */
+			if (target->sortgrouprefs)
+			{
+				ListCell *lc;
+				int			idx;
+
+				idx = 0;
+				foreach(lc, tlist)
+				{
+					TargetEntry *tle = (TargetEntry *) lfirst(lc);
+					tle->ressortgroupref = target->sortgrouprefs[idx];
+					idx++;
+				}
+			}
+		}
+
+		/*
 		 * We are now done hacking up the query's targetlist.  Most of the
 		 * remaining planning work will be done with the PathTarget
 		 * representation of tlists, but save aside the full representation so
@@ -2583,6 +2615,30 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 			 */
 			if (parse->scatterClause)
 				path = create_scatter_path(root, parse->scatterClause, path);
+		}
+
+		/*
+		 * If we know where the result will be needed, create a Motion to
+		 * move it there.
+		 *
+		 * standard_planner() will tack a Motion on top of the cheapest
+		 * path anyway, if we don't do it here. But doing the Motion here
+		 * allows the cost of the Motion to be taken into account when
+		 * deciding which path is the cheapest.
+		 */
+		if (CdbPathLocus_IsHashed(root->final_locus) ||
+			CdbPathLocus_IsSingleQE(root->final_locus) ||
+			CdbPathLocus_IsEntry(root->final_locus) ||
+			CdbPathLocus_IsReplicated(root->final_locus))
+		{
+			Path	   *orig_path = path;
+
+			path = cdbpath_create_motion_path(root, orig_path,
+											  root->sort_pathkeys,
+											  false,
+											  root->final_locus);
+			if (!path)
+				path = orig_path;
 		}
 
 		/*
@@ -4027,9 +4083,11 @@ create_grouping_paths(PlannerInfo *root,
 				agg_costs->numOrderedAggs == 0 &&
 				grouping_is_hashable(parse->groupClause));
 
-	/* GPDB can also do a two-stage aggregate when there is exactly one DISTINCT agg. */
+	/*
+	 * cdb_create_twostage_grouping_paths() can use hashing (in limited ways)
+	 * even if there are DISTINCT aggs or grouping sets.
+	 */
 	can_mpp_hash = (parse->groupClause != NIL &&
-				parse->groupingSets == NIL &&
 				agg_costs->numPureOrderedAggs == 0 &&
 				grouping_is_hashable(parse->groupClause));
 
