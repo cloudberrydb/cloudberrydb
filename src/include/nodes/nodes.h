@@ -185,6 +185,7 @@ typedef enum NodeTag
 	T_Var,
 	T_Const,
 	T_Param,
+	T_DQAExpr,
 	T_Aggref,
 	T_GroupingFunc,
 	T_WindowFunc,
