@@ -132,9 +132,8 @@ ic_proxy_server_on_new_peer(uv_stream_t *server, int status)
 static void
 ic_proxy_server_peer_listener_init(uv_loop_t *loop)
 {
-	struct sockaddr_in addr;
+	const ICProxyAddr *addr;
 	uv_tcp_t   *listener = &ic_proxy_peer_listener;
-	int			port;
 	int			fd = -1;
 	int			ret;
 
@@ -144,20 +143,32 @@ ic_proxy_server_peer_listener_init(uv_loop_t *loop)
 	if (ic_proxy_peer_listening)
 		return;
 
-	/* Get the ip from the gp_interconnect_proxy_addresses */
-	port = ic_proxy_get_my_port();
-	if (port < 0)
-		/* Cannot get my port, maybe the setting is invalid */
+	/* Get the addr from the gp_interconnect_proxy_addresses */
+	addr = ic_proxy_get_my_addr();
+	if (addr == NULL)
+		/* Cannot get my addr, maybe the setting is invalid */
 		return;
 
-	/*
-	 * TODO: listen on the ip specified in gp_interconnect_proxy_addresses for
-	 * better security.
-	 */
-	uv_ip4_addr("0.0.0.0", port, &addr);
+#if IC_PROXY_LOG_LEVEL <= LOG
+	{
+		char		name[HOST_NAME_MAX] = "unknown";
+		int			port = 0;
+		int			family;
+		int			ret;
 
-	ic_proxy_log(LOG, "ic-proxy-server: setting up peer listener on port %d",
-				 port);
+		ret = ic_proxy_extract_addr((struct sockaddr *) &addr->addr,
+									name, sizeof(name), &port, &family);
+		if (ret == 0)
+			ic_proxy_log(LOG,
+						 "ic-proxy-server: setting up peer listener on %s:%s (%s:%d family=%d)",
+						 addr->hostname, addr->service, name, port, family);
+		else
+			ic_proxy_log(WARNING,
+						 "ic-proxy-server: setting up peer listener on %s:%s (%s:%d family=%d) (fail to extract the address: %s)",
+						 addr->hostname, addr->service, name, port, family,
+						 uv_strerror(ret));
+	}
+#endif /* IC_PROXY_LOG_LEVEL <= LOG */
 
 	/*
 	 * It is important to set TCP_NODELAY, otherwise we will suffer from
@@ -166,7 +177,7 @@ ic_proxy_server_peer_listener_init(uv_loop_t *loop)
 	uv_tcp_init(loop, listener);
 	uv_tcp_nodelay(listener, true);
 
-	ret = uv_tcp_bind(listener, (struct sockaddr *) &addr, 0);
+	ret = uv_tcp_bind(listener, (struct sockaddr *) &addr->addr, 0);
 	if (ret < 0)
 	{
 		ic_proxy_log(WARNING, "ic-proxy-server: tcp: fail to bind: %s",
@@ -371,7 +382,7 @@ ic_proxy_server_on_signal(uv_signal_t *handle, int signum)
 	{
 		ProcessConfigFile(PGC_SIGHUP);
 
-		ic_proxy_reload_addresses();
+		ic_proxy_reload_addresses(handle->loop);
 
 		ic_proxy_server_peer_listener_init(handle->loop);
 		ic_proxy_server_ensure_peers(handle->loop);
@@ -414,9 +425,9 @@ ic_proxy_server_main(void)
 
 	ic_proxy_pkt_cache_init(IC_PROXY_MAX_PKT_SIZE);
 
-	ic_proxy_reload_addresses();
-
 	uv_loop_init(&ic_proxy_server_loop);
+
+	ic_proxy_reload_addresses(&ic_proxy_server_loop);
 
 	ic_proxy_router_init(&ic_proxy_server_loop);
 	ic_proxy_peer_table_init();
