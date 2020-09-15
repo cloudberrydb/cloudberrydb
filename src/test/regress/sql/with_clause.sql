@@ -62,10 +62,17 @@ select sum(total) from (select sum(value) as total from with_test1 group by i) m
 --end_equivalent
 
 -- pathkeys
+explain (costs off)
 with my_order as (select * from with_test1 order by i)
 select i, count(*)
 from my_order
 group by i order by i;
+
+with my_order as (select * from with_test1 order by i)
+select i, count(*)
+from my_order
+group by i order by i;
+
 
 -- WITH query used in InitPlan
 --begin_equivalent

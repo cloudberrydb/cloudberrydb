@@ -2869,7 +2869,6 @@ create_ctescan_path(PlannerInfo *root, RelOptInfo *rel,
 		pathnode->rows = clamp_row_est(rel->rows / numsegments);
 		pathnode->startup_cost = subpath->startup_cost;
 		pathnode->total_cost = subpath->total_cost;
-		pathnode->pathkeys = subpath->pathkeys;
 
 		ctepath->subpath = subpath;
 	}

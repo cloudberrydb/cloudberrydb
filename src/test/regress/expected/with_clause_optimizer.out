@@ -122,6 +122,25 @@ select sum(total) from (select sum(value) as total from with_test1 group by i) m
 
 --end_equivalent
 -- pathkeys
+explain (costs off)
+with my_order as (select * from with_test1 order by i)
+select i, count(*)
+from my_order
+group by i order by i;
+                   QUERY PLAN                   
+------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: i
+   ->  Sort
+         Sort Key: i
+         ->  GroupAggregate
+               Group Key: i
+               ->  Sort
+                     Sort Key: i
+                     ->  Seq Scan on with_test1
+ Optimizer: Pivotal Optimizer (GPORCA)
+(10 rows)
+
 with my_order as (select * from with_test1 order by i)
 select i, count(*)
 from my_order
