@@ -5023,4 +5023,83 @@ CXformUtils::PexprGbAggOnCTEConsumer2Join
 	return pexprJoin;
 }
 
+//---------------------------------------------------------------------------
+// CXformUtils::AddALinearStackOfUnaryExpressions
+//
+// Given two CExpressions, a "lower part" and a "stack", consisting of
+// zero or more CExpressions with a single logical child and optional scalar
+// children, make a copy of the stack, with the lower (excluded) end of the
+// stack ("exclusiveBottomOfStack") replaced by "lowerPartOfExpr".
+//
+// Input:
+//
+//      lowerPartOfExpr             topOfStack
+//          / | | \                     |
+//    (optional children)              ...
+//                                      |
+//                               lastIncludedNode
+//                                      |
+//                             exclusiveBottomOfStack
+//
+// Result:
+//
+//                topOfStack
+//                    |
+//                   ...
+//                    |
+//             lastIncludedNode
+//                    |
+//              lowerPartOfExpr
+//                  / | | \
+//            (optional children)
+//
+//---------------------------------------------------------------------------
+CExpression *
+CXformUtils::AddALinearStackOfUnaryExpressions
+		(
+		 CMemoryPool *mp,
+		 CExpression *lowerPartOfExpr,
+		 CExpression *topOfStack,
+		 CExpression *exclusiveBottomOfStack
+		)
+{
+	if (NULL == topOfStack || topOfStack == exclusiveBottomOfStack)
+	{
+		// nothing to add on top of lowerPartOfExpr
+		return lowerPartOfExpr;
+	}
+
+	ULONG arity = topOfStack->Arity();
+
+	// a stack must consist of logical nodes
+	GPOS_ASSERT(topOfStack->Pop()->FLogical());
+	GPOS_CHECK_STACK_SIZE;
+
+	// Recursively process the node just below topOfStack first, to build the new stack bottom-up.
+	// Note that if the stack ends here, the recursive call will return lowerPartOfExpr.
+	CExpression *processedRestOfStack = AddALinearStackOfUnaryExpressions(mp, lowerPartOfExpr, (*topOfStack)[0], exclusiveBottomOfStack);
+
+	// now add a copy of node topOfStack
+	CExpressionArray *childrenArray = GPOS_NEW(mp) CExpressionArray(mp);
+	COperator *pop = topOfStack->Pop();
+
+	// the first, logical child becomes the copied rest of the stack
+	childrenArray->Append(processedRestOfStack);
+
+	// then copy the remaining (scalar) children, unmodified
+	for (ULONG ul=1; ul<arity; ul++)
+	{
+		CExpression *scalarChild = (*topOfStack)[ul];
+
+		GPOS_ASSERT(scalarChild->Pop()->FScalar());
+		scalarChild->AddRef();
+		childrenArray->Append(scalarChild);
+	}
+
+	pop->AddRef();
+
+	return GPOS_NEW(mp) CExpression(mp, pop, childrenArray);
+}
+
+
 // EOF

@@ -2603,6 +2603,102 @@ where out.b in (select coalesce(tcorr2.a, 99)
 
 reset optimizer_join_order;
 
+-- test join to index get apply xform
+drop table if exists foo, tbtree, tbitmap;
+create table foo(a int, b int, c int) distributed by(a);
+create table tbtree(a int, b int, c int) distributed by(a);
+create table tbitmap(a int, b int, c int) distributed by(a);
+
+insert into foo select i,i,i from generate_series(1,10) i;
+insert into tbtree select i,i,i from generate_series(1,100000) i;
+insert into tbitmap select i,i,i from generate_series(1,100000) i;
+
+create index tbtreexa  on tbtree  using btree(a);
+create index tbitmapxa on tbitmap using bitmap(a);
+
+set optimizer_join_order = query;
+set optimizer_enable_hashjoin = off;
+set optimizer_trace_fallback = on;
+
+-- 1 simple btree
+explain (costs off)
+select * from foo join tbtree on foo.a=tbtree.a;
+select * from foo join tbtree on foo.a=tbtree.a;
+
+-- 2 simple bitmap
+explain (costs off)
+select * from foo join tbitmap on foo.a=tbitmap.a;
+select * from foo join tbitmap on foo.a=tbitmap.a;
+
+-- 3 btree with select pred
+explain (costs off)
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
+
+-- 4 bitmap with select pred
+explain (costs off)
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
+
+-- 5 btree with project
+explain (costs off)
+select * from foo join (select a, b+c as bc from tbtree) proj on foo.a=proj.a;
+select * from foo join (select a, b+c as bc from tbtree) proj on foo.a=proj.a;
+
+-- 6 bitmap with project
+explain (costs off)
+select * from foo join (select a, b+c as bc from tbitmap) proj on foo.a=proj.a;
+select * from foo join (select a, b+c as bc from tbitmap) proj on foo.a=proj.a;
+
+-- 7 btree with grby
+explain (costs off)
+select * from foo join (select a, count(*) as cnt from tbtree group by a) grby on foo.a=grby.a;
+select * from foo join (select a, count(*) as cnt from tbtree group by a) grby on foo.a=grby.a;
+
+-- 8 bitmap with grby
+explain (costs off)
+select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby on foo.a=grby.a;
+select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby on foo.a=grby.a;
+
+-- 9 btree with proj select grby select
+explain (costs off)
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+
+-- 10 bitmap with proj select grby select
+explain (costs off)
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+
+-- 11 join pred accesses a projected column - no index scan
+explain (costs off)
+select * from foo join (select a, a::bigint*a::bigint as aa from tbtree) proj on foo.a=proj.a and foo.b=proj.aa;
+select * from foo join (select a, a::bigint*a::bigint as aa from tbtree) proj on foo.a=proj.a and foo.b=proj.aa;
+
+-- 12 join pred accesses a projected column - no index scan
+explain (costs off)
+select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby on foo.a=grby.a and foo.b=grby.cnt;
+select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby on foo.a=grby.a and foo.b=grby.cnt;
+
+-- 13 the potential index join itself contains outer refs - no index scan
+explain (costs off)
+select *
+from foo l1 where b in (select ab
+                        from foo l2 join (select *, l1.a+tbtree.b as ab from tbtree) tbtree_derived
+                                    on l2.a=tbtree_derived.a and l2.b=tbtree_derived.b
+                        where l2.c = 1
+                       );
+select *
+from foo l1 where b in (select ab
+                        from foo l2 join (select *, l1.a+tbtree.b as ab from tbtree) tbtree_derived
+                                    on l2.a=tbtree_derived.a and l2.b=tbtree_derived.b
+                        where l2.c = 1
+                       );
+
+reset optimizer_join_order;
+reset optimizer_enable_hashjoin;
+reset optimizer_trace_fallback;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore

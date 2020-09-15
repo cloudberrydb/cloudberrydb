@@ -15,6 +15,7 @@
 #include "gpopt/operators/CLogicalApply.h"
 #include "gpopt/operators/CLogicalCTEAnchor.h"
 #include "gpopt/operators/CLogicalDynamicGet.h"
+#include "gpopt/operators/CLogicalIndexApply.h"
 #include "gpopt/operators/CLogicalJoin.h"
 #include "gpopt/operators/CLogicalSelect.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
@@ -102,10 +103,12 @@ void
 CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprScalar,
+	CExpression *nodesToInsertAboveIndexGet,
+	CExpression *endOfNodesToInsertAboveIndexGet,
 	CTableDescriptor *ptabdescInner,
 	CLogicalDynamicGet *popDynamicGet,
 	CXformResult *pxfres,
@@ -144,10 +147,12 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 		CreateHomogeneousBtreeIndexApplyAlternatives
 			(
 			mp,
-			ulOriginOpId,
+			joinOp,
 			pexprOuter,
 			pexprInner,
 			pexprScalar,
+			nodesToInsertAboveIndexGet,
+			endOfNodesToInsertAboveIndexGet,
 			ptabdescInner,
 			popDynamicGet,
 			pcrsScalarExpr,
@@ -162,10 +167,12 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 		CreateHomogeneousBitmapIndexApplyAlternatives
 			(
 			mp,
-			ulOriginOpId,
+			joinOp,
 			pexprOuter,
 			pexprInner,
 			pexprScalar,
+			nodesToInsertAboveIndexGet,
+			endOfNodesToInsertAboveIndexGet,
 			ptabdescInner,
 			outer_refs,
 			pcrsReqd,
@@ -191,10 +198,12 @@ void
 CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprScalar,
+	CExpression *nodesToInsertAboveIndexGet,
+	CExpression *endOfNodesToInsertAboveIndexGet,
 	CTableDescriptor *ptabdescInner,
 	CLogicalDynamicGet *popDynamicGet,
 	CColRefSet *pcrsScalarExpr,
@@ -232,9 +241,11 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 		CreateAlternativesForBtreeIndex
 			(
 			mp,
-			ulOriginOpId,
+			joinOp,
 			pexprOuter,
 			pexprInner,
+			nodesToInsertAboveIndexGet,
+			endOfNodesToInsertAboveIndexGet,
 			md_accessor,
 			pdrgpexpr,
 			pcrsScalarExpr,
@@ -264,9 +275,11 @@ void
 CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
+	CExpression *nodesToInsertAboveIndexGet,
+	CExpression *endOfNodesToInsertAboveIndexGet,
 	CMDAccessor *md_accessor,
 	CExpressionArray *pdrgpexprConjuncts,
 	CColRefSet *pcrsScalarExpr,
@@ -283,7 +296,7 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 						 mp,
 						 md_accessor,
 						 pexprInner,
-						 ulOriginOpId,
+						 joinOp->UlOpId(),
 						 pdrgpexprConjuncts,
 						 pcrsReqd,
 						 pcrsScalarExpr,
@@ -298,14 +311,32 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 		// second child has residual predicates, create an apply of outer and inner
 		// and add it to xform results
 		CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
+		CExpression *rightChildOfApply = CXformUtils::AddALinearStackOfUnaryExpressions(mp, pexprLogicalIndexGet, nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet);
+		BOOL isOuterJoin = false;
+
+		switch (joinOp->Eopid())
+		{
+			case COperator::EopLogicalInnerJoin:
+				isOuterJoin = false;
+				break;
+
+			case COperator::EopLogicalLeftOuterJoin:
+				isOuterJoin = true;
+				break;
+
+			default:
+				// this type of join operator is not supported
+				return;
+		}
+
 		pexprOuter->AddRef();
 		CExpression *pexprIndexApply =
 			GPOS_NEW(mp) CExpression
 				(
 				mp,
-				PopLogicalApply(mp, colref_array),
+				GPOS_NEW(mp) CLogicalIndexApply(mp, colref_array, isOuterJoin),
 				pexprOuter,
-				pexprLogicalIndexGet,
+				rightChildOfApply,
 				CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
 				);
 		pxfres->Add(pexprIndexApply);
@@ -324,10 +355,12 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprScalar,
+	CExpression *nodesToInsertAboveIndexGet,
+	CExpression *endOfNodesToInsertAboveIndexGet,
 	CTableDescriptor *ptabdescInner,
 	CColRefSet *outer_refs,
 	CColRefSet *pcrsReqd,
@@ -339,7 +372,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 										(
 										mp,
 										popGet,
-										ulOriginOpId,
+										joinOp->UlOpId(),
 										ptabdescInner,
 										pexprScalar,
 										outer_refs,
@@ -350,14 +383,32 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 		// second child has residual predicates, create an apply of outer and inner
 		// and add it to xform results
 		CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
+		CExpression *rightChildOfApply = CXformUtils::AddALinearStackOfUnaryExpressions(mp, pexprLogicalIndexGet, nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet);
+		BOOL isOuterJoin = false;
+
+		switch (joinOp->Eopid())
+		{
+			case COperator::EopLogicalInnerJoin:
+				isOuterJoin = false;
+				break;
+
+			case COperator::EopLogicalLeftOuterJoin:
+				isOuterJoin = true;
+				break;
+
+			default:
+				// this type of join operator is not supported
+				return;
+		}
+
 		pexprOuter->AddRef();
 		CExpression *pexprIndexApply =
 			GPOS_NEW(mp) CExpression
 				(
 				mp,
-				PopLogicalApply(mp, colref_array),
+				GPOS_NEW(mp) CLogicalIndexApply(mp, colref_array, isOuterJoin),
 				pexprOuter,
-				pexprLogicalIndexGet,
+				rightChildOfApply,
 				CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
 				);
 		pxfres->Add(pexprIndexApply);
@@ -428,7 +479,7 @@ void
 CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprScalar,
@@ -507,7 +558,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 			CreatePartialIndexApplyPlan
 				(
 				mp,
-				ulOriginOpId,
+				joinOp,
 				pexprOuter,
 				pexprScalar,
 				outer_refs,
@@ -539,7 +590,7 @@ void
 CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CExpression *pexprOuter,
 	CExpression *pexprScalar,
 	CColRefSet *outer_refs,
@@ -611,7 +662,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 			pexprUnionAllChild = PexprIndexApplyOverCTEConsumer
 					(
 					mp,
-					ulOriginOpId,
+					joinOp,
 					popDynamicGet,
 					pdrgpexprIndex,
 					pdrgpexprResidual,
@@ -633,7 +684,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 			pexprUnionAllChild = PexprJoinOverCTEConsumer
 								(
 								mp,
-								ulOriginOpId,
+								joinOp,
 								popDynamicGet,
 								ulCTEId,
 								pexprScalar,
@@ -722,7 +773,7 @@ CExpression *
 CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 	(
 	CMemoryPool *mp,
-	ULONG, //  ulOriginOpId
+	COperator *, // joinOp
 	CLogicalDynamicGet *popDynamicGet,
 	ULONG ulCTEId,
 	CExpression *pexprScalar,
@@ -794,7 +845,7 @@ CExpression *
 CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	(
 	CMemoryPool *mp,
-	ULONG ulOriginOpId,
+	COperator *joinOp,
 	CLogicalDynamicGet *popDynamicGet,
 	CExpressionArray *pdrgpexprIndex,
 	CExpressionArray *pdrgpexprResidual,
@@ -815,7 +866,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 								(
 								mp,
 								popDynamicGet,
-								ulOriginOpId,
+								joinOp->UlOpId(),
 								pdrgpexprIndex,
 								pdrgpexprResidual,
 								pdrgpcrIndexGet,
