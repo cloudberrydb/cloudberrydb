@@ -4775,14 +4775,18 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 			!vardata->freefunc)
 			elog(ERROR, "no function provided to release variable stats with");
 	}
-	else if (rte->inh)
+	else if (rte->rtekind == RTE_RELATION)
 	{
-		const char *attname  = get_relid_attribute_name(rte->relid, var->varattno);
-
+		/*
+		 * Plain table or parent of an inheritance appendrel, so look up the
+		 * column in pg_statistic
+		 */
 		vardata->statsTuple = NULL;
 
-		if (gp_statistics_pullup_from_child_partition)
+		if (rte->inh && gp_statistics_pullup_from_child_partition)
 		{
+			const char *attname  = get_relid_attribute_name(rte->relid, var->varattno);
+
 			/*
 			 * The GUC gp_statistics_pullup_from_child_partition is
 			 * set false defaultly. If it is true, we always try
@@ -4790,32 +4794,15 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 			 */
 			try_fetch_largest_child_stats(root, var->varno, attname, vardata);
 		}
-		else
-		{
-			try_fetch_rel_stats(rte, attname, vardata);
 
-			if (vardata->statsTuple == NULL)
-			{
-				/*
-				 * If root table does not have such stat info, we
-				 * try to use largest child partition's stat info
-				 * for the whole table.
-				 */
-				try_fetch_largest_child_stats(root, var->varno, attname, vardata);
-			}
+		if (vardata->statsTuple == NULL)
+		{
+			vardata->statsTuple = SearchSysCache3(STATRELATTINH,
+												  ObjectIdGetDatum(rte->relid),
+												  Int16GetDatum(var->varattno),
+												  BoolGetDatum(rte->inh));
+			vardata->freefunc = ReleaseSysCache;
 		}
-	}
-	else if (rte->rtekind == RTE_RELATION)
-	{
-		/*
-		 * Plain table or parent of an inheritance appendrel, so look up the
-		 * column in pg_statistic
-		 */
-		vardata->statsTuple = SearchSysCache3(STATRELATTINH,
-											  ObjectIdGetDatum(rte->relid),
-											  Int16GetDatum(var->varattno),
-											  BoolGetDatum(rte->inh));
-		vardata->freefunc = ReleaseSysCache;
 
 		if (HeapTupleIsValid(vardata->statsTuple))
 		{

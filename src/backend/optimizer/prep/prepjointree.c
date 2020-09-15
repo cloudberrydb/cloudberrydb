@@ -12,11 +12,6 @@
  *		reduce_outer_joins
  *
  *
- * In PostgreSQL, there is code here to do with pulling up "simple UNION ALLs".
- * In GPDB, there is no such thing as a simple UNION ALL as locus of the relations
- * may be different, so all that has been removed.
- *
- *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
@@ -85,6 +80,8 @@ static Node *pull_up_simple_subquery(PlannerInfo *root, Node *jtnode,
 						JoinExpr *lowest_nulling_outer_join,
 						AppendRelInfo *containing_appendrel,
 						bool deletion_ok);
+static Node *pull_up_simple_union_all(PlannerInfo *root, Node *jtnode,
+						 RangeTblEntry *rte);
 static void pull_up_union_leaf_queries(Node *setOp, PlannerInfo *root,
 						   int parentRTindex, Query *setOpQuery,
 						   int childRToffset);
@@ -98,6 +95,9 @@ static Node *pull_up_simple_values(PlannerInfo *root, Node *jtnode,
 								   RangeTblEntry *rte);
 static bool is_simple_values(PlannerInfo *root, RangeTblEntry *rte,
 							 bool deletion_ok);
+static bool is_simple_union_all(Query *subquery);
+static bool is_simple_union_all_recurse(Node *setOp, Query *setOpQuery,
+							List *colTypes);
 static bool is_safe_append_member(Query *subquery);
 static bool jointree_contains_lateral_outer_refs(Node *jtnode, bool restricted,
 									 Relids safe_upper_varnos);
@@ -123,7 +123,6 @@ static void substitute_multiple_relids(Node *node,
 static void fix_append_rel_relids(List *append_rel_list, int varno,
 					  Relids subrelids);
 static Node *find_jointree_node_for_rel(Node *jtnode, int relid);
-static bool is_simple_union_all_recurse(Node *setOp, Query *setOpQuery, List *colTypes);
 
 
 /*
@@ -868,7 +867,7 @@ pull_up_subqueries_recurse(PlannerInfo *root, Node *jtnode,
 										   containing_appendrel,
 										   deletion_ok);
 
-		/* PG:
+		/*
 		 * Alternatively, is it a simple UNION ALL subquery?  If so, flatten
 		 * into an "append relation".
 		 *
@@ -876,17 +875,10 @@ pull_up_subqueries_recurse(PlannerInfo *root, Node *jtnode,
 		 * appendrel member.  (If you're thinking we should try to flatten the
 		 * two levels of appendrel together, you're right; but we handle that
 		 * in set_append_rel_pathlist, not here.)
-		 * 
-		 * GPDB: 
-		 * Flattening to an append relation works in PG but is not safe to do in GPDB. 
-		 * A "simple" UNION ALL may involve relations with different loci and would require resolving
-		 * locus issues. It is preferable to avoid pulling up simple UNION ALL in GPDB.
 		 */
-#if 0
 		if (rte->rtekind == RTE_SUBQUERY &&
 			is_simple_union_all(rte->subquery))
 			return pull_up_simple_union_all(root, jtnode, rte);
-#endif
 
 		/*
 		 * Or perhaps it's a simple VALUES RTE?
@@ -1435,7 +1427,6 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	return (Node *) subquery->jointree;
 }
 
-#if 0
 /*
  * pull_up_simple_union_all
  *		Pull up a single simple UNION ALL subquery.
@@ -1507,7 +1498,6 @@ pull_up_simple_union_all(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte)
 
 	return jtnode;
 }
-#endif
 
 /*
  * pull_up_union_leaf_queries -- recursive guts of pull_up_simple_union_all
@@ -1974,7 +1964,7 @@ is_simple_values(PlannerInfo *root, RangeTblEntry *rte, bool deletion_ok)
  * any datatype coercions involved, ie, all the leaf queries must emit the
  * same datatypes.
  */
-static bool pg_attribute_unused()
+static bool
 is_simple_union_all(Query *subquery)
 {
 	SetOperationStmt *topop;

@@ -212,9 +212,9 @@ CREATE INDEX t1c_ab_idx on t1c ((a || b));
 
 set enable_seqscan = on;
 set enable_indexonlyscan = off;
+-- Coerce GPDB to produce same plan as in upstream
+set enable_sort=off;
 
--- NOTE: GPDB planner chooses a seqscan rather than indexscan for t1.
--- This is a side-effect of disabling pull-up for simple union all in GPDB.
 explain (costs off)
   SELECT * FROM
   (SELECT a || b AS ab FROM t1
@@ -231,8 +231,12 @@ explain (costs off)
 reset enable_seqscan;
 reset enable_indexscan;
 reset enable_bitmapscan;
+reset enable_sort;
 
 -- This simpler variant of the above test has been observed to fail differently
+
+-- Coerce GPDB to produce same plan as in upstream
+set enable_seqscan=off;
 
 create table events (event_id int primary key);
 create table other_events (event_id int primary key);
@@ -244,6 +248,8 @@ select event_id
        union all
        select event_id from other_events) ss
  order by event_id;
+
+reset enable_seqscan;
 
 drop table events_child, events, other_events;
 

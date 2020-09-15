@@ -176,7 +176,6 @@ explain (costs off)
 -- let's try that as a mergejoin
 set enable_mergejoin = on;
 set enable_nestloop = off;
-
 explain (costs off)
   select * from ec1,
     (select ff + 1 as x from

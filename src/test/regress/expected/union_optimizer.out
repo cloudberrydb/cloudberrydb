@@ -526,29 +526,28 @@ INSERT INTO t2c VALUES ('vw'), ('cd'), ('mn'), ('ef');
 CREATE INDEX t1c_ab_idx on t1c ((a || b));
 set enable_seqscan = on;
 set enable_indexonlyscan = off;
--- NOTE: GPDB planner chooses a seqscan rather than indexscan for t1.
--- This is a side-effect of disabling pull-up for simple union all in GPDB.
+-- Coerce GPDB to produce same plan as in upstream
+set enable_sort=off;
 explain (costs off)
   SELECT * FROM
   (SELECT a || b AS ab FROM t1
    UNION ALL
    SELECT ab FROM t2) t
   ORDER BY 1 LIMIT 8;
-                   QUERY PLAN                   
-------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: ((t1.a || t1.b))
          ->  Limit
-               ->  Sort
+               ->  Merge Append
                      Sort Key: ((t1.a || t1.b))
-                     ->  Append
-                           ->  Seq Scan on t1
-                           ->  Seq Scan on t1c
-                           ->  Seq Scan on t2
-                           ->  Seq Scan on t2c
+                     ->  Index Scan using t1_ab_idx on t1
+                     ->  Index Scan using t1c_ab_idx on t1c
+                     ->  Index Scan using t2_pkey on t2
+                     ->  Index Scan using t2c_pkey on t2c
  Optimizer: Postgres query optimizer
-(12 rows)
+(11 rows)
 
   SELECT * FROM
   (SELECT a || b AS ab FROM t1
@@ -570,7 +569,10 @@ explain (costs off)
 reset enable_seqscan;
 reset enable_indexscan;
 reset enable_bitmapscan;
+reset enable_sort;
 -- This simpler variant of the above test has been observed to fail differently
+-- Coerce GPDB to produce same plan as in upstream
+set enable_seqscan=off;
 create table events (event_id int primary key);
 create table other_events (event_id int primary key);
 create table events_child () inherits (events);
@@ -581,19 +583,21 @@ select event_id
        union all
        select event_id from other_events) ss
  order by event_id;
-                 QUERY PLAN                 
---------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: events.event_id
-   ->  Sort
+   ->  Merge Append
          Sort Key: events.event_id
-         ->  Append
-               ->  Seq Scan on events
+         ->  Index Scan using events_pkey on events
+         ->  Sort
+               Sort Key: events_child.event_id
                ->  Seq Scan on events_child
-               ->  Seq Scan on other_events
+         ->  Index Scan using other_events_pkey on other_events
  Optimizer: Postgres query optimizer
-(9 rows)
+(10 rows)
 
+reset enable_seqscan;
 drop table events_child, events, other_events;
 reset enable_indexonlyscan;
 -- Test constraint exclusion of UNION ALL subqueries
