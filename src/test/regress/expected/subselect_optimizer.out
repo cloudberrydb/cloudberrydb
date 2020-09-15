@@ -718,11 +718,11 @@ select '1'::text in (select '1'::name union all select '1'::name);
 --
 -- Test case for planner bug with nested EXISTS handling
 --
-select a.thousand from tenk1 a, tenk1 b
 -- GPDB_92_MERGE_FIXME: ORCA cannot decorrelate this query, and generates
--- correct-but-slow plan that takes 45 minutes. Wedge in a hack to
--- conditionally short-circuit it only when running under ORCA
-, (SELECT name, setting FROM pg_settings WHERE (name, setting) = ('optimizer', 'off')) AS FIXME
+-- correct-but-slow plan that takes 45 minutes. Revisit this when ORCA can
+-- reorder anti-joins
+set optimizer to off;
+select a.thousand from tenk1 a, tenk1 b
 where a.thousand = b.thousand
   and exists ( select 1 from tenk1 c where b.hundred = c.hundred
                    and not exists ( select 1 from tenk1 d
@@ -731,6 +731,7 @@ where a.thousand = b.thousand
 ----------
 (0 rows)
 
+reset optimizer;
 --
 -- Check that nested sub-selects are not pulled up if they contain volatiles
 --
