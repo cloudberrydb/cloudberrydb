@@ -377,9 +377,9 @@ plan_tree_walker(Node *node,
 			/* Other fields are simple items and lists of simple items. */
 			break;
 
-        case T_DQAExpr:
-	        if (walker(((DQAExpr *)node)->agg_filter, context))
-		        return true;
+		case T_DQAExpr:
+			if (walker(((DQAExpr *)node)->agg_filter, context))
+				return true;
 			/* Other fields are simple items and lists of simple items. */
 			break;
 
