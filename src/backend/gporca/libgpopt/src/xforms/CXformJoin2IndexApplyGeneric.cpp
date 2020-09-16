@@ -152,7 +152,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt, CXformResult *px
 	//
 	//      Apply                                   <== new apply node (inner/outer)
 	//      /   \                        .
-	//   Leaf   select (not used as an index pred)  \\
+	//   Leaf   select (not used as an index pred)  \\ .
 	//            \                                 || this stack of unary nodes is
 	//            GbAgg                             || transferred from the pattern
 	//              \                               || above (unchanged)
