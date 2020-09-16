@@ -348,6 +348,7 @@ CSubqueryHandler::Psd
 	CMemoryPool *mp,
 	CExpression *pexprSubquery,
 	CExpression *pexprOuter,
+	const CColRef *pcrSubquery,
 	ESubqueryCtxt esqctxt
 	)
 {
@@ -356,15 +357,21 @@ CSubqueryHandler::Psd
 	GPOS_ASSERT(NULL != pexprOuter);
 
 	CExpression *pexprInner = (*pexprSubquery)[0];
+	CColRefSet *subqueryOutputCols = (*pexprSubquery)[0]->DeriveOutputColumns();
 	CColRefSet *outer_refs = (*pexprSubquery)[0]->DeriveOuterReferences();
 	CColRefSet *pcrsOuterOutput = pexprOuter->DeriveOutputColumns();
 
 	SSubqueryDesc *psd = GPOS_NEW(mp) SSubqueryDesc();
 	psd->m_returns_set = (1 < pexprInner->DeriveMaxCard().Ull());
-	psd->m_fHasOuterRefs = pexprInner->HasOuterRefs();
+	psd->m_fReturnedPcrIsOuterRef = (!subqueryOutputCols->FMember(pcrSubquery));
+	psd->m_fHasOuterRefs = pexprInner->HasOuterRefs() || psd->m_fReturnedPcrIsOuterRef;
 	psd->m_fHasVolatileFunctions = (IMDFunction::EfsVolatile == pexprSubquery->DeriveScalarFunctionProperties()->Efs());
-	psd->m_fHasSkipLevelCorrelations = 0 < outer_refs->Size() && !pcrsOuterOutput->ContainsAll(outer_refs);
-
+	// We have skip-level outer refs if there are outer refs at all, and at least one of the following is true:
+	// - the outer refs below the subquery node don't all come from the outer table (the level right above us)
+	// - the ColRef returned by the subquery is an outer ref that does not come from the outer table
+	psd->m_fHasSkipLevelCorrelations = psd->m_fHasOuterRefs &&
+										(!pcrsOuterOutput->ContainsAll(outer_refs) ||
+										 (psd->m_fReturnedPcrIsOuterRef && !pcrsOuterOutput->FMember(pcrSubquery)));
 	psd->m_fHasCountAgg = CUtils::FHasCountAgg((*pexprSubquery)[0], &psd->m_pcrCountAgg);
 
 	if (psd->m_fHasCountAgg &&
@@ -415,7 +422,20 @@ CSubqueryHandler::FRemoveScalarSubquery
 	CScalarSubquery *popScalarSubquery = CScalarSubquery::PopConvert(pexprSubquery->Pop());
 	const CColRef *pcrSubquery = popScalarSubquery->Pcr();
 
-	SSubqueryDesc *psd = Psd(pmp, pexprSubquery, pexprOuter, esqctxt);
+	SSubqueryDesc *psd = Psd(pmp, pexprSubquery, pexprOuter, pcrSubquery, esqctxt);
+
+	if (psd->m_fReturnedPcrIsOuterRef)
+	{
+		// The subquery returns an outer reference. We can't simply replace the subquery with that
+		// expression, because we would miss the case where the subquery is an empty table and we
+		// would have to substitute the outer ref with a NULL.
+		// We could use a dummy expression from the subquery to perform a check, but for now we'll
+		// just give up.
+		// Example: select * from foo where foo.a = (select foo.b from bar);
+		GPOS_DELETE(psd);
+		return false;
+	}
+
 	BOOL fSuccess = false;
 	if (psd->m_fProjectCount && !psd->m_fCorrelatedExecution)
 	{
@@ -441,7 +461,7 @@ CSubqueryHandler::FRemoveScalarSubquery
 		GPOS_DELETE(psd);
 		CExpression *pexprNewOuter = NULL;
 		CExpression *pexprResidualScalar = NULL;
-		psd = Psd(m_mp, pexprNewSubq, pexprOuter, esqctxt);
+		psd = Psd(m_mp, pexprNewSubq, pexprOuter, popInnerSubq->Pcr(), esqctxt);
 		fSuccess = FRemoveScalarSubqueryInternal(m_mp, pexprOuter, pexprNewSubq, EsqctxtValue, psd, m_fEnforceCorrelatedApply, &pexprNewOuter, &pexprResidualScalar);
 
 		if (fSuccess)

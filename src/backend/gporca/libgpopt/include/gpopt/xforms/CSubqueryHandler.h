@@ -61,6 +61,9 @@ namespace gpopt
 				// subquery has outer references
 				BOOL m_fHasOuterRefs;
 
+				// the returned column is an outer reference
+				BOOL m_fReturnedPcrIsOuterRef;
+
 				// subquery has skip level correlations -- when inner expression refers to columns defined above the immediate outer expression
 				BOOL m_fHasSkipLevelCorrelations;
 
@@ -85,6 +88,7 @@ namespace gpopt
 					m_returns_set(false),
 					m_fHasVolatileFunctions(false),
 					m_fHasOuterRefs(false),
+					m_fReturnedPcrIsOuterRef(false),
 					m_fHasSkipLevelCorrelations(false),
 					m_fHasCountAgg(false),
 					m_pcrCountAgg(NULL),
@@ -251,7 +255,14 @@ namespace gpopt
 
 			// create subquery descriptor
 			static
-			SSubqueryDesc *Psd(CMemoryPool *mp, CExpression *pexprSubquery, CExpression *pexprOuter, ESubqueryCtxt esqctxt);
+			SSubqueryDesc *Psd
+				(
+				CMemoryPool *mp,
+				CExpression *pexprSubquery,
+				CExpression *pexprOuter,
+				const CColRef *pcrSubquery,
+				ESubqueryCtxt esqctxt
+				);
 
 			// detect subqueries with expressions over count aggregate similar to
 			// (SELECT 'abc' || (SELECT count(*) from X))
