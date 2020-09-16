@@ -130,8 +130,7 @@ CPhysicalFilter::PdsRequired
 	const
 {
 	if (CDistributionSpec::EdtAny == pdsRequired->Edt() &&
-		CDistributionSpecAny::PdsConvert(pdsRequired)->FAllowOuterRefs() &&
-		!exprhdl.NeedsSingletonExecution())
+		CDistributionSpecAny::PdsConvert(pdsRequired)->FAllowOuterRefs())
 	{
 		// this situation arises when we have Filter on top of (Dynamic)IndexScan,
 		// in this case, we impose no distribution requirements even with the presence of outer references,

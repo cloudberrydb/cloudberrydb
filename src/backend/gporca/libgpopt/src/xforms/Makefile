@@ -76,7 +76,6 @@ OBJS        = CDecorrelator.o \
               CXformIntersect2Join.o \
               CXformIntersectAll2LeftSemiJoin.o \
               CXformJoin2IndexApply.o \
-              CXformJoin2IndexApplyGeneric.o \
               CXformJoinAssociativity.o \
               CXformJoinCommutativity.o \
               CXformLeftAntiSemiApply2LeftAntiSemiJoin.o \

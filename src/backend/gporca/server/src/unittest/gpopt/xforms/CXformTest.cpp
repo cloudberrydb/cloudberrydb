@@ -234,43 +234,40 @@ CXformTest::ApplyExprXforms
 
 	for (ULONG ulXformId = 0; ulXformId < CXform::ExfSentinel; ulXformId++)
 	{
-		if (CXformFactory::Pxff()->IsXformIdUsed((CXform::EXformId) ulXformId))
+		CXform *pxform = CXformFactory::Pxff()->Pxf((CXform::EXformId) ulXformId);
+		os << std::endl <<"XFORM " << pxform->SzId() << ":" << std::endl;
+
+		CXformContext *pxfctxt = GPOS_NEW(mp) CXformContext(mp);
+		CXformResult *pxfres = GPOS_NEW(mp) CXformResult(mp);
+
+#ifdef GPOS_DEBUG
+		if (pxform->FCheckPattern(pexpr) && CXform::FPromising(mp, pxform, pexpr))
 		{
-			CXform *pxform = CXformFactory::Pxff()->Pxf((CXform::EXformId) ulXformId);
-			os << std::endl <<"XFORM " << pxform->SzId() << ":" << std::endl;
-
-			CXformContext *pxfctxt = GPOS_NEW(mp) CXformContext(mp);
-			CXformResult *pxfres = GPOS_NEW(mp) CXformResult(mp);
-
-	#ifdef GPOS_DEBUG
-			if (pxform->FCheckPattern(pexpr) && CXform::FPromising(mp, pxform, pexpr))
+			if (CXform::ExfExpandNAryJoinMinCard == pxform->Exfid())
 			{
-				if (CXform::ExfExpandNAryJoinMinCard == pxform->Exfid())
-				{
-					GPOS_ASSERT(COperator::EopLogicalNAryJoin == pexpr->Pop()->Eopid());
+				GPOS_ASSERT(COperator::EopLogicalNAryJoin == pexpr->Pop()->Eopid());
 
-					// derive stats on NAry join expression
-					CExpressionHandle exprhdl(mp);
-					exprhdl.Attach(pexpr);
-					exprhdl.DeriveStats(mp, mp, NULL /*prprel*/, NULL /*stats_ctxt*/);
-				}
-
-				pxform->Transform(pxfctxt, pxfres, pexpr);
-
-				CExpression *pexprResult = pxfres->PexprNext();
-				while (NULL != pexprResult)
-				{
-					GPOS_ASSERT(pexprResult->FMatchDebug(pexprResult));
-
-					pexprResult = pxfres->PexprNext();
-				}
-				(void) pxfres->OsPrint(os);
+				// derive stats on NAry join expression
+				CExpressionHandle exprhdl(mp);
+				exprhdl.Attach(pexpr);
+				exprhdl.DeriveStats(mp, mp, NULL /*prprel*/, NULL /*stats_ctxt*/);
 			}
-	#endif // GPOS_DEBUG
 
-			pxfres->Release();
-			pxfctxt->Release();
+			pxform->Transform(pxfctxt, pxfres, pexpr);
+
+			CExpression *pexprResult = pxfres->PexprNext();
+			while (NULL != pexprResult)
+			{
+				GPOS_ASSERT(pexprResult->FMatchDebug(pexprResult));
+
+				pexprResult = pxfres->PexprNext();
+			}
+			(void) pxfres->OsPrint(os);
 		}
+#endif // GPOS_DEBUG
+
+		pxfres->Release();
+		pxfctxt->Release();
 	}
 }
 
@@ -338,13 +335,10 @@ CXformTest::EresUnittest_Mapping()
 {
 	for (ULONG ul = 0; ul < CXform::ExfSentinel; ul++)
 	{
-		if (CXformFactory::Pxff()->IsXformIdUsed((CXform::EXformId) ul))
-		{
-			CXform::EXformId exfid = (CXform::EXformId) ul;
-			CXform *pxform = CXformFactory::Pxff()->Pxf(exfid);
-			CXform *pxformMapped = CXformFactory::Pxff()->Pxf(pxform->SzId());
-			GPOS_ASSERT(pxform == pxformMapped);
-		}
+		CXform::EXformId exfid = (CXform::EXformId) ul;
+		CXform *pxform = CXformFactory::Pxff()->Pxf(exfid);
+		CXform *pxformMapped = CXformFactory::Pxff()->Pxf(pxform->SzId());
+		GPOS_ASSERT(pxform == pxformMapped);
 	}
 
 	return GPOS_OK;

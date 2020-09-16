@@ -1046,10 +1046,10 @@ group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: true
-         ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
- Optimizer: Pivotal Optimizer (GPORCA)
+         ->  Seq Scan on t2
+         ->  Index Scan using t1_pkey on t1
+               Index Cond: ((a = t2.x) AND (b = t2.y))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
 (7 rows)
 
 -- Test case where t1 can be optimized but not t2
@@ -1061,10 +1061,10 @@ group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          Join Filter: true
-         ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
- Optimizer: Pivotal Optimizer (GPORCA)
+         ->  Seq Scan on t2
+         ->  Index Scan using t1_pkey on t1
+               Index Cond: ((a = t2.x) AND (b = t2.y))
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.78.0
 (7 rows)
 
 -- Cannot optimize when PK is deferrable

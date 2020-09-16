@@ -31,12 +31,10 @@ namespace gpopt
 			void CreateHomogeneousBtreeIndexApplyAlternatives
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,
-				CExpression *nodesToInsertAboveIndexGet,
-				CExpression *endOfNodesToInsertAboveIndexGet,
 				CTableDescriptor *ptabdescInner,
 				CLogicalDynamicGet *popDynamicGet,
 				CColRefSet *pcrsScalarExpr,
@@ -51,11 +49,9 @@ namespace gpopt
 			void CreateAlternativesForBtreeIndex
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
-				CExpression *nodesToInsertAboveIndexGet,
-				CExpression *endOfNodesToInsertAboveIndexGet,
 				CMDAccessor *md_accessor,
 				CExpressionArray *pdrgpexprConjuncts,
 				CColRefSet *pcrsScalarExpr,
@@ -72,12 +68,10 @@ namespace gpopt
 			void CreateHomogeneousBitmapIndexApplyAlternatives
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,
-				CExpression *nodesToInsertAboveIndexGet,
-				CExpression *endOfNodesToInsertAboveIndexGet,
 				CTableDescriptor *ptabdescInner,
 				CColRefSet *outer_refs,
 				CColRefSet *pcrsReqd,
@@ -100,7 +94,7 @@ namespace gpopt
 			void CreatePartialIndexApplyPlan
 					(
 					CMemoryPool *mp,
-					COperator *joinOp,
+					ULONG ulOriginOpId,
 					CExpression *pexprOuter,
 					CExpression *pexprScalar,
 					CColRefSet *outer_refs,
@@ -115,7 +109,7 @@ namespace gpopt
 			CExpression *PexprJoinOverCTEConsumer
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CLogicalDynamicGet *popDynamicGet,
 				ULONG ulCTEId,
 				CExpression *pexprScalar,
@@ -130,7 +124,7 @@ namespace gpopt
 			CExpression *PexprIndexApplyOverCTEConsumer
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CLogicalDynamicGet *popDynamicGet,
 				CExpressionArray *pdrgpexprIndex,
 				CExpressionArray *pdrgpexprResidual,
@@ -181,12 +175,10 @@ namespace gpopt
 			void CreateHomogeneousIndexApplyAlternatives
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,
-				CExpression *nodesToInsertAboveIndexGet,
-				CExpression *endOfNodesToInsertAboveIndexGet,
 				CTableDescriptor *PtabdescInner,
 				CLogicalDynamicGet *popDynamicGet,
 				CXformResult *pxfres,
@@ -199,7 +191,7 @@ namespace gpopt
 			void CreatePartialIndexApplyAlternatives
 				(
 				CMemoryPool *mp,
-				COperator *joinOp,
+				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,

@@ -122,7 +122,9 @@ Optimizer status: PQO version 2.67.0
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:IndexInfoList/>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.82836.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -160,7 +162,9 @@ Optimizer status: PQO version 2.67.0
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:IndexInfoList/>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.82822.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

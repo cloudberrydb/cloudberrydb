@@ -202,7 +202,7 @@ namespace gpopt
 					CreatePartialIndexApplyAlternatives
 						(
 						mp,
-						pexpr->Pop(),
+						pexpr->Pop()->UlOpId(),
 						pexprOuter,
 						pexprInner,
 						pexprAllPredicates,
@@ -216,12 +216,10 @@ namespace gpopt
 					CreateHomogeneousIndexApplyAlternatives
 						(
 						mp,
-						pexpr->Pop(),
+						pexpr->Pop()->UlOpId(),
 						pexprOuter,
 						pexprGet,
 						pexprAllPredicates,
-						NULL, // extra nodes to copy
-						NULL, // end of extra nodes to copy
 						ptabdescInner,
 						popDynamicGet,
 						pxfres,
