@@ -1299,7 +1299,7 @@ CNormalizer::PexprPullUpAndCombineProjects(
 		CColRefSet *availableCRs = GPOS_NEW(mp) CColRefSet(mp);
 
 		availableCRs->Include(pexprRelational->DeriveOutputColumns());
-		availableCRs->Include(pexprRelational->DeriveOuterReferences());
+		availableCRs->Include(pexpr->DeriveOuterReferences());
 		// check that the new project node has all the values it needs
 		GPOS_ASSERT(
 			availableCRs->ContainsAll(pexprPrjList->DeriveUsedColumns()));
