@@ -116,3 +116,4 @@
 		"verify_gpfdists_cert",
 		"vmem_process_interrupt",
 		"work_mem",
+		"gp_resgroup_debug_wait_queue",

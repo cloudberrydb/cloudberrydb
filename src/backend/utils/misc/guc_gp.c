@@ -1736,6 +1736,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_resgroup_debug_wait_queue", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enable the debugging check on the wait queue of resource group."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_resgroup_debug_wait_queue,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"gp_dynamic_partition_pruning", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("This guc enables plans that can dynamically eliminate scanning of partitions."),
 			NULL
