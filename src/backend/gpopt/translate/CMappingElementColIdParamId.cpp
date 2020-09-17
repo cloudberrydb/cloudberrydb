@@ -14,8 +14,7 @@
 //
 //---------------------------------------------------------------------------
 
-extern "C"
-{
+extern "C" {
 #include "postgres.h"
 #include "nodes/makefuncs.h"
 #include "nodes/primnodes.h"
@@ -34,18 +33,14 @@ using namespace gpos;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CMappingElementColIdParamId::CMappingElementColIdParamId
-	(
-	ULONG colid,
-	ULONG paramid,
-	IMDId *mdid,
-	INT type_modifier
-	)
-	:
-	m_colid(colid),
-	m_paramid(paramid),
-	m_mdid(mdid),
-	m_type_modifier(type_modifier)
+CMappingElementColIdParamId::CMappingElementColIdParamId(ULONG colid,
+														 ULONG paramid,
+														 IMDId *mdid,
+														 INT type_modifier)
+	: m_colid(colid),
+	  m_paramid(paramid),
+	  m_mdid(mdid),
+	  m_type_modifier(type_modifier)
 {
 }
 

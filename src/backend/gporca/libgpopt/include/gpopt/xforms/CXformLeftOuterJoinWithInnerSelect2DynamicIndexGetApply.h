@@ -15,47 +15,50 @@
 
 namespace gpopt
 {
-	using namespace gpos;
+using namespace gpos;
 
-	class CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-		true /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+class CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply
+	: public CXformJoin2IndexApplyBase<
+		  CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
+		  true /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+{
+private:
+	// private copy ctor
+	CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply(
+		const CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply &);
+
+public:
+	// ctor
+	explicit CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply(
+		CMemoryPool *mp)
+		: CXformJoin2IndexApplyBase<CLogicalLeftOuterJoin, CLogicalIndexApply,
+									CLogicalDynamicGet, true /*fWithSelect*/,
+									false /*is_partial*/,
+									IMDIndex::EmdindBtree>(mp)
 	{
-		private:
-			// private copy ctor
-			CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply(const CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply &);
+	}
 
-		public:
-			// ctor
-			explicit
-			CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply(CMemoryPool *mp)
-				: CXformJoin2IndexApplyBase
-				<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-				true /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
-				(mp)
-			{}
+	// dtor
+	virtual ~CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply()
+	{
+	}
 
-			// dtor
-			virtual
-			~CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply()
-			{}
+	// ident accessors
+	virtual EXformId
+	Exfid() const
+	{
+		return ExfLeftOuterJoinWithInnerSelect2DynamicIndexGetApply;
+	}
 
-			// ident accessors
-			virtual
-			EXformId Exfid() const
-			{
-				return ExfLeftOuterJoinWithInnerSelect2DynamicIndexGetApply;
-			}
-
-			virtual
-			const CHAR *SzId() const
-			{
-				return "CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply";
-			}
-	};
-}
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply";
+	}
+};
+}  // namespace gpopt
 
 
-#endif // !GPOPT_CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply_H
+#endif	// !GPOPT_CXformLeftOuterJoinWithInnerSelect2DynamicIndexGetApply_H
 
 // EOF

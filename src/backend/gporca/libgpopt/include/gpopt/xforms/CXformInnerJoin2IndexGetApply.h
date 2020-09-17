@@ -16,59 +16,57 @@
 
 namespace gpopt
 {
-	using namespace gpos;
+using namespace gpos;
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CXformInnerJoin2IndexGetApply
-	//
-	//	@doc:
-	//		Transform Inner Join to IndexGet Apply
-	//
-	//---------------------------------------------------------------------------
-	class CXformInnerJoin2IndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+//---------------------------------------------------------------------------
+//	@class:
+//		CXformInnerJoin2IndexGetApply
+//
+//	@doc:
+//		Transform Inner Join to IndexGet Apply
+//
+//---------------------------------------------------------------------------
+class CXformInnerJoin2IndexGetApply
+	: public CXformJoin2IndexApplyBase<
+		  CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
+		  false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+{
+private:
+	// private copy ctor
+	CXformInnerJoin2IndexGetApply(const CXformInnerJoin2IndexGetApply &);
+
+public:
+	// ctor
+	explicit CXformInnerJoin2IndexGetApply(CMemoryPool *mp)
+		: CXformJoin2IndexApplyBase<CLogicalInnerJoin, CLogicalIndexApply,
+									CLogicalGet, false /*fWithSelect*/,
+									false /*is_partial*/,
+									IMDIndex::EmdindBtree>(mp)
 	{
+	}
 
-		private:
+	// dtor
+	virtual ~CXformInnerJoin2IndexGetApply()
+	{
+	}
 
-			// private copy ctor
-			CXformInnerJoin2IndexGetApply(const CXformInnerJoin2IndexGetApply &);
+	// ident accessors
+	virtual EXformId
+	Exfid() const
+	{
+		return ExfInnerJoin2IndexGetApply;
+	}
 
-		public:
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CXformInnerJoin2IndexGetApply";
+	}
 
-			// ctor
-			explicit
-			CXformInnerJoin2IndexGetApply(CMemoryPool *mp)
-				: CXformJoin2IndexApplyBase
-				 <CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-				 false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
-				(mp)
-			{}
+};	// class CXformInnerJoin2IndexGetApply
 
-			// dtor
-			virtual
-			~CXformInnerJoin2IndexGetApply()
-			{}
+}  // namespace gpopt
 
-			// ident accessors
-			virtual
-			EXformId Exfid() const
-			{
-				return ExfInnerJoin2IndexGetApply;
-			}
-
-			virtual
-			const CHAR *SzId() const
-			{
-				return "CXformInnerJoin2IndexGetApply";
-			}
-
-	}; // class CXformInnerJoin2IndexGetApply
-
-}
-
-#endif // !GPOPT_CXformInnerJoin2IndexGetApply_H
+#endif	// !GPOPT_CXformInnerJoin2IndexGetApply_H
 
 // EOF

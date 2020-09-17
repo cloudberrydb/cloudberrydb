@@ -23,11 +23,11 @@
 
 using namespace gpopt;
 
-ULONG CDirectDispatchTest::m_ulDirectDispatchCounter = 0;  // start from first test
+ULONG CDirectDispatchTest::m_ulDirectDispatchCounter =
+	0;	// start from first test
 
 // minidump files
-const CHAR *rgszDirectDispatchFileNames[] =
-	{
+const CHAR *rgszDirectDispatchFileNames[] = {
 	"../data/dxl/minidump/DirectDispatch-SingleCol.mdp",
 	"../data/dxl/minidump/DirectDispatch-GpSegmentId.mdp",
 	"../data/dxl/minidump/DirectDispatch-SingleCol-Disjunction.mdp",
@@ -39,7 +39,7 @@ const CHAR *rgszDirectDispatchFileNames[] =
 	"../data/dxl/minidump/DirectDispatch-IndexScan.mdp",
 	"../data/dxl/minidump/DirectDispatch-DynamicIndexScan.mdp",
 	"../data/dxl/minidump/InsertDirectedDispatchNullValue.mdp",
-	};
+};
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -52,10 +52,9 @@ const CHAR *rgszDirectDispatchFileNames[] =
 GPOS_RESULT
 CDirectDispatchTest::EresUnittest()
 {
-	CUnittest rgut[] =
-		{
+	CUnittest rgut[] = {
 		GPOS_UNITTEST_FUNC(EresUnittest_RunTests),
-		};
+	};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
 
@@ -76,12 +75,9 @@ CDirectDispatchTest::EresUnittest()
 GPOS_RESULT
 CDirectDispatchTest::EresUnittest_RunTests()
 {
-	return CTestUtils::EresUnittest_RunTests
-						(
-						rgszDirectDispatchFileNames,
-						&m_ulDirectDispatchCounter,
-						GPOS_ARRAY_SIZE(rgszDirectDispatchFileNames)
-						);
+	return CTestUtils::EresUnittest_RunTests(
+		rgszDirectDispatchFileNames, &m_ulDirectDispatchCounter,
+		GPOS_ARRAY_SIZE(rgszDirectDispatchFileNames));
 }
 
 // EOF

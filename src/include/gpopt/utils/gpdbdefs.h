@@ -62,9 +62,9 @@ extern "C" {
 #include "utils/faultinjector.h"
 #include "funcapi.h"
 
-} // end extern C
+}  // end extern C
 
 
-#endif // GPDBDefs_H
+#endif	// GPDBDefs_H
 
 // EOF

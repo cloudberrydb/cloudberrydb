@@ -26,16 +26,9 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CPropConstraint::CPropConstraint
-	(
-	CMemoryPool *mp,
-	CColRefSetArray *pdrgpcrs,
-	CConstraint *pcnstr
-	)
-	:
-	m_pdrgpcrs(pdrgpcrs),
-	m_phmcrcrs(NULL),
-	m_pcnstr(pcnstr)
+CPropConstraint::CPropConstraint(CMemoryPool *mp, CColRefSetArray *pdrgpcrs,
+								 CConstraint *pcnstr)
+	: m_pdrgpcrs(pdrgpcrs), m_phmcrcrs(NULL), m_pcnstr(pcnstr)
 {
 	GPOS_ASSERT(NULL != pdrgpcrs);
 	InitHashMap(mp);
@@ -65,10 +58,7 @@ CPropConstraint::~CPropConstraint()
 //
 //---------------------------------------------------------------------------
 void
-CPropConstraint::InitHashMap
-	(
-	CMemoryPool *mp
-	)
+CPropConstraint::InitHashMap(CMemoryPool *mp)
 {
 	GPOS_ASSERT(NULL == m_phmcrcrs);
 	const ULONG ulEquiv = m_pdrgpcrs->Size();
@@ -86,8 +76,7 @@ CPropConstraint::InitHashMap
 		while (crsi.Advance())
 		{
 			pcrs->AddRef();
-			BOOL fres GPOS_ASSERTS_ONLY =
-			m_phmcrcrs->Insert(crsi.Pcr(), pcrs);
+			BOOL fres GPOS_ASSERTS_ONLY = m_phmcrcrs->Insert(crsi.Pcr(), pcrs);
 			GPOS_ASSERT(fres);
 		}
 	}
@@ -102,8 +91,7 @@ CPropConstraint::InitHashMap
 //
 //---------------------------------------------------------------------------
 BOOL
-CPropConstraint::FContradiction()
-const
+CPropConstraint::FContradiction() const
 {
 	return (NULL != m_pcnstr && m_pcnstr->FContradiction());
 }
@@ -118,14 +106,10 @@ const
 //
 //---------------------------------------------------------------------------
 CExpression *
-CPropConstraint::PexprScalarMappedFromEquivCols
-	(
-	CMemoryPool *mp,
-	CColRef *colref
-	)
-	const
+CPropConstraint::PexprScalarMappedFromEquivCols(CMemoryPool *mp,
+												CColRef *colref) const
 {
-	if(NULL == m_pcnstr || NULL == m_phmcrcrs)
+	if (NULL == m_pcnstr || NULL == m_phmcrcrs)
 	{
 		return NULL;
 	}
@@ -168,11 +152,7 @@ CPropConstraint::PexprScalarMappedFromEquivCols
 //
 //---------------------------------------------------------------------------
 IOstream &
-CPropConstraint::OsPrint
-	(
-	IOstream &os
-	)
-	const
+CPropConstraint::OsPrint(IOstream &os) const
 {
 	const ULONG length = m_pdrgpcrs->Size();
 	if (0 < length)
@@ -197,4 +177,3 @@ CPropConstraint::OsPrint
 }
 
 // EOF
-

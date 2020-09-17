@@ -27,11 +27,10 @@
 #include "unittest/gpopt/CTestUtils.h"
 
 
-ULONG CTreeMapTest::m_ulTestCounter = 0; // start from first test
+ULONG CTreeMapTest::m_ulTestCounter = 0;  // start from first test
 
 // minidump files that fail during plan enumeration because of large plan space
-const CHAR *rgszFailedPlanEnumerationTests[] =
-{
+const CHAR *rgszFailedPlanEnumerationTests[] = {
 	"../data/dxl/minidump/106-way-join.mdp",
 };
 
@@ -54,8 +53,7 @@ static ULONG rgul[ulElems];
 GPOS_RESULT
 CTreeMapTest::EresUnittest()
 {
-	CUnittest rgut[] =
-		{
+	CUnittest rgut[] = {
 		GPOS_UNITTEST_FUNC(CTreeMapTest::EresUnittest_Basic),
 		GPOS_UNITTEST_FUNC(CTreeMapTest::EresUnittest_Count),
 		GPOS_UNITTEST_FUNC(CTreeMapTest::EresUnittest_Unrank),
@@ -63,12 +61,12 @@ CTreeMapTest::EresUnittest()
 
 #ifndef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC(EresUnittest_FailedPlanEnumerationTests),
-#endif // GPOS_DEBUG
+#endif	// GPOS_DEBUG
 
 #ifdef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC_ASSERT(CTreeMapTest::EresUnittest_Cycle),
-#endif // GPOS_DEBUG
-		};
+#endif	// GPOS_DEBUG
+	};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
 }
@@ -83,24 +81,19 @@ CTreeMapTest::EresUnittest()
 //
 //---------------------------------------------------------------------------
 IOstream &
-CTreeMapTest::CNode::OsPrintWithIndent
-	(
-	IOstream &os,
-	ULONG ulIndent
-	)
-	const
+CTreeMapTest::CNode::OsPrintWithIndent(IOstream &os, ULONG ulIndent) const
 {
 	for (ULONG ul = 0; ul < ulIndent; ul++)
 	{
 		os << " ";
 	}
 	os << "node: " << m_ulData << std::endl;
-	
+
 	for (ULONG ulChild = 0; ulChild < m_pdrgpnd->Size(); ulChild++)
 	{
 		(void) (*m_pdrgpnd)[ulChild]->OsPrintWithIndent(os, ulIndent + 2);
 	}
-	
+
 	return os;
 }
 
@@ -113,15 +106,9 @@ CTreeMapTest::CNode::OsPrintWithIndent
 //		ctor
 //
 //---------------------------------------------------------------------------
-CTreeMapTest::CNode::CNode
-	(
-	CMemoryPool *, // mp
-	ULONG *pulData,
-	CNodeArray *pdrgpnd
-	)
-	:
-	m_ulData(gpos::ulong_max),
-	m_pdrgpnd(pdrgpnd)
+CTreeMapTest::CNode::CNode(CMemoryPool *,  // mp
+						   ULONG *pulData, CNodeArray *pdrgpnd)
+	: m_ulData(gpos::ulong_max), m_pdrgpnd(pdrgpnd)
 {
 	if (NULL != pulData)
 	{
@@ -152,14 +139,9 @@ CTreeMapTest::CNode::~CNode()
 //		Constructor function for result tree
 //
 //---------------------------------------------------------------------------
-CTreeMapTest::CNode*
-CTreeMapTest::Pnd
-	(
-	CMemoryPool *mp,
-	ULONG *pul,
-	CNodeArray *pdrgpnd,
-	BOOL *fTestTrue
-	)
+CTreeMapTest::CNode *
+CTreeMapTest::Pnd(CMemoryPool *mp, ULONG *pul, CNodeArray *pdrgpnd,
+				  BOOL *fTestTrue)
 {
 	// The test passes 'true' to PrUnrank and the rehydrate function expects to find it here.
 	GPOS_ASSERT(NULL != fTestTrue);
@@ -168,65 +150,71 @@ CTreeMapTest::Pnd
 	return GPOS_NEW(mp) CNode(mp, pul, pdrgpnd);
 }
 
-	
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CTreeMapTest::PtmapLoad
 //
 //	@doc:
-//		Create a semantically meaningful tree map by simulating a MEMO 
+//		Create a semantically meaningful tree map by simulating a MEMO
 //		layout
 //
 //---------------------------------------------------------------------------
 CTreeMapTest::TestMap *
-CTreeMapTest::PtmapLoad
-	(
-	CMemoryPool *mp
-	)
+CTreeMapTest::PtmapLoad(CMemoryPool *mp)
 {
 	TestMap *ptmap = GPOS_NEW(mp) TestMap(mp, &Pnd);
-	
+
 	// init raw data
 	for (ULONG pos = 0; pos < ulElems; pos++)
 	{
 		rgul[pos] = pos;
 	}
 
-	
+
 	// simulate the following MEMO with individual edge insertions
 	struct SEdge
 	{
 		// number of parent node
 		ULONG m_ulParent;
-		
+
 		// position of child
 		ULONG m_ulPos;
-		
+
 		// number of child node
 		ULONG m_ulChild;
-	}
-	rgedge[]=
-	{
+	} rgedge[] = {
 		// root group: Join [4,3], HashJoin[4,3]{8}, HashJoin[3,4]{9}
-		{9, 1, 7}, {9, 0, 6}, {9, 0, 5},
-		{8, 0, 7}, {8, 1, 5}, {8, 1, 6},
-		
-		// group 4: C, TabScan{7} 
-		
+		{9, 1, 7},
+		{9, 0, 6},
+		{9, 0, 5},
+		{8, 0, 7},
+		{8, 1, 5},
+		{8, 1, 6},
+
+		// group 4: C, TabScan{7}
+
 		// group 3: Join[1,2], HashJoin[1,2]{5}, SortMergeJoin[1,2]{6}
-		{5, 0, 0}, {5, 0, 1}, {5, 1, 2}, {5, 1, 3}, {5, 1, 4},
-		{6, 0, 1}, {6, 1, 3}, {6, 1, 4},
-		
+		{5, 0, 0},
+		{5, 0, 1},
+		{5, 1, 2},
+		{5, 1, 3},
+		{5, 1, 4},
+		{6, 0, 1},
+		{6, 1, 3},
+		{6, 1, 4},
+
 		// group 2: B, TabScan{2}, IndexScan{3}, Sort[2]{4}
 		{4, 0, 2}
-		
+
 		// group 1: A, TabScan{0}, IndexScan{1}
 	};
-		
+
 	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(rgedge); ul++)
 	{
 		SEdge &edge = rgedge[ul];
-		ptmap->Insert(&rgul[edge.m_ulParent], edge.m_ulPos, &rgul[edge.m_ulChild]);
+		ptmap->Insert(&rgul[edge.m_ulParent], edge.m_ulPos,
+					  &rgul[edge.m_ulChild]);
 	}
 
 	return ptmap;
@@ -248,16 +236,16 @@ CTreeMapTest::EresUnittest_Basic()
 	CMemoryPool *mp = amp.Pmp();
 
 	TestMap *ptmap = NULL;
-	
+
 	// create blank map
 	ptmap = GPOS_NEW(mp) TestMap(mp, &Pnd);
 	GPOS_ASSERT(0 == ptmap->UllCount());
 	GPOS_DELETE(ptmap);
-	
+
 	// create map with test data
 	ptmap = PtmapLoad(mp);
 	GPOS_DELETE(ptmap);
-	
+
 	return GPOS_OK;
 }
 
@@ -275,28 +263,27 @@ CTreeMapTest::EresUnittest_Count()
 {
 	CAutoMemoryPool amp;
 	CMemoryPool *mp = amp.Pmp();
-	
-	TestMap *ptmap = PtmapLoad(mp);	
-	
+
+	TestMap *ptmap = PtmapLoad(mp);
+
 	// debug print
 	CWStringDynamic str(mp);
 	COstreamString oss(&str);
 
 	ULLONG ullCount = ptmap->UllCount();
 	oss << "total number of trees: " << ullCount << std::endl;
-	
+
 #ifdef GPOS_DEBUG
 
 	for (ULONG ul = 0; ul < ulElems; ul++)
 	{
-		oss << "node: " << ul 
-			<< " count: " << ptmap->UllCount(&rgul[ul]) 
+		oss << "node: " << ul << " count: " << ptmap->UllCount(&rgul[ul])
 			<< std::endl;
 	}
 
 	(void) ptmap->OsPrint(oss);
 
-#endif // GPOS_DEBUG
+#endif	// GPOS_DEBUG
 
 	GPOS_TRACE(str.GetBuffer());
 	GPOS_DELETE(ptmap);
@@ -318,25 +305,25 @@ CTreeMapTest::EresUnittest_Unrank()
 {
 	CAutoMemoryPool amp;
 	CMemoryPool *mp = amp.Pmp();
-	
-	TestMap *ptmap = PtmapLoad(mp);	
-	
+
+	TestMap *ptmap = PtmapLoad(mp);
+
 	// debug print
 	CWStringDynamic str(mp);
 	COstreamString oss(&str);
-	
+
 	ULLONG ullCount = ptmap->UllCount();
-	
+
 	for (ULONG ulRank = 0; ulRank < ullCount; ulRank++)
 	{
 		oss << "=== tree rank: " << ulRank << " ===" << std::endl;
 		BOOL fFlag = true;
 		CNode *pnd = ptmap->PrUnrank(mp, &fFlag, ulRank);
 		(void) pnd->OsPrint(oss);
-		
+
 		pnd->Release();
 	}
-	
+
 	GPOS_TRACE(str.GetBuffer());
 	GPOS_DELETE(ptmap);
 
@@ -371,13 +358,8 @@ CTreeMapTest::EresUnittest_Memo()
 	CExpression *pexprPlan = NULL;
 	{
 		// install opt context in TLS
-		CAutoOptCtxt aoc
-				(
-				mp,
-				&mda,
-				NULL,  /* pceeval */
-				CTestUtils::GetCostModel(mp)
-				);
+		CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */
+						 CTestUtils::GetCostModel(mp));
 
 		CAutoTraceFlag atf(EopttraceEnumeratePlans, true);
 
@@ -408,20 +390,26 @@ CTreeMapTest::EresUnittest_Memo()
 			peng->ResetTreeMap();
 			ULLONG ullCount2 = peng->Pmemotmap()->UllCount();
 			GPOS_ASSERT(ullCount == ullCount2);
-#endif // GPOS_DEBUG
+#endif	// GPOS_DEBUG
 
 			for (ULONG ulRank = 0; ulRank < ullCount; ulRank++)
 			{
-				CDrvdPropCtxtPlan *pdpctxtplan = GPOS_NEW(mp) CDrvdPropCtxtPlan(mp, false /*fUpdateCTEMap*/);
+				CDrvdPropCtxtPlan *pdpctxtplan =
+					GPOS_NEW(mp) CDrvdPropCtxtPlan(mp, false /*fUpdateCTEMap*/);
 				CExpression *pexprAlt = NULL;
 				GPOS_TRY
 				{
-					pexprAlt = peng->Pmemotmap()->PrUnrank(mp, pdpctxtplan, ulRank);
-					at.Os() << std::endl << "ALTERNATIVE ["<< ulRank <<"]:" << std::endl << *pexprAlt << std::endl;
+					pexprAlt =
+						peng->Pmemotmap()->PrUnrank(mp, pdpctxtplan, ulRank);
+					at.Os() << std::endl
+							<< "ALTERNATIVE [" << ulRank << "]:" << std::endl
+							<< *pexprAlt << std::endl;
 				}
 				GPOS_CATCH_EX(ex)
 				{
-					if (!GPOS_MATCH_EX(ex, gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties))
+					if (!GPOS_MATCH_EX(
+							ex, gpopt::ExmaGPOPT,
+							gpopt::ExmiUnsatisfiedRequiredProperties))
 					{
 						GPOS_RETHROW(ex);
 					}
@@ -479,22 +467,18 @@ CTreeMapTest::EresUnittest_FailedPlanEnumerationTests()
 	{
 		GPOS_TRY
 		{
-			eres =
-				CTestUtils::EresRunMinidumps
-								(
-								mp,
-								&rgszFailedPlanEnumerationTests[ul],
-								1, // ulTests
-								&m_ulTestCounter,
-								1, // ulSessionId
-								1,  // ulCmdId
-								fMatchPlans,
-								fTestSpacePruning
-								);
+			eres = CTestUtils::EresRunMinidumps(
+				mp, &rgszFailedPlanEnumerationTests[ul],
+				1,	// ulTests
+				&m_ulTestCounter,
+				1,	// ulSessionId
+				1,	// ulCmdId
+				fMatchPlans, fTestSpacePruning);
 		}
 		GPOS_CATCH_EX(ex)
 		{
-			if (GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOverflow))
+			if (GPOS_MATCH_EX(ex, CException::ExmaSystem,
+							  CException::ExmiOverflow))
 			{
 				eres = GPOS_OK;
 				GPOS_RESET_EX;
@@ -511,7 +495,7 @@ CTreeMapTest::EresUnittest_FailedPlanEnumerationTests()
 
 	return eres;
 }
-#endif // GPOS_DEBUG
+#endif	// GPOS_DEBUG
 
 
 
@@ -534,7 +518,7 @@ CTreeMapTest::EresUnittest_Cycle()
 
 	CAutoP<TestMap> a_ptmap;
 	a_ptmap = ptmap;
-	
+
 	// build cycle
 	ptmap->Insert(&rgul[0], 0, &rgul[1]);
 	ptmap->Insert(&rgul[1], 0, &rgul[2]);
@@ -545,6 +529,6 @@ CTreeMapTest::EresUnittest_Cycle()
 	return GPOS_FAILED;
 }
 
-#endif // GPOS_FAILED
+#endif	// GPOS_FAILED
 
 // EOF

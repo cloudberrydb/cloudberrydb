@@ -38,18 +38,10 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CXform::EXformPromise
-CXformJoin2IndexApply::Exfp
-	(
-	CExpressionHandle &exprhdl
-	)
-	const
+CXformJoin2IndexApply::Exfp(CExpressionHandle &exprhdl) const
 {
-
-	if (
-		0 == exprhdl.DeriveUsedColumns(2)->Size() ||
-		exprhdl.DeriveHasSubquery(2) ||
-		exprhdl.HasOuterRefs()
-		)
+	if (0 == exprhdl.DeriveUsedColumns(2)->Size() ||
+		exprhdl.DeriveHasSubquery(2) || exprhdl.HasOuterRefs())
 	{
 		return CXform::ExfpNone;
 	}
@@ -69,15 +61,12 @@ CXformJoin2IndexApply::Exfp
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::ComputeColumnSets
-	(
-	CMemoryPool *mp,
-	CExpression *pexprInner,
-	CExpression *pexprScalar,
-	CColRefSet **ppcrsScalarExpr,
-	CColRefSet **ppcrsOuterRefs,
-	CColRefSet **ppcrsReqd
-	) const
+CXformJoin2IndexApply::ComputeColumnSets(CMemoryPool *mp,
+										 CExpression *pexprInner,
+										 CExpression *pexprScalar,
+										 CColRefSet **ppcrsScalarExpr,
+										 CColRefSet **ppcrsOuterRefs,
+										 CColRefSet **ppcrsReqd) const
 {
 	CColRefSet *pcrsInnerOutput = pexprInner->DeriveOutputColumns();
 	*ppcrsScalarExpr = pexprScalar->DeriveUsedColumns();
@@ -99,25 +88,19 @@ CXformJoin2IndexApply::ComputeColumnSets
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CExpression *pexprScalar,
-	CTableDescriptor *ptabdescInner,
-	CLogicalDynamicGet *popDynamicGet,
-	CXformResult *pxfres,
-	IMDIndex::EmdindexType emdtype
-	) const
+CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprInner, CExpression *pexprScalar,
+	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
+	CXformResult *pxfres, IMDIndex::EmdindexType emdtype) const
 {
 	GPOS_ASSERT(NULL != pexprOuter);
 	GPOS_ASSERT(NULL != pexprInner);
 	GPOS_ASSERT(NULL != pexprScalar);
 	GPOS_ASSERT(NULL != ptabdescInner);
 	GPOS_ASSERT(NULL != pxfres);
-	GPOS_ASSERT(IMDIndex::EmdindBtree == emdtype || IMDIndex::EmdindBitmap == emdtype);
+	GPOS_ASSERT(IMDIndex::EmdindBtree == emdtype ||
+				IMDIndex::EmdindBitmap == emdtype);
 
 	const ULONG ulIndices = ptabdescInner->IndexCount();
 	if (0 == ulIndices)
@@ -129,48 +112,21 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 	CColRefSet *pcrsScalarExpr = NULL;
 	CColRefSet *outer_refs = NULL;
 	CColRefSet *pcrsReqd = NULL;
-	ComputeColumnSets
-		(
-		mp,
-		pexprInner,
-		pexprScalar,
-		&pcrsScalarExpr,
-		&outer_refs,
-		&pcrsReqd
-		);
+	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
+					  &pcrsReqd);
 
 	if (IMDIndex::EmdindBtree == emdtype)
 	{
-		CreateHomogeneousBtreeIndexApplyAlternatives
-			(
-			mp,
-			ulOriginOpId,
-			pexprOuter,
-			pexprInner,
-			pexprScalar,
-			ptabdescInner,
-			popDynamicGet,
-			pcrsScalarExpr,
-			outer_refs,
-			pcrsReqd,
-			ulIndices,
-			pxfres
-			);
+		CreateHomogeneousBtreeIndexApplyAlternatives(
+			mp, ulOriginOpId, pexprOuter, pexprInner, pexprScalar,
+			ptabdescInner, popDynamicGet, pcrsScalarExpr, outer_refs, pcrsReqd,
+			ulIndices, pxfres);
 	}
 	else
 	{
-		CreateHomogeneousBitmapIndexApplyAlternatives
-			(
-			mp,
-			ulOriginOpId,
-			pexprOuter,
-			pexprInner,
-			pexprScalar,
-			ptabdescInner,
-			outer_refs,
-			pcrsReqd,
-			pxfres
-			);
+		CreateHomogeneousBitmapIndexApplyAlternatives(
+			mp, ulOriginOpId, pexprOuter, pexprInner, pexprScalar,
+			ptabdescInner, outer_refs, pcrsReqd, pxfres);
 	}
 
 	//clean-up
@@ -188,24 +144,16 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CExpression *pexprScalar,
-	CTableDescriptor *ptabdescInner,
-	CLogicalDynamicGet *popDynamicGet,
-	CColRefSet *pcrsScalarExpr,
-	CColRefSet *outer_refs,
-	CColRefSet *pcrsReqd,
-	ULONG ulIndices,
-	CXformResult *pxfres
-	) const
+CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprInner, CExpression *pexprScalar,
+	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
+	CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs, CColRefSet *pcrsReqd,
+	ULONG ulIndices, CXformResult *pxfres) const
 {
 	// array of expressions in the scalar expression
-	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+	CExpressionArray *pdrgpexpr =
+		CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
 	GPOS_ASSERT(pdrgpexpr->Size() > 0);
 
 	// find the indexes whose included columns meet the required columns
@@ -220,31 +168,15 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 		CPartConstraint *ppartcnstrIndex = NULL;
 		if (NULL != popDynamicGet)
 		{
-			ppartcnstrIndex = CUtils::PpartcnstrFromMDPartCnstr
-									(
-									mp,
-									COptCtxt::PoctxtFromTLS()->Pmda(),
-									popDynamicGet->PdrgpdrgpcrPart(),
-									pmdindex->MDPartConstraint(),
-									popDynamicGet->PdrgpcrOutput()
-									);
+			ppartcnstrIndex = CUtils::PpartcnstrFromMDPartCnstr(
+				mp, COptCtxt::PoctxtFromTLS()->Pmda(),
+				popDynamicGet->PdrgpdrgpcrPart(), pmdindex->MDPartConstraint(),
+				popDynamicGet->PdrgpcrOutput());
 		}
-		CreateAlternativesForBtreeIndex
-			(
-			mp,
-			ulOriginOpId,
-			pexprOuter,
-			pexprInner,
-			md_accessor,
-			pdrgpexpr,
-			pcrsScalarExpr,
-			outer_refs,
-			pcrsReqd,
-			pmdrel,
-			pmdindex,
-			ppartcnstrIndex,
-			pxfres
-			);
+		CreateAlternativesForBtreeIndex(
+			mp, ulOriginOpId, pexprOuter, pexprInner, md_accessor, pdrgpexpr,
+			pcrsScalarExpr, outer_refs, pcrsReqd, pmdrel, pmdindex,
+			ppartcnstrIndex, pxfres);
 	}
 
 	//clean-up
@@ -261,53 +193,28 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CMDAccessor *md_accessor,
-	CExpressionArray *pdrgpexprConjuncts,
-	CColRefSet *pcrsScalarExpr,
-	CColRefSet *outer_refs,
-	CColRefSet *pcrsReqd,
-	const IMDRelation *pmdrel,
-	const IMDIndex *pmdindex,
-	CPartConstraint *ppartcnstrIndex,
-	CXformResult *pxfres
-	) const
+CXformJoin2IndexApply::CreateAlternativesForBtreeIndex(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprInner, CMDAccessor *md_accessor,
+	CExpressionArray *pdrgpexprConjuncts, CColRefSet *pcrsScalarExpr,
+	CColRefSet *outer_refs, CColRefSet *pcrsReqd, const IMDRelation *pmdrel,
+	const IMDIndex *pmdindex, CPartConstraint *ppartcnstrIndex,
+	CXformResult *pxfres) const
 {
-	CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet
-						(
-						 mp,
-						 md_accessor,
-						 pexprInner,
-						 ulOriginOpId,
-						 pdrgpexprConjuncts,
-						 pcrsReqd,
-						 pcrsScalarExpr,
-						 outer_refs,
-						 pmdindex,
-						 pmdrel,
-						 false /*fAllowPartialIndex*/,
-						 ppartcnstrIndex
-						);
+	CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet(
+		mp, md_accessor, pexprInner, ulOriginOpId, pdrgpexprConjuncts, pcrsReqd,
+		pcrsScalarExpr, outer_refs, pmdindex, pmdrel,
+		false /*fAllowPartialIndex*/, ppartcnstrIndex);
 	if (NULL != pexprLogicalIndexGet)
 	{
 		// second child has residual predicates, create an apply of outer and inner
 		// and add it to xform results
 		CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
 		pexprOuter->AddRef();
-		CExpression *pexprIndexApply =
-			GPOS_NEW(mp) CExpression
-				(
-				mp,
-				PopLogicalApply(mp, colref_array),
-				pexprOuter,
-				pexprLogicalIndexGet,
-				CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
-				);
+		CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
+			mp, PopLogicalApply(mp, colref_array), pexprOuter,
+			pexprLogicalIndexGet,
+			CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
 		pxfres->Add(pexprIndexApply);
 	}
 }
@@ -321,45 +228,27 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 //		for homogeneous bitmap indexes.
 //
 //---------------------------------------------------------------------------
-void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CExpression *pexprScalar,
-	CTableDescriptor *ptabdescInner,
-	CColRefSet *outer_refs,
-	CColRefSet *pcrsReqd,
-	CXformResult *pxfres
-	) const
+void
+CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprInner, CExpression *pexprScalar,
+	CTableDescriptor *ptabdescInner, CColRefSet *outer_refs,
+	CColRefSet *pcrsReqd, CXformResult *pxfres) const
 {
 	CLogical *popGet = CLogical::PopConvert(pexprInner->Pop());
-	CExpression *pexprLogicalIndexGet = CXformUtils::PexprBitmapTableGet
-										(
-										mp,
-										popGet,
-										ulOriginOpId,
-										ptabdescInner,
-										pexprScalar,
-										outer_refs,
-										pcrsReqd
-										);
+	CExpression *pexprLogicalIndexGet = CXformUtils::PexprBitmapTableGet(
+		mp, popGet, ulOriginOpId, ptabdescInner, pexprScalar, outer_refs,
+		pcrsReqd);
 	if (NULL != pexprLogicalIndexGet)
 	{
 		// second child has residual predicates, create an apply of outer and inner
 		// and add it to xform results
 		CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
 		pexprOuter->AddRef();
-		CExpression *pexprIndexApply =
-			GPOS_NEW(mp) CExpression
-				(
-				mp,
-				PopLogicalApply(mp, colref_array),
-				pexprOuter,
-				pexprLogicalIndexGet,
-				CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
-				);
+		CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
+			mp, PopLogicalApply(mp, colref_array), pexprOuter,
+			pexprLogicalIndexGet,
+			CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
 		pxfres->Add(pexprIndexApply);
 	}
 }
@@ -425,17 +314,11 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 //
 // clang-format on
 void
-CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CExpression *pexprScalar,
-	CTableDescriptor *ptabdescInner,
-	CLogicalDynamicGet *popDynamicGet,
-	CXformResult *pxfres
-	) const
+CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprInner, CExpression *pexprScalar,
+	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
+	CXformResult *pxfres) const
 {
 	GPOS_ASSERT(NULL != pexprOuter);
 	GPOS_ASSERT(NULL != pexprInner);
@@ -462,38 +345,25 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	CColRefSet *pcrsScalarExpr = NULL;
 	CColRefSet *outer_refs = NULL;
 	CColRefSet *pcrsReqd = NULL;
-	ComputeColumnSets
-		(
-		mp,
-		pexprInner,
-		pexprScalar,
-		&pcrsScalarExpr,
-		&outer_refs,
-		&pcrsReqd
-		);
+	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
+					  &pcrsReqd);
 
 	// find a candidate set of partial index combinations
-    CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-    const IMDRelation *pmdrel = md_accessor->RetrieveRel(ptabdescInner->MDId());
-	
-    // array of expressions in the scalar expression
-	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
-	
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = md_accessor->RetrieveRel(ptabdescInner->MDId());
+
+	// array of expressions in the scalar expression
+	CExpressionArray *pdrgpexpr =
+		CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+
 	GPOS_ASSERT(0 < pdrgpexpr->Size());
-	
-	SPartDynamicIndexGetInfoArrays *pdrgpdrgppartdig = CXformUtils::PdrgpdrgppartdigCandidates
-										(
-										mp,
-										COptCtxt::PoctxtFromTLS()->Pmda(),
-										pdrgpexpr,
-										popDynamicGet->PdrgpdrgpcrPart(),
-										pmdrel,
-										ppartcnstr,
-										popDynamicGet->PdrgpcrOutput(),
-										pcrsReqd,
-										pcrsScalarExpr,
-										outer_refs
-										);
+
+	SPartDynamicIndexGetInfoArrays *pdrgpdrgppartdig =
+		CXformUtils::PdrgpdrgppartdigCandidates(
+			mp, COptCtxt::PoctxtFromTLS()->Pmda(), pdrgpexpr,
+			popDynamicGet->PdrgpdrgpcrPart(), pmdrel, ppartcnstr,
+			popDynamicGet->PdrgpcrOutput(), pcrsReqd, pcrsScalarExpr,
+			outer_refs);
 
 
 
@@ -504,18 +374,9 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 		SPartDynamicIndexGetInfoArray *pdrgppartdig = (*pdrgpdrgppartdig)[ul];
 		if (0 < pdrgppartdig->Size())
 		{
-			CreatePartialIndexApplyPlan
-				(
-				mp,
-				ulOriginOpId,
-				pexprOuter,
-				pexprScalar,
-				outer_refs,
-				popDynamicGet,
-				pdrgppartdig,
-				pmdrel,
-				pxfres
-				);
+			CreatePartialIndexApplyPlan(mp, ulOriginOpId, pexprOuter,
+										pexprScalar, outer_refs, popDynamicGet,
+										pdrgppartdig, pmdrel, pxfres);
 		}
 	}
 
@@ -536,18 +397,12 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreatePartialIndexApplyPlan
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CExpression *pexprOuter,
-	CExpression *pexprScalar,
-	CColRefSet *outer_refs,
+CXformJoin2IndexApply::CreatePartialIndexApplyPlan(
+	CMemoryPool *mp, ULONG ulOriginOpId, CExpression *pexprOuter,
+	CExpression *pexprScalar, CColRefSet *outer_refs,
 	CLogicalDynamicGet *popDynamicGet,
-	SPartDynamicIndexGetInfoArray *pdrgppartdig,
-	const IMDRelation *pmdrel,
-	CXformResult *pxfres
-	) const
+	SPartDynamicIndexGetInfoArray *pdrgppartdig, const IMDRelation *pmdrel,
+	CXformResult *pxfres) const
 {
 	const ULONG ulPartialIndexes = pdrgppartdig->Size();
 	if (0 == ulPartialIndexes)
@@ -569,11 +424,13 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	// positions in pdrgpcrOuter of the outer references mentioned in the scan filter
 	// we need them because each time we create copies of pdrgpcrOuter, we will extract the
 	// subsequence corresponding to pdrgpcrOuterRefsInScan
-	ULongPtrArray *pdrgpulIndexesOfRefsInScan = pdrgpcrOuter->IndexesOfSubsequence(pdrgpcrOuterRefsInScan);
+	ULongPtrArray *pdrgpulIndexesOfRefsInScan =
+		pdrgpcrOuter->IndexesOfSubsequence(pdrgpcrOuterRefsInScan);
 
 	GPOS_ASSERT(NULL != pdrgpulIndexesOfRefsInScan);
 
-	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEId, pdrgpcrOuter, pexprOuter);
+	(void) CXformUtils::PexprAddCTEProducer(mp, ulCTEId, pdrgpcrOuter,
+											pexprOuter);
 	BOOL fFirst = true;
 
 	CColRefArray *pdrgpcrOutput = NULL;
@@ -588,7 +445,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		CPartConstraint *ppartcnstr = ppartdig->m_part_constraint;
 		CExpressionArray *pdrgpexprIndex = ppartdig->m_pdrgpexprIndex;
 		CExpressionArray *pdrgpexprResidual = ppartdig->m_pdrgpexprResidual;
-		
+
 		CColRefArray *pdrgpcrOuterNew = pdrgpcrOuter;
 		CColRefArray *pdrgpcrIndexGet = pdrgpcrGet;
 		UlongToColRefMap *colref_mapping = NULL;
@@ -601,47 +458,26 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		else
 		{
 			colref_mapping = GPOS_NEW(mp) UlongToColRefMap(mp);
-			pdrgpcrOuterNew = CUtils::PdrgpcrCopy(mp, pdrgpcrOuter, false /*fAllComputed*/, colref_mapping);
-			pdrgpcrIndexGet = CUtils::PdrgpcrCopy(mp, pdrgpcrGet, false /*fAllComputed*/, colref_mapping);
+			pdrgpcrOuterNew = CUtils::PdrgpcrCopy(
+				mp, pdrgpcrOuter, false /*fAllComputed*/, colref_mapping);
+			pdrgpcrIndexGet = CUtils::PdrgpcrCopy(
+				mp, pdrgpcrGet, false /*fAllComputed*/, colref_mapping);
 		}
 
 		CExpression *pexprUnionAllChild = NULL;
 		if (NULL != pmdindex)
 		{
-			pexprUnionAllChild = PexprIndexApplyOverCTEConsumer
-					(
-					mp,
-					ulOriginOpId,
-					popDynamicGet,
-					pdrgpexprIndex,
-					pdrgpexprResidual,
-					pdrgpcrIndexGet,
-					pmdindex,
-					pmdrel,
-					fFirst,
-					ulCTEId,
-					ppartcnstr,
-					outer_refs,
-					pdrgpcrOuter,
-					pdrgpcrOuterNew,
-					pdrgpcrOuterRefsInScan,
-					pdrgpulIndexesOfRefsInScan
-					);
+			pexprUnionAllChild = PexprIndexApplyOverCTEConsumer(
+				mp, ulOriginOpId, popDynamicGet, pdrgpexprIndex,
+				pdrgpexprResidual, pdrgpcrIndexGet, pmdindex, pmdrel, fFirst,
+				ulCTEId, ppartcnstr, outer_refs, pdrgpcrOuter, pdrgpcrOuterNew,
+				pdrgpcrOuterRefsInScan, pdrgpulIndexesOfRefsInScan);
 		}
 		else
 		{
-			pexprUnionAllChild = PexprJoinOverCTEConsumer
-								(
-								mp,
-								ulOriginOpId,
-								popDynamicGet,
-								ulCTEId,
-								pexprScalar,
-								pdrgpcrIndexGet,
-								ppartcnstr,
-								pdrgpcrOuter,
-								pdrgpcrOuterNew
-								);
+			pexprUnionAllChild = PexprJoinOverCTEConsumer(
+				mp, ulOriginOpId, popDynamicGet, ulCTEId, pexprScalar,
+				pdrgpcrIndexGet, ppartcnstr, pdrgpcrOuter, pdrgpcrOuterNew);
 		}
 
 		CRefCount::SafeRelease(pdrgpcrIndexGet);
@@ -657,7 +493,8 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		else
 		{
 			// inner branches of the union-all needs columns in the same order as in the outer branch
-			pdrgpcrNew = CUtils::PdrgpcrRemap(mp, pdrgpcrOutput, colref_mapping, true /*must_exist*/);
+			pdrgpcrNew = CUtils::PdrgpcrRemap(mp, pdrgpcrOutput, colref_mapping,
+											  true /*must_exist*/);
 		}
 
 		if (fFirst)
@@ -684,12 +521,11 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	if (2 <= pdrgpexprInput->Size())
 	{
 		// construct a new union operator
-		pexprResult = GPOS_NEW(mp) CExpression
-								(
-								mp,
-								GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput, popDynamicGet->ScanId()),
-								pdrgpexprInput
-								);
+		pexprResult = GPOS_NEW(mp) CExpression(
+			mp,
+			GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput,
+										  popDynamicGet->ScanId()),
+			pdrgpexprInput);
 	}
 	else
 	{
@@ -706,7 +542,8 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	pdrgpcrOuterRefsInScan->Release();
 	pdrgpulIndexesOfRefsInScan->Release();
 
-	AddUnionPlanForPartialIndexes(mp, popDynamicGet, ulCTEId, pexprResult, pexprScalar, pxfres);
+	AddUnionPlanForPartialIndexes(mp, popDynamicGet, ulCTEId, pexprResult,
+								  pexprScalar, pxfres);
 }
 
 //---------------------------------------------------------------------------
@@ -719,35 +556,28 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprJoinOverCTEConsumer
-	(
+CXformJoin2IndexApply::PexprJoinOverCTEConsumer(
 	CMemoryPool *mp,
-	ULONG, //  ulOriginOpId
-	CLogicalDynamicGet *popDynamicGet,
-	ULONG ulCTEId,
-	CExpression *pexprScalar,
-	CColRefArray *pdrgpcrDynamicGet,
-	CPartConstraint *ppartcnstr,
-	CColRefArray *pdrgpcrOuter,
-	CColRefArray *pdrgpcrOuterNew
-	) const
+	ULONG,	//  ulOriginOpId
+	CLogicalDynamicGet *popDynamicGet, ULONG ulCTEId, CExpression *pexprScalar,
+	CColRefArray *pdrgpcrDynamicGet, CPartConstraint *ppartcnstr,
+	CColRefArray *pdrgpcrOuter, CColRefArray *pdrgpcrOuterNew) const
 {
-	UlongToColRefMap *colref_mapping =
-			CUtils::PhmulcrMapping(mp, popDynamicGet->PdrgpcrOutput(), pdrgpcrDynamicGet);
+	UlongToColRefMap *colref_mapping = CUtils::PhmulcrMapping(
+		mp, popDynamicGet->PdrgpcrOutput(), pdrgpcrDynamicGet);
 
 	// construct a partial dynamic get with the negated constraint
 	CPartConstraint *ppartcnstrPartialDynamicGet =
-			ppartcnstr->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping, true /*must_exist*/);
+		ppartcnstr->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping,
+													  true /*must_exist*/);
 
 	CLogicalDynamicGet *popPartialDynamicGet =
-			(CLogicalDynamicGet *) popDynamicGet->PopCopyWithRemappedColumns
-													(
-													mp,
-													colref_mapping,
-													true /*must_exist*/
-													);
+		(CLogicalDynamicGet *) popDynamicGet->PopCopyWithRemappedColumns(
+			mp, colref_mapping, true /*must_exist*/
+		);
 	popPartialDynamicGet->SetPartConstraint(ppartcnstrPartialDynamicGet);
-	popPartialDynamicGet->SetSecondaryScanId(COptCtxt::PoctxtFromTLS()->UlPartIndexNextVal());
+	popPartialDynamicGet->SetSecondaryScanId(
+		COptCtxt::PoctxtFromTLS()->UlPartIndexNextVal());
 	popPartialDynamicGet->SetPartial();
 
 	// if there are any outer references, add them to the mapping
@@ -758,24 +588,18 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 	{
 		CColRef *pcrOld = (*pdrgpcrOuter)[ul];
 		CColRef *new_colref = (*pdrgpcrOuterNew)[ul];
-		BOOL fInserted GPOS_ASSERTS_ONLY =
-		colref_mapping->Insert(GPOS_NEW(mp) ULONG(pcrOld->Id()), new_colref);
+		BOOL fInserted GPOS_ASSERTS_ONLY = colref_mapping->Insert(
+			GPOS_NEW(mp) ULONG(pcrOld->Id()), new_colref);
 		GPOS_ASSERT(fInserted);
 	}
 
-	CExpression *pexprJoin = GPOS_NEW(mp) CExpression
-								(
-								mp,
-								PopLogicalJoin(mp),
-								CXformUtils::PexprCTEConsumer(mp, ulCTEId, pdrgpcrOuterNew),
-								GPOS_NEW(mp) CExpression(mp, popPartialDynamicGet),
-								pexprScalar->PexprCopyWithRemappedColumns
-											(
-											mp,
-											colref_mapping,
-											true /*must_exist*/
-											)
-								);
+	CExpression *pexprJoin = GPOS_NEW(mp)
+		CExpression(mp, PopLogicalJoin(mp),
+					CXformUtils::PexprCTEConsumer(mp, ulCTEId, pdrgpcrOuterNew),
+					GPOS_NEW(mp) CExpression(mp, popPartialDynamicGet),
+					pexprScalar->PexprCopyWithRemappedColumns(
+						mp, colref_mapping, true /*must_exist*/
+						));
 	colref_mapping->Release();
 
 	return pexprJoin;
@@ -791,41 +615,20 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
-	(
-	CMemoryPool *mp,
-	ULONG ulOriginOpId,
-	CLogicalDynamicGet *popDynamicGet,
-	CExpressionArray *pdrgpexprIndex,
-	CExpressionArray *pdrgpexprResidual,
-	CColRefArray *pdrgpcrIndexGet,
-	const IMDIndex *pmdindex,
-	const IMDRelation *pmdrel,
-	BOOL fFirst,
-	ULONG ulCTEId,
-	CPartConstraint *ppartcnstr,
-	CColRefSet *outer_refs,
-	CColRefArray *pdrgpcrOuter,
-	CColRefArray *pdrgpcrOuterNew,
+CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer(
+	CMemoryPool *mp, ULONG ulOriginOpId, CLogicalDynamicGet *popDynamicGet,
+	CExpressionArray *pdrgpexprIndex, CExpressionArray *pdrgpexprResidual,
+	CColRefArray *pdrgpcrIndexGet, const IMDIndex *pmdindex,
+	const IMDRelation *pmdrel, BOOL fFirst, ULONG ulCTEId,
+	CPartConstraint *ppartcnstr, CColRefSet *outer_refs,
+	CColRefArray *pdrgpcrOuter, CColRefArray *pdrgpcrOuterNew,
 	CColRefArray *pdrgpcrOuterRefsInScan,
-	ULongPtrArray *pdrgpulIndexesOfRefsInScan
-	) const
+	ULongPtrArray *pdrgpulIndexesOfRefsInScan) const
 {
-	CExpression *pexprDynamicScan = CXformUtils::PexprPartialDynamicIndexGet
-								(
-								mp,
-								popDynamicGet,
-								ulOriginOpId,
-								pdrgpexprIndex,
-								pdrgpexprResidual,
-								pdrgpcrIndexGet,
-								pmdindex,
-								pmdrel,
-								ppartcnstr,
-								outer_refs,
-								pdrgpcrOuter,
-								pdrgpcrOuterNew
-								);
+	CExpression *pexprDynamicScan = CXformUtils::PexprPartialDynamicIndexGet(
+		mp, popDynamicGet, ulOriginOpId, pdrgpexprIndex, pdrgpexprResidual,
+		pdrgpcrIndexGet, pmdindex, pmdrel, ppartcnstr, outer_refs, pdrgpcrOuter,
+		pdrgpcrOuterNew);
 
 	if (NULL == pexprDynamicScan)
 	{
@@ -840,18 +643,15 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	}
 	else
 	{
-		pdrgpcrOuterRefsInScanNew =
-				CXformUtils::PdrgpcrReorderedSubsequence(mp, pdrgpcrOuterNew, pdrgpulIndexesOfRefsInScan);
+		pdrgpcrOuterRefsInScanNew = CXformUtils::PdrgpcrReorderedSubsequence(
+			mp, pdrgpcrOuterNew, pdrgpulIndexesOfRefsInScan);
 	}
 
-	return GPOS_NEW(mp) CExpression
-			(
-			mp,
-			PopLogicalApply(mp, pdrgpcrOuterRefsInScanNew),
-			CXformUtils::PexprCTEConsumer(mp, ulCTEId, pdrgpcrOuterNew),
-			pexprDynamicScan,
-			CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
-			);
+	return GPOS_NEW(mp)
+		CExpression(mp, PopLogicalApply(mp, pdrgpcrOuterRefsInScanNew),
+					CXformUtils::PexprCTEConsumer(mp, ulCTEId, pdrgpcrOuterNew),
+					pexprDynamicScan,
+					CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
 }
 
 //---------------------------------------------------------------------------
@@ -864,28 +664,23 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprConstructUnionAll
-	(
-	CMemoryPool *mp,
-	CColRefArray *pdrgpcrLeftSchema,
-	CColRefArray *pdrgpcrRightSchema,
-	CExpression *pexprLeftChild,
-	CExpression *pexprRightChild,
-	ULONG scan_id
-	) const
+CXformJoin2IndexApply::PexprConstructUnionAll(CMemoryPool *mp,
+											  CColRefArray *pdrgpcrLeftSchema,
+											  CColRefArray *pdrgpcrRightSchema,
+											  CExpression *pexprLeftChild,
+											  CExpression *pexprRightChild,
+											  ULONG scan_id) const
 {
 	CColRef2dArray *pdrgpdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
 	pdrgpdrgpcrInput->Append(pdrgpcrLeftSchema);
 	pdrgpdrgpcrInput->Append(pdrgpcrRightSchema);
 	pdrgpcrLeftSchema->AddRef();
 
-	return GPOS_NEW(mp) CExpression
-				(
-				mp,
-				GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrLeftSchema, pdrgpdrgpcrInput, scan_id),
-				pexprLeftChild,
-				pexprRightChild
-				);
+	return GPOS_NEW(mp) CExpression(
+		mp,
+		GPOS_NEW(mp)
+			CLogicalUnionAll(mp, pdrgpcrLeftSchema, pdrgpdrgpcrInput, scan_id),
+		pexprLeftChild, pexprRightChild);
 }
 
 //---------------------------------------------------------------------------
@@ -898,15 +693,10 @@ CXformJoin2IndexApply::PexprConstructUnionAll
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
-	(
-	CMemoryPool *mp,
-	CLogicalDynamicGet *popDynamicGet,
-	ULONG ulCTEId,
-	CExpression *pexprUnion,
-	CExpression *pexprScalar,
-	CXformResult *pxfres
-	) const
+CXformJoin2IndexApply::AddUnionPlanForPartialIndexes(
+	CMemoryPool *mp, CLogicalDynamicGet *popDynamicGet, ULONG ulCTEId,
+	CExpression *pexprUnion, CExpression *pexprScalar,
+	CXformResult *pxfres) const
 {
 	if (NULL == pexprUnion)
 	{
@@ -916,28 +706,22 @@ CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
 	// if scalar expression involves the partitioning key, keep a SELECT node
 	// on top for the purposes of partition selection
 	CColRef2dArray *pdrgpdrgpcrPartKeys = popDynamicGet->PdrgpdrgpcrPart();
-	CExpression *pexprPredOnPartKey = CPredicateUtils::PexprExtractPredicatesOnPartKeys
-										(
-										mp,
-										pexprScalar,
-										pdrgpdrgpcrPartKeys,
-										NULL, /*pcrsAllowedRefs*/
-										true /*fUseConstraints*/
-										);
+	CExpression *pexprPredOnPartKey =
+		CPredicateUtils::PexprExtractPredicatesOnPartKeys(
+			mp, pexprScalar, pdrgpdrgpcrPartKeys, NULL, /*pcrsAllowedRefs*/
+			true										/*fUseConstraints*/
+		);
 
 	if (NULL != pexprPredOnPartKey)
 	{
-		pexprUnion = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), pexprUnion, pexprPredOnPartKey);
+		pexprUnion =
+			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp),
+									 pexprUnion, pexprPredOnPartKey);
 	}
 
-	CExpression *pexprAnchor = GPOS_NEW(mp) CExpression
-									(
-									mp,
-									GPOS_NEW(mp) CLogicalCTEAnchor(mp, ulCTEId),
-									pexprUnion
-									);
+	CExpression *pexprAnchor = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalCTEAnchor(mp, ulCTEId), pexprUnion);
 	pxfres->Add(pexprAnchor);
 }
 
 // EOF
-

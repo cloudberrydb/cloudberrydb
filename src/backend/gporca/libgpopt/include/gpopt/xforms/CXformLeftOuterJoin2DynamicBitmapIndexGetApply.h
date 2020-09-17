@@ -14,46 +14,48 @@
 
 namespace gpopt
 {
-	using namespace gpos;
+using namespace gpos;
 
-	class CXformLeftOuterJoin2DynamicBitmapIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
+class CXformLeftOuterJoin2DynamicBitmapIndexGetApply
+	: public CXformJoin2IndexApplyBase<
+		  CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
+		  false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
+{
+private:
+	// private copy ctor
+	CXformLeftOuterJoin2DynamicBitmapIndexGetApply(
+		const CXformLeftOuterJoin2DynamicBitmapIndexGetApply &);
+
+public:
+	// ctor
+	explicit CXformLeftOuterJoin2DynamicBitmapIndexGetApply(CMemoryPool *mp)
+		: CXformJoin2IndexApplyBase<CLogicalLeftOuterJoin, CLogicalIndexApply,
+									CLogicalDynamicGet, false /*fWithSelect*/,
+									false /*is_partial*/,
+									IMDIndex::EmdindBitmap>(mp)
 	{
-		private:
-			// private copy ctor
-			CXformLeftOuterJoin2DynamicBitmapIndexGetApply(const CXformLeftOuterJoin2DynamicBitmapIndexGetApply &);
+	}
 
-		public:
-			// ctor
-			explicit
-			CXformLeftOuterJoin2DynamicBitmapIndexGetApply(CMemoryPool *mp)
-				: CXformJoin2IndexApplyBase
-				<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-				false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
-				(mp)
-			{}
+	// dtor
+	virtual ~CXformLeftOuterJoin2DynamicBitmapIndexGetApply()
+	{
+	}
 
-			// dtor
-			virtual
-			~CXformLeftOuterJoin2DynamicBitmapIndexGetApply()
-			{}
+	// ident accessors
+	virtual EXformId
+	Exfid() const
+	{
+		return ExfLeftOuterJoin2DynamicBitmapIndexGetApply;
+	}
 
-			// ident accessors
-			virtual
-			EXformId Exfid() const
-			{
-				return ExfLeftOuterJoin2DynamicBitmapIndexGetApply;
-			}
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CXformLeftOuterJoin2DynamicBitmapIndexGetApply";
+	}
+};	// class CXformLeftOuterJoin2DynamicBitmapIndexGetApply
+}  // namespace gpopt
 
-			virtual
-			const CHAR *SzId() const
-			{
-				return "CXformLeftOuterJoin2DynamicBitmapIndexGetApply";
-			}
-	}; // class CXformLeftOuterJoin2DynamicBitmapIndexGetApply
-}
-
-#endif // !GPOPT_CXformLeftOuterJoin2DynamicBitmapIndexGetApply_H
+#endif	// !GPOPT_CXformLeftOuterJoin2DynamicBitmapIndexGetApply_H
 
 // EOF

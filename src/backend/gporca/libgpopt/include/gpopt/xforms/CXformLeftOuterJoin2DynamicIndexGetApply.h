@@ -12,51 +12,50 @@
 
 namespace gpopt
 {
-	using namespace gpos;
+using namespace gpos;
 
-	class CXformLeftOuterJoin2DynamicIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+class CXformLeftOuterJoin2DynamicIndexGetApply
+	: public CXformJoin2IndexApplyBase<
+		  CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
+		  false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+{
+private:
+	// private copy ctor
+	CXformLeftOuterJoin2DynamicIndexGetApply(
+		const CXformLeftOuterJoin2DynamicIndexGetApply &);
+
+public:
+	// ctor
+	explicit CXformLeftOuterJoin2DynamicIndexGetApply(CMemoryPool *mp)
+		: CXformJoin2IndexApplyBase<CLogicalLeftOuterJoin, CLogicalIndexApply,
+									CLogicalDynamicGet, false /*fWithSelect*/,
+									false /*is_partial*/,
+									IMDIndex::EmdindBtree>(mp)
 	{
+	}
 
-		private:
+	// dtor
+	virtual ~CXformLeftOuterJoin2DynamicIndexGetApply()
+	{
+	}
 
-			// private copy ctor
-			CXformLeftOuterJoin2DynamicIndexGetApply(const CXformLeftOuterJoin2DynamicIndexGetApply &);
+	// ident accessors
+	virtual EXformId
+	Exfid() const
+	{
+		return ExfLeftOuterJoin2DynamicIndexGetApply;
+	}
 
-		public:
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CXformLeftOuterJoin2DynamicIndexGetApply";
+	}
 
-			// ctor
-			explicit
-			CXformLeftOuterJoin2DynamicIndexGetApply(CMemoryPool *mp)
-				: CXformJoin2IndexApplyBase
-				<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalDynamicGet,
-				false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
-				(mp)
-			{}
+};	// class CXformLeftOuterJoin2DynamicIndexGetApply
 
-			// dtor
-			virtual
-			~CXformLeftOuterJoin2DynamicIndexGetApply()
-			{}
+}  // namespace gpopt
 
-			// ident accessors
-			virtual
-			EXformId Exfid() const
-			{
-				return ExfLeftOuterJoin2DynamicIndexGetApply;
-			}
-
-			virtual
-			const CHAR *SzId() const
-			{
-				return "CXformLeftOuterJoin2DynamicIndexGetApply";
-			}
-
-	}; // class CXformLeftOuterJoin2DynamicIndexGetApply
-
-}
-
-#endif // !GPOPT_CXformLeftOuterJoin2DynamicIndexGetApply_H
+#endif	// !GPOPT_CXformLeftOuterJoin2DynamicIndexGetApply_H
 
 // EOF

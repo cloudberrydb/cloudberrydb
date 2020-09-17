@@ -23,55 +23,57 @@
 
 namespace gpopt
 {
-	using namespace gpos;
+using namespace gpos;
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CXformInnerJoin2BitmapIndexGetApply
-	//
-	//	@doc:
-	//		Transform Inner Join to Bitmap IndexGet Apply
-	//
-	//---------------------------------------------------------------------------
-	class CXformInnerJoin2BitmapIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
+//---------------------------------------------------------------------------
+//	@class:
+//		CXformInnerJoin2BitmapIndexGetApply
+//
+//	@doc:
+//		Transform Inner Join to Bitmap IndexGet Apply
+//
+//---------------------------------------------------------------------------
+class CXformInnerJoin2BitmapIndexGetApply
+	: public CXformJoin2IndexApplyBase<
+		  CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
+		  false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
+{
+private:
+	// private copy ctor
+	CXformInnerJoin2BitmapIndexGetApply(
+		const CXformInnerJoin2BitmapIndexGetApply &);
+
+public:
+	// ctor
+	explicit CXformInnerJoin2BitmapIndexGetApply(CMemoryPool *mp)
+		: CXformJoin2IndexApplyBase<CLogicalInnerJoin, CLogicalIndexApply,
+									CLogicalGet, false /*fWithSelect*/,
+									false /*is_partial*/,
+									IMDIndex::EmdindBitmap>(mp)
 	{
-		private:
-			// private copy ctor
-			CXformInnerJoin2BitmapIndexGetApply(const CXformInnerJoin2BitmapIndexGetApply &);
+	}
 
-		public:
-			// ctor
-			explicit
-			CXformInnerJoin2BitmapIndexGetApply(CMemoryPool *mp)
-				:CXformJoin2IndexApplyBase
-				 <CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-				 false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
-				(mp)
-			{}
+	// dtor
+	virtual ~CXformInnerJoin2BitmapIndexGetApply()
+	{
+	}
 
-			// dtor
-			virtual
-			~CXformInnerJoin2BitmapIndexGetApply()
-			{}
+	// ident accessors
+	virtual EXformId
+	Exfid() const
+	{
+		return ExfInnerJoin2BitmapIndexGetApply;
+	}
 
-			// ident accessors
-			virtual
-			EXformId Exfid() const
-			{
-				return ExfInnerJoin2BitmapIndexGetApply;
-			}
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CXformInnerJoin2BitmapIndexGetApply";
+	}
 
-			virtual
-			const CHAR *SzId() const
-			{
-				return "CXformInnerJoin2BitmapIndexGetApply";
-			}
+};	// class CXformInnerJoin2BitmapIndexGetApply
+}  // namespace gpopt
 
-	}; // class CXformInnerJoin2BitmapIndexGetApply
-}
-
-#endif // !GPOPT_CXformInnerJoin2BitmapIndexGetApply_H
+#endif	// !GPOPT_CXformInnerJoin2BitmapIndexGetApply_H
 
 // EOF

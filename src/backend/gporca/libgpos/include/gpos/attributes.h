@@ -8,7 +8,8 @@
 #define GPOS_FORMAT_ARCHETYPE PG_PRINTF_ATTRIBUTE
 #endif
 
-#define GPOS_ATTRIBUTE_PRINTF(f, a) __attribute__((format(GPOS_FORMAT_ARCHETYPE, f, a)))
+#define GPOS_ATTRIBUTE_PRINTF(f, a) \
+	__attribute__((format(GPOS_FORMAT_ARCHETYPE, f, a)))
 
 #ifdef __GNUC__
 #define GPOS_UNUSED __attribute__((unused))
@@ -22,4 +23,4 @@
 #define GPOS_ASSERTS_ONLY
 #endif
 
-#endif // !GPOS_attributes_H
+#endif	// !GPOS_attributes_H
