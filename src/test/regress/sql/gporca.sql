@@ -2673,7 +2673,7 @@ where out.b in (select coalesce(tcorr2.a, 99)
 
 reset optimizer_join_order;
 
--- test selecting an outer ref from a scalar subquery, this will fall back to planner
+-- test selecting an outer ref from a scalar subquery
 -- expect 0 rows
 SELECT 1
 FROM   tcorr1
@@ -2685,13 +2685,13 @@ WHERE  tcorr1.a IS NULL OR
                    WHERE  3 = tcorr1.a
                   );
 
--- expect 1 row, subquery returns a row, falls back in ORCA
+-- expect 1 row, subquery returns a row
 select * from tcorr1 where b = (select tcorr1.b from tcorr2);
 
--- expect 0 rows, subquery returns no rows, falls back in ORCA
+-- expect 0 rows, subquery returns no rows
 select * from tcorr1 where b = (select tcorr1.b from tcorr2 where b=33);
 
--- expect 1 row, subquery returns nothing, so a < 22 is true, falls back in ORCA
+-- expect 1 row, subquery returns nothing, so a < 22 is true
 select * from tcorr1 where a < coalesce((select tcorr1.a from tcorr2 where a = 11), 22);
 
 -- test join to index get apply xform
