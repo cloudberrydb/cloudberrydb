@@ -3411,8 +3411,15 @@ heap_truncate(List *relids)
 		relations = lappend(relations, rel);
 	}
 
+	/* GPDB does not support all FK feature but keeps FK grammar recognition,
+	 * which reduces migration manual workload from other databases.
+	 * We do not want to reject relation truncate if the relation contains FK
+	 * satisfied tuple, so skip heap_truncate_check_FKs function call.
+	 */
+#if 0
 	/* Don't allow truncate on tables that are referenced by foreign keys */
 	heap_truncate_check_FKs(relations, true);
+#endif
 
 	/* OK to do it */
 	foreach(cell, relations)

@@ -45,36 +45,15 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
 WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
 TRUNCATE TABLE truncate_a;		-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_b" references "truncate_a".
-HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE truncate_a,trunc_b;		-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_e" references "truncate_a".
-HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE truncate_a,trunc_b,trunc_e;	-- ok
 TRUNCATE TABLE truncate_a,trunc_e;		-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_b" references "truncate_a".
-HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c;		-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_d" references "trunc_c".
-HINT:  Truncate table "trunc_d" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,trunc_d;		-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_e" references "trunc_c".
-HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,trunc_d,trunc_e;	-- ok
 TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a;	-- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_b" references "truncate_a".
-HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a,trunc_b;	-- ok
 TRUNCATE TABLE truncate_a RESTRICT; -- fail
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_b" references "truncate_a".
-HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE truncate_a CASCADE;  -- ok
 NOTICE:  truncate cascades to table "trunc_b"
 NOTICE:  truncate cascades to table "trunc_e"
@@ -88,21 +67,9 @@ INSERT INTO trunc_b VALUES (1);
 INSERT INTO trunc_d VALUES (1);
 INSERT INTO trunc_e VALUES (1,1);
 TRUNCATE TABLE trunc_c;
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "truncate_a" references "trunc_c".
-HINT:  Truncate table "truncate_a" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,truncate_a;
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_d" references "trunc_c".
-HINT:  Truncate table "trunc_d" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,truncate_a,trunc_d;
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_e" references "trunc_c".
-HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e;
-ERROR:  cannot truncate a table referenced in a foreign key constraint
-DETAIL:  Table "trunc_b" references "truncate_a".
-HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
 TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e,trunc_b;
 -- Verify that truncating did actually work
 SELECT * FROM truncate_a
