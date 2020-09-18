@@ -355,7 +355,7 @@ static bool procIsWaiting(const PGPROC *proc);
 static void procWakeup(PGPROC *proc);
 static int slotGetId(const ResGroupSlotData *slot);
 static void groupWaitQueueValidate(const ResGroupData *group);
-static void groupWaitProcValidate(PGPROC *proc);
+static void groupWaitProcValidate(PGPROC *proc, PROC_QUEUE *head);
 static void groupWaitQueuePush(ResGroupData *group, PGPROC *proc);
 static PGPROC *groupWaitQueuePop(ResGroupData *group);
 static void groupWaitQueueErase(ResGroupData *group, PGPROC *proc);
@@ -3516,7 +3516,7 @@ groupWaitQueueValidate(const ResGroupData *group)
 }
 
 static void
-groupWaitProcValidate(PGPROC *proc)
+groupWaitProcValidate(PGPROC *proc, PROC_QUEUE *head)
 {
 	PGPROC *nextProc = (PGPROC *)proc->links.next;
 	PGPROC *prevProc = (PGPROC *)proc->links.prev;
@@ -3527,8 +3527,8 @@ groupWaitProcValidate(PGPROC *proc)
 		return;
 
 	if (!proc->mppIsWriter ||
-		!nextProc->mppIsWriter ||
-		!prevProc->mppIsWriter ||
+		((PROC_QUEUE *)nextProc != head && !nextProc->mppIsWriter) ||
+		((PROC_QUEUE *)prevProc != head && !prevProc->mppIsWriter) ||
 		nextProc->links.prev != &proc->links ||
 		prevProc->links.next != &proc->links)
 		elog(PANIC, "resource group wait queue is corrupted");
@@ -3555,7 +3555,7 @@ groupWaitQueuePush(ResGroupData *group, PGPROC *proc)
 	headProc = (PGPROC *) &waitQueue->links;
 
 	SHMQueueInsertBefore(&headProc->links, &proc->links);
-	groupWaitProcValidate(proc);
+	groupWaitProcValidate(proc, waitQueue);
 
 	waitQueue->size++;
 
@@ -3579,7 +3579,7 @@ groupWaitQueuePop(ResGroupData *group)
 	waitQueue = &group->waitProcs;
 
 	proc = (PGPROC *) waitQueue->links.next;
-	groupWaitProcValidate(proc);
+	groupWaitProcValidate(proc, waitQueue);
 	Assert(groupWaitQueueFind(group, proc));
 	Assert(proc->resSlot == NULL);
 
@@ -3604,10 +3604,10 @@ groupWaitQueueErase(ResGroupData *group, PGPROC *proc)
 	Assert(proc->resSlot == NULL);
 
 	groupWaitQueueValidate(group);
-	groupWaitProcValidate(proc);
 
 	waitQueue = &group->waitProcs;
 
+	groupWaitProcValidate(proc, waitQueue);
 	SHMQueueDelete(&proc->links);
 
 	waitQueue->size--;
