@@ -1560,7 +1560,8 @@ choose_grouping_locus(PlannerInfo *root, Path *path,
 		CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
 	}
 	/* If the input is already suitably distributed, no need to redistribute */
-	else if (cdbpathlocus_is_hashed_on_tlist(path->locus, group_tles, true))
+	else if (!CdbPathLocus_IsHashedOJ(path->locus) &&
+			 cdbpathlocus_is_hashed_on_tlist(path->locus, group_tles, true))
 	{
 		need_redistribute = false;
 		CdbPathLocus_MakeNull(&locus);
