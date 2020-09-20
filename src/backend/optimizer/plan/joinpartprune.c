@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * planpartition.c
+ * joinpartprune.c
  *	  Transforms to produce plans that achieve dynamic partition elimination.
  *
  * Portions Copyright (c) 2011-2013, EMC Corporation
@@ -8,15 +8,15 @@
  *
  *
  * IDENTIFICATION
- *	  src/backend/optimizer/plan/planpartition.c
+ *	  src/backend/optimizer/plan/joinpartprune.c
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
+#include "optimizer/joinpartprune.h"
 #include "optimizer/planmain.h"
-#include "optimizer/planpartition.h"
 #include "optimizer/paths.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/restrictinfo.h"

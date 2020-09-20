@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * planpartition.h
+ * joinpartprune.h
  *	  Transforms to produce plans that achieve dynamic partition elimination.
  *
  * Portions Copyright (c) 2011-2013, EMC Corporation
@@ -8,13 +8,13 @@
  *
  *
  * IDENTIFICATION
- *	    src/include/optimizer/planpartition.h
+ *	    src/include/optimizer/joinpartprune.h
  *
  *-------------------------------------------------------------------------
  */
 
-#ifndef PLANPARTITION_H
-#define PLANPARTITION_H
+#ifndef JOINPARTPRUNE_H
+#define JOINPARTPRUNE_H
 
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"
@@ -25,4 +25,4 @@ extern bool inject_partition_selectors_for_join(PlannerInfo *root,
 
 extern Plan *create_partition_selector_plan(PlannerInfo *root, PartitionSelectorPath *pspath);
 
-#endif /* PLANPARTITION_H */
+#endif /* JOINPARTPRUNE_H */

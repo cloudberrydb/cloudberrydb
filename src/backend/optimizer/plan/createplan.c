@@ -40,7 +40,6 @@
 #include "optimizer/plancat.h"
 #include "optimizer/planmain.h"
 #include "optimizer/planner.h"
-#include "optimizer/planpartition.h"
 #include "optimizer/planshare.h"
 #include "optimizer/predtest.h"
 #include "optimizer/restrictinfo.h"
@@ -66,6 +65,7 @@
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbtargeteddispatch.h"
 #include "cdb/cdbvars.h"
+#include "optimizer/joinpartprune.h"
 
 /*
  * Flag bits that can appear in the flags argument of create_plan_recurse().
