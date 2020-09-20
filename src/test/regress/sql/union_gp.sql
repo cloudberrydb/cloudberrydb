@@ -620,11 +620,9 @@ insert into union_schema.t2 select i, i from generate_series(1,20)i;
 analyze union_schema.t1;
 analyze union_schema.t2;
 
-explain
-  select * from union_schema.t1 join union_schema.t2
+explain select * from union_schema.t1 join union_schema.t2
     on union_schema.t1.a = union_schema.t2.b;
-explain
-  select union_schema.t1.a, union_schema.t2.b
+explain select union_schema.t1.a, union_schema.t2.b
   from union_schema.t1 join union_schema.t2
     on union_schema.t1.a = union_schema.t2.b
   union all
@@ -644,11 +642,9 @@ insert into union_schema.t2 select i, i from generate_series(1,10)i;
 analyze union_schema.t1;
 analyze union_schema.t2;
 
-explain
-  select * from union_schema.t1 join union_schema.t2
+explain select * from union_schema.t1 join union_schema.t2
     on union_schema.t1.a = union_schema.t2.b;
-explain
-  select union_schema.t1.a, union_schema.t2.b
+explain select union_schema.t1.a, union_schema.t2.b
     from union_schema.t1 join union_schema.t2
 	  on union_schema.t1.a = union_schema.t2.b
   union all
