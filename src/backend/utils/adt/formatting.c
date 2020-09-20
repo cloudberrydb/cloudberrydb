@@ -947,10 +947,9 @@ typedef struct NUMProc
 static const KeyWord *index_seq_search(char *str, const KeyWord *kw,
 				 const int *index);
 static const KeySuffix *suff_search(char *str, const KeySuffix *suf, int type);
-static void NUMDesc_prepare(NUMDesc *num, FormatNode *n, char *func);
+static void NUMDesc_prepare(NUMDesc *num, FormatNode *n);
 static void parse_format(FormatNode *node, char *str, const KeyWord *kw,
-			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num,
-			 char *func);
+			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num);
 
 static void DCH_to_char(FormatNode *node, bool is_interval,
 			TmToChar *in, char *out, Oid collid);
@@ -1042,7 +1041,7 @@ suff_search(char *str, const KeySuffix *suf, int type)
  * ----------
  */
 static void
-NUMDesc_prepare(NUMDesc *num, FormatNode *n, char *func)
+NUMDesc_prepare(NUMDesc *num, FormatNode *n)
 {
 	if (n->type != NODE_TYPE_ACTION)
 		return;
@@ -1234,8 +1233,7 @@ NUMDesc_prepare(NUMDesc *num, FormatNode *n, char *func)
  */
 static void
 parse_format(FormatNode *node, char *str, const KeyWord *kw,
-			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num,
-			 char *func)
+			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num)
 {
 	const KeySuffix *s;
 	FormatNode *n;
@@ -1278,7 +1276,7 @@ parse_format(FormatNode *node, char *str, const KeyWord *kw,
 			 * NUM version: Prepare global NUMDesc struct
 			 */
 			if (ver == NUM_TYPE)
-				NUMDesc_prepare(Num, n, func);
+				NUMDesc_prepare(Num, n);
 
 			/*
 			 * Postfix
@@ -3156,7 +3154,7 @@ DCH_from_char(FormatNode *node, char *in, TmFromChar *out)
 					if (matched < 2)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
-							 errmsg("invalid input string for \"Y,YYY\" in function \"to_date\"")));
+							  errmsg("invalid input string for \"Y,YYY\"")));
 					years += (millennia * 1000);
 					from_char_set_int(&out->year, years, n);
 					out->yysz = 4;
@@ -3328,8 +3326,7 @@ datetime_to_char_body(TmToChar *tmtc, text *fmt, bool is_interval, Oid collid)
 		incache = FALSE;
 
 		parse_format(format, fmt_str, DCH_keywords,
-					 DCH_suff, DCH_index, DCH_TYPE, NULL,
-					 "to_char");
+					 DCH_suff, DCH_index, DCH_TYPE, NULL);
 
 		(format + fmt_len)->type = NODE_TYPE_END;		/* Paranoia? */
 	}
@@ -3351,8 +3348,7 @@ datetime_to_char_body(TmToChar *tmtc, text *fmt, bool is_interval, Oid collid)
 			 * to the cache.
 			 */
 			parse_format(ent->format, fmt_str, DCH_keywords,
-						 DCH_suff, DCH_index, DCH_TYPE, NULL,
-						 "to_char");
+						 DCH_suff, DCH_index, DCH_TYPE, NULL);
 
 			(ent->format + fmt_len)->type = NODE_TYPE_END;		/* Paranoia? */
 
@@ -3406,7 +3402,7 @@ timestamp_to_char(PG_FUNCTION_ARGS)
 	if (timestamp2tm(dt, NULL, tm, &tmtcFsec(&tmtc), NULL, NULL) != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
-				 errmsg("timestamp out of range for function \"to_char\"")));
+				 errmsg("timestamp out of range")));
 
 	thisdate = date2j(tm->tm_year, tm->tm_mon, tm->tm_mday);
 	tm->tm_wday = (thisdate + 1) % 7;
@@ -3438,7 +3434,7 @@ timestamptz_to_char(PG_FUNCTION_ARGS)
 	if (timestamp2tm(dt, &tz, tm, &tmtcFsec(&tmtc), &tmtcTzn(&tmtc), NULL) != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
-				 errmsg("timestamp out of range for function \"to_char\"")));
+				 errmsg("timestamp out of range")));
 
 	thisdate = date2j(tm->tm_year, tm->tm_mon, tm->tm_mday);
 	tm->tm_wday = (thisdate + 1) % 7;
@@ -3506,7 +3502,7 @@ to_timestamp(PG_FUNCTION_ARGS)
 	if (tm2timestamp(&tm, fsec, &tz, &result) != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
-				 errmsg("timestamp out of range for function \"to_timestamp\"")));
+				 errmsg("timestamp out of range")));
 
 	PG_RETURN_TIMESTAMP(result);
 }
@@ -3596,8 +3592,7 @@ do_to_timestamp(text *date_txt, text *fmt,
 			format = (FormatNode *) palloc((fmt_len + 1) * sizeof(FormatNode));
 
 			parse_format(format, fmt_str, DCH_keywords,
-						 DCH_suff, DCH_index, DCH_TYPE, NULL,
-						 "to_timestamp");
+						 DCH_suff, DCH_index, DCH_TYPE, NULL);
 
 			(format + fmt_len)->type = NODE_TYPE_END;	/* Paranoia? */
 		}
@@ -3619,8 +3614,7 @@ do_to_timestamp(text *date_txt, text *fmt,
 				ent = DCH_cache_getnew(fmt_str);
 
 				parse_format(ent->format, fmt_str, DCH_keywords,
-							 DCH_suff, DCH_index, DCH_TYPE, NULL,
-							 "to_timestamp");
+							 DCH_suff, DCH_index, DCH_TYPE, NULL);
 
 				(ent->format + fmt_len)->type = NODE_TYPE_END;	/* Paranoia? */
 			}
@@ -4026,8 +4020,7 @@ NUM_cache(int len, NUMDesc *Num, text *pars_str, bool *shouldFree)
 		zeroize_NUM(Num);
 
 		parse_format(format, str, NUM_keywords,
-					 NULL, NUM_index, NUM_TYPE, Num,
-					 "to_char");
+					 NULL, NUM_index, NUM_TYPE, Num);
 
 		(format + len)->type = NODE_TYPE_END;	/* Paranoia? */
 	}
@@ -4049,8 +4042,7 @@ NUM_cache(int len, NUMDesc *Num, text *pars_str, bool *shouldFree)
 			 * to the cache.
 			 */
 			parse_format(ent->format, str, NUM_keywords,
-						 NULL, NUM_index, NUM_TYPE, &ent->Num,
-						 "to_char");
+						 NULL, NUM_index, NUM_TYPE, &ent->Num);
 
 			(ent->format + len)->type = NODE_TYPE_END;	/* Paranoia? */
 		}
@@ -4685,7 +4677,7 @@ NUM_processor(FormatNode *node, NUMDesc *Num, char *inout,
 		if (!Np->is_to_char)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("\"RN\" not supported with function \"to_number\"")));
+					 errmsg("\"RN\" not supported for input")));
 
 		Np->Num->lsign = Np->Num->pre_lsign_num = Np->Num->post =
 			Np->Num->pre = Np->out_pre_spaces = Np->sign = 0;
