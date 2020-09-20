@@ -2856,7 +2856,7 @@ drop table cov1;
 -- in transformDistributedBy(). Unfortunately, it chooses to set the
 -- distribution policy to that of the primary key if the distribution policy
 -- is not explicitly set.
-create table test_table (
+create table tbl11120 (
 	a	int,
 	b	int,
 	c	int,
@@ -2869,22 +2869,22 @@ partition by range (b)
 	partition p1 start (1) end (2)
 );
 
-insert into test_table values(1,2,3);
+insert into tbl11120 values(1,2,3);
 
-select * from test_table; -- expected: (1,2,3)
+select * from tbl11120; -- expected: (1,2,3)
 
-delete from test_table where a=1 and b=2 and c=3; -- this should delete the row in test_table
+delete from tbl11120 where a=1 and b=2 and c=3; -- this should delete the row in tbl11120
 
-select * from test_table; -- expected, no rows
+select * from tbl11120; -- expected, no rows
 
-insert into test_table values(1,2,3); -- reinsert data
+insert into tbl11120 values(1,2,3); -- reinsert data
 
 -- all partitions should have same distribution policy
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c
-where p.localoid = c.oid and relname like 'test_table%' order by p.localoid;
+where p.localoid = c.oid and relname like 'tbl11120%' order by p.localoid;
 
-alter table test_table split default partition
+alter table tbl11120 split default partition
         start (3)
 	end (4)
 	into (partition p2, partition default_partition);
@@ -2892,21 +2892,21 @@ alter table test_table split default partition
 
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and 
-relname like 'test_table%' order by p.localoid;
+relname like 'tbl11120%' order by p.localoid;
 
-delete from test_table where a=1 and b=2 and c=3; -- this should delete the row in test_table
+delete from tbl11120 where a=1 and b=2 and c=3; -- this should delete the row in tbl11120
 
-select * from test_table; -- expected, no rows! But we see the row. Wrong results!
+select * from tbl11120; -- expected, no rows! But we see the row. Wrong results!
 
-alter table test_table drop partition default_partition;
+alter table tbl11120 drop partition default_partition;
 
-alter table test_table add partition foo start(10) end(20);
+alter table tbl11120 add partition foo start(10) end(20);
 
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and
-relname like 'test_table%' order by p.localoid;
+relname like 'tbl11120%' order by p.localoid;
 
-drop table test_table;
+drop table tbl11120;
 
 -- MPP-6979: EXCHANGE partitions - fix namespaces if they differ
 
