@@ -15,7 +15,7 @@
 #include "fmgr.h"
 #include "utils/builtins.h"
 #include "cdb/cdbutil.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "catalog/pg_type.h"
 
 

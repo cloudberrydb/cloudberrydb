@@ -21,7 +21,7 @@
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "catalog/dependency.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/objectaddress.h"
@@ -359,7 +359,7 @@ GpPolicyFetch(Oid tbloid)
 	 */
 	if (HeapTupleIsValid(gp_policy_tuple))
 	{
-		Form_gp_policy policyform = (Form_gp_policy) GETSTRUCT(gp_policy_tuple);
+		Form_gp_distribution_policy policyform = (Form_gp_distribution_policy) GETSTRUCT(gp_policy_tuple);
 		bool		isNull;
 		int			i;
 		int			nattrs;
@@ -399,7 +399,7 @@ GpPolicyFetch(Oid tbloid)
 				 */
 				distkey = (int2vector *) DatumGetPointer(
 					SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
-									Anum_gp_policy_distkey,
+									Anum_gp_distribution_policy_distkey,
 									&isNull));
 
 				/*
@@ -410,7 +410,7 @@ GpPolicyFetch(Oid tbloid)
 					nattrs = distkey->dim1;
 					distopclasses = (oidvector *) DatumGetPointer(
 						SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
-										Anum_gp_policy_distclass,
+										Anum_gp_distribution_policy_distclass,
 										&isNull));
 					Assert(!isNull);
 					Assert(distopclasses->dim1 == nattrs);
@@ -607,7 +607,7 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	 * Select by value of the localoid field
 	 */
 	ScanKeyInit(&skey,
-				Anum_gp_policy_localoid,
+				Anum_gp_distribution_policy_localoid,
 				BTEqualStrategyNumber, F_OIDEQ,
 				ObjectIdGetDatum(tbloid));
 	scan = systable_beginscan(gp_policy_rel, GpPolicyLocalOidIndexId, true,
@@ -681,7 +681,7 @@ GpPolicyRemove(Oid tbloid)
 	gp_policy_rel = heap_open(GpPolicyRelationId, RowExclusiveLock);
 
 	/* Delete the policy entry from the catalog. */
-	ScanKeyInit(&scankey, Anum_gp_policy_localoid,
+	ScanKeyInit(&scankey, Anum_gp_distribution_policy_localoid,
 				BTEqualStrategyNumber, F_OIDEQ,
 				ObjectIdGetDatum(tbloid));
 

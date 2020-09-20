@@ -28,7 +28,6 @@
 #include "access/xact.h"
 #include "access/transam.h"
 #include "catalog/dependency.h"
-#include "catalog/gp_policy.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
 #include "catalog/pg_am.h"

@@ -13,7 +13,7 @@
  */
 #include "postgres.h"
 
-#include "catalog/gp_policy.h"	/* GpPolicy */
+#include "catalog/gp_distribution_policy.h"	/* GpPolicy */
 #include "cdb/cdbhash.h"
 #include "cdb/cdbpullup.h"		/* cdbpullup_findDistributionKeyExprInTargetList() */
 #include "nodes/makefuncs.h"	/* makeVar() */

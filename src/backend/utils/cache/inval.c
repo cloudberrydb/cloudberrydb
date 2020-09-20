@@ -110,7 +110,7 @@
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "cdb/cdbvars.h"
 
 
@@ -1230,7 +1230,7 @@ CacheInvalidateHeapTuple(Relation relation,
 	}
 	else if (tupleRelId == GpPolicyRelationId)
 	{
-		FormData_gp_policy *gptup = (FormData_gp_policy *) GETSTRUCT(tuple);
+		FormData_gp_distribution_policy *gptup = (FormData_gp_distribution_policy *) GETSTRUCT(tuple);
 
 		relationId = gptup->localoid;
 		databaseId = MyDatabaseId;

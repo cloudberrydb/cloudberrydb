@@ -59,7 +59,6 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
-#include "catalog/gp_policy.h"
 #include "libpq/libpq-fs.h"
 
 #include "dumputils.h"

@@ -18,7 +18,6 @@
 
 #include "catalog/pg_am.h"
 #include "catalog/pg_operator.h"
-#include "catalog/gp_policy.h"
 #include "catalog/namespace.h"
 #include "commands/defrem.h"
 #include "commands/tablespace.h"

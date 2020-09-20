@@ -21,7 +21,7 @@
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
 #include "optimizer/predtest.h"
 
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "catalog/pg_type.h"
 
 #include "catalog/pg_proc.h"

@@ -84,8 +84,7 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-#include "access/transam.h"         /* GpPolicy */
-#include "catalog/gp_policy.h"         /* GpPolicy */
+#include "catalog/gp_distribution_policy.h"         /* GpPolicy */
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"        /* Gp_role */
 #include "cdb/cdbsreh.h"

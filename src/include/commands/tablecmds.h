@@ -16,7 +16,7 @@
 
 #include "access/attnum.h"
 #include "catalog/dependency.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "executor/executor.h"
 #include "executor/tuptable.h"
 #include "nodes/execnodes.h"

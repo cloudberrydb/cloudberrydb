@@ -41,7 +41,7 @@
 
 #include "access/heapam.h"
 #include "access/sysattr.h"
-#include "catalog/gp_policy.h"     /* CDB: POLICYTYPE_PARTITIONED */
+#include "catalog/gp_distribution_policy.h"     /* CDB: POLICYTYPE_PARTITIONED */
 #include "catalog/pg_inherits_fn.h"
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"

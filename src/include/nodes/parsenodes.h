@@ -21,11 +21,12 @@
  */
 #ifndef PARSENODES_H
 #define PARSENODES_H
+
 #include "nodes/bitmapset.h"
 #include "nodes/lockoptions.h"
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 
 typedef struct PartitionNode PartitionNode; /* see relation.h */
 

@@ -25,7 +25,7 @@
 #include "settings.h"
 #include "variables.h"
 
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 
 static bool describeOneTableDetails(const char *schemaname,
 						const char *relationname,

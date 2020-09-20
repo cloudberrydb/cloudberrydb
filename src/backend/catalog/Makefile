@@ -52,7 +52,7 @@ POSTGRES_BKI_SRCS = $(addprefix $(top_srcdir)/src/include/catalog/,\
 	pg_foreign_data_wrapper.h pg_foreign_server.h pg_user_mapping.h \
 	pg_resqueue.h pg_resqueuecapability.h pg_resourcetype.h \
 	pg_resgroup.h pg_resgroupcapability.h \
-	gp_configuration_history.h gp_id.h gp_policy.h gp_version.h \
+	gp_configuration_history.h gp_id.h gp_distribution_policy.h gp_version.h \
 	gp_segment_config.h \
 	pg_appendonly.h \
 	gp_fastsequence.h pg_extprotocol.h \

@@ -24,7 +24,7 @@
 
 #include "postgres.h"
 
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "catalog/heap.h"
 #include "miscadmin.h"
 #include "nodes/extensible.h"

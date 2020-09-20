@@ -21,7 +21,7 @@
 struct Path;                    /* defined in relation.h */
 struct RelOptInfo;              /* defined in relation.h */
 struct PlannerInfo;				/* defined in relation.h */
-struct GpPolicy;				/* defined in gp_policy.h */
+struct GpPolicy;				/* defined in gp_distribution_policy.h */
 struct PathTarget;
 
 

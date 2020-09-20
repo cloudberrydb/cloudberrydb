@@ -27,7 +27,7 @@
 #include "optimizer/tlist.h"
 #include "utils/hsearch.h"
 
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "cdb/cdbpath.h"
 #include "cdb/cdbutil.h"
 #include "nodes/makefuncs.h"                /* makeVar() */

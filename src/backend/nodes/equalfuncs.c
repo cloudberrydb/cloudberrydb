@@ -34,7 +34,7 @@
 #include "nodes/extensible.h"
 #include "nodes/relation.h"
 #include "utils/datum.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 
 
 /*

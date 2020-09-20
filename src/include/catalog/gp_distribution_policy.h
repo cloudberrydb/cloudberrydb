@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * gp_policy.h
+ * gp_distribution_policy.h
  *	  definitions for the gp_distribution_policy catalog table
  *
  * Portions Copyright (c) 2005-2011, Greenplum inc
@@ -8,22 +8,22 @@
  *
  *
  * IDENTIFICATION
- *	    src/include/catalog/gp_policy.h
+ *	    src/include/catalog/gp_distribution_policy.h
  *
  * NOTES
  *
  *-------------------------------------------------------------------------
  */
 
-#ifndef _GP_POLICY_H_
-#define _GP_POLICY_H_
+#ifndef _GP_DISTRIBUTION_POLICY_H_
+#define _GP_DISTRIBUTION_POLICY_H_
 
 #include "access/attnum.h"
 #include "catalog/genbki.h"
 #include "nodes/pg_list.h"
 
 /*
- * Defines for gp_policy
+ * Defines for gp_distribution_policy
  */
 #define GpPolicyRelationId  5002
 
@@ -36,27 +36,27 @@ CATALOG(gp_distribution_policy,5002) BKI_WITHOUT_OIDS
 	int2vector	distkey;		/* column numbers of distribution key cols */
 	oidvector	distclass;		/* opclass identifiers */
 #endif
-} FormData_gp_policy;
+} FormData_gp_distribution_policy;
 
 /* GPDB added foreign key definitions for gpcheckcat. */
 FOREIGN_KEY(localoid REFERENCES pg_class(oid));
 
 /* ----------------
- *		Form_gp_policy corresponds to a pointer to a tuple with
+ *		Form_gp_distribution_policy corresponds to a pointer to a tuple with
  *		the format of gp_distribution_policy relation.
  * ----------------
  */
-typedef FormData_gp_policy *Form_gp_policy;
+typedef FormData_gp_distribution_policy *Form_gp_distribution_policy;
 
-#define Natts_gp_policy		5
-#define Anum_gp_policy_localoid		1
-#define Anum_gp_policy_policytype	2
-#define Anum_gp_policy_numsegments	3
-#define Anum_gp_policy_distkey		4
-#define Anum_gp_policy_distclass	5
+#define Natts_gp_distribution_policy		5
+#define Anum_gp_distribution_policy_localoid		1
+#define Anum_gp_distribution_policy_policytype	2
+#define Anum_gp_distribution_policy_numsegments	3
+#define Anum_gp_distribution_policy_distkey		4
+#define Anum_gp_distribution_policy_distclass	5
 
 /*
- * Symbolic values for Anum_gp_policy_type column
+ * Symbolic values for Anum_gp_distribution_policy_type column
  */
 #define SYM_POLICYTYPE_PARTITIONED 'p'
 #define SYM_POLICYTYPE_REPLICATED 'r'
@@ -171,4 +171,4 @@ extern GpPolicy *createHashPartitionedPolicy(List *keys, List *opclasses, int nu
 
 extern bool IsReplicatedTable(Oid relid);
 
-#endif /*_GP_POLICY_H_*/
+#endif			/* GP_DISTRIBUTION_POLICY_H */

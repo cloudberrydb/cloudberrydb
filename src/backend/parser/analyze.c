@@ -54,7 +54,7 @@
 #include "cdb/cdbhash.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
-#include "catalog/gp_policy.h"
+#include "catalog/gp_distribution_policy.h"
 #include "commands/defrem.h"
 #include "access/htup_details.h"
 #include "optimizer/clauses.h"
