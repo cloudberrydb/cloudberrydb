@@ -42,13 +42,13 @@
 #include "storage/proc.h"
 #include "tcop/idle_resource_cleaner.h"
 #include "utils/builtins.h"
+#include "utils/gdd.h"
 #include "utils/guc_tables.h"
 #include "utils/inval.h"
 #include "utils/resscheduler.h"
 #include "utils/resgroup.h"
 #include "utils/resource_manager.h"
 #include "utils/vmem_tracker.h"
-#include "utils/gdd.h"
 
 /*
  * These constants are copied from guc.c. They should not bitrot when we
@@ -5069,16 +5069,39 @@ DispatchSyncPGVariable(struct config_generic * gconfig)
 		{
 			struct config_string *sguc = (struct config_string *) gconfig;
 			const char *str = *sguc->variable;
-			int			i;
 
 			appendStringInfo(&buffer, "%s TO ", gconfig->name);
 
 			/*
-			 * All whitespace characters must be escaped. See
-			 * pg_split_opts() in the backend.
+			 * If it's a list, we need to split the list into elements and
+			 * quote the elements individually.
+			 *
+			 * This is the copied from pg_get_functiondef()'s handling of
+			 * proconfig options.
+			 * .
 			 */
-			for (i = 0; str[i] != '\0'; i++)
-				appendStringInfoChar(&buffer, str[i]);
+			if (sguc->gen.flags & GUC_LIST_QUOTE)
+			{
+				List	   *namelist;
+				ListCell   *lc;
+
+				/* Parse string into list of identifiers */
+				if (!SplitGUCList((char *) pstrdup(str), ',', &namelist))
+				{
+					/* this shouldn't fail really */
+					elog(ERROR, "invalid list syntax in proconfig item");
+				}
+				foreach(lc, namelist)
+				{
+					char	   *curname = (char *) lfirst(lc);
+
+					appendStringInfoString(&buffer, quote_literal_cstr(curname));
+					if (lnext(lc))
+						appendStringInfoString(&buffer, ", ");
+				}
+			}
+			else
+				appendStringInfoString(&buffer, quote_literal_cstr(str));
 
 			break;
 		}
