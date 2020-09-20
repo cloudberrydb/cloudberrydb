@@ -401,6 +401,32 @@ explain (costs off) update t_replicate_volatile set a = random();
 explain (costs off) insert into t_replicate_volatile select * from t_replicate_volatile limit 1;
 explain (costs off) select * from t_hashdist cross join (select * from t_replicate_volatile limit 1) x;
 
+-- Test that replicated table can't inherit a parent table, and it also
+-- can't be inherited by a child table.
+-- 1. Replicated table can't inherit a parent table.
+CREATE TABLE parent (t text) DISTRIBUTED BY (t);
+-- This is not allowed: should fail
+CREATE TABLE child () INHERITS (parent) DISTRIBUTED REPLICATED;
+
+CREATE TABLE child (t text) DISTRIBUTED REPLICATED;
+-- should fail
+ALTER TABLE child INHERIT parent;
+DROP TABLE child, parent;
+
+-- 2. Replicated table can't be inherited
+CREATE TABLE parent (t text) DISTRIBUTED REPLICATED;
+-- should fail
+CREATE TABLE child () INHERITS (parent) DISTRIBUTED REPLICATED;
+CREATE TABLE child () INHERITS (parent) DISTRIBUTED BY (t);
+
+CREATE TABLE child (t text) DISTRIBUTED REPLICATED;
+ALTER TABLE child INHERIT parent;
+
+CREATE TABLE child2(t text) DISTRIBUTED BY (t);
+ALTER TABLE child2 INHERIT parent;
+
+DROP TABLE child, child2, parent;
+
 -- start_ignore
 drop schema rpt cascade;
 -- end_ignore
