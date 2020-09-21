@@ -564,21 +564,24 @@ assign_new_record(PG_FUNCTION_ARGS)
 	{
 		TupleDesc	tupdesc;
 		HeapTuple	tuple;
-		Datum		dummy_values[1];
-		bool		dummy_nulls[1];
+		Datum		dummy_values[10];
+		bool		dummy_nulls[10];
 		int			i;
 
 		tupdesc = CreateTemplateTupleDesc(funcctx->call_cntr, false);
-
-		dummy_values[0] = Int32GetDatum(1);
-		dummy_nulls[0] = false;
 
 		for (i = 1; i <= funcctx->call_cntr; i++)
 			TupleDescInitEntry(tupdesc, (AttrNumber) i, "c", INT4OID, -1, 0);
 
 		BlessTupleDesc(tupdesc);
 
-		tuple = heap_form_tuple(funcctx->tuple_desc, dummy_values, dummy_nulls);
+		for (i = 0; i < funcctx->call_cntr + 1; i++)
+		{
+			dummy_values[i] = Int32GetDatum(i);
+			dummy_nulls[i] = false;
+		}
+
+		tuple = heap_form_tuple(tupdesc, dummy_values, dummy_nulls);
 
 		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
 	}
