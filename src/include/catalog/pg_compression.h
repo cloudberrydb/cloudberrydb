@@ -28,7 +28,7 @@
  */
 #define CompressionRelationId	7056
 
-CATALOG(pg_compression,7056)
+CATALOG(pg_compression,7056) BKI_WITHOUT_OIDS
 {
 	NameData	compname;			
 	regproc		compconstructor;	
@@ -69,11 +69,11 @@ typedef FormData_pg_compression *Form_pg_compression;
 #define Anum_pg_compression_compowner			7
 
 /* Initial contents */
-DATA(insert OID = 7060 ( zlib gp_zlib_constructor gp_zlib_destructor gp_zlib_compress gp_zlib_decompress gp_zlib_validator PGUID ));
+DATA(insert ( zlib gp_zlib_constructor gp_zlib_destructor gp_zlib_compress gp_zlib_decompress gp_zlib_validator PGUID ));
 
-DATA(insert OID = 7062 ( rle_type gp_rle_type_constructor gp_rle_type_destructor gp_rle_type_compress gp_rle_type_decompress gp_rle_type_validator PGUID ));
+DATA(insert ( rle_type gp_rle_type_constructor gp_rle_type_destructor gp_rle_type_compress gp_rle_type_decompress gp_rle_type_validator PGUID ));
 
-DATA(insert OID = 7063 ( none gp_dummy_compression_constructor gp_dummy_compression_destructor gp_dummy_compression_compress gp_dummy_compression_decompress gp_dummy_compression_validator PGUID ));
+DATA(insert ( none gp_dummy_compression_constructor gp_dummy_compression_destructor gp_dummy_compression_compress gp_dummy_compression_decompress gp_dummy_compression_validator PGUID ));
 
 #define NUM_COMPRESS_FUNCS 5
 

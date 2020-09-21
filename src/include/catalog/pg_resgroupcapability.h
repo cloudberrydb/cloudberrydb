@@ -16,7 +16,7 @@
 
 #include "catalog/genbki.h"
 
-CATALOG(pg_resgroupcapability,6439) BKI_SHARED_RELATION
+CATALOG(pg_resgroupcapability,6439) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
 	Oid		resgroupid;	/* OID of the group with this capability  */
 
