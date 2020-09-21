@@ -296,7 +296,6 @@ DATA(insert (	405		cdbhash_float8_ops	PGNSP PGUID 7102 701 f 0 ));
 DATA(insert (	405		cdbhash_numeric_ops	PGNSP PGUID 7103 1700 f 0 ));
 DATA(insert (	405		cdbhash_char_ops	PGNSP PGUID 7104 18 f 0 ));
 DATA(insert (	405		cdbhash_text_ops	PGNSP PGUID 7105 25 f 0 ));
-DATA(insert (	405		cdbhash_varchar_ops	PGNSP PGUID 7105 1043 f 0 ));
 DATA(insert (	405		cdbhash_bpchar_ops	PGNSP PGUID 7106 1042 f 0 ));
 DATA(insert (	405		cdbhash_bytea_ops	PGNSP PGUID 7107 17 f 0 ));
 DATA(insert (	405		cdbhash_name_ops	PGNSP PGUID 7108 19 f 0 ));

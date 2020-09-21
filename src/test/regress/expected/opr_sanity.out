@@ -1715,15 +1715,9 @@ WHERE p1.oid != p2.oid AND
 -- Ask access methods to validate opclasses
 -- (this replaces a lot of SQL-level checks that used to be done in this file)
 SELECT oid, opcname FROM pg_opclass WHERE NOT amvalidate(oid);
-INFO:  hash operator family "cdbhash_text_ops" is missing operator(s) for types character varying and character varying
-INFO:  hash operator family "cdbhash_text_ops" is missing cross-type operator(s)
-INFO:  hash operator family "cdbhash_text_ops" is missing operator(s) for types character varying and character varying
-INFO:  hash operator family "cdbhash_text_ops" is missing cross-type operator(s)
-  oid  |       opcname       
--------+---------------------
- 10169 | cdbhash_text_ops
- 10170 | cdbhash_varchar_ops
-(2 rows)
+ oid | opcname 
+-----+---------
+(0 rows)
 
 -- **************** pg_am ****************
 -- Look for illegal values in pg_am fields

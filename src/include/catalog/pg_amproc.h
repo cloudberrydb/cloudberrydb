@@ -701,7 +701,6 @@ DATA(insert (	7102 701 701 1 6144));		/* float8 */
 DATA(insert (	7103 1700 1700 1 6145));	/* numeric */
 DATA(insert (	7104 18 18 1 6146));		/* char */
 DATA(insert (	7105 25 25 1 6147));		/* text */
-DATA(insert (	7105 1043 1043 1 6147));	/* varchar */
 DATA(insert (	7106 1042 1042 1 6148));	/* bpchar */
 DATA(insert (	7107 17 17 1 6149));		/* bytea */
 DATA(insert (	7108 19 19 1 6150));		/* name */
