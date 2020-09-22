@@ -49,9 +49,8 @@ size_t gp_strxfrm(char *dst, const char *src, size_t n)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
-							errmsg("Unable to process string for comparison or sorting.  Error: %s.  "
+							errmsg("Unable to process string for comparison or sorting.  Error: %m.  "
 							        "String has length %lu and value (limited to 100 characters): '%.100s'",
-									strerror(errno),
 									(unsigned long) SAFE_STR_LENGTH(src),
 									NULL_TO_DUMMY_STR(src))));
 		}

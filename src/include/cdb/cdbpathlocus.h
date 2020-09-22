@@ -272,6 +272,7 @@ cdbpathlocus_from_baserel(struct PlannerInfo   *root,
                           struct RelOptInfo    *rel);
 CdbPathLocus
 cdbpathlocus_from_exprs(struct PlannerInfo     *root,
+						struct RelOptInfo *rel,
                         List                   *hash_on_exprs,
 						List *hash_opclasses,
 						List *hash_sortrefs,

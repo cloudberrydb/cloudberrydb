@@ -33,13 +33,13 @@ Feature: Tests for gpinitstandby feature
     Scenario: gpinitstandby exclude dirs
         Given the database is running
         And the standby is not initialized
-        And the file "pg_log/testfile" exists under master data directory
+        And the file "log/testfile" exists under master data directory
         And the file "db_dumps/testfile" exists under master data directory
         And the file "promote/testfile" exists under master data directory
         And the user runs gpinitstandby with options " "
         Then gpinitstandby should return a return code of 0
         And verify the standby master entries in catalog
-        And the file "pg_log/testfile" does not exist under standby master data directory
+        And the file "log/testfile" does not exist under standby master data directory
         And the file "db_dumps/testfile" does not exist under standby master data directory
         And the file "promote/testfile" does not exist under standby master data directory
         ## maybe clean up the directories created in the master data directory

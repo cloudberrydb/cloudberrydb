@@ -13,6 +13,7 @@
 //
 //---------------------------------------------------------------------------
 
+extern "C" {
 #include "postgres.h"
 #include "utils/array.h"
 #include "utils/rel.h"
@@ -29,9 +30,11 @@
 #include "catalog/pg_am.h"
 #include "catalog/pg_proc.h"
 
-#include "cdb/cdbpartition.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_statistic.h"
+#include "utils/partcache.h"
+#include "partitioning/partdesc.h"
+}
 
 #include "naucrates/md/CMDIdCast.h"
 #include "naucrates/md/CMDIdScCmp.h"
@@ -250,10 +253,20 @@ CTranslatorRelcacheToDXL::RetrieveRelIndexInfo
 {
 	GPOS_ASSERT(NULL != rel);
 
-	if (gpdb::RelPartIsNone(rel->rd_id) || gpdb::IsLeafPartition(rel->rd_id))
+	if (!gpdb::RelIsPartitioned(rel->rd_id))
 	{
 		return RetrieveRelIndexInfoForNonPartTable(mp, rel);
 	}
+	else
+	{
+		// GPDPB_12_MERGE_FIXME: we do need to retrieve the actual index info
+		// for partitioned tables, but for now we create an empty array for it,
+		// so that we can tolerate mdpart_constraint being NULL in RetrieveRel()
+		CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
+		return md_index_info_array;
+	}
+#if 0
+
 	else if (gpdb::RelPartIsRoot(rel->rd_id))
 	{
 		return RetrieveRelIndexInfoForPartTable(mp, rel);
@@ -264,8 +277,10 @@ CTranslatorRelcacheToDXL::RetrieveRelIndexInfo
 		CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
 		return md_index_info_array;
 	}
+#endif
 }
 
+#if 0
 // return index info list of indexes defined on a partitioned table
 CMDIndexInfoArray *
 CTranslatorRelcacheToDXL::RetrieveRelIndexInfoForPartTable
@@ -310,6 +325,7 @@ CTranslatorRelcacheToDXL::RetrieveRelIndexInfoForPartTable
 	}
 	return md_index_info_array;
 }
+#endif
 
 // return index info list of indexes defined on regular, external tables or leaf partitions
 CMDIndexInfoArray *
@@ -356,6 +372,7 @@ CTranslatorRelcacheToDXL::RetrieveRelIndexInfoForNonPartTable
 	return md_index_info_array;
 }
 
+#if 0
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorRelcacheToDXL::RetrievePartTableIndexInfo
@@ -392,6 +409,7 @@ CTranslatorRelcacheToDXL::RetrievePartTableIndexInfo
 	
 	return index_info_list;
 }
+#endif
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -437,19 +455,25 @@ CTranslatorRelcacheToDXL::CheckUnsupportedRelation
 	OID rel_oid
 	)
 {
+#if 0
 	if (gpdb::RelPartIsInterior(rel_oid))
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Query on intermediate partition"));
 	}
+#endif
 
+#if 0
 	List *part_keys = gpdb::GetPartitionAttrs(rel_oid);
 	ULONG num_of_levels = gpdb::ListLength(part_keys);
+	ULONG num_of_levels = 0;
+#endif
 
-	if (0 == num_of_levels && gpdb::HasSubclassSlow(rel_oid))
+	if (!gpdb::RelIsPartitioned(rel_oid) && gpdb::HasSubclassSlow(rel_oid))
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Inherited tables"));
 	}
 
+#if 0
 	if (1 < num_of_levels)
 	{
 		if (!optimizer_multilevel_partitioning)
@@ -462,6 +486,7 @@ CTranslatorRelcacheToDXL::CheckUnsupportedRelation
 			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Multi-level partitioned tables with non-uniform partitioning structure"));
 		}
 	}
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -548,7 +573,10 @@ CTranslatorRelcacheToDXL::RetrieveRel
 		distr_op_families = RetrieveRelDistributionOpFamilies(mp, gp_policy);
 	}
 
+#if 0
 	convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel.get());
+#endif
+	convert_hash_to_random = false;
 
 	// collect relation indexes
 	md_index_info_array = RetrieveRelIndexInfo(mp, rel.get());
@@ -561,9 +589,11 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	is_partitioned = (NULL != part_keys && 0 < part_keys->Size());
 
 	// get number of leaf partitions
-	if (gpdb::RelPartIsRoot(oid))
+	if (gpdb::RelIsPartitioned(oid))
 	{
-		num_leaf_partitions = gpdb::CountLeafPartTables(oid);
+		// FIXME_GPDB_12_MERGE_FIXME: misestimate (most likely underestimate) the number of leaf partitions
+		// ORCA doesn't really care, except to determine whether to sort before inserting
+		num_leaf_partitions = rel->rd_partdesc->nparts;
 	}
 
 	// get key sets
@@ -574,7 +604,7 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	check_constraint_mdids = RetrieveRelCheckConstraints(mp, oid);
 
 	is_temporary = (rel->rd_rel->relpersistence == RELPERSISTENCE_TEMP);
-	has_oids = rel->rd_rel->relhasoids;
+	has_oids = false;
 
 	GPOS_DELETE_ARRAY(attno_mapping);
 
@@ -614,10 +644,14 @@ CTranslatorRelcacheToDXL::RetrieveRel
 	{
 		CMDPartConstraintGPDB *mdpart_constraint = NULL;
 
+#if 0
 		// retrieve the part constraints if relation is partitioned
 		if (is_partitioned)
 			mdpart_constraint = RetrievePartConstraintForRel(mp, md_accessor, oid, mdcol_array, md_index_info_array->Size() > 0 /*has_index*/);
+#endif
 
+		// GPDB_12_MERGE_FIXME: this leaves dead code in CMDRelationGPDB. We
+		// should gut it all the way
 		md_rel = GPOS_NEW(mp) CMDRelationGPDB
 							(
 							mp,
@@ -664,9 +698,19 @@ CTranslatorRelcacheToDXL::RetrieveRelColumns
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
 
+	for (ULONG ul = 0; ul < (ULONG) rel->rd_att->natts; ul++)
+	{
+		// GPDB_12_MERGE_FIXME: need to add support in ORCA to support GENERATED columns in DML
+		// FIXME: XXX in hindsight, we can fallback less often.
+		//  We _really_ should only fallback on DML, not *all the time*
+		if (rel->rd_att->attrs[ul].attgenerated)
+			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+					   GPOS_WSZ_LIT("column has GENERATED default value"));
+	}
+
 	for (ULONG ul = 0;  ul < (ULONG) rel->rd_att->natts; ul++)
 	{
-		Form_pg_attribute att = rel->rd_att->attrs[ul];
+		Form_pg_attribute att = &rel->rd_att->attrs[ul];
 		CMDName *md_colname = CDXLUtils::CreateMDNameFromCharArray(mp, NameStr(att->attname));
 	
 		// translate the default column value
@@ -784,7 +828,7 @@ CTranslatorRelcacheToDXL::GetDefaultColumnValue
 	if (NULL == node)
 	{
 		// get the default value for the type
-		Form_pg_attribute att_tup = rd_att->attrs[attno - 1];
+		Form_pg_attribute att_tup = &rd_att->attrs[attno - 1];
 		node = gpdb::GetTypeDefault(att_tup->atttypid);
 	}
 
@@ -919,18 +963,12 @@ CTranslatorRelcacheToDXL::AddSystemColumns
 	BOOL is_ao_table
 	)
 {
-	BOOL has_oids = rel->rd_att->tdhasoid;
-	is_ao_table = is_ao_table || gpdb::IsAppendOnlyPartitionTable(rel->rd_id);
+	/* is_ao_table = is_ao_table || gpdb::IsAppendOnlyPartitionTable(rel->rd_id); */
 
 	for (INT i= SelfItemPointerAttributeNumber; i > FirstLowInvalidHeapAttributeNumber; i--)
 	{
 		AttrNumber attno = AttrNumber(i);
 		GPOS_ASSERT(0 != attno);
-
-		if (ObjectIdAttributeNumber == i && !has_oids)
-		{
-			continue;
-		}
 
 		if (IsTransactionVisibilityAttribute(i) && is_ao_table)
 		{
@@ -1025,15 +1063,17 @@ CTranslatorRelcacheToDXL::RetrieveIndex
 
 	OID rel_oid = form_pg_index->indrelid;
 
+#if 0
 	if (gpdb::IsLeafPartition(rel_oid))
 	{
 		rel_oid = gpdb::GetRootPartition(rel_oid);
 	}
+#endif
 
 	CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(rel_oid);
 
 	md_rel = md_accessor->RetrieveRel(mdid_rel);
-
+#if 0
 	if (md_rel->IsPartitioned())
 	{
 		LogicalIndexes *logical_indexes = gpdb::GetLogicalPartIndexes(rel_oid);
@@ -1047,10 +1087,11 @@ CTranslatorRelcacheToDXL::RetrieveIndex
 		if (NULL != index)
 		{
 			mdid_rel->Release();
-			return index;
-		}
-	}
 
+				return index;
+			}
+		}
+#endif
 	index_type = IMDIndex::EmdindBtree;
 	mdid_item_type = GPOS_NEW(mp) CMDIdGPDB(GPDB_ANY);
 	if (GIN_AM_OID == index_rel->rd_rel->relam)
@@ -1111,6 +1152,7 @@ CTranslatorRelcacheToDXL::RetrieveIndex
 	return index;
 }
 
+#if 0
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorRelcacheToDXL::RetrievePartTableIndex
@@ -1378,6 +1420,7 @@ CTranslatorRelcacheToDXL::LevelHasDefaultPartition
 	
 	return false;
 }
+#endif
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -2579,11 +2622,12 @@ CTranslatorRelcacheToDXL::RetrieveNumChildPartitions
        GPOS_ASSERT(InvalidOid != rel_oid);
 
        ULONG num_part_tables = gpos::ulong_max;
-       if (gpdb::RelPartIsNone(rel_oid))
+       if (!gpdb::RelIsPartitioned(rel_oid))
        {
     	   // not a partitioned table
             num_part_tables = 1;
        }
+#if 0
        else if (gpdb::IsLeafPartition(rel_oid))
        {
            // leaf partition
@@ -2594,6 +2638,7 @@ CTranslatorRelcacheToDXL::RetrieveNumChildPartitions
            num_part_tables = gpdb::CountLeafPartTables(rel_oid);
        }
        GPOS_ASSERT(gpos::ulong_max != num_part_tables);
+#endif
 
        return num_part_tables;
 }
@@ -3035,22 +3080,29 @@ CTranslatorRelcacheToDXL::RetrieveRelStorageType
 {
 	IMDRelation::Erelstoragetype rel_storage_type = IMDRelation::ErelstorageSentinel;
 
-	switch (rel->rd_rel->relstorage)
+	switch (rel->rd_rel->relam)
 	{
-		case RELSTORAGE_HEAP:
+		case HEAP_TABLE_AM_OID:
 			rel_storage_type = IMDRelation::ErelstorageHeap;
 			break;
-		case RELSTORAGE_AOCOLS:
+		case AO_COLUMN_TABLE_AM_OID:
 			rel_storage_type = IMDRelation::ErelstorageAppendOnlyCols;
 			break;
-		case RELSTORAGE_AOROWS:
+		case AO_ROW_TABLE_AM_OID:
 			rel_storage_type = IMDRelation::ErelstorageAppendOnlyRows;
 			break;
+// GPDB_12_MERGE_FIXME: why did ORCA even care about relstorage = 'v'??? DEAD CODE!
+#if NOT_USED
 		case RELSTORAGE_VIRTUAL:
 			rel_storage_type = IMDRelation::ErelstorageVirtual;
 			break;
-		case RELSTORAGE_FOREIGN:
-			if (gpdb::RelIsExternalTable(rel->rd_id))
+#endif
+		case 0:
+			// GPDB_12_MERGE_FIXME: pretend partitioned tables are heap
+			// ORCA should stop asking about storage types of a partitioned table
+			if (rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
+				rel_storage_type = IMDRelation::ErelstorageHeap;
+			else if (gpdb::RelIsExternalTable(rel->rd_id))
 				rel_storage_type = IMDRelation::ErelstorageExternal;
 			else
 			{
@@ -3059,7 +3111,7 @@ CTranslatorRelcacheToDXL::RetrieveRelStorageType
 			}
 			break;
 		default:
-			GPOS_ASSERT(!"Unsupported relation type");
+			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Unsupported table AM"));
 	}
 
 	return rel_storage_type;
@@ -3086,7 +3138,8 @@ CTranslatorRelcacheToDXL::RetrievePartKeysAndTypes
 {
 	GPOS_ASSERT(NULL != rel);
 
-	if (!gpdb::RelPartIsRoot(oid))
+	// FIXME: isn't it faster to check rel.rd_partkey?
+	if (!gpdb::RelIsPartitioned(oid))
 	{
 		// not a partitioned table
 		*part_keys = NULL;
@@ -3094,35 +3147,32 @@ CTranslatorRelcacheToDXL::RetrievePartKeysAndTypes
 		return;
 	}
 
-	// TODO: Feb 23, 2012; support intermediate levels
-
 	*part_keys = GPOS_NEW(mp) ULongPtrArray(mp);
 	*part_types = GPOS_NEW(mp) CharPtrArray(mp);
 
-	List *part_keys_list = NIL;
-	List *part_types_list = NIL;
-	gpdb::GetOrderedPartKeysAndKinds(oid, &part_keys_list, &part_types_list);
+	PartitionKeyData *partkey = rel->rd_partkey;
 
-	ListCell *lc_key = NULL;
-	ListCell *lc_type = NULL;
-	ForBoth (lc_key, part_keys_list, lc_type, part_types_list)
+	if (1 < partkey->partnatts)
 	{
-		List *part_key = (List *) lfirst(lc_key);
-
-		if (1 < gpdb::ListLength(part_key))
-		{
-			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Composite part key"));
-		}
-
-		INT attno = linitial_int(part_key);
-		CHAR part_type = (CHAR) lfirst_int(lc_type);
-		GPOS_ASSERT(0 < attno);
-		(*part_keys)->Append(GPOS_NEW(mp) ULONG(attno - 1));
-		(*part_types)->Append(GPOS_NEW(mp) CHAR(part_type));
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Composite part key"));
 	}
 
-	gpdb::ListFree(part_keys_list);
-	gpdb::ListFree(part_types_list);
+	AttrNumber attno = partkey->partattrs[0];
+	CHAR part_type = (CHAR) partkey->strategy;
+	if (attno == 0)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+				   GPOS_WSZ_LIT("partitioning by expression"));
+	}
+
+	if (PARTITION_STRATEGY_HASH == part_type)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+				   GPOS_WSZ_LIT("hash partitioning"));
+	}
+
+	(*part_keys)->Append(GPOS_NEW(mp) ULONG(attno - 1));
+	(*part_types)->Append(GPOS_NEW(mp) CHAR(part_type));
 }
 
 
@@ -3297,7 +3347,11 @@ CTranslatorRelcacheToDXL::IsIndexSupported
 	)
 {
 	HeapTupleData *tup = index_rel->rd_indextuple;
-	
+
+	// covering index -- it has INCLUDE (...) columns
+	if (index_rel->rd_index->indnatts > index_rel->rd_index->indnkeyatts)
+		return false;
+
 	// index expressions and index constraints not supported
 	return gpdb::HeapAttIsNull(tup, Anum_pg_index_indexprs) &&
 		gpdb::HeapAttIsNull(tup, Anum_pg_index_indpred) &&
@@ -3356,6 +3410,7 @@ CTranslatorRelcacheToDXL::RetrievePartConstraintForIndex
 	return mdpart_constraint;
 }
 
+#if 0
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorRelcacheToDXL::RetrievePartConstraintForRel
@@ -3447,6 +3502,7 @@ CTranslatorRelcacheToDXL::RetrievePartConstraintForRel
 
 	return mdpart_constraint;
 }
+#endif
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -3507,7 +3563,8 @@ CTranslatorRelcacheToDXL::RelHasSystemColumns
 			RELKIND_SEQUENCE == rel_kind ||
 			RELKIND_AOSEGMENTS == rel_kind ||
 			RELKIND_TOASTVALUE == rel_kind ||
-			RELKIND_FOREIGN_TABLE == rel_kind;
+			RELKIND_FOREIGN_TABLE == rel_kind ||
+			RELKIND_PARTITIONED_TABLE == rel_kind;
 }
 
 //---------------------------------------------------------------------------

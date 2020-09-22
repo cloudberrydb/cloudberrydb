@@ -17,6 +17,8 @@
 #ifndef GPDXL_CContextDXLToPlStmt_H
 #define GPDXL_CContextDXLToPlStmt_H
 
+#include <vector>
+
 #include "gpopt/translate/CDXLTranslateContext.h"
 #include "gpopt/translate/CDXLTranslateContextBaseTable.h"
 #include "gpopt/translate/CTranslatorUtils.h"
@@ -105,6 +107,7 @@ namespace gpdxl
 
 			// counter for generating unique param ids
 			CIdGenerator *m_param_id_counter;
+			List *m_param_types_list;
 
 			// What operator classes to use for distribution keys?
 			DistributionHashOpsKind m_distribution_hashops;
@@ -139,6 +142,9 @@ namespace gpdxl
 			// CTAS distribution policy
 			GpPolicy  *m_distribution_policy;
 
+			// FXIME: this uses NEW/DELETE, should we use palloc/pfree/memory pool?
+			std::vector<List *> m_static_prune_results;
+
 		public:
 			// ctor/dtor
 			CContextDXLToPlStmt
@@ -163,11 +169,11 @@ namespace gpdxl
 			// retrieve the next motion id
 			ULONG GetNextMotionId();
 
-			// retrieve the current parameter id
-			ULONG GetCurrentParamId();
+			// retrieve the current parameter type list
+			List *GetParamTypes();
 
 			// retrieve the next parameter id
-			ULONG GetNextParamId();
+			ULONG GetNextParamId(OID typeoid);
 
 			// add a newly found CTE consumer
 			void AddCTEConsumerInfo(ULONG cte_id, ShareInputScan *share_input_scan);
@@ -249,6 +255,10 @@ namespace gpdxl
 			// based on decision made by DetermineDistributionHashOpclasses()
 			Oid GetDistributionHashOpclassForType(Oid typid);
 			Oid GetDistributionHashFuncForType(Oid typid);
+
+			List *GetStaticPruneResult(ULONG scanId);
+			void SetStaticPruneResult(ULONG scanId, List *static_prune_result);
+
 	};
 
 	}

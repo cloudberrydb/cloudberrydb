@@ -117,7 +117,7 @@ def step_impl(context):
 
     for content_id, result in enumerate(result_cursor.fetchall()):
         pg_rep_slot = result[0]
-        if (pg_rep_slot[0], pg_rep_slot[2], pg_rep_slot[4]) != ('internal_wal_replication_slot','physical','t') :
+        if (pg_rep_slot[0], pg_rep_slot[2], pg_rep_slot[4]) != ('internal_wal_replication_slot','physical','f') :
             raise Exception(
                 "expected replication slot to be active for content id %d, got %s" %
                 (content_id, result[0])

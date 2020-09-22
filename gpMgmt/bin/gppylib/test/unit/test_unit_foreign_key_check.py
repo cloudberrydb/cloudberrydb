@@ -175,13 +175,13 @@ class GpCheckCatTestCase(GpTestCase):
     ####################### PRIVATE METHODS #######################
     def _get_filter(self, table_name):
         query_filters = {}
-        query_filters['pg_appendonly'] = "(relstorage='a' or relstorage='c')"
-        query_filters['pg_attribute'] = "true"
+        query_filters['pg_appendonly'] = "(select amname from pg_am am where am.oid = relam) IN ('ao_row', 'ao_column')"
+        query_filters['pg_attribute'] = "(relnatts > 0 or relnatts is NULL)"
         query_filters['pg_constraint'] = "((relchecks>0 or relhaspkey='t') and relkind = 'r')"
         query_filters['gp_distribution_policy'] = """(relnamespace not in(select oid from pg_namespace where nspname ~ 'pg_')
                                                            and relnamespace not in(select oid from pg_namespace where nspname ~ 'gp_')
                                                            and relnamespace!=(select oid from pg_namespace where nspname='information_schema')
-                                                           and relkind='r' and (relstorage='a' or relstorage='h' or relstorage='c'))"""
+                                                           and relkind='r')"""
         query_filters["pg_index"] = "(relkind='i')"
         if table_name in query_filters:
             return query_filters[table_name]

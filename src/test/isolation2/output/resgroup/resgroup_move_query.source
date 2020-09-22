@@ -181,11 +181,11 @@ SET
 ------------------------
  t                      
 (1 row)
-3: SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active';
- rsgname       | query                                                               
----------------+---------------------------------------------------------------------
- rg_move_query | SELECT pg_sleep(10);                                                
- admin_group   | SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active'; 
+3: SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active' and query like 'SELECT%';
+ rsgname       | query                                                                                        
+---------------+----------------------------------------------------------------------------------------------
+ rg_move_query | SELECT pg_sleep(10);                                                                         
+ admin_group   | SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active' and query like 'SELECT%'; 
 (2 rows)
 2<:  <... completed>
  pg_sleep 

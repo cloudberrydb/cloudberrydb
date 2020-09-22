@@ -1577,10 +1577,6 @@ class gpexpand:
         self.finalize_prepare()
 
     def _populate_regular_tables(self, dbname):
-        """ we don't do 3.2+ style partitioned tables here, but we do
-            all other table types.
-        """
-
         src_bytes_str = "0" if self.options.simple_progress else "pg_relation_size(quote_ident(n.nspname) || '.' || quote_ident(c.relname))"
         sql = """SELECT
     current_database(),
@@ -1597,12 +1593,11 @@ FROM
     pg_class c
     JOIN pg_namespace n ON (c.relnamespace=n.oid)
     JOIN pg_catalog.gp_distribution_policy p on (c.oid = p.localoid)
-    LEFT JOIN pg_partition pp on (c.oid=pp.parrelid)
-    LEFT JOIN pg_partition_rule pr on (c.oid=pr.parchildrelid)
+    LEFT JOIN pg_partitioned_table pp on (c.oid=pp.partrelid)
     LEFT JOIN pg_exttable pe on (c.oid=pe.reloid and pe.writable)
 WHERE
-    pp.parrelid is NULL
-    AND pr.parchildrelid is NULL
+    pp.partrelid is NULL
+    AND NOT c.relispartition
     AND n.nspname != 'gpexpand'
     AND n.nspname != 'pg_bitmapindex'
     AND c.relpersistence != 't'
@@ -1668,13 +1663,13 @@ SELECT
 FROM
     pg_class c,
     pg_namespace n,
-    pg_partition p,
+    pg_partitioned_table p,
     gp_distribution_policy d
 WHERE
     c.relnamespace = n.oid
-    AND p.parrelid = c.oid
+    AND p.partrelid = c.oid
+    AND NOT c.relispartition
     AND d.localoid = c.oid
-    AND parlevel = 0
 ORDER BY fq_name, tableoid desc
                   """ % (undone_status, src_bytes_str)
         self.logger.debug(sql)

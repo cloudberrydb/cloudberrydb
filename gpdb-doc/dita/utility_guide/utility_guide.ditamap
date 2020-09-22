@@ -11,10 +11,8 @@
             <topicref href="ref/analyzedb.xml"/>
             <topicref href="ref/clusterdb.xml"/>
             <topicref href="ref/createdb.xml"/>
-            <topicref href="ref/createlang.xml"/>
             <topicref href="ref/createuser.xml"/>
             <topicref href="ref/dropdb.xml"/>
-            <topicref href="ref/droplang.xml"/>
             <topicref href="ref/dropuser.xml"/>
             <topicref href="ref/gpactivatestandby.xml"/>
             <topicref href="ref/gpaddmirrors.xml"/>

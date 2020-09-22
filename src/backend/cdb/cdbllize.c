@@ -65,7 +65,6 @@
 
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h" /* for make_result() */
-#include "optimizer/var.h"
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "nodes/makefuncs.h"	/* for makeTargetEntry() */
 #include "utils/guc.h"			/* for Debug_pretty_print */

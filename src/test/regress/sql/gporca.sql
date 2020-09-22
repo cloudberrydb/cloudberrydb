@@ -275,7 +275,7 @@ select 1+row_number() over(order by foo.a+bar.a) from orca.foo inner join orca.b
 select row_number() over(order by foo.a+ bar.a)/count(*) from orca.foo inner join orca.bar using(b) group by foo.a, bar.a, bar.b;
 select count(*) over(partition by b order by a range between 1 preceding and (select count(*) from orca.bar) following) from orca.foo;
 select a+1, rank() over(partition by b+1 order by a+1) from orca.foo order by 1, 2;
-select a , sum(a) over (order by a range '1'::float8 preceding) from orca.r order by 1,2;
+select a , sum(a) over (order by a range 1 preceding) from orca.r order by 1,2;
 select a, b, floor(avg(b) over(order by a desc, b desc rows between unbounded preceding and unbounded following)) as avg, dense_rank() over (order by a) from orca.r order by 1,2,3,4;
 select lead(a) over(order by a) from orca.r order by 1;
 select lag(c,d) over(order by c,d) from orca.s order by 1;
@@ -536,8 +536,6 @@ insert into orca.t_date values('01-03-2012'::date,9,'tag1','tag2');
 set optimizer_enable_partial_index=on;
 set optimizer_enable_space_pruning=off;
 set optimizer_enable_constant_expression_evaluation=on;
-set optimizer_enumerate_plans=on;
-set optimizer_plan_id = 2;
 -- start_ignore
 analyze orca.t_date;
 -- end_ignore
@@ -575,8 +573,6 @@ insert into orca.t_text values('01-03-2012'::date,9,'ugly','tag2');
 
 set optimizer_enable_space_pruning=off;
 set optimizer_enable_constant_expression_evaluation=on;
-set optimizer_enumerate_plans=on;
-set optimizer_plan_id = 2;
 -- start_ignore
 analyze orca.t_text;
 -- end_ignore
@@ -607,8 +603,6 @@ set optimizer_enable_partial_index=on;
 set optimizer_enable_space_pruning=off;
 set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_use_external_constant_expression_evaluation_for_ints = on;
-set optimizer_enumerate_plans=on;
-set optimizer_plan_id = 2;
 -- start_ignore
 analyze orca.t_ceeval_ints;
 -- end_ignore
@@ -910,6 +904,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{0.000161451,0.000107634,0.000107634,0.000107634,0.000107634,0.000107634,0.000107634,0.000107634,0.000107634,0.000107634,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05}'::real[],
   NULL::real[],
   NULL::real[],
@@ -935,6 +934,11 @@ values (
   0::smallint,
   94::oid,
   95::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -966,6 +970,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{0.0478164,0.0439146,0.0406856,0.0239755,0.0154186,0.0149073,0.0148804,0.0143422,0.0141808,0.0139386,0.0138848,0.0138848,0.0137502,0.0134812,0.0134004,0.0133197,0.0133197,0.013239,0.0131852,0.0130775,0.0130775,0.0130237,0.0129699,0.0129699,0.012943}'::real[],
   NULL::real[],
   NULL::real[],
@@ -991,6 +1000,11 @@ values (
   0::smallint,
   94::oid,
   95::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -1022,6 +1036,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{1}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1047,6 +1066,11 @@ values (
   0::smallint,
   94::oid,
   95::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -1078,6 +1102,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{0.26042,0.0859995,0.0709308,0.0616473,0.0567231,0.0303797,0.0109787,0.0106289,0.00990232,0.00987541,0.00979469,0.00944488,0.00820709,0.00718457,0.00626968,0.00621586,0.00616204,0.00600059,0.00586605,0.00557006,0.00516643,0.00511261,0.0050857,0.0050857,0.0047628}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1103,6 +1132,11 @@ values (
   0::smallint,
   1093::oid,
   1095::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -1134,6 +1168,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{1}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1162,6 +1201,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{1}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1185,6 +1229,11 @@ values (
   0::smallint,
   0::smallint,
   0::smallint,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -1218,6 +1267,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{1}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1243,6 +1297,11 @@ values (
   0::smallint,
   2060::oid,
   2062::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -1274,6 +1333,11 @@ values (
   0::oid,
   0::oid,
   0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   '{0.0715766,0.0621317,0.00546242,0.0044399,0.000134542,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05,8.07255e-05}'::real[],
   NULL::real[],
   NULL::real[],
@@ -1299,6 +1363,11 @@ values (
   0::smallint,
   2060::oid,
   2062::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
+  0::oid,
   0::oid,
   0::oid,
   0::oid,
@@ -2450,18 +2519,19 @@ insert into t55 select i, i from generate_series(1, 1000) i;
 
 set optimizer_join_order = query;
 
+-- force_explain
 explain verbose
 CREATE TABLE TP AS
 WITH META AS (SELECT '2020-01-01' AS VALID_DT, '99' AS LOAD_ID)
 SELECT DISTINCT L1.c, L1.lid
 FROM t55 L1 CROSS JOIN META
-WHERE L1.lid = int4in(unknownout(meta.load_id));
+WHERE L1.lid = int4in(textout(meta.load_id));
 
 CREATE TABLE TP AS
 WITH META AS (SELECT '2020-01-01' AS VALID_DT, '99' AS LOAD_ID)
 SELECT DISTINCT L1.c, L1.lid
 FROM t55 L1 CROSS JOIN META
-WHERE L1.lid = int4in(unknownout(meta.load_id));
+WHERE L1.lid = int4in(textout(meta.load_id));
 
 reset optimizer_join_order;
 SELECT * from tp;

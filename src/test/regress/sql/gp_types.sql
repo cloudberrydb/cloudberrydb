@@ -1,8 +1,3 @@
--- GPDB_10_MERGE_FIXME: this shouldn't be needed after merge of upstream commit 1e7c4bb004. Remove when we get there.
--- start_matchsubs
--- m/^(ERROR:  .*)\(parse_coerce\.c:\d+\)$/
--- s/\(parse_coerce\.c:\d+\)$/(parse_coerce.c:XXX)/
--- end_matchsubs
 --
 -- Test the boundaries of some built-in datatypes
 --
@@ -162,14 +157,6 @@ from (select $1::u_d || bar as foo from (select 'bar' as bar) a ) b;
 select 'a' as a, 'b' as b, 'c' as c, 1 as d union select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d;
 select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d union select 'a' as a, 'b' as b, 'c' as c, 1 as d;
 
--- Make sure we can convert unknown to other useful types (MPP-4298)
-create table t as select j as a, 'abc' as i from
-generate_series(1, 10) j;
-select * from t order by a;
-alter table t alter i type int; -- should fail
-alter table t alter i type text; -- should work
-select * from t order by a;
-drop table t;
 
 --
 -- Float8: test if you can dump/restore subnormal (1e-323) values using COPY

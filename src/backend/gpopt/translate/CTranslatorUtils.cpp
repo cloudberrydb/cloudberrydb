@@ -129,12 +129,14 @@ CTranslatorUtils::GetTableDescr
 	// generate an MDId for the table desc.
 	OID rel_oid = rte->relid;
 
+#if 0
 	if (gpdb::HasExternalPartition(rel_oid))
 	{
 		// fall back to the planner for queries with partition tables that has an external table in one of its leaf
 		// partitions.
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Query over external partitions"));
 	}
+#endif
 
 	CMDIdGPDB *mdid = GPOS_NEW(mp) CMDIdGPDB(rel_oid);
 
@@ -816,6 +818,7 @@ CTranslatorUtils::GetColumnDescrAt
 //		Return the name for the system attribute with the given attribute number.
 //
 //---------------------------------------------------------------------------
+// GPDB_12_MERGE_FIXME: Can we get rid of this function? We should be able to get this info from pg_attribute
 const CWStringConst *
 CTranslatorUtils::GetSystemColName
 	(
@@ -828,9 +831,6 @@ CTranslatorUtils::GetSystemColName
 	{
 		case SelfItemPointerAttributeNumber:
 			return CDXLTokens::GetDXLTokenStr(EdxltokenCtidColName);
-
-		case ObjectIdAttributeNumber:
-			return CDXLTokens::GetDXLTokenStr(EdxltokenOidColName);
 
 		case MinTransactionIdAttributeNumber:
 			return CDXLTokens::GetDXLTokenStr(EdxltokenXminColName);
@@ -869,6 +869,7 @@ CTranslatorUtils::GetSystemColName
 //		Return the type id for the system attribute with the given attribute number.
 //
 //---------------------------------------------------------------------------
+// GPDB_12_MERGE_FIXME: Can we get rid of this function? We should be able to get this info from pg_attribute
 CMDIdGPDB *
 CTranslatorUtils::GetSystemColType
 	(
@@ -884,7 +885,6 @@ CTranslatorUtils::GetSystemColType
 			// tid type
 			return GPOS_NEW(mp) CMDIdGPDB(GPDB_TID);
 
-		case ObjectIdAttributeNumber:
 		case TableOidAttributeNumber:
 			// OID type
 			return GPOS_NEW(mp) CMDIdGPDB(GPDB_OID);
@@ -916,6 +916,7 @@ CTranslatorUtils::GetSystemColType
 
 
 // Returns the length for the system column with given attno number
+// GPDB_12_MERGE_FIXME: Can we get rid of this function? We should be able to get this info from pg_attribute
 const ULONG
 CTranslatorUtils::GetSystemColLength
 	(
@@ -930,7 +931,6 @@ CTranslatorUtils::GetSystemColLength
 			// tid type
 			return 6;
 
-		case ObjectIdAttributeNumber:
 		case TableOidAttributeNumber:
 			// OID type
 

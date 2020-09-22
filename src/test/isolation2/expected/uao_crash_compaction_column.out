@@ -25,12 +25,12 @@ CREATE
 --
 -- Setup tables to test crash at different points
 -- for crash_before_cleanup_phase
-3:set gp_default_storage_options="appendonly=true,orientation=column";
+3:set default_table_access_method = ao_column;
 SET
-3:show gp_default_storage_options;
- gp_default_storage_options                                                         
-------------------------------------------------------------------------------------
- appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column 
+3:show default_table_access_method;
+ default_table_access_method 
+-----------------------------
+ ao_column                   
 (1 row)
 3:DROP TABLE IF EXISTS crash_before_cleanup_phase CASCADE;
 DROP
@@ -289,12 +289,12 @@ UPDATE 1
 -- Setup tables to test crash at different points on master now
 --
 -- for crash_master_before_cleanup_phase
-2:set gp_default_storage_options="appendonly=true,orientation=column";
+2:set default_table_access_method = ao_column;
 SET
-2:show gp_default_storage_options;
- gp_default_storage_options                                                         
-------------------------------------------------------------------------------------
- appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column 
+2:show default_table_access_method;
+ default_table_access_method 
+-----------------------------
+ ao_column                   
 (1 row)
 2:DROP TABLE IF EXISTS crash_master_before_cleanup_phase CASCADE;
 DROP
@@ -445,7 +445,7 @@ UPDATE 1
 -------------------------------
  Success:                      
 (1 row)
-4:SET gp_default_storage_options="appendonly=true,orientation=column";
+4:SET default_table_access_method = ao_column;
 SET
 4:CREATE TABLE crash_vacuum_in_appendonly_insert_1 (a INT, b INT, c CHAR(20));
 CREATE

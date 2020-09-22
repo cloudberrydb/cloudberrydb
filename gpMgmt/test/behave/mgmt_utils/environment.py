@@ -42,7 +42,7 @@ def before_feature(context, feature):
         Given there is a regular "ao" table "t1_ao" with column name list "x,y,z" and column type list "int,text,real" in schema "public"
         And there is a regular "heap" table "t2_heap" with column name list "x,y,z" and column type list "int,text,real" in schema "public"
         And there is a regular "ao" table "t3_ao" with column name list "a,b,c" and column type list "int,text,real" in schema "public"
-        And there is a hard coded ao partition table "sales" with 4 child partitions in schema "public"
+        And there is a hard coded partition table "sales" with 4 child partitions in schema "public"
         """)
 
     if 'gpreload' in feature.tags:

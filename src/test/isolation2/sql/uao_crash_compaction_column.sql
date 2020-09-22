@@ -13,8 +13,8 @@ include: helpers/server_helpers.sql;
 --
 -- Setup tables to test crash at different points
 -- for crash_before_cleanup_phase
-3:set gp_default_storage_options="appendonly=true,orientation=column";
-3:show gp_default_storage_options;
+3:set default_table_access_method = ao_column;
+3:show default_table_access_method;
 3:DROP TABLE IF EXISTS crash_before_cleanup_phase CASCADE;
 3:CREATE TABLE crash_before_cleanup_phase (a INT, b INT, c CHAR(20));
 3:CREATE INDEX crash_before_cleanup_phase_index ON crash_before_cleanup_phase(b);
@@ -85,8 +85,8 @@ include: helpers/server_helpers.sql;
 -- Setup tables to test crash at different points on master now
 --
 -- for crash_master_before_cleanup_phase
-2:set gp_default_storage_options="appendonly=true,orientation=column";
-2:show gp_default_storage_options;
+2:set default_table_access_method = ao_column;
+2:show default_table_access_method;
 2:DROP TABLE IF EXISTS crash_master_before_cleanup_phase CASCADE;
 2:CREATE TABLE crash_master_before_cleanup_phase (a INT, b INT, c CHAR(20));
 2:CREATE INDEX crash_master_before_cleanup_phase_index ON crash_master_before_cleanup_phase(b);
@@ -119,7 +119,7 @@ include: helpers/server_helpers.sql;
 4:SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
 4:SELECT gp_request_fts_probe_scan();
 4:SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
-4:SET gp_default_storage_options="appendonly=true,orientation=column";
+4:SET default_table_access_method = ao_column;
 4:CREATE TABLE crash_vacuum_in_appendonly_insert_1 (a INT, b INT, c CHAR(20));
 -- just sanity check to make sure appendonly table is created
 4:SELECT count(*) from pg_appendonly where relid in (select oid from pg_class where relname='crash_vacuum_in_appendonly_insert_1');

@@ -348,7 +348,7 @@ class GpStart(GpTestCase):
 
 def os_exists_check(arg):
     # Skip file related checks
-    if 'pg_log' in arg:
+    if 'log' in arg:
         return True
     elif 'postmaster.pid' in arg or '.s.PGSQL' in arg:
         return False

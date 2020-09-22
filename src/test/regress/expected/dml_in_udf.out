@@ -251,7 +251,6 @@ PARTITION BY LIST(col2)
 (
 default partition def 
 );
-NOTICE:  CREATE TABLE will create partition "volatilefn_dml_int8_1_prt_def" for table "volatilefn_dml_int8"
 CREATE TABLE volatilefn_dml_int8_candidate
 (
     col1 int8 DEFAULT 1000000000000000000,

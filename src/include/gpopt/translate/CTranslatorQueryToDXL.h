@@ -433,10 +433,6 @@ namespace gpdxl
 			// table of a DML query
 			void GetCtidAndSegmentId(ULONG *ctid, ULONG *segment_id);
 			
-			// obtain the column id for the tuple oid column of the target table
-			// of a DML statement
-			ULONG GetTupleOidColId();
-
 			// construct a list of CTE producers from the query's CTE list
 			void ConstructCTEProducerList(List *cte_list, ULONG query_level);
 			

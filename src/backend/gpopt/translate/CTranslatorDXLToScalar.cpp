@@ -118,12 +118,16 @@ CTranslatorDXLToScalar::TranslateDXLToScalar
 		{EdxlopScalarArray, &CTranslatorDXLToScalar::TranslateDXLScalarArrayToScalar},
 		{EdxlopScalarArrayRef, &CTranslatorDXLToScalar::TranslateDXLScalarArrayRefToScalar},
 		{EdxlopScalarDMLAction, &CTranslatorDXLToScalar::TranslateDXLScalarDMLActionToScalar},
+#if 0
+		// GPDB_12_MERGE_FIXME: These were removed from the server with the v12 merge
+		// of upstream partitioning. Need something to replace? Need to rip out from GPORCA?
 		{EdxlopScalarPartDefault, &CTranslatorDXLToScalar::TranslateDXLScalarPartDefaultToScalar},
 		{EdxlopScalarPartBound, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundToScalar},
 		{EdxlopScalarPartBoundInclusion, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundInclusionToScalar},
 		{EdxlopScalarPartBoundOpen, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundOpenToScalar},
 		{EdxlopScalarPartListValues, &CTranslatorDXLToScalar::TranslateDXLScalarPartListValuesToScalar},
 		{EdxlopScalarPartListNullTest, &CTranslatorDXLToScalar::TranslateDXLScalarPartListNullTestToScalar},
+#endif
 	};
 
 	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
@@ -425,8 +429,6 @@ CTranslatorDXLToScalar::TranslateDXLScalarDistinctToScalar
 
 	dist_expr->opfuncid = CMDIdGPDB::CastMdid(md_scalar_op->FuncMdId())->Oid();
 	dist_expr->opresulttype = GetFunctionReturnTypeOid(md_scalar_op->FuncMdId());
-	// GPDB_91_MERGE_FIXME: collation
-	dist_expr->opcollid = gpdb::TypeCollation(dist_expr->opresulttype);
 
 	// translate left and right child
 	GPOS_ASSERT(2 == scalar_distinct_cmp_node->Arity());
@@ -437,6 +439,9 @@ CTranslatorDXLToScalar::TranslateDXLScalarDistinctToScalar
 	Expr *right_expr = TranslateDXLToScalar(right_node, colid_var);
 
 	dist_expr->args = ListMake2(left_expr, right_expr);
+	// GPDB_91_MERGE_FIXME: collation
+	dist_expr->opcollid = gpdb::TypeCollation(dist_expr->opresulttype);
+	dist_expr->inputcollid = gpdb::ExprCollation((Node *)dist_expr->args);
 
 	return (Expr *)dist_expr;
 }
@@ -682,11 +687,13 @@ CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar
 		IMDId *mdid = dxl_colref->MdidType();
 		ULONG colid = dxl_colref->Id();
 		INT type_modifier = dxl_colref->TypeModifier();
+		OID type_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 		if (NULL == subplan_translate_ctxt.GetParamIdMappingElement(colid))
 		{
 			// keep outer reference mapping to the original column for subsequent subplans
-			CMappingElementColIdParamId *colid_to_param_id_map = GPOS_NEW(m_mp) CMappingElementColIdParamId(colid, dxl_to_plstmt_ctxt->GetNextParamId(), mdid, type_modifier);
+			ULONG param_id = dxl_to_plstmt_ctxt->GetNextParamId(type_oid);
+			CMappingElementColIdParamId *colid_to_param_id_map = GPOS_NEW(m_mp) CMappingElementColIdParamId(colid, param_id, mdid, type_modifier);
 
 			BOOL is_inserted GPOS_ASSERTS_ONLY =
 			subplan_translate_ctxt.FInsertParamMapping(colid, colid_to_param_id_map);
@@ -826,8 +833,8 @@ CTranslatorDXLToScalar::TranslateDXLSubplanTestExprToScalar
 	Param *param = MakeNode(Param);
 	param->paramkind = PARAM_EXEC;
 	CContextDXLToPlStmt *dxl_to_plstmt_ctxt = (dynamic_cast<CMappingColIdVarPlStmt *>(colid_var))->GetDXLToPlStmtContext();
-	param->paramid = dxl_to_plstmt_ctxt->GetNextParamId();
 	CTranslatorDXLToScalar::STypeOidAndTypeModifier oidAndTypeModifier = OidParamOidFromDXLIdentOrDXLCastIdent(inner_child_node);
+	param->paramid = dxl_to_plstmt_ctxt->GetNextParamId(oidAndTypeModifier.oid_type);
 	param->paramtype = oidAndTypeModifier.oid_type;
 	param->paramtypmod = oidAndTypeModifier.type_modifier;
 
@@ -1324,14 +1331,43 @@ CTranslatorDXLToScalar::TranslateDXLScalarArrayCoerceExprToScalar
 	ArrayCoerceExpr *coerce = MakeNode(ArrayCoerceExpr);
 
 	coerce->arg = child_expr;
-	coerce->elemfuncid = CMDIdGPDB::CastMdid(dxlop->GetCoerceFuncMDid())->Oid();
+	Oid elemfuncid = CMDIdGPDB::CastMdid(dxlop->GetCoerceFuncMDid())->Oid();
 	coerce->resulttype = CMDIdGPDB::CastMdid(dxlop->GetResultTypeMdId())->Oid();
 	coerce->resulttypmod = dxlop->TypeModifier();
 	// GPDB_91_MERGE_FIXME: collation
 	coerce->resultcollid = gpdb::TypeCollation(coerce->resulttype);
-	coerce->isExplicit = dxlop->IsExplicit();
 	coerce->coerceformat = (CoercionForm)  dxlop->GetDXLCoercionForm();
 	coerce->location = dxlop->GetLocation();
+	// GPDB_12_MERGE_FIXME: change the representation of
+	// CDXLScalarArrayCoerceExpr so that we can correctly roundtrip
+	CaseTestExpr *case_test_expr = MakeNode(CaseTestExpr);
+	Oid input_array_type = gpdb::ExprType((Node *)child_expr);
+	int32 input_array_elem_typmod = gpdb::ExprTypeMod((Node *)child_expr);
+	case_test_expr->typeId = gpdb::GetElementType(input_array_type);
+	case_test_expr->typeMod = input_array_elem_typmod;
+	if (elemfuncid != 0)
+	{
+		FuncExpr *func_expr = MakeNode(FuncExpr);
+		func_expr->funcid = elemfuncid;
+		func_expr->funcformat = COERCE_EXPLICIT_CAST;
+		// GPDB_12_MERGE_FIXME: shouldn't this come from the DXL as well?
+		func_expr->funcresulttype = gpdb::GetFuncRetType(elemfuncid);
+		// FIXME: this is a giant hack. We really should know the arity of the
+		//   function we're calling. Instead, we're jamming three arguments,
+		//   _always_
+		func_expr->args = gpdb::LPrepend(
+			case_test_expr, ListMake2(gpdb::MakeIntConst(dxlop->TypeModifier()),
+									  gpdb::MakeBoolConst(true, false)));
+		coerce->elemexpr = (Expr *) func_expr;
+	}
+	else
+	{
+		RelabelType *rt = MakeNode(RelabelType);
+		rt->resulttypmod = dxlop->TypeModifier();
+		rt->resulttype = gpdb::GetElementType(coerce->resulttype);
+		rt->arg = (Expr *) case_test_expr;
+		coerce->elemexpr = (Expr *) rt;
+	}
 
 	return (Expr *) coerce;
 }
@@ -1741,151 +1777,6 @@ CTranslatorDXLToScalar::TranslateDXLDatumGenericToScalar
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartDefaultToScalar
-//
-//	@doc:
-//		Translates a DXL part default into a GPDB part default
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartDefaultToScalar
-	(
-	const CDXLNode *part_default_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartDefault *dxlop = CDXLScalarPartDefault::Cast(part_default_node->GetOperator());
-
-	PartDefaultExpr *expr = MakeNode(PartDefaultExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartBoundToScalar
-//
-//	@doc:
-//		Translates a DXL part bound into a GPDB part bound
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartBoundToScalar
-	(
-	const CDXLNode *part_bound_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartBound *dxlop = CDXLScalarPartBound::Cast(part_bound_node->GetOperator());
-
-	PartBoundExpr *expr = MakeNode(PartBoundExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-	expr->boundType = CMDIdGPDB::CastMdid(dxlop->MdidType())->Oid();
-	expr->isLowerBound = dxlop->IsLowerBound();
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartBoundInclusionToScalar
-//
-//	@doc:
-//		Translates a DXL part bound inclusion into a GPDB part bound inclusion
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartBoundInclusionToScalar
-	(
-	const CDXLNode *part_bound_incl_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartBoundInclusion *dxlop = CDXLScalarPartBoundInclusion::Cast(part_bound_incl_node->GetOperator());
-
-	PartBoundInclusionExpr *expr = MakeNode(PartBoundInclusionExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-	expr->isLowerBound = dxlop->IsLowerBound();
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartBoundOpenToScalar
-//
-//	@doc:
-//		Translates a DXL part bound openness into a GPDB part bound openness
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartBoundOpenToScalar
-	(
-	const CDXLNode *part_bound_open_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartBoundOpen *dxlop = CDXLScalarPartBoundOpen::Cast(part_bound_open_node->GetOperator());
-
-	PartBoundOpenExpr *expr = MakeNode(PartBoundOpenExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-	expr->isLowerBound = dxlop->IsLowerBound();
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartListValuesToScalar
-//
-//	@doc:
-//		Translates a DXL part list values into a GPDB part list values
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartListValuesToScalar
-	(
-	const CDXLNode *part_list_values_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartListValues *dxlop = CDXLScalarPartListValues::Cast(part_list_values_node->GetOperator());
-
-	PartListRuleExpr *expr = MakeNode(PartListRuleExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-	expr->resulttype = CMDIdGPDB::CastMdid(dxlop->GetResultTypeMdId())->Oid();
-	expr->elementtype = CMDIdGPDB::CastMdid(dxlop->GetElemTypeMdId())->Oid();
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToScalar::TranslateDXLScalarPartListNullTestToScalar
-//
-//	@doc:
-//		Translates a DXL part list values into a GPDB part list null test
-//
-//---------------------------------------------------------------------------
-Expr *
-CTranslatorDXLToScalar::TranslateDXLScalarPartListNullTestToScalar
-	(
-	const CDXLNode *part_list_null_test_node,
-	CMappingColIdVar * //colid_var
-	)
-{
-	CDXLScalarPartListNullTest *dxlop = CDXLScalarPartListNullTest::Cast(part_list_null_test_node->GetOperator());
-
-	PartListNullTestExpr *expr = MakeNode(PartListNullTestExpr);
-	expr->level = dxlop->GetPartitioningLevel();
-	expr->nulltesttype = dxlop->IsNull() ? IS_NULL : IS_NOT_NULL;
-
-	return (Expr *) expr;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorDXLToScalar::TranslateDXLScalarIdentToScalar
 //
 //	@doc:
@@ -2004,12 +1895,16 @@ CTranslatorDXLToScalar::TranslateDXLScalarArrayToScalar
 	return (Expr *) gpdb::EvalConstExpressions((Node *) expr);
 }
 
+// GPDB_12_MERGE_FIXME: ArrayRef was renamed in commit 558d77f20e4e9.
+// I've fixed the renamed type and fields but the wording "ArrayRef" is
+// still everywhere. Do we plan to rename them?
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorDXLToScalar::TranslateDXLScalarArrayRefToScalar
 //
 //	@doc:
-//		Translates a DXL scalar arrayref into a GPDB ArrayRef node
+//		Translates a DXL scalar arrayref into a GPDB SubscriptingRef node
 //
 //---------------------------------------------------------------------------
 Expr *
@@ -2022,8 +1917,8 @@ CTranslatorDXLToScalar::TranslateDXLScalarArrayRefToScalar
 	GPOS_ASSERT(NULL != scalar_array_ref_node);
 	CDXLScalarArrayRef *dxlop = CDXLScalarArrayRef::Cast(scalar_array_ref_node->GetOperator());
 
-	ArrayRef *array_ref = MakeNode(ArrayRef);
-	array_ref->refarraytype = CMDIdGPDB::CastMdid(dxlop->ArrayTypeMDid())->Oid();
+	SubscriptingRef *array_ref = MakeNode(SubscriptingRef);
+	array_ref->refcontainertype = CMDIdGPDB::CastMdid(dxlop->ArrayTypeMDid())->Oid();
 	array_ref->refelemtype = CMDIdGPDB::CastMdid(dxlop->ElementTypeMDid())->Oid();
 	// GPDB_91_MERGE_FIXME: collation
 	array_ref->refcollid = gpdb::TypeCollation(array_ref->refelemtype);

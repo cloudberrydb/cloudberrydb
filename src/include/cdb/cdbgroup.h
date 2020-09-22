@@ -20,8 +20,8 @@
 
 #include "nodes/params.h"
 #include "nodes/parsenodes.h"
+#include "nodes/pathnodes.h"
 #include "nodes/plannodes.h"
-#include "nodes/relation.h"
 
 #include "optimizer/clauses.h" /* AggClauseCosts */
 

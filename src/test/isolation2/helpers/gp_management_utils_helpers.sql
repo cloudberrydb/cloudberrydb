@@ -11,10 +11,13 @@ create or replace language plpythonu;
 --
 -- usage: `select pg_basebackup('somehost', 12345, 'some_slot_name', '/some/destination/data/directory')`
 --
-create or replace function pg_basebackup(host text, dbid int, port int, slotname text, datadir text, force_overwrite boolean, xlog_method text) returns text as $$
+create or replace function pg_basebackup(host text, dbid int, port int, create_slot boolean, slotname text, datadir text, force_overwrite boolean, xlog_method text) returns text as $$
     import subprocess
     import os
     cmd = 'pg_basebackup --checkpoint=fast -h %s -p %d -R -D %s --target-gp-dbid %d' % (host, port, datadir, dbid)
+
+    if create_slot:
+        cmd += ' --create-slot'
 
     if slotname is not None:
         cmd += ' --slot %s' % (slotname)
@@ -23,11 +26,17 @@ create or replace function pg_basebackup(host text, dbid int, port int, slotname
         cmd += ' --force-overwrite'
 
     if xlog_method == 'stream':
-        cmd += ' --xlog-method stream'
+        cmd += ' --wal-method stream'
     elif xlog_method == 'fetch':
-        cmd += ' --xlog-method fetch'
+        cmd += ' --wal-method fetch'
     else:
         plpy.error('invalid xlog method')
+
+    # GPDB_12_MERGE_FIXME: avoid checking checksum for heap tables
+    # till we code logic to skip/verify checksum for
+    # appendoptimized tables. Enabling this results in basebackup
+    # failures with appendoptimized tables.
+    cmd += ' --no-verify-checksums'
 
     try:
         # Unset PGAPPNAME so that the pg_stat_replication.application_name is not affected

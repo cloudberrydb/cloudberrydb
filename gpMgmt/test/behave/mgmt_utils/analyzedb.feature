@@ -1546,14 +1546,14 @@ Feature: Incrementally analyze the database
     # request mid-level
     Scenario: Multi-level partition and request mid-level
         Given no state files exist for database "incr_analyze"
-        And there is a hard coded multi-level ao partition table "sales_region" with 4 mid-level and 16 leaf-level partitions in schema "public"
+        And there is a hard coded multi-level partition table "sales_region" with 4 mid-level and 16 leaf-level partitions in schema "public"
         When the user runs "analyzedb -a -d incr_analyze -t public.sales_region_1_prt_2"
         Then analyzedb should print "There are no tables or partitions to be analyzed" to stdout
         And analyzedb should print "Skipping mid-level partition public.sales_region_1_prt_2" to stdout
 
     Scenario: Partition tables, (entries for some parts, dml on some parts, some parts)
         Given no state files exist for database "incr_analyze"
-        And there is a hard coded multi-level ao partition table "sales_region" with 4 mid-level and 16 leaf-level partitions in schema "public"
+        And there is a hard coded multi-level partition table "sales_region" with 4 mid-level and 16 leaf-level partitions in schema "public"
         And the user runs command "printf 'public.sales_1_prt_2 \npublic.sales_1_prt_4' > config_file"
         And the user runs "analyzedb -a -d incr_analyze -f config_file"
         And the row "1,'2008-01-01'" is inserted into "public.sales" in "incr_analyze"
@@ -1577,9 +1577,9 @@ Feature: Incrementally analyze the database
         When the user runs "analyzedb -l -d incr_analyze -t pg_catalog.pg_attribute"
         Then analyzedb should print "-pg_catalog.pg_attribute" to stdout
         When the user runs "analyzedb -l -d incr_analyze -s pg_catalog"
-        Then output should contain both "pg_catalog.pg_class" and "pg_catalog.pg_partition_rule"
+        Then output should contain both "pg_catalog.pg_class" and "pg_catalog.pg_partitioned_table"
         When the user runs "analyzedb -l -d incr_analyze"
-        Then output should contain both "pg_catalog.pg_class" and "pg_catalog.pg_partition_rule"
+        Then output should contain both "pg_catalog.pg_class" and "pg_catalog.pg_partitioned_table"
 
     Scenario: Concurrent analyzedb runs all capture the correct values in their output files
         Given no state files exist for database "incr_analyze"

@@ -47,6 +47,8 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
+#include "catalog/pg_type.h"
 #include "cdb/cdbgroup.h"
 #include "cdb/cdbgroupingpaths.h"
 #include "cdb/cdbhash.h"
@@ -54,15 +56,14 @@
 #include "cdb/cdbpathlocus.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
-#include "executor/execHHashagg.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/cost.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/paths.h"
 #include "optimizer/tlist.h"
-#include "optimizer/var.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_oper.h"
 #include "utils/lsyscache.h"
@@ -85,19 +86,21 @@ typedef struct
 {
 	/* Inputs from the caller */
 	DQAType     type;
+	List	   *havingQual;
 	PathTarget *target;			/* targetlist of final aggregated result */
 	double		dNumGroupsTotal;		/* total number of groups in the result, across all QEs */
 	const AggClauseCosts *agg_costs;
 	const AggClauseCosts *agg_partial_costs;
 	const AggClauseCosts *agg_final_costs;
-	List	   *rollup_lists;
-	List	   *rollup_groupclauses;
+	List	   *rollups;
 
 	List	   *group_tles;
 
 	PathTarget *partial_grouping_target;	/* targetlist of partially aggregated result */
 	List	   *final_groupClause;			/* SortGroupClause for final grouping */
 	List	   *final_group_tles;
+	List	   *final_group_input_pathkeys;	/* order of the input to (sorted) second stage */
+	List	   *final_group_pathkeys;		/* order of the result of sorted second stage */
 
 	/*
 	 * partial_rel holds the partially aggregated results from the first stage.
@@ -123,15 +126,15 @@ typedef struct
 
 static List *get_common_group_tles(PathTarget *target,
 								   List *groupClause,
-								   List *rollup_lists,
-								   List *rollup_groupclauses);
+								   List *rollups);
+static List *get_all_rollup_groupclauses(List *rollups);
 static CdbPathLocus choose_grouping_locus(PlannerInfo *root, Path *path,
 										  List *group_tles,
 										  bool *need_redistribute_p);
 
 static Index add_gsetid_tlist(List *tlist);
 
-static List *add_gsetid_groupclause(List *groupClause, Index groupref);
+static SortGroupClause *create_gsetid_groupclause(Index groupref);
 
 static void add_first_stage_group_agg_path(PlannerInfo *root,
 										   Path *path,
@@ -203,14 +206,14 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 								   RelOptInfo *output_rel,
 								   PathTarget *target,
 								   PathTarget *partial_grouping_target,
+								   List *havingQual,
 								   bool can_sort,
 								   bool can_hash,
 								   double dNumGroupsTotal,
 								   const AggClauseCosts *agg_costs,
 								   const AggClauseCosts *agg_partial_costs,
 								   const AggClauseCosts *agg_final_costs,
-								   List *rollup_lists,
-								   List *rollup_groupclauses)
+								   List *rollups)
 {
 	Query	   *parse = root->parse;
 	Path	   *cheapest_path = input_rel->cheapest_total_path;
@@ -248,19 +251,30 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 	 * across subroutines.
 	 */
 	memset(&ctx, 0, sizeof(ctx));
+	ctx.havingQual = havingQual;
 	ctx.target = target;
 	ctx.dNumGroupsTotal = dNumGroupsTotal;
 	ctx.agg_costs = agg_costs;
 	ctx.agg_partial_costs = agg_partial_costs;
 	ctx.agg_final_costs = agg_final_costs;
-	ctx.rollup_lists = rollup_lists;
-	ctx.rollup_groupclauses = rollup_groupclauses;
-	ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_GROUP_AGG, NULL);
+	ctx.rollups = rollups;
+
+	/* create a partial rel similar to make_grouping_rel() */
+	if (IS_OTHER_REL(input_rel))
+	{
+		ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_GROUP_AGG,
+										  input_rel->relids);
+		ctx.partial_rel->reloptkind = RELOPT_OTHER_UPPER_REL;
+	}
+	else
+	{
+		ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_GROUP_AGG,
+										  NULL);
+	}
 
 	ctx.group_tles = get_common_group_tles(target,
 										   parse->groupClause,
-										   ctx.rollup_lists,
-										   ctx.rollup_groupclauses);
+										   ctx.rollups);
 
 	/*
 	 * For twostage grouping sets, we perform grouping sets aggregation in
@@ -318,29 +332,63 @@ cdb_create_twostage_grouping_paths(PlannerInfo *root,
 	if (parse->groupingSets)
 	{
 		Index		groupref;
-		GroupingSetId *gsetid = makeNode(GroupingSetId);
+		GroupingSetId *gsetid;
 		List	   *grouping_sets_tlist;
+		SortGroupClause *gsetcl;
+		List	   *gcls;
+		List	   *tlist;
+		List	   *pl;
 
+		/* GPDB_12_MERGE_FIXME: For now, bail out if there are any unsortable
+		 * refs. PostgreSQL supports hashing with grouping sets nowadays, but
+		 * the code in this file hasn't been updated to deal with it yet.
+		 */
+		ListCell   *lc;
+		foreach(lc, parse->groupClause)
+		{
+			SortGroupClause *gc = lfirst_node(SortGroupClause, lc);
+
+			if (!OidIsValid(gc->sortop))
+				return;
+		}
+
+		gsetid = makeNode(GroupingSetId);
 		grouping_sets_tlist = copyObject(root->processed_tlist);
 		groupref = add_gsetid_tlist(grouping_sets_tlist);
 
-		ctx.final_groupClause =
-			add_gsetid_groupclause(copyObject(parse->groupClause), groupref);
+		gsetcl = create_gsetid_groupclause(groupref);
+
+		ctx.final_groupClause = lappend(copyObject(parse->groupClause), gsetcl);
 
 		ctx.partial_grouping_target = copyObject(partial_grouping_target);
 		if (!list_member(ctx.partial_grouping_target->exprs, gsetid))
 			add_column_to_pathtarget(ctx.partial_grouping_target,
 									 (Expr *) gsetid, groupref);
+
+		gcls = get_all_rollup_groupclauses(rollups);
+		tlist = make_tlist_from_pathtarget(ctx.partial_grouping_target);
+
+		/* The final result will be sorted by this */
+		ctx.final_group_pathkeys = make_pathkeys_for_sortclauses(root, gcls, tlist);
+
+		/*
+		 * The input to the second-stage sorted Agg has GROUPINGSET_ID() as the last
+		 * sort key. It is not present in the final Agg result.
+		 */
+		pl = make_pathkeys_for_sortclauses(root, list_make1(gsetcl), tlist);
+		ctx.final_group_input_pathkeys = list_concat(list_copy(ctx.final_group_pathkeys), pl);
 	}
 	else
 	{
 		ctx.partial_grouping_target = partial_grouping_target;
 		ctx.final_groupClause = parse->groupClause;
+		ctx.final_group_input_pathkeys = root->group_pathkeys;
+		ctx.final_group_pathkeys = root->group_pathkeys;
 	}
 	ctx.final_group_tles = get_common_group_tles(ctx.partial_grouping_target,
 												 ctx.final_groupClause,
-												 NIL,
 												 NIL);
+	ctx.partial_rel->reltarget = ctx.partial_grouping_target;
 
 	/*
 	 * Consider ways to do the first Aggregate stage.
@@ -535,8 +583,8 @@ add_gsetid_tlist(List *tlist)
  * Add a SortGroupClause node to the groupClause representing the GroupingSetId.
  * Note we insert the new node to the head of groupClause.
  */
-static List *
-add_gsetid_groupclause(List *groupClause, Index groupref)
+static SortGroupClause *
+create_gsetid_groupclause(Index groupref)
 {
 	SortGroupClause *gc;
 	Oid         sortop;
@@ -555,9 +603,7 @@ add_gsetid_groupclause(List *groupClause, Index groupref)
 	gc->nulls_first = false;
 	gc->hashable = hashable;
 
-	groupClause = lcons(gc, groupClause);
-
-	return groupClause;
+	return gc;
 }
 
 /*
@@ -601,8 +647,7 @@ add_first_stage_group_agg_path(PlannerInfo *root,
 		/* If the input distribution matches the distinct, we can proceed */
 		dqa_group_tles = get_common_group_tles(info.input_proj_target,
 											   info.dqa_group_clause,
-											   ctx->rollup_lists,
-											   ctx->rollup_groupclauses);
+											   ctx->rollups);
 		if (!cdbpathlocus_collocates_tlist(root, path->locus, dqa_group_tles))
 			return;
 	}
@@ -632,11 +677,10 @@ add_first_stage_group_agg_path(PlannerInfo *root,
 			(Path *) create_groupingsets_path(root,
 											  ctx->partial_rel,
 											  path,
-											  ctx->partial_grouping_target,
 											  AGGSPLIT_INITIAL_SERIAL,
 											  NIL,
-											  ctx->rollup_lists,
-											  ctx->rollup_groupclauses,
+											  AGG_SORTED,
+											  ctx->rollups,
 											  ctx->agg_partial_costs,
 											  estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
 																			 path->rows, path->locus));
@@ -656,8 +700,7 @@ add_first_stage_group_agg_path(PlannerInfo *root,
 									 NIL,
 									 ctx->agg_partial_costs,
 									 estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																	path->rows, path->locus),
-									 NULL));
+																	path->rows, path->locus)));
 	}
 	else
 	{
@@ -675,7 +718,6 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 								cdb_agg_planning_context *ctx,
 								RelOptInfo *output_rel)
 {
-	Query	   *parse = root->parse;
 	Path	   *path;
 	List	   *pathkeys;
 	CdbPathLocus singleQE_locus;
@@ -710,8 +752,7 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 	 * We generate a Path for both, and let add_path() decide which ones
 	 * to keep.
 	 */
-	pathkeys = make_pathkeys_for_sortclauses(root, ctx->final_groupClause,
-											 make_tlist_from_pathtarget(ctx->partial_grouping_target));
+	pathkeys = ctx->final_group_input_pathkeys;
 
 	/* Alternative 1: Redistribute -> Sort -> Agg */
 	if (CdbPathLocus_IsHashed(group_locus))
@@ -733,10 +774,11 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 										AGGSPLIT_FINAL_DESERIAL,
 										false, /* streaming */
 										ctx->final_groupClause,
-										(List *) parse->havingQual,
+										ctx->havingQual,
 										ctx->agg_final_costs,
-										ctx->dNumGroupsTotal,
-										NULL);
+										ctx->dNumGroupsTotal);
+		path->pathkeys = ctx->final_group_pathkeys;
+
 		add_path(output_rel, path);
 	}
 
@@ -767,10 +809,10 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 									AGGSPLIT_FINAL_DESERIAL,
 									false, /* streaming */
 									ctx->final_groupClause,
-									(List *) parse->havingQual,
+									ctx->havingQual,
 									ctx->agg_final_costs,
-									ctx->dNumGroupsTotal,
-									NULL);
+									ctx->dNumGroupsTotal);
+	path->pathkeys = ctx->final_group_pathkeys;
 	add_path(output_rel, path);
 }
 
@@ -783,18 +825,10 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 							  cdb_agg_planning_context *ctx)
 {
 	Query	   *parse = root->parse;
-	HashAggTableSizes hash_info;
 	double		dNumGroups;
 
 	dNumGroups = estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
 												path->rows, path->locus);
-
-	if (!calcHashAggTableSizes(work_mem * 1024L,
-							   dNumGroups,
-							   path->pathtarget->width,
-							   false,	/* force */
-							   &hash_info))
-		return;	/* don't try to hash */
 
 	add_path(ctx->partial_rel,
 			 (Path *) create_agg_path(root,
@@ -807,8 +841,7 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 									  parse->groupClause,
 									  NIL,
 									  ctx->agg_partial_costs,
-									  dNumGroups,
-									  &hash_info));
+									  dNumGroups));
 }
 
 /*
@@ -824,7 +857,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 	CdbPathLocus group_locus;
 	bool		needs_redistribute;
 	double		dNumGroups;
-	HashAggTableSizes hash_info;
+	Size		hashentrysize;
 
 	group_locus = choose_grouping_locus(root,
 										initial_agg_path,
@@ -843,11 +876,8 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 		dNumGroups = ctx->dNumGroupsTotal;
 
 	/* Would the hash table fit in memory? */
-	if (calcHashAggTableSizes(work_mem * 1024L,
-							   dNumGroups,
-							   initial_agg_path->pathtarget->width,
-							   false,	/* force */
-							   &hash_info))
+	hashentrysize = MAXALIGN(initial_agg_path->pathtarget->width) + MAXALIGN(SizeofMinimalTupleHeader);
+	if (hashentrysize * dNumGroups > work_mem * 1024L)
 	{
 		Path	   *path;
 
@@ -864,8 +894,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 										ctx->final_groupClause,
 										(List *) parse->havingQual,
 										ctx->agg_final_costs,
-										dNumGroups,
-										&hash_info);
+										dNumGroups);
 		add_path(output_rel, path);
 	}
 
@@ -877,16 +906,14 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 	 * benefit from preserving the input order, but it can still be cheaper if
 	 * there are only a few groups.
 	 */
-	if (!CdbPathLocus_IsBottleneck(group_locus))
+	if (!CdbPathLocus_IsBottleneck(group_locus) &&
+		CdbPathLocus_IsBottleneck(root->final_locus))
 	{
 		CdbPathLocus singleQE_locus;
 		CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
 
-		if (calcHashAggTableSizes(work_mem * 1024L,
-								  ctx->dNumGroupsTotal,
-								  initial_agg_path->pathtarget->width,
-								  false,	/* force */
-								  &hash_info))
+		hashentrysize = MAXALIGN(initial_agg_path->pathtarget->width) + MAXALIGN(SizeofMinimalTupleHeader);
+		if (hashentrysize * ctx->dNumGroupsTotal <= work_mem * 1024L)
 		{
 			Path	   *path;
 
@@ -904,8 +931,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 											ctx->final_groupClause,
 											(List *) parse->havingQual,
 											ctx->agg_final_costs,
-											ctx->dNumGroupsTotal,
-											&hash_info);
+											ctx->dNumGroupsTotal);
 			add_path(output_rel, path);
 		}
 	}
@@ -954,7 +980,6 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 	List	   *dqa_group_tles;
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
-	HashAggTableSizes hash_info;
 	CdbPathLocus singleQE_locus;
 
 	if (!gp_enable_agg_distinct)
@@ -971,7 +996,7 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 	 */
 	path = apply_projection_to_path(root, path->parent, path, input_target);
 
-	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL, NIL);
+	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL  );
 	distinct_locus = choose_grouping_locus(root, path,
 										   dqa_group_tles,
 										   &distinct_need_redistribute);
@@ -994,8 +1019,7 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 									NIL,
 									ctx->agg_partial_costs, /* FIXME */
 									estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																   path->rows, path->locus),
-									&hash_info);
+																   path->rows, path->locus));
 
 	CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
 	path = cdbpath_create_motion_path(root, path, NIL, false, singleQE_locus);
@@ -1008,10 +1032,9 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 									AGGSPLIT_FINAL_DESERIAL,
 									false, /* streaming */
 									parse->groupClause,
-									(List *) parse->havingQual,
+									ctx->havingQual,
 									ctx->agg_final_costs,
-									ctx->dNumGroupsTotal,
-									&hash_info);
+									ctx->dNumGroupsTotal);
 	add_path(output_rel, path);
 }
 
@@ -1036,7 +1059,6 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	bool		group_need_redistribute;
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
-	HashAggTableSizes hash_info;
 
 	if (!gp_enable_agg_distinct)
 		return;
@@ -1054,7 +1076,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	else
 		num_input_segments = 1;
 
-	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL, NIL);
+	dqa_group_tles = get_common_group_tles(input_target, dqa_group_clause, NIL);
 	distinct_locus = choose_grouping_locus(root, path,
 										   dqa_group_tles,
 										   &distinct_need_redistribute);
@@ -1063,7 +1085,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 	 * Calculate the number of groups in the final stage, per segment.
 	 * group_locus is the corresponding locus for the final stage.
 	 */
-	group_tles = get_common_group_tles(input_target, parse->groupClause, NIL, NIL);
+	group_tles = get_common_group_tles(input_target, parse->groupClause, NIL);
 	group_locus = choose_grouping_locus(root, path,
 										group_tles,
 										&group_need_redistribute);
@@ -1072,18 +1094,6 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 								   CdbPathLocus_NumSegments(path->locus));
 	else
 		dNumGroups = ctx->dNumGroupsTotal;
-
-	/*
-	 * GPDB_96_MERGE_FIXME: compute the hash table size once. But we create
-	 * several different Hash Aggs below, depending on the query. Is this
-	 * computation sensible for all of them?
-	 */
-	if (!calcHashAggTableSizes(work_mem * 1024L,
-							   dNumGroups,
-							   path->pathtarget->width,
-							   false,	/* force */
-							   &hash_info))
-		return;	/* don't try to hash */
 
 	if (!distinct_need_redistribute || !group_need_redistribute)
 	{
@@ -1117,8 +1127,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										dNumDistinctGroups / (double) num_input_segments,
-										&hash_info);
+										clamp_row_est(dNumDistinctGroups / (double) num_input_segments));
 
 		if (group_need_redistribute)
 			path = cdbpath_create_motion_path(root, path, NIL, false,
@@ -1134,8 +1143,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										parse->groupClause,
 										(List *) parse->havingQual,
 										ctx->agg_final_costs,
-										dNumGroups,
-										&hash_info);
+										dNumGroups);
 		add_path(output_rel, path);
 	}
 	else if (CdbPathLocus_IsHashed(group_locus))
@@ -1165,8 +1173,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 											NIL,
 											ctx->agg_partial_costs, /* FIXME */
 											estimate_num_groups_on_segment(dNumDistinctGroups,
-																		   input_rows, path->locus),
-											&hash_info);
+																		   input_rows, path->locus));
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,
 										  group_locus);
@@ -1180,8 +1187,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										dNumDistinctGroups / CdbPathLocus_NumSegments(group_locus),
-										&hash_info);
+										clamp_row_est(dNumDistinctGroups / CdbPathLocus_NumSegments(group_locus)));
 
 		path = (Path *) create_agg_path(root,
 										output_rel,
@@ -1193,8 +1199,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										parse->groupClause,
 										(List *) parse->havingQual,
 										ctx->agg_final_costs,
-										dNumGroups,
-										&hash_info);
+										dNumGroups);
 		add_path(output_rel, path);
 	}
 	else if (CdbPathLocus_IsHashed(distinct_locus))
@@ -1221,8 +1226,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
 										estimate_num_groups_on_segment(dNumDistinctGroups,
-																	   input_rows, path->locus),
-										&hash_info);
+																	   input_rows, path->locus));
 
 		path = cdbpath_create_motion_path(root, path, NIL, false,
 										  distinct_locus);
@@ -1236,8 +1240,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										dqa_group_clause,
 										NIL,
 										ctx->agg_partial_costs, /* FIXME */
-										dNumDistinctGroups / CdbPathLocus_NumSegments(distinct_locus),
-										&hash_info);
+										clamp_row_est(dNumDistinctGroups / CdbPathLocus_NumSegments(distinct_locus)));
 
 		path = (Path *) create_agg_path(root,
 										output_rel,
@@ -1249,8 +1252,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										parse->groupClause,
 										NIL,
 										ctx->agg_partial_costs,
-										estimate_num_groups_on_segment(ctx->dNumGroupsTotal, input_rows, path->locus),
-										&hash_info);
+										estimate_num_groups_on_segment(ctx->dNumGroupsTotal, input_rows, path->locus));
 		path = cdbpath_create_motion_path(root, path, NIL, false,
 										  group_locus);
 
@@ -1264,8 +1266,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										parse->groupClause,
 										(List *) parse->havingQual,
 										ctx->agg_final_costs,
-										dNumGroups,
-										&hash_info);
+										dNumGroups);
 
 		add_path(output_rel, path);
 	}
@@ -1305,17 +1306,6 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 	List	   *dqa_group_tles;
 	CdbPathLocus distinct_locus;
 	bool		distinct_need_redistribute;
-	HashAggTableSizes hash_info;
-
-	/*
-	 * Check if the final Hash Agg would be too large.
-	 */
-	if (!calcHashAggTableSizes(work_mem * 1024L,
-							   ctx->dNumGroupsTotal,
-							   path->pathtarget->width,
-							   false,	/* force */
-							   &hash_info))
-		return;
 
 	/*
 	 * If subpath is projection capable, we do not want to generate a
@@ -1373,15 +1363,14 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 										NIL,
 										&DedupCost,
 										estimate_num_groups_on_segment(info->dNumDistinctGroups,
-																	   path->rows, path->locus),
-										&hash_info);
+																	   path->rows, path->locus));
 
 		/* set the actual group clause back */
 		((AggPath *)path)->groupClause = info->dqa_group_clause;
 	}
 
 	dqa_group_tles = get_common_group_tles(info->tup_split_target,
-										   info->dqa_group_clause, NIL, NIL);
+										   info->dqa_group_clause, NIL);
 	distinct_locus = choose_grouping_locus(root, path, dqa_group_tles,
 										   &distinct_need_redistribute);
 
@@ -1406,8 +1395,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 										info->dqa_group_clause,
 										NIL,
 										&DedupCost,
-										info->dNumDistinctGroups / CdbPathLocus_NumSegments(distinct_locus),
-										&hash_info);
+										clamp_row_est(info->dNumDistinctGroups / CdbPathLocus_NumSegments(distinct_locus)));
 
 		split = AGG_HASHED;
 		DEDUPLICATED_FLAG = AGGSPLITOP_DEDUPLICATED;
@@ -1425,8 +1413,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 									NIL,
 									ctx->agg_partial_costs,
 									estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																   input_rows, path->locus),
-									&hash_info);
+																   input_rows, path->locus));
 
 	CdbPathLocus singleQE_locus;
 	CdbPathLocus_MakeSingleQE(&singleQE_locus, getgpsegmentCount());
@@ -1446,8 +1433,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 									root->parse->groupClause,
 									(List *) root->parse->havingQual,
 									ctx->agg_final_costs,
-									ctx->dNumGroupsTotal,
-									&hash_info);
+									ctx->dNumGroupsTotal);
 
 	add_path(output_rel, path);
 }
@@ -1466,42 +1452,47 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 static List *
 get_common_group_tles(PathTarget *target,
 					  List *groupClause,
-					  List *rollup_lists,
-					  List *rollup_groupclauses)
+					  List *rollups)
 {
 	List	   *tlist = make_tlist_from_pathtarget(target);
 	List	   *group_tles;
 	ListCell   *lc;
 	Bitmapset  *common_groupcols = NULL;
-	bool		first = true;
 	int			x;
 
-	if (rollup_lists)
+	if (rollups)
 	{
-		ListCell   *lcl, *lcc;
+		ListCell   *lc;
+		bool		first = true;
 
-		forboth(lcl, rollup_lists, lcc, rollup_groupclauses)
+		foreach(lc, rollups)
 		{
-			List	   *rlist = (List *) lfirst(lcl);
-			List	   *rclause = (List *) lfirst(lcc);
-			List	   *last_list = (List *) llast(rlist);
-			Bitmapset  *this_groupcols = NULL;
+			RollupData *rollup = lfirst_node(RollupData, lc);
+			ListCell   *lc2;
 
-			foreach (lc, last_list)
+			foreach(lc2, rollup->gsets)
 			{
-				SortGroupClause *sc = list_nth(rclause, lfirst_int(lc));
+				List	   *colidx_lists = (List *) lfirst(lc2);
+				ListCell   *lc3;
+				Bitmapset  *this_groupcols = NULL;
 
-				this_groupcols = bms_add_member(this_groupcols, sc->tleSortGroupRef);
-			}
+				foreach(lc3, colidx_lists)
+				{
+					int			colidx = lfirst_int(lc3);
+					SortGroupClause *sc = list_nth(rollup->groupClause, colidx);
 
-			if (first)
-				common_groupcols = this_groupcols;
-			else
-			{
-				common_groupcols = bms_int_members(common_groupcols, this_groupcols);
-				bms_free(this_groupcols);
+					this_groupcols = bms_add_member(this_groupcols, sc->tleSortGroupRef);
+				}
+
+				if (first)
+					common_groupcols = this_groupcols;
+				else
+				{
+					common_groupcols = bms_int_members(common_groupcols, this_groupcols);
+					bms_free(this_groupcols);
+				}
+				first = false;
 			}
-			first = false;
 		}
 	}
 	else
@@ -1524,6 +1515,39 @@ get_common_group_tles(PathTarget *target,
 	}
 
 	return group_tles;
+}
+
+static List *
+get_all_rollup_groupclauses(List *rollups)
+{
+	List	   *sortcls = NIL;
+	ListCell   *lc;
+	Bitmapset  *all_sortrefs = NULL;
+
+	foreach(lc, rollups)
+	{
+		RollupData *rollup = lfirst_node(RollupData, lc);
+		ListCell   *lc2;
+
+		foreach(lc2, rollup->gsets)
+		{
+			List	   *colidx_lists = (List *) lfirst(lc2);
+			ListCell   *lc3;
+
+			foreach(lc3, colidx_lists)
+			{
+				int			colidx = lfirst_int(lc3);
+				SortGroupClause *sc = list_nth(rollup->groupClause, colidx);
+
+				if (!bms_is_member(sc->tleSortGroupRef, all_sortrefs))
+				{
+					sortcls = lappend(sortcls, sc);
+					all_sortrefs = bms_add_member(all_sortrefs, sc->tleSortGroupRef);
+				}
+			}
+		}
+	}
+	return sortcls;
 }
 
 /*
@@ -1620,6 +1644,7 @@ choose_grouping_locus(PlannerInfo *root, Path *path,
 
 		if (hash_exprs)
 			locus = cdbpathlocus_from_exprs(root,
+											path->parent,
 											hash_exprs,
 											hash_opfamilies,
 											hash_sortrefs,
@@ -2053,8 +2078,7 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 								double limit_tuples,
 								/* extra arguments */
 								List *groupClause,
-								List *rollup_lists,
-								List *rollup_groupclauses)
+								List *rollups)
 {
 	CdbPathLocus locus;
 	bool		need_redistribute;
@@ -2075,8 +2099,7 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 
 		group_tles = get_common_group_tles(target,
 										   groupClause,
-										   rollup_lists,
-										   rollup_groupclauses);
+										   rollups);
 
 		locus = choose_grouping_locus(root, subpath, group_tles,
 									  &need_redistribute);
@@ -2152,7 +2175,7 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 		Assert(!group_pathkeys);
 		subpath = cdbpath_create_motion_path(root,
 											 subpath,
-											 NIL,
+											 subpath->pathkeys,
 											 false, locus);
 	}
 
@@ -2171,8 +2194,7 @@ cdb_prepare_path_for_hashed_agg(PlannerInfo *root,
 								PathTarget *target,
 								/* extra arguments */
 								List *groupClause,
-								List *rollup_lists,
-								List *rollup_groupclauses)
+								List *rollups)
 {
 	List	   *group_tles;
 	CdbPathLocus locus;
@@ -2183,8 +2205,7 @@ cdb_prepare_path_for_hashed_agg(PlannerInfo *root,
 
 	group_tles = get_common_group_tles(target,
 									   groupClause,
-									   rollup_lists,
-									   rollup_groupclauses);
+									   rollups);
 	locus = choose_grouping_locus(root,
 								  subpath,
 								  group_tles,

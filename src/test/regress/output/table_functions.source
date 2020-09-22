@@ -152,33 +152,33 @@ ORDER BY p.proname;
 
 /* Observe how psql reports them */
 \df (scalar_*|multiset_*)
-                                                   List of functions
-     Schema     |           Name            |     Result data type     |          Argument data types          |  Type  
-----------------+---------------------------+--------------------------+---------------------------------------+--------
- table_function | multiset_1                | TABLE(a integer, b text) | a anytable                            | normal
- table_function | multiset_2                | TABLE(a integer, b text) | a anytable                            | normal
- table_function | multiset_3                | SETOF record             | a anytable, OUT a integer, OUT b text | normal
- table_function | multiset_4                | SETOF record             | a anytable                            | normal
- table_function | multiset_5                | SETOF example            | a anytable                            | normal
- table_function | multiset_6                | SETOF record             | a anytable                            | normal
- table_function | multiset_materialize_bad  | TABLE(a integer, b text) | anytable                              | normal
- table_function | multiset_materialize_good | TABLE(a integer, b text) | anytable                              | normal
- table_function | multiset_scalar_null      | integer                  | anytable                              | normal
- table_function | multiset_scalar_tuple     | example                  | anytable                              | normal
- table_function | multiset_scalar_value     | integer                  | anytable                              | normal
- table_function | multiset_setof_null       | SETOF integer            | anytable                              | normal
- table_function | multiset_setof_value      | SETOF integer            | anytable                              | normal
- table_function | scalar_1                  | integer                  | integer                               | normal
- table_function | scalar_2                  | integer                  | integer                               | normal
- table_function | scalar_3                  | integer                  | a integer, OUT b integer              | normal
- table_function | scalar_4                  | integer                  | INOUT x integer                       | normal
- table_function | scalar_5                  | anyelement               | anyelement                            | normal
- table_function | scalar_tf_1               | TABLE(a integer, b text) | integer                               | normal
- table_function | scalar_tf_2               | TABLE(a integer, b text) | integer                               | normal
- table_function | scalar_tf_3               | TABLE(a integer, b text) | a integer                             | normal
- table_function | scalar_tf_4               | SETOF record             | a integer, OUT a integer, OUT b text  | normal
- table_function | scalar_tf_5               | SETOF record             | a integer                             | normal
- table_function | scalar_tf_6               | SETOF example            | a anyelement                          | normal
+                                                  List of functions
+     Schema     |           Name            |     Result data type     |          Argument data types          | Type 
+----------------+---------------------------+--------------------------+---------------------------------------+------
+ table_function | multiset_1                | TABLE(a integer, b text) | a anytable                            | func
+ table_function | multiset_2                | TABLE(a integer, b text) | a anytable                            | func
+ table_function | multiset_3                | SETOF record             | a anytable, OUT a integer, OUT b text | func
+ table_function | multiset_4                | SETOF record             | a anytable                            | func
+ table_function | multiset_5                | SETOF example            | a anytable                            | func
+ table_function | multiset_6                | SETOF record             | a anytable                            | func
+ table_function | multiset_materialize_bad  | TABLE(a integer, b text) | anytable                              | func
+ table_function | multiset_materialize_good | TABLE(a integer, b text) | anytable                              | func
+ table_function | multiset_scalar_null      | integer                  | anytable                              | func
+ table_function | multiset_scalar_tuple     | example                  | anytable                              | func
+ table_function | multiset_scalar_value     | integer                  | anytable                              | func
+ table_function | multiset_setof_null       | SETOF integer            | anytable                              | func
+ table_function | multiset_setof_value      | SETOF integer            | anytable                              | func
+ table_function | scalar_1                  | integer                  | integer                               | func
+ table_function | scalar_2                  | integer                  | integer                               | func
+ table_function | scalar_3                  | integer                  | a integer, OUT b integer              | func
+ table_function | scalar_4                  | integer                  | INOUT x integer                       | func
+ table_function | scalar_5                  | anyelement               | anyelement                            | func
+ table_function | scalar_tf_1               | TABLE(a integer, b text) | integer                               | func
+ table_function | scalar_tf_2               | TABLE(a integer, b text) | integer                               | func
+ table_function | scalar_tf_3               | TABLE(a integer, b text) | a integer                             | func
+ table_function | scalar_tf_4               | SETOF record             | a integer, OUT a integer, OUT b text  | func
+ table_function | scalar_tf_5               | SETOF record             | a integer                             | func
+ table_function | scalar_tf_6               | SETOF example            | a anyelement                          | func
 (24 rows)
 
 -- Normal function use:
@@ -2240,11 +2240,11 @@ SELECT * FROM v1 order by a, b;
 (10 rows)
 
 \d+ v1
-               View "table_function.v1"
- Column |  Type   | Modifiers | Storage  | Description 
---------+---------+-----------+----------+-------------
- a      | integer |           | plain    | 
- b      | text    |           | extended | 
+                          View "table_function.v1"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Description 
+--------+---------+-----------+----------+---------+----------+-------------
+ a      | integer |           |          |         | plain    | 
+ b      | text    |           |          |         | extended | 
 View definition:
  SELECT tf.a,
     tf.b
@@ -2280,11 +2280,11 @@ SELECT * FROM v2 order by a, b;
 (10 rows)
 
 \d+ v2
-               View "table_function.v2"
- Column |  Type   | Modifiers | Storage  | Description 
---------+---------+-----------+----------+-------------
- a      | integer |           | plain    | 
- b      | text    |           | extended | 
+                          View "table_function.v2"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Description 
+--------+---------+-----------+----------+---------+----------+-------------
+ a      | integer |           |          |         | plain    | 
+ b      | text    |           |          |         | extended | 
 View definition:
  SELECT tf.a,
     tf.b
@@ -2322,11 +2322,11 @@ SELECT * FROM v3 order by a, b;
 (10 rows)
 
 \d+ v3
-               View "table_function.v3"
- Column |  Type   | Modifiers | Storage  | Description 
---------+---------+-----------+----------+-------------
- a      | integer |           | plain    | 
- b      | text    |           | extended | 
+                          View "table_function.v3"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Description 
+--------+---------+-----------+----------+---------+----------+-------------
+ a      | integer |           |          |         | plain    | 
+ b      | text    |           |          |         | extended | 
 View definition:
  SELECT tf.a,
     tf.b
@@ -2362,14 +2362,14 @@ SELECT *, generate_series(1,2) FROM multi_args( TABLE(SELECT 1::int, 'hello'::te
  1 | hello |               2
 (2 rows)
 
--- Note the extra "Result" node when the srf is in the select list
+-- Note the extra "ProjectSet" node when the srf is in the select list
 explain SELECT *, generate_series(1,2) FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Result  (cost=0.00..0.04 rows=8 width=36)
-   ->  Table Function Scan on multi_args  (cost=0.00..0.04 rows=4 width=36)
-         ->  Result  (cost=0.00..0.01 rows=1 width=0)
- Settings:  gp_segments_for_planner=8
+ ProjectSet  (cost=0.00..0.04 rows=2 width=40)
+   ->  Table Function Scan on multi_args  (cost=0.00..0.02 rows=1 width=36)
+         ->  Result  (cost=0.00..0.01 rows=1 width=36)
+ Optimizer: Postgres query optimizer
 (4 rows)
 
 explain SELECT * FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
@@ -2382,7 +2382,9 @@ explain SELECT * FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
 
 -- Error: don't support sets as arguments that are not TableValueExpr
 SELECT * FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), generate_series(1,2));
-ERROR:  set-valued function called in context that cannot accept a set
+ERROR:  set-returning functions must appear at top level of FROM
+LINE 1: ... multi_args( TABLE(SELECT 1::int, 'hello'::text), generate_s...
+                                                             ^
 -- And use it with a CTAS as well
 explain CREATE TABLE example_out AS SELECT * FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Greenplum Database data distribution key for this table.
@@ -2980,29 +2982,37 @@ SELECT extract(day from "time") FROM project( TABLE( SELECT * FROM history ), 2)
 
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ),
   CASE 1 WHEN 2 THEN 1 ELSE GREATEST(1, COALESCE(1+1)) END);
-  amhandler  
--------------
- bthandler
- hashhandler
- gisthandler
- ginhandler
- spghandler
- brinhandler
- bmhandler
-(7 rows)
+  amname   
+-----------
+ heap
+ ao_row
+ ao_column
+ btree
+ hash
+ gist
+ gin
+ spgist
+ brin
+ bitmap
+ heap2
+(11 rows)
 
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ),
   CASE WHEN 3 IS NOT NULL AND 1 IN (1, 2) THEN floor(NULLIF(2, 3))::int END);
-  amhandler  
--------------
- bthandler
- hashhandler
- gisthandler
- ginhandler
- spghandler
- brinhandler
- bmhandler
-(7 rows)
+  amname   
+-----------
+ heap
+ ao_row
+ ao_column
+ btree
+ hash
+ gist
+ gin
+ spgist
+ brin
+ bitmap
+ heap2
+(11 rows)
 
 -- ERROR: invalid operations demonstrating different return types
 SELECT extract(day from id) FROM project( TABLE( SELECT * FROM history ), 1);

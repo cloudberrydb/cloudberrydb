@@ -32,7 +32,7 @@ class GpEraFile:
         if do_read is True, immediately attempt to read values.
         """
         self.datadir      = datadir
-        self.filepath     = os.path.join(self.datadir, 'pg_log', 'gp_era')
+        self.filepath     = os.path.join(self.datadir, 'log', 'gp_era')
         self.era          = None
         self.logger       = logger
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
        
     if os.path.exists(TESTDIR): shutil.rmtree(TESTDIR)
     os.mkdir(TESTDIR)
-    os.mkdir(os.path.join(TESTDIR, 'pg_log'))
+    os.mkdir(os.path.join(TESTDIR, 'log'))
     unittest.main()
     shutil.rmtree(TESTDIR)
 

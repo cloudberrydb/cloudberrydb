@@ -1358,8 +1358,8 @@ drop schema qp_gist_indexes2 cascade;
 NOTICE:  drop cascades to function insertmanyintogisttable13(integer,integer)
 NOTICE:  drop cascades to function insertintogisttable13(integer)
 NOTICE:  drop cascades to function to_box(text)
-NOTICE:  drop cascades to append only table gisttable13
-NOTICE:  drop cascades to append only table gisttable1
+NOTICE:  drop cascades to table gisttable13
+NOTICE:  drop cascades to table gisttable1
 -- end_ignore
 -- ----------------------------------------------------------------------
 -- Test: setup.sql
@@ -1983,8 +1983,8 @@ drop schema qp_gist_indexes2 cascade;
 NOTICE:  drop cascades to function insertmanyintogisttable13(integer,integer)
 NOTICE:  drop cascades to function insertintogisttable13(integer)
 NOTICE:  drop cascades to function to_box(text)
-NOTICE:  drop cascades to append only table gisttable13
-NOTICE:  drop cascades to append only table gisttable1
+NOTICE:  drop cascades to table gisttable13
+NOTICE:  drop cascades to table gisttable1
 -- end_ignore
 -- ----------------------------------------------------------------------
 -- Test: setup.sql
@@ -2608,8 +2608,8 @@ drop schema qp_gist_indexes2 cascade;
 NOTICE:  drop cascades to function insertmanyintogisttable13(integer,integer)
 NOTICE:  drop cascades to function insertintogisttable13(integer)
 NOTICE:  drop cascades to function to_box(text)
-NOTICE:  drop cascades to append only columnar table gisttable13
-NOTICE:  drop cascades to append only columnar table gisttable1
+NOTICE:  drop cascades to table gisttable13
+NOTICE:  drop cascades to table gisttable1
 -- end_ignore
 -- ----------------------------------------------------------------------
 -- Test: setup.sql
@@ -3233,6 +3233,6 @@ drop schema qp_gist_indexes2 cascade;
 NOTICE:  drop cascades to function insertmanyintogisttable13(integer,integer)
 NOTICE:  drop cascades to function insertintogisttable13(integer)
 NOTICE:  drop cascades to function to_box(text)
-NOTICE:  drop cascades to append only columnar table gisttable13
-NOTICE:  drop cascades to append only columnar table gisttable1
+NOTICE:  drop cascades to table gisttable13
+NOTICE:  drop cascades to table gisttable1
 -- end_ignore

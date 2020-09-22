@@ -185,7 +185,7 @@ COptimizer::PrintQueryOrPlan
 				CScalarConst *popScalarConst = CScalarConst::PopConvert(pop);
 				CDatumGenericGPDB *datum = dynamic_cast<CDatumGenericGPDB *>(popScalarConst->GetDatum());
 
-				if (NULL != datum)
+				if (NULL != datum && !datum->IsNull())
 				{
 					const char *select_element_bytes = (const char *) datum->GetByteArrayValue();
 					ULONG select_element_len = clib::Strlen(select_element_bytes);

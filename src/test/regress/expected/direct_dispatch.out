@@ -27,29 +27,8 @@ create table direct_test_bitmap  as select '2008-02-01'::DATE AS DT,
         (i*1017-j)::bigint as s from generate_series(1,10) i, generate_series(1,10) j distributed by (dt);
 create index direct_test_bitmap_idx on direct_test_bitmap using bitmap (ind, dt);
 CREATE TABLE direct_test_partition (trans_id int, date date, amount decimal(9,2), region text) DISTRIBUTED BY (trans_id) PARTITION BY RANGE (date) (START (date '2008-01-01') INCLUSIVE END (date '2009-01-01') EXCLUSIVE EVERY (INTERVAL '1month') );
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_1" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_2" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_3" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_4" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_5" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_6" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_7" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_8" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_9" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_10" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_11" for table "direct_test_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_partition_1_prt_12" for table "direct_test_partition"
 create unique index direct_test_uk on direct_test_partition(trans_id,date);
 create table direct_test_range_partition (a int, b int, c int, d int) distributed by (a) partition by range(d) (start(1) end(10) every(1));
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_1" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_2" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_3" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_4" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_5" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_6" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_7" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_8" for table "direct_test_range_partition"
-NOTICE:  CREATE TABLE will create partition "direct_test_range_partition_1_prt_9" for table "direct_test_range_partition"
 insert into direct_test_range_partition select i, i+1, i+2, i+3 from generate_series(1, 2) i;
 commit;
 -- enable printing of printing info
@@ -467,8 +446,6 @@ INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL cont
 create table ddtesttab (i int, j int, k int8) distributed by (i) partition by
 range(k)
 (start(1) end(20) every(10));
-NOTICE:  CREATE TABLE will create partition "ddtesttab_1_prt_1" for table "ddtesttab"
-NOTICE:  CREATE TABLE will create partition "ddtesttab_1_prt_2" for table "ddtesttab"
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
 insert into ddtesttab values (1, 1, 5);

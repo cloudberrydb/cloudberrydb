@@ -32,9 +32,9 @@ select
     regr_slope(y, x1)::real as slope,
     regr_r2(y, x1)::real as r2
 from weibull;
- count |  avgx   | avgy  |   sxx   |   sxy   |   syy   | intercept |  slope  |    r2    
--------+---------+-------+---------+---------+---------+-----------+---------+----------
-    17 | 55.3529 | 288.4 | 2182.86 | 5230.02 | 13239.7 |   155.777 | 2.39595 | 0.946458
+ count |   avgx   | avgy  |    sxx    |   sxy   |   syy    | intercept |   slope   |     r2     
+-------+----------+-------+-----------+---------+----------+-----------+-----------+------------
+    17 | 55.35294 | 288.4 | 2182.8623 | 5230.02 | 13239.72 | 155.77734 | 2.3959458 | 0.94645846
 (1 row)
 
 select
@@ -49,9 +49,9 @@ select
     ((count(y) * sum(x1*y) - sum(x1)*sum(y))^2/
         ((count(y) * sum(x1*x1) - sum(x1)^2) * (count(y) * sum(y*y) - sum(y)^2)))::real as r2
 from weibull;
- count |  avgx   | avgy  |   sxx   |   sxy   |   sxy   | intercept |  slope  |    r2    
--------+---------+-------+---------+---------+---------+-----------+---------+----------
-    17 | 55.3529 | 288.4 | 2182.86 | 5230.02 | 13239.7 |   155.777 | 2.39595 | 0.946458
+ count |   avgx   | avgy  |    sxx    |   sxy   |   sxy    | intercept |   slope   |     r2     
+-------+----------+-------+-----------+---------+----------+-----------+-----------+------------
+    17 | 55.35294 | 288.4 | 2182.8623 | 5230.02 | 13239.72 | 155.77734 | 2.3959458 | 0.94645846
 (1 row)
 
 -- Single linear and multivariate should match for a single independent variable
@@ -59,18 +59,18 @@ select
     array[regr_intercept(y, x1), regr_slope(y, x1)]::real[] as coef,
     regr_r2(y,x1)::real as r2
 from weibull;
-       coef        |    r2    
--------------------+----------
- {155.777,2.39595} | 0.946458
+         coef          |     r2     
+-----------------------+------------
+ {155.77734,2.3959458} | 0.94645846
 (1 row)
 
 select 
     array[regr_intercept(y, x2), regr_slope(y, x2)]::real[] as coef,
     regr_r2(y,x2)::real as r2
 from weibull;
-        coef        |    r2    
---------------------+----------
- {-449.025,23.8649} | 0.945513
+          coef          |     r2     
+------------------------+------------
+ {-449.02472,23.864878} | 0.94551253
 (1 row)
 
 DROP TABLE weibull;

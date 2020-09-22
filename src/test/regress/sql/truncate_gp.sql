@@ -1,7 +1,7 @@
 -- Mask out segment file name
 -- start_matchsubs
 -- m/segfile.*,/
--- s/segfile.*,/segfile###,/
+-- s/segfile:\d+\/\d+/segfile###/
 -- end_matchsubs
 
 -- start_ignore

@@ -325,7 +325,7 @@ CQueryMutators::RunFixCTELevelsUpWalker
 								(Query *) node,
 								(ExprWalkerFn) CQueryMutators::RunFixCTELevelsUpWalker,
 								context,
-								QTW_EXAMINE_RTES // flags - visit RTEs
+								QTW_EXAMINE_RTES_BEFORE // flags - visit RTEs
 								);
 		context->m_current_query_level--;
 
@@ -1222,7 +1222,7 @@ CQueryMutators::ConvertToDerivedTable
 						 (Node *) lower_query,
 						 (ExprWalkerFn) RunFixCTELevelsUpWalker,
 						 &context2,
-						 QTW_EXAMINE_RTES
+						 QTW_EXAMINE_RTES_BEFORE
 						);
 	}
 

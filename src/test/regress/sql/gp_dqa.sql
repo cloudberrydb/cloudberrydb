@@ -1,3 +1,10 @@
+-- The last digits of some of the results vary from one invocation to another,
+-- because the intermediate operations are done in arbitrary order when rows
+-- are flowing from different segments in different order. Mask those
+-- differences by setting 'extra_float_digits'. This isn't enough for all of
+-- the queries, so a few also use TO_CHAR() to truncate the results further.
+set extra_float_digits=0;
+
 drop table if exists dqa_t1;
 drop table if exists dqa_t2;
 
@@ -79,8 +86,8 @@ explain (costs off) select corr(distinct d, i) from dqa_t1;
 select corr(distinct d, i) from dqa_t1 group by d;
 explain (costs off) select corr(distinct d, i) from dqa_t1 group by d;
 
-select corr(distinct d, i) from dqa_t1 group by c;
-explain (costs off) select corr(distinct d, i) from dqa_t1 group by c;
+select to_char(corr(distinct d, i), '9.99999999999999') from dqa_t1 group by c;
+explain (costs off) select to_char(corr(distinct d, i), '9.99999999999999') from dqa_t1 group by c;
 
 -- multi args multidqa
 select count(distinct c), corr(distinct d, i) from dqa_t1;
@@ -111,8 +118,8 @@ explain (costs off) select count(distinct d), corr(distinct d, i), i from dqa_t1
 select count(distinct d), corr(distinct d, i), d from dqa_t1 group by d;
 explain (costs off) select count(distinct d), corr(distinct d, i), d from dqa_t1 group by d;
 
-select count(distinct d), corr(distinct d, i), c from dqa_t1 group by c;
-explain (costs off) select count(distinct d), corr(distinct d, i), c from dqa_t1 group by c;
+select count(distinct d),  to_char(corr(distinct d, i), '9.99999999999999'), c from dqa_t1 group by c;
+explain (costs off) select count(distinct d),  to_char(corr(distinct d, i), '9.99999999999999'), c from dqa_t1 group by c;
 
 -- MPP-19037
 drop table if exists fact_route_aggregation;

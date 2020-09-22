@@ -49,6 +49,8 @@
 #include "storage/buffile.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
+#include "storage/lwlock.h"
+#include "storage/shmem.h"
 #include "utils/builtins.h"
 #include "utils/faultinjector.h"
 #include "utils/workfile_mgr.h"
@@ -685,7 +687,7 @@ gp_workfile_mgr_cache_entries_internal(PG_FUNCTION_ARGS)
 		 * view gp_workfile_mgr_cache_entries
 		 */
 #define NUM_CACHE_ENTRIES_ELEM 8
-		TupleDesc tupdesc = CreateTemplateTupleDesc(NUM_CACHE_ENTRIES_ELEM, false);
+		TupleDesc tupdesc = CreateTemplateTupleDesc(NUM_CACHE_ENTRIES_ELEM);
 
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "segid", INT4OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "prefix", TEXTOID, -1, 0);

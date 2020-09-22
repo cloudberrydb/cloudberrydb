@@ -32,8 +32,13 @@
 #include "catalog/pg_collation.h"
 extern "C" {
 	#include "access/external.h"
-	#include "utils/memutils.h"
+	#include "nodes/nodeFuncs.h"
+	#include "optimizer/clauses.h"
+	#include "optimizer/optimizer.h"
+	#include "optimizer/plancat.h"
 	#include "parser/parse_agg.h"
+	#include "utils/fmgroids.h"
+	#include "utils/memutils.h"
 }
 #define GP_WRAP_START	\
 	sigjmp_buf local_sigjmp_buf;	\
@@ -442,7 +447,7 @@ gpdb::CopyObject
 {
 	GP_WRAP_START;
 	{
-		return copyObject(from);
+		return copyObjectImpl(from);
 	}
 	GP_WRAP_END;
 	return NULL;
@@ -567,9 +572,16 @@ gpdb::TypeCollation
 	GP_WRAP_START;
 	{
 		Oid collation = InvalidOid;
-		if (type_is_collatable(type))
+		Oid typcollation = get_typcollation(type);
+		// GPDB_12_MERGE_FIXME: brittle assumption: we only let in NAME,
+		// default-collated non-name, or non-collatable expressions
+		// This and a lot of other hacks can go away if only collation on
+		// expressions just roundtrips through ORCA
+		if (OidIsValid(typcollation))
 		{
-			collation = DEFAULT_COLLATION_OID;
+			if (type == NAMEOID)
+				return typcollation; // As of v12, this is C_COLLATION_OID
+			return DEFAULT_COLLATION_OID;
 		}
 		return collation;
 	}
@@ -636,22 +648,22 @@ gpdb::IsFuncAllowedForPartitionSelection
 	// These are the functions we have allowed as lossy casts for Partition selection.
 	// For range partition selection, the logic in ORCA checks on bounds of the partition ranges.
 	// Hence these must be increasing functions.
-        case CONVERT_TS_DATE_OID:
-        case CONVERT_FLOAT8_INT4_OID:
-        case CONVERT_FLOAT4_INT4_OID:
-        case CONVERT_INT8_INT2_OID:
-        case CONVERT_INT8_INT4_OID:
-        case CONVERT_INT4_INT2_OID:
-        case CONVERT_FLOAT4_INT8_OID:
-        case CONVERT_FLOAT4_INT2_OID:
-        case CONVERT_FLOAT4_NUMERIC_OID:
-        case CONVERT_FLOAT8_INT8_OID:
-        case CONVERT_FLOAT8_INT2_OID:
-        case CONVERT_FLOAT8_FLOAT4_OID:
-        case CONVERT_FLOAT8_NUMERIC_OID:
-        case CONVERT_NUMERIC_INT8_OID:
-        case CONVERT_NUMERIC_INT2_OID:
-        case CONVERT_NUMERIC_INT4_OID:
+        case F_TIMESTAMP_DATE:  // date(timestamp) -> date
+        case F_DTOI4:           // int4(float8) -> int4
+        case F_FTOI4:           // int4(float4) -> int4
+        case F_INT82:           // int2(int8) -> int2
+        case F_INT84:           // int4(int8) -> int4
+        case F_I4TOI2:          // int2(int4) -> int2
+        case F_FTOI8:           // int8(float4) -> int8
+        case F_FTOI2:           // int2(float4) -> int2
+        case F_FLOAT4_NUMERIC:  // numeric(float4) -> numeric
+        case F_DTOI8:           // int8(float8) -> int8
+        case F_DTOI2:           // int2(float4) -> int2
+        case F_DTOF:            // float4(float8) -> float4
+        case F_FLOAT8_NUMERIC:  // numeric(float8) -> numeric
+        case F_NUMERIC_INT8:    // int8(numeric) -> int8
+        case F_NUMERIC_INT2:    // int2(numeric) -> int2
+        case F_NUMERIC_INT4:    // int4(numeric) -> int4
             return true;
         default:
             return false;
@@ -685,11 +697,11 @@ gpdb::IsFuncNDVPreserving
 	switch (funcid)
 	{
 		// for now, these are the functions we consider for this optimization
-		case LOWER_OID:
-		case LTRIM_SPACE_OID:
-		case BTRIM_SPACE_OID:
-		case RTRIM_SPACE_OID:
-		case UPPER_OID:
+		case F_LOWER:
+		case F_LTRIM1:
+		case F_BTRIM1:
+		case F_RTRIM1:
+		case F_UPPER:
 			return true;
 		default:
 			return false;
@@ -1003,7 +1015,7 @@ gpdb::GetCheckConstraintOids
 	GP_WRAP_END;
 	return NULL;
 }
-
+#if 0
 Node *
 gpdb::GetRelationPartContraints
 	(
@@ -1065,6 +1077,7 @@ gpdb::GetRootPartition
 	GP_WRAP_END;
 	return InvalidOid;
 }
+#endif
 
 bool
 gpdb::GetCastFunc
@@ -1289,7 +1302,7 @@ gpdb::GetOpName
 	GP_WRAP_END;
 	return NULL;
 }
-
+#if 0
 List *
 gpdb::GetPartitionAttrs
 	(
@@ -1340,6 +1353,7 @@ gpdb::GetParts
 	GP_WRAP_END;
 	return NULL;
 }
+#endif
 
 List *
 gpdb::GetRelationKeys
@@ -1406,7 +1420,7 @@ gpdb::HeapAttIsNull
 {
 	GP_WRAP_START;
 	{
-		return heap_attisnull(tup, attno);
+		return heap_attisnull(tup, attno, NULL);
 	}
 	GP_WRAP_END;
 	return false;
@@ -1793,7 +1807,7 @@ gpdb::ListFreeDeep
 	}
 	GP_WRAP_END;
 }
-
+#if 0
 bool
 gpdb::IsAppendOnlyPartitionTable
 	(
@@ -1822,6 +1836,7 @@ gpdb::IsMultilevelPartitionUniform
 	GP_WRAP_END;
 	return false;
 }
+#endif
 
 TypeCacheEntry *
 gpdb::LookupTypeCache
@@ -1865,6 +1880,17 @@ gpdb::MakeIntegerValue
 	}
 	GP_WRAP_END;
 	return NULL;
+}
+
+Node *
+gpdb::MakeIntConst(int32 intValue)
+{
+	GP_WRAP_START;
+	{
+		return (Node *) makeConst(INT4OID, -1, InvalidOid, sizeof(int32),
+								  Int32GetDatum(intValue), false, true);
+	}
+	GP_WRAP_END;
 }
 
 Node *
@@ -2314,6 +2340,7 @@ gpdb::MutateQueryTree
 	return NULL;
 }
 
+#if 0
 bool
 gpdb::RelPartIsRoot
 	(
@@ -2341,6 +2368,7 @@ gpdb::RelPartIsInterior
 	GP_WRAP_END;
 	return false;
 }
+#endif
 
 bool
 gpdb::RelPartIsNone
@@ -2348,12 +2376,10 @@ gpdb::RelPartIsNone
 	Oid relid
 	)
 {
-	GP_WRAP_START;
-	{
-		return PART_STATUS_NONE == rel_part_status(relid);
-	}
-	GP_WRAP_END;
-	return false;
+	// FIXME: this is left unused for now. But when it's used, we also need to
+	// check for whether relid is a partition of another table
+	pg_unreachable();
+	return !RelIsPartitioned(relid);
 }
 
 bool
@@ -2400,6 +2426,7 @@ gpdb::GetDistributionPolicy
     return NULL;
 }
 
+#if 0
 gpos::BOOL
 gpdb::IsChildPartDistributionMismatched
 	(
@@ -2414,6 +2441,7 @@ gpdb::IsChildPartDistributionMismatched
     GP_WRAP_END;
     return false;
 }
+#endif
 
 bool
 gpdb::RelationExists
@@ -2493,7 +2521,7 @@ gpdb::GetRelationIndexes
 	GP_WRAP_END;
 	return NIL;
 }
-
+#if 0
 LogicalIndexes *
 gpdb::GetLogicalPartIndexes
 	(
@@ -2508,7 +2536,6 @@ gpdb::GetLogicalPartIndexes
 	GP_WRAP_END;
 	return NULL;
 }
-
 LogicalIndexInfo *
 gpdb::GetLogicalIndexInfo
 	(
@@ -2524,6 +2551,7 @@ gpdb::GetLogicalIndexInfo
 	GP_WRAP_END;
 	return NULL;
 }
+#endif
 
 gpdb::RelationWrapper
 gpdb::GetRelation
@@ -2572,6 +2600,7 @@ gpdb::CreateForeignScanForExternalTable
 	return NULL;
 }
 
+// GPDB_12_MERGE_FIXME: Change signature to take in Expr instead of Node
 TargetEntry *
 gpdb::FindFirstMatchingMemberInTargetList
 	(
@@ -2581,7 +2610,7 @@ gpdb::FindFirstMatchingMemberInTargetList
 {
 	GP_WRAP_START;
 	{
-		return tlist_member(node, targetlist);
+		return tlist_member((Expr *) node, targetlist);
 	}
 	GP_WRAP_END;
 	return NULL;
@@ -3022,6 +3051,7 @@ gpdb::EvaluateExpr
 }
 
 // interpret the value of "With oids" option from a list of defelems
+// GPDB_12_MERGE_FIXME: this leaves dead code in CMDRelationGPDB
 bool
 gpdb::InterpretOidsOption
 	(
@@ -3031,7 +3061,7 @@ gpdb::InterpretOidsOption
 {
 	GP_WRAP_START;
 	{
-		return interpretOidsOption(options, allowOids);
+		return false;
 	}
 	GP_WRAP_END;
 	return false;
@@ -3078,7 +3108,7 @@ gpdb::EvalConstExpressions
 	GP_WRAP_END;
 	return NULL;
 }
-
+#if 0
 SelectedParts *
 gpdb::RunStaticPartitionSelection
 	(
@@ -3092,6 +3122,7 @@ gpdb::RunStaticPartitionSelection
 	GP_WRAP_END;
 	return NULL;
 }
+#endif
 
 #ifdef FAULT_INJECTOR
 FaultInjectorType_e
@@ -3109,6 +3140,8 @@ gpdb::InjectFaultInOptTasks
 }
 #endif
 
+/* GPDB_12_MERGE_FIXME: dead code now? */
+#if 0
 gpos::ULONG
 gpdb::CountLeafPartTables
        (
@@ -3124,6 +3157,7 @@ gpdb::CountLeafPartTables
 
 	return 0;
 }
+#endif
 
 /*
  * To detect changes to catalog tables that require resetting the Metadata
@@ -3171,8 +3205,10 @@ register_mdcache_invalidation_callbacks(void)
 		CONSTROID,			/* pg_constraint */
 		OPEROID,			/* pg_operator */
 		OPFAMILYOID,		/* pg_opfamily */
+#if 0
 		PARTOID,			/* pg_partition */
 		PARTRULEOID,		/* pg_partition_rule */
+#endif
 		STATRELATTINH,			/* pg_statistics */
 		TYPEOID,			/* pg_type */
 		PROCOID,			/* pg_proc */
@@ -3266,6 +3302,20 @@ gpdb::IsAbortRequested
 	return (QueryCancelPending || ProcDiePending);
 }
 
+// Given the type OID, get the typelem (InvalidOid if not an array type).
+Oid
+gpdb::GetElementType
+	(
+	Oid array_type_oid
+	)
+{
+	GP_WRAP_START;
+	{
+		return get_element_type(array_type_oid);
+	}
+	GP_WRAP_END;
+}
+
 GpPolicy *
 gpdb::MakeGpPolicy
 		(
@@ -3299,7 +3349,7 @@ gpdb::HashBpChar(Datum d)
 {
 	GP_WRAP_START;
 	{
-		return DatumGetUInt32(DirectFunctionCall1(hashbpchar, d));
+		return DatumGetUInt32(DirectFunctionCall1Coll(hashbpchar, C_COLLATION_OID, d));
 	}
 	GP_WRAP_END;
 }
@@ -3309,7 +3359,7 @@ gpdb::HashText(Datum d)
 {
 	GP_WRAP_START;
 	{
-		return DatumGetUInt32(DirectFunctionCall1(hashtext, d));
+		return DatumGetUInt32(DirectFunctionCall1Coll(hashtext, C_COLLATION_OID, d));
 	}
 	GP_WRAP_END;
 }
@@ -3379,6 +3429,26 @@ gpdb::GPDBAllocSetContextCreate()
 	}
 	GP_WRAP_END;
 	return NULL;
+}
+
+bool
+gpdb::ExpressionReturnsSet(Node *clause)
+{
+	GP_WRAP_START;
+	{
+		return expression_returns_set(clause);
+	}
+	GP_WRAP_END;
+}
+
+bool
+gpdb::RelIsPartitioned(Oid relid)
+{
+	GP_WRAP_START;
+	{
+		return relation_is_partitioned(relid);
+	}
+	GP_WRAP_END;
 }
 
 // EOF

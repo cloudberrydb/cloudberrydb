@@ -17,8 +17,8 @@
 #define CDBLLIZE_H
 
 #include "nodes/nodes.h"
+#include "nodes/pathnodes.h"
 #include "nodes/plannodes.h"
-#include "nodes/relation.h"
 
 extern CdbPathLocus cdbllize_get_final_locus(PlannerInfo *root, PathTarget *target);
 

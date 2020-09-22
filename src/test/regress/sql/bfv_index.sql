@@ -21,12 +21,12 @@ CREATE TABLE bfv_tab1 (
 ) distributed by (unique1);
 
 create index bfv_tab1_idx1 on bfv_tab1 using btree(unique1);
-
+-- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from bfv_tab1, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE bfv_tab1.unique1 = v.i and bfv_tab1.stringu1 = v.j;
 
 set gp_enable_relsize_collection=on;
-
+-- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from bfv_tab1, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE bfv_tab1.unique1 = v.i and bfv_tab1.stringu1 = v.j;
 
@@ -174,7 +174,7 @@ drop table if exists Tbl23383_partitioned;
 create table Tbl23383_partitioned(a int, b varchar(20), c varchar(20), d varchar(20))
 partition by range(a)
 (partition p1 start(1) end(500),
-partition p2 start(500) end(1000) inclusive);
+partition p2 start(500) end(1001));
 insert into Tbl23383_partitioned select g,g,g,g from generate_series(1,1000) g;
 create index idx23383_b on Tbl23383_partitioned(b);
 

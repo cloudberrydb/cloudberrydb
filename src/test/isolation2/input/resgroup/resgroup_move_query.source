@@ -127,7 +127,7 @@ SELECT is_session_in_group(pid, 'rg_move_query_mem_small') FROM pg_stat_activity
 1<:
 -- connection 1 finished, it will wake up connection 3
 3<:
-3: SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active';
+3: SELECT rsgname, query FROM pg_stat_activity WHERE state = 'active' and query like 'SELECT%';
 2<:
 1q:
 2q:

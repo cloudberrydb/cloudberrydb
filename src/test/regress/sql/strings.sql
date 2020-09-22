@@ -148,19 +148,35 @@ SELECT SUBSTRING('1234567890' FROM 3) = '34567890' AS "34567890";
 
 SELECT SUBSTRING('1234567890' FROM 4 FOR 3) = '456' AS "456";
 
--- T581 regular expression substring (with SQL99's bizarre regexp syntax)
+-- T581 regular expression substring (with SQL's bizarre regexp syntax)
 SELECT SUBSTRING('abcdefg' FROM 'a#"(b_d)#"%' FOR '#') AS "bcd";
 
 -- No match should return NULL
 SELECT SUBSTRING('abcdefg' FROM '#"(b_d)#"%' FOR '#') IS NULL AS "True";
 
 -- Null inputs should return NULL
-SELECT SUBSTRING('abcdefg' FROM '(b|c)' FOR NULL) IS NULL AS "True";
-SELECT SUBSTRING(NULL FROM '(b|c)' FOR '#') IS NULL AS "True";
+SELECT SUBSTRING('abcdefg' FROM '%' FOR NULL) IS NULL AS "True";
+SELECT SUBSTRING(NULL FROM '%' FOR '#') IS NULL AS "True";
 SELECT SUBSTRING('abcdefg' FROM NULL FOR '#') IS NULL AS "True";
 
--- PostgreSQL extension to allow omitting the escape character;
--- here the regexp is taken as Posix syntax
+-- The first and last parts should act non-greedy
+SELECT SUBSTRING('abcdefg' FROM 'a#"%#"g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' FROM 'a*#"%#"g*' FOR '#') AS "abcdefg";
+
+-- Vertical bar in any part affects only that part
+SELECT SUBSTRING('abcdefg' FROM 'a|b#"%#"g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' FROM 'a#"%#"x|g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' FROM 'a#"%|ab#"g' FOR '#') AS "bcdef";
+
+-- Can't have more than two part separators
+SELECT SUBSTRING('abcdefg' FROM 'a*#"%#"g*#"x' FOR '#') AS "error";
+
+-- Postgres extension: with 0 or 1 separator, assume parts 1 and 3 are empty
+SELECT SUBSTRING('abcdefg' FROM 'a#"%g' FOR '#') AS "bcdefg";
+SELECT SUBSTRING('abcdefg' FROM 'a%g' FOR '#') AS "abcdefg";
+
+-- substring() with just two arguments is not allowed by SQL spec;
+-- we accept it, but we interpret the pattern as a POSIX regexp not SQL
 SELECT SUBSTRING('abcdefg' FROM 'c.e') AS "cde";
 
 -- With a parenthesized subexpression, return only what matches the subexpr
@@ -362,6 +378,19 @@ SELECT 'jack' LIKE '%____%' AS t;
 
 
 --
+-- basic tests of LIKE with indexes
+--
+
+CREATE TABLE texttest (a text PRIMARY KEY, b int);
+SELECT * FROM texttest WHERE a LIKE '%1%';
+
+CREATE TABLE byteatest (a bytea PRIMARY KEY, b int);
+SELECT * FROM byteatest WHERE a LIKE '%1%';
+
+DROP TABLE texttest, byteatest;
+
+
+--
 -- test implicit type conversion
 --
 
@@ -406,6 +435,28 @@ SELECT substr(f1, 99995) from toasttest;
 -- If start plus length is > string length, the result is truncated to
 -- string length
 SELECT substr(f1, 99995, 10) from toasttest;
+
+-- GPDB: These tests are sensitive to block size. In GPDB, the block
+-- size is 32 kB, whereas in PostgreSQL it's 8kB. Therefore make
+-- the data 4x larger here.
+TRUNCATE TABLE toasttest;
+INSERT INTO toasttest values (repeat('1234567890',300*4));
+INSERT INTO toasttest values (repeat('1234567890',300*4));
+INSERT INTO toasttest values (repeat('1234567890',300*4));
+INSERT INTO toasttest values (repeat('1234567890',300*4));
+-- expect >0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest';
+
+TRUNCATE TABLE toasttest;
+ALTER TABLE toasttest set (toast_tuple_target = 4080);
+INSERT INTO toasttest values (repeat('1234567890',300));
+INSERT INTO toasttest values (repeat('1234567890',300));
+INSERT INTO toasttest values (repeat('1234567890',300));
+INSERT INTO toasttest values (repeat('1234567890',300));
+-- expect 0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest';
 
 DROP TABLE toasttest;
 
@@ -531,6 +582,23 @@ select md5('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'::byt
 select md5('12345678901234567890123456789012345678901234567890123456789012345678901234567890'::bytea) = '57edf4a22be3c955ac49da2e2107b67a' AS "TRUE";
 
 --
+-- SHA-2
+--
+SET bytea_output TO hex;
+
+SELECT sha224('');
+SELECT sha224('The quick brown fox jumps over the lazy dog.');
+
+SELECT sha256('');
+SELECT sha256('The quick brown fox jumps over the lazy dog.');
+
+SELECT sha384('');
+SELECT sha384('The quick brown fox jumps over the lazy dog.');
+
+SELECT sha512('');
+SELECT sha512('The quick brown fox jumps over the lazy dog.');
+
+--
 -- test behavior of escape_string_warning and standard_conforming_strings options
 --
 set escape_string_warning = off;
@@ -573,6 +641,7 @@ select E'\uD834';
 --
 -- Additional string functions
 --
+SET bytea_output TO escape;
 
 SELECT initcap('hi THOMAS');
 

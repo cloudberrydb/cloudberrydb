@@ -232,19 +232,18 @@ union
 explain (SELECT 'test1' as branch, id FROM test1 LIMIT 1)
 union
 (SELECT 'test2' as branch, id FROM test2);
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2.06..2.12 rows=6 width=36)
-   Group Key: ('test1'::text), "*SELECT* 1".id
-   ->  Append  (cost=2.05..2.06 rows=2 width=36)
-         ->  Subquery Scan on "*SELECT* 1"  (cost=1.01..2.05 rows=1 width=36)
-               ->  Limit  (cost=1.01..2.04 rows=1 width=36)
-                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..2.04 rows=1 width=36)
-                           ->  Limit  (cost=1.01..2.02 rows=1 width=36)
-                                 ->  Seq Scan on test1  (cost=0.00..1.01 rows=1 width=36)
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ HashAggregate  (cost=2.08..2.10 rows=2 width=36)
+   Group Key: ('test1'::text), test1.id
+   ->  Append  (cost=2.05..2.07 rows=2 width=36)
+         ->  Limit  (cost=1.01..2.04 rows=1 width=36)
+               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..2.04 rows=1 width=36)
+                     ->  Limit  (cost=1.01..2.02 rows=1 width=36)
+                           ->  Seq Scan on test1  (cost=0.00..1.01 rows=1 width=36)
          ->  Foreign Scan on test2  (cost=0.00..0.00 rows=1 width=36)
  Optimizer: Postgres query optimizer
-(10 rows)
+(9 rows)
 
 --
 -- Test pulling up distribution key expression, when the different branches
@@ -1983,8 +1982,6 @@ ORDER BY a;
 create table t1_ncols(a int, b int, c text, d date) distributed by (a);
 create table t2_ncols(a smallint, b bigint, c varchar(20), d date) distributed by (c, b)
  partition by range (a) (start (0) end (8) every (4));
-NOTICE:  CREATE TABLE will create partition "t2_ncols_1_prt_1" for table "t2_ncols"
-NOTICE:  CREATE TABLE will create partition "t2_ncols_1_prt_2" for table "t2_ncols"
 create view v1_ncols(id, a, b, c, d) as select 1,* from t1_ncols union all select 2,* from t2_ncols;
 insert into t1_ncols values (1, 11, 'one', '2001-01-01');
 insert into t2_ncols values (2, 22, 'two', '2002-02-02');

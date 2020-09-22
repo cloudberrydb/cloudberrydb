@@ -235,7 +235,7 @@ cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds)
 			}
 			else if (ret < 0)
 			{
-				pqHandleSendFailure(conn);
+				/* error message should be set up already */
 				char	   *msg = PQerrorMessage(conn);
 
 				qeResult->stillRunning = false;

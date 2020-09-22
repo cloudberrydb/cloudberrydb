@@ -1,3 +1,9 @@
+-- The last digits of some of the results vary from one invocation to another,
+-- because the intermediate operations are done in arbitrary order when rows
+-- are flowing from different segments in different order. Mask those
+-- differences by setting 'extra_float_digits'. This isn't enough for all of
+-- the queries, so a few also use TO_CHAR() to truncate the results further.
+set extra_float_digits=0;
 drop table if exists dqa_t1;
 NOTICE:  table "dqa_t1" does not exist, skipping
 drop table if exists dqa_t2;
@@ -843,22 +849,22 @@ explain (costs off) select corr(distinct d, i) from dqa_t1 group by d;
  Optimizer: Postgres query optimizer
 (7 rows)
 
-select corr(distinct d, i) from dqa_t1 group by c;
-        corr        
---------------------
-  0.136706026184786
-  0.136706026184786
-  0.326224104260335
- -0.118104768408327
- 0.0700865292449608
- 0.0700865292449608
- -0.175826369278399
- -0.175826369278399
-  0.420377774079621
- 0.0579678449086239
+select to_char(corr(distinct d, i), '9.99999999999999') from dqa_t1 group by c;
+      to_char      
+-------------------
+   .13670602618479
+   .13670602618479
+   .32622410426034
+  -.11810476840833
+   .07008652924496
+   .07008652924496
+  -.17582636927840
+  -.17582636927840
+   .42037777407962
+   .05796784490862
 (10 rows)
 
-explain (costs off) select corr(distinct d, i) from dqa_t1 group by c;
+explain (costs off) select to_char(corr(distinct d, i), '9.99999999999999') from dqa_t1 group by c;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
@@ -1286,22 +1292,22 @@ explain (costs off) select count(distinct d), corr(distinct d, i), d from dqa_t1
  Optimizer: Postgres query optimizer
 (16 rows)
 
-select count(distinct d), corr(distinct d, i), c from dqa_t1 group by c;
- count |        corr        | c 
--------+--------------------+---
-    10 |  0.136706026184786 | 0
-    10 |  0.136706026184786 | 1
-    10 |  0.326224104260335 | 2
-    10 | -0.118104768408327 | 3
-    10 | 0.0700865292449608 | 4
-    10 | 0.0700865292449608 | 5
-    10 | -0.175826369278399 | 6
-    10 | -0.175826369278399 | 7
-    10 |  0.420377774079621 | 8
-    10 | 0.0579678449086239 | 9
+select count(distinct d),  to_char(corr(distinct d, i), '9.99999999999999'), c from dqa_t1 group by c;
+ count |      to_char      | c 
+-------+-------------------+---
+    10 |   .13670602618479 | 0
+    10 |   .13670602618479 | 1
+    10 |   .32622410426034 | 2
+    10 |  -.11810476840833 | 3
+    10 |   .07008652924496 | 4
+    10 |   .07008652924496 | 5
+    10 |  -.17582636927840 | 6
+    10 |  -.17582636927840 | 7
+    10 |   .42037777407962 | 8
+    10 |   .05796784490862 | 9
 (10 rows)
 
-explain (costs off) select count(distinct d), corr(distinct d, i), c from dqa_t1 group by c;
+explain (costs off) select count(distinct d),  to_char(corr(distinct d, i), '9.99999999999999'), c from dqa_t1 group by c;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
  Finalize HashAggregate

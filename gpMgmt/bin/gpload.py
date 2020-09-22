@@ -2039,7 +2039,7 @@ class gpload:
                             on (pg_class.oid = attrelid)
                             %s
                         where
-                            relstorage in ('x', 'f') and
+                            relkind = 'f' and
                             relname like 'ext_gpload_reusable_%%' and
                             attnum > 0 and
                             not attisdropped and %s
@@ -2126,7 +2126,7 @@ class gpload:
                     on(pg_class.oid = pgext.reloid)
                     %s
                     where
-                    relstorage in ('x', 'f') and
+                    relkind = 'f' and
                     relname like 'ext_gpload_reusable_%%' and
 		    %s
                     """

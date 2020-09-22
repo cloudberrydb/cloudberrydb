@@ -1395,10 +1395,10 @@ LINE 2: with my_group_sum(i, total) as (select i, sum(total) from wi...
         ^
 -- Test behavior with an unknown-type literal in the WITH
 WITH q AS (SELECT 'foo' AS x)
-SELECT x, x IS OF (unknown) as is_unknown FROM q;
-  x  | is_unknown 
------+------------
- foo | t
+SELECT x, x IS OF (unknown) as is_unknown, x IS OF (text) as is_text FROM q;
+  x  | is_unknown | is_text 
+-----+------------+---------
+ foo | f          | t
 (1 row)
 
 with cte(foo) as ( select 42 ) select * from ((select foo from cte)) q;
@@ -2284,9 +2284,9 @@ UNION ALL
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  HashAggregate
-               Group Key: ('a'::text), cte.j
+               Group Key: 'a'::text, cte.j
                ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                     Hash Key: ('a'::text), cte.j
+                     Hash Key: 'a'::text, cte.j
                      ->  Subquery Scan on cte
                            ->  Shared Scan (share slice:id 2:0)
                                  ->  Seq Scan on foo

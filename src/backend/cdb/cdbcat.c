@@ -39,9 +39,8 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/tqual.h"
+#include "utils/regproc.h"
 #include "utils/syscache.h"
-#include "utils/lsyscache.h"
 
 static int errdetails_index_policy(char *attname,
 								   Oid policy_indclass,
@@ -209,6 +208,41 @@ GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt)
 	return true;
 }								/* GpPolicyEqual */
 
+/*
+ * Like GpPolicyEqual, but the attributes are matched by name.
+ */
+bool
+GpPolicyEqualByName(const TupleDesc ltd, const GpPolicy *lpol,
+					const TupleDesc rtd, const GpPolicy *rpol)
+{
+	int			i;
+
+	if (!lpol || !rpol)
+		return false;
+
+	if (lpol->ptype != rpol->ptype)
+		return false;
+
+	if (lpol->numsegments != rpol->numsegments)
+		return false;
+
+	if (lpol->nattrs != rpol->nattrs)
+		return false;
+
+	for (i = 0; i < lpol->nattrs; i++)
+	{
+		Form_pg_attribute latt = TupleDescAttr(ltd, lpol->attrs[i] - 1);
+		Form_pg_attribute ratt = TupleDescAttr(rtd, rpol->attrs[i] - 1);
+
+		if (strcmp(NameStr(latt->attname), NameStr(ratt->attname)) != 0)
+			return false;
+		if (lpol->opclasses[i] != rpol->opclasses[i])
+			return false;
+	}
+
+	return true;
+}
+
 bool
 IsReplicatedTable(Oid relid)
 {
@@ -316,7 +350,7 @@ GpPolicyFetch(Oid tbloid)
 			return createRandomPartitionedPolicy(getgpsegmentCount());
 		}
 	}
-	else if (get_rel_relstorage(tbloid) == RELSTORAGE_FOREIGN)
+	else if (get_rel_relkind(tbloid) == RELKIND_FOREIGN_TABLE)
 	{
 		/*
 		 * Similar to the external table creation, there is a transient state
@@ -481,7 +515,7 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 	/*
 	 * Open and lock the gp_distribution_policy catalog.
 	 */
-	gp_policy_rel = heap_open(GpPolicyRelationId, RowExclusiveLock);
+	gp_policy_rel = table_open(GpPolicyRelationId, RowExclusiveLock);
 
 	if (GpPolicyIsReplicated(policy))
 	{
@@ -505,8 +539,7 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 	gp_policy_tuple = heap_form_tuple(RelationGetDescr(gp_policy_rel), values, nulls);
 
 	/* Insert tuple into the relation */
-	simple_heap_insert(gp_policy_rel, gp_policy_tuple);
-	CatalogUpdateIndexes(gp_policy_rel, gp_policy_tuple);
+	CatalogTupleInsert(gp_policy_rel, gp_policy_tuple);
 
 	/*
 	 * Register the table as dependent on the operator classes used in the
@@ -534,7 +567,7 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 	 * have updated the catalog: consequently the lock must be held until end
 	 * of transaction.
 	 */
-	heap_close(gp_policy_rel, NoLock);
+	table_close(gp_policy_rel, NoLock);
 }								/* GpPolicyStore */
 
 /*
@@ -575,7 +608,7 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	/*
 	 * Open and lock the gp_distribution_policy catalog.
 	 */
-	gp_policy_rel = heap_open(GpPolicyRelationId, RowExclusiveLock);
+	gp_policy_rel = table_open(GpPolicyRelationId, RowExclusiveLock);
 
 	if (GpPolicyIsReplicated(policy))
 	{
@@ -622,16 +655,14 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 												 RelationGetDescr(gp_policy_rel),
 												 values, nulls, repl);
 
-		simple_heap_update(gp_policy_rel, &gp_policy_tuple->t_self, newtuple);
-		CatalogUpdateIndexes(gp_policy_rel, newtuple);
+		CatalogTupleUpdate(gp_policy_rel, &gp_policy_tuple->t_self, newtuple);
 
 		heap_freetuple(newtuple);
 	}
 	else
 	{
 		gp_policy_tuple = heap_form_tuple(gp_policy_rel->rd_att, values, nulls);
-		(void) simple_heap_insert(gp_policy_rel, gp_policy_tuple);
-		CatalogUpdateIndexes(gp_policy_rel, gp_policy_tuple);
+		CatalogTupleInsert(gp_policy_rel, gp_policy_tuple);
 	}
 	systable_endscan(scan);
 
@@ -659,7 +690,7 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	 * have updated the catalog: consequently the lock must be held until end
 	 * of transaction.
 	 */
-	heap_close(gp_policy_rel, NoLock);
+	table_close(gp_policy_rel, NoLock);
 }								/* GpPolicyReplace */
 
 
@@ -678,7 +709,7 @@ GpPolicyRemove(Oid tbloid)
 	/*
 	 * Open and lock the gp_distribution_policy catalog.
 	 */
-	gp_policy_rel = heap_open(GpPolicyRelationId, RowExclusiveLock);
+	gp_policy_rel = table_open(GpPolicyRelationId, RowExclusiveLock);
 
 	/* Delete the policy entry from the catalog. */
 	ScanKeyInit(&scankey, Anum_gp_distribution_policy_localoid,
@@ -690,7 +721,7 @@ GpPolicyRemove(Oid tbloid)
 
 	while ((tuple = systable_getnext(sscan)) != NULL)
 	{
-		simple_heap_delete(gp_policy_rel, &tuple->t_self);
+		CatalogTupleDelete(gp_policy_rel, &tuple->t_self);
 	}
 
 	systable_endscan(sscan);
@@ -705,7 +736,7 @@ GpPolicyRemove(Oid tbloid)
 	 * have updated the catalog: consequently the lock must be held until end
 	 * of transaction.
 	 */
-	heap_close(gp_policy_rel, NoLock);
+	table_close(gp_policy_rel, NoLock);
 }								/* GpPolicyRemove */
 
 /*
@@ -806,7 +837,7 @@ index_check_policy_compatible(GpPolicy *policy,
 
 		/* Look up the equality operator for the distribution key opclass */
 		policy_attr = policy->attrs[i];
-		policy_typeid = desc->attrs[policy_attr - 1]->atttypid;
+		policy_typeid = TupleDescAttr(desc, policy_attr - 1)->atttypid;
 		policy_opclass = policy->opclasses[i];
 		policy_opfamily = get_opclass_family(policy_opclass);
 		policy_eqop = cdb_eqop_in_hash_opfamily(policy_opfamily, policy_typeid);
@@ -1009,4 +1040,3 @@ errdetails_index_policy(char *attname,
 
 	return 0;
 }
-

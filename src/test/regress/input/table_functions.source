@@ -561,7 +561,7 @@ CREATE FUNCTION multi_args(a anytable, x int) RETURNS SETOF example
 -- In select list requires some extra setrefs logic in planning
 SELECT *, generate_series(1,2) FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
 
--- Note the extra "Result" node when the srf is in the select list
+-- Note the extra "ProjectSet" node when the srf is in the select list
 explain SELECT *, generate_series(1,2) FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
 explain SELECT * FROM multi_args( TABLE(SELECT 1::int, 'hello'::text), 2);
 

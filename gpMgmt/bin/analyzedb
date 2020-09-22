@@ -46,23 +46,13 @@ ANALYZE_GUCS = "set optimizer_analyze_enable_merge_of_leaf_stats=off; "
 ANALYZE_SQL = """analyze %s"""
 ANALYZE_ROOT_SQL = """analyze rootpartition %s"""
 
-PG_PARTITIONS_SURROGATE = """
-SELECT n.nspname AS schemaname, cl.relname AS tablename, n2.nspname AS partitionschemaname, cl2.relname AS partitiontablename, cl3.relname AS parentpartitiontablename
-FROM pg_namespace n, pg_namespace n2, pg_class cl, pg_class cl2, pg_partition pp,
-pg_partition_rule pr1
-LEFT JOIN pg_partition_rule pr2 ON pr1.parparentrule = pr2.oid
-LEFT JOIN pg_class cl3 ON pr2.parchildrelid = cl3.oid
-WHERE pp.paristemplate = false AND pp.parrelid = cl.oid AND pr1.paroid = pp.oid AND cl2.oid = pr1.parchildrelid AND cl.relnamespace = n.oid AND cl2.relnamespace = n2.oid
-"""
-
 GET_ALL_DATA_TABLES_SQL = """
-select n.nspname as schemaname, c.relname as tablename from pg_class c, pg_namespace n where
-c.relnamespace = n.oid and c.relkind='r'::char and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog') and c.oid not in (select ftrelid from pg_foreign_table)
-EXCEPT
-select distinct schemaname, tablename from (%s) AS pps1
-EXCEPT
-select distinct partitionschemaname, parentpartitiontablename from (%s) AS pps2 where parentpartitiontablename is not NULL
-""" % (PG_PARTITIONS_SURROGATE, PG_PARTITIONS_SURROGATE)
+select n.nspname as schemaname, c.relname as tablename
+from pg_class c, pg_namespace n
+where c.relnamespace = n.oid and c.relkind='r'::char
+and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog')
+and c.oid not in (select ftrelid from pg_foreign_table)
+"""
 
 GET_VALID_DATA_TABLES_SQL = """
 select n.nspname as schemaname, c.relname as tablename from pg_class c, pg_namespace n where
@@ -91,35 +81,40 @@ GET_REQUESTED_LAST_OP_INFO_SQL = """
 """
 
 GET_ALL_DATA_TABLES_IN_SCHEMA_SQL = """
-select n.nspname as schemaname, c.relname as tablename from pg_class c, pg_namespace n where
-c.relnamespace = n.oid and c.relkind='r'::char and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog') and c.oid not in (select ftrelid from pg_foreign_table)
+select n.nspname as schemaname, c.relname as tablename
+from pg_class c, pg_namespace n
+where c.relnamespace = n.oid and c.relkind='r'::char
+ and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog')
+and c.oid not in (select ftrelid from pg_foreign_table)
 and n.nspname = '%s'
-EXCEPT
-select distinct schemaname, tablename from (%s) AS pps1
-EXCEPT
-select distinct partitionschemaname, parentpartitiontablename from (%s) AS pps2 where parentpartitiontablename is not NULL
-""" % ('%s', PG_PARTITIONS_SURROGATE, PG_PARTITIONS_SURROGATE)
+"""
 
+# Get leaf partitions of named root table.
 GET_LEAF_PARTITIONS_SQL = """
-select partitionschemaname, partitiontablename from (%s) AS pps1 where schemaname = '%s' and tablename = '%s'
-EXCEPT
-select distinct partitionschemaname, parentpartitiontablename from (%s) AS pps2 where parentpartitiontablename is not NULL
-and schemaname = '%s' and tablename = '%s'
-""" % (PG_PARTITIONS_SURROGATE, '%s', '%s', PG_PARTITIONS_SURROGATE, '%s', '%s')
+select n.nspname, c.relname
+from pg_partition_tree(
+  (select c.oid from pg_class c, pg_namespace n where n.oid = c.relnamespace and nspname='%s' and relname='%s' and not relispartition)
+), pg_class c, pg_namespace n
+where n.oid = c.relnamespace and relid = c.oid
+"""
 
+# Get mid-level partitions of table with given OID
 GET_MID_LEVEL_PARTITIONS_SQL = """
-select distinct partitionschemaname, parentpartitiontablename from (%s) AS pps1 where parentpartitiontablename is not NULL
-""" % PG_PARTITIONS_SURROGATE
+select n.nspname, c.relname
+from pg_class c, pg_namespace n
+where n.oid = c.relnamespace
+and c.relkind = 'p' and c.relispartition
+"""
 
 GET_REQUESTED_NON_AO_TABLES_SQL = """
-select n.nspname as schemaname, c.relname as tablename from pg_class c, pg_namespace n where
-c.relnamespace = n.oid and c.relkind='r'::char and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog')
-and c.oid not in (select relid from pg_appendonly) and c.oid in (%s) and c.oid not in (select ftrelid from pg_foreign_table)
-EXCEPT
-select distinct schemaname, tablename from (%s) AS pps1
-EXCEPT
-select distinct partitionschemaname, parentpartitiontablename from (%s) AS pps2 where parentpartitiontablename is not NULL
-""" % ('%s', PG_PARTITIONS_SURROGATE, PG_PARTITIONS_SURROGATE)
+select n.nspname as schemaname, c.relname as tablename
+from pg_class c, pg_namespace n
+where c.relnamespace = n.oid and c.relkind='r'::char
+and (c.relnamespace > 16384 or n.nspname = 'public' or n.nspname = 'pg_catalog')
+and c.oid not in (select ftrelid from pg_foreign_table)
+and c.oid not in (select relid from pg_appendonly)
+and c.oid in (%s)
+"""
 
 GET_COLUMN_NAMES_SQL = """
 SELECT attname FROM pg_attribute WHERE attrelid = %s AND attnum > 0 AND NOT attisdropped
@@ -141,13 +136,20 @@ INNER JOIN (VALUES %s) o(orig_name) ON c.oid = o.orig_name::regclass
 """
 
 GET_LEAF_ROOT_MAPPING_SQL = """
-SELECT n.nspname, c2.relname, n.nspname, c.relname from pg_class c, pg_class c2, pg_namespace n, pg_partition pp, pg_partition_rule ppr
-WHERE ppr.parchildrelid in (%s) AND ppr.paroid = pp.oid AND pp.parrelid = c.oid AND c.relnamespace = n.oid AND ppr.parchildrelid = c2.oid;
+SELECT child_nsp.nspname, child_c.relname, root_nsp.nspname, root_c.relname
+FROM pg_class child_c, pg_namespace child_nsp,
+     pg_class root_c, pg_namespace root_nsp
+WHERE child_c.relnamespace = child_nsp.oid
+AND   root_c.relnamespace = root_nsp.oid
+AND child_c.oid IN (%s)
+AND root_c.oid = pg_partition_root(child_c.oid)
+and root_c.oid <> child_c.oid
 """
 
 GET_ALL_ROOT_PARTITION_TABLES_SQL = """
-SELECT distinct n.nspname || '.' || c.relname from pg_class c, pg_namespace n, pg_partition pp
-WHERE pp.parrelid = c.oid AND c.relnamespace = n.oid AND pp.paristemplate = false
+SELECT distinct n.nspname || '.' || c.relname
+FROM pg_class c, pg_namespace n
+WHERE n.oid = c.relnamespace AND c.relkind = 'p' AND NOT c.relispartition;
 """
 
 ORDER_CANDIDATES_BY_OID_SQL = """
@@ -806,7 +808,7 @@ class AnalyzeDb(Operation):
         return s
 
     def _expand_partition_tables(self, schema, parent):
-        qresult = run_sql(self.conn, GET_LEAF_PARTITIONS_SQL % (schema, parent, schema, parent))
+        qresult = run_sql(self.conn, GET_LEAF_PARTITIONS_SQL % (schema, parent))
         if len(qresult) == 0:
             return [(schema, parent)]
         else:

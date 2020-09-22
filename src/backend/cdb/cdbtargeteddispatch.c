@@ -14,12 +14,14 @@
 
 #include "postgres.h"
 
+#include "access/relation.h"
 #include "cdb/cdbtargeteddispatch.h"
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "nodes/makefuncs.h"	/* for makeVar() */
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
-#include "optimizer/predtest.h"
+#include "optimizer/optimizer.h"
+#include "optimizer/predtest_valueset.h"
 
 #include "catalog/gp_distribution_policy.h"
 #include "catalog/pg_type.h"
@@ -32,7 +34,6 @@
 #include "cdb/cdbhash.h"
 #include "cdb/cdbllize.h"
 #include "cdb/cdbmutate.h"
-#include "cdb/cdbpartition.h"
 #include "cdb/cdbplan.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
@@ -125,7 +126,7 @@ GetContentIdsFromPlanForSingleRelation(PlannerInfo *root, Plan *plan, int rangeT
 			parts = (PartitionKeyInfo *) palloc(policy->nattrs * sizeof(PartitionKeyInfo));
 			for (i = 0; i < policy->nattrs; i++)
 			{
-				parts[i].attr = relation->rd_att->attrs[policy->attrs[i] - 1];
+				parts[i].attr = TupleDescAttr(relation->rd_att, policy->attrs[i] - 1);
 				parts[i].values = NULL;
 				parts[i].numValues = 0;
 				parts[i].counter = 0;
@@ -322,7 +323,9 @@ GetContentIdsFromPlanForSingleRelation(PlannerInfo *root, Plan *plan, int rangeT
 	}
 
 	if (rte->rtekind == RTE_RELATION)
+	{
 		relation_close(relation, NoLock);
+	}
 
 	result.haveProcessedAnyCalculations = true;
 	return result;
@@ -493,10 +496,12 @@ DirectDispatchUpdateContentIdsFromPlan(PlannerInfo *root, Plan *plan)
 			}
 			break;
 		case T_SubqueryScan:
+		case T_NamedTuplestoreScan:
 			/* no change to dispatchInfo */
 			break;
 		case T_TidScan:
 		case T_FunctionScan:
+		case T_TableFuncScan:
 		case T_WorkTableScan:
 			DisableTargetedDispatch(&dispatchInfo);
 			break;

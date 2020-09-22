@@ -191,7 +191,6 @@ create unique index ijk_ij on ijk(i,j);
 -- should OK.
 create unique index ijk_ijk on ijk(i,j,k);
 
-set gp_enable_mk_sort=on;
 drop table if exists ijk;
 create table ijk(i int, j int, k int) distributed by (i);
 insert into ijk values (1, 1, 3);
@@ -207,7 +206,6 @@ create unique index ijk_ij on ijk(i,j);
 -- should OK.
 create unique index ijk_ijk on ijk(i,j,k);
 
-set gp_enable_mk_sort=off;
 drop table ijk;
 
 --

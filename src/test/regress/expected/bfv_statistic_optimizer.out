@@ -228,9 +228,9 @@ select histogram_bounds from pg_stats where tablename = 'bfv_statistics_foo_real
 (1 row)
 
 select most_common_vals from pg_stats where tablename = 'bfv_statistics_foo_real' and attname = 'b';
-                                            most_common_vals                                            
---------------------------------------------------------------------------------------------------------
- {0,-Infinity,-2.49268e+07,Infinity,NaN,-8.30285e+07,-3.43385e+07,4.31,16397,74881,93901.6,7.79946e+06}
+                                                 most_common_vals                                                  
+-------------------------------------------------------------------------------------------------------------------
+ {0,-Infinity,-2.4926804e+07,Infinity,NaN,-8.302849e+07,-3.4338492e+07,4.31,16397.04,74881,93901.58,7.7994615e+06}
 (1 row)
 
 create table bfv_statistics_foo_numeric (a int4, b numeric) distributed randomly;
@@ -330,10 +330,6 @@ ANALYZE T25289_T3;
 CREATE TABLE T25289_T4 (c int, d int)
 WITH (APPENDONLY=ON) DISTRIBUTED BY (c)
 PARTITION BY RANGE(d) (START(1) END (5) EVERY(1));
-NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_1" for table "t25289_t4"
-NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_2" for table "t25289_t4"
-NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_3" for table "t25289_t4"
-NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_4" for table "t25289_t4"
 ANALYZE T25289_T4;
 --
 -- expect NO crash when the statistic slot for an attribute is broken

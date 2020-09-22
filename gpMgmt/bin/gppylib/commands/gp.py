@@ -218,7 +218,7 @@ class PgCtlStartArgs(CmdArgs):
     >>> a = PgCtlStartArgs("/data1/master/gpseg-1", str(PgCtlBackendOptions(5432, 1, 2)), 123, None, None, True, 600)
     >>> str(a).split(' ') #doctest: +NORMALIZE_WHITESPACE
     ['env', GPERA=123', '$GPHOME/bin/pg_ctl', '-D', '/data1/master/gpseg-1', '-l',
-     '/data1/master/gpseg-1/pg_log/startup.log', '-w', '-t', '600',
+     '/data1/master/gpseg-1/log/startup.log', '-w', '-t', '600',
      '-o', '"', '-p', '5432', '--silent-mode=true', '"', 'start']
     """
 
@@ -239,7 +239,7 @@ class PgCtlStartArgs(CmdArgs):
             "GPERA=%s" % str(era),	# <- master era used to help identify orphans
             "$GPHOME/bin/pg_ctl",
             "-D", str(datadir),
-            "-l", "%s/pg_log/startup.log" % datadir,
+            "-l", "%s/log/startup.log" % datadir,
         ])
         self.set_wrapper(wrapper, args)
         self.set_wait_timeout(wait, timeout)
@@ -427,10 +427,10 @@ class SegmentRewind(Command):
             source_host, source_port, RECOVERY_REWIND_APPNAME
         )
 
-        # Build the pg_rewind command. Do not run pg_rewind if recovery.conf
+        # Build the pg_rewind command. Do not run pg_rewind if standby.signal
         # file exists in target data directory because the target instance can
         # be started up normally as a mirror for WAL replication catch up.
-        rewind_cmd = '[ -f %s/recovery.conf ] || PGOPTIONS="-c gp_role=utility" $GPHOME/bin/pg_rewind --write-recovery-conf --slot="internal_wal_replication_slot" --source-server="%s" --target-pgdata=%s' % (target_datadir, source_server, target_datadir)
+        rewind_cmd = '[ -f %s/standby.signal ] || PGOPTIONS="-c gp_role=utility" $GPHOME/bin/pg_rewind --write-recovery-conf --slot="internal_wal_replication_slot" --source-server="%s" --target-pgdata=%s' % (target_datadir, source_server, target_datadir)
 
         if verbose:
             rewind_cmd = rewind_cmd + ' --progress'

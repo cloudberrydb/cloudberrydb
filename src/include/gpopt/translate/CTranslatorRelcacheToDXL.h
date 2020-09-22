@@ -322,9 +322,11 @@ namespace gpdxl
 				BOOL is_unbounded
 				);
 
+#if 0
 			// retrieve part constraint for relation
 			static
 			CMDPartConstraintGPDB *RetrievePartConstraintForRel(CMemoryPool *mp, CMDAccessor *md_accessor, OID rel_oid, CMDColumnArray *mdcol_array, BOOL has_index);
+#endif
 
 			// retrieve part constraint from a GPDB node
 			static

@@ -61,9 +61,9 @@ CATEGORY__ERROR_GETTING_SEGMENT_STATUS = "Error Getting Segment Status"
 VALUE__ERROR_GETTING_SEGMENT_STATUS = FieldDefinition("Error Getting Segment Status", "error_getting_status", "text")
 
 CATEGORY__REPLICATION_INFO = "Replication Info"
-VALUE__REPL_SENT_LOCATION = FieldDefinition("WAL Sent Location", "sent_location", "text")
-VALUE__REPL_FLUSH_LOCATION = FieldDefinition("WAL Flush Location", "flush_location", "text")
-VALUE__REPL_REPLAY_LOCATION = FieldDefinition("WAL Replay Location", "replay_location", "text")
+VALUE__REPL_SENT_LSN = FieldDefinition("WAL Sent Location", "sent_lsn", "text")
+VALUE__REPL_FLUSH_LSN = FieldDefinition("WAL Flush Location", "flush_lsn", "text")
+VALUE__REPL_REPLAY_LSN = FieldDefinition("WAL Replay Location", "replay_lsn", "text")
 
 CATEGORY__STATUS = "Status"
 VALUE__MASTER_REPORTS_STATUS = FieldDefinition("Configuration reports status as", "status_in_config", "text", "Config status")
@@ -129,9 +129,9 @@ class GpStateData:
                 [VALUE__ERROR_GETTING_SEGMENT_STATUS]
 
         self.__entriesByCategory[CATEGORY__REPLICATION_INFO] = [
-            VALUE__REPL_SENT_LOCATION,
-            VALUE__REPL_FLUSH_LOCATION,
-            VALUE__REPL_REPLAY_LOCATION,
+            VALUE__REPL_SENT_LSN,
+            VALUE__REPL_FLUSH_LSN,
+            VALUE__REPL_REPLAY_LSN,
         ]
 
         self.__entriesByCategory[CATEGORY__STATUS] = \
@@ -955,11 +955,11 @@ class GpSystemStateProgram:
 
             with closing(conn) as conn:
                 cursor = dbconn.query(conn,
-                    "SELECT application_name, state, sent_location, "
-                           "flush_location, "
-                           "sent_location - flush_location AS flush_left, "
-                           "replay_location, "
-                           "sent_location - replay_location AS replay_left, "
+                    "SELECT application_name, state, sent_lsn, "
+                           "flush_lsn, "
+                           "sent_lsn - flush_lsn AS flush_left, "
+                           "replay_lsn, "
+                           "sent_lsn - replay_lsn AS replay_left, "
                            "backend_start "
                     "FROM pg_stat_replication;"
                 )
@@ -1025,10 +1025,10 @@ class GpSystemStateProgram:
 
         GpSystemStateProgram._set_mirror_replication_values(data, mirror,
             state=row[1],
-            sent_location=row[2],
-            flush_location=row[3],
+            sent_lsn=row[2],
+            flush_lsn=row[3],
             flush_left=row[4],
-            replay_location=row[5],
+            replay_lsn=row[5],
             replay_left=row[6],
         )
 
@@ -1046,10 +1046,10 @@ class GpSystemStateProgram:
         data.switchSegment(mirror)
 
         state = kwargs.pop('state', None)
-        sent_location = kwargs.pop('sent_location', None)
-        flush_location = kwargs.pop('flush_location', None)
+        sent_lsn = kwargs.pop('sent_lsn', None)
+        flush_lsn = kwargs.pop('flush_lsn', None)
         flush_left = kwargs.pop('flush_left', None)
-        replay_location = kwargs.pop('replay_location', None)
+        replay_lsn = kwargs.pop('replay_lsn', None)
         replay_left = kwargs.pop('replay_left', None)
 
         if kwargs:
@@ -1062,21 +1062,21 @@ class GpSystemStateProgram:
             # better if we have access to pg_stat_replication.
             data.addValue(VALUE__MIRROR_STATUS, replication_state_to_string(state))
 
-        data.addValue(VALUE__REPL_SENT_LOCATION,
-                      sent_location if sent_location else 'Unknown',
-                      isWarning=(not sent_location))
+        data.addValue(VALUE__REPL_SENT_LSN,
+                      sent_lsn if sent_lsn else 'Unknown',
+                      isWarning=(not sent_lsn))
 
-        if flush_location and flush_left:
-            flush_location += " ({} bytes left)".format(flush_left)
-        data.addValue(VALUE__REPL_FLUSH_LOCATION,
-                      flush_location if flush_location else 'Unknown',
-                      isWarning=(not flush_location))
+        if flush_lsn and flush_left:
+            flush_lsn += " ({} bytes left)".format(flush_left)
+        data.addValue(VALUE__REPL_FLUSH_LSN,
+                      flush_lsn if flush_lsn else 'Unknown',
+                      isWarning=(not flush_lsn))
 
-        if replay_location and replay_left:
-            replay_location += " ({} bytes left)".format(replay_left)
-        data.addValue(VALUE__REPL_REPLAY_LOCATION,
-                      replay_location if replay_location else 'Unknown',
-                      isWarning=(not replay_location))
+        if replay_lsn and replay_left:
+            replay_lsn += " ({} bytes left)".format(replay_left)
+        data.addValue(VALUE__REPL_REPLAY_LSN,
+                      replay_lsn if replay_lsn else 'Unknown',
+                      isWarning=(not replay_lsn))
 
     def __buildGpStateData(self, gpArray, hostNameToResults):
         data = GpStateData()
@@ -1279,7 +1279,7 @@ class GpSystemStateProgram:
 
         dbUrl = dbconn.DbURL(port=gpEnv.getMasterPort(), dbname='template1')
         conn = dbconn.connect(dbUrl, utility=True)
-        sql = "SELECT state, sync_state, sent_location, flush_location, replay_location FROM pg_stat_replication"
+        sql = "SELECT state, sync_state, sent_lsn, flush_lsn, replay_lsn FROM pg_stat_replication"
         cur = dbconn.query(conn, sql)
         if cur.rowcount == 1:
             row = cur.fetchall()[0]

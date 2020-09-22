@@ -15,19 +15,19 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef _GP_DISTRIBUTION_POLICY_H_
-#define _GP_DISTRIBUTION_POLICY_H_
+#ifndef GP_DISTRIBUTION_POLICY_H
+#define GP_DISTRIBUTION_POLICY_H
 
 #include "access/attnum.h"
+#include "access/tupdesc.h"
 #include "catalog/genbki.h"
+#include "catalog/gp_distribution_policy_d.h"
 #include "nodes/pg_list.h"
 
 /*
  * Defines for gp_distribution_policy
  */
-#define GpPolicyRelationId  5002
-
-CATALOG(gp_distribution_policy,5002) BKI_WITHOUT_OIDS
+CATALOG(gp_distribution_policy,7142,GpPolicyRelationId)
 {
 	Oid			localoid;
 	char		policytype; /* distribution policy type */
@@ -47,13 +47,6 @@ FOREIGN_KEY(localoid REFERENCES pg_class(oid));
  * ----------------
  */
 typedef FormData_gp_distribution_policy *Form_gp_distribution_policy;
-
-#define Natts_gp_distribution_policy		5
-#define Anum_gp_distribution_policy_localoid		1
-#define Anum_gp_distribution_policy_policytype	2
-#define Anum_gp_distribution_policy_numsegments	3
-#define Anum_gp_distribution_policy_distkey		4
-#define Anum_gp_distribution_policy_distclass	5
 
 /*
  * Symbolic values for Anum_gp_distribution_policy_type column
@@ -134,6 +127,9 @@ extern GpPolicy *GpPolicyCopy(const GpPolicy *src);
  * (which embeds this) in equalFuncs.c
  */
 extern bool GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt);
+
+extern bool GpPolicyEqualByName(const TupleDesc ltd, const GpPolicy *lpol,
+								const TupleDesc rtd, const GpPolicy *rpol);
 
 /*
  * GpPolicyFetch

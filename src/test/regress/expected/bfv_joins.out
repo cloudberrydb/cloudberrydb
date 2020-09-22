@@ -44,11 +44,6 @@ insert into x_non_part select i%3, i, i from generate_series(1,10) i;
 create table x_part (e int, f int, g int) partition by range(e) (start(1) end(5) every(1), default partition extra);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'e' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-NOTICE:  CREATE TABLE will create partition "x_part_1_prt_extra" for table "x_part"
-NOTICE:  CREATE TABLE will create partition "x_part_1_prt_2" for table "x_part"
-NOTICE:  CREATE TABLE will create partition "x_part_1_prt_3" for table "x_part"
-NOTICE:  CREATE TABLE will create partition "x_part_1_prt_4" for table "x_part"
-NOTICE:  CREATE TABLE will create partition "x_part_1_prt_5" for table "x_part"
 insert into x_part select generate_series(1,10), generate_series(1,10) * 3, generate_series(1,10)%6;
 analyze x_non_part;
 analyze x_part;

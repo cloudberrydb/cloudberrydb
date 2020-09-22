@@ -15,11 +15,15 @@
 #ifndef GPDB_gpdbwrappers_H
 #define GPDB_gpdbwrappers_H
 
+extern "C" {
 #include "postgres.h"
 #include "access/attnum.h"
 #include "utils/faultinjector.h"
 #include "parser/parse_coerce.h"
 #include "utils/lsyscache.h"
+}
+
+#include "gpos/types.h"
 
 #include "gpos/types.h"
 
@@ -29,10 +33,9 @@ typedef int LOCKMODE;
 struct TypeCacheEntry;
 typedef struct NumericData *Numeric;
 typedef struct HeapTupleData *HeapTuple;
-struct PartitionNode;
 typedef struct RelationData *Relation;
 struct Value;
-typedef struct tupleDesc *TupleDesc;
+typedef struct TupleDescData *TupleDesc;
 struct Query;
 typedef struct ScanKeyData *ScanKey;
 struct Bitmapset;
@@ -52,7 +55,6 @@ struct ParseState;
 struct DefElem;
 struct GpPolicy;
 struct PartitionSelector;
-struct SelectedParts;
 struct Motion;
 struct Var;
 struct Const;
@@ -148,6 +150,8 @@ namespace gpdb {
 
 	// datum size
 	Size DatumSize(Datum value, bool type_by_val, int type_len);
+
+	bool ExpressionReturnsSet(Node *clause);
 
 	// expression type
 	Oid ExprType(Node *expr);
@@ -256,8 +260,10 @@ namespace gpdb {
 	// get the list of check constraints for a given relation
 	List *GetCheckConstraintOids(Oid rel_oid);
 
+#if 0
 	// part constraint expression tree
 	Node *GetRelationPartContraints(Oid rel_oid, List **default_levels);
+#endif
 
 	// get the cast function for the specified source and destination types
 	bool GetCastFunc(Oid src_oid, Oid dest_oid, bool *is_binary_coercible, Oid *cast_fn_oid, CoercionPathType *pathtype);
@@ -304,6 +310,7 @@ namespace gpdb {
 	// operator name
 	char *GetOpName(Oid opno);
 
+#if 0
 	// parts of a partitioned table
 	bool IsLeafPartition(Oid oid);
 
@@ -319,8 +326,10 @@ namespace gpdb {
 	// get partition keys and kinds ordered by partition level
 	void GetOrderedPartKeysAndKinds(Oid oid, List **pkeys, List **pkinds);
 
+	/* GPDB_12_MERGE_FIXME: mergings stats not yet implemented with new partitioning implementation */
 	// parts of a partitioned table
-	PartitionNode *GetParts(Oid relid, int16 level, Oid parent, bool inctemplate, bool includesubparts);
+	//PartitionNode *GetParts(Oid relid, int16 level, Oid parent, bool inctemplate, bool includesubparts);
+#endif
 
 	// keys of the relation with the given oid
 	List *GetRelationKeys(Oid relid);
@@ -415,11 +424,13 @@ namespace gpdb {
 	// deep free of a list
 	void ListFreeDeep(List *list);
 
+#if 0
 	// does a partition table have an appendonly child
 	bool IsAppendOnlyPartitionTable(Oid root_oid);
 
 	// does a multi-level partitioned table have uniform partitioning hierarchy
 	bool IsMultilevelPartitionUniform(Oid root_oid);
+#endif
 
 	// lookup type cache
 	TypeCacheEntry *LookupTypeCache(Oid type_id, int flags);
@@ -429,6 +440,9 @@ namespace gpdb {
 
 	// create a value node for an integer
 	Value *MakeIntegerValue(long i);
+
+	// create a constant of type int4
+	Node *MakeIntConst(int32 intValue);
 
 	// create a bool constant
 	Node *MakeBoolConst(bool value, bool isnull);
@@ -514,12 +528,16 @@ namespace gpdb {
 	// modify a query or an expression tree
 	Node *MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(), void *context, int flags);
 
+#if 0
 	// check whether the part with the given oid is the root of a partition table
 	bool RelPartIsRoot(Oid relid);
 	
 	// check whether the part with the given oid is an interior subpartition
 	bool RelPartIsInterior(Oid relid);
-	
+#endif
+
+	bool RelIsPartitioned(Oid relid);
+
 	// check whether table with the given oid is a regular table and not part of a partitioned table
 	bool RelPartIsNone(Oid relid);
 
@@ -533,6 +551,7 @@ namespace gpdb {
     // and the parts are distributed differently, return Random distribution
     GpPolicy *GetDistributionPolicy(Relation rel);
     
+#if 0
     // return true if the table is partitioned and hash-distributed, and one of  
     // the child partitions is randomly distributed
     gpos::BOOL IsChildPartDistributionMismatched(Relation rel);
@@ -540,6 +559,7 @@ namespace gpdb {
     // return true if the table is partitioned and any of the child partitions
     // have a trigger of the given type
     gpos::BOOL ChildPartHasTriggers(Oid oid, int trigger_type);
+#endif
 
 	// does a relation exist with the given oid
 	bool RelationExists(Oid oid);
@@ -551,11 +571,13 @@ namespace gpdb {
 	// close the given relation
 	void CloseRelation(Relation rel);
 
+#if 0
 	// return the logical indexes for a partitioned table
 	LogicalIndexes *GetLogicalPartIndexes(Oid oid);
 	
 	// return the logical info structure for a given logical index oid
 	LogicalIndexInfo *GetLogicalIndexInfo(Oid root_oid, Oid index_oid);
+#endif
 	
 	// return a list of index oids for a given relation
 	List *GetRelationIndexes(Relation relation);
@@ -671,16 +693,20 @@ namespace gpdb {
 	// transform array Const to an ArrayExpr
 	Node *EvalConstExpressions(Node *node);
 
+#if 0
 	// static partition selection given a PartitionSelector node
 	SelectedParts *RunStaticPartitionSelection(PartitionSelector *ps);
+#endif
 
 #ifdef FAULT_INJECTOR
 	// simple fault injector used by COptTasks.cpp to inject GPDB fault
 	FaultInjectorType_e InjectFaultInOptTasks(const char* fault_name);
 #endif
 
+#if 0
 	// return the number of leaf partition for a given table oid
 	gpos::ULONG CountLeafPartTables(Oid oidRelation);
+#endif
 
 	// Does the metadata cache need to be reset (because of a catalog
 	// table has been changed?)
@@ -688,6 +714,9 @@ namespace gpdb {
 
 	// returns true if a query cancel is requested in GPDB
 	bool IsAbortRequested(void);
+
+	// Given the type OID, get the typelem (InvalidOid if not an array type).
+	Oid GetElementType(Oid array_type_oid);
 
 	GpPolicy *MakeGpPolicy(GpPolicyType ptype, int nattrs,
 						   int numsegments);

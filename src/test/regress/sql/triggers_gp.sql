@@ -63,13 +63,19 @@ delete from trigtest where nonkey = 2;
 --
 -- Triggers on a partitioned table
 --
--- GPDB_12_MERGE_FIXME: Currently, the triggers don't fire at all.
--- This is expected to change when we merge PostgreSQL partitioning
--- code.
 
+create table parted_trig (partkey int, nonkey int, distkey int)
+  partition by list (partkey) distributed by (distkey);
+create table parted_trig1 partition of parted_trig for values in (1);
+create table parted_trig2 partition of parted_trig for values in (2);
+create table parted_trig3 partition of parted_trig for values in (3);
+create table parted_trig4 partition of parted_trig for values in (4);
+
+/* Could create similar structure with this legacy GPDB syntax:
 create table parted_trig (partkey int, nonkey int, distkey int)
   distributed by (distkey)
   partition by range (partkey) (start (1) end (5) every (1));
+*/
 
 create trigger trig_ins_after after insert on parted_trig
   for each row execute procedure insert_notice_trig();

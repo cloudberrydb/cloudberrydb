@@ -40,7 +40,6 @@ set gp_cte_sharing=on;
 -- a Sort that spills.
 set optimizer=off;
 
-set gp_enable_mk_sort=on;
 select avg(i3) from (
   with ctesisc as (select * from testsisc order by i2)
   select t1.i3, t2.i2
@@ -62,7 +61,6 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
 limit 50000;');
 
 
-set gp_enable_mk_sort=off;
 select avg(i3) from (
   with ctesisc as (select * from testsisc order by i2)
   select t1.i3, t2.i2

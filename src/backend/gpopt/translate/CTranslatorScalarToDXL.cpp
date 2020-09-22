@@ -302,7 +302,7 @@ CTranslatorScalarToDXL::TranslateScalarToDXL
 		{T_ArrayCoerceExpr, &CTranslatorScalarToDXL::TranslateArrayCoerceExprToDXL},
 		{T_SubLink, &CTranslatorScalarToDXL::TranslateSubLinkToDXL},
 		{T_ArrayExpr, &CTranslatorScalarToDXL::TranslateArrayExprToDXL},
-		{T_ArrayRef, &CTranslatorScalarToDXL::TranslateArrayRefToDXL},
+		{T_SubscriptingRef, &CTranslatorScalarToDXL::TranslateArrayRefToDXL},
 	};
 
 	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
@@ -1278,17 +1278,33 @@ CTranslatorScalarToDXL::TranslateArrayCoerceExprToDXL
 	CDXLNode *child_node = TranslateScalarToDXL(array_coerce_expr->arg, var_colid_mapping);
 	
 	GPOS_ASSERT(NULL != child_node);
-	
+
+	Oid elemfuncid = 0;
+
+	if (IsA(array_coerce_expr->elemexpr, FuncExpr))
+		elemfuncid = ((FuncExpr *)array_coerce_expr->elemexpr)->funcid;
+	else if (IsA(array_coerce_expr->elemexpr, RelabelType))
+		;
+	else
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+				   GPOS_WSZ_LIT("ArrayCoerceExpr with elemexpr that is neither "
+								"FuncExpr or RelabelType"));
+
+	// GPDB_12_MERGE_FIXME: faking an explicit cast is wrong
+	// This _will_ lead to wrong behavior, e.g.
+	// INSERT INTO bar SELECT b FROM foo;
+	// where foo.b is of type varchar(100)[]
+	// and bar.b is of type varchar(9)[]
 	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode
 					(
 					m_mp,
 					GPOS_NEW(m_mp) CDXLScalarArrayCoerceExpr
 							(
 							m_mp,
-							GPOS_NEW(m_mp) CMDIdGPDB(array_coerce_expr->elemfuncid),
+							GPOS_NEW(m_mp) CMDIdGPDB(elemfuncid),
 							GPOS_NEW(m_mp) CMDIdGPDB(array_coerce_expr->resulttype),
 							array_coerce_expr->resulttypmod,
-							array_coerce_expr->isExplicit,
+							true,
 							(EdxlCoercionForm) array_coerce_expr->coerceformat,
 							array_coerce_expr->location
 							)
@@ -1473,34 +1489,66 @@ CTranslatorScalarToDXL::TranslateWindowFrameToDXL
 {
 	EdxlFrameSpec frame_spec;
 
+	// GPDB_12_MERGE_FIXME: there's no reason ORCA would care about this, other
+	// than that it doesn't roundtrip this piece of info.
+	if ((frame_options & FRAMEOPTION_EXCLUSION))
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+				   GPOS_WSZ_LIT("window frame EXCLUDE"));
+
 	if ((frame_options & FRAMEOPTION_ROWS) != 0)
 		frame_spec = EdxlfsRow;
-	else
+	else if ((frame_options & FRAMEOPTION_RANGE) != 0)
+	{
 		frame_spec = EdxlfsRange;
+		// GPDB_12_MERGE_FIXME: as soon as we can pass WindowClause::startInRangeFunc
+		// and friends to ORCA and get them back, we can support stuff like
+		// RANGE 1 PRECEDING
+		if ((frame_options &
+			 (FRAMEOPTION_START_OFFSET | FRAMEOPTION_END_OFFSET)))
+			GPOS_RAISE(
+				gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+				GPOS_WSZ_LIT(
+					"window frame RANGE with OFFSET PRECEDING or FOLLOWING"));
+	}
+	else if ((frame_options & FRAMEOPTION_GROUPS) != 0)
+		// GPDB_12_MERGE_FIXME: there's no reason the optimizer would care too
+		// much about this. As long as we recognize and roundtrip this, I think
+		// the executor will take care of it
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+			GPOS_WSZ_LIT("window frame GROUPS mode"));
+	else
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+			GPOS_WSZ_LIT("window frame option"));
 
+
+	// GPDB_12_MERGE_FIXME: the following window frame options are flipped (i.e.
+	// the START_ and END_ ones are swapped accidently in commit
+	// ebf9763c78826819). The only reason we got away with it is because we also
+	// flipped them in CTranslatorDXLToPlStmt::TranslateDXLWindow(). Flip them
+	// back after the merge.
 	EdxlFrameBoundary leading_boundary;
 	if ((frame_options & FRAMEOPTION_END_UNBOUNDED_PRECEDING) != 0)
 		leading_boundary = EdxlfbUnboundedPreceding;
-	else if ((frame_options & FRAMEOPTION_END_VALUE_PRECEDING) != 0)
+	else if ((frame_options & FRAMEOPTION_END_OFFSET_PRECEDING) != 0)
 		leading_boundary = EdxlfbBoundedPreceding;
 	else if ((frame_options & FRAMEOPTION_END_CURRENT_ROW) != 0)
 		leading_boundary = EdxlfbCurrentRow;
-	else if ((frame_options & FRAMEOPTION_END_VALUE_FOLLOWING) != 0)
+	else if ((frame_options & FRAMEOPTION_END_OFFSET_FOLLOWING) != 0)
 		leading_boundary = EdxlfbBoundedFollowing;
 	else if ((frame_options & FRAMEOPTION_END_UNBOUNDED_FOLLOWING) != 0)
 		leading_boundary = EdxlfbUnboundedFollowing;
 	else
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 			   GPOS_WSZ_LIT("Unrecognized window frame option"));
 
 	EdxlFrameBoundary trailing_boundary;
 	if ((frame_options & FRAMEOPTION_START_UNBOUNDED_PRECEDING) != 0)
 		trailing_boundary = EdxlfbUnboundedPreceding;
-	else if ((frame_options & FRAMEOPTION_START_VALUE_PRECEDING) != 0)
+	else if ((frame_options & FRAMEOPTION_START_OFFSET_PRECEDING) != 0)
 		trailing_boundary = EdxlfbBoundedPreceding;
 	else if ((frame_options & FRAMEOPTION_START_CURRENT_ROW) != 0)
 		trailing_boundary = EdxlfbCurrentRow;
-	else if ((frame_options & FRAMEOPTION_START_VALUE_FOLLOWING) != 0)
+	else if ((frame_options & FRAMEOPTION_START_OFFSET_FOLLOWING) != 0)
 		trailing_boundary = EdxlfbBoundedFollowing;
 	else if ((frame_options & FRAMEOPTION_START_UNBOUNDED_FOLLOWING) != 0)
 		trailing_boundary = EdxlfbUnboundedFollowing;
@@ -1957,15 +2005,15 @@ CTranslatorScalarToDXL::TranslateArrayRefToDXL
 	const CMappingVarColId* var_colid_mapping
 	)
 {
-	GPOS_ASSERT(IsA(expr, ArrayRef));
+	GPOS_ASSERT(IsA(expr, SubscriptingRef));
 
-	const ArrayRef *parrayref = (ArrayRef *) expr;
+	const SubscriptingRef *parrayref = (SubscriptingRef *) expr;
 	Oid restype;
 
 	INT type_modifier = parrayref->reftypmod;
 	/* slice and/or store operations yield the array type */
 	if (parrayref->reflowerindexpr || parrayref->refassgnexpr)
-		restype = parrayref->refarraytype;
+		restype = parrayref->refcontainertype;
 	else
 		restype = parrayref->refelemtype;
 
@@ -1975,7 +2023,7 @@ CTranslatorScalarToDXL::TranslateArrayRefToDXL
 						m_mp,
 						GPOS_NEW(m_mp) CMDIdGPDB(parrayref->refelemtype),
 						type_modifier,
-						GPOS_NEW(m_mp) CMDIdGPDB(parrayref->refarraytype),
+						GPOS_NEW(m_mp) CMDIdGPDB(parrayref->refcontainertype),
 						GPOS_NEW(m_mp) CMDIdGPDB(restype)
 						);
 

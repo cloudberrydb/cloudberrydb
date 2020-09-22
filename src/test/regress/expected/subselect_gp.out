@@ -71,18 +71,10 @@ create table csq_t1(x int, y int)
 distributed by (x)
 partition by range (y) ( start (0) end (4) every (1))
 ;
-NOTICE:  CREATE TABLE will create partition "csq_t1_1_prt_1" for table "csq_t1"
-NOTICE:  CREATE TABLE will create partition "csq_t1_1_prt_2" for table "csq_t1"
-NOTICE:  CREATE TABLE will create partition "csq_t1_1_prt_3" for table "csq_t1"
-NOTICE:  CREATE TABLE will create partition "csq_t1_1_prt_4" for table "csq_t1"
 create table csq_t2(x int, y int) 
 distributed by (x)
 partition by range (y) ( start (0) end (4) every (1))
 ;
-NOTICE:  CREATE TABLE will create partition "csq_t2_1_prt_1" for table "csq_t2"
-NOTICE:  CREATE TABLE will create partition "csq_t2_1_prt_2" for table "csq_t2"
-NOTICE:  CREATE TABLE will create partition "csq_t2_1_prt_3" for table "csq_t2"
-NOTICE:  CREATE TABLE will create partition "csq_t2_1_prt_4" for table "csq_t2"
 insert into csq_t1 select * from csq_t1_base;
 insert into csq_t2 select * from csq_t2_base;
 explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 where csq_t2.y=csq_t1.y) order by 1;
@@ -1239,8 +1231,6 @@ START ('2013-05-10 00:00:00'::timestamp without time zone) END ('2013-05-11
 START ('2013-05-24 00:00:00'::timestamp without time zone) END ('2013-05-25
 	00:00:00'::timestamp without time zone) WITH (tablename='t_mpp_20470_ptr2', appendonly=false )
 );
-NOTICE:  CREATE TABLE will create partition "t_mpp_20470_ptr1" for table "t_mpp_20470"
-NOTICE:  CREATE TABLE will create partition "t_mpp_20470_ptr2" for table "t_mpp_20470"
 COPY t_mpp_20470 from STDIN delimiter '|' null '';
 create view v1_mpp_20470 as
 SELECT
@@ -1345,8 +1335,6 @@ SELECT rank() over (partition by min(c) order by min(c)) AS p_rank FROM (SELECT 
 -- Remove unused subplans
 --
 create table foo(a int, b int) distributed by (a) partition by range(b) (start(1) end(3) every(1));
-NOTICE:  CREATE TABLE will create partition "foo_1_prt_1" for table "foo"
-NOTICE:  CREATE TABLE will create partition "foo_1_prt_2" for table "foo"
 create table bar(a int, b int) distributed by (a);
 with CT as (select a from foo except select a from bar)
 select * from foo
@@ -1375,8 +1363,6 @@ CREATE TABLE foo_s (a integer, b integer)  PARTITION BY RANGE(b)
      PARTITION sub_two START (11) END (22));
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-NOTICE:  CREATE TABLE will create partition "foo_s_1_prt_sub_one" for table "foo_s"
-NOTICE:  CREATE TABLE will create partition "foo_s_1_prt_sub_two" for table "foo_s"
 INSERT INTO foo_s VALUES (9,9);
 INSERT INTO foo_s VALUES (2,9);
 SELECT bar_s.c from bar_s, foo_s WHERE foo_s.a=2 AND foo_s.b = (SELECT max(b) FROM foo_s WHERE bar_s.c = 9);
@@ -1777,7 +1763,6 @@ NOTICE:  table "dedup_test3" does not exist, skipping
 CREATE TABLE dedup_test1 ( a int, b int ) DISTRIBUTED BY (a);
 CREATE TABLE dedup_test2 ( e int, f int ) DISTRIBUTED BY (e);
 CREATE TABLE dedup_test3 ( a int, b int, c int) DISTRIBUTED BY (a) PARTITION BY RANGE(c) (START(1) END(2) EVERY(1)); 
-NOTICE:  CREATE TABLE will create partition "dedup_test3_1_prt_1" for table "dedup_test3"
 INSERT INTO dedup_test1 select i, i from generate_series(1,4)i;
 INSERT INTO dedup_test2 select i, i from generate_series(1,4)i;
 INSERT INTO dedup_test3 select 1, 1, 1 from generate_series(1,10);
@@ -1785,8 +1770,8 @@ ANALYZE dedup_test1;
 ANALYZE dedup_test2;
 ANALYZE dedup_test3;
 EXPLAIN SELECT * FROM dedup_test1 INNER JOIN dedup_test2 ON dedup_test1.a= dedup_test2.e WHERE (a) IN (SELECT a FROM dedup_test3);
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.10..3.17 rows=3 width=16)
    ->  Hash Join  (cost=2.10..3.13 rows=1 width=16)
          Hash Cond: (dedup_test2.e = dedup_test1.a)
@@ -1798,10 +1783,9 @@ EXPLAIN SELECT * FROM dedup_test1 INNER JOIN dedup_test2 ON dedup_test1.a= dedup
                      ->  Hash  (cost=1.05..1.05 rows=1 width=4)
                            ->  HashAggregate  (cost=1.04..1.05 rows=1 width=4)
                                  Group Key: dedup_test3_1_prt_1.a
-                                 ->  Append  (cost=0.00..1.03 rows=3 width=4)
-                                       ->  Seq Scan on dedup_test3_1_prt_1  (cost=0.00..1.03 rows=3 width=4)
+                                 ->  Seq Scan on dedup_test3_1_prt_1  (cost=0.00..1.03 rows=3 width=4)
  Optimizer: Postgres query optimizer
-(14 rows)
+(13 rows)
 
 SELECT * FROM dedup_test1 INNER JOIN dedup_test2 ON dedup_test1.a= dedup_test2.e WHERE (a) IN (SELECT a FROM dedup_test3);
  a | b | e | f 

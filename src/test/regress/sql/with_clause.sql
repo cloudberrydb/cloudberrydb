@@ -243,7 +243,7 @@ from my_sum;
 
 -- Test behavior with an unknown-type literal in the WITH
 WITH q AS (SELECT 'foo' AS x)
-SELECT x, x IS OF (unknown) as is_unknown FROM q;
+SELECT x, x IS OF (unknown) as is_unknown, x IS OF (text) as is_text FROM q;
 
 with cte(foo) as ( select 42 ) select * from ((select foo from cte)) q;
 

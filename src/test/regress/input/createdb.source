@@ -43,7 +43,7 @@ from gp_segment_configuration where content=0 and role='p';
 -- should fail
 create database db_with_leftover_files;
 
--- Wait until replay_location = flush_location.
+-- Wait until replay_lsn = flush_lsn.
 select force_mirrors_to_catch_up();
 
 -- since this is a failed case, db oid is invisible, however we need it to search 

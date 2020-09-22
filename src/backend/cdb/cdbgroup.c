@@ -171,7 +171,7 @@ UpdateScatterClause(Query *query, List *newtlist)
 			Expr	   *o = (Expr *) lfirst(lc);
 
 			Assert(o);
-			TargetEntry *tle = tlist_member((Node *) o, query->targetList);
+			TargetEntry *tle = tlist_member(o, query->targetList);
 
 			Assert(tle);
 			TargetEntry *ntle = list_nth(newtlist, tle->resno - 1);

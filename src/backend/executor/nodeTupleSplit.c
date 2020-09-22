@@ -14,7 +14,10 @@
 #include "executor/executor.h"
 #include "executor/nodeTupleSplit.h"
 #include "optimizer/tlist.h"
+#include "optimizer/optimizer.h"
 #include "utils/memutils.h"
+
+static TupleTableSlot *ExecTupleSplit(PlanState *pstate);
 
 /* -----------------
  * ExecInitTupleSplit
@@ -23,7 +26,8 @@
  *	planner and initializes its outer subtree
  * -----------------
  */
-TupleSplitState *ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags)
+TupleSplitState *
+ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags)
 {
 	TupleSplitState     *tup_spl_state;
 	Plan                *outerPlan;
@@ -34,21 +38,9 @@ TupleSplitState *ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags
 	tup_spl_state = makeNode(TupleSplitState);
 	tup_spl_state->ss.ps.plan = (Plan *) node;
 	tup_spl_state->ss.ps.state = estate;
+	tup_spl_state->ss.ps.ExecProcNode = ExecTupleSplit;
 
 	ExecAssignExprContext(estate, &tup_spl_state->ss.ps);
-
-	/*
-	 * tuple table initialization
-	 */
-	tup_spl_state->ss.ss_ScanTupleSlot = ExecInitExtraTupleSlot(estate);
-	ExecInitResultTupleSlot(estate, &tup_spl_state->ss.ps);
-
-	/*
-	 * initialize child expressions
-	 */
-	tup_spl_state->ss.ps.targetlist = (List *)
-		ExecInitExpr((Expr *) node->plan.targetlist,
-					 (PlanState *) tup_spl_state);
 
 	if (estate->es_instrument && (estate->es_instrument & INSTRUMENT_CDB))
 	{
@@ -65,9 +57,16 @@ TupleSplitState *ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags
 	/*
 	 * initialize source tuple type.
 	 */
-	ExecAssignScanTypeFromOuterPlan(&tup_spl_state->ss);
+	tup_spl_state->ss.ps.outerops =
+		ExecGetResultSlotOps(outerPlanState(&tup_spl_state->ss),
+							 &tup_spl_state->ss.ps.outeropsfixed);
+	tup_spl_state->ss.ps.outeropsset = true;
 
-	ExecAssignResultTypeFromTL(&tup_spl_state->ss.ps);
+	ExecCreateScanSlotFromOuterPlan(estate, &tup_spl_state->ss,
+									tup_spl_state->ss.ps.outerops);
+
+	/* initialize result type, slot and projection. */
+	ExecInitResultTupleSlotTL(&tup_spl_state->ss.ps, &TTSOpsVirtual);
 	ExecAssignProjectionInfo(&tup_spl_state->ss.ps, NULL);
 
 	/*
@@ -157,12 +156,13 @@ TupleSplitState *ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags
  *      the DQAs exprs). Each output tuple only contain one DQA expr and
  *      all GROUP BY exprs.
  */
-struct TupleTableSlot *ExecTupleSplit(TupleSplitState *node)
+static TupleTableSlot *
+ExecTupleSplit(PlanState *pstate)
 {
+	TupleSplitState *node = castNode(TupleSplitState, pstate);
 	TupleTableSlot  *result;
 	ExprContext     *econtext;
 	TupleSplit      *plan;
-	ExprDoneCond     isDone;
 	bool             filter_out = false;
 
 	econtext = node->ss.ps.ps_ExprContext;
@@ -180,8 +180,8 @@ struct TupleTableSlot *ExecTupleSplit(TupleSplitState *node)
 			slot_getsomeattrs(node->outerslot, node->maxAttrNum);
 
 			/* store original tupleslot isnull array */
-			memcpy(node->isnull_orig, slot_get_isnull(node->outerslot),
-		           node->outerslot->PRIVATE_tts_nvalid * sizeof(bool));
+			memcpy(node->isnull_orig, node->outerslot->tts_isnull,
+		           node->outerslot->tts_nvalid * sizeof(bool));
 		}
 
 		econtext->ecxt_outertuple = node->outerslot;
@@ -193,7 +193,7 @@ struct TupleTableSlot *ExecTupleSplit(TupleSplitState *node)
 			Datum		res;
 			bool		isnull;
 
-			res = ExecEvalExprSwitchContext(filter, econtext, &isnull, NULL);
+			res = ExecEvalExprSwitchContext(filter, econtext, &isnull);
 
 			if (isnull || !DatumGetBool(res))
 			{
@@ -211,10 +211,10 @@ struct TupleTableSlot *ExecTupleSplit(TupleSplitState *node)
 	} while(filter_out);
 
 	/* reset the isnull array to the original state */
-	bool *isnull = slot_get_isnull(node->outerslot);
-	memcpy(isnull, node->isnull_orig, node->outerslot->PRIVATE_tts_nvalid);
+	bool *isnull = node->outerslot->tts_isnull;
+	memcpy(isnull, node->isnull_orig, node->outerslot->tts_nvalid);
 
-	for (AttrNumber attno = 1; attno <= node->outerslot->PRIVATE_tts_nvalid; attno++)
+	for (AttrNumber attno = 1; attno <= node->outerslot->tts_nvalid; attno++)
 	{
 		/* If the column is relevant to the current dqa, keep it */
 		if (bms_is_member(attno, node->dqa_split_bms[node->currentExprId]))
@@ -225,7 +225,7 @@ struct TupleTableSlot *ExecTupleSplit(TupleSplitState *node)
 	}
 
 	/* project the tuple */
-	result = ExecProject(node->ss.ps.ps_ProjInfo, &isDone);
+	result = ExecProject(node->ss.ps.ps_ProjInfo);
 
 	/* the next DQA to process */
 	node->currentExprId = (node->currentExprId + 1) % node->numDisDQAs;

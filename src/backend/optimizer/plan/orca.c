@@ -25,6 +25,7 @@
 #include "cdb/cdbplan.h"
 #include "cdb/cdbvars.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/orca.h"
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h"
@@ -89,7 +90,7 @@ log_optimizer(PlannedStmt *plan, bool fUnexpectedFailure)
  * This is the main entrypoint for invoking Orca.
  */
 PlannedStmt *
-optimize_query(Query *parse, ParamListInfo boundParams)
+optimize_query(Query *parse, int cursorOptions, ParamListInfo boundParams)
 {
 	/* flag to check if optimizer unexpectedly failed to produce a plan */
 	bool			fUnexpectedFailure = false;
@@ -101,6 +102,13 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	List		   *invalItems;
 	ListCell	   *lc;
 	ListCell	   *lp;
+
+	/*
+	 * GPDB_12_MERGE_FIXME: we can forward-port this change to master now
+	 * and pull out optimizer_trace_fallback processing in here
+	 */
+	if ((cursorOptions & CURSOR_OPT_UPDATABLE) != 0)
+		return NULL;
 
 	/*
 	 * Initialize a dummy PlannerGlobal struct. ORCA doesn't use it, but the
@@ -121,7 +129,6 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->subplans = NIL;
 	glob->relationOids = NIL;
 	glob->invalItems = NIL;
-	glob->nParamExec = 0;
 
 	root = makeNode(PlannerInfo);
 	root->parse = parse;
@@ -749,7 +756,7 @@ static Var *
 var_for_grouped_window_expr(grouped_window_ctx * ctx, Node *expr, bool force)
 {
 	Var		   *var = NULL;
-	TargetEntry *tle = tlist_member(expr, ctx->subtlist);
+	TargetEntry *tle = tlist_member((Expr *) expr, ctx->subtlist);
 
 	if (tle == NULL && force)
 	{

@@ -26,7 +26,7 @@
 static void BuildUriForRead(PxfFdwScanState *pxfsstate);
 static void BuildUriForWrite(PxfFdwModifyState *pxfmstate);
 static void SetCurrentFragmentHeaders(PxfFdwScanState *pxfsstate);
-static size_t FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size);
+static size_t FillBuffer(PxfFdwScanState *pxfsstate, char *start, int minlen, int maxlen);
 
 /*
  * Clean up churl related data structures from the PXF FDW modify state.
@@ -97,7 +97,7 @@ PxfBridgeExportStart(PxfFdwModifyState *pxfmstate)
  * Reads data from the PXF server into the given buffer of a given size
  */
 int
-PxfBridgeRead(void *outbuf, int datasize, void *extra)
+PxfBridgeRead(void *outbuf, int minlen, int maxlen, void *extra)
 {
 	size_t		n = 0;
 	PxfFdwScanState *pxfsstate = (PxfFdwScanState *) extra;
@@ -105,7 +105,7 @@ PxfBridgeRead(void *outbuf, int datasize, void *extra)
 	if (!pxfsstate->fragments)
 		return (int) n;
 
-	while ((n = FillBuffer(pxfsstate, outbuf, datasize)) == 0)
+	while ((n = FillBuffer(pxfsstate, outbuf, minlen, maxlen)) == 0)
 	{
 		/*
 		 * done processing all data for current fragment - check if the
@@ -222,15 +222,16 @@ SetCurrentFragmentHeaders(PxfFdwScanState *pxfsstate)
  * Read data from churl until the buffer is full or there is no more data to be read
  */
 static size_t
-FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size)
+FillBuffer(PxfFdwScanState *pxfsstate, char *start, int minlen, int maxlen)
 {
 	size_t		n = 0;
 	char	   *ptr = start;
-	char	   *end = ptr + size;
+	char	   *minend = ptr + minlen;
+	char	   *maxend = ptr + maxlen;
 
-	while (ptr < end)
+	while (ptr < minend)
 	{
-		n = churl_read(pxfsstate->churl_handle, ptr, end - ptr);
+		n = churl_read(pxfsstate->churl_handle, ptr, maxend - ptr);
 		if (n == 0)
 			break;
 

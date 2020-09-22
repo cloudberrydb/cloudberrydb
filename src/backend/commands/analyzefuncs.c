@@ -1,6 +1,7 @@
 #include "postgres.h"
 
 #include "access/aocssegfiles.h"
+#include "access/table.h"
 #include "access/tuptoaster.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_type.h"
@@ -23,8 +24,8 @@
  * Statistics related parameters.
  */
 
-bool			gp_statistics_pullup_from_child_partition = FALSE;
-bool			gp_statistics_use_fkeys = FALSE;
+bool			gp_statistics_pullup_from_child_partition = false;
+bool			gp_statistics_use_fkeys = false;
 
 
 /*
@@ -115,36 +116,41 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		ctx->inherited = inherited;
 
 		if (!pg_class_ownercheck(relOid, GetUserId()))
-			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS,
+			aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TABLE,
 						   get_rel_name(relOid));
 
-		onerel = relation_open(relOid, AccessShareLock);
+		onerel = table_open(relOid, AccessShareLock);
 		relDesc = RelationGetDescr(onerel);
 
-		{
-			params.freeze_min_age = -1;
-			params.freeze_table_age = -1;
-			params.multixact_freeze_min_age = -1;
-			params.multixact_freeze_table_age = -1;
-		}
+		MemSet(&params, 0, sizeof(VacuumParams));
+		params.options |= VACOPT_ANALYZE;
+		params.freeze_min_age = -1;
+		params.freeze_table_age = -1;
+		params.multixact_freeze_min_age = -1;
+		params.multixact_freeze_table_age = -1;
+		params.is_wraparound = false;
+		params.log_min_duration = -1;
+		params.index_cleanup = VACOPT_TERNARY_DEFAULT;
+		params.truncate = VACOPT_TERNARY_DEFAULT;
+
 		this_rangevar = makeRangeVar(get_namespace_name(onerel->rd_rel->relnamespace),
 									 pstrdup(RelationGetRelationName(onerel)),
 									 -1);
-		analyze_rel(relOid, this_rangevar, VACOPT_ANALYZE, &params, NULL,
+		analyze_rel(relOid, this_rangevar, &params, NULL,
 					true, GetAccessStrategy(BAS_VACUUM), ctx);
 
 		/* Count the number of non-dropped cols */
 		live_natts = 0;
 		for (attno = 1; attno <= relDesc->natts; attno++)
 		{
-			Form_pg_attribute relatt = (Form_pg_attribute) relDesc->attrs[attno - 1];
+			Form_pg_attribute relatt = TupleDescAttr(relDesc, attno - 1);
 
 			if (relatt->attisdropped)
 				continue;
 			live_natts++;
 		}
 
-		outDesc = CreateTemplateTupleDesc(NUM_SAMPLE_FIXED_COLS + live_natts, false);
+		outDesc = CreateTemplateTupleDesc(NUM_SAMPLE_FIXED_COLS + live_natts);
 
 		/* First, some special cols: */
 
@@ -173,7 +179,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		outattno = NUM_SAMPLE_FIXED_COLS + 1;
 		for (attno = 1; attno <= relDesc->natts; attno++)
 		{
-			Form_pg_attribute relatt = (Form_pg_attribute) relDesc->attrs[attno - 1];
+			Form_pg_attribute relatt = TupleDescAttr(relDesc, attno - 1);
 			Oid			typid;
 
 			if (relatt->attisdropped)
@@ -228,7 +234,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		outattno = NUM_SAMPLE_FIXED_COLS + 1;
 		for (attno = 1; attno <= relDesc->natts; attno++)
 		{
-			Form_pg_attribute relatt = (Form_pg_attribute) relDesc->attrs[attno - 1];
+			Form_pg_attribute relatt = TupleDescAttr(relDesc, attno - 1);
 			bool		is_toolarge = false;
 			Datum		relvalue;
 			bool		relnull;
@@ -239,7 +245,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 			relnull = relnulls[attno - 1];
 
 			/* Is this attribute "too large" to return? */
-			if (relDesc->attrs[attno - 1]->attlen == -1 && !relnull)
+			if (relatt->attlen == -1 && !relnull)
 			{
 				Size		toasted_size = toast_datum_size(relvalue);
 
@@ -315,7 +321,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(res));
 	}
 
-	relation_close(ctx->onerel, AccessShareLock);
+	table_close(ctx->onerel, AccessShareLock);
 
 	pfree(ctx);
 	funcctx->user_fctx = NULL;

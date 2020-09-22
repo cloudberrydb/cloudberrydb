@@ -22,9 +22,10 @@
 #include "catalog/pg_trigger.h"
 #include "commands/trigger.h"
 #include "nodes/makefuncs.h"	/* makeFuncExpr() */
-#include "nodes/relation.h"		/* PlannerInfo, RelOptInfo */
-#include "optimizer/clauses.h"
-#include "optimizer/cost.h"		/* cpu_tuple_cost */
+#include "nodes/nodeFuncs.h"	/* exprType() */
+#include "nodes/pathnodes.h"	/* PlannerInfo, RelOptInfo */
+#include "optimizer/cost.h"		/* set_rel_width() */
+#include "optimizer/optimizer.h"	/* cpu_tuple_cost */
 #include "optimizer/pathnode.h" /* Path, pathnode_walker() */
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h"

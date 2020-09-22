@@ -14,9 +14,9 @@ include: helpers/server_helpers.sql;
 2&:CHECKPOINT;
 3:INSERT INTO t VALUES (1, 0);
 
--- Force WAL to switch xlog files explicitly
+-- Force WAL to switch wal files explicitly
 -- start_ignore
-1U:SELECT pg_switch_xlog();
+1U:SELECT pg_switch_wal();
 -- end_ignore
 3:INSERT INTO t SELECT 0, i FROM generate_series(1, 25)i;
 

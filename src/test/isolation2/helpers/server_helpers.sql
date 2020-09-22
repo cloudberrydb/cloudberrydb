@@ -163,7 +163,7 @@ begin
 	i := 0;
 	-- Wait until the mirror/standby has replayed up to flush location
 	loop
-		SELECT flush_location = replay_location INTO result from gp_stat_replication where gp_segment_id = segid;
+		SELECT flush_lsn = replay_lsn INTO result from gp_stat_replication where gp_segment_id = segid;
 		if result then
 			return true;
 		end if;

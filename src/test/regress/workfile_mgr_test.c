@@ -27,6 +27,7 @@
 #include "utils/guc.h"
 #include "utils/logtape.h"
 #include "utils/memutils.h"
+#include "utils/workfile_mgr.h"
 
 #define TEST_NAME_LENGTH 50
 #define TEST_HT_NUM_ELEMENTS 8192
@@ -155,6 +156,8 @@ create_text_stringinfo(int64 n_chars)
 static bool
 execworkfile_buffile_test(void)
 {
+/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
+#if 0
 	int64 result = 0;
 	bool success = false;
 	int64 expected_size = 0;
@@ -257,6 +260,10 @@ execworkfile_buffile_test(void)
 	pfree(text);
 
 	return unit_test_summary();
+#else
+	elog(ERROR, "broken test");
+	return 0;
+#endif
 }
 
 /*
@@ -300,8 +307,8 @@ fd_tests(void)
 	int len_to_write = 5000;
 	Assert(len_to_write <= text->len);
 
-	FileWrite(testFd, text->data, len_to_write);
-	FileSync(testFd);
+	FileWrite(testFd, text->data, len_to_write, 0, 0);
+	FileSync(testFd, 0);
 
 	fd_size = FileDiskSize(testFd);
 	unit_test_result(fd_size == len_to_write);
@@ -322,6 +329,8 @@ fd_tests(void)
 static bool
 buffile_size_test(void)
 {
+/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
+#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: buffile_size_test");
 
@@ -398,7 +407,10 @@ buffile_size_test(void)
 	pfree(text);
 
 	return unit_test_summary();
-
+#else
+	elog(ERROR, "broken test");
+	return 0;
+#endif
 }
 
 /*
@@ -479,6 +491,8 @@ atomic_test(void)
 static bool
 buffile_large_file_test(void)
 {
+/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
+#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: buffile_large_file_test");
 	char *file_name = "Test_large_buff.dat";
@@ -538,7 +552,10 @@ buffile_large_file_test(void)
 	pfree(test_string);
 
 	return unit_test_summary();
-
+#else
+	elog(ERROR, "broken test");
+	return 0;
+#endif
 }
 
 /*
@@ -547,6 +564,10 @@ buffile_large_file_test(void)
 static bool
 logicaltape_test(void)
 {
+/* GPDB_12_MERGE_FIXME: tuplesort and logtape.c were replaced with upstream versions
+ * which broke this
+ */
+#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: logicaltape_test");
 
@@ -629,6 +650,10 @@ logicaltape_test(void)
 	unit_test_result (strncmp(test_string->data, buffer, test_string->len) == 0);
 
 	return unit_test_summary();
+#else
+	elog(ERROR, "broken test");
+	return 0;
+#endif
 }
 
 /*
@@ -638,6 +663,8 @@ logicaltape_test(void)
 static bool
 fd_large_file_test(void)
 {
+	off_t		offset;
+
 	unit_test_reset();
 	elog(LOG, "Running test: fd_large_file_test");
 
@@ -660,10 +687,13 @@ fd_large_file_test(void)
 
 	StringInfo text = create_text_stringinfo(nchars);
 
+	offset = 0;
 	for (int i = 0; i < total_entries; i++)
 	{
-		FileWrite(testFd, text->data, strlen(text->data));
-		FileSync(testFd);
+		int len = strlen(text->data);
+		FileWrite(testFd, text->data, len, offset, 0);
+		offset += len;
+		FileSync(testFd, 0);
 	}
 
 	pfree(text->data);
@@ -686,6 +716,8 @@ fd_large_file_test(void)
 static bool
 execworkfile_create_one_MB_file(void)
 {
+/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
+#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: execworkfile_one_MB_file_test");
 
@@ -724,7 +756,10 @@ execworkfile_create_one_MB_file(void)
 	pfree(filename);
 
 	return unit_test_summary();
-
+#else
+	elog(ERROR, "broken test");
+	return 0;
+#endif
 }
 
 /*
@@ -787,9 +822,10 @@ workfile_create_and_set_cleanup(void)
 
 	BufFile **ewfiles = (BufFile **) palloc(TEST_MAX_NUM_WORKFILES * sizeof(BufFile *));
 
+	elog(ERROR, "GPDB_12_MERGE_FIXME: BufFileCreateTempInSet was lost");
 	for (int i=0; i < TEST_MAX_NUM_WORKFILES; i++)
 	{
-		ewfiles[i] = BufFileCreateTempInSet(work_set, false /* interXact */);
+		ewfiles[i] = BufFileCreateTempInSet("workfile_test", false /* interXact */, work_set);
 
 		if (ewfiles[i] == NULL)
 		{
@@ -815,7 +851,9 @@ workfile_create_and_set_cleanup(void)
 static bool
 workfile_made_in_temp_tablespace(void)
 {
-	bool success = true;
+	const char *bufFilePath;
+	BufFile *bufFile;
+	bool		success = true;
 
 	unit_test_reset();
 
@@ -831,12 +869,12 @@ workfile_made_in_temp_tablespace(void)
 	 * which parses the temp_tablespaces value and BufFileCreateTempInSet
 	 * uses that value as the location for workfile created
 	 */
-	BufFile *bufFile = BufFileCreateTempInSet(work_set, false);
+	bufFile = BufFileCreateTempInSet("workfile_test", false, work_set);
 
 	if (bufFile == NULL)
 		success = false;
 
-	const char *bufFilePath = BufFileGetFilename(bufFile);
+	bufFilePath = BufFileGetFilename(bufFile);
 
 	char *expectedPathPrefix = "pg_tblspc/";
 
@@ -879,7 +917,7 @@ workfile_create_and_individual_cleanup(void)
 
 	for (int i=0; i < TEST_MAX_NUM_WORKFILES; i++)
 	{
-		ewfiles[i] = BufFileCreateTempInSet(work_set, false /* interXact */);
+		ewfiles[i] = BufFileCreateTempInSet("workfile_test", false /* interXact */, work_set);
 
 		if (ewfiles[i] == NULL)
 		{

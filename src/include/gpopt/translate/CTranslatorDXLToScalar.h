@@ -348,48 +348,6 @@ namespace gpdxl
 				CMappingColIdVar *colid_var
 				);
 
-			// translate a scalar part default into an Expr
-			Expr *TranslateDXLScalarPartDefaultToScalar
-				(
-				const CDXLNode *part_default_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound into an Expr
-			Expr *TranslateDXLScalarPartBoundToScalar
-				(
-				const CDXLNode *part_bound_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound inclusion into an Expr
-			Expr *TranslateDXLScalarPartBoundInclusionToScalar
-				(
-				const CDXLNode *part_bound_incl_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound openness into an Expr
-			Expr *TranslateDXLScalarPartBoundOpenToScalar
-				(
-				const CDXLNode *part_bound_open_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part list values into an Expr
-			Expr *TranslateDXLScalarPartListValuesToScalar
-				(
-				const CDXLNode *part_list_values_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part list null test into an Expr
-			Expr *TranslateDXLScalarPartListNullTestToScalar
-				(
-				const CDXLNode *part_list_null_test_node,
-				CMappingColIdVar *colid_var
-				);
-
 			// translate a scalar ident into an Expr
 			Expr *TranslateDXLScalarIdentToScalar
 				(

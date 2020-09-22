@@ -46,13 +46,9 @@
                         <p><xref href="ref/clusterdb.xml" type="topic" format="dita"/></p>
                         <p><xref href="ref/createdb.xml" type="topic" format="dita"/><sup
                                 otherprops="pivotal">3</sup></p>
-                        <p><xref href="ref/createlang.xml" type="topic" format="dita"/><sup
-                                otherprops="pivotal">3</sup></p>
                         <p><xref href="ref/createuser.xml" type="topic" format="dita"/><sup
                                 otherprops="pivotal">3</sup></p>
                         <p><xref href="ref/dropdb.xml" type="topic" format="dita"/><sup
-                                otherprops="pivotal">3</sup></p>
-                        <p><xref href="ref/droplang.xml" type="topic" format="dita"/><sup
                                 otherprops="pivotal">3</sup></p>
                         <p><xref href="ref/dropuser.xml" type="topic" format="dita"/><sup
                                 otherprops="pivotal">3</sup></p>

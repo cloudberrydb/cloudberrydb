@@ -529,10 +529,10 @@ CREATE VIEW cte_view as
     SELECT a FROM foo limit 10
 )SELECT * FROM CTE);
 \d+ cte_view
-     View "qp_with_functional_inlining.cte_view"
- Column |  Type   | Modifiers | Storage | Description 
---------+---------+-----------+---------+-------------
- e      | integer |           | plain   | 
+                View "qp_with_functional_inlining.cte_view"
+ Column |  Type   | Collation | Nullable | Default | Storage | Description 
+--------+---------+-----------+----------+---------+---------+-------------
+ e      | integer |           |          |         | plain   | 
 View definition:
  WITH cte(e) AS (
          SELECT bar.d
@@ -569,11 +569,11 @@ CREATE VIEW cte_view as
 SELECT cte2.e,cte.f FROM cte,cte2 where cte.e = cte2.e
 );
 \d+ cte_view
-     View "qp_with_functional_inlining.cte_view"
- Column |  Type   | Modifiers | Storage | Description 
---------+---------+-----------+---------+-------------
- e      | integer |           | plain   | 
- f      | integer |           | plain   | 
+                View "qp_with_functional_inlining.cte_view"
+ Column |  Type   | Collation | Nullable | Default | Storage | Description 
+--------+---------+-----------+----------+---------+---------+-------------
+ e      | integer |           |          |         | plain   | 
+ f      | integer |           |          |         | plain   | 
 View definition:
  WITH cte(e, f) AS (
          SELECT foo.a,

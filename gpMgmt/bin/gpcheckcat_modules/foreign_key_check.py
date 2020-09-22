@@ -15,8 +15,8 @@ class ForeignKeyCheck:
         self.shared_option = shared_option
         self.autoCast = autoCast
         self.query_filters = dict()
-        self.query_filters['pg_appendonly.relid'] = "(relstorage='a' or relstorage='c')"
-        self.query_filters['pg_attribute.attrelid'] = "true"
+        self.query_filters['pg_appendonly.relid'] = "(select amname from pg_am am where am.oid = relam) IN ('ao_row', 'ao_column')"
+        self.query_filters['pg_attribute.attrelid'] = "(relnatts > 0 or relnatts is NULL)"
         self.query_filters["pg_index.indexrelid"] = "(relkind='i')"
 
     def runCheck(self, tables):
@@ -45,12 +45,18 @@ class ForeignKeyCheck:
         if len(cat.getPrimaryKey()) <= 0:
             return
 
-        # skip these master-only tables
-        skipped_masteronly = ['gp_relation_node', 'pg_description',
-                              'pg_shdescription', 'pg_stat_last_operation',
-                              'pg_stat_last_shoperation', 'pg_statistic']
+        if catname in MASTER_ONLY_TABLES:
+            return
 
-        if catname in skipped_masteronly:
+        # GPDB_12_MERGE_FIXME: Left outer join query generated below
+        # joins pg_rewrite and pg_attribute on ev_class == attrelid.
+        # This reports false positives (presence of null tuples) for
+        # the case when a view is defined with no columns.  The query
+        # should ideally exclude such views by adding
+        # pg_class.relnatts to the join.  But that's not possible
+        # without significantly changing the existing query generation
+        # logic.
+        if catname == 'pg_rewrite':
             return
 
         # skip shared/non-shared tables

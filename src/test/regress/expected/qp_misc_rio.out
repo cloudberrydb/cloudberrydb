@@ -610,7 +610,7 @@ GRANT ALL ON SCHEMA qp_misc_rio TO triggertest_nopriv_b;
 -- Connect as non-privileged user "triggertest_nopriv_a"
 SET ROLE triggertest_nopriv_a;
 select user;
-     current_user     
+         user         
 ----------------------
  triggertest_nopriv_a
 (1 row)
@@ -642,7 +642,7 @@ NOTICE:  100000  (seg0 krajaraman:25432 pid=59721)
 -- connect as non-privileged user "triggertest_nopriv_b"
 SET ROLE triggertest_nopriv_b;
 select user;
-     current_user     
+         user         
 ----------------------
  triggertest_nopriv_b
 (1 row)

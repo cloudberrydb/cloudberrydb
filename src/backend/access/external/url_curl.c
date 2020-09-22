@@ -700,13 +700,15 @@ fill_buffer(URL_CURL_FILE *curl, int want)
 		}
 		if (nfds == -1)
 		{
+			int save_errno = errno;
 			if (errno == EINTR || errno == EAGAIN)
 			{
-				elog(DEBUG2, "select failed on curl_multi_fdset (maxfd %d) (%d - %s)", maxfd, errno, strerror(errno));
+				elog(DEBUG2, "select failed on curl_multi_fdset (maxfd %d) (%d - %s)", maxfd,
+					 save_errno, strerror(save_errno));
 				continue;
 			}
 			elog(ERROR, "internal error: select failed on curl_multi_fdset (maxfd %d) (%d - %s)",
-				 maxfd, errno, strerror(errno));
+				 maxfd, save_errno, strerror(save_errno));
 		}
 		else if (nfds == 0)
 		{

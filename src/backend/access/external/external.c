@@ -17,15 +17,17 @@
 
 #include "access/external.h"
 #include "access/reloptions.h"
+#include "access/table.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_foreign_table.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 #include "commands/defrem.h"
+#include "foreign/foreign.h"
 #include "mb/pg_wchar.h"
 #include "nodes/makefuncs.h"
-#include "optimizer/var.h"
+#include "optimizer/optimizer.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/uri.h"
@@ -118,7 +120,7 @@ GetExtTableEntryIfExists(Oid relid)
 	bool		isNull;
 	List		*ftoptions_list = NIL;;
 
-	pg_foreign_table_rel = heap_open(ForeignTableRelationId, RowExclusiveLock);
+	pg_foreign_table_rel = table_open(ForeignTableRelationId, RowExclusiveLock);
 
 	ScanKeyInit(&ftkey,
 				Anum_pg_foreign_table_ftrelid,
@@ -157,7 +159,7 @@ GetExtTableEntryIfExists(Oid relid)
 
 	/* Finish up scan and close catalogs */
 	systable_endscan(ftscan);
-	heap_close(pg_foreign_table_rel, RowExclusiveLock);
+	table_close(pg_foreign_table_rel, RowExclusiveLock);
 
 	return extentry;
 }
@@ -255,12 +257,12 @@ GetExtFromForeignTableOptions(List *ftoptons, Oid relid)
 			continue;
 		}
 
-		entryOptions = lappend(entryOptions, makeDefElem(def->defname, (Node *)makeString(pstrdup(defGetString(def)))));
+		entryOptions = lappend(entryOptions, makeDefElem(def->defname, (Node *) makeString(pstrdup(defGetString(def))), -1));
 	}
 
 	/* If CSV format was chosen, make it visible to ProcessCopyOptions. */
 	if (fmttype_is_csv(extentry->fmtcode))
-			entryOptions = lappend(entryOptions, makeDefElem("format", (Node *) makeString("csv")));
+		entryOptions = lappend(entryOptions, makeDefElem("format", (Node *) makeString("csv"), -1));
 
 	/*
 	 * external table syntax does have these for sure, but errors could happen

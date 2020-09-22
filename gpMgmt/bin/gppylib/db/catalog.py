@@ -39,7 +39,7 @@ def getDatabaseList(conn):
 def getUserConnectionInfo(conn):
     """dont count ourselves"""
     header = ["pid", "usename", "application_name", "client_addr", "client_hostname", "client_port", "backend_start", "query"]
-    sql = """SELECT pid, usename, application_name, client_addr, client_hostname, client_port, backend_start, query FROM pg_stat_activity WHERE pid != pg_backend_pid() ORDER BY usename"""
+    sql = """SELECT pid, usename, application_name, client_addr, client_hostname, client_port, backend_start, query FROM pg_stat_activity WHERE pid != pg_backend_pid() and backend_type = 'client backend' ORDER BY usename"""
     return header, basicSQLExec(conn,sql)
 
 def doesSchemaExist(conn,schemaname):

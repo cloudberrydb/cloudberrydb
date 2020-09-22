@@ -626,13 +626,21 @@ STDERR>
 STDOUT>
 
 (3 rows)
+CREATE OR REPLACE FUNCTION parse_pg_rank_kv(s text) returns text as $$
+i = s.index(",")
+rank = s[:i]
+neighbors = map(int, s[i+1:].strip().strip("()").split(","))
+neighbors.sort()
+ns = "(" + ",".join(map(str, neighbors)) + ")"
+return ", ".join([rank, ns])
+$$ LANGUAGE plpythonu NO SQL;
 -- The result of the following test case is related to the underlying hash algorithm
 -- because the intermediate result of computing is saved as table in gpdb and hash-distributed.
 -- If you change the underlying hash algorithm, please remember to verify the answer and change
 -- here also.
-SELECT ps.value, pn.value FROM pagerank_source ps JOIN pagerank_next pn USING (key) WHERE ps.key = '17';
-value|value
-0.85, (1,258,259,266,265,264,263,262,261,260)|0.265867988394584, (1,258,259,266,265,264,263,262,261,260)
+SELECT parse_pg_rank_kv(ps.value), parse_pg_rank_kv(pn.value) FROM pagerank_source ps JOIN pagerank_next pn USING (key) WHERE ps.key = '17';
+parse_pg_rank_kv|parse_pg_rank_kv
+0.85, (1,258,259,260,261,262,263,264,265,266)|0.265867988394584, (1,258,259,260,261,262,263,264,265,266)
 (1 row)
 -- Test setup
 CREATE TABLE simple (m int,n int) distributed randomly;
