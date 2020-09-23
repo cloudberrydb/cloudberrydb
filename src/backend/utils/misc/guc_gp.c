@@ -257,7 +257,6 @@ bool		gp_enable_predicate_propagation = false;
 bool		gp_enable_minmax_optimization = true;
 bool		gp_enable_multiphase_agg = true;
 bool		gp_enable_preunique = true;
-bool		gp_eager_preunique = false;
 bool		gp_enable_agg_distinct = true;
 bool		gp_enable_dqa_pruning = true;
 bool		gp_dynamic_partition_pruning = true;
@@ -692,17 +691,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_preunique,
 		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_eager_preunique", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Experimental feature: 2-phase duplicate removal - cost override."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_eager_preunique,
-		false,
 		NULL, NULL, NULL
 	},
 

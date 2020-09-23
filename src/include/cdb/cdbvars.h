@@ -561,12 +561,6 @@ extern bool gp_enable_dqa_pruning;
  */
 extern bool gp_enable_preunique;
 
-/* If gp_enable_preunique is true, then  apply the associated optimzation
- * in an "eager" fashion.  In effect, this setting overrides the cost-
- * based decision whether to use a 2-phase approach to duplicate removal.
- */
-extern bool gp_eager_preunique;
-
 /* May Greenplum dump statistics for all segments as a huge ugly string
  * during EXPLAIN ANALYZE?
  *
