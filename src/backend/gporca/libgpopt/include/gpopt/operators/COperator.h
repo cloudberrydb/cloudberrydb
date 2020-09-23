@@ -255,6 +255,7 @@ public:
 		EopPatternLeaf,
 		EopPatternMultiLeaf,
 		EopPatternMultiTree,
+		EopPatternNode,
 
 		EopLogicalDynamicBitmapTableGet,
 		EopPhysicalDynamicBitmapTableScan,

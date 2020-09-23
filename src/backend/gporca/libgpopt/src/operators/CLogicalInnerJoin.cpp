@@ -68,23 +68,12 @@ CLogicalInnerJoin::PxfsCandidates(CMemoryPool *mp) const
 	(void) xform_set->ExchangeSet(CXform::ExfInnerJoin2NLJoin);
 	(void) xform_set->ExchangeSet(CXform::ExfInnerJoin2HashJoin);
 	(void) xform_set->ExchangeSet(CXform::ExfSubqJoin2Apply);
-	(void) xform_set->ExchangeSet(CXform::ExfInnerJoin2IndexGetApply);
-	(void) xform_set->ExchangeSet(CXform::ExfInnerJoin2DynamicIndexGetApply);
 	(void) xform_set->ExchangeSet(
 		CXform::ExfInnerJoin2PartialDynamicIndexGetApply);
-	(void) xform_set->ExchangeSet(CXform::ExfInnerJoin2BitmapIndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoinWithInnerSelect2IndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoinWithInnerSelect2DynamicIndexGetApply);
 	(void) xform_set->ExchangeSet(
 		CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoin2DynamicBitmapIndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoinWithInnerSelect2BitmapIndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfJoin2BitmapIndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfJoin2IndexGetApply);
 
 	(void) xform_set->ExchangeSet(CXform::ExfJoinCommutativity);
 	(void) xform_set->ExchangeSet(CXform::ExfJoinAssociativity);

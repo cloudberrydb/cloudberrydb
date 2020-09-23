@@ -109,7 +109,10 @@ IndexApply-InnerSelect-Basic IndexApply-InnerSelect-PartTable IndexApply-PartKey
 IndexApply-InnerSelect-Heterogeneous-DTS IndexApply-Heterogeneous-BothSidesPartitioned
 IndexApply-InnerSelect-PartTable2 IndexApply-ForPartialIndex CastedScalarIf-On-Index-Key
 IndexApply-MultiDistKey-WithComplexPreds IndexApply-MultiDistKeys-Bitmap
-IndexApply-MultiDistKeys-Bitmap-WithComplexPreds;
+IndexApply-MultiDistKeys-Bitmap-WithComplexPreds
+BitmapIndexNLJWithProject BitmapIndexNLOJWithProject
+BitmapIndexNLJWithProjectNoFilt BtreeIndexNLJWithProjectNoPart
+BitmapIndexNLOJWithProjectNonPart BtreeIndexNLOJWithProject;
 
 CDynamicIndexScanTest:
 DynamicIndexScan-Homogenous DynamicIndexScan-BoolTrue DynamicIndexScan-BoolFalse

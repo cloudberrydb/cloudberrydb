@@ -736,6 +736,10 @@ public:
 									  CExpression **ppexprBitmap,
 									  CExpression **ppexprRecheck);
 
+	static CExpression *AddALinearStackOfUnaryExpressions(
+		CMemoryPool *mp, CExpression *lowerPartOfExpr, CExpression *topOfStack,
+		CExpression *exclusiveBottomOfStack);
+
 };	// class CXformUtils
 
 

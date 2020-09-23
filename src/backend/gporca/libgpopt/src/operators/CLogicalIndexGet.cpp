@@ -209,6 +209,16 @@ CLogicalIndexGet::DeriveOuterReferences(CMemoryPool *mp,
 	return PcrsDeriveOuterIndexGet(mp, exprhdl);
 }
 
+CKeyCollection *
+CLogicalIndexGet::DeriveKeyCollection(CMemoryPool *mp,
+									  CExpressionHandle &  // exprhdl
+) const
+{
+	const CBitSetArray *pdrgpbs = m_ptabdesc->PdrgpbsKeys();
+
+	return CLogical::PkcKeysBaseTable(mp, pdrgpbs, m_pdrgpcrOutput);
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CLogicalIndexGet::FInputOrderSensitive

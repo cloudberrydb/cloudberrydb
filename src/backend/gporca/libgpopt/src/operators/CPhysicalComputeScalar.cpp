@@ -35,15 +35,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalComputeScalar::CPhysicalComputeScalar(CMemoryPool *mp) : CPhysical(mp)
 {
-	// when ComputeScalar includes no outer references, we create two optimization requests
-	// to enforce distribution of its child:
+	// When ComputeScalar does not contain volatile functions and includes no outer references, or if the
+	// parent node explicitly allows outer refs, we create two optimization requests to enforce
+	// distribution of its child:
 	// (1) Any: impose no distribution requirement on the child in order to push scalar computation below
 	// Motions, and then enforce required distribution on top of ComputeScalar if needed
 	// (2) Pass-Thru: impose distribution requirement on child, and then perform scalar computation after
 	// Motions are enforced, this is more efficient for Master-Only plans below ComputeScalar
 
-	// when ComputeScalar includes outer references, correlated execution has to be enforced,
-	// in this case, we create two child optimization requests to guarantee correct evaluation of parameters
+	// Otherwise, correlated execution has to be enforced.
+	// In this case, we create two child optimization requests to guarantee correct evaluation of parameters
 	// (1) Broadcast
 	// (2) Singleton
 
@@ -163,13 +164,21 @@ CPhysicalComputeScalar::PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 {
 	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(2 > ulOptReq);
-
-	// check if singleton/replicated distribution needs to be requested
-	CDistributionSpec *pds = PdsRequireSingletonOrReplicated(
-		mp, exprhdl, pdsRequired, child_index, ulOptReq);
-	if (NULL != pds)
+	CDistributionSpec::EDistributionType edtRequired = pdsRequired->Edt();
+	// check whether we need singleton execution - but if the parent explicitly
+	// allowed outer refs in an "ANY" request, then that alone doesn't qualify
+	// as a reason to request singleton
+	if (exprhdl.NeedsSingletonExecution() ||
+		!(CDistributionSpec::EdtAny == edtRequired &&
+		  (CDistributionSpecAny::PdsConvert(pdsRequired))->FAllowOuterRefs()))
 	{
-		return pds;
+		// check if singleton/replicated distribution needs to be requested
+		CDistributionSpec *pds = PdsRequireSingletonOrReplicated(
+			mp, exprhdl, pdsRequired, child_index, ulOptReq);
+		if (NULL != pds)
+		{
+			return pds;
+		}
 	}
 
 	// if a Project operator has a call to a set function, passing a Random distribution through this
@@ -184,7 +193,6 @@ CPhysicalComputeScalar::PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 	// if required distribution uses any defined column, it has to be enforced on top of ComputeScalar,
 	// in this case, we request Any distribution from the child
-	CDistributionSpec::EDistributionType edtRequired = pdsRequired->Edt();
 	if (CDistributionSpec::EdtHashed == edtRequired)
 	{
 		CDistributionSpecHashed *pdshashed =

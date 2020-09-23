@@ -185,6 +185,10 @@ public:
 		return PpcDeriveConstraintFromTable(mp, m_ptabdesc, m_pdrgpcrOutput);
 	}
 
+	// derive key collections
+	virtual CKeyCollection *DeriveKeyCollection(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+
 	// derive join depth
 	virtual ULONG
 	DeriveJoinDepth(CMemoryPool *,		 // mp

@@ -66,7 +66,7 @@ CBindingTest::EresUnittest()
 // extract the Scalar Group Expression only once per alternative. In the case
 // of the test query used, there are 2 alternatives, so the test expects that
 // there should be 2 bindings for the pattern defined by
-// CXformInnerJoinWithInnerSelect2IndexGetApply.
+// CXformJoin2IndexGetApply.
 //
 // Alternative: 1
 // +--CLogicalSelect
@@ -141,8 +141,7 @@ CBindingTest::EresUnittest_Basic()
 	UlongPtrArray *number_of_bindings = eng.GetNumberOfBindings();
 	ULONG search_stage = 0;
 	ULONG bindings_for_xform = (ULONG)(
-		*number_of_bindings)[search_stage]
-							[CXform::ExfInnerJoinWithInnerSelect2IndexGetApply];
+		*number_of_bindings)[search_stage][CXform::ExfJoin2IndexGetApply];
 
 	GPOS_RESULT eres = GPOS_FAILED;
 

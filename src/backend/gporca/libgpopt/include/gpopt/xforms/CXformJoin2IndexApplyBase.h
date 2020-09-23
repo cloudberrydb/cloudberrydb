@@ -195,15 +195,16 @@ public:
 		if (is_partial)
 		{
 			CreatePartialIndexApplyAlternatives(
-				mp, pexpr->Pop()->UlOpId(), pexprOuter, pexprInner,
-				pexprAllPredicates, ptabdescInner, popDynamicGet, pxfres);
+				mp, pexpr->Pop(), pexprOuter, pexprInner, pexprAllPredicates,
+				ptabdescInner, popDynamicGet, pxfres);
 		}
 		else
 		{
 			CreateHomogeneousIndexApplyAlternatives(
-				mp, pexpr->Pop()->UlOpId(), pexprOuter, pexprGet,
-				pexprAllPredicates, ptabdescInner, popDynamicGet, pxfres,
-				eidxtype);
+				mp, pexpr->Pop(), pexprOuter, pexprGet, pexprAllPredicates,
+				NULL,  // extra nodes to copy
+				NULL,  // end of extra nodes to copy
+				ptabdescInner, popDynamicGet, pxfres, eidxtype);
 		}
 		CRefCount::SafeRelease(pexprAllPredicates);
 	}
