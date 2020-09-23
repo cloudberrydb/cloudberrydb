@@ -32,14 +32,8 @@
 #include "partitioning/partbounds.h"
 #include "utils/hsearch.h"
 
-#include "catalog/gp_distribution_policy.h"
-#include "cdb/cdbpath.h"
+#include "access/sysattr.h"
 #include "cdb/cdbutil.h"
-#include "nodes/makefuncs.h"                /* makeVar() */
-#include "nodes/nodeFuncs.h"
-#include "parser/parse_expr.h"              /* exprType(), exprTypmod() */
-#include "parser/parsetree.h"
-#include "utils/lsyscache.h"
 
 typedef struct JoinHashEntry
 {
@@ -47,6 +41,8 @@ typedef struct JoinHashEntry
 	RelOptInfo *join_rel;
 } JoinHashEntry;
 
+static void build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
+					RelOptInfo *input_rel);
 static List *build_joinrel_restrictlist(PlannerInfo *root,
 										RelOptInfo *joinrel,
 										RelOptInfo *outer_rel,
@@ -995,21 +991,14 @@ min_join_parameterization(PlannerInfo *root,
  * We also compute the expected width of the join's output, making use
  * of data that was cached at the baserel level by set_rel_width().
  */
-void
+static void
 build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
 					RelOptInfo *input_rel)
-{
-	return build_joinrel_tlist_for_exprs(root, joinrel, input_rel->reltarget->exprs);
-}
-
-void
-build_joinrel_tlist_for_exprs(PlannerInfo *root, RelOptInfo *joinrel,
-							  List *exprs)
 {
 	Relids		relids = joinrel->relids;
 	ListCell   *vars;
 
-	foreach(vars, exprs)
+	foreach(vars, input_rel->reltarget->exprs)
 	{
 		Var		   *var = (Var *) lfirst(vars);
 		RelOptInfo *baserel;
@@ -1211,6 +1200,7 @@ subbuild_joinrel_joinlist(RelOptInfo *joinrel,
 
 	return new_joininfo;
 }
+
 
 /*
  * fetch_upper_rel

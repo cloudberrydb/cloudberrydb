@@ -339,10 +339,6 @@ extern Relids min_join_parameterization(PlannerInfo *root,
 										Relids joinrelids,
 										RelOptInfo *outer_rel,
 										RelOptInfo *inner_rel);
-extern void build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
-								RelOptInfo *input_rel);
-extern void build_joinrel_tlist_for_exprs(PlannerInfo *root, RelOptInfo *joinrel,
-										  List *exprs);
 
 extern RelOptInfo *fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind,
 								   Relids relids);
