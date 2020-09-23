@@ -24,27 +24,6 @@
 #include "cdb/cdbgroup.h"
 #include "optimizer/tlist.h"
 
-/* Coefficients for cost calculation adjustments: These are candidate GUCs
- * or, perhaps, replacements for the gp_eager_... series.  We wouldn't
- * need these if our statistics and cost calculations were correct, but
- * as of 3.2, they not.
- *
- * Early testing suggested that (1.0, 0.45, 1.7) was about right, but the
- * risk of introducing skew in the initial redistribution of a 1-phase plan
- * is great (especially given the 3.2 tendency to way underestimate the
- * cardinality of joins), so we penalize 1-phase and normalize to the
- * 2-phase cost (approximately).
- */
-/* GPDB_96_MERGE_FIXME: should we apply coefficient like this in the new pathified
- * MPP grouping implementation, in cdbgroupingpaths.c, still?
- */
-#ifdef NOT_USED
-static const double gp_coefficient_1phase_agg = 20.0;	/* penalty */
-static const double gp_coefficient_2phase_agg = 1.0;	/* normalized */
-static const double gp_coefficient_3phase_agg = 3.3;	/* increase systematic
-														 * underestimate */
-#endif
-
 /*
  * Function: cdbpathlocus_collocates_pathkeys
  *
