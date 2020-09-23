@@ -129,7 +129,6 @@ struct StringInfoData;                  /* #include "lib/stringinfo.h" */
 struct MemTupleBinding;
 struct MemTupleData;
 struct HeapScanDescData;
-struct FileScanDescData;
 struct SliceTable;
 
 /* ----------------
