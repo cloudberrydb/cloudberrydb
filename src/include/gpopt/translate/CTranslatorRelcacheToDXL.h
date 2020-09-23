@@ -21,7 +21,6 @@
 #include "gpos/base.h"
 
 extern "C" {
-#include "c.h"
 #include "postgres.h"
 #include "access/tupdesc.h"
 #include "catalog/gp_distribution_policy.h"
