@@ -2700,12 +2700,12 @@ create table foo(a int, b int, c int) distributed by(a);
 create table tbtree(a int, b int, c int) distributed by(a);
 create table tbitmap(a int, b int, c int) distributed by(a);
 
-insert into foo select i,i,i from generate_series(1,10) i;
+insert into foo select i*1000,i*1000,i*1000 from generate_series(1,10) i;
 insert into tbtree select i,i,i from generate_series(1,100000) i;
 insert into tbitmap select i,i,i from generate_series(1,100000) i;
--- insert a duplicate value for a=2
-insert into tbtree values (2,-1,-1);
-insert into tbitmap values (2,-1,-1);
+-- insert a duplicate value for a=2000
+insert into tbtree values (2000,-1,-1);
+insert into tbitmap values (2000,-1,-1);
 
 create index tbtreexa  on tbtree  using btree(a);
 create index tbitmapxa on tbitmap using bitmap(a);
@@ -2716,7 +2716,9 @@ analyze tbitmap;
 
 set optimizer_join_order = query;
 set optimizer_enable_hashjoin = off;
+set optimizer_enable_groupagg = off;
 set optimizer_trace_fallback = on;
+set enable_sort = off;
 
 -- 1 simple btree
 explain (costs off)
@@ -2730,13 +2732,13 @@ select * from foo join tbitmap on foo.a=tbitmap.a;
 
 -- 3 btree with select pred
 explain (costs off)
-select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
-select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5000;
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5000;
 
 -- 4 bitmap with select pred
 explain (costs off)
-select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
-select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5000;
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5000;
 
 -- 5 btree with project
 explain (costs off)
@@ -2760,13 +2762,13 @@ select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby 
 
 -- 9 btree with proj select grby select
 explain (costs off)
-select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
-select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
 
 -- 10 bitmap with proj select grby select
 explain (costs off)
-select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
-select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
 
 -- 11 bitmap with two groupbys
 explain (costs off)
@@ -2776,10 +2778,10 @@ select * from foo join (select a, count(*) as cnt from (select distinct a, b fro
 -- 12 btree with proj select 2*grby select
 explain (costs off)
 select * from foo join (select a, count(*) + cnt1 as cnt2 from (select a, count(*) as cnt1 from tbtree group by a) grby1
-                                                                where grby1.a < 5 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
+                                                                where grby1.a < 5000 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
                     on foo.a=proj_sel_grby_sel.a;
 select * from foo join (select a, count(*) + cnt1 as cnt2 from (select a, count(*) as cnt1 from tbtree group by a) grby1
-                                                                where grby1.a < 5 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
+                                                                where grby1.a < 5000 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
                     on foo.a=proj_sel_grby_sel.a;
 
 -- 13 join pred accesses a projected column - no index scan
@@ -2809,7 +2811,9 @@ select * from foo join (select min_a, count(*) as cnt from (select min(a) as min
 
 reset optimizer_join_order;
 reset optimizer_enable_hashjoin;
+reset optimizer_enable_groupagg;
 reset optimizer_trace_fallback;
+reset enable_sort;
 
 -- start_ignore
 DROP SCHEMA orca CASCADE;

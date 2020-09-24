@@ -12452,12 +12452,12 @@ NOTICE:  table "tbitmap" does not exist, skipping
 create table foo(a int, b int, c int) distributed by(a);
 create table tbtree(a int, b int, c int) distributed by(a);
 create table tbitmap(a int, b int, c int) distributed by(a);
-insert into foo select i,i,i from generate_series(1,10) i;
+insert into foo select i*1000,i*1000,i*1000 from generate_series(1,10) i;
 insert into tbtree select i,i,i from generate_series(1,100000) i;
 insert into tbitmap select i,i,i from generate_series(1,100000) i;
--- insert a duplicate value for a=2
-insert into tbtree values (2,-1,-1);
-insert into tbitmap values (2,-1,-1);
+-- insert a duplicate value for a=2000
+insert into tbtree values (2000,-1,-1);
+insert into tbitmap values (2000,-1,-1);
 create index tbtreexa  on tbtree  using btree(a);
 create index tbitmapxa on tbitmap using bitmap(a);
 analyze foo;
@@ -12465,7 +12465,9 @@ analyze tbtree;
 analyze tbitmap;
 set optimizer_join_order = query;
 set optimizer_enable_hashjoin = off;
+set optimizer_enable_groupagg = off;
 set optimizer_trace_fallback = on;
+set enable_sort = off;
 -- 1 simple btree
 explain (costs off)
 select * from foo join tbtree on foo.a=tbtree.a;
@@ -12481,19 +12483,19 @@ select * from foo join tbtree on foo.a=tbtree.a;
 (7 rows)
 
 select * from foo join tbtree on foo.a=tbtree.a;
- a  | b  | c  | a  | b  | c  
-----+----+----+----+----+----
-  2 |  2 |  2 |  2 |  2 |  2
-  3 |  3 |  3 |  3 |  3 |  3
-  4 |  4 |  4 |  4 |  4 |  4
-  7 |  7 |  7 |  7 |  7 |  7
-  8 |  8 |  8 |  8 |  8 |  8
-  2 |  2 |  2 |  2 | -1 | -1
-  1 |  1 |  1 |  1 |  1 |  1
-  5 |  5 |  5 |  5 |  5 |  5
-  6 |  6 |  6 |  6 |  6 |  6
-  9 |  9 |  9 |  9 |  9 |  9
- 10 | 10 | 10 | 10 | 10 | 10
+   a   |   b   |   c   |   a   |   b   |   c   
+-------+-------+-------+-------+-------+-------
+  3000 |  3000 |  3000 |  3000 |  3000 |  3000
+  4000 |  4000 |  4000 |  4000 |  4000 |  4000
+  9000 |  9000 |  9000 |  9000 |  9000 |  9000
+ 10000 | 10000 | 10000 | 10000 | 10000 | 10000
+  1000 |  1000 |  1000 |  1000 |  1000 |  1000
+  2000 |  2000 |  2000 |  2000 |  2000 |  2000
+  6000 |  6000 |  6000 |  6000 |  6000 |  6000
+  7000 |  7000 |  7000 |  7000 |  7000 |  7000
+  8000 |  8000 |  8000 |  8000 |  8000 |  8000
+  2000 |  2000 |  2000 |  2000 |    -1 |    -1
+  5000 |  5000 |  5000 |  5000 |  5000 |  5000
 (11 rows)
 
 -- 2 simple bitmap
@@ -12511,75 +12513,75 @@ select * from foo join tbitmap on foo.a=tbitmap.a;
 (7 rows)
 
 select * from foo join tbitmap on foo.a=tbitmap.a;
- a  | b  | c  | a  | b  | c  
-----+----+----+----+----+----
-  1 |  1 |  1 |  1 |  1 |  1
-  5 |  5 |  5 |  5 |  5 |  5
-  6 |  6 |  6 |  6 |  6 |  6
-  9 |  9 |  9 |  9 |  9 |  9
- 10 | 10 | 10 | 10 | 10 | 10
-  2 |  2 |  2 |  2 |  2 |  2
-  3 |  3 |  3 |  3 |  3 |  3
-  4 |  4 |  4 |  4 |  4 |  4
-  7 |  7 |  7 |  7 |  7 |  7
-  8 |  8 |  8 |  8 |  8 |  8
-  2 |  2 |  2 |  2 | -1 | -1
+   a   |   b   |   c   |   a   |   b   |   c   
+-------+-------+-------+-------+-------+-------
+  5000 |  5000 |  5000 |  5000 |  5000 |  5000
+  3000 |  3000 |  3000 |  3000 |  3000 |  3000
+  4000 |  4000 |  4000 |  4000 |  4000 |  4000
+  9000 |  9000 |  9000 |  9000 |  9000 |  9000
+ 10000 | 10000 | 10000 | 10000 | 10000 | 10000
+  1000 |  1000 |  1000 |  1000 |  1000 |  1000
+  2000 |  2000 |  2000 |  2000 |  2000 |  2000
+  6000 |  6000 |  6000 |  6000 |  6000 |  6000
+  7000 |  7000 |  7000 |  7000 |  7000 |  7000
+  8000 |  8000 |  8000 |  8000 |  8000 |  8000
+  2000 |  2000 |  2000 |  2000 |    -1 |    -1
 (11 rows)
 
 -- 3 btree with select pred
 explain (costs off)
-select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5000;
                    QUERY PLAN                    
 -------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (tbtree.a = foo.a)
          ->  Bitmap Heap Scan on tbtree
-               Recheck Cond: (a < 5)
+               Recheck Cond: (a < 5000)
                ->  Bitmap Index Scan on tbtreexa
-                     Index Cond: (a < 5)
+                     Index Cond: (a < 5000)
          ->  Hash
                ->  Seq Scan on foo
-                     Filter: (a < 5)
+                     Filter: (a < 5000)
  Optimizer: Postgres query optimizer
 (11 rows)
 
-select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5;
- a | b | c | a | b  | c  
----+---+---+---+----+----
- 1 | 1 | 1 | 1 |  1 |  1
- 2 | 2 | 2 | 2 |  2 |  2
- 3 | 3 | 3 | 3 |  3 |  3
- 4 | 4 | 4 | 4 |  4 |  4
- 2 | 2 | 2 | 2 | -1 | -1
+select * from foo join tbtree on foo.a=tbtree.a where tbtree.a < 5000;
+  a   |  b   |  c   |  a   |  b   |  c   
+------+------+------+------+------+------
+ 1000 | 1000 | 1000 | 1000 | 1000 | 1000
+ 2000 | 2000 | 2000 | 2000 | 2000 | 2000
+ 2000 | 2000 | 2000 | 2000 |   -1 |   -1
+ 3000 | 3000 | 3000 | 3000 | 3000 | 3000
+ 4000 | 4000 | 4000 | 4000 | 4000 | 4000
 (5 rows)
 
 -- 4 bitmap with select pred
 explain (costs off)
-select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5000;
                     QUERY PLAN                    
 --------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: (tbitmap.a = foo.a)
          ->  Bitmap Heap Scan on tbitmap
-               Recheck Cond: (a < 5)
+               Recheck Cond: (a < 5000)
                ->  Bitmap Index Scan on tbitmapxa
-                     Index Cond: (a < 5)
+                     Index Cond: (a < 5000)
          ->  Hash
                ->  Seq Scan on foo
-                     Filter: (a < 5)
+                     Filter: (a < 5000)
  Optimizer: Postgres query optimizer
 (11 rows)
 
-select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5;
- a | b | c | a | b  | c  
----+---+---+---+----+----
- 1 | 1 | 1 | 1 |  1 |  1
- 2 | 2 | 2 | 2 |  2 |  2
- 3 | 3 | 3 | 3 |  3 |  3
- 4 | 4 | 4 | 4 |  4 |  4
- 2 | 2 | 2 | 2 | -1 | -1
+select * from foo join tbitmap on foo.a=tbitmap.a where tbitmap.a < 5000;
+  a   |  b   |  c   |  a   |  b   |  c   
+------+------+------+------+------+------
+ 1000 | 1000 | 1000 | 1000 | 1000 | 1000
+ 2000 | 2000 | 2000 | 2000 | 2000 | 2000
+ 2000 | 2000 | 2000 | 2000 |   -1 |   -1
+ 3000 | 3000 | 3000 | 3000 | 3000 | 3000
+ 4000 | 4000 | 4000 | 4000 | 4000 | 4000
 (5 rows)
 
 -- 5 btree with project
@@ -12597,19 +12599,19 @@ select * from foo join (select a, b+c as bc from tbtree) proj on foo.a=proj.a;
 (7 rows)
 
 select * from foo join (select a, b+c as bc from tbtree) proj on foo.a=proj.a;
- a  | b  | c  | a  | bc 
-----+----+----+----+----
-  2 |  2 |  2 |  2 |  4
-  3 |  3 |  3 |  3 |  6
-  4 |  4 |  4 |  4 |  8
-  7 |  7 |  7 |  7 | 14
-  8 |  8 |  8 |  8 | 16
-  2 |  2 |  2 |  2 | -2
-  1 |  1 |  1 |  1 |  2
-  5 |  5 |  5 |  5 | 10
-  6 |  6 |  6 |  6 | 12
-  9 |  9 |  9 |  9 | 18
- 10 | 10 | 10 | 10 | 20
+   a   |   b   |   c   |   a   |  bc   
+-------+-------+-------+-------+-------
+  3000 |  3000 |  3000 |  3000 |  6000
+  4000 |  4000 |  4000 |  4000 |  8000
+  9000 |  9000 |  9000 |  9000 | 18000
+ 10000 | 10000 | 10000 | 10000 | 20000
+  5000 |  5000 |  5000 |  5000 | 10000
+  1000 |  1000 |  1000 |  1000 |  2000
+  2000 |  2000 |  2000 |  2000 |  4000
+  6000 |  6000 |  6000 |  6000 | 12000
+  7000 |  7000 |  7000 |  7000 | 14000
+  8000 |  8000 |  8000 |  8000 | 16000
+  2000 |  2000 |  2000 |  2000 |    -2
 (11 rows)
 
 -- 6 bitmap with project
@@ -12627,19 +12629,19 @@ select * from foo join (select a, b+c as bc from tbitmap) proj on foo.a=proj.a;
 (7 rows)
 
 select * from foo join (select a, b+c as bc from tbitmap) proj on foo.a=proj.a;
- a  | b  | c  | a  | bc 
-----+----+----+----+----
-  5 |  5 |  5 |  5 | 10
-  6 |  6 |  6 |  6 | 12
-  9 |  9 |  9 |  9 | 18
- 10 | 10 | 10 | 10 | 20
-  2 |  2 |  2 |  2 |  4
-  3 |  3 |  3 |  3 |  6
-  4 |  4 |  4 |  4 |  8
-  7 |  7 |  7 |  7 | 14
-  8 |  8 |  8 |  8 | 16
-  2 |  2 |  2 |  2 | -2
-  1 |  1 |  1 |  1 |  2
+   a   |   b   |   c   |   a   |  bc   
+-------+-------+-------+-------+-------
+  3000 |  3000 |  3000 |  3000 |  6000
+  4000 |  4000 |  4000 |  4000 |  8000
+  9000 |  9000 |  9000 |  9000 | 18000
+ 10000 | 10000 | 10000 | 10000 | 20000
+  1000 |  1000 |  1000 |  1000 |  2000
+  2000 |  2000 |  2000 |  2000 |  4000
+  6000 |  6000 |  6000 |  6000 | 12000
+  7000 |  7000 |  7000 |  7000 | 14000
+  8000 |  8000 |  8000 |  8000 | 16000
+  2000 |  2000 |  2000 |  2000 |    -2
+  5000 |  5000 |  5000 |  5000 | 10000
 (11 rows)
 
 -- 7 btree with grby
@@ -12659,19 +12661,19 @@ select * from foo join (select a, count(*) as cnt from tbtree group by a,b) grby
 (9 rows)
 
 select * from foo join (select a, count(*) as cnt from tbtree group by a,b) grby on foo.a=grby.a;
- a  | b  | c  | a  | cnt 
-----+----+----+----+-----
-  1 |  1 |  1 |  1 |   1
-  4 |  4 |  4 |  4 |   1
-  8 |  8 |  8 |  8 |   1
-  2 |  2 |  2 |  2 |   1
-  7 |  7 |  7 |  7 |   1
-  3 |  3 |  3 |  3 |   1
-  2 |  2 |  2 |  2 |   1
-  5 |  5 |  5 |  5 |   1
-  6 |  6 |  6 |  6 |   1
- 10 | 10 | 10 | 10 |   1
-  9 |  9 |  9 |  9 |   1
+   a   |   b   |   c   |   a   | cnt 
+-------+-------+-------+-------+-----
+ 10000 | 10000 | 10000 | 10000 |   1
+  9000 |  9000 |  9000 |  9000 |   1
+  4000 |  4000 |  4000 |  4000 |   1
+  3000 |  3000 |  3000 |  3000 |   1
+  5000 |  5000 |  5000 |  5000 |   1
+  6000 |  6000 |  6000 |  6000 |   1
+  2000 |  2000 |  2000 |  2000 |   1
+  8000 |  8000 |  8000 |  8000 |   1
+  7000 |  7000 |  7000 |  7000 |   1
+  2000 |  2000 |  2000 |  2000 |   1
+  1000 |  1000 |  1000 |  1000 |   1
 (11 rows)
 
 -- 8 bitmap with grby
@@ -12691,78 +12693,74 @@ select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby 
 (9 rows)
 
 select * from foo join (select a, count(*) as cnt from tbitmap group by a) grby on foo.a=grby.a;
- a  | b  | c  | a  | cnt 
-----+----+----+----+-----
-  2 |  2 |  2 |  2 |   2
-  4 |  4 |  4 |  4 |   1
-  7 |  7 |  7 |  7 |   1
-  3 |  3 |  3 |  3 |   1
-  8 |  8 |  8 |  8 |   1
-  1 |  1 |  1 |  1 |   1
-  9 |  9 |  9 |  9 |   1
- 10 | 10 | 10 | 10 |   1
-  5 |  5 |  5 |  5 |   1
-  6 |  6 |  6 |  6 |   1
+   a   |   b   |   c   |   a   | cnt 
+-------+-------+-------+-------+-----
+  5000 |  5000 |  5000 |  5000 |   1
+  8000 |  8000 |  8000 |  8000 |   1
+  6000 |  6000 |  6000 |  6000 |   1
+  2000 |  2000 |  2000 |  2000 |   2
+  7000 |  7000 |  7000 |  7000 |   1
+  1000 |  1000 |  1000 |  1000 |   1
+ 10000 | 10000 | 10000 | 10000 |   1
+  3000 |  3000 |  3000 |  3000 |   1
+  9000 |  9000 |  9000 |  9000 |   1
+  4000 |  4000 |  4000 |  4000 |   1
 (10 rows)
 
 -- 9 btree with proj select grby select
 explain (costs off)
-select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+                      QUERY PLAN                       
+-------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: (foo.a = tbtree.a)
-         ->  Seq Scan on foo
+         Hash Cond: (tbtree.a = foo.a)
+         ->  HashAggregate
+               Group Key: tbtree.a
+               Filter: (count(*) < 2)
+               ->  Bitmap Heap Scan on tbtree
+                     Recheck Cond: (a < 5000)
+                     ->  Bitmap Index Scan on tbtreexa
+                           Index Cond: (a < 5000)
          ->  Hash
-               ->  GroupAggregate
-                     Group Key: tbtree.a
-                     Filter: (count(*) < 2)
-                     ->  Sort
-                           Sort Key: tbtree.a
-                           ->  Bitmap Heap Scan on tbtree
-                                 Recheck Cond: (a < 5)
-                                 ->  Bitmap Index Scan on tbtreexa
-                                       Index Cond: (a < 5)
+               ->  Seq Scan on foo
  Optimizer: Postgres query optimizer
-(15 rows)
+(13 rows)
 
-select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
- a | b | c | a | cnt 
----+---+---+---+-----
- 3 | 3 | 3 | 3 |   6
- 4 | 4 | 4 | 4 |   6
- 1 | 1 | 1 | 1 |   6
+select * from foo join (select a, count(*) + 5 as cnt from tbtree where tbtree.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+  a   |  b   |  c   |  a   | cnt 
+------+------+------+------+-----
+ 1000 | 1000 | 1000 | 1000 |   6
+ 4000 | 4000 | 4000 | 4000 |   6
+ 3000 | 3000 | 3000 | 3000 |   6
 (3 rows)
 
 -- 10 bitmap with proj select grby select
 explain (costs off)
-select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
-                             QUERY PLAN                             
---------------------------------------------------------------------
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+                       QUERY PLAN                       
+--------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: (foo.a = tbitmap.a)
-         ->  Seq Scan on foo
+         Hash Cond: (tbitmap.a = foo.a)
+         ->  HashAggregate
+               Group Key: tbitmap.a
+               Filter: (count(*) < 2)
+               ->  Bitmap Heap Scan on tbitmap
+                     Recheck Cond: (a < 5000)
+                     ->  Bitmap Index Scan on tbitmapxa
+                           Index Cond: (a < 5000)
          ->  Hash
-               ->  GroupAggregate
-                     Group Key: tbitmap.a
-                     Filter: (count(*) < 2)
-                     ->  Sort
-                           Sort Key: tbitmap.a
-                           ->  Bitmap Heap Scan on tbitmap
-                                 Recheck Cond: (a < 5)
-                                 ->  Bitmap Index Scan on tbitmapxa
-                                       Index Cond: (a < 5)
+               ->  Seq Scan on foo
  Optimizer: Postgres query optimizer
-(15 rows)
+(13 rows)
 
-select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
- a | b | c | a | cnt 
----+---+---+---+-----
- 1 | 1 | 1 | 1 |   6
- 3 | 3 | 3 | 3 |   6
- 4 | 4 | 4 | 4 |   6
+select * from foo join (select a, count(*) + 5 as cnt from tbitmap where tbitmap.a < 5000 group by a having count(*) < 2) proj_sel_grby_sel on foo.a=proj_sel_grby_sel.a;
+  a   |  b   |  c   |  a   | cnt 
+------+------+------+------+-----
+ 4000 | 4000 | 4000 | 4000 |   6
+ 3000 | 3000 | 3000 | 3000 |   6
+ 1000 | 1000 | 1000 | 1000 |   6
 (3 rows)
 
 -- 11 bitmap with two groupbys
@@ -12784,58 +12782,53 @@ select * from foo join (select a, count(*) as cnt from (select distinct a, b fro
 (11 rows)
 
 select * from foo join (select a, count(*) as cnt from (select distinct a, b from tbitmap) grby1 group by a) grby2 on foo.a=grby2.a;
- a  | b  | c  | a  | cnt 
-----+----+----+----+-----
-  9 |  9 |  9 |  9 |   1
- 10 | 10 | 10 | 10 |   1
-  5 |  5 |  5 |  5 |   1
-  6 |  6 |  6 |  6 |   1
-  1 |  1 |  1 |  1 |   1
-  2 |  2 |  2 |  2 |   2
-  4 |  4 |  4 |  4 |   1
-  7 |  7 |  7 |  7 |   1
-  3 |  3 |  3 |  3 |   1
-  8 |  8 |  8 |  8 |   1
+   a   |   b   |   c   |   a   | cnt 
+-------+-------+-------+-------+-----
+  8000 |  8000 |  8000 |  8000 |   1
+  6000 |  6000 |  6000 |  6000 |   1
+  2000 |  2000 |  2000 |  2000 |   2
+  7000 |  7000 |  7000 |  7000 |   1
+  1000 |  1000 |  1000 |  1000 |   1
+ 10000 | 10000 | 10000 | 10000 |   1
+  3000 |  3000 |  3000 |  3000 |   1
+  9000 |  9000 |  9000 |  9000 |   1
+  4000 |  4000 |  4000 |  4000 |   1
+  5000 |  5000 |  5000 |  5000 |   1
 (10 rows)
 
 -- 12 btree with proj select 2*grby select
 explain (costs off)
 select * from foo join (select a, count(*) + cnt1 as cnt2 from (select a, count(*) as cnt1 from tbtree group by a) grby1
-                                                                where grby1.a < 5 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
+                                                                where grby1.a < 5000 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
                     on foo.a=proj_sel_grby_sel.a;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                         QUERY PLAN                          
+-------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: (foo.a = proj_sel_grby_sel.a)
-         ->  Seq Scan on foo
+         Hash Cond: (tbtree.a = foo.a)
+         ->  HashAggregate
+               Group Key: tbtree.a, count(*)
+               Filter: (count(*) < 2)
+               ->  HashAggregate
+                     Group Key: tbtree.a
+                     ->  Bitmap Heap Scan on tbtree
+                           Recheck Cond: (a < 5000)
+                           ->  Bitmap Index Scan on tbtreexa
+                                 Index Cond: (a < 5000)
          ->  Hash
-               ->  Subquery Scan on proj_sel_grby_sel
-                     ->  GroupAggregate
-                           Group Key: tbtree.a, (count(*))
-                           Filter: (count(*) < 2)
-                           ->  Sort
-                                 Sort Key: tbtree.a, (count(*))
-                                 ->  GroupAggregate
-                                       Group Key: tbtree.a
-                                       ->  Sort
-                                             Sort Key: tbtree.a
-                                             ->  Bitmap Heap Scan on tbtree
-                                                   Recheck Cond: (a < 5)
-                                                   ->  Bitmap Index Scan on tbtreexa
-                                                         Index Cond: (a < 5)
+               ->  Seq Scan on foo
  Optimizer: Postgres query optimizer
-(20 rows)
+(15 rows)
 
 select * from foo join (select a, count(*) + cnt1 as cnt2 from (select a, count(*) as cnt1 from tbtree group by a) grby1
-                                                                where grby1.a < 5 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
+                                                                where grby1.a < 5000 group by a, cnt1 having count(*) < 2) proj_sel_grby_sel
                     on foo.a=proj_sel_grby_sel.a;
- a | b | c | a | cnt2 
----+---+---+---+------
- 2 | 2 | 2 | 2 |    3
- 3 | 3 | 3 | 3 |    2
- 4 | 4 | 4 | 4 |    2
- 1 | 1 | 1 | 1 |    2
+  a   |  b   |  c   |  a   | cnt2 
+------+------+------+------+------
+ 2000 | 2000 | 2000 | 2000 |    3
+ 1000 | 1000 | 1000 | 1000 |    2
+ 3000 | 3000 | 3000 | 3000 |    2
+ 4000 | 4000 | 4000 | 4000 |    2
 (4 rows)
 
 -- 13 join pred accesses a projected column - no index scan
@@ -12899,29 +12892,28 @@ select * from foo join (select b, count(*) as cnt from tbtree group by b) grby o
 -- 17 group by columns don't intersect - no index scan
 explain (costs off)
 select * from foo join (select min_a, count(*) as cnt from (select min(a) as min_a, b from tbitmap group by b) grby1 group by min_a) grby2 on foo.a=grby2.min_a;
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: ((min(tbitmap.a)) = foo.a)
-         ->  Finalize GroupAggregate
-               Group Key: (min(tbitmap.a))
-               ->  Sort
-                     Sort Key: (min(tbitmap.a))
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: (min(tbitmap.a))
-                           ->  Partial HashAggregate
-                                 Group Key: min(tbitmap.a)
-                                 ->  HashAggregate
-                                       Group Key: tbitmap.b
-                                       ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                             Hash Key: tbitmap.b
-                                             ->  Seq Scan on tbitmap
+         Hash Cond: (grby1.min_a = foo.a)
+         ->  HashAggregate
+               Group Key: grby1.min_a
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: grby1.min_a
+                     ->  Subquery Scan on grby1
+                           ->  HashAggregate
+                                 Group Key: tbitmap.b
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                       Hash Key: tbitmap.b
+                                       ->  Seq Scan on tbitmap
          ->  Hash
                ->  Seq Scan on foo
  Optimizer: Postgres query optimizer
-(19 rows)
+(16 rows)
 
 reset optimizer_join_order;
 reset optimizer_enable_hashjoin;
+reset optimizer_enable_groupagg;
 reset optimizer_trace_fallback;
+reset enable_sort;
