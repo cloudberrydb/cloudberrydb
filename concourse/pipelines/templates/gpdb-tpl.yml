@@ -1632,9 +1632,9 @@ jobs:
   - in_parallel:
       steps:
       - get: gpdb_src
-        passed: [icw_gporca_centos7]
+        passed: [icw_planner_centos7]
       - get: bin_gpdb_centos7
-        passed: [icw_gporca_centos7]
+        passed: [icw_planner_centos7]
         trigger: [[ test_trigger ]]
       - get: icw_planner_centos7_dump
         passed: [icw_planner_centos7]
@@ -1675,10 +1675,10 @@ jobs:
         params:
           submodules:
           - gpMgmt/bin/pythonSrc/ext
-        passed: [icw_gporca_centos7]
+        passed: [icw_planner_centos7]
       - get: gpdb_binary
         resource: bin_gpdb_centos7
-        passed: [icw_gporca_centos7]
+        passed: [icw_planner_centos7]
         trigger: [[ test_trigger ]]
       - get: ccp_src
       - get: ccp-image
