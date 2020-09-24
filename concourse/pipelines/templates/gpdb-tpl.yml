@@ -503,7 +503,7 @@ resources:
   type: registry-image
   source:
     repository: pivotaldata/gpdb7-centos7-build
-    tag: devv40
+    tag: latest
 
 {% endif %}
 {% if "centos7" in os_types or "CLI" in test_sections %}
@@ -511,7 +511,7 @@ resources:
   type: registry-image
   source:
     repository: pivotaldata/gpdb7-centos7-test
-    tag: devv45
+    tag: latest
 
 {% endif %}
 
@@ -519,14 +519,14 @@ resources:
   type: registry-image
   source:
     repository: pivotaldata/gpdb7-ubuntu18.04-build
-    tag: devv41
+    tag: latest
 
 {% if "ubuntu18.04" in os_types %}
 - name: gpdb7-ubuntu18.04-test
   type: registry-image
   source:
     repository: pivotaldata/gpdb7-ubuntu18.04-test
-    tag: devv38
+    tag: latest
 
 {% endif %}
 
