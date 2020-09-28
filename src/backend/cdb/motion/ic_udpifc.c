@@ -3814,6 +3814,7 @@ receiveChunksUDPIFC(ChunkTransportState *pTransportStates, ChunkTransportStateEn
 		 * error through the main QD-QE libpq connection. For that, ask
 		 * the dispatcher for a file descriptor to wait on for that.
 		 *
+		 * GPDB_12_MERGE_FIXME:
 		 * XXX: We currently only get a single FD to wait on. That catches
 		 * the common case that *all* the QEs report the same error more or
 		 * less at the same time. WaitLatchOrSocket doesn't allow waiting for

@@ -1,9 +1,14 @@
-
 /*-------------------------------------------------------------------------
  *
  * cdbdisp_async.c
  *	  Functions for asynchronous implementation of dispatching
  *	  commands to QExecutors.
+ *
+ * GPDB_12_MERGE_FIXME: We should switch to using WaitEventSetWait() instead
+ * of straight poll() in this file. WaitEventSetWait() would report the status
+ * using the new wait event infrastructure, so that it would show up as a
+ * separate state in pg_stat_activity. It's also potentially more efficient.
+ *
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
