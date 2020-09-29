@@ -24,6 +24,7 @@
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "utils/faultinjector.h"
+#include "utils/rel.h"
 #include "utils/syscache.h"
 
 void

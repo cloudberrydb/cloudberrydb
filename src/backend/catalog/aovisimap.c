@@ -22,6 +22,7 @@
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "utils/guc.h"
+#include "utils/rel.h"
 
 void
 AlterTableCreateAoVisimapTable(Oid relOid)

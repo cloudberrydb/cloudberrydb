@@ -23,7 +23,6 @@
 
 
 struct ParallelTableScanDescData;
-struct ExprState;
 
 /*
  * Generic descriptor for table scans. This is the base-class for table scans,
@@ -48,8 +47,6 @@ typedef struct TableScanDescData
 
 } TableScanDescData;
 typedef struct TableScanDescData *TableScanDesc;
-
-#include "access/formatter.h"
 
 /*
  * Shared state for parallel table scan.

@@ -4,8 +4,6 @@
  *	  POSTGRES heap tuple definitions.
  *
  *
- * Portions Copyright (c) 2006-2009, Greenplum inc
- * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -17,10 +15,6 @@
 #define HTUP_H
 
 #include "storage/itemptr.h"
-#include "storage/relfilenode.h"
-#include "access/sysattr.h"
-
-//#include "access/memtup.h"
 
 /* typedefs and forward declarations for structs defined in htup_details.h */
 
