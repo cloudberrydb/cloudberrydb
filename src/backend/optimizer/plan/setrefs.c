@@ -34,7 +34,9 @@
 #include "tcop/utility.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+
 #include "cdb/cdbhash.h"
+#include "optimizer/walkers.h"
 
 
 typedef struct

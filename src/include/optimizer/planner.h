@@ -19,8 +19,8 @@
 #define PLANNER_H
 
 #include "nodes/pathnodes.h"
+#include "nodes/plannerconfig.h"
 #include "nodes/plannodes.h"
-#include "optimizer/clauses.h"
 
 
 /* Hook for plugins to get control in planner() */
@@ -45,14 +45,6 @@ extern PlannerInfo *subquery_planner(PlannerGlobal *glob, Query *parse,
 									 PlannerInfo *parent_root,
 									 bool hasRecursion, double tuple_fraction,
 									 PlannerConfig *config);
-
-extern bool choose_hashed_grouping(PlannerInfo *root,
-								   double tuple_fraction, double limit_tuples,
-								   double path_rows, int path_width,
-								   Path *cheapest_path,
-								   Path *sorted_path,
-								   double dNumGroups,
-								   AggClauseCosts *agg_costs);
 
 extern RowMarkType select_rowmark_type(RangeTblEntry *rte,
 									   LockClauseStrength strength);

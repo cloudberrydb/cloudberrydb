@@ -25,6 +25,7 @@
 #include "cdb/cdbplan.h"
 #include "cdb/cdbvars.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/clauses.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/orca.h"
 #include "optimizer/paths.h"

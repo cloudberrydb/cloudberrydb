@@ -24,6 +24,7 @@
 #include <signal.h>
 
 #include "access/xact.h"
+#include "catalog/pg_type.h"
 #include "cdb/cdbutil.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
@@ -31,6 +32,7 @@
 #include "postmaster/bgwriter.h"
 #include "storage/spin.h"
 #include "storage/shmem.h"
+#include "tcop/dest.h"
 #include "utils/faultinjector.h"
 #include "utils/hsearch.h"
 #include "miscadmin.h"

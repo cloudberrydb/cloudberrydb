@@ -15,7 +15,6 @@
 #define AUTOVACUUM_H
 
 #include "storage/block.h"
-#include "tcop/utility.h"
 
 /*
  * Other processes can request specific work from autovacuum, identified by
@@ -56,7 +55,6 @@ extern bool IsAutoVacuumWorkerProcess(void);
 
 /* Functions to start autovacuum process, called from postmaster */
 extern void autovac_init(void);
-extern int	autovac_start(void);  // OLD interface
 extern int	StartAutoVacLauncher(void);
 extern int	StartAutoVacWorker(void);
 
