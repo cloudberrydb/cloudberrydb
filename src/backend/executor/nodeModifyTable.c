@@ -62,7 +62,6 @@
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbvars.h"
-#include "executor/execDML.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
