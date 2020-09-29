@@ -48,13 +48,6 @@ extern char *localized_abbrev_months[];
 extern char *localized_full_months[];
 
 
-/* lc_time localization cache */
-extern char *localized_abbrev_days[];
-extern char *localized_full_days[];
-extern char *localized_abbrev_months[];
-extern char *localized_full_months[];
-
-
 extern bool check_locale_messages(char **newval, void **extra, GucSource source);
 extern void assign_locale_messages(const char *newval, void *extra);
 extern bool check_locale_monetary(char **newval, void **extra, GucSource source);
