@@ -25,7 +25,6 @@ extern TargetEntry *tlist_member_ignore_relabel(Expr *node, List *targetlist);
 // return a list a target entries that match the node expression
 extern List *tlist_members(Node *node, List *targetlist);
 
-extern List *add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk);
 extern List *add_to_flat_tlist(List *tlist, List *exprs);
 
 extern List *get_tlist_exprs(List *tlist, bool includeJunk);

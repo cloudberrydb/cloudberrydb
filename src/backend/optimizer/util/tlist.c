@@ -195,12 +195,6 @@ tlist_member_match_var(Var *var, List *targetlist)
 List *
 add_to_flat_tlist(List *tlist, List *exprs)
 {
-	return add_to_flat_tlist_junk(tlist, exprs, false);
-}
-
-List *
-add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk)
-{
 	int			next_resno = list_length(tlist) + 1;
 	ListCell   *lc;
 
@@ -215,7 +209,7 @@ add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk)
 			tle = makeTargetEntry(copyObject(expr), /* copy needed?? */
 								  next_resno++,
 								  NULL,
-								  resjunk);
+								  false);
 			tlist = lappend(tlist, tle);
 		}
 	}
