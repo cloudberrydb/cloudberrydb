@@ -42,3 +42,15 @@ d334b0163fceb0385be7cd98c7f8c87f93dc3bf5
 
 # Hungarian notation removal: GPOS and Naucrates libraries (GPORCA)
 f3da624ccd796364bb8bb84496cd6bf5b2828c1e
+
+# Format ORCA and GPOPT
+2f7dd76cadee68dc279b4fee866fe940e16fc9d7
+
+# Format ORCA and GPOPT (6X_STABLE)
+4a37ae941ab898053a3db1828207d2bb35baffc0
+
+# Format ORCA and GPOPT (5X_STABLE)
+219fe0c4fd60662a481a2a927835c6309e02a995
+
+# Format ORCA and GPOPT (GPORCA)
+9fb3df2549731629b3df1b38b99087c9dcbccb90
