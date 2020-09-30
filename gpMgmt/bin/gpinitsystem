@@ -536,26 +536,7 @@ CHK_MULTI_HOME () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	LOG_MSG "[INFO]:-Commencing multi-home checks, please wait..." 1
 
-	# For MPP-12043 we need a way to sort that we can't get with the sort command
-	# so we'll use a little command line python script.
-
-read -d '' HOSTNAME_SORTER <<"END_PYTHON_CODE"
-import sys, re
-
-standard_host_re = re.compile(r'([a-zA-Z]+)((\\d+)(-(\\d+))?)')
-
-def standard_host_key(host):
-	hostname_parts = standard_host_re.match(host)
-	if hostname_parts is not None:
-		return hostname_parts.group(1), hostname_parts.group(2), hostname_parts.group(3)
-	return None
-
-hl = sys.stdin.readlines()
-for h in sorted(hl, key=standard_host_key):
-	print(h)
-END_PYTHON_CODE
-
-	MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE|python -c "$HOSTNAME_SORTER"`)
+	MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE`)
 	M_HOST_ARRAY=()
 	MCOUNT=0
 	for MHOST in ${MACHINE_LIST[@]}
