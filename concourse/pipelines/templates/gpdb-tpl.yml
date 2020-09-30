@@ -190,6 +190,7 @@ groups:
 - name: all
   jobs:
   - concourse_unit_tests
+  - check_format
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
 {% endif %}
