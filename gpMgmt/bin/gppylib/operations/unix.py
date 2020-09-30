@@ -160,38 +160,3 @@ class RemoveTree(Operation):
         self.path = path
     def execute(self):
         return shutil.rmtree(self.path)
-
-class CleanSharedMem(Operation):
-    def __init__(self, segments):
-        self.segments = segments
-
-    def execute(self):
-        pool = WorkerPool()
-        try:
-            for seg in self.segments:
-                datadir = seg.getSegmentDataDirectory()
-                postmaster_pid_file = '%s/postmaster.pid' % datadir
-                shared_mem = None
-                if os.path.isfile(postmaster_pid_file):
-                    with open(postmaster_pid_file) as fp:
-                        shared_mem = fp.readlines()[-1].split()[-1].strip()
-                if shared_mem:
-                    cmd = Command('clean up shared memory', cmdStr="ipcrm -m %s" % shared_mem) 
-                    pool.addCommand(cmd)
-                pool.join()
-
-            for item in pool.getCompletedItems():
-                result = item.get_results()
-
-                # This code is usually called after a GPDB segment has
-                # been terminated.  In that case, it is possible that
-                # the shared memory has already been freed by the
-                # time we are called to clean up.  Due to this race
-                # condition, it is possible to get an `ipcrm: invalid
-                # id1` error from ipcrm.  We, therefore, ignore it.
-                if result.rc != 0 and not result.stderr.startswith("ipcrm: invalid id"):
-                    raise Exception('Unable to clean up shared memory for segment: (%s)' % (result.stderr))
-        finally:
-            pool.haltWork()
-            pool.joinWorkers()
-            pool = None

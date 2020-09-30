@@ -107,17 +107,6 @@ class buildMirrorSegmentsTestCase(GpTestCase):
         self.assertEqual(self.buildMirrorSegs.dereference_remote_symlink(datadir, host), '/tmp/seg0')
         self.logger.warning.assert_any_call('Unable to determine if /tmp/seg0 is symlink. Assuming it is not symlink')
 
-    def test_ensureSharedMemCleaned_no_segments(self):
-        self.buildMirrorSegs._GpMirrorListToBuild__ensureSharedMemCleaned(Mock(), [])
-        self.assertEqual(self.logger.call_count, 0)
-
-    @patch('gppylib.operations.utils.ParallelOperation.run')
-    @patch('gppylib.gparray.Segment.getSegmentHostName', side_effect=['foo1', 'foo2'])
-    def test_ensureSharedMemCleaned(self, mock1, mock2):
-        self.buildMirrorSegs._GpMirrorListToBuild__ensureSharedMemCleaned(Mock(), [Mock(), Mock()])
-        self.logger.info.assert_any_call('Ensuring that shared memory is cleaned up for stopped segments')
-        self.assertEqual(self.logger.warning.call_count, 0)
-
     @patch('gppylib.operations.buildMirrorSegments.read_era')
     @patch('gppylib.operations.startSegments.StartSegmentsOperation')
     def test_startAll_succeeds(self, mock1, mock2):

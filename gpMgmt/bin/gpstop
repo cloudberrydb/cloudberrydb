@@ -31,7 +31,6 @@ try:
     from gppylib.commands import dca
     from gppylib.utils import TableLogger
     from gppylib.gp_era import GpEraFile
-    from gppylib.operations.unix import CleanSharedMem
     from gppylib.operations.utils import ParallelOperation, RemoteOperation
     from gppylib.operations.rebalanceSegments import ReconfigDetectionSQLQueryCommand
 except ImportError as e:
@@ -202,7 +201,6 @@ class GpStop:
                         self._stop_master()
                         self._stop_standby()
                     self._stop_segments(segs)
-                    self._remove_shared_memory()  # this creates a new logfile - why?
                 finally:
                     # Reenable Ctrl-C
                     self.cleanup()
@@ -238,41 +236,6 @@ class GpStop:
                     # MPP-15208
                     return 2
         return 0
-
-    ######
-    def _remove_shared_memory(self):
-        """
-        If segment processes fail to stop even after the alotted time limit of 2 minutes, we proceed
-        to forcibly terminate the processes. This might leave shared memory and semaphores uncleaned.
-        CleanSharedMem class uses the ipcrm command to remove shared memory.
-        ipcrm will only remove shared memory once all the processes that have attached to
-        the shared memory segment have exited. Hence it is safe to call this on all segments.
-        Semaphores however cannot be removed in this manner since we don't know which semaphores
-        are still being used. Hence we leave it to the user to clean up semaphores when it
-        is safe.
-        """
-
-        logger.info('Cleaning up leftover shared memory')
-        cluster_hosts = self.gparray.get_hostlist()
-
-        operations = []
-        for gphost in cluster_hosts:
-            operations.append(RemoteOperation(CleanSharedMem(self.gparray.getDbList()), gphost))
-
-        operations.append(
-            RemoteOperation(CleanSharedMem([self.gparray.master]), self.gparray.master.getSegmentHostName()))
-
-        if self.gparray.standbyMaster:
-            operations.append(RemoteOperation(CleanSharedMem([self.gparray.standbyMaster]),
-                                              self.gparray.standbyMaster.getSegmentHostName()))
-
-        ParallelOperation(operations).run()
-
-        for operation in operations:
-            try:
-                operation.get_ret()
-            except Exception as e:
-                logger.warning('Unable to clean shared memory (%s)' % str(e))
 
     ######
     def cleanup(self):

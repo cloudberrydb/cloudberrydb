@@ -16,7 +16,6 @@ from gppylib.gparray import GpArray
 from gppylib.operations import startSegments
 from gppylib.gp_era import read_era
 from gppylib.operations.utils import ParallelOperation, RemoteOperation
-from gppylib.operations.unix import CleanSharedMem
 from gppylib.system import configurationInterface as configInterface
 from gppylib.commands.gp import is_pid_postmaster, get_pid_from_remotehost
 from gppylib.commands.unix import check_pid_on_remotehost, Scp
@@ -253,7 +252,6 @@ class GpMirrorListToBuild:
                 copyDirectives.append(d)
 
         self.__ensureStopped(gpEnv, toStopDirectives)
-        self.__ensureSharedMemCleaned(gpEnv, toStopDirectives)
         self.__ensureMarkedDown(gpEnv, toEnsureMarkedDown)
         if not self.__forceoverwrite:
             self.__cleanUpSegmentDirectories(cleanupDirectives)
@@ -674,29 +672,6 @@ class GpMirrorListToBuild:
             self.__logger.warning('Unable to determine if %s is symlink. Assuming it is not symlink' % (datadir))
             return datadir
         return results.stdout.strip()
-
-    def __ensureSharedMemCleaned(self, gpEnv, directives):
-        """
-
-        @param directives a list of the GpStopSegmentDirectoryDirective values indicating which segments to cleanup 
-
-        """
-
-        if len(directives) == 0:
-            return
-
-        self.__logger.info('Ensuring that shared memory is cleaned up for stopped segments')
-        segments = [d.getSegment() for d in directives]
-        segmentsByHost = GpArray.getSegmentsByHostName(segments)
-        operation_list = [RemoteOperation(CleanSharedMem(segments), host=hostName) for hostName, segments in
-                          list(segmentsByHost.items())]
-        ParallelOperation(operation_list).run()
-
-        for operation in operation_list:
-            try:
-                operation.get_ret()
-            except Exception as e:
-                self.__logger.warning('Unable to clean up shared memory for stopped segments on host (%s)' % operation.host)
 
     def __ensureStopped(self, gpEnv, directives):
         """
