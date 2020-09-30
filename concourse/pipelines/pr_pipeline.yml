@@ -53,7 +53,7 @@ jobs:
   public: true
   max_in_flight: 10
   plan:
-  - aggregate:
+  - in_parallel:
     - get: gpdb_pr
       trigger: true
       version: every
@@ -107,7 +107,7 @@ jobs:
       timeout: 30m
 
 
-    - aggregate:
+    - in_parallel:
       - task: icw_planner_centos7
         file: gpdb_pr/concourse/tasks/ic_gpdb.yml
         image: gpdb7-centos7-test
