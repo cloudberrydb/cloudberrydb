@@ -47,6 +47,10 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: gp-internal-artifacts/centos7/libquicklz-devel-(1\.5\.0-.*)-1.el7.x86_64.rpm
 
+- name: clang_toolchain
+  type: registry-image
+  source:
+    repository: gcr.io/data-orca/clang-toolchain
 
 jobs:
 - name: compile_and_test_gpdb
@@ -63,6 +67,7 @@ jobs:
       resource: libquicklz-centos7
     - get: libquicklz-devel-installer
       resource: libquicklz-devel-centos7
+    - get: clang_toolchain
 
   - put: gpdb_pr
     params:
@@ -96,6 +101,9 @@ jobs:
             git submodule update --init --recursive
         inputs: [{ name: gpdb_pr }]
         outputs: [{ name: gpdb_src }]
+    - task: check_format
+      image: clang_toolchain
+      file: gpdb_src/concourse/tasks/check_format.yml
     - task: compile_gpdb_centos7
       file: gpdb_pr/concourse/tasks/compile_gpdb.yml
       image: gpdb7-centos7-build
