@@ -551,7 +551,10 @@ initPartEveryIterator(ParseState *pstate, PartitionKeyData *partkey, const char 
 												  part_col_typid, part_col_typmod,
 												  true);
 		if (startConst->constisnull)
-			elog(ERROR, "START EXCLUSIVE is out of range"); /* GPDB_12_MERGE_FIXME: better message */
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+					 errmsg("START EXCLUSIVE is out of range"),
+					 parser_errposition(pstate, exprLocation(start))));
 
 		startVal = startConst->constvalue;
 	}
@@ -723,8 +726,15 @@ nextPartBound(PartEveryIterator *iter)
 		next = ExecEvalExprSwitchContext(iter->plusexprstate,
 										 GetPerTupleExprContext(iter->estate),
 										 &isnull);
+		/*
+		 * None of the built-in + operators can return NULL, but a user-defined
+		 * operator could.
+		 */
 		if (isnull)
-			elog(ERROR, "plus-operator returned NULL"); // GPDB_12_MERGE_FIXME: better message
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+					 errmsg("could not compute next partition boundary with EVERY, plus-operator returned NULL"),
+					 parser_errposition(iter->pstate, iter->every_location)));
 
 		iter->currStart = iter->currEnd;
 
