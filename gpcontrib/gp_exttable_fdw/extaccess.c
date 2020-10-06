@@ -1007,7 +1007,7 @@ externalgettup_custom(FileScanDesc scan)
 		 * EOF. This is an error.
 		 */
 		ereport(WARNING,
-				(ERRCODE_DATA_EXCEPTION,
+				(errcode(ERRCODE_DATA_EXCEPTION),
 				 errmsg("unexpected end of file")));
 	}
 

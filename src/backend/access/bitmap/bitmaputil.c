@@ -101,7 +101,7 @@ _bitmap_get_metapage_data(Relation rel, Buffer metabuf)
 	if (metapage->bm_version != BITMAP_VERSION)
 	{
 		ereport(ERROR,
-				(ERRCODE_INTERNAL_ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("the disk format for \"%s\" is not valid for this version of Greenplum Database",
 						RelationGetRelationName(rel)),
 				 errhint("Use REINDEX to update this index.")));
