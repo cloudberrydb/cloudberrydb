@@ -409,7 +409,7 @@ errcontext_appendonly_insert_block(AppendOnlyInsertDesc aoInsertDesc)
  *
  * Add an errdetail() line showing the Append-Only Storage block header for the block being inserted.
  */
-static int
+static void
 errdetail_appendonly_insert_block_header(AppendOnlyInsertDesc aoInsertDesc)
 {
 	uint8	   *header;
@@ -420,7 +420,7 @@ errdetail_appendonly_insert_block_header(AppendOnlyInsertDesc aoInsertDesc)
 
 	usingChecksum = aoInsertDesc->usingChecksum;
 
-	return errdetail_appendonly_storage_content_header(header, usingChecksum, aoInsertDesc->storageWrite.formatVersion);
+	errdetail_appendonly_storage_content_header(header, usingChecksum, aoInsertDesc->storageWrite.formatVersion);
 }
 
 /*

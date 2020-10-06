@@ -670,7 +670,7 @@ errcontext_appendonly_write_storage_block(AppendOnlyStorageWrite *storageWrite)
  *
  * Add an errdetail() line showing the Append-Only Storage header being written.
  */
-static int
+static void
 errdetail_appendonly_write_storage_block_header(AppendOnlyStorageWrite *storageWrite)
 {
 	uint8	   *header;
@@ -681,8 +681,8 @@ errdetail_appendonly_write_storage_block_header(AppendOnlyStorageWrite *storageW
 	checksum = storageWrite->storageAttributes.checksum;
 	version = storageWrite->formatVersion;
 
-	return errdetail_appendonly_storage_smallcontent_header(header, checksum,
-															version);
+	errdetail_appendonly_storage_smallcontent_header(header, checksum,
+													 version);
 }
 
 /*----------------------------------------------------------------

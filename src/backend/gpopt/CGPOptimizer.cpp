@@ -73,18 +73,24 @@ CGPOptimizer::GPOPTOptimizedPlan(
 		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL,
 						  gpdxl::ExmiQuery2DXLNotNullViolation))
 		{
-			errstart(ERROR, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-			errfinish(errcode(ERRCODE_NOT_NULL_VIOLATION),
-					  errmsg("%s", serialized_error_msg));
+			if (errstart(ERROR, TEXTDOMAIN))
+			{
+				errcode(ERRCODE_NOT_NULL_VIOLATION);
+				errmsg("%s", serialized_error_msg);
+				errfinish(ex.Filename(), ex.Line(), NULL);
+			}
 		}
 
 		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError) ||
 				 gpopt_context.m_should_error_out)
 		{
 			Assert(NULL != serialized_error_msg);
-			errstart(ERROR, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-			errfinish(errcode(ERRCODE_INTERNAL_ERROR),
-					  errmsg("%s", serialized_error_msg));
+			if (errstart(ERROR, TEXTDOMAIN))
+			{
+				errcode(ERRCODE_INTERNAL_ERROR);
+				errmsg("%s", serialized_error_msg);
+				errfinish(ex.Filename(), ex.Line(), NULL);
+			}
 		}
 		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError))
 		{
@@ -93,18 +99,23 @@ CGPOptimizer::GPOPTOptimizedPlan(
 		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL,
 							   gpdxl::ExmiNoAvailableMemory))
 		{
-			errstart(ERROR, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-			errfinish(errcode(ERRCODE_INTERNAL_ERROR),
-					  errmsg("no available memory to allocate string buffer"));
+			if (errstart(ERROR, TEXTDOMAIN))
+			{
+				errcode(ERRCODE_INTERNAL_ERROR);
+				errmsg("no available memory to allocate string buffer");
+				errfinish(ex.Filename(), ex.Line(), NULL);
+			}
 		}
 		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL,
 							   gpdxl::ExmiInvalidComparisonTypeCode))
 		{
-			errstart(ERROR, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-			errfinish(
-				errcode(ERRCODE_INTERNAL_ERROR),
+			if (errstart(ERROR, TEXTDOMAIN))
+			{
+				errcode(ERRCODE_INTERNAL_ERROR);
 				errmsg(
-					"invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq."));
+					"invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq.");
+				errfinish(ex.Filename(), ex.Line(), NULL);
+			}
 		}
 
 		// Failed to produce a plan, but it wasn't an error that should
@@ -114,13 +125,15 @@ CGPOptimizer::GPOPTOptimizedPlan(
 
 		if (optimizer_trace_fallback)
 		{
-			errstart(INFO, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-			errfinish(
-				errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			if (errstart(INFO, TEXTDOMAIN))
+			{
+				errcode(ERRCODE_FEATURE_NOT_SUPPORTED);
 				errmsg(
-					"GPORCA failed to produce a plan, falling back to planner"),
-				serialized_error_msg ? errdetail("%s", serialized_error_msg)
-									 : 0);
+					"GPORCA failed to produce a plan, falling back to planner");
+				if (serialized_error_msg)
+					errdetail("%s", serialized_error_msg);
+				errfinish(ex.Filename(), ex.Line(), NULL);
+			}
 		}
 
 		*had_unexpected_failure = gpopt_context.m_is_unexpected_failure;
@@ -150,9 +163,12 @@ CGPOptimizer::SerializeDXLPlan(Query *query)
 	}
 	GPOS_CATCH_EX(ex);
 	{
-		errstart(ERROR, ex.Filename(), ex.Line(), NULL, TEXTDOMAIN);
-		errfinish(errcode(ERRCODE_INTERNAL_ERROR),
-				  errmsg("optimizer failed to produce plan"));
+		if (errstart(ERROR, TEXTDOMAIN))
+		{
+			errcode(ERRCODE_INTERNAL_ERROR);
+			errmsg("optimizer failed to produce plan");
+			errfinish(ex.Filename(), ex.Line(), NULL);
+		}
 	}
 	GPOS_CATCH_END;
 	return NULL;

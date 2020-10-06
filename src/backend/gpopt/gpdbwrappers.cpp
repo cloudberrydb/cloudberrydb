@@ -1648,9 +1648,14 @@ gpdb::GpdbEreportImpl(int xerrcode, int severitylevel, const char *xerrmsg,
 		// expanded version of ereport(). It will be caught by the
 		// GP_WRAP_END, and propagated up as a C++ exception, to be
 		// re-thrown as a Postgres error once we leave the C++ land.
-		if (errstart(severitylevel, filename, lineno, funcname, TEXTDOMAIN))
-			errfinish(errcode(xerrcode), errmsg("%s", xerrmsg),
-					  xerrhint ? errhint("%s", xerrhint) : 0);
+		if (errstart(severitylevel, TEXTDOMAIN))
+		{
+			errcode(xerrcode);
+			errmsg("%s", xerrmsg);
+			if (xerrhint)
+				errhint("%s", xerrhint);
+			errfinish(filename, lineno, funcname);
+		}
 	}
 	GP_WRAP_END;
 }
