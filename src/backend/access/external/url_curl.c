@@ -1214,7 +1214,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 
 			if (!is_file_exists(extssl_cer_full))
 				ereport(ERROR,
-						(errcode(errcode_for_file_access()),
+						(errcode_for_file_access(),
 						 errmsg("could not open certificate file \"%s\": %m",
 								extssl_cer_full)));
 
@@ -1235,7 +1235,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 
 			if (!is_file_exists(extssl_key_full))
 				ereport(ERROR,
-						(errcode(errcode_for_file_access()),
+						(errcode_for_file_access(),
 						 errmsg("could not open private key file \"%s\": %m",
 								extssl_key_full)));
 
@@ -1250,7 +1250,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 
 			if (!is_file_exists(extssl_cas_full))
 				ereport(ERROR,
-						(errcode(errcode_for_file_access()),
+						(errcode_for_file_access(),
 						 errmsg("could not open private key file \"%s\": %m",
 								extssl_cas_full)));
 
