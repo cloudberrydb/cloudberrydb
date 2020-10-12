@@ -54,28 +54,28 @@ public:
 	}
 
 	// dtor
-	virtual ~CPhysicalCorrelatedLeftSemiNLJoin()
+	~CPhysicalCorrelatedLeftSemiNLJoin() override
 	{
 		m_pdrgpcrInner->Release();
 	}
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalCorrelatedLeftSemiNLJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalCorrelatedLeftSemiNLJoin";
 	}
 
 	// match function
-	virtual BOOL
-	Matches(COperator *pop) const
+	BOOL
+	Matches(COperator *pop) const override
 	{
 		if (pop->Eopid() == Eopid())
 		{
@@ -88,46 +88,46 @@ public:
 	}
 
 	// distribution matching type
-	virtual CEnfdDistribution::EDistributionMatching
+	CEnfdDistribution::EDistributionMatching
 	Edm(CReqdPropPlan *,   // prppInput
 		ULONG,			   // child_index
 		CDrvdPropArray *,  //pdrgpdpCtxt
 		ULONG			   // ulOptReq
-	)
+		) override
 	{
 		return CEnfdDistribution::EdmSatisfy;
 	}
 
 	// compute required distribution of the n-th child
-	virtual CDistributionSpec *
+	CDistributionSpec *
 	PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired, ULONG child_index,
-				CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const
+				CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const override
 	{
 		return PdsRequiredCorrelatedJoin(mp, exprhdl, pdsRequired, child_index,
 										 pdrgpdpCtxt, ulOptReq);
 	}
 
 	// compute required rewindability of the n-th child
-	virtual CRewindabilitySpec *
+	CRewindabilitySpec *
 	PrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired, ULONG child_index,
-				CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const
+				CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const override
 	{
 		return PrsRequiredCorrelatedJoin(mp, exprhdl, prsRequired, child_index,
 										 pdrgpdpCtxt, ulOptReq);
 	}
 
 	// return true if operator is a correlated NL Join
-	virtual BOOL
-	FCorrelated() const
+	BOOL
+	FCorrelated() const override
 	{
 		return true;
 	}
 
 	// return required inner columns
-	virtual CColRefArray *
-	PdrgPcrInner() const
+	CColRefArray *
+	PdrgPcrInner() const override
 	{
 		return m_pdrgpcrInner;
 	}
@@ -140,8 +140,8 @@ public:
 	}
 
 	// print
-	virtual IOstream &
-	OsPrint(IOstream &os) const
+	IOstream &
+	OsPrint(IOstream &os) const override
 	{
 		os << this->SzId() << "(";
 		(void) CUtils::OsPrintDrgPcr(os, m_pdrgpcrInner);

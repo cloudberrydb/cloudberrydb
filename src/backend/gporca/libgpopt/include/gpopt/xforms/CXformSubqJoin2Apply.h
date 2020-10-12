@@ -37,7 +37,8 @@ private:
 
 	// helper to transform function
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr, BOOL fEnforceCorrelatedApply) const;
+				   CExpression *pexpr,
+				   BOOL fEnforceCorrelatedApply) const override;
 
 	// collect subqueries that exclusively use outer/inner child
 	static void CollectSubqueries(CMemoryPool *mp, CExpression *pexpr,
@@ -67,23 +68,23 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSubqJoin2Apply() = default;
+	~CXformSubqJoin2Apply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSubqJoin2Apply;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSubqJoin2Apply";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 };	// class CXformSubqJoin2Apply
 

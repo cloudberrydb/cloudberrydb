@@ -92,7 +92,7 @@ public:
 	CMDRequest(CMemoryPool *mp, SMDTypeRequest *md_type_request);
 
 	// dtor
-	virtual ~CMDRequest();
+	~CMDRequest() override;
 
 	// accessors
 

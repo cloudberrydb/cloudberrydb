@@ -49,10 +49,10 @@ public:
 								 const COptimizerConfig *optimizer_config);
 
 	// dtor
-	virtual ~CSerializableOptimizerConfig();
+	~CSerializableOptimizerConfig() override;
 
 	// serialize object to passed stream
-	virtual void Serialize(COstream &oos);
+	void Serialize(COstream &oos) override;
 
 };	// class CSerializableOptimizerConfig
 }  // namespace gpopt

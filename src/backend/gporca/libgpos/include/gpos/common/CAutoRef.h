@@ -42,7 +42,7 @@ public:
 	{
 	}
 
-	virtual ~CAutoRef();
+	~CAutoRef() override;
 
 	// simple assignment
 	CAutoRef<T> const &

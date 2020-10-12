@@ -49,7 +49,7 @@ public:
 	explicit CPartKeys(CColRef2dArray *pdrgpdrgpcr);
 
 	// dtor
-	~CPartKeys();
+	~CPartKeys() override;
 
 	// return key at a given level
 	CColRef *PcrKey(ULONG ulLevel) const;
@@ -80,7 +80,7 @@ public:
 							  UlongToColRefMap *colref_mapping) const;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// copy array of part keys into given memory pool
 	static CPartKeysArray *PdrgppartkeysCopy(

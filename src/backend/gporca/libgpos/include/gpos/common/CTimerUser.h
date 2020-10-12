@@ -34,10 +34,10 @@ public:
 	CTimerUser() = default;
 
 	// retrieve elapsed user time in micro-seconds
-	virtual ULONG ElapsedUS() const;
+	ULONG ElapsedUS() const override;
 
 	// restart timer
-	virtual void Restart();
+	void Restart() override;
 
 };	// class CTimerUser
 }  // namespace gpos

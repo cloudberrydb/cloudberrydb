@@ -78,14 +78,14 @@ public:
 	explicit CXformSimplifySubquery(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformSimplifySubquery() = default;
+	~CXformSimplifySubquery() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 
 };	// class CXformSimplifySubquery

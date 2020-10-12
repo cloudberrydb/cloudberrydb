@@ -36,24 +36,24 @@ public:
 	explicit CXformProject2ComputeScalar(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformProject2ComputeScalar() = default;
+	~CXformProject2ComputeScalar() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfProject2ComputeScalar;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformProject2ComputeScalar";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
-	Exfp(CExpressionHandle &exprhdl) const
+	EXformPromise
+	Exfp(CExpressionHandle &exprhdl) const override
 	{
 		if (exprhdl.DeriveHasSubquery(1))
 		{
@@ -64,8 +64,8 @@ public:
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *, CXformResult *,
-						   CExpression *) const;
+	void Transform(CXformContext *, CXformResult *,
+				   CExpression *) const override;
 
 };	// class CXformProject2ComputeScalar
 

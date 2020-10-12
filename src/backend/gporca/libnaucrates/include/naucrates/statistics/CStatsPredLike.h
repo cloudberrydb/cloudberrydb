@@ -55,14 +55,14 @@ public:
 				   CDouble default_scale_factor);
 
 	// dtor
-	virtual ~CStatsPredLike();
+	~CStatsPredLike() override;
 
 	// the column identifier on which the predicates are on
-	virtual ULONG GetColId() const;
+	ULONG GetColId() const override;
 
 	// filter type id
-	virtual EStatsPredType
-	GetPredStatsType() const
+	EStatsPredType
+	GetPredStatsType() const override
 	{
 		return CStatsPred::EsptLike;
 	}

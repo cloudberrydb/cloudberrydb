@@ -82,7 +82,7 @@ public:
 	CEnfdProp() = default;
 
 	// dtor
-	virtual ~CEnfdProp() = default;
+	~CEnfdProp() override = default;
 
 	// append enforcers to dynamic array for the given plan properties
 	void

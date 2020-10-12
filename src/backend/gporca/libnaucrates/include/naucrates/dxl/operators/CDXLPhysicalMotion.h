@@ -59,7 +59,7 @@ public:
 	// ctor/dtor
 	explicit CDXLPhysicalMotion(CMemoryPool *mp);
 
-	virtual ~CDXLPhysicalMotion();
+	~CDXLPhysicalMotion() override;
 
 	// accessors
 	const IntPtrArray *GetInputSegIdsArray() const;

@@ -43,7 +43,7 @@ public:
 	CDXLWindowKey();
 
 	// dtor
-	virtual ~CDXLWindowKey();
+	~CDXLWindowKey() override;
 
 	// serialize operator in DXL format
 	virtual void SerializeToDXL(CXMLSerializer *) const;

@@ -41,13 +41,13 @@ public:
 					  CExpressionArray *pdrgpexprConjuncts);
 
 	// dtor
-	virtual ~CJoinOrderMinCard();
+	~CJoinOrderMinCard() override;
 
 	// main handler
 	virtual CExpression *PexprExpand();
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 };	// class CJoinOrderMinCard
 

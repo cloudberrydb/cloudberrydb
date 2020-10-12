@@ -51,25 +51,25 @@ public:
 							 CColRefArray *pdrgpcrOutput);
 
 	// dtor
-	virtual ~CPhysicalBitmapTableScan() = default;
+	~CPhysicalBitmapTableScan() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalBitmapTableScan;
 	}
 
 	// operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalBitmapTableScan";
 	}
 
 	// sensitivity to order of inputs
-	virtual BOOL
-	FInputOrderSensitive() const
+	BOOL
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
@@ -82,28 +82,28 @@ public:
 	}
 
 	// operator specific hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// derive partition index map
-	virtual CPartIndexMap *
+	CPartIndexMap *
 	PpimDerive(CMemoryPool *mp,
 			   CExpressionHandle &,	 // exprhdl
 			   CDrvdPropCtxt *		 //pdpctxt
-	) const
+	) const override
 	{
 		return GPOS_NEW(mp) CPartIndexMap(mp);
 	}
 
 	// statistics derivation during costing
-	virtual IStatistics *
+	IStatistics *
 	PstatsDerive(CMemoryPool *,		   // mp
 				 CExpressionHandle &,  // exprhdl
 				 CReqdPropPlan *,	   // prpplan
 				 IStatisticsArray *	   //stats_ctxt
-	) const
+	) const override
 	{
 		GPOS_ASSERT(
 			!"stats derivation during costing for bitmap table scan is invalid");
@@ -112,7 +112,7 @@ public:
 	}
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 	// conversion function
 	static CPhysicalBitmapTableScan *

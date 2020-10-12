@@ -34,26 +34,25 @@ public:
 	explicit CPhysicalLeftSemiNLJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CPhysicalLeftSemiNLJoin();
+	~CPhysicalLeftSemiNLJoin() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalLeftSemiNLJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalLeftSemiNLJoin";
 	}
 
 	// check if required columns are included in output columns
-	virtual BOOL FProvidesReqdCols(CExpressionHandle &exprhdl,
-								   CColRefSet *pcrsRequired,
-								   ULONG ulOptReq) const;
+	BOOL FProvidesReqdCols(CExpressionHandle &exprhdl, CColRefSet *pcrsRequired,
+						   ULONG ulOptReq) const override;
 
 	// conversion function
 	static CPhysicalLeftSemiNLJoin *

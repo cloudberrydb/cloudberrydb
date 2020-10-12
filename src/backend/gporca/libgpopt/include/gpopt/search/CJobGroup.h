@@ -47,7 +47,7 @@ protected:
 	}
 
 	// dtor
-	virtual ~CJobGroup() = default;
+	~CJobGroup() override = default;
 
 	// initialize job
 	void Init(CGroup *pgroup);
@@ -65,12 +65,12 @@ protected:
 	virtual BOOL FScheduleGroupExpressions(CSchedulerContext *psc) = 0;
 
 	// job's function
-	virtual BOOL FExecute(CSchedulerContext *psc) = 0;
+	BOOL FExecute(CSchedulerContext *psc) override = 0;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) = 0;
+	IOstream &OsPrint(IOstream &os) override = 0;
 
 #endif	// GPOS_DEBUG
 public:

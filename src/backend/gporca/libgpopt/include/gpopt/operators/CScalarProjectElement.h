@@ -47,18 +47,18 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarProjectElement() = default;
+	~CScalarProjectElement() override = default;
 
 	// identity accessor
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarProjectElement;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarProjectElement";
 	}
@@ -71,23 +71,24 @@ public:
 	}
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
-	BOOL FInputOrderSensitive() const;
+	BOOL FInputOrderSensitive() const override;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 	// return locally defined columns
-	virtual CColRefSet *
+	CColRefSet *
 	PcrsDefined(CMemoryPool *mp,
 				CExpressionHandle &	 // exprhdl
-	)
+				) override
 	{
 		CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 		pcrs->Include(m_pcr);
@@ -105,15 +106,15 @@ public:
 		return reinterpret_cast<CScalarProjectElement *>(pop);
 	}
 
-	virtual IMDId *
-	MdidType() const
+	IMDId *
+	MdidType() const override
 	{
 		GPOS_ASSERT(!"Invalid function call: CScalarProjectElemet::MdidType()");
 		return NULL;
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CScalarProjectElement
 

@@ -34,19 +34,19 @@ class CParseHandlerScalarOp : public CParseHandlerOp
 private:
 protected:
 	// process notification of the beginning of an element.
-	virtual void StartElement(
+	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname,		// element's qname
 		const Attributes &attr					// element's attributes
-	);
+		) override;
 
 	// process notification of the end of an element.
-	virtual void EndElement(
+	void EndElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
-	);
+		) override;
 
 public:
 	CParseHandlerScalarOp(const CParseHandlerScalarOp &) = delete;
@@ -55,7 +55,7 @@ public:
 						  CParseHandlerManager *parse_handler_mgr,
 						  CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerScalarOp();
+	~CParseHandlerScalarOp() override;
 };
 }  // namespace gpdxl
 

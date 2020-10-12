@@ -40,35 +40,36 @@ public:
 	explicit CLogicalInnerCorrelatedApply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalInnerCorrelatedApply() = default;
+	~CLogicalInnerCorrelatedApply() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopLogicalInnerCorrelatedApply;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CLogicalInnerCorrelatedApply";
 	}
 
 	// applicable transformations
-	virtual CXformSet *PxfsCandidates(CMemoryPool *mp) const;
+	CXformSet *PxfsCandidates(CMemoryPool *mp) const override;
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 	// return true if operator is a correlated apply
-	virtual BOOL
-	FCorrelated() const
+	BOOL
+	FCorrelated() const override
 	{
 		return true;
 	}

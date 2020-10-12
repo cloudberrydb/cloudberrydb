@@ -54,32 +54,32 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexApplyGeneric() = default;
+	~CXformJoin2IndexApplyGeneric() override = default;
 
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 	// Return true if xform should be applied only once.
 	// For now return true. We may need to revisit this if we find that
 	// there are multiple bindings and we miss interesting bindings because
 	// we extract only one of them.
-	virtual BOOL
-	IsApplyOnce()
+	BOOL
+	IsApplyOnce() override
 	{
 		return true;
 	}
 
-	virtual CLogicalJoin *
-	PopLogicalJoin(CMemoryPool *) const
+	CLogicalJoin *
+	PopLogicalJoin(CMemoryPool *) const override
 	{
 		return NULL;
 	}
 
-	virtual CLogicalApply *
-	PopLogicalApply(CMemoryPool *, CColRefArray *) const
+	CLogicalApply *
+	PopLogicalApply(CMemoryPool *, CColRefArray *) const override
 	{
 		return NULL;
 	}

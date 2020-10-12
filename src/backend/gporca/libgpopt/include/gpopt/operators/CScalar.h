@@ -81,21 +81,21 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalar() = default;
+	~CScalar() override = default;
 
 	// type of operator
-	virtual BOOL
-	FScalar() const
+	BOOL
+	FScalar() const override
 	{
 		GPOS_ASSERT(!FPhysical() && !FLogical() && !FPattern());
 		return true;
 	}
 
 	// create derived properties container
-	virtual CDrvdProp *PdpCreate(CMemoryPool *mp) const;
+	CDrvdProp *PdpCreate(CMemoryPool *mp) const override;
 
 	// create required properties container
-	virtual CReqdProp *PrpCreate(CMemoryPool *mp) const;
+	CReqdProp *PrpCreate(CMemoryPool *mp) const override;
 
 	// return locally defined columns
 	virtual CColRefSet *

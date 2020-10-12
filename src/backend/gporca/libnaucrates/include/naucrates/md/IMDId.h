@@ -81,7 +81,7 @@ public:
 	}
 
 	// dtor
-	virtual ~IMDId() = default;
+	~IMDId() override = default;
 
 	// type of mdid
 	virtual EMDIdType MdidType() const = 0;
@@ -100,8 +100,8 @@ public:
 	virtual ULONG HashValue() const = 0;
 
 	// return true if calling object's destructor is allowed
-	virtual BOOL
-	Deletable() const
+	BOOL
+	Deletable() const override
 	{
 		return (0 == m_deletion_locks);
 	}

@@ -49,8 +49,8 @@ public:
 						  CDouble default_scale_factor);
 
 	// filter type id
-	virtual CStatsPred::EStatsPredType
-	GetPredStatsType() const
+	CStatsPred::EStatsPredType
+	GetPredStatsType() const override
 	{
 		return CStatsPred::EsptUnsupported;
 	}

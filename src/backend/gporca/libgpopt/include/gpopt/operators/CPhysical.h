@@ -103,7 +103,7 @@ private:
 		}
 
 		// dtor
-		virtual ~CReqdColsRequest()
+		~CReqdColsRequest() override
 		{
 			m_pcrsRequired->Release();
 		}
@@ -313,25 +313,25 @@ public:
 	explicit CPhysical(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CPhysical()
+	~CPhysical() override
 	{
 		CRefCount::SafeRelease(m_phmrcr);
 		CRefCount::SafeRelease(m_pdrgpulpOptReqsExpanded);
 	}
 
 	// type of operator
-	virtual BOOL
-	FPhysical() const
+	BOOL
+	FPhysical() const override
 	{
 		GPOS_ASSERT(!FLogical() && !FScalar() && !FPattern());
 		return true;
 	}
 
 	// create base container of derived properties
-	virtual CDrvdProp *PdpCreate(CMemoryPool *mp) const;
+	CDrvdProp *PdpCreate(CMemoryPool *mp) const override;
 
 	// create base container of required properties
-	virtual CReqdProp *PrpCreate(CMemoryPool *mp) const;
+	CReqdProp *PrpCreate(CMemoryPool *mp) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Required Plan Properties
@@ -533,8 +533,9 @@ public:
 		const CExpressionHandle &exprhdl) const;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 	// conversion function
 	static CPhysical *

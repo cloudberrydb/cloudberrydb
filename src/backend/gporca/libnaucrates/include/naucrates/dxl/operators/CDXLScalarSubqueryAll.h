@@ -45,10 +45,10 @@ public:
 						  CMDName *mdname, ULONG colid);
 
 	// ident accessors
-	Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// name of the operator
-	const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// conversion function
 	static CDXLScalarSubqueryAll *
@@ -61,9 +61,9 @@ public:
 	}
 
 	// does the operator return a boolean result
-	virtual BOOL
+	BOOL
 	HasBoolResult(CMDAccessor *	 //md_accessor
-	) const
+	) const override
 	{
 		return true;
 	}

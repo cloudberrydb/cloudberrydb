@@ -58,17 +58,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CDXLPhysicalDynamicBitmapTableScan() = default;
+	~CDXLPhysicalDynamicBitmapTableScan() override = default;
 
 	// operator type
-	virtual Edxlopid
-	GetDXLOperator() const
+	Edxlopid
+	GetDXLOperator() const override
 	{
 		return EdxlopPhysicalDynamicBitmapTableScan;
 	}
 
 	// operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// partition index id
 	ULONG
@@ -85,8 +85,8 @@ public:
 	}
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *node) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *node) const override;
 
 	// conversion function
 	static CDXLPhysicalDynamicBitmapTableScan *

@@ -126,7 +126,7 @@ public:
 					  CParseHandlerBase *parse_handler_root);
 
 	//dtor
-	virtual ~CParseHandlerBase();
+	~CParseHandlerBase() override;
 
 	virtual EDxlParseHandlerType GetParseHandlerType() const;
 
@@ -140,17 +140,17 @@ public:
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname,		// element's qname
 		const Attributes &attr					// element's attributes
-	);
+		) override;
 
 	// Xerces parse handler interface method to eceive notification of the end of an element.
 	void endElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
-	);
+		) override;
 
 	// process a parsing ProcessError
-	void error(const SAXParseException &);
+	void error(const SAXParseException &) override;
 };
 }  // namespace gpdxl
 

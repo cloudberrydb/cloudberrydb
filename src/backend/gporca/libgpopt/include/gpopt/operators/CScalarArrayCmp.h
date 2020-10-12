@@ -67,7 +67,7 @@ public:
 					const CWStringConst *pstrOp, EArrCmpType earrcmpt);
 
 	// dtor
-	virtual ~CScalarArrayCmp()
+	~CScalarArrayCmp() override
 	{
 		m_mdid_op->Release();
 		GPOS_DELETE(m_pscOp);
@@ -75,8 +75,8 @@ public:
 
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarArrayCmp;
 	}
@@ -89,32 +89,32 @@ public:
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarArrayCmp";
 	}
 
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
 	BOOL
-	FInputOrderSensitive() const
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
@@ -136,13 +136,13 @@ public:
 	IMDId *MdIdOp() const;
 
 	// the type of the scalar expression
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// boolean expression evaluation
-	virtual EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
+	EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const override;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// expand array comparison expression into a conjunctive/disjunctive expression
 	static CExpression *PexprExpand(CMemoryPool *mp,

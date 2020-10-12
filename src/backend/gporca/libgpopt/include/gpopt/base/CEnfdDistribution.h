@@ -62,11 +62,11 @@ public:
 	CEnfdDistribution(CDistributionSpec *pds, EDistributionMatching edm);
 
 	// dtor
-	virtual ~CEnfdDistribution();
+	~CEnfdDistribution() override;
 
 	// distribution spec accessor
-	virtual CPropSpec *
-	Pps() const
+	CPropSpec *
+	Pps() const override
 	{
 		return m_pds;
 	}
@@ -88,7 +88,7 @@ public:
 	}
 
 	// hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// check if the given distribution specification is compatible with the
 	// distribution specification of this object for the specified matching type
@@ -107,7 +107,7 @@ public:
 							BOOL fDistribReqd) const;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CEnfdDistribution
 

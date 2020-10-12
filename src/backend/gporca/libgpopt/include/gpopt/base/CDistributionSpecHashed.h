@@ -91,19 +91,19 @@ public:
 		CDistributionSpecHashed *pdshashedEquiv, IMdIdArray *opfamilies);
 
 	// dtor
-	virtual ~CDistributionSpecHashed();
+	~CDistributionSpecHashed() override;
 
 	void PopulateDefaultOpfamilies();
 
 	// distribution type accessor
-	virtual EDistributionType
-	Edt() const
+	EDistributionType
+	Edt() const override
 	{
 		return CDistributionSpec::EdtHashed;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "HASHED";
 	}
@@ -136,47 +136,47 @@ public:
 	}
 
 	// columns used by distribution expressions
-	virtual CColRefSet *PcrsUsed(CMemoryPool *mp) const;
+	CColRefSet *PcrsUsed(CMemoryPool *mp) const override;
 
 	// return a copy of the distribution spec after excluding the given columns
 	virtual CDistributionSpecHashed *PdshashedExcludeColumns(CMemoryPool *mp,
 															 CColRefSet *pcrs);
 
 	// does this distribution match the given one
-	virtual BOOL Matches(const CDistributionSpec *pds) const;
+	BOOL Matches(const CDistributionSpec *pds) const override;
 
 	// does this distribution satisfy the given one
-	virtual BOOL FSatisfies(const CDistributionSpec *pds) const;
+	BOOL FSatisfies(const CDistributionSpec *pds) const override;
 
 	// check if the columns of passed spec match a subset of the
 	// object's columns
 	BOOL FMatchSubset(const CDistributionSpecHashed *pds) const;
 
 	// equality function
-	BOOL Equals(const CDistributionSpec *pds) const;
+	BOOL Equals(const CDistributionSpec *pds) const override;
 
 	// return a copy of the distribution spec with remapped columns
-	virtual CDistributionSpec *PdsCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	CDistributionSpec *PdsCopyWithRemappedColumns(
+		CMemoryPool *mp, UlongToColRefMap *colref_mapping,
+		BOOL must_exist) override;
 
 	// append enforcers to dynamic array for the given plan properties
-	virtual void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
-								 CReqdPropPlan *prpp,
-								 CExpressionArray *pdrgpexpr,
-								 CExpression *pexpr);
+	void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
+						 CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr,
+						 CExpression *pexpr) override;
 
 	// hash function for hashed distribution spec
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// return distribution partitioning type
-	virtual EDistributionPartitioningType
-	Edpt() const
+	EDistributionPartitioningType
+	Edpt() const override
 	{
 		return EdptPartitioned;
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 	IOstream &OsPrintWithPrefix(IOstream &os, const char *prefix) const;
 
 	// return a hashed distribution on the maximal hashable subset of given columns

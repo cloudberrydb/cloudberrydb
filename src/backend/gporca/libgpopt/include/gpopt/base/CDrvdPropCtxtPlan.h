@@ -46,10 +46,10 @@ private:
 
 protected:
 	// copy function
-	virtual CDrvdPropCtxt *PdpctxtCopy(CMemoryPool *mp) const;
+	CDrvdPropCtxt *PdpctxtCopy(CMemoryPool *mp) const override;
 
 	// add props to context
-	virtual void AddProps(CDrvdProp *pdp);
+	void AddProps(CDrvdProp *pdp) override;
 
 public:
 	CDrvdPropCtxtPlan(const CDrvdPropCtxtPlan &) = delete;
@@ -58,7 +58,7 @@ public:
 	CDrvdPropCtxtPlan(CMemoryPool *mp, BOOL fUpdateCTEMap = true);
 
 	// dtor
-	virtual ~CDrvdPropCtxtPlan();
+	~CDrvdPropCtxtPlan() override;
 
 	ULONG
 	UlExpectedPartitionSelectors() const
@@ -71,7 +71,7 @@ public:
 	void SetExpectedPartitionSelectors(COperator *pop, CCostContext *pcc);
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// return the plan properties of CTE producer with given id
 	CDrvdPropPlan *PdpplanCTEProducer(ULONG ulCTEId) const;
@@ -82,8 +82,8 @@ public:
 #ifdef GPOS_DEBUG
 
 	// is it a plan property context?
-	virtual BOOL
-	FPlan() const
+	BOOL
+	FPlan() const override
 	{
 		return true;
 	}

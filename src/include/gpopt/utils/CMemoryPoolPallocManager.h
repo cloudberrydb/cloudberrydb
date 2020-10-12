@@ -32,13 +32,13 @@ public:
 							 EMemoryPoolType memory_pool_type);
 
 	// allocate new memorypool
-	virtual CMemoryPool *NewMemoryPool();
+	CMemoryPool *NewMemoryPool() override;
 
 	// free allocation
-	void DeleteImpl(void *ptr, CMemoryPool::EAllocationType eat);
+	void DeleteImpl(void *ptr, CMemoryPool::EAllocationType eat) override;
 
 	// get user requested size of allocation
-	ULONG UserSizeOfAlloc(const void *ptr);
+	ULONG UserSizeOfAlloc(const void *ptr) override;
 
 
 	static GPOS_RESULT Init();

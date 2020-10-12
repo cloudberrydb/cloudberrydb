@@ -152,10 +152,10 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexApply() = default;
+	~CXformJoin2IndexApply() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 };	// class CXformJoin2IndexApply
 

@@ -45,18 +45,18 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarIdent() = default;
+	~CScalarIdent() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarIdent;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarIdent";
 	}
@@ -69,25 +69,26 @@ public:
 	}
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
-	BOOL FInputOrderSensitive() const;
+	BOOL FInputOrderSensitive() const override;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 
 	// return locally used columns
-	virtual CColRefSet *
+	CColRefSet *
 	PcrsUsed(CMemoryPool *mp,
 			 CExpressionHandle &  // exprhdl
 
-	)
+			 ) override
 	{
 		CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 		pcrs->Include(m_pcr);
@@ -106,13 +107,13 @@ public:
 	}
 
 	// the type of the scalar expression
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// the type modifier of the scalar expression
-	virtual INT TypeModifier() const;
+	INT TypeModifier() const override;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// is the given expression a scalar cast of a scalar identifier
 	static BOOL FCastedScId(CExpression *pexpr);

@@ -17,10 +17,10 @@ public:
 	CDistributionSpecStrictHashed(CExpressionArray *pdrgpexpr,
 								  BOOL fNullsColocated);
 
-	virtual EDistributionType Edt() const;
+	EDistributionType Edt() const override;
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "STRICT HASHED";
 	}

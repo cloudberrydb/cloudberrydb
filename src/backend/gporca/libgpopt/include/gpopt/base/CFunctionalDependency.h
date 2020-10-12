@@ -52,7 +52,7 @@ public:
 	CFunctionalDependency(CColRefSet *pcrsKey, CColRefSet *pcrsDetermined);
 
 	// dtor
-	virtual ~CFunctionalDependency();
+	~CFunctionalDependency() override;
 
 	// key set accessor
 	CColRefSet *
@@ -88,7 +88,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// hash function
 	static ULONG HashValue(const CFunctionalDependencyArray *pdrgpfd);

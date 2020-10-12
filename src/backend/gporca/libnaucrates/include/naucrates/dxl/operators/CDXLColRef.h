@@ -62,7 +62,7 @@ public:
 	// ctor/dtor
 	CDXLColRef(CMDName *mdname, ULONG id, IMDId *mdid_type, INT type_modifier);
 
-	~CDXLColRef();
+	~CDXLColRef() override;
 
 	// accessors
 	const CMDName *MdName() const;

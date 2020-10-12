@@ -109,7 +109,7 @@ public:
 				 CExpression *pexprTrailing, EFrameExclusionStrategy efes);
 
 	// dtor
-	virtual ~CWindowFrame();
+	~CWindowFrame() override;
 
 	// specification
 	EFrameSpec
@@ -171,7 +171,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// matching function over frame arrays
 	static BOOL Equals(const CWindowFrameArray *pdrgpwfFirst,

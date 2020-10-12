@@ -102,7 +102,7 @@ public:
 					 ULONG ulExecuteAsUser);
 
 	// dtor
-	virtual ~CTableDescriptor();
+	~CTableDescriptor() override;
 
 	// add a column to the table descriptor
 	void AddColumn(CColumnDescriptor *);
@@ -216,7 +216,7 @@ public:
 	ULONG UlPos(const CColumnDescriptor *,
 				const CColumnDescriptorArray *) const;
 
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// returns number of indices
 	ULONG IndexCount();

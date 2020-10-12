@@ -65,7 +65,7 @@ public:
 					 BOOL is_clustered, IMDIndex::EmdindexType emdindt);
 
 	// dtor
-	virtual ~CIndexDescriptor();
+	~CIndexDescriptor() override;
 
 	// number of key columns
 	ULONG Keys() const;
@@ -121,7 +121,7 @@ public:
 										const CTableDescriptor *ptabdesc,
 										const IMDIndex *pmdindex);
 
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CIndexDescriptor
 }  // namespace gpopt

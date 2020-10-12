@@ -39,49 +39,49 @@ public:
 
 
 	// dtor
-	virtual ~CLogicalMaxOneRow() = default;
+	~CLogicalMaxOneRow() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopLogicalMaxOneRow;
 	}
 
 	// name of operator
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CLogicalMaxOneRow";
 	}
 
 	// match function;
-	virtual BOOL
-	Matches(COperator *pop) const
+	BOOL
+	Matches(COperator *pop) const override
 	{
 		return (Eopid() == pop->Eopid());
 	}
 
 	// sensitivity to order of inputs
-	virtual BOOL
-	FInputOrderSensitive() const
+	BOOL
+	FInputOrderSensitive() const override
 	{
 		return false;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
 
 	// return true if we can pull projections up past this operator from its given child
-	virtual BOOL FCanPullProjectionsUp(ULONG  //child_index
-	) const
+	BOOL FCanPullProjectionsUp(ULONG  //child_index
+	) const override
 	{
 		return false;
 	}
@@ -91,62 +91,64 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// derive output columns
-	virtual CColRefSet *
+	CColRefSet *
 	DeriveOutputColumns(CMemoryPool *,	// mp
-						CExpressionHandle &exprhdl)
+						CExpressionHandle &exprhdl) override
 	{
 		return PcrsDeriveOutputPassThru(exprhdl);
 	}
 
 	// derive partition consumer info
-	virtual CPartInfo *
-	DerivePartitionInfo(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+	CPartInfo *
+	DerivePartitionInfo(CMemoryPool *mp,
+						CExpressionHandle &exprhdl) const override
 	{
 		return PpartinfoDeriveCombine(mp, exprhdl);
 	}
 
 	// dervive keys
-	virtual CKeyCollection *
+	CKeyCollection *
 	DeriveKeyCollection(CMemoryPool *,	// mp
-						CExpressionHandle &exprhdl) const
+						CExpressionHandle &exprhdl) const override
 	{
 		return PkcDeriveKeysPassThru(exprhdl, 0 /* ulChild */);
 	}
 
 	// derive max card
-	virtual CMaxCard
+	CMaxCard
 	DeriveMaxCard(CMemoryPool *,	   // mp,
 				  CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CMaxCard(1 /*ull*/);
 	}
 
 	// derive constraint property
-	virtual CPropConstraint *
-	DerivePropertyConstraint(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+	CPropConstraint *
+	DerivePropertyConstraint(CMemoryPool *mp,
+							 CExpressionHandle &exprhdl) const override
 	{
 		return PpcDeriveConstraintFromPredicates(mp, exprhdl);
 	}
 
 	// promise level for stat derivation
-	virtual EStatPromise Esp(CExpressionHandle &exprhdl) const;
+	EStatPromise Esp(CExpressionHandle &exprhdl) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Required Relational Properties
 	//-------------------------------------------------------------------------------------
 
 	// compute required stat columns of the n-th child
-	virtual CColRefSet *PcrsStat(CMemoryPool *mp, CExpressionHandle &exprhdl,
-								 CColRefSet *pcrsInput,
-								 ULONG child_index) const;
+	CColRefSet *PcrsStat(CMemoryPool *mp, CExpressionHandle &exprhdl,
+						 CColRefSet *pcrsInput,
+						 ULONG child_index) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Transformations
 	//-------------------------------------------------------------------------------------
 
 	// candidate set of xforms
-	virtual CXformSet *PxfsCandidates(CMemoryPool *mp) const;
+	CXformSet *PxfsCandidates(CMemoryPool *mp) const override;
 
 	//-------------------------------------------------------------------------------------
 	//-------------------------------------------------------------------------------------
@@ -163,10 +165,9 @@ public:
 	}
 
 	// derive statistics
-	virtual IStatistics *PstatsDerive(CMemoryPool *mp,
-									  CExpressionHandle &exprhdl,
-									  IStatisticsArray *  // stats_ctxt
-	) const;
+	IStatistics *PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
+							  IStatisticsArray *  // stats_ctxt
+	) const override;
 
 
 };	// class CLogicalMaxOneRow

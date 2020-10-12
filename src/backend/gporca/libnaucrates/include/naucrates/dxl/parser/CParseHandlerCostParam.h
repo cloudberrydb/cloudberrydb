@@ -48,14 +48,14 @@ private:
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname,		// element's qname
 		const Attributes &attr					// element's attributes
-	);
+		) override;
 
 	// process the end of an element
 	void EndElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
-	);
+		) override;
 
 public:
 	CParseHandlerCostParam(const CParseHandlerCostParam &) = delete;
@@ -66,7 +66,7 @@ public:
 						   CParseHandlerBase *parse_handler_root);
 
 	// dtor
-	virtual ~CParseHandlerCostParam();
+	~CParseHandlerCostParam() override;
 
 	// return parsed param name
 	CHAR *
@@ -97,7 +97,7 @@ public:
 	}
 
 	EDxlParseHandlerType
-	GetParseHandlerType() const
+	GetParseHandlerType() const override
 	{
 		return EdxlphCostParam;
 	}

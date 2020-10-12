@@ -53,23 +53,23 @@ public:
 						   INT location);
 
 	// dtor
-	virtual ~CScalarArrayCoerceExpr();
+	~CScalarArrayCoerceExpr() override;
 
 	// return metadata id of element coerce function
 	IMDId *PmdidElementFunc() const;
 
 	BOOL IsExplicit() const;
 
-	virtual EOperatorId Eopid() const;
+	EOperatorId Eopid() const override;
 
 	// return a string for operator name
-	virtual const CHAR *SzId() const;
+	const CHAR *SzId() const override;
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
-	virtual BOOL FInputOrderSensitive() const;
+	BOOL FInputOrderSensitive() const override;
 
 	// conversion function
 	static CScalarArrayCoerceExpr *PopConvert(COperator *pop);

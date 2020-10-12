@@ -160,103 +160,103 @@ public:
 		IMDId *mdid_base_relation, IMDId *mdid_type_array, INT gpdb_length);
 
 	// dtor
-	virtual ~CMDTypeGenericGPDB();
+	~CMDTypeGenericGPDB() override;
 
 	// accessors
-	virtual const CWStringDynamic *
-	GetStrRepr() const
+	const CWStringDynamic *
+	GetStrRepr() const override
 	{
 		return m_dxl_str;
 	}
 
-	virtual IMDId *MDId() const;
+	IMDId *MDId() const override;
 
-	virtual CMDName Mdname() const;
+	CMDName Mdname() const override;
 
-	virtual BOOL IsRedistributable() const;
+	BOOL IsRedistributable() const override;
 
-	virtual BOOL
-	IsFixedLength() const
+	BOOL
+	IsFixedLength() const override
 	{
 		return m_is_fixed_length;
 	}
 
 	// is type composite
-	virtual BOOL
-	IsComposite() const
+	BOOL
+	IsComposite() const override
 	{
 		return m_is_composite_type;
 	}
 
-	virtual ULONG
-	Length() const
+	ULONG
+	Length() const override
 	{
 		return m_gpdb_length;
 	}
 
-	virtual BOOL
-	IsPassedByValue() const
+	BOOL
+	IsPassedByValue() const override
 	{
 		return m_is_passed_by_value;
 	}
 
 	// id of specified comparison operator type
-	virtual IMDId *GetMdidForCmpType(ECmpType ecmpt) const;
+	IMDId *GetMdidForCmpType(ECmpType ecmpt) const override;
 
 	// id of specified specified aggregate type
-	virtual IMDId *GetMdidForAggType(EAggType agg_type) const;
+	IMDId *GetMdidForAggType(EAggType agg_type) const override;
 
-	virtual const IMDId *
-	CmpOpMdid() const
+	const IMDId *
+	CmpOpMdid() const override
 	{
 		return m_mdid_op_cmp;
 	}
 
 	// is type hashable
-	virtual BOOL
-	IsHashable() const
+	BOOL
+	IsHashable() const override
 	{
 		return m_is_hashable;
 	}
 
-	virtual BOOL
-	IsTextRelated() const
+	BOOL
+	IsTextRelated() const override
 	{
 		return m_is_text_related;
 	}
 
 	// is type merge joinable on '='
-	virtual BOOL
-	IsMergeJoinable() const
+	BOOL
+	IsMergeJoinable() const override
 	{
 		return m_is_merge_joinable;
 	}
 
 	// id of the relation corresponding to a composite type
-	virtual IMDId *
-	GetBaseRelMdid() const
+	IMDId *
+	GetBaseRelMdid() const override
 	{
 		return m_mdid_base_relation;
 	}
 
-	virtual IMDId *
-	GetArrayTypeMdid() const
+	IMDId *
+	GetArrayTypeMdid() const override
 	{
 		return m_mdid_type_array;
 	}
 
-	virtual IMDId *GetDistrOpfamilyMdid() const;
+	IMDId *GetDistrOpfamilyMdid() const override;
 
 	// serialize object in DXL format
-	virtual void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
+	void Serialize(gpdxl::CXMLSerializer *xml_serializer) const override;
 
 	// factory method for generating generic datum from CDXLScalarConstValue
-	virtual IDatum *GetDatumForDXLConstVal(
-		const CDXLScalarConstValue *dxl_op) const;
+	IDatum *GetDatumForDXLConstVal(
+		const CDXLScalarConstValue *dxl_op) const override;
 
 	// create typed datum from DXL datum
-	virtual IDatum *GetDatumForDXLDatum(CMemoryPool *mp,
-										const CDXLDatum *dxl_datum) const;
+	IDatum *GetDatumForDXLDatum(CMemoryPool *mp,
+								const CDXLDatum *dxl_datum) const override;
 
 	// return the GPDB length
 	virtual INT
@@ -266,29 +266,29 @@ public:
 	}
 
 	// return the null constant for this type
-	virtual IDatum *
-	DatumNull() const
+	IDatum *
+	DatumNull() const override
 	{
 		return m_datum_null;
 	}
 
 	// generate the DXL datum from IDatum
-	virtual CDXLDatum *GetDatumVal(CMemoryPool *mp, IDatum *datum) const;
+	CDXLDatum *GetDatumVal(CMemoryPool *mp, IDatum *datum) const override;
 
 	// generate the DXL datum representing null value
-	virtual CDXLDatum *GetDXLDatumNull(CMemoryPool *mp) const;
+	CDXLDatum *GetDXLDatumNull(CMemoryPool *mp) const override;
 
 	// generate the DXL scalar constant from IDatum
-	virtual CDXLScalarConstValue *GetDXLOpScConst(CMemoryPool *mp,
-												  IDatum *datum) const;
+	CDXLScalarConstValue *GetDXLOpScConst(CMemoryPool *mp,
+										  IDatum *datum) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the type in the provided stream
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 
 	// is type an ambiguous one? e.g., AnyElement in GPDB
-	virtual BOOL IsAmbiguous() const;
+	BOOL IsAmbiguous() const override;
 
 	// create a dxl datum
 	static CDXLDatum *CreateDXLDatumVal(CMemoryPool *mp, IMDId *mdid,

@@ -54,10 +54,10 @@ public:
 					   const CDXLNodeArray *cte_producers);
 
 	// dtor
-	virtual ~CSerializableQuery();
+	~CSerializableQuery() override;
 
 	// serialize object to passed stream
-	virtual void Serialize(COstream &oos);
+	void Serialize(COstream &oos) override;
 
 };	// class CSerializableQuery
 }  // namespace gpopt

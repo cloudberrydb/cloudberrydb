@@ -81,62 +81,62 @@ public:
 				 IMDPartConstraint *mdpart_constraint);
 
 	// dtor
-	virtual ~CMDIndexGPDB();
+	~CMDIndexGPDB() override;
 
 	// index mdid
-	virtual IMDId *MDId() const;
+	IMDId *MDId() const override;
 
 	// index name
-	virtual CMDName Mdname() const;
+	CMDName Mdname() const override;
 
 	// is the index clustered
-	virtual BOOL IsClustered() const;
+	BOOL IsClustered() const override;
 
 	// index type
-	virtual EmdindexType IndexType() const;
+	EmdindexType IndexType() const override;
 
 	// number of keys
-	virtual ULONG Keys() const;
+	ULONG Keys() const override;
 
 	// return the n-th key column
-	virtual ULONG KeyAt(ULONG pos) const;
+	ULONG KeyAt(ULONG pos) const override;
 
 	// return the position of the key column
-	virtual ULONG GetKeyPos(ULONG column) const;
+	ULONG GetKeyPos(ULONG column) const override;
 
 	// number of included columns
-	virtual ULONG IncludedCols() const;
+	ULONG IncludedCols() const override;
 
 	// return the n-th included column
-	virtual ULONG IncludedColAt(ULONG pos) const;
+	ULONG IncludedColAt(ULONG pos) const override;
 
 	// return the position of the included column
-	virtual ULONG GetIncludedColPos(ULONG column) const;
+	ULONG GetIncludedColPos(ULONG column) const override;
 
 	// part constraint
-	virtual IMDPartConstraint *MDPartConstraint() const;
+	IMDPartConstraint *MDPartConstraint() const override;
 
 	// DXL string for index
-	virtual const CWStringDynamic *
-	GetStrRepr() const
+	const CWStringDynamic *
+	GetStrRepr() const override
 	{
 		return m_dxl_str;
 	}
 
 	// serialize MD index in DXL format given a serializer object
-	virtual void Serialize(gpdxl::CXMLSerializer *) const;
+	void Serialize(gpdxl::CXMLSerializer *) const override;
 
 	// type id of items returned by the index
-	virtual IMDId *GetIndexRetItemTypeMdid() const;
+	IMDId *GetIndexRetItemTypeMdid() const override;
 
 	// check if given scalar comparison can be used with the index key
 	// at the specified position
-	virtual BOOL IsCompatible(const IMDScalarOp *md_scalar_op,
-							  ULONG key_pos) const;
+	BOOL IsCompatible(const IMDScalarOp *md_scalar_op,
+					  ULONG key_pos) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the MD index
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 };
 }  // namespace gpmd

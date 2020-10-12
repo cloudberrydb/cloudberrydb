@@ -47,7 +47,7 @@ public:
 								CParseHandlerManager *parse_handler_mgr,
 								CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerMetadataObject();
+	~CParseHandlerMetadataObject() override;
 
 	// returns constructed metadata object
 	IMDCacheObject *GetImdObj() const;

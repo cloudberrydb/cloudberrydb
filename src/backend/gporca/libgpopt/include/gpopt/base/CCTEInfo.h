@@ -139,7 +139,7 @@ private:
 					  BOOL fUsed);
 
 		// dtor
-		~CCTEInfoEntry();
+		~CCTEInfoEntry() override;
 
 		// CTE expression
 		CExpression *
@@ -221,7 +221,7 @@ public:
 	explicit CCTEInfo(CMemoryPool *mp);
 
 	//dtor
-	virtual ~CCTEInfo();
+	~CCTEInfo() override;
 
 	// logical cte producer with given id
 	CExpression *PexprCTEProducer(ULONG ulCTEId) const;

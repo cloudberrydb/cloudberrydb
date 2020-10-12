@@ -60,7 +60,7 @@ public:
 				   CDXLWindowFrame *window_frame);
 
 	// dtor
-	virtual ~CDXLWindowSpec();
+	~CDXLWindowSpec() override;
 
 	// serialize operator in DXL format
 	virtual void SerializeToDXL(CXMLSerializer *) const;

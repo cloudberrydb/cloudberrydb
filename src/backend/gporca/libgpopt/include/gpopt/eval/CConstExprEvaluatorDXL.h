@@ -69,14 +69,14 @@ public:
 						   IConstDXLNodeEvaluator *pconstdxleval);
 
 	// dtor
-	virtual ~CConstExprEvaluatorDXL();
+	~CConstExprEvaluatorDXL() override;
 
 	// evaluate the given expression and return the result as a new expression
 	// caller takes ownership of returned expression
-	virtual CExpression *PexprEval(CExpression *pexpr);
+	CExpression *PexprEval(CExpression *pexpr) override;
 
 	// Returns true iff the evaluator can evaluate expressions
-	virtual BOOL FCanEvalExpressions();
+	BOOL FCanEvalExpressions() override;
 };
 }  // namespace gpopt
 

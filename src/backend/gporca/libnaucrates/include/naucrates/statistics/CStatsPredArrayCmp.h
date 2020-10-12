@@ -46,7 +46,7 @@ public:
 					   CPointArray *points);
 
 	// dtor
-	virtual ~CStatsPredArrayCmp()
+	~CStatsPredArrayCmp() override
 	{
 		m_points->Release();
 	}
@@ -59,8 +59,8 @@ public:
 	}
 
 	// filter type id
-	virtual EStatsPredType
-	GetPredStatsType() const
+	EStatsPredType
+	GetPredStatsType() const override
 	{
 		return CStatsPred::EsptArrayCmp;
 	}

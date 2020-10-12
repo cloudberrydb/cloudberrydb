@@ -22,25 +22,24 @@ public:
 							  CColRef2dArray *pdrgpdrgpcrInput,
 							  ULONG ulScanIdPartialIndex);
 
-	virtual EOperatorId Eopid() const;
+	EOperatorId Eopid() const override;
 
-	virtual const CHAR *SzId() const;
+	const CHAR *SzId() const override;
 
-	virtual CDistributionSpec *PdsRequired(CMemoryPool *mp,
-										   CExpressionHandle &exprhdl,
-										   CDistributionSpec *pdsRequired,
-										   ULONG child_index,
-										   CDrvdPropArray *pdrgpdpCtxt,
-										   ULONG ulOptReq) const;
+	CDistributionSpec *PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
+								   CDistributionSpec *pdsRequired,
+								   ULONG child_index,
+								   CDrvdPropArray *pdrgpdpCtxt,
+								   ULONG ulOptReq) const override;
 
-	virtual CEnfdDistribution::EDistributionMatching Edm(
+	CEnfdDistribution::EDistributionMatching Edm(
 		CReqdPropPlan *,   // prppInput
 		ULONG,			   // child_index
 		CDrvdPropArray *,  //pdrgpdpCtxt
 		ULONG			   // ulOptReq
-	);
+		) override;
 
-	virtual ~CPhysicalParallelUnionAll();
+	~CPhysicalParallelUnionAll() override;
 };
 }  // namespace gpopt
 

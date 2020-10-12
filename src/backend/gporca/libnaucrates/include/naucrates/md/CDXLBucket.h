@@ -73,7 +73,7 @@ public:
 			   CDouble distinct);
 
 	// dtor
-	virtual ~CDXLBucket();
+	~CDXLBucket() override;
 
 	// is lower bound closed
 	BOOL

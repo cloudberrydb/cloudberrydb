@@ -55,7 +55,7 @@ public:
 		BOOL contains_raw_values);
 
 	// dtor
-	virtual ~CDXLDirectDispatchInfo();
+	~CDXLDirectDispatchInfo() override;
 
 	BOOL
 	FContainsRawValues() const

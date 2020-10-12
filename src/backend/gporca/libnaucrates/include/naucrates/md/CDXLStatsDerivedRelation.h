@@ -56,7 +56,7 @@ public:
 		CDXLStatsDerivedColumnArray *dxl_stats_derived_col_array);
 
 	// dtor
-	virtual ~CDXLStatsDerivedRelation();
+	~CDXLStatsDerivedRelation() override;
 
 	// number of rows
 	CDouble

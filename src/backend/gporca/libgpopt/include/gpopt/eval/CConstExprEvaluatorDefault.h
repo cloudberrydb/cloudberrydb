@@ -45,13 +45,13 @@ public:
 	}
 
 	// dtor
-	virtual ~CConstExprEvaluatorDefault();
+	~CConstExprEvaluatorDefault() override;
 
 	// Evaluate the given expression and return the result as a new expression
-	virtual CExpression *PexprEval(CExpression *pexpr);
+	CExpression *PexprEval(CExpression *pexpr) override;
 
 	// Returns true iff the evaluator can evaluate constant expressions
-	virtual BOOL FCanEvalExpressions();
+	BOOL FCanEvalExpressions() override;
 };
 }  // namespace gpopt
 

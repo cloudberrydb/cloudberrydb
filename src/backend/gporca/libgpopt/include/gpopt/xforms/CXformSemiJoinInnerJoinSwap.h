@@ -43,17 +43,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSemiJoinInnerJoinSwap() = default;
+	~CXformSemiJoinInnerJoinSwap() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSemiJoinInnerJoinSwap;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSemiJoinInnerJoinSwap";
 	}

@@ -42,7 +42,7 @@ public:
 	CFileReader();
 
 	// dtor
-	virtual ~CFileReader();
+	~CFileReader() override;
 
 	// get file size
 	ULLONG FileSize() const;

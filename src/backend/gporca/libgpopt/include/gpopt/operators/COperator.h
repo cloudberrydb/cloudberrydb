@@ -285,7 +285,7 @@ public:
 	explicit COperator(CMemoryPool *mp);
 
 	// dtor
-	virtual ~COperator() = default;
+	~COperator() override = default;
 
 	// the id of the operator
 	ULONG
@@ -351,7 +351,7 @@ public:
 		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist) = 0;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class COperator
 

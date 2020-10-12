@@ -52,14 +52,14 @@ public:
 							   BYTE *byte_array, ULONG length, LINT value);
 
 	// dtor
-	virtual ~CDXLDatumStatsLintMappable() = default;
+	~CDXLDatumStatsLintMappable() override = default;
 
 	// serialize the datum as the given element
-	virtual void Serialize(CXMLSerializer *xml_serializer);
+	void Serialize(CXMLSerializer *xml_serializer) override;
 
 	// datum type
-	virtual EdxldatumType
-	GetDatumType() const
+	EdxldatumType
+	GetDatumType() const override
 	{
 		return CDXLDatum::EdxldatumStatsLintMappable;
 	}
@@ -78,15 +78,15 @@ public:
 	// statistics related APIs
 
 	// can datum be mapped to LINT
-	virtual BOOL
-	IsDatumMappableToLINT() const
+	BOOL
+	IsDatumMappableToLINT() const override
 	{
 		return true;
 	}
 
 	// return the LINT mapping needed for statistics computation
-	virtual LINT
-	GetLINTMapping() const
+	LINT
+	GetLINTMapping() const override
 	{
 		return m_val;
 	}

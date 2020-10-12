@@ -271,7 +271,7 @@ private:
 			m_contain_PS = GPOS_NEW(mp) CBitSet(mp);
 		}
 
-		~SExpressionInfo()
+		~SExpressionInfo() override
 		{
 			m_expr->Release();
 			CRefCount::SafeRelease(m_contain_PS);
@@ -330,7 +330,7 @@ private:
 			m_best_expr_info_array = GPOS_NEW(mp) SExpressionInfoArray(mp);
 		}
 
-		~SGroupInfo()
+		~SGroupInfo() override
 		{
 			m_atoms->Release();
 			m_best_expr_info_array->Release();
@@ -364,7 +364,7 @@ private:
 		{
 		}
 
-		~SLevelInfo()
+		~SLevelInfo() override
 		{
 			m_groups->Release();
 			CRefCount::SafeRelease(m_top_k_groups);
@@ -474,7 +474,7 @@ private:
 
 	void GreedySearchJoinOrders(ULONG left_level, JoinOrderPropType algo);
 
-	virtual void DeriveStats(CExpression *pexpr);
+	void DeriveStats(CExpression *pexpr) override;
 
 	// create a CLogicalJoin and a CExpression to join two groups, for a required property
 	SExpressionInfo *GetJoinExprForProperties(
@@ -542,7 +542,7 @@ public:
 				   ULongPtrArray *childPredIndexes, CColRefSet *outerRefs);
 
 	// dtor
-	virtual ~CJoinOrderDPv2();
+	~CJoinOrderDPv2() override;
 
 	// main handler
 	virtual void PexprExpand();
@@ -555,7 +555,7 @@ public:
 						   CBitSet **requiredBitsOnLeft = NULL);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 	IOstream &OsPrintProperty(IOstream &, SExpressionProperties &) const;
 

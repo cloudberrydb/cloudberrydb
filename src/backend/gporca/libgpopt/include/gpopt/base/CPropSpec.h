@@ -51,7 +51,7 @@ protected:
 	CPropSpec() = default;
 
 	// dtor
-	~CPropSpec() = default;
+	~CPropSpec() override = default;
 
 public:
 	CPropSpec(const CPropSpec &) = delete;

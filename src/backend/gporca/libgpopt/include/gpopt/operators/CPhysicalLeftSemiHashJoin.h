@@ -37,32 +37,31 @@ public:
 							  IMdIdArray *hash_opfamilies = NULL);
 
 	// dtor
-	virtual ~CPhysicalLeftSemiHashJoin();
+	~CPhysicalLeftSemiHashJoin() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalLeftSemiHashJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalLeftSemiHashJoin";
 	}
 
 	// check if required columns are included in output columns
-	virtual BOOL FProvidesReqdCols(CExpressionHandle &exprhdl,
-								   CColRefSet *pcrsRequired,
-								   ULONG ulOptReq) const;
+	BOOL FProvidesReqdCols(CExpressionHandle &exprhdl, CColRefSet *pcrsRequired,
+						   ULONG ulOptReq) const override;
 
 	// compute required partition propagation of the n-th child
-	virtual CPartitionPropagationSpec *PppsRequired(
+	CPartitionPropagationSpec *PppsRequired(
 		CMemoryPool *mp, CExpressionHandle &exprhdl,
 		CPartitionPropagationSpec *pppsRequired, ULONG child_index,
-		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq);
+		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
 
 	// conversion function
 	static CPhysicalLeftSemiHashJoin *

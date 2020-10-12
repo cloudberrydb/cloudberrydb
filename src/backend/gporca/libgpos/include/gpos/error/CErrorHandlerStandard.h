@@ -33,10 +33,10 @@ public:
 	CErrorHandlerStandard() = default;
 
 	// dtor
-	virtual ~CErrorHandlerStandard() = default;
+	~CErrorHandlerStandard() override = default;
 
 	// process error
-	virtual void Process(CException exception);
+	void Process(CException exception) override;
 
 };	// class CErrorHandlerStandard
 }  // namespace gpos

@@ -54,15 +54,15 @@ public:
 	CDXLScalarComp(CMemoryPool *mp, IMDId *operator_mdid,
 				   const CWStringConst *comparison_operator_name);
 
-	virtual ~CDXLScalarComp();
+	~CDXLScalarComp() override;
 
 	// accessor
 
 	// ident accessors
-	Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// name of the DXL operator
-	const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// name of the comparison operator
 	const CWStringConst *GetComparisonOpName() const;
@@ -71,8 +71,8 @@ public:
 	IMDId *MDId() const;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *node) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *node) const override;
 
 	// conversion function
 	static CDXLScalarComp *
@@ -87,9 +87,9 @@ public:
 	}
 
 	// does the operator return a boolean result
-	virtual BOOL
+	BOOL
 	HasBoolResult(CMDAccessor *	 //md_accessor
-	) const
+	) const override
 
 	{
 		return true;
@@ -98,7 +98,8 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *node, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *node,
+					 BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

@@ -76,7 +76,7 @@ public:
 	CDXLNode(CDXLOperator *dxl_op, CDXLNodeArray *dxl_array);
 
 	// dtor
-	virtual ~CDXLNode();
+	~CDXLNode() override;
 
 	// shorthand to access children
 	inline CDXLNode *

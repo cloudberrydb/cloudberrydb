@@ -43,33 +43,33 @@ public:
 	explicit CXformImplementDynamicBitmapTableGet(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementDynamicBitmapTableGet() = default;
+	~CXformImplementDynamicBitmapTableGet() override = default;
 
 	// identifier
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfImplementDynamicBitmapTableGet;
 	}
 
 	// xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformImplementDynamicBitmapTableGet";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
+	EXformPromise
 	Exfp(CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CXform::ExfpHigh;
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformImplementDynamicBitmapTableGet
 }  // namespace gpopt

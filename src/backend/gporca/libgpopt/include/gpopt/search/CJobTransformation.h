@@ -75,7 +75,7 @@ public:
 	CJobTransformation();
 
 	// dtor
-	virtual ~CJobTransformation();
+	~CJobTransformation() override;
 
 	// initialize job
 	void Init(CGroupExpression *pgexpr, CXform *pxform);
@@ -85,12 +85,12 @@ public:
 							CXform *pxform, CJob *pjParent);
 
 	// job's main function
-	virtual BOOL FExecute(CSchedulerContext *psc);
+	BOOL FExecute(CSchedulerContext *psc) override;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os);
+	IOstream &OsPrint(IOstream &os) override;
 
 	// dump state machine diagram in graphviz format
 	virtual IOstream &

@@ -60,17 +60,17 @@ public:
 							  CPartFilterMap *ppfm);
 
 	// dtor
-	virtual ~CEnfdPartitionPropagation();
+	~CEnfdPartitionPropagation() override;
 
 	// partition spec accessor
-	virtual CPropSpec *
-	Pps() const
+	CPropSpec *
+	Pps() const override
 	{
 		return m_ppps;
 	}
 
 	// hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// required propagation accessor
 	CPartitionPropagationSpec *
@@ -115,7 +115,7 @@ public:
 	}
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// name of propagation matching type
 	static const CHAR *SzPropagationMatching(

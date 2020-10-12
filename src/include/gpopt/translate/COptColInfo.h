@@ -51,7 +51,7 @@ public:
 	}
 
 	// dtor
-	virtual ~COptColInfo()
+	~COptColInfo() override
 	{
 		GPOS_DELETE(m_str);
 	}

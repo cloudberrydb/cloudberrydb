@@ -38,18 +38,18 @@ public:
 	explicit CXformSequenceProject2Apply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSequenceProject2Apply() = default;
+	~CXformSequenceProject2Apply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSequenceProject2Apply;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSequenceProject2Apply";
 	}

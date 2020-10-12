@@ -128,7 +128,7 @@ public:
 		m_topk = GPOS_NEW(m_mp) A(m_mp);
 	}
 
-	~CKHeap()
+	~CKHeap() override
 	{
 		m_topk->Release();
 	}

@@ -23,28 +23,28 @@ public:
 	explicit CXformImplementFullOuterMergeJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementFullOuterMergeJoin() = default;
+	~CXformImplementFullOuterMergeJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfImplementFullOuterMergeJoin;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformImplementFullOuterMergeJoin";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformImplementFullOuterMergeJoin
 }  // namespace gpopt

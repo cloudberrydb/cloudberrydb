@@ -72,7 +72,7 @@ private:
 					   CPartConstraint *ppartcnstrRel);
 
 		// dtor
-		virtual ~CPartInfoEntry();
+		~CPartInfoEntry() override;
 
 		// scan id
 		virtual ULONG
@@ -109,7 +109,7 @@ private:
 		}
 
 		// print function
-		virtual IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 
 		// copy part info entry into given memory pool
 		CPartInfoEntry *PpartinfoentryCopy(CMemoryPool *mp);
@@ -132,7 +132,7 @@ public:
 	explicit CPartInfo(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CPartInfo();
+	~CPartInfo() override;
 
 	// number of part table consumers
 	ULONG
@@ -170,7 +170,7 @@ public:
 										 CColRefArray *pdrgpcrDest) const;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 	// combine two part info objects
 	static CPartInfo *PpartinfoCombine(CMemoryPool *mp, CPartInfo *ppartinfoFst,

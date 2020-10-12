@@ -50,10 +50,10 @@ public:
 
 	// allocates memory
 	void *allocate(XMLSize_t  // size
-	);
+				   ) override;
 
 	// deallocates memory
-	void deallocate(void *pv);
+	void deallocate(void *pv) override;
 
 	// accessor to the underlying memory pool
 	CMemoryPool *
@@ -65,7 +65,7 @@ public:
 	// returns the memory manager responsible for memory allocation
 	// during exceptions
 	MemoryManager *
-	getExceptionMemoryManager()
+	getExceptionMemoryManager() override
 	{
 		return (MemoryManager *) this;
 	}

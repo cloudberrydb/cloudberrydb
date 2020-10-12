@@ -55,19 +55,19 @@ public:
 							  CPartConstraint *ppartcnstrRel, COrderSpec *pos);
 
 	// dtor
-	virtual ~CPhysicalDynamicIndexScan();
+	~CPhysicalDynamicIndexScan() override;
 
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalDynamicIndexScan;
 	}
 
 	// operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalDynamicIndexScan";
 	}
@@ -80,20 +80,20 @@ public:
 	}
 
 	// operator specific hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Derived Plan Properties
 	//-------------------------------------------------------------------------------------
 
 	// derive sort order
-	virtual COrderSpec *
+	COrderSpec *
 	PosDerive(CMemoryPool *,	   //mp
 			  CExpressionHandle &  //exprhdl
-	) const
+	) const override
 	{
 		m_pos->AddRef();
 		return m_pos;
@@ -104,8 +104,8 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// return order property enforcing type for this operator
-	virtual CEnfdProp::EPropEnforcingType EpetOrder(
-		CExpressionHandle &exprhdl, const CEnfdOrder *peo) const;
+	CEnfdProp::EPropEnforcingType EpetOrder(
+		CExpressionHandle &exprhdl, const CEnfdOrder *peo) const override;
 
 	// conversion function
 	static CPhysicalDynamicIndexScan *
@@ -118,13 +118,12 @@ public:
 	}
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 	// statistics derivation during costing
-	virtual IStatistics *PstatsDerive(CMemoryPool *mp,
-									  CExpressionHandle &exprhdl,
-									  CReqdPropPlan *prpplan,
-									  IStatisticsArray *stats_ctxt) const;
+	IStatistics *PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
+							  CReqdPropPlan *prpplan,
+							  IStatisticsArray *stats_ctxt) const override;
 
 };	// class CPhysicalDynamicIndexScan
 

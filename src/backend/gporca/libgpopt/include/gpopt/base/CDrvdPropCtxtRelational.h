@@ -36,16 +36,16 @@ class CDrvdPropCtxtRelational : public CDrvdPropCtxt
 private:
 protected:
 	// copy function
-	virtual CDrvdPropCtxt *
-	PdpctxtCopy(CMemoryPool *mp) const
+	CDrvdPropCtxt *
+	PdpctxtCopy(CMemoryPool *mp) const override
 	{
 		return GPOS_NEW(mp) CDrvdPropCtxtRelational(mp);
 	}
 
 	// add props to context
-	virtual void
+	void
 	AddProps(CDrvdProp *  // pdp
-	)
+			 ) override
 	{
 		// derived relational context is currently empty
 	}
@@ -59,11 +59,11 @@ public:
 	}
 
 	// dtor
-	virtual ~CDrvdPropCtxtRelational() = default;
+	~CDrvdPropCtxtRelational() override = default;
 
 	// print
-	virtual IOstream &
-	OsPrint(IOstream &os) const
+	IOstream &
+	OsPrint(IOstream &os) const override
 	{
 		return os;
 	}
@@ -71,8 +71,8 @@ public:
 #ifdef GPOS_DEBUG
 
 	// is it a relational property context?
-	virtual BOOL
-	FRelational() const
+	BOOL
+	FRelational() const override
 	{
 		return true;
 	}

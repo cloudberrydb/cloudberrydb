@@ -42,7 +42,7 @@ public:
 	explicit CDXLLogical(CMemoryPool *mp);
 
 	// Get operator type
-	Edxloptype GetDXLOperatorType() const;
+	Edxloptype GetDXLOperatorType() const override;
 };
 }  // namespace gpdxl
 

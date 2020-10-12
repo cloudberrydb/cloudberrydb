@@ -51,14 +51,14 @@ public:
 							  BOOL is_explicit, EdxlCoercionForm coerce_format,
 							  INT location);
 
-	virtual ~CDXLScalarArrayCoerceExpr()
+	~CDXLScalarArrayCoerceExpr() override
 	{
 		m_coerce_func_mdid->Release();
 	}
 
 	// ident accessor
-	virtual Edxlopid
-	GetDXLOperator() const
+	Edxlopid
+	GetDXLOperator() const override
 	{
 		return EdxlopScalarArrayCoerceExpr;
 	}
@@ -77,11 +77,11 @@ public:
 	}
 
 	// name of the DXL operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *dxlnode) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *dxlnode) const override;
 
 	// conversion function
 	static CDXLScalarArrayCoerceExpr *

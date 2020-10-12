@@ -125,7 +125,7 @@ public:
 				 CGroupExpression *pgexpr);
 
 	// dtor
-	virtual ~CCostContext();
+	~CCostContext() override;
 
 	// main optimization context accessor
 	COptimizationContext *
@@ -298,7 +298,7 @@ public:
 	}
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CCostContext
 

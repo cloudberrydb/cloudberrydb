@@ -55,25 +55,25 @@ public:
 	explicit CXformSplitGbAgg(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformSplitGbAgg() = default;
+	~CXformSplitGbAgg() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSplitGbAgg;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSplitGbAgg";
 	}
 
 	// Compatibility function for splitting aggregates
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return ((CXform::ExfSplitDQA != exfid) &&
 				(CXform::ExfSplitGbAgg != exfid) &&
@@ -81,11 +81,11 @@ public:
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformSplitGbAgg
 

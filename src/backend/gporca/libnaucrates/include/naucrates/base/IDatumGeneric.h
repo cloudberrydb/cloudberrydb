@@ -37,11 +37,11 @@ public:
 	IDatumGeneric() = default;
 
 	// dtor
-	virtual ~IDatumGeneric() = default;
+	~IDatumGeneric() override = default;
 
 	// accessor for datum type
-	virtual IMDType::ETypeInfo
-	GetDatumType()
+	IMDType::ETypeInfo
+	GetDatumType() override
 	{
 		return IMDType::EtiGeneric;
 	}

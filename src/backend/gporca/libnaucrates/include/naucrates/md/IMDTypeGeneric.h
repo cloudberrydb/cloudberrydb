@@ -44,8 +44,8 @@ public:
 	}
 
 	// type id
-	virtual ETypeInfo
-	GetDatumType() const
+	ETypeInfo
+	GetDatumType() const override
 	{
 		return IMDTypeGeneric::GetTypeInfo();
 	}

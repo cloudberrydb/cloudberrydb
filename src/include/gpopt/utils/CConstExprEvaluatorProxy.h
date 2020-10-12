@@ -58,9 +58,9 @@ private:
 		{
 		}
 
-		virtual ~CEmptyMappingColIdVar() = default;
+		~CEmptyMappingColIdVar() override = default;
 
-		virtual Var *VarFromDXLNodeScId(const CDXLScalarIdent *scalar_ident);
+		Var *VarFromDXLNodeScId(const CDXLScalarIdent *scalar_ident) override;
 	};
 
 	// memory pool, not owned
@@ -86,16 +86,16 @@ public:
 	}
 
 	// dtor
-	virtual ~CConstExprEvaluatorProxy() = default;
+	~CConstExprEvaluatorProxy() override = default;
 
 	// evaluate given constant expressionand return the DXL representation of the result.
 	// if the expression has variables, an error is thrown.
 	// caller keeps ownership of 'expr_dxlnode' and takes ownership of the returned pointer
-	virtual CDXLNode *EvaluateExpr(const CDXLNode *expr);
+	CDXLNode *EvaluateExpr(const CDXLNode *expr) override;
 
 	// returns true iff the evaluator can evaluate constant expressions without subqueries
-	virtual BOOL
-	FCanEvalExpressions()
+	BOOL
+	FCanEvalExpressions() override
 	{
 		return true;
 	}

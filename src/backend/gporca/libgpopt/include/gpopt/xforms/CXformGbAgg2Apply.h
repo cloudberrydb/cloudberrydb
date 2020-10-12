@@ -38,24 +38,24 @@ public:
 	explicit CXformGbAgg2Apply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAgg2Apply() = default;
+	~CXformGbAgg2Apply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfGbAgg2Apply;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformGbAgg2Apply";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 };	// class CXformGbAgg2Apply
 

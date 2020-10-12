@@ -70,7 +70,7 @@ public:
 				 ULONG width = gpos::ulong_max);
 
 	//dtor
-	~CDXLColDescr();
+	~CDXLColDescr() override;
 
 	// column name
 	const CMDName *MdName() const;

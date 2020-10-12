@@ -164,7 +164,7 @@ public:
 	}
 
 	// dtor
-	~CDynamicPtrArray<T, CleanupFn>()
+	~CDynamicPtrArray<T, CleanupFn>() override
 	{
 		Clear();
 
@@ -396,8 +396,8 @@ public:
 		return result;
 	}
 
-	virtual IOstream &
-	OsPrint(IOstream &os) const
+	IOstream &
+	OsPrint(IOstream &os) const override
 	{
 		// do nothing, for now
 		return os;

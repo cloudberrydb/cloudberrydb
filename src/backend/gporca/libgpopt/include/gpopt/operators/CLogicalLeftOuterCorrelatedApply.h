@@ -42,35 +42,36 @@ public:
 	explicit CLogicalLeftOuterCorrelatedApply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftOuterCorrelatedApply() = default;
+	~CLogicalLeftOuterCorrelatedApply() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopLogicalLeftOuterCorrelatedApply;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CLogicalLeftOuterCorrelatedApply";
 	}
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 	// applicable transformations
-	virtual CXformSet *PxfsCandidates(CMemoryPool *mp) const;
+	CXformSet *PxfsCandidates(CMemoryPool *mp) const override;
 
 	// return true if operator is a correlated apply
-	virtual BOOL
-	FCorrelated() const
+	BOOL
+	FCorrelated() const override
 	{
 		return true;
 	}

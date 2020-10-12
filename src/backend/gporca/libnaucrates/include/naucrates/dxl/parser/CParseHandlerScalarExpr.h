@@ -36,22 +36,22 @@ private:
 
 protected:
 	// returns the parse handler type
-	virtual EDxlParseHandlerType GetParseHandlerType() const;
+	EDxlParseHandlerType GetParseHandlerType() const override;
 
 	// process notification of the beginning of an element.
-	virtual void StartElement(
+	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname,		// element's qname
 		const Attributes &attr					// element's attributes
-	);
+		) override;
 
 	// process notification of the end of an element.
-	virtual void EndElement(
+	void EndElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
-	);
+		) override;
 
 public:
 	CParseHandlerScalarExpr(const CParseHandlerScalarExpr &) = delete;
@@ -62,7 +62,7 @@ public:
 							CParseHandlerBase *parse_handler_root);
 
 	// dtor
-	virtual ~CParseHandlerScalarExpr();
+	~CParseHandlerScalarExpr() override;
 
 	// root of constructed DXL expression
 	CDXLNode *CreateDXLNode() const;

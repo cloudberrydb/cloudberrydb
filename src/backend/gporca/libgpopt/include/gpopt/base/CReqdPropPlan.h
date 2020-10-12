@@ -96,20 +96,20 @@ public:
 				  CCTEReq *pcter);
 
 	// dtor
-	virtual ~CReqdPropPlan();
+	~CReqdPropPlan() override;
 
 	// type of properties
-	virtual BOOL
-	FPlan() const
+	BOOL
+	FPlan() const override
 	{
 		GPOS_ASSERT(!FRelational());
 		return true;
 	}
 
 	// required properties computation function
-	virtual void Compute(CMemoryPool *mp, CExpressionHandle &exprhdl,
-						 CReqdProp *prpInput, ULONG child_index,
-						 CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq);
+	void Compute(CMemoryPool *mp, CExpressionHandle &exprhdl,
+				 CReqdProp *prpInput, ULONG child_index,
+				 CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
 
 	// required columns computation function
 	void ComputeReqdCols(CMemoryPool *mp, CExpressionHandle &exprhdl,
@@ -213,7 +213,7 @@ public:
 									UlongToColRefMap *colref_mapping);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CReqdPropPlan
 

@@ -42,7 +42,7 @@ public:
 	}
 
 	// dtor
-	~CXformContext() = default;
+	~CXformContext() override = default;
 
 
 	// accessor

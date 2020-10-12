@@ -53,11 +53,11 @@ public:
 					   CDXLWindowKeyArray *window_key_array);
 
 	//dtor
-	virtual ~CDXLPhysicalWindow();
+	~CDXLPhysicalWindow() override;
 
 	// accessors
-	Edxlopid GetDXLOperator() const;
-	const CWStringConst *GetOpNameStr() const;
+	Edxlopid GetDXLOperator() const override;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// number of partition columns
 	ULONG PartByColsCount() const;
@@ -76,8 +76,8 @@ public:
 	CDXLWindowKey *GetDXLWindowKeyAt(ULONG ulPos) const;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *dxlnode) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *dxlnode) const override;
 
 	// conversion function
 	static CDXLPhysicalWindow *
@@ -92,7 +92,7 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *, BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

@@ -81,7 +81,7 @@ public:
 	CPartitionPropagationSpec(CPartIndexMap *ppim, CPartFilterMap *ppfm);
 
 	// dtor
-	virtual ~CPartitionPropagationSpec();
+	~CPartitionPropagationSpec() override;
 
 	// accessor of part index map
 	CPartIndexMap *
@@ -98,25 +98,24 @@ public:
 	}
 
 	// append enforcers to dynamic array for the given plan properties
-	virtual void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
-								 CReqdPropPlan *prpp,
-								 CExpressionArray *pdrgpexpr,
-								 CExpression *pexpr);
+	void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
+						 CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr,
+						 CExpression *pexpr) override;
 
 	// hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// extract columns used by the rewindability spec
-	virtual CColRefSet *
-	PcrsUsed(CMemoryPool *mp) const
+	CColRefSet *
+	PcrsUsed(CMemoryPool *mp) const override
 	{
 		// return an empty set
 		return GPOS_NEW(mp) CColRefSet(mp);
 	}
 
 	// property type
-	virtual EPropSpecType
-	Epst() const
+	EPropSpecType
+	Epst() const override
 	{
 		return EpstPartPropagation;
 	}
@@ -133,7 +132,7 @@ public:
 
 
 	// print
-	IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CPartitionPropagationSpec
 

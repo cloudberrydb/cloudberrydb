@@ -36,28 +36,28 @@ public:
 	CXformGbAgg2ScalarAgg(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAgg2ScalarAgg() = default;
+	~CXformGbAgg2ScalarAgg() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfGbAgg2ScalarAgg;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformGbAgg2ScalarAgg";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformGbAgg2ScalarAgg
 

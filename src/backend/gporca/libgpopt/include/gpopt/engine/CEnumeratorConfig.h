@@ -149,7 +149,7 @@ public:
 					  CDouble cost_threshold = GPOPT_UNBOUNDED_COST_THRESHOLD);
 
 	// dtor
-	virtual ~CEnumeratorConfig();
+	~CEnumeratorConfig() override;
 
 	// return plan id
 	ULLONG

@@ -76,7 +76,7 @@ public:
 			   ULONG ulSizeBits = GPOPT_COLREFSET_SIZE);
 
 	// dtor
-	~CColRefSet();
+	~CColRefSet() override;
 
 	// determine if bit is set
 	BOOL FMember(const CColRef *colref) const;
@@ -125,7 +125,7 @@ public:
 	ULONG HashValue();
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 	IOstream &OsPrint(IOstream &os, ULONG ulLenMax) const;
 
 	// extract all column ids

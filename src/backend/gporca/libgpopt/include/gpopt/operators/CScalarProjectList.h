@@ -37,34 +37,34 @@ public:
 	explicit CScalarProjectList(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CScalarProjectList() = default;
+	~CScalarProjectList() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarProjectList;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarProjectList";
 	}
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
-	BOOL FInputOrderSensitive() const;
+	BOOL FInputOrderSensitive() const override;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
@@ -79,8 +79,8 @@ public:
 		return reinterpret_cast<CScalarProjectList *>(pop);
 	}
 
-	virtual IMDId *
-	MdidType() const
+	IMDId *
+	MdidType() const override
 	{
 		GPOS_ASSERT(!"Invalid function call: CScalarProjectList::MdidType()");
 		return NULL;

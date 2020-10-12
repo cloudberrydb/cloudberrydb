@@ -42,7 +42,7 @@ public:
 	explicit CXformResult(CMemoryPool *);
 
 	// dtor
-	~CXformResult();
+	~CXformResult() override;
 
 	// accessor
 	inline CExpressionArray *
@@ -58,7 +58,7 @@ public:
 	CExpression *PexprNext();
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CXformResult
 

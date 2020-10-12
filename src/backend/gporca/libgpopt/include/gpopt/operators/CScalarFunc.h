@@ -71,48 +71,49 @@ public:
 				INT return_type_modifier, const CWStringConst *pstrFunc);
 
 	// dtor
-	virtual ~CScalarFunc();
+	~CScalarFunc() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarFunc;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarFunc";
 	}
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
 	BOOL
-	FInputOrderSensitive() const
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
 
 	// derive function properties
-	virtual CFunctionProp *
-	DeriveFunctionProperties(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+	CFunctionProp *
+	DeriveFunctionProperties(CMemoryPool *mp,
+							 CExpressionHandle &exprhdl) const override
 	{
 		return PfpDeriveFromChildren(mp, exprhdl, m_efs, m_efda,
 									 false /*fHasVolatileFunctionScan*/,
@@ -120,7 +121,7 @@ public:
 	}
 
 	// derive non-scalar function existence
-	virtual BOOL FHasNonScalarFunction(CExpressionHandle &exprhdl);
+	BOOL FHasNonScalarFunction(CExpressionHandle &exprhdl) override;
 
 	// conversion function
 	static CScalarFunc *
@@ -139,19 +140,19 @@ public:
 	// func id
 	IMDId *FuncMdId() const;
 
-	virtual INT TypeModifier() const;
+	INT TypeModifier() const override;
 
 	// the type of the scalar expression
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// function stability
 	IMDFunction::EFuncStbl EfsGetFunctionStability() const;
 
 	// boolean expression evaluation
-	virtual EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
+	EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const override;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 
 };	// class CScalarFunc

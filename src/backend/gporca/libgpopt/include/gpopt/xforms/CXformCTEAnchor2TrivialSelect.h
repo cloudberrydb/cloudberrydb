@@ -37,28 +37,28 @@ public:
 	explicit CXformCTEAnchor2TrivialSelect(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformCTEAnchor2TrivialSelect() = default;
+	~CXformCTEAnchor2TrivialSelect() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfCTEAnchor2TrivialSelect;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformCTEAnchor2TrivialSelect";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformCTEAnchor2TrivialSelect
 }  // namespace gpopt

@@ -49,17 +49,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSubqNAryJoin2Apply() = default;
+	~CXformSubqNAryJoin2Apply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSubqNAryJoin2Apply;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSubqNAryJoin2Apply";
 	}

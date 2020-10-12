@@ -73,7 +73,7 @@ public:
 			  BOOL is_null, ULONG length);
 
 	// dtor
-	virtual ~CDXLDatum()
+	~CDXLDatum() override
 	{
 		m_mdid_type->Release();
 	}

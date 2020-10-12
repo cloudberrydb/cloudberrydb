@@ -38,7 +38,7 @@ public:
 		ULLONG UllSizeInternal() const;
 
 		// dtor
-		virtual ~CFileWriterInternal();
+		~CFileWriterInternal() override;
 
 
 	};	// class CFileWriterInternal

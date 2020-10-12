@@ -294,11 +294,11 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformApply2Join<TApply, TJoin>() = default;
+	~CXformApply2Join<TApply, TJoin>() override = default;
 
 	// is transformation an Apply decorrelation (Apply To Join) xform?
-	virtual BOOL
-	FApplyDecorrelating() const
+	BOOL
+	FApplyDecorrelating() const override
 	{
 		return true;
 	}

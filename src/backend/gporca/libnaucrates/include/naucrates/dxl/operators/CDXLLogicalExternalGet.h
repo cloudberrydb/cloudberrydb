@@ -36,10 +36,10 @@ public:
 	CDXLLogicalExternalGet(CMemoryPool *mp, CDXLTableDescr *table_descr);
 
 	// operator type
-	virtual Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// conversion function
 	static CDXLLogicalExternalGet *

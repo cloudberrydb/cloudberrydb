@@ -41,74 +41,74 @@ public:
 	virtual CMDName *GetMdNameSchema() const = 0;
 
 	// is this a partitioned table
-	virtual BOOL
-	IsPartitioned() const
+	BOOL
+	IsPartitioned() const override
 	{
 		return false;
 	}
 
 	// number of partition columns
-	virtual ULONG
-	PartColumnCount() const
+	ULONG
+	PartColumnCount() const override
 	{
 		return 0;
 	}
 
 	// number of partitions
-	virtual ULONG
-	PartitionCount() const
+	ULONG
+	PartitionCount() const override
 	{
 		return 0;
 	}
 
 	// retrieve the partition column at the given position
-	virtual const IMDColumn *PartColAt(ULONG  // pos
-	) const
+	const IMDColumn *PartColAt(ULONG  // pos
+	) const override
 	{
 		GPOS_ASSERT(!"CTAS tables have no partition columns");
 		return NULL;
 	}
 
 	// retrieve list of partition types
-	virtual CharPtrArray *
-	GetPartitionTypes() const
+	CharPtrArray *
+	GetPartitionTypes() const override
 	{
 		GPOS_ASSERT(!"CTAS tables have no partition types");
 		return NULL;
 	}
 
 	// retrieve the partition column at the given position
-	virtual CHAR PartTypeAtLevel(ULONG /*pos*/) const
+	CHAR PartTypeAtLevel(ULONG /*pos*/) const override
 	{
 		GPOS_ASSERT(!"CTAS tables have no partition types");
 		return (CHAR) 0;
 	}
 
 	// return true if a hash distributed table needs to be considered as random
-	virtual BOOL
-	ConvertHashToRandom() const
+	BOOL
+	ConvertHashToRandom() const override
 	{
 		return false;
 	}
 
 	// returns the number of key sets
-	virtual ULONG
-	KeySetCount() const
+	ULONG
+	KeySetCount() const override
 	{
 		return 0;
 	}
 
 	// returns the key set at the specified position
-	virtual const ULongPtrArray *KeySetAt(ULONG	 // pos
-	) const
+	const ULongPtrArray *KeySetAt(ULONG	 // pos
+	) const override
 	{
 		GPOS_ASSERT(!"CTAS tables have no keys");
 		return NULL;
 	}
 
 	// part constraint
-	virtual IMDPartConstraint *
-	MDPartConstraint() const
+	IMDPartConstraint *
+	MDPartConstraint() const override
 	{
 		return NULL;
 	}

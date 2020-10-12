@@ -41,24 +41,24 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformPushGbBelowUnion() = default;
+	~CXformPushGbBelowUnion() override = default;
 
 	// Compatibility function
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return ExfPushGbBelowUnion != exfid;
 	}
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfPushGbBelowUnion;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformPushGbBelowUnion";
 	}

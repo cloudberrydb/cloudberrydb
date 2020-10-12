@@ -80,13 +80,13 @@ public:
 				  CColRef2dArray *pdrgpdrgpcrInput);
 
 	// dtor
-	virtual ~CLogicalSetOp();
+	~CLogicalSetOp() override;
 
 	// ident accessors
-	virtual EOperatorId Eopid() const = 0;
+	EOperatorId Eopid() const override = 0;
 
 	// return a string for operator name
-	virtual const CHAR *SzId() const = 0;
+	const CHAR *SzId() const override = 0;
 
 	// accessor of output column array
 	CColRefArray *
@@ -105,42 +105,43 @@ public:
 	}
 
 	// return true if we can pull projections up past this operator from its given child
-	virtual BOOL FCanPullProjectionsUp(ULONG  //child_index
-	) const
+	BOOL FCanPullProjectionsUp(ULONG  //child_index
+	) const override
 	{
 		return false;
 	}
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Derived Relational Properties
 	//-------------------------------------------------------------------------------------
 
 	// derive output columns
-	virtual CColRefSet *DeriveOutputColumns(CMemoryPool *, CExpressionHandle &);
+	CColRefSet *DeriveOutputColumns(CMemoryPool *,
+									CExpressionHandle &) override;
 
 	// derive key collections
-	virtual CKeyCollection *DeriveKeyCollection(
-		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+	CKeyCollection *DeriveKeyCollection(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
 
 	// derive partition consumer info
-	virtual CPartInfo *DerivePartitionInfo(CMemoryPool *mp,
-										   CExpressionHandle &exprhdl) const;
+	CPartInfo *DerivePartitionInfo(CMemoryPool *mp,
+								   CExpressionHandle &exprhdl) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Required Relational Properties
 	//-------------------------------------------------------------------------------------
 
 	// compute required stat columns of the n-th child
-	virtual CColRefSet *PcrsStat(CMemoryPool *,		   // mp
-								 CExpressionHandle &,  // exprhdl
-								 CColRefSet *pcrsInput,
-								 ULONG	// child_index
-	) const;
+	CColRefSet *PcrsStat(CMemoryPool *,		   // mp
+						 CExpressionHandle &,  // exprhdl
+						 CColRefSet *pcrsInput,
+						 ULONG	// child_index
+	) const override;
 
 	// conversion function
 	static CLogicalSetOp *

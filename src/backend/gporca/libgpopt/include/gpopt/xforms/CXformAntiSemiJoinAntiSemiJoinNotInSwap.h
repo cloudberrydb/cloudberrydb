@@ -46,24 +46,24 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformAntiSemiJoinAntiSemiJoinNotInSwap() = default;
+	~CXformAntiSemiJoinAntiSemiJoinNotInSwap() override = default;
 
 	// compatibility function
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return ExfAntiSemiJoinNotInAntiSemiJoinSwap != exfid;
 	}
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfAntiSemiJoinAntiSemiJoinNotInSwap;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformAntiSemiJoinAntiSemiJoinNotInSwap";
 	}

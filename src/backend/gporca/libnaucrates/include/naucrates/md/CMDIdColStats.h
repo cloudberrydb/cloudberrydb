@@ -61,20 +61,20 @@ public:
 	CMDIdColStats(CMDIdGPDB *rel_mdid, ULONG attno);
 
 	// dtor
-	virtual ~CMDIdColStats();
+	~CMDIdColStats() override;
 
-	virtual EMDIdType
-	MdidType() const
+	EMDIdType
+	MdidType() const override
 	{
 		return EmdidColStats;
 	}
 
 	// string representation of mdid
-	virtual const WCHAR *GetBuffer() const;
+	const WCHAR *GetBuffer() const override;
 
 	// source system id
-	virtual CSystemId
-	Sysid() const
+	CSystemId
+	Sysid() const override
 	{
 		return m_rel_mdid->Sysid();
 	}
@@ -84,29 +84,29 @@ public:
 	ULONG Position() const;
 
 	// equality check
-	virtual BOOL Equals(const IMDId *mdid) const;
+	BOOL Equals(const IMDId *mdid) const override;
 
 	// computes the hash value for the metadata id
-	virtual ULONG
-	HashValue() const
+	ULONG
+	HashValue() const override
 	{
 		return gpos::CombineHashes(m_rel_mdid->HashValue(),
 								   gpos::HashValue(&m_attr_pos));
 	}
 
 	// is the mdid valid
-	virtual BOOL
-	IsValid() const
+	BOOL
+	IsValid() const override
 	{
 		return IMDId::IsValid(m_rel_mdid);
 	}
 
 	// serialize mdid in DXL as the value of the specified attribute
-	virtual void Serialize(CXMLSerializer *xml_serializer,
-						   const CWStringConst *attribute_str) const;
+	void Serialize(CXMLSerializer *xml_serializer,
+				   const CWStringConst *attribute_str) const override;
 
 	// debug print of the metadata id
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// const converter
 	static const CMDIdColStats *

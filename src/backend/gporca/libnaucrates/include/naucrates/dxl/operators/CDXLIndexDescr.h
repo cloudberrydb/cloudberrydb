@@ -44,7 +44,7 @@ public:
 	CDXLIndexDescr(IMDId *mdid, CMDName *mdname);
 
 	// dtor
-	virtual ~CDXLIndexDescr();
+	~CDXLIndexDescr() override;
 
 	// accessors
 	const CMDName *MdName() const;

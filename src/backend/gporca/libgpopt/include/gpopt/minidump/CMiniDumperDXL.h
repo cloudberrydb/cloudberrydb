@@ -36,19 +36,19 @@ public:
 	CMiniDumperDXL();
 
 	// dtor
-	virtual ~CMiniDumperDXL();
+	~CMiniDumperDXL() override;
 
 	// serialize minidump header
-	virtual void SerializeHeader();
+	void SerializeHeader() override;
 
 	// serialize minidump footer
-	virtual void SerializeFooter();
+	void SerializeFooter() override;
 
 	// serialize entry header
-	virtual void SerializeEntryHeader();
+	void SerializeEntryHeader() override;
 
 	// serialize entry footer
-	virtual void SerializeEntryFooter();
+	void SerializeEntryFooter() override;
 
 };	// class CMiniDumperDXL
 }  // namespace gpopt

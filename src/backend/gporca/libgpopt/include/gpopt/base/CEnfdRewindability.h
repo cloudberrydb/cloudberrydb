@@ -61,10 +61,10 @@ public:
 	CEnfdRewindability(CRewindabilitySpec *prs, ERewindabilityMatching erm);
 
 	// dtor
-	virtual ~CEnfdRewindability();
+	~CEnfdRewindability() override;
 
 	// hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// check if the given rewindability specification is compatible with the
 	// rewindability specification of this object for the specified matching type
@@ -82,8 +82,8 @@ public:
 							BOOL fRewindabilityReqd) const;
 
 	// property spec accessor
-	virtual CPropSpec *
-	Pps() const
+	CPropSpec *
+	Pps() const override
 	{
 		return m_prs;
 	}
@@ -106,7 +106,7 @@ public:
 
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CEnfdRewindability
 

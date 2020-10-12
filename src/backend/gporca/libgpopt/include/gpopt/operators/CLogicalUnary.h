@@ -51,24 +51,24 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalUnary() = default;
+	~CLogicalUnary() override = default;
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
-	virtual BOOL
-	FInputOrderSensitive() const
+	BOOL
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
@@ -78,24 +78,26 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// derive not nullable output columns
-	virtual CColRefSet *
+	CColRefSet *
 	DeriveNotNullColumns(CMemoryPool *,	 // mp
-						 CExpressionHandle &exprhdl) const
+						 CExpressionHandle &exprhdl) const override
 	{
 		// TODO,  03/18/2012, derive nullability of columns computed by scalar child
 		return PcrsDeriveNotNullPassThruOuter(exprhdl);
 	}
 
 	// derive partition consumer info
-	virtual CPartInfo *
-	DerivePartitionInfo(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+	CPartInfo *
+	DerivePartitionInfo(CMemoryPool *mp,
+						CExpressionHandle &exprhdl) const override
 	{
 		return PpartinfoDeriveCombine(mp, exprhdl);
 	}
 
 	// derive function properties
-	virtual CFunctionProp *
-	DeriveFunctionProperties(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+	CFunctionProp *
+	DeriveFunctionProperties(CMemoryPool *mp,
+							 CExpressionHandle &exprhdl) const override
 	{
 		return PfpDeriveFromScalar(mp, exprhdl, 1 /*ulScalarIndex*/);
 	}
@@ -105,16 +107,16 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// promise level for stat derivation
-	virtual EStatPromise Esp(CExpressionHandle &exprhdl) const;
+	EStatPromise Esp(CExpressionHandle &exprhdl) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Required Relational Properties
 	//-------------------------------------------------------------------------------------
 
 	// compute required stat columns of the n-th child
-	virtual CColRefSet *
+	CColRefSet *
 	PcrsStat(CMemoryPool *mp, CExpressionHandle &exprhdl, CColRefSet *pcrsInput,
-			 ULONG child_index) const
+			 ULONG child_index) const override
 	{
 		return PcrsReqdChildStats(mp, exprhdl, pcrsInput,
 								  exprhdl.DeriveUsedColumns(1), child_index);

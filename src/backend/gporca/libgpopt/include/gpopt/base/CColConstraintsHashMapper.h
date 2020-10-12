@@ -16,8 +16,8 @@ class CColConstraintsHashMapper : public IColConstraintsMapper
 public:
 	CColConstraintsHashMapper(CMemoryPool *mp, CConstraintArray *pdrgPcnstr);
 
-	virtual CConstraintArray *PdrgPcnstrLookup(CColRef *colref);
-	virtual ~CColConstraintsHashMapper();
+	CConstraintArray *PdrgPcnstrLookup(CColRef *colref) override;
+	~CColConstraintsHashMapper() override;
 
 private:
 	ColRefToConstraintArrayMap *m_phmColConstr;

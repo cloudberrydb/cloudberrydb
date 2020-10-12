@@ -53,7 +53,7 @@ public:
 						   INT location);
 
 	// dtor
-	virtual ~CMDArrayCoerceCastGPDB();
+	~CMDArrayCoerceCastGPDB() override;
 
 	// accessors
 	virtual const CWStringDynamic *
@@ -74,11 +74,11 @@ public:
 	virtual INT Location() const;
 
 	// serialize object in DXL format
-	virtual void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
+	void Serialize(gpdxl::CXMLSerializer *xml_serializer) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the type in the provided stream
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 };
 }  // namespace gpmd

@@ -71,7 +71,7 @@ public:
 	CDistributionSpec() = default;
 
 	// dtor
-	virtual ~CDistributionSpec() = default;
+	~CDistributionSpec() override = default;
 
 	// distribution type accessor
 	virtual EDistributionType Edt() const = 0;
@@ -80,24 +80,24 @@ public:
 	virtual BOOL FSatisfies(const CDistributionSpec *pds) const = 0;
 
 	// default hash function for distribution spec
-	virtual ULONG
-	HashValue() const
+	ULONG
+	HashValue() const override
 	{
 		ULONG ulEdt = (ULONG) Edt();
 		return gpos::HashValue<ULONG>(&ulEdt);
 	}
 
 	// extract columns used by the distribution spec
-	virtual CColRefSet *
-	PcrsUsed(CMemoryPool *mp) const
+	CColRefSet *
+	PcrsUsed(CMemoryPool *mp) const override
 	{
 		// by default, return an empty set
 		return GPOS_NEW(mp) CColRefSet(mp);
 	}
 
 	// property type
-	virtual EPropSpecType
-	Epst() const
+	EPropSpecType
+	Epst() const override
 	{
 		return EpstDistribution;
 	}
@@ -144,7 +144,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const = 0;
+	IOstream &OsPrint(IOstream &os) const override = 0;
 
 	// return distribution partitioning type
 	virtual EDistributionPartitioningType Edpt() const = 0;

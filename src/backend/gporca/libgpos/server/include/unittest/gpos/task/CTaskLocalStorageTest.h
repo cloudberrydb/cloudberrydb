@@ -47,7 +47,7 @@ private:
 #ifdef GPOS_DEBUG
 		// overwrite abstract member
 		IOstream &
-		OsPrint(IOstream &os) const
+		OsPrint(IOstream &os) const override
 		{
 			return os;
 		}

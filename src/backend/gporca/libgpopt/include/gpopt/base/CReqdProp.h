@@ -84,7 +84,7 @@ public:
 	CReqdProp();
 
 	// dtor
-	virtual ~CReqdProp();
+	~CReqdProp() override;
 
 	// is it a relational property?
 	virtual BOOL

@@ -36,17 +36,17 @@ public:
 	explicit CXformPushGbDedupBelowJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformPushGbDedupBelowJoin() = default;
+	~CXformPushGbDedupBelowJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfPushGbDedupBelowJoin;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformPushGbDedupBelowJoin";
 	}

@@ -48,7 +48,7 @@ class CTreeMapTest
 		CNode(CMemoryPool *mp, ULONG *pulData, CNodeArray *pdrgpnd);
 
 		// dtor
-		~CNode();
+		~CNode() override;
 
 		// debug print
 		IOstream &OsPrintWithIndent(IOstream &os, ULONG ulIndent = 0) const;

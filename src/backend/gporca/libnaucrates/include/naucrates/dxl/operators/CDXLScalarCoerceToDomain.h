@@ -52,17 +52,17 @@ public:
 							 INT type_modifier,
 							 EdxlCoercionForm dxl_coerce_format, INT location);
 
-	virtual ~CDXLScalarCoerceToDomain() = default;
+	~CDXLScalarCoerceToDomain() override = default;
 
 	// ident accessor
-	virtual Edxlopid
-	GetDXLOperator() const
+	Edxlopid
+	GetDXLOperator() const override
 	{
 		return EdxlopScalarCoerceToDomain;
 	}
 
 	// name of the DXL operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// conversion function
 	static CDXLScalarCoerceToDomain *

@@ -49,8 +49,8 @@ private:
 		}
 
 		// return true if calling object's destructor is allowed
-		virtual BOOL
-		Deletable() const
+		BOOL
+		Deletable() const override
 		{
 			return m_fDeletable;
 		}

@@ -68,7 +68,7 @@ private:
 					IStatistics *stats = NULL);
 
 		// dtor
-		virtual ~CPartFilter();
+		~CPartFilter() override;
 
 		// match function
 		BOOL Matches(const CPartFilter *ppf) const;
@@ -95,7 +95,7 @@ private:
 		}
 
 		// print function
-		IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 
 	};	// class CPartFilter
 
@@ -121,7 +121,7 @@ public:
 	CPartFilterMap(CMemoryPool *mp, CPartFilterMap *ppfm);
 
 	// dtor
-	virtual ~CPartFilterMap();
+	~CPartFilterMap() override;
 
 	// check whether map contains the given scan id
 	BOOL
@@ -172,7 +172,7 @@ public:
 	void CopyPartFilterMap(CMemoryPool *mp, CPartFilterMap *ppfmSource);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CPartFilterMap
 

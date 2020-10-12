@@ -33,17 +33,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2BitmapIndexGetApply() = default;
+	~CXformJoin2BitmapIndexGetApply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfJoin2BitmapIndexGetApply;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformJoin2BitmapIndexGetApply";
 	}

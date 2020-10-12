@@ -107,7 +107,7 @@ public:
 			 COptimizerConfig *optimizer_config);
 
 	// dtor
-	virtual ~COptCtxt();
+	~COptCtxt() override;
 
 	// memory pool accessor
 	CMemoryPool *
@@ -284,7 +284,7 @@ public:
 	static BOOL FAllEnforcersEnabled();
 
 #ifdef GPOS_DEBUG
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 #endif	// GPOS_DEBUG
 
 };	// class COptCtxt

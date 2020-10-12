@@ -53,7 +53,7 @@ public:
 				  BOOL fHasVolatileFunctionScan, BOOL fScan);
 
 	// dtor
-	virtual ~CFunctionProp();
+	~CFunctionProp() override;
 
 	// function stability
 	IMDFunction::EFuncStbl
@@ -80,7 +80,7 @@ public:
 	BOOL NeedsSingletonExecution() const;
 
 	// print
-	IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CFunctionProp
 

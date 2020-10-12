@@ -70,7 +70,7 @@ public:
 				 CCostContext *pccChild, ULONG child_index);
 
 	// dtor
-	virtual ~CPartialPlan();
+	~CPartialPlan() override;
 
 	// group expression accessor
 	CGroupExpression *

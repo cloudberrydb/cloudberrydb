@@ -43,31 +43,32 @@ public:
 	explicit CXformDifferenceAll2LeftAntiSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformDifferenceAll2LeftAntiSemiJoin() = default;
+	~CXformDifferenceAll2LeftAntiSemiJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfDifferenceAll2LeftAntiSemiJoin;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformDifferenceAll2LeftAntiSemiJoin";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
+	EXformPromise
 	Exfp(CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CXform::ExfpHigh;
 	}
 
 	// actual transform
-	void Transform(CXformContext *, CXformResult *, CExpression *) const;
+	void Transform(CXformContext *, CXformResult *,
+				   CExpression *) const override;
 
 };	// class CXformDifferenceAll2LeftAntiSemiJoin
 

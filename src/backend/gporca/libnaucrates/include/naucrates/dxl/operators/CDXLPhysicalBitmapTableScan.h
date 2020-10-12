@@ -45,21 +45,21 @@ public:
 	}
 
 	// dtor
-	virtual ~CDXLPhysicalBitmapTableScan() = default;
+	~CDXLPhysicalBitmapTableScan() override = default;
 
 	// operator type
-	virtual Edxlopid
-	GetDXLOperator() const
+	Edxlopid
+	GetDXLOperator() const override
 	{
 		return EdxlopPhysicalBitmapTableScan;
 	}
 
 	// operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *dxlnode) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *dxlnode) const override;
 
 	// conversion function
 	static CDXLPhysicalBitmapTableScan *

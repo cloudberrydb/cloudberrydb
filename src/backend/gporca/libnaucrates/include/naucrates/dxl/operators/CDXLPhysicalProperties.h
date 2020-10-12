@@ -41,17 +41,18 @@ public:
 	explicit CDXLPhysicalProperties(CDXLOperatorCost *cost);
 
 	// dtor
-	virtual ~CDXLPhysicalProperties();
+	~CDXLPhysicalProperties() override;
 
 	// serialize properties in DXL format
-	void SerializePropertiesToDXL(CXMLSerializer *xml_serializer) const;
+	void SerializePropertiesToDXL(
+		CXMLSerializer *xml_serializer) const override;
 
 	// accessors
 	// the cost estimates for the operator node
 	CDXLOperatorCost *GetDXLOperatorCost() const;
 
-	virtual Edxlproperty
-	GetDXLPropertyType() const
+	Edxlproperty
+	GetDXLPropertyType() const override
 	{
 		return EdxlpropertyPhysical;
 	}

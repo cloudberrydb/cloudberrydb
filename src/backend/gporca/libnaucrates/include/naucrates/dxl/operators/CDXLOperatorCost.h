@@ -53,7 +53,7 @@ public:
 					 CWStringDynamic *total_cost_str,
 					 CWStringDynamic *rows_out_str, CWStringDynamic *width_str);
 
-	virtual ~CDXLOperatorCost();
+	~CDXLOperatorCost() override;
 
 	// serialize operator in DXL format
 	void SerializeToDXL(CXMLSerializer *xml_serializer) const;

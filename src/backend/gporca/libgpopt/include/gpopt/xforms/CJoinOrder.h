@@ -72,10 +72,10 @@ public:
 		SEdge(CMemoryPool *mp, CExpression *pexpr, ULONG loj_num);
 
 		// dtor
-		~SEdge();
+		~SEdge() override;
 
 		// print routine
-		IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 	};
 
 
@@ -162,7 +162,7 @@ public:
 				   EPosition position = EpSentinel);
 
 		// dtor
-		~SComponent();
+		~SComponent() override;
 
 		// get parent loj id
 		INT
@@ -180,7 +180,7 @@ public:
 		}
 
 		// print routine
-		IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 	};
 
 protected:

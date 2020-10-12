@@ -66,11 +66,11 @@ public:
 				 ULONG ulWidth = gpos::ulong_max);
 
 	// dtor
-	virtual ~CColRefTable();
+	~CColRefTable() override;
 
 	// accessor of column reference type
-	virtual CColRef::Ecolreftype
-	Ecrt() const
+	CColRef::Ecolreftype
+	Ecrt() const override
 	{
 		return CColRef::EcrtTable;
 	}
@@ -91,7 +91,7 @@ public:
 
 	// is column a system column?
 	BOOL
-	IsSystemCol() const
+	IsSystemCol() const override
 	{
 		// TODO-  04/13/2012, make this check system independent
 		// using MDAccessor
@@ -100,7 +100,7 @@ public:
 
 	// is column a distribution column?
 	BOOL
-	IsDistCol() const
+	IsDistCol() const override
 	{
 		return m_is_dist_col;
 	}

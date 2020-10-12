@@ -77,18 +77,18 @@ public:
 	explicit CLogger(ErrorInfoLevel info_level = ILogger::EeilMsgHeaderStack);
 
 	// dtor
-	virtual ~CLogger();
+	~CLogger() override;
 
 	// error level accessor
-	virtual ErrorInfoLevel
-	InfoLevel() const
+	ErrorInfoLevel
+	InfoLevel() const override
 	{
 		return m_info_level;
 	}
 
 	// set error info level
-	virtual void
-	SetErrorInfoLevel(ErrorInfoLevel info_level)
+	void
+	SetErrorInfoLevel(ErrorInfoLevel info_level) override
 	{
 		m_info_level = info_level;
 	}

@@ -49,17 +49,17 @@ public:
 	CDXLDatumInt8(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, LINT val);
 
 	// dtor
-	virtual ~CDXLDatumInt8() = default;
+	~CDXLDatumInt8() override = default;
 
 	// accessor of value
 	LINT Value() const;
 
 	// serialize the datum as the given element
-	virtual void Serialize(CXMLSerializer *xml_serializer);
+	void Serialize(CXMLSerializer *xml_serializer) override;
 
 	// datum type
-	virtual EdxldatumType
-	GetDatumType() const
+	EdxldatumType
+	GetDatumType() const override
 	{
 		return CDXLDatum::EdxldatumInt8;
 	}

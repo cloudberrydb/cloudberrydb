@@ -49,18 +49,18 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSubqueryUnnest() = default;
+	~CXformSubqueryUnnest() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 	// is transformation a subquery unnesting (Subquery To Apply) xform?
-	virtual BOOL
-	FSubqueryUnnesting() const
+	BOOL
+	FSubqueryUnnesting() const override
 	{
 		return true;
 	}

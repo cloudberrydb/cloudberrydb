@@ -50,32 +50,32 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSimplifySelectWithSubquery() = default;
+	~CXformSimplifySelectWithSubquery() override = default;
 
 	// Compatibility function for simplifying aggregates
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return (CXform::ExfSimplifySelectWithSubquery != exfid);
 	}
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSimplifySelectWithSubquery;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSimplifySelectWithSubquery";
 	}
 
 	// is transformation a subquery unnesting (Subquery To Apply) xform?
-	virtual BOOL
-	FSubqueryUnnesting() const
+	BOOL
+	FSubqueryUnnesting() const override
 	{
 		return true;
 	}

@@ -52,14 +52,14 @@ public:
 								 ULONG length, CDouble val);
 
 	// dtor
-	virtual ~CDXLDatumStatsDoubleMappable() = default;
+	~CDXLDatumStatsDoubleMappable() override = default;
 
 	// serialize the datum as the given element
-	virtual void Serialize(CXMLSerializer *xml_serializer);
+	void Serialize(CXMLSerializer *xml_serializer) override;
 
 	// datum type
-	virtual EdxldatumType
-	GetDatumType() const
+	EdxldatumType
+	GetDatumType() const override
 	{
 		return CDXLDatum::EdxldatumStatsDoubleMappable;
 	}
@@ -67,15 +67,15 @@ public:
 	// statistics related APIs
 
 	// can datum be mapped to double
-	virtual BOOL
-	IsDatumMappableToDouble() const
+	BOOL
+	IsDatumMappableToDouble() const override
 	{
 		return true;
 	}
 
 	// return the double mapping needed for statistics computation
-	virtual CDouble
-	GetDoubleMapping() const
+	CDouble
+	GetDoubleMapping() const override
 	{
 		return m_val;
 	}

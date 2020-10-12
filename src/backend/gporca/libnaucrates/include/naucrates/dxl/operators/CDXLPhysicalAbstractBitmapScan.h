@@ -62,7 +62,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CDXLPhysicalAbstractBitmapScan();
+	~CDXLPhysicalAbstractBitmapScan() override;
 
 	// table descriptor
 	const CDXLTableDescr *
@@ -74,8 +74,8 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	virtual void AssertValid(const CDXLNode *node,
-							 BOOL validate_children) const;
+	void AssertValid(const CDXLNode *node,
+					 BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };		// class CDXLPhysicalAbstractBitmapScan
 }  // namespace gpdxl

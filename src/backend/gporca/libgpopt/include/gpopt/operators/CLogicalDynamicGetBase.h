@@ -90,7 +90,7 @@ public:
 						   CTableDescriptor *ptabdesc, ULONG scan_id);
 
 	// dtor
-	virtual ~CLogicalDynamicGetBase();
+	~CLogicalDynamicGetBase() override;
 
 	// accessors
 	virtual CColRefArray *
@@ -176,34 +176,35 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// derive output columns
-	virtual CColRefSet *DeriveOutputColumns(CMemoryPool *, CExpressionHandle &);
+	CColRefSet *DeriveOutputColumns(CMemoryPool *,
+									CExpressionHandle &) override;
 
 	// derive keys
-	virtual CKeyCollection *DeriveKeyCollection(
-		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+	CKeyCollection *DeriveKeyCollection(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
 
 	// derive partition consumer info
-	virtual CPartInfo *DerivePartitionInfo(CMemoryPool *mp,
-										   CExpressionHandle &exprhdl) const;
+	CPartInfo *DerivePartitionInfo(CMemoryPool *mp,
+								   CExpressionHandle &exprhdl) const override;
 
 	// derive constraint property
-	virtual CPropConstraint *DerivePropertyConstraint(
-		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+	CPropConstraint *DerivePropertyConstraint(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
 
 	// derive join depth
-	virtual ULONG
+	ULONG
 	DeriveJoinDepth(CMemoryPool *,		 // mp
 					CExpressionHandle &	 // exprhdl
-	) const
+	) const override
 	{
 		return 1;
 	}
 
 	// derive table descriptor
-	virtual CTableDescriptor *
+	CTableDescriptor *
 	DeriveTableDescriptor(CMemoryPool *,	   // mp
 						  CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return m_ptabdesc;
 	}

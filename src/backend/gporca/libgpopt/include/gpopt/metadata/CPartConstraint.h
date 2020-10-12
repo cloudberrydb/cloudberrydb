@@ -117,7 +117,7 @@ public:
 	CPartConstraint(BOOL fUninterpreted);
 
 	// dtor
-	virtual ~CPartConstraint();
+	~CPartConstraint() override;
 
 	// constraint at given level
 	CConstraint *Pcnstr(ULONG ulLevel) const;
@@ -173,7 +173,7 @@ public:
 		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// construct a disjunction of the two constraints
 	static CPartConstraint *PpartcnstrDisjunction(

@@ -51,7 +51,7 @@ public:
 	explicit CDXLProperties();
 
 	//dtor
-	virtual ~CDXLProperties();
+	~CDXLProperties() override;
 
 	// setter
 	virtual void SetStats(CDXLStatsDerivedRelation *dxl_stats_derived_relation);

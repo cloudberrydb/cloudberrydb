@@ -73,7 +73,7 @@ public:
 			CDouble distinct);
 
 	// dtor
-	virtual ~CBucket();
+	~CBucket() override;
 
 	// does bucket contain point
 	BOOL Contains(const CPoint *point) const;
@@ -124,14 +124,14 @@ public:
 
 	// lower point
 	CPoint *
-	GetLowerBound() const
+	GetLowerBound() const override
 	{
 		return m_bucket_lower_bound;
 	}
 
 	// upper point
 	CPoint *
-	GetUpperBound() const
+	GetUpperBound() const override
 	{
 		return m_bucket_upper_bound;
 	}

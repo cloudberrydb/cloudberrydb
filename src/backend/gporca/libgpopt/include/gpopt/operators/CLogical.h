@@ -172,11 +172,11 @@ public:
 	explicit CLogical(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogical();
+	~CLogical() override;
 
 	// type of operator
-	virtual BOOL
-	FLogical() const
+	BOOL
+	FLogical() const override
 	{
 		GPOS_ASSERT(!FPhysical() && !FScalar() && !FPattern());
 		return true;
@@ -194,7 +194,7 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// create derived properties container
-	virtual CDrvdProp *PdpCreate(CMemoryPool *mp) const;
+	CDrvdProp *PdpCreate(CMemoryPool *mp) const override;
 
 	// derive output columns
 	virtual CColRefSet *DeriveOutputColumns(CMemoryPool *mp,
@@ -269,7 +269,7 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// create required properties container
-	virtual CReqdProp *PrpCreate(CMemoryPool *mp) const;
+	CReqdProp *PrpCreate(CMemoryPool *mp) const override;
 
 	// compute required stat columns of the n-th child
 	virtual CColRefSet *PcrsStat(CMemoryPool *mp, CExpressionHandle &exprhdl,

@@ -45,7 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CEnumSet<T, sentinel_index>() = default;
+	~CEnumSet<T, sentinel_index>() override = default;
 
 	// determine if bit is set
 	BOOL

@@ -58,7 +58,7 @@ protected:
 							  const CColRef *colref);
 
 	// dtor
-	virtual ~CScalarSubqueryQuantified();
+	~CScalarSubqueryQuantified() override;
 
 public:
 	CScalarSubqueryQuantified(const CScalarSubqueryQuantified &) = delete;
@@ -77,27 +77,27 @@ public:
 	}
 
 	// return the type of the scalar expression
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
 	BOOL
-	FInputOrderSensitive() const
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return locally used columns
-	virtual CColRefSet *PcrsUsed(CMemoryPool *mp, CExpressionHandle &exprhdl);
+	CColRefSet *PcrsUsed(CMemoryPool *mp, CExpressionHandle &exprhdl) override;
 
 	// derive partition consumer info
-	virtual CPartInfo *PpartinfoDerive(CMemoryPool *mp,
-									   CExpressionHandle &exprhdl) const;
+	CPartInfo *PpartinfoDerive(CMemoryPool *mp,
+							   CExpressionHandle &exprhdl) const override;
 
 	// conversion function
 	static CScalarSubqueryQuantified *
@@ -111,7 +111,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CScalarSubqueryQuantified
 }  // namespace gpopt

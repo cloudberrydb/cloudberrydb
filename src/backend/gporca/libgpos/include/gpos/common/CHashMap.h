@@ -195,7 +195,7 @@ public:
 	}
 
 	// dtor
-	~CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>()
+	~CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>() override
 	{
 		// release all hash chains
 		Clear();

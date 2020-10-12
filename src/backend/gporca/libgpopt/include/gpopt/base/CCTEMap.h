@@ -97,7 +97,7 @@ private:
 		}
 
 		// dtor
-		virtual ~CCTEMapEntry()
+		~CCTEMapEntry() override
 		{
 			CRefCount::SafeRelease(m_pdpplan);
 		}
@@ -133,8 +133,8 @@ private:
 		}
 
 		// print function
-		virtual IOstream &
-		OsPrint(IOstream &os) const
+		IOstream &
+		OsPrint(IOstream &os) const override
 		{
 			os << m_id << (EctProducer == m_ect ? "p" : "c");
 			if (NULL != m_pdpplan)
@@ -179,7 +179,7 @@ public:
 	explicit CCTEMap(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CCTEMap();
+	~CCTEMap() override;
 
 	// return the CTE type associated with the given ID in the map
 	ECteType Ect(const ULONG id) const;
@@ -211,7 +211,7 @@ public:
 											  const CCTEReq *pcter) const;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// combine the two given maps and return the resulting map
 	static CCTEMap *PcmCombine(CMemoryPool *mp, const CCTEMap &cmFirst,

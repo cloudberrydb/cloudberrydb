@@ -102,28 +102,28 @@ public:
 	explicit CCostModelParamsGPDBLegacy(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CCostModelParamsGPDBLegacy();
+	~CCostModelParamsGPDBLegacy() override;
 
 	// lookup param by id
-	virtual SCostParam *PcpLookup(ULONG id) const;
+	SCostParam *PcpLookup(ULONG id) const override;
 
 	// lookup param by name
-	virtual SCostParam *PcpLookup(const CHAR *szName) const;
+	SCostParam *PcpLookup(const CHAR *szName) const override;
 
 	// set param by id
-	virtual void SetParam(ULONG id, CDouble dVal, CDouble dLowerBound,
-						  CDouble dUpperBound);
+	void SetParam(ULONG id, CDouble dVal, CDouble dLowerBound,
+				  CDouble dUpperBound) override;
 
 	// set param by name
-	virtual void SetParam(const CHAR *szName, CDouble dVal, CDouble dLowerBound,
-						  CDouble dUpperBound);
+	void SetParam(const CHAR *szName, CDouble dVal, CDouble dLowerBound,
+				  CDouble dUpperBound) override;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
-	virtual BOOL Equals(ICostModelParams *pcm) const;
+	BOOL Equals(ICostModelParams *pcm) const override;
 
-	virtual const CHAR *SzNameLookup(ULONG id) const;
+	const CHAR *SzNameLookup(ULONG id) const override;
 
 };	// class CCostModelParamsGPDBLegacy
 

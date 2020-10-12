@@ -58,13 +58,13 @@ public:
 								 ULONG part_idx_id_printable);
 
 	// dtor
-	virtual ~CDXLPhysicalDynamicTableScan();
+	~CDXLPhysicalDynamicTableScan() override;
 
 	// operator type
-	Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// operator name
-	const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// table descriptor
 	const CDXLTableDescr *GetDXLTableDescr() const;
@@ -76,8 +76,8 @@ public:
 	ULONG GetPartIndexIdPrintable() const;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *node) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *node) const override;
 
 	// conversion function
 	static CDXLPhysicalDynamicTableScan *
@@ -92,7 +92,7 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *, BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

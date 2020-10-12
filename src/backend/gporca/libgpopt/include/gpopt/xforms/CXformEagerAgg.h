@@ -39,24 +39,24 @@ public:
 	explicit CXformEagerAgg(CExpression *exprPattern);
 
 	// dtor
-	virtual ~CXformEagerAgg() = default;
+	~CXformEagerAgg() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfEagerAgg;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformEagerAgg";
 	}
 
 	// compatibility function for eager aggregation
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return (CXform::ExfEagerAgg != exfid) &&
 			   (CXform::ExfSplitGbAgg != exfid) &&
@@ -64,15 +64,15 @@ public:
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *expr) const;
+				   CExpression *expr) const override;
 
 	// return true if xform should be applied only once
-	virtual BOOL
-	IsApplyOnce()
+	BOOL
+	IsApplyOnce() override
 	{
 		return true;
 	};

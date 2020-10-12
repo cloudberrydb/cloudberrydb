@@ -36,11 +36,11 @@ public:
 	explicit CXformImplementation(CExpression *);
 
 	// dtor
-	virtual ~CXformImplementation();
+	~CXformImplementation() override;
 
 	// type of operator
-	virtual BOOL
-	FImplementation() const
+	BOOL
+	FImplementation() const override
 	{
 		GPOS_ASSERT(!FSubstitution() && !FExploration());
 		return true;

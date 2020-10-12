@@ -55,11 +55,11 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformInnerJoin2PartialDynamicIndexGetApply() = default;
+	~CXformInnerJoin2PartialDynamicIndexGetApply() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual CXform::EXformPromise
-	Exfp(CExpressionHandle &exprhdl) const
+	CXform::EXformPromise
+	Exfp(CExpressionHandle &exprhdl) const override
 	{
 		if (CXform::ExfpNone == CXformJoin2IndexApply::Exfp(exprhdl))
 		{
@@ -75,22 +75,22 @@ public:
 	}
 
 	// ident accessor
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfInnerJoin2PartialDynamicIndexGetApply;
 	}
 
 	// xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformInnerJoin2PartialDynamicIndexGetApply";
 	}
 
 	// return true if xform should be applied only once
-	virtual BOOL
-	IsApplyOnce()
+	BOOL
+	IsApplyOnce() override
 	{
 		return true;
 	}

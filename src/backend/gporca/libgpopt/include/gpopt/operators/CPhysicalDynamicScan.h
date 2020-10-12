@@ -74,7 +74,7 @@ public:
 						 CPartConstraint *ppartcnstrRel);
 
 	// dtor
-	virtual ~CPhysicalDynamicScan();
+	~CPhysicalDynamicScan() override;
 
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 	ULONG
@@ -126,29 +126,28 @@ public:
 	}
 
 	// sensitivity to order of inputs
-	virtual BOOL
-	FInputOrderSensitive() const
+	BOOL
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// operator specific hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// derive partition index map
-	virtual CPartIndexMap *PpimDerive(CMemoryPool *mp,
-									  CExpressionHandle &exprhdl,
-									  CDrvdPropCtxt *pdpctxt) const;
+	CPartIndexMap *PpimDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
+							  CDrvdPropCtxt *pdpctxt) const override;
 
 	// return true if operator is dynamic scan
-	virtual BOOL
-	FDynamicScan() const
+	BOOL
+	FDynamicScan() const override
 	{
 		return true;
 	}
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 	// conversion function
 	static CPhysicalDynamicScan *PopConvert(COperator *pop);

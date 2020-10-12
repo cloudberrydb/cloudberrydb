@@ -39,18 +39,18 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarSubqueryExists() = default;
+	~CScalarSubqueryExists() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarSubqueryExists;
 	}
 
 	// return a string for scalar subquery
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarSubqueryExists";
 	}

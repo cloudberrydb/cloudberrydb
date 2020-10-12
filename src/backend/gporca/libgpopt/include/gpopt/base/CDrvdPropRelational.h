@@ -185,24 +185,24 @@ public:
 	CDrvdPropRelational(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CDrvdPropRelational();
+	~CDrvdPropRelational() override;
 
 	// type of properties
-	virtual EPropType
-	Ept()
+	EPropType
+	Ept() override
 	{
 		return EptRelational;
 	}
 
-	virtual BOOL
-	IsComplete() const
+	BOOL
+	IsComplete() const override
 	{
 		return m_is_complete;
 	}
 
 	// derivation function
 	void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl,
-				CDrvdPropCtxt *pdpctxt);
+				CDrvdPropCtxt *pdpctxt) override;
 
 	// output columns
 	CColRefSet *GetOutputColumns() const;
@@ -246,10 +246,10 @@ public:
 	static CDrvdPropRelational *GetRelationalProperties(CDrvdProp *pdp);
 
 	// check for satisfying required plan properties
-	virtual BOOL FSatisfies(const CReqdPropPlan *prpp) const;
+	BOOL FSatisfies(const CReqdPropPlan *prpp) const override;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CDrvdPropRelational
 

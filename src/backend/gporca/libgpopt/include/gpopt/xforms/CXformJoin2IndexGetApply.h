@@ -32,17 +32,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexGetApply() = default;
+	~CXformJoin2IndexGetApply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfJoin2IndexGetApply;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformJoin2IndexGetApply";
 	}

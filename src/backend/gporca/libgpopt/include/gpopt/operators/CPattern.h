@@ -38,34 +38,35 @@ public:
 	}
 
 	// dtor
-	virtual ~CPattern() = default;
+	~CPattern() override = default;
 
 	// type of operator
-	virtual BOOL
-	FPattern() const
+	BOOL
+	FPattern() const override
 	{
 		GPOS_ASSERT(!FPhysical() && !FScalar() && !FLogical());
 		return true;
 	}
 
 	// create derived properties container
-	virtual CDrvdProp *PdpCreate(CMemoryPool *mp) const;
+	CDrvdProp *PdpCreate(CMemoryPool *mp) const override;
 
 	// create required properties container
-	virtual CReqdProp *PrpCreate(CMemoryPool *mp) const;
+	CReqdProp *PrpCreate(CMemoryPool *mp) const override;
 
 	// match function
-	BOOL Matches(COperator *) const;
+	BOOL Matches(COperator *) const override;
 
 	// sensitivity to order of inputs
-	BOOL FInputOrderSensitive() const;
+	BOOL FInputOrderSensitive() const override;
 
 	// check if operator is a pattern leaf
 	virtual BOOL FLeaf() const = 0;
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *PopCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	COperator *PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist) override;
 
 	// conversion function
 	static CPattern *

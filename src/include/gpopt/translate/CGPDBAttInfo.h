@@ -55,7 +55,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~CGPDBAttInfo() = default;
+	~CGPDBAttInfo() override = default;
 
 	// accessor
 	ULONG

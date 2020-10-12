@@ -123,7 +123,7 @@ private:
 					   CPartConstraint *ppartcnstrRel, ULONG ulPropagators);
 
 		//dtor
-		virtual ~CPartTableInfo();
+		~CPartTableInfo() override;
 
 		// partition index accessor
 		virtual ULONG
@@ -194,7 +194,7 @@ private:
 		void AddPartConstraints(CMemoryPool *mp,
 								UlongToPartConstraintMap *ppartcnstrmap);
 
-		virtual IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 
 	};	// CPartTableInfo
 
@@ -255,7 +255,7 @@ public:
 	explicit CPartIndexMap(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CPartIndexMap();
+	~CPartIndexMap() override;
 
 	// inserting a new map entry
 	void Insert(ULONG scan_id, UlongToPartConstraintMap *ppartcnstrmap,
@@ -335,7 +335,7 @@ public:
 										 ULONG ulExpectedFromReq) const;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// combine the two given maps and return the resulting map
 	static CPartIndexMap *PpimCombine(CMemoryPool *mp,

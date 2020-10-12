@@ -37,25 +37,25 @@ public:
 	CXformGbAggDedup2HashAggDedup(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAggDedup2HashAggDedup() = default;
+	~CXformGbAggDedup2HashAggDedup() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfGbAggDedup2HashAggDedup;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformGbAggDedup2HashAggDedup";
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformGbAggDedup2HashAggDedup
 

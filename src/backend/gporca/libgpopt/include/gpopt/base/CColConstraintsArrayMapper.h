@@ -16,9 +16,9 @@ class CColConstraintsArrayMapper : public IColConstraintsMapper
 public:
 	CColConstraintsArrayMapper(gpos::CMemoryPool *mp,
 							   CConstraintArray *pdrgpcnstr);
-	virtual CConstraintArray *PdrgPcnstrLookup(CColRef *colref);
+	CConstraintArray *PdrgPcnstrLookup(CColRef *colref) override;
 
-	virtual ~CColConstraintsArrayMapper();
+	~CColConstraintsArrayMapper() override;
 
 private:
 	gpos::CMemoryPool *m_mp;

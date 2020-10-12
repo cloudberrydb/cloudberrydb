@@ -55,11 +55,11 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformPushGbBelowSetOp() = default;
+	~CXformPushGbBelowSetOp() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
-	Exfp(CExpressionHandle &exprhdl) const
+	EXformPromise
+	Exfp(CExpressionHandle &exprhdl) const override
 	{
 		CLogicalGbAgg *popGbAgg = CLogicalGbAgg::PopConvert(exprhdl.Pop());
 		if (popGbAgg->FGlobal())
@@ -71,9 +71,9 @@ public:
 	}
 
 	// actual transform
-	virtual void
+	void
 	Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-			  CExpression *pexpr) const
+			  CExpression *pexpr) const override
 	{
 		GPOS_ASSERT(NULL != pxfctxt);
 		GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));

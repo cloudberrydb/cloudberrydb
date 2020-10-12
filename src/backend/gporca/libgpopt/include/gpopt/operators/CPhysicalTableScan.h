@@ -37,31 +37,31 @@ public:
 					   CColRefArray *);
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalTableScan;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalTableScan";
 	}
 
 	// operator specific hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *) const;
+	BOOL Matches(COperator *) const override;
 
 	// derive partition index map
-	virtual CPartIndexMap *
+	CPartIndexMap *
 	PpimDerive(CMemoryPool *mp,
 			   CExpressionHandle &,	 // exprhdl
 			   CDrvdPropCtxt *		 //pdpctxt
-	) const
+	) const override
 	{
 		return GPOS_NEW(mp) CPartIndexMap(mp);
 	}
@@ -71,7 +71,7 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 
 	// conversion function
@@ -86,12 +86,12 @@ public:
 	}
 
 	// statistics derivation during costing
-	virtual IStatistics *
+	IStatistics *
 	PstatsDerive(CMemoryPool *,		   // mp
 				 CExpressionHandle &,  // exprhdl
 				 CReqdPropPlan *,	   // prpplan
 				 IStatisticsArray *	   //stats_ctxt
-	) const
+	) const override
 	{
 		GPOS_ASSERT(
 			!"stats derivation during costing for table scan is invalid");
@@ -99,10 +99,10 @@ public:
 		return NULL;
 	}
 
-	virtual CRewindabilitySpec *
+	CRewindabilitySpec *
 	PrsDerive(CMemoryPool *mp,
 			  CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		// mark-restorability of output is always true
 		return GPOS_NEW(mp)

@@ -78,14 +78,14 @@ public:
 	CJobTest();
 
 	// dtor
-	virtual ~CJobTest();
+	~CJobTest() override;
 
 	// execution
-	virtual BOOL FExecute(CSchedulerContext *psc);
+	BOOL FExecute(CSchedulerContext *psc) override;
 
 #ifdef GPOS_DEBUG
 	// printer
-	virtual IOstream &OsPrint(IOstream &);
+	IOstream &OsPrint(IOstream &) override;
 #endif	// GPOS_DEBUG
 
 	// set execution parameters

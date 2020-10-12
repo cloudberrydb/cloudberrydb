@@ -111,7 +111,7 @@ public:
 	CRange(const IComparator *pcomp, IMDType::ECmpType cmp_type, IDatum *datum);
 
 	// dtor
-	virtual ~CRange();
+	~CRange() override;
 
 	// range type
 	IMDId *
@@ -202,7 +202,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CRange
 

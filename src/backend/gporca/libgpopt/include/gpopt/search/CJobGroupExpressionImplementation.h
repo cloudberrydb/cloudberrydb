@@ -78,10 +78,10 @@ private:
 
 protected:
 	// schedule transformation jobs for applicable xforms
-	virtual void ScheduleApplicableTransformations(CSchedulerContext *psc);
+	void ScheduleApplicableTransformations(CSchedulerContext *psc) override;
 
 	// schedule implementation jobs for all child groups
-	virtual void ScheduleChildGroupsJobs(CSchedulerContext *psc);
+	void ScheduleChildGroupsJobs(CSchedulerContext *psc) override;
 
 public:
 	CJobGroupExpressionImplementation(
@@ -91,7 +91,7 @@ public:
 	CJobGroupExpressionImplementation();
 
 	// dtor
-	virtual ~CJobGroupExpressionImplementation();
+	~CJobGroupExpressionImplementation() override;
 
 	// initialize job
 	void Init(CGroupExpression *pgexpr);
@@ -101,12 +101,12 @@ public:
 							CJob *pjParent);
 
 	// job's function
-	BOOL FExecute(CSchedulerContext *psc);
+	BOOL FExecute(CSchedulerContext *psc) override;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	IOstream &OsPrint(IOstream &os);
+	IOstream &OsPrint(IOstream &os) override;
 
 	// dump state machine diagram in graphviz format
 	virtual IOstream &

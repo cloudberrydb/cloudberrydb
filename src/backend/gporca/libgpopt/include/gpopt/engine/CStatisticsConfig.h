@@ -63,7 +63,7 @@ public:
 					  CDouble damping_factor_groupby, ULONG max_stats_buckets);
 
 	// dtor
-	~CStatisticsConfig();
+	~CStatisticsConfig() override;
 
 	// damping factor for filter
 	CDouble

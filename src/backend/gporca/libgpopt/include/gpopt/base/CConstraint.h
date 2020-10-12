@@ -165,7 +165,7 @@ public:
 	explicit CConstraint(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CConstraint();
+	~CConstraint() override;
 
 	// constraint type accessor
 	virtual EConstraintType Ect() const = 0;

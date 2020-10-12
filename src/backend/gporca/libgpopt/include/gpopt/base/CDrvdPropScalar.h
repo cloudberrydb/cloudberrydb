@@ -134,27 +134,27 @@ public:
 	CDrvdPropScalar(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CDrvdPropScalar();
+	~CDrvdPropScalar() override;
 
 	// type of properties
-	virtual EPropType
-	Ept()
+	EPropType
+	Ept() override
 	{
 		return EptScalar;
 	}
 
-	virtual BOOL
-	IsComplete() const
+	BOOL
+	IsComplete() const override
 	{
 		return m_is_complete;
 	}
 
 	// derivation function
 	void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl,
-				CDrvdPropCtxt *pdpctxt);
+				CDrvdPropCtxt *pdpctxt) override;
 
 	// check for satisfying required plan properties
-	virtual BOOL FSatisfies(const CReqdPropPlan *prpp) const;
+	BOOL FSatisfies(const CReqdPropPlan *prpp) const override;
 
 	// defined columns
 	CColRefSet *GetDefinedColumns() const;
@@ -189,7 +189,7 @@ public:
 	static CDrvdPropScalar *GetDrvdScalarProps(CDrvdProp *pdp);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CDrvdPropScalar
 

@@ -122,11 +122,11 @@ public:
 						CRangeArray *pdrgprng, BOOL is_null);
 
 	// dtor
-	virtual ~CConstraintInterval();
+	~CConstraintInterval() override;
 
 	// constraint type accessor
-	virtual EConstraintType
-	Ect() const
+	EConstraintType
+	Ect() const override
 	{
 		return CConstraint::EctInterval;
 	}
@@ -153,21 +153,21 @@ public:
 	}
 
 	// is this constraint a contradiction
-	virtual BOOL FContradiction() const;
+	BOOL FContradiction() const override;
 
 	// is this interval unbounded
-	virtual BOOL IsConstraintUnbounded() const;
+	BOOL IsConstraintUnbounded() const override;
 
 	// check if there is a constraint on the given column
-	virtual BOOL
-	FConstraint(const CColRef *colref) const
+	BOOL
+	FConstraint(const CColRef *colref) const override
 	{
 		return m_pcr == colref;
 	}
 
 	// check if constraint is on the gp_segment_id column
-	virtual BOOL
-	FConstraintOnSegmentId() const
+	BOOL
+	FConstraintOnSegmentId() const override
 	{
 		return m_pcr->IsSystemCol() &&
 			   m_pcr->Name().Equals(
@@ -175,8 +175,9 @@ public:
 	}
 
 	// return a copy of the constraint with remapped columns
-	virtual CConstraint *PcnstrCopyWithRemappedColumns(
-		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+	CConstraint *PcnstrCopyWithRemappedColumns(CMemoryPool *mp,
+											   UlongToColRefMap *colref_mapping,
+											   BOOL must_exist) override;
 
 	// interval intersection
 	CConstraintInterval *PciIntersect(CMemoryPool *mp,
@@ -196,20 +197,20 @@ public:
 	BOOL FContainsInterval(CMemoryPool *mp, CConstraintInterval *pci);
 
 	// scalar expression
-	virtual CExpression *PexprScalar(CMemoryPool *mp);
+	CExpression *PexprScalar(CMemoryPool *mp) override;
 
 	// scalar expression  which will be a disjunction
 	CExpression *PexprConstructDisjunctionScalar(CMemoryPool *mp) const;
 
 	// return constraint on a given column
-	virtual CConstraint *Pcnstr(CMemoryPool *mp, const CColRef *colref);
+	CConstraint *Pcnstr(CMemoryPool *mp, const CColRef *colref) override;
 
 	// return constraint on a given column set
-	virtual CConstraint *Pcnstr(CMemoryPool *mp, CColRefSet *pcrs);
+	CConstraint *Pcnstr(CMemoryPool *mp, CColRefSet *pcrs) override;
 
 	// return a clone of the constraint for a different column
-	virtual CConstraint *PcnstrRemapForColumn(CMemoryPool *mp,
-											  CColRef *colref) const;
+	CConstraint *PcnstrRemapForColumn(CMemoryPool *mp,
+									  CColRef *colref) const override;
 
 	// converts to an array in expression
 	bool FConvertsToNotIn() const;
@@ -218,7 +219,7 @@ public:
 	bool FConvertsToIn() const;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// create unbounded interval
 	static CConstraintInterval *PciUnbounded(CMemoryPool *mp,

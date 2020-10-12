@@ -338,7 +338,7 @@ public:
 	CGroup(CMemoryPool *mp, BOOL fScalar = false);
 
 	// dtor
-	~CGroup();
+	~CGroup() override;
 
 	// id accessor
 	ULONG
@@ -613,7 +613,7 @@ public:
 	static BOOL FDuplicateGroups(CGroup *pgroupFst, CGroup *pgroupSnd);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// slink for group list in memo
 	SLink m_link;

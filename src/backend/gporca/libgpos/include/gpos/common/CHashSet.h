@@ -177,7 +177,7 @@ public:
 	}
 
 	// dtor
-	~CHashSet<T, HashFn, EqFn, CleanupFn>()
+	~CHashSet<T, HashFn, EqFn, CleanupFn>() override
 	{
 		// release all hash chains
 		Clear();

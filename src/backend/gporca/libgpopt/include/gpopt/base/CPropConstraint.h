@@ -56,7 +56,7 @@ public:
 					CConstraint *pcnstr);
 
 	// dtor
-	virtual ~CPropConstraint();
+	~CPropConstraint() override;
 
 	// equivalence classes
 	CColRefSetArray *
@@ -92,7 +92,7 @@ public:
 												CColRef *colref) const;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CPropConstraint
 

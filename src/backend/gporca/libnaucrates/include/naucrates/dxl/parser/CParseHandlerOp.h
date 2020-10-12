@@ -49,7 +49,7 @@ public:
 	CParseHandlerOp(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerOp();
+	~CParseHandlerOp() override;
 
 	// returns constructed DXL node
 	CDXLNode *CreateDXLNode() const;

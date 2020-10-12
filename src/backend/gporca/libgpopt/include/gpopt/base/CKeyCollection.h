@@ -45,7 +45,7 @@ public:
 	CKeyCollection(CMemoryPool *mp, CColRefArray *colref_array);
 
 	// dtor
-	virtual ~CKeyCollection();
+	~CKeyCollection() override;
 
 	// add individual set -- takes ownership
 	void Add(CColRefSet *pcrs);
@@ -80,7 +80,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CKeyCollection
 

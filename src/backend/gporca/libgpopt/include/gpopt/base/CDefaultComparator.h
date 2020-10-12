@@ -83,25 +83,25 @@ public:
 	CDefaultComparator(IConstExprEvaluator *pceeval);
 
 	// dtor
-	virtual ~CDefaultComparator() = default;
+	~CDefaultComparator() override = default;
 
 	// tests if the two arguments are equal
-	virtual BOOL Equals(const IDatum *datum1, const IDatum *datum2) const;
+	BOOL Equals(const IDatum *datum1, const IDatum *datum2) const override;
 
 	// tests if the first argument is less than the second
-	virtual BOOL IsLessThan(const IDatum *datum1, const IDatum *datum2) const;
+	BOOL IsLessThan(const IDatum *datum1, const IDatum *datum2) const override;
 
 	// tests if the first argument is less or equal to the second
-	virtual BOOL IsLessThanOrEqual(const IDatum *datum1,
-								   const IDatum *datum2) const;
+	BOOL IsLessThanOrEqual(const IDatum *datum1,
+						   const IDatum *datum2) const override;
 
 	// tests if the first argument is greater than the second
-	virtual BOOL IsGreaterThan(const IDatum *datum1,
-							   const IDatum *datum2) const;
+	BOOL IsGreaterThan(const IDatum *datum1,
+					   const IDatum *datum2) const override;
 
 	// tests if the first argument is greater or equal to the second
-	virtual BOOL IsGreaterThanOrEqual(const IDatum *datum1,
-									  const IDatum *datum2) const;
+	BOOL IsGreaterThanOrEqual(const IDatum *datum1,
+							  const IDatum *datum2) const override;
 
 };	// CDefaultComparator
 }  // namespace gpopt

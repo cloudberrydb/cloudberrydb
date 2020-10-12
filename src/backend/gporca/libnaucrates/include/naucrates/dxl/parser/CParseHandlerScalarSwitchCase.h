@@ -37,12 +37,13 @@ private:
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
-					  const XMLCh *const element_qname, const Attributes &attr);
+					  const XMLCh *const element_qname,
+					  const Attributes &attr) override;
 
 	// process the end of an element
 	void EndElement(const XMLCh *const element_uri,
 					const XMLCh *const element_local_name,
-					const XMLCh *const element_qname);
+					const XMLCh *const element_qname) override;
 
 public:
 	CParseHandlerScalarSwitchCase(const CParseHandlerScalarSwitchCase &) =

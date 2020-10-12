@@ -36,7 +36,7 @@ public:
 	CMDIndexInfo(IMDId *mdid, BOOL is_partial);
 
 	// dtor
-	virtual ~CMDIndexInfo();
+	~CMDIndexInfo() override;
 
 	// index mdid
 	IMDId *MDId() const;

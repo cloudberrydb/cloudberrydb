@@ -36,32 +36,32 @@ public:
 	explicit CXformSplitGbAggDedup(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSplitGbAggDedup() = default;
+	~CXformSplitGbAggDedup() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSplitGbAggDedup;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSplitGbAggDedup";
 	}
 
 	// Compatibility function for splitting aggregates
-	virtual BOOL
-	FCompatible(CXform::EXformId exfid)
+	BOOL
+	FCompatible(CXform::EXformId exfid) override
 	{
 		return (CXform::ExfSplitGbAggDedup != exfid);
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformSplitGbAggDedup
 

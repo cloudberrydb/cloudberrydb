@@ -67,33 +67,33 @@ public:
 	CDXLRelStats(CMemoryPool *mp, CMDIdRelStats *rel_stats_mdid,
 				 CMDName *mdname, CDouble rows, BOOL is_empty);
 
-	virtual ~CDXLRelStats();
+	~CDXLRelStats() override;
 
 	// the metadata id
-	virtual IMDId *MDId() const;
+	IMDId *MDId() const override;
 
 	// relation name
-	virtual CMDName Mdname() const;
+	CMDName Mdname() const override;
 
 	// DXL string representation of cache object
-	virtual const CWStringDynamic *GetStrRepr() const;
+	const CWStringDynamic *GetStrRepr() const override;
 
 	// number of rows
-	virtual CDouble Rows() const;
+	CDouble Rows() const override;
 
 	// is statistics on an empty input
-	virtual BOOL
-	IsEmpty() const
+	BOOL
+	IsEmpty() const override
 	{
 		return m_empty;
 	}
 
 	// serialize relation stats in DXL format given a serializer object
-	virtual void Serialize(gpdxl::CXMLSerializer *) const;
+	void Serialize(gpdxl::CXMLSerializer *) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the metadata relation
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 
 	// dummy relstats

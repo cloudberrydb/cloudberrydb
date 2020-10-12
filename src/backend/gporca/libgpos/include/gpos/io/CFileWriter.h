@@ -38,7 +38,7 @@ public:
 	CFileWriter();
 
 	// dtor
-	virtual ~CFileWriter() = default;
+	~CFileWriter() override = default;
 
 	ULLONG
 	FileSize() const

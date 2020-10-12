@@ -81,38 +81,38 @@ public:
 	explicit CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin() = default;
+	~CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin() override = default;
 
 	// identifier
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin;
 	}
 
 	// return a string for the xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// do stats need to be computed before applying xform?
-	virtual BOOL
-	FNeedsStats() const
+	BOOL
+	FNeedsStats() const override
 	{
 		return true;
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 	// return true if xform should be applied only once
-	virtual BOOL IsApplyOnce();
+	BOOL IsApplyOnce() override;
 };
 }  // namespace gpopt
 

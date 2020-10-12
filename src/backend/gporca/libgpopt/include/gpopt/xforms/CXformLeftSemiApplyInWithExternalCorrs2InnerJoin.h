@@ -54,17 +54,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApplyInWithExternalCorrs2InnerJoin() = default;
+	~CXformLeftSemiApplyInWithExternalCorrs2InnerJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfLeftSemiApplyInWithExternalCorrs2InnerJoin;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformLeftSemiApplyInWithExternalCorrs2InnerJoin";
 	}

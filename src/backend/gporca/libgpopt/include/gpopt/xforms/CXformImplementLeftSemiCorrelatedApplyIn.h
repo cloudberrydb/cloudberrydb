@@ -48,17 +48,17 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementLeftSemiCorrelatedApplyIn() = default;
+	~CXformImplementLeftSemiCorrelatedApplyIn() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfImplementLeftSemiCorrelatedApplyIn;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformImplementLeftSemiCorrelatedApplyIn";
 	}

@@ -55,7 +55,7 @@ private:
 		SComponentPair(CBitSet *pbsFst, CBitSet *pbsSnd);
 
 		// dtor
-		~SComponentPair();
+		~SComponentPair() override;
 
 		// hashing function
 		static ULONG HashValue(const SComponentPair *pcomppair);
@@ -154,7 +154,7 @@ private:
 	CDouble DCost(CExpression *pexpr);
 
 	// derive stats on given expression
-	virtual void DeriveStats(CExpression *pexpr);
+	void DeriveStats(CExpression *pexpr) override;
 
 	// add expression to cost map
 	void InsertExpressionCost(CExpression *pexpr, CDouble dCost,
@@ -174,7 +174,7 @@ public:
 				 CExpressionArray *pdrgpexprConjuncts);
 
 	// dtor
-	virtual ~CJoinOrderDP();
+	~CJoinOrderDP() override;
 
 	// main handler
 	virtual CExpression *PexprExpand();
@@ -187,7 +187,7 @@ public:
 	}
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &) const;
+	IOstream &OsPrint(IOstream &) const override;
 
 #ifdef GPOS_DEBUG
 	void DbgPrint();

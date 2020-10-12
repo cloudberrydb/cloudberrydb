@@ -55,7 +55,7 @@ public:
 	CDXLTableDescr(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 				   ULONG ulExecuteAsUser);
 
-	virtual ~CDXLTableDescr();
+	~CDXLTableDescr() override;
 
 	// setters
 	void SetColumnDescriptors(CDXLColDescrArray *dxl_column_descr_array);

@@ -59,7 +59,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CDrvdPropCtxt() = default;
+	~CDrvdPropCtxt() override = default;
 
 #ifdef GPOS_DEBUG
 

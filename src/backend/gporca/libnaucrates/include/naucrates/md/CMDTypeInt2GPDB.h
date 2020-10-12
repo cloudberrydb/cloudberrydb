@@ -118,57 +118,57 @@ public:
 	explicit CMDTypeInt2GPDB(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CMDTypeInt2GPDB();
+	~CMDTypeInt2GPDB() override;
 
 	// factory method for creating INT2 datums
-	virtual IDatumInt2 *CreateInt2Datum(CMemoryPool *mp, SINT value,
-										BOOL is_null) const;
+	IDatumInt2 *CreateInt2Datum(CMemoryPool *mp, SINT value,
+								BOOL is_null) const override;
 
 	// accessors
-	virtual const CWStringDynamic *
-	GetStrRepr() const
+	const CWStringDynamic *
+	GetStrRepr() const override
 	{
 		return m_dxl_str;
 	}
 
 	// accessor of metadata id
-	virtual IMDId *MDId() const;
+	IMDId *MDId() const override;
 
-	virtual IMDId *GetDistrOpfamilyMdid() const;
+	IMDId *GetDistrOpfamilyMdid() const override;
 
 	// accessor of type name
-	virtual CMDName Mdname() const;
+	CMDName Mdname() const override;
 
 	// id of specified comparison operator type
-	virtual IMDId *GetMdidForCmpType(ECmpType cmp_type) const;
+	IMDId *GetMdidForCmpType(ECmpType cmp_type) const override;
 
 	// id of specified aggregate type
-	virtual IMDId *GetMdidForAggType(EAggType agg_type) const;
+	IMDId *GetMdidForAggType(EAggType agg_type) const override;
 
 	// is type redistributable
-	virtual BOOL
-	IsRedistributable() const
+	BOOL
+	IsRedistributable() const override
 	{
 		return true;
 	}
 
 	// is type has fixed length
-	virtual BOOL
-	IsFixedLength() const
+	BOOL
+	IsFixedLength() const override
 	{
 		return true;
 	}
 
 	// is type composite
-	virtual BOOL
-	IsComposite() const
+	BOOL
+	IsComposite() const override
 	{
 		return false;
 	}
 
 	// size of type
-	virtual ULONG
-	Length() const
+	ULONG
+	Length() const override
 	{
 		return GPDB_INT2_LENGTH;
 	}
@@ -181,78 +181,78 @@ public:
 	}
 
 	// is type passed by value
-	virtual BOOL
-	IsPassedByValue() const
+	BOOL
+	IsPassedByValue() const override
 	{
 		return true;
 	}
 
 	// metadata id of b-tree lookup operator
-	virtual const IMDId *
-	CmpOpMdid() const
+	const IMDId *
+	CmpOpMdid() const override
 	{
 		return m_mdid_op_cmp;
 	}
 
 	// is type hashable
-	virtual BOOL
-	IsHashable() const
+	BOOL
+	IsHashable() const override
 	{
 		return true;
 	}
 
 	// is type merge joinable
-	virtual BOOL
-	IsMergeJoinable() const
+	BOOL
+	IsMergeJoinable() const override
 	{
 		return true;
 	}
 
 	// metadata id of array type
-	virtual IMDId *
-	GetArrayTypeMdid() const
+	IMDId *
+	GetArrayTypeMdid() const override
 	{
 		return m_mdid_type_array;
 	}
 
 	// id of the relation corresponding to a composite type
-	virtual IMDId *
-	GetBaseRelMdid() const
+	IMDId *
+	GetBaseRelMdid() const override
 	{
 		return NULL;
 	}
 
 	// serialize object in DXL format
-	virtual void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
+	void Serialize(gpdxl::CXMLSerializer *xml_serializer) const override;
 
 	// return the null constant for this type
-	virtual IDatum *
-	DatumNull() const
+	IDatum *
+	DatumNull() const override
 	{
 		return m_datum_null;
 	}
 
 	// transformation method for generating datum from CDXLScalarConstValue
-	virtual IDatum *GetDatumForDXLConstVal(
-		const CDXLScalarConstValue *dxl_op) const;
+	IDatum *GetDatumForDXLConstVal(
+		const CDXLScalarConstValue *dxl_op) const override;
 
 	// create typed datum from DXL datum
-	virtual IDatum *GetDatumForDXLDatum(CMemoryPool *mp,
-										const CDXLDatum *dxl_datum) const;
+	IDatum *GetDatumForDXLDatum(CMemoryPool *mp,
+								const CDXLDatum *dxl_datum) const override;
 
 	// generate the DXL datum from IDatum
-	virtual CDXLDatum *GetDatumVal(CMemoryPool *mp, IDatum *datum) const;
+	CDXLDatum *GetDatumVal(CMemoryPool *mp, IDatum *datum) const override;
 
 	// generate the DXL datum representing null value
-	virtual CDXLDatum *GetDXLDatumNull(CMemoryPool *mp) const;
+	CDXLDatum *GetDXLDatumNull(CMemoryPool *mp) const override;
 
 	// generate the DXL scalar constant from IDatum
-	virtual CDXLScalarConstValue *GetDXLOpScConst(CMemoryPool *mp,
-												  IDatum *datum) const;
+	CDXLScalarConstValue *GetDXLOpScConst(CMemoryPool *mp,
+										  IDatum *datum) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the type in the provided stream
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 };
 }  // namespace gpmd

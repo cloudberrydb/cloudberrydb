@@ -62,7 +62,7 @@ public:
 					CStatsPred::EStatsCmpType stats_cmp_type, IDatum *datum);
 
 	// dtor
-	virtual ~CStatsPredPoint()
+	~CStatsPredPoint() override
 	{
 		m_pred_point->Release();
 	}
@@ -82,8 +82,8 @@ public:
 	}
 
 	// filter type id
-	virtual EStatsPredType
-	GetPredStatsType() const
+	EStatsPredType
+	GetPredStatsType() const override
 	{
 		return CStatsPred::EsptPoint;
 	}

@@ -114,7 +114,7 @@ public:
 						   CDXLCtasOptionArray *ctas_storage_option_array);
 
 	// dtor
-	virtual ~CDXLCtasStorageOptions();
+	~CDXLCtasStorageOptions() override;
 
 	// accessor to tablespace name
 	CMDName *GetMdNameTableSpace() const;

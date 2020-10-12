@@ -37,18 +37,18 @@ public:
 	explicit CXformSelect2Apply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2Apply() = default;
+	~CXformSelect2Apply() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSelect2Apply;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSelect2Apply";
 	}

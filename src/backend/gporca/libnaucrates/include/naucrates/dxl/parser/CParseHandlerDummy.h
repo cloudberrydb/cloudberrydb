@@ -43,7 +43,7 @@ public:
 	explicit CParseHandlerDummy(CDXLMemoryManager *dxl_memory_manager);
 
 	// process a parsing error
-	void error(const SAXParseException &sax_parse_ex);
+	void error(const SAXParseException &sax_parse_ex) override;
 };
 }  // namespace gpdxl
 

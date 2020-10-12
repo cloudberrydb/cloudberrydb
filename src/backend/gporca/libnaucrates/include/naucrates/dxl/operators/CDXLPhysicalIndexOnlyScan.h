@@ -40,13 +40,13 @@ public:
 							  EdxlIndexScanDirection idx_scan_direction);
 
 	//dtor
-	virtual ~CDXLPhysicalIndexOnlyScan() = default;
+	~CDXLPhysicalIndexOnlyScan() override = default;
 
 	// operator type
-	virtual Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// conversion function
 	static CDXLPhysicalIndexOnlyScan *

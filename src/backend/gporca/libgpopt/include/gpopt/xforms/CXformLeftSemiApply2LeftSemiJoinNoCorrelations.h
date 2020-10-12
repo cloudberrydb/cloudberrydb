@@ -44,7 +44,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApply2LeftSemiJoinNoCorrelations() = default;
+	~CXformLeftSemiApply2LeftSemiJoinNoCorrelations() override = default;
 
 	// ctor with a passed pattern
 	CXformLeftSemiApply2LeftSemiJoinNoCorrelations(CMemoryPool *mp,
@@ -55,24 +55,24 @@ public:
 	}
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfLeftSemiApply2LeftSemiJoinNoCorrelations;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformLeftSemiApply2LeftSemiJoinNoCorrelations";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 
 };	// class CXformLeftSemiApply2LeftSemiJoinNoCorrelations

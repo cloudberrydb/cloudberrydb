@@ -46,23 +46,23 @@ public:
 	// ctor/dtor
 	CDXLPhysicalGatherMotion(CMemoryPool *mp);
 
-	virtual ~CDXLPhysicalGatherMotion() = default;
+	~CDXLPhysicalGatherMotion() override = default;
 
 	// accessors
-	Edxlopid GetDXLOperator() const;
-	const CWStringConst *GetOpNameStr() const;
+	Edxlopid GetDXLOperator() const override;
+	const CWStringConst *GetOpNameStr() const override;
 	INT IOutputSegIdx() const;
 
 	// index of relational child node in the children array
-	virtual ULONG
-	GetRelationChildIdx() const
+	ULONG
+	GetRelationChildIdx() const override
 	{
 		return EdxlgmIndexChild;
 	}
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *node) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *node) const override;
 
 	// conversion function
 	static CDXLPhysicalGatherMotion *
@@ -77,7 +77,7 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *, BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

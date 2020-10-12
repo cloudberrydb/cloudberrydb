@@ -35,28 +35,28 @@ public:
 	explicit CXformSelect2BitmapBoolOp(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2BitmapBoolOp() = default;
+	~CXformSelect2BitmapBoolOp() override = default;
 
 	// identifier
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfSelect2BitmapBoolOp;
 	}
 
 	// xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformSelect2BitmapBoolOp";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-						   CExpression *pexpr) const;
+	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+				   CExpression *pexpr) const override;
 
 };	// class CXformSelect2BitmapBoolOp
 }  // namespace gpopt

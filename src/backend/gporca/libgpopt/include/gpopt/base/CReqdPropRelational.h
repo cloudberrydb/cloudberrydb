@@ -55,11 +55,11 @@ public:
 	CReqdPropRelational(CColRefSet *pcrs, CExpression *pexprPartPred);
 
 	// dtor
-	virtual ~CReqdPropRelational();
+	~CReqdPropRelational() override;
 
 	// type of properties
-	virtual BOOL
-	FRelational() const
+	BOOL
+	FRelational() const override
 	{
 		GPOS_ASSERT(!FPlan());
 		return true;
@@ -80,9 +80,9 @@ public:
 	}
 
 	// required properties computation function
-	virtual void Compute(CMemoryPool *mp, CExpressionHandle &exprhdl,
-						 CReqdProp *prpInput, ULONG child_index,
-						 CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq);
+	void Compute(CMemoryPool *mp, CExpressionHandle &exprhdl,
+				 CReqdProp *prpInput, ULONG child_index,
+				 CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
 
 	// return difference from given properties
 	CReqdPropRelational *PrprelDifference(CMemoryPool *mp,
@@ -95,7 +95,7 @@ public:
 	static CReqdPropRelational *GetReqdRelationalProps(CReqdProp *prp);
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CReqdPropRelational
 

@@ -52,7 +52,7 @@ protected:
 	}
 
 	// dtor
-	virtual ~CJobGroupExpression() = default;
+	~CJobGroupExpression() override = default;
 
 	// has job scheduled child groups ?
 	BOOL
@@ -95,12 +95,12 @@ protected:
 	void ScheduleTransformations(CSchedulerContext *psc, CXformSet *xform_set);
 
 	// job's function
-	virtual BOOL FExecute(CSchedulerContext *psc) = 0;
+	BOOL FExecute(CSchedulerContext *psc) override = 0;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) = 0;
+	IOstream &OsPrint(IOstream &os) override = 0;
 
 #endif	// GPOS_DEBUG
 public:

@@ -59,12 +59,12 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoinSwap() = default;
+	~CXformJoinSwap() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
+	EXformPromise
 	Exfp(CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CXform::ExfpHigh;
 	}
@@ -72,7 +72,7 @@ public:
 	// actual transform
 	void
 	Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-			  CExpression *pexpr) const
+			  CExpression *pexpr) const override
 	{
 		GPOS_ASSERT(NULL != pxfctxt);
 		GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));

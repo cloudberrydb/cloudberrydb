@@ -57,50 +57,50 @@ public:
 	}
 
 	// accessor
-	virtual EDistributionType
-	Edt() const
+	EDistributionType
+	Edt() const override
 	{
 		return CDistributionSpec::EdtAny;
 	}
 
 	// does current distribution satisfy the given one
-	virtual BOOL
-	FSatisfies(const CDistributionSpec *pds) const
+	BOOL
+	FSatisfies(const CDistributionSpec *pds) const override
 	{
 		return EdtAny == pds->Edt();
 	}
 
 	// return true if distribution spec can be derived
-	virtual BOOL
-	FDerivable() const
+	BOOL
+	FDerivable() const override
 	{
 		return false;
 	}
 
 	// append enforcers to dynamic array for the given plan properties
-	virtual void
+	void
 	AppendEnforcers(
 		CMemoryPool *,		  // mp
 		CExpressionHandle &,  // exprhdl: gives access to child properties
 		CReqdPropPlan *,	  // prpp
 		CExpressionArray *,	  // pdrgpexpr
 		CExpression *		  // pexpr
-	)
+		) override
 	{
 		GPOS_ASSERT(!"attempt to enforce ANY distribution");
 	}
 
 	// print
-	virtual IOstream &
-	OsPrint(IOstream &os) const
+	IOstream &
+	OsPrint(IOstream &os) const override
 	{
 		return os << "ANY "
 				  << " EOperatorId: " << m_eopidRequested << " ";
 	}
 
 	// return distribution partitioning type
-	virtual EDistributionPartitioningType
-	Edpt() const
+	EDistributionPartitioningType
+	Edpt() const override
 	{
 		return EdptUnknown;
 	}

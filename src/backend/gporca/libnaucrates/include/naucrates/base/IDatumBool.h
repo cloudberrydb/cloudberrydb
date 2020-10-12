@@ -34,11 +34,11 @@ public:
 	IDatumBool() = default;
 
 	// dtor
-	virtual ~IDatumBool() = default;
+	~IDatumBool() override = default;
 
 	// accessor for datum type
-	virtual IMDType::ETypeInfo
-	GetDatumType()
+	IMDType::ETypeInfo
+	GetDatumType() override
 	{
 		return IMDType::EtiBool;
 	}
@@ -48,14 +48,14 @@ public:
 
 	// can datum be mapped to a double
 	BOOL
-	IsDatumMappableToDouble() const
+	IsDatumMappableToDouble() const override
 	{
 		return true;
 	}
 
 	// map to double for stats computation
 	CDouble
-	GetDoubleMapping() const
+	GetDoubleMapping() const override
 	{
 		if (GetValue())
 		{
@@ -67,14 +67,14 @@ public:
 
 	// can datum be mapped to LINT
 	BOOL
-	IsDatumMappableToLINT() const
+	IsDatumMappableToLINT() const override
 	{
 		return true;
 	}
 
 	// map to LINT for statistics computation
 	LINT
-	GetLINTMapping() const
+	GetLINTMapping() const override
 	{
 		if (GetValue())
 		{
@@ -84,40 +84,40 @@ public:
 	}
 
 	// byte array representation of datum
-	virtual const BYTE *
-	GetByteArrayValue() const
+	const BYTE *
+	GetByteArrayValue() const override
 	{
 		GPOS_ASSERT(!"Invalid invocation of MakeCopyOfValue");
 		return NULL;
 	}
 
 	// does the datum need to be padded before statistical derivation
-	virtual BOOL
-	NeedsPadding() const
+	BOOL
+	NeedsPadding() const override
 	{
 		return false;
 	}
 
 	// return the padded datum
-	virtual IDatum *
+	IDatum *
 	MakePaddedDatum(CMemoryPool *,	// mp,
 					ULONG			// col_len
-	) const
+	) const override
 	{
 		GPOS_ASSERT(!"Invalid invocation of MakePaddedDatum");
 		return NULL;
 	}
 
 	// does datum support like predicate
-	virtual BOOL
-	SupportsLikePredicate() const
+	BOOL
+	SupportsLikePredicate() const override
 	{
 		return false;
 	}
 
 	// return the default scale factor of like predicate
-	virtual CDouble
-	GetLikePredicateScaleFactor() const
+	CDouble
+	GetLikePredicateScaleFactor() const override
 	{
 		GPOS_ASSERT(!"Invalid invocation of DLikeSelectivity");
 		return false;

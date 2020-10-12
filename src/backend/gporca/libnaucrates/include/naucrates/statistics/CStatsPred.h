@@ -75,7 +75,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CStatsPred() = default;
+	~CStatsPred() override = default;
 
 	// accessors
 	virtual ULONG

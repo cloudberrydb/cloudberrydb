@@ -79,7 +79,7 @@ public:
 		}
 
 		// dtor
-		~CCostingStats()
+		~CCostingStats() override
 		{
 			m_pstats->Release();
 		}

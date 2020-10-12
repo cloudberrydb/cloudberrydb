@@ -45,19 +45,19 @@ public:
 	}
 
 	// dtor
-	virtual ~CPatternNode() = default;
+	~CPatternNode() override = default;
 
 	// match function
 	BOOL
-	Matches(COperator *pop) const
+	Matches(COperator *pop) const override
 	{
 		return Eopid() == pop->Eopid() &&
 			   m_match == static_cast<CPatternNode *>(pop)->m_match;
 	}
 
 	// check if operator is a pattern leaf
-	virtual BOOL
-	FLeaf() const
+	BOOL
+	FLeaf() const override
 	{
 		return false;
 	}
@@ -73,15 +73,15 @@ public:
 	}
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPatternNode;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPatternNode";
 	}

@@ -53,13 +53,13 @@ public:
 	CDXLScalarSortCol(CMemoryPool *mp, ULONG colid, IMDId *sort_op_id,
 					  CWStringConst *pstrTypeName, BOOL fSortNullsFirst);
 
-	virtual ~CDXLScalarSortCol();
+	~CDXLScalarSortCol() override;
 
 	// ident accessors
-	Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// name of the operator
-	const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// Id of the sorting column
 	ULONG GetColId() const;
@@ -71,7 +71,7 @@ public:
 	BOOL IsSortedNullsFirst() const;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *, const CDXLNode *) const;
+	void SerializeToDXL(CXMLSerializer *, const CDXLNode *) const override;
 
 	// conversion function
 	static CDXLScalarSortCol *
@@ -84,9 +84,9 @@ public:
 	}
 
 	// does the operator return a boolean result
-	virtual BOOL
+	BOOL
 	HasBoolResult(CMDAccessor *	 //md_accessor
-	) const
+	) const override
 	{
 		GPOS_ASSERT(!"Invalid function call for this operator");
 		return false;
@@ -95,7 +95,8 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *dxlnode,
+					 BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

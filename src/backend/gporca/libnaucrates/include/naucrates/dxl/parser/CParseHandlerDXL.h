@@ -107,14 +107,14 @@ private:
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname,		// element's qname
 		const Attributes &attr					// element's attributes
-	);
+		) override;
 
 	// process the end of an element
 	void EndElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
-	);
+		) override;
 
 	// find the parse handler function for the given type
 	ParseHandler FindParseHandler(EDxlParseHandlerType parse_handler_type);
@@ -159,7 +159,7 @@ public:
 	CParseHandlerDXL(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr);
 
 	//dtor
-	virtual ~CParseHandlerDXL();
+	~CParseHandlerDXL() override;
 
 	// traceflag bitset
 	CBitSet *Pbs() const;
@@ -210,7 +210,7 @@ public:
 	ICostModelParams *GetCostModelParams() const;
 
 	// process the end of the document
-	void endDocument();
+	void endDocument() override;
 };
 }  // namespace gpdxl
 

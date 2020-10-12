@@ -113,7 +113,7 @@ public:
 	CBitSet(CMemoryPool *mp, const CBitSet &);
 
 	// dtor
-	virtual ~CBitSet();
+	~CBitSet() override;
 
 	// determine if bit is set
 	BOOL Get(ULONG pos) const;
@@ -153,7 +153,7 @@ public:
 	}
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CBitSet
 

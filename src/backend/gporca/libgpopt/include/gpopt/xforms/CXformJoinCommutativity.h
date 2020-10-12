@@ -36,36 +36,36 @@ public:
 	explicit CXformJoinCommutativity(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformJoinCommutativity() = default;
+	~CXformJoinCommutativity() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfJoinCommutativity;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformJoinCommutativity";
 	}
 
 	// compatibility function
-	BOOL FCompatible(CXform::EXformId exfid);
+	BOOL FCompatible(CXform::EXformId exfid) override;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
+	EXformPromise
 	Exfp(CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CXform::ExfpHigh;
 	}
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformJoinCommutativity
 

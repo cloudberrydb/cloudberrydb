@@ -65,13 +65,13 @@ public:
 								 EdxlIndexScanDirection idx_scan_direction);
 
 	//dtor
-	virtual ~CDXLPhysicalDynamicIndexScan();
+	~CDXLPhysicalDynamicIndexScan() override;
 
 	// operator type
-	virtual Edxlopid GetDXLOperator() const;
+	Edxlopid GetDXLOperator() const override;
 
 	// operator name
-	virtual const CWStringConst *GetOpNameStr() const;
+	const CWStringConst *GetOpNameStr() const override;
 
 	// index descriptor
 	const CDXLIndexDescr *GetDXLIndexDescr() const;
@@ -89,8 +89,8 @@ public:
 	EdxlIndexScanDirection GetIndexScanDir() const;
 
 	// serialize operator in DXL format
-	virtual void SerializeToDXL(CXMLSerializer *xml_serializer,
-								const CDXLNode *node) const;
+	void SerializeToDXL(CXMLSerializer *xml_serializer,
+						const CDXLNode *node) const override;
 
 	// conversion function
 	static CDXLPhysicalDynamicIndexScan *
@@ -105,7 +105,7 @@ public:
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	void AssertValid(const CDXLNode *, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *, BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

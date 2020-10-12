@@ -239,7 +239,7 @@ public:
 	explicit CXform(CExpression *pexpr);
 
 	// dtor
-	virtual ~CXform();
+	~CXform() override;
 
 	// ident accessors
 	virtual EXformId Exfid() const = 0;
@@ -291,7 +291,7 @@ public:
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const = 0;
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 #ifdef GPOS_DEBUG
 

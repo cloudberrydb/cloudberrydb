@@ -73,18 +73,18 @@ public:
 	// copy ctor
 	explicit CMDIdGPDB(const CMDIdGPDB &mdidSource);
 
-	virtual EMDIdType
-	MdidType() const
+	EMDIdType
+	MdidType() const override
 	{
 		return EmdidGPDB;
 	}
 
 	// string representation of mdid
-	virtual const WCHAR *GetBuffer() const;
+	const WCHAR *GetBuffer() const override;
 
 	// source system id
-	virtual CSystemId
-	Sysid() const
+	CSystemId
+	Sysid() const override
 	{
 		return m_sysid;
 	}
@@ -99,11 +99,11 @@ public:
 	virtual ULONG VersionMinor() const;
 
 	// equality check
-	virtual BOOL Equals(const IMDId *mdid) const;
+	BOOL Equals(const IMDId *mdid) const override;
 
 	// computes the hash value for the metadata id
-	virtual ULONG
-	HashValue() const
+	ULONG
+	HashValue() const override
 	{
 		return gpos::CombineHashes(
 			MdidType(),
@@ -114,14 +114,14 @@ public:
 	}
 
 	// is the mdid valid
-	virtual BOOL IsValid() const;
+	BOOL IsValid() const override;
 
 	// serialize mdid in DXL as the value of the specified attribute
-	virtual void Serialize(CXMLSerializer *xml_serializer,
-						   const CWStringConst *pstrAttribute) const;
+	void Serialize(CXMLSerializer *xml_serializer,
+				   const CWStringConst *pstrAttribute) const override;
 
 	// debug print of the metadata id
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// const converter
 	static const CMDIdGPDB *

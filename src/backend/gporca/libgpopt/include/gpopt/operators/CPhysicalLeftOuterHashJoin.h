@@ -37,18 +37,18 @@ public:
 							   IMdIdArray *hash_opfamilies = NULL);
 
 	// dtor
-	virtual ~CPhysicalLeftOuterHashJoin();
+	~CPhysicalLeftOuterHashJoin() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalLeftOuterHashJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalLeftOuterHashJoin";
 	}

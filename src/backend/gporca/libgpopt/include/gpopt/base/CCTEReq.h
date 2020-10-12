@@ -69,7 +69,7 @@ private:
 					 CDrvdPropPlan *pdpplan);
 
 		// dtor
-		virtual ~CCTEReqEntry();
+		~CCTEReqEntry() override;
 
 		// cte id
 		ULONG
@@ -106,7 +106,7 @@ private:
 		BOOL Equals(CCTEReqEntry *pcre) const;
 
 		// print function
-		virtual IOstream &OsPrint(IOstream &os) const;
+		IOstream &OsPrint(IOstream &os) const override;
 
 	};	// class CCTEReqEntry
 
@@ -141,7 +141,7 @@ public:
 	explicit CCTEReq(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CCTEReq();
+	~CCTEReq() override;
 
 	// required cte ids
 	ULongPtrArray *
@@ -195,7 +195,7 @@ public:
 	CDrvdPropPlan *Pdpplan(ULONG ulCteId) const;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CCTEMap
 

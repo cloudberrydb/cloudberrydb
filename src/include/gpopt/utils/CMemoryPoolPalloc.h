@@ -41,16 +41,16 @@ public:
 
 	// allocate memory
 	void *NewImpl(const ULONG bytes, const CHAR *file, const ULONG line,
-				  CMemoryPool::EAllocationType eat);
+				  CMemoryPool::EAllocationType eat) override;
 
 	// free memory
 	static void DeleteImpl(void *ptr, CMemoryPool::EAllocationType eat);
 
 	// prepare the memory pool to be deleted
-	void TearDown();
+	void TearDown() override;
 
 	// return total allocated size include management overhead
-	ULLONG TotalAllocatedSize() const;
+	ULLONG TotalAllocatedSize() const override;
 
 	// get user requested size of allocation
 	static ULONG UserSizeOfAlloc(const void *ptr);

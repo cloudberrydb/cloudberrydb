@@ -37,28 +37,28 @@ public:
 	explicit CXformPushDownLeftOuterJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformPushDownLeftOuterJoin() = default;
+	~CXformPushDownLeftOuterJoin() override = default;
 
 	// xform promise
-	virtual CXform::EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	CXform::EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfPushDownLeftOuterJoin;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformPushDownLeftOuterJoin";
 	}
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformPushDownLeftOuterJoin
 

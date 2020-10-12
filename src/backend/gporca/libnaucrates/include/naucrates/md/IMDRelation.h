@@ -83,8 +83,8 @@ protected:
 
 public:
 	// object type
-	virtual Emdtype
-	MDType() const
+	Emdtype
+	MDType() const override
 	{
 		return EmdtRel;
 	}

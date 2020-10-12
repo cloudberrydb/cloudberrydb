@@ -166,7 +166,7 @@ public:
 	}
 
 	// dtor
-	virtual ~COptimizationContext();
+	~COptimizationContext() override;
 
 	// best group expression accessor
 	CGroupExpression *PgexprBest() const;
@@ -273,7 +273,7 @@ public:
 	}
 
 	// debug print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 	IOstream &OsPrintWithPrefix(IOstream &os, const CHAR *szPrefix) const;
 
 	// check equality of optimization contexts

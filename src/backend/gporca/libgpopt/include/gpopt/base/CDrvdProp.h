@@ -84,7 +84,7 @@ public:
 	CDrvdProp();
 
 	// dtor
-	virtual ~CDrvdProp() = default;
+	~CDrvdProp() override = default;
 
 	// type of properties
 	virtual EPropType Ept() = 0;

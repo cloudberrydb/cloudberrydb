@@ -72,27 +72,27 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApplyWithExternalCorrs2InnerJoin() = default;
+	~CXformLeftSemiApplyWithExternalCorrs2InnerJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfLeftSemiApplyWithExternalCorrs2InnerJoin;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformLeftSemiApplyWithExternalCorrs2InnerJoin";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 

@@ -78,7 +78,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CSyncHashtableAccessByKey() = default;
+	~CSyncHashtableAccessByKey() override = default;
 
 	// finds the first bucket's element with a matching key
 	T *

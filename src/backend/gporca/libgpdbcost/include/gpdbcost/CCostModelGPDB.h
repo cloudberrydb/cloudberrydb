@@ -227,33 +227,33 @@ public:
 				   CCostModelParamsGPDB *pcp = NULL);
 
 	// dtor
-	virtual ~CCostModelGPDB();
+	~CCostModelGPDB() override;
 
 	// number of segments
 	ULONG
-	UlHosts() const
+	UlHosts() const override
 	{
 		return m_num_of_segments;
 	}
 
 	// return number of rows per host
-	virtual CDouble DRowsPerHost(CDouble dRowsTotal) const;
+	CDouble DRowsPerHost(CDouble dRowsTotal) const override;
 
 	// return cost model parameters
-	virtual ICostModelParams *
-	GetCostModelParams() const
+	ICostModelParams *
+	GetCostModelParams() const override
 	{
 		return m_cost_model_params;
 	}
 
 
 	// main driver for cost computation
-	virtual CCost Cost(CExpressionHandle &exprhdl,
-					   const SCostingInfo *pci) const;
+	CCost Cost(CExpressionHandle &exprhdl,
+			   const SCostingInfo *pci) const override;
 
 	// cost model type
-	virtual ECostModelType
-	Ecmt() const
+	ECostModelType
+	Ecmt() const override
 	{
 		return ICostModel::EcmtGPDBCalibrated;
 	}

@@ -37,24 +37,24 @@ public:
 	CPhysicalInnerIndexNLJoin(CMemoryPool *mp, CColRefArray *colref_array);
 
 	// dtor
-	virtual ~CPhysicalInnerIndexNLJoin();
+	~CPhysicalInnerIndexNLJoin() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalInnerIndexNLJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalInnerIndexNLJoin";
 	}
 
 	// match function
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// outer column references accessor
 	CColRefArray *
@@ -64,16 +64,15 @@ public:
 	}
 
 	// compute required distribution of the n-th child
-	virtual CDistributionSpec *PdsRequired(CMemoryPool *mp,
-										   CExpressionHandle &exprhdl,
-										   CDistributionSpec *pdsRequired,
-										   ULONG child_index,
-										   CDrvdPropArray *pdrgpdpCtxt,
-										   ULONG ulOptReq) const;
+	CDistributionSpec *PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
+								   CDistributionSpec *pdsRequired,
+								   ULONG child_index,
+								   CDrvdPropArray *pdrgpdpCtxt,
+								   ULONG ulOptReq) const override;
 
 	// execution order of children
-	virtual EChildExecOrder
-	Eceo() const
+	EChildExecOrder
+	Eceo() const override
 	{
 		// we optimize inner (right) child first to be able to match child hashed distributions
 		return EceoRightToLeft;

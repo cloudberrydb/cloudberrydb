@@ -76,18 +76,18 @@ public:
 					  BOOL is_simple_agg);
 
 	// dtor
-	virtual ~CScalarWindowFunc() = default;
+	~CScalarWindowFunc() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarWindowFunc;
 	}
 
 	// return a string for window function
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarWindowFunc";
 	}
@@ -99,10 +99,10 @@ public:
 	}
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// conversion function
 	static CScalarWindowFunc *
@@ -141,7 +141,7 @@ public:
 	}
 
 	// print
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 
 };	// class CScalarWindowFunc

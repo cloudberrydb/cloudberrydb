@@ -56,10 +56,10 @@ public:
 					  ULLONG plan_id, ULLONG plan_space_size);
 
 	// dtor
-	virtual ~CSerializablePlan();
+	~CSerializablePlan() override;
 
 	// serialize object to passed buffer
-	virtual void Serialize(COstream &oos);
+	void Serialize(COstream &oos) override;
 
 };	// class CSerializablePlan
 }  // namespace gpopt

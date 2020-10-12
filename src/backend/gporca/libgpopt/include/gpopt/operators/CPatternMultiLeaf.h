@@ -39,25 +39,25 @@ public:
 	}
 
 	// dtor
-	virtual ~CPatternMultiLeaf() = default;
+	~CPatternMultiLeaf() override = default;
 
 	// check if operator is a pattern leaf
-	virtual BOOL
-	FLeaf() const
+	BOOL
+	FLeaf() const override
 	{
 		return true;
 	}
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPatternMultiLeaf;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPatternMultiLeaf";
 	}

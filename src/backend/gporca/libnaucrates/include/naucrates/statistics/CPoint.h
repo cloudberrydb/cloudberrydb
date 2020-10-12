@@ -79,10 +79,10 @@ public:
 	CDouble Width(const CPoint *, BOOL include_lower, BOOL include_upper) const;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// d'tor
-	virtual ~CPoint()
+	~CPoint() override
 	{
 		m_datum->Release();
 	}

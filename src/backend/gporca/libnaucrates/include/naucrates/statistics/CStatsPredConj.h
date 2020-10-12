@@ -41,13 +41,13 @@ public:
 	explicit CStatsPredConj(CStatsPredPtrArry *pdrgpstatspred);
 
 	// dtor
-	virtual ~CStatsPredConj()
+	~CStatsPredConj() override
 	{
 		m_conj_pred_stats_array->Release();
 	}
 
 	// the column identifier on which the predicates are on
-	virtual ULONG GetColId() const;
+	ULONG GetColId() const override;
 
 	// total number of predicates in the conjunction
 	ULONG
@@ -69,8 +69,8 @@ public:
 	CStatsPred *GetPredStats(ULONG pos) const;
 
 	// filter type id
-	virtual EStatsPredType
-	GetPredStatsType() const
+	EStatsPredType
+	GetPredStatsType() const override
 	{
 		return CStatsPred::EsptConj;
 	}

@@ -34,18 +34,18 @@ public:
 	explicit CPhysicalLeftOuterNLJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CPhysicalLeftOuterNLJoin();
+	~CPhysicalLeftOuterNLJoin() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopPhysicalLeftOuterNLJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CPhysicalLeftOuterNLJoin";
 	}

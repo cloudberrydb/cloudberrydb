@@ -53,7 +53,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~CGPDBAttOptCol()
+	~CGPDBAttOptCol() override
 	{
 		m_gpdb_att_info->Release();
 		m_opt_col_info->Release();

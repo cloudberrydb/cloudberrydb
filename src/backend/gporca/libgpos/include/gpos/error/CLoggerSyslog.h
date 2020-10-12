@@ -39,7 +39,7 @@ private:
 	ULONG m_message_priority;
 
 	// write string to syslog
-	void Write(const WCHAR *log_entry, ULONG severity);
+	void Write(const WCHAR *log_entry, ULONG severity) override;
 
 	static CLoggerSyslog m_alert_logger;
 
@@ -51,7 +51,7 @@ public:
 				  ULONG message_priority);
 
 	// dtor
-	virtual ~CLoggerSyslog();
+	~CLoggerSyslog() override;
 
 	// write alert message to syslog - use ASCII characters only
 	static void Alert(const WCHAR *msg);

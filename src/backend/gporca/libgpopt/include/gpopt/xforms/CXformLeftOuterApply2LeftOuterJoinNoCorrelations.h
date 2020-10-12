@@ -45,27 +45,27 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftOuterApply2LeftOuterJoinNoCorrelations() = default;
+	~CXformLeftOuterApply2LeftOuterJoinNoCorrelations() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfLeftOuterApply2LeftOuterJoinNoCorrelations;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformLeftOuterApply2LeftOuterJoinNoCorrelations";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformLeftOuterApply2LeftOuterJoinNoCorrelations
 

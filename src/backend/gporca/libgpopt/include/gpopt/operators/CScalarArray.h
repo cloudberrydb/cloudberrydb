@@ -59,42 +59,42 @@ public:
 				 BOOL is_multidimenstional, CScalarConstArray *pdrgPconst);
 
 	// dtor
-	virtual ~CScalarArray();
+	~CScalarArray() override;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarArray;
 	}
 
 	// return a string for aggregate function
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarArray";
 	}
 
 
 	// operator specific hash function
-	ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
 	BOOL
-	FInputOrderSensitive() const
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
@@ -119,13 +119,13 @@ public:
 	BOOL FMultiDimensional() const;
 
 	// type of expression's result
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// CScalarConst array
 	CScalarConstArray *PdrgPconst() const;
 
 	// print
-	IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CScalarArray
 

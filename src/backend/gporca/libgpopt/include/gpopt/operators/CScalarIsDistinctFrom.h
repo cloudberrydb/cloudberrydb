@@ -42,33 +42,33 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarIsDistinctFrom() = default;
+	~CScalarIsDistinctFrom() override = default;
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopScalarIsDistinctFrom;
 	}
 
 	// boolean expression evaluation
-	virtual EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
+	EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const override;
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CScalarIsDistinctFrom";
 	}
 
-	virtual BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// conversion function
 	static CScalarIsDistinctFrom *PopConvert(COperator *pop);
 
 	// get commuted scalar IDF operator
-	virtual CScalarIsDistinctFrom *PopCommutedOp(CMemoryPool *mp,
-												 COperator *pop);
+	CScalarIsDistinctFrom *PopCommutedOp(CMemoryPool *mp,
+										 COperator *pop) override;
 
 };	// class CScalarIsDistinctFrom
 

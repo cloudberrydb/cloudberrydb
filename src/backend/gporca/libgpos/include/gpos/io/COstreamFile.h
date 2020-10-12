@@ -42,10 +42,10 @@ public:
 				 ULONG permission_bits = S_IRUSR | S_IWUSR);
 
 	// dtor
-	virtual ~COstreamFile();
+	~COstreamFile() override;
 
 	// implement << operator
-	virtual IOstream &operator<<(const WCHAR *);
+	IOstream &operator<<(const WCHAR *) override;
 };
 
 }  // namespace gpos

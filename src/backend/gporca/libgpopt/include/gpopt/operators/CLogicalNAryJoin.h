@@ -50,21 +50,21 @@ public:
 	CLogicalNAryJoin(CMemoryPool *mp, ULongPtrArray *lojChildIndexes);
 
 	// dtor
-	virtual ~CLogicalNAryJoin()
+	~CLogicalNAryJoin() override
 	{
 		CRefCount::SafeRelease(m_lojChildPredIndexes);
 	}
 
 	// ident accessors
-	virtual EOperatorId
-	Eopid() const
+	EOperatorId
+	Eopid() const override
 	{
 		return EopLogicalNAryJoin;
 	}
 
 	// return a string for operator name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CLogicalNAryJoin";
 	}
@@ -74,25 +74,25 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// derive not nullable columns
-	virtual CColRefSet *DeriveNotNullColumns(CMemoryPool *mp,
-											 CExpressionHandle &exprhdl) const;
+	CColRefSet *DeriveNotNullColumns(CMemoryPool *mp,
+									 CExpressionHandle &exprhdl) const override;
 
 	// derive max card
-	virtual CMaxCard DeriveMaxCard(CMemoryPool *mp,
-								   CExpressionHandle &exprhdl) const;
+	CMaxCard DeriveMaxCard(CMemoryPool *mp,
+						   CExpressionHandle &exprhdl) const override;
 
 	// derive constraint property
-	virtual CPropConstraint *DerivePropertyConstraint(
-		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+	CPropConstraint *DerivePropertyConstraint(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Derived Stats
 	//-------------------------------------------------------------------------------------
 
 	// promise level for stat derivation
-	virtual EStatPromise
+	EStatPromise
 	Esp(CExpressionHandle &	 // exprhdl
-	) const
+	) const override
 	{
 		// we should use the expanded join order for stat derivation
 		return EspLow;
@@ -103,7 +103,7 @@ public:
 	//-------------------------------------------------------------------------------------
 
 	// candidate set of xforms
-	virtual CXformSet *PxfsCandidates(CMemoryPool *mp) const;
+	CXformSet *PxfsCandidates(CMemoryPool *mp) const override;
 
 	//-------------------------------------------------------------------------------------
 	//-------------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ public:
 		CMemoryPool *mp, CExpression *old_nary_join_scalar_expr,
 		CExpression *new_inner_join_preds);
 
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CLogicalNAryJoin
 

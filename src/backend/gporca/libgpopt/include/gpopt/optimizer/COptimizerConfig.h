@@ -72,7 +72,7 @@ public:
 					 CWindowOids *pdefoidsGPDB);
 
 	// dtor
-	virtual ~COptimizerConfig();
+	~COptimizerConfig() override;
 
 
 	// plan enumeration configuration

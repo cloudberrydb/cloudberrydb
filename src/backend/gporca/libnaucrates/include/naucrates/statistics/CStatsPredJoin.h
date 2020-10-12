@@ -88,7 +88,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~CStatsPredJoin() = default;
+	~CStatsPredJoin() override = default;
 
 };	// class CStatsPredJoin
 

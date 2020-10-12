@@ -99,7 +99,7 @@ public:
 	IStatistics() = default;
 
 	// dtor
-	virtual ~IStatistics() = default;
+	~IStatistics() override = default;
 
 	// how many rows
 	virtual CDouble Rows() const = 0;
@@ -180,7 +180,7 @@ public:
 	virtual CColRefSet *GetColRefSet(CMemoryPool *mp) const = 0;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const = 0;
+	IOstream &OsPrint(IOstream &os) const override = 0;
 
 	// generate the DXL representation of the statistics object
 	virtual CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation(

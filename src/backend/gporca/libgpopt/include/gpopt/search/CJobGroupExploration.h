@@ -77,32 +77,32 @@ public:
 	CJobGroupExploration();
 
 	// dtor
-	~CJobGroupExploration();
+	~CJobGroupExploration() override;
 
 	// initialize job
 	void Init(CGroup *pgroup);
 
 	// get first unscheduled expression
-	virtual CGroupExpression *
-	PgexprFirstUnsched()
+	CGroupExpression *
+	PgexprFirstUnsched() override
 	{
 		return CJobGroup::PgexprFirstUnschedLogical();
 	}
 
 	// schedule exploration jobs for of all new group expressions
-	virtual BOOL FScheduleGroupExpressions(CSchedulerContext *psc);
+	BOOL FScheduleGroupExpressions(CSchedulerContext *psc) override;
 
 	// schedule a new group exploration job
 	static void ScheduleJob(CSchedulerContext *psc, CGroup *pgroup,
 							CJob *pjParent);
 
 	// job's function
-	virtual BOOL FExecute(CSchedulerContext *psc);
+	BOOL FExecute(CSchedulerContext *psc) override;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os);
+	IOstream &OsPrint(IOstream &os) override;
 
 	// dump state machine diagram in graphviz format
 	virtual IOstream &

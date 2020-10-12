@@ -40,15 +40,15 @@ public:
 	// ctor/dtor
 	explicit CDXLPhysical(CMemoryPool *mp);
 
-	virtual ~CDXLPhysical();
+	~CDXLPhysical() override;
 
 	// Get operator type
-	Edxloptype GetDXLOperatorType() const;
+	Edxloptype GetDXLOperatorType() const override;
 
 #ifdef GPOS_DEBUG
 	// checks whether the operator has valid structure, i.e. number and
 	// types of child nodes
-	virtual void AssertValid(const CDXLNode *, BOOL validate_children) const;
+	void AssertValid(const CDXLNode *, BOOL validate_children) const override;
 #endif	// GPOS_DEBUG
 };
 }  // namespace gpdxl

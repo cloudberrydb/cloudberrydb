@@ -75,23 +75,23 @@ public:
 	explicit CErrorContext(CMiniDumper *mini_dumper_handle = NULL);
 
 	// dtor
-	virtual ~CErrorContext();
+	~CErrorContext() override;
 
 	// reset context, clear out handled error
-	virtual void Reset();
+	void Reset() override;
 
 	// record error context
-	virtual void Record(CException &exc, VA_LIST);
+	void Record(CException &exc, VA_LIST) override;
 
 	// accessors
-	virtual CException
-	GetException() const
+	CException
+	GetException() const override
 	{
 		return m_exception;
 	}
 
-	virtual const WCHAR *
-	GetErrorMsg() const
+	const WCHAR *
+	GetErrorMsg() const override
 	{
 		return m_error_msg;
 	}
@@ -147,47 +147,47 @@ public:
 	void Serialize();
 
 	// copy necessary info for error propagation
-	virtual void CopyPropErrCtxt(const IErrorContext *perrctxt);
+	void CopyPropErrCtxt(const IErrorContext *perrctxt) override;
 
 	// severity accessor
-	virtual ULONG
-	GetSeverity() const
+	ULONG
+	GetSeverity() const override
 	{
 		return m_severity;
 	}
 
 	// set severity
-	virtual void
-	SetSev(ULONG severity)
+	void
+	SetSev(ULONG severity) override
 	{
 		m_severity = severity;
 	}
 
 	// print error stack trace
-	virtual void
-	AppendStackTrace()
+	void
+	AppendStackTrace() override
 	{
 		m_static_buffer.AppendFormat(GPOS_WSZ_LIT("\nStack trace:\n"));
 		m_stack_descriptor.AppendTrace(&m_static_buffer);
 	}
 
 	// print errno message
-	virtual void AppendErrnoMsg();
+	void AppendErrnoMsg() override;
 
-	virtual BOOL
-	IsPending() const
+	BOOL
+	IsPending() const override
 	{
 		return m_pending;
 	}
 
-	virtual BOOL
-	IsRethrown() const
+	BOOL
+	IsRethrown() const override
 	{
 		return m_rethrown;
 	}
 
-	virtual void
-	SetRethrow()
+	void
+	SetRethrow() override
 	{
 		m_rethrown = true;
 	}

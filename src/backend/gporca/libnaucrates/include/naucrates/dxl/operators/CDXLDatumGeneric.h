@@ -52,17 +52,17 @@ public:
 					 BOOL is_null, BYTE *data, ULONG length);
 
 	// dtor
-	virtual ~CDXLDatumGeneric();
+	~CDXLDatumGeneric() override;
 
 	// byte array
 	const BYTE *GetByteArray() const;
 
 	// serialize the datum as the given element
-	virtual void Serialize(CXMLSerializer *xml_serializer);
+	void Serialize(CXMLSerializer *xml_serializer) override;
 
 	// datum type
-	virtual EdxldatumType
-	GetDatumType() const
+	EdxldatumType
+	GetDatumType() const override
 	{
 		return CDXLDatum::EdxldatumGeneric;
 	}

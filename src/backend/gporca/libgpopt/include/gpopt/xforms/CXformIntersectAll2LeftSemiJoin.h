@@ -37,33 +37,33 @@ public:
 	explicit CXformIntersectAll2LeftSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformIntersectAll2LeftSemiJoin() = default;
+	~CXformIntersectAll2LeftSemiJoin() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfIntersectAll2LeftSemiJoin;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformIntersectAll2LeftSemiJoin";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
+	EXformPromise
 	Exfp(CExpressionHandle &  // exprhdl
-	) const
+	) const override
 	{
 		return CXform::ExfpHigh;
 	}
 
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-				   CExpression *pexpr) const;
+				   CExpression *pexpr) const override;
 
 };	// class CXformIntersectAll2LeftSemiJoin
 

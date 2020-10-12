@@ -69,71 +69,71 @@ public:
 				   BOOL is_enabled);
 
 	// dtor
-	~CMDTriggerGPDB();
+	~CMDTriggerGPDB() override;
 
 	// accessors
-	virtual const CWStringDynamic *
-	GetStrRepr() const
+	const CWStringDynamic *
+	GetStrRepr() const override
 	{
 		return m_dxl_str;
 	}
 
 	// trigger id
-	virtual IMDId *
-	MDId() const
+	IMDId *
+	MDId() const override
 	{
 		return m_mdid;
 	}
 
 	// trigger name
-	virtual CMDName
-	Mdname() const
+	CMDName
+	Mdname() const override
 	{
 		return *m_mdname;
 	}
 
 	// relation mdid
-	virtual IMDId *
-	GetRelMdId() const
+	IMDId *
+	GetRelMdId() const override
 	{
 		return m_rel_mdid;
 	}
 
 	// function mdid
-	virtual IMDId *
-	FuncMdId() const
+	IMDId *
+	FuncMdId() const override
 	{
 		return m_func_mdid;
 	}
 
 	// does trigger execute on a row-level
-	virtual BOOL ExecutesOnRowLevel() const;
+	BOOL ExecutesOnRowLevel() const override;
 
 	// is this a before trigger
-	virtual BOOL IsBefore() const;
+	BOOL IsBefore() const override;
 
 	// is this an insert trigger
-	virtual BOOL IsInsert() const;
+	BOOL IsInsert() const override;
 
 	// is this a delete trigger
-	virtual BOOL IsDelete() const;
+	BOOL IsDelete() const override;
 
 	// is this an update trigger
-	virtual BOOL IsUpdate() const;
+	BOOL IsUpdate() const override;
 
 	// is trigger enabled
-	virtual BOOL
-	IsEnabled() const
+	BOOL
+	IsEnabled() const override
 	{
 		return m_is_enabled;
 	}
 
 	// serialize object in DXL format
-	virtual void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
+	void Serialize(gpdxl::CXMLSerializer *xml_serializer) const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the type in the provided stream
-	virtual void DebugPrint(IOstream &os) const;
+	void DebugPrint(IOstream &os) const override;
 #endif
 };
 }  // namespace gpmd

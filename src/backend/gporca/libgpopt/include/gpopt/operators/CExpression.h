@@ -148,7 +148,7 @@ public:
 				CCost cost = GPOPT_INVALID_COST);
 
 	// dtor
-	~CExpression();
+	~CExpression() override;
 
 	// shorthand to access children
 	CExpression *
@@ -242,7 +242,7 @@ public:
 	BOOL HasOuterRefs();
 
 	// print driver
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 	// print driver, customized for expressions
 	IOstream &OsPrintExpression(IOstream &os, const CPrintPrefix * = NULL,

@@ -39,13 +39,13 @@ public:
 	// ctor
 	explicit COstreamBasic(WOSTREAM *ostream);
 
-	virtual ~COstreamBasic() = default;
+	~COstreamBasic() override = default;
 
 	// implement << operator
-	virtual IOstream &operator<<(const WCHAR *);
+	IOstream &operator<<(const WCHAR *) override;
 
 	// implement << operator
-	virtual IOstream &operator<<(const WCHAR);
+	IOstream &operator<<(const WCHAR) override;
 };
 
 }  // namespace gpos

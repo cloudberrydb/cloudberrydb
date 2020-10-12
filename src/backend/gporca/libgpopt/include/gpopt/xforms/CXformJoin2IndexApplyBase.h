@@ -91,8 +91,8 @@ protected:
 	// being targeted in the current xform rule, caller
 	// takes the ownership and responsibility to release
 	// the instance.
-	virtual CLogicalJoin *
-	PopLogicalJoin(CMemoryPool *mp) const
+	CLogicalJoin *
+	PopLogicalJoin(CMemoryPool *mp) const override
 	{
 		return GPOS_NEW(mp) TJoin(mp);
 	}
@@ -101,8 +101,8 @@ protected:
 	// that it is trying to transform to in the current
 	// xform rule, caller takes the ownership and
 	// responsibility to release the instance.
-	virtual CLogicalApply *
-	PopLogicalApply(CMemoryPool *mp, CColRefArray *colref_array) const
+	CLogicalApply *
+	PopLogicalApply(CMemoryPool *mp, CColRefArray *colref_array) const override
 	{
 		return GPOS_NEW(mp) TApply(mp, colref_array, m_fOuterJoin);
 	}
@@ -140,13 +140,13 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect,
-									   is_partial, eidxtype>() = default;
+	~CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, is_partial,
+							   eidxtype>() override = default;
 
 	// actual transform
-	virtual void
+	void
 	Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-			  CExpression *pexpr) const
+			  CExpression *pexpr) const override
 	{
 		GPOS_ASSERT(NULL != pxfctxt);
 		GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
@@ -209,8 +209,8 @@ public:
 	// return true if xform should be applied only once
 	// only when is_partial is true, CTE producer is created and is preprocessed,
 	// where it needs the entire tree for deriving relational properties.
-	virtual BOOL
-	IsApplyOnce()
+	BOOL
+	IsApplyOnce() override
 	{
 		return is_partial;
 	}

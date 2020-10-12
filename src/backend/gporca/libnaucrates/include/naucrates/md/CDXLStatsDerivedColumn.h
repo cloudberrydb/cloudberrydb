@@ -64,7 +64,7 @@ public:
 						   CDXLBucketArray *dxl_stats_bucket_array);
 
 	// dtor
-	virtual ~CDXLStatsDerivedColumn();
+	~CDXLStatsDerivedColumn() override;
 
 	// column identifier
 	ULONG

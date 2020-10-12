@@ -211,7 +211,7 @@ public:
 					 BOOL fIntermediate);
 
 	// dtor
-	~CGroupExpression();
+	~CGroupExpression() override;
 
 	// duplicate group expression accessor
 	CGroupExpression *
@@ -418,7 +418,7 @@ public:
 									   BOOL fComputeRootStats = true);
 
 	// print driver
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 	IOstream &OsPrintWithPrefix(IOstream &os, const CHAR *prefix) const;
 
 	// link for list in Group

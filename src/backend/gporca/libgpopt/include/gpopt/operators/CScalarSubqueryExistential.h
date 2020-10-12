@@ -37,34 +37,34 @@ public:
 	CScalarSubqueryExistential(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CScalarSubqueryExistential();
+	~CScalarSubqueryExistential() override;
 
 	// return the type of the scalar expression
-	virtual IMDId *MdidType() const;
+	IMDId *MdidType() const override;
 
 	// match function
-	BOOL Matches(COperator *pop) const;
+	BOOL Matches(COperator *pop) const override;
 
 	// sensitivity to order of inputs
 	BOOL
-	FInputOrderSensitive() const
+	FInputOrderSensitive() const override
 	{
 		return true;
 	}
 
 	// return a copy of the operator with remapped columns
-	virtual COperator *
+	COperator *
 	PopCopyWithRemappedColumns(CMemoryPool *,		//mp,
 							   UlongToColRefMap *,	//colref_mapping,
 							   BOOL					//must_exist
-	)
+							   ) override
 	{
 		return PopCopyDefault();
 	}
 
 	// derive partition consumer info
-	virtual CPartInfo *PpartinfoDerive(CMemoryPool *mp,
-									   CExpressionHandle &exprhdl) const;
+	CPartInfo *PpartinfoDerive(CMemoryPool *mp,
+							   CExpressionHandle &exprhdl) const override;
 
 	// conversion function
 	static CScalarSubqueryExistential *

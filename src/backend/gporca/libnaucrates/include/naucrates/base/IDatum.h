@@ -49,7 +49,7 @@ public:
 	IDatum() = default;
 
 	// dtor
-	virtual ~IDatum() = default;
+	~IDatum() override = default;
 
 	// accessor for datum type
 	virtual IMDType::ETypeInfo GetDatumType() = 0;

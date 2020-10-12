@@ -75,18 +75,18 @@ public:
 	CDrvdPropPlan();
 
 	// dtor
-	virtual ~CDrvdPropPlan();
+	~CDrvdPropPlan() override;
 
 	// type of properties
-	virtual EPropType
-	Ept()
+	EPropType
+	Ept() override
 	{
 		return EptPlan;
 	}
 
 	// derivation function
 	void Derive(CMemoryPool *mp, CExpressionHandle &exprhdl,
-				CDrvdPropCtxt *pdpctxt);
+				CDrvdPropCtxt *pdpctxt) override;
 
 	// short hand for conversion
 	static CDrvdPropPlan *Pdpplan(CDrvdProp *pdp);
@@ -140,10 +140,10 @@ public:
 	virtual ULONG Equals(const CDrvdPropPlan *pdpplan) const;
 
 	// check for satisfying required plan properties
-	virtual BOOL FSatisfies(const CReqdPropPlan *prpp) const;
+	BOOL FSatisfies(const CReqdPropPlan *prpp) const override;
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CDrvdPropPlan
 

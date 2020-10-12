@@ -41,7 +41,7 @@ class IConstExprEvaluator : public CRefCount
 {
 public:
 	// dtor
-	virtual ~IConstExprEvaluator() = default;
+	~IConstExprEvaluator() override = default;
 
 	// evaluate the given expression and return the result as a new expression
 	// caller takes ownership of returned expression

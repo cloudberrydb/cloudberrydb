@@ -36,18 +36,18 @@ public:
 	explicit CXformImplementTVFNoArgs(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementTVFNoArgs() = default;
+	~CXformImplementTVFNoArgs() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfImplementTVFNoArgs;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformImplementTVFNoArgs";
 	}

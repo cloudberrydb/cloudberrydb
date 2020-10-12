@@ -50,10 +50,10 @@ public:
 	explicit CSerializableMDAccessor(CMDAccessor *md_accessor);
 
 	// dtor
-	virtual ~CSerializableMDAccessor() = default;
+	~CSerializableMDAccessor() override = default;
 
 	// serialize object to passed stream
-	virtual void Serialize(COstream &oos);
+	void Serialize(COstream &oos) override;
 
 };	// class CSerializableMDAccessor
 }  // namespace gpopt

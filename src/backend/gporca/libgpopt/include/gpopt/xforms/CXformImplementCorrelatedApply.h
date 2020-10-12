@@ -52,11 +52,11 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementCorrelatedApply() = default;
+	~CXformImplementCorrelatedApply() override = default;
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
-	Exfp(CExpressionHandle &) const
+	EXformPromise
+	Exfp(CExpressionHandle &) const override
 	{
 		return CXform::ExfpHigh;
 	}
@@ -64,7 +64,7 @@ public:
 	// actual transform
 	void
 	Transform(CXformContext *pxfctxt, CXformResult *pxfres,
-			  CExpression *pexpr) const
+			  CExpression *pexpr) const override
 	{
 		GPOS_ASSERT(NULL != pxfctxt);
 		GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));

@@ -42,7 +42,7 @@ public:
 					 CExpressionArray *pdrgpexprConjuncts);
 
 	// dtor
-	virtual ~CJoinOrderGreedy();
+	~CJoinOrderGreedy() override;
 
 	// main handler
 	virtual CExpression *PexprExpand();

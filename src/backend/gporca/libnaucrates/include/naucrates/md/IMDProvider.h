@@ -44,7 +44,7 @@ protected:
 								  IMDType::ETypeInfo type_info);
 
 public:
-	virtual ~IMDProvider() = default;
+	~IMDProvider() override = default;
 
 	// returns the DXL string of the requested metadata object
 	virtual CWStringBase *GetMDObjDXLStr(CMemoryPool *mp,

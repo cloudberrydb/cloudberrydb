@@ -228,7 +228,7 @@ public:
 	// ctor/dtor
 	explicit CDXLOperator(CMemoryPool *);
 
-	virtual ~CDXLOperator();
+	~CDXLOperator() override;
 
 	// ident accessors
 	virtual Edxlopid GetDXLOperator() const = 0;

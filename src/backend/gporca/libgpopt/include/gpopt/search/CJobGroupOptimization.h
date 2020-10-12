@@ -95,7 +95,7 @@ public:
 	CJobGroupOptimization();
 
 	// dtor
-	virtual ~CJobGroupOptimization();
+	~CJobGroupOptimization() override;
 
 	// initialize job
 	void Init(CGroup *pgroup, CGroupExpression *pgexprOrigin,
@@ -116,14 +116,14 @@ public:
 	}
 
 	// get first unscheduled expression
-	virtual CGroupExpression *
-	PgexprFirstUnsched()
+	CGroupExpression *
+	PgexprFirstUnsched() override
 	{
 		return CJobGroup::PgexprFirstUnschedNonLogical();
 	}
 
 	// schedule optimization jobs for of all new group expressions
-	virtual BOOL FScheduleGroupExpressions(CSchedulerContext *psc);
+	BOOL FScheduleGroupExpressions(CSchedulerContext *psc) override;
 
 	// schedule a new group optimization job
 	static void ScheduleJob(CSchedulerContext *psc, CGroup *pgroup,
@@ -131,12 +131,12 @@ public:
 							COptimizationContext *poc, CJob *pjParent);
 
 	// job's function
-	virtual BOOL FExecute(CSchedulerContext *psc);
+	BOOL FExecute(CSchedulerContext *psc) override;
 
 #ifdef GPOS_DEBUG
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os);
+	IOstream &OsPrint(IOstream &os) override;
 
 	// dump state machine diagram in graphviz format
 	virtual IOstream &

@@ -49,17 +49,17 @@ public:
 	CDXLDatumOid(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, OID oid_val);
 
 	// dtor
-	virtual ~CDXLDatumOid() = default;
+	~CDXLDatumOid() override = default;
 
 	// accessor of oid value
 	OID OidValue() const;
 
 	// serialize the datum as the given element
-	virtual void Serialize(CXMLSerializer *xml_serializer);
+	void Serialize(CXMLSerializer *xml_serializer) override;
 
 	// datum type
-	virtual EdxldatumType
-	GetDatumType() const
+	EdxldatumType
+	GetDatumType() const override
 	{
 		return CDXLDatum::EdxldatumOid;
 	}

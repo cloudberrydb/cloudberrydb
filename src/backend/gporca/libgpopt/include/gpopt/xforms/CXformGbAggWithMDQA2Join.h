@@ -47,30 +47,31 @@ public:
 	explicit CXformGbAggWithMDQA2Join(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAggWithMDQA2Join() = default;
+	~CXformGbAggWithMDQA2Join() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfGbAggWithMDQA2Join;
 	}
 
 	// return a string for xform name
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformGbAggWithMDQA2Join";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
+	EXformPromise Exfp(CExpressionHandle &exprhdl) const override;
 
 	// actual transform
-	void Transform(CXformContext *, CXformResult *, CExpression *) const;
+	void Transform(CXformContext *, CXformResult *,
+				   CExpression *) const override;
 
 	// return true if xform should be applied only once
-	virtual BOOL IsApplyOnce();
+	BOOL IsApplyOnce() override;
 
 };	// class CXformGbAggWithMDQA2Join
 

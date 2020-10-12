@@ -37,24 +37,24 @@ public:
 	explicit CXformImplementSequenceProject(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementSequenceProject() = default;
+	~CXformImplementSequenceProject() override = default;
 
 	// ident accessors
-	virtual EXformId
-	Exfid() const
+	EXformId
+	Exfid() const override
 	{
 		return ExfImplementSequenceProject;
 	}
 
-	virtual const CHAR *
-	SzId() const
+	const CHAR *
+	SzId() const override
 	{
 		return "CXformImplementSequenceProject";
 	}
 
 	// compute xform promise for a given expression handle
-	virtual EXformPromise
-	Exfp(CExpressionHandle &exprhdl) const
+	EXformPromise
+	Exfp(CExpressionHandle &exprhdl) const override
 	{
 		if (exprhdl.DeriveHasSubquery(1))
 		{
@@ -65,8 +65,8 @@ public:
 	}
 
 	// actual transform
-	virtual void Transform(CXformContext *, CXformResult *,
-						   CExpression *) const;
+	void Transform(CXformContext *, CXformResult *,
+				   CExpression *) const override;
 
 };	// class CXformImplementSequenceProject
 

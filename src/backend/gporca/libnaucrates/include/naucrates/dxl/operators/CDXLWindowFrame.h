@@ -70,7 +70,7 @@ public:
 					CDXLNode *dxlnode_leading, CDXLNode *dxlnode_trailing);
 
 	//dtor
-	virtual ~CDXLWindowFrame();
+	~CDXLWindowFrame() override;
 
 	EdxlFrameSpec
 	ParseDXLFrameSpec() const

@@ -61,10 +61,10 @@ public:
 	CEnfdOrder(COrderSpec *pos, EOrderMatching eom);
 
 	// dtor
-	virtual ~CEnfdOrder();
+	~CEnfdOrder() override;
 
 	// hash function
-	virtual ULONG HashValue() const;
+	ULONG HashValue() const override;
 
 	// check if the given order specification is compatible with the
 	// order specification of this object for the specified matching type
@@ -82,8 +82,8 @@ public:
 							BOOL fOrderReqd) const;
 
 	// property spec accessor
-	virtual CPropSpec *
-	Pps() const
+	CPropSpec *
+	Pps() const override
 	{
 		return m_pos;
 	}
@@ -105,7 +105,7 @@ public:
 	}
 
 	// print function
-	virtual IOstream &OsPrint(IOstream &os) const;
+	IOstream &OsPrint(IOstream &os) const override;
 
 };	// class CEnfdOrder
 
