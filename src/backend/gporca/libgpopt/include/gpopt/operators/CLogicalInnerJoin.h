@@ -30,17 +30,14 @@ class CColRefSet;
 class CLogicalInnerJoin : public CLogicalJoin
 {
 private:
-	// private copy ctor
-	CLogicalInnerJoin(const CLogicalInnerJoin &);
+	CLogicalInnerJoin(const CLogicalInnerJoin &) = delete;
 
 public:
 	// ctor
 	explicit CLogicalInnerJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalInnerJoin()
-	{
-	}
+	virtual ~CLogicalInnerJoin() = default;
 
 
 	// ident accessors

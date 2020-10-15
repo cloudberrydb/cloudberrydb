@@ -32,8 +32,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalCTEConsumer : public CParseHandlerPhysicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerPhysicalCTEConsumer(const CParseHandlerPhysicalCTEConsumer &);
+	CParseHandlerPhysicalCTEConsumer(const CParseHandlerPhysicalCTEConsumer &) =
+		delete;
 
 	// process the start of an element
 	virtual void StartElement(

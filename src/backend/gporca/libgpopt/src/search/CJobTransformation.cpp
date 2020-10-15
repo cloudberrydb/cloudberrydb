@@ -63,9 +63,7 @@ const WCHAR rgwszEvents[CJobTransformation::eevSentinel]
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJobTransformation::CJobTransformation()
-{
-}
+CJobTransformation::CJobTransformation() = default;
 
 
 //---------------------------------------------------------------------------
@@ -76,9 +74,7 @@ CJobTransformation::CJobTransformation()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJobTransformation::~CJobTransformation()
-{
-}
+CJobTransformation::~CJobTransformation() = default;
 
 
 //---------------------------------------------------------------------------

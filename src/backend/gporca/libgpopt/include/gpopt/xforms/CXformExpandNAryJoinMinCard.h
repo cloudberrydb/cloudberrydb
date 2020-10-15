@@ -31,17 +31,14 @@ using namespace gpos;
 class CXformExpandNAryJoinMinCard : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformExpandNAryJoinMinCard(const CXformExpandNAryJoinMinCard &);
+	CXformExpandNAryJoinMinCard(const CXformExpandNAryJoinMinCard &) = delete;
 
 public:
 	// ctor
 	explicit CXformExpandNAryJoinMinCard(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformExpandNAryJoinMinCard()
-	{
-	}
+	virtual ~CXformExpandNAryJoinMinCard() = default;
 
 	// ident accessors
 	virtual EXformId

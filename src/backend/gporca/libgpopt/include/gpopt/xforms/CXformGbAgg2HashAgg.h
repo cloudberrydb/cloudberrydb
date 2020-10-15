@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformGbAgg2HashAgg : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformGbAgg2HashAgg(const CXformGbAgg2HashAgg &);
+	CXformGbAgg2HashAgg(const CXformGbAgg2HashAgg &) = delete;
 
 protected:
 	// check if the transformation is applicable
@@ -44,9 +43,7 @@ public:
 	explicit CXformGbAgg2HashAgg(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformGbAgg2HashAgg()
-	{
-	}
+	virtual ~CXformGbAgg2HashAgg() = default;
 
 	// ident accessors
 	virtual EXformId

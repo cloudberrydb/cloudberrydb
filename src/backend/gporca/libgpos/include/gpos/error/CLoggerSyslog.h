@@ -38,8 +38,7 @@ private:
 	// message priotity
 	ULONG m_message_priority;
 
-	// no copy ctor
-	CLoggerSyslog(const CLoggerSyslog &);
+	CLoggerSyslog(const CLoggerSyslog &) = delete;
 
 	// write string to syslog
 	void Write(const WCHAR *log_entry, ULONG severity);

@@ -39,8 +39,7 @@ private:
 	// list of source column ids
 	ULongPtrArray *m_src_colids_array;
 
-	// private copy ctor
-	CDXLLogicalInsert(const CDXLLogicalInsert &);
+	CDXLLogicalInsert(const CDXLLogicalInsert &) = delete;
 
 public:
 	// ctor/dtor

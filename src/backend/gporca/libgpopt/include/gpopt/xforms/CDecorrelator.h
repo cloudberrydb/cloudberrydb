@@ -52,13 +52,12 @@ private:
 	};	// struct SOperatorHandler
 
 	// private ctor
-	CDecorrelator();
+	CDecorrelator() = delete;
 
 	// private dtor
-	virtual ~CDecorrelator();
+	virtual ~CDecorrelator() = delete;
 
-	// private copy ctor
-	CDecorrelator(const CDecorrelator &);
+	CDecorrelator(const CDecorrelator &) = delete;
 
 	// helper to check if correlations below join are valid to be pulled-up
 	static BOOL FPullableCorrelations(CMemoryPool *mp, CExpression *pexpr,

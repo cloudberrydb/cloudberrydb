@@ -49,8 +49,7 @@ class IConstExprEvaluator;
 class COptCtxt : public CTaskLocalStorageObject
 {
 private:
-	// private copy ctor
-	COptCtxt(COptCtxt &);
+	COptCtxt(COptCtxt &) = delete;
 
 	// shared memory pool
 	CMemoryPool *m_mp;

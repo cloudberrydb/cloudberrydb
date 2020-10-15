@@ -259,8 +259,7 @@ public:
 									  COperator::EGbAggType egbaggtype);
 
 private:
-	// private copy ctor
-	CLogicalGbAgg(const CLogicalGbAgg &);
+	CLogicalGbAgg(const CLogicalGbAgg &) = delete;
 
 	// array of grouping columns
 	CColRefArray *m_pdrgpcr;

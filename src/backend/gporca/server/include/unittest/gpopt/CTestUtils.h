@@ -142,7 +142,7 @@ public:
 		CAutoOptCtxt m_aoc;
 
 		// private ctor
-		CTestSetup(const CTestSetup &);
+		CTestSetup(const CTestSetup &) = delete;
 
 		// set up a file based provider
 		static CMDProviderMemory *PmdpSetupFileBasedProvider();

@@ -40,9 +40,7 @@ CPhysicalSpool::CPhysicalSpool(CMemoryPool *mp, BOOL eager)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalSpool::~CPhysicalSpool()
-{
-}
+CPhysicalSpool::~CPhysicalSpool() = default;
 
 
 //---------------------------------------------------------------------------

@@ -42,8 +42,7 @@ private:
 	// required columns by local members
 	CColRefSet *m_pcrsRequiredLocal;
 
-	// private copy ctor
-	CPhysicalRowTrigger(const CPhysicalRowTrigger &);
+	CPhysicalRowTrigger(const CPhysicalRowTrigger &) = delete;
 
 public:
 	// ctor

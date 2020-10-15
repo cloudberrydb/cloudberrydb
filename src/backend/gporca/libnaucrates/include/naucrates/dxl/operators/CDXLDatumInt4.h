@@ -42,15 +42,14 @@ private:
 	// int4 value
 	INT m_val;
 
-	// private copy ctor
-	CDXLDatumInt4(const CDXLDatumInt4 &);
+	CDXLDatumInt4(const CDXLDatumInt4 &) = delete;
 
 public:
 	// ctor
 	CDXLDatumInt4(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, INT val);
 
 	// dtor
-	virtual ~CDXLDatumInt4(){};
+	virtual ~CDXLDatumInt4() = default;
 
 	// accessor of int value
 	INT Value() const;

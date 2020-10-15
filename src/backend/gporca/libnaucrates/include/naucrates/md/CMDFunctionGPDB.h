@@ -88,8 +88,7 @@ private:
 	// initialize dxl token arrays
 	void InitDXLTokenArrays();
 
-	// private copy ctor
-	CMDFunctionGPDB(const CMDFunctionGPDB &);
+	CMDFunctionGPDB(const CMDFunctionGPDB &) = delete;
 
 public:
 	// ctor/dtor

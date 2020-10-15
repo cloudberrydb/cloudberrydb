@@ -41,8 +41,7 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
-	// private copy ctor
-	CScalarNullIf(const CScalarNullIf &);
+	CScalarNullIf(const CScalarNullIf &) = delete;
 
 public:
 	// ctor

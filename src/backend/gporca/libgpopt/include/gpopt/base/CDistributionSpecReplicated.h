@@ -32,14 +32,11 @@ using namespace gpos;
 class CDistributionSpecReplicated : public CDistributionSpec
 {
 private:
-	// private copy ctor
-	CDistributionSpecReplicated(const CDistributionSpecReplicated &);
+	CDistributionSpecReplicated(const CDistributionSpecReplicated &) = delete;
 
 public:
 	// ctor
-	CDistributionSpecReplicated()
-	{
-	}
+	CDistributionSpecReplicated() = default;
 
 	// accessor
 	virtual EDistributionType

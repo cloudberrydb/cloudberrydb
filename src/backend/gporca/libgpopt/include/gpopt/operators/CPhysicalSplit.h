@@ -51,8 +51,7 @@ private:
 	// required columns by local members
 	CColRefSet *m_pcrsRequiredLocal;
 
-	// private copy ctor
-	CPhysicalSplit(const CPhysicalSplit &);
+	CPhysicalSplit(const CPhysicalSplit &) = delete;
 
 public:
 	// ctor

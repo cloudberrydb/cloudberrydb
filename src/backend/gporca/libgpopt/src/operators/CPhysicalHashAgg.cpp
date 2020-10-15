@@ -48,9 +48,7 @@ CPhysicalHashAgg::CPhysicalHashAgg(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalHashAgg::~CPhysicalHashAgg()
-{
-}
+CPhysicalHashAgg::~CPhysicalHashAgg() = default;
 
 
 //---------------------------------------------------------------------------

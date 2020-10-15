@@ -37,8 +37,7 @@ private:
 	// array of partition columns used by the window functions
 	ULongPtrArray *m_part_by_colid_array;
 
-	// private copy ctor
-	CParseHandlerPhysicalWindow(const CParseHandlerPhysicalWindow &);
+	CParseHandlerPhysicalWindow(const CParseHandlerPhysicalWindow &) = delete;
 
 	// process the start of an element
 	void StartElement(

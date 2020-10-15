@@ -37,8 +37,7 @@ class CXMLSerializer;
 class CDXLDatum : public CRefCount
 {
 private:
-	// private copy ctor
-	CDXLDatum(const CDXLDatum &);
+	CDXLDatum(const CDXLDatum &) = delete;
 
 protected:
 	// memory pool

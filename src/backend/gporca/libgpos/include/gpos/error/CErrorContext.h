@@ -68,8 +68,7 @@ private:
 	// minidump handler
 	CMiniDumper *m_mini_dumper_handle;
 
-	// private copy ctor
-	CErrorContext(const CErrorContext &);
+	CErrorContext(const CErrorContext &) = delete;
 
 public:
 	// ctor

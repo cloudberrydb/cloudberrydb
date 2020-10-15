@@ -39,8 +39,7 @@ private:
 	// mapping colref -> array of child constraints
 	ColRefToConstraintArrayMap *m_phmcolconstr;
 
-	// hidden copy ctor
-	CConstraintConjunction(const CConstraintConjunction &);
+	CConstraintConjunction(const CConstraintConjunction &) = delete;
 
 public:
 	// ctor

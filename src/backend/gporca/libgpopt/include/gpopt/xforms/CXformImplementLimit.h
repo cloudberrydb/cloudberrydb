@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementLimit : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementLimit(const CXformImplementLimit &);
+	CXformImplementLimit(const CXformImplementLimit &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementLimit(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementLimit()
-	{
-	}
+	virtual ~CXformImplementLimit() = default;
 
 	// ident accessors
 	virtual EXformId

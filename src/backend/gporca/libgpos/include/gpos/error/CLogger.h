@@ -62,8 +62,7 @@ private:
 	// report logging failure
 	void ReportFailure();
 
-	// no copy ctor
-	CLogger(const CLogger &);
+	CLogger(const CLogger &) = delete;
 
 protected:
 	// accessor for system error buffer

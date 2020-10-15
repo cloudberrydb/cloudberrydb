@@ -111,8 +111,7 @@ private:
 	// Methods for internal use
 	//-------------------------------------------------------------------
 
-	// no copy ctor
-	CWorkerPoolManager(const CWorkerPoolManager &);
+	CWorkerPoolManager(const CWorkerPoolManager &) = delete;
 
 	// private ctor
 	CWorkerPoolManager(CMemoryPool *mp);

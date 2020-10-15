@@ -94,8 +94,7 @@ private:
 	// insert mapping entry
 	void Insert(ULONG, ULONG, INT, ULONG, CWStringBase *str);
 
-	// no copy constructor
-	CMappingVarColId(const CMappingVarColId &);
+	CMappingVarColId(const CMappingVarColId &) = delete;
 
 	// helper function to access mapping
 	const CGPDBAttOptCol *GetGPDBAttOptColMapping(

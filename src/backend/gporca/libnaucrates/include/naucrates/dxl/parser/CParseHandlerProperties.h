@@ -43,7 +43,7 @@ private:
 	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
 	// private ctor
-	CParseHandlerProperties(const CParseHandlerProperties &);
+	CParseHandlerProperties(const CParseHandlerProperties &) = delete;
 
 	// process the start of an element
 	void StartElement(

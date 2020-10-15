@@ -31,9 +31,7 @@ class IOstream
 {
 protected:
 	// ctor
-	IOstream()
-	{
-	}
+	IOstream() = default;
 
 public:
 	enum EStreamManipulator
@@ -44,9 +42,7 @@ public:
 	};
 
 	// virtual dtor
-	virtual ~IOstream()
-	{
-	}
+	virtual ~IOstream() = default;
 
 	// operator interface
 	virtual IOstream &operator<<(const CHAR *) = 0;

@@ -248,8 +248,7 @@ private:
 	// implementation job queue
 	CJobQueue m_jqImplementation;
 
-	// private copy ctor
-	CGroup(const CGroup &);
+	CGroup(const CGroup &) = delete;
 
 	// cleanup optimization contexts on destruction
 	void CleanupContexts();

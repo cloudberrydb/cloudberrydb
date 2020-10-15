@@ -28,8 +28,7 @@ namespace gpopt
 class CPhysicalNLJoin : public CPhysicalJoin
 {
 private:
-	// private copy ctor
-	CPhysicalNLJoin(const CPhysicalNLJoin &);
+	CPhysicalNLJoin(const CPhysicalNLJoin &) = delete;
 
 protected:
 	// helper function for computing the required partition propagation

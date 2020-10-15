@@ -34,8 +34,7 @@ private:
 	// column
 	const CColRef *m_pcr;
 
-	// private copy ctor
-	CScalarIdent(const CScalarIdent &);
+	CScalarIdent(const CScalarIdent &) = delete;
 
 
 public:
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarIdent()
-	{
-	}
+	virtual ~CScalarIdent() = default;
 
 	// ident accessors
 	virtual EOperatorId

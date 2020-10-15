@@ -35,8 +35,7 @@ class CXMLSerializer;
 class CDXLLogical : public CDXLOperator
 {
 private:
-	// private copy ctor
-	CDXLLogical(const CDXLLogical &);
+	CDXLLogical(const CDXLLogical &) = delete;
 
 public:
 	// ctor/dtor

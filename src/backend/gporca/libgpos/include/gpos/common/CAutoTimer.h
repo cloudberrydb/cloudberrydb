@@ -38,8 +38,7 @@ private:
 	// trigger printing at destruction time
 	BOOL m_print_text_label;
 
-	// private copy ctor
-	CAutoTimer(const CAutoTimer &);
+	CAutoTimer(const CAutoTimer &) = delete;
 
 public:
 	// ctor

@@ -46,8 +46,7 @@ private:
 	// output columns
 	CColRefSet *m_pcrsOutput;
 
-	// private copy ctor
-	CPhysicalTVF(const CPhysicalTVF &);
+	CPhysicalTVF(const CPhysicalTVF &) = delete;
 
 public:
 	// ctor

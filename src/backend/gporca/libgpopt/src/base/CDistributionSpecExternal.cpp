@@ -23,9 +23,7 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CDistributionSpecExternal::CDistributionSpecExternal()
-{
-}
+CDistributionSpecExternal::CDistributionSpecExternal() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

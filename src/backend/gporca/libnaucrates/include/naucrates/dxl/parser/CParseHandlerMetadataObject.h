@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerMetadataObject : public CParseHandlerBase
 {
 private:
-	// private copy ctor
-	CParseHandlerMetadataObject(const CParseHandlerMetadataObject &);
+	CParseHandlerMetadataObject(const CParseHandlerMetadataObject &) = delete;
 
 
 protected:

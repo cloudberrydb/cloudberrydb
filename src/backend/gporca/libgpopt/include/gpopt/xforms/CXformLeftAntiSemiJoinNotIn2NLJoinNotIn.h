@@ -29,18 +29,15 @@ using namespace gpos;
 class CXformLeftAntiSemiJoinNotIn2NLJoinNotIn : public CXformImplementation
 {
 private:
-	// private copy ctor
 	CXformLeftAntiSemiJoinNotIn2NLJoinNotIn(
-		const CXformLeftAntiSemiJoinNotIn2NLJoinNotIn &);
+		const CXformLeftAntiSemiJoinNotIn2NLJoinNotIn &) = delete;
 
 public:
 	// ctor
 	explicit CXformLeftAntiSemiJoinNotIn2NLJoinNotIn(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftAntiSemiJoinNotIn2NLJoinNotIn()
-	{
-	}
+	virtual ~CXformLeftAntiSemiJoinNotIn2NLJoinNotIn() = default;
 
 	// ident accessors
 	virtual EXformId

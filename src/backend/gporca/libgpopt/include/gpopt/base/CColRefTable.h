@@ -37,8 +37,7 @@ using namespace gpos;
 class CColRefTable : public CColRef
 {
 private:
-	// private copy ctor
-	CColRefTable(const CColRefTable &);
+	CColRefTable(const CColRefTable &) = delete;
 
 	// attno from catalog
 	INT m_iAttno;

@@ -39,8 +39,7 @@ private:
 	// the table scan operator
 	CDXLPhysicalTableScan *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerTableScan(const CParseHandlerTableScan &);
+	CParseHandlerTableScan(const CParseHandlerTableScan &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

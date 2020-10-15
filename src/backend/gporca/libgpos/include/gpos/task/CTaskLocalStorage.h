@@ -46,9 +46,7 @@ public:
 	};
 
 	// ctor
-	CTaskLocalStorage()
-	{
-	}
+	CTaskLocalStorage() = default;
 
 	// dtor
 	~CTaskLocalStorage();
@@ -86,8 +84,7 @@ private:
 	// hash table
 	CSyncHashtable<CTaskLocalStorageObject, Etlsidx> m_hash_table;
 
-	// private copy ctor
-	CTaskLocalStorage(const CTaskLocalStorage &);
+	CTaskLocalStorage(const CTaskLocalStorage &) = delete;
 
 };	// class CTaskLocalStorage
 }  // namespace gpos

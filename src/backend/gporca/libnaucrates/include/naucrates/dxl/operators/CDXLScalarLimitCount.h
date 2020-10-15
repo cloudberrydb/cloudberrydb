@@ -32,8 +32,7 @@ using namespace gpos;
 class CDXLScalarLimitCount : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarLimitCount(const CDXLScalarLimitCount &);
+	CDXLScalarLimitCount(const CDXLScalarLimitCount &) = delete;
 
 public:
 	// ctor/dtor

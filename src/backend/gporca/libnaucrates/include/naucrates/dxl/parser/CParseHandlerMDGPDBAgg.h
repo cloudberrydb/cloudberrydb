@@ -58,8 +58,7 @@ private:
 	// can we use hash aggregation to compute agg function
 	BOOL m_hash_agg_capable;
 
-	// private copy ctor
-	CParseHandlerMDGPDBAgg(const CParseHandlerMDGPDBAgg &);
+	CParseHandlerMDGPDBAgg(const CParseHandlerMDGPDBAgg &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -55,8 +55,7 @@ private:
 	// does the interval include the null value
 	BOOL m_fIncludesNull;
 
-	// hidden copy ctor
-	CConstraintInterval(const CConstraintInterval &);
+	CConstraintInterval(const CConstraintInterval &) = delete;
 
 	// adds ranges from a source array to a destination array, starting
 	// at the range with the given index

@@ -46,8 +46,7 @@ private:
 	// is operator's return type BOOL?
 	BOOL m_fBoolReturnType;
 
-	// private copy ctor
-	CScalarCast(const CScalarCast &);
+	CScalarCast(const CScalarCast &) = delete;
 
 public:
 	// ctor

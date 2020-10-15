@@ -49,22 +49,17 @@ class CWorkerId;
 class IWorker : public CStackObject
 {
 private:
-	// hidden copy ctor
-	IWorker(const IWorker &);
+	IWorker(const IWorker &) = delete;
 
 	// check for abort request
 	virtual void CheckForAbort(const CHAR *, ULONG) = 0;
 
 public:
 	// dummy ctor
-	IWorker()
-	{
-	}
+	IWorker() = default;
 
 	// dummy dtor
-	virtual ~IWorker()
-	{
-	}
+	virtual ~IWorker() = default;
 
 	// accessors
 	virtual ULONG_PTR GetStackStart() const = 0;

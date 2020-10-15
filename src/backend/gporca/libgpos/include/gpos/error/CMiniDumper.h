@@ -34,8 +34,7 @@ private:
 	// flag indicating if handler is finalized
 	BOOL m_finalized;
 
-	// private copy ctor
-	CMiniDumper(const CMiniDumper &);
+	CMiniDumper(const CMiniDumper &) = delete;
 
 protected:
 	// stream to serialize objects to

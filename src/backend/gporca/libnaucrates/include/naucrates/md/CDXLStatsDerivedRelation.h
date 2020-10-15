@@ -47,8 +47,7 @@ private:
 	// array of derived column statistics
 	CDXLStatsDerivedColumnArray *m_dxl_stats_derived_col_array;
 
-	// private copy ctor
-	CDXLStatsDerivedRelation(const CDXLStatsDerivedRelation &);
+	CDXLStatsDerivedRelation(const CDXLStatsDerivedRelation &) = delete;
 
 public:
 	// ctor

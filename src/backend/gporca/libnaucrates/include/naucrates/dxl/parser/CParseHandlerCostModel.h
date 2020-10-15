@@ -41,8 +41,7 @@ private:
 
 	CParseHandlerCostParams *m_parse_handler_cost_params;
 
-	// private copy ctor
-	CParseHandlerCostModel(const CParseHandlerCostModel &);
+	CParseHandlerCostModel(const CParseHandlerCostModel &) = delete;
 
 	// process the start of an element
 	void StartElement(

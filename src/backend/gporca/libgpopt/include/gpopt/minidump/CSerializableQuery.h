@@ -45,8 +45,7 @@ private:
 	const CDXLNodeArray *m_cte_producers;
 
 
-	// private copy ctor
-	CSerializableQuery(const CSerializableQuery &);
+	CSerializableQuery(const CSerializableQuery &) = delete;
 
 public:
 	// ctor

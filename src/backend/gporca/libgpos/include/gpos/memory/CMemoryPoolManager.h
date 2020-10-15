@@ -65,8 +65,7 @@ private:
 	// create new pool of given type
 	virtual CMemoryPool *NewMemoryPool();
 
-	// no copy ctor
-	CMemoryPoolManager(const CMemoryPoolManager &);
+	CMemoryPoolManager(const CMemoryPoolManager &) = delete;
 
 	// clean-up memory pools
 	void Cleanup();
@@ -155,9 +154,7 @@ public:
 		return m_global_memory_pool;
 	}
 
-	virtual ~CMemoryPoolManager()
-	{
-	}
+	virtual ~CMemoryPoolManager() = default;
 
 	// are allocations using global new operator allowed?
 	BOOL

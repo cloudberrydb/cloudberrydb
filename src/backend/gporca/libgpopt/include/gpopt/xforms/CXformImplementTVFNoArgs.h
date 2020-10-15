@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementTVFNoArgs : public CXformImplementTVF
 {
 private:
-	// private copy ctor
-	CXformImplementTVFNoArgs(const CXformImplementTVFNoArgs &);
+	CXformImplementTVFNoArgs(const CXformImplementTVFNoArgs &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementTVFNoArgs(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementTVFNoArgs()
-	{
-	}
+	virtual ~CXformImplementTVFNoArgs() = default;
 
 	// ident accessors
 	virtual EXformId

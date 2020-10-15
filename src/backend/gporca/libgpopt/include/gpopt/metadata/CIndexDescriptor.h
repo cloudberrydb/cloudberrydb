@@ -55,8 +55,7 @@ private:
 	// index type
 	IMDIndex::EmdindexType m_index_type;
 
-	// private copy ctor
-	CIndexDescriptor(const CIndexDescriptor &);
+	CIndexDescriptor(const CIndexDescriptor &) = delete;
 
 public:
 	// ctor

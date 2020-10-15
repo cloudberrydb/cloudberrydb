@@ -34,8 +34,7 @@ private:
 	// the root of the parsed DXL tree constructed by the parse handler
 	CDXLNode *m_dxl_node;
 
-	// private copy ctor
-	CParseHandlerScalarExpr(const CParseHandlerScalarExpr &);
+	CParseHandlerScalarExpr(const CParseHandlerScalarExpr &) = delete;
 
 protected:
 	// returns the parse handler type

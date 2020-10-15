@@ -46,8 +46,7 @@ private:
 	// gp_segment_id values rather than hashable datums
 	BOOL m_contains_raw_values;
 
-	// private copy ctor
-	CDXLDirectDispatchInfo(const CDXLDirectDispatchInfo &);
+	CDXLDirectDispatchInfo(const CDXLDirectDispatchInfo &) = delete;
 
 public:
 	// ctor

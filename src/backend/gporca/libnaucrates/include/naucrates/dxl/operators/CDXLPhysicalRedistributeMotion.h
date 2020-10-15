@@ -46,8 +46,8 @@ private:
 	// is this a duplicate sensitive redistribute motion
 	BOOL m_is_duplicate_sensitive;
 
-	// private copy ctor
-	CDXLPhysicalRedistributeMotion(const CDXLPhysicalRedistributeMotion &);
+	CDXLPhysicalRedistributeMotion(const CDXLPhysicalRedistributeMotion &) =
+		delete;
 
 
 public:

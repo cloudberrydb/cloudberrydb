@@ -40,8 +40,8 @@ class CPartConstraint;
 class CPhysicalDynamicBitmapTableScan : public CPhysicalDynamicScan
 {
 private:
-	// disable copy ctor
-	CPhysicalDynamicBitmapTableScan(const CPhysicalDynamicBitmapTableScan &);
+	CPhysicalDynamicBitmapTableScan(const CPhysicalDynamicBitmapTableScan &) =
+		delete;
 
 public:
 	// ctor

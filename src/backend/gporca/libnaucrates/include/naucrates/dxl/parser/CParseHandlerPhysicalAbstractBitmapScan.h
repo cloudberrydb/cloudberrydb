@@ -34,9 +34,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalAbstractBitmapScan : public CParseHandlerPhysicalOp
 {
 private:
-	// private copy ctor
 	CParseHandlerPhysicalAbstractBitmapScan(
-		const CParseHandlerPhysicalAbstractBitmapScan &);
+		const CParseHandlerPhysicalAbstractBitmapScan &) = delete;
 
 protected:
 	// common StartElement functionality for child classes

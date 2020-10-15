@@ -134,9 +134,7 @@ private:
 #endif	// GPOS_DEBUG
 
 		// dummy ctor
-		SElem()
-		{
-		}
+		SElem() = default;
 
 		// Id accessor
 		ULONG

@@ -47,8 +47,7 @@ private:
 	// value of error context stack when object is created
 	void *m_error_context_stack;
 
-	// private copy ctor
-	CAutoExceptionStack(const CAutoExceptionStack &);
+	CAutoExceptionStack(const CAutoExceptionStack &) = delete;
 
 public:
 	// ctor

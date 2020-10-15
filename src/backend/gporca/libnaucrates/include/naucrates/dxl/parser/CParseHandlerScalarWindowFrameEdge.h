@@ -33,7 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarWindowFrameEdge : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
 	CParseHandlerScalarWindowFrameEdge(
 		const CParseHandlerScalarWindowFrameEdge &);
 

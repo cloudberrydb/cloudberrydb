@@ -47,9 +47,7 @@ CLoggerSyslog::CLoggerSyslog(const CHAR *proc_name, ULONG init_mask,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLoggerSyslog::~CLoggerSyslog()
-{
-}
+CLoggerSyslog::~CLoggerSyslog() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

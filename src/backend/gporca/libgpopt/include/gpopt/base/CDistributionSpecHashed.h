@@ -74,8 +74,7 @@ private:
 
 	BOOL FDistributionSpecHashedOnlyOnGpSegmentId() const;
 
-	// private copy ctor
-	CDistributionSpecHashed(const CDistributionSpecHashed &);
+	CDistributionSpecHashed(const CDistributionSpecHashed &) = delete;
 
 public:
 	// ctor

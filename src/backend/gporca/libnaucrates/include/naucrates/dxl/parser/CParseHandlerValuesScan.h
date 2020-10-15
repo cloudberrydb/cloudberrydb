@@ -38,8 +38,7 @@ private:
 	// the ValuesScan operator
 	CDXLPhysicalValuesScan *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerValuesScan(const CParseHandlerValuesScan &);
+	CParseHandlerValuesScan(const CParseHandlerValuesScan &) = delete;
 
 	// process the start of an element
 	void StartElement(

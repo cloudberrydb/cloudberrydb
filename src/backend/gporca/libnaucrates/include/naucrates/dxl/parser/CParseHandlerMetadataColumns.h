@@ -40,8 +40,7 @@ private:
 	// list of columns
 	CMDColumnArray *m_md_col_array;
 
-	// private copy ctor
-	CParseHandlerMetadataColumns(const CParseHandlerMetadataColumns &);
+	CParseHandlerMetadataColumns(const CParseHandlerMetadataColumns &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -46,9 +46,7 @@ CParseHandlerScalarComp::CParseHandlerScalarComp(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CParseHandlerScalarComp::~CParseHandlerScalarComp()
-{
-}
+CParseHandlerScalarComp::~CParseHandlerScalarComp() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

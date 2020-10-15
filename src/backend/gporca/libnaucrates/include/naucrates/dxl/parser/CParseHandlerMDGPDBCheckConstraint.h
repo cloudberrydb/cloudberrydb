@@ -43,9 +43,8 @@ private:
 	// mdid of the relation
 	IMDId *m_rel_mdid;
 
-	// private copy ctor
 	CParseHandlerMDGPDBCheckConstraint(
-		const CParseHandlerMDGPDBCheckConstraint &);
+		const CParseHandlerMDGPDBCheckConstraint &) = delete;
 
 	// process the start of an element
 	void StartElement(

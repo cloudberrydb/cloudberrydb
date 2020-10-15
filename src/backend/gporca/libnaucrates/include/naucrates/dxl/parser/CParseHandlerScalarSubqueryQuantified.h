@@ -38,9 +38,8 @@ private:
 	// scalar subquery operator
 	CDXLScalar *m_dxl_op;
 
-	// private copy ctor
 	CParseHandlerScalarSubqueryQuantified(
-		const CParseHandlerScalarSubqueryQuantified &);
+		const CParseHandlerScalarSubqueryQuantified &) = delete;
 
 	// process the start of an element
 	void StartElement(

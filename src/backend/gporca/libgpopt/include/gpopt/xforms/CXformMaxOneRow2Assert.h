@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformMaxOneRow2Assert : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformMaxOneRow2Assert(const CXformMaxOneRow2Assert &);
+	CXformMaxOneRow2Assert(const CXformMaxOneRow2Assert &) = delete;
 
 public:
 	// ctor
 	explicit CXformMaxOneRow2Assert(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformMaxOneRow2Assert()
-	{
-	}
+	virtual ~CXformMaxOneRow2Assert() = default;
 
 	// ident accessors
 	virtual EXformId

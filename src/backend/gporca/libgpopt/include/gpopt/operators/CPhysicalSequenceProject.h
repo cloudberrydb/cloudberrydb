@@ -52,8 +52,7 @@ private:
 	// compute local required columns
 	void ComputeRequiredLocalColumns(CMemoryPool *mp);
 
-	// private copy ctor
-	CPhysicalSequenceProject(const CPhysicalSequenceProject &);
+	CPhysicalSequenceProject(const CPhysicalSequenceProject &) = delete;
 
 public:
 	// ctor

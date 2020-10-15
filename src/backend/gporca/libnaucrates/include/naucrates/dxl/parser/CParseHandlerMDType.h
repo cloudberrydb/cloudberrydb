@@ -122,8 +122,7 @@ private:
 	// id of array type
 	IMDId *m_mdid_array_type;
 
-	// private copy ctor
-	CParseHandlerMDType(const CParseHandlerMDType &);
+	CParseHandlerMDType(const CParseHandlerMDType &) = delete;
 
 	// retrieves the address MDId member variable corresponding to the specified token
 	IMDId **GetTokenMDid(Edxltoken token_type);

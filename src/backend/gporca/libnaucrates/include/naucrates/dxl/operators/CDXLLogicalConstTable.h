@@ -37,8 +37,7 @@ private:
 	// array of datum arrays (const tuples)
 	CDXLDatum2dArray *m_const_tuples_datum_array;
 
-	// private copy ctor
-	CDXLLogicalConstTable(CDXLLogicalConstTable &);
+	CDXLLogicalConstTable(CDXLLogicalConstTable &) = delete;
 
 public:
 	// ctor

@@ -33,8 +33,7 @@ private:
 	// distribution spec
 	CDistributionSpecRandom *m_pdsRandom;
 
-	// private copy ctor
-	CPhysicalMotionRandom(const CPhysicalMotionRandom &);
+	CPhysicalMotionRandom(const CPhysicalMotionRandom &) = delete;
 
 public:
 	// ctor

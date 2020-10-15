@@ -47,9 +47,8 @@ private:
 	// is initialized?
 	BOOL m_is_initialized;
 
-	// private copy ctor
-	CHashMapIter(
-		const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &);
+	CHashMapIter(const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>
+					 &) = delete;
 
 	// method to return the current element
 	const typename TMap::CHashMapElem *
@@ -71,9 +70,8 @@ public:
 	}
 
 	// dtor
-	virtual ~CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>()
-	{
-	}
+	virtual ~CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>() =
+		default;
 
 	// advance iterator to next element
 	BOOL

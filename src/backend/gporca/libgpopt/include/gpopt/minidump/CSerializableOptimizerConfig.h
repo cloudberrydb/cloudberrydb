@@ -41,8 +41,7 @@ private:
 	// optimizer configurations
 	const COptimizerConfig *m_optimizer_config;
 
-	// private copy ctor
-	CSerializableOptimizerConfig(const CSerializableOptimizerConfig &);
+	CSerializableOptimizerConfig(const CSerializableOptimizerConfig &) = delete;
 
 public:
 	// ctor

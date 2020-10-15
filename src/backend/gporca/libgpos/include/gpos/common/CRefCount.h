@@ -52,8 +52,7 @@ private:
 	}
 #endif	// GPOS_DEBUG
 
-	// private copy ctor
-	CRefCount(const CRefCount &);
+	CRefCount(const CRefCount &) = delete;
 
 public:
 	// ctor

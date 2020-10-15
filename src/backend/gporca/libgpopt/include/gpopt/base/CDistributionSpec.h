@@ -64,17 +64,14 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CDistributionSpec(const CDistributionSpec &);
+	CDistributionSpec(const CDistributionSpec &) = delete;
 
 public:
 	// ctor
-	CDistributionSpec()
-	{
-	}
+	CDistributionSpec() = default;
 
 	// dtor
-	virtual ~CDistributionSpec(){};
+	virtual ~CDistributionSpec() = default;
 
 	// distribution type accessor
 	virtual EDistributionType Edt() const = 0;

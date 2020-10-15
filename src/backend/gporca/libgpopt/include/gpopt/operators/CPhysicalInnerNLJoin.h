@@ -27,8 +27,7 @@ namespace gpopt
 class CPhysicalInnerNLJoin : public CPhysicalNLJoin
 {
 private:
-	// private copy ctor
-	CPhysicalInnerNLJoin(const CPhysicalInnerNLJoin &);
+	CPhysicalInnerNLJoin(const CPhysicalInnerNLJoin &) = delete;
 
 public:
 	// ctor

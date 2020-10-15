@@ -29,8 +29,8 @@ namespace gpopt
 class CLogicalLeftOuterCorrelatedApply : public CLogicalLeftOuterApply
 {
 private:
-	// private copy ctor
-	CLogicalLeftOuterCorrelatedApply(const CLogicalLeftOuterCorrelatedApply &);
+	CLogicalLeftOuterCorrelatedApply(const CLogicalLeftOuterCorrelatedApply &) =
+		delete;
 
 public:
 	// ctor
@@ -42,9 +42,7 @@ public:
 	explicit CLogicalLeftOuterCorrelatedApply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftOuterCorrelatedApply()
-	{
-	}
+	virtual ~CLogicalLeftOuterCorrelatedApply() = default;
 
 	// ident accessors
 	virtual EOperatorId

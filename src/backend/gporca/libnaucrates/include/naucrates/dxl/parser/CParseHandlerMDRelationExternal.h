@@ -47,8 +47,8 @@ private:
 	// distribution opfamilies parse handler
 	CParseHandlerBase *m_opfamilies_parse_handler;
 
-	// private copy ctor
-	CParseHandlerMDRelationExternal(const CParseHandlerMDRelationExternal &);
+	CParseHandlerMDRelationExternal(const CParseHandlerMDRelationExternal &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

@@ -51,8 +51,7 @@ private:
 	// derived part filter
 	CPartFilterMap *m_ppfmDerived;
 
-	// private copy ctor
-	CEnfdPartitionPropagation(const CEnfdPartitionPropagation &);
+	CEnfdPartitionPropagation(const CEnfdPartitionPropagation &) = delete;
 
 public:
 	// ctor

@@ -81,11 +81,10 @@ typedef CHashMap<INT, ULONG, gpos::HashValue<INT>, gpos::Equals<INT>,
 class IStatistics : public CRefCount
 {
 private:
-	// private copy ctor
-	IStatistics(const IStatistics &);
+	IStatistics(const IStatistics &) = delete;
 
 	// private assignment operator
-	IStatistics &operator=(IStatistics &);
+	IStatistics &operator=(IStatistics &) = delete;
 
 public:
 	enum EStatsJoinType
@@ -98,14 +97,10 @@ public:
 	};
 
 	// ctor
-	IStatistics()
-	{
-	}
+	IStatistics() = default;
 
 	// dtor
-	virtual ~IStatistics()
-	{
-	}
+	virtual ~IStatistics() = default;
 
 	// how many rows
 	virtual CDouble Rows() const = 0;

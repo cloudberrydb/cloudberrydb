@@ -27,8 +27,7 @@ namespace gpopt
 class CPhysicalExternalScan : public CPhysicalTableScan
 {
 private:
-	// private copy ctor
-	CPhysicalExternalScan(const CPhysicalExternalScan &);
+	CPhysicalExternalScan(const CPhysicalExternalScan &) = delete;
 
 public:
 	// ctor

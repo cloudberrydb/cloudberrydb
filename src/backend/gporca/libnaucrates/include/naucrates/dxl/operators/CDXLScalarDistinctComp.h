@@ -37,8 +37,7 @@ enum Edxlscdistcmp
 class CDXLScalarDistinctComp : public CDXLScalarComp
 {
 private:
-	// private copy ctor
-	CDXLScalarDistinctComp(CDXLScalarDistinctComp &);
+	CDXLScalarDistinctComp(CDXLScalarDistinctComp &) = delete;
 
 public:
 	// ctor/dtor

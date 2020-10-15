@@ -46,8 +46,7 @@ enum EdxlSetOpType
 class CDXLLogicalSetOp : public CDXLLogical
 {
 private:
-	// private copy ctor
-	CDXLLogicalSetOp(CDXLLogicalSetOp &);
+	CDXLLogicalSetOp(CDXLLogicalSetOp &) = delete;
 
 	// set operation type
 	EdxlSetOpType m_set_operation_dxl_type;

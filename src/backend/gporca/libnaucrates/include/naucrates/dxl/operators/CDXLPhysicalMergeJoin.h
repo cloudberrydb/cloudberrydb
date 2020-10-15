@@ -45,8 +45,7 @@ private:
 	// true if outer relation has unique values for the merge key
 	BOOL m_is_unique_outer;
 
-	// private copy ctor
-	CDXLPhysicalMergeJoin(const CDXLPhysicalMergeJoin &);
+	CDXLPhysicalMergeJoin(const CDXLPhysicalMergeJoin &) = delete;
 
 public:
 	// ctor

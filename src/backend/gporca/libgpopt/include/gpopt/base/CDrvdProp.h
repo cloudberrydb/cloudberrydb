@@ -77,17 +77,14 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CDrvdProp(const CDrvdProp &);
+	CDrvdProp(const CDrvdProp &) = delete;
 
 public:
 	// ctor
 	CDrvdProp();
 
 	// dtor
-	virtual ~CDrvdProp()
-	{
-	}
+	virtual ~CDrvdProp() = default;
 
 	// type of properties
 	virtual EPropType Ept() = 0;

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementAssert : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementAssert(const CXformImplementAssert &);
+	CXformImplementAssert(const CXformImplementAssert &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementAssert(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementAssert()
-	{
-	}
+	virtual ~CXformImplementAssert() = default;
 
 	// ident accessors
 	virtual EXformId

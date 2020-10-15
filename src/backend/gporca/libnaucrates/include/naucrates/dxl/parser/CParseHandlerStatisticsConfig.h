@@ -35,8 +35,8 @@ private:
 	// statistics configuration
 	CStatisticsConfig *m_stats_conf;
 
-	// private copy ctor
-	CParseHandlerStatisticsConfig(const CParseHandlerStatisticsConfig &);
+	CParseHandlerStatisticsConfig(const CParseHandlerStatisticsConfig &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

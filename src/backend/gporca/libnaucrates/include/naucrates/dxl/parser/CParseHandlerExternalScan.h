@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerExternalScan : public CParseHandlerTableScan
 {
 private:
-	// private copy ctor
-	CParseHandlerExternalScan(const CParseHandlerExternalScan &);
+	CParseHandlerExternalScan(const CParseHandlerExternalScan &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

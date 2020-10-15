@@ -46,8 +46,7 @@ private:
 	// error message
 	CWStringBase *m_pstrErrorMsg;
 
-	// private copy ctor
-	CScalarAssertConstraint(const CScalarAssertConstraint &);
+	CScalarAssertConstraint(const CScalarAssertConstraint &) = delete;
 
 public:
 	// ctor

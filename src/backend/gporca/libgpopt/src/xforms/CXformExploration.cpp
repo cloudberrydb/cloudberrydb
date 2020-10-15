@@ -38,9 +38,7 @@ CXformExploration::CXformExploration(CExpression *pexpr) : CXform(pexpr)
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CXformExploration::~CXformExploration()
-{
-}
+CXformExploration::~CXformExploration() = default;
 
 
 // EOF

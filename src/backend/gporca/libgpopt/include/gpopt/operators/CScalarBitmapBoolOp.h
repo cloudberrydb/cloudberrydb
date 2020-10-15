@@ -50,8 +50,7 @@ private:
 	// bitmap type id
 	IMDId *m_pmdidBitmapType;
 
-	// private copy ctor
-	CScalarBitmapBoolOp(const CScalarBitmapBoolOp &);
+	CScalarBitmapBoolOp(const CScalarBitmapBoolOp &) = delete;
 
 	static const WCHAR m_rgwszBitmapOpType[EbitmapboolSentinel][30];
 

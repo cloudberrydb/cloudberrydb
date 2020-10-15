@@ -43,8 +43,7 @@ private:
 	// was the default value seen
 	BOOL m_default_val_processed;
 
-	// private copy ctor
-	CParseHandlerScalarSwitch(const CParseHandlerScalarSwitch &);
+	CParseHandlerScalarSwitch(const CParseHandlerScalarSwitch &) = delete;
 
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,

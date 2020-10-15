@@ -42,8 +42,7 @@ private:
 	// function name
 	CMDName *m_mdname;
 
-	// private copy ctor
-	CParseHandlerLogicalTVF(const CParseHandlerLogicalTVF &);
+	CParseHandlerLogicalTVF(const CParseHandlerLogicalTVF &) = delete;
 
 	// process the start of an element
 	void StartElement(

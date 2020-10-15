@@ -27,8 +27,7 @@ namespace gpopt
 class CLogicalLeftSemiApply : public CLogicalApply
 {
 private:
-	// private copy ctor
-	CLogicalLeftSemiApply(const CLogicalLeftSemiApply &);
+	CLogicalLeftSemiApply(const CLogicalLeftSemiApply &) = delete;
 
 public:
 	// ctor
@@ -45,9 +44,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalLeftSemiApply()
-	{
-	}
+	virtual ~CLogicalLeftSemiApply() = default;
 
 	// ident accessors
 	virtual EOperatorId

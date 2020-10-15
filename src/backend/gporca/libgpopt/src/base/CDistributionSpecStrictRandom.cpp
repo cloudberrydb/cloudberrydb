@@ -5,9 +5,7 @@
 
 using namespace gpopt;
 
-CDistributionSpecStrictRandom::CDistributionSpecStrictRandom()
-{
-}
+CDistributionSpecStrictRandom::CDistributionSpecStrictRandom() = default;
 
 BOOL
 CDistributionSpecStrictRandom::Matches(const CDistributionSpec *pds) const

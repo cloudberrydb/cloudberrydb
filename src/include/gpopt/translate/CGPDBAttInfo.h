@@ -45,8 +45,7 @@ private:
 	// attno
 	INT m_attno;
 
-	// copy c'tor
-	CGPDBAttInfo(const CGPDBAttInfo &);
+	CGPDBAttInfo(const CGPDBAttInfo &) = delete;
 
 public:
 	// ctor
@@ -56,9 +55,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~CGPDBAttInfo()
-	{
-	}
+	virtual ~CGPDBAttInfo() = default;
 
 	// accessor
 	ULONG

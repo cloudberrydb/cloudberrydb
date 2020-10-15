@@ -29,8 +29,8 @@ template <class T, ULONG sentinel_index>
 class CEnumSetIter : public CBitSetIter
 {
 private:
-	// private copy ctor
-	CEnumSetIter<T, sentinel_index>(const CEnumSetIter<T, sentinel_index> &);
+	CEnumSetIter<T, sentinel_index>(const CEnumSetIter<T, sentinel_index> &) =
+		delete;
 
 public:
 	// ctor
@@ -41,9 +41,7 @@ public:
 	}
 
 	// dtor
-	~CEnumSetIter<T, sentinel_index>()
-	{
-	}
+	~CEnumSetIter<T, sentinel_index>() = default;
 
 	// current enum
 	T

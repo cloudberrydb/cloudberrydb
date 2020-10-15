@@ -45,8 +45,7 @@ private:
 	// constraint
 	CConstraint *m_pcnstr;
 
-	// hidden copy ctor
-	CPropConstraint(const CPropConstraint &);
+	CPropConstraint(const CPropConstraint &) = delete;
 
 	// initialize mapping from columns to equivalence classes
 	void InitHashMap(CMemoryPool *mp);

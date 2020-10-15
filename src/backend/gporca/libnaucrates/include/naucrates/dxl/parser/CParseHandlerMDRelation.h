@@ -97,8 +97,7 @@ protected:
 	void ParseChildNodes();
 
 private:
-	// private copy ctor
-	CParseHandlerMDRelation(const CParseHandlerMDRelation &);
+	CParseHandlerMDRelation(const CParseHandlerMDRelation &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -42,15 +42,14 @@ private:
 	// oid value
 	OID m_oid_val;
 
-	// private copy ctor
-	CDXLDatumOid(const CDXLDatumOid &);
+	CDXLDatumOid(const CDXLDatumOid &) = delete;
 
 public:
 	// ctor
 	CDXLDatumOid(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, OID oid_val);
 
 	// dtor
-	virtual ~CDXLDatumOid(){};
+	virtual ~CDXLDatumOid() = default;
 
 	// accessor of oid value
 	OID OidValue() const;

@@ -42,9 +42,7 @@ CColRefComputed::CColRefComputed(const IMDType *pmdtype, INT type_modifier,
 //		ctor
 //
 //---------------------------------------------------------------------------
-CColRefComputed::~CColRefComputed()
-{
-}
+CColRefComputed::~CColRefComputed() = default;
 
 
 // EOF

@@ -21,17 +21,14 @@ using namespace gpos;
 class CXformRemoveSubqDistinct : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformRemoveSubqDistinct(const CXformRemoveSubqDistinct &);
+	CXformRemoveSubqDistinct(const CXformRemoveSubqDistinct &) = delete;
 
 public:
 	// ctor
 	explicit CXformRemoveSubqDistinct(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformRemoveSubqDistinct()
-	{
-	}
+	virtual ~CXformRemoveSubqDistinct() = default;
 
 	// ident accessors
 	virtual EXformId

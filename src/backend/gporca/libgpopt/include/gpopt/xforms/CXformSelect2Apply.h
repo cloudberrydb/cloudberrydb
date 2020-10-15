@@ -30,17 +30,14 @@ using namespace gpos;
 class CXformSelect2Apply : public CXformSubqueryUnnest
 {
 private:
-	// private copy ctor
-	CXformSelect2Apply(const CXformSelect2Apply &);
+	CXformSelect2Apply(const CXformSelect2Apply &) = delete;
 
 public:
 	// ctor
 	explicit CXformSelect2Apply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2Apply()
-	{
-	}
+	virtual ~CXformSelect2Apply() = default;
 
 	// ident accessors
 	virtual EXformId

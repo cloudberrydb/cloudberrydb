@@ -39,8 +39,7 @@ private:
 	// does operator return NULL on NULL input?
 	BOOL m_returns_null_on_null_input;
 
-	// private copy ctor
-	CScalarCoerceToDomain(const CScalarCoerceToDomain &);
+	CScalarCoerceToDomain(const CScalarCoerceToDomain &) = delete;
 
 public:
 	// ctor
@@ -48,9 +47,7 @@ public:
 						  ECoercionForm dxl_coerce_format, INT location);
 
 	// dtor
-	virtual ~CScalarCoerceToDomain()
-	{
-	}
+	virtual ~CScalarCoerceToDomain() = default;
 
 	virtual EOperatorId
 	Eopid() const

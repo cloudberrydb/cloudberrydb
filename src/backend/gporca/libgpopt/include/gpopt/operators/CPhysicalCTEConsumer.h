@@ -36,8 +36,7 @@ private:
 	// hashmap for all the columns in the CTE expression
 	UlongToColRefMap *m_phmulcr;
 
-	// private copy ctor
-	CPhysicalCTEConsumer(const CPhysicalCTEConsumer &);
+	CPhysicalCTEConsumer(const CPhysicalCTEConsumer &) = delete;
 
 public:
 	// ctor

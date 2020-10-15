@@ -43,8 +43,7 @@ private:
 	// for statistics computation, map to double
 	CDouble m_val;
 
-	// private copy ctor
-	CDXLDatumStatsDoubleMappable(const CDXLDatumStatsDoubleMappable &);
+	CDXLDatumStatsDoubleMappable(const CDXLDatumStatsDoubleMappable &) = delete;
 
 public:
 	// ctor
@@ -53,7 +52,7 @@ public:
 								 ULONG length, CDouble val);
 
 	// dtor
-	virtual ~CDXLDatumStatsDoubleMappable(){};
+	virtual ~CDXLDatumStatsDoubleMappable() = default;
 
 	// serialize the datum as the given element
 	virtual void Serialize(CXMLSerializer *xml_serializer);

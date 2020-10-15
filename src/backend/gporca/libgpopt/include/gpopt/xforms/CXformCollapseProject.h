@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformCollapseProject : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformCollapseProject(const CXformCollapseProject &);
+	CXformCollapseProject(const CXformCollapseProject &) = delete;
 
 public:
 	// ctor
 	explicit CXformCollapseProject(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformCollapseProject()
-	{
-	}
+	virtual ~CXformCollapseProject() = default;
 
 	// ident accessors
 	virtual EXformId

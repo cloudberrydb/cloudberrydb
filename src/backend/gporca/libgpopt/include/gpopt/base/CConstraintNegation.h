@@ -34,8 +34,7 @@ private:
 	// child constraint
 	CConstraint *m_pcnstr;
 
-	// hidden copy ctor
-	CConstraintNegation(const CConstraintNegation &);
+	CConstraintNegation(const CConstraintNegation &) = delete;
 
 public:
 	// ctor

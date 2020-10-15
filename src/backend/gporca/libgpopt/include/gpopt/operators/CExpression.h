@@ -119,8 +119,7 @@ private:
 	// decorate expression tree with required plan properties
 	CReqdPropPlan *PrppDecorate(CMemoryPool *mp, CReqdPropPlan *prppInput);
 
-	// private copy ctor
-	CExpression(const CExpression &);
+	CExpression(const CExpression &) = delete;
 
 public:
 	// ctor's with different arity

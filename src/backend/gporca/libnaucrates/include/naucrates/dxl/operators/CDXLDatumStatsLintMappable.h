@@ -43,8 +43,7 @@ private:
 	// for statistics computation, map to LINT
 	LINT m_val;
 
-	// private copy ctor
-	CDXLDatumStatsLintMappable(const CDXLDatumStatsLintMappable &);
+	CDXLDatumStatsLintMappable(const CDXLDatumStatsLintMappable &) = delete;
 
 public:
 	// ctor
@@ -53,7 +52,7 @@ public:
 							   BYTE *byte_array, ULONG length, LINT value);
 
 	// dtor
-	virtual ~CDXLDatumStatsLintMappable(){};
+	virtual ~CDXLDatumStatsLintMappable() = default;
 
 	// serialize the datum as the given element
 	virtual void Serialize(CXMLSerializer *xml_serializer);

@@ -36,8 +36,7 @@ private:
 	// catalog MDId of the return type
 	IMDId *m_result_type_mdid;
 
-	// private copy ctor
-	CDXLScalarIfStmt(const CDXLScalarIfStmt &);
+	CDXLScalarIfStmt(const CDXLScalarIfStmt &) = delete;
 
 public:
 	// ctor

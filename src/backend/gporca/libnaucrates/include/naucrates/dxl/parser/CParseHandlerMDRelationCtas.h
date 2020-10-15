@@ -38,8 +38,7 @@ private:
 	// vartypemod list
 	IntPtrArray *m_vartypemod_array;
 
-	// private copy ctor
-	CParseHandlerMDRelationCtas(const CParseHandlerMDRelationCtas &);
+	CParseHandlerMDRelationCtas(const CParseHandlerMDRelationCtas &) = delete;
 
 	// process the start of an element
 	void StartElement(

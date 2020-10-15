@@ -40,17 +40,14 @@ using namespace gpmd;
 class CDXLScalarCoerceViaIO : public CDXLScalarCoerceBase
 {
 private:
-	// private copy ctor
-	CDXLScalarCoerceViaIO(const CDXLScalarCoerceViaIO &);
+	CDXLScalarCoerceViaIO(const CDXLScalarCoerceViaIO &) = delete;
 
 public:
 	// ctor/dtor
 	CDXLScalarCoerceViaIO(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 						  EdxlCoercionForm dxl_coerce_format, INT location);
 
-	virtual ~CDXLScalarCoerceViaIO()
-	{
-	}
+	virtual ~CDXLScalarCoerceViaIO() = default;
 
 	// ident accessor
 	virtual Edxlopid

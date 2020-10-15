@@ -42,8 +42,7 @@ private:
 	// current column descriptor being parsed
 	CDXLColDescr *m_current_column_descr;
 
-	// private copy ctor
-	CParseHandlerColDescr(const CParseHandlerColDescr &);
+	CParseHandlerColDescr(const CParseHandlerColDescr &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -40,9 +40,7 @@ CDXLScalarSubqueryNotExists::CDXLScalarSubqueryNotExists(CMemoryPool *mp)
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CDXLScalarSubqueryNotExists::~CDXLScalarSubqueryNotExists()
-{
-}
+CDXLScalarSubqueryNotExists::~CDXLScalarSubqueryNotExists() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

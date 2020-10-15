@@ -42,8 +42,7 @@ private:
 	// function name
 	CWStringConst *m_pstr;
 
-	// private copy ctor
-	CParseHandlerPhysicalTVF(const CParseHandlerPhysicalTVF &);
+	CParseHandlerPhysicalTVF(const CParseHandlerPhysicalTVF &) = delete;
 
 	// process the start of an element
 	void StartElement(

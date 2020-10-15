@@ -53,9 +53,7 @@ CPhysicalInnerNLJoin::CPhysicalInnerNLJoin(CMemoryPool *mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalInnerNLJoin::~CPhysicalInnerNLJoin()
-{
-}
+CPhysicalInnerNLJoin::~CPhysicalInnerNLJoin() = default;
 
 
 

@@ -47,8 +47,7 @@ protected:
 	const CWStringConst *m_comparison_operator_name;
 
 private:
-	// private copy ctor
-	CDXLScalarComp(CDXLScalarComp &);
+	CDXLScalarComp(CDXLScalarComp &) = delete;
 
 public:
 	// ctor/dtor

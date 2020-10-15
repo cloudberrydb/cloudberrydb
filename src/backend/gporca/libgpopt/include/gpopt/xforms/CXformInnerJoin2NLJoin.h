@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformInnerJoin2NLJoin : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformInnerJoin2NLJoin(const CXformInnerJoin2NLJoin &);
+	CXformInnerJoin2NLJoin(const CXformInnerJoin2NLJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformInnerJoin2NLJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformInnerJoin2NLJoin()
-	{
-	}
+	virtual ~CXformInnerJoin2NLJoin() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformJoinAssociativity : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformJoinAssociativity(const CXformJoinAssociativity &);
+	CXformJoinAssociativity(const CXformJoinAssociativity &) = delete;
 
 	// helper function for creating the new join predicate
 	void CreatePredicates(CMemoryPool *mp, CExpression *pexpr,
@@ -42,9 +41,7 @@ public:
 	explicit CXformJoinAssociativity(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformJoinAssociativity()
-	{
-	}
+	virtual ~CXformJoinAssociativity() = default;
 
 	// ident accessors
 	virtual EXformId

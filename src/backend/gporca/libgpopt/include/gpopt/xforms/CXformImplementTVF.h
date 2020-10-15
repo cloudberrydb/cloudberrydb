@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformImplementTVF : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementTVF(const CXformImplementTVF &);
+	CXformImplementTVF(const CXformImplementTVF &) = delete;
 
 public:
 	// ctor
@@ -40,9 +39,7 @@ public:
 	explicit CXformImplementTVF(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformImplementTVF()
-	{
-	}
+	virtual ~CXformImplementTVF() = default;
 
 	// ident accessors
 	virtual EXformId

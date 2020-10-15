@@ -37,8 +37,7 @@ private:
 	// list of scalar ident nodes representing the query output
 	CDXLNodeArray *m_dxl_array;
 
-	// private copy ctor
-	CParseHandlerQueryOutput(const CParseHandlerQueryOutput &);
+	CParseHandlerQueryOutput(const CParseHandlerQueryOutput &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -119,8 +119,7 @@ private:
 		return false;
 	}
 
-	// no copy ctor
-	CSyncPool(const CSyncPool &);
+	CSyncPool(const CSyncPool &) = delete;
 
 public:
 	// ctor

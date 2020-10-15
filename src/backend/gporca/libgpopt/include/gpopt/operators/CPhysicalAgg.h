@@ -33,8 +33,7 @@ class CDistributionSpec;
 class CPhysicalAgg : public CPhysical
 {
 private:
-	// private copy ctor
-	CPhysicalAgg(const CPhysicalAgg &);
+	CPhysicalAgg(const CPhysicalAgg &) = delete;
 
 	// array of grouping columns
 	CColRefArray *m_pdrgpcr;

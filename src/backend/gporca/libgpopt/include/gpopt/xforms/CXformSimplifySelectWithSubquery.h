@@ -32,8 +32,8 @@ using namespace gpos;
 class CXformSimplifySelectWithSubquery : public CXformSimplifySubquery
 {
 private:
-	// private copy ctor
-	CXformSimplifySelectWithSubquery(const CXformSimplifySelectWithSubquery &);
+	CXformSimplifySelectWithSubquery(const CXformSimplifySelectWithSubquery &) =
+		delete;
 
 public:
 	// ctor
@@ -50,9 +50,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSimplifySelectWithSubquery()
-	{
-	}
+	virtual ~CXformSimplifySelectWithSubquery() = default;
 
 	// Compatibility function for simplifying aggregates
 	virtual BOOL

@@ -52,8 +52,7 @@ private:
 	// system id
 	CSystemId m_sysid;
 
-	// private copy ctor
-	CAutoMDAccessor(const CAutoMDAccessor &);
+	CAutoMDAccessor(const CAutoMDAccessor &) = delete;
 
 public:
 	// ctor

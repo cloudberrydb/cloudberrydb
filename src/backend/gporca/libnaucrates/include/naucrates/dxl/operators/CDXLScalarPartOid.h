@@ -32,8 +32,7 @@ private:
 	// partitioning level
 	ULONG m_partitioning_level;
 
-	// private copy ctor
-	CDXLScalarPartOid(const CDXLScalarPartOid &);
+	CDXLScalarPartOid(const CDXLScalarPartOid &) = delete;
 
 public:
 	// ctor

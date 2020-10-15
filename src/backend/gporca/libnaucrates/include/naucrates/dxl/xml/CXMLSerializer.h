@@ -59,8 +59,7 @@ private:
 	// steps since last check for aborts
 	ULONG m_iteration_since_last_abortcheck;
 
-	// private copy ctor
-	CXMLSerializer(const CXMLSerializer &);
+	CXMLSerializer(const CXMLSerializer &) = delete;
 
 	// add indentation
 	void Indent();

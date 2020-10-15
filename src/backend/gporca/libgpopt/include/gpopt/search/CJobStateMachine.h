@@ -91,15 +91,15 @@ private:
 	// job state machine
 	SM m_sm;
 
-	// hidden copy ctor
-	CJobStateMachine(const CJobStateMachine &);
+	CJobStateMachine(const CJobStateMachine &) = delete;
 
 public:
 	// ctor
-	CJobStateMachine<TEnumState, estSentinel, TEnumEvent, eevSentinel>(){};
+	CJobStateMachine<TEnumState, estSentinel, TEnumEvent, eevSentinel>() =
+		default;
 
 	// dtor
-	~CJobStateMachine(){};
+	~CJobStateMachine() = default;
 
 	// initialize state machine
 	void

@@ -32,9 +32,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarArrayRefIndexList : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
 	CParseHandlerScalarArrayRefIndexList(
-		const CParseHandlerScalarArrayRefIndexList &);
+		const CParseHandlerScalarArrayRefIndexList &) = delete;
 
 	// process the start of an element
 	void StartElement(

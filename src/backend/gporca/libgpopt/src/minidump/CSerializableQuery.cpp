@@ -52,9 +52,7 @@ CSerializableQuery::CSerializableQuery(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CSerializableQuery::~CSerializableQuery()
-{
-}
+CSerializableQuery::~CSerializableQuery() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

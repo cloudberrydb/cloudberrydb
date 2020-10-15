@@ -49,16 +49,13 @@ private:
 	// memory pool
 	CMemoryPool *m_mp;
 
-	// private copy ctor
-	CMDProviderRelcache(const CMDProviderRelcache &);
+	CMDProviderRelcache(const CMDProviderRelcache &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CMDProviderRelcache(CMemoryPool *mp);
 
-	~CMDProviderRelcache()
-	{
-	}
+	~CMDProviderRelcache() = default;
 
 	// returns the DXL string of the requested metadata object
 	virtual CWStringBase *GetMDObjDXLStr(CMemoryPool *mp,

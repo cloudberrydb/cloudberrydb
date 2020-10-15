@@ -40,8 +40,7 @@ private:
 	// memory pool
 	CMemoryPool *m_mp;
 
-	// private copy ctor
-	CDXLMemoryManager(const CDXLMemoryManager &);
+	CDXLMemoryManager(const CDXLMemoryManager &) = delete;
 
 public:
 	// ctor

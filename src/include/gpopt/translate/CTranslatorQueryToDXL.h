@@ -149,8 +149,7 @@ private:
 			query_level_to_cte_map	// hash map between query level -> list of CTEs defined at that level
 	);
 
-	// private copy ctor
-	CTranslatorQueryToDXL(const CTranslatorQueryToDXL &);
+	CTranslatorQueryToDXL(const CTranslatorQueryToDXL &) = delete;
 
 	// check for unsupported node types, throws an exception if an unsupported
 	// node is found

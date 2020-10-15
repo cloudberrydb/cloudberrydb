@@ -36,8 +36,7 @@ private:
 	// array of key sets
 	CColRefSetArray *m_pdrgpcrs;
 
-	// private copy ctor
-	CKeyCollection(const CKeyCollection &);
+	CKeyCollection(const CKeyCollection &) = delete;
 
 public:
 	// ctors

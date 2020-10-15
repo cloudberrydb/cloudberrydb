@@ -46,8 +46,7 @@ private:
 	// sort nulls before other values
 	BOOL m_must_sort_nulls_first;
 
-	// private copy ctor
-	CDXLScalarSortCol(CDXLScalarSortCol &);
+	CDXLScalarSortCol(CDXLScalarSortCol &) = delete;
 
 public:
 	// ctor/dtor

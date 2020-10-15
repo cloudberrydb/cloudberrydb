@@ -24,8 +24,7 @@ namespace gpos
 class CMemoryPoolPallocManager : public CMemoryPoolManager
 {
 private:
-	// private no copy ctor
-	CMemoryPoolPallocManager(const CMemoryPoolPallocManager &);
+	CMemoryPoolPallocManager(const CMemoryPoolPallocManager &) = delete;
 
 public:
 	// ctor

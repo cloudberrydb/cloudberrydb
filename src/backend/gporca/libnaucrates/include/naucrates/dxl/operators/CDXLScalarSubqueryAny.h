@@ -35,8 +35,7 @@ using namespace gpmd;
 class CDXLScalarSubqueryAny : public CDXLScalarSubqueryQuantified
 {
 private:
-	// private copy ctor
-	CDXLScalarSubqueryAny(CDXLScalarSubqueryAny &);
+	CDXLScalarSubqueryAny(CDXLScalarSubqueryAny &) = delete;
 
 public:
 	// ctor

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformSelect2Filter : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformSelect2Filter(const CXformSelect2Filter &);
+	CXformSelect2Filter(const CXformSelect2Filter &) = delete;
 
 public:
 	// ctor
 	explicit CXformSelect2Filter(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2Filter()
-	{
-	}
+	virtual ~CXformSelect2Filter() = default;
 
 	// ident accessors
 	virtual EXformId

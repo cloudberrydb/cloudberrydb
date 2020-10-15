@@ -63,8 +63,7 @@ private:
 		// part constraint of the relation
 		CPartConstraint *m_ppartcnstrRel;
 
-		// private copy ctor
-		CPartInfoEntry(const CPartInfoEntry &);
+		CPartInfoEntry(const CPartInfoEntry &) = delete;
 
 	public:
 		// ctor
@@ -126,8 +125,7 @@ private:
 	// private ctor
 	explicit CPartInfo(CPartInfoEntryArray *pdrgppartentries);
 
-	//private copy ctor
-	CPartInfo(const CPartInfo &);
+	CPartInfo(const CPartInfo &) = delete;
 
 public:
 	// ctor

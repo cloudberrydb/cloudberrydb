@@ -29,9 +29,7 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CReqdProp::CReqdProp()
-{
-}
+CReqdProp::CReqdProp() = default;
 
 
 //---------------------------------------------------------------------------
@@ -42,9 +40,7 @@ CReqdProp::CReqdProp()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CReqdProp::~CReqdProp()
-{
-}
+CReqdProp::~CReqdProp() = default;
 
 
 // EOF

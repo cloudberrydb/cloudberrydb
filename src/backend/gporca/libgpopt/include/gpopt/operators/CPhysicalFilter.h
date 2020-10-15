@@ -27,8 +27,7 @@ namespace gpopt
 class CPhysicalFilter : public CPhysical
 {
 private:
-	// private copy ctor
-	CPhysicalFilter(const CPhysicalFilter &);
+	CPhysicalFilter(const CPhysicalFilter &) = delete;
 
 public:
 	// ctor

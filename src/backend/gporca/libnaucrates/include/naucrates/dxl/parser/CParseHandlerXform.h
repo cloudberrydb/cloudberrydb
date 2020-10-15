@@ -39,8 +39,7 @@ private:
 	// xform referred to by XML node
 	CXform *m_xform;
 
-	// private copy ctor
-	CParseHandlerXform(const CParseHandlerXform &);
+	CParseHandlerXform(const CParseHandlerXform &) = delete;
 
 	// process the start of an element
 	void StartElement(

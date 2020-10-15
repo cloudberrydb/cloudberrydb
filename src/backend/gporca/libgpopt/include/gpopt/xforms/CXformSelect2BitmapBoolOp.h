@@ -28,17 +28,14 @@ namespace gpopt
 class CXformSelect2BitmapBoolOp : public CXformExploration
 {
 private:
-	// disable copy ctor
-	CXformSelect2BitmapBoolOp(const CXformSelect2BitmapBoolOp &);
+	CXformSelect2BitmapBoolOp(const CXformSelect2BitmapBoolOp &) = delete;
 
 public:
 	// ctor
 	explicit CXformSelect2BitmapBoolOp(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2BitmapBoolOp()
-	{
-	}
+	virtual ~CXformSelect2BitmapBoolOp() = default;
 
 	// identifier
 	virtual EXformId

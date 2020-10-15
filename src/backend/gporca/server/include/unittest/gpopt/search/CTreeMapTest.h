@@ -41,8 +41,7 @@ class CTreeMapTest
 		// children
 		CNodeArray *m_pdrgpnd;
 
-		// private copy ctor
-		CNode(const CNode &);
+		CNode(const CNode &) = delete;
 
 	public:
 		// ctor

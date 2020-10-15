@@ -52,8 +52,7 @@ private:
 	// does this function return a set of rows
 	BOOL m_returns_set;
 
-	// private copy ctor
-	CLogicalTVF(const CLogicalTVF &);
+	CLogicalTVF(const CLogicalTVF &) = delete;
 
 public:
 	// ctors

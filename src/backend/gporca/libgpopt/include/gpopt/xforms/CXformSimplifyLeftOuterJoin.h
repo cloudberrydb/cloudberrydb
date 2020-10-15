@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformSimplifyLeftOuterJoin : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformSimplifyLeftOuterJoin(const CXformSimplifyLeftOuterJoin &);
+	CXformSimplifyLeftOuterJoin(const CXformSimplifyLeftOuterJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformSimplifyLeftOuterJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSimplifyLeftOuterJoin()
-	{
-	}
+	virtual ~CXformSimplifyLeftOuterJoin() = default;
 
 	// ident accessors
 	virtual EXformId

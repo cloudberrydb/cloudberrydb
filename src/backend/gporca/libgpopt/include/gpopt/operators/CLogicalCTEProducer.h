@@ -38,8 +38,7 @@ private:
 	// output columns, same as cte columns but in CColRefSet
 	CColRefSet *m_pcrsOutput;
 
-	// private copy ctor
-	CLogicalCTEProducer(const CLogicalCTEProducer &);
+	CLogicalCTEProducer(const CLogicalCTEProducer &) = delete;
 
 public:
 	// ctor

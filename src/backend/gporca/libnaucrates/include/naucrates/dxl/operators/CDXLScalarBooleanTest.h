@@ -45,8 +45,7 @@ private:
 	// operator type
 	const EdxlBooleanTestType m_dxl_bool_test_type;
 
-	// private copy ctor
-	CDXLScalarBooleanTest(const CDXLScalarBooleanTest &);
+	CDXLScalarBooleanTest(const CDXLScalarBooleanTest &) = delete;
 
 	// name of the DXL operator name
 	const CWStringConst *GetOpNameStr() const;

@@ -31,17 +31,14 @@ private:
 	// file size
 	ULLONG m_file_size;
 
-	// no copy ctor
-	CFileWriter(const CFileWriter &);
+	CFileWriter(const CFileWriter &) = delete;
 
 public:
 	// ctor
 	CFileWriter();
 
 	// dtor
-	virtual ~CFileWriter()
-	{
-	}
+	virtual ~CFileWriter() = default;
 
 	ULLONG
 	FileSize() const

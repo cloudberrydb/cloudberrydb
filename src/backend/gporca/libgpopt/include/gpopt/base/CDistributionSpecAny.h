@@ -39,8 +39,7 @@ private:
 	// allow outer references in the operator tree where distribution is requested
 	BOOL m_fAllowOuterRefs;
 
-	// private copy ctor
-	CDistributionSpecAny(const CDistributionSpecAny &);
+	CDistributionSpecAny(const CDistributionSpecAny &) = delete;
 
 
 public:

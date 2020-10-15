@@ -55,8 +55,7 @@ private:
 
 	void SerializeNestLoopParamsToDXL(CXMLSerializer *pxmlser) const;
 
-	// private copy ctor
-	CDXLPhysicalNLJoin(const CDXLPhysicalNLJoin &);
+	CDXLPhysicalNLJoin(const CDXLPhysicalNLJoin &) = delete;
 
 public:
 	// ctor/dtor

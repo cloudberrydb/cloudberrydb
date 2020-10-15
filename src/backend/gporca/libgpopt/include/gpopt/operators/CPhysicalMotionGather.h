@@ -39,8 +39,7 @@ private:
 	// columns used by order spec
 	CColRefSet *m_pcrsSort;
 
-	// private copy ctor
-	CPhysicalMotionGather(const CPhysicalMotionGather &);
+	CPhysicalMotionGather(const CPhysicalMotionGather &) = delete;
 
 public:
 	// ctor

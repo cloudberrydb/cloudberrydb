@@ -48,8 +48,8 @@ private:
 	// gp_segment_id values rather than hashable datums
 	BOOL m_dispatch_is_raw;
 
-	// private copy ctor
-	CParseHandlerDirectDispatchInfo(const CParseHandlerDirectDispatchInfo &);
+	CParseHandlerDirectDispatchInfo(const CParseHandlerDirectDispatchInfo &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

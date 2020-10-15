@@ -12,8 +12,7 @@ namespace gpopt
 class CPhysicalFullMergeJoin : public CPhysicalJoin
 {
 private:
-	// private copy ctor
-	CPhysicalFullMergeJoin(const CPhysicalFullMergeJoin &);
+	CPhysicalFullMergeJoin(const CPhysicalFullMergeJoin &) = delete;
 
 	CExpressionArray *m_outer_merge_clauses;
 

@@ -32,8 +32,7 @@ class CXformPushGbBelowUnionAll
 	: public CXformPushGbBelowSetOp<CLogicalUnionAll>
 {
 private:
-	// private copy ctor
-	CXformPushGbBelowUnionAll(const CXformPushGbBelowUnionAll &);
+	CXformPushGbBelowUnionAll(const CXformPushGbBelowUnionAll &) = delete;
 
 public:
 	// ctor
@@ -43,9 +42,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformPushGbBelowUnionAll()
-	{
-	}
+	virtual ~CXformPushGbBelowUnionAll() = default;
 
 	// Compatibility function
 	virtual BOOL

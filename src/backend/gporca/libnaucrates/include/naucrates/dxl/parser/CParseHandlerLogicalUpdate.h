@@ -51,8 +51,7 @@ private:
 	// tuple oid column id
 	ULONG m_tuple_oid_col_oid;
 
-	// private copy ctor
-	CParseHandlerLogicalUpdate(const CParseHandlerLogicalUpdate &);
+	CParseHandlerLogicalUpdate(const CParseHandlerLogicalUpdate &) = delete;
 
 	// process the start of an element
 	void StartElement(

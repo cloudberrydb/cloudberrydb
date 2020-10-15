@@ -38,8 +38,7 @@ private:
 	// index descriptor associated with the scanned table
 	CDXLIndexDescr *m_dxl_index_descr;
 
-	// disable copy ctor
-	CDXLScalarBitmapIndexProbe(CDXLScalarBitmapIndexProbe &);
+	CDXLScalarBitmapIndexProbe(CDXLScalarBitmapIndexProbe &) = delete;
 
 public:
 	// ctor

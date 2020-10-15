@@ -36,8 +36,7 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
-	// private copy ctor
-	CScalarCoalesce(const CScalarCoalesce &);
+	CScalarCoalesce(const CScalarCoalesce &) = delete;
 
 public:
 	// ctor

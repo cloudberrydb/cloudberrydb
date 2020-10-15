@@ -31,9 +31,8 @@ namespace gpopt
 class CLogicalLeftAntiSemiCorrelatedApply : public CLogicalLeftAntiSemiApply
 {
 private:
-	// private copy ctor
 	CLogicalLeftAntiSemiCorrelatedApply(
-		const CLogicalLeftAntiSemiCorrelatedApply &);
+		const CLogicalLeftAntiSemiCorrelatedApply &) = delete;
 
 public:
 	// ctor
@@ -51,9 +50,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalLeftAntiSemiCorrelatedApply()
-	{
-	}
+	virtual ~CLogicalLeftAntiSemiCorrelatedApply() = default;
 
 	// ident accessors
 	virtual EOperatorId

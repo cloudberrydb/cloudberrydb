@@ -27,8 +27,8 @@ namespace gpopt
 class CPhysicalLeftAntiSemiHashJoin : public CPhysicalHashJoin
 {
 private:
-	// private copy ctor
-	CPhysicalLeftAntiSemiHashJoin(const CPhysicalLeftAntiSemiHashJoin &);
+	CPhysicalLeftAntiSemiHashJoin(const CPhysicalLeftAntiSemiHashJoin &) =
+		delete;
 
 public:
 	// ctor

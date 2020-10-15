@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformGet2TableScan : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformGet2TableScan(const CXformGet2TableScan &);
+	CXformGet2TableScan(const CXformGet2TableScan &) = delete;
 
 public:
 	// ctor
 	explicit CXformGet2TableScan(CMemoryPool *);
 
 	// dtor
-	virtual ~CXformGet2TableScan()
-	{
-	}
+	virtual ~CXformGet2TableScan() = default;
 
 	// ident accessors
 	virtual EXformId

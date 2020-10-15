@@ -33,8 +33,7 @@ using namespace gpos;
 class CXformSubqNAryJoin2Apply : public CXformSubqJoin2Apply
 {
 private:
-	// private copy ctor
-	CXformSubqNAryJoin2Apply(const CXformSubqNAryJoin2Apply &);
+	CXformSubqNAryJoin2Apply(const CXformSubqNAryJoin2Apply &) = delete;
 
 public:
 	// ctor
@@ -50,9 +49,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSubqNAryJoin2Apply()
-	{
-	}
+	virtual ~CXformSubqNAryJoin2Apply() = default;
 
 	// ident accessors
 	virtual EXformId

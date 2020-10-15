@@ -34,8 +34,7 @@ private:
 	// is initialized?
 	BOOL m_is_initialized;
 
-	// private copy ctor
-	CHashSetIter(const CHashSetIter<T, HashFn, EqFn, CleanupFn> &);
+	CHashSetIter(const CHashSetIter<T, HashFn, EqFn, CleanupFn> &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CHashSetIter<T, HashFn, EqFn, CleanupFn>()
-	{
-	}
+	virtual ~CHashSetIter<T, HashFn, EqFn, CleanupFn>() = default;
 
 	// advance iterator to next element
 	BOOL

@@ -24,8 +24,7 @@ private:
 	// Null Test type (true for 'is null', false for 'is not null')
 	BOOL m_is_null;
 
-	// private copy ctor
-	CDXLScalarPartListNullTest(const CDXLScalarPartListNullTest &);
+	CDXLScalarPartListNullTest(const CDXLScalarPartListNullTest &) = delete;
 
 public:
 	// ctor

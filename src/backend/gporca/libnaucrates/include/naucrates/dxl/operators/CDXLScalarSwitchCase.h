@@ -33,17 +33,14 @@ using namespace gpmd;
 class CDXLScalarSwitchCase : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarSwitchCase(const CDXLScalarSwitchCase &);
+	CDXLScalarSwitchCase(const CDXLScalarSwitchCase &) = delete;
 
 public:
 	// ctor
 	explicit CDXLScalarSwitchCase(CMemoryPool *mp);
 
 	//dtor
-	virtual ~CDXLScalarSwitchCase()
-	{
-	}
+	virtual ~CDXLScalarSwitchCase() = default;
 
 	// name of the operator
 	virtual const CWStringConst *GetOpNameStr() const;

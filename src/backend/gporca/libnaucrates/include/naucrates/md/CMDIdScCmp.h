@@ -48,8 +48,7 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	// private copy ctor
-	CMDIdScCmp(const CMDIdScCmp &);
+	CMDIdScCmp(const CMDIdScCmp &) = delete;
 
 	// serialize mdid
 	void Serialize();

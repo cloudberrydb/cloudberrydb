@@ -42,8 +42,7 @@ private:
 	// number of levels
 	ULONG m_num_of_part_levels;
 
-	// private copy ctor
-	CPartKeys(const CPartKeys &);
+	CPartKeys(const CPartKeys &) = delete;
 
 public:
 	// ctor

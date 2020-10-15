@@ -37,8 +37,7 @@ private:
 	// the scalar identifier
 	CDXLScalarIdent *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerScalarIdent(const CParseHandlerScalarIdent &);
+	CParseHandlerScalarIdent(const CParseHandlerScalarIdent &) = delete;
 
 	// process the start of an element
 	void StartElement(

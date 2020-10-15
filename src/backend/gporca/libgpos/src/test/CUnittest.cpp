@@ -109,16 +109,9 @@ CUnittest::CUnittest(const CHAR *szTitle, ETestType ett,
 //
 //---------------------------------------------------------------------------
 CUnittest::CUnittest(const CUnittest &ut)
-	: m_szTitle(ut.m_szTitle),
-	  m_ett(ut.m_ett),
-	  m_pfunc(ut.m_pfunc),
-	  m_pfuncSubtest(ut.m_pfuncSubtest),
-	  m_ulSubtest(ut.m_ulSubtest),
-	  m_fExcep(ut.m_fExcep),
-	  m_ulMajor(ut.m_ulMajor),
-	  m_ulMinor(ut.m_ulMinor)
-{
-}
+
+
+	= default;
 
 
 

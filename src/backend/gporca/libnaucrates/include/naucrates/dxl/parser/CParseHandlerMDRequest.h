@@ -42,8 +42,7 @@ private:
 	// array of type requests
 	CMDRequest::SMDTypeRequestArray *m_mdtype_request_array;
 
-	// private copy ctor
-	CParseHandlerMDRequest(const CParseHandlerMDRequest &);
+	CParseHandlerMDRequest(const CParseHandlerMDRequest &) = delete;
 
 	// process the start of an element
 	void StartElement(

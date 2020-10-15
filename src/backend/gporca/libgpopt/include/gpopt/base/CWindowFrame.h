@@ -97,8 +97,7 @@ private:
 	// singelton empty frame -- used with any unspecified window function frame
 	static const CWindowFrame m_wfEmpty;
 
-	// private copy ctor
-	CWindowFrame(const CWindowFrame &);
+	CWindowFrame(const CWindowFrame &) = delete;
 
 	// private dummy ctor used to create empty frame
 	CWindowFrame();

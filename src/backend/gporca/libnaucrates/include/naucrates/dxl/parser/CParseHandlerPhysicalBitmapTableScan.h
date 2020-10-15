@@ -36,9 +36,8 @@ class CParseHandlerPhysicalBitmapTableScan
 	: public CParseHandlerPhysicalAbstractBitmapScan
 {
 private:
-	// private copy ctor
 	CParseHandlerPhysicalBitmapTableScan(
-		const CParseHandlerPhysicalBitmapTableScan &);
+		const CParseHandlerPhysicalBitmapTableScan &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

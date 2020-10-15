@@ -41,9 +41,7 @@ using gpnaucrates::IDatum;
 class IComparator
 {
 public:
-	virtual ~IComparator()
-	{
-	}
+	virtual ~IComparator() = default;
 
 	// tests if the two arguments are equal
 	virtual gpos::BOOL Equals(const IDatum *datum1,

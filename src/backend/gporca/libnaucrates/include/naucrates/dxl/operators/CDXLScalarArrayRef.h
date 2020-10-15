@@ -43,8 +43,7 @@ private:
 	// return type id
 	IMDId *m_return_type_mdid;
 
-	// private copy ctor
-	CDXLScalarArrayRef(const CDXLScalarArrayRef &);
+	CDXLScalarArrayRef(const CDXLScalarArrayRef &) = delete;
 
 public:
 	// ctor

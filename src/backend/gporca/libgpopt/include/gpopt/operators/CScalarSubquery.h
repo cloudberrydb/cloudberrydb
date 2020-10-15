@@ -39,8 +39,7 @@ private:
 	// is subquery generated from quantified subquery?
 	BOOL m_fGeneratedByQuantified;
 
-	// private copy ctor
-	CScalarSubquery(const CScalarSubquery &);
+	CScalarSubquery(const CScalarSubquery &) = delete;
 
 public:
 	// ctor

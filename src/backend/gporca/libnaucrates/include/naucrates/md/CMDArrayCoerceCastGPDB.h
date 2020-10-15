@@ -41,8 +41,7 @@ private:
 	// location
 	INT m_location;
 
-	// private copy ctor
-	CMDArrayCoerceCastGPDB(const CMDArrayCoerceCastGPDB &);
+	CMDArrayCoerceCastGPDB(const CMDArrayCoerceCastGPDB &) = delete;
 
 public:
 	// ctor

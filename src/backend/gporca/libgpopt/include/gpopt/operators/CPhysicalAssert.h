@@ -56,8 +56,7 @@ private:
 	CException *m_pexc;
 
 
-	// private copy ctor
-	CPhysicalAssert(const CPhysicalAssert &);
+	CPhysicalAssert(const CPhysicalAssert &) = delete;
 
 public:
 	// ctor

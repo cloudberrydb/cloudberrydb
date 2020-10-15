@@ -30,17 +30,14 @@ using namespace gpos;
 class CScalarProjectList : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarProjectList(const CScalarProjectList &);
+	CScalarProjectList(const CScalarProjectList &) = delete;
 
 public:
 	// ctor
 	explicit CScalarProjectList(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CScalarProjectList()
-	{
-	}
+	virtual ~CScalarProjectList() = default;
 
 	// ident accessors
 	virtual EOperatorId

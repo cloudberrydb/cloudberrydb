@@ -39,8 +39,8 @@ private:
 	// target key
 	const K &m_key;
 
-	// no copy ctor
-	CSyncHashtableAccessByKey<T, K>(const CSyncHashtableAccessByKey<T, K> &);
+	CSyncHashtableAccessByKey<T, K>(const CSyncHashtableAccessByKey<T, K> &) =
+		delete;
 
 	// finds the first element matching target key starting from
 	// the given element
@@ -78,9 +78,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CSyncHashtableAccessByKey()
-	{
-	}
+	virtual ~CSyncHashtableAccessByKey() = default;
 
 	// finds the first bucket's element with a matching key
 	T *

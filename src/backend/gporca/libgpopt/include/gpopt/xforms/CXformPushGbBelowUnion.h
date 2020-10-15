@@ -31,8 +31,7 @@ using namespace gpos;
 class CXformPushGbBelowUnion : public CXformPushGbBelowSetOp<CLogicalUnion>
 {
 private:
-	// private copy ctor
-	CXformPushGbBelowUnion(const CXformPushGbBelowUnion &);
+	CXformPushGbBelowUnion(const CXformPushGbBelowUnion &) = delete;
 
 public:
 	// ctor
@@ -42,9 +41,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformPushGbBelowUnion()
-	{
-	}
+	virtual ~CXformPushGbBelowUnion() = default;
 
 	// Compatibility function
 	virtual BOOL

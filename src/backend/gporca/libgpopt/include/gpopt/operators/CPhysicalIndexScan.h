@@ -43,8 +43,7 @@ private:
 	// order
 	COrderSpec *m_pos;
 
-	// private copy ctor
-	CPhysicalIndexScan(const CPhysicalIndexScan &);
+	CPhysicalIndexScan(const CPhysicalIndexScan &) = delete;
 
 public:
 	// ctors

@@ -32,8 +32,7 @@ private:
 	// id of column computed by the subquery
 	ULONG m_colid;
 
-	// private copy ctor
-	CDXLScalarSubquery(CDXLScalarSubquery &);
+	CDXLScalarSubquery(CDXLScalarSubquery &) = delete;
 
 public:
 	// ctor/dtor

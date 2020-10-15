@@ -33,8 +33,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerIndexOnlyScan : public CParseHandlerIndexScan
 {
 private:
-	// private copy ctor
-	CParseHandlerIndexOnlyScan(const CParseHandlerIndexOnlyScan &);
+	CParseHandlerIndexOnlyScan(const CParseHandlerIndexOnlyScan &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -69,8 +69,7 @@ private:
 	// tuple oid column if one exists
 	CColRef *m_pcrTupleOid;
 
-	// private copy ctor
-	CLogicalDML(const CLogicalDML &);
+	CLogicalDML(const CLogicalDML &) = delete;
 
 public:
 	// ctor

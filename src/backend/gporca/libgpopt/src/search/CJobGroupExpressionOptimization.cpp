@@ -156,9 +156,7 @@ const WCHAR rgwszEvents[CJobGroupExpressionOptimization::eevSentinel]
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJobGroupExpressionOptimization::CJobGroupExpressionOptimization()
-{
-}
+CJobGroupExpressionOptimization::CJobGroupExpressionOptimization() = default;
 
 
 //---------------------------------------------------------------------------
@@ -169,9 +167,7 @@ CJobGroupExpressionOptimization::CJobGroupExpressionOptimization()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJobGroupExpressionOptimization::~CJobGroupExpressionOptimization()
-{
-}
+CJobGroupExpressionOptimization::~CJobGroupExpressionOptimization() = default;
 
 
 //---------------------------------------------------------------------------

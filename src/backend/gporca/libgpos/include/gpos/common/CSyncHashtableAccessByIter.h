@@ -41,8 +41,8 @@ private:
 	// target iterator
 	CSyncHashtableIter<T, K> &m_iter;
 
-	// no copy ctor
-	CSyncHashtableAccessByIter<T, K>(const CSyncHashtableAccessByIter<T, K> &);
+	CSyncHashtableAccessByIter<T, K>(const CSyncHashtableAccessByIter<T, K> &) =
+		delete;
 
 	// returns the first valid element starting from the given element
 	T *

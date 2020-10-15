@@ -43,8 +43,7 @@ private:
 	// columns used by order spec
 	CColRefSet *m_pcrsSort;
 
-	// private copy ctor
-	CPhysicalLimit(const CPhysicalLimit &);
+	CPhysicalLimit(const CPhysicalLimit &) = delete;
 
 public:
 	// ctor

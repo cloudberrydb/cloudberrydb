@@ -64,7 +64,7 @@ private:
 	static SConfigMappingElem m_elements[];
 
 	// private ctor
-	CConfigParamMapping(const CConfigParamMapping &);
+	CConfigParamMapping(const CConfigParamMapping &) = delete;
 
 public:
 	// pack enabled optimizer config params in a traceflag bitset

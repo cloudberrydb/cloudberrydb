@@ -27,15 +27,14 @@ namespace gpnaucrates
 class IDatumInt2 : public IDatum
 {
 private:
-	// private copy ctor
-	IDatumInt2(const IDatumInt2 &);
+	IDatumInt2(const IDatumInt2 &) = delete;
 
 public:
 	// ctor
-	IDatumInt2(){};
+	IDatumInt2() = default;
 
 	// dtor
-	virtual ~IDatumInt2(){};
+	virtual ~IDatumInt2() = default;
 
 	// accessor for datum type
 	virtual IMDType::ETypeInfo

@@ -113,7 +113,9 @@ private:
 		  m_ulSearchStageIndex(0),
 		  m_pccBest(NULL),
 		  m_estate(estUnoptimized),
-		  m_fHasMultiStageAggPlan(false){};
+		  m_fHasMultiStageAggPlan(false)
+	{
+	}
 
 	// check if Agg node should be optimized for the given context
 	static BOOL FOptimizeAgg(CMemoryPool *mp, CGroupExpression *pgexprParent,

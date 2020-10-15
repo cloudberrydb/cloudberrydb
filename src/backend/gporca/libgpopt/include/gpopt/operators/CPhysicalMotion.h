@@ -30,8 +30,7 @@ namespace gpopt
 class CPhysicalMotion : public CPhysical
 {
 private:
-	// private copy ctor
-	CPhysicalMotion(const CPhysicalMotion &);
+	CPhysicalMotion(const CPhysicalMotion &) = delete;
 
 protected:
 	// ctor

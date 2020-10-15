@@ -35,9 +35,8 @@ class CParseHandlerPhysicalDynamicBitmapTableScan
 	: public CParseHandlerPhysicalAbstractBitmapScan
 {
 private:
-	// private copy ctor
 	CParseHandlerPhysicalDynamicBitmapTableScan(
-		const CParseHandlerPhysicalDynamicBitmapTableScan &);
+		const CParseHandlerPhysicalDynamicBitmapTableScan &) = delete;
 
 	// part index id
 	ULONG m_part_index_id;

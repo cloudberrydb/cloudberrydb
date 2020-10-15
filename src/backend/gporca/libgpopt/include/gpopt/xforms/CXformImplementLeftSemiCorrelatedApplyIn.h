@@ -35,9 +35,8 @@ class CXformImplementLeftSemiCorrelatedApplyIn
 											CPhysicalCorrelatedInLeftSemiNLJoin>
 {
 private:
-	// private copy ctor
 	CXformImplementLeftSemiCorrelatedApplyIn(
-		const CXformImplementLeftSemiCorrelatedApplyIn &);
+		const CXformImplementLeftSemiCorrelatedApplyIn &) = delete;
 
 public:
 	// ctor
@@ -49,9 +48,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementLeftSemiCorrelatedApplyIn()
-	{
-	}
+	virtual ~CXformImplementLeftSemiCorrelatedApplyIn() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -45,8 +45,7 @@ private:
 	// average row width in bytes
 	CWStringDynamic *m_width_str;
 
-	// private copy ctor
-	CDXLOperatorCost(const CDXLOperatorCost &);
+	CDXLOperatorCost(const CDXLOperatorCost &) = delete;
 
 public:
 	// ctor/dtor

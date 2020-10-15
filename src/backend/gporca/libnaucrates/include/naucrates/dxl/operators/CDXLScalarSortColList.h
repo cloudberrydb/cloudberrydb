@@ -28,14 +28,13 @@ namespace gpdxl
 class CDXLScalarSortColList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarSortColList(CDXLScalarSortColList &);
+	CDXLScalarSortColList(CDXLScalarSortColList &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CDXLScalarSortColList(CMemoryPool *mp);
 
-	virtual ~CDXLScalarSortColList(){};
+	virtual ~CDXLScalarSortColList() = default;
 
 	// ident accessors
 	Edxlopid GetDXLOperator() const;

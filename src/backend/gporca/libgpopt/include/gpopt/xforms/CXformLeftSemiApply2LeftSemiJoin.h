@@ -33,8 +33,8 @@ class CXformLeftSemiApply2LeftSemiJoin
 	: public CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>
 {
 private:
-	// private copy ctor
-	CXformLeftSemiApply2LeftSemiJoin(const CXformLeftSemiApply2LeftSemiJoin &);
+	CXformLeftSemiApply2LeftSemiJoin(const CXformLeftSemiApply2LeftSemiJoin &) =
+		delete;
 
 public:
 	// ctor
@@ -52,9 +52,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApply2LeftSemiJoin()
-	{
-	}
+	virtual ~CXformLeftSemiApply2LeftSemiJoin() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -44,8 +44,7 @@ private:
 	// upper bound of ndvs
 	CDouble m_upper_bound_ndv;
 
-	// private copy constructor
-	CUpperBoundNDVs(const CUpperBoundNDVs &);
+	CUpperBoundNDVs(const CUpperBoundNDVs &) = delete;
 
 public:
 	// ctor

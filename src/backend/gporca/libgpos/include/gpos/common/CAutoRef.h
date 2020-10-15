@@ -29,8 +29,7 @@ template <class T>
 class CAutoRef : public CAutoP<T>
 {
 private:
-	// hidden copy ctor
-	CAutoRef<T>(const CAutoRef &);
+	CAutoRef<T>(const CAutoRef &) = delete;
 
 public:
 	// ctor

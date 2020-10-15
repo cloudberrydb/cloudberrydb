@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformUnnestTVF : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformUnnestTVF(const CXformUnnestTVF &);
+	CXformUnnestTVF(const CXformUnnestTVF &) = delete;
 
 	// helper for mapping subquery function arguments into columns
 	static CColRefArray *PdrgpcrSubqueries(CMemoryPool *mp,
@@ -46,9 +45,7 @@ public:
 	explicit CXformUnnestTVF(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformUnnestTVF()
-	{
-	}
+	virtual ~CXformUnnestTVF() = default;
 
 	// ident accessors
 	virtual EXformId

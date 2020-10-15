@@ -49,8 +49,7 @@ private:
 		const XMLCh *const element_qname		// element's qname
 	);
 
-	// private copy ctor
-	CParseHandlerArray(const CParseHandlerArray &);
+	CParseHandlerArray(const CParseHandlerArray &) = delete;
 
 public:
 	// ctor

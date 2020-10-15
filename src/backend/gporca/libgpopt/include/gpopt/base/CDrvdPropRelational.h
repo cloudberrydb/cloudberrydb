@@ -117,8 +117,7 @@ private:
 
 	CTableDescriptor *m_table_descriptor;
 
-	// private copy ctor
-	CDrvdPropRelational(const CDrvdPropRelational &);
+	CDrvdPropRelational(const CDrvdPropRelational &) = delete;
 
 	// helper for getting applicable FDs from child
 	static CFunctionalDependencyArray *DeriveChildFunctionalDependencies(

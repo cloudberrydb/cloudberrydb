@@ -41,9 +41,7 @@ CParseHandlerPhysicalOp::CParseHandlerPhysicalOp(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerPhysicalOp::~CParseHandlerPhysicalOp()
-{
-}
+CParseHandlerPhysicalOp::~CParseHandlerPhysicalOp() = default;
 
 
 //---------------------------------------------------------------------------

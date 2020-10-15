@@ -31,11 +31,10 @@ using namespace gpopt;
 class CStatsPredArrayCmp : public CStatsPred
 {
 private:
-	// private copy ctor
-	CStatsPredArrayCmp(const CStatsPredArrayCmp &);
+	CStatsPredArrayCmp(const CStatsPredArrayCmp &) = delete;
 
 	// private assignment operator
-	CStatsPredArrayCmp &operator=(CStatsPredArrayCmp &);
+	CStatsPredArrayCmp &operator=(CStatsPredArrayCmp &) = delete;
 
 	// comparison type
 	CStatsPred::EStatsCmpType m_stats_cmp_type;

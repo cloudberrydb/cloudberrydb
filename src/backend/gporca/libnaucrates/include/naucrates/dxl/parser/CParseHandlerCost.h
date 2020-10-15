@@ -36,8 +36,7 @@ private:
 	// physical operator cost constructed by the parse handler
 	CDXLOperatorCost *m_operator_cost_dxl;
 
-	// private copy ctor
-	CParseHandlerCost(const CParseHandlerCost &);
+	CParseHandlerCost(const CParseHandlerCost &) = delete;
 
 	// process the start of an element
 	void StartElement(

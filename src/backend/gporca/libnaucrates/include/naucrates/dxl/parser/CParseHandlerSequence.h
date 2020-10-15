@@ -38,8 +38,7 @@ private:
 	// are we already inside a sequence operator
 	BOOL m_is_inside_sequence;
 
-	// private copy ctor
-	CParseHandlerSequence(const CParseHandlerSequence &);
+	CParseHandlerSequence(const CParseHandlerSequence &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

@@ -62,11 +62,10 @@ private:
 	// number of distinct elements in bucket
 	CDouble m_distinct;
 
-	// private copy constructor
-	CBucket(const CBucket &);
+	CBucket(const CBucket &) = delete;
 
 	// private assignment operator
-	CBucket &operator=(const CBucket &);
+	CBucket &operator=(const CBucket &) = delete;
 
 public:
 	// ctor

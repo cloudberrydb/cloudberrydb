@@ -39,8 +39,7 @@ private:
 	// the index descriptor to construct
 	CDXLIndexDescr *m_dxl_index_descr;
 
-	// private copy ctor
-	CParseHandlerIndexDescr(const CParseHandlerIndexDescr &);
+	CParseHandlerIndexDescr(const CParseHandlerIndexDescr &) = delete;
 
 	// process the start of an element
 	void StartElement(

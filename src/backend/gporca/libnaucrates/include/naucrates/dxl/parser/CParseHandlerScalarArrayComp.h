@@ -36,8 +36,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarArrayComp : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarArrayComp(const CParseHandlerScalarArrayComp &);
+	CParseHandlerScalarArrayComp(const CParseHandlerScalarArrayComp &) = delete;
 
 	// process the start of an element
 	void StartElement(

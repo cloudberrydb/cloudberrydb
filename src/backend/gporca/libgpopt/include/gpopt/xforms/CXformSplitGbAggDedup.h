@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformSplitGbAggDedup : public CXformSplitGbAgg
 {
 private:
-	// private copy ctor
-	CXformSplitGbAggDedup(const CXformSplitGbAggDedup &);
+	CXformSplitGbAggDedup(const CXformSplitGbAggDedup &) = delete;
 
 public:
 	// ctor
 	explicit CXformSplitGbAggDedup(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSplitGbAggDedup()
-	{
-	}
+	virtual ~CXformSplitGbAggDedup() = default;
 
 	// ident accessors
 	virtual EXformId

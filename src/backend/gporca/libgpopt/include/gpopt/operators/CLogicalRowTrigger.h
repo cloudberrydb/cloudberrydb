@@ -45,8 +45,7 @@ private:
 	// data access
 	IMDFunction::EFuncDataAcc m_efda;
 
-	// private copy ctor
-	CLogicalRowTrigger(const CLogicalRowTrigger &);
+	CLogicalRowTrigger(const CLogicalRowTrigger &) = delete;
 
 	// initialize function properties
 	void InitFunctionProperties();

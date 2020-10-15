@@ -45,8 +45,7 @@ private:
 	// the right hand side of the FD
 	CColRefSet *m_pcrsDetermined;
 
-	// private copy ctor
-	CFunctionalDependency(const CFunctionalDependency &);
+	CFunctionalDependency(const CFunctionalDependency &) = delete;
 
 public:
 	// ctor

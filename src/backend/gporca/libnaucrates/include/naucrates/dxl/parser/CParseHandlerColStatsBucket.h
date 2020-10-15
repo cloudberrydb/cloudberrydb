@@ -65,8 +65,7 @@ private:
 	// dxl bucket object
 	CDXLBucket *m_dxl_bucket;
 
-	// private copy ctor
-	CParseHandlerColStatsBucket(const CParseHandlerColStatsBucket &);
+	CParseHandlerColStatsBucket(const CParseHandlerColStatsBucket &) = delete;
 
 	// process the start of an element
 	void StartElement(

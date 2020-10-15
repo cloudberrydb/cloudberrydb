@@ -36,9 +36,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarCoerceToDomain : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
 	CParseHandlerScalarCoerceToDomain(
-		const CParseHandlerScalarCoerceToDomain &);
+		const CParseHandlerScalarCoerceToDomain &) = delete;
 
 	// process the start of an element
 	void StartElement(
@@ -61,7 +60,7 @@ public:
 									  CParseHandlerManager *parse_handler_mgr,
 									  CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerScalarCoerceToDomain(){};
+	virtual ~CParseHandlerScalarCoerceToDomain() = default;
 };
 
 }  // namespace gpdxl

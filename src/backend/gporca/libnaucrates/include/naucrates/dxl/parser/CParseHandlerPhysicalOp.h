@@ -33,8 +33,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalOp : public CParseHandlerOp
 {
 private:
-	// private copy ctor
-	CParseHandlerPhysicalOp(const CParseHandlerPhysicalOp &);
+	CParseHandlerPhysicalOp(const CParseHandlerPhysicalOp &) = delete;
 
 
 protected:

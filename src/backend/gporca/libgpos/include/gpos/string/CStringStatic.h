@@ -57,8 +57,7 @@ private:
 	bool IsValid() const;
 #endif	// GPOS_DEBUG
 
-	// private copy ctor
-	CStringStatic(const CStringStatic &);
+	CStringStatic(const CStringStatic &) = delete;
 
 public:
 	// ctor
@@ -68,9 +67,7 @@ public:
 	CStringStatic(CHAR buffer[], ULONG capacity, const CHAR init_str[]);
 
 	// dtor - owner is responsible for releasing the buffer
-	~CStringStatic()
-	{
-	}
+	~CStringStatic() = default;
 
 	// returns the wide character buffer storing the string
 	const CHAR *

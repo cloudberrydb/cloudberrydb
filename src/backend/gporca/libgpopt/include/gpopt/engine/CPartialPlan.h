@@ -54,8 +54,7 @@ private:
 	// index of known child plan
 	ULONG m_ulChildIndex;
 
-	// private copy ctor
-	CPartialPlan(const CPartialPlan &);
+	CPartialPlan(const CPartialPlan &) = delete;
 
 	// extract costing info from children
 	void ExtractChildrenCostingInfo(CMemoryPool *mp, ICostModel *pcm,

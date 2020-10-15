@@ -28,8 +28,7 @@ enum EdxlnVal
 class CDXLPhysicalValuesScan : public CDXLPhysical
 {
 private:
-	// private copy ctor
-	CDXLPhysicalValuesScan(CDXLPhysicalValuesScan &);
+	CDXLPhysicalValuesScan(CDXLPhysicalValuesScan &) = delete;
 
 public:
 	// ctor

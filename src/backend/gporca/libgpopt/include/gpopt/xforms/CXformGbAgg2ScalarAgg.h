@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformGbAgg2ScalarAgg : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformGbAgg2ScalarAgg(const CXformGbAgg2ScalarAgg &);
+	CXformGbAgg2ScalarAgg(const CXformGbAgg2ScalarAgg &) = delete;
 
 public:
 	// ctor
 	CXformGbAgg2ScalarAgg(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAgg2ScalarAgg()
-	{
-	}
+	virtual ~CXformGbAgg2ScalarAgg() = default;
 
 	// ident accessors
 	virtual EXformId

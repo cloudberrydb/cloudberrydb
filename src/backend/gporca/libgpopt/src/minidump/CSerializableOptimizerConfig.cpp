@@ -52,9 +52,7 @@ CSerializableOptimizerConfig::CSerializableOptimizerConfig(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CSerializableOptimizerConfig::~CSerializableOptimizerConfig()
-{
-}
+CSerializableOptimizerConfig::~CSerializableOptimizerConfig() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

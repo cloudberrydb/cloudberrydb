@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementDML : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementDML(const CXformImplementDML &);
+	CXformImplementDML(const CXformImplementDML &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementDML(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementDML()
-	{
-	}
+	virtual ~CXformImplementDML() = default;
 
 	// ident accessors
 	virtual EXformId

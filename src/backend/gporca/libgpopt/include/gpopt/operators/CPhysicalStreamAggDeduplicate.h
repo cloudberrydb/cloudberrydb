@@ -30,8 +30,8 @@ private:
 	// array of keys from the join's child
 	CColRefArray *m_pdrgpcrKeys;
 
-	// private copy ctor
-	CPhysicalStreamAggDeduplicate(const CPhysicalStreamAggDeduplicate &);
+	CPhysicalStreamAggDeduplicate(const CPhysicalStreamAggDeduplicate &) =
+		delete;
 
 public:
 	// ctor

@@ -29,8 +29,8 @@ using namespace gpos;
 class CXformLeftAntiSemiJoin2NLJoin : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformLeftAntiSemiJoin2NLJoin(const CXformLeftAntiSemiJoin2NLJoin &);
+	CXformLeftAntiSemiJoin2NLJoin(const CXformLeftAntiSemiJoin2NLJoin &) =
+		delete;
 
 
 public:
@@ -38,9 +38,7 @@ public:
 	explicit CXformLeftAntiSemiJoin2NLJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftAntiSemiJoin2NLJoin()
-	{
-	}
+	virtual ~CXformLeftAntiSemiJoin2NLJoin() = default;
 
 	// ident accessors
 	virtual EXformId

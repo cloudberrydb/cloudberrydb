@@ -60,8 +60,7 @@ private:
 	// is trigger enabled
 	BOOL m_is_enabled;
 
-	// private copy ctor
-	CMDTriggerGPDB(const CMDTriggerGPDB &);
+	CMDTriggerGPDB(const CMDTriggerGPDB &) = delete;
 
 public:
 	// ctor

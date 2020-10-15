@@ -46,9 +46,7 @@ CMiniDumperDXL::CMiniDumperDXL() : CMiniDumper()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CMiniDumperDXL::~CMiniDumperDXL()
-{
-}
+CMiniDumperDXL::~CMiniDumperDXL() = default;
 
 
 //---------------------------------------------------------------------------

@@ -30,17 +30,14 @@ using namespace gpos;
 class CXformPushDownLeftOuterJoin : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformPushDownLeftOuterJoin(const CXformPushDownLeftOuterJoin &);
+	CXformPushDownLeftOuterJoin(const CXformPushDownLeftOuterJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformPushDownLeftOuterJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformPushDownLeftOuterJoin()
-	{
-	}
+	virtual ~CXformPushDownLeftOuterJoin() = default;
 
 	// xform promise
 	virtual CXform::EXformPromise Exfp(CExpressionHandle &exprhdl) const;

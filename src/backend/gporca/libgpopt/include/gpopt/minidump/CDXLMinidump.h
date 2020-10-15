@@ -72,8 +72,7 @@ private:
 	// plan space size
 	ULLONG m_plan_space_size;
 
-	// private copy ctor
-	CDXLMinidump(const CDXLMinidump &);
+	CDXLMinidump(const CDXLMinidump &) = delete;
 
 public:
 	// ctor

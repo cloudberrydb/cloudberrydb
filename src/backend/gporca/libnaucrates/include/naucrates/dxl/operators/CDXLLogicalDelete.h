@@ -45,8 +45,7 @@ private:
 	// list of deletion column ids
 	ULongPtrArray *m_deletion_colid_array;
 
-	// private copy ctor
-	CDXLLogicalDelete(const CDXLLogicalDelete &);
+	CDXLLogicalDelete(const CDXLLogicalDelete &) = delete;
 
 public:
 	// ctor

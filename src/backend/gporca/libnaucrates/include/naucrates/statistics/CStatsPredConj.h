@@ -29,11 +29,10 @@ using namespace gpos;
 class CStatsPredConj : public CStatsPred
 {
 private:
-	// private copy ctor
-	CStatsPredConj(const CStatsPredConj &);
+	CStatsPredConj(const CStatsPredConj &) = delete;
 
 	// private assignment operator
-	CStatsPredConj &operator=(CStatsPredConj &);
+	CStatsPredConj &operator=(CStatsPredConj &) = delete;
 
 	// array of filters
 	CStatsPredPtrArry *m_conj_pred_stats_array;

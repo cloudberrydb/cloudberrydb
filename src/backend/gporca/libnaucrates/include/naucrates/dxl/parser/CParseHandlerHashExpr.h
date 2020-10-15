@@ -38,8 +38,7 @@ private:
 	// hash expr operator
 	CDXLScalarHashExpr *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerHashExpr(const CParseHandlerHashExpr &);
+	CParseHandlerHashExpr(const CParseHandlerHashExpr &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -28,16 +28,13 @@ namespace gpdxl
 class CDXLScalarDMLAction : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarDMLAction(const CDXLScalarDMLAction &);
+	CDXLScalarDMLAction(const CDXLScalarDMLAction &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CDXLScalarDMLAction(CMemoryPool *mp);
 
-	virtual ~CDXLScalarDMLAction()
-	{
-	}
+	virtual ~CDXLScalarDMLAction() = default;
 
 	// ident accessors
 	Edxlopid GetDXLOperator() const;

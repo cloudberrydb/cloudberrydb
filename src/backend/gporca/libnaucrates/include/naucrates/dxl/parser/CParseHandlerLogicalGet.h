@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalGet : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalGet(const CParseHandlerLogicalGet &);
+	CParseHandlerLogicalGet(const CParseHandlerLogicalGet &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

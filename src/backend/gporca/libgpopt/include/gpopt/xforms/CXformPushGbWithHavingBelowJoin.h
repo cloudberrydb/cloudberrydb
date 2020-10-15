@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformPushGbWithHavingBelowJoin : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformPushGbWithHavingBelowJoin(const CXformPushGbWithHavingBelowJoin &);
+	CXformPushGbWithHavingBelowJoin(const CXformPushGbWithHavingBelowJoin &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformPushGbWithHavingBelowJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformPushGbWithHavingBelowJoin()
-	{
-	}
+	virtual ~CXformPushGbWithHavingBelowJoin() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -36,8 +36,7 @@ private:
 	// stream used for writing debug information
 	IOstream &m_os;
 
-	// private copy ctor
-	CMemoryVisitorPrint(CMemoryVisitorPrint &);
+	CMemoryVisitorPrint(CMemoryVisitorPrint &) = delete;
 
 public:
 	// ctor

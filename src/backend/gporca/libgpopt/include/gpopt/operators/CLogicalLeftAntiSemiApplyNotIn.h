@@ -28,8 +28,8 @@ namespace gpopt
 class CLogicalLeftAntiSemiApplyNotIn : public CLogicalLeftAntiSemiApply
 {
 private:
-	// private copy ctor
-	CLogicalLeftAntiSemiApplyNotIn(const CLogicalLeftAntiSemiApplyNotIn &);
+	CLogicalLeftAntiSemiApplyNotIn(const CLogicalLeftAntiSemiApplyNotIn &) =
+		delete;
 
 public:
 	// ctor
@@ -46,9 +46,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalLeftAntiSemiApplyNotIn()
-	{
-	}
+	virtual ~CLogicalLeftAntiSemiApplyNotIn() = default;
 
 	// ident accessors
 	virtual EOperatorId

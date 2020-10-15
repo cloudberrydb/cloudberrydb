@@ -30,8 +30,7 @@ private:
 	// underlying string
 	CWString *m_string;
 
-	// private copy ctor
-	COstreamString(const COstreamString &);
+	COstreamString(const COstreamString &) = delete;
 
 public:
 	// please see comments in COstream.h for an explanation
@@ -40,9 +39,7 @@ public:
 	// ctor
 	explicit COstreamString(CWString *);
 
-	virtual ~COstreamString()
-	{
-	}
+	virtual ~COstreamString() = default;
 
 	// implement << operator on wide char array
 	virtual IOstream &operator<<(const WCHAR *wc_array);

@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalWindow : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalWindow(const CParseHandlerLogicalWindow &);
+	CParseHandlerLogicalWindow(const CParseHandlerLogicalWindow &) = delete;
 
 	// process the start of an element
 	void StartElement(

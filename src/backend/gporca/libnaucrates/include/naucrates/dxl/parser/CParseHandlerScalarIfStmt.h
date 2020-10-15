@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarIfStmt : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarIfStmt(const CParseHandlerScalarIfStmt &);
+	CParseHandlerScalarIfStmt(const CParseHandlerScalarIfStmt &) = delete;
 
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,

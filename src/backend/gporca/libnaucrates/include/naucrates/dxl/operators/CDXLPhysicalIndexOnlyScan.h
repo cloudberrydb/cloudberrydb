@@ -31,8 +31,7 @@ namespace gpdxl
 class CDXLPhysicalIndexOnlyScan : public CDXLPhysicalIndexScan
 {
 private:
-	// private copy ctor
-	CDXLPhysicalIndexOnlyScan(CDXLPhysicalIndexOnlyScan &);
+	CDXLPhysicalIndexOnlyScan(CDXLPhysicalIndexOnlyScan &) = delete;
 
 public:
 	//ctor
@@ -41,9 +40,7 @@ public:
 							  EdxlIndexScanDirection idx_scan_direction);
 
 	//dtor
-	virtual ~CDXLPhysicalIndexOnlyScan()
-	{
-	}
+	virtual ~CDXLPhysicalIndexOnlyScan() = default;
 
 	// operator type
 	virtual Edxlopid GetDXLOperator() const;

@@ -36,8 +36,7 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CDXLScalarSwitch(const CDXLScalarSwitch &);
+	CDXLScalarSwitch(const CDXLScalarSwitch &) = delete;
 
 public:
 	// ctor

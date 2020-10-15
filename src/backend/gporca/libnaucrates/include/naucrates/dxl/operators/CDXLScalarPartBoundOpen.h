@@ -37,8 +37,7 @@ private:
 	// whether this represents a lower or upper bound
 	BOOL m_is_lower_bound;
 
-	// private copy ctor
-	CDXLScalarPartBoundOpen(const CDXLScalarPartBoundOpen &);
+	CDXLScalarPartBoundOpen(const CDXLScalarPartBoundOpen &) = delete;
 
 public:
 	// ctor

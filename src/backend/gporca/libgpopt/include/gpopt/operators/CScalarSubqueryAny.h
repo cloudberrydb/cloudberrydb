@@ -31,8 +31,7 @@ using namespace gpos;
 class CScalarSubqueryAny : public CScalarSubqueryQuantified
 {
 private:
-	// private copy ctor
-	CScalarSubqueryAny(const CScalarSubqueryAny &);
+	CScalarSubqueryAny(const CScalarSubqueryAny &) = delete;
 
 public:
 	// ctor
@@ -41,9 +40,7 @@ public:
 					   const CColRef *colref);
 
 	// dtor
-	virtual ~CScalarSubqueryAny()
-	{
-	}
+	virtual ~CScalarSubqueryAny() = default;
 
 	// ident accessors
 	virtual EOperatorId

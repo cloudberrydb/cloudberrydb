@@ -38,8 +38,7 @@ class CParseHandlerScalarFuncExpr : public CParseHandlerScalarOp
 private:
 	BOOL m_inside_func_expr;
 
-	// private copy ctor
-	CParseHandlerScalarFuncExpr(const CParseHandlerScalarFuncExpr &);
+	CParseHandlerScalarFuncExpr(const CParseHandlerScalarFuncExpr &) = delete;
 
 	// process the start of an element
 	void StartElement(

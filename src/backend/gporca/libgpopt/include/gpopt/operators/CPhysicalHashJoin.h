@@ -45,8 +45,7 @@ private:
 	// array redistribute request sent to the first hash join child
 	CDistributionSpecArray *m_pdrgpdsRedistributeRequests;
 
-	// private copy ctor
-	CPhysicalHashJoin(const CPhysicalHashJoin &);
+	CPhysicalHashJoin(const CPhysicalHashJoin &) = delete;
 
 	// create the set of redistribute requests to send to first hash join child
 	void CreateHashRedistributeRequests(CMemoryPool *mp);

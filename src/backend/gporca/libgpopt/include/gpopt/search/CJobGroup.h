@@ -34,8 +34,7 @@ class CGroupExpression;
 class CJobGroup : public CJob
 {
 private:
-	// private copy ctor
-	CJobGroup(const CJobGroup &);
+	CJobGroup(const CJobGroup &) = delete;
 
 protected:
 	// target group
@@ -50,7 +49,7 @@ protected:
 	}
 
 	// dtor
-	virtual ~CJobGroup(){};
+	virtual ~CJobGroup() = default;
 
 	// initialize job
 	void Init(CGroup *pgroup);
@@ -76,7 +75,7 @@ protected:
 	virtual IOstream &OsPrint(IOstream &os) = 0;
 
 #endif	// GPOS_DEBUG
-
+public:
 };	// class CJobGroup
 
 }  // namespace gpopt

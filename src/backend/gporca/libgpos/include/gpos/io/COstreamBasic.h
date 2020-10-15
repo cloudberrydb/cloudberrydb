@@ -30,8 +30,7 @@ private:
 	// underlying stream
 	WOSTREAM *m_ostream;
 
-	// private copy ctor
-	COstreamBasic(const COstreamBasic &);
+	COstreamBasic(const COstreamBasic &) = delete;
 
 public:
 	// please see comments in COstream.h for an explanation
@@ -40,9 +39,7 @@ public:
 	// ctor
 	explicit COstreamBasic(WOSTREAM *ostream);
 
-	virtual ~COstreamBasic()
-	{
-	}
+	virtual ~COstreamBasic() = default;
 
 	// implement << operator
 	virtual IOstream &operator<<(const WCHAR *);

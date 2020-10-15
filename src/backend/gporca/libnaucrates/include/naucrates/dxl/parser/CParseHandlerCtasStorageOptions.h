@@ -46,8 +46,8 @@ private:
 	// parsed array of key-value pairs of options
 	CDXLCtasStorageOptions::CDXLCtasOptionArray *m_ctas_storage_option_array;
 
-	// private copy ctor
-	CParseHandlerCtasStorageOptions(const CParseHandlerCtasStorageOptions &);
+	CParseHandlerCtasStorageOptions(const CParseHandlerCtasStorageOptions &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

@@ -48,8 +48,6 @@ CRandom::Next()
 	return clib::Rand(&m_seed);
 }
 
-CRandom::~CRandom()
-{
-}
+CRandom::~CRandom() = default;
 
 // EOF

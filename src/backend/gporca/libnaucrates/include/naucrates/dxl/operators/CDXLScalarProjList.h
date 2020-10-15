@@ -29,14 +29,13 @@ namespace gpdxl
 class CDXLScalarProjList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarProjList(CDXLScalarProjList &);
+	CDXLScalarProjList(CDXLScalarProjList &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CDXLScalarProjList(CMemoryPool *mp);
 
-	virtual ~CDXLScalarProjList(){};
+	virtual ~CDXLScalarProjList() = default;
 
 	// ident accessors
 	Edxlopid GetDXLOperator() const;

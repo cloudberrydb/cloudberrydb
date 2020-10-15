@@ -35,8 +35,7 @@ private:
 	// defined column reference
 	CColRef *m_pcr;
 
-	// private copy ctor
-	CScalarProjectElement(const CScalarProjectElement &);
+	CScalarProjectElement(const CScalarProjectElement &) = delete;
 
 
 public:
@@ -48,9 +47,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarProjectElement()
-	{
-	}
+	virtual ~CScalarProjectElement() = default;
 
 	// identity accessor
 	virtual EOperatorId

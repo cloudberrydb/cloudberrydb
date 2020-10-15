@@ -89,8 +89,7 @@ private:
 	CTask(CMemoryPool *mp, CTaskContext *task_ctxt, IErrorContext *err_ctxt,
 		  BOOL *cancel);
 
-	// no copy ctor
-	CTask(const CTask &);
+	CTask(const CTask &) = delete;
 
 	// binding a task structure to a function and its arguments
 	void Bind(void *(*func)(void *), void *arg);

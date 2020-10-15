@@ -35,8 +35,8 @@ private:
 	// enumerator configuration
 	CEnumeratorConfig *m_enumerator_cfg;
 
-	// private copy ctor
-	CParseHandlerEnumeratorConfig(const CParseHandlerEnumeratorConfig &);
+	CParseHandlerEnumeratorConfig(const CParseHandlerEnumeratorConfig &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

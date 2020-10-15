@@ -48,9 +48,7 @@ CMemoryVisitorPrint::CMemoryVisitorPrint(IOstream &os) : m_visits(0), m_os(os)
 //	  Dtor.
 //
 //---------------------------------------------------------------------------
-CMemoryVisitorPrint::~CMemoryVisitorPrint()
-{
-}
+CMemoryVisitorPrint::~CMemoryVisitorPrint() = default;
 
 
 //---------------------------------------------------------------------------

@@ -36,8 +36,7 @@ private:
 	// list of window specifications
 	CDXLWindowSpecArray *m_window_spec_array;
 
-	// private copy ctor
-	CParseHandlerWindowSpecList(const CParseHandlerWindowSpecList &);
+	CParseHandlerWindowSpecList(const CParseHandlerWindowSpecList &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -31,17 +31,14 @@ using namespace gpos;
 class CXformGbAgg2Apply : public CXformSubqueryUnnest
 {
 private:
-	// private copy ctor
-	CXformGbAgg2Apply(const CXformGbAgg2Apply &);
+	CXformGbAgg2Apply(const CXformGbAgg2Apply &) = delete;
 
 public:
 	// ctor
 	explicit CXformGbAgg2Apply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAgg2Apply()
-	{
-	}
+	virtual ~CXformGbAgg2Apply() = default;
 
 	// ident accessors
 	virtual EXformId

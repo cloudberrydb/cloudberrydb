@@ -29,8 +29,7 @@ namespace gpdxl
 class CDXLScalarSubqueryExists : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarSubqueryExists(CDXLScalarSubqueryExists &);
+	CDXLScalarSubqueryExists(CDXLScalarSubqueryExists &) = delete;
 
 public:
 	// ctor/dtor

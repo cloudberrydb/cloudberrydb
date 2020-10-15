@@ -33,8 +33,7 @@ private:
 	// type id
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CScalarCaseTest(const CScalarCaseTest &);
+	CScalarCaseTest(const CScalarCaseTest &) = delete;
 
 public:
 	// ctor

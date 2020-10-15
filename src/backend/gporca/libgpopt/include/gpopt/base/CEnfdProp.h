@@ -75,27 +75,22 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CEnfdProp(const CEnfdProp &);
+	CEnfdProp(const CEnfdProp &) = delete;
 
 public:
 	// ctor
-	CEnfdProp()
-	{
-	}
+	CEnfdProp() = default;
 
 	// dtor
-	virtual ~CEnfdProp()
-	{
-	}
+	virtual ~CEnfdProp() = default;
 
 	// append enforcers to dynamic array for the given plan properties
 	void
 	AppendEnforcers(
 		CMemoryPool *mp, CReqdPropPlan *prpp,
 		CExpressionArray *pdrgpexpr,  // array of enforcer expressions
-		CExpression *
-			pexprChild,	 // leaf in the target group where enforcers will be added
+		CExpression *pexprChild,	  // leaf in the target group where
+									  // enforcers will be added
 		CEnfdProp::EPropEnforcingType epet, CExpressionHandle &exprhdl)
 	{
 		if (FEnforce(epet))

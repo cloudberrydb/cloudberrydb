@@ -35,8 +35,7 @@ private:
 	// vector
 	ULLONG *m_vec;
 
-	// no default copy ctor
-	CBitVector(const CBitVector &);
+	CBitVector(const CBitVector &) = delete;
 
 	// clear vector
 	void Clear();

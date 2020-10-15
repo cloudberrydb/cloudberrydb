@@ -93,8 +93,7 @@ private:
 	// does expression contain ScalarArrayCmp generated for "scalar op ANY/ALL (array)" construct
 	BOOL m_fHasScalarArrayCmp;
 
-	// private copy ctor
-	CDrvdPropScalar(const CDrvdPropScalar &);
+	CDrvdPropScalar(const CDrvdPropScalar &) = delete;
 
 	// Have all the properties been derived?
 	//

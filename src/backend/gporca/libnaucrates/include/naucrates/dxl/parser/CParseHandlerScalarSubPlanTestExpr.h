@@ -36,9 +36,8 @@ private:
 	// child test expression
 	CDXLNode *m_dxl_test_expr;
 
-	// private copy ctor
 	CParseHandlerScalarSubPlanTestExpr(
-		const CParseHandlerScalarSubPlanTestExpr &);
+		const CParseHandlerScalarSubPlanTestExpr &) = delete;
 
 	// process the start of an element
 	void StartElement(

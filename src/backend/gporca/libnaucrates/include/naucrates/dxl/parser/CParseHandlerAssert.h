@@ -37,8 +37,7 @@ private:
 	// physical assert operator
 	CDXLPhysicalAssert *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerAssert(const CParseHandlerAssert &);
+	CParseHandlerAssert(const CParseHandlerAssert &) = delete;
 
 	// process the start of an element
 	void StartElement(

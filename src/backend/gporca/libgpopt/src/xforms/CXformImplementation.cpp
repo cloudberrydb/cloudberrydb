@@ -38,9 +38,7 @@ CXformImplementation::CXformImplementation(CExpression *pexpr) : CXform(pexpr)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CXformImplementation::~CXformImplementation()
-{
-}
+CXformImplementation::~CXformImplementation() = default;
 
 
 // EOF

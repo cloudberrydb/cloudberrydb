@@ -31,17 +31,14 @@ using namespace gpos;
 class CXformExpandNAryJoinDPv2 : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformExpandNAryJoinDPv2(const CXformExpandNAryJoinDPv2 &);
+	CXformExpandNAryJoinDPv2(const CXformExpandNAryJoinDPv2 &) = delete;
 
 public:
 	// ctor
 	explicit CXformExpandNAryJoinDPv2(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformExpandNAryJoinDPv2()
-	{
-	}
+	virtual ~CXformExpandNAryJoinDPv2() = default;
 
 	// ident accessors
 	virtual EXformId

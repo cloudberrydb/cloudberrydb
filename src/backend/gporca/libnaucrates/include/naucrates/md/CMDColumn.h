@@ -63,8 +63,7 @@ private:
 	// default value expression
 	gpdxl::CDXLNode *m_dxl_default_val;
 
-	// private copy ctor
-	CMDColumn(const CMDColumn &);
+	CMDColumn(const CMDColumn &) = delete;
 
 public:
 	// ctor

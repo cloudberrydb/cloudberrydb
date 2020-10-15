@@ -47,8 +47,7 @@ private:
 		CMemoryPool *mp, CDistributionSpec *pdsOuter,
 		CDistributionSpec *pdsInner) const;
 
-	// private copy ctor
-	CPhysicalInnerHashJoin(const CPhysicalInnerHashJoin &);
+	CPhysicalInnerHashJoin(const CPhysicalInnerHashJoin &) = delete;
 
 public:
 	// ctor

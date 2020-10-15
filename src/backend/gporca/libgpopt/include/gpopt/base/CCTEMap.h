@@ -85,8 +85,7 @@ private:
 		// derived plan properties if entry corresponds to CTE producer
 		CDrvdPropPlan *m_pdpplan;
 
-		// private copy ctor
-		CCTEMapEntry(const CCTEMapEntry &);
+		CCTEMapEntry(const CCTEMapEntry &) = delete;
 
 	public:
 		// ctor
@@ -166,8 +165,7 @@ private:
 	// cte map
 	UlongToCTEMapEntryMap *m_phmcm;
 
-	// private copy ctor
-	CCTEMap(const CCTEMap &);
+	CCTEMap(const CCTEMap &) = delete;
 
 	// lookup info for given cte id
 	CCTEMapEntry *PcmeLookup(ULONG ulCteId) const;

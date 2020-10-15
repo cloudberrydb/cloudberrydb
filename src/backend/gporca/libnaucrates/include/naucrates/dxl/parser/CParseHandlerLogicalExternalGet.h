@@ -33,8 +33,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalExternalGet : public CParseHandlerLogicalGet
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalExternalGet(const CParseHandlerLogicalExternalGet &);
+	CParseHandlerLogicalExternalGet(const CParseHandlerLogicalExternalGet &) =
+		delete;
 
 	// process the start of an element
 	virtual void StartElement(

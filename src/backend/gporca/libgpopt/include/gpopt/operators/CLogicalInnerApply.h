@@ -28,8 +28,7 @@ namespace gpopt
 class CLogicalInnerApply : public CLogicalApply
 {
 private:
-	// private copy ctor
-	CLogicalInnerApply(const CLogicalInnerApply &);
+	CLogicalInnerApply(const CLogicalInnerApply &) = delete;
 
 public:
 	// ctor for patterns

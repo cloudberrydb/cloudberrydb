@@ -43,8 +43,7 @@ private:
 	// operator type
 	const EdxlBoolExprType m_bool_type;
 
-	// private copy ctor
-	CDXLScalarBoolExpr(const CDXLScalarBoolExpr &);
+	CDXLScalarBoolExpr(const CDXLScalarBoolExpr &) = delete;
 
 public:
 	// ctor/dtor

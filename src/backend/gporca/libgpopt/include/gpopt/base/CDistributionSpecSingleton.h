@@ -48,8 +48,7 @@ protected:
 	static const CHAR *m_szSegmentType[EstSentinel];
 
 private:
-	// private copy ctor
-	CDistributionSpecSingleton(const CDistributionSpecSingleton &);
+	CDistributionSpecSingleton(const CDistributionSpecSingleton &) = delete;
 
 public:
 	// ctor

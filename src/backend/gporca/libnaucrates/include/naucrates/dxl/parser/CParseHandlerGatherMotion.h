@@ -37,8 +37,7 @@ private:
 	// the gather motion operator
 	CDXLPhysicalGatherMotion *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerGatherMotion(const CParseHandlerGatherMotion &);
+	CParseHandlerGatherMotion(const CParseHandlerGatherMotion &) = delete;
 
 	// process the start of an element
 	void StartElement(

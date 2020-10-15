@@ -37,9 +37,7 @@ public:
 	explicit CXformEagerAgg(CExpression *exprPattern);
 
 	// dtor
-	virtual ~CXformEagerAgg()
-	{
-	}
+	virtual ~CXformEagerAgg() = default;
 
 	// ident accessors
 	virtual EXformId
@@ -78,8 +76,7 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CXformEagerAgg(const CXformEagerAgg &);
+	CXformEagerAgg(const CXformEagerAgg &) = delete;
 
 	// check if transform can be applied
 	BOOL CanApplyTransform(CExpression *agg_expr) const;
@@ -104,8 +101,8 @@ private:
 		IMDId *agg_mdid,  // original global aggregate function
 		CWStringConst *agg_name, CExpressionArray *agg_arg_array,
 		BOOL is_distinct,
-		CExpression **
-			lower_proj_elem_expr  // output project element of the new lower aggregate
+		CExpression **lower_proj_elem_expr	// output project element of the new
+											// lower aggregate
 	) const;
 
 	// generate project element for upper aggregate
@@ -114,8 +111,8 @@ private:
 		IMDId *agg_mdid,  // aggregate mdid to create
 		CWStringConst *agg_name, CColRef *lower_colref, CColRef *output_colref,
 		BOOL is_distinct,
-		CExpression **
-			upper_proj_elem_expr  // output project element of the new upper aggregate
+		CExpression **upper_proj_elem_expr	// output project element of the new
+											// upper aggregate
 	) const;
 };	// class CXformEagerAgg
 }  // namespace gpopt

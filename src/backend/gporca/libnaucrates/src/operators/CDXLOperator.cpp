@@ -35,9 +35,7 @@ CDXLOperator::CDXLOperator(CMemoryPool *mp) : m_mp(mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CDXLOperator::~CDXLOperator()
-{
-}
+CDXLOperator::~CDXLOperator() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

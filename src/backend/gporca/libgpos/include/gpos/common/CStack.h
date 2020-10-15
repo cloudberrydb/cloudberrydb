@@ -34,8 +34,7 @@ private:
 	// top of stack index
 	ULONG m_size;
 
-	// copy c'tor - not defined
-	CStack(CStack &);
+	CStack(CStack &) = delete;
 
 public:
 	// c'tor

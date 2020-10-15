@@ -41,8 +41,7 @@ class CDXLLogicalLimit : public CDXLLogical
 private:
 	BOOL m_top_limit_under_dml;
 
-	// private copy ctor
-	CDXLLogicalLimit(CDXLLogicalLimit &);
+	CDXLLogicalLimit(CDXLLogicalLimit &) = delete;
 
 public:
 	// ctor/dtor

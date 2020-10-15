@@ -48,8 +48,7 @@ private:
 	ULLONG m_plan_space_size;
 
 
-	// private copy ctor
-	CSerializablePlan(const CSerializablePlan &);
+	CSerializablePlan(const CSerializablePlan &) = delete;
 
 public:
 	// ctor

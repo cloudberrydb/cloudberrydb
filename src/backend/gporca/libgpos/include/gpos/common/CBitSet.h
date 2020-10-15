@@ -44,8 +44,7 @@ protected:
 	class CBitSetLink
 	{
 	private:
-		// private copy ctor
-		CBitSetLink(const CBitSetLink &);
+		CBitSetLink(const CBitSetLink &) = delete;
 
 		// offset
 		ULONG m_offset;

@@ -48,9 +48,7 @@ CPhysicalScalarAgg::CPhysicalScalarAgg(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalScalarAgg::~CPhysicalScalarAgg()
-{
-}
+CPhysicalScalarAgg::~CPhysicalScalarAgg() = default;
 
 
 //---------------------------------------------------------------------------

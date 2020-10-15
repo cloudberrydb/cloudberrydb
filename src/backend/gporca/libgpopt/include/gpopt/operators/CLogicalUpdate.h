@@ -48,8 +48,7 @@ private:
 	// tuple oid column
 	CColRef *m_pcrTupleOid;
 
-	// private copy ctor
-	CLogicalUpdate(const CLogicalUpdate &);
+	CLogicalUpdate(const CLogicalUpdate &) = delete;
 
 public:
 	// ctor

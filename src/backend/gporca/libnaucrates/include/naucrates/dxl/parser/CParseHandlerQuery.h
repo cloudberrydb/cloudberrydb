@@ -43,7 +43,7 @@ private:
 	CDXLNodeArray *m_cte_producers;
 
 	// private ctor
-	CParseHandlerQuery(const CParseHandlerQuery &);
+	CParseHandlerQuery(const CParseHandlerQuery &) = delete;
 
 	// process the start of an element
 	void StartElement(

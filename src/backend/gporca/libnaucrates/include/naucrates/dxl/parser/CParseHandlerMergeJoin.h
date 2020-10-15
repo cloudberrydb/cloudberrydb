@@ -37,8 +37,7 @@ private:
 	// the merge join operator
 	CDXLPhysicalMergeJoin *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerMergeJoin(const CParseHandlerMergeJoin &);
+	CParseHandlerMergeJoin(const CParseHandlerMergeJoin &) = delete;
 
 	// process the start of an element
 	void StartElement(

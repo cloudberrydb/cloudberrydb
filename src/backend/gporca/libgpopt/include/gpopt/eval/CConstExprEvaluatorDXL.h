@@ -61,8 +61,7 @@ private:
 	// translates DXL coming from the evaluator back to CExpression
 	CTranslatorDXLToExpr m_trdxl2expr;
 
-	// private copy ctor
-	CConstExprEvaluatorDXL(const CConstExprEvaluatorDXL &);
+	CConstExprEvaluatorDXL(const CConstExprEvaluatorDXL &) = delete;
 
 public:
 	// ctor

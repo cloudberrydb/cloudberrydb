@@ -111,8 +111,7 @@ private:
 	// a null datum of this type (used for statistics comparison)
 	IDatum *m_datum_null;
 
-	// private copy ctor
-	CMDTypeInt4GPDB(const CMDTypeInt4GPDB &);
+	CMDTypeInt4GPDB(const CMDTypeInt4GPDB &) = delete;
 
 public:
 	// ctor

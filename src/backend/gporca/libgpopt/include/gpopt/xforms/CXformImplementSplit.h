@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementSplit : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementSplit(const CXformImplementSplit &);
+	CXformImplementSplit(const CXformImplementSplit &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementSplit(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementSplit()
-	{
-	}
+	virtual ~CXformImplementSplit() = default;
 
 	// ident accessors
 	virtual EXformId

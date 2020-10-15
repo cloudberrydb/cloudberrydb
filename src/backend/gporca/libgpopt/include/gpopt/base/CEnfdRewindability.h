@@ -51,8 +51,7 @@ private:
 	// rewindability matching type
 	ERewindabilityMatching m_erm;
 
-	// private copy ctor
-	CEnfdRewindability(const CEnfdRewindability &);
+	CEnfdRewindability(const CEnfdRewindability &) = delete;
 
 	// names of rewindability matching types
 	static const CHAR *m_szRewindabilityMatching[ErmSentinel];

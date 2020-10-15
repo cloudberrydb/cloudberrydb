@@ -58,8 +58,8 @@ private:
 		// dummy value to return
 		INT m_val;
 
-		// private copy ctor
-		CDummyConstDXLNodeEvaluator(const CDummyConstDXLNodeEvaluator &);
+		CDummyConstDXLNodeEvaluator(const CDummyConstDXLNodeEvaluator &) =
+			delete;
 
 	public:
 		// ctor
@@ -70,9 +70,7 @@ private:
 		}
 
 		// dtor
-		virtual ~CDummyConstDXLNodeEvaluator()
-		{
-		}
+		virtual ~CDummyConstDXLNodeEvaluator() = default;
 
 		// evaluate the given DXL node representing an expression and returns a dummy value as DXL
 		virtual gpdxl::CDXLNode *EvaluateExpr(const gpdxl::CDXLNode *pdxlnExpr);

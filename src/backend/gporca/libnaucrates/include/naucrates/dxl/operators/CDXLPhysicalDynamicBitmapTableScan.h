@@ -41,9 +41,8 @@ private:
 	// printable partition index id
 	ULONG m_part_index_id_printable;
 
-	// private copy ctor
 	CDXLPhysicalDynamicBitmapTableScan(
-		const CDXLPhysicalDynamicBitmapTableScan &);
+		const CDXLPhysicalDynamicBitmapTableScan &) = delete;
 
 public:
 	// ctor
@@ -59,9 +58,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CDXLPhysicalDynamicBitmapTableScan()
-	{
-	}
+	virtual ~CDXLPhysicalDynamicBitmapTableScan() = default;
 
 	// operator type
 	virtual Edxlopid

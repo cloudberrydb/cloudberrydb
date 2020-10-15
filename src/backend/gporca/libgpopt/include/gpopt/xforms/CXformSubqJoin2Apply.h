@@ -35,8 +35,7 @@ private:
 					 CleanupNULL<CColRef> >
 		ExprToColRefMap;
 
-	// private copy ctor
-	CXformSubqJoin2Apply(const CXformSubqJoin2Apply &);
+	CXformSubqJoin2Apply(const CXformSubqJoin2Apply &) = delete;
 
 	// helper to transform function
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
@@ -63,12 +62,12 @@ public:
 
 	// ctor
 	explicit CXformSubqJoin2Apply(CExpression *pexprPattern)
-		: CXformSubqueryUnnest(pexprPattern){};
-
-	// dtor
-	virtual ~CXformSubqJoin2Apply()
+		: CXformSubqueryUnnest(pexprPattern)
 	{
 	}
+
+	// dtor
+	virtual ~CXformSubqJoin2Apply() = default;
 
 	// ident accessors
 	virtual EXformId

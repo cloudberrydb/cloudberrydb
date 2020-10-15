@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalJoin : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalJoin(const CParseHandlerLogicalJoin &);
+	CParseHandlerLogicalJoin(const CParseHandlerLogicalJoin &) = delete;
 
 	// process the start of an element
 	void StartElement(

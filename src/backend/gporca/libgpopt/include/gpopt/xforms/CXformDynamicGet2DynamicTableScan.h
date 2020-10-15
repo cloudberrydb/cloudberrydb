@@ -29,18 +29,15 @@ using namespace gpos;
 class CXformDynamicGet2DynamicTableScan : public CXformImplementation
 {
 private:
-	// private copy ctor
 	CXformDynamicGet2DynamicTableScan(
-		const CXformDynamicGet2DynamicTableScan &);
+		const CXformDynamicGet2DynamicTableScan &) = delete;
 
 public:
 	// ctor
 	explicit CXformDynamicGet2DynamicTableScan(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformDynamicGet2DynamicTableScan()
-	{
-	}
+	virtual ~CXformDynamicGet2DynamicTableScan() = default;
 
 	// ident accessors
 	virtual EXformId

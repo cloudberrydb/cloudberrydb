@@ -29,8 +29,7 @@ template <class T, ULONG sentinel_index>
 class CEnumSet : public CBitSet
 {
 private:
-	// hidden copy ctor
-	CEnumSet<T, sentinel_index>(const CEnumSet<T, sentinel_index> &);
+	CEnumSet<T, sentinel_index>(const CEnumSet<T, sentinel_index> &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CEnumSet<T, sentinel_index>()
-	{
-	}
+	virtual ~CEnumSet<T, sentinel_index>() = default;
 
 	// determine if bit is set
 	BOOL

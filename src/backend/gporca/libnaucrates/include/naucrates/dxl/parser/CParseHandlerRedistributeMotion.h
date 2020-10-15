@@ -37,8 +37,8 @@ private:
 	// the redistribute motion operator
 	CDXLPhysicalRedistributeMotion *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerRedistributeMotion(const CParseHandlerRedistributeMotion &);
+	CParseHandlerRedistributeMotion(const CParseHandlerRedistributeMotion &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

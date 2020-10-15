@@ -36,8 +36,7 @@ private:
 	// list of window keys
 	CDXLWindowKeyArray *m_dxl_window_key_array;
 
-	// private copy ctor
-	CParseHandlerWindowKeyList(const CParseHandlerWindowKeyList &);
+	CParseHandlerWindowKeyList(const CParseHandlerWindowKeyList &) = delete;
 
 	// process the start of an element
 	void StartElement(

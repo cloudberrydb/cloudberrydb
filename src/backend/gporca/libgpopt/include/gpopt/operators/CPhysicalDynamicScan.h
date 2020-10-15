@@ -61,8 +61,7 @@ private:
 	// relation part constraint
 	CPartConstraint *m_ppartcnstrRel;
 
-	// disable copy ctor
-	CPhysicalDynamicScan(const CPhysicalDynamicScan &);
+	CPhysicalDynamicScan(const CPhysicalDynamicScan &) = delete;
 
 public:
 	// ctor

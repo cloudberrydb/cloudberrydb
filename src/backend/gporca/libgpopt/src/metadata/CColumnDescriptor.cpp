@@ -52,9 +52,7 @@ CColumnDescriptor::CColumnDescriptor(CMemoryPool *mp, const IMDType *pmdtype,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CColumnDescriptor::~CColumnDescriptor()
-{
-}
+CColumnDescriptor::~CColumnDescriptor() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

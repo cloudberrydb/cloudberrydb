@@ -40,8 +40,7 @@ private:
 		m_os = m_os << log_entry;
 	}
 
-	// no copy ctor
-	CLoggerStream(const CLoggerStream &);
+	CLoggerStream(const CLoggerStream &) = delete;
 
 public:
 	// ctor

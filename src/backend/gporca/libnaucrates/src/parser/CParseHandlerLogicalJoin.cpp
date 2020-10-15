@@ -42,9 +42,7 @@ CParseHandlerLogicalJoin::CParseHandlerLogicalJoin(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerLogicalJoin::~CParseHandlerLogicalJoin()
-{
-}
+CParseHandlerLogicalJoin::~CParseHandlerLogicalJoin() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

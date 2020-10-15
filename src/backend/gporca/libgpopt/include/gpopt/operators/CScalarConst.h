@@ -37,8 +37,7 @@ private:
 	// constant
 	IDatum *m_pdatum;
 
-	// private copy ctor
-	CScalarConst(const CScalarConst &);
+	CScalarConst(const CScalarConst &) = delete;
 
 public:
 	// ctor

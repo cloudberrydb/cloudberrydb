@@ -54,8 +54,7 @@ private:
 	// tuple oid column id
 	ULONG m_tuple_oid;
 
-	// private copy ctor
-	CDXLLogicalUpdate(const CDXLLogicalUpdate &);
+	CDXLLogicalUpdate(const CDXLLogicalUpdate &) = delete;
 
 public:
 	// ctor

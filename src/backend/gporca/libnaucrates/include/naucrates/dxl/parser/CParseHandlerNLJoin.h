@@ -50,8 +50,7 @@ private:
 	// the nested loop join operator
 	CDXLPhysicalNLJoin *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerNLJoin(const CParseHandlerNLJoin &);
+	CParseHandlerNLJoin(const CParseHandlerNLJoin &) = delete;
 
 	// process the start of an element
 	void StartElement(

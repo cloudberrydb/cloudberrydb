@@ -42,8 +42,7 @@ enum Edxlsort
 class CDXLPhysicalSort : public CDXLPhysical
 {
 private:
-	// private copy ctor
-	CDXLPhysicalSort(const CDXLPhysicalSort &);
+	CDXLPhysicalSort(const CDXLPhysicalSort &) = delete;
 
 	// whether sort discards duplicates
 	BOOL m_discard_duplicates;

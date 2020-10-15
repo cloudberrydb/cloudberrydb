@@ -123,8 +123,8 @@ private:
 		return 0;
 	}
 
-	// private copy ctor
-	CDynamicPtrArray<T, CleanupFn>(const CDynamicPtrArray<T, CleanupFn> &);
+	CDynamicPtrArray<T, CleanupFn>(const CDynamicPtrArray<T, CleanupFn> &) =
+		delete;
 
 	// resize function
 	void

@@ -40,14 +40,13 @@ enum Edxlgm
 class CDXLPhysicalGatherMotion : public CDXLPhysicalMotion
 {
 private:
-	// private copy ctor
-	CDXLPhysicalGatherMotion(const CDXLPhysicalGatherMotion &);
+	CDXLPhysicalGatherMotion(const CDXLPhysicalGatherMotion &) = delete;
 
 public:
 	// ctor/dtor
 	CDXLPhysicalGatherMotion(CMemoryPool *mp);
 
-	virtual ~CDXLPhysicalGatherMotion(){};
+	virtual ~CDXLPhysicalGatherMotion() = default;
 
 	// accessors
 	Edxlopid GetDXLOperator() const;

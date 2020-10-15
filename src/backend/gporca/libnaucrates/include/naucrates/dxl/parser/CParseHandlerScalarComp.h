@@ -37,8 +37,7 @@ private:
 	// the scalar comparison operator
 	CDXLScalarComp *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerScalarComp(const CParseHandlerScalarComp &);
+	CParseHandlerScalarComp(const CParseHandlerScalarComp &) = delete;
 
 	// process the start of an element
 	void StartElement(

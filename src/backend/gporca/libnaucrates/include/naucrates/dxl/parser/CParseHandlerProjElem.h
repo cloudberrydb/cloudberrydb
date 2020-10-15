@@ -37,8 +37,7 @@ private:
 	// project elem operator
 	CDXLScalarProjElem *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerProjElem(const CParseHandlerProjElem &);
+	CParseHandlerProjElem(const CParseHandlerProjElem &) = delete;
 
 	// process the start of an element
 	void StartElement(

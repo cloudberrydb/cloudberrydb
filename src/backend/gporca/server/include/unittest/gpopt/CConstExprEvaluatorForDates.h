@@ -43,8 +43,7 @@ private:
 	// memory pool, not owned
 	CMemoryPool *m_mp;
 
-	// disable copy ctor
-	CConstExprEvaluatorForDates(const CConstExprEvaluatorForDates &);
+	CConstExprEvaluatorForDates(const CConstExprEvaluatorForDates &) = delete;
 
 public:
 	// ctor
@@ -53,9 +52,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CConstExprEvaluatorForDates()
-	{
-	}
+	virtual ~CConstExprEvaluatorForDates() = default;
 
 	// evaluate the given expression and return the result as a new expression
 	// caller takes ownership of returned expression

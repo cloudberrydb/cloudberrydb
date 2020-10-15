@@ -51,8 +51,7 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	// private copy ctor
-	CMDIdColStats(const CMDIdColStats &);
+	CMDIdColStats(const CMDIdColStats &) = delete;
 
 	// serialize mdid
 	void Serialize();

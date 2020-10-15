@@ -33,8 +33,7 @@ private:
 	// file descriptor
 	INT m_file_descriptor;
 
-	// no copy ctor
-	CFileDescriptor(const CFileDescriptor &);
+	CFileDescriptor(const CFileDescriptor &) = delete;
 
 protected:
 	// ctor -- accessible through inheritance only

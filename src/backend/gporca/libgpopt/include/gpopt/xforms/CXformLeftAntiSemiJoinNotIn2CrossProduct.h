@@ -33,9 +33,8 @@ class CXformLeftAntiSemiJoinNotIn2CrossProduct
 	: public CXformLeftAntiSemiJoin2CrossProduct
 {
 private:
-	// private copy ctor
 	CXformLeftAntiSemiJoinNotIn2CrossProduct(
-		const CXformLeftAntiSemiJoinNotIn2CrossProduct &);
+		const CXformLeftAntiSemiJoinNotIn2CrossProduct &) = delete;
 
 public:
 	// ctor

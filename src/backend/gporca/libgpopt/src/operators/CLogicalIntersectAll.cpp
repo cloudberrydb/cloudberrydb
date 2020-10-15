@@ -57,9 +57,7 @@ CLogicalIntersectAll::CLogicalIntersectAll(CMemoryPool *mp,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalIntersectAll::~CLogicalIntersectAll()
-{
-}
+CLogicalIntersectAll::~CLogicalIntersectAll() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

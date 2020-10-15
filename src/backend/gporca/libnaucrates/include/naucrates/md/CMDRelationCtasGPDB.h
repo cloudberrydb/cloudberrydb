@@ -105,8 +105,7 @@ private:
 	// array of column widths
 	CDoubleArray *m_col_width_array;
 
-	// private copy ctor
-	CMDRelationCtasGPDB(const CMDRelationCtasGPDB &);
+	CMDRelationCtasGPDB(const CMDRelationCtasGPDB &) = delete;
 
 public:
 	// ctor

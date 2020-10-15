@@ -44,9 +44,8 @@ private:
 	// array of assert constraint nodes parsed so far
 	CDXLNodeArray *m_dxlnode_assert_constraints_parsed_array;
 
-	// private copy ctor
 	CParseHandlerScalarAssertConstraintList(
-		const CParseHandlerScalarAssertConstraintList &);
+		const CParseHandlerScalarAssertConstraintList &) = delete;
 
 	// process the start of an element
 	void StartElement(

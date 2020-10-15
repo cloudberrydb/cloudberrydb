@@ -39,8 +39,7 @@ private:
 	// the materialize operator
 	CDXLPhysicalMaterialize *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerMaterialize(const CParseHandlerMaterialize &);
+	CParseHandlerMaterialize(const CParseHandlerMaterialize &) = delete;
 
 	// process the start of an element
 	void StartElement(

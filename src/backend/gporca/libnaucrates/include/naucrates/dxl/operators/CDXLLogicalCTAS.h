@@ -80,8 +80,7 @@ private:
 	// typemod records type-specific, e.g. the maximum length of a character column
 	IntPtrArray *m_vartypemod_array;
 
-	// private copy ctor
-	CDXLLogicalCTAS(const CDXLLogicalCTAS &);
+	CDXLLogicalCTAS(const CDXLLogicalCTAS &) = delete;
 
 public:
 	// ctor

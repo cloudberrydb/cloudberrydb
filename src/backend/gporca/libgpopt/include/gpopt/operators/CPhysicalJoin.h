@@ -61,8 +61,7 @@ protected:
 		// id of scalar child
 		ULONG m_ulScalarChild;
 
-		// private copy ctor
-		CPartPropReq(const CPartPropReq &);
+		CPartPropReq(const CPartPropReq &) = delete;
 
 	public:
 		// ctor

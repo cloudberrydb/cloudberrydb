@@ -32,8 +32,7 @@ private:
 	// output distribution
 	CDistributionSpecReplicated *m_pdsReplicated;
 
-	// private copy ctor
-	CPhysicalMotionBroadcast(const CPhysicalMotionBroadcast &);
+	CPhysicalMotionBroadcast(const CPhysicalMotionBroadcast &) = delete;
 
 public:
 	// ctor

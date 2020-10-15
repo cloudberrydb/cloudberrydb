@@ -29,8 +29,7 @@ namespace gpdxl
 class CDXLLogicalExternalGet : public CDXLLogicalGet
 {
 private:
-	// private copy ctor
-	CDXLLogicalExternalGet(CDXLLogicalExternalGet &);
+	CDXLLogicalExternalGet(CDXLLogicalExternalGet &) = delete;
 
 public:
 	// ctor

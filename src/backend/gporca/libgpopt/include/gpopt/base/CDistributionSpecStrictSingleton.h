@@ -34,8 +34,8 @@ using namespace gpos;
 class CDistributionSpecStrictSingleton : public CDistributionSpecSingleton
 {
 private:
-	// copy ctor
-	CDistributionSpecStrictSingleton(const CDistributionSpecStrictSingleton &);
+	CDistributionSpecStrictSingleton(const CDistributionSpecStrictSingleton &) =
+		delete;
 
 public:
 	// ctor

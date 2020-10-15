@@ -36,7 +36,7 @@ private:
 	ICostModelParams *m_cost_model_params;
 
 	// private ctor
-	CParseHandlerCostParams(const CParseHandlerCostParams &);
+	CParseHandlerCostParams(const CParseHandlerCostParams &) = delete;
 
 	// process the start of an element
 	void StartElement(

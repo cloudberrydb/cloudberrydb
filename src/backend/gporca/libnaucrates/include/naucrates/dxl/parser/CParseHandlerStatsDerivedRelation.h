@@ -44,9 +44,8 @@ private:
 	// relation stats
 	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
-	// private copy ctor
 	CParseHandlerStatsDerivedRelation(
-		const CParseHandlerStatsDerivedRelation &);
+		const CParseHandlerStatsDerivedRelation &) = delete;
 
 	// process the start of an element
 	void StartElement(

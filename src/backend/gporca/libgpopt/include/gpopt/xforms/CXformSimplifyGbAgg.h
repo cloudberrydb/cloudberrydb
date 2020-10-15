@@ -35,17 +35,14 @@ private:
 	static BOOL FDropGbAgg(CMemoryPool *mp, CExpression *pexpr,
 						   CXformResult *pxfres);
 
-	// private copy ctor
-	CXformSimplifyGbAgg(const CXformSimplifyGbAgg &);
+	CXformSimplifyGbAgg(const CXformSimplifyGbAgg &) = delete;
 
 public:
 	// ctor
 	explicit CXformSimplifyGbAgg(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSimplifyGbAgg()
-	{
-	}
+	virtual ~CXformSimplifyGbAgg() = default;
 
 	// ident accessors
 	virtual EXformId

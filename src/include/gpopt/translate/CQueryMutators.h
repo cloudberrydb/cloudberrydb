@@ -93,9 +93,7 @@ class CQueryMutators
 		}
 
 		// dtor
-		~SContextGrpbyPlMutator()
-		{
-		}
+		~SContextGrpbyPlMutator() = default;
 
 	} CContextGrpbyPlMutator;
 
@@ -118,9 +116,7 @@ class CQueryMutators
 		}
 
 		// dtor
-		~SContextIncLevelsupMutator()
-		{
-		}
+		~SContextIncLevelsupMutator() = default;
 
 	} CContextIncLevelsupMutator;
 
@@ -141,9 +137,7 @@ class CQueryMutators
 		}
 
 		// dtor
-		~SContextTLWalker()
-		{
-		}
+		~SContextTLWalker() = default;
 
 	} CContextTLWalker;
 

@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformSplitGbAgg : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformSplitGbAgg(const CXformSplitGbAgg &);
+	CXformSplitGbAgg(const CXformSplitGbAgg &) = delete;
 
 protected:
 	// check if the transformation is applicable;
@@ -56,9 +55,7 @@ public:
 	explicit CXformSplitGbAgg(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformSplitGbAgg()
-	{
-	}
+	virtual ~CXformSplitGbAgg() = default;
 
 	// ident accessors
 	virtual EXformId

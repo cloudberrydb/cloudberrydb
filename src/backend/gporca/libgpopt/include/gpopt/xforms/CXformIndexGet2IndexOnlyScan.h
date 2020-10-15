@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformIndexGet2IndexOnlyScan : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformIndexGet2IndexOnlyScan(const CXformIndexGet2IndexOnlyScan &);
+	CXformIndexGet2IndexOnlyScan(const CXformIndexGet2IndexOnlyScan &) = delete;
 
 public:
 	// ctor
 	explicit CXformIndexGet2IndexOnlyScan(CMemoryPool *);
 
 	// dtor
-	virtual ~CXformIndexGet2IndexOnlyScan()
-	{
-	}
+	virtual ~CXformIndexGet2IndexOnlyScan() = default;
 
 	// ident accessors
 	virtual EXformId

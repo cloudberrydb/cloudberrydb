@@ -31,8 +31,7 @@ using namespace gpos;
 class CScalarNullTest : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarNullTest(const CScalarNullTest &);
+	CScalarNullTest(const CScalarNullTest &) = delete;
 
 public:
 	// ctor
@@ -41,9 +40,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarNullTest()
-	{
-	}
+	virtual ~CScalarNullTest() = default;
 
 
 	// ident accessors

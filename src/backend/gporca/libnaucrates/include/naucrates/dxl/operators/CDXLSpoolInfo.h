@@ -57,8 +57,7 @@ private:
 	// slice executing the underlying sort or materialize
 	INT m_executor_slice_id;
 
-	// private copy ctor
-	CDXLSpoolInfo(CDXLSpoolInfo &);
+	CDXLSpoolInfo(CDXLSpoolInfo &) = delete;
 
 	// spool type name
 	const CWStringConst *GetSpoolTypeName() const;

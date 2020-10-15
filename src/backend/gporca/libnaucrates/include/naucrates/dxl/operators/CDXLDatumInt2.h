@@ -42,15 +42,14 @@ private:
 	// int2 value
 	SINT m_val;
 
-	// private copy ctor
-	CDXLDatumInt2(const CDXLDatumInt2 &);
+	CDXLDatumInt2(const CDXLDatumInt2 &) = delete;
 
 public:
 	// ctor
 	CDXLDatumInt2(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, SINT val);
 
 	// dtor
-	virtual ~CDXLDatumInt2(){};
+	virtual ~CDXLDatumInt2() = default;
 
 	// accessor of int value
 	SINT Value() const;

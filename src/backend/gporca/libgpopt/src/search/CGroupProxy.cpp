@@ -43,9 +43,7 @@ CGroupProxy::CGroupProxy(CGroup *pgroup) : m_pgroup(pgroup)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CGroupProxy::~CGroupProxy()
-{
-}
+CGroupProxy::~CGroupProxy() = default;
 
 
 //---------------------------------------------------------------------------

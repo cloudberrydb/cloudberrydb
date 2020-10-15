@@ -58,9 +58,7 @@ CLogicalDifference::CLogicalDifference(CMemoryPool *mp,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalDifference::~CLogicalDifference()
-{
-}
+CLogicalDifference::~CLogicalDifference() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

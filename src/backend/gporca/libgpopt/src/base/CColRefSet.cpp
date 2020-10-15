@@ -71,9 +71,7 @@ CColRefSet::CColRefSet(CMemoryPool *mp, const CColRefArray *colref_array,
 //		dtor
 //
 //---------------------------------------------------------------------------
-CColRefSet::~CColRefSet()
-{
-}
+CColRefSet::~CColRefSet() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

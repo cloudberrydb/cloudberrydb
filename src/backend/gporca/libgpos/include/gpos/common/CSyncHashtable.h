@@ -67,12 +67,11 @@ private:
 	struct SBucket
 	{
 	private:
-		// no copy ctor
-		SBucket(const SBucket &);
+		SBucket(const SBucket &) = delete;
 
 	public:
 		// ctor
-		SBucket(){};
+		SBucket() = default;
 
 		// hash chain
 		CList<T> m_chain;

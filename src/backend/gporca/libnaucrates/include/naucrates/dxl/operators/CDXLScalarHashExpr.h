@@ -37,8 +37,7 @@ private:
 	// catalog Oid of the distribution opfamily
 	IMDId *m_mdid_opfamily;
 
-	// private copy ctor
-	CDXLScalarHashExpr(CDXLScalarHashExpr &);
+	CDXLScalarHashExpr(CDXLScalarHashExpr &) = delete;
 
 public:
 	// ctor/dtor

@@ -66,8 +66,7 @@ private:
 	// is result of splitting aggregates
 	BOOL m_fSplit;
 
-	// private copy ctor
-	CScalarAggFunc(const CScalarAggFunc &);
+	CScalarAggFunc(const CScalarAggFunc &) = delete;
 
 public:
 	// ctor

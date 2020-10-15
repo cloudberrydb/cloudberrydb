@@ -62,8 +62,7 @@ private:
 	// position the window specification in a parent window operator
 	ULONG m_win_spec_pos;
 
-	// private copy ctor
-	CDXLScalarWindowRef(const CDXLScalarWindowRef &);
+	CDXLScalarWindowRef(const CDXLScalarWindowRef &) = delete;
 
 public:
 	// ctor

@@ -89,13 +89,12 @@ private:
 												  CColRefSet *pcrs);
 
 	// private ctor
-	CPredicateUtils();
+	CPredicateUtils() = delete;
 
 	// private dtor
-	virtual ~CPredicateUtils();
+	virtual ~CPredicateUtils() = delete;
 
-	// private copy ctor
-	CPredicateUtils(const CPredicateUtils &);
+	CPredicateUtils(const CPredicateUtils &) = delete;
 
 public:
 	// reverse the comparison, for example "<" => ">", "<=" => "=>

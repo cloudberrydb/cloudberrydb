@@ -37,8 +37,7 @@ private:
 	// is null
 	BOOL m_is_null;
 
-	// private copy ctor
-	CDatumOidGPDB(const CDatumOidGPDB &);
+	CDatumOidGPDB(const CDatumOidGPDB &) = delete;
 
 public:
 	// ctors

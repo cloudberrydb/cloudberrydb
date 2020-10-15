@@ -43,8 +43,7 @@ class CMemoryPool;
 class CWStringBase
 {
 private:
-	// private copy ctor
-	CWStringBase(const CWStringBase &);
+	CWStringBase(const CWStringBase &) = delete;
 
 protected:
 	// represents end-of-wide-string character
@@ -67,9 +66,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CWStringBase()
-	{
-	}
+	virtual ~CWStringBase() = default;
 
 	// deep copy of the string
 	virtual CWStringConst *Copy(CMemoryPool *mp) const;

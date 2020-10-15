@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementCTEConsumer : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementCTEConsumer(const CXformImplementCTEConsumer &);
+	CXformImplementCTEConsumer(const CXformImplementCTEConsumer &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementCTEConsumer(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementCTEConsumer()
-	{
-	}
+	virtual ~CXformImplementCTEConsumer() = default;
 
 	// ident accessors
 	virtual EXformId

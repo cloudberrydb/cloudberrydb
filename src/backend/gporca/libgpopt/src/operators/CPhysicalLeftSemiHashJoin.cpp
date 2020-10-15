@@ -43,9 +43,7 @@ CPhysicalLeftSemiHashJoin::CPhysicalLeftSemiHashJoin(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalLeftSemiHashJoin::~CPhysicalLeftSemiHashJoin()
-{
-}
+CPhysicalLeftSemiHashJoin::~CPhysicalLeftSemiHashJoin() = default;
 
 
 //---------------------------------------------------------------------------

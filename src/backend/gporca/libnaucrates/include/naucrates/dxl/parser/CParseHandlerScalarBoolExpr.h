@@ -38,8 +38,7 @@ class CParseHandlerScalarBoolExpr : public CParseHandlerScalarOp
 private:
 	EdxlBoolExprType m_dxl_bool_type;
 
-	// private copy ctor
-	CParseHandlerScalarBoolExpr(const CParseHandlerScalarBoolExpr &);
+	CParseHandlerScalarBoolExpr(const CParseHandlerScalarBoolExpr &) = delete;
 
 	// process the start of an element
 	void StartElement(

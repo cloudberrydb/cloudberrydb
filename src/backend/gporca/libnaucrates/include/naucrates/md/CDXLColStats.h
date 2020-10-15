@@ -72,8 +72,7 @@ private:
 	// DXL string for object
 	CWStringDynamic *m_dxl_str;
 
-	// private copy ctor
-	CDXLColStats(const CDXLColStats &);
+	CDXLColStats(const CDXLColStats &) = delete;
 
 public:
 	// ctor

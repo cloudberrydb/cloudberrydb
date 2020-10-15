@@ -47,8 +47,7 @@ private:
 	// min/max type
 	EdxlMinMaxType m_min_max_type;
 
-	// private copy ctor
-	CDXLScalarMinMax(const CDXLScalarMinMax &);
+	CDXLScalarMinMax(const CDXLScalarMinMax &) = delete;
 
 public:
 	// ctor

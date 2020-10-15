@@ -38,8 +38,7 @@ private:
 	// list of derived table statistics
 	CDXLStatsDerivedRelationArray *m_dxl_stats_derived_rel_array;
 
-	// private copy ctor
-	CParseHandlerStatistics(const CParseHandlerStatistics &);
+	CParseHandlerStatistics(const CParseHandlerStatistics &) = delete;
 
 	// process the start of an element
 	void StartElement(

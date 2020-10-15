@@ -29,14 +29,13 @@ namespace gpdxl
 class CDXLScalarHashExprList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarHashExprList(CDXLScalarHashExprList &);
+	CDXLScalarHashExprList(CDXLScalarHashExprList &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CDXLScalarHashExprList(CMemoryPool *mp);
 
-	virtual ~CDXLScalarHashExprList(){};
+	virtual ~CDXLScalarHashExprList() = default;
 
 	// ident accessors
 	Edxlopid GetDXLOperator() const;

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementConstTableGet : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementConstTableGet(const CXformImplementConstTableGet &);
+	CXformImplementConstTableGet(const CXformImplementConstTableGet &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementConstTableGet(CMemoryPool *);
 
 	// dtor
-	virtual ~CXformImplementConstTableGet()
-	{
-	}
+	virtual ~CXformImplementConstTableGet() = default;
 
 	// ident accessors
 	virtual EXformId

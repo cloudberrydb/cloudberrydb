@@ -37,8 +37,7 @@ enum Edxlresult
 class CDXLPhysicalResult : public CDXLPhysical
 {
 private:
-	// private copy ctor
-	CDXLPhysicalResult(CDXLPhysicalResult &);
+	CDXLPhysicalResult(CDXLPhysicalResult &) = delete;
 
 public:
 	// ctor/dtor

@@ -34,8 +34,7 @@ private:
 	// table descriptor for the scanned table
 	CDXLTableDescr *m_dxl_table_descr;
 
-	// private copy ctor
-	CDXLLogicalGet(CDXLLogicalGet &);
+	CDXLLogicalGet(CDXLLogicalGet &) = delete;
 
 public:
 	// ctor

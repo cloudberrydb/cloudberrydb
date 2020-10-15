@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerRelStats : public CParseHandlerMetadataObject
 {
 private:
-	// private copy ctor
-	CParseHandlerRelStats(const CParseHandlerRelStats &);
+	CParseHandlerRelStats(const CParseHandlerRelStats &) = delete;
 
 	// process the start of an element
 	void StartElement(

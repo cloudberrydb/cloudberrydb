@@ -34,9 +34,8 @@ class CXformLeftAntiSemiApply2LeftAntiSemiJoin
 							  CLogicalLeftAntiSemiJoin>
 {
 private:
-	// private copy ctor
 	CXformLeftAntiSemiApply2LeftAntiSemiJoin(
-		const CXformLeftAntiSemiApply2LeftAntiSemiJoin &);
+		const CXformLeftAntiSemiApply2LeftAntiSemiJoin &) = delete;
 
 public:
 	// ctor
@@ -47,9 +46,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftAntiSemiApply2LeftAntiSemiJoin()
-	{
-	}
+	virtual ~CXformLeftAntiSemiApply2LeftAntiSemiJoin() = default;
 
 	// ident accessors
 	virtual EXformId

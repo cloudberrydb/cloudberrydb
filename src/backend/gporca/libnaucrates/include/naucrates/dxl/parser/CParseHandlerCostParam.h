@@ -42,8 +42,7 @@ private:
 	// upper bound value
 	CDouble m_upper_bound_val;
 
-	// private copy ctor
-	CParseHandlerCostParam(const CParseHandlerCostParam &);
+	CParseHandlerCostParam(const CParseHandlerCostParam &) = delete;
 
 	// process the start of an element
 	void StartElement(

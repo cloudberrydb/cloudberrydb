@@ -61,8 +61,7 @@ protected:
 	BOOL m_fBoolReturnType;
 
 private:
-	// private copy ctor
-	CScalarFunc(const CScalarFunc &);
+	CScalarFunc(const CScalarFunc &) = delete;
 
 
 public:

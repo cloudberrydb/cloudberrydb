@@ -46,8 +46,7 @@ private:
 	// boolean operator
 	EBoolOperator m_eboolop;
 
-	// private copy ctor
-	CScalarBoolOp(const CScalarBoolOp &);
+	CScalarBoolOp(const CScalarBoolOp &) = delete;
 
 public:
 	// ctor
@@ -58,9 +57,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarBoolOp()
-	{
-	}
+	virtual ~CScalarBoolOp() = default;
 
 
 	// ident accessors

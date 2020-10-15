@@ -20,9 +20,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarPartListNullTest : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
 	CParseHandlerScalarPartListNullTest(
-		const CParseHandlerScalarPartListNullTest &);
+		const CParseHandlerScalarPartListNullTest &) = delete;
 
 	// process the start of an element
 	void StartElement(

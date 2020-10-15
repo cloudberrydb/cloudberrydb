@@ -29,8 +29,7 @@ namespace gpopt
 class CLogicalDifference : public CLogicalSetOp
 {
 private:
-	// private copy ctor
-	CLogicalDifference(const CLogicalDifference &);
+	CLogicalDifference(const CLogicalDifference &) = delete;
 
 public:
 	// ctor

@@ -57,9 +57,7 @@ CPhysicalSerialUnionAll::CPhysicalSerialUnionAll(
 	GPOS_ASSERT(0 < UlDistrRequests());
 }
 
-CPhysicalSerialUnionAll::~CPhysicalSerialUnionAll()
-{
-}
+CPhysicalSerialUnionAll::~CPhysicalSerialUnionAll() = default;
 
 
 //---------------------------------------------------------------------------

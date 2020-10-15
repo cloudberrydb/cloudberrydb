@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformDelete2DML : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformDelete2DML(const CXformDelete2DML &);
+	CXformDelete2DML(const CXformDelete2DML &) = delete;
 
 public:
 	// ctor
 	explicit CXformDelete2DML(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformDelete2DML()
-	{
-	}
+	virtual ~CXformDelete2DML() = default;
 
 	// ident accessors
 	virtual EXformId

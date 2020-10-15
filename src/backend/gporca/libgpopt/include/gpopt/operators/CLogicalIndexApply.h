@@ -19,8 +19,7 @@ namespace gpopt
 class CLogicalIndexApply : public CLogicalApply
 {
 private:
-	// private copy ctor
-	CLogicalIndexApply(const CLogicalIndexApply &);
+	CLogicalIndexApply(const CLogicalIndexApply &) = delete;
 
 protected:
 	// columns used from Apply's outer child used by index in Apply's inner child

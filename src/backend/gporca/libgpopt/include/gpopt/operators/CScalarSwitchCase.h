@@ -31,17 +31,14 @@ using namespace gpos;
 class CScalarSwitchCase : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarSwitchCase(const CScalarSwitchCase &);
+	CScalarSwitchCase(const CScalarSwitchCase &) = delete;
 
 public:
 	// ctor
 	explicit CScalarSwitchCase(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CScalarSwitchCase()
-	{
-	}
+	virtual ~CScalarSwitchCase() = default;
 
 	// ident accessors
 	virtual EOperatorId

@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerProjList : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerProjList(const CParseHandlerProjList &);
+	CParseHandlerProjList(const CParseHandlerProjList &) = delete;
 
 	// process the start of an element
 	void StartElement(

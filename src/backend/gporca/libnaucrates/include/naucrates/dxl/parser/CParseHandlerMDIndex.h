@@ -67,8 +67,7 @@ private:
 	// is constraint unbounded
 	BOOL m_part_constraint_unbounded;
 
-	// private copy ctor
-	CParseHandlerMDIndex(const CParseHandlerMDIndex &);
+	CParseHandlerMDIndex(const CParseHandlerMDIndex &) = delete;
 
 	// process the start of an element
 	void StartElement(

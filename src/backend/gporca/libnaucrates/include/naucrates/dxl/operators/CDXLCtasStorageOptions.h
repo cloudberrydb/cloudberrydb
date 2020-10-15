@@ -101,8 +101,7 @@ private:
 	// array of name-value pairs of storage options
 	CDXLCtasOptionArray *m_ctas_storage_option_array;
 
-	// private copy ctor
-	CDXLCtasStorageOptions(const CDXLCtasStorageOptions &);
+	CDXLCtasStorageOptions(const CDXLCtasStorageOptions &) = delete;
 
 	// string representation of OnCommit action
 	static const CWStringConst *GetOnCommitActionStr(

@@ -110,7 +110,7 @@ private:
 		}
 
 		// dtor
-		virtual ~SFuncProps(){};
+		virtual ~SFuncProps() = default;
 
 		// return function identifier
 		OID

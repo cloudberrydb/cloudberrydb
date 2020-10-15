@@ -32,9 +32,8 @@ class CLogicalLeftAntiSemiCorrelatedApplyNotIn
 	: public CLogicalLeftAntiSemiApplyNotIn
 {
 private:
-	// private copy ctor
 	CLogicalLeftAntiSemiCorrelatedApplyNotIn(
-		const CLogicalLeftAntiSemiCorrelatedApplyNotIn &);
+		const CLogicalLeftAntiSemiCorrelatedApplyNotIn &) = delete;
 
 public:
 	// ctor
@@ -52,9 +51,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalLeftAntiSemiCorrelatedApplyNotIn()
-	{
-	}
+	virtual ~CLogicalLeftAntiSemiCorrelatedApplyNotIn() = default;
 
 	// ident accessors
 	virtual EOperatorId

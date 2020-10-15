@@ -38,8 +38,7 @@ using namespace gpos;
 class CScalarCoerceViaIO : public CScalarCoerceBase
 {
 private:
-	// private copy ctor
-	CScalarCoerceViaIO(const CScalarCoerceViaIO &);
+	CScalarCoerceViaIO(const CScalarCoerceViaIO &) = delete;
 
 public:
 	// ctor
@@ -47,9 +46,7 @@ public:
 					   ECoercionForm dxl_coerce_format, INT location);
 
 	// dtor
-	virtual ~CScalarCoerceViaIO()
-	{
-	}
+	virtual ~CScalarCoerceViaIO() = default;
 
 	virtual EOperatorId
 	Eopid() const

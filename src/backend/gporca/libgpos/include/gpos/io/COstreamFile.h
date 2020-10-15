@@ -31,8 +31,7 @@ private:
 	// underlying file writer
 	CFileWriter m_file_writer;
 
-	// private copy ctor
-	COstreamFile(const COstreamFile &);
+	COstreamFile(const COstreamFile &) = delete;
 
 public:
 	// please see comments in COstream.h for an explanation

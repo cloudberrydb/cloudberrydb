@@ -35,8 +35,7 @@ private:
 	// segment id column
 	CColRef *m_pcrSegmentId;
 
-	// private copy ctor
-	CDistributionSpecRouted(const CDistributionSpecRouted &);
+	CDistributionSpecRouted(const CDistributionSpecRouted &) = delete;
 
 public:
 	// ctor

@@ -61,8 +61,7 @@ private:
 	// needs data to be sorted
 	BOOL m_input_sort_req;
 
-	// private copy ctor
-	CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &);
+	CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -47,9 +47,7 @@ public:
 	using IOstream::operator<<;
 
 	// virtual dtor
-	virtual ~COstream()
-	{
-	}
+	virtual ~COstream() = default;
 
 	// default implementations for the following interfaces available
 	virtual IOstream &operator<<(const CHAR *);
@@ -84,8 +82,7 @@ private:
 	// what is the stream modifier?
 	EStreamManipulator GetStreamManipulator() const;
 
-	// no copy constructor
-	COstream(COstream &);
+	COstream(COstream &) = delete;
 };
 
 }  // namespace gpos

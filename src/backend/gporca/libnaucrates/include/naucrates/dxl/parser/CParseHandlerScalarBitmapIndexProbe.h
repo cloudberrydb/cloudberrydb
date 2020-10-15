@@ -33,9 +33,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarBitmapIndexProbe : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
 	CParseHandlerScalarBitmapIndexProbe(
-		const CParseHandlerScalarBitmapIndexProbe &);
+		const CParseHandlerScalarBitmapIndexProbe &) = delete;
 
 	// process the start of an element
 	virtual void StartElement(

@@ -111,8 +111,7 @@ private:
 										  CONST_COSTCTXT_PTR *ppccPrefered,
 										  BOOL *pfTiesResolved);
 
-	// private copy ctor
-	CCostContext(const CCostContext &);
+	CCostContext(const CCostContext &) = delete;
 
 public:
 	// main optimization context

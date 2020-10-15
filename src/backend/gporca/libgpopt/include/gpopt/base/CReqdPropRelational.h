@@ -42,8 +42,7 @@ private:
 	// predicate on partition key
 	CExpression *m_pexprPartPred;
 
-	// private copy ctor
-	CReqdPropRelational(const CReqdPropRelational &);
+	CReqdPropRelational(const CReqdPropRelational &) = delete;
 
 public:
 	// default ctor

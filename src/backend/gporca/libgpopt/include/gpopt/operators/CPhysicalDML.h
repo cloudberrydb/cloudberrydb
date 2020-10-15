@@ -83,8 +83,7 @@ private:
 	// compute local required columns
 	void ComputeRequiredLocalColumns(CMemoryPool *mp);
 
-	// private copy ctor
-	CPhysicalDML(const CPhysicalDML &);
+	CPhysicalDML(const CPhysicalDML &) = delete;
 
 public:
 	// ctor

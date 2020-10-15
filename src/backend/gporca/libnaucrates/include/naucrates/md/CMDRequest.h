@@ -81,8 +81,7 @@ private:
 	// serialize system id
 	CWStringDynamic *GetStrRepr(CSystemId sysid);
 
-	// private copy ctor
-	CMDRequest(const CMDRequest &);
+	CMDRequest(const CMDRequest &) = delete;
 
 public:
 	// ctor

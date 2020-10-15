@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformLeftAntiSemiJoin2HashJoin : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformLeftAntiSemiJoin2HashJoin(const CXformLeftAntiSemiJoin2HashJoin &);
+	CXformLeftAntiSemiJoin2HashJoin(const CXformLeftAntiSemiJoin2HashJoin &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformLeftAntiSemiJoin2HashJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftAntiSemiJoin2HashJoin()
-	{
-	}
+	virtual ~CXformLeftAntiSemiJoin2HashJoin() = default;
 
 	// ident accessors
 	virtual EXformId

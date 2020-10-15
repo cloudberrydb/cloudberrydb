@@ -62,8 +62,7 @@ private:
 		// own objects
 		BOOL m_owns_objects;
 
-		// private copy ctor
-		CHashMapElem(const CHashMapElem &);
+		CHashMapElem(const CHashMapElem &) = delete;
 
 	public:
 		// ctor
@@ -138,8 +137,8 @@ private:
 
 	IntPtrArray *const m_filled_chains;
 
-	// private copy ctor
-	CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &);
+	CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &) =
+		delete;
 
 	// lookup appropriate hash chain in static table, may be NULL if
 	// no elements have been inserted yet

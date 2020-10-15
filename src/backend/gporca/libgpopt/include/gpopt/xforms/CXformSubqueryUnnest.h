@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformSubqueryUnnest : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformSubqueryUnnest(const CXformSubqueryUnnest &);
+	CXformSubqueryUnnest(const CXformSubqueryUnnest &) = delete;
 
 protected:
 	// helper for subquery unnesting
@@ -45,12 +44,12 @@ protected:
 public:
 	// ctor
 	explicit CXformSubqueryUnnest(CExpression *pexprPattern)
-		: CXformExploration(pexprPattern){};
-
-	// dtor
-	virtual ~CXformSubqueryUnnest()
+		: CXformExploration(pexprPattern)
 	{
 	}
+
+	// dtor
+	virtual ~CXformSubqueryUnnest() = default;
 
 	// compute xform promise for a given expression handle
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;

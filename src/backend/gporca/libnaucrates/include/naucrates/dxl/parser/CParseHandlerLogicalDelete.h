@@ -42,8 +42,7 @@ private:
 	// delete col ids
 	ULongPtrArray *m_deletion_colid_array;
 
-	// private copy ctor
-	CParseHandlerLogicalDelete(const CParseHandlerLogicalDelete &);
+	CParseHandlerLogicalDelete(const CParseHandlerLogicalDelete &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -51,9 +51,7 @@ CParseHandlerLogicalSetOp::CParseHandlerLogicalSetOp(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CParseHandlerLogicalSetOp::~CParseHandlerLogicalSetOp()
-{
-}
+CParseHandlerLogicalSetOp::~CParseHandlerLogicalSetOp() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

@@ -22,8 +22,7 @@ using namespace gpos;
 class CXformImplementIndexApply : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementIndexApply(const CXformImplementIndexApply &);
+	CXformImplementIndexApply(const CXformImplementIndexApply &) = delete;
 
 public:
 	// ctor
@@ -42,9 +41,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementIndexApply()
-	{
-	}
+	virtual ~CXformImplementIndexApply() = default;
 
 	// ident accessors
 	virtual EXformId

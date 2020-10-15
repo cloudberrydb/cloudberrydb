@@ -63,8 +63,7 @@ class CMDAggregateGPDB : public IMDAggregate
 	// is aggregate hash capable
 	BOOL m_hash_agg_capable;
 
-	// private copy ctor
-	CMDAggregateGPDB(const CMDAggregateGPDB &);
+	CMDAggregateGPDB(const CMDAggregateGPDB &) = delete;
 
 public:
 	// ctor

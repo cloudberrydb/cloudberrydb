@@ -68,8 +68,7 @@ private:
 	// apply transformation action
 	static EEvent EevtTransform(CSchedulerContext *psc, CJob *pj);
 
-	// private copy ctor
-	CJobTransformation(const CJobTransformation &);
+	CJobTransformation(const CJobTransformation &) = delete;
 
 public:
 	// ctor

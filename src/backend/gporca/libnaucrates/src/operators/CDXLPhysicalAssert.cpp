@@ -43,9 +43,7 @@ CDXLPhysicalAssert::CDXLPhysicalAssert(CMemoryPool *mp, const CHAR *sql_state)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CDXLPhysicalAssert::~CDXLPhysicalAssert()
-{
-}
+CDXLPhysicalAssert::~CDXLPhysicalAssert() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

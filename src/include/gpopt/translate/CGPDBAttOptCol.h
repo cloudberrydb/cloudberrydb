@@ -41,8 +41,7 @@ private:
 	// optimizer col info
 	COptColInfo *m_opt_col_info;
 
-	// copy c'tor
-	CGPDBAttOptCol(const CGPDBAttOptCol &);
+	CGPDBAttOptCol(const CGPDBAttOptCol &) = delete;
 
 public:
 	// ctor

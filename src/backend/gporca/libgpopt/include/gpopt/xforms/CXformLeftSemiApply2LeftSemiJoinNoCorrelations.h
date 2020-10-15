@@ -33,9 +33,8 @@ class CXformLeftSemiApply2LeftSemiJoinNoCorrelations
 	: public CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>
 {
 private:
-	// private copy ctor
 	CXformLeftSemiApply2LeftSemiJoinNoCorrelations(
-		const CXformLeftSemiApply2LeftSemiJoinNoCorrelations &);
+		const CXformLeftSemiApply2LeftSemiJoinNoCorrelations &) = delete;
 
 public:
 	// ctor
@@ -45,9 +44,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApply2LeftSemiJoinNoCorrelations()
-	{
-	}
+	virtual ~CXformLeftSemiApply2LeftSemiJoinNoCorrelations() = default;
 
 	// ctor with a passed pattern
 	CXformLeftSemiApply2LeftSemiJoinNoCorrelations(CMemoryPool *mp,

@@ -72,7 +72,7 @@ private:
 		}
 
 		// dtor
-		virtual ~SSamplePlan(){};
+		virtual ~SSamplePlan() = default;
 
 		// return plan id
 		ULLONG
@@ -138,8 +138,7 @@ private:
 	// initialize size of cost distribution
 	void InitCostDistrSize();
 
-	// inaccessible copy ctor
-	CEnumeratorConfig(const CEnumeratorConfig &);
+	CEnumeratorConfig(const CEnumeratorConfig &) = delete;
 
 	// compute Gaussian probability value
 	static DOUBLE DGaussian(DOUBLE d, DOUBLE dMean, DOUBLE dStd);

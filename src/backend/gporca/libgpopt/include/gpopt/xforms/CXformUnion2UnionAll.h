@@ -35,17 +35,14 @@ using namespace gpos;
 class CXformUnion2UnionAll : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformUnion2UnionAll(const CXformUnion2UnionAll &);
+	CXformUnion2UnionAll(const CXformUnion2UnionAll &) = delete;
 
 public:
 	// ctor
 	explicit CXformUnion2UnionAll(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformUnion2UnionAll()
-	{
-	}
+	virtual ~CXformUnion2UnionAll() = default;
 
 	// ident accessors
 	virtual EXformId

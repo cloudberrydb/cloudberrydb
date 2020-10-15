@@ -28,17 +28,14 @@ namespace gpopt
 class CLogicalLeftSemiJoin : public CLogicalJoin
 {
 private:
-	// private copy ctor
-	CLogicalLeftSemiJoin(const CLogicalLeftSemiJoin &);
+	CLogicalLeftSemiJoin(const CLogicalLeftSemiJoin &) = delete;
 
 public:
 	// ctor
 	explicit CLogicalLeftSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftSemiJoin()
-	{
-	}
+	virtual ~CLogicalLeftSemiJoin() = default;
 
 	// ident accessors
 	virtual EOperatorId

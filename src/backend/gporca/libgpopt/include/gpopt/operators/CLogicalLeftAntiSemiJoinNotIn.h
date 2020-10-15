@@ -35,17 +35,15 @@ namespace gpopt
 class CLogicalLeftAntiSemiJoinNotIn : public CLogicalLeftAntiSemiJoin
 {
 private:
-	// private copy ctor
-	CLogicalLeftAntiSemiJoinNotIn(const CLogicalLeftAntiSemiJoinNotIn &);
+	CLogicalLeftAntiSemiJoinNotIn(const CLogicalLeftAntiSemiJoinNotIn &) =
+		delete;
 
 public:
 	// ctor
 	explicit CLogicalLeftAntiSemiJoinNotIn(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftAntiSemiJoinNotIn()
-	{
-	}
+	virtual ~CLogicalLeftAntiSemiJoinNotIn() = default;
 
 	// ident accessors
 	virtual EOperatorId

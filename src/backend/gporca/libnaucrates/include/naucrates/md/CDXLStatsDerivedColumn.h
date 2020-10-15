@@ -55,8 +55,7 @@ private:
 
 	CDXLBucketArray *m_dxl_stats_bucket_array;
 
-	// private copy ctor
-	CDXLStatsDerivedColumn(const CDXLStatsDerivedColumn &);
+	CDXLStatsDerivedColumn(const CDXLStatsDerivedColumn &) = delete;
 
 public:
 	// ctor

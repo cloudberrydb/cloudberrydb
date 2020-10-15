@@ -37,8 +37,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerMDCast : public CParseHandlerMetadataObject
 {
 private:
-	// private copy ctor
-	CParseHandlerMDCast(const CParseHandlerMDCast &);
+	CParseHandlerMDCast(const CParseHandlerMDCast &) = delete;
 
 	// process the start of an element
 	void StartElement(

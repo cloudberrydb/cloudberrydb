@@ -36,8 +36,8 @@ private:
 	// column reference
 	CDXLColRef *m_dxl_colref;
 
-	// private copy ctor
-	CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &);
+	CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

@@ -35,8 +35,7 @@ using namespace gpmd;
 class CColRefComputed : public CColRef
 {
 private:
-	// private copy ctor
-	CColRefComputed(const CColRefComputed &);
+	CColRefComputed(const CColRefComputed &) = delete;
 
 public:
 	// ctor

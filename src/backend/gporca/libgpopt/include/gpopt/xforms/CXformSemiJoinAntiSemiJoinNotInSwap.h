@@ -33,9 +33,8 @@ class CXformSemiJoinAntiSemiJoinNotInSwap
 	: public CXformJoinSwap<CLogicalLeftSemiJoin, CLogicalLeftAntiSemiJoinNotIn>
 {
 private:
-	// private copy ctor
 	CXformSemiJoinAntiSemiJoinNotInSwap(
-		const CXformSemiJoinAntiSemiJoinNotInSwap &);
+		const CXformSemiJoinAntiSemiJoinNotInSwap &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSemiJoinAntiSemiJoinNotInSwap()
-	{
-	}
+	virtual ~CXformSemiJoinAntiSemiJoinNotInSwap() = default;
 
 	// Compatibility function
 	virtual BOOL

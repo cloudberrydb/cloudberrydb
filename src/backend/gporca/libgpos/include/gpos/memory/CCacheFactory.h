@@ -52,8 +52,7 @@ private:
 	// private ctor
 	CCacheFactory(CMemoryPool *mp);
 
-	// no copy ctor
-	CCacheFactory(const CCacheFactory &);
+	CCacheFactory(const CCacheFactory &) = delete;
 
 
 

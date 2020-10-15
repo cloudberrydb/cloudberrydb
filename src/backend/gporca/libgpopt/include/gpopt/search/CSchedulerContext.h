@@ -59,8 +59,7 @@ private:
 		return m_fInit;
 	}
 
-	// no copy ctor
-	CSchedulerContext(const CSchedulerContext &);
+	CSchedulerContext(const CSchedulerContext &) = delete;
 
 public:
 	// ctor

@@ -36,8 +36,7 @@ private:
 	// deafult oids
 	CWindowOids *m_window_oids;
 
-	// private copy ctor
-	CParseHandlerWindowOids(const CParseHandlerWindowOids &);
+	CParseHandlerWindowOids(const CParseHandlerWindowOids &) = delete;
 
 	// process the start of an element
 	void StartElement(

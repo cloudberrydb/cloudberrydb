@@ -34,8 +34,7 @@ private:
 	// exception
 	CException *m_pexc;
 
-	// private copy ctor
-	CLogicalAssert(const CLogicalAssert &);
+	CLogicalAssert(const CLogicalAssert &) = delete;
 
 public:
 	// ctors

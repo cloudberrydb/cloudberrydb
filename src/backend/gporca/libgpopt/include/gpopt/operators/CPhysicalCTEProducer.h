@@ -36,8 +36,7 @@ private:
 	// set representation of cte columns
 	CColRefSet *m_pcrs;
 
-	// private copy ctor
-	CPhysicalCTEProducer(const CPhysicalCTEProducer &);
+	CPhysicalCTEProducer(const CPhysicalCTEProducer &) = delete;
 
 public:
 	// ctor

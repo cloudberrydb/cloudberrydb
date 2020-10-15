@@ -254,11 +254,10 @@ private:
 		return false;
 	}
 
-	// hidden copy ctor
 	CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
 				  tenumeventSentinel>(
 		const CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
-							tenumeventSentinel> &);
+							tenumeventSentinel> &) = delete;
 
 public:
 	// ctor
@@ -315,7 +314,7 @@ public:
 	}
 
 	// dtor
-	~CStateMachine(){};
+	~CStateMachine() = default;
 
 	// attempt transition
 	BOOL

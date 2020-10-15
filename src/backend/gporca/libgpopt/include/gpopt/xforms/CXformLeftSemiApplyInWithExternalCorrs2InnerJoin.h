@@ -34,9 +34,8 @@ class CXformLeftSemiApplyInWithExternalCorrs2InnerJoin
 	: public CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 {
 private:
-	// private copy ctor
 	CXformLeftSemiApplyInWithExternalCorrs2InnerJoin(
-		const CXformLeftSemiApplyInWithExternalCorrs2InnerJoin &);
+		const CXformLeftSemiApplyInWithExternalCorrs2InnerJoin &) = delete;
 
 public:
 	// ctor
@@ -55,9 +54,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApplyInWithExternalCorrs2InnerJoin()
-	{
-	}
+	virtual ~CXformLeftSemiApplyInWithExternalCorrs2InnerJoin() = default;
 
 	// ident accessors
 	virtual EXformId

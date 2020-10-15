@@ -44,8 +44,7 @@ private:
 	// order spec
 	COrderSpec *m_pos;
 
-	// private copy ctor
-	CLogicalDynamicIndexGet(const CLogicalDynamicIndexGet &);
+	CLogicalDynamicIndexGet(const CLogicalDynamicIndexGet &) = delete;
 
 public:
 	// ctors

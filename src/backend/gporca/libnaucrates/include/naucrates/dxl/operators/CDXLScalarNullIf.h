@@ -37,8 +37,7 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CDXLScalarNullIf(CDXLScalarNullIf &);
+	CDXLScalarNullIf(CDXLScalarNullIf &) = delete;
 
 public:
 	// ctor

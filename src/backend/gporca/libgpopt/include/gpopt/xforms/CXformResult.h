@@ -35,8 +35,7 @@ private:
 	// cursor for retrieval
 	ULONG m_ulExpr;
 
-	// private copy ctor
-	CXformResult(const CXformResult &);
+	CXformResult(const CXformResult &) = delete;
 
 public:
 	// ctor

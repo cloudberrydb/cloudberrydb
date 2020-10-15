@@ -220,8 +220,7 @@ protected:
 					  EPosition position, INT comp_num);
 
 private:
-	// private copy ctor
-	CJoinOrder(const CJoinOrder &);
+	CJoinOrder(const CJoinOrder &) = delete;
 
 public:
 	// ctor used in MinCard, Greedy and DP xforms

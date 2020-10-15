@@ -37,8 +37,7 @@ private:
 					 CleanupNULL<CColRef> >
 		ExprToColRefMap;
 
-	// private copy ctor
-	CXformSplitDQA(const CXformSplitDQA &);
+	CXformSplitDQA(const CXformSplitDQA &) = delete;
 
 	// generate an expression with multi-level aggregation
 	static CExpression *PexprMultiLevelAggregation(
@@ -97,9 +96,7 @@ public:
 	explicit CXformSplitDQA(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSplitDQA()
-	{
-	}
+	virtual ~CXformSplitDQA() = default;
 
 	// ident accessors
 	virtual EXformId

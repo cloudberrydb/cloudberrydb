@@ -38,9 +38,8 @@ private:
 	// array of outer column references
 	CDXLColRefArray *m_dxl_colref_array;
 
-	// private copy ctor
 	CParseHandlerScalarSubPlanParamList(
-		const CParseHandlerScalarSubPlanParamList &);
+		const CParseHandlerScalarSubPlanParamList &) = delete;
 
 	// process the start of an element
 	void StartElement(

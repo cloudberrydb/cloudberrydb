@@ -35,18 +35,15 @@ namespace gpopt
 class CXformImplementDynamicBitmapTableGet : public CXformImplementation
 {
 private:
-	// disable copy ctor
 	CXformImplementDynamicBitmapTableGet(
-		const CXformImplementDynamicBitmapTableGet &);
+		const CXformImplementDynamicBitmapTableGet &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementDynamicBitmapTableGet(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementDynamicBitmapTableGet()
-	{
-	}
+	virtual ~CXformImplementDynamicBitmapTableGet() = default;
 
 	// identifier
 	virtual EXformId

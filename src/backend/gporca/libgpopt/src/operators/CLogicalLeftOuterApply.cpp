@@ -58,9 +58,7 @@ CLogicalLeftOuterApply::CLogicalLeftOuterApply(CMemoryPool *mp,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalLeftOuterApply::~CLogicalLeftOuterApply()
-{
-}
+CLogicalLeftOuterApply::~CLogicalLeftOuterApply() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

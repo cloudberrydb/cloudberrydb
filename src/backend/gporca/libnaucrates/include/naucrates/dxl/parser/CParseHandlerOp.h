@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerOp : public CParseHandlerBase
 {
 private:
-	// private copy ctor
-	CParseHandlerOp(const CParseHandlerOp &);
+	CParseHandlerOp(const CParseHandlerOp &) = delete;
 
 
 protected:

@@ -119,8 +119,7 @@ private:
 		pspt = NULL;
 	}
 
-	// no copy ctor
-	CJobFactory(const CJobFactory &);
+	CJobFactory(const CJobFactory &) = delete;
 
 public:
 	// ctor

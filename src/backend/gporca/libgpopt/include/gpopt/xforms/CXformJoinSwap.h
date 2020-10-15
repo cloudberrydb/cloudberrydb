@@ -32,8 +32,7 @@ template <class TJoinTop, class TJoinBottom>
 class CXformJoinSwap : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformJoinSwap(const CXformJoinSwap &);
+	CXformJoinSwap(const CXformJoinSwap &) = delete;
 
 public:
 	// ctor
@@ -60,9 +59,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoinSwap()
-	{
-	}
+	virtual ~CXformJoinSwap() = default;
 
 	// compute xform promise for a given expression handle
 	virtual EXformPromise

@@ -46,8 +46,7 @@ private:
 	// does the window spec have a frame definition
 	BOOL m_has_window_frame;
 
-	// private copy ctor
-	CParseHandlerWindowSpec(const CParseHandlerWindowSpec &);
+	CParseHandlerWindowSpec(const CParseHandlerWindowSpec &) = delete;
 
 	// process the start of an element
 	void StartElement(

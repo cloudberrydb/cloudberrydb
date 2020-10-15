@@ -22,7 +22,6 @@ using namespace gpos;
 class CXformJoin2IndexGetApply : public CXformJoin2IndexApplyGeneric
 {
 private:
-	// no copy ctor
 	CXformJoin2IndexGetApply(const CXformJoin2IndexGetApply &) = delete;
 
 public:
@@ -33,9 +32,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexGetApply()
-	{
-	}
+	virtual ~CXformJoin2IndexGetApply() = default;
 
 	// ident accessors
 	virtual EXformId

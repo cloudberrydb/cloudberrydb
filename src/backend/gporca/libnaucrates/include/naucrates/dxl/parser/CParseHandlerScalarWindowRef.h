@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarWindowRef : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarWindowRef(const CParseHandlerScalarWindowRef &);
+	CParseHandlerScalarWindowRef(const CParseHandlerScalarWindowRef &) = delete;
 
 	// process the start of an element
 	void StartElement(

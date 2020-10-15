@@ -41,8 +41,8 @@ private:
 	// printable partition index id
 	ULONG m_part_index_id_printable;
 
-	// private copy ctor
-	CParseHandlerDynamicTableScan(const CParseHandlerDynamicTableScan &);
+	CParseHandlerDynamicTableScan(const CParseHandlerDynamicTableScan &) =
+		delete;
 
 	// process the start of an element
 	virtual void StartElement(

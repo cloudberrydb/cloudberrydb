@@ -30,8 +30,7 @@ class CDistributionSpec;
 class CPhysicalHashAgg : public CPhysicalAgg
 {
 private:
-	// private copy ctor
-	CPhysicalHashAgg(const CPhysicalHashAgg &);
+	CPhysicalHashAgg(const CPhysicalHashAgg &) = delete;
 
 public:
 	// ctor

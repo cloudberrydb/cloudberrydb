@@ -46,8 +46,7 @@ private:
 									   CExpressionHandle &exprhdl,
 									   ULONG part_idx_id) const;
 
-	// private copy ctor
-	CPartitionPropagationSpec(const CPartitionPropagationSpec &);
+	CPartitionPropagationSpec(const CPartitionPropagationSpec &) = delete;
 
 	// split the partition elimination predicates over the various levels
 	// as well as the residual predicate

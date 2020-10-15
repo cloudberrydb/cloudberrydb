@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementUnionAll : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementUnionAll(const CXformImplementUnionAll &);
+	CXformImplementUnionAll(const CXformImplementUnionAll &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementUnionAll(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementUnionAll()
-	{
-	}
+	virtual ~CXformImplementUnionAll() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -30,8 +30,7 @@ private:
 	// array of keys from the join's child
 	CColRefArray *m_pdrgpcrKeys;
 
-	// private copy ctor
-	CPhysicalHashAggDeduplicate(const CPhysicalHashAggDeduplicate &);
+	CPhysicalHashAggDeduplicate(const CPhysicalHashAggDeduplicate &) = delete;
 
 public:
 	// ctor

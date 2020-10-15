@@ -69,8 +69,7 @@ private:
 	static void LogTask(const WCHAR *msg, ULONG severity, BOOL is_err,
 						const CHAR *filename, ULONG line);
 
-	// no copy ctor
-	ILogger(const ILogger &);
+	ILogger(const ILogger &) = delete;
 
 protected:
 	// write log message

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementCTEProducer : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementCTEProducer(const CXformImplementCTEProducer &);
+	CXformImplementCTEProducer(const CXformImplementCTEProducer &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementCTEProducer(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementCTEProducer()
-	{
-	}
+	virtual ~CXformImplementCTEProducer() = default;
 
 	// ident accessors
 	virtual EXformId

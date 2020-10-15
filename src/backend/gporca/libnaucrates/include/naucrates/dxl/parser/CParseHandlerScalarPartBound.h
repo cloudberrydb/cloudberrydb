@@ -32,8 +32,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarPartBound : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarPartBound(const CParseHandlerScalarPartBound &);
+	CParseHandlerScalarPartBound(const CParseHandlerScalarPartBound &) = delete;
 
 	// process the start of an element
 	void StartElement(

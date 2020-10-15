@@ -123,8 +123,7 @@ private:
 	// array of column widths including dropped columns
 	CDoubleArray *m_col_width_array;
 
-	// private copy ctor
-	CMDRelationGPDB(const CMDRelationGPDB &);
+	CMDRelationGPDB(const CMDRelationGPDB &) = delete;
 
 public:
 	// ctor

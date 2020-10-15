@@ -29,18 +29,15 @@ using namespace gpos;
 class CXformDynamicIndexGet2DynamicIndexScan : public CXformImplementation
 {
 private:
-	// private copy ctor
 	CXformDynamicIndexGet2DynamicIndexScan(
-		const CXformDynamicIndexGet2DynamicIndexScan &);
+		const CXformDynamicIndexGet2DynamicIndexScan &) = delete;
 
 public:
 	// ctor
 	explicit CXformDynamicIndexGet2DynamicIndexScan(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformDynamicIndexGet2DynamicIndexScan()
-	{
-	}
+	virtual ~CXformDynamicIndexGet2DynamicIndexScan() = default;
 
 	// ident accessors
 	virtual EXformId

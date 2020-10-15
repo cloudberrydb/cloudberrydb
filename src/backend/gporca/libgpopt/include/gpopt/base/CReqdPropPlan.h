@@ -64,8 +64,7 @@ private:
 	// required ctes
 	CCTEReq *m_pcter;
 
-	// private copy ctor
-	CReqdPropPlan(const CReqdPropPlan &);
+	CReqdPropPlan(const CReqdPropPlan &) = delete;
 
 	// combine derived part filter map from input requirements and
 	// derived plan properties in the passed context

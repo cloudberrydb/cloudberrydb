@@ -36,8 +36,7 @@ private:
 	// expression type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CDXLScalarCaseTest(const CDXLScalarCaseTest &);
+	CDXLScalarCaseTest(const CDXLScalarCaseTest &) = delete;
 
 public:
 	// ctor

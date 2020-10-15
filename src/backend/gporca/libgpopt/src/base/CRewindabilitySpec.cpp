@@ -39,9 +39,7 @@ CRewindabilitySpec::CRewindabilitySpec(ERewindabilityType rewindability_type,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CRewindabilitySpec::~CRewindabilitySpec()
-{
-}
+CRewindabilitySpec::~CRewindabilitySpec() = default;
 
 
 //---------------------------------------------------------------------------

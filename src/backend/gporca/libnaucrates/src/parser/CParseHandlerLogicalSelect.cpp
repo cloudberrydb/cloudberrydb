@@ -44,9 +44,7 @@ CParseHandlerLogicalSelect::CParseHandlerLogicalSelect(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerLogicalSelect::~CParseHandlerLogicalSelect()
-{
-}
+CParseHandlerLogicalSelect::~CParseHandlerLogicalSelect() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

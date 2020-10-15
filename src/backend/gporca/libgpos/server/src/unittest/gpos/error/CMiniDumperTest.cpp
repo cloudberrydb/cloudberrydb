@@ -126,9 +126,7 @@ CMiniDumperTest::CMiniDumperStream::CMiniDumperStream() : CMiniDumper()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CMiniDumperTest::CMiniDumperStream::~CMiniDumperStream()
-{
-}
+CMiniDumperTest::CMiniDumperStream::~CMiniDumperStream() = default;
 
 
 //---------------------------------------------------------------------------
@@ -217,9 +215,7 @@ CMiniDumperTest::CSerializableStack::CSerializableStack() : CSerializable()
 //
 //---------------------------------------------------------------------------
 
-CMiniDumperTest::CSerializableStack::~CSerializableStack()
-{
-}
+CMiniDumperTest::CSerializableStack::~CSerializableStack() = default;
 
 
 //---------------------------------------------------------------------------

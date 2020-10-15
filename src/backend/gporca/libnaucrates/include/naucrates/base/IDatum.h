@@ -42,16 +42,15 @@ typedef CHashMap<ULONG, IDatum, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
 class IDatum : public CRefCount
 {
 private:
-	// private copy ctor
-	IDatum(const IDatum &);
+	IDatum(const IDatum &) = delete;
 
 
 public:
 	// ctor
-	IDatum(){};
+	IDatum() = default;
 
 	// dtor
-	virtual ~IDatum(){};
+	virtual ~IDatum() = default;
 
 	// accessor for datum type
 	virtual IMDType::ETypeInfo GetDatumType() = 0;

@@ -85,9 +85,7 @@ const WCHAR
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJobGroupExploration::CJobGroupExploration()
-{
-}
+CJobGroupExploration::CJobGroupExploration() = default;
 
 
 //---------------------------------------------------------------------------
@@ -98,9 +96,7 @@ CJobGroupExploration::CJobGroupExploration()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJobGroupExploration::~CJobGroupExploration()
-{
-}
+CJobGroupExploration::~CJobGroupExploration() = default;
 
 
 //---------------------------------------------------------------------------

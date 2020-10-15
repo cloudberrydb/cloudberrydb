@@ -62,8 +62,7 @@ private:
 	// test expression -- not null if quantified/existential subplan
 	CDXLNode *m_dxlnode_test_expr;
 
-	// private copy ctor
-	CDXLScalarSubPlan(CDXLScalarSubPlan &);
+	CDXLScalarSubPlan(CDXLScalarSubPlan &) = delete;
 
 public:
 	// ctor/dtor

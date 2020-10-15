@@ -56,9 +56,7 @@ CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalUnionAll::~CLogicalUnionAll()
-{
-}
+CLogicalUnionAll::~CLogicalUnionAll() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

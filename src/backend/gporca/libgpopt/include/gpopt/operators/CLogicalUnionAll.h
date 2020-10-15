@@ -33,8 +33,7 @@ private:
 	// id, otherwise this will be gpos::ulong_max
 	ULONG m_ulScanIdPartialIndex;
 
-	// private copy ctor
-	CLogicalUnionAll(const CLogicalUnionAll &);
+	CLogicalUnionAll(const CLogicalUnionAll &) = delete;
 
 public:
 	// ctor

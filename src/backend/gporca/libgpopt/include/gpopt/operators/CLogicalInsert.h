@@ -36,8 +36,7 @@ private:
 	// source columns
 	CColRefArray *m_pdrgpcrSource;
 
-	// private copy ctor
-	CLogicalInsert(const CLogicalInsert &);
+	CLogicalInsert(const CLogicalInsert &) = delete;
 
 public:
 	// ctor

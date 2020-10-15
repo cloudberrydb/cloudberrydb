@@ -28,8 +28,7 @@ namespace gpopt
 class CLogicalLeftOuterApply : public CLogicalApply
 {
 private:
-	// private copy ctor
-	CLogicalLeftOuterApply(const CLogicalLeftOuterApply &);
+	CLogicalLeftOuterApply(const CLogicalLeftOuterApply &) = delete;
 
 public:
 	// ctor for patterns

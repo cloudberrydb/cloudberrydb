@@ -41,9 +41,7 @@ CParseHandlerScalarOp::CParseHandlerScalarOp(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerScalarOp::~CParseHandlerScalarOp()
-{
-}
+CParseHandlerScalarOp::~CParseHandlerScalarOp() = default;
 
 
 //---------------------------------------------------------------------------

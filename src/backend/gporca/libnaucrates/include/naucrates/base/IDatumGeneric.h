@@ -30,15 +30,14 @@ namespace gpnaucrates
 class IDatumGeneric : public IDatum
 {
 private:
-	// private copy ctor
-	IDatumGeneric(const IDatumGeneric &);
+	IDatumGeneric(const IDatumGeneric &) = delete;
 
 public:
 	// ctor
-	IDatumGeneric(){};
+	IDatumGeneric() = default;
 
 	// dtor
-	virtual ~IDatumGeneric(){};
+	virtual ~IDatumGeneric() = default;
 
 	// accessor for datum type
 	virtual IMDType::ETypeInfo

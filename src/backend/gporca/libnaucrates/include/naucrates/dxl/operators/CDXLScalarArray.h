@@ -40,8 +40,7 @@ private:
 	// is it a multidimensional array
 	BOOL m_multi_dimensional_array;
 
-	// private copy ctor
-	CDXLScalarArray(const CDXLScalarArray &);
+	CDXLScalarArray(const CDXLScalarArray &) = delete;
 
 public:
 	// ctor

@@ -33,17 +33,14 @@ using namespace gpos;
 class CXformExpandNAryJoinGreedy : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformExpandNAryJoinGreedy(const CXformExpandNAryJoinGreedy &);
+	CXformExpandNAryJoinGreedy(const CXformExpandNAryJoinGreedy &) = delete;
 
 public:
 	// ctor
 	explicit CXformExpandNAryJoinGreedy(CMemoryPool *pmp);
 
 	// dtor
-	virtual ~CXformExpandNAryJoinGreedy()
-	{
-	}
+	virtual ~CXformExpandNAryJoinGreedy() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -43,9 +43,7 @@ CScalarSubqueryExistential::CScalarSubqueryExistential(CMemoryPool *mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CScalarSubqueryExistential::~CScalarSubqueryExistential()
-{
-}
+CScalarSubqueryExistential::~CScalarSubqueryExistential() = default;
 
 
 //---------------------------------------------------------------------------

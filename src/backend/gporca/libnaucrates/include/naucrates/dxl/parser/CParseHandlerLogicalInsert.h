@@ -36,8 +36,7 @@ private:
 	// source col ids
 	ULongPtrArray *m_pdrgpul;
 
-	// private copy ctor
-	CParseHandlerLogicalInsert(const CParseHandlerLogicalInsert &);
+	CParseHandlerLogicalInsert(const CParseHandlerLogicalInsert &) = delete;
 
 	// process the start of an element
 	void StartElement(

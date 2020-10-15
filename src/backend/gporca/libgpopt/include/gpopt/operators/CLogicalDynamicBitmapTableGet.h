@@ -42,8 +42,8 @@ private:
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 	ULONG m_ulOriginOpId;
 
-	// private copy ctor
-	CLogicalDynamicBitmapTableGet(const CLogicalDynamicBitmapTableGet &);
+	CLogicalDynamicBitmapTableGet(const CLogicalDynamicBitmapTableGet &) =
+		delete;
 
 public:
 	// ctors

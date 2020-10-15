@@ -52,9 +52,7 @@ public:
 	CMappingElementColIdParamId(ULONG colid, ULONG paramid, IMDId *mdid,
 								INT type_modifier);
 
-	virtual ~CMappingElementColIdParamId()
-	{
-	}
+	virtual ~CMappingElementColIdParamId() = default;
 
 	// return the ColId
 	ULONG

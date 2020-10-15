@@ -63,8 +63,7 @@ private:
 	// check for aborts at regular intervals
 	void CheckForAborts();
 
-	// private copy ctor
-	CParseHandlerManager(const CParseHandlerManager &);
+	CParseHandlerManager(const CParseHandlerManager &) = delete;
 
 
 public:

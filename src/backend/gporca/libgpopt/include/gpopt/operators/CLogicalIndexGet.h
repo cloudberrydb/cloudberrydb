@@ -58,8 +58,7 @@ private:
 	// distribution columns (empty for master only tables)
 	CColRefSet *m_pcrsDist;
 
-	// private copy ctor
-	CLogicalIndexGet(const CLogicalIndexGet &);
+	CLogicalIndexGet(const CLogicalIndexGet &) = delete;
 
 public:
 	// ctors

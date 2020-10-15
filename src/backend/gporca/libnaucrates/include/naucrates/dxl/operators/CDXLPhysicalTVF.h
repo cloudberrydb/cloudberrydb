@@ -39,8 +39,7 @@ private:
 	// function name
 	CWStringConst *func_name;
 
-	// private copy ctor
-	CDXLPhysicalTVF(const CDXLPhysicalTVF &);
+	CDXLPhysicalTVF(const CDXLPhysicalTVF &) = delete;
 
 public:
 	// ctor

@@ -30,8 +30,7 @@ namespace gpdxl
 class CDXLScalarIndexCondList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarIndexCondList(CDXLScalarIndexCondList &);
+	CDXLScalarIndexCondList(CDXLScalarIndexCondList &) = delete;
 
 public:
 	// ctor

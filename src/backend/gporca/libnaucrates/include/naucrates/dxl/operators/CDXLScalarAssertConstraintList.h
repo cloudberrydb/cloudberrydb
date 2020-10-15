@@ -31,8 +31,8 @@ using namespace gpmd;
 class CDXLScalarAssertConstraintList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarAssertConstraintList(const CDXLScalarAssertConstraintList &);
+	CDXLScalarAssertConstraintList(const CDXLScalarAssertConstraintList &) =
+		delete;
 
 
 public:

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformInsert2DML : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformInsert2DML(const CXformInsert2DML &);
+	CXformInsert2DML(const CXformInsert2DML &) = delete;
 
 public:
 	// ctor
 	explicit CXformInsert2DML(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformInsert2DML()
-	{
-	}
+	virtual ~CXformInsert2DML() = default;
 
 	// ident accessors
 	virtual EXformId

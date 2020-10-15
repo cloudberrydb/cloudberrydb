@@ -66,8 +66,7 @@ private:
 	// aggregate window function, e.g. count(*) over()
 	BOOL m_fAgg;
 
-	// private copy ctor
-	CScalarWindowFunc(const CScalarWindowFunc &);
+	CScalarWindowFunc(const CScalarWindowFunc &) = delete;
 
 public:
 	// ctor
@@ -77,9 +76,7 @@ public:
 					  BOOL is_simple_agg);
 
 	// dtor
-	virtual ~CScalarWindowFunc()
-	{
-	}
+	virtual ~CScalarWindowFunc() = default;
 
 	// ident accessors
 	virtual EOperatorId

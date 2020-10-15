@@ -44,9 +44,7 @@ public:
 	CWString(ULONG length);
 
 	// dtor
-	virtual ~CWString()
-	{
-	}
+	virtual ~CWString() = default;
 
 	// returns the wide character buffer storing the string
 	const WCHAR *GetBuffer() const;

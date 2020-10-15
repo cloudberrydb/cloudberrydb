@@ -21,9 +21,7 @@
 
 namespace gpopt
 {
-CDrvdProp::CDrvdProp()
-{
-}
+CDrvdProp::CDrvdProp() = default;
 
 IOstream &
 operator<<(IOstream &os, const CDrvdProp &drvdprop)

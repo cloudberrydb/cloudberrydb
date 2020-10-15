@@ -27,8 +27,8 @@ namespace gpopt
 class CPhysicalLeftAntiSemiNLJoinNotIn : public CPhysicalLeftAntiSemiNLJoin
 {
 private:
-	// private copy ctor
-	CPhysicalLeftAntiSemiNLJoinNotIn(const CPhysicalLeftAntiSemiNLJoinNotIn &);
+	CPhysicalLeftAntiSemiNLJoinNotIn(const CPhysicalLeftAntiSemiNLJoinNotIn &) =
+		delete;
 
 public:
 	// ctor

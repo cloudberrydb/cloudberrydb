@@ -45,8 +45,7 @@ private:
 	// window keys
 	CDXLWindowKeyArray *m_dxl_window_key_array;
 
-	// private copy ctor
-	CDXLPhysicalWindow(CDXLPhysicalWindow &);
+	CDXLPhysicalWindow(CDXLPhysicalWindow &) = delete;
 
 public:
 	//ctor

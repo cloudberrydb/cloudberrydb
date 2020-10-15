@@ -29,8 +29,8 @@ namespace gpopt
 class CLogicalLeftSemiCorrelatedApply : public CLogicalLeftSemiApply
 {
 private:
-	// private copy ctor
-	CLogicalLeftSemiCorrelatedApply(const CLogicalLeftSemiCorrelatedApply &);
+	CLogicalLeftSemiCorrelatedApply(const CLogicalLeftSemiCorrelatedApply &) =
+		delete;
 
 public:
 	// ctor for patterns
@@ -41,9 +41,7 @@ public:
 									EOperatorId eopidOriginSubq);
 
 	// dtor
-	virtual ~CLogicalLeftSemiCorrelatedApply()
-	{
-	}
+	virtual ~CLogicalLeftSemiCorrelatedApply() = default;
 
 	// ident accessors
 	virtual EOperatorId

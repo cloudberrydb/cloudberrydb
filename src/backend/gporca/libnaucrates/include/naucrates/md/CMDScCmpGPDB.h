@@ -57,8 +57,7 @@ private:
 	// comparison operator id
 	IMDId *m_mdid_op;
 
-	// private copy ctor
-	CMDScCmpGPDB(const CMDScCmpGPDB &);
+	CMDScCmpGPDB(const CMDScCmpGPDB &) = delete;
 
 public:
 	// ctor

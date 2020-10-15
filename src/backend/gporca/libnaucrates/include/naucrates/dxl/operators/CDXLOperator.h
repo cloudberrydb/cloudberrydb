@@ -218,8 +218,7 @@ enum EdxlCoercionForm
 class CDXLOperator : public CRefCount
 {
 private:
-	// private copy constructor
-	CDXLOperator(const CDXLOperator &);
+	CDXLOperator(const CDXLOperator &) = delete;
 
 protected:
 	// memory pool

@@ -35,8 +35,7 @@ class CXMLSerializer;
 class CDXLPhysicalBitmapTableScan : public CDXLPhysicalAbstractBitmapScan
 {
 private:
-	// private copy ctor
-	CDXLPhysicalBitmapTableScan(const CDXLPhysicalBitmapTableScan &);
+	CDXLPhysicalBitmapTableScan(const CDXLPhysicalBitmapTableScan &) = delete;
 
 public:
 	// ctors
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CDXLPhysicalBitmapTableScan()
-	{
-	}
+	virtual ~CDXLPhysicalBitmapTableScan() = default;
 
 	// operator type
 	virtual Edxlopid

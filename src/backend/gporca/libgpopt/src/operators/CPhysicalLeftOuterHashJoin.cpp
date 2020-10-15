@@ -42,8 +42,6 @@ CPhysicalLeftOuterHashJoin::CPhysicalLeftOuterHashJoin(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalLeftOuterHashJoin::~CPhysicalLeftOuterHashJoin()
-{
-}
+CPhysicalLeftOuterHashJoin::~CPhysicalLeftOuterHashJoin() = default;
 
 // EOF

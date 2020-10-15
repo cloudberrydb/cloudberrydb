@@ -27,19 +27,14 @@ namespace gpos
 class IErrorContext
 {
 private:
-	// private copy ctor
-	IErrorContext(const IErrorContext &);
+	IErrorContext(const IErrorContext &) = delete;
 
 public:
 	// ctor
-	IErrorContext()
-	{
-	}
+	IErrorContext() = default;
 
 	// dtor
-	virtual ~IErrorContext()
-	{
-	}
+	virtual ~IErrorContext() = default;
 
 	// reset context, clear out handled error
 	virtual void Reset() = 0;

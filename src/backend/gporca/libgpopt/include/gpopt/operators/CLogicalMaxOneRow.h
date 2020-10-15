@@ -29,8 +29,7 @@ namespace gpopt
 class CLogicalMaxOneRow : public CLogical
 {
 private:
-	// private copy ctor
-	CLogicalMaxOneRow(const CLogicalMaxOneRow &);
+	CLogicalMaxOneRow(const CLogicalMaxOneRow &) = delete;
 
 public:
 	// ctors
@@ -40,9 +39,7 @@ public:
 
 
 	// dtor
-	virtual ~CLogicalMaxOneRow()
-	{
-	}
+	virtual ~CLogicalMaxOneRow() = default;
 
 	// ident accessors
 	virtual EOperatorId

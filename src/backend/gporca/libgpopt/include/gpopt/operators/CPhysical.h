@@ -89,8 +89,7 @@ private:
 		// index of scalar child to be used when computing required columns
 		ULONG m_ulScalarChildIndex;
 
-		// private copy ctor
-		CReqdColsRequest(const CReqdColsRequest &);
+		CReqdColsRequest(const CReqdColsRequest &) = delete;
 
 	public:
 		// ctor
@@ -163,8 +162,7 @@ private:
 	// update number of requests of a given property
 	void UpdateOptRequests(ULONG ulPropIndex, ULONG ulRequests);
 
-	// private copy ctor
-	CPhysical(const CPhysical &);
+	CPhysical(const CPhysical &) = delete;
 
 	// check whether we can push a part table requirement to a given child, given
 	// the knowledge of where the part index id is defined

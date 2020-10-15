@@ -27,8 +27,7 @@ namespace gpopt
 class CPhysicalLeftOuterHashJoin : public CPhysicalHashJoin
 {
 private:
-	// private copy ctor
-	CPhysicalLeftOuterHashJoin(const CPhysicalLeftOuterHashJoin &);
+	CPhysicalLeftOuterHashJoin(const CPhysicalLeftOuterHashJoin &) = delete;
 
 public:
 	// ctor

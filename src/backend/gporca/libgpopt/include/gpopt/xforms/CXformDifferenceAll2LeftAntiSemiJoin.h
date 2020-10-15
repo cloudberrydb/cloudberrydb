@@ -35,18 +35,15 @@ using namespace gpos;
 class CXformDifferenceAll2LeftAntiSemiJoin : public CXformExploration
 {
 private:
-	// private copy ctor
 	CXformDifferenceAll2LeftAntiSemiJoin(
-		const CXformDifferenceAll2LeftAntiSemiJoin &);
+		const CXformDifferenceAll2LeftAntiSemiJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformDifferenceAll2LeftAntiSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformDifferenceAll2LeftAntiSemiJoin()
-	{
-	}
+	virtual ~CXformDifferenceAll2LeftAntiSemiJoin() = default;
 
 	// ident accessors
 	virtual EXformId

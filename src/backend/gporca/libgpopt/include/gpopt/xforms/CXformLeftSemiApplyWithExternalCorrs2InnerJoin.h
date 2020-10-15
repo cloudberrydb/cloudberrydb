@@ -36,9 +36,8 @@ class CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 	: public CXformApply2Join<CLogicalLeftSemiApply, CLogicalInnerJoin>
 {
 private:
-	// private copy ctor
 	CXformLeftSemiApplyWithExternalCorrs2InnerJoin(
-		const CXformLeftSemiApplyWithExternalCorrs2InnerJoin &);
+		const CXformLeftSemiApplyWithExternalCorrs2InnerJoin &) = delete;
 
 	// helper for splitting correlations into external and residual
 	static BOOL FSplitCorrelations(CMemoryPool *mp, CExpression *pexprOuter,
@@ -73,9 +72,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApplyWithExternalCorrs2InnerJoin()
-	{
-	}
+	virtual ~CXformLeftSemiApplyWithExternalCorrs2InnerJoin() = default;
 
 	// ident accessors
 	virtual EXformId

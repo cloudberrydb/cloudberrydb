@@ -48,8 +48,7 @@ private:
 	// list of parsed metatadata source system ids
 	CSystemIdArray *m_system_id_array;
 
-	// private copy ctor
-	CParseHandlerMetadata(const CParseHandlerMetadata &);
+	CParseHandlerMetadata(const CParseHandlerMetadata &) = delete;
 
 	// process the start of an element
 	void StartElement(

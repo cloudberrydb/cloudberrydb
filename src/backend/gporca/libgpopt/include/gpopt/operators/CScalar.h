@@ -53,8 +53,7 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CScalar(const CScalar &);
+	CScalar(const CScalar &) = delete;
 
 	// helper for combining partition consumer arrays of scalar children
 	static CPartInfo *PpartinfoDeriveCombineScalar(CMemoryPool *mp,
@@ -82,9 +81,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalar()
-	{
-	}
+	virtual ~CScalar() = default;
 
 	// type of operator
 	virtual BOOL

@@ -35,8 +35,7 @@ private:
 	// output column ids
 	ULongPtrArray *m_output_colids_array;
 
-	// private copy ctor
-	CDXLPhysicalCTEConsumer(CDXLPhysicalCTEConsumer &);
+	CDXLPhysicalCTEConsumer(CDXLPhysicalCTEConsumer &) = delete;
 
 public:
 	// ctor

@@ -52,8 +52,8 @@ private:
 	// derived column stats
 	CDXLStatsDerivedColumn *m_dxl_stats_derived_col;
 
-	// private copy ctor
-	CParseHandlerStatsDerivedColumn(const CParseHandlerStatsDerivedColumn &);
+	CParseHandlerStatsDerivedColumn(const CParseHandlerStatsDerivedColumn &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

@@ -65,8 +65,7 @@ private:
 
 	BOOL m_is_allowed_for_PS;
 
-	// private copy ctor
-	CParseHandlerMDGPDBFunc(const CParseHandlerMDGPDBFunc &);
+	CParseHandlerMDGPDBFunc(const CParseHandlerMDGPDBFunc &) = delete;
 
 	// process the start of an element
 	void StartElement(

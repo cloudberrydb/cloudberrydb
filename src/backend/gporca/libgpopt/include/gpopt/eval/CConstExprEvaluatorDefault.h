@@ -36,8 +36,7 @@ namespace gpopt
 class CConstExprEvaluatorDefault : public IConstExprEvaluator
 {
 private:
-	// private copy ctor
-	CConstExprEvaluatorDefault(const CConstExprEvaluatorDefault &);
+	CConstExprEvaluatorDefault(const CConstExprEvaluatorDefault &) = delete;
 
 public:
 	// ctor

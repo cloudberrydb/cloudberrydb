@@ -58,8 +58,7 @@ private:
 	// tail element
 	T *m_tail;
 
-	// no copy ctor
-	CList(const CList &);
+	CList(const CList &) = delete;
 
 	// extract link from element
 	SLink &

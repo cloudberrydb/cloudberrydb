@@ -36,8 +36,7 @@ private:
 	// buffer capacity
 	ULONG m_capacity;
 
-	// private copy ctor
-	CWStringStatic(const CWStringStatic &);
+	CWStringStatic(const CWStringStatic &) = delete;
 
 protected:
 	// appends the contents of a buffer to the current string
@@ -68,9 +67,7 @@ public:
 	virtual void AppendWideCharArray(const WCHAR *w_str);
 
 	// dtor - owner is responsible for releasing the buffer
-	virtual ~CWStringStatic()
-	{
-	}
+	virtual ~CWStringStatic() = default;
 
 	// resets string
 	void Reset();

@@ -74,7 +74,7 @@ public:
 		}
 
 		// dtor
-		virtual ~SCostParam(){};
+		virtual ~SCostParam() = default;
 
 		// return param identifier
 		ULONG

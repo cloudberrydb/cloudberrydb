@@ -32,9 +32,8 @@ using namespace gpos;
 class CXformSimplifyProjectWithSubquery : public CXformSimplifySubquery
 {
 private:
-	// private copy ctor
 	CXformSimplifyProjectWithSubquery(
-		const CXformSimplifyProjectWithSubquery &);
+		const CXformSimplifyProjectWithSubquery &) = delete;
 
 public:
 	// ctor
@@ -51,9 +50,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformSimplifyProjectWithSubquery()
-	{
-	}
+	virtual ~CXformSimplifyProjectWithSubquery() = default;
 
 	// Compatibility function for simplifying aggregates
 	virtual BOOL

@@ -55,9 +55,7 @@ CConstExprEvaluatorDXL::CConstExprEvaluatorDXL(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CConstExprEvaluatorDXL::~CConstExprEvaluatorDXL()
-{
-}
+CConstExprEvaluatorDXL::~CConstExprEvaluatorDXL() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

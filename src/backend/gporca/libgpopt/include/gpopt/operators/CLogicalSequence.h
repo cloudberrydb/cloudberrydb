@@ -28,17 +28,14 @@ namespace gpopt
 class CLogicalSequence : public CLogical
 {
 private:
-	// private copy ctor
-	CLogicalSequence(const CLogicalSequence &);
+	CLogicalSequence(const CLogicalSequence &) = delete;
 
 public:
 	// ctor
 	explicit CLogicalSequence(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalSequence()
-	{
-	}
+	virtual ~CLogicalSequence() = default;
 
 	// ident accessors
 	virtual EOperatorId

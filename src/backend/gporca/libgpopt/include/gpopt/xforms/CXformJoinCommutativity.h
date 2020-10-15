@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformJoinCommutativity : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformJoinCommutativity(const CXformJoinCommutativity &);
+	CXformJoinCommutativity(const CXformJoinCommutativity &) = delete;
 
 public:
 	// ctor
 	explicit CXformJoinCommutativity(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformJoinCommutativity()
-	{
-	}
+	virtual ~CXformJoinCommutativity() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformIntersect2Join : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformIntersect2Join(const CXformIntersect2Join &);
+	CXformIntersect2Join(const CXformIntersect2Join &) = delete;
 
 public:
 	// ctor
 	explicit CXformIntersect2Join(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformIntersect2Join()
-	{
-	}
+	virtual ~CXformIntersect2Join() = default;
 
 	// ident accessors
 	virtual EXformId

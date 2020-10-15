@@ -47,8 +47,7 @@ private:
 	// const values
 	CScalarConstArray *m_pdrgPconst;
 
-	// private copy ctor
-	CScalarArray(const CScalarArray &);
+	CScalarArray(const CScalarArray &) = delete;
 
 public:
 	// ctor

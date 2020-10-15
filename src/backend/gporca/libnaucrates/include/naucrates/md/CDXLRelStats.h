@@ -61,8 +61,7 @@ private:
 	// DXL string for object
 	CWStringDynamic *m_dxl_str;
 
-	// private copy ctor
-	CDXLRelStats(const CDXLRelStats &);
+	CDXLRelStats(const CDXLRelStats &) = delete;
 
 public:
 	CDXLRelStats(CMemoryPool *mp, CMDIdRelStats *rel_stats_mdid,

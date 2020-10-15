@@ -83,7 +83,7 @@ private:
 	// (used for cardinality estimation)
 	BOOL m_is_ndv_preserving;
 
-	CMDScalarOpGPDB(const CMDScalarOpGPDB &);
+	CMDScalarOpGPDB(const CMDScalarOpGPDB &) = delete;
 
 public:
 	// ctor/dtor

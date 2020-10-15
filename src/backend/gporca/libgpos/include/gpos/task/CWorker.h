@@ -52,8 +52,7 @@ private:
 	// check for abort request
 	void CheckForAbort(const CHAR *file, ULONG line_num);
 
-	// no copy ctor
-	CWorker(const CWorker &);
+	CWorker(const CWorker &) = delete;
 
 public:
 	// ctor

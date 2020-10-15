@@ -45,9 +45,7 @@ CFunctionProp::CFunctionProp(IMDFunction::EFuncStbl func_stability,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CFunctionProp::~CFunctionProp()
-{
-}
+CFunctionProp::~CFunctionProp() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

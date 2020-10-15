@@ -45,9 +45,7 @@ CParseHandlerScalarIdent::CParseHandlerScalarIdent(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerScalarIdent::~CParseHandlerScalarIdent()
-{
-}
+CParseHandlerScalarIdent::~CParseHandlerScalarIdent() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

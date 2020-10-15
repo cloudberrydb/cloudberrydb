@@ -44,8 +44,7 @@ private:
 	// optimizer configuration
 	COptimizerConfig *m_optimizer_config;
 
-	// private copy ctor
-	CParseHandlerOptimizerConfig(const CParseHandlerOptimizerConfig &);
+	CParseHandlerOptimizerConfig(const CParseHandlerOptimizerConfig &) = delete;
 
 	// process the start of an element
 	void StartElement(

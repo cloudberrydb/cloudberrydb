@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalSelect : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalSelect(const CParseHandlerLogicalSelect &);
+	CParseHandlerLogicalSelect(const CParseHandlerLogicalSelect &) = delete;
 
 	// process the start of an element
 	void StartElement(

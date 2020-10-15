@@ -38,8 +38,7 @@ private:
 
 	ULLONG m_live_obj_total_size;
 
-	// private copy ctor
-	CMemoryPoolStatistics(CMemoryPoolStatistics &);
+	CMemoryPoolStatistics(CMemoryPoolStatistics &) = delete;
 
 public:
 	// ctor
@@ -54,9 +53,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CMemoryPoolStatistics()
-	{
-	}
+	virtual ~CMemoryPoolStatistics() = default;
 
 	// get the total number of successful allocation calls
 	ULLONG

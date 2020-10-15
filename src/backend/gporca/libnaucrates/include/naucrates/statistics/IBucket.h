@@ -32,17 +32,14 @@ using namespace gpmd;
 class IBucket
 {
 private:
-	// private copy constructor
-	IBucket(const IBucket &);
+	IBucket(const IBucket &) = delete;
 
 	// private assignment operator
-	IBucket &operator=(const IBucket &);
+	IBucket &operator=(const IBucket &) = delete;
 
 public:
 	// c'tor
-	IBucket()
-	{
-	}
+	IBucket() = default;
 
 	// lower point
 	virtual CPoint *GetLowerBound() const = 0;
@@ -58,9 +55,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~IBucket()
-	{
-	}
+	virtual ~IBucket() = default;
 };
 }  // namespace gpnaucrates
 

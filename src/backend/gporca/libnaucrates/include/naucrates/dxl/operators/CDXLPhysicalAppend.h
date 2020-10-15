@@ -45,8 +45,7 @@ private:
 	// TODO:  - Apr 12, 2011; find a better name (and comments) for this variable
 	BOOL m_is_zapped;
 
-	// private copy ctor
-	CDXLPhysicalAppend(const CDXLPhysicalAppend &);
+	CDXLPhysicalAppend(const CDXLPhysicalAppend &) = delete;
 
 public:
 	// ctor/dtor

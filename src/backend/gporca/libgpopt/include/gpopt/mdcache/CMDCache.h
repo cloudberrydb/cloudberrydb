@@ -44,13 +44,12 @@ private:
 	static ULLONG m_ullCacheQuota;
 
 	// private ctor
-	CMDCache(){};
+	CMDCache() = default;
 
-	// no copy ctor
-	CMDCache(const CMDCache &);
+	CMDCache(const CMDCache &) = delete;
 
 	// private dtor
-	~CMDCache(){};
+	~CMDCache() = default;
 
 public:
 	// initialize underlying cache

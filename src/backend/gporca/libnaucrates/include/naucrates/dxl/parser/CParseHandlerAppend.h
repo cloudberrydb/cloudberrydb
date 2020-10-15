@@ -35,8 +35,7 @@ class CParseHandlerAppend : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalAppend *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerAppend(const CParseHandlerAppend &);
+	CParseHandlerAppend(const CParseHandlerAppend &) = delete;
 
 	// set up initial handlers
 	void SetupInitialHandlers(const Attributes &attrs);

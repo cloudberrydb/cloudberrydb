@@ -32,8 +32,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarOp : public CParseHandlerOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarOp(const CParseHandlerScalarOp &);
+	CParseHandlerScalarOp(const CParseHandlerScalarOp &) = delete;
 
 protected:
 	// process notification of the beginning of an element.

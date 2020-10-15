@@ -32,8 +32,8 @@ template <class TLogicalApply, class TPhysicalJoin>
 class CXformImplementCorrelatedApply : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementCorrelatedApply(const CXformImplementCorrelatedApply &);
+	CXformImplementCorrelatedApply(const CXformImplementCorrelatedApply &) =
+		delete;
 
 
 public:
@@ -53,9 +53,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementCorrelatedApply()
-	{
-	}
+	virtual ~CXformImplementCorrelatedApply() = default;
 
 	// compute xform promise for a given expression handle
 	virtual EXformPromise

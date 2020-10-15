@@ -28,8 +28,7 @@ namespace gpdxl
 class CDXLLogicalSelect : public CDXLLogical
 {
 private:
-	// private copy ctor
-	CDXLLogicalSelect(CDXLLogicalSelect &);
+	CDXLLogicalSelect(CDXLLogicalSelect &) = delete;
 
 public:
 	// ctor/dtor

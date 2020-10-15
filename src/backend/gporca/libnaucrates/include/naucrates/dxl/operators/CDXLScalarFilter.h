@@ -29,8 +29,7 @@ namespace gpdxl
 class CDXLScalarFilter : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarFilter(CDXLScalarFilter &);
+	CDXLScalarFilter(CDXLScalarFilter &) = delete;
 
 public:
 	// ctor/dtor

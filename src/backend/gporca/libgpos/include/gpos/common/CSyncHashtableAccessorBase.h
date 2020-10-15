@@ -45,8 +45,8 @@ private:
 	// bucket to operate on
 	SBucket &m_bucket;
 
-	// no copy ctor
-	CSyncHashtableAccessorBase<T, K>(const CSyncHashtableAccessorBase<T, K> &);
+	CSyncHashtableAccessorBase<T, K>(const CSyncHashtableAccessorBase<T, K> &) =
+		delete;
 
 protected:
 	// ctor - protected to restrict instantiation to children
@@ -56,9 +56,7 @@ protected:
 	}
 
 	// dtor
-	virtual ~CSyncHashtableAccessorBase<T, K>()
-	{
-	}
+	virtual ~CSyncHashtableAccessorBase<T, K>() = default;
 
 	// accessor to hashtable
 	CSyncHashtable<T, K> &

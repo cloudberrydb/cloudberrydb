@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformImplementation : public CXform
 {
 private:
-	// private copy ctor
-	CXformImplementation(const CXformImplementation &);
+	CXformImplementation(const CXformImplementation &) = delete;
 
 public:
 	// ctor

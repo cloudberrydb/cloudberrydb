@@ -49,8 +49,7 @@ private:
 	// location of token to be coerced
 	INT m_location;
 
-	// private copy ctor
-	CDXLScalarCoerceBase(const CDXLScalarCoerceBase &);
+	CDXLScalarCoerceBase(const CDXLScalarCoerceBase &) = delete;
 
 public:
 	// ctor/dtor

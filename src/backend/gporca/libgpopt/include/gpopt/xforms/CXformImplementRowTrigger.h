@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformImplementRowTrigger : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementRowTrigger(const CXformImplementRowTrigger &);
+	CXformImplementRowTrigger(const CXformImplementRowTrigger &) = delete;
 
 public:
 	// ctor
 	explicit CXformImplementRowTrigger(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementRowTrigger()
-	{
-	}
+	virtual ~CXformImplementRowTrigger() = default;
 
 	// ident accessors
 	virtual EXformId

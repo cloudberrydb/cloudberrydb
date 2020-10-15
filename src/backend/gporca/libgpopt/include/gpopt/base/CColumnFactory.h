@@ -58,8 +58,7 @@ private:
 	// hash table
 	CSyncHashtable<CColRef, ULONG> m_sht;
 
-	// private copy ctor
-	CColumnFactory(const CColumnFactory &);
+	CColumnFactory(const CColumnFactory &) = delete;
 
 	// implementation of factory methods
 	CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier, ULONG id,

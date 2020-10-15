@@ -66,8 +66,7 @@ private:
 		// does hash set element own object?
 		BOOL m_owns_object;
 
-		// private copy ctor
-		CHashSetElem(const CHashSetElem &);
+		CHashSetElem(const CHashSetElem &) = delete;
 
 	public:
 		// ctor
@@ -122,8 +121,7 @@ private:
 
 	IntPtrArray *const m_filled_chains;
 
-	// private copy ctor
-	CHashSet(const CHashSet<T, HashFn, EqFn, CleanupFn> &);
+	CHashSet(const CHashSet<T, HashFn, EqFn, CleanupFn> &) = delete;
 
 	// lookup appropriate hash chain in static table, may be NULL if
 	// no elements have been inserted yet

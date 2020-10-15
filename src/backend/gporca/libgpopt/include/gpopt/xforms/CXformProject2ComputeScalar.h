@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformProject2ComputeScalar : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformProject2ComputeScalar(const CXformProject2ComputeScalar &);
+	CXformProject2ComputeScalar(const CXformProject2ComputeScalar &) = delete;
 
 public:
 	// ctor
 	explicit CXformProject2ComputeScalar(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformProject2ComputeScalar()
-	{
-	}
+	virtual ~CXformProject2ComputeScalar() = default;
 
 	// ident accessors
 	virtual EXformId

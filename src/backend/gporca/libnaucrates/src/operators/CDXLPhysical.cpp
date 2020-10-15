@@ -35,9 +35,7 @@ CDXLPhysical::CDXLPhysical(CMemoryPool *mp) : CDXLOperator(mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CDXLPhysical::~CDXLPhysical()
-{
-}
+CDXLPhysical::~CDXLPhysical() = default;
 
 //---------------------------------------------------------------------------
 //      @function:

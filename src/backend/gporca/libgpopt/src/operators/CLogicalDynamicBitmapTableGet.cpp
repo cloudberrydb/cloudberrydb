@@ -71,9 +71,7 @@ CLogicalDynamicBitmapTableGet::CLogicalDynamicBitmapTableGet(CMemoryPool *mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalDynamicBitmapTableGet::~CLogicalDynamicBitmapTableGet()
-{
-}
+CLogicalDynamicBitmapTableGet::~CLogicalDynamicBitmapTableGet() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

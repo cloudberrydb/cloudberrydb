@@ -70,8 +70,7 @@ private:
 	// explore child group expressions action
 	static EEvent EevtExploreChildren(CSchedulerContext *psc, CJob *pj);
 
-	// private copy ctor
-	CJobGroupExploration(const CJobGroupExploration &);
+	CJobGroupExploration(const CJobGroupExploration &) = delete;
 
 public:
 	// ctor

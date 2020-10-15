@@ -37,8 +37,7 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CParseHandlerScalarCoalesce(const CParseHandlerScalarCoalesce &);
+	CParseHandlerScalarCoalesce(const CParseHandlerScalarCoalesce &) = delete;
 
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,

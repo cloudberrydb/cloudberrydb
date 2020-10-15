@@ -60,9 +60,7 @@ CPhysicalComputeScalar::CPhysicalComputeScalar(CMemoryPool *mp) : CPhysical(mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalComputeScalar::~CPhysicalComputeScalar()
-{
-}
+CPhysicalComputeScalar::~CPhysicalComputeScalar() = default;
 
 
 //---------------------------------------------------------------------------

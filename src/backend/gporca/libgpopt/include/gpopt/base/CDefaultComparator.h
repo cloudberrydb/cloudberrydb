@@ -62,8 +62,7 @@ private:
 	// constant expression evaluator
 	IConstExprEvaluator *m_pceeval;
 
-	// disabled copy constructor
-	CDefaultComparator(const CDefaultComparator &);
+	CDefaultComparator(const CDefaultComparator &) = delete;
 
 	// construct a comparison expression from the given components and evaluate it
 	BOOL FEvalComparison(CMemoryPool *mp, const IDatum *datum1,
@@ -84,9 +83,7 @@ public:
 	CDefaultComparator(IConstExprEvaluator *pceeval);
 
 	// dtor
-	virtual ~CDefaultComparator()
-	{
-	}
+	virtual ~CDefaultComparator() = default;
 
 	// tests if the two arguments are equal
 	virtual BOOL Equals(const IDatum *datum1, const IDatum *datum2) const;

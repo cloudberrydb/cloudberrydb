@@ -79,8 +79,7 @@ private:
 	// constant false
 	static BOOL m_fFalse;
 
-	// hidden copy ctor
-	CConstraint(const CConstraint &);
+	CConstraint(const CConstraint &) = delete;
 
 	// return address of static BOOL constant based on passed BOOL value
 	static BOOL *

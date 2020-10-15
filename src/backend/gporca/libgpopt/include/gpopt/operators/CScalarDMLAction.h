@@ -31,8 +31,7 @@ using namespace gpos;
 class CScalarDMLAction : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarDMLAction(const CScalarDMLAction &);
+	CScalarDMLAction(const CScalarDMLAction &) = delete;
 
 public:
 	// dml action specification
@@ -48,9 +47,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarDMLAction()
-	{
-	}
+	virtual ~CScalarDMLAction() = default;
 	// ident accessors
 
 	// the type of the scalar expression

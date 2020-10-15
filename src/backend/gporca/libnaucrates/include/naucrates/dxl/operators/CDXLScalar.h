@@ -37,14 +37,13 @@ using namespace gpopt;
 class CDXLScalar : public CDXLOperator
 {
 private:
-	// private copy ctor
-	CDXLScalar(CDXLScalar &);
+	CDXLScalar(CDXLScalar &) = delete;
 
 public:
 	// ctor/dtor
 	explicit CDXLScalar(CMemoryPool *mp);
 
-	virtual ~CDXLScalar(){};
+	virtual ~CDXLScalar() = default;
 
 	Edxloptype GetDXLOperatorType() const;
 

@@ -23,8 +23,7 @@ class CDistributionSpecHashed;
 class CPhysicalSerialUnionAll : public CPhysicalUnionAll
 {
 private:
-	// private copy ctor
-	CPhysicalSerialUnionAll(const CPhysicalSerialUnionAll &);
+	CPhysicalSerialUnionAll(const CPhysicalSerialUnionAll &) = delete;
 
 public:
 	// ctor

@@ -52,8 +52,7 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
-	// private copy ctor
-	CScalarMinMax(const CScalarMinMax &);
+	CScalarMinMax(const CScalarMinMax &) = delete;
 
 public:
 	// ctor

@@ -77,8 +77,7 @@ private:
 		// null treatment
 		ENullTreatment m_ent;
 
-		// private copy ctor
-		COrderExpression(const COrderExpression &);
+		COrderExpression(const COrderExpression &) = delete;
 
 	public:
 		// ctor
@@ -133,8 +132,7 @@ private:
 	// components of order spec
 	COrderExpressionArray *m_pdrgpoe;
 
-	// private copy ctor
-	COrderSpec(const COrderSpec &);
+	COrderSpec(const COrderSpec &) = delete;
 
 	// extract columns from order spec into the given column set
 	void ExtractCols(CColRefSet *pcrs) const;

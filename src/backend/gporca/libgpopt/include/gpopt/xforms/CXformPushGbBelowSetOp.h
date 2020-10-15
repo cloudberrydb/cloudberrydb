@@ -34,8 +34,7 @@ template <class TSetOp>
 class CXformPushGbBelowSetOp : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformPushGbBelowSetOp(const CXformPushGbBelowSetOp &);
+	CXformPushGbBelowSetOp(const CXformPushGbBelowSetOp &) = delete;
 
 public:
 	// ctor
@@ -56,9 +55,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformPushGbBelowSetOp()
-	{
-	}
+	virtual ~CXformPushGbBelowSetOp() = default;
 
 	// compute xform promise for a given expression handle
 	virtual EXformPromise

@@ -29,9 +29,8 @@ using namespace gpos;
 class CXformLeftAntiSemiJoin2CrossProduct : public CXformExploration
 {
 private:
-	// private copy ctor
 	CXformLeftAntiSemiJoin2CrossProduct(
-		const CXformLeftAntiSemiJoin2CrossProduct &);
+		const CXformLeftAntiSemiJoin2CrossProduct &) = delete;
 
 public:
 	// ctor
@@ -41,9 +40,7 @@ public:
 	explicit CXformLeftAntiSemiJoin2CrossProduct(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformLeftAntiSemiJoin2CrossProduct()
-	{
-	}
+	virtual ~CXformLeftAntiSemiJoin2CrossProduct() = default;
 
 	// ident accessors
 	virtual EXformId

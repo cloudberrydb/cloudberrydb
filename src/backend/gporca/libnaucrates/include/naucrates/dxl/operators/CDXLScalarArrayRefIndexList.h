@@ -42,8 +42,7 @@ private:
 	// index list bound
 	EIndexListBound m_index_list_bound;
 
-	// private copy ctor
-	CDXLScalarArrayRefIndexList(const CDXLScalarArrayRefIndexList &);
+	CDXLScalarArrayRefIndexList(const CDXLScalarArrayRefIndexList &) = delete;
 
 	// string representation of index list bound
 	static const CWStringConst *GetDXLIndexListBoundStr(

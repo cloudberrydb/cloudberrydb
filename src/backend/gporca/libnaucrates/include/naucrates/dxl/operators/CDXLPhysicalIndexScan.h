@@ -49,8 +49,7 @@ private:
 	// scan direction of the index
 	EdxlIndexScanDirection m_index_scan_dir;
 
-	// private copy ctor
-	CDXLPhysicalIndexScan(CDXLPhysicalIndexScan &);
+	CDXLPhysicalIndexScan(CDXLPhysicalIndexScan &) = delete;
 
 public:
 	//ctor

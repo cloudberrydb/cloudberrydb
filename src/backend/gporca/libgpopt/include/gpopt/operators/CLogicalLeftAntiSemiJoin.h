@@ -28,17 +28,14 @@ namespace gpopt
 class CLogicalLeftAntiSemiJoin : public CLogicalJoin
 {
 private:
-	// private copy ctor
-	CLogicalLeftAntiSemiJoin(const CLogicalLeftAntiSemiJoin &);
+	CLogicalLeftAntiSemiJoin(const CLogicalLeftAntiSemiJoin &) = delete;
 
 public:
 	// ctor
 	explicit CLogicalLeftAntiSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftAntiSemiJoin()
-	{
-	}
+	virtual ~CLogicalLeftAntiSemiJoin() = default;
 
 	// ident accessors
 	virtual EOperatorId

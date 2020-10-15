@@ -34,8 +34,7 @@ class CXMLSerializer;
 class CDXLPhysical : public CDXLOperator
 {
 private:
-	// private copy ctor
-	CDXLPhysical(const CDXLPhysical &);
+	CDXLPhysical(const CDXLPhysical &) = delete;
 
 public:
 	// ctor/dtor

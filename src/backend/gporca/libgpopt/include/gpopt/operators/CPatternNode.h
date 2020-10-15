@@ -33,7 +33,6 @@ public:
 		EmtSentinel
 	};
 
-	// private copy ctor
 	CPatternNode(COperator &) = delete;
 
 	enum EMatchType m_match;
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CPatternNode()
-	{
-	}
+	virtual ~CPatternNode() = default;
 
 	// match function
 	BOOL

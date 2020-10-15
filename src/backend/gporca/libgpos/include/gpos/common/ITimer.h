@@ -27,19 +27,14 @@ namespace gpos
 class ITimer
 {
 private:
-	// private copy ctor
-	ITimer(const ITimer &);
+	ITimer(const ITimer &) = delete;
 
 public:
 	// ctor
-	ITimer()
-	{
-	}
+	ITimer() = default;
 
 	// dtor
-	virtual ~ITimer()
-	{
-	}
+	virtual ~ITimer() = default;
 
 	// retrieve elapsed time in micro-seconds
 	virtual ULONG ElapsedUS() const = 0;

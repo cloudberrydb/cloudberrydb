@@ -41,8 +41,7 @@ private:
 	// column name
 	CWStringBase *m_str;
 
-	// private copy c'tor
-	COptColInfo(const COptColInfo &);
+	COptColInfo(const COptColInfo &) = delete;
 
 public:
 	// ctor

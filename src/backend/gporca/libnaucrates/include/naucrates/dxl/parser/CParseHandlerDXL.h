@@ -101,8 +101,7 @@ private:
 	// cost model params
 	ICostModelParams *m_cost_model_params;
 
-	// private copy ctor
-	CParseHandlerDXL(const CParseHandlerDXL &);
+	CParseHandlerDXL(const CParseHandlerDXL &) = delete;
 
 	// process the start of an element
 	void StartElement(

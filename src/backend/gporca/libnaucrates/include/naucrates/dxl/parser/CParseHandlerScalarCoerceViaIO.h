@@ -42,8 +42,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarCoerceViaIO : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarCoerceViaIO(const CParseHandlerScalarCoerceViaIO &);
+	CParseHandlerScalarCoerceViaIO(const CParseHandlerScalarCoerceViaIO &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(
@@ -66,7 +66,7 @@ public:
 								   CParseHandlerManager *parse_handler_mgr,
 								   CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerScalarCoerceViaIO(){};
+	virtual ~CParseHandlerScalarCoerceViaIO() = default;
 };
 
 }  // namespace gpdxl

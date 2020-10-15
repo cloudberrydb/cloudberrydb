@@ -42,8 +42,7 @@ private:
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 	ULONG m_ulOriginOpId;
 
-	// disable copy ctor
-	CPhysicalBitmapTableScan(const CPhysicalBitmapTableScan &);
+	CPhysicalBitmapTableScan(const CPhysicalBitmapTableScan &) = delete;
 
 public:
 	// ctor
@@ -52,9 +51,7 @@ public:
 							 CColRefArray *pdrgpcrOutput);
 
 	// dtor
-	virtual ~CPhysicalBitmapTableScan()
-	{
-	}
+	virtual ~CPhysicalBitmapTableScan() = default;
 
 	// ident accessors
 	virtual EOperatorId

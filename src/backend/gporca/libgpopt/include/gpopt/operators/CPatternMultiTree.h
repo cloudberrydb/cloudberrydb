@@ -29,8 +29,7 @@ using namespace gpos;
 class CPatternMultiTree : public CPattern
 {
 private:
-	// private copy ctor
-	CPatternMultiTree(const CPatternMultiTree &);
+	CPatternMultiTree(const CPatternMultiTree &) = delete;
 
 public:
 	// ctor
@@ -39,9 +38,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CPatternMultiTree()
-	{
-	}
+	virtual ~CPatternMultiTree() = default;
 
 	// check if operator is a pattern leaf
 	virtual BOOL

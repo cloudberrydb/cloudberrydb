@@ -44,8 +44,7 @@ private:
 	// list of column descriptors
 	CDXLColDescrArray *m_dxl_col_descr_array;
 
-	// private copy ctor
-	CDXLLogicalTVF(const CDXLLogicalTVF &);
+	CDXLLogicalTVF(const CDXLLogicalTVF &) = delete;
 
 public:
 	// ctor/dtor

@@ -46,8 +46,7 @@ private:
 	// id of user the table needs to be accessed with
 	ULONG m_execute_as_user_id;
 
-	// private copy ctor
-	CDXLTableDescr(const CDXLTableDescr &);
+	CDXLTableDescr(const CDXLTableDescr &) = delete;
 
 	void SerializeMDId(CXMLSerializer *xml_serializer) const;
 

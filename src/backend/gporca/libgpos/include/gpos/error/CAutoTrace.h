@@ -37,8 +37,7 @@ private:
 	// string stream
 	COstreamString m_os;
 
-	// private copy ctor
-	CAutoTrace(const CAutoTrace &);
+	CAutoTrace(const CAutoTrace &) = delete;
 
 public:
 	// ctor

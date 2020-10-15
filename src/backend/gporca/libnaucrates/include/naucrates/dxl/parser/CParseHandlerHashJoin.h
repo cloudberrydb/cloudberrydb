@@ -37,8 +37,7 @@ private:
 	// the hash join operator
 	CDXLPhysicalHashJoin *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerHashJoin(const CParseHandlerHashJoin &);
+	CParseHandlerHashJoin(const CParseHandlerHashJoin &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -32,8 +32,7 @@ private:
 	// list of indexinfo
 	CMDIndexInfoArray *m_mdindex_info_array;
 
-	// private copy ctor
-	CParseHandlerMDIndexInfoList(const CParseHandlerMDIndexInfoList &);
+	CParseHandlerMDIndexInfoList(const CParseHandlerMDIndexInfoList &) = delete;
 
 	// process the start of an element
 	void StartElement(

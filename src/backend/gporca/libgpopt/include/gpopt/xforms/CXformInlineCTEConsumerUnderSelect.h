@@ -33,18 +33,15 @@ using namespace gpos;
 class CXformInlineCTEConsumerUnderSelect : public CXformExploration
 {
 private:
-	// private copy ctor
 	CXformInlineCTEConsumerUnderSelect(
-		const CXformInlineCTEConsumerUnderSelect &);
+		const CXformInlineCTEConsumerUnderSelect &) = delete;
 
 public:
 	// ctor
 	explicit CXformInlineCTEConsumerUnderSelect(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformInlineCTEConsumerUnderSelect()
-	{
-	}
+	virtual ~CXformInlineCTEConsumerUnderSelect() = default;
 
 	// ident accessors
 	virtual EXformId

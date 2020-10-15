@@ -5,9 +5,7 @@
 
 namespace gpopt
 {
-gpopt::CDistributionSpecUniversal::CDistributionSpecUniversal()
-{
-}
+gpopt::CDistributionSpecUniversal::CDistributionSpecUniversal() = default;
 
 CDistributionSpec::EDistributionType
 CDistributionSpecUniversal::Edt() const

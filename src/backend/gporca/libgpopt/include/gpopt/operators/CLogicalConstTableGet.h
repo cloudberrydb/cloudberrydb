@@ -39,8 +39,7 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
-	// private copy ctor
-	CLogicalConstTableGet(const CLogicalConstTableGet &);
+	CLogicalConstTableGet(const CLogicalConstTableGet &) = delete;
 
 	// construct column descriptors from column references
 	CColumnDescriptorArray *PdrgpcoldescMapping(

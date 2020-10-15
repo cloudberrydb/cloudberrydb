@@ -71,8 +71,7 @@ private:
 	// list of vartypmod
 	IntPtrArray *m_vartypemod_array;
 
-	// private copy ctor
-	CDXLPhysicalCTAS(CDXLPhysicalCTAS &);
+	CDXLPhysicalCTAS(CDXLPhysicalCTAS &) = delete;
 
 public:
 	// ctor

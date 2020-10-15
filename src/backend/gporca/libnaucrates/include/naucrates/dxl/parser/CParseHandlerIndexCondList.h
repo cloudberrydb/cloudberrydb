@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerIndexCondList : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerIndexCondList(const CParseHandlerIndexCondList &);
+	CParseHandlerIndexCondList(const CParseHandlerIndexCondList &) = delete;
 
 	// process the start of an element
 	void StartElement(

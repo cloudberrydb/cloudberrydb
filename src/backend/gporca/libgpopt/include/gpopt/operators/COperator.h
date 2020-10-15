@@ -49,8 +49,7 @@ typedef CHashMap<CColRef, CColRef, CColRef::HashValue, CColRef::Equals,
 class COperator : public CRefCount
 {
 private:
-	// private copy ctor
-	COperator(COperator &);
+	COperator(COperator &) = delete;
 
 protected:
 	// operator id that is unique over all instances of all operator types
@@ -286,9 +285,7 @@ public:
 	explicit COperator(CMemoryPool *mp);
 
 	// dtor
-	virtual ~COperator()
-	{
-	}
+	virtual ~COperator() = default;
 
 	// the id of the operator
 	ULONG

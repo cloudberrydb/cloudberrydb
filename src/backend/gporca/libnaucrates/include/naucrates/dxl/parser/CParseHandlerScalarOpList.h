@@ -36,8 +36,7 @@ private:
 	// op list type
 	CDXLScalarOpList::EdxlOpListType m_dxl_op_list_type;
 
-	// private copy ctor
-	CParseHandlerScalarOpList(const CParseHandlerScalarOpList &);
+	CParseHandlerScalarOpList(const CParseHandlerScalarOpList &) = delete;
 
 	// return the op list type corresponding to the given operator name
 	CDXLScalarOpList::EdxlOpListType GetDXLOpListType(

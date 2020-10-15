@@ -49,8 +49,7 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
-	// private copy ctor
-	CScalarSwitch(const CScalarSwitch &);
+	CScalarSwitch(const CScalarSwitch &) = delete;
 
 public:
 	// ctor

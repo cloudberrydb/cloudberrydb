@@ -50,8 +50,7 @@ private:
 	// scan id
 	ULONG m_scan_id;
 
-	// private copy ctor
-	CDXLPhysicalPartitionSelector(CDXLPhysicalPartitionSelector &);
+	CDXLPhysicalPartitionSelector(CDXLPhysicalPartitionSelector &) = delete;
 
 public:
 	// ctor

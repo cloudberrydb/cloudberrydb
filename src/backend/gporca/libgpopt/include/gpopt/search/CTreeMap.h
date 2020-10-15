@@ -96,9 +96,7 @@ private:
 		}
 
 		// dtor
-		virtual ~STreeLink()
-		{
-		}
+		virtual ~STreeLink() = default;
 
 		// hash function
 		static ULONG

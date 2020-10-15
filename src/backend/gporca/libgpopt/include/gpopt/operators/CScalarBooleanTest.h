@@ -51,8 +51,7 @@ private:
 	// boolean test
 	EBoolTest m_ebt;
 
-	// private copy ctor
-	CScalarBooleanTest(const CScalarBooleanTest &);
+	CScalarBooleanTest(const CScalarBooleanTest &) = delete;
 
 public:
 	// ctor
@@ -62,9 +61,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarBooleanTest()
-	{
-	}
+	virtual ~CScalarBooleanTest() = default;
 
 	// ident accessors
 	virtual EOperatorId

@@ -43,8 +43,7 @@ private:
 	// index list type
 	EIndexListType m_eilt;
 
-	// private copy ctor
-	CScalarArrayRefIndexList(const CScalarArrayRefIndexList &);
+	CScalarArrayRefIndexList(const CScalarArrayRefIndexList &) = delete;
 
 public:
 	// ctor

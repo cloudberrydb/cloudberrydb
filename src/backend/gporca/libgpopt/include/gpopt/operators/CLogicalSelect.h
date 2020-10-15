@@ -34,8 +34,7 @@ typedef CHashMap<CExpression, CExpression, CExpression::HashValue,
 class CLogicalSelect : public CLogicalUnary
 {
 private:
-	// private copy ctor
-	CLogicalSelect(const CLogicalSelect &);
+	CLogicalSelect(const CLogicalSelect &) = delete;
 
 	ExprPredToExprPredPartMap *m_phmPexprPartPred;
 

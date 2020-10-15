@@ -29,8 +29,7 @@ namespace gpopt
 class CLogicalUnion : public CLogicalSetOp
 {
 private:
-	// private copy ctor
-	CLogicalUnion(const CLogicalUnion &);
+	CLogicalUnion(const CLogicalUnion &) = delete;
 
 public:
 	// ctor

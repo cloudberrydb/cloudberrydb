@@ -31,19 +31,14 @@ class CMemoryPool;
 class CErrorHandler
 {
 private:
-	// private copy ctor
-	CErrorHandler(const CErrorHandler &);
+	CErrorHandler(const CErrorHandler &) = delete;
 
 public:
 	// ctor
-	CErrorHandler()
-	{
-	}
+	CErrorHandler() = default;
 
 	// dtor
-	virtual ~CErrorHandler()
-	{
-	}
+	virtual ~CErrorHandler() = default;
 
 	// process error
 	virtual void Process(CException exception) = 0;

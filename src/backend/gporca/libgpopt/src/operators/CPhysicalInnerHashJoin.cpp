@@ -44,9 +44,7 @@ CPhysicalInnerHashJoin::CPhysicalInnerHashJoin(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalInnerHashJoin::~CPhysicalInnerHashJoin()
-{
-}
+CPhysicalInnerHashJoin::~CPhysicalInnerHashJoin() = default;
 
 
 //---------------------------------------------------------------------------

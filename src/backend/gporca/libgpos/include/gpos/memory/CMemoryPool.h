@@ -99,9 +99,7 @@ public:
 	};
 
 	// dtor
-	virtual ~CMemoryPool()
-	{
-	}
+	virtual ~CMemoryPool() = default;
 
 	// prepare the memory pool to be deleted
 	virtual void TearDown() = 0;

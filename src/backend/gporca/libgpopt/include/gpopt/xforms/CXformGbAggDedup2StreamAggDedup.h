@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformGbAggDedup2StreamAggDedup : public CXformGbAgg2StreamAgg
 {
 private:
-	// private copy ctor
-	CXformGbAggDedup2StreamAggDedup(const CXformGbAggDedup2StreamAggDedup &);
+	CXformGbAggDedup2StreamAggDedup(const CXformGbAggDedup2StreamAggDedup &) =
+		delete;
 
 public:
 	// ctor
 	CXformGbAggDedup2StreamAggDedup(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAggDedup2StreamAggDedup()
-	{
-	}
+	virtual ~CXformGbAggDedup2StreamAggDedup() = default;
 
 	// ident accessors
 	virtual EXformId

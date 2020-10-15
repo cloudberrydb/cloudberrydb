@@ -43,8 +43,7 @@ private:
 	// is distribution duplicate sensitive
 	BOOL m_is_duplicate_sensitive;
 
-	// private copy ctor
-	CDXLPhysicalRandomMotion(const CDXLPhysicalRandomMotion &);
+	CDXLPhysicalRandomMotion(const CDXLPhysicalRandomMotion &) = delete;
 
 public:
 	// ctor

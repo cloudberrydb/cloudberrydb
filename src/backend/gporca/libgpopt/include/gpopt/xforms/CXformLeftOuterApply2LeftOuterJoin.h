@@ -33,9 +33,8 @@ class CXformLeftOuterApply2LeftOuterJoin
 	: public CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>
 {
 private:
-	// private copy ctor
 	CXformLeftOuterApply2LeftOuterJoin(
-		const CXformLeftOuterApply2LeftOuterJoin &);
+		const CXformLeftOuterApply2LeftOuterJoin &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftOuterApply2LeftOuterJoin()
-	{
-	}
+	virtual ~CXformLeftOuterApply2LeftOuterJoin() = default;
 
 	// ident accessors
 	virtual EXformId

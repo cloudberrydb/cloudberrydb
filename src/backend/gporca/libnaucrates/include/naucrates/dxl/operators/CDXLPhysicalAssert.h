@@ -42,8 +42,7 @@ private:
 	// error code
 	CHAR m_sql_state[GPOS_SQLSTATE_LENGTH + 1];
 
-	// private copy ctor
-	CDXLPhysicalAssert(CDXLPhysicalAssert &);
+	CDXLPhysicalAssert(CDXLPhysicalAssert &) = delete;
 
 public:
 	// ctor

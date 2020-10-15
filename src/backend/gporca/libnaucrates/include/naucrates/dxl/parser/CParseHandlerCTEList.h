@@ -35,8 +35,7 @@ private:
 	// CTE list
 	CDXLNodeArray *m_dxl_array;
 
-	// private copy ctor
-	CParseHandlerCTEList(const CParseHandlerCTEList &);
+	CParseHandlerCTEList(const CParseHandlerCTEList &) = delete;
 
 	// process the start of an element
 	void StartElement(

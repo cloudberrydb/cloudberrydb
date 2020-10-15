@@ -36,8 +36,7 @@ class CColRefSet;
 class CLogicalUnary : public CLogical
 {
 private:
-	// private copy ctor
-	CLogicalUnary(const CLogicalUnary &);
+	CLogicalUnary(const CLogicalUnary &) = delete;
 
 protected:
 	// derive statistics for projection operators
@@ -52,9 +51,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CLogicalUnary()
-	{
-	}
+	virtual ~CLogicalUnary() = default;
 
 	// match function
 	virtual BOOL Matches(COperator *pop) const;

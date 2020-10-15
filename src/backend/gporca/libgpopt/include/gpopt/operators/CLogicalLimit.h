@@ -44,8 +44,7 @@ private:
 	// the limit must be kept, even if it has no offset, nor count
 	BOOL m_top_limit_under_dml;
 
-	// private copy ctor
-	CLogicalLimit(const CLogicalLimit &);
+	CLogicalLimit(const CLogicalLimit &) = delete;
 
 public:
 	// ctors

@@ -86,9 +86,7 @@ CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 //		dtor
 //
 //---------------------------------------------------------------------------
-CLogicalDynamicGet::~CLogicalDynamicGet()
-{
-}
+CLogicalDynamicGet::~CLogicalDynamicGet() = default;
 
 
 //---------------------------------------------------------------------------

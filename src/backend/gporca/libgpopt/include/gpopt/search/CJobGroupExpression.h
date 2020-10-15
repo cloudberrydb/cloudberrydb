@@ -42,8 +42,7 @@ private:
 	// true if job has scheduled transformation jobs
 	BOOL m_fXformsScheduled;
 
-	// private copy ctor
-	CJobGroupExpression(const CJobGroupExpression &);
+	CJobGroupExpression(const CJobGroupExpression &) = delete;
 
 protected:
 	// target group expression
@@ -55,9 +54,7 @@ protected:
 	}
 
 	// dtor
-	virtual ~CJobGroupExpression()
-	{
-	}
+	virtual ~CJobGroupExpression() = default;
 
 	// has job scheduled child groups ?
 	BOOL
@@ -108,7 +105,7 @@ protected:
 	virtual IOstream &OsPrint(IOstream &os) = 0;
 
 #endif	// GPOS_DEBUG
-
+public:
 };	// class CJobGroupExpression
 
 }  // namespace gpopt

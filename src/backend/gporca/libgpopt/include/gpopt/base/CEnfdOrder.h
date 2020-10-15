@@ -51,8 +51,7 @@ private:
 	// order matching type
 	EOrderMatching m_eom;
 
-	// private copy ctor
-	CEnfdOrder(const CEnfdOrder &);
+	CEnfdOrder(const CEnfdOrder &) = delete;
 
 	// names of order matching types
 	static const CHAR *m_szOrderMatching[EomSentinel];

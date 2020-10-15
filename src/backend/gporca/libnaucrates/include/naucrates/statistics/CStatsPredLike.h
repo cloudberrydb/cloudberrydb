@@ -36,11 +36,10 @@ using namespace gpmd;
 class CStatsPredLike : public CStatsPred
 {
 private:
-	// private copy ctor
-	CStatsPredLike(const CStatsPredLike &);
+	CStatsPredLike(const CStatsPredLike &) = delete;
 
 	// private assignment operator
-	CStatsPredLike &operator=(CStatsPredLike &);
+	CStatsPredLike &operator=(CStatsPredLike &) = delete;
 
 	// left hand side of the LIKE expression
 	CExpression *m_expr_left;

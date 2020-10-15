@@ -42,17 +42,14 @@ private:
 	// boolean value
 	BOOL m_value;
 
-	// private copy ctor
-	CDXLDatumBool(const CDXLDatumBool &);
+	CDXLDatumBool(const CDXLDatumBool &) = delete;
 
 public:
 	// ctor
 	CDXLDatumBool(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, BOOL value);
 
 	// dtor
-	virtual ~CDXLDatumBool()
-	{
-	}
+	virtual ~CDXLDatumBool() = default;
 
 	// serialize the datum as the given element
 	virtual void Serialize(CXMLSerializer *xml_serializer);

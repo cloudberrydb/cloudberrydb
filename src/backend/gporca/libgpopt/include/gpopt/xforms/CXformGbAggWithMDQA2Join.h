@@ -31,12 +31,12 @@ using namespace gpos;
 class CXformGbAggWithMDQA2Join : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformGbAggWithMDQA2Join(const CXformGbAggWithMDQA2Join &);
+	CXformGbAggWithMDQA2Join(const CXformGbAggWithMDQA2Join &) = delete;
 
 	static CExpression *PexprMDQAs2Join(CMemoryPool *mp, CExpression *pexpr);
 
-	// expand GbAgg with multiple distinct aggregates into a join of single distinct aggregates
+	// expand GbAgg with multiple distinct aggregates into a join of single distinct
+	// aggregates
 	static CExpression *PexprExpandMDQAs(CMemoryPool *mp, CExpression *pexpr);
 
 	// main transformation function driver
@@ -47,9 +47,7 @@ public:
 	explicit CXformGbAggWithMDQA2Join(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAggWithMDQA2Join()
-	{
-	}
+	virtual ~CXformGbAggWithMDQA2Join() = default;
 
 	// ident accessors
 	virtual EXformId

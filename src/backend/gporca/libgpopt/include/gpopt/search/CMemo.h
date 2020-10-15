@@ -96,8 +96,7 @@ private:
 	BOOL FNewGroup(CGroup **ppgroupTarget, CGroupExpression *pgexpr,
 				   BOOL fScalar);
 
-	// private copy ctor
-	CMemo(const CMemo &);
+	CMemo(const CMemo &) = delete;
 
 public:
 	// ctor

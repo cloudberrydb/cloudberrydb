@@ -78,14 +78,10 @@ private:
 
 public:
 	// ctor
-	CBinding()
-	{
-	}
+	CBinding() = default;
 
 	// dtor
-	~CBinding()
-	{
-	}
+	~CBinding() = default;
 
 	// extract binding from group expression
 	CExpression *PexprExtract(CMemoryPool *mp, CGroupExpression *pgexpr,

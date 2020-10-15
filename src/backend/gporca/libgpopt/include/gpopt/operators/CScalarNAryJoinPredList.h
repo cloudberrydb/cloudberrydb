@@ -30,17 +30,14 @@ using namespace gpos;
 class CScalarNAryJoinPredList : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarNAryJoinPredList(const CScalarNAryJoinPredList &);
+	CScalarNAryJoinPredList(const CScalarNAryJoinPredList &) = delete;
 
 public:
 	// ctor
 	explicit CScalarNAryJoinPredList(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CScalarNAryJoinPredList()
-	{
-	}
+	virtual ~CScalarNAryJoinPredList() = default;
 
 	// ident accessors
 	virtual EOperatorId

@@ -26,8 +26,7 @@ private:
 	// element type
 	IMDId *m_elem_type_mdid;
 
-	// private copy ctor
-	CDXLScalarPartListValues(const CDXLScalarPartListValues &);
+	CDXLScalarPartListValues(const CDXLScalarPartListValues &) = delete;
 
 public:
 	// ctor

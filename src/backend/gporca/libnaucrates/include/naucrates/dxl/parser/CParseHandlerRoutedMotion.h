@@ -37,8 +37,7 @@ private:
 	// motion operator
 	CDXLPhysicalRoutedDistributeMotion *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerRoutedMotion(const CParseHandlerRoutedMotion &);
+	CParseHandlerRoutedMotion(const CParseHandlerRoutedMotion &) = delete;
 
 	// process the start of an element
 	void StartElement(

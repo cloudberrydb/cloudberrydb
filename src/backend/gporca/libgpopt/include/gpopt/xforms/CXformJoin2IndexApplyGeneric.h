@@ -25,7 +25,6 @@ private:
 	// this decides which types of plans are produced, index gets or bitmap gets
 	BOOL m_generateBitmapPlans;
 
-	// no copy ctor
 	CXformJoin2IndexApplyGeneric(const CXformJoin2IndexApplyGeneric &) = delete;
 
 	// Can we transform left outer join to left outer index apply?
@@ -55,9 +54,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2IndexApplyGeneric()
-	{
-	}
+	virtual ~CXformJoin2IndexApplyGeneric() = default;
 
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
 

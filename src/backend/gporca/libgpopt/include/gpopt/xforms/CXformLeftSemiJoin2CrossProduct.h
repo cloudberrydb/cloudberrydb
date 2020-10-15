@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformLeftSemiJoin2CrossProduct : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformLeftSemiJoin2CrossProduct(const CXformLeftSemiJoin2CrossProduct &);
+	CXformLeftSemiJoin2CrossProduct(const CXformLeftSemiJoin2CrossProduct &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformLeftSemiJoin2CrossProduct(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftSemiJoin2CrossProduct()
-	{
-	}
+	virtual ~CXformLeftSemiJoin2CrossProduct() = default;
 
 	// ident accessors
 	virtual EXformId

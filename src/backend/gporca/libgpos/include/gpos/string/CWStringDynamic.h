@@ -45,8 +45,7 @@ private:
 	// find capacity that fits requested string size
 	static ULONG Capacity(ULONG requested);
 
-	// private copy ctor
-	CWStringDynamic(const CWStringDynamic &);
+	CWStringDynamic(const CWStringDynamic &) = delete;
 
 protected:
 	// appends the contents of a buffer to the current string

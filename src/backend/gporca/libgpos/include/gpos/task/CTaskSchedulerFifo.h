@@ -40,8 +40,7 @@ private:
 	// task queue
 	CList<CTask> m_task_queue;
 
-	// private copy ctor
-	CTaskSchedulerFifo(const CTaskSchedulerFifo &);
+	CTaskSchedulerFifo(const CTaskSchedulerFifo &) = delete;
 
 public:
 	// ctor
@@ -51,9 +50,7 @@ public:
 	}
 
 	// dtor
-	~CTaskSchedulerFifo()
-	{
-	}
+	~CTaskSchedulerFifo() = default;
 
 	// add task to waiting queue
 	void Enqueue(CTask *task);

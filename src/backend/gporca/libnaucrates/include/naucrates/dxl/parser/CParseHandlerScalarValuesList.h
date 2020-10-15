@@ -26,8 +26,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarValuesList : public CParseHandlerOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarValuesList(const CParseHandlerScalarValuesList &);
+	CParseHandlerScalarValuesList(const CParseHandlerScalarValuesList &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

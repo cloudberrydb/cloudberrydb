@@ -40,8 +40,7 @@ private:
 	// min/max type
 	CDXLScalarMinMax::EdxlMinMaxType m_min_max_type;
 
-	// private copy ctor
-	CParseHandlerScalarMinMax(const CParseHandlerScalarMinMax &);
+	CParseHandlerScalarMinMax(const CParseHandlerScalarMinMax &) = delete;
 
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,

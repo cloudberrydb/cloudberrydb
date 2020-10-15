@@ -22,7 +22,6 @@ using namespace gpos;
 class CXformJoin2BitmapIndexGetApply : public CXformJoin2IndexApplyGeneric
 {
 private:
-	// no copy ctor
 	CXformJoin2BitmapIndexGetApply(const CXformJoin2BitmapIndexGetApply &) =
 		delete;
 
@@ -34,9 +33,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformJoin2BitmapIndexGetApply()
-	{
-	}
+	virtual ~CXformJoin2BitmapIndexGetApply() = default;
 
 	// ident accessors
 	virtual EXformId

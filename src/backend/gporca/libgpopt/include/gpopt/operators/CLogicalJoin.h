@@ -29,17 +29,14 @@ namespace gpopt
 class CLogicalJoin : public CLogical
 {
 private:
-	// private copy ctor
-	CLogicalJoin(const CLogicalJoin &);
+	CLogicalJoin(const CLogicalJoin &) = delete;
 
 protected:
 	// ctor
 	explicit CLogicalJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalJoin()
-	{
-	}
+	virtual ~CLogicalJoin() = default;
 
 public:
 	// match function

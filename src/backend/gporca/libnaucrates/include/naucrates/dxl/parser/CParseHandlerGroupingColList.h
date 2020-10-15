@@ -37,8 +37,7 @@ private:
 	// array of grouping column ids
 	ULongPtrArray *m_grouping_colids_array;
 
-	// private copy ctor
-	CParseHandlerGroupingColList(const CParseHandlerGroupingColList &);
+	CParseHandlerGroupingColList(const CParseHandlerGroupingColList &) = delete;
 
 	// process the start of an element
 	void StartElement(

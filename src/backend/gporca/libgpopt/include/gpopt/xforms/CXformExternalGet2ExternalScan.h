@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformExternalGet2ExternalScan : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformExternalGet2ExternalScan(const CXformExternalGet2ExternalScan &);
+	CXformExternalGet2ExternalScan(const CXformExternalGet2ExternalScan &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformExternalGet2ExternalScan(CMemoryPool *);
 
 	// dtor
-	virtual ~CXformExternalGet2ExternalScan()
-	{
-	}
+	virtual ~CXformExternalGet2ExternalScan() = default;
 
 	// ident accessors
 	virtual EXformId

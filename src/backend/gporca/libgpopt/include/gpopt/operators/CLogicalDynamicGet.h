@@ -32,8 +32,7 @@ class CColRefSet;
 class CLogicalDynamicGet : public CLogicalDynamicGetBase
 {
 private:
-	// private copy ctor
-	CLogicalDynamicGet(const CLogicalDynamicGet &);
+	CLogicalDynamicGet(const CLogicalDynamicGet &) = delete;
 
 public:
 	// ctors

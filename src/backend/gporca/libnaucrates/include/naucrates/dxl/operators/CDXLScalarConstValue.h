@@ -35,8 +35,7 @@ class CDXLScalarConstValue : public CDXLScalar
 private:
 	CDXLDatum *m_dxl_datum;
 
-	// private copy ctor
-	CDXLScalarConstValue(const CDXLScalarConstValue &);
+	CDXLScalarConstValue(const CDXLScalarConstValue &) = delete;
 
 public:
 	// ctor/dtor

@@ -95,11 +95,10 @@ private:
 	// is column statistics missing in the database
 	BOOL m_is_col_stats_missing;
 
-	// private copy ctor
-	CHistogram(const CHistogram &);
+	CHistogram(const CHistogram &) = delete;
 
 	// private assignment operator
-	CHistogram &operator=(const CHistogram &);
+	CHistogram &operator=(const CHistogram &) = delete;
 
 	// return an array buckets after applying equality filter on the histogram buckets
 	CBucketArray *MakeBucketsWithEqualityFilter(CPoint *point) const;

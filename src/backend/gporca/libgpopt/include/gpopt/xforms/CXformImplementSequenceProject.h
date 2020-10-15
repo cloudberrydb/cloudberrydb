@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformImplementSequenceProject : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementSequenceProject(const CXformImplementSequenceProject &);
+	CXformImplementSequenceProject(const CXformImplementSequenceProject &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformImplementSequenceProject(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementSequenceProject()
-	{
-	}
+	virtual ~CXformImplementSequenceProject() = default;
 
 	// ident accessors
 	virtual EXformId

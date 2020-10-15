@@ -40,19 +40,14 @@ private:
 	// underlying list
 	CList<T> m_list;
 
-	// no copy ctor
-	CSyncList(const CSyncList &);
+	CSyncList(const CSyncList &) = delete;
 
 public:
 	// ctor
-	CSyncList()
-	{
-	}
+	CSyncList() = default;
 
 	// dtor
-	~CSyncList()
-	{
-	}
+	~CSyncList() = default;
 
 	// init function to facilitate arrays
 	void

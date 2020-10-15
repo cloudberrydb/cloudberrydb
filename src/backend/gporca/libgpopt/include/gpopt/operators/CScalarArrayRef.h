@@ -47,8 +47,7 @@ private:
 	// return type id
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CScalarArrayRef(const CScalarArrayRef &);
+	CScalarArrayRef(const CScalarArrayRef &) = delete;
 
 public:
 	// ctor

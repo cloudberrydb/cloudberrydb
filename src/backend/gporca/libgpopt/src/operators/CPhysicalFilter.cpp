@@ -49,9 +49,7 @@ CPhysicalFilter::CPhysicalFilter(CMemoryPool *mp) : CPhysical(mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalFilter::~CPhysicalFilter()
-{
-}
+CPhysicalFilter::~CPhysicalFilter() = default;
 
 
 //---------------------------------------------------------------------------

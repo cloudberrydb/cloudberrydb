@@ -40,8 +40,7 @@ private:
 	// alias
 	const CMDName *m_mdname;
 
-	// private copy ctor
-	CDXLScalarProjElem(CDXLScalarProjElem &);
+	CDXLScalarProjElem(CDXLScalarProjElem &) = delete;
 
 public:
 	// ctor/dtor

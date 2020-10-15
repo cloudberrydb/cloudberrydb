@@ -30,8 +30,7 @@ using namespace gpos;
 class CPatternMultiLeaf : public CPattern
 {
 private:
-	// private copy ctor
-	CPatternMultiLeaf(const CPatternMultiLeaf &);
+	CPatternMultiLeaf(const CPatternMultiLeaf &) = delete;
 
 public:
 	// ctor
@@ -40,9 +39,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CPatternMultiLeaf()
-	{
-	}
+	virtual ~CPatternMultiLeaf() = default;
 
 	// check if operator is a pattern leaf
 	virtual BOOL

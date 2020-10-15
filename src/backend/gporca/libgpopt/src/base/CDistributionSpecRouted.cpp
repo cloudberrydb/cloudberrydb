@@ -44,9 +44,7 @@ CDistributionSpecRouted::CDistributionSpecRouted(CColRef *pcrSegmentId)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CDistributionSpecRouted::~CDistributionSpecRouted()
-{
-}
+CDistributionSpecRouted::~CDistributionSpecRouted() = default;
 
 
 //---------------------------------------------------------------------------

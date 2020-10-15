@@ -30,8 +30,7 @@ using namespace gpos;
 class CScalarIsDistinctFrom : public CScalarCmp
 {
 private:
-	// private copy ctor
-	CScalarIsDistinctFrom(const CScalarIsDistinctFrom &);
+	CScalarIsDistinctFrom(const CScalarIsDistinctFrom &) = delete;
 
 public:
 	// ctor
@@ -43,9 +42,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarIsDistinctFrom()
-	{
-	}
+	virtual ~CScalarIsDistinctFrom() = default;
 
 	// ident accessors
 	virtual EOperatorId

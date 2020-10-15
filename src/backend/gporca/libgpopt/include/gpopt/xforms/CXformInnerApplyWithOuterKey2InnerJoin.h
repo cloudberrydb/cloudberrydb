@@ -33,18 +33,15 @@ using namespace gpos;
 class CXformInnerApplyWithOuterKey2InnerJoin : public CXformExploration
 {
 private:
-	// private copy ctor
 	CXformInnerApplyWithOuterKey2InnerJoin(
-		const CXformInnerApplyWithOuterKey2InnerJoin &);
+		const CXformInnerApplyWithOuterKey2InnerJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformInnerApplyWithOuterKey2InnerJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformInnerApplyWithOuterKey2InnerJoin()
-	{
-	}
+	virtual ~CXformInnerApplyWithOuterKey2InnerJoin() = default;
 
 	// transformation promise
 	EXformPromise Exfp(CExpressionHandle &exprhdl) const;

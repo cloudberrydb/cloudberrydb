@@ -26,8 +26,7 @@ namespace gpos
 class CRandom
 {
 private:
-	// no copy c'tor
-	CRandom(const CRandom &);
+	CRandom(const CRandom &) = delete;
 
 	// seed
 	ULONG m_seed;

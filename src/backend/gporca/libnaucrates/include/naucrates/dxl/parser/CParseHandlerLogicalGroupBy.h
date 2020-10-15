@@ -35,8 +35,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalGroupBy : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalGroupBy(const CParseHandlerLogicalGroupBy &);
+	CParseHandlerLogicalGroupBy(const CParseHandlerLogicalGroupBy &) = delete;
 
 	// process the start of an element
 	void StartElement(

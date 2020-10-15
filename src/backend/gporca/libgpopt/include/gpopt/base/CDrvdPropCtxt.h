@@ -40,8 +40,7 @@ typedef CDynamicPtrArray<CDrvdPropCtxt, CleanupRelease> CDrvdPropCtxtArray;
 class CDrvdPropCtxt : public CRefCount
 {
 private:
-	// private copy ctor
-	CDrvdPropCtxt(const CDrvdPropCtxt &);
+	CDrvdPropCtxt(const CDrvdPropCtxt &) = delete;
 
 protected:
 	// memory pool
@@ -60,9 +59,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CDrvdPropCtxt()
-	{
-	}
+	virtual ~CDrvdPropCtxt() = default;
 
 #ifdef GPOS_DEBUG
 

@@ -35,8 +35,7 @@ namespace gpdxl
 class CDXLScalarRecheckCondFilter : public CDXLScalarFilter
 {
 private:
-	// private copy ctor
-	CDXLScalarRecheckCondFilter(CDXLScalarRecheckCondFilter &);
+	CDXLScalarRecheckCondFilter(CDXLScalarRecheckCondFilter &) = delete;
 
 public:
 	// ctor

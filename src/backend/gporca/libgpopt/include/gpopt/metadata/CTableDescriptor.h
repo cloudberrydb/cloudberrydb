@@ -88,8 +88,7 @@ private:
 	// if true, it means this descriptor has partial indexes
 	BOOL m_fHasPartialIndexes;
 
-	// private copy ctor
-	CTableDescriptor(const CTableDescriptor &);
+	CTableDescriptor(const CTableDescriptor &) = delete;
 
 	// returns true if this table descriptor has partial indexes
 	BOOL FDescriptorWithPartialIndexes();

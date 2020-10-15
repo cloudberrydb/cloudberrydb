@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformGbAgg2StreamAgg : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformGbAgg2StreamAgg(const CXformGbAgg2StreamAgg &);
+	CXformGbAgg2StreamAgg(const CXformGbAgg2StreamAgg &) = delete;
 
 public:
 	// ctor
@@ -40,9 +39,7 @@ public:
 	explicit CXformGbAgg2StreamAgg(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformGbAgg2StreamAgg()
-	{
-	}
+	virtual ~CXformGbAgg2StreamAgg() = default;
 
 	// ident accessors
 	virtual EXformId

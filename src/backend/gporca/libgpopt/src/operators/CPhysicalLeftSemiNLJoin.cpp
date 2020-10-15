@@ -39,9 +39,7 @@ CPhysicalLeftSemiNLJoin::CPhysicalLeftSemiNLJoin(CMemoryPool *mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalLeftSemiNLJoin::~CPhysicalLeftSemiNLJoin()
-{
-}
+CPhysicalLeftSemiNLJoin::~CPhysicalLeftSemiNLJoin() = default;
 
 
 //---------------------------------------------------------------------------

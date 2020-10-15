@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerSortCol : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerSortCol(const CParseHandlerSortCol &);
+	CParseHandlerSortCol(const CParseHandlerSortCol &) = delete;
 
 	// process the start of an element
 	void StartElement(

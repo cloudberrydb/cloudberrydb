@@ -36,8 +36,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarCast : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerScalarCast(const CParseHandlerScalarCast &);
+	CParseHandlerScalarCast(const CParseHandlerScalarCast &) = delete;
 
 	// process the start of an element
 	void StartElement(
@@ -60,7 +59,7 @@ public:
 							CParseHandlerManager *parse_handler_mgr,
 							CParseHandlerBase *parse_handler_root);
 
-	virtual ~CParseHandlerScalarCast(){};
+	virtual ~CParseHandlerScalarCast() = default;
 };
 
 }  // namespace gpdxl

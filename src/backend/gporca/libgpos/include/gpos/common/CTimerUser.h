@@ -31,9 +31,7 @@ private:
 
 public:
 	// ctor
-	CTimerUser()
-	{
-	}
+	CTimerUser() = default;
 
 	// retrieve elapsed user time in micro-seconds
 	virtual ULONG ElapsedUS() const;

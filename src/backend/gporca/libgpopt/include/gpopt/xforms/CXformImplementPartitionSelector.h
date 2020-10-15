@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformImplementPartitionSelector : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformImplementPartitionSelector(const CXformImplementPartitionSelector &);
+	CXformImplementPartitionSelector(const CXformImplementPartitionSelector &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformImplementPartitionSelector(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformImplementPartitionSelector()
-	{
-	}
+	virtual ~CXformImplementPartitionSelector() = default;
 
 	// ident accessors
 	virtual EXformId

@@ -35,8 +35,7 @@ private:
 	// read size
 	ULLONG m_file_read_size;
 
-	// no copy ctor
-	CFileReader(const CFileReader &);
+	CFileReader(const CFileReader &) = delete;
 
 public:
 	// ctor

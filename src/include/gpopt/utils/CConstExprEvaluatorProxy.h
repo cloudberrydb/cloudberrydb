@@ -58,9 +58,7 @@ private:
 		{
 		}
 
-		virtual ~CEmptyMappingColIdVar()
-		{
-		}
+		virtual ~CEmptyMappingColIdVar() = default;
 
 		virtual Var *VarFromDXLNodeScId(const CDXLScalarIdent *scalar_ident);
 	};
@@ -88,9 +86,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CConstExprEvaluatorProxy()
-	{
-	}
+	virtual ~CConstExprEvaluatorProxy() = default;
 
 	// evaluate given constant expressionand return the DXL representation of the result.
 	// if the expression has variables, an error is thrown.

@@ -41,8 +41,8 @@ private:
 	// scan id
 	ULONG m_scan_id;
 
-	// private copy ctor
-	CParseHandlerPartitionSelector(const CParseHandlerPartitionSelector &);
+	CParseHandlerPartitionSelector(const CParseHandlerPartitionSelector &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

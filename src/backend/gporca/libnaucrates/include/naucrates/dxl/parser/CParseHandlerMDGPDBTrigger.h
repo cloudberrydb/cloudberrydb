@@ -55,8 +55,7 @@ private:
 	// is trigger enabled
 	BOOL m_is_enabled;
 
-	// private copy ctor
-	CParseHandlerMDGPDBTrigger(const CParseHandlerMDGPDBTrigger &);
+	CParseHandlerMDGPDBTrigger(const CParseHandlerMDGPDBTrigger &) = delete;
 
 	// process the start of an element
 	void StartElement(

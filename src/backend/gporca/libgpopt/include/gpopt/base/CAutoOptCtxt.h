@@ -41,8 +41,7 @@ class IConstExprEvaluator;
 class CAutoOptCtxt
 {
 private:
-	// private copy ctor
-	CAutoOptCtxt(CAutoOptCtxt &);
+	CAutoOptCtxt(CAutoOptCtxt &) = delete;
 
 public:
 	// ctor

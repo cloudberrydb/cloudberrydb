@@ -30,8 +30,7 @@ class CDistributionSpec;
 class CPhysicalScalarAgg : public CPhysicalAgg
 {
 private:
-	// private copy ctor
-	CPhysicalScalarAgg(const CPhysicalScalarAgg &);
+	CPhysicalScalarAgg(const CPhysicalScalarAgg &) = delete;
 
 public:
 	// ctor

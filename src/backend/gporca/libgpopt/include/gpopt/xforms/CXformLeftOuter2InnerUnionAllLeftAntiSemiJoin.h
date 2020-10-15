@@ -50,9 +50,8 @@ private:
 	// if ratio of the cardinalities outer/inner is below this value, we apply the xform
 	static const DOUBLE m_dOuterInnerRatioThreshold;
 
-	// disable copy ctor
 	CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(
-		const CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin &);
+		const CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin &) = delete;
 
 	// check the stats ratio to decide whether to apply the xform or not
 	BOOL FApplyXformUsingStatsInfo(const IStatistics *outer_stats,
@@ -82,9 +81,7 @@ public:
 	explicit CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin()
-	{
-	}
+	virtual ~CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin() = default;
 
 	// identifier
 	virtual EXformId

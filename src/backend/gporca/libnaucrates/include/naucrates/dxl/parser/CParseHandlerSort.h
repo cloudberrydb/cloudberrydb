@@ -37,8 +37,7 @@ private:
 	// the sort operator
 	CDXLPhysicalSort *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerSort(const CParseHandlerSort &);
+	CParseHandlerSort(const CParseHandlerSort &) = delete;
 
 	// process the start of an element
 	void StartElement(

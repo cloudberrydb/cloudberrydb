@@ -43,8 +43,7 @@ private:
 	// operator list type
 	EdxlOpListType m_dxl_op_list_type;
 
-	// private copy ctor
-	CDXLScalarOpList(const CDXLScalarOpList &);
+	CDXLScalarOpList(const CDXLScalarOpList &) = delete;
 
 public:
 	// ctor

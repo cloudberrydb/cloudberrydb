@@ -30,8 +30,7 @@ using namespace gpos;
 class CXformExpandFullOuterJoin : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformExpandFullOuterJoin(const CXformExpandFullOuterJoin &);
+	CXformExpandFullOuterJoin(const CXformExpandFullOuterJoin &) = delete;
 
 	// construct a join expression of two CTEs using the given CTE ids
 	// and output columns
@@ -45,9 +44,7 @@ public:
 	explicit CXformExpandFullOuterJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformExpandFullOuterJoin()
-	{
-	}
+	virtual ~CXformExpandFullOuterJoin() = default;
 
 	// ident accessors
 	virtual EXformId

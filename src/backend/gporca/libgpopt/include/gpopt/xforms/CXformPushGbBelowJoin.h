@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformPushGbBelowJoin : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformPushGbBelowJoin(const CXformPushGbBelowJoin &);
+	CXformPushGbBelowJoin(const CXformPushGbBelowJoin &) = delete;
 
 public:
 	// ctor
@@ -40,9 +39,7 @@ public:
 	explicit CXformPushGbBelowJoin(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformPushGbBelowJoin()
-	{
-	}
+	virtual ~CXformPushGbBelowJoin() = default;
 
 	// ident accessors
 	virtual EXformId

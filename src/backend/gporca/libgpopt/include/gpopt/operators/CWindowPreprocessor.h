@@ -28,10 +28,10 @@ namespace gpopt
 class CWindowPreprocessor
 {
 private:
-	// private copy ctor
-	CWindowPreprocessor(const CWindowPreprocessor &);
+	CWindowPreprocessor(const CWindowPreprocessor &) = delete;
 
-	// iterate over project elements and split them elements between Distinct Aggs list, and Others list
+	// iterate over project elements and split them elements between Distinct Aggs
+	// list, and Others list
 	static void SplitPrjList(CMemoryPool *mp, CExpression *pexprSeqPrj,
 							 CExpressionArray **ppdrgpexprDistinctAggsPrjElems,
 							 CExpressionArray **ppdrgpexprOtherPrjElems,
@@ -45,7 +45,8 @@ private:
 							CExpression **ppexprGbAgg,
 							CExpression **ppexprOutputSeqPrj);
 
-	// create a CTE with two consumers using the child expression of Sequence Project
+	// create a CTE with two consumers using the child expression of Sequence
+	// Project
 	static void CreateCTE(CMemoryPool *mp, CExpression *pexprSeqPrj,
 						  CExpression **ppexprFirstConsumer,
 						  CExpression **ppexprSecondConsumer);

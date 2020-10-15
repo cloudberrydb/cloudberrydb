@@ -37,8 +37,7 @@ private:
 	// the aggregate operator
 	CDXLPhysicalAgg *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerAgg(const CParseHandlerAgg &);
+	CParseHandlerAgg(const CParseHandlerAgg &) = delete;
 
 	// process the start of an element
 	void StartElement(

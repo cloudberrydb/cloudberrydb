@@ -74,8 +74,7 @@ private:
 	// inclusion option for right end
 	ERangeInclusion m_eriRight;
 
-	// hidden copy ctor
-	CRange(const CRange &);
+	CRange(const CRange &) = delete;
 
 	// construct an equality predicate if possible
 	CExpression *PexprEquality(CMemoryPool *mp, const CColRef *colref);

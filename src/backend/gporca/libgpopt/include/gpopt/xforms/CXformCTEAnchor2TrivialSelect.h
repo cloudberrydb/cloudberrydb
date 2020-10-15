@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformCTEAnchor2TrivialSelect : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformCTEAnchor2TrivialSelect(const CXformCTEAnchor2TrivialSelect &);
+	CXformCTEAnchor2TrivialSelect(const CXformCTEAnchor2TrivialSelect &) =
+		delete;
 
 public:
 	// ctor
 	explicit CXformCTEAnchor2TrivialSelect(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformCTEAnchor2TrivialSelect()
-	{
-	}
+	virtual ~CXformCTEAnchor2TrivialSelect() = default;
 
 	// ident accessors
 	virtual EXformId

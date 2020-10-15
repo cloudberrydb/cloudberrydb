@@ -27,17 +27,14 @@ namespace gpopt
 class CLogicalLeftOuterJoin : public CLogicalJoin
 {
 private:
-	// private copy ctor
-	CLogicalLeftOuterJoin(const CLogicalLeftOuterJoin &);
+	CLogicalLeftOuterJoin(const CLogicalLeftOuterJoin &) = delete;
 
 public:
 	// ctor
 	explicit CLogicalLeftOuterJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalLeftOuterJoin()
-	{
-	}
+	virtual ~CLogicalLeftOuterJoin() = default;
 
 	// ident accessors
 	virtual EOperatorId

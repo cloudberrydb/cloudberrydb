@@ -33,9 +33,8 @@ class CXformImplementInnerCorrelatedApply
 											CPhysicalCorrelatedInnerNLJoin>
 {
 private:
-	// private copy ctor
 	CXformImplementInnerCorrelatedApply(
-		const CXformImplementInnerCorrelatedApply &);
+		const CXformImplementInnerCorrelatedApply &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementInnerCorrelatedApply()
-	{
-	}
+	virtual ~CXformImplementInnerCorrelatedApply() = default;
 
 	// ident accessors
 	virtual EXformId

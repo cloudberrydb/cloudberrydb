@@ -81,7 +81,7 @@ public:
 	}
 
 	// dtor
-	virtual ~IMDId(){};
+	virtual ~IMDId() = default;
 
 	// type of mdid
 	virtual EMDIdType MdidType() const = 0;

@@ -32,8 +32,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerStacktrace : public CParseHandlerBase
 {
 private:
-	// private copy ctor
-	CParseHandlerStacktrace(const CParseHandlerStacktrace &);
+	CParseHandlerStacktrace(const CParseHandlerStacktrace &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -53,8 +53,7 @@ private:
 	// colid produced by the relational child of the AnySubquery operator
 	ULONG m_colid;
 
-	// private copy ctor
-	CDXLScalarSubqueryQuantified(CDXLScalarSubqueryQuantified &);
+	CDXLScalarSubqueryQuantified(CDXLScalarSubqueryQuantified &) = delete;
 
 public:
 	// ctor

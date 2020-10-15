@@ -33,8 +33,7 @@ using namespace gpos;
 class CDistributionSpecUniversal : public CDistributionSpec
 {
 private:
-	// private copy ctor
-	CDistributionSpecUniversal(const CDistributionSpecUniversal &);
+	CDistributionSpecUniversal(const CDistributionSpecUniversal &) = delete;
 
 public:
 	//ctor

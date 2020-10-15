@@ -57,9 +57,8 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply()
-	{
-	}
+	virtual ~CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply() =
+		default;
 
 	// compute xform promise for a given expression handle
 	virtual CXform::EXformPromise

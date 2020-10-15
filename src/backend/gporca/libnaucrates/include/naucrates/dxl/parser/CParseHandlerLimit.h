@@ -35,8 +35,7 @@ class CParseHandlerLimit : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalLimit *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerLimit(const CParseHandlerLimit &);
+	CParseHandlerLimit(const CParseHandlerLimit &) = delete;
 
 	// process the start of an element
 	void StartElement(

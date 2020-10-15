@@ -76,9 +76,8 @@ private:
 	// finalize action
 	static EEvent EevtFinalize(CSchedulerContext *psc, CJob *pj);
 
-	// private copy ctor
 	CJobGroupExpressionImplementation(
-		const CJobGroupExpressionImplementation &);
+		const CJobGroupExpressionImplementation &) = delete;
 
 protected:
 	// schedule transformation jobs for applicable xforms

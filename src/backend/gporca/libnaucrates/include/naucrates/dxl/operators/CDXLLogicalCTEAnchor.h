@@ -30,8 +30,7 @@ private:
 	// cte id
 	ULONG m_id;
 
-	// private copy ctor
-	CDXLLogicalCTEAnchor(CDXLLogicalCTEAnchor &);
+	CDXLLogicalCTEAnchor(CDXLLogicalCTEAnchor &) = delete;
 
 public:
 	// ctor

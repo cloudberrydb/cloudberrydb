@@ -31,8 +31,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalCTEProducer : public CParseHandlerPhysicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerPhysicalCTEProducer(const CParseHandlerPhysicalCTEProducer &);
+	CParseHandlerPhysicalCTEProducer(const CParseHandlerPhysicalCTEProducer &) =
+		delete;
 
 	// process the start of an element
 	virtual void StartElement(

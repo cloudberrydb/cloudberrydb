@@ -24,9 +24,7 @@ using namespace gpos;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CStackObject::CStackObject()
-{
-}
+CStackObject::CStackObject() = default;
 
 
 // EOF

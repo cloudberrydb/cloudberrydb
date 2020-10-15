@@ -35,8 +35,7 @@ using namespace gpos;
 class CDXLPhysicalMotion : public CDXLPhysical
 {
 private:
-	// private copy ctor
-	CDXLPhysicalMotion(CDXLPhysicalMotion &);
+	CDXLPhysicalMotion(CDXLPhysicalMotion &) = delete;
 
 	// serialize the given list of segment ids into a comma-separated string
 	CWStringDynamic *GetSegIdsCommaSeparatedStr(

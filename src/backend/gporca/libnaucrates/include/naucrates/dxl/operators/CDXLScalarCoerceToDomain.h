@@ -44,8 +44,7 @@ using namespace gpmd;
 class CDXLScalarCoerceToDomain : public CDXLScalarCoerceBase
 {
 private:
-	// private copy ctor
-	CDXLScalarCoerceToDomain(const CDXLScalarCoerceToDomain &);
+	CDXLScalarCoerceToDomain(const CDXLScalarCoerceToDomain &) = delete;
 
 public:
 	// ctor/dtor
@@ -53,9 +52,7 @@ public:
 							 INT type_modifier,
 							 EdxlCoercionForm dxl_coerce_format, INT location);
 
-	virtual ~CDXLScalarCoerceToDomain()
-	{
-	}
+	virtual ~CDXLScalarCoerceToDomain() = default;
 
 	// ident accessor
 	virtual Edxlopid

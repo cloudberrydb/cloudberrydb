@@ -34,9 +34,8 @@ class CXformInnerApply2InnerJoinNoCorrelations
 	: public CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>
 {
 private:
-	// private copy ctor
 	CXformInnerApply2InnerJoinNoCorrelations(
-		const CXformInnerApply2InnerJoinNoCorrelations &);
+		const CXformInnerApply2InnerJoinNoCorrelations &) = delete;
 
 public:
 	// ctor
@@ -46,9 +45,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformInnerApply2InnerJoinNoCorrelations()
-	{
-	}
+	virtual ~CXformInnerApply2InnerJoinNoCorrelations() = default;
 
 	// ident accessors
 	virtual EXformId

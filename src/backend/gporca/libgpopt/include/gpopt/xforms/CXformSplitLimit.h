@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformSplitLimit : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformSplitLimit(const CXformSplitLimit &);
+	CXformSplitLimit(const CXformSplitLimit &) = delete;
 
 	// helper function for creating a limit expression
 	CExpression *PexprLimit(
@@ -48,9 +47,7 @@ public:
 	explicit CXformSplitLimit(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSplitLimit()
-	{
-	}
+	virtual ~CXformSplitLimit() = default;
 
 	// ident accessors
 	virtual EXformId

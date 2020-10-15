@@ -130,8 +130,7 @@ private:
 		pxfres->Add(pexprResult);
 	}
 
-	// private copy ctor
-	CXformApply2Join(const CXformApply2Join &);
+	CXformApply2Join(const CXformApply2Join &) = delete;
 
 protected:
 	// helper function to attempt decorrelating Apply's inner child
@@ -295,9 +294,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformApply2Join<TApply, TJoin>()
-	{
-	}
+	virtual ~CXformApply2Join<TApply, TJoin>() = default;
 
 	// is transformation an Apply decorrelation (Apply To Join) xform?
 	virtual BOOL

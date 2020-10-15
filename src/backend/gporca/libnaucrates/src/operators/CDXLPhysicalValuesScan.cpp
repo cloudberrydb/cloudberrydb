@@ -24,9 +24,7 @@ CDXLPhysicalValuesScan::CDXLPhysicalValuesScan(CMemoryPool *mp)
 }
 
 // dtor
-CDXLPhysicalValuesScan::~CDXLPhysicalValuesScan()
-{
-}
+CDXLPhysicalValuesScan::~CDXLPhysicalValuesScan() = default;
 
 // operator type
 Edxlopid

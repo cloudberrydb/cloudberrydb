@@ -32,8 +32,7 @@ using namespace gpdxl;
 class CMDCastGPDB : public IMDCast
 {
 private:
-	// private copy ctor
-	CMDCastGPDB(const CMDCastGPDB &);
+	CMDCastGPDB(const CMDCastGPDB &) = delete;
 
 protected:
 	// memory pool

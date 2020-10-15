@@ -31,8 +31,8 @@ private:
 	// oid column - holds the OIDs for leaf parts
 	CColRef *m_pcrOid;
 
-	// private copy ctor
-	CPhysicalPartitionSelectorDML(const CPhysicalPartitionSelectorDML &);
+	CPhysicalPartitionSelectorDML(const CPhysicalPartitionSelectorDML &) =
+		delete;
 
 public:
 	// ctor

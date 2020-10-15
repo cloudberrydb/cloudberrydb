@@ -30,8 +30,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerMDArrayCoerceCast : public CParseHandlerMetadataObject
 {
 private:
-	// private copy ctor
-	CParseHandlerMDArrayCoerceCast(const CParseHandlerMDArrayCoerceCast &);
+	CParseHandlerMDArrayCoerceCast(const CParseHandlerMDArrayCoerceCast &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

@@ -38,8 +38,7 @@ private:
 	// the distinct comparison operator
 	CDXLScalarDistinctComp *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerDistinctComp(const CParseHandlerDistinctComp &);
+	CParseHandlerDistinctComp(const CParseHandlerDistinctComp &) = delete;
 
 	// process the start of an element
 	void StartElement(

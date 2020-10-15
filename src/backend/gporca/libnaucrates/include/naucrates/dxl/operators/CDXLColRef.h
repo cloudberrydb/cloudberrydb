@@ -56,8 +56,7 @@ private:
 	// column type modifier
 	INT m_iTypeModifer;
 
-	// private copy ctor
-	CDXLColRef(const CDXLColRef &);
+	CDXLColRef(const CDXLColRef &) = delete;
 
 public:
 	// ctor/dtor

@@ -61,8 +61,7 @@ private:
 	// is the column statistics missing in the database
 	BOOL m_is_column_stats_missing;
 
-	// private copy ctor
-	CParseHandlerColStats(const CParseHandlerColStats &);
+	CParseHandlerColStats(const CParseHandlerColStats &) = delete;
 
 	// process the start of an element
 	void StartElement(

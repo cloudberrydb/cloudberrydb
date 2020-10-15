@@ -60,8 +60,7 @@ private:
 	// width of the column
 	ULONG m_width;
 
-	// private copy ctor
-	CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &);
+	CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &) = delete;
 
 	// process the start of an element
 	void StartElement(

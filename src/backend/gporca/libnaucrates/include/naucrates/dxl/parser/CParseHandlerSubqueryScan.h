@@ -38,8 +38,7 @@ private:
 	// the subquery scan operator
 	CDXLPhysicalSubqueryScan *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerSubqueryScan(const CParseHandlerSubqueryScan &);
+	CParseHandlerSubqueryScan(const CParseHandlerSubqueryScan &) = delete;
 
 	// process the start of an element
 	void StartElement(

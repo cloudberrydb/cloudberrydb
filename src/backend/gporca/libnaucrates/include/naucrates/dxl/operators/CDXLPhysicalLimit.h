@@ -37,8 +37,7 @@ enum EdxlLimit
 class CDXLPhysicalLimit : public CDXLPhysical
 {
 private:
-	// private copy ctor
-	CDXLPhysicalLimit(CDXLPhysicalLimit &);
+	CDXLPhysicalLimit(CDXLPhysicalLimit &) = delete;
 
 public:
 	// ctor/dtor

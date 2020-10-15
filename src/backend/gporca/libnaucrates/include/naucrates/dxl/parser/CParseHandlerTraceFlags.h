@@ -42,8 +42,7 @@ private:
 	// trace flag bitset
 	CBitSet *m_trace_flags_bitset;
 
-	// private copy ctor
-	CParseHandlerTraceFlags(const CParseHandlerTraceFlags &);
+	CParseHandlerTraceFlags(const CParseHandlerTraceFlags &) = delete;
 
 	// process the start of an element
 	void StartElement(

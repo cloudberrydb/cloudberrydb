@@ -49,8 +49,7 @@ private:
 
 	ULONG m_ulPushGroupByBelowSetopThreshold;
 
-	// private copy ctor
-	CHint(const CHint &);
+	CHint(const CHint &) = delete;
 
 public:
 	// ctor

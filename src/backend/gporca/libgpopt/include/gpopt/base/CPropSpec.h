@@ -46,19 +46,14 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CPropSpec(const CPropSpec &);
+	CPropSpec(const CPropSpec &) = delete;
 
 protected:
 	// ctor
-	CPropSpec()
-	{
-	}
+	CPropSpec() = default;
 
 	// dtor
-	~CPropSpec()
-	{
-	}
+	~CPropSpec() = default;
 
 public:
 	// append enforcers to dynamic array for the given plan properties

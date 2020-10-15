@@ -38,8 +38,7 @@ private:
 	// initialize the scale factor of the predicate
 	CDouble InitScaleFactor();
 
-	// private copy ctor
-	CStatsPredUnsupported(const CStatsPredUnsupported &);
+	CStatsPredUnsupported(const CStatsPredUnsupported &) = delete;
 
 public:
 	// ctors

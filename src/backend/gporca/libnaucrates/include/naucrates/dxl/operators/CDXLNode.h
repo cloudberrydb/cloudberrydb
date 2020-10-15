@@ -60,8 +60,7 @@ private:
 	// direct dispatch spec
 	CDXLDirectDispatchInfo *m_direct_dispatch_info;
 
-	// private copy ctor
-	CDXLNode(const CDXLNode &);
+	CDXLNode(const CDXLNode &) = delete;
 
 public:
 	// ctors

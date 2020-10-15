@@ -34,8 +34,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerHashExprList : public CParseHandlerScalarOp
 {
 private:
-	// private copy ctor
-	CParseHandlerHashExprList(const CParseHandlerHashExprList &);
+	CParseHandlerHashExprList(const CParseHandlerHashExprList &) = delete;
 
 	// process the start of an element
 	void StartElement(

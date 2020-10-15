@@ -61,8 +61,7 @@ private:
 	// width of the column, for instance  char(10) column has width 10
 	ULONG m_column_width;
 
-	// private copy ctor
-	CDXLColDescr(const CDXLColDescr &);
+	CDXLColDescr(const CDXLColDescr &) = delete;
 
 public:
 	// ctor

@@ -61,8 +61,7 @@ private:
 		// plan properties of corresponding producer
 		CDrvdPropPlan *m_pdpplan;
 
-		// private copy ctor
-		CCTEReqEntry(const CCTEReqEntry &);
+		CCTEReqEntry(const CCTEReqEntry &) = delete;
 
 	public:
 		// ctor
@@ -132,8 +131,7 @@ private:
 	// required cte ids (not optional)
 	ULongPtrArray *m_pdrgpulRequired;
 
-	// private copy ctor
-	CCTEReq(const CCTEReq &);
+	CCTEReq(const CCTEReq &) = delete;
 
 	// lookup info for given cte id
 	CCTEReqEntry *PcreLookup(ULONG ulCteId) const;

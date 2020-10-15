@@ -219,8 +219,7 @@ private:
 	}
 #endif	// GPOS_DEBUG
 
-	// private copy ctor
-	CJob(const CJob &);
+	CJob(const CJob &) = delete;
 
 protected:
 	// id accessor

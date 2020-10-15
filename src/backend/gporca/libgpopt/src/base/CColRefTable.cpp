@@ -70,9 +70,7 @@ CColRefTable::CColRefTable(const IMDType *pmdtype, INT type_modifier, INT attno,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CColRefTable::~CColRefTable()
-{
-}
+CColRefTable::~CColRefTable() = default;
 
 
 // EOF

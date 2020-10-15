@@ -68,8 +68,7 @@ private:
 	// preserves NDVs of inputs
 	BOOL m_is_ndv_preserving;
 
-	// private copy ctor
-	CParseHandlerMDGPDBScalarOp(const CParseHandlerMDGPDBScalarOp &);
+	CParseHandlerMDGPDBScalarOp(const CParseHandlerMDGPDBScalarOp &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -30,17 +30,14 @@ using namespace gpos;
 class CXformCollapseGbAgg : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformCollapseGbAgg(const CXformCollapseGbAgg &);
+	CXformCollapseGbAgg(const CXformCollapseGbAgg &) = delete;
 
 public:
 	// ctor
 	explicit CXformCollapseGbAgg(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformCollapseGbAgg()
-	{
-	}
+	virtual ~CXformCollapseGbAgg() = default;
 
 	// ident accessors
 	virtual EXformId

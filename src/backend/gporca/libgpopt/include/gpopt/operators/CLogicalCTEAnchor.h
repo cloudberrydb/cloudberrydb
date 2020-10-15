@@ -32,8 +32,7 @@ private:
 	// cte identifier
 	ULONG m_id;
 
-	// private copy ctor
-	CLogicalCTEAnchor(const CLogicalCTEAnchor &);
+	CLogicalCTEAnchor(const CLogicalCTEAnchor &) = delete;
 
 public:
 	// ctor
@@ -43,9 +42,7 @@ public:
 	CLogicalCTEAnchor(CMemoryPool *mp, ULONG id);
 
 	// dtor
-	virtual ~CLogicalCTEAnchor()
-	{
-	}
+	virtual ~CLogicalCTEAnchor() = default;
 
 	// ident accessors
 	virtual EOperatorId

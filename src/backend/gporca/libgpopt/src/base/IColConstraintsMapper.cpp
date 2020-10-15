@@ -3,6 +3,4 @@
 
 #include "gpopt/base/IColConstraintsMapper.h"
 
-gpopt::IColConstraintsMapper::~IColConstraintsMapper()
-{
-}
+gpopt::IColConstraintsMapper::~IColConstraintsMapper() = default;

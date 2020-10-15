@@ -32,8 +32,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalCTEConsumer : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalCTEConsumer(const CParseHandlerLogicalCTEConsumer &);
+	CParseHandlerLogicalCTEConsumer(const CParseHandlerLogicalCTEConsumer &) =
+		delete;
 
 	// process the start of an element
 	virtual void StartElement(

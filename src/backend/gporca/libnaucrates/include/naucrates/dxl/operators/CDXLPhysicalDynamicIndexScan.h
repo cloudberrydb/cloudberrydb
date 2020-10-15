@@ -46,8 +46,7 @@ private:
 	// scan direction of the index
 	EdxlIndexScanDirection m_index_scan_dir;
 
-	// private copy ctor
-	CDXLPhysicalDynamicIndexScan(CDXLPhysicalDynamicIndexScan &);
+	CDXLPhysicalDynamicIndexScan(CDXLPhysicalDynamicIndexScan &) = delete;
 
 public:
 	// indices of dynamic index scan elements in the children array

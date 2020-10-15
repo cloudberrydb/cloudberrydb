@@ -41,8 +41,8 @@ private:
 	// array of datums
 	CDXLDatumArray *m_dxl_datum_array;
 
-	// private copy ctor
-	CParseHandlerLogicalConstTable(const CParseHandlerLogicalConstTable &);
+	CParseHandlerLogicalConstTable(const CParseHandlerLogicalConstTable &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

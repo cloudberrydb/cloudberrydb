@@ -35,8 +35,7 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CDXLScalarCoalesce(const CDXLScalarCoalesce &);
+	CDXLScalarCoalesce(const CDXLScalarCoalesce &) = delete;
 
 public:
 	// ctor

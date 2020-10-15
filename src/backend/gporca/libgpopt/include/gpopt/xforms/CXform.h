@@ -53,8 +53,7 @@ private:
 	// pattern
 	CExpression *m_pexpr;
 
-	// private copy ctor
-	CXform(CXform &);
+	CXform(CXform &) = delete;
 
 public:
 	// identification

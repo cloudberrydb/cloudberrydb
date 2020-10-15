@@ -30,8 +30,7 @@ using namespace gpos;
 class CScalarSubqueryNotExists : public CScalarSubqueryExistential
 {
 private:
-	// private copy ctor
-	CScalarSubqueryNotExists(const CScalarSubqueryNotExists &);
+	CScalarSubqueryNotExists(const CScalarSubqueryNotExists &) = delete;
 
 public:
 	// ctor
@@ -40,9 +39,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CScalarSubqueryNotExists()
-	{
-	}
+	virtual ~CScalarSubqueryNotExists() = default;
 
 	// ident accessors
 	virtual EOperatorId

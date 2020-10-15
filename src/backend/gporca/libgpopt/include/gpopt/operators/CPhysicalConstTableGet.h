@@ -37,8 +37,7 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
-	// private copy ctor
-	CPhysicalConstTableGet(const CPhysicalConstTableGet &);
+	CPhysicalConstTableGet(const CPhysicalConstTableGet &) = delete;
 
 public:
 	// ctor

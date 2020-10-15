@@ -38,8 +38,8 @@ private:
 	// array of outer column references
 	CDXLColRefArray *m_nest_params_colrefs_array;
 
-	// private copy ctor
-	CParseHandlerNLJIndexParamList(const CParseHandlerNLJIndexParamList &);
+	CParseHandlerNLJIndexParamList(const CParseHandlerNLJIndexParamList &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

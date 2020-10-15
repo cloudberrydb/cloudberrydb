@@ -42,9 +42,7 @@ CPhysicalLeftAntiSemiHashJoin::CPhysicalLeftAntiSemiHashJoin(
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalLeftAntiSemiHashJoin::~CPhysicalLeftAntiSemiHashJoin()
-{
-}
+CPhysicalLeftAntiSemiHashJoin::~CPhysicalLeftAntiSemiHashJoin() = default;
 
 
 //---------------------------------------------------------------------------

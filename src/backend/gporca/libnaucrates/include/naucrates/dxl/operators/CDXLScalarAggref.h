@@ -56,8 +56,7 @@ private:
 	// Denotes the MPP Stage
 	EdxlAggrefStage m_agg_stage;
 
-	// private copy ctor
-	CDXLScalarAggref(const CDXLScalarAggref &);
+	CDXLScalarAggref(const CDXLScalarAggref &) = delete;
 
 public:
 	// ctor/dtor

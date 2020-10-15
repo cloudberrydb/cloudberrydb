@@ -35,8 +35,7 @@ private:
 	// column reference
 	CDXLColRef *m_dxl_colref;
 
-	// private copy ctor
-	CDXLScalarIdent(CDXLScalarIdent &);
+	CDXLScalarIdent(CDXLScalarIdent &) = delete;
 
 public:
 	// ctor/dtor

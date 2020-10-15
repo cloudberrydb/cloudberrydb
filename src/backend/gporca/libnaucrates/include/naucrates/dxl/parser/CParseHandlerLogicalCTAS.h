@@ -65,8 +65,7 @@ private:
 	// storage type
 	IMDRelation::Erelstoragetype m_rel_storage_type;
 
-	// private copy ctor
-	CParseHandlerLogicalCTAS(const CParseHandlerLogicalCTAS &);
+	CParseHandlerLogicalCTAS(const CParseHandlerLogicalCTAS &) = delete;
 
 	// process the start of an element
 	void StartElement(

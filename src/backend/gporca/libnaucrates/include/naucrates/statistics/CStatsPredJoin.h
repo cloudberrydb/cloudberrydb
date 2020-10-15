@@ -32,11 +32,10 @@ using namespace gpmd;
 class CStatsPredJoin : public CRefCount
 {
 private:
-	// private copy ctor
-	CStatsPredJoin(const CStatsPredJoin &);
+	CStatsPredJoin(const CStatsPredJoin &) = delete;
 
 	// private assignment operator
-	CStatsPredJoin &operator=(CStatsPredJoin &);
+	CStatsPredJoin &operator=(CStatsPredJoin &) = delete;
 
 	// column id
 	ULONG m_colidOuter;
@@ -90,9 +89,7 @@ public:
 	}
 
 	// d'tor
-	virtual ~CStatsPredJoin()
-	{
-	}
+	virtual ~CStatsPredJoin() = default;
 
 };	// class CStatsPredJoin
 

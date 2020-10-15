@@ -38,8 +38,7 @@ private:
 	// scalar subquery operator
 	CDXLScalarSubquery *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerScalarSubquery(const CParseHandlerScalarSubquery &);
+	CParseHandlerScalarSubquery(const CParseHandlerScalarSubquery &) = delete;
 
 	// process the start of an element
 	void StartElement(

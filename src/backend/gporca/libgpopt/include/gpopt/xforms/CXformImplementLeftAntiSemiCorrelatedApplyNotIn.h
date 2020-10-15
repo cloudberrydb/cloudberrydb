@@ -36,9 +36,8 @@ class CXformImplementLeftAntiSemiCorrelatedApplyNotIn
 		  CPhysicalCorrelatedNotInLeftAntiSemiNLJoin>
 {
 private:
-	// private copy ctor
 	CXformImplementLeftAntiSemiCorrelatedApplyNotIn(
-		const CXformImplementLeftAntiSemiCorrelatedApplyNotIn &);
+		const CXformImplementLeftAntiSemiCorrelatedApplyNotIn &) = delete;
 
 public:
 	// ctor
@@ -50,9 +49,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformImplementLeftAntiSemiCorrelatedApplyNotIn()
-	{
-	}
+	virtual ~CXformImplementLeftAntiSemiCorrelatedApplyNotIn() = default;
 
 	// ident accessors
 	virtual EXformId

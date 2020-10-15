@@ -71,17 +71,14 @@ private:
 						  CExpression **ppexprNewScalar,
 						  FnSimplify *pfnsimplify, FnMatch *pfnmatch);
 
-	// private copy ctor
-	CXformSimplifySubquery(const CXformSimplifySubquery &);
+	CXformSimplifySubquery(const CXformSimplifySubquery &) = delete;
 
 public:
 	// ctor
 	explicit CXformSimplifySubquery(CExpression *pexprPattern);
 
 	// dtor
-	virtual ~CXformSimplifySubquery()
-	{
-	}
+	virtual ~CXformSimplifySubquery() = default;
 
 	// compute xform promise for a given expression handle
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;

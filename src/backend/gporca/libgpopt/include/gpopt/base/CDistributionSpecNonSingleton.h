@@ -36,8 +36,8 @@ private:
 	// should Replicated distribution satisfy current distribution
 	BOOL m_fAllowReplicated;
 
-	// private copy ctor
-	CDistributionSpecNonSingleton(const CDistributionSpecNonSingleton &);
+	CDistributionSpecNonSingleton(const CDistributionSpecNonSingleton &) =
+		delete;
 
 public:
 	//ctor

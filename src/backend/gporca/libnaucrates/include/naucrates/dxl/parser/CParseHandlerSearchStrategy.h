@@ -36,7 +36,7 @@ private:
 	CSearchStageArray *m_search_stage_array;
 
 	// private ctor
-	CParseHandlerSearchStrategy(const CParseHandlerSearchStrategy &);
+	CParseHandlerSearchStrategy(const CParseHandlerSearchStrategy &) = delete;
 
 	// process the start of an element
 	void StartElement(

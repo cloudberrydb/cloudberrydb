@@ -43,8 +43,7 @@ private:
 	// does the func return a set
 	BOOL m_returns_set;
 
-	// private copy ctor
-	CDXLScalarFuncExpr(const CDXLScalarFuncExpr &);
+	CDXLScalarFuncExpr(const CDXLScalarFuncExpr &) = delete;
 
 public:
 	// ctor

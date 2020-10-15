@@ -32,8 +32,8 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalCTEAnchor : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalCTEAnchor(const CParseHandlerLogicalCTEAnchor &);
+	CParseHandlerLogicalCTEAnchor(const CParseHandlerLogicalCTEAnchor &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

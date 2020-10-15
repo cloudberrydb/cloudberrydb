@@ -29,8 +29,7 @@ namespace gpos
 class CTraceFlagIter : public CBitSetIter
 {
 private:
-	// no copy ctor
-	CTraceFlagIter(const CTraceFlagIter &);
+	CTraceFlagIter(const CTraceFlagIter &) = delete;
 
 public:
 	// ctor
@@ -39,9 +38,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CTraceFlagIter()
-	{
-	}
+	virtual ~CTraceFlagIter() = default;
 
 };	// class CTraceFlagIter
 

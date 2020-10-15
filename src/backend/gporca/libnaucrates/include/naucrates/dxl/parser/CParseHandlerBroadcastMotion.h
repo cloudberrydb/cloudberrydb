@@ -37,8 +37,7 @@ private:
 	// the broadcast motion operator
 	CDXLPhysicalBroadcastMotion *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerBroadcastMotion(const CParseHandlerBroadcastMotion &);
+	CParseHandlerBroadcastMotion(const CParseHandlerBroadcastMotion &) = delete;
 
 	// process the start of an element
 	void StartElement(

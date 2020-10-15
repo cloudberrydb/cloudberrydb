@@ -32,8 +32,7 @@ class CColRefSet;
 class CLogicalProject : public CLogicalUnary
 {
 private:
-	// private copy ctor
-	CLogicalProject(const CLogicalProject &);
+	CLogicalProject(const CLogicalProject &) = delete;
 
 	// return equivalence class from scalar ident project element
 	static CColRefSetArray *PdrgpcrsEquivClassFromScIdent(
@@ -50,9 +49,7 @@ public:
 	explicit CLogicalProject(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalProject()
-	{
-	}
+	virtual ~CLogicalProject() = default;
 
 	// ident accessors
 	virtual EOperatorId

@@ -38,8 +38,8 @@ class CParseHandlerScalarBooleanTest : public CParseHandlerScalarOp
 private:
 	EdxlBooleanTestType m_dxl_boolean_test_type;
 
-	// private copy ctor
-	CParseHandlerScalarBooleanTest(const CParseHandlerScalarBooleanTest &);
+	CParseHandlerScalarBooleanTest(const CParseHandlerScalarBooleanTest &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

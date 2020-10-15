@@ -73,8 +73,7 @@ private:
 	// name: SQL alias or artificial name
 	const CName *m_pname;
 
-	// private copy ctor
-	CColRef(const CColRef &);
+	CColRef(const CColRef &) = delete;
 
 	// track the usage of colref (used/unused/unknown)
 	EUsedStatus m_used;

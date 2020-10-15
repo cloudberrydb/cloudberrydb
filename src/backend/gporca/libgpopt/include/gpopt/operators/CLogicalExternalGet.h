@@ -32,8 +32,7 @@ class CColRefSet;
 class CLogicalExternalGet : public CLogicalGet
 {
 private:
-	// private copy ctor
-	CLogicalExternalGet(const CLogicalExternalGet &);
+	CLogicalExternalGet(const CLogicalExternalGet &) = delete;
 
 public:
 	// ctors

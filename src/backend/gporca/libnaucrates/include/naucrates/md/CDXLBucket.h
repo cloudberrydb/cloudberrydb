@@ -58,8 +58,7 @@ private:
 	// distinct values
 	CDouble m_distinct;
 
-	// private copy ctor
-	CDXLBucket(const CDXLBucket &);
+	CDXLBucket(const CDXLBucket &) = delete;
 
 	// serialize the bucket boundary
 	void SerializeBoundaryValue(CXMLSerializer *xml_serializer,

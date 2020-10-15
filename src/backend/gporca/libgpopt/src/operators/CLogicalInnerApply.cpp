@@ -58,9 +58,7 @@ CLogicalInnerApply::CLogicalInnerApply(CMemoryPool *mp,
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CLogicalInnerApply::~CLogicalInnerApply()
-{
-}
+CLogicalInnerApply::~CLogicalInnerApply() = default;
 
 
 //---------------------------------------------------------------------------

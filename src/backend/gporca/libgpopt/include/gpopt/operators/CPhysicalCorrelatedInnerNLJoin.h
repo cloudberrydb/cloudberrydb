@@ -33,8 +33,8 @@ private:
 	// origin subquery id
 	EOperatorId m_eopidOriginSubq;
 
-	// private copy ctor
-	CPhysicalCorrelatedInnerNLJoin(const CPhysicalCorrelatedInnerNLJoin &);
+	CPhysicalCorrelatedInnerNLJoin(const CPhysicalCorrelatedInnerNLJoin &) =
+		delete;
 
 public:
 	// ctor

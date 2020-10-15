@@ -48,8 +48,7 @@ using namespace gpmd;
 class CScalarAssertConstraintList : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarAssertConstraintList(const CScalarAssertConstraintList &);
+	CScalarAssertConstraintList(const CScalarAssertConstraintList &) = delete;
 
 public:
 	// ctor

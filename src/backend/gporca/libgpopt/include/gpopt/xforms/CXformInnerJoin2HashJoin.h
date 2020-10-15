@@ -29,8 +29,7 @@ using namespace gpos;
 class CXformInnerJoin2HashJoin : public CXformImplementation
 {
 private:
-	// private copy ctor
-	CXformInnerJoin2HashJoin(const CXformInnerJoin2HashJoin &);
+	CXformInnerJoin2HashJoin(const CXformInnerJoin2HashJoin &) = delete;
 
 
 public:
@@ -38,9 +37,7 @@ public:
 	explicit CXformInnerJoin2HashJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformInnerJoin2HashJoin()
-	{
-	}
+	virtual ~CXformInnerJoin2HashJoin() = default;
 
 	// ident accessors
 	virtual EXformId

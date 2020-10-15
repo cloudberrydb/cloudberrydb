@@ -75,8 +75,7 @@ private:
 	// needs the data to be sorted or not
 	BOOL m_input_sort_req;
 
-	// private copy ctor
-	CDXLPhysicalDML(const CDXLPhysicalDML &);
+	CDXLPhysicalDML(const CDXLPhysicalDML &) = delete;
 
 public:
 	// ctor

@@ -54,8 +54,7 @@ private:
 	// tuple oid column id
 	ULONG m_tuple_oid;
 
-	// private copy ctor
-	CDXLPhysicalSplit(const CDXLPhysicalSplit &);
+	CDXLPhysicalSplit(const CDXLPhysicalSplit &) = delete;
 
 public:
 	// ctor

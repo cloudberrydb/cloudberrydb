@@ -35,8 +35,8 @@ class CParseHandlerPhysicalRowTrigger : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalRowTrigger *m_dxl_op;
 
-	// private copy ctor
-	CParseHandlerPhysicalRowTrigger(const CParseHandlerPhysicalRowTrigger &);
+	CParseHandlerPhysicalRowTrigger(const CParseHandlerPhysicalRowTrigger &) =
+		delete;
 
 	// process the start of an element
 	void StartElement(

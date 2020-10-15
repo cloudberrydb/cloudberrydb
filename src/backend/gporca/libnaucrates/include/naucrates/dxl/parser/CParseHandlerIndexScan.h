@@ -37,8 +37,7 @@ private:
 	// index scan direction
 	EdxlIndexScanDirection m_index_scan_dir;
 
-	// private copy ctor
-	CParseHandlerIndexScan(const CParseHandlerIndexScan &);
+	CParseHandlerIndexScan(const CParseHandlerIndexScan &) = delete;
 
 	// process the start of an element
 	void StartElement(

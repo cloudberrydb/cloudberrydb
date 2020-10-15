@@ -209,8 +209,7 @@ private:
 	IOstream &OsPrintMemoryConsumption(IOstream &os,
 									   const CHAR *szHeader) const;
 
-	// inaccessible copy ctor
-	CEngine(const CEngine &);
+	CEngine(const CEngine &) = delete;
 
 public:
 	// ctor

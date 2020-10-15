@@ -35,9 +35,7 @@ const CTaskLocalStorage::Etlsidx CTaskLocalStorage::m_invalid_idx =
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CTaskLocalStorage::~CTaskLocalStorage()
-{
-}
+CTaskLocalStorage::~CTaskLocalStorage() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

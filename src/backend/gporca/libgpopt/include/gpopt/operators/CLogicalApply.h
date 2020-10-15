@@ -30,8 +30,7 @@ namespace gpopt
 class CLogicalApply : public CLogical
 {
 private:
-	// private copy ctor
-	CLogicalApply(const CLogicalApply &);
+	CLogicalApply(const CLogicalApply &) = delete;
 
 protected:
 	// columns used from Apply's inner child

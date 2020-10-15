@@ -30,8 +30,7 @@ using namespace gpos;
 class CScalarSubqueryExistential : public CScalar
 {
 private:
-	// private copy ctor
-	CScalarSubqueryExistential(const CScalarSubqueryExistential &);
+	CScalarSubqueryExistential(const CScalarSubqueryExistential &) = delete;
 
 public:
 	// ctor

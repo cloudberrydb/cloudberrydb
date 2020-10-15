@@ -36,8 +36,7 @@ private:
 	// column reference
 	CDXLColRef *m_nest_param_colref_dxl;
 
-	// private copy ctor
-	CParseHandlerNLJIndexParam(const CParseHandlerNLJIndexParam &);
+	CParseHandlerNLJIndexParam(const CParseHandlerNLJIndexParam &) = delete;
 
 	// process the start of an element
 	void StartElement(

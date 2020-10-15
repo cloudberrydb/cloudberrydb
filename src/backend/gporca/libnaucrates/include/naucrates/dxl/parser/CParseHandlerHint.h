@@ -36,8 +36,7 @@ private:
 	// hint configuration
 	CHint *m_hint;
 
-	// private copy ctor
-	CParseHandlerHint(const CParseHandlerHint &);
+	CParseHandlerHint(const CParseHandlerHint &) = delete;
 
 	// process the start of an element
 	void StartElement(

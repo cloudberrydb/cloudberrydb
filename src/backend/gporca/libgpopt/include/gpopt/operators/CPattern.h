@@ -29,8 +29,7 @@ using namespace gpos;
 class CPattern : public COperator
 {
 private:
-	// private copy ctor
-	CPattern(const CPattern &);
+	CPattern(const CPattern &) = delete;
 
 public:
 	// ctor
@@ -39,9 +38,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CPattern()
-	{
-	}
+	virtual ~CPattern() = default;
 
 	// type of operator
 	virtual BOOL

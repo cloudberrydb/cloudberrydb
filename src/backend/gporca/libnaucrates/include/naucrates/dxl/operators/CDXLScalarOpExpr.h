@@ -41,8 +41,7 @@ private:
 	// operator name
 	const CWStringConst *m_str_opname;
 
-	// private copy ctor
-	CDXLScalarOpExpr(const CDXLScalarOpExpr &);
+	CDXLScalarOpExpr(const CDXLScalarOpExpr &) = delete;
 
 public:
 	// ctor/dtor

@@ -43,9 +43,8 @@ private:
 	// segment id column
 	ULONG m_segment_id_col;
 
-	// private copy ctor
 	CDXLPhysicalRoutedDistributeMotion(
-		const CDXLPhysicalRoutedDistributeMotion &);
+		const CDXLPhysicalRoutedDistributeMotion &) = delete;
 
 public:
 	// ctor

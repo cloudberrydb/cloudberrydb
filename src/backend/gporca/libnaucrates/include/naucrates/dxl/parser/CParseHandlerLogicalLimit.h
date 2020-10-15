@@ -33,8 +33,7 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalLimit : public CParseHandlerLogicalOp
 {
 private:
-	// private copy ctor
-	CParseHandlerLogicalLimit(const CParseHandlerLogicalLimit &);
+	CParseHandlerLogicalLimit(const CParseHandlerLogicalLimit &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -42,8 +42,7 @@ private:
 	// is stats bound closed
 	BOOL m_is_stats_bound_closed;
 
-	// private copy ctor
-	CParseHandlerStatsBound(const CParseHandlerStatsBound &);
+	CParseHandlerStatsBound(const CParseHandlerStatsBound &) = delete;
 
 	// process the start of an element
 	void StartElement(

@@ -78,11 +78,10 @@ public:
 		UlongToHistogramMap *col_histogram_mapping) const;
 
 private:
-	// private copy ctor
-	CStatistics(const CStatistics &);
+	CStatistics(const CStatistics &) = delete;
 
 	// private assignment operator
-	CStatistics &operator=(CStatistics &);
+	CStatistics &operator=(CStatistics &) = delete;
 
 	// hashmap from column ids to histograms
 	UlongToHistogramMap *m_colid_histogram_mapping;
@@ -93,17 +92,16 @@ private:
 	// number of rows
 	CDouble m_rows;
 
-	// the risk to have errors in cardinality estimation; it goes from 1 to infinity,
-	// where 1 is no risk
-	// when going from the leaves to the root of the plan, operators that generate joins,
-	// selections and groups increment the risk
+	// the risk to have errors in cardinality estimation; it goes from 1 to
+	// infinity, where 1 is no risk when going from the leaves to the root of the
+	// plan, operators that generate joins, selections and groups increment the risk
 	ULONG m_stats_estimation_risk;
 
 	// flag to indicate if input relation is empty
 	BOOL m_empty;
 
-	// statistics could be computed using predicates with external parameters (outer references),
-	// this is the total number of external parameters' values
+	// statistics could be computed using predicates with external parameters (outer
+	// references), this is the total number of external parameters' values
 	CDouble m_num_rebinds;
 
 	// number of predicates applied
@@ -126,7 +124,8 @@ private:
 									   UlongToColRefMap *colref_mapping,
 									   BOOL must_exist);
 
-	// helper method to add width information where the column ids have been remapped
+	// helper method to add width information where the column ids have been
+	// remapped
 	static void AddWidthInfoWithRemap(CMemoryPool *mp,
 									  UlongToDoubleMap *src_width,
 									  UlongToDoubleMap *dest_width,

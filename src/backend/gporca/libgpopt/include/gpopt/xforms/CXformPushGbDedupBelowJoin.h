@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformPushGbDedupBelowJoin : public CXformPushGbBelowJoin
 {
 private:
-	// private copy ctor
-	CXformPushGbDedupBelowJoin(const CXformPushGbDedupBelowJoin &);
+	CXformPushGbDedupBelowJoin(const CXformPushGbDedupBelowJoin &) = delete;
 
 public:
 	// ctor
 	explicit CXformPushGbDedupBelowJoin(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformPushGbDedupBelowJoin()
-	{
-	}
+	virtual ~CXformPushGbDedupBelowJoin() = default;
 
 	// ident accessors
 	virtual EXformId

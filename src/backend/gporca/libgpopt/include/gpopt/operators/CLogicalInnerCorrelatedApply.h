@@ -29,8 +29,7 @@ namespace gpopt
 class CLogicalInnerCorrelatedApply : public CLogicalInnerApply
 {
 private:
-	// private copy ctor
-	CLogicalInnerCorrelatedApply(const CLogicalInnerCorrelatedApply &);
+	CLogicalInnerCorrelatedApply(const CLogicalInnerCorrelatedApply &) = delete;
 
 public:
 	// ctor
@@ -41,9 +40,7 @@ public:
 	explicit CLogicalInnerCorrelatedApply(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CLogicalInnerCorrelatedApply()
-	{
-	}
+	virtual ~CLogicalInnerCorrelatedApply() = default;
 
 	// ident accessors
 	virtual EOperatorId

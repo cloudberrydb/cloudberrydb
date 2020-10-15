@@ -43,8 +43,7 @@ private:
 	// conversion semantics flag to pass to func
 	BOOL m_is_explicit;
 
-	// private copy ctor
-	CScalarArrayCoerceExpr(const CScalarArrayCoerceExpr &);
+	CScalarArrayCoerceExpr(const CScalarArrayCoerceExpr &) = delete;
 
 public:
 	// ctor

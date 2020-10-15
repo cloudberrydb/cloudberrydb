@@ -30,8 +30,7 @@ class CDistributionSpec;
 class CPhysicalStreamAgg : public CPhysicalAgg
 {
 private:
-	// private copy ctor
-	CPhysicalStreamAgg(const CPhysicalStreamAgg &);
+	CPhysicalStreamAgg(const CPhysicalStreamAgg &) = delete;
 
 	// local order spec
 	COrderSpec *m_pos;

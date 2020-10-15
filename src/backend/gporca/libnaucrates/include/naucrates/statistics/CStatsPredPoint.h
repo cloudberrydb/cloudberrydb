@@ -38,11 +38,10 @@ using namespace gpopt;
 class CStatsPredPoint : public CStatsPred
 {
 private:
-	// private copy ctor
-	CStatsPredPoint(const CStatsPredPoint &);
+	CStatsPredPoint(const CStatsPredPoint &) = delete;
 
 	// private assignment operator
-	CStatsPredPoint &operator=(CStatsPredPoint &);
+	CStatsPredPoint &operator=(CStatsPredPoint &) = delete;
 
 	// comparison type
 	CStatsPred::EStatsCmpType m_stats_cmp_type;

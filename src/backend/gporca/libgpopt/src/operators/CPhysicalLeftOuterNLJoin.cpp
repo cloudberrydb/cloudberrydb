@@ -39,9 +39,7 @@ CPhysicalLeftOuterNLJoin::CPhysicalLeftOuterNLJoin(CMemoryPool *mp)
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CPhysicalLeftOuterNLJoin::~CPhysicalLeftOuterNLJoin()
-{
-}
+CPhysicalLeftOuterNLJoin::~CPhysicalLeftOuterNLJoin() = default;
 
 
 // EOF

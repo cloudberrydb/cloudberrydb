@@ -49,8 +49,7 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CAutoMemoryPool(const CAutoMemoryPool &);
+	CAutoMemoryPool(const CAutoMemoryPool &) = delete;
 
 	// memory pool to protect
 	CMemoryPool *m_mp;

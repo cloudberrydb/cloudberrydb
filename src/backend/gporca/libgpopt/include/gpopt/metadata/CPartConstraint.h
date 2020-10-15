@@ -71,8 +71,7 @@ private:
 	// combined constraint
 	CConstraint *m_pcnstrCombined;
 
-	// private copy ctor
-	CPartConstraint(const CPartConstraint &);
+	CPartConstraint(const CPartConstraint &) = delete;
 
 #ifdef GPOS_DEBUG
 	// are all default partitions on all levels included

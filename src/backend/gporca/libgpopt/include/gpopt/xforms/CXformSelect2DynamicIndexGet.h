@@ -43,9 +43,7 @@ public:
 	explicit CXformSelect2DynamicIndexGet(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformSelect2DynamicIndexGet()
-	{
-	}
+	virtual ~CXformSelect2DynamicIndexGet() = default;
 
 	// ident accessors
 	virtual EXformId

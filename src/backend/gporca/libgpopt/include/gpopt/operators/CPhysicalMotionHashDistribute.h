@@ -36,8 +36,8 @@ private:
 	// required columns in distribution spec
 	CColRefSet *m_pcrsRequiredLocal;
 
-	// private copy ctor
-	CPhysicalMotionHashDistribute(const CPhysicalMotionHashDistribute &);
+	CPhysicalMotionHashDistribute(const CPhysicalMotionHashDistribute &) =
+		delete;
 
 public:
 	// ctor

@@ -39,8 +39,7 @@ private:
 	IMdIdArray *m_mdid_array;
 
 
-	// private copy ctor
-	CParseHandlerMetadataIdList(const CParseHandlerMetadataIdList &);
+	CParseHandlerMetadataIdList(const CParseHandlerMetadataIdList &) = delete;
 
 	// process the start of an element
 	void StartElement(

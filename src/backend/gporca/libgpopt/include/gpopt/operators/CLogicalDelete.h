@@ -42,8 +42,7 @@ private:
 	// segmentId column
 	CColRef *m_pcrSegmentId;
 
-	// private copy ctor
-	CLogicalDelete(const CLogicalDelete &);
+	CLogicalDelete(const CLogicalDelete &) = delete;
 
 public:
 	// ctor

@@ -46,7 +46,7 @@ private:
 	CDXLNode *m_dxl_node;
 
 	// private ctor
-	CParseHandlerPlan(const CParseHandlerPlan &);
+	CParseHandlerPlan(const CParseHandlerPlan &) = delete;
 
 	// process the end of an element
 	void StartElement(

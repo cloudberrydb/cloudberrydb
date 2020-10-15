@@ -31,8 +31,7 @@ using namespace gpos;
 class CDXLScalarLimitOffset : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarLimitOffset(const CDXLScalarLimitOffset &);
+	CDXLScalarLimitOffset(const CDXLScalarLimitOffset &) = delete;
 
 public:
 	// ctor/dtor

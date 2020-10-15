@@ -43,17 +43,14 @@ private:
 	// serialize footer
 	void SerializeFooter(COstream &oos);
 
-	// private copy ctor
-	CSerializableMDAccessor(const CSerializableMDAccessor &);
+	CSerializableMDAccessor(const CSerializableMDAccessor &) = delete;
 
 public:
 	// ctor
 	explicit CSerializableMDAccessor(CMDAccessor *md_accessor);
 
 	// dtor
-	virtual ~CSerializableMDAccessor()
-	{
-	}
+	virtual ~CSerializableMDAccessor() = default;
 
 	// serialize object to passed stream
 	virtual void Serialize(COstream &oos);

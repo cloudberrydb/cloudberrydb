@@ -36,8 +36,7 @@ private:
 	// CTE configuration
 	CCTEConfig *m_cte_conf;
 
-	// private copy ctor
-	CParseHandlerCTEConfig(const CParseHandlerCTEConfig &);
+	CParseHandlerCTEConfig(const CParseHandlerCTEConfig &) = delete;
 
 	// process the start of an element
 	void StartElement(

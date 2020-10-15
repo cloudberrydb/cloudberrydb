@@ -43,7 +43,7 @@ private:
 	ULONG m_time_threshold;
 
 	// private ctor
-	CParseHandlerSearchStage(const CParseHandlerSearchStage &);
+	CParseHandlerSearchStage(const CParseHandlerSearchStage &) = delete;
 
 	// process the start of an element
 	void StartElement(

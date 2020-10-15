@@ -46,9 +46,7 @@ CParseHandlerLogicalProject::CParseHandlerLogicalProject(
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerLogicalProject::~CParseHandlerLogicalProject()
-{
-}
+CParseHandlerLogicalProject::~CParseHandlerLogicalProject() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

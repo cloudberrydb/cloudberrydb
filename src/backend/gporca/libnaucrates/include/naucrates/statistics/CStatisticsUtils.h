@@ -74,13 +74,12 @@ private:
 	typedef CDynamicPtrArray<SMcvPair, CleanupDelete> SMcvPairPtrArray;
 
 	// private ctor
-	CStatisticsUtils();
+	CStatisticsUtils() = delete;
 
 	// private dtor
-	virtual ~CStatisticsUtils();
+	virtual ~CStatisticsUtils() = delete;
 
-	// private copy ctor
-	CStatisticsUtils(const CStatisticsUtils &);
+	CStatisticsUtils(const CStatisticsUtils &) = delete;
 
 	// given MCVs and histogram buckets, merge them into buckets of a single histogram
 	static CBucketArray *MergeMcvHistBucket(

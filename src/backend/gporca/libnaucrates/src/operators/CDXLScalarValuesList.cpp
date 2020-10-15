@@ -25,9 +25,7 @@ CDXLScalarValuesList::CDXLScalarValuesList(CMemoryPool *mp) : CDXLScalar(mp)
 }
 
 // destructor
-CDXLScalarValuesList::~CDXLScalarValuesList()
-{
-}
+CDXLScalarValuesList::~CDXLScalarValuesList() = default;
 
 // operator type
 Edxlopid

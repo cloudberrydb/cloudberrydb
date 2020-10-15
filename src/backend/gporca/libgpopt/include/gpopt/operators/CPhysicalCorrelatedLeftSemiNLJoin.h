@@ -35,9 +35,8 @@ private:
 	// origin subquery id
 	EOperatorId m_eopidOriginSubq;
 
-	// private copy ctor
 	CPhysicalCorrelatedLeftSemiNLJoin(
-		const CPhysicalCorrelatedLeftSemiNLJoin &);
+		const CPhysicalCorrelatedLeftSemiNLJoin &) = delete;
 
 public:
 	// ctor

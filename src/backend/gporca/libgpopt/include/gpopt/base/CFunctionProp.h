@@ -44,8 +44,7 @@ private:
 	// is this function used as a scan operator
 	BOOL m_fScan;
 
-	// hidden copy ctor
-	CFunctionProp(const CFunctionProp &);
+	CFunctionProp(const CFunctionProp &) = delete;
 
 public:
 	// ctor

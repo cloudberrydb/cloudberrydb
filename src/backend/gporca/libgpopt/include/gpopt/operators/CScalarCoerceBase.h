@@ -47,8 +47,7 @@ private:
 	// location of token to be coerced
 	INT m_location;
 
-	// private copy ctor
-	CScalarCoerceBase(const CScalarCoerceBase &);
+	CScalarCoerceBase(const CScalarCoerceBase &) = delete;
 
 public:
 	// ctor

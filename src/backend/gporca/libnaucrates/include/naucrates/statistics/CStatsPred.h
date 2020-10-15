@@ -60,11 +60,10 @@ public:
 	};
 
 private:
-	// private copy ctor
-	CStatsPred(const CStatsPred &);
+	CStatsPred(const CStatsPred &) = delete;
 
 	// private assignment operator
-	CStatsPred &operator=(CStatsPred &);
+	CStatsPred &operator=(CStatsPred &) = delete;
 
 protected:
 	// column id
@@ -77,9 +76,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CStatsPred()
-	{
-	}
+	virtual ~CStatsPred() = default;
 
 	// accessors
 	virtual ULONG

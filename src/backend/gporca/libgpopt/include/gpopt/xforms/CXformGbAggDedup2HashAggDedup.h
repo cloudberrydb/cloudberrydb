@@ -29,17 +29,15 @@ using namespace gpos;
 class CXformGbAggDedup2HashAggDedup : public CXformGbAgg2HashAgg
 {
 private:
-	// private copy ctor
-	CXformGbAggDedup2HashAggDedup(const CXformGbAggDedup2HashAggDedup &);
+	CXformGbAggDedup2HashAggDedup(const CXformGbAggDedup2HashAggDedup &) =
+		delete;
 
 public:
 	// ctor
 	CXformGbAggDedup2HashAggDedup(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformGbAggDedup2HashAggDedup()
-	{
-	}
+	virtual ~CXformGbAggDedup2HashAggDedup() = default;
 
 	// ident accessors
 	virtual EXformId

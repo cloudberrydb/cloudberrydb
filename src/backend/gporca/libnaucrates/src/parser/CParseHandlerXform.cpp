@@ -49,9 +49,7 @@ CParseHandlerXform::CParseHandlerXform(CMemoryPool *mp,
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CParseHandlerXform::~CParseHandlerXform()
-{
-}
+CParseHandlerXform::~CParseHandlerXform() = default;
 
 
 //---------------------------------------------------------------------------

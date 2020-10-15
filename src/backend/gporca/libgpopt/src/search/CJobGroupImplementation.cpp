@@ -90,9 +90,7 @@ const WCHAR
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJobGroupImplementation::CJobGroupImplementation()
-{
-}
+CJobGroupImplementation::CJobGroupImplementation() = default;
 
 
 //---------------------------------------------------------------------------
@@ -103,9 +101,7 @@ CJobGroupImplementation::CJobGroupImplementation()
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJobGroupImplementation::~CJobGroupImplementation()
-{
-}
+CJobGroupImplementation::~CJobGroupImplementation() = default;
 
 
 //---------------------------------------------------------------------------

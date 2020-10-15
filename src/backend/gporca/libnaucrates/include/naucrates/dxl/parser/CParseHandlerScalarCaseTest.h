@@ -37,8 +37,7 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	// private copy ctor
-	CParseHandlerScalarCaseTest(const CParseHandlerScalarCaseTest &);
+	CParseHandlerScalarCaseTest(const CParseHandlerScalarCaseTest &) = delete;
 
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,

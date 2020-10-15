@@ -30,9 +30,7 @@ using namespace gpopt;
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CConstExprEvaluatorDefault::~CConstExprEvaluatorDefault()
-{
-}
+CConstExprEvaluatorDefault::~CConstExprEvaluatorDefault() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

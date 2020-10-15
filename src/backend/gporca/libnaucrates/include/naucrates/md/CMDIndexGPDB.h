@@ -69,8 +69,7 @@ private:
 	// DXL for object
 	const CWStringDynamic *m_dxl_str;
 
-	// private copy ctor
-	CMDIndexGPDB(const CMDIndexGPDB &);
+	CMDIndexGPDB(const CMDIndexGPDB &) = delete;
 
 public:
 	// ctor

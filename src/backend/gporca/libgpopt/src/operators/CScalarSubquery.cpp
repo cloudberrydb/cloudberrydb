@@ -47,9 +47,7 @@ CScalarSubquery::CScalarSubquery(CMemoryPool *mp, const CColRef *colref,
 //		Destructor
 //
 //---------------------------------------------------------------------------
-CScalarSubquery::~CScalarSubquery()
-{
-}
+CScalarSubquery::~CScalarSubquery() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

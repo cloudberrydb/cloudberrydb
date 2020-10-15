@@ -29,17 +29,14 @@ using namespace gpos;
 class CXformCTEAnchor2Sequence : public CXformExploration
 {
 private:
-	// private copy ctor
-	CXformCTEAnchor2Sequence(const CXformCTEAnchor2Sequence &);
+	CXformCTEAnchor2Sequence(const CXformCTEAnchor2Sequence &) = delete;
 
 public:
 	// ctor
 	explicit CXformCTEAnchor2Sequence(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformCTEAnchor2Sequence()
-	{
-	}
+	virtual ~CXformCTEAnchor2Sequence() = default;
 
 	// ident accessors
 	virtual EXformId

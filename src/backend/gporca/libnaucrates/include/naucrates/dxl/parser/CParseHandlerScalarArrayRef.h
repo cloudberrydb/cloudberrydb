@@ -41,8 +41,7 @@ private:
 	// whether the parser is currently parsing the assign expr
 	BOOL m_parsing_assign_expr;
 
-	// private copy ctor
-	CParseHandlerScalarArrayRef(const CParseHandlerScalarArrayRef &);
+	CParseHandlerScalarArrayRef(const CParseHandlerScalarArrayRef &) = delete;
 
 	// process the start of an element
 	void StartElement(

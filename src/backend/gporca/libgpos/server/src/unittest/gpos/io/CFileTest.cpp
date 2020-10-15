@@ -479,8 +479,6 @@ CFileTest::CFileWriterInternal::UllSizeInternal() const
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CFileTest::CFileWriterInternal::~CFileWriterInternal()
-{
-}
+CFileTest::CFileWriterInternal::~CFileWriterInternal() = default;
 
 // EOF

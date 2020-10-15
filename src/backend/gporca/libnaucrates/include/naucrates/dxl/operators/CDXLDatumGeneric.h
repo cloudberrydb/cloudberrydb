@@ -40,8 +40,7 @@ class CXMLSerializer;
 class CDXLDatumGeneric : public CDXLDatum
 {
 private:
-	// private copy ctor
-	CDXLDatumGeneric(const CDXLDatumGeneric &);
+	CDXLDatumGeneric(const CDXLDatumGeneric &) = delete;
 
 protected:
 	// datum byte array

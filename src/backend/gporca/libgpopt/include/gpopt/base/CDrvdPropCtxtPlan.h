@@ -44,8 +44,7 @@ private:
 	// if true, a call to AddProps updates the CTE.
 	BOOL m_fUpdateCTEMap;
 
-	// private copy ctor
-	CDrvdPropCtxtPlan(const CDrvdPropCtxtPlan &);
+	CDrvdPropCtxtPlan(const CDrvdPropCtxtPlan &) = delete;
 
 protected:
 	// copy function

@@ -51,8 +51,7 @@ private:
 	// column reference used in comparison
 	const CColRef *m_pcr;
 
-	// private copy ctor
-	CScalarSubqueryQuantified(const CScalarSubqueryQuantified &);
+	CScalarSubqueryQuantified(const CScalarSubqueryQuantified &) = delete;
 
 protected:
 	// ctor

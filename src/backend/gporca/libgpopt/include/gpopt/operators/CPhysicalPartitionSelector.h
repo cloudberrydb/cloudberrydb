@@ -71,8 +71,7 @@ protected:
 							   UlongToExprMap *phmulexprSnd);
 
 private:
-	// private copy ctor
-	CPhysicalPartitionSelector(const CPhysicalPartitionSelector &);
+	CPhysicalPartitionSelector(const CPhysicalPartitionSelector &) = delete;
 
 	// check whether part constraint maps match
 	BOOL FMatchPartCnstr(UlongToPartConstraintMap *ppartcnstrmap) const;

@@ -33,8 +33,7 @@ class CXformInnerApply2InnerJoin
 	: public CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>
 {
 private:
-	// private copy ctor
-	CXformInnerApply2InnerJoin(const CXformInnerApply2InnerJoin &);
+	CXformInnerApply2InnerJoin(const CXformInnerApply2InnerJoin &) = delete;
 
 public:
 	// ctor
@@ -45,9 +44,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformInnerApply2InnerJoin()
-	{
-	}
+	virtual ~CXformInnerApply2InnerJoin() = default;
 
 	// ident accessors
 	virtual EXformId

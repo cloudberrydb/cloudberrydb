@@ -29,8 +29,7 @@ namespace gpdxl
 class CDXLScalarHashCondList : public CDXLScalar
 {
 private:
-	// private copy ctor
-	CDXLScalarHashCondList(CDXLScalarHashCondList &);
+	CDXLScalarHashCondList(CDXLScalarHashCondList &) = delete;
 
 public:
 	// ctor

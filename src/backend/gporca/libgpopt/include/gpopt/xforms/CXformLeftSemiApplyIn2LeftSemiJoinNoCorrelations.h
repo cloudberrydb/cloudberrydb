@@ -32,9 +32,8 @@ class CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations
 	: public CXformLeftSemiApply2LeftSemiJoinNoCorrelations
 {
 private:
-	// private copy ctor
 	CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations(
-		const CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations &);
+		const CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations &) = delete;
 
 public:
 	// ctor
@@ -53,9 +52,7 @@ public:
 	}
 
 	// dtor
-	virtual ~CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations()
-	{
-	}
+	virtual ~CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations() = default;
 
 	// ident accessors
 	virtual EXformId
