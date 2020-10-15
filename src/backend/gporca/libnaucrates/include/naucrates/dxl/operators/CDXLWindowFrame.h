@@ -49,9 +49,6 @@ enum EdxlFrameExclusionStrategy
 class CDXLWindowFrame : public CRefCount
 {
 private:
-	// memory pool;
-	CMemoryPool *m_mp;
-
 	// row or range based window specification method
 	EdxlFrameSpec m_dxl_win_frame_spec;
 
@@ -69,9 +66,9 @@ private:
 
 public:
 	// ctor
-	CDXLWindowFrame(CMemoryPool *mp, EdxlFrameSpec edxlfs,
+	CDXLWindowFrame(EdxlFrameSpec edxlfs,
 					EdxlFrameExclusionStrategy frame_exc_strategy,
-					CDXLNode *pdxlnLeading, CDXLNode *pdxlnTrailing);
+					CDXLNode *dxlnode_leading, CDXLNode *dxlnode_trailing);
 
 	//dtor
 	virtual ~CDXLWindowFrame();

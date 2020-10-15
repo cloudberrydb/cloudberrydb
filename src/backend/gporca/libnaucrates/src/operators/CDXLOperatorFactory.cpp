@@ -1472,7 +1472,7 @@ CDXLOperatorFactory::MakeDXLIndexDescr(CDXLMemoryManager *dxl_memory_manager,
 	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, index_name);
 	GPOS_DELETE(index_name);
 
-	return GPOS_NEW(mp) CDXLIndexDescr(mp, mdid, mdname);
+	return GPOS_NEW(mp) CDXLIndexDescr(mdid, mdname);
 }
 
 //---------------------------------------------------------------------------
@@ -1551,7 +1551,7 @@ CDXLOperatorFactory::MakeColumnDescr(CDXLMemoryManager *dxl_memory_manager,
 
 	GPOS_DELETE(col_name);
 
-	return GPOS_NEW(mp) CDXLColDescr(mp, mdname, id, attno, mdid_type,
+	return GPOS_NEW(mp) CDXLColDescr(mdname, id, attno, mdid_type,
 									 type_modifier, col_dropped, col_len);
 }
 
@@ -1604,7 +1604,7 @@ CDXLOperatorFactory::MakeDXLColRef(CDXLMemoryManager *dxl_memory_manager,
 		dxl_memory_manager, attrs, EdxltokenTypeMod, target_elem, true,
 		default_type_modifier);
 
-	return GPOS_NEW(mp) CDXLColRef(mp, mdname, id, mdid_type, type_modifier);
+	return GPOS_NEW(mp) CDXLColRef(mdname, id, mdid_type, type_modifier);
 }
 
 //---------------------------------------------------------------------------

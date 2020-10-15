@@ -58,7 +58,6 @@ CJobFactory::CJobFactory(CMemoryPool *mp, ULONG ulJobs)
 //---------------------------------------------------------------------------
 CJobFactory::~CJobFactory()
 {
-#ifdef GPOS_DEBUG
 	Truncate(CJob::EjtTest);
 	Truncate(CJob::EjtGroupExploration);
 	Truncate(CJob::EjtGroupImplementation);
@@ -67,7 +66,6 @@ CJobFactory::~CJobFactory()
 	Truncate(CJob::EjtGroupExpressionExploration);
 	Truncate(CJob::EjtGroupExpressionOptimization);
 	Truncate(CJob::EjtTransformation);
-#endif	// GPOS_DEBUG
 }
 
 

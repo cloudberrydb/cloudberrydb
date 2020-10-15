@@ -886,11 +886,11 @@ CTranslatorQueryToDXL::TranslateCTASToDXL()
 		GPOS_ASSERT(NULL != md_colname);
 		IMDId *mdid = dxl_ident->MdidType();
 		mdid->AddRef();
-		CDXLColDescr *dxl_col_descr = GPOS_NEW(m_mp) CDXLColDescr(
-			m_mp, md_colname, m_context->m_colid_counter->next_id(),
-			resno /* attno */, mdid, dxl_ident->TypeModifier(),
-			false /* is_dropped */
-		);
+		CDXLColDescr *dxl_col_descr = GPOS_NEW(m_mp)
+			CDXLColDescr(md_colname, m_context->m_colid_counter->next_id(),
+						 resno /* attno */, mdid, dxl_ident->TypeModifier(),
+						 false /* is_dropped */
+			);
 		dxl_col_descr_array->Append(dxl_col_descr);
 	}
 
@@ -1474,7 +1474,6 @@ CTranslatorQueryToDXL::CreateWindowFramForLeadLag(BOOL is_lead_func,
 
 	// manufacture a frame for LEAD/LAG function
 	return GPOS_NEW(m_mp) CDXLWindowFrame(
-		m_mp,
 		EdxlfsRow,	   // frame specification
 		EdxlfesNulls,  // frame exclusion strategy is set to exclude NULLs in GPDB
 		dxl_lead_edge, dxl_trail_edge);
@@ -1698,7 +1697,6 @@ CTranslatorQueryToDXL::TranslateWindowToDXL(
 						m_mp,
 						GPOS_NEW(m_mp) CDXLScalarIdent(
 							m_mp, GPOS_NEW(m_mp) CDXLColRef(
-									  m_mp,
 									  GPOS_NEW(m_mp) CMDName(
 										  m_mp, mdname_alias->GetMDName()),
 									  colid,
@@ -2479,7 +2477,7 @@ CTranslatorQueryToDXL::DXLDummyConstTableGet() const
 	CWStringConst str_unnamed_col(GPOS_WSZ_LIT(""));
 	CMDName *mdname = GPOS_NEW(m_mp) CMDName(m_mp, &str_unnamed_col);
 	CDXLColDescr *dxl_col_descr = GPOS_NEW(m_mp)
-		CDXLColDescr(m_mp, mdname, m_context->m_colid_counter->next_id(),
+		CDXLColDescr(mdname, m_context->m_colid_counter->next_id(),
 					 1 /* attno */, GPOS_NEW(m_mp) CMDIdGPDB(mdid->Oid()),
 					 default_type_modifier, false /* is_dropped */
 		);
@@ -2716,7 +2714,7 @@ CTranslatorQueryToDXL::CreateDXLSetOpFromColumns(
 	CDXLLogicalSetOp *dxlop =
 		GPOS_NEW(m_mp) CDXLLogicalSetOp(m_mp, setop_type, output_col_descrs,
 										input_colids, is_cast_across_input);
-	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, dxlop, children_dxlnodes);
+	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(dxlop, children_dxlnodes);
 
 	bitset->Release();
 	output_col_pos->Release();
@@ -3352,7 +3350,7 @@ CTranslatorQueryToDXL::TranslateValueScanRTEToDXL(const RangeTblEntry *rte,
 				GPOS_DELETE(alias_str);
 
 				CDXLColDescr *dxl_col_descr = GPOS_NEW(m_mp) CDXLColDescr(
-					m_mp, mdname, colid, col_pos_idx + 1 /* attno */,
+					mdname, colid, col_pos_idx + 1 /* attno */,
 					GPOS_NEW(m_mp) CMDIdGPDB(const_expr->consttype),
 					const_expr->consttypmod, false /* is_dropped */
 				);
@@ -3384,7 +3382,7 @@ CTranslatorQueryToDXL::TranslateValueScanRTEToDXL(const RangeTblEntry *rte,
 					GPOS_DELETE(alias_str);
 
 					CDXLColDescr *dxl_col_descr = GPOS_NEW(m_mp) CDXLColDescr(
-						m_mp, mdname, colid, col_pos_idx + 1 /* attno */,
+						mdname, colid, col_pos_idx + 1 /* attno */,
 						GPOS_NEW(m_mp) CMDIdGPDB(gpdb::ExprType((Node *) expr)),
 						gpdb::ExprTypeMod((Node *) expr), false /* is_dropped */
 					);
@@ -3440,7 +3438,7 @@ CTranslatorQueryToDXL::TranslateValueScanRTEToDXL(const RangeTblEntry *rte,
 		// create a UNION ALL operator
 		CDXLLogicalSetOp *dxlop = GPOS_NEW(m_mp) CDXLLogicalSetOp(
 			m_mp, EdxlsetopUnionAll, dxl_col_descr_array, input_colids, false);
-		CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, dxlop, dxlnodes);
+		CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(dxlop, dxlnodes);
 
 		// make note of new columns from UNION ALL
 		m_var_to_colid_map->LoadColumns(m_query_level, rt_index,
@@ -3515,9 +3513,8 @@ CTranslatorQueryToDXL::TranslateColumnValuesToDXL(
 
 	// create a project node for the list of project elements
 	project_elem_dxlnode_array->AddRef();
-	CDXLNode *project_list_dxlnode =
-		GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarProjList(m_mp),
-								project_elem_dxlnode_array);
+	CDXLNode *project_list_dxlnode = GPOS_NEW(m_mp) CDXLNode(
+		GPOS_NEW(m_mp) CDXLScalarProjList(m_mp), project_elem_dxlnode_array);
 
 	CDXLNode *project_dxlnode =
 		GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLLogicalProject(m_mp),
@@ -4184,8 +4181,8 @@ CTranslatorQueryToDXL::CreateDXLOutputCols(
 		IMDId *mdid_type = GPOS_NEW(m_mp)
 			CMDIdGPDB(gpdb::ExprType((Node *) target_entry->expr));
 		INT type_modifier = gpdb::ExprTypeMod((Node *) target_entry->expr);
-		CDXLColRef *dxl_colref = GPOS_NEW(m_mp)
-			CDXLColRef(m_mp, mdname, colid, mdid_type, type_modifier);
+		CDXLColRef *dxl_colref =
+			GPOS_NEW(m_mp) CDXLColRef(mdname, colid, mdid_type, type_modifier);
 		CDXLScalarIdent *dxl_ident =
 			GPOS_NEW(m_mp) CDXLScalarIdent(m_mp, dxl_colref);
 

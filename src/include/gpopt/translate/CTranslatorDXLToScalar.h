@@ -100,9 +100,6 @@ private:
 	// meta data accessor
 	CMDAccessor *m_md_accessor;
 
-	// The parent plan needed when translating an initplan
-	Plan *m_plan;
-
 	// indicates whether a sublink was encountered during translation of the scalar subtree
 	BOOL m_has_subqueries;
 

@@ -30,9 +30,6 @@ using namespace gpos;
 class CDXLWindowKey : public CRefCount
 {
 private:
-	// memory pool;
-	CMemoryPool *m_mp;
-
 	// window frame associated with the window key
 	CDXLWindowFrame *m_window_frame_dxl;
 
@@ -44,7 +41,7 @@ private:
 
 public:
 	// ctor
-	explicit CDXLWindowKey(CMemoryPool *mp);
+	CDXLWindowKey();
 
 	// dtor
 	virtual ~CDXLWindowKey();

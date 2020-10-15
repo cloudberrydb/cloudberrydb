@@ -55,7 +55,7 @@ CParseHandlerWindowKey::StartElement(const XMLCh *const element_uri,
 								 element_local_name))
 	{
 		GPOS_ASSERT(NULL == m_dxl_window_key_gen);
-		m_dxl_window_key_gen = GPOS_NEW(m_mp) CDXLWindowKey(m_mp);
+		m_dxl_window_key_gen = GPOS_NEW(m_mp) CDXLWindowKey();
 
 		// parse handler for the sorting column list
 		CParseHandlerBase *sort_col_list_parse_handler =

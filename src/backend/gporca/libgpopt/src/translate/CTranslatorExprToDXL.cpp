@@ -656,7 +656,7 @@ CTranslatorExprToDXL::PdxlnIndexScan(CExpression *pexprIndexScan,
 	IMDId *pmdidIndex = pindexdesc->MDId();
 	pmdidIndex->AddRef();
 	CDXLIndexDescr *dxl_index_descr =
-		GPOS_NEW(m_mp) CDXLIndexDescr(m_mp, pmdidIndex, pmdnameIndex);
+		GPOS_NEW(m_mp) CDXLIndexDescr(pmdidIndex, pmdnameIndex);
 
 	// TODO: vrgahavan; we assume that the index are always forward access.
 	// create the physical index scan operator
@@ -760,7 +760,7 @@ CTranslatorExprToDXL::PdxlnIndexOnlyScan(CExpression *pexprIndexOnlyScan,
 	IMDId *pmdidIndex = pindexdesc->MDId();
 	pmdidIndex->AddRef();
 	CDXLIndexDescr *dxl_index_descr =
-		GPOS_NEW(m_mp) CDXLIndexDescr(m_mp, pmdidIndex, pmdnameIndex);
+		GPOS_NEW(m_mp) CDXLIndexDescr(pmdidIndex, pmdnameIndex);
 
 	// TODO: vrgahavan; we assume that the index are always forward access.
 	// create the physical index scan operator
@@ -842,7 +842,7 @@ CTranslatorExprToDXL::PdxlnBitmapIndexProbe(CExpression *pexprBitmapIndexProbe)
 	pmdidIndex->AddRef();
 
 	CDXLIndexDescr *dxl_index_descr =
-		GPOS_NEW(m_mp) CDXLIndexDescr(m_mp, pmdidIndex, pmdnameIndex);
+		GPOS_NEW(m_mp) CDXLIndexDescr(pmdidIndex, pmdnameIndex);
 	CDXLScalarBitmapIndexProbe *dxl_op =
 		GPOS_NEW(m_mp) CDXLScalarBitmapIndexProbe(m_mp, dxl_index_descr);
 	CDXLNode *pdxlnBitmapIndexProbe = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
@@ -1309,7 +1309,7 @@ CTranslatorExprToDXL::PdxlnDynamicIndexScan(
 	IMDId *pmdidIndex = pindexdesc->MDId();
 	pmdidIndex->AddRef();
 	CDXLIndexDescr *dxl_index_descr =
-		GPOS_NEW(m_mp) CDXLIndexDescr(m_mp, pmdidIndex, pmdnameIndex);
+		GPOS_NEW(m_mp) CDXLIndexDescr(pmdidIndex, pmdnameIndex);
 
 	// TODO: vrgahavan; we assume that the index are always forward access.
 	// create the physical index scan operator
@@ -3456,8 +3456,8 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin(
 		CMDName *mdname = GPOS_NEW(m_mp) CMDName(m_mp, colref->Name().Pstr());
 		IMDId *mdid = colref->RetrieveType()->MDId();
 		mdid->AddRef();
-		CDXLColRef *dxl_colref = GPOS_NEW(m_mp) CDXLColRef(
-			m_mp, mdname, colref->Id(), mdid, colref->TypeModifier());
+		CDXLColRef *dxl_colref = GPOS_NEW(m_mp)
+			CDXLColRef(mdname, colref->Id(), mdid, colref->TypeModifier());
 		dxl_colref_array->Append(dxl_colref);
 	}
 
@@ -3953,7 +3953,7 @@ CTranslatorExprToDXL::PdxlnNLJoin(CExpression *pexprInnerNLJ,
 			IMDId *mdid = col_ref->RetrieveType()->MDId();
 			mdid->AddRef();
 			CDXLColRef *colref_dxl = GPOS_NEW(m_mp) CDXLColRef(
-				m_mp, md_name, col_ref->Id(), mdid, col_ref->TypeModifier());
+				md_name, col_ref->Id(), mdid, col_ref->TypeModifier());
 			col_refs->Append(colref_dxl);
 		}
 	}
@@ -5705,7 +5705,7 @@ CTranslatorExprToDXL::PdxlnCTAS(CExpression *pexpr,
 		pmdidColType->AddRef();
 
 		CDXLColDescr *pdxlcd = GPOS_NEW(m_mp) CDXLColDescr(
-			m_mp, pmdnameCol, colref->Id(), pcd->AttrNum(), pmdidColType,
+			pmdnameCol, colref->Id(), pcd->AttrNum(), pmdidColType,
 			colref->TypeModifier(), false /* fdropped */, pcd->Width());
 
 		dxl_col_descr_array->Append(pdxlcd);
@@ -6901,7 +6901,7 @@ CTranslatorExprToDXL::GetWindowFrame(CWindowFrame *pwf)
 		pdxlnTrailing->AddChild(PdxlnScalar(pwf->PexprTrailing()));
 	}
 
-	return GPOS_NEW(m_mp) CDXLWindowFrame(m_mp, edxlfs, frame_exc_strategy,
+	return GPOS_NEW(m_mp) CDXLWindowFrame(edxlfs, frame_exc_strategy,
 										  pdxlnLeading, pdxlnTrailing);
 }
 
@@ -6949,7 +6949,7 @@ CTranslatorExprToDXL::PdxlnWindow(CExpression *pexprSeqPrj,
 	const ULONG ulOsSize = pdrgpos->Size();
 	for (ULONG ul = 0; ul < ulOsSize; ul++)
 	{
-		CDXLWindowKey *pdxlwk = GPOS_NEW(m_mp) CDXLWindowKey(m_mp);
+		CDXLWindowKey *pdxlwk = GPOS_NEW(m_mp) CDXLWindowKey();
 		CDXLNode *sort_col_list_dxlnode =
 			GetSortColListDXL((*popSeqPrj->Pdrgpos())[ul]);
 		pdxlwk->SetSortColList(sort_col_list_dxlnode);
@@ -7368,7 +7368,7 @@ CTranslatorExprToDXL::MakeDXLTableDescr(const CTableDescriptor *ptabdesc,
 		pmdidColType->AddRef();
 
 		CDXLColDescr *pdxlcd = GPOS_NEW(m_mp) CDXLColDescr(
-			m_mp, pmdnameCol, colref->Id(), pcd->AttrNum(), pmdidColType,
+			pmdnameCol, colref->Id(), pcd->AttrNum(), pmdidColType,
 			colref->TypeModifier(), false /* fdropped */, pcd->Width());
 
 		table_descr->AddColumnDescr(pdxlcd);

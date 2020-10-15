@@ -29,17 +29,15 @@ using namespace gpdxl;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CDXLWindowFrame::CDXLWindowFrame(CMemoryPool *mp, EdxlFrameSpec edxlfs,
+CDXLWindowFrame::CDXLWindowFrame(EdxlFrameSpec edxlfs,
 								 EdxlFrameExclusionStrategy frame_exc_strategy,
 								 CDXLNode *dxlnode_leading,
 								 CDXLNode *dxlnode_trailing)
-	: m_mp(mp),
-	  m_dxl_win_frame_spec(edxlfs),
+	: m_dxl_win_frame_spec(edxlfs),
 	  m_dxl_frame_exclusion_strategy(frame_exc_strategy),
 	  m_dxlnode_leading(dxlnode_leading),
 	  m_dxlnode_trailing(dxlnode_trailing)
 {
-	GPOS_ASSERT(NULL != m_mp);
 	GPOS_ASSERT(EdxlfsSentinel > m_dxl_win_frame_spec);
 	GPOS_ASSERT(EdxlfesSentinel > m_dxl_frame_exclusion_strategy);
 	GPOS_ASSERT(NULL != dxlnode_leading);

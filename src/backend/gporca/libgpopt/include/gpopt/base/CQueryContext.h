@@ -51,6 +51,8 @@ class CQueryContext
 {
 private:
 #ifdef GPOS_DEBUG
+	// FIXME: m_mp is really only used by DbgPrint, consider an alternative to
+	// supply memory pool to that method
 	// memory pool
 	CMemoryPool *m_mp;
 #endif

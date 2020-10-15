@@ -71,6 +71,8 @@ public:
 		ShtCC;
 
 private:
+	// FIXME: this is ONLY used by DbgPrint. Find an alternative way to supply
+	// memory pool to that method
 #ifdef GPOS_DEBUG
 	// memory pool
 	CMemoryPool *m_mp;
