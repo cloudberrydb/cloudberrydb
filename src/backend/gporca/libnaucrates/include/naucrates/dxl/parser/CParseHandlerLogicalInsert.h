@@ -36,8 +36,6 @@ private:
 	// source col ids
 	ULongPtrArray *m_pdrgpul;
 
-	CParseHandlerLogicalInsert(const CParseHandlerLogicalInsert &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalInsert(const CParseHandlerLogicalInsert &) = delete;
+
 	// ctor/dtor
 	CParseHandlerLogicalInsert(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

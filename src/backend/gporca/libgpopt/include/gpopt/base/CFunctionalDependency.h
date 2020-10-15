@@ -45,9 +45,9 @@ private:
 	// the right hand side of the FD
 	CColRefSet *m_pcrsDetermined;
 
+public:
 	CFunctionalDependency(const CFunctionalDependency &) = delete;
 
-public:
 	// ctor
 	CFunctionalDependency(CColRefSet *pcrsKey, CColRefSet *pcrsDetermined);
 

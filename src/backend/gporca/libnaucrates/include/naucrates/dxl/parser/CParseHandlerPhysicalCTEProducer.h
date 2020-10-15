@@ -31,9 +31,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalCTEProducer : public CParseHandlerPhysicalOp
 {
 private:
-	CParseHandlerPhysicalCTEProducer(const CParseHandlerPhysicalCTEProducer &) =
-		delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -50,6 +47,9 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalCTEProducer(const CParseHandlerPhysicalCTEProducer &) =
+		delete;
+
 	// ctor
 	CParseHandlerPhysicalCTEProducer(CMemoryPool *mp,
 									 CParseHandlerManager *parse_handler_mgr,

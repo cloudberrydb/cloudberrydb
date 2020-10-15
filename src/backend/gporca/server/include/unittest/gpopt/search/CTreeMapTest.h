@@ -41,9 +41,9 @@ class CTreeMapTest
 		// children
 		CNodeArray *m_pdrgpnd;
 
+	public:
 		CNode(const CNode &) = delete;
 
-	public:
 		// ctor
 		CNode(CMemoryPool *mp, ULONG *pulData, CNodeArray *pdrgpnd);
 

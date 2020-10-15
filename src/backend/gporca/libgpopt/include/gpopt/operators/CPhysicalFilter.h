@@ -27,9 +27,9 @@ namespace gpopt
 class CPhysicalFilter : public CPhysical
 {
 private:
+public:
 	CPhysicalFilter(const CPhysicalFilter &) = delete;
 
-public:
 	// ctor
 	explicit CPhysicalFilter(CMemoryPool *mp);
 

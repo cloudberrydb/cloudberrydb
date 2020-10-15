@@ -35,9 +35,9 @@ private:
 	static BOOL FDropGbAgg(CMemoryPool *mp, CExpression *pexpr,
 						   CXformResult *pxfres);
 
+public:
 	CXformSimplifyGbAgg(const CXformSimplifyGbAgg &) = delete;
 
-public:
 	// ctor
 	explicit CXformSimplifyGbAgg(CMemoryPool *mp);
 

@@ -15,10 +15,10 @@ using namespace gpos;
 class CXformImplementFullOuterMergeJoin : public CXformExploration
 {
 private:
+public:
 	CXformImplementFullOuterMergeJoin(
 		const CXformImplementFullOuterMergeJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementFullOuterMergeJoin(CMemoryPool *mp);
 

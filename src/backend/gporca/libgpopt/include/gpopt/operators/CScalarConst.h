@@ -37,9 +37,9 @@ private:
 	// constant
 	IDatum *m_pdatum;
 
+public:
 	CScalarConst(const CScalarConst &) = delete;
 
-public:
 	// ctor
 	CScalarConst(CMemoryPool *mp, IDatum *datum);
 

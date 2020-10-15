@@ -36,9 +36,9 @@ private:
 	// catalog MDId of the return type
 	IMDId *m_result_type_mdid;
 
+public:
 	CDXLScalarIfStmt(const CDXLScalarIfStmt &) = delete;
 
-public:
 	// ctor
 	CDXLScalarIfStmt(CMemoryPool *mp, IMDId *mdid_type);
 

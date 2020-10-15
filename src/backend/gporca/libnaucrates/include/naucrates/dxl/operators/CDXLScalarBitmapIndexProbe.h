@@ -38,9 +38,9 @@ private:
 	// index descriptor associated with the scanned table
 	CDXLIndexDescr *m_dxl_index_descr;
 
+public:
 	CDXLScalarBitmapIndexProbe(CDXLScalarBitmapIndexProbe &) = delete;
 
-public:
 	// ctor
 	CDXLScalarBitmapIndexProbe(CMemoryPool *mp,
 							   CDXLIndexDescr *dxl_index_descr);

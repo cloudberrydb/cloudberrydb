@@ -39,8 +39,6 @@ private:
 	// the table descriptor to construct
 	CDXLTableDescr *m_dxl_table_descr;
 
-	CParseHandlerTableDescr(const CParseHandlerTableDescr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -57,6 +55,8 @@ private:
 	);
 
 public:
+	CParseHandlerTableDescr(const CParseHandlerTableDescr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerTableDescr(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

@@ -31,9 +31,9 @@ using namespace gpos;
 class CScalarDMLAction : public CScalar
 {
 private:
+public:
 	CScalarDMLAction(const CScalarDMLAction &) = delete;
 
-public:
 	// dml action specification
 	enum EDMLAction
 	{

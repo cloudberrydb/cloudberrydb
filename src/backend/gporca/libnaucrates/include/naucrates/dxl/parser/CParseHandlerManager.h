@@ -63,10 +63,10 @@ private:
 	// check for aborts at regular intervals
 	void CheckForAborts();
 
-	CParseHandlerManager(const CParseHandlerManager &) = delete;
-
 
 public:
+	CParseHandlerManager(const CParseHandlerManager &) = delete;
+
 	// ctor/dtor
 	CParseHandlerManager(CDXLMemoryManager *, SAX2XMLReader *);
 	~CParseHandlerManager();

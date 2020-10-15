@@ -49,9 +49,9 @@ private:
 	// printable partition index id
 	ULONG m_part_index_id_printable;
 
+public:
 	CDXLPhysicalDynamicTableScan(CDXLPhysicalDynamicTableScan &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalDynamicTableScan(CMemoryPool *mp, CDXLTableDescr *table_descr,
 								 ULONG part_idx_id,

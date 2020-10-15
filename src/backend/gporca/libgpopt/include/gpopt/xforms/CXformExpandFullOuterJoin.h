@@ -30,8 +30,6 @@ using namespace gpos;
 class CXformExpandFullOuterJoin : public CXformExploration
 {
 private:
-	CXformExpandFullOuterJoin(const CXformExpandFullOuterJoin &) = delete;
-
 	// construct a join expression of two CTEs using the given CTE ids
 	// and output columns
 	CExpression *PexprLogicalJoinOverCTEs(
@@ -40,6 +38,8 @@ private:
 		CColRefArray *pdrgpcrRight, CExpression *pexprScalar) const;
 
 public:
+	CXformExpandFullOuterJoin(const CXformExpandFullOuterJoin &) = delete;
+
 	// ctor
 	explicit CXformExpandFullOuterJoin(CMemoryPool *mp);
 

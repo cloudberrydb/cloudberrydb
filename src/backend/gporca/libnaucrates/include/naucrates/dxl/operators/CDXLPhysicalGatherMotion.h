@@ -40,9 +40,9 @@ enum Edxlgm
 class CDXLPhysicalGatherMotion : public CDXLPhysicalMotion
 {
 private:
+public:
 	CDXLPhysicalGatherMotion(const CDXLPhysicalGatherMotion &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalGatherMotion(CMemoryPool *mp);
 

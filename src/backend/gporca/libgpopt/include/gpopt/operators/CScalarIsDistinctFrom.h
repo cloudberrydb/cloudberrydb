@@ -30,9 +30,9 @@ using namespace gpos;
 class CScalarIsDistinctFrom : public CScalarCmp
 {
 private:
+public:
 	CScalarIsDistinctFrom(const CScalarIsDistinctFrom &) = delete;
 
-public:
 	// ctor
 	CScalarIsDistinctFrom(CMemoryPool *mp, IMDId *mdid_op,
 						  const CWStringConst *pstrOp)

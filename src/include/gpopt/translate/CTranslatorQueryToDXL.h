@@ -149,8 +149,6 @@ private:
 			query_level_to_cte_map	// hash map between query level -> list of CTEs defined at that level
 	);
 
-	CTranslatorQueryToDXL(const CTranslatorQueryToDXL &) = delete;
-
 	// check for unsupported node types, throws an exception if an unsupported
 	// node is found
 	void CheckUnsupportedNodeTypes(Query *query);
@@ -420,6 +418,8 @@ private:
 	BOOL IsDMLQuery();
 
 public:
+	CTranslatorQueryToDXL(const CTranslatorQueryToDXL &) = delete;
+
 	// dtor
 	~CTranslatorQueryToDXL();
 

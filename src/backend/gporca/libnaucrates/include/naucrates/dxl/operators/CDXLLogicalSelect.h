@@ -28,9 +28,9 @@ namespace gpdxl
 class CDXLLogicalSelect : public CDXLLogical
 {
 private:
+public:
 	CDXLLogicalSelect(CDXLLogicalSelect &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLLogicalSelect(CMemoryPool *);
 

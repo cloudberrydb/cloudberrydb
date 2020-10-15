@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalWindow : public CParseHandlerLogicalOp
 {
 private:
-	CParseHandlerLogicalWindow(const CParseHandlerLogicalWindow &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +50,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalWindow(const CParseHandlerLogicalWindow &) = delete;
+
 	// ctor
 	CParseHandlerLogicalWindow(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

@@ -46,9 +46,9 @@ private:
 	// is operator's return type BOOL?
 	BOOL m_fBoolReturnType;
 
+public:
 	CScalarCast(const CScalarCast &) = delete;
 
-public:
 	// ctor
 	CScalarCast(CMemoryPool *mp, IMDId *return_type_mdid, IMDId *mdid_func,
 				BOOL is_binary_coercible);

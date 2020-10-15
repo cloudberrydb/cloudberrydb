@@ -123,9 +123,9 @@ private:
 	// array of column widths including dropped columns
 	CDoubleArray *m_col_width_array;
 
+public:
 	CMDRelationGPDB(const CMDRelationGPDB &) = delete;
 
-public:
 	// ctor
 	CMDRelationGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 					BOOL is_temp_table, Erelstoragetype rel_storage_type,

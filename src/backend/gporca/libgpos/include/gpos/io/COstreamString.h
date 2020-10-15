@@ -30,9 +30,9 @@ private:
 	// underlying string
 	CWString *m_string;
 
+public:
 	COstreamString(const COstreamString &) = delete;
 
-public:
 	// please see comments in COstream.h for an explanation
 	using COstream::operator<<;
 

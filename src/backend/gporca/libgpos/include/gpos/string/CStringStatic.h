@@ -57,9 +57,9 @@ private:
 	bool IsValid() const;
 #endif	// GPOS_DEBUG
 
+public:
 	CStringStatic(const CStringStatic &) = delete;
 
-public:
 	// ctor
 	CStringStatic(CHAR buffer[], ULONG capacity);
 

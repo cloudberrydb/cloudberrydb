@@ -37,9 +37,9 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
+public:
 	CDXLScalarNullIf(CDXLScalarNullIf &) = delete;
 
-public:
 	// ctor
 	CDXLScalarNullIf(CMemoryPool *mp, IMDId *mdid_op, IMDId *mdid_type);
 

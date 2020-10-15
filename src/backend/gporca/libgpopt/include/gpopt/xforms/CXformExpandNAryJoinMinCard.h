@@ -31,9 +31,9 @@ using namespace gpos;
 class CXformExpandNAryJoinMinCard : public CXformExploration
 {
 private:
+public:
 	CXformExpandNAryJoinMinCard(const CXformExpandNAryJoinMinCard &) = delete;
 
-public:
 	// ctor
 	explicit CXformExpandNAryJoinMinCard(CMemoryPool *mp);
 

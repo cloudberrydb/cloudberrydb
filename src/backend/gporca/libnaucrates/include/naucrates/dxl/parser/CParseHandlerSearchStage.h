@@ -42,9 +42,6 @@ private:
 	// time threshold in milliseconds
 	ULONG m_time_threshold;
 
-	// private ctor
-	CParseHandlerSearchStage(const CParseHandlerSearchStage &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -61,6 +58,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerSearchStage(const CParseHandlerSearchStage &) = delete;
+
 	// ctor
 	CParseHandlerSearchStage(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

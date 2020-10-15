@@ -49,9 +49,9 @@ private:
 		const XMLCh *const element_qname		// element's qname
 	);
 
+public:
 	CParseHandlerArray(const CParseHandlerArray &) = delete;
 
-public:
 	// ctor
 	CParseHandlerArray(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					   CParseHandlerBase *parse_handler_root);

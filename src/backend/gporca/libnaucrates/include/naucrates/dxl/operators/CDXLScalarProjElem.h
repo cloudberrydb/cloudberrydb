@@ -40,9 +40,9 @@ private:
 	// alias
 	const CMDName *m_mdname;
 
+public:
 	CDXLScalarProjElem(CDXLScalarProjElem &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarProjElem(CMemoryPool *mp, ULONG id, const CMDName *mdname);
 

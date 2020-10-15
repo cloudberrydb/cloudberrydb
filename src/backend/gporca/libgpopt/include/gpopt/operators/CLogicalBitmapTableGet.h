@@ -51,9 +51,9 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
+public:
 	CLogicalBitmapTableGet(const CLogicalBitmapTableGet &) = delete;
 
-public:
 	// ctor
 	CLogicalBitmapTableGet(CMemoryPool *mp, CTableDescriptor *ptabdesc,
 						   ULONG ulOriginOpId, const CName *pnameTableAlias,

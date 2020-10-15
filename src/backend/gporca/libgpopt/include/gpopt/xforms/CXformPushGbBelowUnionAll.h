@@ -32,9 +32,9 @@ class CXformPushGbBelowUnionAll
 	: public CXformPushGbBelowSetOp<CLogicalUnionAll>
 {
 private:
+public:
 	CXformPushGbBelowUnionAll(const CXformPushGbBelowUnionAll &) = delete;
 
-public:
 	// ctor
 	explicit CXformPushGbBelowUnionAll(CMemoryPool *mp)
 		: CXformPushGbBelowSetOp<CLogicalUnionAll>(mp)

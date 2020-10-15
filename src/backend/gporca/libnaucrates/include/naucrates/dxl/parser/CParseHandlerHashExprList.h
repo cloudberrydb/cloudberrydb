@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerHashExprList : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerHashExprList(const CParseHandlerHashExprList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +50,8 @@ private:
 	);
 
 public:
+	CParseHandlerHashExprList(const CParseHandlerHashExprList &) = delete;
+
 	// ctor/dtor
 	CParseHandlerHashExprList(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

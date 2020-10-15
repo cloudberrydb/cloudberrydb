@@ -51,12 +51,12 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	CMDIdColStats(const CMDIdColStats &) = delete;
-
 	// serialize mdid
 	void Serialize();
 
 public:
+	CMDIdColStats(const CMDIdColStats &) = delete;
+
 	// ctor
 	CMDIdColStats(CMDIdGPDB *rel_mdid, ULONG attno);
 

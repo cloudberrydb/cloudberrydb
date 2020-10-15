@@ -37,8 +37,6 @@ private:
 	// the broadcast motion operator
 	CDXLPhysicalBroadcastMotion *m_dxl_op;
 
-	CParseHandlerBroadcastMotion(const CParseHandlerBroadcastMotion &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerBroadcastMotion(const CParseHandlerBroadcastMotion &) = delete;
+
 	// ctor
 	CParseHandlerBroadcastMotion(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

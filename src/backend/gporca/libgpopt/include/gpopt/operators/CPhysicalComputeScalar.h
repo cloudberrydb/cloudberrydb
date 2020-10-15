@@ -27,9 +27,9 @@ namespace gpopt
 class CPhysicalComputeScalar : public CPhysical
 {
 private:
+public:
 	CPhysicalComputeScalar(const CPhysicalComputeScalar &) = delete;
 
-public:
 	// ctor
 	explicit CPhysicalComputeScalar(CMemoryPool *mp);
 

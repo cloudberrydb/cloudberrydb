@@ -45,12 +45,12 @@ private:
 	// operator type
 	const EdxlBooleanTestType m_dxl_bool_test_type;
 
-	CDXLScalarBooleanTest(const CDXLScalarBooleanTest &) = delete;
-
 	// name of the DXL operator name
 	const CWStringConst *GetOpNameStr() const;
 
 public:
+	CDXLScalarBooleanTest(const CDXLScalarBooleanTest &) = delete;
+
 	// ctor/dtor
 	CDXLScalarBooleanTest(CMemoryPool *mp,
 						  const EdxlBooleanTestType dxl_bool_type);

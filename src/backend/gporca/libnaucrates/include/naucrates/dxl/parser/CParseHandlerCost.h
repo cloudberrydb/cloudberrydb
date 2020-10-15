@@ -36,8 +36,6 @@ private:
 	// physical operator cost constructed by the parse handler
 	CDXLOperatorCost *m_operator_cost_dxl;
 
-	CParseHandlerCost(const CParseHandlerCost &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerCost(const CParseHandlerCost &) = delete;
+
 	// ctor/dtor
 	CParseHandlerCost(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					  CParseHandlerBase *parse_handler_root);

@@ -218,13 +218,13 @@ enum EdxlCoercionForm
 class CDXLOperator : public CRefCount
 {
 private:
-	CDXLOperator(const CDXLOperator &) = delete;
-
 protected:
 	// memory pool
 	CMemoryPool *m_mp;
 
 public:
+	CDXLOperator(const CDXLOperator &) = delete;
+
 	// ctor/dtor
 	explicit CDXLOperator(CMemoryPool *);
 

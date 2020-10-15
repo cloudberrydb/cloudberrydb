@@ -42,9 +42,6 @@ private:
 	// statistics of the physical plan
 	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
-	// private ctor
-	CParseHandlerProperties(const CParseHandlerProperties &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -61,6 +58,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerProperties(const CParseHandlerProperties &) = delete;
+
 	// ctor
 	CParseHandlerProperties(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

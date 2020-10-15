@@ -55,8 +55,6 @@ private:
 	// is trigger enabled
 	BOOL m_is_enabled;
 
-	CParseHandlerMDGPDBTrigger(const CParseHandlerMDGPDBTrigger &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -73,6 +71,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDGPDBTrigger(const CParseHandlerMDGPDBTrigger &) = delete;
+
 	// ctor
 	CParseHandlerMDGPDBTrigger(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

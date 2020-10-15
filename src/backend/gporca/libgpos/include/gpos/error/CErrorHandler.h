@@ -31,9 +31,9 @@ class CMemoryPool;
 class CErrorHandler
 {
 private:
+public:
 	CErrorHandler(const CErrorHandler &) = delete;
 
-public:
 	// ctor
 	CErrorHandler() = default;
 

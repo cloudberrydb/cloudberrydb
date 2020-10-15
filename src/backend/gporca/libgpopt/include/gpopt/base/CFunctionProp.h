@@ -44,9 +44,9 @@ private:
 	// is this function used as a scan operator
 	BOOL m_fScan;
 
+public:
 	CFunctionProp(const CFunctionProp &) = delete;
 
-public:
 	// ctor
 	CFunctionProp(IMDFunction::EFuncStbl func_stability,
 				  IMDFunction::EFuncDataAcc func_data_access,

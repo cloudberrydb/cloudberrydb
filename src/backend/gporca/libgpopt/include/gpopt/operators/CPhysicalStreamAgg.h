@@ -30,8 +30,6 @@ class CDistributionSpec;
 class CPhysicalStreamAgg : public CPhysicalAgg
 {
 private:
-	CPhysicalStreamAgg(const CPhysicalStreamAgg &) = delete;
-
 	// local order spec
 	COrderSpec *m_pos;
 
@@ -53,6 +51,8 @@ protected:
 	void InitOrderSpec(CMemoryPool *mp, CColRefArray *pdrgpcrOrder);
 
 public:
+	CPhysicalStreamAgg(const CPhysicalStreamAgg &) = delete;
+
 	// ctor
 	CPhysicalStreamAgg(
 		CMemoryPool *mp, CColRefArray *colref_array,

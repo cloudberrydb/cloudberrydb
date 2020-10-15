@@ -29,14 +29,14 @@ using namespace gpos;
 class CXformJoinAssociativity : public CXformExploration
 {
 private:
-	CXformJoinAssociativity(const CXformJoinAssociativity &) = delete;
-
 	// helper function for creating the new join predicate
 	void CreatePredicates(CMemoryPool *mp, CExpression *pexpr,
 						  CExpressionArray *pdrgpexprLower,
 						  CExpressionArray *pdrgpexprUpper) const;
 
 public:
+	CXformJoinAssociativity(const CXformJoinAssociativity &) = delete;
+
 	// ctor
 	explicit CXformJoinAssociativity(CMemoryPool *mp);
 

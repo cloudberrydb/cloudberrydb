@@ -108,14 +108,14 @@ private:
 		void AddPartConstraint(CMemoryPool *mp, ULONG part_idx_id,
 							   CPartConstraint *ppartcnstr);
 
-		CPartTableInfo(const CPartTableInfo &) = delete;
-
 		// does the given part constraint map define partial scans
 		static BOOL FDefinesPartialScans(
 			UlongToPartConstraintMap *ppartcnstrmap,
 			CPartConstraint *ppartcnstrRel);
 
 	public:
+		CPartTableInfo(const CPartTableInfo &) = delete;
+
 		// ctor
 		CPartTableInfo(ULONG scan_id, UlongToPartConstraintMap *ppartcnstrmap,
 					   EPartIndexManipulator epim, IMDId *mdid,
@@ -222,8 +222,6 @@ private:
 	// number of unresolved entries with zero expected propagators
 	ULONG m_ulUnresolvedZeroPropagators;
 
-	CPartIndexMap(const CPartIndexMap &) = delete;
-
 	// lookup info for given scan id
 	CPartTableInfo *PptiLookup(ULONG scan_id) const;
 
@@ -251,6 +249,8 @@ private:
 		IOstream &os);
 
 public:
+	CPartIndexMap(const CPartIndexMap &) = delete;
+
 	// ctor
 	explicit CPartIndexMap(CMemoryPool *mp);
 

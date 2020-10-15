@@ -29,9 +29,9 @@ namespace gpdxl
 class CDXLLogicalExternalGet : public CDXLLogicalGet
 {
 private:
+public:
 	CDXLLogicalExternalGet(CDXLLogicalExternalGet &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalExternalGet(CMemoryPool *mp, CDXLTableDescr *table_descr);
 

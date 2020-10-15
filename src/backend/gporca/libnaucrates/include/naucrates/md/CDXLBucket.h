@@ -58,8 +58,6 @@ private:
 	// distinct values
 	CDouble m_distinct;
 
-	CDXLBucket(const CDXLBucket &) = delete;
-
 	// serialize the bucket boundary
 	void SerializeBoundaryValue(CXMLSerializer *xml_serializer,
 								const CWStringConst *elem_str,
@@ -67,6 +65,8 @@ private:
 								BOOL is_bound_closed) const;
 
 public:
+	CDXLBucket(const CDXLBucket &) = delete;
+
 	// ctor
 	CDXLBucket(CDXLDatum *dxl_datum_lower, CDXLDatum *dxl_datum_upper,
 			   BOOL is_lower_closed, BOOL is_upper_closed, CDouble frequency,

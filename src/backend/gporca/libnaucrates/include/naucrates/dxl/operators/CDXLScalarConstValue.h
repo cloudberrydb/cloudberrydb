@@ -35,9 +35,9 @@ class CDXLScalarConstValue : public CDXLScalar
 private:
 	CDXLDatum *m_dxl_datum;
 
+public:
 	CDXLScalarConstValue(const CDXLScalarConstValue &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarConstValue(CMemoryPool *mp, CDXLDatum *dxl_datum);
 

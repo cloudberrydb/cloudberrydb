@@ -35,9 +35,9 @@ private:
 	// cursor for retrieval
 	ULONG m_ulExpr;
 
+public:
 	CXformResult(const CXformResult &) = delete;
 
-public:
 	// ctor
 	explicit CXformResult(CMemoryPool *);
 

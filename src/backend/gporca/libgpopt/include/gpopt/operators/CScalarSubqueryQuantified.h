@@ -51,8 +51,6 @@ private:
 	// column reference used in comparison
 	const CColRef *m_pcr;
 
-	CScalarSubqueryQuantified(const CScalarSubqueryQuantified &) = delete;
-
 protected:
 	// ctor
 	CScalarSubqueryQuantified(CMemoryPool *mp, IMDId *scalar_op_mdid,
@@ -63,6 +61,8 @@ protected:
 	virtual ~CScalarSubqueryQuantified();
 
 public:
+	CScalarSubqueryQuantified(const CScalarSubqueryQuantified &) = delete;
+
 	// operator mdid accessor
 	IMDId *MdIdOp() const;
 

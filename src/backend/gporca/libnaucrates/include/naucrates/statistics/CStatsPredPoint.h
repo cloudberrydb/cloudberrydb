@@ -38,11 +38,6 @@ using namespace gpopt;
 class CStatsPredPoint : public CStatsPred
 {
 private:
-	CStatsPredPoint(const CStatsPredPoint &) = delete;
-
-	// private assignment operator
-	CStatsPredPoint &operator=(CStatsPredPoint &) = delete;
-
 	// comparison type
 	CStatsPred::EStatsCmpType m_stats_cmp_type;
 
@@ -54,6 +49,10 @@ private:
 								   IDatum *datum);
 
 public:
+	CStatsPredPoint &operator=(CStatsPredPoint &) = delete;
+
+	CStatsPredPoint(const CStatsPredPoint &) = delete;
+
 	// ctor
 	CStatsPredPoint(ULONG colid, CStatsPred::EStatsCmpType stats_cmp_type,
 					CPoint *point);

@@ -207,8 +207,6 @@ private:
 	CExpression *PexprPreprocessCTEProducer(
 		const CExpression *pexprCTEProducer);
 
-	CCTEInfo(const CCTEInfo &) = delete;
-
 	// number of consumers of given CTE inside a given parent
 	ULONG UlConsumersInParent(ULONG ulConsumerId, ULONG ulParentId) const;
 
@@ -217,6 +215,8 @@ private:
 							   CStack<ULONG> *pstack);
 
 public:
+	CCTEInfo(const CCTEInfo &) = delete;
+
 	// ctor
 	explicit CCTEInfo(CMemoryPool *mp);
 

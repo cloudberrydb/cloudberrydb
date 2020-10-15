@@ -30,9 +30,9 @@ class CColRefSet;
 class CLogicalInnerJoin : public CLogicalJoin
 {
 private:
+public:
 	CLogicalInnerJoin(const CLogicalInnerJoin &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalInnerJoin(CMemoryPool *mp);
 

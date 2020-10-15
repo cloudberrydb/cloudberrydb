@@ -52,9 +52,9 @@ private:
 	// check for abort request
 	void CheckForAbort(const CHAR *file, ULONG line_num);
 
+public:
 	CWorker(const CWorker &) = delete;
 
-public:
 	// ctor
 	CWorker(ULONG stack_size, ULONG_PTR stack_start);
 

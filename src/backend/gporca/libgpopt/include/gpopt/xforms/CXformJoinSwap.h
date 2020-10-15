@@ -32,9 +32,9 @@ template <class TJoinTop, class TJoinBottom>
 class CXformJoinSwap : public CXformExploration
 {
 private:
+public:
 	CXformJoinSwap(const CXformJoinSwap &) = delete;
 
-public:
 	// ctor
 	explicit CXformJoinSwap(CMemoryPool *mp)
 		: CXformExploration(

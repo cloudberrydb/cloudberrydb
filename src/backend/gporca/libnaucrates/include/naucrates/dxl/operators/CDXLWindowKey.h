@@ -33,12 +33,12 @@ private:
 	// window frame associated with the window key
 	CDXLWindowFrame *m_window_frame_dxl;
 
-	CDXLWindowKey(const CDXLWindowKey &) = delete;
-
 	// sorting columns
 	CDXLNode *m_sort_col_list_dxlnode;
 
 public:
+	CDXLWindowKey(const CDXLWindowKey &) = delete;
+
 	// ctor
 	CDXLWindowKey();
 

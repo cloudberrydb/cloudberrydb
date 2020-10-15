@@ -28,9 +28,9 @@ namespace gpdxl
 class CDXLScalarSortColList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarSortColList(CDXLScalarSortColList &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarSortColList(CMemoryPool *mp);
 

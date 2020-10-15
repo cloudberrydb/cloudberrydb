@@ -47,6 +47,8 @@ protected:
 							  CColRefArray *pdrgpcrGrp) const;
 
 public:
+	CLogicalGbAgg(const CLogicalGbAgg &) = delete;
+
 	// the below enum specifically covers only 2 & 3 stage
 	// scalar dqa, as they are used to find the one having
 	// better cost context, rest of the aggs falls in others
@@ -259,8 +261,6 @@ public:
 									  COperator::EGbAggType egbaggtype);
 
 private:
-	CLogicalGbAgg(const CLogicalGbAgg &) = delete;
-
 	// array of grouping columns
 	CColRefArray *m_pdrgpcr;
 

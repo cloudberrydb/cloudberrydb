@@ -36,8 +36,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarAggref : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarAggref(const CParseHandlerScalarAggref &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarAggref(const CParseHandlerScalarAggref &) = delete;
+
 	// ctor
 	CParseHandlerScalarAggref(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

@@ -30,9 +30,9 @@ using namespace gpos;
 class CScalarNAryJoinPredList : public CScalar
 {
 private:
+public:
 	CScalarNAryJoinPredList(const CScalarNAryJoinPredList &) = delete;
 
-public:
 	// ctor
 	explicit CScalarNAryJoinPredList(CMemoryPool *mp);
 

@@ -46,9 +46,9 @@ private:
 	// sort nulls before other values
 	BOOL m_must_sort_nulls_first;
 
+public:
 	CDXLScalarSortCol(CDXLScalarSortCol &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarSortCol(CMemoryPool *mp, ULONG colid, IMDId *sort_op_id,
 					  CWStringConst *pstrTypeName, BOOL fSortNullsFirst);

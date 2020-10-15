@@ -42,9 +42,9 @@ private:
 	// segmentId column
 	CColRef *m_pcrSegmentId;
 
+public:
 	CLogicalDelete(const CLogicalDelete &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalDelete(CMemoryPool *mp);
 

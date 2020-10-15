@@ -65,8 +65,6 @@ private:
 	// create new pool of given type
 	virtual CMemoryPool *NewMemoryPool();
 
-	CMemoryPoolManager(const CMemoryPoolManager &) = delete;
-
 	// clean-up memory pools
 	void Cleanup();
 
@@ -130,6 +128,8 @@ protected:
 	}
 
 public:
+	CMemoryPoolManager(const CMemoryPoolManager &) = delete;
+
 	// create new memory pool
 	CMemoryPool *CreateMemoryPool();
 

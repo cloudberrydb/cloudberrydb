@@ -44,9 +44,9 @@ private:
 	// list of column descriptors
 	CDXLColDescrArray *m_dxl_col_descr_array;
 
+public:
 	CDXLLogicalTVF(const CDXLLogicalTVF &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLLogicalTVF(CMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type,
 				   CMDName *mdname, CDXLColDescrArray *pdrgdxlcd);

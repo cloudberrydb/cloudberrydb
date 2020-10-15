@@ -52,9 +52,9 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
+public:
 	CScalarMinMax(const CScalarMinMax &) = delete;
 
-public:
 	// ctor
 	CScalarMinMax(CMemoryPool *mp, IMDId *mdid_type, EScalarMinMaxType esmmt);
 

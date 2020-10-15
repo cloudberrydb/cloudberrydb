@@ -32,8 +32,6 @@ class CColRefSet;
 class CLogicalProject : public CLogicalUnary
 {
 private:
-	CLogicalProject(const CLogicalProject &) = delete;
-
 	// return equivalence class from scalar ident project element
 	static CColRefSetArray *PdrgpcrsEquivClassFromScIdent(
 		CMemoryPool *mp, CExpression *pexprPrEl, CColRefSet *not_null_columns);
@@ -45,6 +43,8 @@ private:
 											 CColRefSetArray *pdrgpcrs);
 
 public:
+	CLogicalProject(const CLogicalProject &) = delete;
+
 	// ctor
 	explicit CLogicalProject(CMemoryPool *mp);
 

@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformDynamicIndexGet2DynamicIndexScan : public CXformImplementation
 {
 private:
+public:
 	CXformDynamicIndexGet2DynamicIndexScan(
 		const CXformDynamicIndexGet2DynamicIndexScan &) = delete;
 
-public:
 	// ctor
 	explicit CXformDynamicIndexGet2DynamicIndexScan(CMemoryPool *mp);
 

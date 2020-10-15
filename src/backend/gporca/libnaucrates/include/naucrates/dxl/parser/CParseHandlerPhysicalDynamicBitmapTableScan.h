@@ -35,9 +35,6 @@ class CParseHandlerPhysicalDynamicBitmapTableScan
 	: public CParseHandlerPhysicalAbstractBitmapScan
 {
 private:
-	CParseHandlerPhysicalDynamicBitmapTableScan(
-		const CParseHandlerPhysicalDynamicBitmapTableScan &) = delete;
-
 	// part index id
 	ULONG m_part_index_id;
 
@@ -60,6 +57,9 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalDynamicBitmapTableScan(
+		const CParseHandlerPhysicalDynamicBitmapTableScan &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalDynamicBitmapTableScan(
 		CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,

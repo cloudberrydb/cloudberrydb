@@ -138,12 +138,12 @@ private:
 	// initialize size of cost distribution
 	void InitCostDistrSize();
 
-	CEnumeratorConfig(const CEnumeratorConfig &) = delete;
-
 	// compute Gaussian probability value
 	static DOUBLE DGaussian(DOUBLE d, DOUBLE dMean, DOUBLE dStd);
 
 public:
+	CEnumeratorConfig(const CEnumeratorConfig &) = delete;
+
 	// ctor
 	CEnumeratorConfig(CMemoryPool *mp, ULLONG plan_id, ULLONG ullSamples,
 					  CDouble cost_threshold = GPOPT_UNBOUNDED_COST_THRESHOLD);

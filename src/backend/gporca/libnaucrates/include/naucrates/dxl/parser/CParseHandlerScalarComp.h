@@ -37,8 +37,6 @@ private:
 	// the scalar comparison operator
 	CDXLScalarComp *m_dxl_op;
 
-	CParseHandlerScalarComp(const CParseHandlerScalarComp &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarComp(const CParseHandlerScalarComp &) = delete;
+
 	// ctor/dtor
 	CParseHandlerScalarComp(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

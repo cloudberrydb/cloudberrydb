@@ -53,9 +53,9 @@ private:
 	// colid produced by the relational child of the AnySubquery operator
 	ULONG m_colid;
 
+public:
 	CDXLScalarSubqueryQuantified(CDXLScalarSubqueryQuantified &) = delete;
 
-public:
 	// ctor
 	CDXLScalarSubqueryQuantified(CMemoryPool *mp, IMDId *scalar_op_mdid,
 								 CMDName *mdname, ULONG colid);

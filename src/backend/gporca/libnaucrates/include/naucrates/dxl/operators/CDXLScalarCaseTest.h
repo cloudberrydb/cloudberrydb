@@ -36,9 +36,9 @@ private:
 	// expression type
 	IMDId *m_mdid_type;
 
+public:
 	CDXLScalarCaseTest(const CDXLScalarCaseTest &) = delete;
 
-public:
 	// ctor
 	CDXLScalarCaseTest(CMemoryPool *mp, IMDId *mdid_type);
 

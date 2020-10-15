@@ -30,6 +30,8 @@ using namespace gpos;
 class CXformEagerAgg : public CXformExploration
 {
 public:
+	CXformEagerAgg(const CXformEagerAgg &) = delete;
+
 	// ctor
 	explicit CXformEagerAgg(CMemoryPool *mp);
 
@@ -76,8 +78,6 @@ public:
 	};
 
 private:
-	CXformEagerAgg(const CXformEagerAgg &) = delete;
-
 	// check if transform can be applied
 	BOOL CanApplyTransform(CExpression *agg_expr) const;
 

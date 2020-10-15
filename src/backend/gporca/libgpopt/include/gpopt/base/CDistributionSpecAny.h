@@ -39,10 +39,10 @@ private:
 	// allow outer references in the operator tree where distribution is requested
 	BOOL m_fAllowOuterRefs;
 
-	CDistributionSpecAny(const CDistributionSpecAny &) = delete;
-
 
 public:
+	CDistributionSpecAny(const CDistributionSpecAny &) = delete;
+
 	//ctor
 	CDistributionSpecAny(COperator::EOperatorId eopidRequested)
 		: m_eopidRequested(eopidRequested), m_fAllowOuterRefs(false)

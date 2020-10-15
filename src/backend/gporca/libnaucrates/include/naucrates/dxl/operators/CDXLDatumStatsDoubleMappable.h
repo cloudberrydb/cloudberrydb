@@ -43,9 +43,9 @@ private:
 	// for statistics computation, map to double
 	CDouble m_val;
 
+public:
 	CDXLDatumStatsDoubleMappable(const CDXLDatumStatsDoubleMappable &) = delete;
 
-public:
 	// ctor
 	CDXLDatumStatsDoubleMappable(CMemoryPool *mp, IMDId *mdid_type,
 								 INT type_modifier, BOOL is_null, BYTE *data,

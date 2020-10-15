@@ -66,9 +66,9 @@ private:
 	// is result of splitting aggregates
 	BOOL m_fSplit;
 
+public:
 	CScalarAggFunc(const CScalarAggFunc &) = delete;
 
-public:
 	// ctor
 	CScalarAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc,
 				   IMDId *resolved_rettype, const CWStringConst *pstrAggFunc,

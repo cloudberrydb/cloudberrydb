@@ -47,9 +47,9 @@ private:
 	// location of token to be coerced
 	INT m_location;
 
+public:
 	CScalarCoerceBase(const CScalarCoerceBase &) = delete;
 
-public:
 	// ctor
 	CScalarCoerceBase(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 					  ECoercionForm dxl_coerce_format, INT location);

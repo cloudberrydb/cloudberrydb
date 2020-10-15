@@ -43,9 +43,9 @@ private:
 	// order
 	COrderSpec *m_pos;
 
+public:
 	CPhysicalIndexScan(const CPhysicalIndexScan &) = delete;
 
-public:
 	// ctors
 	CPhysicalIndexScan(CMemoryPool *mp, CIndexDescriptor *pindexdesc,
 					   CTableDescriptor *ptabdesc, ULONG ulOriginOpId,

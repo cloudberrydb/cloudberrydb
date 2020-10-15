@@ -42,9 +42,9 @@ private:
 	// boolean value
 	BOOL m_value;
 
+public:
 	CDXLDatumBool(const CDXLDatumBool &) = delete;
 
-public:
 	// ctor
 	CDXLDatumBool(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, BOOL value);
 

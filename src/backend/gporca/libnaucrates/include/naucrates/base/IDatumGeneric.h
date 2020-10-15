@@ -30,9 +30,9 @@ namespace gpnaucrates
 class IDatumGeneric : public IDatum
 {
 private:
+public:
 	IDatumGeneric(const IDatumGeneric &) = delete;
 
-public:
 	// ctor
 	IDatumGeneric() = default;
 

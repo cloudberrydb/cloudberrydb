@@ -37,8 +37,6 @@ private:
 	// the hash join operator
 	CDXLPhysicalHashJoin *m_dxl_op;
 
-	CParseHandlerHashJoin(const CParseHandlerHashJoin &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerHashJoin(const CParseHandlerHashJoin &) = delete;
+
 	// ctor/dtor
 	CParseHandlerHashJoin(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

@@ -47,9 +47,6 @@ private:
 	// is initialized?
 	BOOL m_is_initialized;
 
-	CHashMapIter(const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>
-					 &) = delete;
-
 	// method to return the current element
 	const typename TMap::CHashMapElem *
 	Get() const
@@ -62,6 +59,9 @@ private:
 	}
 
 public:
+	CHashMapIter(const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>
+					 &) = delete;
+
 	// ctor
 	CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>(TMap *ptm)
 		: m_map(ptm), m_chain_idx(0), m_key_idx(0)

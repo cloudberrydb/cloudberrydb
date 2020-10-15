@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalOp : public CParseHandlerOp
 {
 private:
-	CParseHandlerLogicalOp(const CParseHandlerLogicalOp &) = delete;
-
 protected:
 	// process the start of an element
 	virtual void StartElement(
@@ -53,6 +51,8 @@ protected:
 	);
 
 public:
+	CParseHandlerLogicalOp(const CParseHandlerLogicalOp &) = delete;
+
 	// ctor/dtor
 	CParseHandlerLogicalOp(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

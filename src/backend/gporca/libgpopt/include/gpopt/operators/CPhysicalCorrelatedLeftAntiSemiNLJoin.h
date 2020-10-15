@@ -35,10 +35,10 @@ private:
 	// origin subquery id
 	EOperatorId m_eopidOriginSubq;
 
+public:
 	CPhysicalCorrelatedLeftAntiSemiNLJoin(
 		const CPhysicalCorrelatedLeftAntiSemiNLJoin &) = delete;
 
-public:
 	// ctor
 	CPhysicalCorrelatedLeftAntiSemiNLJoin(CMemoryPool *mp,
 										  CColRefArray *pdrgpcrInner,

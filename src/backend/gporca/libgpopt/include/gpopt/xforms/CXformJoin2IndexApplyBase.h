@@ -20,8 +20,6 @@ template <class TJoin, class TApply, class TGet, BOOL fWithSelect,
 class CXformJoin2IndexApplyBase : public CXformJoin2IndexApply
 {
 private:
-	CXformJoin2IndexApplyBase(const CXformJoin2IndexApplyBase &) = delete;
-
 	// Can transform left outer join to left outer index apply?
 	// For hash distributed table, we can do outer index apply only
 	// when the inner columns used in the join condition contains
@@ -110,6 +108,8 @@ protected:
 	}
 
 public:
+	CXformJoin2IndexApplyBase(const CXformJoin2IndexApplyBase &) = delete;
+
 	// ctor
 	explicit CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect,
 									   is_partial, eidxtype>(CMemoryPool *mp)

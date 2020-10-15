@@ -48,9 +48,9 @@ private:
 	ULLONG m_plan_space_size;
 
 
+public:
 	CSerializablePlan(const CSerializablePlan &) = delete;
 
-public:
 	// ctor
 	CSerializablePlan(CMemoryPool *mp, const CDXLNode *pdxlnPlan,
 					  ULLONG plan_id, ULLONG plan_space_size);

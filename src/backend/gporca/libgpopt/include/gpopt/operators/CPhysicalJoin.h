@@ -61,9 +61,9 @@ protected:
 		// id of scalar child
 		ULONG m_ulScalarChild;
 
+	public:
 		CPartPropReq(const CPartPropReq &) = delete;
 
-	public:
 		// ctor
 		CPartPropReq(CPartitionPropagationSpec *pppsRequired, ULONG child_index,
 					 ULONG ulOuterChild, ULONG ulInnerChild,

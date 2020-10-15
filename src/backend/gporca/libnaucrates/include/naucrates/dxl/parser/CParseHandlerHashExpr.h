@@ -38,8 +38,6 @@ private:
 	// hash expr operator
 	CDXLScalarHashExpr *m_dxl_op;
 
-	CParseHandlerHashExpr(const CParseHandlerHashExpr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerHashExpr(const CParseHandlerHashExpr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerHashExpr(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

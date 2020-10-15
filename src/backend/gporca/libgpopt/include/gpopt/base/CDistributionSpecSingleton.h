@@ -48,9 +48,9 @@ protected:
 	static const CHAR *m_szSegmentType[EstSentinel];
 
 private:
+public:
 	CDistributionSpecSingleton(const CDistributionSpecSingleton &) = delete;
 
-public:
 	// ctor
 	explicit CDistributionSpecSingleton(ESegmentType esegtype);
 

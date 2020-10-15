@@ -42,8 +42,6 @@ private:
 	// current column descriptor being parsed
 	CDXLColDescr *m_current_column_descr;
 
-	CParseHandlerColDescr(const CParseHandlerColDescr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerColDescr(const CParseHandlerColDescr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerColDescr(CMemoryPool *m_mp,
 						  CParseHandlerManager *parse_handler_mgr,

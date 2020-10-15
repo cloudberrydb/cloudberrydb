@@ -34,13 +34,13 @@ private:
 	// flag indicating if handler is finalized
 	BOOL m_finalized;
 
-	CMiniDumper(const CMiniDumper &) = delete;
-
 protected:
 	// stream to serialize objects to
 	COstream *m_oos;
 
 public:
+	CMiniDumper(const CMiniDumper &) = delete;
+
 	// ctor
 	CMiniDumper();
 

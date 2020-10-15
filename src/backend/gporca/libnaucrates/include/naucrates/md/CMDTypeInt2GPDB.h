@@ -111,9 +111,9 @@ private:
 	// a null datum of this type (used for statistics comparison)
 	IDatum *m_datum_null;
 
+public:
 	CMDTypeInt2GPDB(const CMDTypeInt2GPDB &) = delete;
 
-public:
 	// ctor
 	explicit CMDTypeInt2GPDB(CMemoryPool *mp);
 

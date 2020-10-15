@@ -46,9 +46,9 @@ private:
 	// scan direction of the index
 	EdxlIndexScanDirection m_index_scan_dir;
 
+public:
 	CDXLPhysicalDynamicIndexScan(CDXLPhysicalDynamicIndexScan &) = delete;
 
-public:
 	// indices of dynamic index scan elements in the children array
 	enum Edxldis
 	{

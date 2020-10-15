@@ -36,10 +36,10 @@ private:
 	// required columns in distribution spec
 	CColRefSet *m_pcrsRequiredLocal;
 
+public:
 	CPhysicalMotionHashDistribute(const CPhysicalMotionHashDistribute &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalMotionHashDistribute(CMemoryPool *mp,
 								  CDistributionSpecHashed *pdsHashed);

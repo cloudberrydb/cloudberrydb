@@ -19,8 +19,6 @@ namespace gpopt
 class CLogicalIndexApply : public CLogicalApply
 {
 private:
-	CLogicalIndexApply(const CLogicalIndexApply &) = delete;
-
 protected:
 	// columns used from Apply's outer child used by index in Apply's inner child
 	CColRefArray *m_pdrgpcrOuterRefs;
@@ -29,6 +27,8 @@ protected:
 	BOOL m_fOuterJoin;
 
 public:
+	CLogicalIndexApply(const CLogicalIndexApply &) = delete;
+
 	// ctor
 	CLogicalIndexApply(CMemoryPool *mp, CColRefArray *pdrgpcrOuterRefs,
 					   BOOL fOuterJoin);

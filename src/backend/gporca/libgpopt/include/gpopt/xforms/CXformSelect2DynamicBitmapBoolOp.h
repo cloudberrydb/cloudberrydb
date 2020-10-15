@@ -29,10 +29,10 @@ namespace gpopt
 class CXformSelect2DynamicBitmapBoolOp : public CXformExploration
 {
 private:
+public:
 	CXformSelect2DynamicBitmapBoolOp(const CXformSelect2DynamicBitmapBoolOp &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformSelect2DynamicBitmapBoolOp(CMemoryPool *mp);
 

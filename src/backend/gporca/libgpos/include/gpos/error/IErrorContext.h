@@ -27,9 +27,9 @@ namespace gpos
 class IErrorContext
 {
 private:
+public:
 	IErrorContext(const IErrorContext &) = delete;
 
-public:
 	// ctor
 	IErrorContext() = default;
 

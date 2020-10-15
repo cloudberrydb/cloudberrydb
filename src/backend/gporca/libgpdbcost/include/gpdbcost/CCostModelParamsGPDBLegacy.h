@@ -95,9 +95,9 @@ private:
 	// default cost value when one is not computed
 	static const CDouble DDefaultCostVal;
 
+public:
 	CCostModelParamsGPDBLegacy(CCostModelParamsGPDBLegacy &) = delete;
 
-public:
 	// ctor
 	explicit CCostModelParamsGPDBLegacy(CMemoryPool *mp);
 

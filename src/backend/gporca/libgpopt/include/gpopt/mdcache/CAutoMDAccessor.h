@@ -52,9 +52,9 @@ private:
 	// system id
 	CSystemId m_sysid;
 
+public:
 	CAutoMDAccessor(const CAutoMDAccessor &) = delete;
 
-public:
 	// ctor
 	CAutoMDAccessor(CMemoryPool *mp, IMDProvider *pmdp, CSystemId sysid)
 		: m_pimdp(pmdp), m_fOwnCache(true), m_sysid(sysid)

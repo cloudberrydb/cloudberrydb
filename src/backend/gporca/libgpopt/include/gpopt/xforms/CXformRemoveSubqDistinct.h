@@ -21,9 +21,9 @@ using namespace gpos;
 class CXformRemoveSubqDistinct : public CXformExploration
 {
 private:
+public:
 	CXformRemoveSubqDistinct(const CXformRemoveSubqDistinct &) = delete;
 
-public:
 	// ctor
 	explicit CXformRemoveSubqDistinct(CMemoryPool *mp);
 

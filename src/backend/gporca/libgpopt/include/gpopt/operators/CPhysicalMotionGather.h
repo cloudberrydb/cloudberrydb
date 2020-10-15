@@ -39,9 +39,9 @@ private:
 	// columns used by order spec
 	CColRefSet *m_pcrsSort;
 
+public:
 	CPhysicalMotionGather(const CPhysicalMotionGather &) = delete;
 
-public:
 	// ctor
 	CPhysicalMotionGather(CMemoryPool *mp,
 						  CDistributionSpecSingleton::ESegmentType est);

@@ -32,9 +32,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarPartDefault : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarPartDefault(const CParseHandlerScalarPartDefault &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -51,6 +48,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarPartDefault(const CParseHandlerScalarPartDefault &) =
+		delete;
+
 	// ctor
 	CParseHandlerScalarPartDefault(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,

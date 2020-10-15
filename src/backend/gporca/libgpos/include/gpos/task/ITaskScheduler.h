@@ -31,9 +31,9 @@ class CTaskId;
 class ITaskScheduler
 {
 private:
+public:
 	ITaskScheduler(const ITaskScheduler &) = delete;
 
-public:
 	// dummy ctor
 	ITaskScheduler() = default;
 

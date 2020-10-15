@@ -30,9 +30,9 @@ using namespace gpos;
 class CXformSelect2Apply : public CXformSubqueryUnnest
 {
 private:
+public:
 	CXformSelect2Apply(const CXformSelect2Apply &) = delete;
 
-public:
 	// ctor
 	explicit CXformSelect2Apply(CMemoryPool *mp);
 

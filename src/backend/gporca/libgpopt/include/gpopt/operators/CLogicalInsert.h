@@ -36,9 +36,9 @@ private:
 	// source columns
 	CColRefArray *m_pdrgpcrSource;
 
+public:
 	CLogicalInsert(const CLogicalInsert &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalInsert(CMemoryPool *mp);
 

@@ -30,8 +30,6 @@ namespace gpopt
 class CPhysicalMotion : public CPhysical
 {
 private:
-	CPhysicalMotion(const CPhysicalMotion &) = delete;
-
 protected:
 	// ctor
 	explicit CPhysicalMotion(CMemoryPool *mp) : CPhysical(mp)
@@ -46,6 +44,8 @@ protected:
 	}
 
 public:
+	CPhysicalMotion(const CPhysicalMotion &) = delete;
+
 	// output distribution accessor
 	virtual CDistributionSpec *Pds() const = 0;
 

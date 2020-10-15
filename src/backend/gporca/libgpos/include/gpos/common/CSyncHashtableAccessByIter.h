@@ -41,9 +41,6 @@ private:
 	// target iterator
 	CSyncHashtableIter<T, K> &m_iter;
 
-	CSyncHashtableAccessByIter<T, K>(const CSyncHashtableAccessByIter<T, K> &) =
-		delete;
-
 	// returns the first valid element starting from the given element
 	T *
 	FirstValid(T *value) const
@@ -61,6 +58,9 @@ private:
 	}
 
 public:
+	CSyncHashtableAccessByIter<T, K>(const CSyncHashtableAccessByIter<T, K> &) =
+		delete;
+
 	// ctor
 	explicit CSyncHashtableAccessByIter<T, K>(CSyncHashtableIter<T, K> &iter)
 		: Base(iter.m_ht, iter.m_bucket_idx), m_iter(iter)

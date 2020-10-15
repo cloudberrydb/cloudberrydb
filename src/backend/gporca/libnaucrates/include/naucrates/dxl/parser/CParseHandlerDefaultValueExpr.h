@@ -36,9 +36,6 @@ private:
 	// has an opening tag for a default value been seen already
 	BOOL is_default_val_started;
 
-	CParseHandlerDefaultValueExpr(const CParseHandlerDefaultValueExpr &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +52,9 @@ private:
 	);
 
 public:
+	CParseHandlerDefaultValueExpr(const CParseHandlerDefaultValueExpr &) =
+		delete;
+
 	// ctor/dtor
 	CParseHandlerDefaultValueExpr(CMemoryPool *mp,
 								  CParseHandlerManager *parse_handler_mgr,

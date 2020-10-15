@@ -39,8 +39,6 @@ private:
 	// the materialize operator
 	CDXLPhysicalMaterialize *m_dxl_op;
 
-	CParseHandlerMaterialize(const CParseHandlerMaterialize &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -57,6 +55,8 @@ private:
 	);
 
 public:
+	CParseHandlerMaterialize(const CParseHandlerMaterialize &) = delete;
+
 	// ctor/dtor
 	CParseHandlerMaterialize(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

@@ -18,10 +18,10 @@ private:
 	// columns from outer child used for index lookup in inner child
 	CColRefArray *m_pdrgpcrOuterRefs;
 
+public:
 	CPhysicalLeftOuterIndexNLJoin(const CPhysicalLeftOuterIndexNLJoin &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalLeftOuterIndexNLJoin(CMemoryPool *mp, CColRefArray *colref_array);
 

@@ -56,12 +56,12 @@ private:
 	// does operator return NULL on NULL input?
 	BOOL m_returns_null_on_null_input;
 
-	CScalarArrayCmp(const CScalarArrayCmp &) = delete;
-
 	// names of array compare types
 	static const CHAR m_rgszCmpType[EarrcmpSentinel][10];
 
 public:
+	CScalarArrayCmp(const CScalarArrayCmp &) = delete;
+
 	// ctor
 	CScalarArrayCmp(CMemoryPool *mp, IMDId *mdid_op,
 					const CWStringConst *pstrOp, EArrCmpType earrcmpt);

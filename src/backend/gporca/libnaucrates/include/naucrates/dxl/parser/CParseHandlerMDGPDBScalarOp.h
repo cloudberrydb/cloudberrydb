@@ -68,8 +68,6 @@ private:
 	// preserves NDVs of inputs
 	BOOL m_is_ndv_preserving;
 
-	CParseHandlerMDGPDBScalarOp(const CParseHandlerMDGPDBScalarOp &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -89,6 +87,8 @@ private:
 	BOOL IsSupportedChildElem(const XMLCh *const xml_str);
 
 public:
+	CParseHandlerMDGPDBScalarOp(const CParseHandlerMDGPDBScalarOp &) = delete;
+
 	// ctor
 	CParseHandlerMDGPDBScalarOp(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

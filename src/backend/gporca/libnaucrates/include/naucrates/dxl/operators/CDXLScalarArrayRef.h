@@ -43,9 +43,9 @@ private:
 	// return type id
 	IMDId *m_return_type_mdid;
 
+public:
 	CDXLScalarArrayRef(const CDXLScalarArrayRef &) = delete;
 
-public:
 	// ctor
 	CDXLScalarArrayRef(CMemoryPool *mp, IMDId *elem_type_mdid,
 					   INT type_modifier, IMDId *array_type_mdid,

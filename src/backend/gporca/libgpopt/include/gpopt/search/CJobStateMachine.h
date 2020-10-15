@@ -91,9 +91,9 @@ private:
 	// job state machine
 	SM m_sm;
 
+public:
 	CJobStateMachine(const CJobStateMachine &) = delete;
 
-public:
 	// ctor
 	CJobStateMachine<TEnumState, estSentinel, TEnumEvent, eevSentinel>() =
 		default;

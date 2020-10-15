@@ -63,9 +63,9 @@ private:
 		// part constraint of the relation
 		CPartConstraint *m_ppartcnstrRel;
 
+	public:
 		CPartInfoEntry(const CPartInfoEntry &) = delete;
 
-	public:
 		// ctor
 		CPartInfoEntry(ULONG scan_id, IMDId *mdid,
 					   CPartKeysArray *pdrgppartkeys,
@@ -125,9 +125,9 @@ private:
 	// private ctor
 	explicit CPartInfo(CPartInfoEntryArray *pdrgppartentries);
 
+public:
 	CPartInfo(const CPartInfo &) = delete;
 
-public:
 	// ctor
 	explicit CPartInfo(CMemoryPool *mp);
 

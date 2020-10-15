@@ -31,9 +31,9 @@ using namespace gpos;
 class CXformInlineCTEConsumer : public CXformExploration
 {
 private:
+public:
 	CXformInlineCTEConsumer(const CXformInlineCTEConsumer &) = delete;
 
-public:
 	// ctor
 	explicit CXformInlineCTEConsumer(CMemoryPool *mp);
 

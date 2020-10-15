@@ -33,9 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalExternalGet : public CParseHandlerLogicalGet
 {
 private:
-	CParseHandlerLogicalExternalGet(const CParseHandlerLogicalExternalGet &) =
-		delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +49,9 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalExternalGet(const CParseHandlerLogicalExternalGet &) =
+		delete;
+
 	// ctor
 	CParseHandlerLogicalExternalGet(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

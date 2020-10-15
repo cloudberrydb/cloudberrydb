@@ -42,13 +42,13 @@ private:
 	// index list bound
 	EIndexListBound m_index_list_bound;
 
-	CDXLScalarArrayRefIndexList(const CDXLScalarArrayRefIndexList &) = delete;
-
 	// string representation of index list bound
 	static const CWStringConst *GetDXLIndexListBoundStr(
 		EIndexListBound index_list_bound);
 
 public:
+	CDXLScalarArrayRefIndexList(const CDXLScalarArrayRefIndexList &) = delete;
+
 	// ctor
 	CDXLScalarArrayRefIndexList(CMemoryPool *mp,
 								EIndexListBound index_list_bound);

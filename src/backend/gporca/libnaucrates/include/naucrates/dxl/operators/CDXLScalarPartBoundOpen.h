@@ -37,9 +37,9 @@ private:
 	// whether this represents a lower or upper bound
 	BOOL m_is_lower_bound;
 
+public:
 	CDXLScalarPartBoundOpen(const CDXLScalarPartBoundOpen &) = delete;
 
-public:
 	// ctor
 	CDXLScalarPartBoundOpen(CMemoryPool *mp, ULONG partitioning_level,
 							BOOL is_lower_bound);

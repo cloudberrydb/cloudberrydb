@@ -35,9 +35,6 @@ private:
 	// statistics configuration
 	CStatisticsConfig *m_stats_conf;
 
-	CParseHandlerStatisticsConfig(const CParseHandlerStatisticsConfig &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +51,9 @@ private:
 	);
 
 public:
+	CParseHandlerStatisticsConfig(const CParseHandlerStatisticsConfig &) =
+		delete;
+
 	// ctor
 	CParseHandlerStatisticsConfig(CMemoryPool *mp,
 								  CParseHandlerManager *parse_handler_mgr,

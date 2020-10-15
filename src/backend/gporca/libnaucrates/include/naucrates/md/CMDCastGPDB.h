@@ -32,8 +32,6 @@ using namespace gpdxl;
 class CMDCastGPDB : public IMDCast
 {
 private:
-	CMDCastGPDB(const CMDCastGPDB &) = delete;
-
 protected:
 	// memory pool
 	CMemoryPool *m_mp;
@@ -63,6 +61,8 @@ protected:
 	EmdCoercepathType m_path_type;
 
 public:
+	CMDCastGPDB(const CMDCastGPDB &) = delete;
+
 	// ctor
 	CMDCastGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname, IMDId *mdid_src,
 				IMDId *mdid_dest, BOOL is_binary_coercible,

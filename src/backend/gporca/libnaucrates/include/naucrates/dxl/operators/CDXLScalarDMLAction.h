@@ -28,9 +28,9 @@ namespace gpdxl
 class CDXLScalarDMLAction : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarDMLAction(const CDXLScalarDMLAction &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarDMLAction(CMemoryPool *mp);
 

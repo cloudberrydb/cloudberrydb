@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformExploration : public CXform
 {
 private:
+public:
 	CXformExploration(const CXformExploration &) = delete;
 
-public:
 	// ctor
 	explicit CXformExploration(CExpression *pexpr);
 

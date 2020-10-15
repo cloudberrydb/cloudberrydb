@@ -31,9 +31,9 @@ class CStackDescriptor;
 class IMemoryVisitor
 {
 private:
+public:
 	IMemoryVisitor(IMemoryVisitor &) = delete;
 
-public:
 	// ctor
 	IMemoryVisitor() = default;
 

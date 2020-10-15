@@ -34,10 +34,10 @@ class CXformLeftOuterApply2LeftOuterJoinNoCorrelations
 	: public CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>
 {
 private:
+public:
 	CXformLeftOuterApply2LeftOuterJoinNoCorrelations(
 		const CXformLeftOuterApply2LeftOuterJoinNoCorrelations &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftOuterApply2LeftOuterJoinNoCorrelations(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>(mp)

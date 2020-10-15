@@ -50,12 +50,12 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	CMDIdCast(const CMDIdCast &) = delete;
-
 	// serialize mdid
 	void Serialize();
 
 public:
+	CMDIdCast(const CMDIdCast &) = delete;
+
 	// ctor
 	CMDIdCast(CMDIdGPDB *mdid_src, CMDIdGPDB *mdid_dest);
 

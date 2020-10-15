@@ -34,9 +34,9 @@ private:
 	// cost estimate
 	CDXLOperatorCost *m_operator_cost_dxl;
 
+public:
 	CDXLPhysicalProperties(const CDXLPhysicalProperties &) = delete;
 
-public:
 	// ctor
 	explicit CDXLPhysicalProperties(CDXLOperatorCost *cost);
 

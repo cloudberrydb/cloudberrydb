@@ -29,10 +29,10 @@ namespace gpopt
 class CLogicalLeftOuterCorrelatedApply : public CLogicalLeftOuterApply
 {
 private:
+public:
 	CLogicalLeftOuterCorrelatedApply(const CLogicalLeftOuterCorrelatedApply &) =
 		delete;
 
-public:
 	// ctor
 	CLogicalLeftOuterCorrelatedApply(CMemoryPool *mp,
 									 CColRefArray *pdrgpcrInner,

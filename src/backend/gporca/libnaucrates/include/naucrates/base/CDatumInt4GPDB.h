@@ -38,9 +38,9 @@ private:
 	// is null
 	BOOL m_is_null;
 
+public:
 	CDatumInt4GPDB(const CDatumInt4GPDB &) = delete;
 
-public:
 	// ctors
 	CDatumInt4GPDB(CSystemId sysid, INT val, BOOL is_null = false);
 	CDatumInt4GPDB(IMDId *mdid, INT val, BOOL is_null = false);

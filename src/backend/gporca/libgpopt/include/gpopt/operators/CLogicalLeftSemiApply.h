@@ -27,9 +27,9 @@ namespace gpopt
 class CLogicalLeftSemiApply : public CLogicalApply
 {
 private:
+public:
 	CLogicalLeftSemiApply(const CLogicalLeftSemiApply &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftSemiApply(CMemoryPool *mp) : CLogicalApply(mp)
 	{

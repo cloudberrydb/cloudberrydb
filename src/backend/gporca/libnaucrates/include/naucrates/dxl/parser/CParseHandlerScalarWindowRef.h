@@ -35,8 +35,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarWindowRef : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarWindowRef(const CParseHandlerScalarWindowRef &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -53,6 +51,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarWindowRef(const CParseHandlerScalarWindowRef &) = delete;
+
 	// ctor
 	CParseHandlerScalarWindowRef(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

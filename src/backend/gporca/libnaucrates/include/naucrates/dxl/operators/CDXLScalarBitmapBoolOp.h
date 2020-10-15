@@ -46,9 +46,9 @@ private:
 	// operator type
 	const EdxlBitmapBoolOp m_bitmap_op_type;
 
+public:
 	CDXLScalarBitmapBoolOp(const CDXLScalarBitmapBoolOp &) = delete;
 
-public:
 	// ctor
 	CDXLScalarBitmapBoolOp(CMemoryPool *mp, IMDId *mdid_type,
 						   EdxlBitmapBoolOp bitmap_op_type);

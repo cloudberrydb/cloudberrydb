@@ -30,9 +30,9 @@ class CDistributionSpec;
 class CPhysicalScalarAgg : public CPhysicalAgg
 {
 private:
+public:
 	CPhysicalScalarAgg(const CPhysicalScalarAgg &) = delete;
 
-public:
 	// ctor
 	CPhysicalScalarAgg(
 		CMemoryPool *mp, CColRefArray *colref_array,

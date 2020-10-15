@@ -47,9 +47,9 @@ private:
 	// min/max type
 	EdxlMinMaxType m_min_max_type;
 
+public:
 	CDXLScalarMinMax(const CDXLScalarMinMax &) = delete;
 
-public:
 	// ctor
 	CDXLScalarMinMax(CMemoryPool *mp, IMDId *mdid_type,
 					 EdxlMinMaxType min_max_type);

@@ -27,9 +27,9 @@ namespace gpopt
 class CPhysicalLeftSemiNLJoin : public CPhysicalNLJoin
 {
 private:
+public:
 	CPhysicalLeftSemiNLJoin(const CPhysicalLeftSemiNLJoin &) = delete;
 
-public:
 	// ctor
 	explicit CPhysicalLeftSemiNLJoin(CMemoryPool *mp);
 

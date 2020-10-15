@@ -39,8 +39,6 @@ private:
 	IMdIdArray *m_mdid_array;
 
 
-	CParseHandlerMetadataIdList(const CParseHandlerMetadataIdList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -63,6 +61,8 @@ private:
 	BOOL FSupportedListType(const XMLCh *const xml_str);
 
 public:
+	CParseHandlerMetadataIdList(const CParseHandlerMetadataIdList &) = delete;
+
 	// ctor/dtor
 	CParseHandlerMetadataIdList(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

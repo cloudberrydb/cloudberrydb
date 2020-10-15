@@ -42,8 +42,6 @@ private:
 	// is stats bound closed
 	BOOL m_is_stats_bound_closed;
 
-	CParseHandlerStatsBound(const CParseHandlerStatsBound &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerStatsBound(const CParseHandlerStatsBound &) = delete;
+
 	// ctor/dtor
 	CParseHandlerStatsBound(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

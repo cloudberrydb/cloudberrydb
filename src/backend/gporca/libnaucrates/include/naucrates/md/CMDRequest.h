@@ -81,9 +81,9 @@ private:
 	// serialize system id
 	CWStringDynamic *GetStrRepr(CSystemId sysid);
 
+public:
 	CMDRequest(const CMDRequest &) = delete;
 
-public:
 	// ctor
 	CMDRequest(CMemoryPool *mp, IMdIdArray *mdid_array,
 			   SMDTypeRequestArray *mdtype_request_array);

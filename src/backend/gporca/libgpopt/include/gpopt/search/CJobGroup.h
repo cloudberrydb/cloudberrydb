@@ -34,8 +34,6 @@ class CGroupExpression;
 class CJobGroup : public CJob
 {
 private:
-	CJobGroup(const CJobGroup &) = delete;
-
 protected:
 	// target group
 	CGroup *m_pgroup;
@@ -76,6 +74,8 @@ protected:
 
 #endif	// GPOS_DEBUG
 public:
+	CJobGroup(const CJobGroup &) = delete;
+
 };	// class CJobGroup
 
 }  // namespace gpopt

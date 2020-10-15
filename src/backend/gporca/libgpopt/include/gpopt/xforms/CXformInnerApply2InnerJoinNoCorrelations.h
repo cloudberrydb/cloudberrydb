@@ -34,10 +34,10 @@ class CXformInnerApply2InnerJoinNoCorrelations
 	: public CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>
 {
 private:
+public:
 	CXformInnerApply2InnerJoinNoCorrelations(
 		const CXformInnerApply2InnerJoinNoCorrelations &) = delete;
 
-public:
 	// ctor
 	explicit CXformInnerApply2InnerJoinNoCorrelations(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>(mp)

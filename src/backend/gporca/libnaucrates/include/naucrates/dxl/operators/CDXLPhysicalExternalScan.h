@@ -29,9 +29,9 @@ namespace gpdxl
 class CDXLPhysicalExternalScan : public CDXLPhysicalTableScan
 {
 private:
+public:
 	CDXLPhysicalExternalScan(CDXLPhysicalExternalScan &) = delete;
 
-public:
 	// ctors
 	explicit CDXLPhysicalExternalScan(CMemoryPool *mp);
 

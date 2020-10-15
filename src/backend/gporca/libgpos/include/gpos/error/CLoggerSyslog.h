@@ -38,14 +38,14 @@ private:
 	// message priotity
 	ULONG m_message_priority;
 
-	CLoggerSyslog(const CLoggerSyslog &) = delete;
-
 	// write string to syslog
 	void Write(const WCHAR *log_entry, ULONG severity);
 
 	static CLoggerSyslog m_alert_logger;
 
 public:
+	CLoggerSyslog(const CLoggerSyslog &) = delete;
+
 	// ctor
 	CLoggerSyslog(const CHAR *proc_name, ULONG init_mask,
 				  ULONG message_priority);

@@ -35,10 +35,10 @@ class CXformImplementLeftSemiCorrelatedApply
 											CPhysicalCorrelatedLeftSemiNLJoin>
 {
 private:
+public:
 	CXformImplementLeftSemiCorrelatedApply(
 		const CXformImplementLeftSemiCorrelatedApply &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementLeftSemiCorrelatedApply(CMemoryPool *mp)
 		: CXformImplementCorrelatedApply<CLogicalLeftSemiCorrelatedApply,

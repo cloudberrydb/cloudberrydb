@@ -68,9 +68,9 @@ private:
 	void CopyCTEProducerPlanProps(CMemoryPool *mp, CDrvdPropCtxt *pdpctxt,
 								  COperator *pop);
 
+public:
 	CDrvdPropPlan(const CDrvdPropPlan &) = delete;
 
-public:
 	// ctor
 	CDrvdPropPlan();
 

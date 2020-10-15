@@ -38,8 +38,6 @@ class CParseHandlerScalarFuncExpr : public CParseHandlerScalarOp
 private:
 	BOOL m_inside_func_expr;
 
-	CParseHandlerScalarFuncExpr(const CParseHandlerScalarFuncExpr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarFuncExpr(const CParseHandlerScalarFuncExpr &) = delete;
+
 	// ctor
 	CParseHandlerScalarFuncExpr(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

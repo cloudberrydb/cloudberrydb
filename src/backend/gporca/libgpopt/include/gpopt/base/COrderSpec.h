@@ -77,9 +77,9 @@ private:
 		// null treatment
 		ENullTreatment m_ent;
 
+	public:
 		COrderExpression(const COrderExpression &) = delete;
 
-	public:
 		// ctor
 		COrderExpression(gpmd::IMDId *mdid, const CColRef *colref,
 						 ENullTreatment ent);
@@ -132,12 +132,12 @@ private:
 	// components of order spec
 	COrderExpressionArray *m_pdrgpoe;
 
-	COrderSpec(const COrderSpec &) = delete;
-
 	// extract columns from order spec into the given column set
 	void ExtractCols(CColRefSet *pcrs) const;
 
 public:
+	COrderSpec(const COrderSpec &) = delete;
+
 	// ctor
 	explicit COrderSpec(CMemoryPool *mp);
 

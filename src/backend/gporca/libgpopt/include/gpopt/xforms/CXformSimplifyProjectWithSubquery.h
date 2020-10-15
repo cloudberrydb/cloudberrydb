@@ -32,10 +32,10 @@ using namespace gpos;
 class CXformSimplifyProjectWithSubquery : public CXformSimplifySubquery
 {
 private:
+public:
 	CXformSimplifyProjectWithSubquery(
 		const CXformSimplifyProjectWithSubquery &) = delete;
 
-public:
 	// ctor
 	explicit CXformSimplifyProjectWithSubquery(CMemoryPool *mp)
 		:  // pattern

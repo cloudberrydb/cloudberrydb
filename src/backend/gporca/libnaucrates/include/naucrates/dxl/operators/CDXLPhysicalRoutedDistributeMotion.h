@@ -43,10 +43,10 @@ private:
 	// segment id column
 	ULONG m_segment_id_col;
 
+public:
 	CDXLPhysicalRoutedDistributeMotion(
 		const CDXLPhysicalRoutedDistributeMotion &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalRoutedDistributeMotion(CMemoryPool *mp, ULONG segment_id_col);
 

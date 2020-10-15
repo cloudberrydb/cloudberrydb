@@ -40,9 +40,9 @@ private:
 	BOOL m_is_null;
 
 
+public:
 	CDatumInt8GPDB(const CDatumInt8GPDB &) = delete;
 
-public:
 	// ctors
 	CDatumInt8GPDB(CSystemId sysid, LINT val, BOOL is_null = false);
 	CDatumInt8GPDB(IMDId *mdid, LINT val, BOOL is_null = false);

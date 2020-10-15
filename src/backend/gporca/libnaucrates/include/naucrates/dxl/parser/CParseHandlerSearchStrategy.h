@@ -35,9 +35,6 @@ private:
 	// search stages
 	CSearchStageArray *m_search_stage_array;
 
-	// private ctor
-	CParseHandlerSearchStrategy(const CParseHandlerSearchStrategy &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +51,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerSearchStrategy(const CParseHandlerSearchStrategy &) = delete;
+
 	// ctor/dtor
 	CParseHandlerSearchStrategy(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

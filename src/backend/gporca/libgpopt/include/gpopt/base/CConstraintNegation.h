@@ -34,9 +34,9 @@ private:
 	// child constraint
 	CConstraint *m_pcnstr;
 
+public:
 	CConstraintNegation(const CConstraintNegation &) = delete;
 
-public:
 	// ctor
 	CConstraintNegation(CMemoryPool *mp, CConstraint *pcnstr);
 

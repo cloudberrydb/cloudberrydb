@@ -28,12 +28,12 @@ namespace gpdxl
 class CDXLLogicalJoin : public CDXLLogical
 {
 private:
-	CDXLLogicalJoin(CDXLLogicalJoin &) = delete;
-
 	// join type (inner, outer, ...)
 	EdxlJoinType m_join_type;
 
 public:
+	CDXLLogicalJoin(CDXLLogicalJoin &) = delete;
+
 	// ctor/dtor
 	CDXLLogicalJoin(CMemoryPool *, EdxlJoinType);
 

@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementTVFNoArgs : public CXformImplementTVF
 {
 private:
+public:
 	CXformImplementTVFNoArgs(const CXformImplementTVFNoArgs &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementTVFNoArgs(CMemoryPool *mp);
 

@@ -30,9 +30,9 @@ using namespace gpos;
 class CXformCollapseGbAgg : public CXformExploration
 {
 private:
+public:
 	CXformCollapseGbAgg(const CXformCollapseGbAgg &) = delete;
 
-public:
 	// ctor
 	explicit CXformCollapseGbAgg(CMemoryPool *mp);
 

@@ -273,9 +273,9 @@ private:
 	// upper limit for penalizing a skewed hash operator
 	static const CDouble DPenalizeHJSkewUpperLimit;
 
+public:
 	CCostModelParamsGPDB(CCostModelParamsGPDB &) = delete;
 
-public:
 	// ctor
 	explicit CCostModelParamsGPDB(CMemoryPool *mp);
 

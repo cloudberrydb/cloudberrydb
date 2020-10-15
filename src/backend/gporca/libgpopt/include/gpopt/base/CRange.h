@@ -74,8 +74,6 @@ private:
 	// inclusion option for right end
 	ERangeInclusion m_eriRight;
 
-	CRange(const CRange &) = delete;
-
 	// construct an equality predicate if possible
 	CExpression *PexprEquality(CMemoryPool *mp, const CColRef *colref);
 
@@ -102,6 +100,8 @@ private:
 						   const CHAR *szInfinity) const;
 
 public:
+	CRange(const CRange &) = delete;
+
 	// ctor
 	CRange(IMDId *mdid, const IComparator *pcomp, IDatum *pdatumLeft,
 		   ERangeInclusion eriLeft, IDatum *pdatumRight,

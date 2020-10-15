@@ -42,8 +42,6 @@ private:
 	// function name
 	CWStringConst *m_pstr;
 
-	CParseHandlerPhysicalTVF(const CParseHandlerPhysicalTVF &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalTVF(const CParseHandlerPhysicalTVF &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalTVF(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

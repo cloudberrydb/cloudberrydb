@@ -33,9 +33,9 @@ using namespace gpmd;
 class CDXLScalarSwitchCase : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarSwitchCase(const CDXLScalarSwitchCase &) = delete;
 
-public:
 	// ctor
 	explicit CDXLScalarSwitchCase(CMemoryPool *mp);
 

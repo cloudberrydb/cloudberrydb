@@ -29,13 +29,13 @@ using namespace gpos;
 class CXformGbAgg2HashAgg : public CXformImplementation
 {
 private:
-	CXformGbAgg2HashAgg(const CXformGbAgg2HashAgg &) = delete;
-
 protected:
 	// check if the transformation is applicable
 	BOOL FApplicable(CExpression *pexpr) const;
 
 public:
+	CXformGbAgg2HashAgg(const CXformGbAgg2HashAgg &) = delete;
+
 	// ctor
 	CXformGbAgg2HashAgg(CMemoryPool *mp);
 

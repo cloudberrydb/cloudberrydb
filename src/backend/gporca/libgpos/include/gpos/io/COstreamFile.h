@@ -31,9 +31,9 @@ private:
 	// underlying file writer
 	CFileWriter m_file_writer;
 
+public:
 	COstreamFile(const COstreamFile &) = delete;
 
-public:
 	// please see comments in COstream.h for an explanation
 	using COstream::operator<<;
 

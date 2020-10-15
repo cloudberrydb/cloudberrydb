@@ -44,9 +44,6 @@ private:
 	// relation stats
 	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
-	CParseHandlerStatsDerivedRelation(
-		const CParseHandlerStatsDerivedRelation &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -63,6 +60,9 @@ private:
 	);
 
 public:
+	CParseHandlerStatsDerivedRelation(
+		const CParseHandlerStatsDerivedRelation &) = delete;
+
 	// ctor
 	CParseHandlerStatsDerivedRelation(CMemoryPool *mp,
 									  CParseHandlerManager *parse_handler_mgr,

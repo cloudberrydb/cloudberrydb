@@ -130,8 +130,6 @@ private:
 		pxfres->Add(pexprResult);
 	}
 
-	CXformApply2Join(const CXformApply2Join &) = delete;
-
 protected:
 	// helper function to attempt decorrelating Apply's inner child
 	static BOOL
@@ -256,6 +254,8 @@ protected:
 	}
 
 public:
+	CXformApply2Join(const CXformApply2Join &) = delete;
+
 	// ctor for deep pattern
 	explicit CXformApply2Join<TApply, TJoin>(CMemoryPool *mp, BOOL)
 		:  // pattern

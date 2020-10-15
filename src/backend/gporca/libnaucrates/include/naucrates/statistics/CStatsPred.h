@@ -60,16 +60,15 @@ public:
 	};
 
 private:
-	CStatsPred(const CStatsPred &) = delete;
-
-	// private assignment operator
-	CStatsPred &operator=(CStatsPred &) = delete;
-
 protected:
 	// column id
 	ULONG m_colid;
 
 public:
+	CStatsPred &operator=(CStatsPred &) = delete;
+
+	CStatsPred(const CStatsPred &) = delete;
+
 	// ctor
 	explicit CStatsPred(ULONG colid) : m_colid(colid)
 	{

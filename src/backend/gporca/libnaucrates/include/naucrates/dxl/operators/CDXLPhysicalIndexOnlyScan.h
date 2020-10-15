@@ -31,9 +31,9 @@ namespace gpdxl
 class CDXLPhysicalIndexOnlyScan : public CDXLPhysicalIndexScan
 {
 private:
+public:
 	CDXLPhysicalIndexOnlyScan(CDXLPhysicalIndexOnlyScan &) = delete;
 
-public:
 	//ctor
 	CDXLPhysicalIndexOnlyScan(CMemoryPool *mp, CDXLTableDescr *table_descr,
 							  CDXLIndexDescr *dxl_index_descr,

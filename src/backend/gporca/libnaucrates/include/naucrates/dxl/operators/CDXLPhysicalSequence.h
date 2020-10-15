@@ -30,9 +30,9 @@ namespace gpdxl
 class CDXLPhysicalSequence : public CDXLPhysical
 {
 private:
+public:
 	CDXLPhysicalSequence(CDXLPhysicalSequence &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalSequence(CMemoryPool *mp);
 

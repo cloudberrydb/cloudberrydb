@@ -28,8 +28,6 @@ namespace gpopt
 class CWindowPreprocessor
 {
 private:
-	CWindowPreprocessor(const CWindowPreprocessor &) = delete;
-
 	// iterate over project elements and split them elements between Distinct Aggs
 	// list, and Others list
 	static void SplitPrjList(CMemoryPool *mp, CExpression *pexprSeqPrj,
@@ -59,6 +57,8 @@ private:
 										 CExpression *pexprSeqPrj);
 
 public:
+	CWindowPreprocessor(const CWindowPreprocessor &) = delete;
+
 	// main driver
 	static CExpression *PexprPreprocess(CMemoryPool *mp, CExpression *pexpr);
 

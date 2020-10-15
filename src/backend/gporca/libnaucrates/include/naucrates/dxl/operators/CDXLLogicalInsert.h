@@ -39,9 +39,9 @@ private:
 	// list of source column ids
 	ULongPtrArray *m_src_colids_array;
 
+public:
 	CDXLLogicalInsert(const CDXLLogicalInsert &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLLogicalInsert(CMemoryPool *mp, CDXLTableDescr *table_descr,
 					  ULongPtrArray *src_colids_array);

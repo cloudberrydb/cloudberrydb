@@ -46,8 +46,6 @@ private:
 	// does the window spec have a frame definition
 	BOOL m_has_window_frame;
 
-	CParseHandlerWindowSpec(const CParseHandlerWindowSpec &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -64,6 +62,8 @@ private:
 	);
 
 public:
+	CParseHandlerWindowSpec(const CParseHandlerWindowSpec &) = delete;
+
 	// ctor
 	CParseHandlerWindowSpec(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

@@ -46,9 +46,9 @@ private:
 	// boolean operator
 	EBoolOperator m_eboolop;
 
+public:
 	CScalarBoolOp(const CScalarBoolOp &) = delete;
 
-public:
 	// ctor
 	CScalarBoolOp(CMemoryPool *mp, EBoolOperator eboolop)
 		: CScalar(mp), m_eboolop(eboolop)

@@ -33,8 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerIndexOnlyScan : public CParseHandlerIndexScan
 {
 private:
-	CParseHandlerIndexOnlyScan(const CParseHandlerIndexOnlyScan &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -51,6 +49,8 @@ private:
 	);
 
 public:
+	CParseHandlerIndexOnlyScan(const CParseHandlerIndexOnlyScan &) = delete;
+
 	// ctor
 	CParseHandlerIndexOnlyScan(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

@@ -79,8 +79,6 @@ private:
 	// constant false
 	static BOOL m_fFalse;
 
-	CConstraint(const CConstraint &) = delete;
-
 	// return address of static BOOL constant based on passed BOOL value
 	static BOOL *
 	PfVal(BOOL value)
@@ -161,6 +159,8 @@ protected:
 												 BOOL infer_nulls_as = false);
 
 public:
+	CConstraint(const CConstraint &) = delete;
+
 	// ctor
 	explicit CConstraint(CMemoryPool *mp);
 

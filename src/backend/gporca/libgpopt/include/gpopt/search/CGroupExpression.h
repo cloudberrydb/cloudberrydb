@@ -181,8 +181,6 @@ private:
 	// print group expression cost contexts
 	IOstream &OsPrintCostContexts(IOstream &os, const CHAR *szPrefix) const;
 
-	CGroupExpression(const CGroupExpression &) = delete;
-
 	//private dummy ctor; used for creating invalid gexpr
 	CGroupExpression()
 		:
@@ -205,6 +203,8 @@ private:
 
 
 public:
+	CGroupExpression(const CGroupExpression &) = delete;
+
 	// ctor
 	CGroupExpression(CMemoryPool *mp, COperator *pop, CGroupArray *pdrgpgroup,
 					 CXform::EXformId exfid, CGroupExpression *pgexprOrigin,

@@ -28,9 +28,9 @@ namespace gpdxl
 class CDXLScalarMergeCondList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarMergeCondList(CDXLScalarMergeCondList &) = delete;
 
-public:
 	// ctor
 	explicit CDXLScalarMergeCondList(CMemoryPool *mp);
 

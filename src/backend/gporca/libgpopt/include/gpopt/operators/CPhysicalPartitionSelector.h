@@ -71,8 +71,6 @@ protected:
 							   UlongToExprMap *phmulexprSnd);
 
 private:
-	CPhysicalPartitionSelector(const CPhysicalPartitionSelector &) = delete;
-
 	// check whether part constraint maps match
 	BOOL FMatchPartCnstr(UlongToPartConstraintMap *ppartcnstrmap) const;
 
@@ -84,6 +82,8 @@ private:
 								 UlongToPartConstraintMap *ppartcnstrmapSnd);
 
 public:
+	CPhysicalPartitionSelector(const CPhysicalPartitionSelector &) = delete;
+
 	// ctor
 	CPhysicalPartitionSelector(CMemoryPool *mp, ULONG scan_id, IMDId *mdid,
 							   CColRef2dArray *pdrgpdrgpcr,

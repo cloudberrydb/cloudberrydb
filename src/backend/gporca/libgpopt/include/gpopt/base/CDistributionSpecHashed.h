@@ -74,9 +74,9 @@ private:
 
 	BOOL FDistributionSpecHashedOnlyOnGpSegmentId() const;
 
+public:
 	CDistributionSpecHashed(const CDistributionSpecHashed &) = delete;
 
-public:
 	// ctor
 	CDistributionSpecHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated,
 							IMdIdArray *opfamilies = NULL);

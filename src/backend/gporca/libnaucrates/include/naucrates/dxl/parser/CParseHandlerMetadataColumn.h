@@ -60,8 +60,6 @@ private:
 	// width of the column
 	ULONG m_width;
 
-	CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -78,6 +76,8 @@ private:
 	);
 
 public:
+	CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &) = delete;
+
 	// ctor/dtor
 	CParseHandlerMetadataColumn(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

@@ -75,9 +75,9 @@ public:
 	};
 
 private:
+public:
 	CEnfdProp(const CEnfdProp &) = delete;
 
-public:
 	// ctor
 	CEnfdProp() = default;
 

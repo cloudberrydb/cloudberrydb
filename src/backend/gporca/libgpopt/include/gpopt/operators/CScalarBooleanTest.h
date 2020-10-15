@@ -51,9 +51,9 @@ private:
 	// boolean test
 	EBoolTest m_ebt;
 
+public:
 	CScalarBooleanTest(const CScalarBooleanTest &) = delete;
 
-public:
 	// ctor
 	CScalarBooleanTest(CMemoryPool *mp, EBoolTest ebt) : CScalar(mp), m_ebt(ebt)
 	{

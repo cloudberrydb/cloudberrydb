@@ -47,9 +47,9 @@ private:
 	// const values
 	CScalarConstArray *m_pdrgPconst;
 
+public:
 	CScalarArray(const CScalarArray &) = delete;
 
-public:
 	// ctor
 	CScalarArray(CMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid,
 				 BOOL is_multidimenstional);

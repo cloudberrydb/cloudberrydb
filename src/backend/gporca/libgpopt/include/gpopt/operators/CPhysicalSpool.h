@@ -27,13 +27,13 @@ namespace gpopt
 class CPhysicalSpool : public CPhysical
 {
 private:
-	CPhysicalSpool(const CPhysicalSpool &) = delete;
-
 	// true if spool is blocking - consume all input the tuples, before yielding an
 	// output tuple false if spool is streaming - stream the tuples as they come
 	BOOL m_eager;
 
 public:
+	CPhysicalSpool(const CPhysicalSpool &) = delete;
+
 	// ctor
 	explicit CPhysicalSpool(CMemoryPool *mp, BOOL eager);
 

@@ -62,8 +62,6 @@ private:
 	// constant expression evaluator
 	IConstExprEvaluator *m_pceeval;
 
-	CDefaultComparator(const CDefaultComparator &) = delete;
-
 	// construct a comparison expression from the given components and evaluate it
 	BOOL FEvalComparison(CMemoryPool *mp, const IDatum *datum1,
 						 const IDatum *datum2,
@@ -79,6 +77,8 @@ private:
 	}
 
 public:
+	CDefaultComparator(const CDefaultComparator &) = delete;
+
 	// ctor
 	CDefaultComparator(IConstExprEvaluator *pceeval);
 

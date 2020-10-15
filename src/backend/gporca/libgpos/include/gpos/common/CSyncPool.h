@@ -119,9 +119,9 @@ private:
 		return false;
 	}
 
+public:
 	CSyncPool(const CSyncPool &) = delete;
 
-public:
 	// ctor
 	CSyncPool(CMemoryPool *mp, ULONG size)
 		: m_mp(mp),

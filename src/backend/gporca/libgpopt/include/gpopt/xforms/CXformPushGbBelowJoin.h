@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformPushGbBelowJoin : public CXformExploration
 {
 private:
+public:
 	CXformPushGbBelowJoin(const CXformPushGbBelowJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformPushGbBelowJoin(CMemoryPool *mp);
 

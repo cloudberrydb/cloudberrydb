@@ -21,8 +21,6 @@ class CLogicalDynamicGet;
 class CXformJoin2IndexApply : public CXformExploration
 {
 private:
-	CXformJoin2IndexApply(const CXformJoin2IndexApply &) = delete;
-
 	// helper to add IndexApply expression to given xform results container
 	// for homogeneous b-tree indexes
 	void CreateHomogeneousBtreeIndexApplyAlternatives(
@@ -143,6 +141,8 @@ protected:
 		CMemoryPool *mp, CColRefArray *pdrgpcrOuterRefs) const = 0;
 
 public:
+	CXformJoin2IndexApply(const CXformJoin2IndexApply &) = delete;
+
 	// ctor
 	explicit CXformJoin2IndexApply(CExpression *pexprPattern)
 		: CXformExploration(pexprPattern)

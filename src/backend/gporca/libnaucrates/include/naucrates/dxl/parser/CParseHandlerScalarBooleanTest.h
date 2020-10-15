@@ -38,9 +38,6 @@ class CParseHandlerScalarBooleanTest : public CParseHandlerScalarOp
 private:
 	EdxlBooleanTestType m_dxl_boolean_test_type;
 
-	CParseHandlerScalarBooleanTest(const CParseHandlerScalarBooleanTest &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -61,6 +58,9 @@ private:
 		const XMLCh *xmlszBoolType);
 
 public:
+	CParseHandlerScalarBooleanTest(const CParseHandlerScalarBooleanTest &) =
+		delete;
+
 	// ctor
 	CParseHandlerScalarBooleanTest(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,

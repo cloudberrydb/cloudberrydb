@@ -42,9 +42,9 @@ private:
 	// predicate on partition key
 	CExpression *m_pexprPartPred;
 
+public:
 	CReqdPropRelational(const CReqdPropRelational &) = delete;
 
-public:
 	// default ctor
 	CReqdPropRelational();
 

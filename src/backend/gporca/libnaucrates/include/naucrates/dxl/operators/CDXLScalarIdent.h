@@ -35,9 +35,9 @@ private:
 	// column reference
 	CDXLColRef *m_dxl_colref;
 
+public:
 	CDXLScalarIdent(CDXLScalarIdent &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarIdent(CMemoryPool *, CDXLColRef *);
 

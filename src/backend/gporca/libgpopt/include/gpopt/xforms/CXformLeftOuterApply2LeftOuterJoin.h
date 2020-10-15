@@ -33,10 +33,10 @@ class CXformLeftOuterApply2LeftOuterJoin
 	: public CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>
 {
 private:
+public:
 	CXformLeftOuterApply2LeftOuterJoin(
 		const CXformLeftOuterApply2LeftOuterJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftOuterApply2LeftOuterJoin(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>(

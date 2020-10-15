@@ -36,8 +36,6 @@ private:
 	// deafult oids
 	CWindowOids *m_window_oids;
 
-	CParseHandlerWindowOids(const CParseHandlerWindowOids &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerWindowOids(const CParseHandlerWindowOids &) = delete;
+
 	// ctor
 	CParseHandlerWindowOids(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

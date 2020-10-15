@@ -54,9 +54,9 @@ private:
 	// double value used for statistic computation
 	CDouble m_stats_comp_val_double;
 
+public:
 	CDatumGenericGPDB(const CDatumGenericGPDB &) = delete;
 
-public:
 	// ctor
 	CDatumGenericGPDB(CMemoryPool *mp, IMDId *mdid, INT type_modifier,
 					  const void *src, ULONG size, BOOL is_null,

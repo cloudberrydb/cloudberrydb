@@ -96,9 +96,9 @@ private:
 	BOOL FNewGroup(CGroup **ppgroupTarget, CGroupExpression *pgexpr,
 				   BOOL fScalar);
 
+public:
 	CMemo(const CMemo &) = delete;
 
-public:
 	// ctor
 	explicit CMemo(CMemoryPool *mp);
 

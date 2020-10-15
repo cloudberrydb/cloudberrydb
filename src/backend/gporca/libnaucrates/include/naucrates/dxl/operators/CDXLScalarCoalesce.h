@@ -35,9 +35,9 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
+public:
 	CDXLScalarCoalesce(const CDXLScalarCoalesce &) = delete;
 
-public:
 	// ctor
 	CDXLScalarCoalesce(CMemoryPool *mp, IMDId *mdid_type);
 

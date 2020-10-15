@@ -31,9 +31,9 @@ using namespace gpos;
 class CScalarNullTest : public CScalar
 {
 private:
+public:
 	CScalarNullTest(const CScalarNullTest &) = delete;
 
-public:
 	// ctor
 	explicit CScalarNullTest(CMemoryPool *mp) : CScalar(mp)
 	{

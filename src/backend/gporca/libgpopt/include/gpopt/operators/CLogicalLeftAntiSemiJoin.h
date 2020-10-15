@@ -28,9 +28,9 @@ namespace gpopt
 class CLogicalLeftAntiSemiJoin : public CLogicalJoin
 {
 private:
+public:
 	CLogicalLeftAntiSemiJoin(const CLogicalLeftAntiSemiJoin &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftAntiSemiJoin(CMemoryPool *mp);
 

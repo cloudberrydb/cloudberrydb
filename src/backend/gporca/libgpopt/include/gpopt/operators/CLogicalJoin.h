@@ -29,8 +29,6 @@ namespace gpopt
 class CLogicalJoin : public CLogical
 {
 private:
-	CLogicalJoin(const CLogicalJoin &) = delete;
-
 protected:
 	// ctor
 	explicit CLogicalJoin(CMemoryPool *mp);
@@ -39,6 +37,8 @@ protected:
 	virtual ~CLogicalJoin() = default;
 
 public:
+	CLogicalJoin(const CLogicalJoin &) = delete;
+
 	// match function
 	virtual BOOL Matches(COperator *pop) const;
 

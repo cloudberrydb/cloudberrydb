@@ -49,8 +49,6 @@ class IConstExprEvaluator;
 class COptCtxt : public CTaskLocalStorageObject
 {
 private:
-	COptCtxt(COptCtxt &) = delete;
-
 	// shared memory pool
 	CMemoryPool *m_mp;
 
@@ -101,6 +99,8 @@ private:
 	CExpressionArray *m_direct_dispatchable_filters;
 
 public:
+	COptCtxt(COptCtxt &) = delete;
+
 	// ctor
 	COptCtxt(CMemoryPool *mp, CColumnFactory *col_factory,
 			 CMDAccessor *md_accessor, IConstExprEvaluator *pceeval,

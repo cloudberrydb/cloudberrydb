@@ -64,8 +64,6 @@ private:
 	// required ctes
 	CCTEReq *m_pcter;
 
-	CReqdPropPlan(const CReqdPropPlan &) = delete;
-
 	// combine derived part filter map from input requirements and
 	// derived plan properties in the passed context
 	CPartFilterMap *PpfmCombineDerived(CMemoryPool *mp,
@@ -75,6 +73,8 @@ private:
 									   CDrvdPropArray *pdrgpdpCtxt);
 
 public:
+	CReqdPropPlan(const CReqdPropPlan &) = delete;
+
 	// default ctor
 	CReqdPropPlan()
 		: m_pcrs(NULL),

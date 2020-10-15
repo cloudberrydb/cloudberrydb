@@ -61,9 +61,9 @@ private:
 	// width of the column, for instance  char(10) column has width 10
 	ULONG m_column_width;
 
+public:
 	CDXLColDescr(const CDXLColDescr &) = delete;
 
-public:
 	// ctor
 	CDXLColDescr(CMDName *, ULONG column_id, INT attr_no,
 				 IMDId *column_mdid_type, INT type_modifier, BOOL is_dropped,

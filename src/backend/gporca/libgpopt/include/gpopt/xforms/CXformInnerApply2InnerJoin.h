@@ -33,9 +33,9 @@ class CXformInnerApply2InnerJoin
 	: public CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>
 {
 private:
+public:
 	CXformInnerApply2InnerJoin(const CXformInnerApply2InnerJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformInnerApply2InnerJoin(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalInnerApply, CLogicalInnerJoin>(

@@ -34,10 +34,10 @@ class CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn
 							  CLogicalLeftAntiSemiJoinNotIn>
 {
 private:
+public:
 	CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn(
 		const CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftAntiSemiApplyNotIn,

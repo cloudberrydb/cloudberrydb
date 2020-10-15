@@ -34,9 +34,9 @@ private:
 	// CTE inlining cut-off
 	ULONG m_ulCTEInliningCutoff;
 
+public:
 	CCTEConfig(const CCTEConfig &) = delete;
 
-public:
 	// ctor
 	CCTEConfig(ULONG cte_inlining_cut_off)
 		: m_ulCTEInliningCutoff(cte_inlining_cut_off)

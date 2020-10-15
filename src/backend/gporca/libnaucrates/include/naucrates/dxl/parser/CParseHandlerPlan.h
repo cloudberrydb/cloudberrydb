@@ -45,9 +45,6 @@ private:
 	// the root of the parsed DXL tree constructed by the parse handler
 	CDXLNode *m_dxl_node;
 
-	// private ctor
-	CParseHandlerPlan(const CParseHandlerPlan &) = delete;
-
 	// process the end of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -64,6 +61,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerPlan(const CParseHandlerPlan &) = delete;
+
 	// ctor/dtor
 	CParseHandlerPlan(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					  CParseHandlerBase *parse_handler_root);

@@ -49,8 +49,6 @@ private:
 	GPOS_RESULT
 	FindFinished(CTask **task);
 
-	CAutoTaskProxy(const CAutoTaskProxy &) = delete;
-
 	// propagate the error from sub-task to current task
 	void PropagateError(CTask *sub_task);
 
@@ -58,6 +56,8 @@ private:
 	void CheckError(CTask *sub_task);
 
 public:
+	CAutoTaskProxy(const CAutoTaskProxy &) = delete;
+
 	// ctor
 	CAutoTaskProxy(CMemoryPool *mp, CWorkerPoolManager *m_pwpm,
 				   BOOL propagate_error = true);

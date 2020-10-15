@@ -43,8 +43,6 @@ private:
 	// was the default value seen
 	BOOL m_default_val_processed;
 
-	CParseHandlerScalarSwitch(const CParseHandlerScalarSwitch &) = delete;
-
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
@@ -56,6 +54,8 @@ private:
 					const XMLCh *const element_qname);
 
 public:
+	CParseHandlerScalarSwitch(const CParseHandlerScalarSwitch &) = delete;
+
 	// ctor
 	CParseHandlerScalarSwitch(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

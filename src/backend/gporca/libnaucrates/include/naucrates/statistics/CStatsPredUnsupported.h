@@ -38,9 +38,9 @@ private:
 	// initialize the scale factor of the predicate
 	CDouble InitScaleFactor();
 
+public:
 	CStatsPredUnsupported(const CStatsPredUnsupported &) = delete;
 
-public:
 	// ctors
 	CStatsPredUnsupported(ULONG colid,
 						  CStatsPred::EStatsCmpType stats_pred_type);

@@ -37,8 +37,6 @@ private:
 	// the sort operator
 	CDXLPhysicalSort *m_dxl_op;
 
-	CParseHandlerSort(const CParseHandlerSort &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerSort(const CParseHandlerSort &) = delete;
+
 	// ctor/dtor
 	CParseHandlerSort(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					  CParseHandlerBase *parse_handler_root);

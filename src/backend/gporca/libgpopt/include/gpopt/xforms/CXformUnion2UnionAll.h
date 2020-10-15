@@ -35,9 +35,9 @@ using namespace gpos;
 class CXformUnion2UnionAll : public CXformExploration
 {
 private:
+public:
 	CXformUnion2UnionAll(const CXformUnion2UnionAll &) = delete;
 
-public:
 	// ctor
 	explicit CXformUnion2UnionAll(CMemoryPool *mp);
 

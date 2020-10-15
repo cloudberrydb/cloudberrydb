@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformGbAgg2ScalarAgg : public CXformImplementation
 {
 private:
+public:
 	CXformGbAgg2ScalarAgg(const CXformGbAgg2ScalarAgg &) = delete;
 
-public:
 	// ctor
 	CXformGbAgg2ScalarAgg(CMemoryPool *mp);
 

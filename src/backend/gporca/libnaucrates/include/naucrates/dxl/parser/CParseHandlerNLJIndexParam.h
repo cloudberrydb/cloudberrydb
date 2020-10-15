@@ -36,8 +36,6 @@ private:
 	// column reference
 	CDXLColRef *m_nest_param_colref_dxl;
 
-	CParseHandlerNLJIndexParam(const CParseHandlerNLJIndexParam &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerNLJIndexParam(const CParseHandlerNLJIndexParam &) = delete;
+
 	// ctor/dtor
 	CParseHandlerNLJIndexParam(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_manager,

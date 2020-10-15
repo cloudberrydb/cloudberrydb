@@ -31,10 +31,10 @@ namespace gpopt
 class CLogicalLeftAntiSemiCorrelatedApply : public CLogicalLeftAntiSemiApply
 {
 private:
+public:
 	CLogicalLeftAntiSemiCorrelatedApply(
 		const CLogicalLeftAntiSemiCorrelatedApply &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftAntiSemiCorrelatedApply(CMemoryPool *mp)
 		: CLogicalLeftAntiSemiApply(mp)

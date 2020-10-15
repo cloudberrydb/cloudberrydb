@@ -47,9 +47,9 @@ private:
 	// return type id
 	IMDId *m_mdid_type;
 
+public:
 	CScalarArrayRef(const CScalarArrayRef &) = delete;
 
-public:
 	// ctor
 	CScalarArrayRef(CMemoryPool *mp, IMDId *elem_type_mdid, INT type_modifier,
 					IMDId *array_type_mdid, IMDId *return_type_mdid);

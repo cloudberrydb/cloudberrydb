@@ -37,7 +37,6 @@ class CParseHandlerScalarOpExpr : public CParseHandlerScalarOp
 {
 private:
 	ULONG m_num_of_children;
-	CParseHandlerScalarOpExpr(const CParseHandlerScalarOpExpr &) = delete;
 
 	// process the start of an element
 	void StartElement(
@@ -55,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarOpExpr(const CParseHandlerScalarOpExpr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerScalarOpExpr(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

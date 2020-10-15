@@ -101,8 +101,6 @@ private:
 	// cost model params
 	ICostModelParams *m_cost_model_params;
 
-	CParseHandlerDXL(const CParseHandlerDXL &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -155,6 +153,8 @@ private:
 	static BOOL IsValidStartElement(const XMLCh *const element_name);
 
 public:
+	CParseHandlerDXL(const CParseHandlerDXL &) = delete;
+
 	// ctor
 	CParseHandlerDXL(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr);
 

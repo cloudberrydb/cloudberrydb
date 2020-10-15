@@ -31,9 +31,9 @@ private:
 	// file size
 	ULLONG m_file_size;
 
+public:
 	CFileWriter(const CFileWriter &) = delete;
 
-public:
 	// ctor
 	CFileWriter();
 

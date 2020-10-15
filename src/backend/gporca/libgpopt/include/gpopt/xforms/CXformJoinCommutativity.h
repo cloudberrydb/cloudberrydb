@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformJoinCommutativity : public CXformExploration
 {
 private:
+public:
 	CXformJoinCommutativity(const CXformJoinCommutativity &) = delete;
 
-public:
 	// ctor
 	explicit CXformJoinCommutativity(CMemoryPool *mp);
 

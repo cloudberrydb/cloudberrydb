@@ -30,9 +30,9 @@ private:
 	// cte id
 	ULONG m_id;
 
+public:
 	CDXLLogicalCTEAnchor(CDXLLogicalCTEAnchor &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalCTEAnchor(CMemoryPool *mp, ULONG id);
 

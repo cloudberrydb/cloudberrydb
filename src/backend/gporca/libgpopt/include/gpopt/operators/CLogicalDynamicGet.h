@@ -32,9 +32,9 @@ class CColRefSet;
 class CLogicalDynamicGet : public CLogicalDynamicGetBase
 {
 private:
+public:
 	CLogicalDynamicGet(const CLogicalDynamicGet &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalDynamicGet(CMemoryPool *mp);
 

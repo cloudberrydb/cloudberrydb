@@ -62,8 +62,6 @@ private:
 	// report logging failure
 	void ReportFailure();
 
-	CLogger(const CLogger &) = delete;
-
 protected:
 	// accessor for system error buffer
 	CHAR *
@@ -73,6 +71,8 @@ protected:
 	}
 
 public:
+	CLogger(const CLogger &) = delete;
+
 	// ctor
 	explicit CLogger(ErrorInfoLevel info_level = ILogger::EeilMsgHeaderStack);
 

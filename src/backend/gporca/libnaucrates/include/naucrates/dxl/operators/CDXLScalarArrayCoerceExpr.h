@@ -43,9 +43,9 @@ private:
 	// conversion semantics flag to pass to func
 	BOOL m_explicit;
 
+public:
 	CDXLScalarArrayCoerceExpr(const CDXLScalarArrayCoerceExpr &) = delete;
 
-public:
 	CDXLScalarArrayCoerceExpr(CMemoryPool *mp, IMDId *coerce_func_mdid,
 							  IMDId *result_type_mdid, INT type_modifier,
 							  BOOL is_explicit, EdxlCoercionForm coerce_format,

@@ -69,9 +69,9 @@ private:
 	// tuple oid column if one exists
 	CColRef *m_pcrTupleOid;
 
+public:
 	CLogicalDML(const CLogicalDML &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalDML(CMemoryPool *mp);
 

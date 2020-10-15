@@ -61,8 +61,6 @@ private:
 	// needs data to be sorted
 	BOOL m_input_sort_req;
 
-	CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -82,6 +80,8 @@ private:
 	static EdxlDmlType GetDmlOpType(const XMLCh *xmlszDmlType);
 
 public:
+	CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalDML(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

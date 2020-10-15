@@ -37,21 +37,6 @@ CMessageRepository::CMessageRepository(CMemoryPool *mp) : m_mp(mp)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMessageRepository::CMessageRepository
-//
-//	@doc:
-//		dtor
-//
-//---------------------------------------------------------------------------
-CMessageRepository::~CMessageRepository()
-{
-	// no explicit cleanup;
-	// shutdown routine will reclaim all memory
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CMessageRepository::LookupMessage
 //
 //	@doc:

@@ -49,9 +49,9 @@ private:
 	// memory pool
 	CMemoryPool *m_mp;
 
+public:
 	CMDProviderRelcache(const CMDProviderRelcache &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CMDProviderRelcache(CMemoryPool *mp);
 

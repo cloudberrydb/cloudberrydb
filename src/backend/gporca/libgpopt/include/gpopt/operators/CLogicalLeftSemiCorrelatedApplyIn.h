@@ -29,10 +29,10 @@ namespace gpopt
 class CLogicalLeftSemiCorrelatedApplyIn : public CLogicalLeftSemiApplyIn
 {
 private:
+public:
 	CLogicalLeftSemiCorrelatedApplyIn(
 		const CLogicalLeftSemiCorrelatedApplyIn &) = delete;
 
-public:
 	// ctor for patterns
 	explicit CLogicalLeftSemiCorrelatedApplyIn(CMemoryPool *mp);
 

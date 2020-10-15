@@ -223,8 +223,6 @@ private:
 	// this time is currently dominated by serialization time
 	CDouble m_dFetchTime;
 
-	CMDAccessor(const CMDAccessor &) = delete;
-
 	// interface to a MD cache object
 	const IMDCacheObject *GetImdObj(IMDId *mdid);
 
@@ -270,6 +268,8 @@ private:
 					 const CDXLDatum *dxl_datum);
 
 public:
+	CMDAccessor(const CMDAccessor &) = delete;
+
 	// ctors
 	CMDAccessor(CMemoryPool *mp, MDCache *pcache);
 	CMDAccessor(CMemoryPool *mp, MDCache *pcache, CSystemId sysid,

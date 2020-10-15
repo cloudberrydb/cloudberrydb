@@ -41,9 +41,9 @@ private:
 	// location
 	INT m_location;
 
+public:
 	CMDArrayCoerceCastGPDB(const CMDArrayCoerceCastGPDB &) = delete;
 
-public:
 	// ctor
 	CMDArrayCoerceCastGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 						   IMDId *mdid_src, IMDId *mdid_dest,

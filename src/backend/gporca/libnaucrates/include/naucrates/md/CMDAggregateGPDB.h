@@ -63,9 +63,9 @@ class CMDAggregateGPDB : public IMDAggregate
 	// is aggregate hash capable
 	BOOL m_hash_agg_capable;
 
+public:
 	CMDAggregateGPDB(const CMDAggregateGPDB &) = delete;
 
-public:
 	// ctor
 	CMDAggregateGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 					 IMDId *result_type_mdid,

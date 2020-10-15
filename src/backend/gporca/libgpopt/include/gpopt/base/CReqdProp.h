@@ -77,9 +77,9 @@ public:
 	};
 
 private:
+public:
 	CReqdProp(const CReqdProp &) = delete;
 
-public:
 	// ctor
 	CReqdProp();
 

@@ -33,10 +33,10 @@ private:
 	// origin subquery id
 	EOperatorId m_eopidOriginSubq;
 
+public:
 	CPhysicalCorrelatedInnerNLJoin(const CPhysicalCorrelatedInnerNLJoin &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalCorrelatedInnerNLJoin(CMemoryPool *mp, CColRefArray *pdrgpcrInner,
 								   EOperatorId eopidOriginSubq)

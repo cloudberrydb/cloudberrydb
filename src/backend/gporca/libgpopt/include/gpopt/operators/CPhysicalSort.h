@@ -35,9 +35,9 @@ private:
 	// columns used by order spec
 	CColRefSet *m_pcrsSort;
 
+public:
 	CPhysicalSort(const CPhysicalSort &) = delete;
 
-public:
 	// ctor
 	CPhysicalSort(CMemoryPool *mp, COrderSpec *pos);
 

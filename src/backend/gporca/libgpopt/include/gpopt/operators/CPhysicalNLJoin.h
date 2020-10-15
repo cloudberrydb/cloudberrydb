@@ -28,8 +28,6 @@ namespace gpopt
 class CPhysicalNLJoin : public CPhysicalJoin
 {
 private:
-	CPhysicalNLJoin(const CPhysicalNLJoin &) = delete;
-
 protected:
 	// helper function for computing the required partition propagation
 	// spec for the children of a nested loop join
@@ -39,6 +37,8 @@ protected:
 		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq);
 
 public:
+	CPhysicalNLJoin(const CPhysicalNLJoin &) = delete;
+
 	// ctor
 	explicit CPhysicalNLJoin(CMemoryPool *mp);
 

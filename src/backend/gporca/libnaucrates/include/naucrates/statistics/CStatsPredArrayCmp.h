@@ -31,17 +31,16 @@ using namespace gpopt;
 class CStatsPredArrayCmp : public CStatsPred
 {
 private:
-	CStatsPredArrayCmp(const CStatsPredArrayCmp &) = delete;
-
-	// private assignment operator
-	CStatsPredArrayCmp &operator=(CStatsPredArrayCmp &) = delete;
-
 	// comparison type
 	CStatsPred::EStatsCmpType m_stats_cmp_type;
 
 	CPointArray *m_points;
 
 public:
+	CStatsPredArrayCmp &operator=(CStatsPredArrayCmp &) = delete;
+
+	CStatsPredArrayCmp(const CStatsPredArrayCmp &) = delete;
+
 	// ctor
 	CStatsPredArrayCmp(ULONG colid, CStatsPred::EStatsCmpType stats_cmp_type,
 					   CPointArray *points);

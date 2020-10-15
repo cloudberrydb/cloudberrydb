@@ -40,8 +40,6 @@ private:
 	// min/max type
 	CDXLScalarMinMax::EdxlMinMaxType m_min_max_type;
 
-	CParseHandlerScalarMinMax(const CParseHandlerScalarMinMax &) = delete;
-
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
@@ -57,6 +55,8 @@ private:
 		const XMLCh *element_local_name);
 
 public:
+	CParseHandlerScalarMinMax(const CParseHandlerScalarMinMax &) = delete;
+
 	// ctor
 	CParseHandlerScalarMinMax(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

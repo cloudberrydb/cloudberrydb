@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformMaxOneRow2Assert : public CXformExploration
 {
 private:
+public:
 	CXformMaxOneRow2Assert(const CXformMaxOneRow2Assert &) = delete;
 
-public:
 	// ctor
 	explicit CXformMaxOneRow2Assert(CMemoryPool *mp);
 

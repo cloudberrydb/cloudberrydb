@@ -58,8 +58,6 @@ private:
 	// private ctor
 	explicit CXformFactory(CMemoryPool *mp);
 
-	CXformFactory(const CXformFactory &) = delete;
-
 	// actual adding of xform
 	void Add(CXform *pxform);
 
@@ -72,6 +70,8 @@ private:
 	}
 
 public:
+	CXformFactory(const CXformFactory &) = delete;
+
 	// dtor
 	~CXformFactory();
 

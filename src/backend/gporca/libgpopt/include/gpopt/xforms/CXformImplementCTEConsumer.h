@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementCTEConsumer : public CXformImplementation
 {
 private:
+public:
 	CXformImplementCTEConsumer(const CXformImplementCTEConsumer &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementCTEConsumer(CMemoryPool *mp);
 

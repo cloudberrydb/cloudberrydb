@@ -55,8 +55,6 @@ private:
 	// does the interval include the null value
 	BOOL m_fIncludesNull;
 
-	CConstraintInterval(const CConstraintInterval &) = delete;
-
 	// adds ranges from a source array to a destination array, starting
 	// at the range with the given index
 	void AddRemainingRanges(CMemoryPool *mp, CRangeArray *pdrgprngSrc,
@@ -117,6 +115,8 @@ private:
 	CExpression *PexprConstructArrayScalar(CMemoryPool *mp, bool isIn) const;
 
 public:
+	CConstraintInterval(const CConstraintInterval &) = delete;
+
 	// ctor
 	CConstraintInterval(CMemoryPool *mp, const CColRef *colref,
 						CRangeArray *pdrgprng, BOOL is_null);

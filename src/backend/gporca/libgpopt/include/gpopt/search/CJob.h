@@ -219,8 +219,6 @@ private:
 	}
 #endif	// GPOS_DEBUG
 
-	CJob(const CJob &) = delete;
-
 protected:
 	// id accessor
 	ULONG
@@ -269,6 +267,8 @@ protected:
 	}
 
 public:
+	CJob(const CJob &) = delete;
+
 	// actual job execution given a scheduling context
 	// returns true if job completes, false if it is suspended
 	virtual BOOL FExecute(CSchedulerContext *psc) = 0;

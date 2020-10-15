@@ -30,9 +30,9 @@ class CDistributionSpec;
 class CPhysicalHashAgg : public CPhysicalAgg
 {
 private:
+public:
 	CPhysicalHashAgg(const CPhysicalHashAgg &) = delete;
 
-public:
 	// ctor
 	CPhysicalHashAgg(CMemoryPool *mp, CColRefArray *colref_array,
 					 CColRefArray *pdrgpcrMinimal,

@@ -39,8 +39,6 @@ private:
 	// xform referred to by XML node
 	CXform *m_xform;
 
-	CParseHandlerXform(const CParseHandlerXform &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -57,6 +55,8 @@ private:
 	);
 
 public:
+	CParseHandlerXform(const CParseHandlerXform &) = delete;
+
 	// ctor
 	CParseHandlerXform(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					   CParseHandlerBase *parse_handler_root);

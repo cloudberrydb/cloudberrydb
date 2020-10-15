@@ -61,8 +61,6 @@ private:
 	// is the column statistics missing in the database
 	BOOL m_is_column_stats_missing;
 
-	CParseHandlerColStats(const CParseHandlerColStats &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -79,6 +77,8 @@ private:
 	);
 
 public:
+	CParseHandlerColStats(const CParseHandlerColStats &) = delete;
+
 	// ctor
 	CParseHandlerColStats(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

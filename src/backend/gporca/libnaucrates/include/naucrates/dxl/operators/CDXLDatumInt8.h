@@ -42,9 +42,9 @@ private:
 	// long int value
 	LINT m_val;
 
+public:
 	CDXLDatumInt8(const CDXLDatumInt8 &) = delete;
 
-public:
 	// ctor
 	CDXLDatumInt8(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, LINT val);
 

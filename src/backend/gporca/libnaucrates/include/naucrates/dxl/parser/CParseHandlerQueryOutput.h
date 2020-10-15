@@ -37,8 +37,6 @@ private:
 	// list of scalar ident nodes representing the query output
 	CDXLNodeArray *m_dxl_array;
 
-	CParseHandlerQueryOutput(const CParseHandlerQueryOutput &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerQueryOutput(const CParseHandlerQueryOutput &) = delete;
+
 	// ctor/dtor
 	CParseHandlerQueryOutput(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

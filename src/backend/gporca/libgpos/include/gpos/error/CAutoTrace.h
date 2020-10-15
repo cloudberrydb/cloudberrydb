@@ -37,9 +37,9 @@ private:
 	// string stream
 	COstreamString m_os;
 
+public:
 	CAutoTrace(const CAutoTrace &) = delete;
 
-public:
 	// ctor
 	explicit CAutoTrace(CMemoryPool *mp);
 

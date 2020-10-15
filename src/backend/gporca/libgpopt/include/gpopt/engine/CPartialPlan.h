@@ -54,8 +54,6 @@ private:
 	// index of known child plan
 	ULONG m_ulChildIndex;
 
-	CPartialPlan(const CPartialPlan &) = delete;
-
 	// extract costing info from children
 	void ExtractChildrenCostingInfo(CMemoryPool *mp, ICostModel *pcm,
 									CExpressionHandle &exprhdl,
@@ -65,6 +63,8 @@ private:
 	void RaiseExceptionIfStatsNull(IStatistics *stats);
 
 public:
+	CPartialPlan(const CPartialPlan &) = delete;
+
 	// ctor
 	CPartialPlan(CGroupExpression *pgexpr, CReqdPropPlan *prpp,
 				 CCostContext *pccChild, ULONG child_index);

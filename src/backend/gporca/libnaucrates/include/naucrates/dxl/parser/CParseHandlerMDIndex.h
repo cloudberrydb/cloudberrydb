@@ -67,8 +67,6 @@ private:
 	// is constraint unbounded
 	BOOL m_part_constraint_unbounded;
 
-	CParseHandlerMDIndex(const CParseHandlerMDIndex &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -85,6 +83,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDIndex(const CParseHandlerMDIndex &) = delete;
+
 	// ctor
 	CParseHandlerMDIndex(CMemoryPool *mp,
 						 CParseHandlerManager *parse_handler_mgr,

@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementSequence : public CXformImplementation
 {
 private:
+public:
 	CXformImplementSequence(const CXformImplementSequence &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementSequence(CMemoryPool *);
 

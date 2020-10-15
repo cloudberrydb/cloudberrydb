@@ -94,14 +94,14 @@ private:
 	// insert mapping entry
 	void Insert(ULONG, ULONG, INT, ULONG, CWStringBase *str);
 
-	CMappingVarColId(const CMappingVarColId &) = delete;
-
 	// helper function to access mapping
 	const CGPDBAttOptCol *GetGPDBAttOptColMapping(
 		ULONG current_query_level, const Var *var,
 		EPlStmtPhysicalOpType plstmt_physical_op_type) const;
 
 public:
+	CMappingVarColId(const CMappingVarColId &) = delete;
+
 	// ctor
 	explicit CMappingVarColId(CMemoryPool *);
 

@@ -32,9 +32,9 @@ private:
 	// id of column computed by the subquery
 	ULONG m_colid;
 
+public:
 	CDXLScalarSubquery(CDXLScalarSubquery &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarSubquery(CMemoryPool *mp, ULONG colid);
 

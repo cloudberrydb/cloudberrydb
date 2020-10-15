@@ -37,8 +37,6 @@ private:
 	// array of partition columns used by the window functions
 	ULongPtrArray *m_part_by_colid_array;
 
-	CParseHandlerPhysicalWindow(const CParseHandlerPhysicalWindow &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalWindow(const CParseHandlerPhysicalWindow &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalWindow(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

@@ -41,9 +41,9 @@ private:
 	// optimizer col info
 	COptColInfo *m_opt_col_info;
 
+public:
 	CGPDBAttOptCol(const CGPDBAttOptCol &) = delete;
 
-public:
 	// ctor
 	CGPDBAttOptCol(CGPDBAttInfo *gpdb_att_info, COptColInfo *opt_col_info)
 		: m_gpdb_att_info(gpdb_att_info), m_opt_col_info(opt_col_info)

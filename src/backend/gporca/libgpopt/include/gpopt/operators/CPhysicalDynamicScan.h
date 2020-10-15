@@ -61,9 +61,9 @@ private:
 	// relation part constraint
 	CPartConstraint *m_ppartcnstrRel;
 
+public:
 	CPhysicalDynamicScan(const CPhysicalDynamicScan &) = delete;
 
-public:
 	// ctor
 	CPhysicalDynamicScan(CMemoryPool *mp, BOOL is_partial,
 						 CTableDescriptor *ptabdesc, ULONG ulOriginOpId,

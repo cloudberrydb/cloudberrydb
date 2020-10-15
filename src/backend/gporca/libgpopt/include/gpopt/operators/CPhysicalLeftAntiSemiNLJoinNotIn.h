@@ -27,10 +27,10 @@ namespace gpopt
 class CPhysicalLeftAntiSemiNLJoinNotIn : public CPhysicalLeftAntiSemiNLJoin
 {
 private:
+public:
 	CPhysicalLeftAntiSemiNLJoinNotIn(const CPhysicalLeftAntiSemiNLJoinNotIn &) =
 		delete;
 
-public:
 	// ctor
 	explicit CPhysicalLeftAntiSemiNLJoinNotIn(CMemoryPool *mp)
 		: CPhysicalLeftAntiSemiNLJoin(mp)

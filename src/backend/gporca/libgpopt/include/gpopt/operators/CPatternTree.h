@@ -29,9 +29,9 @@ using namespace gpos;
 class CPatternTree : public CPattern
 {
 private:
+public:
 	CPatternTree(const CPatternTree &) = delete;
 
-public:
 	// ctor
 	explicit CPatternTree(CMemoryPool *mp) : CPattern(mp)
 	{

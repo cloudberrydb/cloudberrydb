@@ -42,9 +42,9 @@ private:
 	// number of levels
 	ULONG m_num_of_part_levels;
 
+public:
 	CPartKeys(const CPartKeys &) = delete;
 
-public:
 	// ctor
 	explicit CPartKeys(CColRef2dArray *pdrgpdrgpcr);
 

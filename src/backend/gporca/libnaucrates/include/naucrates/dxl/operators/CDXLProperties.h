@@ -40,13 +40,13 @@ private:
 	// derived statistics
 	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
-	CDXLProperties(const CDXLProperties &) = delete;
-
 protected:
 	// serialize statistics in DXL format
 	void SerializeStatsToDXL(CXMLSerializer *xml_serializer) const;
 
 public:
+	CDXLProperties(const CDXLProperties &) = delete;
+
 	// ctor
 	explicit CDXLProperties();
 

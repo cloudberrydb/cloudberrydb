@@ -36,8 +36,6 @@ private:
 	// list of window specifications
 	CDXLWindowSpecArray *m_window_spec_array;
 
-	CParseHandlerWindowSpecList(const CParseHandlerWindowSpecList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerWindowSpecList(const CParseHandlerWindowSpecList &) = delete;
+
 	// ctor
 	CParseHandlerWindowSpecList(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

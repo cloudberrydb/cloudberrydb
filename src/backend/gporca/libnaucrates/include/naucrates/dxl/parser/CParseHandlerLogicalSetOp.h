@@ -47,8 +47,6 @@ private:
 	// do the columns across inputs need to be casted
 	BOOL m_cast_across_input_req;
 
-	CParseHandlerLogicalSetOp(const CParseHandlerLogicalSetOp &) = delete;
-
 	// return the set operation type
 	EdxlSetOpType GetSetOpType(const XMLCh *const element_local_name);
 
@@ -68,6 +66,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalSetOp(const CParseHandlerLogicalSetOp &) = delete;
+
 	// ctor
 	CParseHandlerLogicalSetOp(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

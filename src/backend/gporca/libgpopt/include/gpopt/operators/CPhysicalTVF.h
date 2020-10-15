@@ -46,9 +46,9 @@ private:
 	// output columns
 	CColRefSet *m_pcrsOutput;
 
+public:
 	CPhysicalTVF(const CPhysicalTVF &) = delete;
 
-public:
 	// ctor
 	CPhysicalTVF(CMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type,
 				 CWStringConst *str, CColumnDescriptorArray *pdrgpcoldesc,

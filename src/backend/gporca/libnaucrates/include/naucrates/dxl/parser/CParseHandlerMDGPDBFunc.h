@@ -65,8 +65,6 @@ private:
 
 	BOOL m_is_allowed_for_PS;
 
-	CParseHandlerMDGPDBFunc(const CParseHandlerMDGPDBFunc &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -89,6 +87,8 @@ private:
 	CMDFunctionGPDB::EFuncDataAcc ParseFuncDataAccess(const XMLCh *xml_val);
 
 public:
+	CParseHandlerMDGPDBFunc(const CParseHandlerMDGPDBFunc &) = delete;
+
 	// ctor
 	CParseHandlerMDGPDBFunc(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

@@ -36,9 +36,6 @@ private:
 	// column reference
 	CDXLColRef *m_dxl_colref;
 
-	CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +52,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &) =
+		delete;
+
 	// ctor/dtor
 	CParseHandlerScalarSubPlanParam(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

@@ -39,8 +39,6 @@ private:
 	// the table scan operator
 	CDXLPhysicalTableScan *m_dxl_op;
 
-	CParseHandlerTableScan(const CParseHandlerTableScan &) = delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -66,6 +64,8 @@ protected:
 					Edxltoken token_type);
 
 public:
+	CParseHandlerTableScan(const CParseHandlerTableScan &) = delete;
+
 	// ctor
 	CParseHandlerTableScan(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

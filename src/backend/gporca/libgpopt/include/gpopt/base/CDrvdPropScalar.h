@@ -93,8 +93,6 @@ private:
 	// does expression contain ScalarArrayCmp generated for "scalar op ANY/ALL (array)" construct
 	BOOL m_fHasScalarArrayCmp;
 
-	CDrvdPropScalar(const CDrvdPropScalar &) = delete;
-
 	// Have all the properties been derived?
 	//
 	// NOTE1: This is set ONLY when Derive() is called. If all the properties
@@ -130,6 +128,8 @@ protected:
 	BOOL DeriveHasScalarArrayCmp(CExpressionHandle &);
 
 public:
+	CDrvdPropScalar(const CDrvdPropScalar &) = delete;
+
 	// ctor
 	CDrvdPropScalar(CMemoryPool *mp);
 

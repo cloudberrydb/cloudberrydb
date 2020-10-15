@@ -31,8 +31,6 @@ using namespace gpos;
 class CXformGbAggWithMDQA2Join : public CXformExploration
 {
 private:
-	CXformGbAggWithMDQA2Join(const CXformGbAggWithMDQA2Join &) = delete;
-
 	static CExpression *PexprMDQAs2Join(CMemoryPool *mp, CExpression *pexpr);
 
 	// expand GbAgg with multiple distinct aggregates into a join of single distinct
@@ -43,6 +41,8 @@ private:
 	static CExpression *PexprTransform(CMemoryPool *mp, CExpression *pexpr);
 
 public:
+	CXformGbAggWithMDQA2Join(const CXformGbAggWithMDQA2Join &) = delete;
+
 	// ctor
 	explicit CXformGbAggWithMDQA2Join(CMemoryPool *mp);
 

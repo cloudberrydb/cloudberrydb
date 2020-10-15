@@ -81,12 +81,11 @@ typedef CHashMap<INT, ULONG, gpos::HashValue<INT>, gpos::Equals<INT>,
 class IStatistics : public CRefCount
 {
 private:
-	IStatistics(const IStatistics &) = delete;
-
-	// private assignment operator
+public:
 	IStatistics &operator=(IStatistics &) = delete;
 
-public:
+	IStatistics(const IStatistics &) = delete;
+
 	enum EStatsJoinType
 	{
 		EsjtInnerJoin,

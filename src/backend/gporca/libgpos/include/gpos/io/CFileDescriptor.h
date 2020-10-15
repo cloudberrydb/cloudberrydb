@@ -33,8 +33,6 @@ private:
 	// file descriptor
 	INT m_file_descriptor;
 
-	CFileDescriptor(const CFileDescriptor &) = delete;
-
 protected:
 	// ctor -- accessible through inheritance only
 	CFileDescriptor();
@@ -56,6 +54,8 @@ protected:
 	void CloseFile();
 
 public:
+	CFileDescriptor(const CFileDescriptor &) = delete;
+
 	// check if file is open
 	BOOL
 	IsFileOpen() const

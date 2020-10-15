@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementLimit : public CXformImplementation
 {
 private:
+public:
 	CXformImplementLimit(const CXformImplementLimit &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementLimit(CMemoryPool *mp);
 

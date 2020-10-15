@@ -33,9 +33,9 @@ using namespace gpos;
 class CXformExpandNAryJoinGreedy : public CXformExploration
 {
 private:
+public:
 	CXformExpandNAryJoinGreedy(const CXformExpandNAryJoinGreedy &) = delete;
 
-public:
 	// ctor
 	explicit CXformExpandNAryJoinGreedy(CMemoryPool *pmp);
 

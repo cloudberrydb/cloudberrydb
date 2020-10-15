@@ -58,10 +58,10 @@ private:
 		// dummy value to return
 		INT m_val;
 
+	public:
 		CDummyConstDXLNodeEvaluator(const CDummyConstDXLNodeEvaluator &) =
 			delete;
 
-	public:
 		// ctor
 		CDummyConstDXLNodeEvaluator(CMemoryPool *mp, CMDAccessor *md_accessor,
 									INT val)

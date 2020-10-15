@@ -35,9 +35,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerOp : public CParseHandlerBase
 {
 private:
-	CParseHandlerOp(const CParseHandlerOp &) = delete;
-
-
 protected:
 	// the root of the parsed DXL tree constructed by the parse handler
 	CDXLNode *m_dxl_node;
@@ -46,6 +43,8 @@ protected:
 	void AddChildFromParseHandler(const CParseHandlerOp *);
 
 public:
+	CParseHandlerOp(const CParseHandlerOp &) = delete;
+
 	// ctor/dtor
 	CParseHandlerOp(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					CParseHandlerBase *parse_handler_root);

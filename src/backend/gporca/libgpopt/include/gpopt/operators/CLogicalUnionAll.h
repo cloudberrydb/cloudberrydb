@@ -33,9 +33,9 @@ private:
 	// id, otherwise this will be gpos::ulong_max
 	ULONG m_ulScanIdPartialIndex;
 
+public:
 	CLogicalUnionAll(const CLogicalUnionAll &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalUnionAll(CMemoryPool *mp);
 

@@ -33,9 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarBitmapIndexProbe : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarBitmapIndexProbe(
-		const CParseHandlerScalarBitmapIndexProbe &) = delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +49,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarBitmapIndexProbe(
+		const CParseHandlerScalarBitmapIndexProbe &) = delete;
+
 	// ctor
 	CParseHandlerScalarBitmapIndexProbe(CMemoryPool *mp,
 										CParseHandlerManager *parse_handler_mgr,

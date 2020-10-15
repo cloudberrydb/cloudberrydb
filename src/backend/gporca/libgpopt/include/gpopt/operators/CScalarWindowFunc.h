@@ -66,9 +66,9 @@ private:
 	// aggregate window function, e.g. count(*) over()
 	BOOL m_fAgg;
 
+public:
 	CScalarWindowFunc(const CScalarWindowFunc &) = delete;
 
-public:
 	// ctor
 	CScalarWindowFunc(CMemoryPool *mp, IMDId *mdid_func,
 					  IMDId *mdid_return_type, const CWStringConst *pstrFunc,

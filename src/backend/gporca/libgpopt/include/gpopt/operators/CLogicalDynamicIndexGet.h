@@ -44,9 +44,9 @@ private:
 	// order spec
 	COrderSpec *m_pos;
 
+public:
 	CLogicalDynamicIndexGet(const CLogicalDynamicIndexGet &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalDynamicIndexGet(CMemoryPool *mp);
 

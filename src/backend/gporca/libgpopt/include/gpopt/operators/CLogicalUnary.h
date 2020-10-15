@@ -36,8 +36,6 @@ class CColRefSet;
 class CLogicalUnary : public CLogical
 {
 private:
-	CLogicalUnary(const CLogicalUnary &) = delete;
-
 protected:
 	// derive statistics for projection operators
 	IStatistics *PstatsDeriveProject(CMemoryPool *mp,
@@ -45,6 +43,8 @@ protected:
 									 UlongToIDatumMap *phmuldatum = NULL) const;
 
 public:
+	CLogicalUnary(const CLogicalUnary &) = delete;
+
 	// ctor
 	explicit CLogicalUnary(CMemoryPool *mp) : CLogical(mp)
 	{

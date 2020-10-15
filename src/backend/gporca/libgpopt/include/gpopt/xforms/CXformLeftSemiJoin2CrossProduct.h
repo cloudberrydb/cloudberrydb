@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformLeftSemiJoin2CrossProduct : public CXformExploration
 {
 private:
+public:
 	CXformLeftSemiJoin2CrossProduct(const CXformLeftSemiJoin2CrossProduct &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformLeftSemiJoin2CrossProduct(CMemoryPool *mp);
 

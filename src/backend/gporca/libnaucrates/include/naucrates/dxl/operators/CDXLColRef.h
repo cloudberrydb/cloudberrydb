@@ -56,9 +56,9 @@ private:
 	// column type modifier
 	INT m_iTypeModifer;
 
+public:
 	CDXLColRef(const CDXLColRef &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLColRef(CMDName *mdname, ULONG id, IMDId *mdid_type, INT type_modifier);
 

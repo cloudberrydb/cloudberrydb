@@ -41,9 +41,9 @@ class CDXLLogicalLimit : public CDXLLogical
 private:
 	BOOL m_top_limit_under_dml;
 
+public:
 	CDXLLogicalLimit(CDXLLogicalLimit &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLLogicalLimit(CMemoryPool *mp, BOOL fNonRemovableLimit);
 

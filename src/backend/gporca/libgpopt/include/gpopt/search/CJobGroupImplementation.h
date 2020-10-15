@@ -72,9 +72,9 @@ private:
 	// implement child group expressions action
 	static EEvent EevtImplementChildren(CSchedulerContext *psc, CJob *pj);
 
+public:
 	CJobGroupImplementation(const CJobGroupImplementation &) = delete;
 
-public:
 	// ctor
 	CJobGroupImplementation();
 

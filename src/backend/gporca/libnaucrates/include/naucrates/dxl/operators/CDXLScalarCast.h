@@ -44,9 +44,9 @@ private:
 	// catalog MDId of the function implementing the casting
 	IMDId *m_func_mdid;
 
+public:
 	CDXLScalarCast(const CDXLScalarCast &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarCast(CMemoryPool *mp, IMDId *mdid_type, IMDId *func_mdid);
 

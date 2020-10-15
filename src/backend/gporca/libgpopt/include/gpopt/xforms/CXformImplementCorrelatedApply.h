@@ -32,11 +32,10 @@ template <class TLogicalApply, class TPhysicalJoin>
 class CXformImplementCorrelatedApply : public CXformImplementation
 {
 private:
+public:
 	CXformImplementCorrelatedApply(const CXformImplementCorrelatedApply &) =
 		delete;
 
-
-public:
 	// ctor
 	explicit CXformImplementCorrelatedApply(CMemoryPool *mp)
 		:  // pattern

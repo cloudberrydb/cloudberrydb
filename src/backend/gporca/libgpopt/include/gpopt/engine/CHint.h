@@ -49,9 +49,9 @@ private:
 
 	ULONG m_ulPushGroupByBelowSetopThreshold;
 
+public:
 	CHint(const CHint &) = delete;
 
-public:
 	// ctor
 	CHint(ULONG min_num_of_parts_to_require_sort_on_insert,
 		  ULONG join_arity_for_associativity_commutativity,

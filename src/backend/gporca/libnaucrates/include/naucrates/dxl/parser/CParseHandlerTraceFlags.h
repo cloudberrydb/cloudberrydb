@@ -42,8 +42,6 @@ private:
 	// trace flag bitset
 	CBitSet *m_trace_flags_bitset;
 
-	CParseHandlerTraceFlags(const CParseHandlerTraceFlags &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerTraceFlags(const CParseHandlerTraceFlags &) = delete;
+
 	// ctor/dtor
 	CParseHandlerTraceFlags(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

@@ -35,8 +35,6 @@ class CParseHandlerAppend : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalAppend *m_dxl_op;
 
-	CParseHandlerAppend(const CParseHandlerAppend &) = delete;
-
 	// set up initial handlers
 	void SetupInitialHandlers(const Attributes &attrs);
 
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerAppend(const CParseHandlerAppend &) = delete;
+
 	// ctor/dtor
 	CParseHandlerAppend(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

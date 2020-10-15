@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementConstTableGet : public CXformImplementation
 {
 private:
+public:
 	CXformImplementConstTableGet(const CXformImplementConstTableGet &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementConstTableGet(CMemoryPool *);
 

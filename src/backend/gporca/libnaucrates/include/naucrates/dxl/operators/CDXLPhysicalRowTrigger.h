@@ -45,9 +45,9 @@ private:
 	// new column ids
 	ULongPtrArray *m_colids_new;
 
+public:
 	CDXLPhysicalRowTrigger(const CDXLPhysicalRowTrigger &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalRowTrigger(CMemoryPool *mp, IMDId *rel_mdid, INT type,
 						   ULongPtrArray *colids_old,

@@ -62,9 +62,9 @@ private:
 		// own objects
 		BOOL m_owns_objects;
 
+	public:
 		CHashMapElem(const CHashMapElem &) = delete;
 
-	public:
 		// ctor
 		CHashMapElem(K *key, T *value, BOOL fOwn)
 			: m_key(key), m_value(value), m_owns_objects(fOwn)
@@ -137,9 +137,6 @@ private:
 
 	IntPtrArray *const m_filled_chains;
 
-	CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &) =
-		delete;
-
 	// lookup appropriate hash chain in static table, may be NULL if
 	// no elements have been inserted yet
 	CHashSetElemArray **
@@ -179,6 +176,9 @@ private:
 	}
 
 public:
+	CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &) =
+		delete;
+
 	// ctor
 	CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>(CMemoryPool *mp,
 														 ULONG num_chains = 127)

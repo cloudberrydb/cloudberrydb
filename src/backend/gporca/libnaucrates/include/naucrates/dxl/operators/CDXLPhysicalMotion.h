@@ -35,8 +35,6 @@ using namespace gpos;
 class CDXLPhysicalMotion : public CDXLPhysical
 {
 private:
-	CDXLPhysicalMotion(CDXLPhysicalMotion &) = delete;
-
 	// serialize the given list of segment ids into a comma-separated string
 	CWStringDynamic *GetSegIdsCommaSeparatedStr(
 		const IntPtrArray *segment_ids_array) const;
@@ -56,6 +54,8 @@ protected:
 
 
 public:
+	CDXLPhysicalMotion(CDXLPhysicalMotion &) = delete;
+
 	// ctor/dtor
 	explicit CDXLPhysicalMotion(CMemoryPool *mp);
 

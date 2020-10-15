@@ -40,9 +40,9 @@ private:
 	// is it a multidimensional array
 	BOOL m_multi_dimensional_array;
 
+public:
 	CDXLScalarArray(const CDXLScalarArray &) = delete;
 
-public:
 	// ctor
 	CDXLScalarArray(CMemoryPool *mp, IMDId *elem_type_mdid,
 					IMDId *array_type_mdid, BOOL multi_dimensional_array);

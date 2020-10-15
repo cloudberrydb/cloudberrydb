@@ -37,9 +37,9 @@ using namespace gpopt;
 class CDXLScalar : public CDXLOperator
 {
 private:
+public:
 	CDXLScalar(CDXLScalar &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalar(CMemoryPool *mp);
 

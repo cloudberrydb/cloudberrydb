@@ -52,9 +52,9 @@ private:
 	// compute local required columns
 	void ComputeRequiredLocalColumns(CMemoryPool *mp);
 
+public:
 	CPhysicalSequenceProject(const CPhysicalSequenceProject &) = delete;
 
-public:
 	// ctor
 	CPhysicalSequenceProject(CMemoryPool *mp, CDistributionSpec *pds,
 							 COrderSpecArray *pdrgpos,

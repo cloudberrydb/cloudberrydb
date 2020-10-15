@@ -44,9 +44,9 @@ private:
 	// the limit must be kept, even if it has no offset, nor count
 	BOOL m_top_limit_under_dml;
 
+public:
 	CLogicalLimit(const CLogicalLimit &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalLimit(CMemoryPool *mp);
 	CLogicalLimit(CMemoryPool *mp, COrderSpec *pos, BOOL fGlobal,

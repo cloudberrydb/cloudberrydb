@@ -63,8 +63,6 @@ private:
 	// a pointer to memory slab to interpret it as invalid element
 	T *m_invalid_elem;
 
-	CSyncHashtableIter<T, K>(const CSyncHashtableIter<T, K> &) = delete;
-
 	// inserts invalid element at the head of current bucket
 	void
 	InsertInvalidElement()
@@ -116,6 +114,8 @@ private:
 	BOOL m_invalid_elem_inserted;
 
 public:
+	CSyncHashtableIter<T, K>(const CSyncHashtableIter<T, K> &) = delete;
+
 	// ctor
 	explicit CSyncHashtableIter<T, K>(CSyncHashtable<T, K> &ht)
 		: m_ht(ht),

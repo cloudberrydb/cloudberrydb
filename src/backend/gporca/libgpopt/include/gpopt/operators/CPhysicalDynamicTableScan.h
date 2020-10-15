@@ -27,9 +27,9 @@ namespace gpopt
 class CPhysicalDynamicTableScan : public CPhysicalDynamicScan
 {
 private:
+public:
 	CPhysicalDynamicTableScan(const CPhysicalDynamicTableScan &) = delete;
 
-public:
 	// ctors
 	CPhysicalDynamicTableScan(CMemoryPool *mp, BOOL is_partial,
 							  const CName *pname, CTableDescriptor *ptabdesc,

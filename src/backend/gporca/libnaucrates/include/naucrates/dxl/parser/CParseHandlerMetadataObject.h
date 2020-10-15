@@ -35,14 +35,13 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerMetadataObject : public CParseHandlerBase
 {
 private:
-	CParseHandlerMetadataObject(const CParseHandlerMetadataObject &) = delete;
-
-
 protected:
 	// the metadata object constructed by the parse handler
 	IMDCacheObject *m_imd_obj;
 
 public:
+	CParseHandlerMetadataObject(const CParseHandlerMetadataObject &) = delete;
+
 	// ctor/dtor
 	CParseHandlerMetadataObject(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

@@ -38,8 +38,6 @@ private:
 	// list of derived table statistics
 	CDXLStatsDerivedRelationArray *m_dxl_stats_derived_rel_array;
 
-	CParseHandlerStatistics(const CParseHandlerStatistics &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerStatistics(const CParseHandlerStatistics &) = delete;
+
 	// ctor/dtor
 	CParseHandlerStatistics(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

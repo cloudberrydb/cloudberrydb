@@ -38,8 +38,6 @@ class CParseHandlerScalarBoolExpr : public CParseHandlerScalarOp
 private:
 	EdxlBoolExprType m_dxl_bool_type;
 
-	CParseHandlerScalarBoolExpr(const CParseHandlerScalarBoolExpr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -59,6 +57,8 @@ private:
 	static EdxlBoolExprType GetDxlBoolTypeStr(const XMLCh *xmlszBoolType);
 
 public:
+	CParseHandlerScalarBoolExpr(const CParseHandlerScalarBoolExpr &) = delete;
+
 	// ctor
 	CParseHandlerScalarBoolExpr(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

@@ -33,11 +33,11 @@ public:
 		EmtSentinel
 	};
 
-	CPatternNode(COperator &) = delete;
-
 	enum EMatchType m_match;
 
 public:
+	CPatternNode(COperator &) = delete;
+
 	// ctor
 	explicit CPatternNode(CMemoryPool *mp, enum EMatchType matchType)
 		: CPattern(mp), m_match(matchType)

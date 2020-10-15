@@ -34,10 +34,10 @@ class CXformLeftSemiApplyInWithExternalCorrs2InnerJoin
 	: public CXformLeftSemiApplyWithExternalCorrs2InnerJoin
 {
 private:
+public:
 	CXformLeftSemiApplyInWithExternalCorrs2InnerJoin(
 		const CXformLeftSemiApplyInWithExternalCorrs2InnerJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftSemiApplyInWithExternalCorrs2InnerJoin(CMemoryPool *mp)
 		: CXformLeftSemiApplyWithExternalCorrs2InnerJoin(

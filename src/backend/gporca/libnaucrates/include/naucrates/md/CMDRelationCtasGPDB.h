@@ -105,9 +105,9 @@ private:
 	// array of column widths
 	CDoubleArray *m_col_width_array;
 
+public:
 	CMDRelationCtasGPDB(const CMDRelationCtasGPDB &) = delete;
 
-public:
 	// ctor
 	CMDRelationCtasGPDB(
 		CMemoryPool *mp, IMDId *mdid, CMDName *mdname_schema, CMDName *mdname,

@@ -32,9 +32,9 @@ private:
 	// partitioning level
 	ULONG m_partitioning_level;
 
+public:
 	CDXLScalarPartDefault(const CDXLScalarPartDefault &) = delete;
 
-public:
 	// ctor
 	CDXLScalarPartDefault(CMemoryPool *mp, ULONG partitioning_level);
 

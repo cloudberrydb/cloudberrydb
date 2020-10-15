@@ -41,9 +41,9 @@ class IConstExprEvaluator;
 class CAutoOptCtxt
 {
 private:
+public:
 	CAutoOptCtxt(CAutoOptCtxt &) = delete;
 
-public:
 	// ctor
 	CAutoOptCtxt(CMemoryPool *mp, CMDAccessor *md_accessor,
 				 IConstExprEvaluator *pceeval,

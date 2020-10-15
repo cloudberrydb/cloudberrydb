@@ -33,10 +33,10 @@ using namespace gpos;
 class CXformInlineCTEConsumerUnderSelect : public CXformExploration
 {
 private:
+public:
 	CXformInlineCTEConsumerUnderSelect(
 		const CXformInlineCTEConsumerUnderSelect &) = delete;
 
-public:
 	// ctor
 	explicit CXformInlineCTEConsumerUnderSelect(CMemoryPool *mp);
 

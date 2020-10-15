@@ -38,8 +38,6 @@ private:
 	// the distinct comparison operator
 	CDXLScalarDistinctComp *m_dxl_op;
 
-	CParseHandlerDistinctComp(const CParseHandlerDistinctComp &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerDistinctComp(const CParseHandlerDistinctComp &) = delete;
+
 	// ctor/dtor
 	CParseHandlerDistinctComp(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

@@ -34,10 +34,10 @@ using namespace gpos;
 class CDistributionSpecStrictSingleton : public CDistributionSpecSingleton
 {
 private:
+public:
 	CDistributionSpecStrictSingleton(const CDistributionSpecStrictSingleton &) =
 		delete;
 
-public:
 	// ctor
 	explicit CDistributionSpecStrictSingleton(ESegmentType esegtype);
 

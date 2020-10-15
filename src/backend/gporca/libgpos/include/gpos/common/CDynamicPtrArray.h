@@ -123,9 +123,6 @@ private:
 		return 0;
 	}
 
-	CDynamicPtrArray<T, CleanupFn>(const CDynamicPtrArray<T, CleanupFn> &) =
-		delete;
-
 	// resize function
 	void
 	Resize(ULONG new_size)
@@ -148,6 +145,9 @@ private:
 	}
 
 public:
+	CDynamicPtrArray<T, CleanupFn>(const CDynamicPtrArray<T, CleanupFn> &) =
+		delete;
+
 	// ctor
 	explicit CDynamicPtrArray<T, CleanupFn>(CMemoryPool *mp, ULONG min_size = 4,
 											ULONG expansion_factor = 10)

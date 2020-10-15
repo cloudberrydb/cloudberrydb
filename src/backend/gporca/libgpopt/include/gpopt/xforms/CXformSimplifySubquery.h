@@ -71,9 +71,9 @@ private:
 						  CExpression **ppexprNewScalar,
 						  FnSimplify *pfnsimplify, FnMatch *pfnmatch);
 
+public:
 	CXformSimplifySubquery(const CXformSimplifySubquery &) = delete;
 
-public:
 	// ctor
 	explicit CXformSimplifySubquery(CExpression *pexprPattern);
 

@@ -42,8 +42,6 @@ private:
 	// delete col ids
 	ULongPtrArray *m_deletion_colid_array;
 
-	CParseHandlerLogicalDelete(const CParseHandlerLogicalDelete &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalDelete(const CParseHandlerLogicalDelete &) = delete;
+
 	// ctor
 	CParseHandlerLogicalDelete(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

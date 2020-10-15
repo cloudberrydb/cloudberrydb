@@ -47,9 +47,6 @@ private:
 	// distribution opfamilies parse handler
 	CParseHandlerBase *m_opfamilies_parse_handler;
 
-	CParseHandlerMDRelationExternal(const CParseHandlerMDRelationExternal &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -67,6 +64,9 @@ private:
 
 
 public:
+	CParseHandlerMDRelationExternal(const CParseHandlerMDRelationExternal &) =
+		delete;
+
 	// ctor
 	CParseHandlerMDRelationExternal(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

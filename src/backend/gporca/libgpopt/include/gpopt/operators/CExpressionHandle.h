@@ -84,8 +84,6 @@ private:
 	// array of children's required properties
 	CReqdPropArray *m_pdrgprp;
 
-	CExpressionHandle(const CExpressionHandle &) = delete;
-
 	// return an array of stats objects starting from the first stats object referenced by child
 	IStatisticsArray *PdrgpstatOuterRefs(IStatisticsArray *statistics_array,
 										 ULONG child_index);
@@ -103,6 +101,8 @@ private:
 	void DeriveRootStats(IStatisticsArray *stats_ctxt);
 
 public:
+	CExpressionHandle(const CExpressionHandle &) = delete;
+
 	// ctor
 	explicit CExpressionHandle(CMemoryPool *mp);
 

@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformExternalGet2ExternalScan : public CXformImplementation
 {
 private:
+public:
 	CXformExternalGet2ExternalScan(const CXformExternalGet2ExternalScan &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformExternalGet2ExternalScan(CMemoryPool *);
 

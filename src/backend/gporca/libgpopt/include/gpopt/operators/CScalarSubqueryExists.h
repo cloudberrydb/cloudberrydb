@@ -30,9 +30,9 @@ using namespace gpos;
 class CScalarSubqueryExists : public CScalarSubqueryExistential
 {
 private:
+public:
 	CScalarSubqueryExists(const CScalarSubqueryExists &) = delete;
 
-public:
 	// ctor
 	CScalarSubqueryExists(CMemoryPool *mp) : CScalarSubqueryExistential(mp)
 	{

@@ -33,10 +33,10 @@ class CXformLeftAntiSemiJoinNotIn2CrossProduct
 	: public CXformLeftAntiSemiJoin2CrossProduct
 {
 private:
+public:
 	CXformLeftAntiSemiJoinNotIn2CrossProduct(
 		const CXformLeftAntiSemiJoinNotIn2CrossProduct &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftAntiSemiJoinNotIn2CrossProduct(CMemoryPool *mp)
 		:  // pattern

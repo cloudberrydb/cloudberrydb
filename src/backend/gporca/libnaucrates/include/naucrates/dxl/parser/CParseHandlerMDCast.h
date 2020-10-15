@@ -37,8 +37,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerMDCast : public CParseHandlerMetadataObject
 {
 private:
-	CParseHandlerMDCast(const CParseHandlerMDCast &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDCast(const CParseHandlerMDCast &) = delete;
+
 	// ctor
 	CParseHandlerMDCast(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

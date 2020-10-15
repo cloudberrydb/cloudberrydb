@@ -45,8 +45,6 @@ private:
 	// data access
 	IMDFunction::EFuncDataAcc m_efda;
 
-	CLogicalRowTrigger(const CLogicalRowTrigger &) = delete;
-
 	// initialize function properties
 	void InitFunctionProperties();
 
@@ -54,6 +52,8 @@ private:
 	INT ITriggerType(const IMDTrigger *pmdtrigger) const;
 
 public:
+	CLogicalRowTrigger(const CLogicalRowTrigger &) = delete;
+
 	// ctor
 	explicit CLogicalRowTrigger(CMemoryPool *mp);
 

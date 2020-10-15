@@ -30,9 +30,9 @@ private:
 	// underlying stream
 	WOSTREAM *m_ostream;
 
+public:
 	COstreamBasic(const COstreamBasic &) = delete;
 
-public:
 	// please see comments in COstream.h for an explanation
 	using COstream::operator<<;
 

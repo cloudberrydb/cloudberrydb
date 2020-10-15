@@ -52,9 +52,9 @@ private:
 	// does this function return a set of rows
 	BOOL m_returns_set;
 
+public:
 	CLogicalTVF(const CLogicalTVF &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalTVF(CMemoryPool *mp);
 

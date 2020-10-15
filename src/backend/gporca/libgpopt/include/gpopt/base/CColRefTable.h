@@ -37,8 +37,6 @@ using namespace gpos;
 class CColRefTable : public CColRef
 {
 private:
-	CColRefTable(const CColRefTable &) = delete;
-
 	// attno from catalog
 	INT m_iAttno;
 
@@ -56,6 +54,8 @@ private:
 	ULONG m_width;
 
 public:
+	CColRefTable(const CColRefTable &) = delete;
+
 	// ctors
 	CColRefTable(const CColumnDescriptor *pcd, ULONG id, const CName *pname,
 				 ULONG ulOpSource);

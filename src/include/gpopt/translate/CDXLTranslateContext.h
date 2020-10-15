@@ -62,8 +62,6 @@ class CDXLTranslateContext
 private:
 	CMemoryPool *m_mp;
 
-	CDXLTranslateContext(const CDXLTranslateContext &) = delete;
-
 	// mappings ColId->TargetEntry used for intermediate DXL nodes
 	ULongToTargetEntryMap *m_colid_to_target_entry_map;
 
@@ -81,6 +79,8 @@ private:
 	void CopyParamHashmap(ULongToColParamMap *original);
 
 public:
+	CDXLTranslateContext(const CDXLTranslateContext &) = delete;
+
 	// ctor/dtor
 	CDXLTranslateContext(CMemoryPool *mp, BOOL is_child_agg_node);
 

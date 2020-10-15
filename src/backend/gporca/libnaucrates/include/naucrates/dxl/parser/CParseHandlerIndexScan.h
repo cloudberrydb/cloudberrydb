@@ -37,8 +37,6 @@ private:
 	// index scan direction
 	EdxlIndexScanDirection m_index_scan_dir;
 
-	CParseHandlerIndexScan(const CParseHandlerIndexScan &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -65,6 +63,8 @@ protected:
 						  ULONG part_idx_id_printable = 0);
 
 public:
+	CParseHandlerIndexScan(const CParseHandlerIndexScan &) = delete;
+
 	// ctor
 	CParseHandlerIndexScan(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

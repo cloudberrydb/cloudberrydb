@@ -59,8 +59,6 @@ private:
 	// steps since last check for aborts
 	ULONG m_iteration_since_last_abortcheck;
 
-	CXMLSerializer(const CXMLSerializer &) = delete;
-
 	// add indentation
 	void Indent();
 
@@ -68,6 +66,8 @@ private:
 	static void WriteEscaped(IOstream &os, const CWStringBase *str);
 
 public:
+	CXMLSerializer(const CXMLSerializer &) = delete;
+
 	// ctor/dtor
 	CXMLSerializer(CMemoryPool *mp, IOstream &os, BOOL indentation = true)
 		: m_mp(mp),

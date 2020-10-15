@@ -22,9 +22,9 @@ using namespace gpos;
 class CXformImplementIndexApply : public CXformImplementation
 {
 private:
+public:
 	CXformImplementIndexApply(const CXformImplementIndexApply &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementIndexApply(CMemoryPool *mp)
 		:  // pattern

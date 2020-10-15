@@ -32,9 +32,9 @@ class CColRefSet;
 class CLogicalExternalGet : public CLogicalGet
 {
 private:
+public:
 	CLogicalExternalGet(const CLogicalExternalGet &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalExternalGet(CMemoryPool *mp);
 

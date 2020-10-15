@@ -55,9 +55,9 @@ private:
 	// index type
 	IMDIndex::EmdindexType m_index_type;
 
+public:
 	CIndexDescriptor(const CIndexDescriptor &) = delete;
 
-public:
 	// ctor
 	CIndexDescriptor(CMemoryPool *mp, IMDId *pmdidIndex, const CName &name,
 					 CColumnDescriptorArray *pdrgcoldescKeyCols,

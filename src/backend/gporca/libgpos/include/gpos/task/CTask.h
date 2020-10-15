@@ -89,8 +89,6 @@ private:
 	CTask(CMemoryPool *mp, CTaskContext *task_ctxt, IErrorContext *err_ctxt,
 		  BOOL *cancel);
 
-	CTask(const CTask &) = delete;
-
 	// binding a task structure to a function and its arguments
 	void Bind(void *(*func)(void *), void *arg);
 
@@ -127,6 +125,8 @@ private:
 	}
 
 public:
+	CTask(const CTask &) = delete;
+
 	// dtor
 	virtual ~CTask();
 

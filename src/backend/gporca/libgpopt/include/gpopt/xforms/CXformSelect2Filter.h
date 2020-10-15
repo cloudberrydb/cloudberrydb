@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformSelect2Filter : public CXformImplementation
 {
 private:
+public:
 	CXformSelect2Filter(const CXformSelect2Filter &) = delete;
 
-public:
 	// ctor
 	explicit CXformSelect2Filter(CMemoryPool *mp);
 

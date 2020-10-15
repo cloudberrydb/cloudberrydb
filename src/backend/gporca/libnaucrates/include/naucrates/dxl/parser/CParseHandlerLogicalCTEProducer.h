@@ -32,9 +32,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalCTEProducer : public CParseHandlerLogicalOp
 {
 private:
-	CParseHandlerLogicalCTEProducer(const CParseHandlerLogicalCTEProducer &) =
-		delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -51,6 +48,9 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalCTEProducer(const CParseHandlerLogicalCTEProducer &) =
+		delete;
+
 	// ctor
 	CParseHandlerLogicalCTEProducer(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

@@ -38,8 +38,6 @@ private:
 	// the subquery scan operator
 	CDXLPhysicalSubqueryScan *m_dxl_op;
 
-	CParseHandlerSubqueryScan(const CParseHandlerSubqueryScan &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerSubqueryScan(const CParseHandlerSubqueryScan &) = delete;
+
 	// ctor/dtor
 	CParseHandlerSubqueryScan(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

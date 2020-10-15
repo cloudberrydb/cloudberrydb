@@ -88,15 +88,15 @@ private:
 												  CExpression *pexprScalar,
 												  CColRefSet *pcrs);
 
-	// private ctor
-	CPredicateUtils() = delete;
-
+public:
 	// private dtor
 	virtual ~CPredicateUtils() = delete;
 
+	// private ctor
+	CPredicateUtils() = delete;
+
 	CPredicateUtils(const CPredicateUtils &) = delete;
 
-public:
 	// reverse the comparison, for example "<" => ">", "<=" => "=>
 	static IMDType::ECmpType EcmptReverse(IMDType::ECmpType cmp_type);
 

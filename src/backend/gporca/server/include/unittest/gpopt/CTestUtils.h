@@ -141,13 +141,13 @@ public:
 		// optimization context
 		CAutoOptCtxt m_aoc;
 
-		// private ctor
-		CTestSetup(const CTestSetup &) = delete;
-
 		// set up a file based provider
 		static CMDProviderMemory *PmdpSetupFileBasedProvider();
 
 	public:
+		// private ctor
+		CTestSetup(const CTestSetup &) = delete;
+
 		// ctor
 		CTestSetup();
 

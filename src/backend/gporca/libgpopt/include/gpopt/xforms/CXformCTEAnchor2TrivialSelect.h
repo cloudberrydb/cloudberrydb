@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformCTEAnchor2TrivialSelect : public CXformExploration
 {
 private:
+public:
 	CXformCTEAnchor2TrivialSelect(const CXformCTEAnchor2TrivialSelect &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformCTEAnchor2TrivialSelect(CMemoryPool *mp);
 

@@ -46,9 +46,6 @@ private:
 	// parsed array of key-value pairs of options
 	CDXLCtasStorageOptions::CDXLCtasOptionArray *m_ctas_storage_option_array;
 
-	CParseHandlerCtasStorageOptions(const CParseHandlerCtasStorageOptions &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -65,6 +62,9 @@ private:
 	);
 
 public:
+	CParseHandlerCtasStorageOptions(const CParseHandlerCtasStorageOptions &) =
+		delete;
+
 	// ctor
 	CParseHandlerCtasStorageOptions(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

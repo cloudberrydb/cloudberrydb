@@ -40,9 +40,9 @@ private:
 	// task queue
 	CList<CTask> m_task_queue;
 
+public:
 	CTaskSchedulerFifo(const CTaskSchedulerFifo &) = delete;
 
-public:
 	// ctor
 	CTaskSchedulerFifo()
 	{

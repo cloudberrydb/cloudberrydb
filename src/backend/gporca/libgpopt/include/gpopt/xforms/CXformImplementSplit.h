@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementSplit : public CXformImplementation
 {
 private:
+public:
 	CXformImplementSplit(const CXformImplementSplit &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementSplit(CMemoryPool *mp);
 

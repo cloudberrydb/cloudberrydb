@@ -35,9 +35,9 @@ private:
 	// read size
 	ULLONG m_file_read_size;
 
+public:
 	CFileReader(const CFileReader &) = delete;
 
-public:
 	// ctor
 	CFileReader();
 

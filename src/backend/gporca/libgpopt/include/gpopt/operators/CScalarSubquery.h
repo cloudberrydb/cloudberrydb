@@ -39,9 +39,9 @@ private:
 	// is subquery generated from quantified subquery?
 	BOOL m_fGeneratedByQuantified;
 
+public:
 	CScalarSubquery(const CScalarSubquery &) = delete;
 
-public:
 	// ctor
 	CScalarSubquery(CMemoryPool *mp, const CColRef *colref,
 					BOOL fGeneratedByExist, BOOL fGeneratedByQuantified);

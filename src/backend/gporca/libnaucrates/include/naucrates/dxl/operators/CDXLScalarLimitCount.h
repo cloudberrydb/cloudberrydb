@@ -32,9 +32,9 @@ using namespace gpos;
 class CDXLScalarLimitCount : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarLimitCount(const CDXLScalarLimitCount &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarLimitCount(CMemoryPool *mp);
 

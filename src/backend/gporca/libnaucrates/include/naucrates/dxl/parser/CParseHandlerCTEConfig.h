@@ -36,8 +36,6 @@ private:
 	// CTE configuration
 	CCTEConfig *m_cte_conf;
 
-	CParseHandlerCTEConfig(const CParseHandlerCTEConfig &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerCTEConfig(const CParseHandlerCTEConfig &) = delete;
+
 	// ctor
 	CParseHandlerCTEConfig(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

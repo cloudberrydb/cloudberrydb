@@ -34,11 +34,11 @@ class CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations
 							  CLogicalLeftAntiSemiJoin>
 {
 private:
+public:
 	CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations(
 		const CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations(
 		CMemoryPool *mp)

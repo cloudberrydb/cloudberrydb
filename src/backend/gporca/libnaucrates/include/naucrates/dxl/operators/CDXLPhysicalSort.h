@@ -42,13 +42,13 @@ enum Edxlsort
 class CDXLPhysicalSort : public CDXLPhysical
 {
 private:
-	CDXLPhysicalSort(const CDXLPhysicalSort &) = delete;
-
 	// whether sort discards duplicates
 	BOOL m_discard_duplicates;
 
 
 public:
+	CDXLPhysicalSort(const CDXLPhysicalSort &) = delete;
+
 	// ctor/dtor
 	CDXLPhysicalSort(CMemoryPool *mp, BOOL discard_duplicates);
 

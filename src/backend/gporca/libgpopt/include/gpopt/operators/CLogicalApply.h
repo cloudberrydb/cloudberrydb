@@ -30,8 +30,6 @@ namespace gpopt
 class CLogicalApply : public CLogical
 {
 private:
-	CLogicalApply(const CLogicalApply &) = delete;
-
 protected:
 	// columns used from Apply's inner child
 	CColRefArray *m_pdrgpcrInner;
@@ -50,6 +48,8 @@ protected:
 	virtual ~CLogicalApply();
 
 public:
+	CLogicalApply(const CLogicalApply &) = delete;
+
 	// match function
 	virtual BOOL Matches(COperator *pop) const;
 

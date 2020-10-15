@@ -122,8 +122,6 @@ private:
 	// id of array type
 	IMDId *m_mdid_array_type;
 
-	CParseHandlerMDType(const CParseHandlerMDType &) = delete;
-
 	// retrieves the address MDId member variable corresponding to the specified token
 	IMDId **GetTokenMDid(Edxltoken token_type);
 
@@ -148,6 +146,8 @@ private:
 	BOOL IsBuiltInType(const IMDId *mdid) const;
 
 public:
+	CParseHandlerMDType(const CParseHandlerMDType &) = delete;
+
 	// ctor
 	CParseHandlerMDType(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

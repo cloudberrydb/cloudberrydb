@@ -56,9 +56,9 @@ private:
 	// Denotes the MPP Stage
 	EdxlAggrefStage m_agg_stage;
 
+public:
 	CDXLScalarAggref(const CDXLScalarAggref &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarAggref(CMemoryPool *mp, IMDId *agg_mdid, IMDId *resolved_rettype,
 					 BOOL is_distinct, EdxlAggrefStage agg_stage);

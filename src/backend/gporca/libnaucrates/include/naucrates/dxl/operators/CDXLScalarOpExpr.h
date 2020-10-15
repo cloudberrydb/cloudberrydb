@@ -41,9 +41,9 @@ private:
 	// operator name
 	const CWStringConst *m_str_opname;
 
+public:
 	CDXLScalarOpExpr(const CDXLScalarOpExpr &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarOpExpr(CMemoryPool *mp, IMDId *mdid_op, IMDId *return_type_mdid,
 					 const CWStringConst *str_opname);

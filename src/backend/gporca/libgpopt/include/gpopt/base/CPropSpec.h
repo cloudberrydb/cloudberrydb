@@ -46,8 +46,6 @@ public:
 	};
 
 private:
-	CPropSpec(const CPropSpec &) = delete;
-
 protected:
 	// ctor
 	CPropSpec() = default;
@@ -56,6 +54,8 @@ protected:
 	~CPropSpec() = default;
 
 public:
+	CPropSpec(const CPropSpec &) = delete;
+
 	// append enforcers to dynamic array for the given plan properties
 	virtual void AppendEnforcers(CMemoryPool *mp, CExpressionHandle &exprhdl,
 								 CReqdPropPlan *prpp,

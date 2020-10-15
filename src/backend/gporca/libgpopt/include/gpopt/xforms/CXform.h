@@ -53,9 +53,9 @@ private:
 	// pattern
 	CExpression *m_pexpr;
 
+public:
 	CXform(CXform &) = delete;
 
-public:
 	// identification
 	//
 	// IMPORTANT: when adding new Xform Ids, please add them near

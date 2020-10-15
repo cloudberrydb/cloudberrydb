@@ -24,9 +24,9 @@ private:
 	// Null Test type (true for 'is null', false for 'is not null')
 	BOOL m_is_null;
 
+public:
 	CDXLScalarPartListNullTest(const CDXLScalarPartListNullTest &) = delete;
 
-public:
 	// ctor
 	CDXLScalarPartListNullTest(CMemoryPool *mp, ULONG partitioning_level,
 							   BOOL is_null);

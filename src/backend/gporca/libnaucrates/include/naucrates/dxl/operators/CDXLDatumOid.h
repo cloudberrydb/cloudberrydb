@@ -42,9 +42,9 @@ private:
 	// oid value
 	OID m_oid_val;
 
+public:
 	CDXLDatumOid(const CDXLDatumOid &) = delete;
 
-public:
 	// ctor
 	CDXLDatumOid(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, OID oid_val);
 

@@ -58,8 +58,6 @@ private:
 	// tail element
 	T *m_tail;
 
-	CList(const CList &) = delete;
-
 	// extract link from element
 	SLink &
 	Link(const void *pv) const
@@ -74,6 +72,8 @@ private:
 	}
 
 public:
+	CList(const CList &) = delete;
+
 	// ctor
 	CList() : m_offset(gpos::ulong_max), m_size(0), m_head(NULL), m_tail(NULL)
 	{

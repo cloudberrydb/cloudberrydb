@@ -126,9 +126,6 @@ private:
 	// compute required plan properties for current child
 	void ComputeCurrentChildRequirements(CSchedulerContext *psc);
 
-	CJobGroupExpressionOptimization(const CJobGroupExpressionOptimization &) =
-		delete;
-
 	// initialize action
 	static EEvent EevtInitialize(CSchedulerContext *psc, CJob *pj);
 
@@ -163,6 +160,9 @@ protected:
 	virtual void ScheduleChildGroupsJobs(CSchedulerContext *psc);
 
 public:
+	CJobGroupExpressionOptimization(const CJobGroupExpressionOptimization &) =
+		delete;
+
 	// ctor
 	CJobGroupExpressionOptimization();
 

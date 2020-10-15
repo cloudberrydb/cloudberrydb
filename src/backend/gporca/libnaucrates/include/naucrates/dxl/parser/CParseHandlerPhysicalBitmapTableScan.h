@@ -36,9 +36,6 @@ class CParseHandlerPhysicalBitmapTableScan
 	: public CParseHandlerPhysicalAbstractBitmapScan
 {
 private:
-	CParseHandlerPhysicalBitmapTableScan(
-		const CParseHandlerPhysicalBitmapTableScan &) = delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +52,9 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalBitmapTableScan(
+		const CParseHandlerPhysicalBitmapTableScan &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalBitmapTableScan(
 		CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,

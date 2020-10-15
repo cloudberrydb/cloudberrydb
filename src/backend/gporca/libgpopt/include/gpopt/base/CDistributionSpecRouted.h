@@ -35,9 +35,9 @@ private:
 	// segment id column
 	CColRef *m_pcrSegmentId;
 
+public:
 	CDistributionSpecRouted(const CDistributionSpecRouted &) = delete;
 
-public:
 	// ctor
 	explicit CDistributionSpecRouted(CColRef *pcrSegmentId);
 

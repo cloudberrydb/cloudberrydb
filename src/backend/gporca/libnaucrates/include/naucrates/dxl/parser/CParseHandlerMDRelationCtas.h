@@ -38,8 +38,6 @@ private:
 	// vartypemod list
 	IntPtrArray *m_vartypemod_array;
 
-	CParseHandlerMDRelationCtas(const CParseHandlerMDRelationCtas &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDRelationCtas(const CParseHandlerMDRelationCtas &) = delete;
+
 	// ctor
 	CParseHandlerMDRelationCtas(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

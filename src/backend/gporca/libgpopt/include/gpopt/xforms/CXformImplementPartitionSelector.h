@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformImplementPartitionSelector : public CXformImplementation
 {
 private:
+public:
 	CXformImplementPartitionSelector(const CXformImplementPartitionSelector &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformImplementPartitionSelector(CMemoryPool *mp);
 

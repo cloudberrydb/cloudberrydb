@@ -36,10 +36,10 @@ private:
 	// required columns in distribution spec
 	CColRefSet *m_pcrsRequiredLocal;
 
+public:
 	CPhysicalMotionRoutedDistribute(const CPhysicalMotionRoutedDistribute &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalMotionRoutedDistribute(CMemoryPool *mp,
 									CDistributionSpecRouted *pdsRouted);

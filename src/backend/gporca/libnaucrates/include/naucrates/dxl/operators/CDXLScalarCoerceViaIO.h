@@ -40,9 +40,9 @@ using namespace gpmd;
 class CDXLScalarCoerceViaIO : public CDXLScalarCoerceBase
 {
 private:
+public:
 	CDXLScalarCoerceViaIO(const CDXLScalarCoerceViaIO &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarCoerceViaIO(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 						  EdxlCoercionForm dxl_coerce_format, INT location);

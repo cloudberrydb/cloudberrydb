@@ -35,9 +35,6 @@ private:
 	// cost params
 	ICostModelParams *m_cost_model_params;
 
-	// private ctor
-	CParseHandlerCostParams(const CParseHandlerCostParams &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +51,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerCostParams(const CParseHandlerCostParams &) = delete;
+
 	// ctor/dtor
 	CParseHandlerCostParams(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

@@ -29,9 +29,9 @@ namespace gpopt
 class CLogicalDifference : public CLogicalSetOp
 {
 private:
+public:
 	CLogicalDifference(const CLogicalDifference &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalDifference(CMemoryPool *mp);
 

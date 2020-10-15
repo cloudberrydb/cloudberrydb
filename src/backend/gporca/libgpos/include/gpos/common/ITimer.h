@@ -27,9 +27,9 @@ namespace gpos
 class ITimer
 {
 private:
+public:
 	ITimer(const ITimer &) = delete;
 
-public:
 	// ctor
 	ITimer() = default;
 

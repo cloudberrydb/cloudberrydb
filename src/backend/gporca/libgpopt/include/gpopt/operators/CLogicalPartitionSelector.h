@@ -38,9 +38,9 @@ private:
 	// oid column - holds the OIDs for leaf parts
 	CColRef *m_pcrOid;
 
+public:
 	CLogicalPartitionSelector(const CLogicalPartitionSelector &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalPartitionSelector(CMemoryPool *mp);
 

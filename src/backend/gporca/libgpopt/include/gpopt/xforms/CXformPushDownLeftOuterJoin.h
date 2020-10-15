@@ -30,9 +30,9 @@ using namespace gpos;
 class CXformPushDownLeftOuterJoin : public CXformExploration
 {
 private:
+public:
 	CXformPushDownLeftOuterJoin(const CXformPushDownLeftOuterJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformPushDownLeftOuterJoin(CMemoryPool *mp);
 

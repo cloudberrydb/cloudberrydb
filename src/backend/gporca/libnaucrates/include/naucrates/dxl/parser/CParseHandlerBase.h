@@ -68,8 +68,6 @@ enum EDxlParseHandlerType
 class CParseHandlerBase : public DefaultHandler
 {
 private:
-	CParseHandlerBase(const CParseHandlerBase &) = delete;
-
 	// array of parse handlers for child elements
 	CParseHandlerBaseArray *m_parse_handler_base_array;
 
@@ -121,6 +119,8 @@ protected:
 		) = 0;
 
 public:
+	CParseHandlerBase(const CParseHandlerBase &) = delete;
+
 	// ctor
 	CParseHandlerBase(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					  CParseHandlerBase *parse_handler_root);

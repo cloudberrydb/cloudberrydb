@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalSelect : public CParseHandlerLogicalOp
 {
 private:
-	CParseHandlerLogicalSelect(const CParseHandlerLogicalSelect &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +50,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalSelect(const CParseHandlerLogicalSelect &) = delete;
+
 	// ctor/dtor
 	CParseHandlerLogicalSelect(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

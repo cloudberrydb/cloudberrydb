@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerRelStats : public CParseHandlerMetadataObject
 {
 private:
-	CParseHandlerRelStats(const CParseHandlerRelStats &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +50,8 @@ private:
 	);
 
 public:
+	CParseHandlerRelStats(const CParseHandlerRelStats &) = delete;
+
 	// ctor
 	CParseHandlerRelStats(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

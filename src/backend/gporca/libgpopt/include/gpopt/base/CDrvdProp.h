@@ -77,9 +77,9 @@ public:
 	};
 
 private:
+public:
 	CDrvdProp(const CDrvdProp &) = delete;
 
-public:
 	// ctor
 	CDrvdProp();
 

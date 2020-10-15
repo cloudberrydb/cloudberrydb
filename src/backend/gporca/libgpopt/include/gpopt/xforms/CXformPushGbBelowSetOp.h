@@ -34,9 +34,9 @@ template <class TSetOp>
 class CXformPushGbBelowSetOp : public CXformExploration
 {
 private:
+public:
 	CXformPushGbBelowSetOp(const CXformPushGbBelowSetOp &) = delete;
 
-public:
 	// ctor
 	explicit CXformPushGbBelowSetOp(CMemoryPool *mp)
 		: CXformExploration(

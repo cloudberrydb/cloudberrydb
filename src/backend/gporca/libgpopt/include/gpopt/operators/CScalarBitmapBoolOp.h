@@ -50,11 +50,11 @@ private:
 	// bitmap type id
 	IMDId *m_pmdidBitmapType;
 
-	CScalarBitmapBoolOp(const CScalarBitmapBoolOp &) = delete;
-
 	static const WCHAR m_rgwszBitmapOpType[EbitmapboolSentinel][30];
 
 public:
+	CScalarBitmapBoolOp(const CScalarBitmapBoolOp &) = delete;
+
 	// ctor
 	CScalarBitmapBoolOp(CMemoryPool *mp, EBitmapBoolOp ebitmapboolop,
 						IMDId *pmdidBitmapType);

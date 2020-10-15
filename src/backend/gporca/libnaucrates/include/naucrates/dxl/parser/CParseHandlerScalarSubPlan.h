@@ -40,8 +40,6 @@ private:
 	// subplan type
 	EdxlSubPlanType m_dxl_subplan_type;
 
-	CParseHandlerScalarSubPlan(const CParseHandlerScalarSubPlan &) = delete;
-
 	// map character sequence to subplan type
 	EdxlSubPlanType GetDXLSubplanType(const XMLCh *xml_subplan_type);
 
@@ -61,6 +59,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarSubPlan(const CParseHandlerScalarSubPlan &) = delete;
+
 	// ctor
 	CParseHandlerScalarSubPlan(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

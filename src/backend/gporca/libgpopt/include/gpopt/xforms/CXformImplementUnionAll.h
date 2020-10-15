@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementUnionAll : public CXformImplementation
 {
 private:
+public:
 	CXformImplementUnionAll(const CXformImplementUnionAll &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementUnionAll(CMemoryPool *mp);
 

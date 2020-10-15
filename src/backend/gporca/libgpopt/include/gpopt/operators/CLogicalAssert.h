@@ -34,9 +34,9 @@ private:
 	// exception
 	CException *m_pexc;
 
+public:
 	CLogicalAssert(const CLogicalAssert &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalAssert(CMemoryPool *mp);
 

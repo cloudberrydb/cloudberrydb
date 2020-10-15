@@ -106,9 +106,9 @@ private:
 	// a null datum of this type (used for statistics comparison)
 	IDatum *m_datum_null;
 
+public:
 	CMDTypeBoolGPDB(const CMDTypeBoolGPDB &) = delete;
 
-public:
 	// ctor
 	explicit CMDTypeBoolGPDB(CMemoryPool *mp);
 

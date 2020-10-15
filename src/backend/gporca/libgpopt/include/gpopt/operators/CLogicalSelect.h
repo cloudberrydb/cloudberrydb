@@ -34,14 +34,14 @@ typedef CHashMap<CExpression, CExpression, CExpression::HashValue,
 class CLogicalSelect : public CLogicalUnary
 {
 private:
-	CLogicalSelect(const CLogicalSelect &) = delete;
-
 	ExprPredToExprPredPartMap *m_phmPexprPartPred;
 
 	// table descriptor
 	CTableDescriptor *m_ptabdesc;
 
 public:
+	CLogicalSelect(const CLogicalSelect &) = delete;
+
 	// ctor
 	explicit CLogicalSelect(CMemoryPool *mp);
 

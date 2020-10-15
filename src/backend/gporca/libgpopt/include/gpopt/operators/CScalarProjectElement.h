@@ -35,10 +35,10 @@ private:
 	// defined column reference
 	CColRef *m_pcr;
 
-	CScalarProjectElement(const CScalarProjectElement &) = delete;
-
 
 public:
+	CScalarProjectElement(const CScalarProjectElement &) = delete;
+
 	// ctor
 	CScalarProjectElement(CMemoryPool *mp, CColRef *colref)
 		: CScalar(mp), m_pcr(colref)

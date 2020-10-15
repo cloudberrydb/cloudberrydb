@@ -38,9 +38,9 @@ private:
 	// output columns, same as cte columns but in CColRefSet
 	CColRefSet *m_pcrsOutput;
 
+public:
 	CLogicalCTEProducer(const CLogicalCTEProducer &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalCTEProducer(CMemoryPool *mp);
 

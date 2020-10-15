@@ -37,8 +37,6 @@ private:
 	// array of grouping column ids
 	ULongPtrArray *m_grouping_colids_array;
 
-	CParseHandlerGroupingColList(const CParseHandlerGroupingColList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerGroupingColList(const CParseHandlerGroupingColList &) = delete;
+
 	// ctor/dtor
 	CParseHandlerGroupingColList(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

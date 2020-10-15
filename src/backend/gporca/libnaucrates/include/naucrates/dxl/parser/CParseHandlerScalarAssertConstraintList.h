@@ -44,9 +44,6 @@ private:
 	// array of assert constraint nodes parsed so far
 	CDXLNodeArray *m_dxlnode_assert_constraints_parsed_array;
 
-	CParseHandlerScalarAssertConstraintList(
-		const CParseHandlerScalarAssertConstraintList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -63,6 +60,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarAssertConstraintList(
+		const CParseHandlerScalarAssertConstraintList &) = delete;
+
 	// ctor
 	CParseHandlerScalarAssertConstraintList(
 		CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,

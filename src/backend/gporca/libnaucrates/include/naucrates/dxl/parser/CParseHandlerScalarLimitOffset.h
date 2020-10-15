@@ -35,9 +35,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarLimitOffset : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarLimitOffset(const CParseHandlerScalarLimitOffset &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
@@ -49,6 +46,9 @@ private:
 					const XMLCh *const element_qname);
 
 public:
+	CParseHandlerScalarLimitOffset(const CParseHandlerScalarLimitOffset &) =
+		delete;
+
 	// ctor
 	CParseHandlerScalarLimitOffset(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,

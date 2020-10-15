@@ -42,9 +42,9 @@ private:
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 	ULONG m_ulOriginOpId;
 
+public:
 	CPhysicalBitmapTableScan(const CPhysicalBitmapTableScan &) = delete;
 
-public:
 	// ctor
 	CPhysicalBitmapTableScan(CMemoryPool *mp, CTableDescriptor *ptabdesc,
 							 ULONG ulOriginOpId, const CName *pnameTableAlias,

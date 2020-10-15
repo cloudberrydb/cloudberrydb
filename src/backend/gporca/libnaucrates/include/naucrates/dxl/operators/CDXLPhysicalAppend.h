@@ -45,9 +45,9 @@ private:
 	// TODO:  - Apr 12, 2011; find a better name (and comments) for this variable
 	BOOL m_is_zapped;
 
+public:
 	CDXLPhysicalAppend(const CDXLPhysicalAppend &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalAppend(CMemoryPool *mp, BOOL fIsTarget, BOOL fIsZapped);
 

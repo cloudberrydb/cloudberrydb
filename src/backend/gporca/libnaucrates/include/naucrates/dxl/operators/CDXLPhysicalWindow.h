@@ -45,9 +45,9 @@ private:
 	// window keys
 	CDXLWindowKeyArray *m_dxl_window_key_array;
 
+public:
 	CDXLPhysicalWindow(CDXLPhysicalWindow &) = delete;
 
-public:
 	//ctor
 	CDXLPhysicalWindow(CMemoryPool *mp, ULongPtrArray *part_by_colid_array,
 					   CDXLWindowKeyArray *window_key_array);

@@ -56,9 +56,9 @@ private:
 	CException *m_pexc;
 
 
+public:
 	CPhysicalAssert(const CPhysicalAssert &) = delete;
 
-public:
 	// ctor
 	CPhysicalAssert(CMemoryPool *mp, CException *pexc);
 

@@ -47,9 +47,9 @@ private:
 	// create the inlined version of this consumer as well as the column mapping
 	void CreateInlinedExpr(CMemoryPool *mp);
 
+public:
 	CLogicalCTEConsumer(const CLogicalCTEConsumer &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalCTEConsumer(CMemoryPool *mp);
 

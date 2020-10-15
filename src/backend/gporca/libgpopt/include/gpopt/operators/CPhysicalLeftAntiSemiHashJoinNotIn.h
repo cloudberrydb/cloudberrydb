@@ -27,10 +27,10 @@ namespace gpopt
 class CPhysicalLeftAntiSemiHashJoinNotIn : public CPhysicalLeftAntiSemiHashJoin
 {
 private:
+public:
 	CPhysicalLeftAntiSemiHashJoinNotIn(
 		const CPhysicalLeftAntiSemiHashJoinNotIn &) = delete;
 
-public:
 	// ctor
 	CPhysicalLeftAntiSemiHashJoinNotIn(CMemoryPool *mp,
 									   CExpressionArray *pdrgpexprOuterKeys,

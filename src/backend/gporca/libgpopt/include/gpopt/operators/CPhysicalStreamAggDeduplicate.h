@@ -30,10 +30,10 @@ private:
 	// array of keys from the join's child
 	CColRefArray *m_pdrgpcrKeys;
 
+public:
 	CPhysicalStreamAggDeduplicate(const CPhysicalStreamAggDeduplicate &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalStreamAggDeduplicate(CMemoryPool *mp, CColRefArray *colref_array,
 								  CColRefArray *pdrgpcrMinimal,

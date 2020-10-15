@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformInnerJoin2NLJoin : public CXformImplementation
 {
 private:
+public:
 	CXformInnerJoin2NLJoin(const CXformInnerJoin2NLJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformInnerJoin2NLJoin(CMemoryPool *mp);
 

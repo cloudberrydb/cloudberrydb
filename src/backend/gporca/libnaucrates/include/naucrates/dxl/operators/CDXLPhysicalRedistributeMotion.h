@@ -46,11 +46,11 @@ private:
 	// is this a duplicate sensitive redistribute motion
 	BOOL m_is_duplicate_sensitive;
 
+
+public:
 	CDXLPhysicalRedistributeMotion(const CDXLPhysicalRedistributeMotion &) =
 		delete;
 
-
-public:
 	// ctor
 	CDXLPhysicalRedistributeMotion(CMemoryPool *mp,
 								   BOOL is_duplicate_sensitive);

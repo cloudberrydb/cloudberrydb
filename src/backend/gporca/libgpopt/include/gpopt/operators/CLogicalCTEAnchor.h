@@ -32,9 +32,9 @@ private:
 	// cte identifier
 	ULONG m_id;
 
+public:
 	CLogicalCTEAnchor(const CLogicalCTEAnchor &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalCTEAnchor(CMemoryPool *mp);
 

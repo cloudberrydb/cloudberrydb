@@ -32,12 +32,12 @@ private:
 	// grouping column ids
 	ULongPtrArray *m_grouping_colid_array;
 
-	CDXLLogicalGroupBy(CDXLLogicalGroupBy &) = delete;
-
 	// serialize output grouping columns indices in DXL
 	void SerializeGrpColsToDXL(CXMLSerializer *) const;
 
 public:
+	CDXLLogicalGroupBy(CDXLLogicalGroupBy &) = delete;
+
 	// ctors
 	explicit CDXLLogicalGroupBy(CMemoryPool *mp);
 	CDXLLogicalGroupBy(CMemoryPool *mp, ULongPtrArray *pdrgpulGrpColIds);

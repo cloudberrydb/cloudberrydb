@@ -40,9 +40,9 @@ private:
 	// underlying list
 	CList<T> m_list;
 
+public:
 	CSyncList(const CSyncList &) = delete;
 
-public:
 	// ctor
 	CSyncList() = default;
 

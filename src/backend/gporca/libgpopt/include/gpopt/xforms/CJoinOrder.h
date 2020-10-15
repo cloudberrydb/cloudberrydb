@@ -220,9 +220,9 @@ protected:
 					  EPosition position, INT comp_num);
 
 private:
+public:
 	CJoinOrder(const CJoinOrder &) = delete;
 
-public:
 	// ctor used in MinCard, Greedy and DP xforms
 	CJoinOrder(CMemoryPool *mp, CExpressionArray *pdrgpexprComponents,
 			   CExpressionArray *pdrgpexprConjuncts,

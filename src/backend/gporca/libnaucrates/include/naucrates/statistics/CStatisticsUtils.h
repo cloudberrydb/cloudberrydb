@@ -73,14 +73,6 @@ private:
 	// array of SMcvVPairs
 	typedef CDynamicPtrArray<SMcvPair, CleanupDelete> SMcvPairPtrArray;
 
-	// private ctor
-	CStatisticsUtils() = delete;
-
-	// private dtor
-	virtual ~CStatisticsUtils() = delete;
-
-	CStatisticsUtils(const CStatisticsUtils &) = delete;
-
 	// given MCVs and histogram buckets, merge them into buckets of a single histogram
 	static CBucketArray *MergeMcvHistBucket(
 		CMemoryPool *mp, const CBucketArray *mcv_buckets,
@@ -136,6 +128,14 @@ private:
 						  const ULongPtrArray *grouping_columns);
 
 public:
+	// private dtor
+	virtual ~CStatisticsUtils() = delete;
+
+	// private ctor
+	CStatisticsUtils() = delete;
+
+	CStatisticsUtils(const CStatisticsUtils &) = delete;
+
 	// get the next data point for generating new bucket boundary
 	static CPoint *NextPoint(CMemoryPool *mp, CMDAccessor *md_accessor,
 							 CPoint *point);

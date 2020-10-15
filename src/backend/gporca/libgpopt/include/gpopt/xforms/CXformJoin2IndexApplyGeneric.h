@@ -25,8 +25,6 @@ private:
 	// this decides which types of plans are produced, index gets or bitmap gets
 	BOOL m_generateBitmapPlans;
 
-	CXformJoin2IndexApplyGeneric(const CXformJoin2IndexApplyGeneric &) = delete;
-
 	// Can we transform left outer join to left outer index apply?
 	BOOL FCanLeftOuterIndexApply(CMemoryPool *mp, CExpression *pexprInner,
 								 CExpression *pexprScalar,
@@ -34,6 +32,8 @@ private:
 								 const CColRefSet *pcrsDist) const;
 
 public:
+	CXformJoin2IndexApplyGeneric(const CXformJoin2IndexApplyGeneric &) = delete;
+
 	// ctor
 	explicit CXformJoin2IndexApplyGeneric(CMemoryPool *mp,
 										  BOOL generateBitmapPlans)

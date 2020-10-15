@@ -81,9 +81,9 @@ private:
 	// return top level operator in the given expression
 	static COperator *PopTop(CExpression *pexpr);
 
+public:
 	CQueryContext(const CQueryContext &) = delete;
 
-public:
 	// ctor
 	CQueryContext(CMemoryPool *mp, CExpression *pexpr, CReqdPropPlan *prpp,
 				  CColRefArray *colref_array, CMDNameArray *pdrgpmdname,

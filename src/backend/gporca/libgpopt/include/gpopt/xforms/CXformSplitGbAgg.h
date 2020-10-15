@@ -29,8 +29,6 @@ using namespace gpos;
 class CXformSplitGbAgg : public CXformExploration
 {
 private:
-	CXformSplitGbAgg(const CXformSplitGbAgg &) = delete;
-
 protected:
 	// check if the transformation is applicable;
 	static BOOL FApplicable(CExpression *pexpr);
@@ -48,6 +46,8 @@ protected:
 	);
 
 public:
+	CXformSplitGbAgg(const CXformSplitGbAgg &) = delete;
+
 	// ctor
 	explicit CXformSplitGbAgg(CMemoryPool *mp);
 

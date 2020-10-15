@@ -43,9 +43,9 @@ private:
 	// for statistics computation, map to LINT
 	LINT m_val;
 
+public:
 	CDXLDatumStatsLintMappable(const CDXLDatumStatsLintMappable &) = delete;
 
-public:
 	// ctor
 	CDXLDatumStatsLintMappable(CMemoryPool *mp, IMDId *mdid_type,
 							   INT type_modifier, BOOL is_null,

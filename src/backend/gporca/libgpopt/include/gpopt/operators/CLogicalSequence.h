@@ -28,9 +28,9 @@ namespace gpopt
 class CLogicalSequence : public CLogical
 {
 private:
+public:
 	CLogicalSequence(const CLogicalSequence &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalSequence(CMemoryPool *mp);
 

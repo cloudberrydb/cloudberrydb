@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformGbAggDedup2StreamAggDedup : public CXformGbAgg2StreamAgg
 {
 private:
+public:
 	CXformGbAggDedup2StreamAggDedup(const CXformGbAggDedup2StreamAggDedup &) =
 		delete;
 
-public:
 	// ctor
 	CXformGbAggDedup2StreamAggDedup(CMemoryPool *mp);
 

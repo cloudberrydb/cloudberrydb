@@ -40,9 +40,9 @@ private:
 	// is iterator active or exhausted
 	BOOL m_active;
 
+public:
 	CBitSetIter(const CBitSetIter &) = delete;
 
-public:
 	// ctor
 	explicit CBitSetIter(const CBitSet &bs);
 	// dtor

@@ -57,9 +57,9 @@ private:
 	// comparison operator id
 	IMDId *m_mdid_op;
 
+public:
 	CMDScCmpGPDB(const CMDScCmpGPDB &) = delete;
 
-public:
 	// ctor
 	CMDScCmpGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 				 IMDId *left_mdid, IMDId *right_mdid,

@@ -43,9 +43,9 @@ private:
 	// is distribution duplicate sensitive
 	BOOL m_is_duplicate_sensitive;
 
+public:
 	CDXLPhysicalRandomMotion(const CDXLPhysicalRandomMotion &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalRandomMotion(CMemoryPool *mp, BOOL is_duplicate_sensitive);
 

@@ -35,9 +35,9 @@ private:
 	// output column ids
 	ULongPtrArray *m_output_colids_array;
 
+public:
 	CDXLPhysicalCTEConsumer(CDXLPhysicalCTEConsumer &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalCTEConsumer(CMemoryPool *mp, ULONG id,
 							ULongPtrArray *output_colids_array);

@@ -33,9 +33,9 @@ private:
 	// Memory pool
 	CMemoryPool *m_mp;
 
+public:
 	CXformContext(const CXformContext &) = delete;
 
-public:
 	// ctor
 	explicit CXformContext(CMemoryPool *mp) : m_mp(mp)
 	{

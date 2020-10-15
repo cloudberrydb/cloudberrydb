@@ -29,10 +29,10 @@ template <class T, ULONG sentinel_index>
 class CEnumSetIter : public CBitSetIter
 {
 private:
+public:
 	CEnumSetIter<T, sentinel_index>(const CEnumSetIter<T, sentinel_index> &) =
 		delete;
 
-public:
 	// ctor
 	explicit CEnumSetIter<T, sentinel_index>(
 		const CEnumSet<T, sentinel_index> &enum_set)

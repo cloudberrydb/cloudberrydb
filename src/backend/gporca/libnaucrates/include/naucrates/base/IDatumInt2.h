@@ -27,9 +27,9 @@ namespace gpnaucrates
 class IDatumInt2 : public IDatum
 {
 private:
+public:
 	IDatumInt2(const IDatumInt2 &) = delete;
 
-public:
 	// ctor
 	IDatumInt2() = default;
 

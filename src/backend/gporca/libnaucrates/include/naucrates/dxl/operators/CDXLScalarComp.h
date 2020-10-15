@@ -47,9 +47,9 @@ protected:
 	const CWStringConst *m_comparison_operator_name;
 
 private:
+public:
 	CDXLScalarComp(CDXLScalarComp &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarComp(CMemoryPool *mp, IMDId *operator_mdid,
 				   const CWStringConst *comparison_operator_name);

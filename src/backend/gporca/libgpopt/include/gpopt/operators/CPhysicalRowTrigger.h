@@ -42,9 +42,9 @@ private:
 	// required columns by local members
 	CColRefSet *m_pcrsRequiredLocal;
 
+public:
 	CPhysicalRowTrigger(const CPhysicalRowTrigger &) = delete;
 
-public:
 	// ctor
 	CPhysicalRowTrigger(CMemoryPool *mp, IMDId *rel_mdid, INT type,
 						CColRefArray *pdrgpcrOld, CColRefArray *pdrgpcrNew);

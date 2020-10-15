@@ -37,8 +37,6 @@ private:
 	// motion operator
 	CDXLPhysicalRandomMotion *m_dxl_op;
 
-	CParseHandlerRandomMotion(const CParseHandlerRandomMotion &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerRandomMotion(const CParseHandlerRandomMotion &) = delete;
+
 	// ctor
 	CParseHandlerRandomMotion(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

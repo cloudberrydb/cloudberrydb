@@ -45,9 +45,9 @@ private:
 	const CDXLNodeArray *m_cte_producers;
 
 
+public:
 	CSerializableQuery(const CSerializableQuery &) = delete;
 
-public:
 	// ctor
 	CSerializableQuery(CMemoryPool *mp, const CDXLNode *query,
 					   const CDXLNodeArray *query_output_dxlnode_array,

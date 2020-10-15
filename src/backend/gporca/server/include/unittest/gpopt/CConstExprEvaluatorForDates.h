@@ -43,9 +43,9 @@ private:
 	// memory pool, not owned
 	CMemoryPool *m_mp;
 
+public:
 	CConstExprEvaluatorForDates(const CConstExprEvaluatorForDates &) = delete;
 
-public:
 	// ctor
 	explicit CConstExprEvaluatorForDates(CMemoryPool *mp) : m_mp(mp)
 	{

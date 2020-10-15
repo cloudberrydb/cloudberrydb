@@ -29,9 +29,9 @@ namespace gpdxl
 class CDXLScalarHashExprList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarHashExprList(CDXLScalarHashExprList &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarHashExprList(CMemoryPool *mp);
 

@@ -58,8 +58,6 @@ private:
 	// can we use hash aggregation to compute agg function
 	BOOL m_hash_agg_capable;
 
-	CParseHandlerMDGPDBAgg(const CParseHandlerMDGPDBAgg &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -76,6 +74,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDGPDBAgg(const CParseHandlerMDGPDBAgg &) = delete;
+
 	// ctor
 	CParseHandlerMDGPDBAgg(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

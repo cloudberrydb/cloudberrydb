@@ -39,9 +39,9 @@ private:
 	// does operator return NULL on NULL input?
 	BOOL m_returns_null_on_null_input;
 
+public:
 	CScalarCoerceToDomain(const CScalarCoerceToDomain &) = delete;
 
-public:
 	// ctor
 	CScalarCoerceToDomain(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 						  ECoercionForm dxl_coerce_format, INT location);

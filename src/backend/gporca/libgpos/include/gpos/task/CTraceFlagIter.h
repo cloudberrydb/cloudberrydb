@@ -29,9 +29,9 @@ namespace gpos
 class CTraceFlagIter : public CBitSetIter
 {
 private:
+public:
 	CTraceFlagIter(const CTraceFlagIter &) = delete;
 
-public:
 	// ctor
 	CTraceFlagIter() : CBitSetIter(*CTask::Self()->GetTaskCtxt()->m_bitset)
 	{

@@ -65,8 +65,6 @@ private:
 	// storage type
 	IMDRelation::Erelstoragetype m_rel_storage_type;
 
-	CParseHandlerLogicalCTAS(const CParseHandlerLogicalCTAS &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -83,6 +81,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalCTAS(const CParseHandlerLogicalCTAS &) = delete;
+
 	// ctor
 	CParseHandlerLogicalCTAS(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

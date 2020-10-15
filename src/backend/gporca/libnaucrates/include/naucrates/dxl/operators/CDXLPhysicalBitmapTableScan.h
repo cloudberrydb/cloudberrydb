@@ -35,9 +35,9 @@ class CXMLSerializer;
 class CDXLPhysicalBitmapTableScan : public CDXLPhysicalAbstractBitmapScan
 {
 private:
+public:
 	CDXLPhysicalBitmapTableScan(const CDXLPhysicalBitmapTableScan &) = delete;
 
-public:
 	// ctors
 	CDXLPhysicalBitmapTableScan(CMemoryPool *mp, CDXLTableDescr *table_descr)
 		: CDXLPhysicalAbstractBitmapScan(mp, table_descr)

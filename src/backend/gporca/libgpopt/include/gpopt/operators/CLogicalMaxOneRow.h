@@ -29,9 +29,9 @@ namespace gpopt
 class CLogicalMaxOneRow : public CLogical
 {
 private:
+public:
 	CLogicalMaxOneRow(const CLogicalMaxOneRow &) = delete;
 
-public:
 	// ctors
 	explicit CLogicalMaxOneRow(CMemoryPool *mp) : CLogical(mp)
 	{

@@ -33,9 +33,9 @@ private:
 	// type id
 	IMDId *m_mdid_type;
 
+public:
 	CScalarCaseTest(const CScalarCaseTest &) = delete;
 
-public:
 	// ctor
 	CScalarCaseTest(CMemoryPool *mp, IMDId *mdid_type);
 

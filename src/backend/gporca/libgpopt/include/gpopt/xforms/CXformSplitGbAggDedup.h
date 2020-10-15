@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformSplitGbAggDedup : public CXformSplitGbAgg
 {
 private:
+public:
 	CXformSplitGbAggDedup(const CXformSplitGbAggDedup &) = delete;
 
-public:
 	// ctor
 	explicit CXformSplitGbAggDedup(CMemoryPool *mp);
 

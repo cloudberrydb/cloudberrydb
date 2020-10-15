@@ -45,9 +45,9 @@ private:
 	// true if outer relation has unique values for the merge key
 	BOOL m_is_unique_outer;
 
+public:
 	CDXLPhysicalMergeJoin(const CDXLPhysicalMergeJoin &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalMergeJoin(CMemoryPool *mp, EdxlJoinType join_type,
 						  BOOL is_unique_outer);

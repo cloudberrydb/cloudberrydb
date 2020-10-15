@@ -49,9 +49,9 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
+public:
 	CScalarSwitch(const CScalarSwitch &) = delete;
 
-public:
 	// ctor
 	CScalarSwitch(CMemoryPool *mp, IMDId *mdid_type);
 

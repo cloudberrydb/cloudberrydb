@@ -34,9 +34,9 @@ class IErrorContext;
 class ITask
 {
 private:
+public:
 	ITask(const ITask &) = delete;
 
-public:
 	// task status
 	enum ETaskStatus
 	{

@@ -23,9 +23,9 @@ class CDistributionSpecHashed;
 class CPhysicalSerialUnionAll : public CPhysicalUnionAll
 {
 private:
+public:
 	CPhysicalSerialUnionAll(const CPhysicalSerialUnionAll &) = delete;
 
-public:
 	// ctor
 	CPhysicalSerialUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
 							CColRef2dArray *pdrgpdrgpcrInput,

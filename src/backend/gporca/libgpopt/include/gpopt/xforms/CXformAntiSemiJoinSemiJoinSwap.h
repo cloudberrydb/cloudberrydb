@@ -33,10 +33,10 @@ class CXformAntiSemiJoinSemiJoinSwap
 	: public CXformJoinSwap<CLogicalLeftAntiSemiJoin, CLogicalLeftSemiJoin>
 {
 private:
+public:
 	CXformAntiSemiJoinSemiJoinSwap(const CXformAntiSemiJoinSemiJoinSwap &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformAntiSemiJoinSemiJoinSwap(CMemoryPool *mp)
 		: CXformJoinSwap<CLogicalLeftAntiSemiJoin, CLogicalLeftSemiJoin>(mp)

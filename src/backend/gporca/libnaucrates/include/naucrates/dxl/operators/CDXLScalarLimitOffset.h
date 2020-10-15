@@ -31,9 +31,9 @@ using namespace gpos;
 class CDXLScalarLimitOffset : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarLimitOffset(const CDXLScalarLimitOffset &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarLimitOffset(CMemoryPool *mp);
 

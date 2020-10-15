@@ -38,9 +38,9 @@ private:
 
 	ULLONG m_live_obj_total_size;
 
+public:
 	CMemoryPoolStatistics(CMemoryPoolStatistics &) = delete;
 
-public:
 	// ctor
 	CMemoryPoolStatistics()
 		: m_num_successful_allocations(0),

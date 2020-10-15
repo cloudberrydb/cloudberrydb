@@ -33,9 +33,9 @@ class CXformSemiJoinInnerJoinSwap
 	: public CXformJoinSwap<CLogicalLeftSemiJoin, CLogicalInnerJoin>
 {
 private:
+public:
 	CXformSemiJoinInnerJoinSwap(const CXformSemiJoinInnerJoinSwap &) = delete;
 
-public:
 	// ctor
 	explicit CXformSemiJoinInnerJoinSwap(CMemoryPool *mp)
 		: CXformJoinSwap<CLogicalLeftSemiJoin, CLogicalInnerJoin>(mp)

@@ -49,12 +49,12 @@ class CWorkerId;
 class IWorker : public CStackObject
 {
 private:
-	IWorker(const IWorker &) = delete;
-
 	// check for abort request
 	virtual void CheckForAbort(const CHAR *, ULONG) = 0;
 
 public:
+	IWorker(const IWorker &) = delete;
+
 	// dummy ctor
 	IWorker() = default;
 

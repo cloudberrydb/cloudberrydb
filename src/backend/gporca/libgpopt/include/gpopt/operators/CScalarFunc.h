@@ -61,10 +61,9 @@ protected:
 	BOOL m_fBoolReturnType;
 
 private:
+public:
 	CScalarFunc(const CScalarFunc &) = delete;
 
-
-public:
 	explicit CScalarFunc(CMemoryPool *mp);
 
 	// ctor

@@ -49,9 +49,9 @@ private:
 	// scan direction of the index
 	EdxlIndexScanDirection m_index_scan_dir;
 
+public:
 	CDXLPhysicalIndexScan(CDXLPhysicalIndexScan &) = delete;
 
-public:
 	//ctor
 	CDXLPhysicalIndexScan(CMemoryPool *mp, CDXLTableDescr *table_descr,
 						  CDXLIndexDescr *dxl_index_descr,

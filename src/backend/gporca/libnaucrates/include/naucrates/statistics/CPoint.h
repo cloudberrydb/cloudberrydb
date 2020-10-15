@@ -36,15 +36,14 @@ using namespace gpopt;
 class CPoint : public CRefCount
 {
 private:
-	CPoint(const CPoint &) = delete;
-
-	// private assignment operator
-	CPoint &operator=(CPoint &) = delete;
-
 	// datum corresponding to the point
 	IDatum *m_datum;
 
 public:
+	CPoint &operator=(CPoint &) = delete;
+
+	CPoint(const CPoint &) = delete;
+
 	// c'tor
 	explicit CPoint(IDatum *);
 

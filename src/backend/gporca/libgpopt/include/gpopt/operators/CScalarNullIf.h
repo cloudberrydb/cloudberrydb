@@ -41,9 +41,9 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
+public:
 	CScalarNullIf(const CScalarNullIf &) = delete;
 
-public:
 	// ctor
 	CScalarNullIf(CMemoryPool *mp, IMDId *mdid_op, IMDId *mdid_type);
 

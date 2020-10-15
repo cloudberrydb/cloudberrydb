@@ -48,12 +48,12 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	CMDIdScCmp(const CMDIdScCmp &) = delete;
-
 	// serialize mdid
 	void Serialize();
 
 public:
+	CMDIdScCmp(const CMDIdScCmp &) = delete;
+
 	// ctor
 	CMDIdScCmp(CMDIdGPDB *left_mdid, CMDIdGPDB *right_mdid,
 			   IMDType::ECmpType cmp_type);

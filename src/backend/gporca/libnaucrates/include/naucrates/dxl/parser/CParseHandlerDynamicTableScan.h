@@ -41,9 +41,6 @@ private:
 	// printable partition index id
 	ULONG m_part_index_id_printable;
 
-	CParseHandlerDynamicTableScan(const CParseHandlerDynamicTableScan &) =
-		delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +57,9 @@ private:
 	);
 
 public:
+	CParseHandlerDynamicTableScan(const CParseHandlerDynamicTableScan &) =
+		delete;
+
 	// ctor
 	CParseHandlerDynamicTableScan(CMemoryPool *mp,
 								  CParseHandlerManager *parse_handler_mgr,

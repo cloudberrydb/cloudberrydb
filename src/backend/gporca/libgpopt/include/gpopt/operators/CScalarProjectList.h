@@ -30,9 +30,9 @@ using namespace gpos;
 class CScalarProjectList : public CScalar
 {
 private:
+public:
 	CScalarProjectList(const CScalarProjectList &) = delete;
 
-public:
 	// ctor
 	explicit CScalarProjectList(CMemoryPool *mp);
 

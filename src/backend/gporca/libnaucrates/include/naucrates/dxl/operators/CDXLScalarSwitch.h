@@ -36,9 +36,9 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
+public:
 	CDXLScalarSwitch(const CDXLScalarSwitch &) = delete;
 
-public:
 	// ctor
 	CDXLScalarSwitch(CMemoryPool *mp, IMDId *mdid_type);
 

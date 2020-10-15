@@ -34,10 +34,10 @@ class CXformAntiSemiJoinAntiSemiJoinNotInSwap
 							CLogicalLeftAntiSemiJoinNotIn>
 {
 private:
+public:
 	CXformAntiSemiJoinAntiSemiJoinNotInSwap(
 		const CXformAntiSemiJoinAntiSemiJoinNotInSwap &) = delete;
 
-public:
 	// ctor
 	explicit CXformAntiSemiJoinAntiSemiJoinNotInSwap(CMemoryPool *mp)
 		: CXformJoinSwap<CLogicalLeftAntiSemiJoin,

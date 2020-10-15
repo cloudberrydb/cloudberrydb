@@ -32,11 +32,6 @@ using namespace gpmd;
 class CStatsPredJoin : public CRefCount
 {
 private:
-	CStatsPredJoin(const CStatsPredJoin &) = delete;
-
-	// private assignment operator
-	CStatsPredJoin &operator=(CStatsPredJoin &) = delete;
-
 	// column id
 	ULONG m_colidOuter;
 
@@ -47,6 +42,10 @@ private:
 	ULONG m_colidInner;
 
 public:
+	CStatsPredJoin &operator=(CStatsPredJoin &) = delete;
+
+	CStatsPredJoin(const CStatsPredJoin &) = delete;
+
 	// c'tor
 	CStatsPredJoin(ULONG colid1, CStatsPred::EStatsCmpType stats_cmp_type,
 				   ULONG colid2)

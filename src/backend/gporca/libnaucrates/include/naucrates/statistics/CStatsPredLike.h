@@ -36,11 +36,6 @@ using namespace gpmd;
 class CStatsPredLike : public CStatsPred
 {
 private:
-	CStatsPredLike(const CStatsPredLike &) = delete;
-
-	// private assignment operator
-	CStatsPredLike &operator=(CStatsPredLike &) = delete;
-
 	// left hand side of the LIKE expression
 	CExpression *m_expr_left;
 
@@ -51,6 +46,10 @@ private:
 	CDouble m_default_scale_factor;
 
 public:
+	CStatsPredLike &operator=(CStatsPredLike &) = delete;
+
+	CStatsPredLike(const CStatsPredLike &) = delete;
+
 	// ctor
 	CStatsPredLike(ULONG colid, CExpression *expr_left, CExpression *expr_right,
 				   CDouble default_scale_factor);

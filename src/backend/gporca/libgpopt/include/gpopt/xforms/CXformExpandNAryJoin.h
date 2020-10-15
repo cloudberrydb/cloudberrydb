@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformExpandNAryJoin : public CXformExploration
 {
 private:
+public:
 	CXformExpandNAryJoin(const CXformExpandNAryJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformExpandNAryJoin(CMemoryPool *mp);
 

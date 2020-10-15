@@ -39,9 +39,9 @@ private:
 	// mapping colref -> array of child constraints
 	ColRefToConstraintArrayMap *m_phmcolconstr;
 
+public:
 	CConstraintConjunction(const CConstraintConjunction &) = delete;
 
-public:
 	// ctor
 	CConstraintConjunction(CMemoryPool *mp, CConstraintArray *pdrgpcnstr);
 

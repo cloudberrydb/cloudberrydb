@@ -51,12 +51,12 @@ private:
 	// order matching type
 	EOrderMatching m_eom;
 
-	CEnfdOrder(const CEnfdOrder &) = delete;
-
 	// names of order matching types
 	static const CHAR *m_szOrderMatching[EomSentinel];
 
 public:
+	CEnfdOrder(const CEnfdOrder &) = delete;
+
 	// ctor
 	CEnfdOrder(COrderSpec *pos, EOrderMatching eom);
 

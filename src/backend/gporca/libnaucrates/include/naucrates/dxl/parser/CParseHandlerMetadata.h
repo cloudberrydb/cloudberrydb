@@ -48,8 +48,6 @@ private:
 	// list of parsed metatadata source system ids
 	CSystemIdArray *m_system_id_array;
 
-	CParseHandlerMetadata(const CParseHandlerMetadata &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -72,6 +70,8 @@ private:
 
 
 public:
+	CParseHandlerMetadata(const CParseHandlerMetadata &) = delete;
+
 	// ctor
 	CParseHandlerMetadata(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

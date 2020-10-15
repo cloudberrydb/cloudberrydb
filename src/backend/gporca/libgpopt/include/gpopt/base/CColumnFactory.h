@@ -58,8 +58,6 @@ private:
 	// hash table
 	CSyncHashtable<CColRef, ULONG> m_sht;
 
-	CColumnFactory(const CColumnFactory &) = delete;
-
 	// implementation of factory methods
 	CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier, ULONG id,
 					   const CName &name);
@@ -68,6 +66,8 @@ private:
 					   BOOL mark_as_used = true, IMDId *mdid_table = NULL);
 
 public:
+	CColumnFactory(const CColumnFactory &) = delete;
+
 	// ctor
 	CColumnFactory();
 

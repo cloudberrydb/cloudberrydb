@@ -42,9 +42,9 @@ private:
 	// table descriptor for the scanned table
 	CDXLTableDescr *m_dxl_table_descr;
 
+public:
 	CDXLPhysicalTableScan(CDXLPhysicalTableScan &) = delete;
 
-public:
 	// ctors
 	explicit CDXLPhysicalTableScan(CMemoryPool *mp);
 

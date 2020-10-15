@@ -52,12 +52,12 @@ private:
 	// distribution matching type
 	EDistributionMatching m_edm;
 
-	CEnfdDistribution(const CEnfdDistribution &) = delete;
-
 	// names of distribution matching types
 	static const CHAR *m_szDistributionMatching[EdmSentinel];
 
 public:
+	CEnfdDistribution(const CEnfdDistribution &) = delete;
+
 	// ctor
 	CEnfdDistribution(CDistributionSpec *pds, EDistributionMatching edm);
 

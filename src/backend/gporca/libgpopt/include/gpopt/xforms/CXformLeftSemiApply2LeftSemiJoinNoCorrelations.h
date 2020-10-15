@@ -33,10 +33,10 @@ class CXformLeftSemiApply2LeftSemiJoinNoCorrelations
 	: public CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>
 {
 private:
+public:
 	CXformLeftSemiApply2LeftSemiJoinNoCorrelations(
 		const CXformLeftSemiApply2LeftSemiJoinNoCorrelations &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftSemiApply2LeftSemiJoinNoCorrelations(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(mp)

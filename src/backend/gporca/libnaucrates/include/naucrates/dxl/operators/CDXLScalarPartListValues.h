@@ -26,9 +26,9 @@ private:
 	// element type
 	IMDId *m_elem_type_mdid;
 
+public:
 	CDXLScalarPartListValues(const CDXLScalarPartListValues &) = delete;
 
-public:
 	// ctor
 	CDXLScalarPartListValues(CMemoryPool *mp, ULONG partitioning_level,
 							 IMDId *result_type_mdid, IMDId *elem_type_mdid);

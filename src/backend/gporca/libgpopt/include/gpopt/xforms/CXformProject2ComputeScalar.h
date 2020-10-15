@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformProject2ComputeScalar : public CXformImplementation
 {
 private:
+public:
 	CXformProject2ComputeScalar(const CXformProject2ComputeScalar &) = delete;
 
-public:
 	// ctor
 	explicit CXformProject2ComputeScalar(CMemoryPool *mp);
 

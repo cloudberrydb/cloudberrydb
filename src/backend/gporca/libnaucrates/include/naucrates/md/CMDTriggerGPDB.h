@@ -60,9 +60,9 @@ private:
 	// is trigger enabled
 	BOOL m_is_enabled;
 
+public:
 	CMDTriggerGPDB(const CMDTriggerGPDB &) = delete;
 
-public:
 	// ctor
 	CMDTriggerGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 				   IMDId *rel_mdid, IMDId *mdid_func, INT type,

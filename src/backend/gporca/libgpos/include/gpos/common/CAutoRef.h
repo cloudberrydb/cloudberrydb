@@ -29,9 +29,9 @@ template <class T>
 class CAutoRef : public CAutoP<T>
 {
 private:
+public:
 	CAutoRef<T>(const CAutoRef &) = delete;
 
-public:
 	// ctor
 	explicit CAutoRef<T>() : CAutoP<T>()
 	{

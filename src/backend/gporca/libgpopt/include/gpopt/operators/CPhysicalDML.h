@@ -83,9 +83,9 @@ private:
 	// compute local required columns
 	void ComputeRequiredLocalColumns(CMemoryPool *mp);
 
+public:
 	CPhysicalDML(const CPhysicalDML &) = delete;
 
-public:
 	// ctor
 	CPhysicalDML(CMemoryPool *mp, CLogicalDML::EDMLOperator edmlop,
 				 CTableDescriptor *ptabdesc, CColRefArray *pdrgpcrSource,

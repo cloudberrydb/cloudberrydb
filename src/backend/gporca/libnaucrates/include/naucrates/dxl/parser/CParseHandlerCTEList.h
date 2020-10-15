@@ -35,8 +35,6 @@ private:
 	// CTE list
 	CDXLNodeArray *m_dxl_array;
 
-	CParseHandlerCTEList(const CParseHandlerCTEList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -53,6 +51,8 @@ private:
 	);
 
 public:
+	CParseHandlerCTEList(const CParseHandlerCTEList &) = delete;
+
 	// ctor
 	CParseHandlerCTEList(CMemoryPool *mp,
 						 CParseHandlerManager *parse_handler_mgr,

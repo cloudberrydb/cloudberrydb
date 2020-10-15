@@ -52,9 +52,9 @@ private:
 	}
 #endif	// GPOS_DEBUG
 
+public:
 	CRefCount(const CRefCount &) = delete;
 
-public:
 	// ctor
 	CRefCount() : m_refs(1)
 	{

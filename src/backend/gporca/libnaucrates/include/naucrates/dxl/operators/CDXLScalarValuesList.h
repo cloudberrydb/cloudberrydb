@@ -26,9 +26,9 @@ using namespace gpmd;
 class CDXLScalarValuesList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarValuesList(CDXLScalarValuesList &) = delete;
 
-public:
 	// ctor
 	CDXLScalarValuesList(CMemoryPool *mp);
 

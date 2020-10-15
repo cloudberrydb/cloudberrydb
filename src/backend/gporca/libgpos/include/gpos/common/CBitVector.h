@@ -35,12 +35,12 @@ private:
 	// vector
 	ULLONG *m_vec;
 
-	CBitVector(const CBitVector &) = delete;
-
 	// clear vector
 	void Clear();
 
 public:
+	CBitVector(const CBitVector &) = delete;
+
 	// ctor
 	CBitVector(CMemoryPool *mp, ULONG cBits);
 

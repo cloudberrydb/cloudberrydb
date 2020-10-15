@@ -33,9 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarLimitCount : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarLimitCount(const CParseHandlerScalarLimitCount &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
@@ -47,6 +44,9 @@ private:
 					const XMLCh *const element_qname);
 
 public:
+	CParseHandlerScalarLimitCount(const CParseHandlerScalarLimitCount &) =
+		delete;
+
 	// ctor
 	CParseHandlerScalarLimitCount(CMemoryPool *mp,
 								  CParseHandlerManager *parse_handler_mgr,

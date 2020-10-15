@@ -35,10 +35,10 @@ using namespace gpos;
 class CXformDifferenceAll2LeftAntiSemiJoin : public CXformExploration
 {
 private:
+public:
 	CXformDifferenceAll2LeftAntiSemiJoin(
 		const CXformDifferenceAll2LeftAntiSemiJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformDifferenceAll2LeftAntiSemiJoin(CMemoryPool *mp);
 

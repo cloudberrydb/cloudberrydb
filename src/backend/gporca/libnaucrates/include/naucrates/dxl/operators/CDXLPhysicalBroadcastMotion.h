@@ -40,9 +40,9 @@ enum Edxlbm
 class CDXLPhysicalBroadcastMotion : public CDXLPhysicalMotion
 {
 private:
+public:
 	CDXLPhysicalBroadcastMotion(const CDXLPhysicalBroadcastMotion &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLPhysicalBroadcastMotion(CMemoryPool *mp);
 

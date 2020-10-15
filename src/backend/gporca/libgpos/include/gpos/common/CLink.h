@@ -15,9 +15,9 @@ namespace gpos
 struct SLink
 {
 private:
+public:
 	SLink(const SLink &) = delete;
 
-public:
 	// link forward/backward
 	void *m_next;
 	void *m_prev;

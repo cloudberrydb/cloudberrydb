@@ -37,9 +37,9 @@ private:
 	// catalog Oid of the distribution opfamily
 	IMDId *m_mdid_opfamily;
 
+public:
 	CDXLScalarHashExpr(CDXLScalarHashExpr &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarHashExpr(CMemoryPool *mp, IMDId *mdid_type);
 

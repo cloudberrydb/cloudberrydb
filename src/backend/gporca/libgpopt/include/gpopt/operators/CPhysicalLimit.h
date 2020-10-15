@@ -43,9 +43,9 @@ private:
 	// columns used by order spec
 	CColRefSet *m_pcrsSort;
 
+public:
 	CPhysicalLimit(const CPhysicalLimit &) = delete;
 
-public:
 	// ctor
 	CPhysicalLimit(CMemoryPool *mp, COrderSpec *pos, BOOL fGlobal,
 				   BOOL fHasCount, BOOL fTopLimitUnderDML);

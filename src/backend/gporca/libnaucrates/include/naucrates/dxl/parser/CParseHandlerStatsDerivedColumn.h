@@ -52,9 +52,6 @@ private:
 	// derived column stats
 	CDXLStatsDerivedColumn *m_dxl_stats_derived_col;
 
-	CParseHandlerStatsDerivedColumn(const CParseHandlerStatsDerivedColumn &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -71,6 +68,9 @@ private:
 	);
 
 public:
+	CParseHandlerStatsDerivedColumn(const CParseHandlerStatsDerivedColumn &) =
+		delete;
+
 	// ctor
 	CParseHandlerStatsDerivedColumn(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

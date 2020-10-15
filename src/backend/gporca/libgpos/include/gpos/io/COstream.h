@@ -46,6 +46,8 @@ protected:
 public:
 	using IOstream::operator<<;
 
+	COstream(COstream &) = delete;
+
 	// virtual dtor
 	virtual ~COstream() = default;
 
@@ -81,8 +83,6 @@ private:
 
 	// what is the stream modifier?
 	EStreamManipulator GetStreamManipulator() const;
-
-	COstream(COstream &) = delete;
 };
 
 }  // namespace gpos

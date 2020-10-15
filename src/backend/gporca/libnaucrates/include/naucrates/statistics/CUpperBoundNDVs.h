@@ -44,9 +44,9 @@ private:
 	// upper bound of ndvs
 	CDouble m_upper_bound_ndv;
 
+public:
 	CUpperBoundNDVs(const CUpperBoundNDVs &) = delete;
 
-public:
 	// ctor
 	CUpperBoundNDVs(CColRefSet *column_refset, CDouble upper_bound_ndv)
 		: m_column_refset(column_refset), m_upper_bound_ndv(upper_bound_ndv)

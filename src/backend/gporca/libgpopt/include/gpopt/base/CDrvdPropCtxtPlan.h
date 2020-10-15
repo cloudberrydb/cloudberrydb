@@ -44,8 +44,6 @@ private:
 	// if true, a call to AddProps updates the CTE.
 	BOOL m_fUpdateCTEMap;
 
-	CDrvdPropCtxtPlan(const CDrvdPropCtxtPlan &) = delete;
-
 protected:
 	// copy function
 	virtual CDrvdPropCtxt *PdpctxtCopy(CMemoryPool *mp) const;
@@ -54,6 +52,8 @@ protected:
 	virtual void AddProps(CDrvdProp *pdp);
 
 public:
+	CDrvdPropCtxtPlan(const CDrvdPropCtxtPlan &) = delete;
+
 	// ctor
 	CDrvdPropCtxtPlan(CMemoryPool *mp, BOOL fUpdateCTEMap = true);
 

@@ -29,9 +29,9 @@ using namespace gpos;
 class CPattern : public COperator
 {
 private:
+public:
 	CPattern(const CPattern &) = delete;
 
-public:
 	// ctor
 	explicit CPattern(CMemoryPool *mp) : COperator(mp)
 	{

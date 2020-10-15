@@ -95,11 +95,6 @@ private:
 	// is column statistics missing in the database
 	BOOL m_is_col_stats_missing;
 
-	CHistogram(const CHistogram &) = delete;
-
-	// private assignment operator
-	CHistogram &operator=(const CHistogram &) = delete;
-
 	// return an array buckets after applying equality filter on the histogram buckets
 	CBucketArray *MakeBucketsWithEqualityFilter(CPoint *point) const;
 
@@ -221,6 +216,10 @@ private:
 		SAdjBucketBoundaryArray;
 
 public:
+	CHistogram &operator=(const CHistogram &) = delete;
+
+	CHistogram(const CHistogram &) = delete;
+
 	// ctors
 	explicit CHistogram(CMemoryPool *mp, CBucketArray *histogram_buckets,
 						BOOL is_well_defined = true);

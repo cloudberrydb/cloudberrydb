@@ -67,9 +67,9 @@ private:
 	struct SBucket
 	{
 	private:
+	public:
 		SBucket(const SBucket &) = delete;
 
-	public:
 		// ctor
 		SBucket() = default;
 

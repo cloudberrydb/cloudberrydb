@@ -37,9 +37,9 @@ private:
 	// index name
 	CMDName *m_mdname;
 
+public:
 	CDXLIndexDescr(const CDXLIndexDescr &) = delete;
 
-public:
 	// ctor
 	CDXLIndexDescr(IMDId *mdid, CMDName *mdname);
 

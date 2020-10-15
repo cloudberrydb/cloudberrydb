@@ -254,12 +254,12 @@ private:
 		return false;
 	}
 
+public:
 	CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
 				  tenumeventSentinel>(
 		const CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
 							tenumeventSentinel> &) = delete;
 
-public:
 	// ctor
 	CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
 				  tenumeventSentinel>()

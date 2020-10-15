@@ -29,9 +29,9 @@ namespace gpdxl
 class CDXLScalarProjList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarProjList(CDXLScalarProjList &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarProjList(CMemoryPool *mp);
 

@@ -54,9 +54,9 @@ private:
 	// tuple oid column id
 	ULONG m_tuple_oid;
 
+public:
 	CDXLLogicalUpdate(const CDXLLogicalUpdate &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalUpdate(CMemoryPool *mp, CDXLTableDescr *table_descr,
 					  ULONG ctid_colid, ULONG segid_colid,

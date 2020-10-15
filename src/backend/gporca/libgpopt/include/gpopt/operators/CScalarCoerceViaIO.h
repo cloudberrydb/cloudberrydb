@@ -38,9 +38,9 @@ using namespace gpos;
 class CScalarCoerceViaIO : public CScalarCoerceBase
 {
 private:
+public:
 	CScalarCoerceViaIO(const CScalarCoerceViaIO &) = delete;
 
-public:
 	// ctor
 	CScalarCoerceViaIO(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 					   ECoercionForm dxl_coerce_format, INT location);

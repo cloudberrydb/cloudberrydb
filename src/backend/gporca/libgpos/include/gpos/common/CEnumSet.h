@@ -29,9 +29,9 @@ template <class T, ULONG sentinel_index>
 class CEnumSet : public CBitSet
 {
 private:
+public:
 	CEnumSet<T, sentinel_index>(const CEnumSet<T, sentinel_index> &) = delete;
 
-public:
 	// ctor
 	explicit CEnumSet<T, sentinel_index>(CMemoryPool *mp)
 		: CBitSet(mp, sentinel_index)

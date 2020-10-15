@@ -35,8 +35,6 @@ class CParseHandlerLimit : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalLimit *m_dxl_op;
 
-	CParseHandlerLimit(const CParseHandlerLimit &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -53,6 +51,8 @@ private:
 	);
 
 public:
+	CParseHandlerLimit(const CParseHandlerLimit &) = delete;
+
 	// ctor/dtor
 	CParseHandlerLimit(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					   CParseHandlerBase *parse_handler_root);

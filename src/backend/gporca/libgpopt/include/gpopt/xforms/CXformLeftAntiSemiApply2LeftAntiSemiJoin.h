@@ -34,10 +34,10 @@ class CXformLeftAntiSemiApply2LeftAntiSemiJoin
 							  CLogicalLeftAntiSemiJoin>
 {
 private:
+public:
 	CXformLeftAntiSemiApply2LeftAntiSemiJoin(
 		const CXformLeftAntiSemiApply2LeftAntiSemiJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftAntiSemiApply2LeftAntiSemiJoin(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftAntiSemiApply, CLogicalLeftAntiSemiJoin>(

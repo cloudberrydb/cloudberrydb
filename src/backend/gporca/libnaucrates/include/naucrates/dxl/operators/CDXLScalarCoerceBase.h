@@ -49,9 +49,9 @@ private:
 	// location of token to be coerced
 	INT m_location;
 
+public:
 	CDXLScalarCoerceBase(const CDXLScalarCoerceBase &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarCoerceBase(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 						 EdxlCoercionForm dxl_coerce_format, INT location);

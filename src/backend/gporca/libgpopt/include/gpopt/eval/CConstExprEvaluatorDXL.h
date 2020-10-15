@@ -61,9 +61,9 @@ private:
 	// translates DXL coming from the evaluator back to CExpression
 	CTranslatorDXLToExpr m_trdxl2expr;
 
+public:
 	CConstExprEvaluatorDXL(const CConstExprEvaluatorDXL &) = delete;
 
-public:
 	// ctor
 	CConstExprEvaluatorDXL(CMemoryPool *mp, CMDAccessor *md_accessor,
 						   IConstDXLNodeEvaluator *pconstdxleval);

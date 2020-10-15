@@ -37,8 +37,6 @@ private:
 	// the gather motion operator
 	CDXLPhysicalGatherMotion *m_dxl_op;
 
-	CParseHandlerGatherMotion(const CParseHandlerGatherMotion &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerGatherMotion(const CParseHandlerGatherMotion &) = delete;
+
 	// ctor/dtor
 	CParseHandlerGatherMotion(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

@@ -209,9 +209,9 @@ private:
 	IOstream &OsPrintMemoryConsumption(IOstream &os,
 									   const CHAR *szHeader) const;
 
+public:
 	CEngine(const CEngine &) = delete;
 
-public:
 	// ctor
 	explicit CEngine(CMemoryPool *mp);
 

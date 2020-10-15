@@ -22,10 +22,10 @@ using namespace gpos;
 class CXformJoin2BitmapIndexGetApply : public CXformJoin2IndexApplyGeneric
 {
 private:
+public:
 	CXformJoin2BitmapIndexGetApply(const CXformJoin2BitmapIndexGetApply &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformJoin2BitmapIndexGetApply(CMemoryPool *mp)
 		: CXformJoin2IndexApplyGeneric(mp, true)

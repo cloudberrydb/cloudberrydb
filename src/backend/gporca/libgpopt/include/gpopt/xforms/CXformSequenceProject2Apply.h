@@ -31,9 +31,9 @@ using namespace gpos;
 class CXformSequenceProject2Apply : public CXformSubqueryUnnest
 {
 private:
+public:
 	CXformSequenceProject2Apply(const CXformSequenceProject2Apply &) = delete;
 
-public:
 	// ctor
 	explicit CXformSequenceProject2Apply(CMemoryPool *mp);
 

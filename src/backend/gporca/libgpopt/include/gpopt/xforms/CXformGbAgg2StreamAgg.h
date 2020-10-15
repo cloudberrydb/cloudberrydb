@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformGbAgg2StreamAgg : public CXformImplementation
 {
 private:
+public:
 	CXformGbAgg2StreamAgg(const CXformGbAgg2StreamAgg &) = delete;
 
-public:
 	// ctor
 	CXformGbAgg2StreamAgg(CMemoryPool *mp);
 

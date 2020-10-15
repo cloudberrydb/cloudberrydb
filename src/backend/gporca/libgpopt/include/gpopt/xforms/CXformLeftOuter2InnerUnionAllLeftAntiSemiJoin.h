@@ -50,9 +50,6 @@ private:
 	// if ratio of the cardinalities outer/inner is below this value, we apply the xform
 	static const DOUBLE m_dOuterInnerRatioThreshold;
 
-	CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(
-		const CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin &) = delete;
-
 	// check the stats ratio to decide whether to apply the xform or not
 	BOOL FApplyXformUsingStatsInfo(const IStatistics *outer_stats,
 								   const IStatistics *inner_side_stats) const;
@@ -77,6 +74,9 @@ private:
 		CColRefArray **ppdrgpcrProjectOutput);
 
 public:
+	CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(
+		const CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin &) = delete;
+
 	// ctor
 	explicit CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(CMemoryPool *mp);
 

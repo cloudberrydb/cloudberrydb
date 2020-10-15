@@ -52,11 +52,11 @@ private:
 	// private ctor
 	CCacheFactory(CMemoryPool *mp);
 
-	CCacheFactory(const CCacheFactory &) = delete;
-
 
 
 public:
+	CCacheFactory(const CCacheFactory &) = delete;
+
 	// private dtor
 	~CCacheFactory()
 	{

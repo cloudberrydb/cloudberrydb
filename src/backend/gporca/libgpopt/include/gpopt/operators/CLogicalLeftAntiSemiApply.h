@@ -28,9 +28,9 @@ namespace gpopt
 class CLogicalLeftAntiSemiApply : public CLogicalApply
 {
 private:
+public:
 	CLogicalLeftAntiSemiApply(const CLogicalLeftAntiSemiApply &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftAntiSemiApply(CMemoryPool *mp) : CLogicalApply(mp)
 	{

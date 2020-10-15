@@ -39,8 +39,6 @@ private:
 	// the index descriptor to construct
 	CDXLIndexDescr *m_dxl_index_descr;
 
-	CParseHandlerIndexDescr(const CParseHandlerIndexDescr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -57,6 +55,8 @@ private:
 	);
 
 public:
+	CParseHandlerIndexDescr(const CParseHandlerIndexDescr &) = delete;
+
 	// ctor
 	CParseHandlerIndexDescr(CMemoryPool *, CParseHandlerManager *,
 							CParseHandlerBase *);

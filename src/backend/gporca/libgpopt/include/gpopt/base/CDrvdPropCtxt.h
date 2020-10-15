@@ -40,8 +40,6 @@ typedef CDynamicPtrArray<CDrvdPropCtxt, CleanupRelease> CDrvdPropCtxtArray;
 class CDrvdPropCtxt : public CRefCount
 {
 private:
-	CDrvdPropCtxt(const CDrvdPropCtxt &) = delete;
-
 protected:
 	// memory pool
 	CMemoryPool *m_mp;
@@ -53,6 +51,8 @@ protected:
 	virtual void AddProps(CDrvdProp *pdp) = 0;
 
 public:
+	CDrvdPropCtxt(const CDrvdPropCtxt &) = delete;
+
 	// ctor
 	CDrvdPropCtxt(CMemoryPool *mp) : m_mp(mp)
 	{

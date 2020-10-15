@@ -43,9 +43,9 @@ private:
 	// conversion semantics flag to pass to func
 	BOOL m_is_explicit;
 
+public:
 	CScalarArrayCoerceExpr(const CScalarArrayCoerceExpr &) = delete;
 
-public:
 	// ctor
 	CScalarArrayCoerceExpr(CMemoryPool *mp, IMDId *element_func,
 						   IMDId *result_type_mdid, INT type_modifier,

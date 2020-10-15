@@ -45,9 +45,9 @@ private:
 	// list of deletion column ids
 	ULongPtrArray *m_deletion_colid_array;
 
+public:
 	CDXLLogicalDelete(const CDXLLogicalDelete &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalDelete(CMemoryPool *mp, CDXLTableDescr *table_descr,
 					  ULONG ctid_colid, ULONG segid_colid,

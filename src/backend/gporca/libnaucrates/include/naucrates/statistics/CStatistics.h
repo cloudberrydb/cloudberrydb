@@ -78,11 +78,6 @@ public:
 		UlongToHistogramMap *col_histogram_mapping) const;
 
 private:
-	CStatistics(const CStatistics &) = delete;
-
-	// private assignment operator
-	CStatistics &operator=(CStatistics &) = delete;
-
 	// hashmap from column ids to histograms
 	UlongToHistogramMap *m_colid_histogram_mapping;
 
@@ -133,6 +128,10 @@ private:
 									  BOOL must_exist);
 
 public:
+	CStatistics &operator=(CStatistics &) = delete;
+
+	CStatistics(const CStatistics &) = delete;
+
 	// ctor
 	CStatistics(CMemoryPool *mp, UlongToHistogramMap *col_histogram_mapping,
 				UlongToDoubleMap *colid_width_mapping, CDouble rows,

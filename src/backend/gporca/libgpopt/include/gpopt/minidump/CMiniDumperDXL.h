@@ -29,9 +29,9 @@ namespace gpopt
 class CMiniDumperDXL : public CMiniDumper
 {
 private:
+public:
 	CMiniDumperDXL(const CMiniDumperDXL &) = delete;
 
-public:
 	// ctor
 	CMiniDumperDXL();
 

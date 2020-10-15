@@ -34,8 +34,6 @@ using namespace gpos;
 class CDrvdPropCtxtRelational : public CDrvdPropCtxt
 {
 private:
-	CDrvdPropCtxtRelational(const CDrvdPropCtxtRelational &) = delete;
-
 protected:
 	// copy function
 	virtual CDrvdPropCtxt *
@@ -53,6 +51,8 @@ protected:
 	}
 
 public:
+	CDrvdPropCtxtRelational(const CDrvdPropCtxtRelational &) = delete;
+
 	// ctor
 	CDrvdPropCtxtRelational(CMemoryPool *mp) : CDrvdPropCtxt(mp)
 	{

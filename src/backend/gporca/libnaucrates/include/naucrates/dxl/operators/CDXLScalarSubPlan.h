@@ -62,9 +62,9 @@ private:
 	// test expression -- not null if quantified/existential subplan
 	CDXLNode *m_dxlnode_test_expr;
 
+public:
 	CDXLScalarSubPlan(CDXLScalarSubPlan &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarSubPlan(CMemoryPool *mp, IMDId *first_col_type_mdid,
 					  CDXLColRefArray *dxl_colref_array,

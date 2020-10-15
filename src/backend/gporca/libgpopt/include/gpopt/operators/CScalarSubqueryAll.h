@@ -31,9 +31,9 @@ using namespace gpos;
 class CScalarSubqueryAll : public CScalarSubqueryQuantified
 {
 private:
+public:
 	CScalarSubqueryAll(const CScalarSubqueryAll &) = delete;
 
-public:
 	// ctor
 	CScalarSubqueryAll(CMemoryPool *mp, IMDId *scalar_op_mdid,
 					   const CWStringConst *pstrScalarOp,

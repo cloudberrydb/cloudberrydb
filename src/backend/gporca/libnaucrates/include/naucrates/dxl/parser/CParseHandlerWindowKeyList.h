@@ -36,8 +36,6 @@ private:
 	// list of window keys
 	CDXLWindowKeyArray *m_dxl_window_key_array;
 
-	CParseHandlerWindowKeyList(const CParseHandlerWindowKeyList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerWindowKeyList(const CParseHandlerWindowKeyList &) = delete;
+
 	// ctor
 	CParseHandlerWindowKeyList(CMemoryPool *mp,
 							   CParseHandlerManager *parse_handler_mgr,

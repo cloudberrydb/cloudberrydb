@@ -28,9 +28,9 @@ enum EdxlnVal
 class CDXLPhysicalValuesScan : public CDXLPhysical
 {
 private:
+public:
 	CDXLPhysicalValuesScan(CDXLPhysicalValuesScan &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalValuesScan(CMemoryPool *mp);
 

@@ -29,8 +29,6 @@ using namespace gpos;
 class CXformSubqueryUnnest : public CXformExploration
 {
 private:
-	CXformSubqueryUnnest(const CXformSubqueryUnnest &) = delete;
-
 protected:
 	// helper for subquery unnesting
 	static CExpression *PexprSubqueryUnnest(CMemoryPool *mp, CExpression *pexpr,
@@ -42,6 +40,8 @@ protected:
 						   BOOL fEnforceCorrelatedApply) const;
 
 public:
+	CXformSubqueryUnnest(const CXformSubqueryUnnest &) = delete;
+
 	// ctor
 	explicit CXformSubqueryUnnest(CExpression *pexprPattern)
 		: CXformExploration(pexprPattern)

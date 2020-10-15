@@ -43,9 +43,9 @@ private:
 	// does the func return a set
 	BOOL m_returns_set;
 
+public:
 	CDXLScalarFuncExpr(const CDXLScalarFuncExpr &) = delete;
 
-public:
 	// ctor
 	CDXLScalarFuncExpr(CMemoryPool *mp, IMDId *mdid_func,
 					   IMDId *mdid_return_type, INT return_type_modifier,

@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformLeftAntiSemiJoinNotIn2HashJoinNotIn : public CXformImplementation
 {
 private:
+public:
 	CXformLeftAntiSemiJoinNotIn2HashJoinNotIn(
 		const CXformLeftAntiSemiJoinNotIn2HashJoinNotIn &) = delete;
 
-public:
 	// ctor
 	explicit CXformLeftAntiSemiJoinNotIn2HashJoinNotIn(CMemoryPool *mp);
 

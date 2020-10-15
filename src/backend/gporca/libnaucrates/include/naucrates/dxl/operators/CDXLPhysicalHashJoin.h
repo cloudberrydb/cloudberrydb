@@ -42,9 +42,9 @@ enum Edxlhj
 class CDXLPhysicalHashJoin : public CDXLPhysicalJoin
 {
 private:
+public:
 	CDXLPhysicalHashJoin(const CDXLPhysicalHashJoin &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalHashJoin(CMemoryPool *mp, EdxlJoinType join_type);
 

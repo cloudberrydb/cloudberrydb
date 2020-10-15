@@ -31,9 +31,9 @@ using namespace gpos;
 class CXformExpandNAryJoinDPv2 : public CXformExploration
 {
 private:
+public:
 	CXformExpandNAryJoinDPv2(const CXformExpandNAryJoinDPv2 &) = delete;
 
-public:
 	// ctor
 	explicit CXformExpandNAryJoinDPv2(CMemoryPool *mp);
 

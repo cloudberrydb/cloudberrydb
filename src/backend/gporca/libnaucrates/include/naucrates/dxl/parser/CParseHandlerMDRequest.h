@@ -42,8 +42,6 @@ private:
 	// array of type requests
 	CMDRequest::SMDTypeRequestArray *m_mdtype_request_array;
 
-	CParseHandlerMDRequest(const CParseHandlerMDRequest &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDRequest(const CParseHandlerMDRequest &) = delete;
+
 	// ctor
 	CParseHandlerMDRequest(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

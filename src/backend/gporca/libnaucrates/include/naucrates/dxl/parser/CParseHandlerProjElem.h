@@ -37,8 +37,6 @@ private:
 	// project elem operator
 	CDXLScalarProjElem *m_dxl_op;
 
-	CParseHandlerProjElem(const CParseHandlerProjElem &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerProjElem(const CParseHandlerProjElem &) = delete;
+
 	// ctor/dtor
 	CParseHandlerProjElem(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

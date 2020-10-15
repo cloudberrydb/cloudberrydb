@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformGet2TableScan : public CXformImplementation
 {
 private:
+public:
 	CXformGet2TableScan(const CXformGet2TableScan &) = delete;
 
-public:
 	// ctor
 	explicit CXformGet2TableScan(CMemoryPool *);
 

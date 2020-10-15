@@ -40,9 +40,9 @@ private:
 		m_os = m_os << log_entry;
 	}
 
+public:
 	CLoggerStream(const CLoggerStream &) = delete;
 
-public:
 	// ctor
 	CLoggerStream(IOstream &os);
 

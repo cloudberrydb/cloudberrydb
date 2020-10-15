@@ -34,9 +34,9 @@ private:
 	// table descriptor for the scanned table
 	CDXLTableDescr *m_dxl_table_descr;
 
+public:
 	CDXLLogicalGet(CDXLLogicalGet &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalGet(CMemoryPool *mp, CDXLTableDescr *table_descr);
 

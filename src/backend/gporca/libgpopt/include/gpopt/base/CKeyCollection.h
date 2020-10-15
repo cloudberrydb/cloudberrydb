@@ -36,9 +36,9 @@ private:
 	// array of key sets
 	CColRefSetArray *m_pdrgpcrs;
 
+public:
 	CKeyCollection(const CKeyCollection &) = delete;
 
-public:
 	// ctors
 	explicit CKeyCollection(CMemoryPool *mp);
 	CKeyCollection(CMemoryPool *mp, CColRefSet *pcrs);

@@ -112,9 +112,9 @@ private:
 	// a null datum of this type (used for statistics comparison)
 	IDatum *m_datum_null;
 
+public:
 	CMDTypeInt8GPDB(const CMDTypeInt8GPDB &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CMDTypeInt8GPDB(CMemoryPool *mp);
 

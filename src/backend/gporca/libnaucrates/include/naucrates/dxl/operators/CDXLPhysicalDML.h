@@ -75,9 +75,9 @@ private:
 	// needs the data to be sorted or not
 	BOOL m_input_sort_req;
 
+public:
 	CDXLPhysicalDML(const CDXLPhysicalDML &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalDML(CMemoryPool *mp, const EdxlDmlType dxl_dml_type,
 					CDXLTableDescr *table_descr,

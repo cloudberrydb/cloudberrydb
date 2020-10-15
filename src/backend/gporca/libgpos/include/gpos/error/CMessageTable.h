@@ -36,9 +36,9 @@ class CMessageTable
 	// message hashtable
 	MessageTable m_hash_table;
 
+public:
 	CMessageTable(const CMessageTable &) = delete;
 
-public:
 	// ctor
 	CMessageTable(CMemoryPool *mp, ULONG size, ELocale locale);
 

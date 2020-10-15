@@ -42,8 +42,6 @@ private:
 	// true if job has scheduled transformation jobs
 	BOOL m_fXformsScheduled;
 
-	CJobGroupExpression(const CJobGroupExpression &) = delete;
-
 protected:
 	// target group expression
 	CGroupExpression *m_pgexpr;
@@ -106,6 +104,8 @@ protected:
 
 #endif	// GPOS_DEBUG
 public:
+	CJobGroupExpression(const CJobGroupExpression &) = delete;
+
 };	// class CJobGroupExpression
 
 }  // namespace gpopt

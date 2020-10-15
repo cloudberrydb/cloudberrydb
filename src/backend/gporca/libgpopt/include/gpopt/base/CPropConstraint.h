@@ -45,12 +45,12 @@ private:
 	// constraint
 	CConstraint *m_pcnstr;
 
-	CPropConstraint(const CPropConstraint &) = delete;
-
 	// initialize mapping from columns to equivalence classes
 	void InitHashMap(CMemoryPool *mp);
 
 public:
+	CPropConstraint(const CPropConstraint &) = delete;
+
 	// ctor
 	CPropConstraint(CMemoryPool *mp, CColRefSetArray *pdrgpcrs,
 					CConstraint *pcnstr);

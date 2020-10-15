@@ -60,9 +60,9 @@ private:
 	// direct dispatch spec
 	CDXLDirectDispatchInfo *m_direct_dispatch_info;
 
+public:
 	CDXLNode(const CDXLNode &) = delete;
 
-public:
 	// ctors
 
 	explicit CDXLNode(CMemoryPool *mp);

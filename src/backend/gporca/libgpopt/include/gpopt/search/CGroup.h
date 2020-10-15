@@ -248,8 +248,6 @@ private:
 	// implementation job queue
 	CJobQueue m_jqImplementation;
 
-	CGroup(const CGroup &) = delete;
-
 	// cleanup optimization contexts on destruction
 	void CleanupContexts();
 
@@ -334,6 +332,8 @@ private:
 										IStatisticsArray *stats_ctxt);
 
 public:
+	CGroup(const CGroup &) = delete;
+
 	// ctor
 	CGroup(CMemoryPool *mp, BOOL fScalar = false);
 

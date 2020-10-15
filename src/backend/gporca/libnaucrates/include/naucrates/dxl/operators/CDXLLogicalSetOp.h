@@ -46,8 +46,6 @@ enum EdxlSetOpType
 class CDXLLogicalSetOp : public CDXLLogical
 {
 private:
-	CDXLLogicalSetOp(CDXLLogicalSetOp &) = delete;
-
 	// set operation type
 	EdxlSetOpType m_set_operation_dxl_type;
 
@@ -61,6 +59,8 @@ private:
 	BOOL m_cast_across_input_req;
 
 public:
+	CDXLLogicalSetOp(CDXLLogicalSetOp &) = delete;
+
 	// ctor
 	CDXLLogicalSetOp(CMemoryPool *mp, EdxlSetOpType edxlsetoptype,
 					 CDXLColDescrArray *pdrgdxlcd, ULongPtr2dArray *array_2D,

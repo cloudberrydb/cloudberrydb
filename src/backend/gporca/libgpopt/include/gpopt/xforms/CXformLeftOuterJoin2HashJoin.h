@@ -29,10 +29,9 @@ using namespace gpos;
 class CXformLeftOuterJoin2HashJoin : public CXformImplementation
 {
 private:
+public:
 	CXformLeftOuterJoin2HashJoin(const CXformLeftOuterJoin2HashJoin &) = delete;
 
-
-public:
 	// ctor
 	explicit CXformLeftOuterJoin2HashJoin(CMemoryPool *mp);
 

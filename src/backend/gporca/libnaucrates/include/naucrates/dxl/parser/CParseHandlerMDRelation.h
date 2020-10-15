@@ -97,8 +97,6 @@ protected:
 	void ParseChildNodes();
 
 private:
-	CParseHandlerMDRelation(const CParseHandlerMDRelation &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -115,6 +113,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDRelation(const CParseHandlerMDRelation &) = delete;
+
 	// ctor
 	CParseHandlerMDRelation(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

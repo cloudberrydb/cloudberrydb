@@ -63,9 +63,9 @@ private:
 	// default value expression
 	gpdxl::CDXLNode *m_dxl_default_val;
 
+public:
 	CMDColumn(const CMDColumn &) = delete;
 
-public:
 	// ctor
 	CMDColumn(CMDName *mdname, INT attrnum, IMDId *mdid_type, INT type_modifier,
 			  BOOL is_nullable, BOOL is_dropped,

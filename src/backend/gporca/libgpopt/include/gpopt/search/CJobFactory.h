@@ -119,9 +119,9 @@ private:
 		pspt = NULL;
 	}
 
+public:
 	CJobFactory(const CJobFactory &) = delete;
 
-public:
 	// ctor
 	CJobFactory(CMemoryPool *mp, ULONG ulJobs);
 

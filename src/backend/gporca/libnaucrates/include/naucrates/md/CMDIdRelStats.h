@@ -48,12 +48,12 @@ private:
 	// string representation of the mdid
 	CWStringStatic m_str;
 
-	CMDIdRelStats(const CMDIdRelStats &) = delete;
-
 	// serialize mdid
 	void Serialize();
 
 public:
+	CMDIdRelStats(const CMDIdRelStats &) = delete;
+
 	// ctor
 	explicit CMDIdRelStats(CMDIdGPDB *rel_mdid);
 

@@ -29,9 +29,9 @@ namespace gpopt
 class CLogicalInnerCorrelatedApply : public CLogicalInnerApply
 {
 private:
+public:
 	CLogicalInnerCorrelatedApply(const CLogicalInnerCorrelatedApply &) = delete;
 
-public:
 	// ctor
 	CLogicalInnerCorrelatedApply(CMemoryPool *mp, CColRefArray *pdrgpcrInner,
 								 EOperatorId eopidOriginSubq);

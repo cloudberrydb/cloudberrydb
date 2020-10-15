@@ -32,12 +32,11 @@ using namespace gpmd;
 class IBucket
 {
 private:
-	IBucket(const IBucket &) = delete;
-
-	// private assignment operator
+public:
 	IBucket &operator=(const IBucket &) = delete;
 
-public:
+	IBucket(const IBucket &) = delete;
+
 	// c'tor
 	IBucket() = default;
 

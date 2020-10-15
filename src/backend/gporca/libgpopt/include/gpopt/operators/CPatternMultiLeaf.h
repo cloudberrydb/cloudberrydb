@@ -30,9 +30,9 @@ using namespace gpos;
 class CPatternMultiLeaf : public CPattern
 {
 private:
+public:
 	CPatternMultiLeaf(const CPatternMultiLeaf &) = delete;
 
-public:
 	// ctor
 	explicit CPatternMultiLeaf(CMemoryPool *mp) : CPattern(mp)
 	{

@@ -45,9 +45,9 @@ private:
 	// name for the subquery scan node (corresponding to name in GPDB's SubqueryScan)
 	CMDName *m_mdname_alias;
 
+public:
 	CDXLPhysicalSubqueryScan(CDXLPhysicalSubqueryScan &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalSubqueryScan(CMemoryPool *mp, CMDName *mdname);
 

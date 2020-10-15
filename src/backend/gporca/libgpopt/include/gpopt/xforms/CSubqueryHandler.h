@@ -105,8 +105,6 @@ private:
 	// enforce using correlated apply for unnesting subqueries
 	BOOL m_fEnforceCorrelatedApply;
 
-	CSubqueryHandler(const CSubqueryHandler &) = delete;
-
 	// helper for adding nullness check, only if needed, to the given scalar expression
 	static CExpression *PexprIsNotNull(CMemoryPool *mp, CExpression *pexprOuter,
 									   CExpression *pexprLogical,
@@ -274,6 +272,8 @@ private:
 #endif	// GPOS_DEBUG
 
 public:
+	CSubqueryHandler(const CSubqueryHandler &) = delete;
+
 	// ctor
 	CSubqueryHandler(CMemoryPool *mp, BOOL fEnforceCorrelatedApply)
 		: m_mp(mp), m_fEnforceCorrelatedApply(fEnforceCorrelatedApply)

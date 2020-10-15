@@ -31,9 +31,9 @@ using namespace gpos;
 class CXformPushGbBelowUnion : public CXformPushGbBelowSetOp<CLogicalUnion>
 {
 private:
+public:
 	CXformPushGbBelowUnion(const CXformPushGbBelowUnion &) = delete;
 
-public:
 	// ctor
 	explicit CXformPushGbBelowUnion(CMemoryPool *mp)
 		: CXformPushGbBelowSetOp<CLogicalUnion>(mp)

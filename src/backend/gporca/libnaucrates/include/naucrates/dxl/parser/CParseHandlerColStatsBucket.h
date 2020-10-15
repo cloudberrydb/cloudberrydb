@@ -65,8 +65,6 @@ private:
 	// dxl bucket object
 	CDXLBucket *m_dxl_bucket;
 
-	CParseHandlerColStatsBucket(const CParseHandlerColStatsBucket &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -83,6 +81,8 @@ private:
 	);
 
 public:
+	CParseHandlerColStatsBucket(const CParseHandlerColStatsBucket &) = delete;
+
 	// ctor
 	CParseHandlerColStatsBucket(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

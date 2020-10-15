@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformIntersectAll2LeftSemiJoin : public CXformExploration
 {
 private:
+public:
 	CXformIntersectAll2LeftSemiJoin(const CXformIntersectAll2LeftSemiJoin &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformIntersectAll2LeftSemiJoin(CMemoryPool *mp);
 

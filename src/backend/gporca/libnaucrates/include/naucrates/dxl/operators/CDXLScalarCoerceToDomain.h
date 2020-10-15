@@ -44,9 +44,9 @@ using namespace gpmd;
 class CDXLScalarCoerceToDomain : public CDXLScalarCoerceBase
 {
 private:
+public:
 	CDXLScalarCoerceToDomain(const CDXLScalarCoerceToDomain &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLScalarCoerceToDomain(CMemoryPool *mp, IMDId *mdid_type,
 							 INT type_modifier,

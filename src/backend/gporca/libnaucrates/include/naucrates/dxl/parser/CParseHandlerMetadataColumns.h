@@ -40,8 +40,6 @@ private:
 	// list of columns
 	CMDColumnArray *m_md_col_array;
 
-	CParseHandlerMetadataColumns(const CParseHandlerMetadataColumns &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -58,6 +56,8 @@ private:
 	);
 
 public:
+	CParseHandlerMetadataColumns(const CParseHandlerMetadataColumns &) = delete;
+
 	// ctor/dtor
 	CParseHandlerMetadataColumns(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

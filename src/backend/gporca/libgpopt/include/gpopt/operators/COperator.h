@@ -49,8 +49,6 @@ typedef CHashMap<CColRef, CColRef, CColRef::HashValue, CColRef::Equals,
 class COperator : public CRefCount
 {
 private:
-	COperator(COperator &) = delete;
-
 protected:
 	// operator id that is unique over all instances of all operator types
 	// for the current query
@@ -84,6 +82,8 @@ protected:
 	static ULONG m_aulOpIdCounter;
 
 public:
+	COperator(COperator &) = delete;
+
 	// identification
 	enum EOperatorId
 	{

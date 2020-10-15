@@ -32,8 +32,6 @@ private:
 	// list of indexinfo
 	CMDIndexInfoArray *m_mdindex_info_array;
 
-	CParseHandlerMDIndexInfoList(const CParseHandlerMDIndexInfoList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -50,6 +48,8 @@ private:
 	);
 
 public:
+	CParseHandlerMDIndexInfoList(const CParseHandlerMDIndexInfoList &) = delete;
+
 	// ctor
 	CParseHandlerMDIndexInfoList(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

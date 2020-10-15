@@ -33,9 +33,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalOp : public CParseHandlerOp
 {
 private:
-	CParseHandlerPhysicalOp(const CParseHandlerPhysicalOp &) = delete;
-
-
 protected:
 	// process the start of an element
 	virtual void StartElement(
@@ -53,6 +50,8 @@ protected:
 	);
 
 public:
+	CParseHandlerPhysicalOp(const CParseHandlerPhysicalOp &) = delete;
+
 	// ctor/dtor
 	CParseHandlerPhysicalOp(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

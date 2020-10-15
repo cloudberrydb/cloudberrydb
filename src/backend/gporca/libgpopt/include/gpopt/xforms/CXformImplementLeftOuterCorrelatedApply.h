@@ -35,10 +35,10 @@ class CXformImplementLeftOuterCorrelatedApply
 											CPhysicalCorrelatedLeftOuterNLJoin>
 {
 private:
+public:
 	CXformImplementLeftOuterCorrelatedApply(
 		const CXformImplementLeftOuterCorrelatedApply &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementLeftOuterCorrelatedApply(CMemoryPool *mp)
 		: CXformImplementCorrelatedApply<CLogicalLeftOuterCorrelatedApply,

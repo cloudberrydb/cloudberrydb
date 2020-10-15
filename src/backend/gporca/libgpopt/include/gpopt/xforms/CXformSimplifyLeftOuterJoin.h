@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformSimplifyLeftOuterJoin : public CXformExploration
 {
 private:
+public:
 	CXformSimplifyLeftOuterJoin(const CXformSimplifyLeftOuterJoin &) = delete;
 
-public:
 	// ctor
 	explicit CXformSimplifyLeftOuterJoin(CMemoryPool *mp);
 

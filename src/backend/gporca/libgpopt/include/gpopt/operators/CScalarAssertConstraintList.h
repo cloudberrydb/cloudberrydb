@@ -48,9 +48,9 @@ using namespace gpmd;
 class CScalarAssertConstraintList : public CScalar
 {
 private:
+public:
 	CScalarAssertConstraintList(const CScalarAssertConstraintList &) = delete;
 
-public:
 	// ctor
 	CScalarAssertConstraintList(CMemoryPool *mp);
 

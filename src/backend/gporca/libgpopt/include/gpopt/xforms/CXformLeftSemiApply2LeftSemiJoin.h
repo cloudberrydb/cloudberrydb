@@ -33,10 +33,10 @@ class CXformLeftSemiApply2LeftSemiJoin
 	: public CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>
 {
 private:
+public:
 	CXformLeftSemiApply2LeftSemiJoin(const CXformLeftSemiApply2LeftSemiJoin &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformLeftSemiApply2LeftSemiJoin(CMemoryPool *mp)
 		: CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(

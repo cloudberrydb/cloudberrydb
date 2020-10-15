@@ -20,9 +20,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarPartListNullTest : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarPartListNullTest(
-		const CParseHandlerScalarPartListNullTest &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -39,6 +36,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarPartListNullTest(
+		const CParseHandlerScalarPartListNullTest &) = delete;
+
 	// ctor
 	CParseHandlerScalarPartListNullTest(CMemoryPool *mp,
 										CParseHandlerManager *parse_handler_mgr,

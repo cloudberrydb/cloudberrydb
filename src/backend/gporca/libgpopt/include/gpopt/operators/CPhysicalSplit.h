@@ -51,9 +51,9 @@ private:
 	// required columns by local members
 	CColRefSet *m_pcrsRequiredLocal;
 
+public:
 	CPhysicalSplit(const CPhysicalSplit &) = delete;
 
-public:
 	// ctor
 	CPhysicalSplit(CMemoryPool *mp, CColRefArray *pdrgpcrDelete,
 				   CColRefArray *pdrgpcrInsert, CColRef *pcrCtid,

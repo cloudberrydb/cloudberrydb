@@ -29,9 +29,9 @@ using namespace gpos;
 class CPatternLeaf : public CPattern
 {
 private:
+public:
 	CPatternLeaf(const CPatternLeaf &) = delete;
 
-public:
 	// ctor
 	explicit CPatternLeaf(CMemoryPool *mp) : CPattern(mp)
 	{

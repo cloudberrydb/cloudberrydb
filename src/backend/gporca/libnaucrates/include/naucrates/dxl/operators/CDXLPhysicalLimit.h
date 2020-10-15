@@ -37,9 +37,9 @@ enum EdxlLimit
 class CDXLPhysicalLimit : public CDXLPhysical
 {
 private:
+public:
 	CDXLPhysicalLimit(CDXLPhysicalLimit &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLPhysicalLimit(CMemoryPool *mp);
 

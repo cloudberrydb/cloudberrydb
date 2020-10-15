@@ -38,8 +38,6 @@ private:
 	// the ValuesScan operator
 	CDXLPhysicalValuesScan *m_dxl_op;
 
-	CParseHandlerValuesScan(const CParseHandlerValuesScan &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerValuesScan(const CParseHandlerValuesScan &) = delete;
+
 	// ctor
 	CParseHandlerValuesScan(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

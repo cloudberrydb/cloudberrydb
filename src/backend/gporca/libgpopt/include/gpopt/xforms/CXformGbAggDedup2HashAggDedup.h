@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformGbAggDedup2HashAggDedup : public CXformGbAgg2HashAgg
 {
 private:
+public:
 	CXformGbAggDedup2HashAggDedup(const CXformGbAggDedup2HashAggDedup &) =
 		delete;
 
-public:
 	// ctor
 	CXformGbAggDedup2HashAggDedup(CMemoryPool *mp);
 

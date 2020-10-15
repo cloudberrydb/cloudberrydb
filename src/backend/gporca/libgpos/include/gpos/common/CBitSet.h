@@ -44,8 +44,6 @@ protected:
 	class CBitSetLink
 	{
 	private:
-		CBitSetLink(const CBitSetLink &) = delete;
-
 		// offset
 		ULONG m_offset;
 
@@ -53,6 +51,8 @@ protected:
 		CBitVector *m_vec;
 
 	public:
+		CBitSetLink(const CBitSetLink &) = delete;
+
 		// ctor
 		explicit CBitSetLink(CMemoryPool *, ULONG offset, ULONG vector_size);
 

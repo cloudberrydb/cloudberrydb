@@ -88,9 +88,9 @@ private:
 	// initialize dxl token arrays
 	void InitDXLTokenArrays();
 
+public:
 	CMDFunctionGPDB(const CMDFunctionGPDB &) = delete;
 
-public:
 	// ctor/dtor
 	CMDFunctionGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 					IMDId *result_type_mdid, IMdIdArray *mdid_array,

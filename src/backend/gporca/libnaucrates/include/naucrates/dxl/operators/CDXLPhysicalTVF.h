@@ -39,9 +39,9 @@ private:
 	// function name
 	CWStringConst *func_name;
 
+public:
 	CDXLPhysicalTVF(const CDXLPhysicalTVF &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalTVF(CMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type,
 					CWStringConst *str);

@@ -69,9 +69,9 @@ private:
 	// DXL for object
 	const CWStringDynamic *m_dxl_str;
 
+public:
 	CMDIndexGPDB(const CMDIndexGPDB &) = delete;
 
-public:
 	// ctor
 	CMDIndexGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 				 BOOL is_clustered, EmdindexType index_type,

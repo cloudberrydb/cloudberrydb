@@ -43,9 +43,6 @@ private:
 	// mdid of the relation
 	IMDId *m_rel_mdid;
 
-	CParseHandlerMDGPDBCheckConstraint(
-		const CParseHandlerMDGPDBCheckConstraint &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -62,6 +59,9 @@ private:
 	);
 
 public:
+	CParseHandlerMDGPDBCheckConstraint(
+		const CParseHandlerMDGPDBCheckConstraint &) = delete;
+
 	// ctor
 	CParseHandlerMDGPDBCheckConstraint(CMemoryPool *mp,
 									   CParseHandlerManager *parse_handler_mgr,

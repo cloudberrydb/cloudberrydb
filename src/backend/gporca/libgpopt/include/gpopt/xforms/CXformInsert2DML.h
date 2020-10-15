@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformInsert2DML : public CXformExploration
 {
 private:
+public:
 	CXformInsert2DML(const CXformInsert2DML &) = delete;
 
-public:
 	// ctor
 	explicit CXformInsert2DML(CMemoryPool *mp);
 

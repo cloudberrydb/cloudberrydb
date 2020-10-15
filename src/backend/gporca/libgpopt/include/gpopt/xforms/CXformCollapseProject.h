@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformCollapseProject : public CXformExploration
 {
 private:
+public:
 	CXformCollapseProject(const CXformCollapseProject &) = delete;
 
-public:
 	// ctor
 	explicit CXformCollapseProject(CMemoryPool *mp);
 

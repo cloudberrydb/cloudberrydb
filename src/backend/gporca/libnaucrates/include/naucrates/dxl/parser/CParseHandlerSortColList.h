@@ -34,8 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerSortColList : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerSortColList(const CParseHandlerSortColList &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -52,6 +50,8 @@ private:
 	);
 
 public:
+	CParseHandlerSortColList(const CParseHandlerSortColList &) = delete;
+
 	// ctor/dtor
 	CParseHandlerSortColList(CMemoryPool *mp,
 							 CParseHandlerManager *parse_handler_mgr,

@@ -48,9 +48,9 @@ private:
 	// tuple oid column
 	CColRef *m_pcrTupleOid;
 
+public:
 	CLogicalUpdate(const CLogicalUpdate &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalUpdate(CMemoryPool *mp);
 

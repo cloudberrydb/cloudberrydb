@@ -26,9 +26,9 @@ namespace gpos
 class CErrorHandlerStandard : public CErrorHandler
 {
 private:
+public:
 	CErrorHandlerStandard(const CErrorHandlerStandard &) = delete;
 
-public:
 	// ctor
 	CErrorHandlerStandard() = default;
 

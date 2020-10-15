@@ -45,13 +45,13 @@ private:
 	// find capacity that fits requested string size
 	static ULONG Capacity(ULONG requested);
 
-	CWStringDynamic(const CWStringDynamic &) = delete;
-
 protected:
 	// appends the contents of a buffer to the current string
 	void AppendBuffer(const WCHAR *w_str_buffer);
 
 public:
+	CWStringDynamic(const CWStringDynamic &) = delete;
+
 	// ctor
 	CWStringDynamic(CMemoryPool *mp);
 

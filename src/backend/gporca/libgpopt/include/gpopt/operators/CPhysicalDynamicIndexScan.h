@@ -40,9 +40,9 @@ private:
 	// order
 	COrderSpec *m_pos;
 
+public:
 	CPhysicalDynamicIndexScan(const CPhysicalDynamicIndexScan &) = delete;
 
-public:
 	// ctors
 	CPhysicalDynamicIndexScan(CMemoryPool *mp, BOOL is_partial,
 							  CIndexDescriptor *pindexdesc,

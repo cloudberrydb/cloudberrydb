@@ -36,13 +36,13 @@ private:
 	// buffer capacity
 	ULONG m_capacity;
 
-	CWStringStatic(const CWStringStatic &) = delete;
-
 protected:
 	// appends the contents of a buffer to the current string
 	void AppendBuffer(const WCHAR *w_str_buffer);
 
 public:
+	CWStringStatic(const CWStringStatic &) = delete;
+
 	// ctor
 	CWStringStatic(WCHAR w_str_buffer[], ULONG capacity);
 

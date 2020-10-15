@@ -30,12 +30,12 @@ namespace gpdxl
 class CDXLPhysicalJoin : public CDXLPhysical
 {
 private:
-	CDXLPhysicalJoin(const CDXLPhysicalJoin &) = delete;
-
 	// join type (inner, outer, ...)
 	EdxlJoinType m_join_type;
 
 public:
+	CDXLPhysicalJoin(const CDXLPhysicalJoin &) = delete;
+
 	// ctor
 	CDXLPhysicalJoin(CMemoryPool *mp, EdxlJoinType join_type);
 

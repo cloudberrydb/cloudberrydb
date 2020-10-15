@@ -34,9 +34,9 @@ private:
 	// error message
 	CWStringBase *m_error_msg;
 
+public:
 	CDXLScalarAssertConstraint(const CDXLScalarAssertConstraint &) = delete;
 
-public:
 	// ctor
 	CDXLScalarAssertConstraint(CMemoryPool *mp, CWStringBase *error_msg);
 

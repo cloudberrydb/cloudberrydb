@@ -88,12 +88,12 @@ private:
 	// if true, it means this descriptor has partial indexes
 	BOOL m_fHasPartialIndexes;
 
-	CTableDescriptor(const CTableDescriptor &) = delete;
-
 	// returns true if this table descriptor has partial indexes
 	BOOL FDescriptorWithPartialIndexes();
 
 public:
+	CTableDescriptor(const CTableDescriptor &) = delete;
+
 	// ctor
 	CTableDescriptor(CMemoryPool *, IMDId *mdid, const CName &,
 					 BOOL convert_hash_to_random,

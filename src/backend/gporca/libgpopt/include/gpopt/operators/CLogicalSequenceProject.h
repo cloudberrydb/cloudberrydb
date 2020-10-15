@@ -54,9 +54,9 @@ private:
 	// set the flag indicating that SeqPrj has specified frame specs
 	void SetHasFrameSpecs(CMemoryPool *mp);
 
+public:
 	CLogicalSequenceProject(const CLogicalSequenceProject &) = delete;
 
-public:
 	// ctor
 	CLogicalSequenceProject(CMemoryPool *mp, CDistributionSpec *pds,
 							COrderSpecArray *pdrgpos,

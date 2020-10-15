@@ -43,9 +43,9 @@ private:
 	// operator type
 	const EdxlBoolExprType m_bool_type;
 
+public:
 	CDXLScalarBoolExpr(const CDXLScalarBoolExpr &) = delete;
 
-public:
 	// ctor/dtor
 	explicit CDXLScalarBoolExpr(CMemoryPool *mp,
 								const EdxlBoolExprType bool_type);

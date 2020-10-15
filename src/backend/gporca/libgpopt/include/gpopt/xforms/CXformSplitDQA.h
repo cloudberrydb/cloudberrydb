@@ -37,8 +37,6 @@ private:
 					 CleanupNULL<CColRef> >
 		ExprToColRefMap;
 
-	CXformSplitDQA(const CXformSplitDQA &) = delete;
-
 	// generate an expression with multi-level aggregation
 	static CExpression *PexprMultiLevelAggregation(
 		CMemoryPool *mp, CExpression *pexprRelational,
@@ -92,6 +90,8 @@ private:
 									   CExpressionArray *pdrgpexprChildPrEl);
 
 public:
+	CXformSplitDQA(const CXformSplitDQA &) = delete;
+
 	// ctor
 	explicit CXformSplitDQA(CMemoryPool *mp);
 

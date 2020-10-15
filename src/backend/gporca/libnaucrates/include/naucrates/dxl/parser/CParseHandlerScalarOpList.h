@@ -36,8 +36,6 @@ private:
 	// op list type
 	CDXLScalarOpList::EdxlOpListType m_dxl_op_list_type;
 
-	CParseHandlerScalarOpList(const CParseHandlerScalarOpList &) = delete;
-
 	// return the op list type corresponding to the given operator name
 	CDXLScalarOpList::EdxlOpListType GetDXLOpListType(
 		const XMLCh *const element_local_name);
@@ -58,6 +56,8 @@ private:
 	);
 
 public:
+	CParseHandlerScalarOpList(const CParseHandlerScalarOpList &) = delete;
+
 	// ctor
 	CParseHandlerScalarOpList(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

@@ -55,9 +55,9 @@ private:
 
 	void SerializeNestLoopParamsToDXL(CXMLSerializer *pxmlser) const;
 
+public:
 	CDXLPhysicalNLJoin(const CDXLPhysicalNLJoin &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalNLJoin(CMemoryPool *mp, EdxlJoinType join_type,
 					   BOOL is_index_nlj, BOOL nest_params_exists);

@@ -51,14 +51,6 @@ private:
 
 	};	// struct SOperatorHandler
 
-	// private ctor
-	CDecorrelator() = delete;
-
-	// private dtor
-	virtual ~CDecorrelator() = delete;
-
-	CDecorrelator(const CDecorrelator &) = delete;
-
 	// helper to check if correlations below join are valid to be pulled-up
 	static BOOL FPullableCorrelations(CMemoryPool *mp, CExpression *pexpr,
 									  CExpressionArray *pdrgpexpr,
@@ -137,6 +129,14 @@ private:
 							  CColRefSet *outerRefsToRemove);
 
 public:
+	// private dtor
+	virtual ~CDecorrelator() = delete;
+
+	// private ctor
+	CDecorrelator() = delete;
+
+	CDecorrelator(const CDecorrelator &) = delete;
+
 	// main handler
 	static BOOL FProcess(CMemoryPool *mp, CExpression *pexprOrig,
 						 BOOL fEqualityOnly, CExpression **ppexprDecorrelated,

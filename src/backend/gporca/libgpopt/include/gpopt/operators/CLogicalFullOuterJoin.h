@@ -27,9 +27,9 @@ namespace gpopt
 class CLogicalFullOuterJoin : public CLogicalJoin
 {
 private:
+public:
 	CLogicalFullOuterJoin(const CLogicalFullOuterJoin &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalFullOuterJoin(CMemoryPool *mp);
 

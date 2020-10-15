@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformUpdate2DML : public CXformExploration
 {
 private:
+public:
 	CXformUpdate2DML(const CXformUpdate2DML &) = delete;
 
-public:
 	// ctor
 	explicit CXformUpdate2DML(CMemoryPool *mp);
 

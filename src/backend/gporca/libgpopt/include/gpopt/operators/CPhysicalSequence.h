@@ -32,9 +32,9 @@ private:
 	// empty column set to be requested from all children except last child
 	CColRefSet *m_pcrsEmpty;
 
+public:
 	CPhysicalSequence(const CPhysicalSequence &) = delete;
 
-public:
 	// ctor
 	explicit CPhysicalSequence(CMemoryPool *mp);
 

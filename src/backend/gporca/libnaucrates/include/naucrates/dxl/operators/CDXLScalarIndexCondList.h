@@ -30,9 +30,9 @@ namespace gpdxl
 class CDXLScalarIndexCondList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarIndexCondList(CDXLScalarIndexCondList &) = delete;
 
-public:
 	// ctor
 	explicit CDXLScalarIndexCondList(CMemoryPool *mp);
 

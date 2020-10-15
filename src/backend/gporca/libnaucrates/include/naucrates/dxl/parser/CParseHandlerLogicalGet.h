@@ -35,8 +35,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalGet : public CParseHandlerLogicalOp
 {
 private:
-	CParseHandlerLogicalGet(const CParseHandlerLogicalGet &) = delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -62,6 +60,8 @@ protected:
 					Edxltoken token_type);
 
 public:
+	CParseHandlerLogicalGet(const CParseHandlerLogicalGet &) = delete;
+
 	// ctor
 	CParseHandlerLogicalGet(CMemoryPool *mp,
 							CParseHandlerManager *parse_handler_mgr,

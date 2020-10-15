@@ -42,9 +42,9 @@ private:
 	// int2 value
 	SINT m_val;
 
+public:
 	CDXLDatumInt2(const CDXLDatumInt2 &) = delete;
 
-public:
 	// ctor
 	CDXLDatumInt2(CMemoryPool *mp, IMDId *mdid_type, BOOL is_null, SINT val);
 

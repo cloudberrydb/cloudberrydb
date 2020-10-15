@@ -32,9 +32,9 @@ using namespace gpos;
 class CDistributionSpecReplicated : public CDistributionSpec
 {
 private:
+public:
 	CDistributionSpecReplicated(const CDistributionSpecReplicated &) = delete;
 
-public:
 	// ctor
 	CDistributionSpecReplicated() = default;
 

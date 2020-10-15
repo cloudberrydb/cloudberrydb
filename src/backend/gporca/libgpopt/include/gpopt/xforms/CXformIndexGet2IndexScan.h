@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformIndexGet2IndexScan : public CXformImplementation
 {
 private:
+public:
 	CXformIndexGet2IndexScan(const CXformIndexGet2IndexScan &) = delete;
 
-public:
 	// ctor
 	explicit CXformIndexGet2IndexScan(CMemoryPool *);
 

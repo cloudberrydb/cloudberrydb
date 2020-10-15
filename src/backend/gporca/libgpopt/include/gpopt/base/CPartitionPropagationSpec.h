@@ -46,8 +46,6 @@ private:
 									   CExpressionHandle &exprhdl,
 									   ULONG part_idx_id) const;
 
-	CPartitionPropagationSpec(const CPartitionPropagationSpec &) = delete;
-
 	// split the partition elimination predicates over the various levels
 	// as well as the residual predicate
 	void SplitPartPredicates(CMemoryPool *mp, CExpression *pexprScalar,
@@ -77,6 +75,8 @@ private:
 	CExpression *PexprFilter(CMemoryPool *mp, ULONG scan_id);
 
 public:
+	CPartitionPropagationSpec(const CPartitionPropagationSpec &) = delete;
+
 	// ctor
 	CPartitionPropagationSpec(CPartIndexMap *ppim, CPartFilterMap *ppfm);
 

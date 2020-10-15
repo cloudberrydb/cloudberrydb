@@ -32,10 +32,10 @@ class CLogicalLeftAntiSemiCorrelatedApplyNotIn
 	: public CLogicalLeftAntiSemiApplyNotIn
 {
 private:
+public:
 	CLogicalLeftAntiSemiCorrelatedApplyNotIn(
 		const CLogicalLeftAntiSemiCorrelatedApplyNotIn &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftAntiSemiCorrelatedApplyNotIn(CMemoryPool *mp)
 		: CLogicalLeftAntiSemiApplyNotIn(mp)

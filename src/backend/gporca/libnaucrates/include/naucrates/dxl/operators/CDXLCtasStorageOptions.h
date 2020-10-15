@@ -101,13 +101,13 @@ private:
 	// array of name-value pairs of storage options
 	CDXLCtasOptionArray *m_ctas_storage_option_array;
 
-	CDXLCtasStorageOptions(const CDXLCtasStorageOptions &) = delete;
-
 	// string representation of OnCommit action
 	static const CWStringConst *GetOnCommitActionStr(
 		ECtasOnCommitAction ctas_on_commit_action);
 
 public:
+	CDXLCtasStorageOptions(const CDXLCtasStorageOptions &) = delete;
+
 	// ctor
 	CDXLCtasStorageOptions(CMDName *mdname_tablespace,
 						   ECtasOnCommitAction ctas_on_commit_action,

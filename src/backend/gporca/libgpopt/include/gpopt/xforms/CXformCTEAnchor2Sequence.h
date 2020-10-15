@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformCTEAnchor2Sequence : public CXformExploration
 {
 private:
+public:
 	CXformCTEAnchor2Sequence(const CXformCTEAnchor2Sequence &) = delete;
 
-public:
 	// ctor
 	explicit CXformCTEAnchor2Sequence(CMemoryPool *mp);
 

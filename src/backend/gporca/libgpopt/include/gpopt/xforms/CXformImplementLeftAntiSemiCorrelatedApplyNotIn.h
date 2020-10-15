@@ -36,10 +36,10 @@ class CXformImplementLeftAntiSemiCorrelatedApplyNotIn
 		  CPhysicalCorrelatedNotInLeftAntiSemiNLJoin>
 {
 private:
+public:
 	CXformImplementLeftAntiSemiCorrelatedApplyNotIn(
 		const CXformImplementLeftAntiSemiCorrelatedApplyNotIn &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementLeftAntiSemiCorrelatedApplyNotIn(CMemoryPool *mp)
 		: CXformImplementCorrelatedApply<

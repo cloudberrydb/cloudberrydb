@@ -35,8 +35,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerLogicalGroupBy : public CParseHandlerLogicalOp
 {
 private:
-	CParseHandlerLogicalGroupBy(const CParseHandlerLogicalGroupBy &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -53,6 +51,8 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalGroupBy(const CParseHandlerLogicalGroupBy &) = delete;
+
 	// ctor/dtor
 	CParseHandlerLogicalGroupBy(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

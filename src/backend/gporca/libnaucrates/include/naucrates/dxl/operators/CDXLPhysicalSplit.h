@@ -54,9 +54,9 @@ private:
 	// tuple oid column id
 	ULONG m_tuple_oid;
 
+public:
 	CDXLPhysicalSplit(const CDXLPhysicalSplit &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalSplit(CMemoryPool *mp, ULongPtrArray *delete_colid_array,
 					  ULongPtrArray *insert_colid_array, ULONG action_colid,

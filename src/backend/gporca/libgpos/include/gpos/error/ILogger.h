@@ -69,13 +69,13 @@ private:
 	static void LogTask(const WCHAR *msg, ULONG severity, BOOL is_err,
 						const CHAR *filename, ULONG line);
 
-	ILogger(const ILogger &) = delete;
-
 protected:
 	// write log message
 	virtual void Write(const WCHAR *log_entry, ULONG severity) = 0;
 
 public:
+	ILogger(const ILogger &) = delete;
+
 	// ctor
 	ILogger();
 

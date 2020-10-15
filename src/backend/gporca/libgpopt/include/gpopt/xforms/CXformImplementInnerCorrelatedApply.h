@@ -33,10 +33,10 @@ class CXformImplementInnerCorrelatedApply
 											CPhysicalCorrelatedInnerNLJoin>
 {
 private:
+public:
 	CXformImplementInnerCorrelatedApply(
 		const CXformImplementInnerCorrelatedApply &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementInnerCorrelatedApply(CMemoryPool *mp)
 		: CXformImplementCorrelatedApply<CLogicalInnerCorrelatedApply,

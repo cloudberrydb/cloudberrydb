@@ -35,9 +35,6 @@ class CParseHandlerPhysicalRowTrigger : public CParseHandlerPhysicalOp
 private:
 	CDXLPhysicalRowTrigger *m_dxl_op;
 
-	CParseHandlerPhysicalRowTrigger(const CParseHandlerPhysicalRowTrigger &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +51,9 @@ private:
 	);
 
 public:
+	CParseHandlerPhysicalRowTrigger(const CParseHandlerPhysicalRowTrigger &) =
+		delete;
+
 	// ctor
 	CParseHandlerPhysicalRowTrigger(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

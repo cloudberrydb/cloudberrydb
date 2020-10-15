@@ -42,8 +42,6 @@ private:
 	// upper bound value
 	CDouble m_upper_bound_val;
 
-	CParseHandlerCostParam(const CParseHandlerCostParam &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +58,8 @@ private:
 	);
 
 public:
+	CParseHandlerCostParam(const CParseHandlerCostParam &) = delete;
+
 	// ctor
 	CParseHandlerCostParam(CMemoryPool *mp,
 						   CParseHandlerManager *parse_handler_mgr,

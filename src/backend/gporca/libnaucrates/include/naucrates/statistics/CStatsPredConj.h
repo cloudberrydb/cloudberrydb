@@ -29,15 +29,14 @@ using namespace gpos;
 class CStatsPredConj : public CStatsPred
 {
 private:
-	CStatsPredConj(const CStatsPredConj &) = delete;
-
-	// private assignment operator
-	CStatsPredConj &operator=(CStatsPredConj &) = delete;
-
 	// array of filters
 	CStatsPredPtrArry *m_conj_pred_stats_array;
 
 public:
+	CStatsPredConj &operator=(CStatsPredConj &) = delete;
+
+	CStatsPredConj(const CStatsPredConj &) = delete;
+
 	// ctor
 	explicit CStatsPredConj(CStatsPredPtrArry *pdrgpstatspred);
 

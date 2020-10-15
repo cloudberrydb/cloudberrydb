@@ -53,8 +53,6 @@ public:
 	};
 
 private:
-	CScalar(const CScalar &) = delete;
-
 	// helper for combining partition consumer arrays of scalar children
 	static CPartInfo *PpartinfoDeriveCombineScalar(CMemoryPool *mp,
 												   CExpressionHandle &exprhdl);
@@ -75,6 +73,8 @@ protected:
 		ULongPtrArray *pdrgpulChildren);
 
 public:
+	CScalar(const CScalar &) = delete;
+
 	// ctor
 	explicit CScalar(CMemoryPool *mp) : COperator(mp)
 	{

@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementRowTrigger : public CXformImplementation
 {
 private:
+public:
 	CXformImplementRowTrigger(const CXformImplementRowTrigger &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementRowTrigger(CMemoryPool *mp);
 

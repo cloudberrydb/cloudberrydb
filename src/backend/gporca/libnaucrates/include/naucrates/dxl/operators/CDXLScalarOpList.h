@@ -43,9 +43,9 @@ private:
 	// operator list type
 	EdxlOpListType m_dxl_op_list_type;
 
+public:
 	CDXLScalarOpList(const CDXLScalarOpList &) = delete;
 
-public:
 	// ctor
 	CDXLScalarOpList(CMemoryPool *mp,
 					 EdxlOpListType dxl_op_list_type = EdxloplistGeneral);

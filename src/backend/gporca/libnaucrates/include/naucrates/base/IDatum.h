@@ -42,10 +42,9 @@ typedef CHashMap<ULONG, IDatum, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
 class IDatum : public CRefCount
 {
 private:
+public:
 	IDatum(const IDatum &) = delete;
 
-
-public:
 	// ctor
 	IDatum() = default;
 

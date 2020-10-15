@@ -88,9 +88,9 @@ private:
 	// complete optimization action
 	static EEvent EevtCompleteOptimization(CSchedulerContext *psc, CJob *pj);
 
+public:
 	CJobGroupOptimization(const CJobGroupOptimization &) = delete;
 
-public:
 	// ctor
 	CJobGroupOptimization();
 

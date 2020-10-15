@@ -40,13 +40,13 @@ class CXMLSerializer;
 class CDXLDatumGeneric : public CDXLDatum
 {
 private:
-	CDXLDatumGeneric(const CDXLDatumGeneric &) = delete;
-
 protected:
 	// datum byte array
 	BYTE *m_byte_array;
 
 public:
+	CDXLDatumGeneric(const CDXLDatumGeneric &) = delete;
+
 	// ctor
 	CDXLDatumGeneric(CMemoryPool *mp, IMDId *mdid_type, INT type_modifier,
 					 BOOL is_null, BYTE *data, ULONG length);

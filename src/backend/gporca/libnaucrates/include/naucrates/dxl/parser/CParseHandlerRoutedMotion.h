@@ -37,8 +37,6 @@ private:
 	// motion operator
 	CDXLPhysicalRoutedDistributeMotion *m_dxl_op;
 
-	CParseHandlerRoutedMotion(const CParseHandlerRoutedMotion &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerRoutedMotion(const CParseHandlerRoutedMotion &) = delete;
+
 	// ctor
 	CParseHandlerRoutedMotion(CMemoryPool *mp,
 							  CParseHandlerManager *parse_handler_mgr,

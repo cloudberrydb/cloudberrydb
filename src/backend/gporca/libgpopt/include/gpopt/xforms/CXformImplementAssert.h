@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformImplementAssert : public CXformImplementation
 {
 private:
+public:
 	CXformImplementAssert(const CXformImplementAssert &) = delete;
 
-public:
 	// ctor
 	explicit CXformImplementAssert(CMemoryPool *mp);
 

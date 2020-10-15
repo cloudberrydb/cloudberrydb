@@ -35,8 +35,6 @@ private:
 					 CleanupNULL<CColRef> >
 		ExprToColRefMap;
 
-	CXformSubqJoin2Apply(const CXformSubqJoin2Apply &) = delete;
-
 	// helper to transform function
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 				   CExpression *pexpr, BOOL fEnforceCorrelatedApply) const;
@@ -57,6 +55,8 @@ private:
 											  BOOL fEnforceCorrelatedApply);
 
 public:
+	CXformSubqJoin2Apply(const CXformSubqJoin2Apply &) = delete;
+
 	// ctor
 	explicit CXformSubqJoin2Apply(CMemoryPool *mp);
 

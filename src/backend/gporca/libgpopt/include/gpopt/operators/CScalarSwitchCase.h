@@ -31,9 +31,9 @@ using namespace gpos;
 class CScalarSwitchCase : public CScalar
 {
 private:
+public:
 	CScalarSwitchCase(const CScalarSwitchCase &) = delete;
 
-public:
 	// ctor
 	explicit CScalarSwitchCase(CMemoryPool *mp);
 

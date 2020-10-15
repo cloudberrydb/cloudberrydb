@@ -49,9 +49,9 @@ private:
 	// tuple oid column
 	CColRef *m_pcrTupleOid;
 
+public:
 	CLogicalSplit(const CLogicalSplit &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalSplit(CMemoryPool *mp);
 

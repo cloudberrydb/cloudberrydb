@@ -33,9 +33,9 @@ using namespace gpos;
 class CXformSubqNAryJoin2Apply : public CXformSubqJoin2Apply
 {
 private:
+public:
 	CXformSubqNAryJoin2Apply(const CXformSubqNAryJoin2Apply &) = delete;
 
-public:
 	// ctor
 	explicit CXformSubqNAryJoin2Apply(CMemoryPool *mp)
 		: CXformSubqJoin2Apply(

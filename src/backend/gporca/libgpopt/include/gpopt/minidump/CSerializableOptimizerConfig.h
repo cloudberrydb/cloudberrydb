@@ -41,9 +41,9 @@ private:
 	// optimizer configurations
 	const COptimizerConfig *m_optimizer_config;
 
+public:
 	CSerializableOptimizerConfig(const CSerializableOptimizerConfig &) = delete;
 
-public:
 	// ctor
 	CSerializableOptimizerConfig(CMemoryPool *mp,
 								 const COptimizerConfig *optimizer_config);

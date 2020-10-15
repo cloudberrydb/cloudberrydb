@@ -39,13 +39,13 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
-	CLogicalConstTableGet(const CLogicalConstTableGet &) = delete;
-
 	// construct column descriptors from column references
 	CColumnDescriptorArray *PdrgpcoldescMapping(
 		CMemoryPool *mp, CColRefArray *colref_array) const;
 
 public:
+	CLogicalConstTableGet(const CLogicalConstTableGet &) = delete;
+
 	// ctors
 	explicit CLogicalConstTableGet(CMemoryPool *mp);
 

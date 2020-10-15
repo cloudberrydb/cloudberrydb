@@ -111,8 +111,6 @@ private:
 	// Methods for internal use
 	//-------------------------------------------------------------------
 
-	CWorkerPoolManager(const CWorkerPoolManager &) = delete;
-
 	// private ctor
 	CWorkerPoolManager(CMemoryPool *mp);
 
@@ -120,6 +118,8 @@ private:
 	static CWorkerPoolManager *m_worker_pool_manager;
 
 public:
+	CWorkerPoolManager(const CWorkerPoolManager &) = delete;
+
 	// lookup own worker
 	inline CWorker *
 	Self()

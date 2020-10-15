@@ -62,9 +62,9 @@ private:
 	// position the window specification in a parent window operator
 	ULONG m_win_spec_pos;
 
+public:
 	CDXLScalarWindowRef(const CDXLScalarWindowRef &) = delete;
 
-public:
 	// ctor
 	CDXLScalarWindowRef(CMemoryPool *mp, IMDId *pmdidWinfunc,
 						IMDId *mdid_return_type, BOOL is_distinct,

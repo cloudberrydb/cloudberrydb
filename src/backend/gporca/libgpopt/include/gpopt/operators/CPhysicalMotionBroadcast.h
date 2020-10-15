@@ -32,9 +32,9 @@ private:
 	// output distribution
 	CDistributionSpecReplicated *m_pdsReplicated;
 
+public:
 	CPhysicalMotionBroadcast(const CPhysicalMotionBroadcast &) = delete;
 
-public:
 	// ctor
 	explicit CPhysicalMotionBroadcast(CMemoryPool *mp);
 

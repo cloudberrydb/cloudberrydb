@@ -28,12 +28,12 @@ namespace gpdxl
 class CDXLLogicalProject : public CDXLLogical
 {
 private:
-	CDXLLogicalProject(CDXLLogicalProject &) = delete;
-
 	// alias name
 	const CMDName *m_mdname_alias;
 
 public:
+	CDXLLogicalProject(CDXLLogicalProject &) = delete;
+
 	// ctor
 	explicit CDXLLogicalProject(CMemoryPool *);
 

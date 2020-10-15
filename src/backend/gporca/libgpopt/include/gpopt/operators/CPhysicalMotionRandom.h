@@ -33,9 +33,9 @@ private:
 	// distribution spec
 	CDistributionSpecRandom *m_pdsRandom;
 
+public:
 	CPhysicalMotionRandom(const CPhysicalMotionRandom &) = delete;
 
-public:
 	// ctor
 	CPhysicalMotionRandom(CMemoryPool *mp, CDistributionSpecRandom *pdsRandom);
 

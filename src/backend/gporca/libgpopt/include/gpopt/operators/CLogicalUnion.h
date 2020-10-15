@@ -29,9 +29,9 @@ namespace gpopt
 class CLogicalUnion : public CLogicalSetOp
 {
 private:
+public:
 	CLogicalUnion(const CLogicalUnion &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalUnion(CMemoryPool *mp);
 

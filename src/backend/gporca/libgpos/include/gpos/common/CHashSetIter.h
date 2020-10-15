@@ -34,9 +34,9 @@ private:
 	// is initialized?
 	BOOL m_is_initialized;
 
+public:
 	CHashSetIter(const CHashSetIter<T, HashFn, EqFn, CleanupFn> &) = delete;
 
-public:
 	// ctor
 	CHashSetIter<T, HashFn, EqFn, CleanupFn>(TSet *set)
 		: m_set(set), m_chain_idx(0), m_elem_idx(0)

@@ -44,8 +44,6 @@ private:
 	// optimizer configuration
 	COptimizerConfig *m_optimizer_config;
 
-	CParseHandlerOptimizerConfig(const CParseHandlerOptimizerConfig &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -62,6 +60,8 @@ private:
 	);
 
 public:
+	CParseHandlerOptimizerConfig(const CParseHandlerOptimizerConfig &) = delete;
+
 	// ctor/dtor
 	CParseHandlerOptimizerConfig(CMemoryPool *mp,
 								 CParseHandlerManager *parse_handler_mgr,

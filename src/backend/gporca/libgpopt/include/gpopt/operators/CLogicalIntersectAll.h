@@ -29,9 +29,9 @@ namespace gpopt
 class CLogicalIntersectAll : public CLogicalSetOp
 {
 private:
+public:
 	CLogicalIntersectAll(const CLogicalIntersectAll &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalIntersectAll(CMemoryPool *mp);
 

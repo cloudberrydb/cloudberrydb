@@ -50,8 +50,6 @@ private:
 	// the nested loop join operator
 	CDXLPhysicalNLJoin *m_dxl_op;
 
-	CParseHandlerNLJoin(const CParseHandlerNLJoin &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -68,6 +66,8 @@ private:
 	);
 
 public:
+	CParseHandlerNLJoin(const CParseHandlerNLJoin &) = delete;
+
 	// ctor/dtor
 	CParseHandlerNLJoin(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

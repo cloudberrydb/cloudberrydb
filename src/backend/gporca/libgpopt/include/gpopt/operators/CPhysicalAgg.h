@@ -33,8 +33,6 @@ class CDistributionSpec;
 class CPhysicalAgg : public CPhysical
 {
 private:
-	CPhysicalAgg(const CPhysicalAgg &) = delete;
-
 	// array of grouping columns
 	CColRefArray *m_pdrgpcr;
 
@@ -104,6 +102,8 @@ protected:
 									  CColRefArray *pdrgpcrGrpMinimal) const;
 
 public:
+	CPhysicalAgg(const CPhysicalAgg &) = delete;
+
 	// ctor
 	CPhysicalAgg(CMemoryPool *mp, CColRefArray *colref_array,
 				 CColRefArray *pdrgpcrMinimal,	// FD's on grouping columns

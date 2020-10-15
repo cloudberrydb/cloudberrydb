@@ -29,9 +29,9 @@ using namespace gpos;
 class CXformIntersect2Join : public CXformExploration
 {
 private:
+public:
 	CXformIntersect2Join(const CXformIntersect2Join &) = delete;
 
-public:
 	// ctor
 	explicit CXformIntersect2Join(CMemoryPool *mp);
 

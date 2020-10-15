@@ -72,8 +72,6 @@ private:
 	// list of allocated (live) objects
 	CList<SAllocHeader> m_allocations_list;
 
-	CMemoryPoolTracker(CMemoryPoolTracker &) = delete;
-
 	// record a successful allocation
 	void RecordAllocation(SAllocHeader *header);
 
@@ -85,6 +83,8 @@ protected:
 	virtual ~CMemoryPoolTracker();
 
 public:
+	CMemoryPoolTracker(CMemoryPoolTracker &) = delete;
+
 	// ctor
 	CMemoryPoolTracker();
 

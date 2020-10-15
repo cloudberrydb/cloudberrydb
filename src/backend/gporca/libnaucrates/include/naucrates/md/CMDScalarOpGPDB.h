@@ -83,9 +83,9 @@ private:
 	// (used for cardinality estimation)
 	BOOL m_is_ndv_preserving;
 
+public:
 	CMDScalarOpGPDB(const CMDScalarOpGPDB &) = delete;
 
-public:
 	// ctor/dtor
 	CMDScalarOpGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 					IMDId *mdid_type_left, IMDId *mdid_type_right,

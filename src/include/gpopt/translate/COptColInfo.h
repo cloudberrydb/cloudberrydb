@@ -41,9 +41,9 @@ private:
 	// column name
 	CWStringBase *m_str;
 
+public:
 	COptColInfo(const COptColInfo &) = delete;
 
-public:
 	// ctor
 	COptColInfo(ULONG colid, CWStringBase *str) : m_colid(colid), m_str(str)
 	{

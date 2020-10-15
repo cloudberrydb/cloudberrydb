@@ -64,9 +64,9 @@ public:
 	};
 
 private:
+public:
 	CDistributionSpec(const CDistributionSpec &) = delete;
 
-public:
 	// ctor
 	CDistributionSpec() = default;
 

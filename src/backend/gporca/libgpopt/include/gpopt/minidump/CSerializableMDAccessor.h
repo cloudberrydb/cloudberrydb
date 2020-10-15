@@ -43,9 +43,9 @@ private:
 	// serialize footer
 	void SerializeFooter(COstream &oos);
 
+public:
 	CSerializableMDAccessor(const CSerializableMDAccessor &) = delete;
 
-public:
 	// ctor
 	explicit CSerializableMDAccessor(CMDAccessor *md_accessor);
 

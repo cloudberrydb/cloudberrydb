@@ -55,8 +55,6 @@ private:
 	// exclusion strategy
 	EdxlFrameExclusionStrategy m_dxl_frame_exclusion_strategy;
 
-	CDXLWindowFrame(const CDXLWindowFrame &) = delete;
-
 	// scalar value representing the boundary leading
 	CDXLNode *m_dxlnode_leading;
 
@@ -64,6 +62,8 @@ private:
 	CDXLNode *m_dxlnode_trailing;
 
 public:
+	CDXLWindowFrame(const CDXLWindowFrame &) = delete;
+
 	// ctor
 	CDXLWindowFrame(EdxlFrameSpec edxlfs,
 					EdxlFrameExclusionStrategy frame_exc_strategy,

@@ -55,9 +55,9 @@ private:
 	// number of consumers in case the materialize is a spooling operator
 	ULONG m_num_consumer_slices;
 
+public:
 	CDXLPhysicalMaterialize(CDXLPhysicalMaterialize &) = delete;
 
-public:
 	// ctor/dtor
 	CDXLPhysicalMaterialize(CMemoryPool *mp, BOOL is_eager);
 

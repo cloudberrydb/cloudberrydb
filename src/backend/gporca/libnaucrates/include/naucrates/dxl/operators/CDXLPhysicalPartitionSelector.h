@@ -50,9 +50,9 @@ private:
 	// scan id
 	ULONG m_scan_id;
 
+public:
 	CDXLPhysicalPartitionSelector(CDXLPhysicalPartitionSelector &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalPartitionSelector(CMemoryPool *mp, IMDId *mdid_rel,
 								  ULONG num_of_part_levels, ULONG scan_id);

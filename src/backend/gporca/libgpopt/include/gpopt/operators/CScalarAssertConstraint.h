@@ -46,9 +46,9 @@ private:
 	// error message
 	CWStringBase *m_pstrErrorMsg;
 
+public:
 	CScalarAssertConstraint(const CScalarAssertConstraint &) = delete;
 
-public:
 	// ctor
 	CScalarAssertConstraint(CMemoryPool *mp, CWStringBase *pstrErrorMsg);
 

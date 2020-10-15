@@ -43,8 +43,6 @@ class CMemoryPool;
 class CWStringBase
 {
 private:
-	CWStringBase(const CWStringBase &) = delete;
-
 protected:
 	// represents end-of-wide-string character
 	static const WCHAR m_empty_wcstr;
@@ -59,6 +57,8 @@ protected:
 	virtual BOOL Equals(const WCHAR *w_str_buffer) const;
 
 public:
+	CWStringBase(const CWStringBase &) = delete;
+
 	// ctor
 	CWStringBase(ULONG length, BOOL owns_memory)
 		: m_length(length), m_owns_memory(owns_memory)

@@ -33,9 +33,9 @@ private:
 	// output column ids
 	ULongPtrArray *m_output_colids_array;
 
+public:
 	CDXLLogicalCTEProducer(CDXLLogicalCTEProducer &) = delete;
 
-public:
 	// ctor
 	CDXLLogicalCTEProducer(CMemoryPool *mp, ULONG id,
 						   ULongPtrArray *output_colids_array);

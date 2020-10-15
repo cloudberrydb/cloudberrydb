@@ -40,10 +40,10 @@ class CPartConstraint;
 class CPhysicalDynamicBitmapTableScan : public CPhysicalDynamicScan
 {
 private:
+public:
 	CPhysicalDynamicBitmapTableScan(const CPhysicalDynamicBitmapTableScan &) =
 		delete;
 
-public:
 	// ctor
 	CPhysicalDynamicBitmapTableScan(CMemoryPool *mp, BOOL is_partial,
 									CTableDescriptor *ptabdesc,

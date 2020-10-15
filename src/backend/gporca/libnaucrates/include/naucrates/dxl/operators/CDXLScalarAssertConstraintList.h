@@ -31,11 +31,10 @@ using namespace gpmd;
 class CDXLScalarAssertConstraintList : public CDXLScalar
 {
 private:
+public:
 	CDXLScalarAssertConstraintList(const CDXLScalarAssertConstraintList &) =
 		delete;
 
-
-public:
 	// ctor
 	explicit CDXLScalarAssertConstraintList(CMemoryPool *mp);
 

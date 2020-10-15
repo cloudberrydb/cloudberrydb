@@ -26,12 +26,12 @@ namespace gpos
 class CRandom
 {
 private:
-	CRandom(const CRandom &) = delete;
-
 	// seed
 	ULONG m_seed;
 
 public:
+	CRandom(const CRandom &) = delete;
+
 	// no seed
 	CRandom();
 

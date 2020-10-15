@@ -117,8 +117,6 @@ private:
 
 	CTableDescriptor *m_table_descriptor;
 
-	CDrvdPropRelational(const CDrvdPropRelational &) = delete;
-
 	// helper for getting applicable FDs from child
 	static CFunctionalDependencyArray *DeriveChildFunctionalDependencies(
 		CMemoryPool *mp, ULONG child_index, CExpressionHandle &exprhdl);
@@ -181,6 +179,8 @@ protected:
 	CTableDescriptor *DeriveTableDescriptor(CExpressionHandle &);
 
 public:
+	CDrvdPropRelational(const CDrvdPropRelational &) = delete;
+
 	// ctor
 	CDrvdPropRelational(CMemoryPool *mp);
 

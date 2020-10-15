@@ -37,8 +37,6 @@ private:
 	// return type
 	IMDId *m_mdid_type;
 
-	CParseHandlerScalarCoalesce(const CParseHandlerScalarCoalesce &) = delete;
-
 	// process the start of an element
 	void StartElement(const XMLCh *const element_uri,
 					  const XMLCh *const element_local_name,
@@ -50,6 +48,8 @@ private:
 					const XMLCh *const element_qname);
 
 public:
+	CParseHandlerScalarCoalesce(const CParseHandlerScalarCoalesce &) = delete;
+
 	// ctor
 	CParseHandlerScalarCoalesce(CMemoryPool *mp,
 								CParseHandlerManager *parse_handler_mgr,

@@ -59,9 +59,9 @@ private:
 		return m_fInit;
 	}
 
+public:
 	CSchedulerContext(const CSchedulerContext &) = delete;
 
-public:
 	// ctor
 	CSchedulerContext();
 

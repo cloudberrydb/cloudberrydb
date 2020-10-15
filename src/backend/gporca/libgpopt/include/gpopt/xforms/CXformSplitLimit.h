@@ -29,8 +29,6 @@ using namespace gpos;
 class CXformSplitLimit : public CXformExploration
 {
 private:
-	CXformSplitLimit(const CXformSplitLimit &) = delete;
-
 	// helper function for creating a limit expression
 	CExpression *PexprLimit(
 		CMemoryPool *mp,				// memory pool
@@ -43,6 +41,8 @@ private:
 		BOOL fTopLimitUnderDML) const;
 
 public:
+	CXformSplitLimit(const CXformSplitLimit &) = delete;
+
 	// ctor
 	explicit CXformSplitLimit(CMemoryPool *mp);
 

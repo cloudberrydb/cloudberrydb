@@ -48,9 +48,6 @@ private:
 	// gp_segment_id values rather than hashable datums
 	BOOL m_dispatch_is_raw;
 
-	CParseHandlerDirectDispatchInfo(const CParseHandlerDirectDispatchInfo &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -67,6 +64,9 @@ private:
 	);
 
 public:
+	CParseHandlerDirectDispatchInfo(const CParseHandlerDirectDispatchInfo &) =
+		delete;
+
 	// ctor
 	CParseHandlerDirectDispatchInfo(CMemoryPool *mp,
 									CParseHandlerManager *parse_handler_mgr,

@@ -46,12 +46,12 @@ private:
 	// private ctor
 	CMDCache() = default;
 
-	CMDCache(const CMDCache &) = delete;
-
 	// private dtor
 	~CMDCache() = default;
 
 public:
+	CMDCache(const CMDCache &) = delete;
+
 	// initialize underlying cache
 	static void Init();
 

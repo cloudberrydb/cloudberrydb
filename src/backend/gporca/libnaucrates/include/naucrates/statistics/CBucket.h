@@ -62,12 +62,11 @@ private:
 	// number of distinct elements in bucket
 	CDouble m_distinct;
 
-	CBucket(const CBucket &) = delete;
-
-	// private assignment operator
+public:
 	CBucket &operator=(const CBucket &) = delete;
 
-public:
+	CBucket(const CBucket &) = delete;
+
 	// ctor
 	CBucket(CPoint *bucket_lower_bound, CPoint *bucket_upper_bound,
 			BOOL is_lower_closed, BOOL is_upper_closed, CDouble frequency,

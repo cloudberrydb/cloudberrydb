@@ -34,9 +34,9 @@ private:
 	// top of stack index
 	ULONG m_size;
 
+public:
 	CStack(CStack &) = delete;
 
-public:
 	// c'tor
 	CStack<T>(CMemoryPool *mp, ULONG min_size = 4) : m_size(0)
 	{

@@ -29,9 +29,9 @@ namespace gpdxl
 class CDXLScalarOneTimeFilter : public CDXLScalarFilter
 {
 private:
+public:
 	CDXLScalarOneTimeFilter(CDXLScalarOneTimeFilter &) = delete;
 
-public:
 	// ctor
 	explicit CDXLScalarOneTimeFilter(CMemoryPool *mp);
 

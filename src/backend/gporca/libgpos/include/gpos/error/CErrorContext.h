@@ -68,9 +68,9 @@ private:
 	// minidump handler
 	CMiniDumper *m_mini_dumper_handle;
 
+public:
 	CErrorContext(const CErrorContext &) = delete;
 
-public:
 	// ctor
 	explicit CErrorContext(CMiniDumper *mini_dumper_handle = NULL);
 

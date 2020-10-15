@@ -34,9 +34,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerPhysicalAbstractBitmapScan : public CParseHandlerPhysicalOp
 {
 private:
-	CParseHandlerPhysicalAbstractBitmapScan(
-		const CParseHandlerPhysicalAbstractBitmapScan &) = delete;
-
 protected:
 	// common StartElement functionality for child classes
 	void StartElementHelper(const XMLCh *const element_local_name,
@@ -48,6 +45,9 @@ protected:
 						  ULONG part_idx_id_printable = 0);
 
 public:
+	CParseHandlerPhysicalAbstractBitmapScan(
+		const CParseHandlerPhysicalAbstractBitmapScan &) = delete;
+
 	// ctor
 	CParseHandlerPhysicalAbstractBitmapScan(
 		CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,

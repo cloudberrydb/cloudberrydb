@@ -41,9 +41,6 @@ private:
 	// scan id
 	ULONG m_scan_id;
 
-	CParseHandlerPartitionSelector(const CParseHandlerPartitionSelector &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +57,9 @@ private:
 	);
 
 public:
+	CParseHandlerPartitionSelector(const CParseHandlerPartitionSelector &) =
+		delete;
+
 	// ctor
 	CParseHandlerPartitionSelector(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,

@@ -46,9 +46,9 @@ private:
 	// gp_segment_id values rather than hashable datums
 	BOOL m_contains_raw_values;
 
+public:
 	CDXLDirectDispatchInfo(const CDXLDirectDispatchInfo &) = delete;
 
-public:
 	// ctor
 	explicit CDXLDirectDispatchInfo(
 		CDXLDatum2dArray *dispatch_identifer_datum_array,

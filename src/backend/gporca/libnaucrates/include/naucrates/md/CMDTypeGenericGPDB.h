@@ -144,9 +144,9 @@ private:
 	// a null datum of this type (used for statistics comparison)
 	IDatum *m_datum_null;
 
+public:
 	CMDTypeGenericGPDB(const CMDTypeGenericGPDB &) = delete;
 
-public:
 	// ctor
 	CMDTypeGenericGPDB(
 		CMemoryPool *mp, IMDId *mdid, CMDName *mdname, BOOL is_redistributable,

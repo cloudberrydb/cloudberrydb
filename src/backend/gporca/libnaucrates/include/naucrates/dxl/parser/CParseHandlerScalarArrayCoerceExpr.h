@@ -42,9 +42,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarArrayCoerceExpr : public CParseHandlerScalarOp
 {
 private:
-	CParseHandlerScalarArrayCoerceExpr(
-		const CParseHandlerScalarArrayCoerceExpr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -61,6 +58,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarArrayCoerceExpr(
+		const CParseHandlerScalarArrayCoerceExpr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerScalarArrayCoerceExpr(CMemoryPool *mp,
 									   CParseHandlerManager *parse_handler_mgr,

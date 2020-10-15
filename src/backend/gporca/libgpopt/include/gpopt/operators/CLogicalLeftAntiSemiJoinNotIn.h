@@ -35,10 +35,10 @@ namespace gpopt
 class CLogicalLeftAntiSemiJoinNotIn : public CLogicalLeftAntiSemiJoin
 {
 private:
+public:
 	CLogicalLeftAntiSemiJoinNotIn(const CLogicalLeftAntiSemiJoinNotIn &) =
 		delete;
 
-public:
 	// ctor
 	explicit CLogicalLeftAntiSemiJoinNotIn(CMemoryPool *mp);
 

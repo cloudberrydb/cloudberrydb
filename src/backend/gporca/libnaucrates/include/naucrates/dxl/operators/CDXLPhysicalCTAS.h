@@ -71,9 +71,9 @@ private:
 	// list of vartypmod
 	IntPtrArray *m_vartypemod_array;
 
+public:
 	CDXLPhysicalCTAS(CDXLPhysicalCTAS &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalCTAS(CMemoryPool *mp, CMDName *mdname_schema,
 					 CMDName *mdname_rel,

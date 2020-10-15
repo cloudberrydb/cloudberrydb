@@ -54,9 +54,9 @@ private:
 	// frame boundary
 	EdxlFrameBoundary m_dxl_frame_boundary;
 
+public:
 	CDXLScalarWindowFrameEdge(const CDXLScalarWindowFrameEdge &) = delete;
 
-public:
 	// ctor
 	CDXLScalarWindowFrameEdge(CMemoryPool *mp, BOOL fLeading,
 							  EdxlFrameBoundary frame_boundary);

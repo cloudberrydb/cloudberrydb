@@ -41,10 +41,10 @@ private:
 	// printable partition index id
 	ULONG m_part_index_id_printable;
 
+public:
 	CDXLPhysicalDynamicBitmapTableScan(
 		const CDXLPhysicalDynamicBitmapTableScan &) = delete;
 
-public:
 	// ctor
 	CDXLPhysicalDynamicBitmapTableScan(CMemoryPool *mp,
 									   CDXLTableDescr *table_descr,

@@ -38,8 +38,6 @@ private:
 	// the result operator
 	CDXLPhysicalResult *m_dxl_op;
 
-	CParseHandlerResult(const CParseHandlerResult &) = delete;
-
 	// set up initial handlers
 	void SetupInitialHandlers();
 
@@ -59,6 +57,8 @@ private:
 	);
 
 public:
+	CParseHandlerResult(const CParseHandlerResult &) = delete;
+
 	// ctor
 	CParseHandlerResult(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

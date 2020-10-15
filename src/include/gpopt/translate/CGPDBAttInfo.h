@@ -45,9 +45,9 @@ private:
 	// attno
 	INT m_attno;
 
+public:
 	CGPDBAttInfo(const CGPDBAttInfo &) = delete;
 
-public:
 	// ctor
 	CGPDBAttInfo(ULONG query_level, ULONG var_no, INT attrnum)
 		: m_query_level(query_level), m_varno(var_no), m_attno(attrnum)

@@ -41,9 +41,6 @@ private:
 	// array of datums
 	CDXLDatumArray *m_dxl_datum_array;
 
-	CParseHandlerLogicalConstTable(const CParseHandlerLogicalConstTable &) =
-		delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -60,6 +57,9 @@ private:
 	);
 
 public:
+	CParseHandlerLogicalConstTable(const CParseHandlerLogicalConstTable &) =
+		delete;
+
 	// ctor/dtor
 	CParseHandlerLogicalConstTable(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,

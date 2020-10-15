@@ -36,9 +36,6 @@ private:
 	// child test expression
 	CDXLNode *m_dxl_test_expr;
 
-	CParseHandlerScalarSubPlanTestExpr(
-		const CParseHandlerScalarSubPlanTestExpr &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +52,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarSubPlanTestExpr(
+		const CParseHandlerScalarSubPlanTestExpr &) = delete;
+
 	// ctor/dtor
 	CParseHandlerScalarSubPlanTestExpr(CMemoryPool *mp,
 									   CParseHandlerManager *parse_handler_mgr,

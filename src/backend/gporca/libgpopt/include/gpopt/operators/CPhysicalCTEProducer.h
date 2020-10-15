@@ -36,9 +36,9 @@ private:
 	// set representation of cte columns
 	CColRefSet *m_pcrs;
 
+public:
 	CPhysicalCTEProducer(const CPhysicalCTEProducer &) = delete;
 
-public:
 	// ctor
 	CPhysicalCTEProducer(CMemoryPool *mp, ULONG id, CColRefArray *colref_array);
 

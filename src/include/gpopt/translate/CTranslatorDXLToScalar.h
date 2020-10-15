@@ -232,9 +232,9 @@ private:
 	Expr *TranslateRelabelTypeOrFuncExprFromDXL(
 		const CDXLScalarCast *scalar_cast, Expr *pexprChild);
 
+public:
 	CTranslatorDXLToScalar(const CTranslatorDXLToScalar &) = delete;
 
-public:
 	struct STypeOidAndTypeModifier
 	{
 		OID oid_type;

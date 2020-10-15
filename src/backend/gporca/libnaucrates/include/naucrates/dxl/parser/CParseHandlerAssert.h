@@ -37,8 +37,6 @@ private:
 	// physical assert operator
 	CDXLPhysicalAssert *m_dxl_op;
 
-	CParseHandlerAssert(const CParseHandlerAssert &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -55,6 +53,8 @@ private:
 	);
 
 public:
+	CParseHandlerAssert(const CParseHandlerAssert &) = delete;
+
 	// ctor
 	CParseHandlerAssert(CMemoryPool *mp,
 						CParseHandlerManager *parse_handler_mgr,

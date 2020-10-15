@@ -41,12 +41,12 @@ namespace gpopt
 class CLogicalGbAggDeduplicate : public CLogicalGbAgg
 {
 private:
-	CLogicalGbAggDeduplicate(const CLogicalGbAggDeduplicate &) = delete;
-
 	// array of keys from the join's child
 	CColRefArray *m_pdrgpcrKeys;
 
 public:
+	CLogicalGbAggDeduplicate(const CLogicalGbAggDeduplicate &) = delete;
+
 	// ctor
 	explicit CLogicalGbAggDeduplicate(CMemoryPool *mp);
 

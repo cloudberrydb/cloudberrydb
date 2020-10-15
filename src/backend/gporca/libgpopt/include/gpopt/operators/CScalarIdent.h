@@ -34,10 +34,10 @@ private:
 	// column
 	const CColRef *m_pcr;
 
-	CScalarIdent(const CScalarIdent &) = delete;
-
 
 public:
+	CScalarIdent(const CScalarIdent &) = delete;
+
 	// ctor
 	CScalarIdent(CMemoryPool *mp, const CColRef *colref)
 		: CScalar(mp), m_pcr(colref)

@@ -36,8 +36,6 @@ private:
 	// hint configuration
 	CHint *m_hint;
 
-	CParseHandlerHint(const CParseHandlerHint &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -54,6 +52,8 @@ private:
 	);
 
 public:
+	CParseHandlerHint(const CParseHandlerHint &) = delete;
+
 	// ctor
 	CParseHandlerHint(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					  CParseHandlerBase *parse_handler_root);

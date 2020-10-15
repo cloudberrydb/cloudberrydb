@@ -32,8 +32,6 @@ XERCES_CPP_NAMESPACE_USE
 class CParseHandlerScalarOp : public CParseHandlerOp
 {
 private:
-	CParseHandlerScalarOp(const CParseHandlerScalarOp &) = delete;
-
 protected:
 	// process notification of the beginning of an element.
 	virtual void StartElement(
@@ -51,6 +49,8 @@ protected:
 	);
 
 public:
+	CParseHandlerScalarOp(const CParseHandlerScalarOp &) = delete;
+
 	CParseHandlerScalarOp(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,
 						  CParseHandlerBase *parse_handler_root);

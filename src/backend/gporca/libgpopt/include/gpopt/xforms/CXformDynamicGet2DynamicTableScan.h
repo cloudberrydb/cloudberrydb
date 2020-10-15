@@ -29,10 +29,10 @@ using namespace gpos;
 class CXformDynamicGet2DynamicTableScan : public CXformImplementation
 {
 private:
+public:
 	CXformDynamicGet2DynamicTableScan(
 		const CXformDynamicGet2DynamicTableScan &) = delete;
 
-public:
 	// ctor
 	explicit CXformDynamicGet2DynamicTableScan(CMemoryPool *mp);
 

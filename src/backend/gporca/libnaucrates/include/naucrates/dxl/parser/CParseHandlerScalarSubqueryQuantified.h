@@ -38,9 +38,6 @@ private:
 	// scalar subquery operator
 	CDXLScalar *m_dxl_op;
 
-	CParseHandlerScalarSubqueryQuantified(
-		const CParseHandlerScalarSubqueryQuantified &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -57,6 +54,9 @@ private:
 	);
 
 public:
+	CParseHandlerScalarSubqueryQuantified(
+		const CParseHandlerScalarSubqueryQuantified &) = delete;
+
 	// ctor/dtor
 	CParseHandlerScalarSubqueryQuantified(
 		CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,

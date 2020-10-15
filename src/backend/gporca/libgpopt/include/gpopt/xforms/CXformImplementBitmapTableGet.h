@@ -35,10 +35,10 @@ namespace gpopt
 class CXformImplementBitmapTableGet : public CXformImplementation
 {
 private:
+public:
 	CXformImplementBitmapTableGet(const CXformImplementBitmapTableGet &) =
 		delete;
 
-public:
 	// ctor
 	explicit CXformImplementBitmapTableGet(CMemoryPool *mp);
 

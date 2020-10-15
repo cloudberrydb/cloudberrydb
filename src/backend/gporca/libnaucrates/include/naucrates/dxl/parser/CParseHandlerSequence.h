@@ -38,8 +38,6 @@ private:
 	// are we already inside a sequence operator
 	BOOL m_is_inside_sequence;
 
-	CParseHandlerSequence(const CParseHandlerSequence &) = delete;
-
 	// process the start of an element
 	virtual void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -56,6 +54,8 @@ private:
 	);
 
 public:
+	CParseHandlerSequence(const CParseHandlerSequence &) = delete;
+
 	// ctor
 	CParseHandlerSequence(CMemoryPool *mp,
 						  CParseHandlerManager *parse_handler_mgr,

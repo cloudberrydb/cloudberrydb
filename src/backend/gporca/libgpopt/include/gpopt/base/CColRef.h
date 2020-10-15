@@ -73,8 +73,6 @@ private:
 	// name: SQL alias or artificial name
 	const CName *m_pname;
 
-	CColRef(const CColRef &) = delete;
-
 	// track the usage of colref (used/unused/unknown)
 	EUsedStatus m_used;
 
@@ -82,6 +80,8 @@ private:
 	IMDId *m_mdid_table;
 
 public:
+	CColRef(const CColRef &) = delete;
+
 	enum Ecolreftype
 	{
 		EcrtTable,

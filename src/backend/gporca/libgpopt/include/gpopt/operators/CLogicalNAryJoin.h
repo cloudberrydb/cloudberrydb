@@ -27,8 +27,6 @@ namespace gpopt
 class CLogicalNAryJoin : public CLogicalJoin
 {
 private:
-	CLogicalNAryJoin(const CLogicalNAryJoin &) = delete;
-
 	// Indexes that help to find ON predicates for LOJs.
 	// If all joins in this NAry join are inner joins, this pointer is NULL and
 	// the scalar child of this NAry join contains all join predicates directly.
@@ -44,6 +42,8 @@ private:
 	ULongPtrArray *m_lojChildPredIndexes;
 
 public:
+	CLogicalNAryJoin(const CLogicalNAryJoin &) = delete;
+
 	// ctor
 	explicit CLogicalNAryJoin(CMemoryPool *mp);
 

@@ -33,9 +33,9 @@ using namespace gpos;
 class CDistributionSpecUniversal : public CDistributionSpec
 {
 private:
+public:
 	CDistributionSpecUniversal(const CDistributionSpecUniversal &) = delete;
 
-public:
 	//ctor
 	CDistributionSpecUniversal();
 

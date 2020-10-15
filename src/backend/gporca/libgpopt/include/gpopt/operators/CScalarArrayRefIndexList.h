@@ -43,9 +43,9 @@ private:
 	// index list type
 	EIndexListType m_eilt;
 
+public:
 	CScalarArrayRefIndexList(const CScalarArrayRefIndexList &) = delete;
 
-public:
 	// ctor
 	CScalarArrayRefIndexList(CMemoryPool *mp, EIndexListType eilt);
 

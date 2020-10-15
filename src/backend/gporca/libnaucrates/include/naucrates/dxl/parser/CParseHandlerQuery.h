@@ -42,9 +42,6 @@ private:
 	// list of CTE priducers
 	CDXLNodeArray *m_cte_producers;
 
-	// private ctor
-	CParseHandlerQuery(const CParseHandlerQuery &) = delete;
-
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
@@ -61,6 +58,9 @@ private:
 	);
 
 public:
+	// private ctor
+	CParseHandlerQuery(const CParseHandlerQuery &) = delete;
+
 	// ctor/dtor
 	CParseHandlerQuery(CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
 					   CParseHandlerBase *parse_handler_root);

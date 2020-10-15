@@ -30,9 +30,9 @@ namespace gpopt
 class CLogicalDifferenceAll : public CLogicalSetOp
 {
 private:
+public:
 	CLogicalDifferenceAll(const CLogicalDifferenceAll &) = delete;
 
-public:
 	// ctor
 	explicit CLogicalDifferenceAll(CMemoryPool *mp);
 

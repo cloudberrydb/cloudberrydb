@@ -24,9 +24,9 @@ namespace gpos
 class CMemoryPoolPallocManager : public CMemoryPoolManager
 {
 private:
+public:
 	CMemoryPoolPallocManager(const CMemoryPoolPallocManager &) = delete;
 
-public:
 	// ctor
 	CMemoryPoolPallocManager(CMemoryPool *internal,
 							 EMemoryPoolType memory_pool_type);

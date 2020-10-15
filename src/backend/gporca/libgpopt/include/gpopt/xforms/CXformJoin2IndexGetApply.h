@@ -22,9 +22,9 @@ using namespace gpos;
 class CXformJoin2IndexGetApply : public CXformJoin2IndexApplyGeneric
 {
 private:
+public:
 	CXformJoin2IndexGetApply(const CXformJoin2IndexGetApply &) = delete;
 
-public:
 	// ctor
 	explicit CXformJoin2IndexGetApply(CMemoryPool *mp)
 		: CXformJoin2IndexApplyGeneric(mp, false)

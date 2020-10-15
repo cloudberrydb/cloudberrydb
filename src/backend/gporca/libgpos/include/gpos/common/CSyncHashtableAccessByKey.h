@@ -39,9 +39,6 @@ private:
 	// target key
 	const K &m_key;
 
-	CSyncHashtableAccessByKey<T, K>(const CSyncHashtableAccessByKey<T, K> &) =
-		delete;
-
 	// finds the first element matching target key starting from
 	// the given element
 	T *
@@ -71,6 +68,9 @@ private:
 #endif	// GPOS_DEBUG
 
 public:
+	CSyncHashtableAccessByKey<T, K>(const CSyncHashtableAccessByKey<T, K> &) =
+		delete;
+
 	// ctor
 	CSyncHashtableAccessByKey<T, K>(CSyncHashtable<T, K> &ht, const K &key)
 		: Base(ht, ht.GetBucketIndex(key)), m_key(key)

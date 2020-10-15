@@ -71,8 +71,6 @@ private:
 	// combined constraint
 	CConstraint *m_pcnstrCombined;
 
-	CPartConstraint(const CPartConstraint &) = delete;
-
 #ifdef GPOS_DEBUG
 	// are all default partitions on all levels included
 	BOOL FAllDefaultPartsIncluded();
@@ -107,6 +105,8 @@ private:
 									 CPartConstraint *ppartcnstrSnd);
 
 public:
+	CPartConstraint(const CPartConstraint &) = delete;
+
 	// ctors
 	CPartConstraint(CMemoryPool *mp, UlongToConstraintMap *phmulcnstr,
 					CBitSet *pbsDefaultParts, BOOL is_unbounded,

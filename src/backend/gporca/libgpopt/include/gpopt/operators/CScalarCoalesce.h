@@ -36,9 +36,9 @@ private:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
+public:
 	CScalarCoalesce(const CScalarCoalesce &) = delete;
 
-public:
 	// ctor
 	CScalarCoalesce(CMemoryPool *mp, IMDId *mdid_type);
 
