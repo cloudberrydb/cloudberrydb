@@ -7202,13 +7202,13 @@ xact_redo_commit(xl_xact_parsed_commit *parsed,
 }
 
 /*
- * Be careful with the order of execution, as with xact_redo_commit().
- * The two functions are similar but differ in key places.
- *
- * Note also that an abort can be for a subtransaction and its children,
- * not just for a top level abort. That means we have to consider
- * topxid != xid, whereas in commit we would find topxid == xid always
- * because subtransaction commit is never WAL logged.
+ * If the xid is valid, call xact_redo_commit with the same args. The xid can
+ * be invalid if the distributed transaction was read-only for the Query
+ * Dispatcher (e.g. a DML operation like INSERT which only writes data on the
+ * Query Executors). Regardless, we end with recording the gxid into
+ * shmCommittedGxidArray which will later be removed by replaying the
+ * corresponding distributed forget record or resolved during promotion during
+ * dtx recovery.
  */
 static void
 xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
@@ -7216,53 +7216,10 @@ xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
 							 XLogRecPtr lsn,
 							 RepOriginId origin_id)
 {
-	DistributedTransactionId 		distribXid;
-
-	TransactionId max_xid;
-
-	max_xid = TransactionIdLatest(xid, parsed->nsubxacts, parsed->subxacts);
-
-	/* Make sure nextFullXid is beyond any XID mentioned in the record. */
-	AdvanceNextFullTransactionIdPastXid(max_xid);
-
-	distribXid = parsed->distribXid;
-
 	if (TransactionIdIsValid(xid))
-	{
-		/*
-		 * Mark the distributed transaction committed before we
-		 * update the CLOG in xact_redo_commit.
-		 */
+		xact_redo_commit(parsed, xid, lsn, origin_id);
 
-		/* Make sure nextFullXid is beyond any XID mentioned in the record. */
-		AdvanceNextFullTransactionIdPastXid(xid);
-
-		/*
-		 * Now update the CLOG and do local commit actions.
-		 *
-		 * NOTE: The following logic is a copy of xact_redo_commit, with the
-		 * only addition being redo of DistributeLog updates to subtransaction
-		 * log.
-		 */
-
-		/* Mark the transaction committed in pg_xact */
-
-		/* Add the committed subtransactions to the DistributedLog, too. */
-		DistributedLog_SetCommittedTree(xid, parsed->nsubxacts, parsed->subxacts,
-										distribXid,
-										/* isRedo */ true);
-
-		TransactionIdCommitTree(xid, parsed->nsubxacts, parsed->subxacts);
-
-		DropRelationFiles(parsed->xnodes, parsed->nrels, true);
-		DropDatabaseDirectories(parsed->deldbs, parsed->ndeldbs, true);
-		DoTablespaceDeletionForRedoXlog(parsed->tablespace_oid_to_delete_on_commit);
-	}
-
-	/*
-	 * End copy of xact_redo_commit logic.
-	 */
-	redoDistributedCommitRecord(distribXid);
+	redoDistributedCommitRecord(parsed->distribXid);
 }
 
 static void
