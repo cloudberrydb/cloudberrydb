@@ -117,9 +117,23 @@ create-demo-cluster:
 destroy-demo-cluster:
 	$(MAKE) -C gpAux/gpdemo destroy-demo-cluster
 
-check check-tests installcheck installcheck-parallel installcheck-tests: CHECKPREP_TOP=src/test/regress
-check check-tests installcheck installcheck-parallel installcheck-tests: submake-generated-headers
+check-tests installcheck installcheck-parallel installcheck-tests: CHECKPREP_TOP=src/test/regress
+check-tests installcheck installcheck-parallel installcheck-tests: submake-generated-headers
 	$(MAKE) -C src/test/regress $@
+
+check:
+	if [ ! -f $(prefix)/greenplum_path.sh ]; then \
+		$(MAKE) -C $(top_builddir) install; \
+	fi
+	. $(prefix)/greenplum_path.sh; \
+	if pg_isready 1>/dev/null; then \
+	  $(MAKE) -C $(top_builddir) installcheck; \
+	else \
+	  if [ ! -f $(top_builddir)/gpAux/gpdemo/gpdemo-env.sh ]; then \
+	    . $(prefix)/greenplum_path.sh && $(MAKE) -C $(top_builddir) create-demo-cluster; \
+	  fi; \
+	  . $(prefix)/greenplum_path.sh && . $(top_builddir)/gpAux/gpdemo/gpdemo-env.sh && $(MAKE) -C $(top_builddir) installcheck; \
+	fi
 
 $(call recurse,check-world,src/test src/pl src/interfaces/ecpg contrib src/bin gpcontrib,check)
 $(call recurse,checkprep,  src/test src/pl src/interfaces/ecpg contrib src/bin gpcontrib)
