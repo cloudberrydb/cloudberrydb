@@ -11380,7 +11380,7 @@
    proname => 'cdblegacyhash_text', prorettype => 'int4', proargtypes => 'text', prosrc => 'cdblegacyhash_text' },
 
 { oid => 6148, descr => 'Legacy cdbhash function',
-   proname => 'cdblegacyhash_bpchar', prorettype => 'int4', proargtypes => 'bpchar', prosrc => 'cdblegacyhash_text' },
+   proname => 'cdblegacyhash_bpchar', prorettype => 'int4', proargtypes => 'bpchar', prosrc => 'cdblegacyhash_bpchar' },
 
 { oid => 6149, descr => 'Legacy cdbhash function',
    proname => 'cdblegacyhash_bytea', prorettype => 'int4', proargtypes => 'bytea', prosrc => 'cdblegacyhash_bytea' },
