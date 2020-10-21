@@ -43,6 +43,13 @@ struct ICProxyAddr
  * List<ICProxyAddr *>
  */
 extern List		   *ic_proxy_addrs;
+extern List		   *ic_proxy_prev_addrs;
+
+/*
+ * List<unowned ICProxyAddr *>
+ */
+extern List		   *ic_proxy_removed_addrs;
+extern List		   *ic_proxy_added_addrs;
 
 
 extern void ic_proxy_reload_addresses(uv_loop_t *loop);
