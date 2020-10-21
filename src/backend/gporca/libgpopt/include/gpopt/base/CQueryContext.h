@@ -50,8 +50,10 @@ using namespace gpos;
 class CQueryContext
 {
 private:
+#ifdef GPOS_DEBUG
 	// memory pool
 	CMemoryPool *m_mp;
+#endif
 
 	// required plan properties in optimizer's produced plan
 	CReqdPropPlan *m_prpp;

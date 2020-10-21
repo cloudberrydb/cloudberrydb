@@ -48,21 +48,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDTypeGenericGPDB::CMDTypeGenericGPDB(
 	CMemoryPool *mp, IMDId *mdid, CMDName *mdname, BOOL is_redistributable,
-	BOOL is_fixed_length, ULONG length, BOOL is_passed_by_value,
-	IMDId *mdid_distr_opfamily, IMDId *mdid_legacy_distr_opfamily,
-	IMDId *mdid_op_eq, IMDId *mdid_op_neq, IMDId *mdid_op_lt,
-	IMDId *mdid_op_leq, IMDId *mdid_op_gt, IMDId *mdid_op_geq,
-	IMDId *mdid_op_cmp, IMDId *mdid_op_min, IMDId *mdid_op_max,
-	IMDId *mdid_op_avg, IMDId *mdid_op_sum, IMDId *mdid_op_count,
-	BOOL is_hashable, BOOL is_merge_joinable, BOOL is_composite_type,
-	BOOL is_text_related, IMDId *mdid_base_relation, IMDId *mdid_type_array,
-	INT gpdb_length)
+	BOOL is_fixed_length, ULONG length GPOS_ASSERTS_ONLY,
+	BOOL is_passed_by_value, IMDId *mdid_distr_opfamily,
+	IMDId *mdid_legacy_distr_opfamily, IMDId *mdid_op_eq, IMDId *mdid_op_neq,
+	IMDId *mdid_op_lt, IMDId *mdid_op_leq, IMDId *mdid_op_gt,
+	IMDId *mdid_op_geq, IMDId *mdid_op_cmp, IMDId *mdid_op_min,
+	IMDId *mdid_op_max, IMDId *mdid_op_avg, IMDId *mdid_op_sum,
+	IMDId *mdid_op_count, BOOL is_hashable, BOOL is_merge_joinable,
+	BOOL is_composite_type, BOOL is_text_related, IMDId *mdid_base_relation,
+	IMDId *mdid_type_array, INT gpdb_length)
 	: m_mp(mp),
 	  m_mdid(mdid),
 	  m_mdname(mdname),
 	  m_is_redistributable(is_redistributable),
 	  m_is_fixed_length(is_fixed_length),
+#ifdef GPOS_DEBUG
 	  m_length(length),
+#endif
 	  m_is_passed_by_value(is_passed_by_value),
 	  m_distr_opfamily(mdid_distr_opfamily),
 	  m_legacy_distr_opfamily(mdid_legacy_distr_opfamily),

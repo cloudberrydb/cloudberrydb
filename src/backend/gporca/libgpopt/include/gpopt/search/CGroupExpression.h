@@ -71,8 +71,10 @@ public:
 		ShtCC;
 
 private:
+#ifdef GPOS_DEBUG
 	// memory pool
 	CMemoryPool *m_mp;
+#endif
 
 	// definition of context hash table accessor
 	typedef CSyncHashtableAccessByKey<CCostContext,	 // entry
@@ -182,7 +184,10 @@ private:
 
 	//private dummy ctor; used for creating invalid gexpr
 	CGroupExpression()
-		: m_mp(NULL),
+		:
+#ifdef GPOS_DEBUG
+		  m_mp(NULL),
+#endif
 		  m_id(GPOPT_INVALID_GEXPR_ID),
 		  m_pop(NULL),
 		  m_pdrgpgroup(NULL),

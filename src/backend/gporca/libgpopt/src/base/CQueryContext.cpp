@@ -33,7 +33,10 @@ using namespace gpopt;
 CQueryContext::CQueryContext(CMemoryPool *mp, CExpression *pexpr,
 							 CReqdPropPlan *prpp, CColRefArray *colref_array,
 							 CMDNameArray *pdrgpmdname, BOOL fDeriveStats)
-	: m_mp(mp),
+	:
+#ifdef GPOS_DEBUG
+	  m_mp(mp),
+#endif
 	  m_prpp(prpp),
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrSystemCols(NULL),

@@ -71,8 +71,10 @@ private:
 	// is this a fixed-length type
 	BOOL m_is_fixed_length;
 
+#ifdef GPOS_DEBUG
 	// type length in number of bytes for fixed-length types, 0 otherwise
 	ULONG m_length;
+#endif
 
 	// is type passed by value or by reference
 	BOOL m_is_passed_by_value;

@@ -38,8 +38,10 @@ using namespace gpos;
 //  	the CMemoryPoolManager global instance
 //
 //---------------------------------------------------------------------------
-CAutoMemoryPool::CAutoMemoryPool(ELeakCheck leak_check_type)
+CAutoMemoryPool::CAutoMemoryPool(ELeakCheck leak_check_type GPOS_ASSERTS_ONLY)
+#ifdef GPOS_DEBUG
 	: m_leak_check_type(leak_check_type)
+#endif
 {
 	m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->CreateMemoryPool();
 }

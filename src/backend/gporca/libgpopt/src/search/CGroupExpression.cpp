@@ -50,7 +50,10 @@ CGroupExpression::CGroupExpression(CMemoryPool *mp, COperator *pop,
 								   CXform::EXformId exfid,
 								   CGroupExpression *pgexprOrigin,
 								   BOOL fIntermediate)
-	: m_mp(mp),
+	:
+#ifdef GPOS_DEBUG
+	  m_mp(mp),
+#endif
 	  m_id(GPOPT_INVALID_GEXPR_ID),
 	  m_pgexprDuplicate(NULL),
 	  m_pop(pop),

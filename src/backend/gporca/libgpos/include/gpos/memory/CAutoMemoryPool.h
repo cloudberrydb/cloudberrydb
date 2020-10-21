@@ -55,8 +55,10 @@ private:
 	// memory pool to protect
 	CMemoryPool *m_mp;
 
+#ifdef GPOS_DEBUG
 	// type of leak check to perform
 	ELeakCheck m_leak_check_type;
+#endif
 
 public:
 	// ctor
