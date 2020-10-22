@@ -580,6 +580,28 @@ cdbdisp_get_PQerror(PGresult *pgresult)
 	if (fld)
 		errcontext("%s", fld);
 
+	fld = PQresultErrorField(pgresult, PG_DIAG_SCHEMA_NAME);
+	if (fld)
+		err_generic_string(PG_DIAG_SCHEMA_NAME, fld);
+
+	fld = PQresultErrorField(pgresult, PG_DIAG_TABLE_NAME);
+	if (fld)
+		err_generic_string(PG_DIAG_TABLE_NAME, fld);
+
+	fld = PQresultErrorField(pgresult, PG_DIAG_COLUMN_NAME);
+	if (fld)
+		err_generic_string(PG_DIAG_COLUMN_NAME, fld);
+
+	fld = PQresultErrorField(pgresult, PG_DIAG_DATATYPE_NAME);
+	if (fld)
+		err_generic_string(PG_DIAG_DATATYPE_NAME, fld);
+
+	fld = PQresultErrorField(pgresult, PG_DIAG_CONSTRAINT_NAME);
+	if (fld)
+		err_generic_string(PG_DIAG_CONSTRAINT_NAME, fld);
+
+	Assert(TopTransactionContext);
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	ErrorData *edata = errfinish_and_return(filename, lineno, funcname);
 	MemoryContextSwitchTo(oldcontext);
