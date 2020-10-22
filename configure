@@ -1600,7 +1600,7 @@ Optional Packages:
   --with-tcl              build Tcl modules (PL/Tcl)
   --with-tclconfig=DIR    tclConfig.sh is in DIR
   --with-perl             build Perl modules (PL/Perl)
-  --with-python           build Python modules (PL/Python)
+  --without-python        build Python modules (PL/Python)
   --with-gssapi           build with GSSAPI support
   --with-krb-srvnam=NAME  default service principal name in Kerberos (GSSAPI)
                           [postgres]
@@ -8609,7 +8609,7 @@ if test "${with_python+set}" = set; then :
   esac
 
 else
-  with_python=no
+  with_python=yes
 
 fi
 

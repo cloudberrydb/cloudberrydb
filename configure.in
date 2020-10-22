@@ -893,7 +893,7 @@ AC_SUBST(with_perl)
 # Optionally build Python modules (PL/Python)
 #
 AC_MSG_CHECKING([whether to build Python modules])
-PGAC_ARG_BOOL(with, python, no, [build Python modules (PL/Python)])
+PGAC_ARG_BOOL(with, python, yes, [build Python modules (PL/Python)])
 AC_MSG_RESULT([$with_python])
 AC_SUBST(with_python)
 
