@@ -1573,7 +1573,7 @@ Optional Features:
   --enable-cassert        enable assertion checks (for debugging)
   --disable-orca          disable ORCA optimizer
   --enable-mapreduce      enable Greenplum Mapreduce support
-  --disable-gpcloud       disable gpcloud support
+  --enable-gpcloud        enable gpcloud support
   --enable-ic-proxy       enable interconnect proxy mode (requires libuv
                           library)
   --disable-thread-safety disable thread-safety in client libraries
@@ -7649,9 +7649,7 @@ $as_echo "#define USE_GPCLOUD 1" >>confdefs.h
   esac
 
 else
-  enable_gpcloud=yes
-
-$as_echo "#define USE_GPCLOUD 1" >>confdefs.h
+  enable_gpcloud=no
 
 fi
 

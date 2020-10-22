@@ -16,6 +16,7 @@ class GpBuild:
                                     "--enable-orafce",
                                     "--with-gssapi",
                                     "--with-perl",
+                                    "--enable-gpcloud",
                                     "--with-libxml",
                                     "--with-python",
                                     # TODO: Remove this line as soon as zstd is built into Ubuntu docker image

@@ -791,7 +791,7 @@ AC_SUBST(enable_mapreduce)
 #
 # gpcloud, enabled by default
 #
-PGAC_ARG_BOOL(enable, gpcloud, yes, [disable gpcloud support],
+PGAC_ARG_BOOL(enable, gpcloud, no, [enable gpcloud support],
               [AC_DEFINE([USE_GPCLOUD], 1,
 			             [Define to 1 to build with gpcloud (--enable-gpcloud)])])
 AC_MSG_RESULT([checking whether to build with gpcloud... $enable_gpcloud])
