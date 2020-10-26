@@ -279,8 +279,6 @@ plan_tree_mutator(Node *node,
 				return (Node *) newAssert;
 			}
 
-/* GPDB_12_MERGE_FIXME: Is PartitionSelector still needed? */
-#if 0
 		case T_PartitionSelector:
 			{
 				PartitionSelector *partsel = (PartitionSelector *) node;
@@ -288,23 +286,9 @@ plan_tree_mutator(Node *node,
 
 				FLATCOPY(newPartsel, partsel, PartitionSelector);
 				PLANMUTATE(newPartsel, partsel);
-				MUTATE(newPartsel->levelEqExpressions, partsel->levelEqExpressions, List *);
-				MUTATE(newPartsel->levelExpressions, partsel->levelExpressions, List *);
-				MUTATE(newPartsel->residualPredicate, partsel->residualPredicate, Node *);
-				MUTATE(newPartsel->propagationExpression, partsel->propagationExpression, Node *);
-				MUTATE(newPartsel->printablePredicate, partsel->printablePredicate, Node *);
-				MUTATE(newPartsel->partTabTargetlist, partsel->partTabTargetlist, List *);
-				MUTATE(newPartsel->staticPartOids, partsel->staticPartOids, List *);
-				MUTATE(newPartsel->staticScanIds, partsel->staticScanIds, List *);
-				newPartsel->nLevels = partsel->nLevels;
-				newPartsel->scanId = partsel->scanId;
-				newPartsel->selectorId = partsel->selectorId;
-				newPartsel->relid = partsel->relid;
-				newPartsel->staticSelection = partsel->staticSelection;
 
 				return (Node *) newPartsel;
 			}
-#endif
 
 		case T_BitmapAnd:
 			{
