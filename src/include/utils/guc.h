@@ -336,8 +336,6 @@ extern bool gp_maintenance_conn;
 extern bool allow_segment_DML;
 extern bool gp_allow_rename_relation_without_lock;
 
-extern bool gp_ignore_window_exclude;
-
 extern bool gp_ignore_error_table;
 
 extern bool	Debug_dtm_action_primary;

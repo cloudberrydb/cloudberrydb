@@ -204,7 +204,6 @@
 		"gp_gang_creation_retry_timer",
 		"gp_global_deadlock_detector_period",
 		"gp_heap_require_relhasoids_match",
-		"gp_ignore_window_exclude",
 		"gp_instrument_shmem_size",
 		"gp_interconnect_cache_future_packets",
 		"gp_is_writer",
