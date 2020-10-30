@@ -44,15 +44,11 @@ public:
 	CPhysicalDynamicIndexScan(const CPhysicalDynamicIndexScan &) = delete;
 
 	// ctors
-	CPhysicalDynamicIndexScan(CMemoryPool *mp, BOOL is_partial,
-							  CIndexDescriptor *pindexdesc,
+	CPhysicalDynamicIndexScan(CMemoryPool *mp, CIndexDescriptor *pindexdesc,
 							  CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
 							  const CName *pnameAlias,
 							  CColRefArray *pdrgpcrOutput, ULONG scan_id,
-							  CColRef2dArray *pdrgpdrgpcrPart,
-							  ULONG ulSecondaryScanId,
-							  CPartConstraint *ppartcnstr,
-							  CPartConstraint *ppartcnstrRel, COrderSpec *pos);
+							  CColRef2dArray *pdrgpdrgpcrPart, COrderSpec *pos);
 
 	// dtor
 	~CPhysicalDynamicIndexScan() override;

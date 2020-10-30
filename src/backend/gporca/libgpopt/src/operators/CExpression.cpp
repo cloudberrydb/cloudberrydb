@@ -1307,9 +1307,6 @@ CExpression::PexprRehydrate(CMemoryPool *mp, CCostContext *pcc,
 	CExpression *pexpr = GPOS_NEW(mp)
 		CExpression(mp, pop, pgexpr, pdrgpexpr, pcc->Pstats(), CCost(cost));
 
-	// set the number of expected partition selectors in the context
-	pdpctxtplan->SetExpectedPartitionSelectors(pop, pcc);
-
 	if (pop->FPhysical() && !pexpr->FValidPlan(pcc->Poc()->Prpp(), pdpctxtplan))
 	{
 #ifdef GPOS_DEBUG
@@ -1362,10 +1359,10 @@ CExpression::FValidPlan(const CReqdPropPlan *prpp,
 
 	CDrvdPropRelational *pdprel = GetDrvdPropRelational();
 
+	// GPDB_12_MERGE_FIXME: Also check FValidPartEnforcers()
 	return prpp->FCompatible(exprhdl, CPhysical::PopConvert(m_pop), pdprel,
 							 pdpplan) &&
-		   FValidChildrenDistribution(pdpctxtplan) &&
-		   FValidPartEnforcers(pdpctxtplan);
+		   FValidChildrenDistribution(pdpctxtplan);
 }
 
 //---------------------------------------------------------------------------
@@ -1407,6 +1404,7 @@ CExpression::FValidChildrenDistribution(CDrvdPropCtxtPlan *pdpctxtplan)
 	return true;
 }
 
+#if 0
 //---------------------------------------------------------------------------
 //	@function:
 //		CExpression::FValidPartEnforcers
@@ -1441,6 +1439,7 @@ CExpression::FValidPartEnforcers(CDrvdPropCtxtPlan *pdpctxtplan)
 
 	return true;
 }
+#endif
 
 CColRefSet *
 CExpression::DeriveOuterReferences()

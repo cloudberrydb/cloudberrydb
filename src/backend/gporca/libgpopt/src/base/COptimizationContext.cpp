@@ -145,9 +145,7 @@ COptimizationContext::FEqualForStats(const COptimizationContext *pocLeft,
 
 	return pocLeft->GetReqdRelationalProps()->PcrsStat()->Equals(
 			   pocRight->GetReqdRelationalProps()->PcrsStat()) &&
-		   pocLeft->Pdrgpstat()->Equals(pocRight->Pdrgpstat()) &&
-		   pocLeft->Prpp()->Pepp()->PpfmDerived()->Equals(
-			   pocRight->Prpp()->Pepp()->PpfmDerived());
+		   pocLeft->Pdrgpstat()->Equals(pocRight->Pdrgpstat());
 }
 
 

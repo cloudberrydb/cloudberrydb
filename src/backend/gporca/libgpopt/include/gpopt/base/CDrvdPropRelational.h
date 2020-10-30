@@ -31,7 +31,6 @@ class CExpressionHandle;
 class CColRefSet;
 class CReqdPropPlan;
 class CKeyCollection;
-class CPartIndexMap;
 class CPropConstraint;
 class CPartInfo;
 

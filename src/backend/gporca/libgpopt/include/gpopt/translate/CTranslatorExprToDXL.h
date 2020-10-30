@@ -449,13 +449,6 @@ private:
 	// non-equality filters.
 	BOOL FEqPartFiltersAllLevels(CExpression *pexpr, BOOL fCheckGeneralFilters);
 
-	// translate a filter-based partition selector
-	CDXLNode *PdxlnPartitionSelectorFilter(
-		CExpression *pexpr, CColRefArray *colref_array,
-		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-		BOOL *pfDML, CExpression *pexprScalarCond,
-		CDXLPhysicalProperties *dxl_properties);
-
 	// translate partition selector filters
 	void TranslatePartitionFilters(CExpression *pexprPartSelector,
 								   BOOL fPassThrough,

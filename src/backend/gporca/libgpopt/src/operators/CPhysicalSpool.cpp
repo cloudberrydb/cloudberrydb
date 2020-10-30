@@ -108,29 +108,6 @@ CPhysicalSpool::PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSpool::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalSpool::PppsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
-							 CPartitionPropagationSpec *pppsRequired,
-							 ULONG child_index,
-							 CDrvdPropArray *,	//pdrgpdpCtxt,
-							 ULONG				//ulOptReq
-)
-{
-	GPOS_ASSERT(0 == child_index);
-	GPOS_ASSERT(NULL != pppsRequired);
-
-	return CPhysical::PppsRequiredPushThru(mp, exprhdl, pppsRequired,
-										   child_index);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalSpool::PcteRequired
 //
 //	@doc:
@@ -377,6 +354,10 @@ CPhysicalSpool::FValidContext(CMemoryPool *, COptimizationContext *poc,
 	COptimizationContext *pocChild = (*pdrgpocChild)[0];
 	CCostContext *pccBest = pocChild->PccBest();
 	GPOS_ASSERT(NULL != pccBest);
+	CDrvdPropPlan *pdpplanChild = pccBest->Pdpplan();
+
+	// GPDB_12_MERGE_FIXME: Check part propagation spec
+#if 0
 
 	// partition selections that happen outside of a physical spool does not do
 	// any good on rescan: a physical spool blocks the rescan from the entire
@@ -405,12 +386,11 @@ CPhysicalSpool::FValidContext(CMemoryPool *, COptimizationContext *poc,
 	//       +--CScalarCmp (<)
 	//          |--CScalarIdent "a" (0)
 	//          +--CScalarIdent "partkey" (10)
-
-	CDrvdPropPlan *pdpplanChild = pccBest->Pdpplan();
 	if (pdpplanChild->Ppim()->FContainsUnresolved())
 	{
 		return false;
 	}
+#endif
 
 	// Discard any context that is requesting for rewindability with motion hazard handling and
 	// the physical spool is streaming with a motion underneath it.

@@ -28,6 +28,7 @@
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CScalarBitmapIndexProbe.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "gpopt/metadata/CPartConstraint.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpdbcost/CCostModelGPDB.h"
 #include "gpopt/optimizer/COptimizerConfig.h"

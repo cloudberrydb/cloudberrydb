@@ -23,7 +23,6 @@
 #include "gpopt/base/CDrvdPropRelational.h"
 #include "gpopt/base/CReqdPropRelational.h"
 #include "gpopt/base/CKeyCollection.h"
-#include "gpopt/base/CPartIndexMap.h"
 #include "gpopt/base/COptCtxt.h"
 
 #include "gpopt/operators/CLogical.h"

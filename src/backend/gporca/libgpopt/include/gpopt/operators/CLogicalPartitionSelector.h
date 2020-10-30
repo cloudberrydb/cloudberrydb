@@ -14,6 +14,7 @@
 
 #include "gpos/base.h"
 #include "gpopt/operators/CLogical.h"
+#include "gpopt/metadata/CPartConstraint.h"
 
 
 namespace gpopt

@@ -133,12 +133,6 @@ public:
 									CDrvdPropArray *pdrgpdpCtxt,
 									ULONG ulOptReq) const override;
 
-	// compute required partition propagation of the n-th child
-	CPartitionPropagationSpec *PppsRequired(
-		CMemoryPool *mp, CExpressionHandle &exprhdl,
-		CPartitionPropagationSpec *pppsRequired, ULONG child_index,
-		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
-
 	// conversion function
 	static CPhysicalUnionAll *PopConvert(COperator *pop);
 
@@ -159,14 +153,6 @@ public:
 	CDistributionSpec *PdsDerive(CMemoryPool *mp,
 								 CExpressionHandle &exprhdl) const override;
 
-	// derive partition index map
-	CPartIndexMap *PpimDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
-							  CDrvdPropCtxt *pdpctxt) const override;
-
-	// derive partition filter map
-	CPartFilterMap *PpfmDerive(CMemoryPool *mp,
-							   CExpressionHandle &exprhdl) const override;
-
 	// derive rewindability
 	CRewindabilitySpec *PrsDerive(CMemoryPool *mp,
 								  CExpressionHandle &exprhdl) const override;
@@ -185,11 +171,6 @@ public:
 		CExpressionHandle &,		// exprhdl
 		const CEnfdRewindability *	// per
 	) const override;
-
-	// return partition propagation property enforcing type for this operator
-	CEnfdProp::EPropEnforcingType EpetPartitionPropagation(
-		CExpressionHandle &exprhdl,
-		const CEnfdPartitionPropagation *pepp) const override;
 };
 }  // namespace gpopt
 

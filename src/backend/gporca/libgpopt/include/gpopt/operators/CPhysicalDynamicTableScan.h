@@ -31,14 +31,10 @@ public:
 	CPhysicalDynamicTableScan(const CPhysicalDynamicTableScan &) = delete;
 
 	// ctors
-	CPhysicalDynamicTableScan(CMemoryPool *mp, BOOL is_partial,
-							  const CName *pname, CTableDescriptor *ptabdesc,
-							  ULONG ulOriginOpId, ULONG scan_id,
-							  CColRefArray *colref_array,
-							  CColRef2dArray *pdrgpdrgpcrParts,
-							  ULONG ulSecondaryScanId,
-							  CPartConstraint *ppartcnstr,
-							  CPartConstraint *ppartcnstrRel);
+	CPhysicalDynamicTableScan(CMemoryPool *mp, const CName *pnameAlias,
+							  CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
+							  ULONG scan_id, CColRefArray *pdrgpcrOutput,
+							  CColRef2dArray *pdrgpdrgpcrParts);
 
 	// ident accessors
 	EOperatorId

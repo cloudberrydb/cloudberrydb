@@ -87,12 +87,6 @@ public:
 	CDistributionSpec *PdsDerive(CMemoryPool *mp,
 								 CExpressionHandle &exprhdl) const override;
 
-	// compute required partition propagation of the n-th child
-	CPartitionPropagationSpec *PppsRequired(
-		CMemoryPool *mp, CExpressionHandle &exprhdl,
-		CPartitionPropagationSpec *pppsRequired, ULONG child_index,
-		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
-
 };	// class CPhysicalInnerHashJoin
 
 }  // namespace gpopt

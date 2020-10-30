@@ -1038,22 +1038,23 @@ CStatisticsUtils::DatumNull(const CColRef *colref)
 //
 //---------------------------------------------------------------------------
 IStatistics *
-CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp,
+CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
 											CExpressionHandle &expr_handle,
-											ULONG part_idx_id,
-											CPartFilterMap *part_filter_map)
+											ULONG part_idx_id GPOS_UNUSED)
 {
 	// extract part table base stats from passed handle
 	IStatistics *base_table_stats = expr_handle.Pstats();
 	GPOS_ASSERT(NULL != base_table_stats);
 
-	if (!GPOS_FTRACE(EopttraceDeriveStatsForDPE))
+	// GPDB_12_MERGE_FIXME: Re-enable this when DPE is re-implemented
+	if (true || !GPOS_FTRACE(EopttraceDeriveStatsForDPE))
 	{
 		// if stats derivation with dynamic partition elimitaion is disabled, we return base stats
 		base_table_stats->AddRef();
 		return base_table_stats;
 	}
 
+#if 0
 	if (!part_filter_map->FContainsScanId(part_idx_id) ||
 		NULL == part_filter_map->Pstats(part_idx_id))
 	{
@@ -1107,6 +1108,7 @@ CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp,
 	join_preds_stats->Release();
 
 	return left_semi_join_stats;
+#endif
 }
 
 //---------------------------------------------------------------------------

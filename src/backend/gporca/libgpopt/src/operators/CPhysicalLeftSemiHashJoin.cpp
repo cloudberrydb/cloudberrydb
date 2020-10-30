@@ -64,25 +64,4 @@ CPhysicalLeftSemiHashJoin::FProvidesReqdCols(CExpressionHandle &exprhdl,
 	return FOuterProvidesReqdCols(exprhdl, pcrsRequired);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalLeftSemiHashJoin::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalLeftSemiHashJoin::PppsRequired(CMemoryPool *mp,
-										CExpressionHandle &exprhdl,
-										CPartitionPropagationSpec *pppsRequired,
-										ULONG child_index,
-										CDrvdPropArray *pdrgpdpCtxt,
-										ULONG  // ulOptReq
-)
-{
-	return PppsRequiredJoinChild(mp, exprhdl, pppsRequired, child_index,
-								 pdrgpdpCtxt, false);
-}
-
 // EOF

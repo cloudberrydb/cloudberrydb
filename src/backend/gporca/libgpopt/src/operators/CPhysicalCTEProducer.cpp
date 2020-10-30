@@ -144,27 +144,6 @@ CPhysicalCTEProducer::PrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalCTEProducer::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalCTEProducer::PppsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
-								   CPartitionPropagationSpec *pppsRequired,
-								   ULONG child_index,
-								   CDrvdPropArray *,  //pdrgpdpCtxt,
-								   ULONG			  //ulOptReq
-)
-{
-	GPOS_ASSERT(0 == child_index);
-
-	return PppsRequiredPushThru(mp, exprhdl, pppsRequired, child_index);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalCTEProducer::PcteRequired
 //
 //	@doc:

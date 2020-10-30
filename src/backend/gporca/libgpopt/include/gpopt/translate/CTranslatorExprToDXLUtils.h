@@ -234,13 +234,6 @@ public:
 										  CColRef2dArray *pdrgpdrgpcrPartKeys,
 										  CharPtrArray *pdrgszPartTypes);
 
-	// construct a nested if statement testing the constraints in the
-	// given part index map and propagating to the right part index id
-	static CDXLNode *PdxlnPropagationExpressionForPartConstraints(
-		CMemoryPool *mp, CMDAccessor *md_accessor, CColumnFactory *col_factory,
-		UlongToPartConstraintMap *ppartcnstrmap,
-		CColRef2dArray *pdrgpdrgpcrPartKeys, CharPtrArray *pdrgszPartTypes);
-
 	// check if the DXL Node is a scalar const TRUE
 	static BOOL FScalarConstTrue(CMDAccessor *md_accessor, CDXLNode *dxlnode);
 
@@ -264,13 +257,6 @@ public:
 		ColRefToDXLNodeMap *phmcrdxln, BOOL fUseChildProjList,
 		CDXLNode *pdxlnPrLChild, CColRef *pcrOid, ULONG ulPartLevels,
 		BOOL fGeneratePartOid);
-
-	// construct the propagation expression for a partition selector
-	static CDXLNode *PdxlnPropExprPartitionSelector(
-		CMemoryPool *mp, CMDAccessor *md_accessor, CColumnFactory *col_factory,
-		BOOL fConditional, UlongToPartConstraintMap *ppartcnstrmap,
-		CColRef2dArray *pdrgpdrgpcrKeys, ULONG scan_id,
-		CharPtrArray *pdrgszPartTypes);
 
 	// create a DXL project elem node from as a scalar identifier for the
 	// child project element node

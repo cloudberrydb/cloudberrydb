@@ -40,11 +40,8 @@ public:
 
 	CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 					   CTableDescriptor *ptabdesc, ULONG ulPartIndex,
-					   CColRefArray *colref_array,
-					   CColRef2dArray *pdrgpdrgpcrPart,
-					   ULONG ulSecondaryPartIndexId, BOOL is_partial,
-					   CPartConstraint *ppartcnstr,
-					   CPartConstraint *ppartcnstrRel);
+					   CColRefArray *pdrgpcrOutput,
+					   CColRef2dArray *pdrgpdrgpcrPart);
 
 	CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 					   CTableDescriptor *ptabdesc, ULONG ulPartIndex);

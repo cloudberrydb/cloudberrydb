@@ -266,38 +266,6 @@ CPhysicalLimit::PrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalLimit::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalLimit::PppsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
-							 CPartitionPropagationSpec *pppsRequired,
-							 ULONG
-#ifdef GPOS_DEBUG
-								 child_index
-#endif
-							 ,
-							 CDrvdPropArray *,	//pdrgpdpCtxt
-							 ULONG				//ulOptReq
-)
-{
-	GPOS_ASSERT(0 == child_index);
-	GPOS_ASSERT(NULL != pppsRequired);
-
-	// limit should not push predicate below it as it will generate wrong results
-	// for example, the following two queries are not equivalent.
-	// Q1: select * from (select * from foo order by a limit 1) x where x.a = 10
-	// Q2: select * from (select * from foo where a = 10 order by a limit 1) x
-
-	return CPhysical::PppsRequiredPushThruUnresolvedUnary(
-		mp, exprhdl, pppsRequired, CPhysical::EppcProhibited, NULL);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalLimit::PcteRequired
 //
 //	@doc:

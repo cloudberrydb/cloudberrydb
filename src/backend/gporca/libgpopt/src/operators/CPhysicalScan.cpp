@@ -213,39 +213,6 @@ CPhysicalScan::PdsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalScan::PpimDeriveFromDynamicScan
-//
-//	@doc:
-//		Derive partition index map from a dynamic scan operator
-//
-//---------------------------------------------------------------------------
-CPartIndexMap *
-CPhysicalScan::PpimDeriveFromDynamicScan(CMemoryPool *mp, ULONG part_idx_id,
-										 IMDId *rel_mdid,
-										 CColRef2dArray *pdrgpdrgpcrPart,
-										 ULONG ulSecondaryPartIndexId,
-										 CPartConstraint *ppartcnstr,
-										 CPartConstraint *ppartcnstrRel,
-										 ULONG ulExpectedPropagators)
-{
-	CPartIndexMap *ppim = GPOS_NEW(mp) CPartIndexMap(mp);
-	UlongToPartConstraintMap *ppartcnstrmap =
-		GPOS_NEW(mp) UlongToPartConstraintMap(mp);
-
-	(void) ppartcnstrmap->Insert(GPOS_NEW(mp) ULONG(ulSecondaryPartIndexId),
-								 ppartcnstr);
-
-	CPartKeysArray *pdrgppartkeys = GPOS_NEW(mp) CPartKeysArray(mp);
-	pdrgppartkeys->Append(GPOS_NEW(mp) CPartKeys(pdrgpdrgpcrPart));
-
-	ppim->Insert(part_idx_id, ppartcnstrmap, CPartIndexMap::EpimConsumer,
-				 ulExpectedPropagators, rel_mdid, pdrgppartkeys, ppartcnstrRel);
-
-	return ppim;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalScan::EpetDistribution
 //
 //	@doc:

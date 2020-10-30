@@ -267,30 +267,6 @@ CPhysicalComputeScalar::PrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalComputeScalar::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalComputeScalar::PppsRequired(CMemoryPool *mp,
-									 CExpressionHandle &exprhdl,
-									 CPartitionPropagationSpec *pppsRequired,
-									 ULONG child_index,
-									 CDrvdPropArray *,	//pdrgpdpCtxt,
-									 ULONG				//ulOptReq
-)
-{
-	GPOS_ASSERT(0 == child_index);
-	GPOS_ASSERT(NULL != pppsRequired);
-
-	return CPhysical::PppsRequiredPushThru(mp, exprhdl, pppsRequired,
-										   child_index);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalComputeScalar::PcteRequired
 //
 //	@doc:

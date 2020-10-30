@@ -189,12 +189,6 @@ public:
 						   ULONG ulOptReq) const override;
 
 
-	// compute required partition propagation of the n-th child
-	CPartitionPropagationSpec *PppsRequired(
-		CMemoryPool *mp, CExpressionHandle &exprhdl,
-		CPartitionPropagationSpec *pppsRequired, ULONG child_index,
-		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) override;
-
 	//-------------------------------------------------------------------------------------
 	// Derived Plan Properties
 	//-------------------------------------------------------------------------------------
@@ -206,24 +200,6 @@ public:
 	// derive rewindability
 	CRewindabilitySpec *PrsDerive(CMemoryPool *mp,
 								  CExpressionHandle &exprhdl) const override;
-
-	// derive partition index map
-	CPartIndexMap *
-	PpimDerive(CMemoryPool *,  // mp
-			   CExpressionHandle &exprhdl,
-			   CDrvdPropCtxt *	//pdpctxt
-	) const override
-	{
-		return PpimPassThruOuter(exprhdl);
-	}
-
-	// derive partition filter map
-	CPartFilterMap *
-	PpfmDerive(CMemoryPool *,  // mp
-			   CExpressionHandle &exprhdl) const override
-	{
-		return PpfmPassThruOuter(exprhdl);
-	}
 
 
 	//-------------------------------------------------------------------------------------

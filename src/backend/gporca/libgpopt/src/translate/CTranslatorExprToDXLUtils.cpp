@@ -282,88 +282,6 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjDisj(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorExprToDXLUtils::PdxlnPropagationExpressionForPartConstraints
-//
-//	@doc:
-// 		Construct a nested if statement testing the constraints in the
-//		given part index map and propagating to the right part index id
-//
-//		For example for the following part constraint map:
-//		1->[1,3), 2->[3,5), 3->![1,5), the generated if expr will be:
-//		If (min,max,minincl,maxincl) \subseteq [1,3)
-//		Then 1
-//		Else If (min,max,minincl,maxincl) \subseteq [3,5)
-//		     Then 2
-//		     Else If (min,max,minincl,maxincl) \subseteq Not([1,5))
-//		          Then 3
-//		          Else NULL
-//
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorExprToDXLUtils::PdxlnPropagationExpressionForPartConstraints(
-	CMemoryPool *mp, CMDAccessor *md_accessor, CColumnFactory *col_factory,
-	UlongToPartConstraintMap *ppartcnstrmap,
-	CColRef2dArray *pdrgpdrgpcrPartKeys, CharPtrArray *pdrgszPartTypes)
-{
-	UlongToPartConstraintMapIter pcmi(ppartcnstrmap);
-
-	CDXLNode *pdxlnScalarRootIfStmt = NULL;
-	CDXLNode *pdxlnScalarLeafIfStmt = NULL;
-
-	const IMDTypeInt4 *pmdtypeint4 = md_accessor->PtMDType<IMDTypeInt4>();
-	IMDId *mdid_return_type = pmdtypeint4->MDId();
-
-	while (pcmi.Advance())
-	{
-		ULONG ulSecondaryScanId = *(pcmi.Key());
-		const CPartConstraint *ppartcnstr = pcmi.Value();
-		CDXLNode *pdxlnTest =
-			PdxlnPartialScanTest(mp, md_accessor, col_factory, ppartcnstr,
-								 pdrgpdrgpcrPartKeys, pdrgszPartTypes);
-
-		CDXLNode *pdxlnPropagate =
-			PdxlnInt4Const(mp, md_accessor, (INT) ulSecondaryScanId);
-
-		mdid_return_type->AddRef();
-		CDXLNode *pdxlnScalarIf = GPOS_NEW(mp)
-			CDXLNode(mp, GPOS_NEW(mp) CDXLScalarIfStmt(mp, mdid_return_type),
-					 pdxlnTest, pdxlnPropagate);
-
-		if (NULL == pdxlnScalarRootIfStmt)
-		{
-			pdxlnScalarRootIfStmt = pdxlnScalarIf;
-		}
-		else
-		{
-			// add nested if statement to the latest leaf if statement as the else case of the already constructed if stmt
-			GPOS_ASSERT(NULL != pdxlnScalarLeafIfStmt &&
-						2 == pdxlnScalarLeafIfStmt->Arity());
-			pdxlnScalarLeafIfStmt->AddChild(pdxlnScalarIf);
-		}
-
-		pdxlnScalarLeafIfStmt = pdxlnScalarIf;
-	}
-
-	GPOS_ASSERT(2 == pdxlnScalarLeafIfStmt->Arity());
-
-	// add a dummy value for the top and bottom level else cases
-	const IMDType *pmdtypeVoid = md_accessor->RetrieveType(mdid_return_type);
-	CDXLDatum *dxl_datum = pmdtypeVoid->GetDXLDatumNull(mp);
-	CDXLNode *pdxlnNullConst = GPOS_NEW(mp)
-		CDXLNode(mp, GPOS_NEW(mp) CDXLScalarConstValue(mp, dxl_datum));
-	pdxlnScalarLeafIfStmt->AddChild(pdxlnNullConst);
-
-	if (2 == pdxlnScalarRootIfStmt->Arity())
-	{
-		pdxlnNullConst->AddRef();
-		pdxlnScalarRootIfStmt->AddChild(pdxlnNullConst);
-	}
-
-	return pdxlnScalarRootIfStmt;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorExprToDXLUtils::PdxlnPartialScanTestConjunction
 //
 //	@doc:
@@ -1357,32 +1275,6 @@ CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector(
 	}
 
 	return pdxlnPrL;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector
-//
-//	@doc:
-//		Construct the propagation expression for a partition selector
-//
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector(
-	CMemoryPool *mp, CMDAccessor *md_accessor, CColumnFactory *col_factory,
-	BOOL fConditional, UlongToPartConstraintMap *ppartcnstrmap,
-	CColRef2dArray *pdrgpdrgpcrKeys, ULONG scan_id,
-	CharPtrArray *pdrgszPartTypes)
-{
-	if (!fConditional)
-	{
-		// unconditional propagation
-		return PdxlnInt4Const(mp, md_accessor, (INT) scan_id);
-	}
-
-	return PdxlnPropagationExpressionForPartConstraints(
-		mp, md_accessor, col_factory, ppartcnstrmap, pdrgpdrgpcrKeys,
-		pdrgszPartTypes);
 }
 
 //---------------------------------------------------------------------------

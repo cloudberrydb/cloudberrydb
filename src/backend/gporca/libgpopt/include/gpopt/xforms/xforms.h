@@ -22,7 +22,6 @@
 #include "gpopt/xforms/CXformDynamicGet2DynamicTableScan.h"
 #include "gpopt/xforms/CXformDynamicIndexGet2DynamicIndexScan.h"
 #include "gpopt/xforms/CXformSelect2DynamicIndexGet.h"
-#include "gpopt/xforms/CXformSelect2PartialDynamicIndexGet.h"
 #include "gpopt/xforms/CXformImplementSequence.h"
 #include "gpopt/xforms/CXformImplementConstTableGet.h"
 #include "gpopt/xforms/CXformUnnestTVF.h"
@@ -120,8 +119,6 @@
 #include "gpopt/xforms/CXformSubqNAryJoin2Apply.h"
 #include "gpopt/xforms/CXformJoin2BitmapIndexGetApply.h"
 #include "gpopt/xforms/CXformJoin2IndexGetApply.h"
-#include "gpopt/xforms/CXformInnerJoin2PartialDynamicIndexGetApply.h"
-#include "gpopt/xforms/CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply.h"
 
 #include "gpopt/xforms/CXformInnerApply2InnerJoin.h"
 #include "gpopt/xforms/CXformInnerApply2InnerJoinNoCorrelations.h"

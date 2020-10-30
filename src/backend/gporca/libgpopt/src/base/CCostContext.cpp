@@ -138,6 +138,7 @@ CCostContext::FNeedsNewStats() const
 		return false;
 	}
 
+#if 0
 	if (!m_pdpplan->Ppim()->FContainsUnresolved())
 	{
 		// All partition selectors have been resolved at this level.
@@ -145,12 +146,10 @@ CCostContext::FNeedsNewStats() const
 		// nodes above it, that aren't affected by the partition selector.
 		return false;
 	}
-
-	CEnfdPartitionPropagation *pepp = Poc()->Prpp()->Pepp();
-
+#endif
+	// GPDB_12_MERGE_FIXME: Re-enable this when DPE is re-implemented
 	if (GPOS_FTRACE(EopttraceDeriveStatsForDPE) && CUtils::FPhysicalScan(pop) &&
-		CPhysicalScan::PopConvert(pop)->FDynamicScan() &&
-		!pepp->PpfmDerived()->IsEmpty())
+		CPhysicalScan::PopConvert(pop)->FDynamicScan() && false)
 	{
 		// context is attached to a dynamic scan that went through
 		// partition elimination in another part of the plan

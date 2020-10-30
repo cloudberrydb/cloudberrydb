@@ -13,7 +13,6 @@
 
 #include "gpos/base.h"
 #include "gpopt/base/CColRef.h"
-#include "gpopt/base/CPartFilterMap.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/operators/CLogical.h"
 #include "gpopt/operators/CScalarBoolOp.h"
@@ -218,8 +217,7 @@ public:
 
 	// derive statistics of dynamic scan based on part-selector stats in the given map
 	static IStatistics *DeriveStatsForDynamicScan(
-		CMemoryPool *mp, CExpressionHandle &expr_handle, ULONG part_idx_id,
-		CPartFilterMap *part_filter_map);
+		CMemoryPool *mp, CExpressionHandle &expr_handle, ULONG part_idx_id);
 
 	// derive statistics of (dynamic) index-get
 	static IStatistics *DeriveStatsForIndexGet(

@@ -376,54 +376,6 @@ CPhysicalSequenceProject::PrsRequired(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSequenceProject::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalSequenceProject::PppsRequired(CMemoryPool *mp,
-									   CExpressionHandle &exprhdl,
-									   CPartitionPropagationSpec *pppsRequired,
-									   ULONG
-#ifdef GPOS_DEBUG
-										   child_index
-#endif
-									   ,
-									   CDrvdPropArray *,  //pdrgpdpCtxt,
-									   ULONG			  //ulOptReq
-)
-{
-	GPOS_ASSERT(0 == child_index);
-	GPOS_ASSERT(NULL != pppsRequired);
-
-	// The logic here is similar to CNormalizer::FPushableThruSeqPrjChild(). We only consider the keys
-	// used in the starting hash distribution spec as we do not have the equivalent distribution spec
-	CColRefSet *pcrsPartCols;
-	if (CDistributionSpec::EdtHashed == Pds()->Edt())
-	{
-		GPOS_ASSERT(
-			NULL ==
-			CDistributionSpecHashed::PdsConvert(Pds())->PdshashedEquiv());
-		pcrsPartCols = CUtils::PcrsExtractColumns(
-			mp, CDistributionSpecHashed::PdsConvert(Pds())->Pdrgpexpr());
-	}
-	else
-	{
-		pcrsPartCols = GPOS_NEW(mp) CColRefSet(mp);
-	}
-
-	CPartitionPropagationSpec *spec =
-		CPhysical::PppsRequiredPushThruUnresolvedUnary(
-			mp, exprhdl, pppsRequired, CPhysical::EppcAllowed, pcrsPartCols);
-
-	pcrsPartCols->Release();
-	return spec;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalSequenceProject::PcteRequired
 //
 //	@doc:

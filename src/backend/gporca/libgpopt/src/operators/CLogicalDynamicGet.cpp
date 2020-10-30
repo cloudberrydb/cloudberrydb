@@ -9,11 +9,11 @@
 //		Implementation of dynamic table access
 //---------------------------------------------------------------------------
 
+#include "gpopt/metadata/CPartConstraint.h"
 #include "gpos/base.h"
 #include "gpopt/base/CUtils.h"
 #include "gpopt/base/CConstraintInterval.h"
 #include "gpopt/base/CColRefSet.h"
-#include "gpopt/base/CPartIndexMap.h"
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/CColRefTable.h"
 #include "gpopt/base/COptCtxt.h"
@@ -50,15 +50,13 @@ CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp)
 //		ctor
 //
 //---------------------------------------------------------------------------
-CLogicalDynamicGet::CLogicalDynamicGet(
-	CMemoryPool *mp, const CName *pnameAlias, CTableDescriptor *ptabdesc,
-	ULONG ulPartIndex, CColRefArray *pdrgpcrOutput,
-	CColRef2dArray *pdrgpdrgpcrPart, ULONG ulSecondaryPartIndexId,
-	BOOL is_partial, CPartConstraint *ppartcnstr,
-	CPartConstraint *ppartcnstrRel)
-	: CLogicalDynamicGetBase(
-		  mp, pnameAlias, ptabdesc, ulPartIndex, pdrgpcrOutput, pdrgpdrgpcrPart,
-		  ulSecondaryPartIndexId, is_partial, ppartcnstr, ppartcnstrRel)
+CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
+									   CTableDescriptor *ptabdesc,
+									   ULONG ulPartIndex,
+									   CColRefArray *pdrgpcrOutput,
+									   CColRef2dArray *pdrgpdrgpcrPart)
+	: CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex,
+							 pdrgpcrOutput, pdrgpdrgpcrPart)
 {
 }
 
@@ -152,16 +150,8 @@ CLogicalDynamicGet::PopCopyWithRemappedColumns(CMemoryPool *mp,
 	CName *pnameAlias = GPOS_NEW(mp) CName(mp, *m_pnameAlias);
 	m_ptabdesc->AddRef();
 
-	CPartConstraint *ppartcnstr =
-		m_part_constraint->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping,
-															 must_exist);
-	CPartConstraint *ppartcnstrRel =
-		m_ppartcnstrRel->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping,
-														   must_exist);
-
 	return GPOS_NEW(mp) CLogicalDynamicGet(
-		mp, pnameAlias, m_ptabdesc, m_scan_id, pdrgpcrOutput, pdrgpdrgpcrPart,
-		m_ulSecondaryScanId, m_is_partial, ppartcnstr, ppartcnstrRel);
+		mp, pnameAlias, m_ptabdesc, m_scan_id, pdrgpcrOutput, pdrgpdrgpcrPart);
 }
 
 //---------------------------------------------------------------------------
@@ -222,16 +212,9 @@ CLogicalDynamicGet::OsPrint(IOstream &os) const
 		os << " (";
 		m_ptabdesc->Name().OsPrint(os);
 		os << "), ";
-		m_part_constraint->OsPrint(os);
-		os << "), Columns: [";
+		os << "Columns: [";
 		CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
-		os << "] Scan Id: " << m_scan_id << "." << m_ulSecondaryScanId;
-
-		if (!m_part_constraint->IsConstraintUnbounded())
-		{
-			os << ", ";
-			m_part_constraint->OsPrint(os);
-		}
+		os << "] Scan Id: " << m_scan_id;
 	}
 
 	return os;

@@ -520,6 +520,7 @@ CExpressionHandle::DeriveCostContextStats()
 		return;
 	}
 
+#if 0
 	CEnfdPartitionPropagation *pepp = m_pcc->Poc()->Prpp()->Pepp();
 	COperator *pop = Pop();
 	if (CUtils::FPhysicalScan(pop) &&
@@ -547,6 +548,7 @@ CExpressionHandle::DeriveCostContextStats()
 
 		return;
 	}
+#endif
 
 	// release current stats since we will derive new stats
 	CRefCount::SafeRelease(m_pstats);
@@ -690,9 +692,6 @@ CExpressionHandle::DerivePlanPropsForCostContext()
 		}
 	}
 
-	// set the number of expected partition selectors in the context
-	pdpctxtplan->SetExpectedPartitionSelectors(pop, m_pcc);
-
 	// create/derive local properties
 	m_pdpplan = Pop()->PdpCreate(m_mp);
 	m_pdpplan->Derive(m_mp, *this, pdpctxtplan);
@@ -718,16 +717,6 @@ CExpressionHandle::InitReqdProps(CReqdProp *prpInput)
 	// set required properties of attached expr/gexpr
 	m_prp = prpInput;
 	m_prp->AddRef();
-
-	if (m_prp->FPlan())
-	{
-		CReqdPropPlan *prpp = CReqdPropPlan::Prpp(prpInput);
-		if (NULL == prpp->Pepp())
-		{
-			CPartInfo *ppartinfo = DerivePartitionInfo();
-			prpp->InitReqdPartitionPropagation(m_mp, ppartinfo);
-		}
-	}
 
 	// compute required properties of children
 	m_pdrgprp = GPOS_NEW(m_mp) CReqdPropArray(m_mp);

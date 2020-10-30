@@ -107,8 +107,10 @@ private:
 
 #endif	// GPOS_DEBUG
 
+#if 0
 	// check if the expression satisfies partition enforcer condition
 	BOOL FValidPartEnforcers(CDrvdPropCtxtPlan *pdpctxtplan);
+#endif
 
 	// check if the distributions of all children are compatible
 	BOOL FValidChildrenDistribution(CDrvdPropCtxtPlan *pdpctxtplan);

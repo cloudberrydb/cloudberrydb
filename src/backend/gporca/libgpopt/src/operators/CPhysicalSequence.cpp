@@ -110,28 +110,6 @@ CPhysicalSequence::PcrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSequence::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalSequence::PppsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
-								CPartitionPropagationSpec *pppsRequired,
-								ULONG child_index,
-								CDrvdPropArray *,  //pdrgpdpCtxt,
-								ULONG			   //ulOptReq
-)
-{
-	GPOS_ASSERT(NULL != pppsRequired);
-
-	return CPhysical::PppsRequiredPushThruNAry(mp, exprhdl, pppsRequired,
-											   child_index);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalSequence::PcteRequired
 //
 //	@doc:

@@ -72,18 +72,6 @@ public:
 		return true;
 	}
 
-	CLogicalJoin *
-	PopLogicalJoin(CMemoryPool *) const override
-	{
-		return NULL;
-	}
-
-	CLogicalApply *
-	PopLogicalApply(CMemoryPool *, CColRefArray *, CExpression *) const override
-	{
-		return NULL;
-	}
-
 };	// class CXformJoin2IndexApplyGeneric
 
 }  // namespace gpopt

@@ -63,25 +63,4 @@ CPhysicalLeftAntiSemiHashJoin::FProvidesReqdCols(CExpressionHandle &exprhdl,
 	return FOuterProvidesReqdCols(exprhdl, pcrsRequired);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalLeftAntiSemiHashJoin::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalLeftAntiSemiHashJoin::PppsRequired(
-	CMemoryPool *mp, CExpressionHandle &exprhdl,
-	CPartitionPropagationSpec *pppsRequired, ULONG child_index,
-	CDrvdPropArray *,  // pdrgpdpCtxt,
-	ULONG			   // ulOptReq
-)
-{
-	// no partition elimination for LASJ: push request to the respective child
-	return CPhysical::PppsRequiredPushThruNAry(mp, exprhdl, pppsRequired,
-											   child_index);
-}
-
 // EOF

@@ -139,27 +139,6 @@ CPhysicalCTEConsumer::PrsRequired(CMemoryPool *,		 // mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalCTEConsumer::PppsRequired
-//
-//	@doc:
-//		Compute required partition propagation of the n-th child
-//
-//---------------------------------------------------------------------------
-CPartitionPropagationSpec *
-CPhysicalCTEConsumer::PppsRequired(CMemoryPool *,				 //mp,
-								   CExpressionHandle &,			 //exprhdl,
-								   CPartitionPropagationSpec *,	 //pppsRequired,
-								   ULONG,						 //child_index,
-								   CDrvdPropArray *,			 //pdrgpdpCtxt,
-								   ULONG						 //ulOptReq
-)
-{
-	GPOS_ASSERT(!"CPhysicalCTEConsumer has no relational children");
-	return NULL;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalCTEConsumer::PcteRequired
 //
 //	@doc:

@@ -1211,69 +1211,15 @@ CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan(
 //---------------------------------------------------------------------------
 CDXLNode *
 CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan(
-	CExpression *pexprScan, CColRefArray *colref_array,
-	CDistributionSpecArray *pdrgpdsBaseTables, CExpression *pexprScalar,
-	CDXLPhysicalProperties *dxl_properties)
+	CExpression *pexprScan GPOS_UNUSED, CColRefArray *colref_array GPOS_UNUSED,
+	CDistributionSpecArray *pdrgpdsBaseTables GPOS_UNUSED,
+	CExpression *pexprScalar GPOS_UNUSED,
+	CDXLPhysicalProperties *dxl_properties GPOS_UNUSED)
 {
 	GPOS_ASSERT(NULL != pexprScan);
 
-	CPhysicalDynamicBitmapTableScan *pop =
-		CPhysicalDynamicBitmapTableScan::PopConvert(pexprScan->Pop());
-	CColRefArray *pdrgpcrOutput = pop->PdrgpcrOutput();
-
-	CDXLTableDescr *table_descr =
-		MakeDXLTableDescr(pop->Ptabdesc(), pdrgpcrOutput, pexprScan->Prpp());
-	CDXLPhysicalDynamicBitmapTableScan *pdxlopScan =
-		GPOS_NEW(m_mp) CDXLPhysicalDynamicBitmapTableScan(
-			m_mp, table_descr, pop->UlSecondaryScanId(), pop->ScanId());
-
-	CDXLNode *pdxlnScan = GPOS_NEW(m_mp) CDXLNode(m_mp, pdxlopScan);
-
-	// construct plan costs
-	if (NULL == dxl_properties)
-	{
-		dxl_properties = GetProperties(pexprScan);
-	}
-	pdxlnScan->SetProperties(dxl_properties);
-
-	// translate predicates into DXL filter
-	CDXLNode *pdxlnCond = NULL;
-	if (NULL != pexprScalar)
-	{
-		pdxlnCond = PdxlnScalar(pexprScalar);
-	}
-	CDXLNode *filter_dxlnode = PdxlnFilter(pdxlnCond);
-
-	CExpression *pexprRecheckCond = (*pexprScan)[0];
-	CDXLNode *pdxlnRecheckCond = PdxlnScalar(pexprRecheckCond);
-	CDXLNode *pdxlnRecheckCondFilter = GPOS_NEW(m_mp)
-		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarRecheckCondFilter(m_mp));
-	pdxlnRecheckCondFilter->AddChild(pdxlnRecheckCond);
-
-	// translate bitmap access path
-	CDXLNode *pdxlnBitmapAccessPath = PdxlnScalar((*pexprScan)[1]);
-
-	// build projection list
-	CColRefSet *pcrsOutput = pexprScan->Prpp()->PcrsRequired();
-	AddBitmapFilterColumns(m_mp, pop, pexprRecheckCond, pexprScalar,
-						   pcrsOutput);
-	CDXLNode *proj_list_dxlnode = PdxlnProjList(pcrsOutput, colref_array);
-
-	pdxlnScan->AddChild(proj_list_dxlnode);
-	pdxlnScan->AddChild(filter_dxlnode);
-	pdxlnScan->AddChild(pdxlnRecheckCondFilter);
-	pdxlnScan->AddChild(pdxlnBitmapAccessPath);
-
-#ifdef GPOS_DEBUG
-	pdxlnScan->GetOperator()->AssertValid(pdxlnScan,
-										  false /* validate_children */);
-#endif
-
-	CDistributionSpec *pds = pexprScan->GetDrvdPropPlan()->Pds();
-	pds->AddRef();
-	pdrgpdsBaseTables->Append(pds);
-
-	return pdxlnScan;
+	// GPDB_12_MERGE_FIXME: Implement support for partitioned indexes
+	std::terminate();
 }
 
 //---------------------------------------------------------------------------
@@ -1287,83 +1233,17 @@ CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan(
 //---------------------------------------------------------------------------
 CDXLNode *
 CTranslatorExprToDXL::PdxlnDynamicIndexScan(
-	CExpression *pexprDIS, CColRefArray *colref_array,
-	CDXLPhysicalProperties *dxl_properties, CReqdPropPlan *prpp)
+	CExpression *pexprDIS GPOS_ASSERTS_ONLY,
+	CColRefArray *colref_array GPOS_UNUSED,
+	CDXLPhysicalProperties *dxl_properties GPOS_ASSERTS_ONLY,
+	CReqdPropPlan *prpp GPOS_ASSERTS_ONLY)
 {
 	GPOS_ASSERT(NULL != pexprDIS);
 	GPOS_ASSERT(NULL != dxl_properties);
 	GPOS_ASSERT(NULL != prpp);
 
-	CPhysicalDynamicIndexScan *popDIS =
-		CPhysicalDynamicIndexScan::PopConvert(pexprDIS->Pop());
-	CColRefArray *pdrgpcrOutput = popDIS->PdrgpcrOutput();
-
-	// translate table descriptor
-	CDXLTableDescr *table_descr =
-		MakeDXLTableDescr(popDIS->Ptabdesc(), pdrgpcrOutput, pexprDIS->Prpp());
-
-	// create index descriptor
-	CIndexDescriptor *pindexdesc = popDIS->Pindexdesc();
-	CMDName *pmdnameIndex =
-		GPOS_NEW(m_mp) CMDName(m_mp, pindexdesc->Name().Pstr());
-	IMDId *pmdidIndex = pindexdesc->MDId();
-	pmdidIndex->AddRef();
-	CDXLIndexDescr *dxl_index_descr =
-		GPOS_NEW(m_mp) CDXLIndexDescr(pmdidIndex, pmdnameIndex);
-
-	// TODO: vrgahavan; we assume that the index are always forward access.
-	// create the physical index scan operator
-	CDXLNode *pdxlnDIS = GPOS_NEW(m_mp)
-		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLPhysicalDynamicIndexScan(
-						   m_mp, table_descr, popDIS->UlSecondaryScanId(),
-						   popDIS->ScanId(), dxl_index_descr, EdxlisdForward));
-
-	// set plan costs
-	pdxlnDIS->SetProperties(dxl_properties);
-
-	// construct projection list
-	CColRefSet *pcrsOutput = prpp->PcrsRequired();
-	CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, colref_array);
-
-	// translate index predicates
-	CExpression *pexprCond = (*pexprDIS)[0];
-	CDXLNode *pdxlnIndexCondList = GPOS_NEW(m_mp)
-		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarIndexCondList(m_mp));
-
-	CExpressionArray *pdrgpexprConds =
-		CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprCond);
-	const ULONG length = pdrgpexprConds->Size();
-	for (ULONG ul = 0; ul < length; ul++)
-	{
-		CExpression *pexprIndexCond = (*pdrgpexprConds)[ul];
-		CDXLNode *pdxlnIndexCond = PdxlnScalar(pexprIndexCond);
-		pdxlnIndexCondList->AddChild(pdxlnIndexCond);
-	}
-	pdrgpexprConds->Release();
-
-	CDXLNode *pdxlnResidualCond = NULL;
-	if (2 == pexprDIS->Arity())
-	{
-		// translate residual predicates into the filter node
-		CExpression *pexprResidualCond = (*pexprDIS)[1];
-		if (COperator::EopScalarConst != pexprResidualCond->Pop()->Eopid())
-		{
-			pdxlnResidualCond = PdxlnScalar(pexprResidualCond);
-		}
-	}
-
-	CDXLNode *filter_dxlnode = PdxlnFilter(pdxlnResidualCond);
-
-	pdxlnDIS->AddChild(pdxlnPrL);
-	pdxlnDIS->AddChild(filter_dxlnode);
-	pdxlnDIS->AddChild(pdxlnIndexCondList);
-
-#ifdef GPOS_DEBUG
-	pdxlnDIS->GetOperator()->AssertValid(pdxlnDIS,
-										 false /* validate_children */);
-#endif
-
-	return pdxlnDIS;
+	// GPDB_12_MERGE_FIXME: Implement support for partitioned indexes
+	std::terminate();
 }
 
 
@@ -1380,9 +1260,7 @@ CDXLNode *
 CTranslatorExprToDXL::PdxlnDynamicIndexScan(
 	CExpression *pexprDIS, CColRefArray *colref_array,
 	CDistributionSpecArray *pdrgpdsBaseTables,
-	ULONG *,  // pulNonGatherMotions,
-	BOOL *	  // pfDML
-)
+	ULONG *pulNonGatherMotions GPOS_UNUSED, BOOL *pfDML GPOS_UNUSED)
 {
 	GPOS_ASSERT(NULL != pexprDIS);
 
@@ -4583,9 +4461,9 @@ CTranslatorExprToDXL::PdxlnPartitionSelector(
 			pexprScalarCond, dxl_properties);
 	}
 
-	return PdxlnPartitionSelectorFilter(pexpr, colref_array, pdrgpdsBaseTables,
-										pulNonGatherMotions, pfDML,
-										pexprScalarCond, dxl_properties);
+	// GPDB_12_MERGE_FIXME: Support generating Partition Selector
+	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature,
+			   GPOS_WSZ_LIT("Partition Selector with filter not supported"));
 }
 
 //---------------------------------------------------------------------------
@@ -4758,7 +4636,6 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand(
 
 	// project list
 	IMDId *mdid = popSelector->MDId();
-	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->RetrieveRel(mdid);
 	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector(
 		m_mp, m_pmda, m_pcf, m_phmcrdxln,
 		false,	//fUseChildProjList
@@ -4774,13 +4651,9 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand(
 							  &pdxlnFilters, &pdxlnResidual);
 
 	// construct propagation expression
-	CPartIndexMap *ppimDrvd = m_pdpplan->Ppim();
 	ULONG scan_id = popSelector->ScanId();
 	CDXLNode *pdxlnPropagation =
-		CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector(
-			m_mp, m_pmda, m_pcf, ppimDrvd->FPartialScans(scan_id),
-			ppimDrvd->Ppartcnstrmap(scan_id), popSelector->Pdrgpdrgpcr(),
-			scan_id, pmdrel->GetPartitionTypes());
+		CTranslatorExprToDXLUtils::PdxlnInt4Const(m_mp, m_pmda, (INT) scan_id);
 
 	// translate printable filter
 	CExpression *pexprPrintable = popSelector->PexprCombinedPred();
@@ -4821,135 +4694,6 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand(
 #endif
 
 	return pdxlnSequence;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
-//
-//	@doc:
-//		Translate a filter-based partition selector into DXL
-//
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorExprToDXL::PdxlnPartitionSelectorFilter(
-	CExpression *pexpr, CColRefArray *colref_array,
-	CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-	BOOL *pfDML, CExpression *pexprScalarCond,
-	CDXLPhysicalProperties *dxl_properties)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	GPOS_ASSERT(1 == pexpr->Arity());
-
-	CPhysicalPartitionSelector *popSelector =
-		CPhysicalPartitionSelector::PopConvert(pexpr->Pop());
-	CPartIndexMap *ppimDrvd = m_pdpplan->Ppim();
-	ULONG scan_id = popSelector->ScanId();
-	ULONG ulLevels = popSelector->UlPartLevels();
-	BOOL fPartialScans = ppimDrvd->FPartialScans(scan_id);
-	UlongToPartConstraintMap *ppartcnstrmap = ppimDrvd->Ppartcnstrmap(scan_id);
-
-	BOOL fPassThrough =
-		FEqPartFiltersAllLevels(pexpr, false /*fCheckGeneralFilters*/) &&
-		!fPartialScans;
-#ifdef GPOS_DEBUG
-	BOOL fPoint =
-		FEqPartFiltersAllLevels(pexpr, true /*fCheckGeneralFilters*/) &&
-		!fPartialScans;
-	GPOS_ASSERT_IMP(!fPoint && fPartialScans, NULL != ppartcnstrmap);
-#endif
-
-	CExpression *pexprChild = (*pexpr)[0];
-
-	GPOS_ASSERT_IMP(
-		NULL != pexprScalarCond,
-		(COperator::EopPhysicalDynamicTableScan == pexprChild->Pop()->Eopid() ||
-		 COperator::EopPhysicalDynamicIndexScan == pexprChild->Pop()->Eopid() ||
-		 COperator::EopPhysicalDynamicBitmapTableScan ==
-			 pexprChild->Pop()->Eopid()) &&
-			"Inlining predicates only allowed in DynamicTableScan, DynamicIndexScan and DynamicBitmapTableScan");
-
-	// translate child
-	CDXLNode *child_dxlnode = PdxlnPartitionSelectorChild(
-		pexprChild, pexprScalarCond, dxl_properties, colref_array,
-		pdrgpdsBaseTables, pulNonGatherMotions, pfDML);
-	CDXLNode *pdxlnPrLChild = (*child_dxlnode)[0];
-
-	// we add a sequence if the scan id is found below the resolver
-	BOOL fNeedSequence = pexprChild->DerivePartitionInfo()->FContainsScanId(
-		popSelector->ScanId());
-
-	// project list
-	IMDId *mdid = popSelector->MDId();
-	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->RetrieveRel(mdid);
-	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector(
-		m_mp, m_pmda, m_pcf, m_phmcrdxln, !fNeedSequence, pdxlnPrLChild,
-		NULL /*pcrOid*/, ulLevels, CUtils::FGeneratePartOid(mdid));
-
-	// translate filters
-	CDXLNode *pdxlnEqFilters = NULL;
-	CDXLNode *pdxlnFilters = NULL;
-	CDXLNode *pdxlnResidual = NULL;
-	TranslatePartitionFilters(pexpr, fPassThrough, &pdxlnEqFilters,
-							  &pdxlnFilters, &pdxlnResidual);
-
-	// construct propagation expression
-	CDXLNode *pdxlnPropagation =
-		CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector(
-			m_mp, m_pmda, m_pcf,
-			!fPassThrough && fPartialScans,	 //fConditional
-			ppartcnstrmap, popSelector->Pdrgpdrgpcr(), popSelector->ScanId(),
-			pmdrel->GetPartitionTypes());
-
-	// translate printable filter
-	CExpression *pexprPrintable = popSelector->PexprCombinedPred();
-	GPOS_ASSERT(NULL != pexprPrintable);
-	CDXLNode *pdxlnPrintable = PdxlnScalar(pexprPrintable);
-
-	// construct PartitionSelector node
-	IMDId *rel_mdid = popSelector->MDId();
-	rel_mdid->AddRef();
-
-	CDXLNode *pdxlnSelectorChild = NULL;
-	if (!fNeedSequence)
-	{
-		pdxlnSelectorChild = child_dxlnode;
-	}
-
-	CDXLNode *pdxlnSelector = CTranslatorExprToDXLUtils::PdxlnPartitionSelector(
-		m_mp, rel_mdid, ulLevels, scan_id,
-		CTranslatorExprToDXLUtils::GetProperties(m_mp), pdxlnPrL,
-		pdxlnEqFilters, pdxlnFilters, pdxlnResidual, pdxlnPropagation,
-		pdxlnPrintable, pdxlnSelectorChild);
-
-	CDXLNode *pdxlnReturned = pdxlnSelector;
-	if (fNeedSequence)
-	{
-		CDXLPhysicalSequence *pdxlopSequence =
-			GPOS_NEW(m_mp) CDXLPhysicalSequence(m_mp);
-		CDXLNode *pdxlnSequence = GPOS_NEW(m_mp) CDXLNode(m_mp, pdxlopSequence);
-		CDXLPhysicalProperties *pdxlpropSeq =
-			CTranslatorExprToDXLUtils::PdxlpropCopy(m_mp, child_dxlnode);
-		pdxlnSequence->SetProperties(pdxlpropSeq);
-
-		// construct sequence's project list from the project list of the last child
-		CDXLNode *pdxlnPrLSequence =
-			CTranslatorExprToDXLUtils::PdxlnProjListFromChildProjList(
-				m_mp, m_pcf, m_phmcrdxln, pdxlnPrLChild);
-
-		pdxlnSequence->AddChild(pdxlnPrLSequence);
-		pdxlnSequence->AddChild(pdxlnSelector);
-		pdxlnSequence->AddChild(child_dxlnode);
-
-		pdxlnReturned = pdxlnSequence;
-	}
-
-#ifdef GPOS_DEBUG
-	pdxlnReturned->GetOperator()->AssertValid(pdxlnReturned,
-											  false /* validate_children */);
-#endif
-
-	return pdxlnReturned;
 }
 
 //---------------------------------------------------------------------------

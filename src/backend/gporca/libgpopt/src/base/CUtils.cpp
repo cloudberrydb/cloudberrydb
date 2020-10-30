@@ -22,7 +22,6 @@
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/base/CUtils.h"
 #include "gpopt/base/CCastUtils.h"
-#include "gpopt/base/CPartIndexMap.h"
 #include "gpopt/base/CDistributionSpecRandom.h"
 #include "gpopt/operators/CPhysicalMotionRandom.h"
 #include "gpopt/operators/CLogicalCTEProducer.h"
@@ -3902,47 +3901,6 @@ CUtils::PcrMap(CColRef *pcrSource, CColRefArray *pdrgpcrSource,
 	}
 
 	return pcrTarget;
-}
-
-// check if the given operator is a motion and the derived relational
-// properties contain a consumer which is not in the required part consumers
-BOOL
-CUtils::FMotionOverUnresolvedPartConsumers(CMemoryPool *mp,
-										   CExpressionHandle &exprhdl,
-										   CPartIndexMap *ppimReqd)
-{
-	GPOS_ASSERT(NULL != ppimReqd);
-
-	if (!FPhysicalMotion(exprhdl.Pop()))
-	{
-		return false;
-	}
-
-	CPartIndexMap *ppimDrvd = exprhdl.Pdpplan(0 /*child_index*/)->Ppim();
-	ULongPtrArray *pdrgpulScanIds =
-		ppimDrvd->PdrgpulScanIds(mp, true /*fConsumersOnly*/);
-	BOOL fHasUnresolvedConsumers = false;
-
-	const ULONG ulConsumers = pdrgpulScanIds->Size();
-	if (0 < ulConsumers && !ppimReqd->FContainsUnresolved())
-	{
-		fHasUnresolvedConsumers = true;
-	}
-
-	for (ULONG ul = 0; !fHasUnresolvedConsumers && ul < ulConsumers; ul++)
-	{
-		ULONG *pulScanId = (*pdrgpulScanIds)[ul];
-		if (!ppimReqd->Contains(*pulScanId))
-		{
-			// there is an unresolved consumer which is not included in the
-			// requirements and will therefore be resolved elsewhere
-			fHasUnresolvedConsumers = true;
-		}
-	}
-
-	pdrgpulScanIds->Release();
-
-	return fHasUnresolvedConsumers;
 }
 
 // Check if duplicate values can be generated when executing the given Motion expression,

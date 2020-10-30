@@ -39,14 +39,11 @@ using namespace gpos;
 //
 //---------------------------------------------------------------------------
 CPhysicalDynamicBitmapTableScan::CPhysicalDynamicBitmapTableScan(
-	CMemoryPool *mp, BOOL is_partial, CTableDescriptor *ptabdesc,
-	ULONG ulOriginOpId, const CName *pnameAlias, ULONG scan_id,
-	CColRefArray *pdrgpcrOutput, CColRef2dArray *pdrgpdrgpcrParts,
-	ULONG ulSecondaryScanId, CPartConstraint *ppartcnstr,
-	CPartConstraint *ppartcnstrRel)
-	: CPhysicalDynamicScan(mp, is_partial, ptabdesc, ulOriginOpId, pnameAlias,
-						   scan_id, pdrgpcrOutput, pdrgpdrgpcrParts,
-						   ulSecondaryScanId, ppartcnstr, ppartcnstrRel)
+	CMemoryPool *mp, CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
+	const CName *pnameAlias, ULONG scan_id, CColRefArray *pdrgpcrOutput,
+	CColRef2dArray *pdrgpdrgpcrParts)
+	: CPhysicalDynamicScan(mp, ptabdesc, ulOriginOpId, pnameAlias, scan_id,
+						   pdrgpcrOutput, pdrgpdrgpcrParts)
 {
 }
 
@@ -74,13 +71,13 @@ CPhysicalDynamicBitmapTableScan::Matches(COperator *pop) const
 //---------------------------------------------------------------------------
 IStatistics *
 CPhysicalDynamicBitmapTableScan::PstatsDerive(
-	CMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpplan,
-	IStatisticsArray *stats_ctxt) const
+	CMemoryPool *mp, CExpressionHandle &exprhdl,
+	CReqdPropPlan *prpplan GPOS_UNUSED, IStatisticsArray *stats_ctxt) const
 {
 	GPOS_ASSERT(NULL != prpplan);
 
-	IStatistics *pstatsBaseTable = CStatisticsUtils::DeriveStatsForDynamicScan(
-		mp, exprhdl, ScanId(), prpplan->Pepp()->PpfmDerived());
+	IStatistics *pstatsBaseTable =
+		CStatisticsUtils::DeriveStatsForDynamicScan(mp, exprhdl, ScanId());
 
 	CExpression *pexprCondChild =
 		exprhdl.PexprScalarRepChild(0 /*ulChidIndex*/);
@@ -103,5 +100,4 @@ CPhysicalDynamicBitmapTableScan::PstatsDerive(
 
 	return stats;
 }
-
 // EOF

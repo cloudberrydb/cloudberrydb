@@ -82,7 +82,7 @@ public:
 		ExfSelect2Filter,
 		ExfSelect2IndexGet,
 		ExfSelect2DynamicIndexGet,
-		ExfSelect2PartialDynamicIndexGet,
+		ExfSelect2PartialDynamicIndexGet____removed,
 		ExfSimplifySelectWithSubquery,
 		ExfSimplifyProjectWithSubquery,
 		ExfSelect2Apply,
@@ -185,7 +185,7 @@ public:
 		ExfSelect2DynamicBitmapBoolOp,
 		ExfImplementBitmapTableGet,
 		ExfImplementDynamicBitmapTableGet,
-		ExfInnerJoin2PartialDynamicIndexGetApply,
+		ExfInnerJoin2PartialDynamicIndexGetApply____removed,
 		ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin,
 		ExfImplementLeftSemiCorrelatedApply,
 		ExfImplementLeftSemiCorrelatedApplyIn,
@@ -199,7 +199,7 @@ public:
 		ExfMaxOneRow2Assert,
 		ExfInnerJoinWithInnerSelect2IndexGetApply____removed,
 		ExfInnerJoinWithInnerSelect2DynamicIndexGetApply____removed,
-		ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply,
+		ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply____removed,
 		ExfInnerJoin2DynamicBitmapIndexGetApply____removed,
 		ExfInnerJoinWithInnerSelect2BitmapIndexGetApply____removed,
 		ExfInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply____removed,
@@ -315,10 +315,6 @@ public:
 	// returns a set containing all xforms related to bitmap indexes
 	// caller takes ownership of the returned set
 	static CBitSet *PbsBitmapIndexXforms(CMemoryPool *mp);
-
-	// returns a set containing all xforms related to heterogeneous indexes
-	// caller takes ownership of the returned set
-	static CBitSet *PbsHeterogeneousIndexXforms(CMemoryPool *mp);
 
 	// returns a set containing all xforms that generate a plan with a hash join
 	// caller takes ownership of the returned set

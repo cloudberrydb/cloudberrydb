@@ -118,16 +118,6 @@ public:
 		return m_pos;
 	}
 
-	// derive partition index map
-	CPartIndexMap *
-	PpimDerive(CMemoryPool *mp,
-			   CExpressionHandle &,	 // exprhdl
-			   CDrvdPropCtxt *		 //pdpctxt
-	) const override
-	{
-		return GPOS_NEW(mp) CPartIndexMap(mp);
-	}
-
 	CRewindabilitySpec *
 	PrsDerive(CMemoryPool *mp,
 			  CExpressionHandle &  // exprhdl
