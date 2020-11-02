@@ -34,11 +34,7 @@ using namespace gpopt;
 CQueryContext::CQueryContext(CMemoryPool *mp, CExpression *pexpr,
 							 CReqdPropPlan *prpp, CColRefArray *colref_array,
 							 CMDNameArray *pdrgpmdname, BOOL fDeriveStats)
-	:
-#ifdef GPOS_DEBUG
-	  m_mp(mp),
-#endif
-	  m_prpp(prpp),
+	: m_prpp(prpp),
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrSystemCols(NULL),
 	  m_pdrgpmdname(pdrgpmdname),
@@ -270,13 +266,6 @@ IOstream &
 CQueryContext::OsPrint(IOstream &os) const
 {
 	return os << *m_pexpr << std::endl << *m_prpp;
-}
-
-void
-CQueryContext::DbgPrint() const
-{
-	CAutoTrace at(m_mp);
-	(void) this->OsPrint(at.Os());
 }
 #endif	// GPOS_DEBUG
 

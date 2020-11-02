@@ -1974,17 +1974,3 @@ CJoinOrderDPv2::OsPrintProperty(IOstream &os,
 
 	return os;
 }
-
-
-#ifdef GPOS_DEBUG
-void
-CJoinOrderDPv2::DbgPrint()
-{
-	CAutoTrace at(m_mp);
-
-	OsPrint(at.Os());
-}
-#endif
-
-
-// EOF
