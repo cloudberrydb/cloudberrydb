@@ -80,7 +80,7 @@ public:
 	CDouble Width(const CPoint *, BOOL include_lower, BOOL include_upper) const;
 
 	// print function
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 	// d'tor
 	~CPoint() override

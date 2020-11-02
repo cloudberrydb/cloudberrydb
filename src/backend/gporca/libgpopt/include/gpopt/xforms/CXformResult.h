@@ -59,7 +59,7 @@ public:
 	CExpression *PexprNext();
 
 	// print function
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 };	// class CXformResult
 

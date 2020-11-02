@@ -289,7 +289,7 @@ public:
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const = 0;
 
 	// print
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 #ifdef GPOS_DEBUG
 

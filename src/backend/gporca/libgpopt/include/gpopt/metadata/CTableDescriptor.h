@@ -224,7 +224,7 @@ public:
 	ULONG UlPos(const CColumnDescriptor *,
 				const CColumnDescriptorArray *) const;
 
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 	// returns number of indices
 	ULONG IndexCount();

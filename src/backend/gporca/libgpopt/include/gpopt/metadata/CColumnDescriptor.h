@@ -127,7 +127,7 @@ public:
 		m_is_dist_col = true;
 	}
 
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 };	// class CColumnDescriptor
 }  // namespace gpopt

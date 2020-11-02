@@ -153,7 +153,7 @@ public:
 	}
 
 	// print function
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 };	// class CBitSet
 

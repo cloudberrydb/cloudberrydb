@@ -140,6 +140,7 @@ public:
 	// check if the given pair of datums are stats comparable
 	virtual BOOL StatsAreComparable(const IDatum *datum) const;
 
+	virtual gpos::IOstream &OsPrint(gpos::IOstream &os) const = 0;
 };	// class IDatum
 
 // array of idatums

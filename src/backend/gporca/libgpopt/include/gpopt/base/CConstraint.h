@@ -259,6 +259,7 @@ public:
 												CConstraintArray *pdrgpcnstr,
 												CColRef *colref,
 												BOOL fExclusive);
+	virtual gpos::IOstream &OsPrint(gpos::IOstream &os) const = 0;
 
 };	// class CConstraint
 

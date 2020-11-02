@@ -273,7 +273,7 @@ public:
 	}
 
 	// debug print
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 	IOstream &OsPrintWithPrefix(IOstream &os, const CHAR *szPrefix) const;
 
 	// check equality of optimization contexts

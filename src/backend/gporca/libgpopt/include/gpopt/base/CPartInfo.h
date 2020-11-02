@@ -99,7 +99,7 @@ private:
 		}
 
 		// print function
-		IOstream &OsPrint(IOstream &os) const override;
+		IOstream &OsPrint(IOstream &os) const;
 
 		// copy part info entry into given memory pool
 		CPartInfoEntry *PpartinfoentryCopy(CMemoryPool *mp);
@@ -156,7 +156,7 @@ public:
 										 CColRefArray *pdrgpcrDest) const;
 
 	// print
-	IOstream &OsPrint(IOstream &) const override;
+	IOstream &OsPrint(IOstream &) const;
 
 	// combine two part info objects
 	static CPartInfo *PpartinfoCombine(CMemoryPool *mp, CPartInfo *ppartinfoFst,

@@ -172,7 +172,7 @@ public:
 		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 	// print
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 	// construct a disjunction of the two constraints
 	static CPartConstraint *PpartcnstrDisjunction(

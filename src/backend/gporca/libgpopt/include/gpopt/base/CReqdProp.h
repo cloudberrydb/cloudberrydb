@@ -105,6 +105,8 @@ public:
 						 CReqdProp *prpInput, ULONG child_index,
 						 CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) = 0;
 
+	virtual gpos::IOstream &OsPrint(gpos::IOstream &os) const = 0;
+
 };	// class CReqdProp
 
 // shorthand for printing

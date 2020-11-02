@@ -245,7 +245,7 @@ public:
 	BOOL HasOuterRefs();
 
 	// print driver
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 	// print driver, customized for expressions
 	IOstream &OsPrintExpression(IOstream &os, const CPrintPrefix * = NULL,

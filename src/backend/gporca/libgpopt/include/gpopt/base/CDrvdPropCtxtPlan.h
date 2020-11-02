@@ -58,7 +58,7 @@ public:
 	~CDrvdPropCtxtPlan() override;
 
 	// print
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 	// return the plan properties of CTE producer with given id
 	CDrvdPropPlan *PdpplanCTEProducer(ULONG ulCTEId) const;

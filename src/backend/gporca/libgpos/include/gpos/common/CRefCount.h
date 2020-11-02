@@ -128,14 +128,6 @@ public:
 		}
 	}
 
-	// print function
-	virtual IOstream &
-	OsPrint(IOstream &os) const
-	{
-		return os;
-	}
-
-
 };	// class CRefCount
 }  // namespace gpos
 

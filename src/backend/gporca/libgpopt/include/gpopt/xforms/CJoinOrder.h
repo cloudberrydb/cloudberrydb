@@ -76,7 +76,7 @@ public:
 		~SEdge() override;
 
 		// print routine
-		IOstream &OsPrint(IOstream &os) const override;
+		IOstream &OsPrint(IOstream &os) const;
 	};
 
 
@@ -181,7 +181,7 @@ public:
 		}
 
 		// print routine
-		IOstream &OsPrint(IOstream &os) const override;
+		IOstream &OsPrint(IOstream &os) const;
 	};
 
 protected:

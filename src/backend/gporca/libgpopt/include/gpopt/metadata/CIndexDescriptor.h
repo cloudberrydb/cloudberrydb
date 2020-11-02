@@ -120,7 +120,7 @@ public:
 										const CTableDescriptor *ptabdesc,
 										const IMDIndex *pmdindex);
 
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 
 };	// class CIndexDescriptor
 }  // namespace gpopt

@@ -185,7 +185,7 @@ public:
 	virtual CColRefSet *GetColRefSet(CMemoryPool *mp) const = 0;
 
 	// print function
-	IOstream &OsPrint(IOstream &os) const override = 0;
+	virtual IOstream &OsPrint(IOstream &os) const = 0;
 
 	// generate the DXL representation of the statistics object
 	virtual CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation(

@@ -407,7 +407,7 @@ public:
 									   BOOL fComputeRootStats = true);
 
 	// print driver
-	IOstream &OsPrint(IOstream &os) const override;
+	IOstream &OsPrint(IOstream &os) const;
 	IOstream &OsPrintWithPrefix(IOstream &os, const CHAR *prefix) const;
 
 	// link for list in Group

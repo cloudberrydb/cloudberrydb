@@ -102,6 +102,7 @@ public:
 		return true;
 	}
 
+	virtual gpos::IOstream &OsPrint(gpos::IOstream &os) const = 0;
 };	// class CDrvdProp
 
 // shorthand for printing
