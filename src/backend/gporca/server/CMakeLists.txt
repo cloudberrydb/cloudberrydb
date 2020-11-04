@@ -110,6 +110,7 @@ IndexApply-InnerSelect-Heterogeneous-DTS IndexApply-Heterogeneous-BothSidesParti
 IndexApply-InnerSelect-PartTable2 IndexApply-ForPartialIndex CastedScalarIf-On-Index-Key
 IndexApply-MultiDistKey-WithComplexPreds IndexApply-MultiDistKeys-Bitmap
 IndexApply-MultiDistKeys-Bitmap-WithComplexPreds
+IndexApply-MultiDistKeys-IncompletePDS-3-DistCols
 BitmapIndexNLJWithProject BitmapIndexNLOJWithProject
 BitmapIndexNLJWithProjectNoFilt BtreeIndexNLJWithProjectNoPart
 BitmapIndexNLOJWithProjectNonPart BtreeIndexNLOJWithProject;
