@@ -20,13 +20,11 @@ public:
 	SLink(const SLink &) = delete;
 
 	// link forward/backward
-	void *m_next;
-	void *m_prev;
+	void *m_next{nullptr};
+	void *m_prev{nullptr};
 
 	// ctor
-	SLink() : m_next(nullptr), m_prev(nullptr)
-	{
-	}
+	SLink() = default;
 };
 
 }  // namespace gpos

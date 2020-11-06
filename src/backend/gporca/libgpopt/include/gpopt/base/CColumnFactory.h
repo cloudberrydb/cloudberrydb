@@ -45,13 +45,13 @@ class CColumnFactory
 {
 private:
 	// MTS memory pool
-	CMemoryPool *m_mp;
+	CMemoryPool *m_mp{nullptr};
 
 	// mapping between column id of computed column and a set of used column references
-	ColRefToColRefSetMap *m_phmcrcrs;
+	ColRefToColRefSetMap *m_phmcrcrs{nullptr};
 
 	// id counter
-	ULONG m_aul;
+	ULONG m_aul{0};
 
 	// hash table
 	CSyncHashtable<CColRef, ULONG> m_sht;

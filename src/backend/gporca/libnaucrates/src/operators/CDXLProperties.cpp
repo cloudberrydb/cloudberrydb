@@ -23,9 +23,7 @@ using namespace gpdxl;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CDXLProperties::CDXLProperties() : m_dxl_stats_derived_relation(nullptr)
-{
-}
+CDXLProperties::CDXLProperties() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

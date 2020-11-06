@@ -34,28 +34,26 @@ private:
 	struct SElem
 	{
 		// object id
-		ULONG m_id;
+		ULONG m_id{0};
 
 		// generic link for list
 		SLink m_link;
 
 		// ctor
-		SElem() : m_id(0)
-		{
-		}
+		SElem() = default;
 	};
 
 	// collection of parameters for parallel tasks
 	struct SArg
 	{
 		// pointer to list
-		CSyncList<SElem> *m_plist;
+		CSyncList<SElem> *m_plist{nullptr};
 
 		// pool of elements to insert
-		CSyncPool<SElem> *m_psp;
+		CSyncPool<SElem> *m_psp{nullptr};
 
 		// number of tasks
-		ULONG m_ulCount;
+		ULONG m_ulCount{0};
 
 		// ctor
 		SArg(CSyncList<SElem> *pstack, CSyncPool<SElem> *psp, ULONG count)
@@ -64,9 +62,7 @@ private:
 		}
 
 		// ctor
-		SArg() : m_plist(nullptr), m_psp(nullptr), m_ulCount(0)
-		{
-		}
+		SArg() = default;
 	};
 
 public:

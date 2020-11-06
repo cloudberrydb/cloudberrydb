@@ -74,25 +74,25 @@ public:
 
 private:
 	// specification method
-	const EFrameSpec m_efs;
+	const EFrameSpec m_efs{EfsRange};
 
 	// type of leading edge
-	const EFrameBoundary m_efbLeading;
+	const EFrameBoundary m_efbLeading{EfbUnboundedPreceding};
 
 	// type of trailing edge
-	const EFrameBoundary m_efbTrailing;
+	const EFrameBoundary m_efbTrailing{EfbCurrentRow};
 
 	// scalar value of leading edge, memory owned by this class
-	CExpression *m_pexprLeading;
+	CExpression *m_pexprLeading{nullptr};
 
 	// scalar value of trailing edge, memory owned by this class
-	CExpression *m_pexprTrailing;
+	CExpression *m_pexprTrailing{nullptr};
 
 	// exclusion strategy
-	const EFrameExclusionStrategy m_efes;
+	const EFrameExclusionStrategy m_efes{EfesNone};
 
 	// columns used by frame edges
-	CColRefSet *m_pcrsUsed;
+	CColRefSet *m_pcrsUsed{nullptr};
 
 	// singelton empty frame -- used with any unspecified window function frame
 	static const CWindowFrame m_wfEmpty;

@@ -33,10 +33,10 @@ class CJobQueue
 {
 private:
 	// main job
-	CJob *m_pj;
+	CJob *m_pj{nullptr};
 
 	// flag indicating if main job has completed
-	BOOL m_fCompleted;
+	BOOL m_fCompleted{false};
 
 	// list of jobs waiting for main job to complete
 	CList<CJob> m_listjQueued;
@@ -51,7 +51,7 @@ public:
 	};
 
 	// ctor
-	CJobQueue() : m_pj(nullptr), m_fCompleted(false)
+	CJobQueue()
 	{
 		m_listjQueued.Init(GPOS_OFFSET(CJob, m_linkQueue));
 	}

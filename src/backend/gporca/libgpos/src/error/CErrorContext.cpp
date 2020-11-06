@@ -34,10 +34,7 @@ GPOS_CPL_ASSERT(GPOS_ERROR_MESSAGE_BUFFER_SIZE <= GPOS_LOG_ENTRY_BUFFER_SIZE);
 //---------------------------------------------------------------------------
 CErrorContext::CErrorContext(CMiniDumper *mini_dumper_handle)
 	: m_exception(CException::m_invalid_exception),
-	  m_severity(CException::ExsevError),
-	  m_pending(false),
-	  m_rethrown(false),
-	  m_serializing(false),
+
 	  m_static_buffer(m_error_msg, GPOS_ARRAY_SIZE(m_error_msg)),
 	  m_mini_dumper_handle(mini_dumper_handle)
 {

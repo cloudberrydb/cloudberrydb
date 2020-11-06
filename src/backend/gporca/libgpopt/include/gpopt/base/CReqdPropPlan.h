@@ -46,32 +46,25 @@ class CReqdPropPlan : public CReqdProp
 {
 private:
 	// required columns
-	CColRefSet *m_pcrs;
+	CColRefSet *m_pcrs{nullptr};
 
 	// required sort order
-	CEnfdOrder *m_peo;
+	CEnfdOrder *m_peo{nullptr};
 
 	// required distribution
-	CEnfdDistribution *m_ped;
+	CEnfdDistribution *m_ped{nullptr};
 
 	// required rewindability
-	CEnfdRewindability *m_per;
+	CEnfdRewindability *m_per{nullptr};
 
 	// required ctes
-	CCTEReq *m_pcter;
+	CCTEReq *m_pcter{nullptr};
 
 public:
 	CReqdPropPlan(const CReqdPropPlan &) = delete;
 
 	// default ctor
-	CReqdPropPlan()
-		: m_pcrs(nullptr),
-		  m_peo(nullptr),
-		  m_ped(nullptr),
-		  m_per(nullptr),
-		  m_pcter(nullptr)
-	{
-	}
+	CReqdPropPlan() = default;
 
 	// ctor
 	CReqdPropPlan(CColRefSet *pcrs, CEnfdOrder *peo, CEnfdDistribution *ped,

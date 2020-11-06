@@ -85,13 +85,13 @@ private:
 	SBucket *m_buckets;
 
 	// number of ht buckets
-	ULONG m_nbuckets;
+	ULONG m_nbuckets{0};
 
 	// number of ht entries
-	ULONG_PTR m_size;
+	ULONG_PTR m_size{0};
 
 	// offset of key
-	ULONG m_key_offset;
+	ULONG m_key_offset{gpos::ulong_max};
 
 	// invalid key - needed for iteration
 	const K *m_invalid_key;
@@ -146,9 +146,7 @@ public:
 	// ctor
 	CSyncHashtable<T, K>()
 		: m_buckets(nullptr),
-		  m_nbuckets(0),
-		  m_size(0),
-		  m_key_offset(gpos::ulong_max),
+
 		  m_invalid_key(nullptr)
 	{
 	}

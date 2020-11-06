@@ -32,7 +32,7 @@ using namespace gpopt;
 #define GPOPT_COSTCTXT_HT_BUCKETS 100
 
 // invalid group expression
-const CGroupExpression CGroupExpression::m_gexprInvalid;
+const CGroupExpression CGroupExpression::m_gexprInvalid{};
 
 
 //---------------------------------------------------------------------------
@@ -48,18 +48,14 @@ CGroupExpression::CGroupExpression(CMemoryPool *mp, COperator *pop,
 								   CXform::EXformId exfid,
 								   CGroupExpression *pgexprOrigin,
 								   BOOL fIntermediate)
-	: m_id(GPOPT_INVALID_GEXPR_ID),
-	  m_pgexprDuplicate(nullptr),
+	: m_pgexprDuplicate(nullptr),
 	  m_pop(pop),
 	  m_pdrgpgroup(pdrgpgroup),
-	  m_pdrgpgroupSorted(nullptr),
-	  m_pgroup(nullptr),
+
 	  m_exfidOrigin(exfid),
 	  m_pgexprOrigin(pgexprOrigin),
 	  m_fIntermediate(fIntermediate),
-	  m_estate(estUnexplored),
-	  m_eol(EolLow),
-	  m_ppartialplancostmap(nullptr),
+
 	  m_ecirculardependency(ecdDefault)
 {
 	GPOS_ASSERT(nullptr != pop);

@@ -31,12 +31,8 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CSchedulerContext::CSchedulerContext()
-	: m_pmpGlobal(nullptr),
-	  m_pmpLocal(nullptr),
-	  m_psched(nullptr),
-	  m_fInit(false)
-{
-}
+
+	= default;
 
 
 //---------------------------------------------------------------------------

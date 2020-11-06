@@ -33,9 +33,8 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CDrvdPropPlan::CDrvdPropPlan()
-	: m_pos(nullptr), m_pds(nullptr), m_prs(nullptr), m_pcm(nullptr)
-{
-}
+
+	= default;
 
 
 //---------------------------------------------------------------------------

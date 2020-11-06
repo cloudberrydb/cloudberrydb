@@ -29,10 +29,7 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CDistributionSpecNonSingleton::CDistributionSpecNonSingleton()
-	: m_fAllowReplicated(true)
-{
-}
+CDistributionSpecNonSingleton::CDistributionSpecNonSingleton() = default;
 
 
 //---------------------------------------------------------------------------

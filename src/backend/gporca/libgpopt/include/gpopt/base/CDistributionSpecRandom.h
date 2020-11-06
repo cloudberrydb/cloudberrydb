@@ -32,14 +32,14 @@ class CDistributionSpecRandom : public CDistributionSpec
 {
 protected:
 	// is the random distribution sensitive to duplicates
-	BOOL m_is_duplicate_sensitive;
+	BOOL m_is_duplicate_sensitive{false};
 
 	// does Singleton spec satisfy current distribution?
 	// by default, Singleton satisfies hashed/random since all tuples with the same hash value
 	// are moved to the same host/segment,
 	// this flag adds the ability to mark a distribution request as non-satisfiable by Singleton
 	// in case we need to enforce across segments distribution
-	BOOL m_fSatisfiedBySingleton;
+	BOOL m_fSatisfiedBySingleton{true};
 
 	// private copy ctor
 	CDistributionSpecRandom(const CDistributionSpecRandom &);

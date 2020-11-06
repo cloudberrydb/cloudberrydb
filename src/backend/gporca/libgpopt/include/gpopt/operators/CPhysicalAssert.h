@@ -35,9 +35,8 @@
 
 #include "gpos/base.h"
 
-#include "naucrates/dxl/errorcodes.h"
-
 #include "gpopt/operators/CPhysical.h"
+#include "naucrates/dxl/errorcodes.h"
 
 namespace gpopt
 {

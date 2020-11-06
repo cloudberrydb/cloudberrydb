@@ -76,7 +76,7 @@ private:
 	CWStringStatic m_static_string_buffer;
 
 	// current mode
-	EStreamManipulator m_stream_manipulator;
+	EStreamManipulator m_stream_manipulator{EsmDec};
 
 	// append formatted string
 	IOstream &AppendFormat(const WCHAR *format, ...);

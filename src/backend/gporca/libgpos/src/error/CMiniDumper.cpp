@@ -27,10 +27,7 @@ using namespace gpos;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CMiniDumper::CMiniDumper()
-	: m_initialized(false), m_finalized(false), m_oos(nullptr)
-{
-}
+CMiniDumper::CMiniDumper() = default;
 
 
 //---------------------------------------------------------------------------

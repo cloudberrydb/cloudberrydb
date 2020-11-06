@@ -64,37 +64,37 @@ public:
 
 private:
 	// memory pool
-	CMemoryPool *m_mp;
+	CMemoryPool *m_mp{nullptr};
 
 	// private copy ctor
 	COptimizationContext(const COptimizationContext &);
 
 	// unique id within owner group, used for debugging
-	ULONG m_id;
+	ULONG m_id{GPOPT_INVALID_OPTCTXT_ID};
 
 	// back pointer to owner group, used for debugging
-	CGroup *m_pgroup;
+	CGroup *m_pgroup{nullptr};
 
 	// required plan properties
-	CReqdPropPlan *m_prpp;
+	CReqdPropPlan *m_prpp{nullptr};
 
 	// required relational properties -- used for stats computation during costing
-	CReqdPropRelational *m_prprel;
+	CReqdPropRelational *m_prprel{nullptr};
 
 	// stats of previously optimized expressions
-	IStatisticsArray *m_pdrgpstatCtxt;
+	IStatisticsArray *m_pdrgpstatCtxt{nullptr};
 
 	// index of search stage where context is generated
-	ULONG m_ulSearchStageIndex;
+	ULONG m_ulSearchStageIndex{0};
 
 	// best cost context under the optimization context
-	CCostContext *m_pccBest;
+	CCostContext *m_pccBest{nullptr};
 
 	// optimization context state
-	EState m_estate;
+	EState m_estate{estUnoptimized};
 
 	// is there a multi-stage Agg plan satisfying required properties
-	BOOL m_fHasMultiStageAggPlan;
+	BOOL m_fHasMultiStageAggPlan{false};
 
 	// context's optimization job queue
 	CJobQueue m_jqOptimization;
@@ -103,19 +103,7 @@ private:
 	BOOL FMatchSortColumns(const COptimizationContext *poc) const;
 
 	// private dummy ctor; used for creating invalid context
-	COptimizationContext()
-		: m_mp(nullptr),
-		  m_id(GPOPT_INVALID_OPTCTXT_ID),
-		  m_pgroup(nullptr),
-		  m_prpp(nullptr),
-		  m_prprel(nullptr),
-		  m_pdrgpstatCtxt(nullptr),
-		  m_ulSearchStageIndex(0),
-		  m_pccBest(nullptr),
-		  m_estate(estUnoptimized),
-		  m_fHasMultiStageAggPlan(false)
-	{
-	}
+	COptimizationContext() = default;
 
 	// check if Agg node should be optimized for the given context
 	static BOOL FOptimizeAgg(CMemoryPool *mp, CGroupExpression *pgexprParent,
@@ -149,15 +137,11 @@ public:
 			*stats_ctxt,  // stats of previously optimized expressions
 		ULONG ulSearchStageIndex)
 		: m_mp(mp),
-		  m_id(GPOPT_INVALID_OPTCTXT_ID),
 		  m_pgroup(pgroup),
 		  m_prpp(prpp),
 		  m_prprel(prprel),
 		  m_pdrgpstatCtxt(stats_ctxt),
-		  m_ulSearchStageIndex(ulSearchStageIndex),
-		  m_pccBest(nullptr),
-		  m_estate(estUnoptimized),
-		  m_fHasMultiStageAggPlan(false)
+		  m_ulSearchStageIndex(ulSearchStageIndex)
 	{
 		GPOS_ASSERT(nullptr != pgroup);
 		GPOS_ASSERT(nullptr != prpp);

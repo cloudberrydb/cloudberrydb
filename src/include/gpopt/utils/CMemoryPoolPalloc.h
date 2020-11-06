@@ -23,7 +23,7 @@ namespace gpos
 class CMemoryPoolPalloc : public CMemoryPool
 {
 private:
-	MemoryContext m_cxt;
+	MemoryContext m_cxt{nullptr};
 
 	// When destroying arrays, we need to call the destructor of each element
 	// To do this, we need the size of the allocation, which we then divide by the

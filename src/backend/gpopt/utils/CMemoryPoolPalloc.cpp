@@ -25,7 +25,7 @@ extern "C" {
 using namespace gpos;
 
 // ctor
-CMemoryPoolPalloc::CMemoryPoolPalloc() : m_cxt(nullptr)
+CMemoryPoolPalloc::CMemoryPoolPalloc()
 {
 	m_cxt = gpdb::GPDBAllocSetContextCreate();
 }

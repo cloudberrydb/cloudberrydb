@@ -39,14 +39,11 @@ private:
 	{
 	private:
 		// is calling object's destructor allowed?
-		BOOL m_fDeletable;
+		BOOL m_fDeletable{false};
 
 	public:
 		// ctor
-		CDeletableTest()
-			: m_fDeletable(false)  // by default, object is not deletable
-		{
-		}
+		CDeletableTest() = default;
 
 		// return true if calling object's destructor is allowed
 		BOOL

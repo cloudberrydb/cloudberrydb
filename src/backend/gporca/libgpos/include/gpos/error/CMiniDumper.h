@@ -29,14 +29,14 @@ class CMiniDumper : CStackObject
 {
 private:
 	// flag indicating if handler is initialized
-	BOOL m_initialized;
+	BOOL m_initialized{false};
 
 	// flag indicating if handler is finalized
-	BOOL m_finalized;
+	BOOL m_finalized{false};
 
 protected:
 	// stream to serialize objects to
-	COstream *m_oos;
+	COstream *m_oos{nullptr};
 
 public:
 	CMiniDumper(const CMiniDumper &) = delete;

@@ -93,18 +93,7 @@ const CSystemId default_sysid(IMDId::EmdidGPDB, GPOS_WSZ_STR_LENGTH("GPDB"));
 //		Ctor
 //
 //---------------------------------------------------------------------------
-SOptContext::SOptContext()
-	: m_query_dxl(nullptr),
-	  m_query(nullptr),
-	  m_plan_dxl(nullptr),
-	  m_plan_stmt(nullptr),
-	  m_should_generate_plan_stmt(false),
-	  m_should_serialize_plan_dxl(false),
-	  m_is_unexpected_failure(false),
-	  m_should_error_out(false),
-	  m_error_msg(nullptr)
-{
-}
+SOptContext::SOptContext() = default;
 
 //---------------------------------------------------------------------------
 //	@function:

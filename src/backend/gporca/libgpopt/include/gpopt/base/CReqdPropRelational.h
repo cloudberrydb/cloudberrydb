@@ -37,10 +37,10 @@ class CReqdPropRelational : public CReqdProp
 {
 private:
 	// required stat columns
-	CColRefSet *m_pcrsStat;
+	CColRefSet *m_pcrsStat{nullptr};
 
 	// predicate on partition key
-	CExpression *m_pexprPartPred;
+	CExpression *m_pexprPartPred{nullptr};
 
 public:
 	CReqdPropRelational(const CReqdPropRelational &) = delete;

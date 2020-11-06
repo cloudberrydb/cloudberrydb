@@ -34,14 +34,7 @@ ULONG_PTR CJobTest::m_ulpCnt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJobTest::CJobTest()
-	: CJob(),
-	  m_ett(EttSpawn),
-	  m_ulRounds(gpos::ulong_max),
-	  m_ulFanout(gpos::ulong_max),
-	  m_ulIters(gpos::ulong_max)
-{
-}
+CJobTest::CJobTest() = default;
 
 
 //---------------------------------------------------------------------------

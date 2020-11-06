@@ -32,7 +32,6 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CDistributionSpecRandom::CDistributionSpecRandom()
-	: m_is_duplicate_sensitive(false), m_fSatisfiedBySingleton(true)
 {
 	if (COptCtxt::PoctxtFromTLS()->FDMLQuery())
 	{

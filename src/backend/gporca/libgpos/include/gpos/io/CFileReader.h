@@ -31,10 +31,10 @@ class CFileReader : public CFileDescriptor
 {
 private:
 	// file size
-	ULLONG m_file_size;
+	ULLONG m_file_size{0};
 
 	// read size
-	ULLONG m_file_read_size;
+	ULLONG m_file_read_size{0};
 
 public:
 	CFileReader(const CFileReader &) = delete;

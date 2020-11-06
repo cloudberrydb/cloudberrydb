@@ -64,7 +64,7 @@ private:
 	TEnumState m_tenumstate;
 
 	// flag indicating if the state machine is initialized
-	BOOL m_fInit;
+	BOOL m_fInit{false};
 
 	// array of transitions
 	TEnumEvent m_rgrgtenumeventTransitions[tenumstateSentinel]
@@ -85,7 +85,7 @@ private:
 	const WCHAR *m_rgwszEvents[tenumeventSentinel];
 
 	// current index into history
-	ULONG m_ulHistory;
+	ULONG m_ulHistory{0};
 
 	// state history
 	TEnumState m_tenumstateHistory[GPOPT_FSM_HISTORY];
@@ -263,12 +263,7 @@ public:
 	// ctor
 	CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent,
 				  tenumeventSentinel>()
-		: m_tenumstate(TesInitial()),
-		  m_fInit(false)
-#ifdef GPOS_DEBUG
-		  ,
-		  m_ulHistory(0)
-#endif	// GPOS_DEBUG
+		: m_tenumstate(TesInitial())
 	{
 		GPOS_ASSERT(0 < tenumstateSentinel && 0 < tenumeventSentinel &&
 					(ULONG) tenumeventSentinel + 1 >=

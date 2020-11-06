@@ -176,13 +176,10 @@ private:
 	// this identifies a group and one expression belonging to that group
 	struct SGroupAndExpression
 	{
-		SGroupInfo *m_group_info;
-		ULONG m_expr_index;
+		SGroupInfo *m_group_info{nullptr};
+		ULONG m_expr_index{gpos::ulong_max};
 
-		SGroupAndExpression()
-			: m_group_info(nullptr), m_expr_index(gpos::ulong_max)
-		{
-		}
+		SGroupAndExpression() = default;
 		SGroupAndExpression(SGroupInfo *g, ULONG ix)
 			: m_group_info(g), m_expr_index(ix)
 		{

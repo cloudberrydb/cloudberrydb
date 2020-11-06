@@ -36,7 +36,7 @@ using namespace gpmd;
 //		ctor
 //
 //---------------------------------------------------------------------------
-CColumnFactory::CColumnFactory() : m_mp(nullptr), m_phmcrcrs(nullptr), m_aul(0)
+CColumnFactory::CColumnFactory()
 {
 	CAutoMemoryPool amp;
 	m_mp = amp.Pmp();

@@ -39,16 +39,16 @@ private:
 	CException m_exception;
 
 	// exception severity
-	ULONG m_severity;
+	ULONG m_severity{CException::ExsevError};
 
 	// flag to indicate if handled yet
-	BOOL m_pending;
+	BOOL m_pending{false};
 
 	// flag to indicate if handled yet
-	BOOL m_rethrown;
+	BOOL m_rethrown{false};
 
 	// flag to indicate that we are currently serializing this.
-	BOOL m_serializing;
+	BOOL m_serializing{false};
 
 	// error message buffer
 	WCHAR m_error_msg[GPOS_ERROR_MESSAGE_BUFFER_SIZE];

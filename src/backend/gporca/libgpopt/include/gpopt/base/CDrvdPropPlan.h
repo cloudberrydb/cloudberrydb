@@ -45,16 +45,16 @@ class CDrvdPropPlan : public CDrvdProp
 {
 private:
 	// derived sort order
-	COrderSpec *m_pos;
+	COrderSpec *m_pos{nullptr};
 
 	// derived distribution
-	CDistributionSpec *m_pds;
+	CDistributionSpec *m_pds{nullptr};
 
 	// derived rewindability
-	CRewindabilitySpec *m_prs;
+	CRewindabilitySpec *m_prs{nullptr};
 
 	// derived cte map
-	CCTEMap *m_pcm;
+	CCTEMap *m_pcm{nullptr};
 
 	// copy CTE producer plan properties from given context to current object
 	void CopyCTEProducerPlanProps(CMemoryPool *mp, CDrvdPropCtxt *pdpctxt,

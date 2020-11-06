@@ -754,13 +754,11 @@ private:
 	// element for mapping Edxltoken to CWStringConst
 	struct SStrMapElem
 	{
-		Edxltoken m_edxlt;
-		CWStringConst *m_pstr;
+		Edxltoken m_edxlt{EdxltokenSentinel};
+		CWStringConst *m_pstr{nullptr};
 
 		// ctor
-		SStrMapElem() : m_edxlt(EdxltokenSentinel), m_pstr(nullptr)
-		{
-		}
+		SStrMapElem() = default;
 
 		// ctor
 		SStrMapElem(Edxltoken edxlt, CWStringConst *str)
@@ -780,13 +778,11 @@ private:
 	// element for mapping Edxltoken to XML string
 	struct SXMLStrMapElem
 	{
-		Edxltoken m_edxlt;
-		XMLCh *m_xmlsz;
+		Edxltoken m_edxlt{EdxltokenSentinel};
+		XMLCh *m_xmlsz{nullptr};
 
 		// ctor
-		SXMLStrMapElem() : m_edxlt(EdxltokenSentinel), m_xmlsz(nullptr)
-		{
-		}
+		SXMLStrMapElem() = default;
 
 		// ctor
 		SXMLStrMapElem(Edxltoken edxlt, XMLCh *xml_val)

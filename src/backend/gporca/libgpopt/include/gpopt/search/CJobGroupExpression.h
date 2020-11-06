@@ -44,12 +44,10 @@ private:
 
 protected:
 	// target group expression
-	CGroupExpression *m_pgexpr;
+	CGroupExpression *m_pgexpr{nullptr};
 
 	// ctor
-	CJobGroupExpression() : m_pgexpr(nullptr)
-	{
-	}
+	CJobGroupExpression() = default;
 
 	// dtor
 	~CJobGroupExpression() override = default;

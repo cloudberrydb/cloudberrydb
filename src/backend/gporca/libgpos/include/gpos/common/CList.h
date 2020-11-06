@@ -47,10 +47,10 @@ class CList
 
 private:
 	// offest of link element
-	ULONG m_offset;
+	ULONG m_offset{gpos::ulong_max};
 
 	// size
-	ULONG m_size;
+	ULONG m_size{0};
 
 	// head element
 	T *m_head;
@@ -75,8 +75,7 @@ public:
 	CList(const CList &) = delete;
 
 	// ctor
-	CList()
-		: m_offset(gpos::ulong_max), m_size(0), m_head(nullptr), m_tail(nullptr)
+	CList() : m_head(nullptr), m_tail(nullptr)
 	{
 	}
 

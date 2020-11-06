@@ -25,8 +25,8 @@ using namespace gpos;
 //
 //---------------------------------------------------------------------------
 COstream::COstream()
-	: m_static_string_buffer(m_string_format_buffer, GPOS_OSTREAM_CONVBUF_SIZE),
-	  m_stream_manipulator(EsmDec)
+	: m_static_string_buffer(m_string_format_buffer, GPOS_OSTREAM_CONVBUF_SIZE)
+
 {
 }
 

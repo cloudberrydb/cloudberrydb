@@ -36,15 +36,13 @@ class CJobGroup : public CJob
 private:
 protected:
 	// target group
-	CGroup *m_pgroup;
+	CGroup *m_pgroup{nullptr};
 
 	// last scheduled group expression
 	CGroupExpression *m_pgexprLastScheduled;
 
 	// ctor
-	CJobGroup() : m_pgroup(nullptr)
-	{
-	}
+	CJobGroup() = default;
 
 	// dtor
 	~CJobGroup() override = default;

@@ -28,7 +28,7 @@ using namespace gpos;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CFileWriter::CFileWriter() : CFileDescriptor(), m_file_size(0)
+CFileWriter::CFileWriter() : CFileDescriptor()
 {
 }
 

@@ -31,7 +31,7 @@ class CStackDescriptor
 {
 private:
 	// stack depth
-	ULONG m_depth;
+	ULONG m_depth{0};
 
 	// array with frame return addresses
 	void *m_array_of_addresses[GPOS_STACK_TRACE_DEPTH];
@@ -51,7 +51,7 @@ private:
 
 public:
 	// ctor
-	CStackDescriptor() : m_depth(0)
+	CStackDescriptor()
 	{
 		Reset();
 	}

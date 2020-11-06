@@ -27,9 +27,8 @@ using namespace gpdxl;
 //
 //---------------------------------------------------------------------------
 CDXLWindowKey::CDXLWindowKey()
-	: m_window_frame_dxl(nullptr), m_sort_col_list_dxlnode(nullptr)
-{
-}
+
+	= default;
 
 //---------------------------------------------------------------------------
 //	@function:

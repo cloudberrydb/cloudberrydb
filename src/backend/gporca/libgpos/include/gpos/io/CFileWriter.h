@@ -29,7 +29,7 @@ class CFileWriter : public CFileDescriptor
 {
 private:
 	// file size
-	ULLONG m_file_size;
+	ULLONG m_file_size{0};
 
 public:
 	CFileWriter(const CFileWriter &) = delete;

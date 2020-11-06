@@ -60,8 +60,7 @@ CWindowFrame::CWindowFrame(CMemoryPool *mp, EFrameSpec efs,
 	  m_efbTrailing(efbTrailing),
 	  m_pexprLeading(pexprLeading),
 	  m_pexprTrailing(pexprTrailing),
-	  m_efes(efes),
-	  m_pcrsUsed(nullptr)
+	  m_efes(efes)
 {
 	GPOS_ASSERT_IMP(EfbBoundedPreceding == m_efbLeading ||
 						EfbBoundedFollowing == m_efbLeading,
@@ -93,15 +92,10 @@ CWindowFrame::CWindowFrame(CMemoryPool *mp, EFrameSpec efs,
 //
 //---------------------------------------------------------------------------
 CWindowFrame::CWindowFrame()
-	: m_efs(EfsRange),
-	  m_efbLeading(EfbUnboundedPreceding),
-	  m_efbTrailing(EfbCurrentRow),
-	  m_pexprLeading(nullptr),
-	  m_pexprTrailing(nullptr),
-	  m_efes(EfesNone),
-	  m_pcrsUsed(nullptr)
-{
-}
+
+
+
+	= default;
 
 
 //---------------------------------------------------------------------------

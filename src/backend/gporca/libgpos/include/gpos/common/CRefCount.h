@@ -39,7 +39,7 @@ class CRefCount : public CHeapObject
 {
 private:
 	// reference counter -- first in class to be in sync with Check()
-	ULONG_PTR m_refs;
+	ULONG_PTR m_refs{1};
 
 #ifdef GPOS_DEBUG
 	// sanity check to detect deleted memory
@@ -55,9 +55,7 @@ public:
 	CRefCount(const CRefCount &) = delete;
 
 	// ctor
-	CRefCount() : m_refs(1)
-	{
-	}
+	CRefCount() = default;
 
 	// FIXME: should mark this noexcept in non-assert builds
 	// dtor

@@ -32,10 +32,10 @@ class CDXLWindowKey : public CRefCount
 {
 private:
 	// window frame associated with the window key
-	CDXLWindowFrame *m_window_frame_dxl;
+	CDXLWindowFrame *m_window_frame_dxl{nullptr};
 
 	// sorting columns
-	CDXLNode *m_sort_col_list_dxlnode;
+	CDXLNode *m_sort_col_list_dxlnode{nullptr};
 
 public:
 	CDXLWindowKey(const CDXLWindowKey &) = delete;

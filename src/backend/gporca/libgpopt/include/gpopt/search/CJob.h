@@ -116,26 +116,26 @@ private:
 #endif	// GPOS_DEBUG
 
 	// parent job
-	CJob *m_pjParent;
+	CJob *m_pjParent{nullptr};
 
 	// assigned job queue
-	CJobQueue *m_pjq;
+	CJobQueue *m_pjq{nullptr};
 
 	// reference counter
-	ULONG_PTR m_ulpRefs;
+	ULONG_PTR m_ulpRefs{0};
 
 	// job id - set by job factory
-	ULONG m_id;
+	ULONG m_id{0};
 
 	// job type
 	EJobType m_ejt;
 
 	// flag indicating if job is initialized
-	BOOL m_fInit;
+	BOOL m_fInit{false};
 
 #ifdef GPOS_DEBUG
 	// job state
-	EJobState m_ejs;
+	EJobState m_ejs{EjsInit};
 #endif	// GPOS_DEBUG
 
 	//-------------------------------------------------------------------
@@ -227,18 +227,7 @@ protected:
 	}
 
 	// ctor
-	CJob()
-		: m_pjParent(nullptr),
-		  m_pjq(nullptr),
-		  m_ulpRefs(0),
-		  m_id(0),
-		  m_fInit(false)
-#ifdef GPOS_DEBUG
-		  ,
-		  m_ejs(EjsInit)
-#endif	// GPOS_DEBUG
-	{
-	}
+	CJob() = default;
 
 	// dtor
 	virtual ~CJob()

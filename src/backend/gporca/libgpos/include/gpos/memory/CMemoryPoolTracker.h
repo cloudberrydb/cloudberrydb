@@ -67,7 +67,7 @@ private:
 	CMemoryPoolStatistics m_memory_pool_statistics;
 
 	// allocation sequence number
-	ULONG m_alloc_sequence;
+	ULONG m_alloc_sequence{0};
 
 	// list of allocated (live) objects
 	CList<SAllocHeader> m_allocations_list;

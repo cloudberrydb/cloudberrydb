@@ -31,11 +31,9 @@ class IOstream
 {
 protected:
 	// ctor
-	IOstream() : m_fullPrecision(false)
-	{
-	}
+	IOstream() = default;
 
-	BOOL m_fullPrecision;
+	BOOL m_fullPrecision{false};
 
 public:
 	enum EStreamManipulator

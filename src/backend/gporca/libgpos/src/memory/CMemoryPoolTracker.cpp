@@ -35,7 +35,7 @@ using namespace gpos;
 
 
 // ctor
-CMemoryPoolTracker::CMemoryPoolTracker() : CMemoryPool(), m_alloc_sequence(0)
+CMemoryPoolTracker::CMemoryPoolTracker() : CMemoryPool()
 {
 	m_allocations_list.Init(GPOS_OFFSET(SAllocHeader, m_link));
 }

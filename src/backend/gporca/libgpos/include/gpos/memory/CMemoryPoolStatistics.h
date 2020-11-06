@@ -26,31 +26,23 @@ namespace gpos
 class CMemoryPoolStatistics
 {
 private:
-	ULLONG m_num_successful_allocations;
+	ULLONG m_num_successful_allocations{0};
 
-	ULLONG m_num_failed_allocations;
+	ULLONG m_num_failed_allocations{0};
 
-	ULLONG m_num_free;
+	ULLONG m_num_free{0};
 
-	ULLONG m_num_live_obj;
+	ULLONG m_num_live_obj{0};
 
-	ULLONG m_live_obj_user_size;
+	ULLONG m_live_obj_user_size{0};
 
-	ULLONG m_live_obj_total_size;
+	ULLONG m_live_obj_total_size{0};
 
 public:
 	CMemoryPoolStatistics(CMemoryPoolStatistics &) = delete;
 
 	// ctor
-	CMemoryPoolStatistics()
-		: m_num_successful_allocations(0),
-		  m_num_failed_allocations(0),
-		  m_num_free(0),
-		  m_num_live_obj(0),
-		  m_live_obj_user_size(0),
-		  m_live_obj_total_size(0)
-	{
-	}
+	CMemoryPoolStatistics() = default;
 
 	// dtor
 	virtual ~CMemoryPoolStatistics() = default;

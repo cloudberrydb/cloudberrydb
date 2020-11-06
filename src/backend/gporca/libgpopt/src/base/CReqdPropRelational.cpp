@@ -32,9 +32,8 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CReqdPropRelational::CReqdPropRelational()
-	: m_pcrsStat(nullptr), m_pexprPartPred(nullptr)
-{
-}
+
+	= default;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -44,8 +43,7 @@ CReqdPropRelational::CReqdPropRelational()
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CReqdPropRelational::CReqdPropRelational(CColRefSet *pcrs)
-	: m_pcrsStat(pcrs), m_pexprPartPred(nullptr)
+CReqdPropRelational::CReqdPropRelational(CColRefSet *pcrs) : m_pcrsStat(pcrs)
 {
 	GPOS_ASSERT(nullptr != pcrs);
 }

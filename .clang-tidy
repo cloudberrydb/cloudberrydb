@@ -7,6 +7,7 @@ Checks: |
   modernize-use-equals-default,
   modernize-use-equals-delete,
   modernize-use-nullptr,
+  modernize-use-default-member-init,
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: 'gpdbcost|gpopt|gpos|naucrates'

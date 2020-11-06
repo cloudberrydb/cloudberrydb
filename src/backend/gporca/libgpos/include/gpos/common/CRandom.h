@@ -27,7 +27,7 @@ class CRandom
 {
 private:
 	// seed
-	ULONG m_seed;
+	ULONG m_seed;  // NOLINT(modernize-use-default-member-init)
 
 public:
 	CRandom(const CRandom &) = delete;

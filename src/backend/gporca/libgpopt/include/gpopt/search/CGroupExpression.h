@@ -94,42 +94,42 @@ private:
 
 
 	// expression id
-	ULONG m_id;
+	ULONG m_id{GPOPT_INVALID_GEXPR_ID};
 
 	// duplicate group expression
 	CGroupExpression *m_pgexprDuplicate;
 
 	// operator class
-	COperator *m_pop;
+	COperator *m_pop{nullptr};
 
 	// array of child groups
-	CGroupArray *m_pdrgpgroup;
+	CGroupArray *m_pdrgpgroup{nullptr};
 
 	// sorted array of children groups for faster comparison
 	// of order-insensitive operators
-	CGroupArray *m_pdrgpgroupSorted;
+	CGroupArray *m_pdrgpgroupSorted{nullptr};
 
 	// back pointer to group
-	CGroup *m_pgroup;
+	CGroup *m_pgroup{nullptr};
 
 	// id of xform that generated group expression
-	CXform::EXformId m_exfidOrigin;
+	CXform::EXformId m_exfidOrigin{CXform::ExfInvalid};
 
 	// group expression that generated current group expression via xform
-	CGroupExpression *m_pgexprOrigin;
+	CGroupExpression *m_pgexprOrigin{nullptr};
 
 	// flag to indicate if group expression was created as a node at some
 	// intermediate level when origin expression was inserted to memo
-	BOOL m_fIntermediate;
+	BOOL m_fIntermediate{false};
 
 	// state of group expression
-	EState m_estate;
+	EState m_estate{estUnexplored};
 
 	// optimization level
-	EOptimizationLevel m_eol;
+	EOptimizationLevel m_eol{EolLow};
 
 	// map of partial plans to their cost lower bound
-	PartialPlanToCostMap *m_ppartialplancostmap;
+	PartialPlanToCostMap *m_ppartialplancostmap{nullptr};
 
 	// circular dependency state
 	ECircularDependency m_ecirculardependency;
@@ -175,20 +175,7 @@ private:
 	IOstream &OsPrintCostContexts(IOstream &os, const CHAR *szPrefix) const;
 
 	//private dummy ctor; used for creating invalid gexpr
-	CGroupExpression()
-		: m_id(GPOPT_INVALID_GEXPR_ID),
-		  m_pop(nullptr),
-		  m_pdrgpgroup(nullptr),
-		  m_pdrgpgroupSorted(nullptr),
-		  m_pgroup(nullptr),
-		  m_exfidOrigin(CXform::ExfInvalid),
-		  m_pgexprOrigin(nullptr),
-		  m_fIntermediate(false),
-		  m_estate(estUnexplored),
-		  m_eol(EolLow),
-		  m_ppartialplancostmap(nullptr)
-	{
-	}
+	CGroupExpression() = default;
 
 
 public:

@@ -54,7 +54,7 @@ private:
 	// number of deletion locks -- each MDAccessor adds a new deletion lock if it uses
 	// an MDId object in its internal hash-table, the deletion lock is released when
 	// MDAccessor is destroyed
-	ULONG_PTR m_deletion_locks;
+	ULONG_PTR m_deletion_locks{0};
 
 public:
 	//------------------------------------------------------------------
@@ -76,9 +76,7 @@ public:
 	};
 
 	// ctor
-	IMDId() : m_deletion_locks(0)
-	{
-	}
+	IMDId() = default;
 
 	// dtor
 	~IMDId() override = default;

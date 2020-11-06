@@ -39,7 +39,7 @@ class CDXLProperties : public CRefCount
 {
 private:
 	// derived statistics
-	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
+	CDXLStatsDerivedRelation *m_dxl_stats_derived_relation{nullptr};
 
 protected:
 	// serialize statistics in DXL format
