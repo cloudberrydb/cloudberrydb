@@ -913,6 +913,8 @@ CJoinOrderDP::PexprExpand()
 }
 
 
+FORCE_GENERATE_DBGSTR(gpopt::CJoinOrderDP);
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CJoinOrderDP::OsPrint
