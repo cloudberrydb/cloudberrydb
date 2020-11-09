@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "postgres.h"
 #include "storage/execute_pipe.h"
