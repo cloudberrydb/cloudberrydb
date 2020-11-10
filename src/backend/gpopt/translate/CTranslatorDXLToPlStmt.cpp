@@ -28,6 +28,7 @@ extern "C" {
 #include "executor/execPartition.h"
 #include "executor/executor.h"
 #include "utils/partcache.h"
+#include "storage/lmgr.h"
 #if 0
 #include "cdb/partitionselection.h"
 #endif
@@ -437,6 +438,13 @@ CTranslatorDXLToPlStmt::TranslateDXLTblScan(
 		phy_tbl_scan_dxlop->GetDXLTableDescr();
 	const IMDRelation *md_rel =
 		m_md_accessor->RetrieveRel(dxl_table_descr->MDId());
+
+	// Lock any table we are to scan, since it may not have been properly locked
+	// by the parser (e.g in case of generated scans for partitioned tables)
+	CMDIdGPDB *mdid = CMDIdGPDB::CastMdid(md_rel->MDId());
+	GPOS_RTL_ASSERT(dxl_table_descr->LockMode() != -1);
+	gpdb::GPDBLockRelationOid(mdid->Oid(), dxl_table_descr->LockMode());
+
 	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(
 		dxl_table_descr, index, &base_table_context);
 	GPOS_ASSERT(NULL != rte);

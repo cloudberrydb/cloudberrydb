@@ -19,6 +19,7 @@ using namespace gpos;
 using namespace gpdxl;
 
 #define GPDXL_DEFAULT_USERID 0
+#define GPDXL_INVALID_LOCKMODE -1
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -29,11 +30,12 @@ using namespace gpdxl;
 //
 //---------------------------------------------------------------------------
 CDXLTableDescr::CDXLTableDescr(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
-							   ULONG ulExecuteAsUser)
+							   ULONG ulExecuteAsUser, int lockmode)
 	: m_mdid(mdid),
 	  m_mdname(mdname),
 	  m_dxl_column_descr_array(NULL),
-	  m_execute_as_user_id(ulExecuteAsUser)
+	  m_execute_as_user_id(ulExecuteAsUser),
+	  m_lockmode(lockmode)
 {
 	GPOS_ASSERT(NULL != m_mdname);
 	m_dxl_column_descr_array = GPOS_NEW(mp) CDXLColDescrArray(mp);
@@ -112,6 +114,12 @@ ULONG
 CDXLTableDescr::GetExecuteAsUserId() const
 {
 	return m_execute_as_user_id;
+}
+
+INT
+CDXLTableDescr::LockMode() const
+{
+	return m_lockmode;
 }
 
 //---------------------------------------------------------------------------
@@ -201,6 +209,12 @@ CDXLTableDescr::SerializeToDXL(CXMLSerializer *xml_serializer) const
 		xml_serializer->AddAttribute(
 			CDXLTokens::GetDXLTokenStr(EdxltokenExecuteAsUser),
 			m_execute_as_user_id);
+	}
+
+	if (GPDXL_INVALID_LOCKMODE != LockMode())
+	{
+		xml_serializer->AddAttribute(
+			CDXLTokens::GetDXLTokenStr(EdxltokenLockMode), LockMode());
 	}
 
 	// serialize columns

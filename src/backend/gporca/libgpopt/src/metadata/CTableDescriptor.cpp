@@ -36,7 +36,8 @@ using namespace gpopt;
 CTableDescriptor::CTableDescriptor(
 	CMemoryPool *mp, IMDId *mdid, const CName &name,
 	BOOL convert_hash_to_random, IMDRelation::Ereldistrpolicy rel_distr_policy,
-	IMDRelation::Erelstoragetype erelstoragetype, ULONG ulExecuteAsUser)
+	IMDRelation::Erelstoragetype erelstoragetype, ULONG ulExecuteAsUser,
+	INT lockmode)
 	: m_mp(mp),
 	  m_mdid(mdid),
 	  m_name(mp, name),
@@ -49,7 +50,8 @@ CTableDescriptor::CTableDescriptor(
 	  m_pdrgpulPart(NULL),
 	  m_pdrgpbsKeys(NULL),
 	  m_execute_as_user_id(ulExecuteAsUser),
-	  m_fHasPartialIndexes(FDescriptorWithPartialIndexes())
+	  m_fHasPartialIndexes(FDescriptorWithPartialIndexes()),
+	  m_lockmode(lockmode)
 {
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(mdid->IsValid());

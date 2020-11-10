@@ -489,6 +489,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenOid, GPOS_WSZ_LIT("Oid")},
 		{EdxltokenVersion, GPOS_WSZ_LIT("Version")},
 		{EdxltokenMdid, GPOS_WSZ_LIT("Mdid")},
+		{EdxltokenLockMode, GPOS_WSZ_LIT("LockMode")},
 		{EdxltokenMDTypeRequest, GPOS_WSZ_LIT("TypeRequest")},
 		{EdxltokenTypeInfo, GPOS_WSZ_LIT("TypeInfo")},
 		{EdxltokenFuncInfo, GPOS_WSZ_LIT("FuncInfo")},

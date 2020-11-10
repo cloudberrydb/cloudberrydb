@@ -1432,6 +1432,10 @@ CDXLOperatorFactory::MakeDXLTableDescr(CDXLMemoryManager *dxl_memory_manager,
 	const XMLCh *execute_as_user_xml =
 		attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenExecuteAsUser));
 
+	INT lockmode = ExtractConvertAttrValueToInt(
+		dxl_memory_manager, attrs, EdxltokenLockMode, EdxltokenTableDescr,
+		true /* is_optional */, -1);
+
 	if (NULL != execute_as_user_xml)
 	{
 		user_id = ConvertAttrValueToUlong(
@@ -1439,7 +1443,7 @@ CDXLOperatorFactory::MakeDXLTableDescr(CDXLMemoryManager *dxl_memory_manager,
 			EdxltokenTableDescr);
 	}
 
-	return GPOS_NEW(mp) CDXLTableDescr(mp, mdid, mdname, user_id);
+	return GPOS_NEW(mp) CDXLTableDescr(mp, mdid, mdname, user_id, lockmode);
 }
 
 //---------------------------------------------------------------------------

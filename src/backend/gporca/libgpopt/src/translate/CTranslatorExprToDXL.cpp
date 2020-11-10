@@ -1107,7 +1107,8 @@ CTranslatorExprToDXL::MakeTableDescForPart(const IMDRelation *part,
 	CTableDescriptor *table_descr = GPOS_NEW(m_mp) CTableDescriptor(
 		m_mp, part_mdid, part->Mdname().GetMDName(),
 		part->ConvertHashToRandom(), part->GetRelDistribution(),
-		part->RetrieveRelStorageType(), root_table_desc->GetExecuteAsUserId());
+		part->RetrieveRelStorageType(), root_table_desc->GetExecuteAsUserId(),
+		root_table_desc->LockMode());
 
 	for (ULONG ul = 0; ul < part->ColumnCount(); ++ul)
 	{
@@ -7147,7 +7148,8 @@ CTranslatorExprToDXL::MakeDXLTableDescr(
 	mdid->AddRef();
 
 	CDXLTableDescr *table_descr = GPOS_NEW(m_mp)
-		CDXLTableDescr(m_mp, mdid, pmdnameTbl, ptabdesc->GetExecuteAsUserId());
+		CDXLTableDescr(m_mp, mdid, pmdnameTbl, ptabdesc->GetExecuteAsUserId(),
+					   ptabdesc->LockMode());
 
 	const ULONG ulColumns = ptabdesc->ColumnCount();
 	// translate col descriptors

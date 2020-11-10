@@ -138,8 +138,8 @@ CTranslatorUtils::GetTableDescr(CMemoryPool *mp, CMDAccessor *md_accessor,
 	const CWStringConst *tablename = rel->Mdname().GetMDName();
 	CMDName *table_mdname = GPOS_NEW(mp) CMDName(mp, tablename);
 
-	CDXLTableDescr *table_descr =
-		GPOS_NEW(mp) CDXLTableDescr(mp, mdid, table_mdname, rte->checkAsUser);
+	CDXLTableDescr *table_descr = GPOS_NEW(mp) CDXLTableDescr(
+		mp, mdid, table_mdname, rte->checkAsUser, rte->rellockmode);
 
 	const ULONG len = rel->ColumnCount();
 

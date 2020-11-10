@@ -40,6 +40,7 @@ extern "C" {
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
 #include "partitioning/partdesc.h"
+#include "storage/lmgr.h"
 #include "utils/partcache.h"
 }
 #define GP_WRAP_START                                            \
@@ -2820,6 +2821,18 @@ gpdb::RelIsPartitioned(Oid relid)
 	GP_WRAP_START;
 	{
 		return relation_is_partitioned(relid);
+	}
+	GP_WRAP_END;
+}
+
+void
+gpdb::GPDBLockRelationOid(Oid reloid, LOCKMODE lockmode)
+{
+	GP_WRAP_START;
+	{
+		bool lockUpgraded;
+		lockmode = UpgradeRelLockIfNecessary(reloid, lockmode, &lockUpgraded);
+		LockRelationOid(reloid, lockmode);
 	}
 	GP_WRAP_END;
 }
