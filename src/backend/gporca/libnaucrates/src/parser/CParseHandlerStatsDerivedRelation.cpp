@@ -173,8 +173,7 @@ CParseHandlerStatsDerivedRelation::EndElement(
 	}
 
 	m_dxl_stats_derived_relation = GPOS_NEW(m_mp)
-		CDXLStatsDerivedRelation(m_rows, m_empty, m_relpages, m_relallvisible,
-								 dxl_stats_derived_col_array);
+		CDXLStatsDerivedRelation(m_rows, m_empty, dxl_stats_derived_col_array);
 
 	// deactivate handler
 	m_parse_handler_mgr->DeactivateHandler();

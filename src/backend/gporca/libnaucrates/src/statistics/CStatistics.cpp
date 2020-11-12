@@ -780,9 +780,8 @@ CStatistics::GetDxlStatsDrvdRelation(CMemoryPool *mp,
 		dxl_stats_derived_col_array->Append(dxl_derived_col_stats);
 	}
 
-	return GPOS_NEW(mp)
-		CDXLStatsDerivedRelation(m_rows, IsEmpty(), m_relpages, m_relallvisible,
-								 dxl_stats_derived_col_array);
+	return GPOS_NEW(mp) CDXLStatsDerivedRelation(m_rows, IsEmpty(),
+												 dxl_stats_derived_col_array);
 }
 
 // return the upper bound of ndvs for a column reference
