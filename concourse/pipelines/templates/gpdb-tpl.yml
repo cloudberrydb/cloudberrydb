@@ -1112,7 +1112,6 @@ jobs:
         - icw_gporca_icproxy_centos7
         - icw_planner_icproxy_centos7
         - icw_gporca_ictcp_centos7
-        - unit_tests_gporca_centos7
 {% if "Extensions" in test_sections %}
         - icw_extensions_gpcloud_centos7
 {% endif %}
@@ -1863,7 +1862,6 @@ jobs:
         - icw_extensions_gpcloud_centos7
         - resource_group_centos7
         - cli_cross_subnet
-        - unit_tests_gporca_centos7
 {% for test in CLI_BEHAVE_TESTS %}
         - [[ test.name ]]
 {% endfor %}
