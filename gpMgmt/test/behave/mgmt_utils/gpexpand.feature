@@ -429,8 +429,8 @@ Feature: expand the cluster by adding more segments
         And a temporary directory under "/data/gpdata/gpexpand/expandedData" to expand into
         And the cluster is generated with "1" primaries only
         And database "gptest" exists
-        And the user runs psql with "-c 'CREATE TABLE public.test_matview_base AS SELECT i FROM generate_series(1,10000) i'" against database "gptest"
-        And the user runs psql with "-c 'CREATE MATERIALIZED VIEW public.test_matview as select * from public.test_matview_base'" against database "gptest"
+        And the user runs psql with "-c 'CREATE TABLE public.test_matview_base AS SELECT i FROM generate_series(1,10000) i DISTRIBUTED BY (i)'" against database "gptest"
+        And the user runs psql with "-c 'CREATE MATERIALIZED VIEW public.test_matview as select * from public.test_matview_base DISTRIBUTED BY (i)'" against database "gptest"
         And there are no gpexpand_inputfiles
         And the cluster is setup for an expansion on hosts "localhost"
         When the user runs gpexpand interview to add 3 new segment and 0 new host "ignored.host"
