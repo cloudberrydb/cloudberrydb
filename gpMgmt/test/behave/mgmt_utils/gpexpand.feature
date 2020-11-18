@@ -431,7 +431,6 @@ Feature: expand the cluster by adding more segments
         And database "gptest" exists
         And the user runs psql with "-c 'CREATE TABLE public.test_matview_base AS SELECT i FROM generate_series(1,10000) i'" against database "gptest"
         And the user runs psql with "-c 'CREATE MATERIALIZED VIEW public.test_matview as select * from public.test_matview_base'" against database "gptest"
-        And distribution information from table "public.test_matview" with data in "gptest" is saved
         And there are no gpexpand_inputfiles
         And the cluster is setup for an expansion on hosts "localhost"
         When the user runs gpexpand interview to add 3 new segment and 0 new host "ignored.host"
@@ -440,4 +439,4 @@ Feature: expand the cluster by adding more segments
         Then verify that the cluster has 3 new segments
         When the user runs gpexpand to redistribute
         Then the numsegments of table "public.test_matview" is 4
-        And distribution information from table "public.test_matview" with data in "gptest" is verified against saved data
+        And distribution information from table "public.test_matview" and "public.test_matview_base" in "gptest" are the same
