@@ -23,12 +23,12 @@ using namespace gpos;
 class CDistributionSpecReplicated : public CDistributionSpec
 {
 private:
-	CDistributionSpecReplicated(const CDistributionSpecReplicated &) = delete;
-
 	// replicated support
 	CDistributionSpec::EDistributionType m_replicated;
 
 public:
+	CDistributionSpecReplicated(const CDistributionSpecReplicated &) = delete;
+
 	// ctor
 	CDistributionSpecReplicated(
 		CDistributionSpec::EDistributionType replicated_type)
