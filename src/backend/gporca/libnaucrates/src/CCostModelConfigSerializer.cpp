@@ -1,5 +1,5 @@
 //	Greenplum Database
-//	Copyright (C) 2018 Pivotal Software, Inc.
+//	Copyright (C) 2018 VMware, Inc. or its affiliates.
 
 #include "naucrates/dxl/CCostModelConfigSerializer.h"
 #include "naucrates/dxl/xml/dxltokens.h"

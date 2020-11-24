@@ -1980,7 +1980,7 @@ jobs:
       PLATFORM: "rhel7"
       GPDB_NAME: greenplum-db-7
       GPDB_RELEASE: 1
-      GPDB_LICENSE: Pivotal Software EULA
+      GPDB_LICENSE: VMware, Inc. or its affiliates EULA
       GPDB_URL: https://github.com/greenplum-db/gpdb
       GPDB_OSS: false
   - task: rename_rc_artifacts

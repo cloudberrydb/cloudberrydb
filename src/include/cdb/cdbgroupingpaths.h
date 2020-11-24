@@ -4,7 +4,7 @@
  *	  prototypes for cdbgroupingpaths.c.
  *
  *
- * Portions Copyright (c) 2019-Present Pivotal Software, Inc.
+ * Portions Copyright (c) 2019-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
  *	    src/include/cdb/cdbgroupingpaths.h

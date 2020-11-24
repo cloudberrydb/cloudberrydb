@@ -6,7 +6,7 @@
               / /_/ / ____/ /_/ / _, _/ /___/ ___ |
               \____/_/    \____/_/ |_|\____/_/  |_|
                   The Greenplum Query Optimizer
-              Copyright (c) 2015, Pivotal Software, Inc.
+              Copyright (c) 2015, VMware, Inc. or its affiliates.
             Licensed under the Apache License, Version 2.0
 ======================================================================
 </pre>

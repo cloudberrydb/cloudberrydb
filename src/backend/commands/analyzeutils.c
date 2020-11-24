@@ -4,7 +4,7 @@
  *
  *	  Provides utils functions for analyze.c
  *
- * Copyright (c) 2015, Pivotal Inc.
+ * Copyright (c) 2015, VMware, Inc. or its affiliates.
  *
  *-------------------------------------------------------------------------
  */

@@ -36,7 +36,7 @@
  * add_single_dqa_hash_agg_path() and add_multi_dqas_hash_agg_path() for
  * details.
  *
- * Portions Copyright (c) 2019-Present Pivotal Software, Inc.
+ * Portions Copyright (c) 2019-Present VMware, Inc. or its affiliates.
  *
  *
  * IDENTIFICATION
