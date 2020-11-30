@@ -2596,8 +2596,8 @@
         <sup>1</sup>The set classification when the parameter is set at the system level with the
           <codeph>gpconfig</codeph> utility.</note>
       <note>
-        <sup>2</sup>QuickLZ compression is available only in the commercial release of Pivotal
-        Greenplum Database.</note>
+        <sup>2</sup>QuickLZ compression is available only in the commercial release of VMware Tanzu
+        Greenplum.</note>
     </body>
   </topic>
   <topic id="gp_dynamic_partition_pruning">
@@ -2981,10 +2981,10 @@
       <p>After changing this configuration parameter, Greenplum Database must be restarted for the
         change to take effect.</p>
       <p>The Greenplum Database metrics collection extension, when enabled, sends the collected
-        metrics over UDP to a Pivotal Greenplum Command Center agent<sup>1</sup>. </p>
-      <note><sup>1</sup> The metrics collection extension is included in Pivotal's commercial
-        version of Greenplum Database. Pivotal Greenplum Command Center is supported only with
-        Pivotal Greenplum Database.</note>
+        metrics over UDP to a VMware Tanzu Greenplum Command Center agent<sup>1</sup>. </p>
+      <note><sup>1</sup> The metrics collection extension is included in VMware's commercial
+        version of Greenplum Database. VMware Tanzu Greenplum Command Center is supported only with
+        VMware Tanzu Greenplum.</note>
       <table id="gp_enable_query_metrics">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -9319,7 +9319,7 @@ statement_mem = rg_perseg_mem / max_expected_concurrent_queries</codeblock></li>
       <p>If Greenplum Database detects a corruption in the free TID list, the free TID list is
         rebuilt, a warning is logged, and a warning is returned by queries for which the check
         failed. Greenplum Database attempts to execute the queries. </p>
-      <note otherprops="pivotal">If a warning is returned, please contact Pivotal Support.</note>
+      <note otherprops="pivotal">If a warning is returned, please contact VMware Support.</note>
       <table id="table_fkc_4pb_1w">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
