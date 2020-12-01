@@ -111,7 +111,7 @@ PGUSER = os.environ.get("PGUSER")
 if PGUSER is None:
     PGUSER = USER
 PGHOST = os.environ.get("PGHOST")
-if PGHOST is None:
+if PGHOST is None or PGHOST=="":
     PGHOST = HOST
 
 d = mkpath('config')
@@ -119,8 +119,8 @@ if not os.path.exists(d):
     os.mkdir(d)
 
 def write_config_file(config='config/config_file',file='data/external_file_01.txt',input_port='8081',columns=None, format='text', log_errors=None, error_limit=None, delimiter='|', 
-    encoding=None, escape=None, null_as=None, fill_missing_fields=None, quote=None, table='texttable', mode='insert', update_columns=['n2'],update_condition=None, match_columns=['n1','s1','s2'], staging_table=None,
-    mapping=None, externalSchema=None, preload=True, truncate=False, reuse_tables=True, fast_match=None,sql=False, before=None, after=None
+    encoding=None, escape=None, null_as=None, fill_missing_fields=None, quote=None, header=None, table='texttable', mode='insert', update_columns=['n2'],update_condition=None, 
+    match_columns=['n1','s1','s2'], staging_table=None, mapping=None, externalSchema=None, preload=True, truncate=False, reuse_tables=True, fast_match=None,sql=False, before=None, after=None
     , error_table=None):
     '''
 
@@ -182,6 +182,8 @@ def write_config_file(config='config/config_file',file='data/external_file_01.tx
         gpload_input.append({'FILL_MISSING_FIELDS':fill_missing_fields})
     if quote:
         gpload_input.append({'QUOTE':quote})
+    if header:
+        gpload_input.append({'HEADER': header})
     
     conf['GPLOAD']['INPUT'] = gpload_input
 
@@ -909,3 +911,12 @@ def test_43_gpload_column_without_data_type():
     columns = [{'"Field1"': ''},{'"Field#2"': ''}]
     write_config_file(mode='insert',reuse_tables=True,fast_match=False, file='data_file.txt',table='testSpecialChar',columns=columns, delimiter=";")
     doTest(43)
+
+def test_44_gpload_header_compat_with_4():
+    "44 gpload header attribute and make it usable in gpdb4"
+    file = mkpath('setup.sql')
+    prepare_test_file(44)
+    runfile(file)
+    copy_data('external_file_01.txt','data_file.txt')
+    write_config_file(format='text',file='data_file.txt',table='texttable',delimiter='|', header=True)
+    doTest(44)
