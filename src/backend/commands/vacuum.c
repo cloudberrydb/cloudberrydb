@@ -2741,7 +2741,7 @@ vacuum_params_to_options_list(VacuumParams *params)
 	else if (params->index_cleanup == VACOPT_TERNARY_ENABLED)
 		options = lappend(options, makeDefElem("index_cleanup", (Node *) makeInteger(1), -1));
 	else
-		elog(ERROR, "unexpected VACUUM 'index_cleanup' option '%d'", (int) params->truncate);
+		elog(ERROR, "unexpected VACUUM 'index_cleanup' option '%d'", (int) params->index_cleanup);
 
 	/* GPDB_12_MERGE_FIXME: Should we do something about 'is_wraparound',
 	 * multixact_freeze ages and other options? */
