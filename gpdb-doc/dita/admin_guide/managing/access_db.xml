@@ -329,7 +329,7 @@
           supported database drivers for Greenplum Database. Download the client tools package from
             <xref href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html"
               ><ph>Pivotal Network </ph></xref>and documentation from <xref
-            href="http://gpdb.docs.pivotal.io" scope="external" format="html"><ph>VMware Tanzu Greenplum
+            href="http://gpdb.docs.pivotal.io" scope="external" format="html"><ph>Tanzu Greenplum
               Documentation</ph></xref>. </p>
       </body>
     </topic>

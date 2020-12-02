@@ -2596,7 +2596,7 @@
         <sup>1</sup>The set classification when the parameter is set at the system level with the
           <codeph>gpconfig</codeph> utility.</note>
       <note>
-        <sup>2</sup>QuickLZ compression is available only in the commercial release of VMware Tanzu
+        <sup>2</sup>QuickLZ compression is available only in the commercial release of Tanzu
         Greenplum.</note>
     </body>
   </topic>
@@ -2981,10 +2981,10 @@
       <p>After changing this configuration parameter, Greenplum Database must be restarted for the
         change to take effect.</p>
       <p>The Greenplum Database metrics collection extension, when enabled, sends the collected
-        metrics over UDP to a VMware Tanzu Greenplum Command Center agent<sup>1</sup>. </p>
+        metrics over UDP to a Tanzu Greenplum Command Center agent<sup>1</sup>. </p>
       <note><sup>1</sup> The metrics collection extension is included in VMware's commercial
-        version of Greenplum Database. VMware Tanzu Greenplum Command Center is supported only with
-        VMware Tanzu Greenplum.</note>
+        version of Greenplum Database. Tanzu Greenplum Command Center is supported only with
+        Tanzu Greenplum.</note>
       <table id="gp_enable_query_metrics">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>

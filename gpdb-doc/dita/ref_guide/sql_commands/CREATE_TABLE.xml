@@ -517,7 +517,7 @@ CREATE [ [GLOBAL | LOCAL] {TEMPORARY | TEMP} | UNLOGGED ] TABLE [IF NOT EXISTS]
             on usual workloads. The <codeph>compresstype</codeph> option is only valid if
               <codeph>appendoptimized=TRUE</codeph>.<p>
               <note type="note"><sup>1</sup>QuickLZ compression is available only in the commercial
-                release of VMware Tanzu Greenplum .</note>
+                release of Tanzu Greenplum.</note>
             </p><p>The value <codeph>RLE_TYPE</codeph>, which is supported only if
                 <codeph>orientation</codeph>=<codeph>column</codeph> is specified, enables the
               run-length encoding (RLE) compression algorithm. RLE compresses data better than the

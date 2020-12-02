@@ -3,11 +3,11 @@
 <topic id="topic_bqz_4fx_zgb">
   <title>Platform Requirements</title>
   <!--this topic contains text for OSS and Pivotal requirements-->
-  <shortdesc>This topic describes the <ph otherprops="pivotal">VMware Tanzu Greenplum</ph><ph otherprops="oss-only">Greenplum Database 6</ph>
+  <shortdesc>This topic describes the <ph otherprops="pivotal">Tanzu Greenplum</ph><ph otherprops="oss-only">Greenplum Database 6</ph>
     platform and operating system software requirements.</shortdesc>
   <body>
     <note type="important">VMware Support does <b>not</b> provide support for open source versions
-      of Greenplum Database. Only VMware Tanzu Greenplum is supported by VMware Support.</note>
+      of Greenplum Database. Only Tanzu Greenplum is supported by VMware Support.</note>
     <p>
       <ul id="ul_kt5_ggk_1hb">
         <li><xref href="#topic13" format="dita"/><ul id="ul_fqv_pgk_1hb">
@@ -230,9 +230,9 @@
       <!--Pivotal-->
       <section otherprops="pivotal">
         <title>Data Domain Boost</title>
-        <p>VMware Tanzu Greenplum 6 supports Data Domain Boost for backup on Red Hat Enterprise
+        <p>Tanzu Greenplum 6 supports Data Domain Boost for backup on Red Hat Enterprise
           Linux. This table lists the versions of Data Domain Boost SDK and DDOS supported by
-          VMware Tanzu Greenplum 6.</p>
+          Tanzu Greenplum 6.</p>
         <table id="pm463365" class="- topic/table ">
           <title class="- topic/title ">Data Domain Boost Compatibility</title>
           <tgroup cols="3" class="- topic/tgroup ">
@@ -256,7 +256,7 @@
             </tbody>
           </tgroup>
         </table>
-        <note>In addition to the DDOS versions listed in the previous table, VMware Tanzu Greenplum
+        <note>In addition to the DDOS versions listed in the previous table, Tanzu Greenplum
           supports all minor patch releases (fourth digit releases) later than the certified
           version.</note>
       </section>

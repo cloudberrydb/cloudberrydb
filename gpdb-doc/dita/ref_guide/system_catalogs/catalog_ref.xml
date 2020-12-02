@@ -12,7 +12,7 @@
       catalog for Greenplum Database resides on the master instance.</p>
     <note type="warning"> Changes to Greenplum Database system
       catalog tables or views are not supported. If a catalog table or view is changed<ph
-        otherprops="pivotal"> by the customer</ph>, the <ph otherprops="pivotal">VMware Tanzu Greenplum
+        otherprops="pivotal"> by the customer</ph>, the <ph otherprops="pivotal">Tanzu Greenplum
        cluster is not supported. The </ph>cluster must be reinitialized and restored<ph
         otherprops="pivotal"> by the customer</ph>.</note>
     <!--links are print-only-->

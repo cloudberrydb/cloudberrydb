@@ -14,19 +14,19 @@
                     These include:</ph></p>
             <ul otherprops="pivotal">
                 <li>The <xref href="http://gpdb.docs.pivotal.io/backup-restore/latest/index.html"
-                        scope="external" format="html">VMware Tanzu Greenplum Backup and Restore</xref>
+                        scope="external" format="html">Tanzu Greenplum Backup and Restore</xref>
                     utilities.</li>
                 <li otherprops="pivotal">The <xref
                         href="https://gpdb.docs.pivotal.io/gpcopy/latest/index.html"
-                        scope="external" format="html">VMware Tanzu Greenplum Copy Utility</xref>.</li>
+                        scope="external" format="html">Tanzu Greenplum Copy Utility</xref>.</li>
                 <li otherprops="pivotal">The <xref
                         href="http://greenplum.docs.pivotal.io/streaming-server/1-4/ref/gpss-ref.html"
-                        scope="external" format="html">VMware Tanzu Greenplum Streaming Server</xref>
+                        scope="external" format="html">Tanzu Greenplum Streaming Server</xref>
                     utilities.</li>
             </ul>
             <p otherprops="pivotal">Additionally, the <xref
                     href="../client_tool_guides/about.xml" scope="peer"
-                    >VMware Tanzu Clients</xref> package is a separate download from VMware Tanzu
+                    >Tanzu Clients</xref> package is a separate download from VMware Tanzu
                 Network that includes selected utilities from the Greenplum Database server
                 installation that you can install on a client system.</p>
             <p>Greenplum Database provides the following utility programs. <ph otherprops="pivotal"
