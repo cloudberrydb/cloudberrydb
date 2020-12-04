@@ -27,8 +27,6 @@ Feature: gpstart behave tests
           And gpstart should return a return code of 0
           And all the segments are running
 
-          And the cluster is returned to a good state
-
     @concourse_cluster
     @demo_cluster
     Scenario: gpstart starts even if a segment host is unreachable
