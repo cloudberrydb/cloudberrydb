@@ -938,46 +938,4 @@ explain (analyze, verbose) select * from test_bmsparse where type > 500;
  Execution Time: 10.390 ms
 (13 rows)
 
-SET enable_seqscan = ON;
-SET enable_bitmapscan = ON;
--- eval cost with small part of distinct values and tuples, use bitmap index.
--- Note here if lots of tuples need to be returned, seq scan is cheaper.
-explain (analyze, verbose) select * from test_bmsparse where type = 2;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..204.82 rows=144 width=41) (actual time=1.972..2.112 rows=402 loops=1)
-   Output: id, type, msg
-   ->  Bitmap Heap Scan on public.test_bmsparse  (cost=0.00..204.80 rows=48 width=41) (actual time=0.223..1.706 rows=137 loops=1)
-         Output: id, type, msg
-         Recheck Cond: (test_bmsparse.type = 2)
-         ->  Bitmap Index Scan on test_bmsparse_type_idx  (cost=0.00..0.00 rows=0 width=0) (actual time=0.129..0.130 rows=1 loops=1)
-               Index Cond: (test_bmsparse.type = 2)
- Planning Time: 5.654 ms
-   (slice0)    Executor memory: 37K bytes.
-   (slice1)    Executor memory: 941K bytes avg x 3 workers, 941K bytes max (seg0).
- Memory used:  128000kB
- Optimizer: Pivotal Optimizer (GPORCA)
- Settings: enable_bitmapscan=on, enable_indexscan=on, enable_seqscan=on
- Execution Time: 2.809 ms
-(14 rows)
-
-explain (analyze, verbose) select * from test_bmsparse where type > 9990;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..341.05 rows=17 width=41) (actual time=1.032..1.212 rows=18 loops=1)
-   Output: id, type, msg
-   ->  Bitmap Heap Scan on public.test_bmsparse  (cost=0.00..341.05 rows=6 width=41) (actual time=0.692..0.791 rows=12 loops=1)
-         Output: id, type, msg
-         Recheck Cond: (test_bmsparse.type > 9990)
-         ->  Bitmap Index Scan on test_bmsparse_type_idx  (cost=0.00..0.00 rows=0 width=0) (actual time=0.338..0.338 rows=1 loops=1)
-               Index Cond: (test_bmsparse.type > 9990)
- Planning Time: 5.081 ms
-   (slice0)    Executor memory: 37K bytes.
-   (slice1)    Executor memory: 1144K bytes avg x 3 workers, 1699K bytes max (seg2).
- Memory used:  128000kB
- Optimizer: Pivotal Optimizer (GPORCA)
- Settings: enable_bitmapscan=on, enable_indexscan=on, enable_seqscan=on
- Execution Time: 2.351 ms
-(14 rows)
-
 DROP TABLE test_bmsparse;

@@ -389,11 +389,4 @@ SET enable_seqscan = OFF;
 SET enable_bitmapscan = OFF;
 explain (analyze, verbose) select * from test_bmsparse where type > 500;
 
-
-SET enable_seqscan = ON;
-SET enable_bitmapscan = ON;
--- eval cost with small part of distinct values and tuples, use bitmap index.
--- Note here if lots of tuples need to be returned, seq scan is cheaper.
-explain (analyze, verbose) select * from test_bmsparse where type = 2;
-explain (analyze, verbose) select * from test_bmsparse where type > 9990;
 DROP TABLE test_bmsparse;
