@@ -2768,7 +2768,10 @@ CExpressionPreprocessor::PexprPreprocess(
 
 	CExpression *pexprConvert2In = pexprUnnested;
 
-	if (GPOS_FTRACE(EopttraceArrayConstraints))
+	// GPDB_12_MERGE_FIXME: Although we've enabled EopttraceArrayConstraints,
+	// the following conversion is causing problems; and might be very
+	// inefficient! Disable for noe.
+	if (GPOS_FTRACE(EopttraceArrayConstraints) && false)
 	{
 		// (9.5) ensure predicates are array IN or NOT IN where applicable
 		pexprConvert2In = PexprConvert2In(mp, pexprUnnested);

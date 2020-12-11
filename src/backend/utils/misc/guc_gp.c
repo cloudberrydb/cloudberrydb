@@ -2608,7 +2608,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_array_constraints,
-		false,
+		true,
 		NULL, NULL, NULL
 	},
 
