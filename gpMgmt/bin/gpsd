@@ -6,6 +6,7 @@ import datetime
 import subprocess
 import os
 import platform
+import pwd
 import sys
 import re
 from contextlib import closing
@@ -123,7 +124,7 @@ def main():
     envOpts = os.environ
     db = args[0]
     host = options.host or platform.node()
-    user = options.user or ('PGUSER' in envOpts and envOpts['PGUSER']) or os.getlogin()
+    user = options.user or ('PGUSER' in envOpts and envOpts['PGUSER']) or pwd.getpwuid(os.geteuid())[0]
     port = options.port or ('PGPORT' in envOpts and envOpts['PGPORT']) or '5432'
     inclSchema = options.dumpSchema
     inclHLL = options.dumpHLL
