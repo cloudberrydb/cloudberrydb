@@ -1375,8 +1375,9 @@ CTranslatorExprToDXLUtils::PdxlnProjElem(
 	CDXLNode *pdxlnPrEl = GPOS_NEW(mp) CDXLNode(mp, pdxlopPrEl);
 
 	// create a scalar identifier for the proj element expression
-	CDXLNode *pdxlnScId = PdxlnIdent(mp, phmcrdxlnSubplans,
-									 NULL /*phmcrdxlnIndexLookup*/, colref);
+	CDXLNode *pdxlnScId =
+		PdxlnIdent(mp, phmcrdxlnSubplans, NULL /*phmcrdxlnIndexLookup*/,
+				   NULL /*phmcrulPartColId*/, colref);
 
 	if (EdxlopScalarSubPlan == pdxlnScId->GetOperator()->GetDXLOperator())
 	{
@@ -1405,6 +1406,7 @@ CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnIdent(CMemoryPool *mp,
 									  ColRefToDXLNodeMap *phmcrdxlnSubplans,
 									  ColRefToDXLNodeMap *phmcrdxlnIndexLookup,
+									  ColRefToUlongMap *phmcrulPartColId,
 									  const CColRef *colref)
 {
 	GPOS_ASSERT(NULL != colref);
@@ -1428,13 +1430,21 @@ CTranslatorExprToDXLUtils::PdxlnIdent(CMemoryPool *mp,
 		}
 	}
 
+	ULONG colid = colref->Id();
+	if (NULL != phmcrulPartColId)
+	{
+		ULONG *pul = phmcrulPartColId->Find(colref);
+		GPOS_ASSERT(NULL != pul);
+		colid = *pul;
+	}
+
 	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, colref->Name().Pstr());
 
 	IMDId *mdid = colref->RetrieveType()->MDId();
 	mdid->AddRef();
 
-	CDXLColRef *dxl_colref = GPOS_NEW(mp)
-		CDXLColRef(mdname, colref->Id(), mdid, colref->TypeModifier());
+	CDXLColRef *dxl_colref =
+		GPOS_NEW(mp) CDXLColRef(mdname, colid, mdid, colref->TypeModifier());
 
 	CDXLScalarIdent *dxl_op = GPOS_NEW(mp) CDXLScalarIdent(mp, dxl_colref);
 	return GPOS_NEW(mp) CDXLNode(mp, dxl_op);

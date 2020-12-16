@@ -39,6 +39,8 @@ extern "C" {
 #include "parser/parse_agg.h"
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
+#include "partitioning/partdesc.h"
+#include "utils/partcache.h"
 }
 #define GP_WRAP_START                                            \
 	sigjmp_buf local_sigjmp_buf;                                 \
@@ -816,23 +818,24 @@ gpdb::GetCheckConstraintOids(Oid rel_oid)
 	GP_WRAP_END;
 	return NULL;
 }
-#if 0
+
 Node *
-gpdb::GetRelationPartContraints
-	(
-	Oid rel_oid,
-	List **default_levels
-	)
+gpdb::GetRelationPartConstraints(Relation rel)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_partition, pg_partition_rule, pg_constraint */
-		return get_relation_part_constraints(rel_oid, default_levels);
+		List *part_quals = RelationGetPartitionQual(rel);
+		if (part_quals)
+		{
+			return (Node *) make_ands_explicit(part_quals);
+		}
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
+#if 0
 bool
 gpdb::HasExternalPartition
 	(

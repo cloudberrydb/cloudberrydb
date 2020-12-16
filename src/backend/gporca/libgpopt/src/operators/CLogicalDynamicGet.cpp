@@ -54,10 +54,14 @@ CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 									   CTableDescriptor *ptabdesc,
 									   ULONG ulPartIndex,
 									   CColRefArray *pdrgpcrOutput,
-									   CColRef2dArray *pdrgpdrgpcrPart)
+									   CColRef2dArray *pdrgpdrgpcrPart,
+									   IMdIdArray *partition_mdids)
 	: CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex,
-							 pdrgpcrOutput, pdrgpdrgpcrPart)
+							 pdrgpcrOutput, pdrgpdrgpcrPart),
+	  m_partition_mdids(partition_mdids)
 {
+	m_root_col_mapping_per_part =
+		ConstructRootColMappingPerPart(mp, m_pdrgpcrOutput, m_partition_mdids);
 }
 
 
@@ -71,9 +75,13 @@ CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 //---------------------------------------------------------------------------
 CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 									   CTableDescriptor *ptabdesc,
-									   ULONG ulPartIndex)
-	: CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex)
+									   ULONG ulPartIndex,
+									   IMdIdArray *partition_mdids)
+	: CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex),
+	  m_partition_mdids(partition_mdids)
 {
+	m_root_col_mapping_per_part =
+		ConstructRootColMappingPerPart(mp, m_pdrgpcrOutput, m_partition_mdids);
 }
 
 //---------------------------------------------------------------------------
@@ -84,7 +92,72 @@ CLogicalDynamicGet::CLogicalDynamicGet(CMemoryPool *mp, const CName *pnameAlias,
 //		dtor
 //
 //---------------------------------------------------------------------------
-CLogicalDynamicGet::~CLogicalDynamicGet() = default;
+CLogicalDynamicGet::~CLogicalDynamicGet()
+{
+	CRefCount::SafeRelease(m_partition_mdids);
+	CRefCount::SafeRelease(m_root_col_mapping_per_part);
+}
+
+
+// Construct a mapping from each column in root table to an index in each child
+// partition's table descr by matching column names
+ColRefToUlongMapArray *
+CLogicalDynamicGet::ConstructRootColMappingPerPart(CMemoryPool *mp,
+												   CColRefArray *root_cols,
+												   IMdIdArray *partition_mdids)
+{
+	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	ColRefToUlongMapArray *part_maps = GPOS_NEW(mp) ColRefToUlongMapArray(mp);
+	for (ULONG ul = 0; ul < partition_mdids->Size(); ++ul)
+	{
+		IMDId *part_mdid = (*partition_mdids)[ul];
+		const IMDRelation *partrel = mda->RetrieveRel(part_mdid);
+
+		GPOS_ASSERT(NULL != partrel);
+
+		ColRefToUlongMap *mapping = GPOS_NEW(mp) ColRefToUlongMap(mp);
+
+		for (ULONG i = 0; i < root_cols->Size(); ++i)
+		{
+			CColRef *root_colref = (*root_cols)[i];
+
+			BOOL found_match = false;
+			for (ULONG j = 0, idx = 0; j < partrel->ColumnCount(); ++j, ++idx)
+			{
+				const IMDColumn *coldesc = partrel->GetMdCol(j);
+				const CWStringConst *colname = coldesc->Mdname().GetMDName();
+
+				// Skip dropped columns of the child partition since its table descr is
+				// generated without dropped columns
+				if (coldesc->IsDropped())
+				{
+					--idx;
+					continue;
+				}
+
+				if (colname->Equals(root_colref->Name().Pstr()))
+				{
+					// Found the corresponding column in the child partition
+					// Save the index in the mapping
+					mapping->Insert(root_colref, GPOS_NEW(mp) ULONG(idx));
+					found_match = true;
+					break;
+				}
+			}
+
+			if (!found_match)
+			{
+				GPOS_RAISE(
+					CException::ExmaInvalid, CException::ExmiInvalid,
+					GPOS_WSZ_LIT(
+						"Cannot generate root to child partition column mapping"));
+			}
+		}
+		part_maps->Append(mapping);
+	}
+	return part_maps;
+}
 
 
 //---------------------------------------------------------------------------
@@ -149,9 +222,11 @@ CLogicalDynamicGet::PopCopyWithRemappedColumns(CMemoryPool *mp,
 		PdrgpdrgpcrCreatePartCols(mp, pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
 	CName *pnameAlias = GPOS_NEW(mp) CName(mp, *m_pnameAlias);
 	m_ptabdesc->AddRef();
+	m_partition_mdids->AddRef();
 
-	return GPOS_NEW(mp) CLogicalDynamicGet(
-		mp, pnameAlias, m_ptabdesc, m_scan_id, pdrgpcrOutput, pdrgpdrgpcrPart);
+	return GPOS_NEW(mp)
+		CLogicalDynamicGet(mp, pnameAlias, m_ptabdesc, m_scan_id, pdrgpcrOutput,
+						   pdrgpdrgpcrPart, m_partition_mdids);
 }
 
 //---------------------------------------------------------------------------
@@ -167,6 +242,18 @@ CLogicalDynamicGet::FInputOrderSensitive() const
 {
 	GPOS_ASSERT(!"Unexpected function call of FInputOrderSensitive");
 	return false;
+}
+
+CMaxCard
+CLogicalDynamicGet::DeriveMaxCard(CMemoryPool *mp,
+								  CExpressionHandle &exprhdl) const
+{
+	if (NULL == GetPartitionMdids() || GetPartitionMdids()->Size() == 0)
+	{
+		return CMaxCard(0);
+	}
+
+	return CLogical::DeriveMaxCard(mp, exprhdl);
 }
 
 //---------------------------------------------------------------------------

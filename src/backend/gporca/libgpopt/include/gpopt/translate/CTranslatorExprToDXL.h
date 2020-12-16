@@ -113,6 +113,10 @@ private:
 	// mappings CColRef -> CDXLNode used to for index predicates with outer references
 	ColRefToDXLNodeMap *m_phmcrdxlnIndexLookup;
 
+	// mappings CColRef -> ColId for translating filters for child partitions
+	// (see PdxlnFilterForChildPart())
+	ColRefToUlongMap *m_phmcrulPartColId = NULL;
+
 	// derived plan properties of the translated expression
 	CDrvdPropPlan *m_pdpplan;
 
@@ -373,6 +377,10 @@ private:
 		CExpression *pexprDynamicBitmapTableScan, CColRefArray *colref_array,
 		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
 		BOOL *pfDML);
+
+	// Construct a table descr for a child partition
+	CTableDescriptor *MakeTableDescForPart(const IMDRelation *part,
+										   CTableDescriptor *root_table_desc);
 
 	// translate a dynamic bitmap table scan
 	CDXLNode *PdxlnDynamicBitmapTableScan(
@@ -637,6 +645,18 @@ private:
 	// translate a colref set of output col into a dxl proj list
 	CDXLNode *PdxlnProjList(const CColRefSet *pcrsOutput,
 							CColRefArray *colref_array);
+
+	// Construct a project list for a child partition
+	CDXLNode *PdxlnProjListForChildPart(
+		const ColRefToUlongMap *root_col_mapping,
+		const CColRefArray *part_colrefs, const CColRefSet *reqd_colrefs,
+		const CColRefArray *colref_array);
+
+	// translate a filter expr on the root for a child partition
+	CDXLNode *PdxlnFilterForChildPart(const ColRefToUlongMap *root_col_mapping,
+									  const CColRefArray *part_colrefs,
+									  const CColRefArray *root_colrefs,
+									  CExpression *pred);
 
 	// translate a project list expression into a DXL proj list node
 	// according to the order specified in the dynamic array

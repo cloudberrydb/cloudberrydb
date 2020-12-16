@@ -2929,6 +2929,8 @@ CXformUtils::PexprBuildIndexPlan(
 	GPOS_DELETE(alias);
 	pdrgppcrIndexCols->Release();
 	outer_refs_in_index_get->Release();
+	// GPDB_12_MERGE_FIXME: ppartcnstrIndex is unused in this method
+	CRefCount::SafeRelease(ppartcnstrIndex);
 
 	CExpression *pexprIndexCond =
 		CPredicateUtils::PexprConjunction(mp, pdrgpexprIndex);

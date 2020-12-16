@@ -345,7 +345,6 @@ public:
 	static CPropConstraint *PpcDeriveConstraintFromPredicates(
 		CMemoryPool *mp, CExpressionHandle &exprhdl);
 
-
 };	// class CLogical
 
 }  // namespace gpopt

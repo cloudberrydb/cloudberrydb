@@ -71,11 +71,15 @@ CXformDynamicGet2DynamicTableScan::Transform(CXformContext *pxfctxt,
 	CColRef2dArray *pdrgpdrgpcrPart = popGet->PdrgpdrgpcrPart();
 	pdrgpdrgpcrPart->AddRef();
 
+	popGet->GetPartitionMdids()->AddRef();
+	popGet->GetRootColMappingPerPart()->AddRef();
+
 	// create alternative expression
-	CExpression *pexprAlt = GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CPhysicalDynamicTableScan(
-							mp, pname, ptabdesc, popGet->UlOpId(),
-							popGet->ScanId(), pdrgpcrOutput, pdrgpdrgpcrPart));
+	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CPhysicalDynamicTableScan(
+				mp, pname, ptabdesc, popGet->UlOpId(), popGet->ScanId(),
+				pdrgpcrOutput, pdrgpdrgpcrPart, popGet->GetPartitionMdids(),
+				popGet->GetRootColMappingPerPart()));
 	// add alternative to transformation result
 	pxfres->Add(pexprAlt);
 }

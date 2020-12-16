@@ -564,20 +564,44 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 	CColRefArray *colref_array = NULL;
 
 	const IMDRelation *pmdrel = m_pmda->RetrieveRel(table_descr->MDId());
+	IMDRelation::Erelstoragetype root_storage_type =
+		pmdrel->RetrieveRelStorageType();
 	if (pmdrel->IsPartitioned())
 	{
 		GPOS_ASSERT(EdxlopLogicalGet == edxlopid);
 
+		IMdIdArray *partition_mdids = pmdrel->ChildPartitionMdids();
+		for (ULONG ul = 0; ul < partition_mdids->Size(); ++ul)
+		{
+			IMDId *part_mdid = (*partition_mdids)[ul];
+			const IMDRelation *partrel = m_pmda->RetrieveRel(part_mdid);
+			if (partrel->RetrieveRelStorageType() != root_storage_type)
+			{
+				GPOS_RAISE(
+					gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+					GPOS_WSZ_LIT(
+						"Partitioned table with heterogeneous storage types"));
+			}
+			if (partrel->IsPartitioned())
+			{
+				// Multi-level partitioned tables are unsupported - fall back
+				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
+			}
+		}
+
 		// generate a part index id
 		ULONG part_idx_id = COptCtxt::PoctxtFromTLS()->UlPartIndexNextVal();
-		popGet = GPOS_NEW(m_mp)
-			CLogicalDynamicGet(m_mp, pname, ptabdesc, part_idx_id);
+		partition_mdids->AddRef();
+		popGet = GPOS_NEW(m_mp) CLogicalDynamicGet(
+			m_mp, pname, ptabdesc, part_idx_id, partition_mdids);
 		CLogicalDynamicGet *popDynamicGet =
 			CLogicalDynamicGet::PopConvert(popGet);
 
 		// get the output column references from the dynamic get
 		colref_array = popDynamicGet->PdrgpcrOutput();
 
+#if 0
 		// if there are no indices, we only generate a dummy partition constraint because
 		// the constraint might be expensive to compute and it is not needed
 		BOOL fDummyConstraint = 0 == pmdrel->IndexCount();
@@ -585,6 +609,7 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 			m_mp, m_pmda, popDynamicGet->PdrgpdrgpcrPart(),
 			pmdrel->MDPartConstraint(), colref_array, fDummyConstraint);
 		popDynamicGet->SetPartConstraint(ppartcnstr);
+#endif
 	}
 	else
 	{

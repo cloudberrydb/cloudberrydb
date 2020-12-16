@@ -1109,6 +1109,7 @@ CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
 
 	return left_semi_join_stats;
 #endif
+	return NULL;
 }
 
 //---------------------------------------------------------------------------

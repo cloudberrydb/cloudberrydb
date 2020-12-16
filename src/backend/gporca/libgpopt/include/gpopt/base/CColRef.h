@@ -241,6 +241,14 @@ operator<<(IOstream &os, CColRef &cr)
 	return cr.OsPrint(os);
 }
 
+// hash map: CColRef -> ULONG
+typedef CHashMap<CColRef, ULONG, CColRef::HashValue, gpos::Equals<CColRef>,
+				 CleanupNULL<CColRef>, CleanupDelete<ULONG> >
+	ColRefToUlongMap;
+
+typedef CDynamicPtrArray<ColRefToUlongMap, CleanupRelease>
+	ColRefToUlongMapArray;
+
 }  // namespace gpopt
 
 #endif	// !GPOS_CColRef_H

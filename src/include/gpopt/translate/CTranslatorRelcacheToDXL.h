@@ -277,11 +277,11 @@ private:
 		Node *part_constraint, ULongPtrArray *level_with_default_part_array,
 		BOOL is_unbounded);
 
-#if 0
-			// retrieve part constraint for relation
-			static
-			CMDPartConstraintGPDB *RetrievePartConstraintForRel(CMemoryPool *mp, CMDAccessor *md_accessor, OID rel_oid, CMDColumnArray *mdcol_array, BOOL has_index);
-#endif
+	// retrieve part constraint for relation
+	static CDXLNode *RetrievePartConstraintForRel(CMemoryPool *mp,
+												  CMDAccessor *md_accessor,
+												  Relation rel,
+												  CMDColumnArray *mdcol_array);
 
 	// retrieve part constraint from a GPDB node
 	static CMDPartConstraintGPDB *RetrievePartConstraintFromNode(

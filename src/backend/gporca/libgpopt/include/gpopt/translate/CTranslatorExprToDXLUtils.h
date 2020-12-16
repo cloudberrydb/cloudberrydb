@@ -268,6 +268,7 @@ public:
 	static CDXLNode *PdxlnIdent(CMemoryPool *mp,
 								ColRefToDXLNodeMap *phmcrdxlnSubplans,
 								ColRefToDXLNodeMap *phmcrdxlnIndexLookup,
+								ColRefToUlongMap *phmcrulPartColId,
 								const CColRef *colref);
 
 	// replace subplan entry in the given map with a dxl column reference

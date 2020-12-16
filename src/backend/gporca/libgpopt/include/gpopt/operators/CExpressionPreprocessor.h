@@ -18,6 +18,7 @@
 
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+
 #include "gpopt/mdcache/CMDAccessor.h"
 
 namespace gpopt
@@ -198,6 +199,12 @@ private:
 	// reorder the scalar cmp children to ensure that left child is Scalar Ident and right Child is Scalar Const
 	static CExpression *PexprReorderScalarCmpChildren(CMemoryPool *mp,
 													  CExpression *pexpr);
+
+	static CExpression *PrunePartitions(CMemoryPool *mp, CExpression *expr);
+
+	static CConstraint *PcnstrFromChildPartition(const IMDRelation *partrel,
+												 CColRefArray *pdrgpcrOutput,
+												 ColRefToUlongMap *col_mapping);
 
 	// private ctor
 	CExpressionPreprocessor();
