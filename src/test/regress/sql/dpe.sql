@@ -12,6 +12,9 @@
 -- s/Batches: \d+/Batches: ###/
 -- end_matchsubs
 
+-- GPDB_12_MERGE_FIXME: Enable after ORCA supports DPE
+set optimizer to off;
+
 drop schema if exists dpe_single cascade;
 create schema dpe_single;
 set search_path='dpe_single';

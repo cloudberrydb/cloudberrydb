@@ -1835,13 +1835,13 @@ DROP TABLE onek_with_null;
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1
   WHERE thousand = 42 AND (tenthous = 1 OR tenthous = 3 OR tenthous = 42);
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Index Scan using tenk1_thous_tenthous on tenk1
          Index Cond: (thousand = 42)
          Filter: ((tenthous = 1) OR (tenthous = 3) OR (tenthous = 42))
- Optimizer: Pivotal Optimizer (GPORCA) version 2.64.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
 
 SELECT * FROM tenk1
@@ -1861,7 +1861,7 @@ SELECT count(*) FROM tenk1
          ->  Index Scan using tenk1_hundred on tenk1
                Index Cond: (hundred = 42)
                Filter: ((thousand = 42) OR (thousand = 99))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 SELECT count(*) FROM tenk1

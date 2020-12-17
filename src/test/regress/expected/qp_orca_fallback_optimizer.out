@@ -148,7 +148,7 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: ONLY in the FROM clause
 SELECT * FROM homer;
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: multi-level partitioned tables not supported
+DETAIL:  Feature not supported: Multi-level partitioned tables
  a | b | c  
 ---+---+----
  1 | 0 | 40
@@ -162,7 +162,7 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: ONLY in the FROM clause
 SELECT * FROM homer;
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: multi-level partitioned tables not supported
+DETAIL:  Feature not supported: Multi-level partitioned tables
  a | b | c  
 ---+---+----
  1 | 0 | 40

@@ -270,9 +270,9 @@ SELECT COUNT(*) FROM dml_union_r;
 -- GPDB_12_MERGE_FIXME: ORCA doesn't produce the right intersect plan
 set optimizer=off;
 SELECT COUNT(*) FROM (SELECT dml_union_r.* FROM dml_union_r INTERSECT (SELECT dml_union_r.* FROM dml_union_r UNION ALL SELECT dml_union_s.* FROM dml_union_s) EXCEPT SELECT dml_union_s.* FROM dml_union_s)foo;
-set optimizer=on;
 INSERT INTO dml_union_r SELECT dml_union_r.* FROM dml_union_r INTERSECT (SELECT dml_union_r.* FROM dml_union_r UNION ALL SELECT dml_union_s.* FROM dml_union_s) EXCEPT SELECT dml_union_s.* FROM dml_union_s;
 SELECT COUNT(*) FROM dml_union_r;
+set optimizer=on;
 rollback;
 
 -- @description union_test30: INSERT NON ATOMICS with union/intersect/except

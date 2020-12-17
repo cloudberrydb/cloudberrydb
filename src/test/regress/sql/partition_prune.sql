@@ -8,6 +8,12 @@
 -- start_matchsubs
 -- m/ Gather Motion [12]:1  \(slice1; segments: [12]\)/
 -- s/ Gather Motion [12]:1  \(slice1; segments: [12]\)/ Gather Motion XXX/
+-- m/Memory Usage: \d+\w?B/
+-- s/Memory Usage: \d+\w?B/Memory Usage: ###B/
+-- m/Buckets: \d+/
+-- s/Buckets: \d+/Buckets: ###/
+-- m/Batches: \d+/
+-- s/Batches: \d+/Batches: ###/
 -- end_matchsubs
 
 create table lp (a char) partition by list (a);

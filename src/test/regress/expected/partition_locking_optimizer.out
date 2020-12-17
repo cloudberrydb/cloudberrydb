@@ -413,15 +413,11 @@ select * from locktest_master where coalesce not like 'gp_%' and coalesce not li
  partlockt_1_prt_9 | AccessShareLock | relation | master
 (10 rows)
 
--- start_ignore
--- GPDB_12_MERGE_FIXME Revisit this post merge and see if we have a chance to unlock the root table
--- end_ignore
 select * from locktest_segments where coalesce not like 'gp_%' and coalesce not like 'pg_%';
      coalesce      |      mode       | locktype |   node    
 -------------------+-----------------+----------+-----------
- partlockt         | AccessShareLock | relation | 1 segment
  partlockt_1_prt_1 | AccessShareLock | relation | 1 segment
-(2 rows)
+(1 row)
 
 commit;
 begin;
