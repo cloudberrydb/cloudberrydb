@@ -428,12 +428,15 @@
                 href="https://greenplum.docs.pivotal.io/streaming-server/1-5/intro.html"
                 scope="external" format="html"> Tanzu Greenplum Streaming Server</xref>
               Documentation for more information about this feature.</li>
-            <li>Greenplum Informatica Connector v1.0.5 - The Tanzu Greenplum Connector for Informatica
-              supports high speed data transfer from an Informatica PowerCenter cluster to a Tanzu
-              Greenplum cluster for batch and streaming ETL operations.</li>
-            <li>Greenplum Spark Connector v1.6.2 - The Tanzu Greenplum Connector for Apache Spark supports
-              high speed, parallel data transfer between Greenplum and an Apache Spark
-              cluster using Spark’s Scala API.</li>
+            <li>Greenplum Connector for Apache Spark  v1.6.2 - The Tanzu Greenplum Connector for
+              Apache Spark supports high speed, parallel data transfer between Greenplum and an
+              Apache Spark cluster using Spark’s Scala API.</li>
+            <li>Greenplum Connector for Apache NiFi v1.0.0 - The Tanzu Greenplum Connector for
+              Apache NiFi enables you to set up a NiFi dataflow to load record-oriented data from
+              any source into Greenplum Database.</li>
+            <li>Greenplum Informatica Connector v1.0.5 - The Tanzu Greenplum Connector for
+              Informatica supports high speed data transfer from an Informatica PowerCenter cluster
+              to a Tanzu Greenplum cluster for batch and streaming ETL operations.</li>
             <li>Progress DataDirect JDBC Drivers v5.1.4.000223 - The Progress DataDirect JDBC
               drivers are compliant with the Type 4 architecture, but provide advanced features that
               define them as Type 5 drivers.</li>
