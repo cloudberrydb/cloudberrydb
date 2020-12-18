@@ -54,6 +54,12 @@
           Greenplum-Informatica Connector, refer to the documentation at <xref
             href="https://greenplum-informatica.docs.pivotal.io/" format="html" scope="external"
             >https://greenplum-informatica.docs.pivotal.io/</xref>.</li>
+        <li otherprops="pivotal">The Greenplum Connector for Apache NiFi enables
+          you to create data ingestion pipelines that load record-oriented data into
+          Tanzu Greenplum. For information about using this Connector, refer to
+          the <xref
+            href="https://greenplum.docs.pivotal.io/connectors/apache-nifi/1-0/index.html" format="html" scope="external"
+            >Connector documentation</xref>.</li>
       </ul>The method you choose to load data depends on the characteristics of the source
       data&#8212;its location, size, format, and any transformations required. </p>
     <p>In the simplest case, the <codeph>COPY</codeph> SQL command loads data into a table from a

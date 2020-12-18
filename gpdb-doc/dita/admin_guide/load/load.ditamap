@@ -29,6 +29,8 @@
             navtitle="Using the Greenplum-Spark Connector" locktitle="yes"/>
          <topicref href="https://greenplum-informatica.docs.pivotal.io" otherprops="pivotal"
             format="html" navtitle="Using the Greenplum-Informatica Connector" locktitle="yes"/>
+         <topicref href="https://greenplum.docs.pivotal.io/connectors/apache-nifi/1-0/loading.html" otherprops="pivotal"
+            format="html" navtitle="Loading Data with the Greenplum Connector for Apache NiFi" locktitle="yes"/>
          <topicref href="topics/transforming-xml-data.xml"/>
          <topicref href="topics/g-loading-data-with-copy.xml"/>
          <topicref href="topics/g-running-copy-in-single-row-error-isolation-mode.xml"/>
