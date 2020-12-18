@@ -1046,16 +1046,3 @@ def test_59_gpload_yaml_wrong_port():
     copy_data('external_file_01.txt','data_file.txt')
     write_config_file(port='111111',format='text',file='data_file.txt',table='texttable')
 
-@prepare_before_test(num=60)
-def test_60_gpload_local_hostname():
-    "60 gpload yaml local host with 127.0.0.1 and none and a not exist host"
-    copy_data('external_file_01.txt','data_file.txt')
-    write_config_file(local_host=['127.0.0.1'],format='text',file='data_file.txt',table='texttable')
-    write_config_file(config='config/config_file2',local_host=None,format='text',file='data_file.txt',table='texttable')
-    write_config_file(config='config/config_file3',local_host=['123.123.1.1'],format='text',file='data_file.txt',table='texttable')
-    f = open('query60.sql','w')
-    f.write("\\! gpload -f "+mkpath('config/config_file')+"\n")
-    f.write("\\! gpload -f "+mkpath('config/config_file2')+"\n")
-    f.write("\\! gpload -f "+mkpath('config/config_file3')+"\n")
-    f.close()
-
