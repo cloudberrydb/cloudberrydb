@@ -1159,7 +1159,10 @@ BufFileResume(BufFile *buffile)
 	Assert(buffile->buffer.data == NULL);
 	buffile->buffer.data = palloc(BLCKSZ);
 
-	BufFileSeek(buffile, 0, 0, SEEK_SET);
+	if (BufFileSeek(buffile, 0, 0, SEEK_SET) != 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not seek to the first block of temporary file: %m")));
 }
 
 /*
