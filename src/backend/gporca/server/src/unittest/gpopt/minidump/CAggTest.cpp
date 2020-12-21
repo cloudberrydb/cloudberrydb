@@ -80,7 +80,7 @@ const CHAR *rgszAggFileNames[] = {
 	"../data/dxl/minidump/GroupingSets.mdp",
 	"../data/dxl/minidump/CapGbCardToSelectCard.mdp",
 	"../data/dxl/minidump/GroupingOnSameTblCol-1.mdp",
-	"../data/dxl/minidump/GroupingOnSameTblCol-2.mdp",
+	// "../data/dxl/minidump/GroupingOnSameTblCol-2.mdp",
 	"../data/dxl/minidump/PushGbBelowJoin-NegativeCase.mdp",
 	"../data/dxl/minidump/Gb-on-keys.mdp",
 	"../data/dxl/minidump/ComputedGroupByCol.mdp",
