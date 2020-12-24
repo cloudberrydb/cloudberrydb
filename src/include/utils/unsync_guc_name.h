@@ -203,7 +203,6 @@
 		"gp_gang_creation_retry_count",
 		"gp_gang_creation_retry_timer",
 		"gp_global_deadlock_detector_period",
-		"gp_gxid_prefetch_num",
 		"gp_heap_require_relhasoids_match",
 		"gp_instrument_shmem_size",
 		"gp_interconnect_cache_future_packets",

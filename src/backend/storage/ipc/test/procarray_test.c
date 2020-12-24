@@ -10,6 +10,7 @@
 #define MAX_PROCS 100
 VariableCacheData vcdata;
 uint32 nextSnapshotId;
+DistributedTransactionTimeStamp distribTimeStamp;
 int num_committed_xacts;
 
 static void
@@ -17,9 +18,11 @@ setup(void)
 {
 	ShmemVariableCache = &vcdata;
 	shmNextSnapshotId = &nextSnapshotId;
+	shmDistribTimeStamp = &distribTimeStamp;
 	shmNumCommittedGxacts = &num_committed_xacts;
 
 	/* Some imaginary LWLockId number */
+	*shmDistribTimeStamp = time(NULL);
 	*shmNumCommittedGxacts = 0;
 
 	allTmGxact = malloc(sizeof(TMGXACT)*MAX_PROCS);
@@ -48,8 +51,9 @@ test__CreateDistributedSnapshot(void **state)
 	expect_value_count(LWLockHeldByMe, l, ProcArrayLock, -1);
 	will_return_count(LWLockHeldByMe, true, -1);
 #endif
+	will_return_count(getDtmStartTime, 0, -1);
 
-	ShmemVariableCache->latestCompletedGxid = 24;
+	ShmemVariableCache->latestCompletedDxid = 24;
 
 	/* This is going to act as our gxact */
 	allTmGxact[procArray->pgprocnos[0]].gxid = 20;

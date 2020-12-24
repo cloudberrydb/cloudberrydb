@@ -28,14 +28,15 @@
  * transaction id.
  */
 void
-dtxDeformGid(
+dtxCrackOpenGid(
 				const char *gid,
+				DistributedTransactionTimeStamp *distribTimeStamp,
 				DistributedTransactionId *distribXid)
 {
 	int			itemsScanned;
 
-	itemsScanned = sscanf(gid, UINT64_FORMAT, distribXid);
-	if (itemsScanned != 1)
+	itemsScanned = sscanf(gid, "%u-%u", distribTimeStamp, distribXid);
+	if (itemsScanned != 2)
 	{
 		/*
 		 * Returning without an error here allows tests inheritied from
@@ -46,17 +47,17 @@ dtxDeformGid(
 		 * allow non-Greenplum GIDs only in utility mode.
 		 */
 		if (Gp_role == GP_ROLE_UTILITY)
-			*distribXid = 0;
+			*distribTimeStamp = *distribXid = 0;
 		else
 			elog(ERROR, "Bad distributed transaction identifier \"%s\"", gid);
 	}
 }
 
 void
-dtxFormGid(char *gid, DistributedTransactionId gxid)
+dtxFormGID(char *gid, DistributedTransactionTimeStamp tstamp, DistributedTransactionId gxid)
 {
-	sprintf(gid, UINT64_FORMAT, gxid);
-	/* gxid is unsigned int64 */
+	sprintf(gid, "%u-%.10u", tstamp, gxid);
+	/* gxid is unsigned int32 and its max string length is 10 */
 	Assert(strlen(gid) < TMGIDSIZE);
 }
 

@@ -1706,6 +1706,7 @@ RecordTransactionCommit(void)
 			/* UNDONE: What are the locking issues here? */
 			if (isDtxPrepared || isOnePhaseQE)
 				DistributedLog_SetCommittedTree(xid, nchildren, children,
+												getDistributedTransactionTimestamp(),
 												getDistributedTransactionId(),
 												/* isRedo */ false);
 
@@ -1789,11 +1790,11 @@ cleanup:
  *	RecordDistributedForgetCommitted
  */
 void
-RecordDistributedForgetCommitted(DistributedTransactionId gxid)
+RecordDistributedForgetCommitted(TMGXACT_LOG *gxact_log)
 {
 	xl_xact_distributed_forget xlrec;
 
-	xlrec.gxid = gxid;
+	memcpy(&xlrec.gxact_log, gxact_log, sizeof(TMGXACT_LOG));
 
 	XLogBeginInsert();
 	XLogRegisterData((char *) &xlrec, sizeof(xl_xact_distributed_forget));
@@ -2311,7 +2312,7 @@ SetSharedTransactionId_reader(FullTransactionId xid, CommandId cid, DtxContext d
 	currentCommandId = cid;
 	ereportif(Debug_print_full_dtm, LOG,
 			  (errmsg("qExec READER setting local xid= " UINT64_FORMAT ", cid=%u "
-					  "(distributedXid "UINT64_FORMAT"/%u)",
+					  "(distributedXid %u/%u)",
 					  U64FromFullTransactionId(TopTransactionStateData.fullTransactionId), currentCommandId,
 					  QEDtxContextInfo.distributedXid,
 					  QEDtxContextInfo.segmateSync)));
@@ -2508,12 +2509,14 @@ StartTransaction(void)
 			 * MPP: we're a QE Writer.
 			 */
 			MyTmGxact->gxid = QEDtxContextInfo.distributedXid;
+			MyTmGxact->distribTimeStamp = QEDtxContextInfo.distributedTimeStamp;
 
 			if (DistributedTransactionContext ==
 				DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER ||
 				DistributedTransactionContext ==
 				DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER)
 			{
+				Assert(QEDtxContextInfo.distributedTimeStamp != 0);
 				Assert(QEDtxContextInfo.distributedXid !=
 					   InvalidDistributedTransactionId);
 
@@ -2522,6 +2525,7 @@ StartTransaction(void)
 				 * debugging.
 				 */
 				LocalDistribXactData *ele = &MyProc->localDistribXactData;
+				ele->distribTimeStamp = QEDtxContextInfo.distributedTimeStamp;
 				ele->distribXid = QEDtxContextInfo.distributedXid;
 				ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
 			}
@@ -2539,8 +2543,8 @@ StartTransaction(void)
 
 				ereportif(Debug_print_full_dtm, LOG,
 						  (errmsg(
-							  "qExec writer setting distributedXid: "UINT64_FORMAT
-							  " sharedQDxid (shared xid " UINT64_FORMAT " -> " UINT64_FORMAT ") ready %s"
+							  "qExec writer setting distributedXid: %d "
+							  "sharedQDxid (shared xid " UINT64_FORMAT " -> " UINT64_FORMAT ") ready %s"
 							  " (shared timeStamp = " INT64_FORMAT " -> "
 							  INT64_FORMAT ")",
 							  SharedLocalSnapshotSlot->distributedXid,
@@ -2562,6 +2566,7 @@ StartTransaction(void)
 			 */
 			Assert (SharedLocalSnapshotSlot != NULL);
 			MyTmGxact->gxid = QEDtxContextInfo.distributedXid;
+			MyTmGxact->distribTimeStamp = QEDtxContextInfo.distributedTimeStamp;
 
 			/*
 			 * Snapshot must not be created before setting transaction
@@ -2578,8 +2583,8 @@ StartTransaction(void)
 			if (unlikely(Debug_print_full_dtm))
 			{
 				LWLockAcquire(SharedSnapshotLock, LW_SHARED); /* For SharedSnapshotDump() */
-				ereport(LOG, (errmsg("qExec reader: distributedXid "UINT64_FORMAT" currcid %d "
-									   "gxid = "UINT64_FORMAT" DtxContext '%s' sharedsnapshots: %s",
+				ereport(LOG, (errmsg("qExec reader: distributedXid %d currcid %d "
+									   "gxid = %u DtxContext '%s' sharedsnapshots: %s",
 									   QEDtxContextInfo.distributedXid,
 									   QEDtxContextInfo.curcid,
 									   getDistributedTransactionId(),
@@ -2603,7 +2608,7 @@ StartTransaction(void)
 
 	ereportif(Debug_print_snapshot_dtm, LOG,
 			  (errmsg("[Distributed Snapshot #%u] *StartTransaction* "
-					  "(gxid = "UINT64_FORMAT", xid = " UINT64_FORMAT ", '%s')",
+					  "(gxid = %u, xid = " UINT64_FORMAT ", '%s')",
 					  (!FirstSnapshotSet ? 0 :
 					   GetTransactionSnapshot()->
 					   distribSnapshotWithLocalMapping.ds.distribSnapshotId),
@@ -6813,6 +6818,7 @@ XactLogCommitRecord(TimestampTz commit_time,
 	if (isDtxPrepared || isOnePhaseQE)
 	{
 		xl_xinfo.xinfo |= XACT_XINFO_HAS_DISTRIB;
+		xl_distrib.distrib_timestamp = getDistributedTransactionTimestamp();
 		xl_distrib.distrib_xid = getDistributedTransactionId();
 	}
 
@@ -7061,10 +7067,10 @@ xact_redo_commit(xl_xact_parsed_commit *parsed,
 	AdvanceNextFullTransactionIdPastXid(max_xid);
 
 	/* also update distributed commit log */
-	if (parsed->distribXid != 0)
+	if (parsed->distribXid != 0 && parsed->distribTimeStamp != 0)
 	{
 		DistributedLog_SetCommittedTree(xid, parsed->nsubxacts, parsed->subxacts,
-										parsed->distribXid,
+										parsed->distribTimeStamp, parsed->distribXid,
 										/* isRedo */ true);
 	}
 
@@ -7215,6 +7221,9 @@ xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
 							 XLogRecPtr lsn,
 							 RepOriginId origin_id)
 {
+	TMGXACT_LOG gxact_log;
+	char gid[TMGIDSIZE];
+	DistributedTransactionTimeStamp	distribTimeStamp;
 	DistributedTransactionId 		distribXid;
 
 	TransactionId max_xid;
@@ -7224,7 +7233,13 @@ xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
 	/* Make sure nextFullXid is beyond any XID mentioned in the record. */
 	AdvanceNextFullTransactionIdPastXid(max_xid);
 
+	distribTimeStamp = parsed->distribTimeStamp;
 	distribXid = parsed->distribXid;
+
+	/* Construct the global transaction log */
+	snprintf(gid, TMGIDSIZE, "%u-%.10u", distribTimeStamp, distribXid);
+	memcpy(&gxact_log.gid, gid, TMGIDSIZE);
+	gxact_log.gxid = distribXid;
 
 	if (TransactionIdIsValid(xid))
 	{
@@ -7248,7 +7263,8 @@ xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
 
 		/* Add the committed subtransactions to the DistributedLog, too. */
 		DistributedLog_SetCommittedTree(xid, parsed->nsubxacts, parsed->subxacts,
-										distribXid,
+										distribTimeStamp,
+										gxact_log.gxid,
 										/* isRedo */ true);
 
 		TransactionIdCommitTree(xid, parsed->nsubxacts, parsed->subxacts);
@@ -7261,7 +7277,7 @@ xact_redo_distributed_commit(xl_xact_parsed_commit *parsed,
 	/*
 	 * End copy of xact_redo_commit logic.
 	 */
-	redoDistributedCommitRecord(distribXid);
+	redoDistributedCommitRecord(&gxact_log);
 }
 
 static void
@@ -7324,7 +7340,7 @@ xact_redo_abort(xl_xact_parsed_abort *parsed, TransactionId xid)
 static void
 xact_redo_distributed_forget(xl_xact_distributed_forget *xlrec, TransactionId xid pg_attribute_unused() )
 {
-	redoDistributedForgetCommitRecord(xlrec->gxid);
+	redoDistributedForgetCommitRecord(&xlrec->gxact_log);
 }
 
 

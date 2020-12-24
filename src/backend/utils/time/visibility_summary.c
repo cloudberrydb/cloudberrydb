@@ -223,6 +223,7 @@ static char *
 GetTupleVisibilityDistribId(TransactionId xid,
 							TupleTransactionStatus status)
 {
+	DistributedTransactionTimeStamp distribTimeStamp;
 	DistributedTransactionId distribXid;
 
 	switch (status)
@@ -238,12 +239,14 @@ GetTupleVisibilityDistribId(TransactionId xid,
 		case TupleTransactionStatus_HintCommitted:
 		case TupleTransactionStatus_CLogCommitted:
 			if ((!IS_QUERY_DISPATCHER()) &&
-				DistributedLog_CommittedCheck(xid, &distribXid))
+				DistributedLog_CommittedCheck(xid,
+											  &distribTimeStamp,
+											  &distribXid))
 			{
 				char	   *distribId;
 
 				distribId = palloc(TMGIDSIZE);
-				dtxFormGid(distribId, distribXid);
+				dtxFormGID(distribId, distribTimeStamp, distribXid);
 				return distribId;
 			}
 			else

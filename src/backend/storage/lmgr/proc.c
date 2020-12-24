@@ -579,7 +579,7 @@ InitProcess(void)
 
 	/* Init gxact */
 	MyTmGxact->gxid = InvalidDistributedTransactionId;
-	resetTmGxact();
+	resetGxact();
 
 	/*
 	 * Arrange to clean up at backend exit.

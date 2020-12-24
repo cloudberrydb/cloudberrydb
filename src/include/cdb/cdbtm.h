@@ -13,9 +13,6 @@
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbdtxcontextinfo.h"
 #include "cdb/cdbpublic.h"
-#ifndef FRONTEND
-#include "storage/s_lock.h"
-#endif
 #include "nodes/plannodes.h"
 
 struct Gang;
@@ -196,11 +193,13 @@ typedef enum
 typedef struct TMGXACT_UTILITY_MODE_REDO
 {
 	bool		committed;
-	DistributedTransactionId gxid;
+	TMGXACT_LOG	gxact_log;
 }	TMGXACT_UTILITY_MODE_REDO;
 
 typedef struct TMGXACT
 {
+	DistributedTransactionTimeStamp	distribTimeStamp;
+
 	/*
 	 * Like PGPROC->xid to local transaction, gxid is set if distributed
 	 * transaction needs two-phase, and it's reset when distributed
@@ -240,6 +239,7 @@ typedef struct TMGXACTLOCAL
 typedef struct TMGXACTSTATUS
 {
 	DistributedTransactionId	gxid;
+	char						gid[TMGIDSIZE];
  	DtxState					state;
 	int							sessionId;
 	DistributedTransactionId	xminDistributedSnapshot;
@@ -253,17 +253,11 @@ typedef struct TMGALLXACTSTATUS
 	TMGXACTSTATUS		*statusArray;
 } TMGALLXACTSTATUS;
 
-typedef enum
-{
-	DTX_RECOVERY_EVENT_ABORT_PREPARED	= 1 << 0,
-	DTX_RECOVERY_EVENT_BUMP_GXID			= 1 << 1
-} DtxRecoveryEvent;
 
 #define DTM_DEBUG3 (Debug_print_full_dtm ? LOG : DEBUG3)
 #define DTM_DEBUG5 (Debug_print_full_dtm ? LOG : DEBUG5)
 
 extern int max_tm_gxacts;
-extern int gp_gxid_prefetch_num;
 
 extern DtxContext DistributedTransactionContext;
 
@@ -271,25 +265,27 @@ extern DtxContext DistributedTransactionContext;
 extern volatile bool *shmDtmStarted;
 extern volatile bool *shmCleanupBackends;
 extern volatile pid_t *shmDtxRecoveryPid;
-extern volatile DtxRecoveryEvent *shmDtxRecoveryEvents;
+extern volatile DistributedTransactionTimeStamp *shmDistribTimeStamp;
+extern volatile DistributedTransactionId *shmGIDSeq;
 extern uint32 *shmNextSnapshotId;
-#ifndef FRONTEND
-extern slock_t *shmDtxRecoveryEventLock;
-extern slock_t *shmGxidGenLock;
-#endif
-extern DistributedTransactionId *shmCommittedGxidArray;
+extern TMGXACT_LOG *shmCommittedGxactArray;
 extern volatile int *shmNumCommittedGxacts;
 
 extern char *DtxStateToString(DtxState state);
 extern char *DtxProtocolCommandToString(DtxProtocolCommand command);
 extern char *DtxContextToString(DtxContext context);
-extern void dtxDeformGid(const char	*gid,
+extern DistributedTransactionTimeStamp getDtmStartTime(void);
+extern void dtxCrackOpenGid(const char	*gid,
+							DistributedTransactionTimeStamp	*distribTimeStamp,
 							DistributedTransactionId		*distribXid);
-extern void dtxFormGid(char *gid, DistributedTransactionId gxid);
+extern void dtxFormGID(char *gid,
+					   DistributedTransactionTimeStamp tstamp,
+					   DistributedTransactionId gxid);
 extern DistributedTransactionId getDistributedTransactionId(void);
+extern DistributedTransactionTimeStamp getDistributedTransactionTimestamp(void);
 extern bool getDistributedTransactionIdentifier(char *id);
 
-extern void resetTmGxact(void);
+extern void resetGxact(void);
 extern void	prepareDtxTransaction(void);
 extern bool isPreparedDtxTransaction(void);
 extern bool notifyCommittedDtxTransactionIsNeeded(void);
@@ -300,12 +296,11 @@ extern void insertingDistributedCommitted(void);
 extern void insertedDistributedCommitted(void);
 
 extern void redoDtxCheckPoint(TMGXACT_CHECKPOINT *gxact_checkpoint);
-extern void redoDistributedCommitRecord(DistributedTransactionId gxid);
-extern void redoDistributedForgetCommitRecord(DistributedTransactionId gxid);
+extern void redoDistributedCommitRecord(TMGXACT_LOG *gxact_log);
+extern void redoDistributedForgetCommitRecord(TMGXACT_LOG *gxact_log);
 
 extern void setupDtxTransaction(void);
 extern DtxState getCurrentDtxState(void);
-extern void bumpGxid(void);
 extern bool isCurrentDtxActivated(void);
 
 extern void sendDtxExplicitBegin(void);
@@ -347,8 +342,6 @@ extern void addToGxactDtxSegments(struct Gang* gp);
 extern bool CurrentDtxIsRollingback(void);
 
 extern pid_t DtxRecoveryPID(void);
-extern DtxRecoveryEvent GetDtxRecoveryEvent(void);
-extern void SetDtxRecoveryEvent(DtxRecoveryEvent event);
 extern void DtxRecoveryMain(Datum main_arg);
 extern bool DtxRecoveryStartRule(Datum main_arg);
 

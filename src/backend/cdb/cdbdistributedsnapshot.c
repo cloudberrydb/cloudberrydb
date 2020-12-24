@@ -98,15 +98,27 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 	}
 	else
 	{
+		DistributedTransactionTimeStamp checkDistribTimeStamp;
+
 		/*
 		 * Ok, now we must consult the distributed log.
 		 */
-		if (DistributedLog_CommittedCheck(localXid, &distribXid))
+		if (DistributedLog_CommittedCheck(localXid,
+										  &checkDistribTimeStamp,
+										  &distribXid))
 		{
 			/*
 			 * We found it in the distributed log.
 			 */
+			Assert(checkDistribTimeStamp != 0);
 			Assert(distribXid != InvalidDistributedTransactionId);
+
+			/*
+			 * Committed distributed transactions from other DTM starts are
+			 * weeded out.
+			 */
+			if (checkDistribTimeStamp != ds->distribTransactionTimeStamp)
+				return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
 
 			/*
 			 * We have a distributed committed xid that corresponds to the
@@ -155,12 +167,12 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 
 	/*
 	 * Any xid >= xmax is in-progress, distributed xmax points to the
-	 * latestCompletedGxid + 1.
+	 * latestCompletedDxid + 1.
 	 */
 	if (distribXid >= ds->xmax)
 	{
 		elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-			 "distributedsnapshot committed but invisible: distribXid "UINT64_FORMAT" dxmax "UINT64_FORMAT" dxmin "UINT64_FORMAT" distribSnapshotId %d",
+			 "distributedsnapshot committed but invisible: distribXid %d dxmax %d dxmin %d distribSnapshotId %d",
 			 distribXid, ds->xmax, ds->xmin, ds->distribSnapshotId);
 
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
@@ -220,6 +232,7 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 void
 DistributedSnapshot_Reset(DistributedSnapshot *distributedSnapshot)
 {
+	distributedSnapshot->distribTransactionTimeStamp = 0;
 	distributedSnapshot->xminAllDistributedSnapshots = InvalidDistributedTransactionId;
 	distributedSnapshot->distribSnapshotId = 0;
 	distributedSnapshot->xmin = InvalidDistributedTransactionId;
@@ -258,6 +271,7 @@ DistributedSnapshot_Copy(DistributedSnapshot *target,
 		 source->count,
 		 source->inProgressXidArray);
 
+	target->distribTransactionTimeStamp = source->distribTransactionTimeStamp;
 	target->xminAllDistributedSnapshots = source->xminAllDistributedSnapshots;
 	target->distribSnapshotId = source->distribSnapshotId;
 	target->xmin = source->xmin;
@@ -286,7 +300,8 @@ DistributedSnapshot_Copy(DistributedSnapshot *target,
 int
 DistributedSnapshot_SerializeSize(DistributedSnapshot *ds)
 {
-	return sizeof(DistributedSnapshotId) +
+	return sizeof(DistributedTransactionTimeStamp) +
+		sizeof(DistributedSnapshotId) +
 	/* xminAllDistributedSnapshots, xmin, xmax */
 		3 * sizeof(DistributedTransactionId) +
 	/* count */
@@ -300,6 +315,8 @@ DistributedSnapshot_Serialize(DistributedSnapshot *ds, char *buf)
 {
 	char	   *p = buf;
 
+	memcpy(p, &ds->distribTransactionTimeStamp, sizeof(DistributedTransactionTimeStamp));
+	p += sizeof(DistributedTransactionTimeStamp);
 	memcpy(p, &ds->xminAllDistributedSnapshots, sizeof(DistributedTransactionId));
 	p += sizeof(DistributedTransactionId);
 	memcpy(p, &ds->distribSnapshotId, sizeof(DistributedSnapshotId));
@@ -324,6 +341,8 @@ DistributedSnapshot_Deserialize(const char *buf, DistributedSnapshot *ds)
 {
 	const char *p = buf;
 
+	memcpy(&ds->distribTransactionTimeStamp, p, sizeof(DistributedTransactionTimeStamp));
+	p += sizeof(DistributedTransactionTimeStamp);
 	memcpy(&ds->xminAllDistributedSnapshots, p, sizeof(DistributedTransactionId));
 	p += sizeof(DistributedTransactionId);
 	memcpy(&ds->distribSnapshotId, p, sizeof(DistributedSnapshotId));

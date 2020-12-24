@@ -171,6 +171,7 @@ DistributedLog_InitOldestXmin(void)
  */
 TransactionId
 DistributedLog_AdvanceOldestXmin(TransactionId oldestLocalXmin,
+								 DistributedTransactionTimeStamp distribTransactionTimeStamp,
 								 DistributedTransactionId xminAllDistributedSnapshots)
 {
 	TransactionId oldestXmin;
@@ -245,7 +246,8 @@ DistributedLog_AdvanceOldestXmin(TransactionId oldestLocalXmin,
 		 * And the distributed xid is just a plain counter, so we just use the `>=` for
 		 * the comparison of gxid
 		 */
-		if (ptr->distribXid >= xminAllDistributedSnapshots)
+		if (ptr->distribTimeStamp == distribTransactionTimeStamp &&
+				ptr->distribXid >= xminAllDistributedSnapshots)
 			break;
 
 		TransactionIdAdvance(oldestXmin);
@@ -318,6 +320,7 @@ static void
 DistributedLog_SetCommittedWithinAPage(
 	int                                 numLocIds,
 	TransactionId 						*localXid,
+	DistributedTransactionTimeStamp		distribTimeStamp,
 	DistributedTransactionId 			distribXid,
 	bool								isRedo)
 {
@@ -359,27 +362,32 @@ DistributedLog_SetCommittedWithinAPage(
 
 		int	entryno = TransactionIdToEntry(localXid[i]);
 
-		if (ptr[entryno].distribXid != 0)
+		if (ptr[entryno].distribTimeStamp != 0 || ptr[entryno].distribXid != 0)
 		{
+			if (ptr[entryno].distribTimeStamp != distribTimeStamp)
+				elog(ERROR,
+					 "Current distributed timestamp = %u does not match input timestamp = %u for local xid = %u in distributed log (page = %d, entryno = %d)",
+					 ptr[entryno].distribTimeStamp, distribTimeStamp,
+					 localXid[i], page, entryno);
+
 			if (ptr[entryno].distribXid != distribXid)
 				elog(ERROR,
-					 "Current distributed xid = "UINT64_FORMAT" does not match"
-					 " input distributed xid = "UINT64_FORMAT" for "
-					 "local xid = %u in distributed log (page = %d, entryno = %d)",
+					 "Current distributed xid = %u does not match input distributed xid = %u for local xid = %u in distributed log (page = %d, entryno = %d)",
 					 ptr[entryno].distribXid, distribXid, localXid[i], page, entryno);
 
 			alreadyThere = true;
 		}
 		else
 		{
+			ptr[entryno].distribTimeStamp = distribTimeStamp;
 			ptr[entryno].distribXid = distribXid;
 
 			DistributedLogCtl->shared->page_dirty[slotno] = true;
 		}
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "DistributedLog_SetCommitted with local xid = %d (page = %d, entryno = %d) and distributed transaction xid = "UINT64_FORMAT" status = %s",
-			 localXid[i], page, entryno, distribXid,
+			 "DistributedLog_SetCommitted with local xid = %d (page = %d, entryno = %d) and distributed transaction xid = %u (timestamp = %u) status = %s",
+			 localXid[i], page, entryno, distribXid, distribTimeStamp,
 			 (alreadyThere ? "already there" : "set"));
 	}
 
@@ -393,6 +401,7 @@ DistributedLog_SetCommittedWithinAPage(
  */
 static void
 DistributedLog_SetCommittedByPages(int nsubxids, TransactionId *subxids,
+								   DistributedTransactionTimeStamp distribTimeStamp,
 								   DistributedTransactionId distribXid,
 								   bool isRedo)
 {
@@ -412,7 +421,7 @@ DistributedLog_SetCommittedByPages(int nsubxids, TransactionId *subxids,
 		}
 
 		DistributedLog_SetCommittedWithinAPage(num_on_page, subxids + start_of_range,
-											   distribXid, isRedo);
+											   distribTimeStamp, distribXid, isRedo);
 	}
 }
 
@@ -422,15 +431,18 @@ DistributedLog_SetCommittedByPages(int nsubxids, TransactionId *subxids,
  */
 void
 DistributedLog_SetCommittedTree(TransactionId xid, int nxids, TransactionId *xids,
+								DistributedTransactionTimeStamp	distribTimeStamp,
 								DistributedTransactionId distribXid,
 								bool isRedo)
 {
 	if (!IS_QUERY_DISPATCHER())
 	{
-		DistributedLog_SetCommittedWithinAPage(1, &xid, distribXid, isRedo);
+		DistributedLog_SetCommittedWithinAPage(1, &xid, distribTimeStamp,
+											   distribXid, isRedo);
 
 		/* add entry for sub-transaction page at time */
-		DistributedLog_SetCommittedByPages(nxids, xids, distribXid, isRedo);
+		DistributedLog_SetCommittedByPages(nxids, xids, distribTimeStamp,
+										   distribXid, isRedo);
 	}
 }
 
@@ -440,6 +452,7 @@ DistributedLog_SetCommittedTree(TransactionId xid, int nxids, TransactionId *xid
 void
 DistributedLog_GetDistributedXid(
 	TransactionId 						localXid,
+	DistributedTransactionTimeStamp		*distribTimeStamp,
 	DistributedTransactionId 			*distribXid)
 {
 	int			page = TransactionIdToPage(localXid);
@@ -452,6 +465,7 @@ DistributedLog_GetDistributedXid(
 	slotno = SimpleLruReadPage_ReadOnly(DistributedLogCtl, page, localXid);
 	ptr = (DistributedLogEntry *) DistributedLogCtl->shared->page_buffer[slotno];
 	ptr += entryno;
+	*distribTimeStamp = ptr->distribTimeStamp;
 	*distribXid = ptr->distribXid;
 	LWLockRelease(DistributedLogControlLock);
 }
@@ -462,6 +476,7 @@ DistributedLog_GetDistributedXid(
 bool
 DistributedLog_CommittedCheck(
 	TransactionId 						localXid,
+	DistributedTransactionTimeStamp		*distribTimeStamp,
 	DistributedTransactionId 			*distribXid)
 {
 	int			page = TransactionIdToPage(localXid);
@@ -480,6 +495,7 @@ DistributedLog_CommittedCheck(
 
 	if (TransactionIdPrecedes(localXid, oldestXmin))
 	{
+		*distribTimeStamp = 0;	// Set it to something.
 		*distribXid = 0;
 		return false;
 	}
@@ -488,19 +504,31 @@ DistributedLog_CommittedCheck(
 	slotno = SimpleLruReadPage_ReadOnly(DistributedLogCtl, page, localXid);
 	ptr = (DistributedLogEntry *) DistributedLogCtl->shared->page_buffer[slotno];
 	ptr += entryno;
+	*distribTimeStamp = ptr->distribTimeStamp;
 	*distribXid = ptr->distribXid;
 	ptr = NULL;
 	LWLockRelease(DistributedLogControlLock);
 	LWLockRelease(DistributedLogTruncateLock);
 
-	if (*distribXid != 0)
+	if (*distribTimeStamp != 0 && *distribXid != 0)
 	{
 		return true;
 	}
-	else
+	else if (*distribTimeStamp == 0 && *distribXid == 0)
 	{
 		// Not found.
 		return false;
+	}
+	else
+	{
+		if (*distribTimeStamp == 0)
+			elog(ERROR, "Found zero timestamp for local xid = %u in distributed log (distributed xid = %u, page = %d, entryno = %d)",
+			     localXid, *distribXid, page, entryno);
+
+		elog(ERROR, "Found zero distributed xid for local xid = %u in distributed log (dtx start time = %u, page = %d, entryno = %d)",
+			     localXid, *distribTimeStamp, page, entryno);
+
+		return false;	// We'll never reach here.
 	}
 }
 
@@ -511,6 +539,7 @@ DistributedLog_CommittedCheck(
 bool
 DistributedLog_ScanForPrevCommitted(
 	TransactionId 						*indexXid,
+	DistributedTransactionTimeStamp 	*distribTimeStamp,
 	DistributedTransactionId 			*distribXid)
 {
 	TransactionId highXid;
@@ -519,6 +548,7 @@ DistributedLog_ScanForPrevCommitted(
 	int slotno;
 	TransactionId xid;
 
+	*distribTimeStamp = 0;	// Set it to something.
 	*distribXid = 0;
 
 	if ((*indexXid) == InvalidTransactionId)
@@ -548,6 +578,7 @@ DistributedLog_ScanForPrevCommitted(
 			LWLockRelease(DistributedLogControlLock);
 
 			*indexXid = InvalidTransactionId;
+			*distribTimeStamp = 0;	// Set it to something.
 			*distribXid = 0;
 			return false;
 		}
@@ -562,9 +593,10 @@ DistributedLog_ScanForPrevCommitted(
 			ptr = (DistributedLogEntry *) DistributedLogCtl->shared->page_buffer[slotno];
 			ptr += entryno;
 
-			if (ptr->distribXid != 0)
+			if (ptr->distribTimeStamp != 0 && ptr->distribXid != 0)
 			{
 				*indexXid = xid;
+				*distribTimeStamp = ptr->distribTimeStamp;
 				*distribXid = ptr->distribXid;
 				LWLockRelease(DistributedLogControlLock);
 
@@ -577,6 +609,7 @@ DistributedLog_ScanForPrevCommitted(
 		if (lowXid == FirstNormalTransactionId)
 		{
 			*indexXid = InvalidTransactionId;
+			*distribTimeStamp = 0;	// Set it to something.
 			*distribXid = 0;
 			return false;
 		}

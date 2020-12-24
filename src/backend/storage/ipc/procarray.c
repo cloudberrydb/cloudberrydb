@@ -378,14 +378,13 @@ ProcArrayRemove(PGPROC *proc, TransactionId latestXid)
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		/*
-		 * Remember that the distributed xid is just a plain counter, so we just use the `<` for
+		 * Remeber that the distributed xid is just a plain counter, so we just use the `<` for
 		 * the comparison of gxid
 		 */
 		DistributedTransactionId gxid = allTmGxact[proc->pgprocno].gxid;
-
 		if (InvalidDistributedTransactionId != gxid &&
-			ShmemVariableCache->latestCompletedGxid < gxid)
-			ShmemVariableCache->latestCompletedGxid = gxid;
+			ShmemVariableCache->latestCompletedDxid < gxid)
+			ShmemVariableCache->latestCompletedDxid = gxid;
 	}
 
 	for (index = 0; index < arrayP->numProcs; index++)
@@ -410,24 +409,25 @@ ProcArrayRemove(PGPROC *proc, TransactionId latestXid)
 
 
 void
-ProcArrayEndGxact(TMGXACT *tmGxact)
+ProcArrayEndGxact(TMGXACT *gxact)
 {
-	DistributedTransactionId gxid = tmGxact->gxid;
+	DistributedTransactionId gxid = gxact->gxid;
 
 	AssertImply(Gp_role == GP_ROLE_DISPATCH && gxid != InvalidDistributedTransactionId,
 				LWLockHeldByMe(ProcArrayLock));
-	tmGxact->gxid = InvalidDistributedTransactionId;
-	tmGxact->xminDistributedSnapshot = InvalidDistributedTransactionId;
-	tmGxact->includeInCkpt = false;
-	tmGxact->sessionId = 0;
+	gxact->gxid = InvalidDistributedTransactionId;
+	gxact->distribTimeStamp = 0;
+	gxact->xminDistributedSnapshot = InvalidDistributedTransactionId;
+	gxact->includeInCkpt = false;
+	gxact->sessionId = 0;
 
 	/*
 	 * Remeber that the distributed xid is just a plain counter, so we just use the `<` for
 	 * the comparison of gxid
 	 */
 	if (InvalidDistributedTransactionId != gxid &&
-		ShmemVariableCache->latestCompletedGxid < gxid)
-		ShmemVariableCache->latestCompletedGxid = gxid;
+		ShmemVariableCache->latestCompletedDxid < gxid)
+		ShmemVariableCache->latestCompletedDxid = gxid;
 }
 
 /*
@@ -453,7 +453,7 @@ void
 ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 {
 	PGXACT	   *pgxact = &allPgXact[proc->pgprocno];
-	TMGXACT	   *tmGxact = &allTmGxact[proc->pgprocno];
+	TMGXACT	   *gxact = &allTmGxact[proc->pgprocno];
 
 #ifdef FAULT_INJECTOR
 	FaultInjector_InjectFaultIfSet("before_xact_end_procarray",
@@ -461,7 +461,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 			MyProcPort ? MyProcPort->database_name : "",  // databaseName
 			""); // tableName
 #endif
-	if (TransactionIdIsValid(latestXid) || TransactionIdIsValid(tmGxact->gxid))
+	if (TransactionIdIsValid(latestXid) || TransactionIdIsValid(gxact->gxid))
 	{
 		/*
 		 * We must lock ProcArrayLock while clearing our advertised XID, so
@@ -470,7 +470,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 		 * src/backend/access/transam/README.
 		 */
 		Assert(TransactionIdIsValid(allPgXact[proc->pgprocno].xid) ||
-			   TransactionIdIsValid(tmGxact->gxid) ||
+			   TransactionIdIsValid(gxact->gxid) ||
 			   (IsBootstrapProcessingMode() && latestXid == BootstrapTransactionId));
 
 		/*
@@ -483,8 +483,8 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 			if (TransactionIdIsValid(latestXid))
 				ProcArrayEndTransactionInternal(proc, pgxact, latestXid);
 
-			if (TransactionIdIsValid(tmGxact->gxid))
-				ProcArrayEndGxact(tmGxact);
+			if (TransactionIdIsValid(gxact->gxid))
+				ProcArrayEndGxact(gxact);
 
 			LWLockRelease(ProcArrayLock);
 		}
@@ -497,7 +497,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 	 * anyone else's calculation of a snapshot.  We might change their
 	 * estimate of global xmin, but that's OK.
 	 *
-	 * NB: this may reset the pgxact and tmGxact twice (not including the xid
+	 * NB: this may reset the pgxact and gxact twice (not including the xid
 	 * and gxid), it should be no harm to the correctness, just an easy way to
 	 * handle the cases like: there's a valid distributed XID but no local XID.
 	 */
@@ -514,7 +514,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid)
 	Assert(pgxact->nxids == 0);
 	Assert(pgxact->overflowed == false);
 
-	resetTmGxact();
+	resetGxact();
 }
 
 /*
@@ -630,13 +630,13 @@ ProcArrayGroupClearXid(PGPROC *proc, TransactionId latestXid)
 	{
 		PGPROC	   *proc = &allProcs[nextidx];
 		PGXACT	   *pgxact = &allPgXact[nextidx];
-		TMGXACT	   *tmGxact = &allTmGxact[nextidx];
+		TMGXACT	   *gxact = &allTmGxact[nextidx];
 
 		if (TransactionIdIsValid(proc->procArrayGroupMemberXid))
 			ProcArrayEndTransactionInternal(proc, pgxact, proc->procArrayGroupMemberXid);
 
-		if (TransactionIdIsValid(tmGxact->gxid))
-			ProcArrayEndGxact(tmGxact);
+		if (TransactionIdIsValid(gxact->gxid))
+			ProcArrayEndGxact(gxact);
 
 		/* Move to next proc in list. */
 		nextidx = pg_atomic_read_u32(&proc->procArrayGroupNext);
@@ -674,7 +674,7 @@ ProcArrayGroupClearXid(PGPROC *proc, TransactionId latestXid)
  *
  * This is used after successfully preparing a 2-phase transaction.  We are
  * not actually reporting the transaction's XID as no longer running --- it
- * will still appear as running because the 2PC's tmGxact is in the ProcArray
+ * will still appear as running because the 2PC's gxact is in the ProcArray
  * too.  We just have to clear out our own PGXACT.
  */
 void
@@ -685,7 +685,7 @@ ProcArrayClearTransaction(PGPROC *proc)
 	/*
 	 * We can skip locking ProcArrayLock here, because this action does not
 	 * actually change anyone's view of the set of running XIDs: our entry is
-	 * duplicate with the tmGxact that has already been inserted into the
+	 * duplicate with the gxact that has already been inserted into the
 	 * ProcArray.
 	 */
 	pgxact->xid = InvalidTransactionId;
@@ -1615,9 +1615,7 @@ updateSharedLocalSnapshot(DtxContextInfo *dtxContextInfo,
 	SharedLocalSnapshotSlot->ready = true;
 
 	ereport((Debug_print_full_dtm ? LOG : DEBUG5),
-			(errmsg("updateSharedLocalSnapshot for DistributedTransactionContext = '%s' "
-					"setting shared local snapshot xid = " UINT64_FORMAT " "
-					"(xmin: %d xmax: %d xcnt: %u) curcid: %d, distributedXid = "UINT64_FORMAT,
+			(errmsg("updateSharedLocalSnapshot for DistributedTransactionContext = '%s' setting shared local snapshot xid = " UINT64_FORMAT " (xmin: %u xmax: %u xcnt: %u) curcid: %d, distributedXid = %u",
 					DtxContextToString(distributedTransactionContext),
 					U64FromFullTransactionId(SharedLocalSnapshotSlot->fullXid),
 					SharedLocalSnapshotSlot->snapshot.xmin,
@@ -1627,7 +1625,7 @@ updateSharedLocalSnapshot(DtxContextInfo *dtxContextInfo,
 					SharedLocalSnapshotSlot->distributedXid)));
 
 	ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-			(errmsg("[Distributed Snapshot #%u] *Writer Set Shared* gxid "UINT64_FORMAT", (gxid = "UINT64_FORMAT", slot #%d, '%s', '%s')",
+			(errmsg("[Distributed Snapshot #%u] *Writer Set Shared* gxid %u, (gxid = %u, slot #%d, '%s', '%s')",
 					QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 					SharedLocalSnapshotSlot->distributedXid,
 					getDistributedTransactionId(),
@@ -1714,7 +1712,7 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 	}
 
 	ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-			(errmsg("[Distributed Snapshot #%u] *Start Reader Match* gxid = "UINT64_FORMAT" and currcid %d (%s)",
+			(errmsg("[Distributed Snapshot #%u] *Start Reader Match* gxid = %u and currcid %d (%s)",
 					QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 					QEDtxContextInfo.distributedXid,
 					QEDtxContextInfo.curcid,
@@ -1747,7 +1745,7 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 		{
 			if (QEDtxContextInfo.distributedXid != SharedLocalSnapshotSlot->distributedXid)
 				elog(ERROR, "transaction ID doesn't match between the reader gang "
-							"and the writer gang, expect "UINT64_FORMAT" but having "UINT64_FORMAT,
+							"and the writer gang, expect %d but having %d",
 							QEDtxContextInfo.distributedXid, SharedLocalSnapshotSlot->distributedXid);
 			copyLocalSnapshot(snapshot);
 			SetSharedTransactionId_reader(SharedLocalSnapshotSlot->fullXid, snapshot->curcid, distributedTransactionContext);
@@ -1762,8 +1760,8 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 			ereport(ERROR,
 					(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 					 errmsg("GetSnapshotData timed out waiting for Writer to set the shared snapshot."),
-					 errdetail("We are waiting for the shared snapshot to have XID: "UINT64_FORMAT" but the value "
-							   "is currently: "UINT64_FORMAT"."
+					 errdetail("We are waiting for the shared snapshot to have XID: %d but the value "
+							   "is currently: %d."
 							   " waiting for syncount to be %d but is currently %d.  ready=%d."
 							   "DistributedTransactionContext = %s. "
 							   " Our slotindex is: %d \n"
@@ -1781,7 +1779,7 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 			 * Every second issue warning.
 			 */
 			ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-					(errmsg("[Distributed Snapshot #%u] *No Match* gxid "UINT64_FORMAT" = "UINT64_FORMAT" and segmateSync %d = %d (%s)",
+					(errmsg("[Distributed Snapshot #%u] *No Match* gxid %u = %u and segmateSync %d = %d (%s)",
 							QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 							QEDtxContextInfo.distributedXid,
 							SharedLocalSnapshotSlot->distributedXid,
@@ -1791,8 +1789,8 @@ readerFillLocalSnapshot(Snapshot snapshot, DtxContext distributedTransactionCont
 
 			ereport(LOG,
 					(errmsg("GetSnapshotData did not find shared local snapshot information. "
-							"We are waiting for the shared snapshot to have XID: "UINT64_FORMAT"/%u but the value "
-							"is currently: "UINT64_FORMAT"/%u, ready=%d."
+							"We are waiting for the shared snapshot to have XID: %d/%u but the value "
+							"is currently: %d/%u, ready=%d."
 							" Our slotindex is: %d \n"
 							"DistributedTransactionContext = %s.",
 							QEDtxContextInfo.distributedXid, QEDtxContextInfo.segmateSync,
@@ -1843,15 +1841,16 @@ getAllDistributedXactStatus(TMGALLXACTSTATUS **allDistributedXactStatus)
 		{
 			/*
 			 * This function is only used by view gp_distributed_xacts. We do
-			 * not need to return a strictly correct tmGxact array. So no
-			 * 'volatile' is used for 'tmGxact'.
+			 * not need to return a strictly correct gxact array. So no
+			 * 'volatile' is used for 'gxact'.
 			 */
-			TMGXACT *tmGxact = &allTmGxact[arrayP->pgprocnos[i]];
+			TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
-			all->statusArray[i].gxid = tmGxact->gxid;
+			all->statusArray[i].gxid = gxact->gxid;
+			dtxFormGID(all->statusArray[i].gid, gxact->distribTimeStamp, gxact->gxid);
 			all->statusArray[i].state = 0; /* deprecate this field */
-			all->statusArray[i].sessionId = tmGxact->sessionId;
-			all->statusArray[i].xminDistributedSnapshot = tmGxact->xminDistributedSnapshot;
+			all->statusArray[i].sessionId = gxact->sessionId;
+			all->statusArray[i].xminDistributedSnapshot = gxact->xminDistributedSnapshot;
 		}
 
 		all->count = count;
@@ -1878,7 +1877,7 @@ void
 getDtxCheckPointInfo(char **result, int *result_size)
 {
 	TMGXACT_CHECKPOINT *gxact_checkpoint;
-	DistributedTransactionId *gxid_array;
+	TMGXACT_LOG *gxact_log_array;
 	int			i;
 	int			actual;
 	ProcArrayStruct *arrayP = procArray;
@@ -1893,11 +1892,11 @@ getDtxCheckPointInfo(char **result, int *result_size)
 	}
 
 	gxact_checkpoint = palloc(TMGXACT_CHECKPOINT_BYTES(arrayP->numProcs + *shmNumCommittedGxacts));
-	gxid_array = &gxact_checkpoint->committedGxidArray[0];
+	gxact_log_array = &gxact_checkpoint->committedGxactArray[0];
 
 	actual = 0;
 	for (; actual < *shmNumCommittedGxacts; actual++)
-		gxid_array[actual] = shmCommittedGxidArray[actual];
+		gxact_log_array[actual] = shmCommittedGxactArray[actual];
 
 	SIMPLE_FAULT_INJECTOR("checkpoint_dtx_info");
 
@@ -1918,15 +1917,18 @@ getDtxCheckPointInfo(char **result, int *result_size)
 
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
-		TMGXACT *tmGxact = &allTmGxact[arrayP->pgprocnos[i]];
+		TMGXACT_LOG *gxact_log;
+		TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
-		if (!tmGxact->includeInCkpt)
+		if (!gxact->includeInCkpt)
 			continue;
 
-		gxid_array[actual] = tmGxact->gxid;
+		gxact_log = &gxact_log_array[actual];
+		dtxFormGID(gxact_log->gid, gxact->distribTimeStamp, gxact->gxid);
+		gxact_log->gxid = gxact->gxid;
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "Add DTM checkpoint entry gid = "UINT64_FORMAT".", tmGxact->gxid);
+			 "Add DTM checkpoint entry gid = %s.", gxact_log->gid);
 
 		actual++;
 	}
@@ -1978,7 +1980,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	if (*shmNumCommittedGxacts != 0)
 		elog(ERROR, "Create distributed snapshot before DTM recovery finish");
 
-	xmin = xmax = ShmemVariableCache->latestCompletedGxid + 1;
+	xmin = xmax = ShmemVariableCache->latestCompletedDxid + 1;
 
 	/*
 	 * initialize for calculation with xmax, the calculation for this is on
@@ -2029,7 +2031,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 		ds->inProgressXidArray[count++] = gxid;
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "CreateDistributedSnapshot added inProgressDistributedXid = "UINT64_FORMAT" to snapshot",
+			 "CreateDistributedSnapshot added inProgressDistributedXid = %u to snapshot",
 			 gxid);
 	}
 
@@ -2047,6 +2049,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	 * Copy the information we just captured under lock and then sorted into
 	 * the distributed snapshot.
 	 */
+	ds->distribTransactionTimeStamp = getDtmStartTime();
 	ds->xminAllDistributedSnapshots = globalXminDistributedSnapshots;
 	ds->distribSnapshotId = distribSnapshotId;
 	ds->xmin = xmin;
@@ -2057,10 +2060,10 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 		MyTmGxact->xminDistributedSnapshot = xmin;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "CreateDistributedSnapshot distributed snapshot has xmin = "UINT64_FORMAT", count = %u, xmax = "UINT64_FORMAT".",
+		 "CreateDistributedSnapshot distributed snapshot has xmin = %u, count = %u, xmax = %u.",
 		 xmin, count, xmax);
 	elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-		 "[Distributed Snapshot #%u] *Create* (gxid = "UINT64_FORMAT"')",
+		 "[Distributed Snapshot #%u] *Create* (gxid = %u')",
 		 distribSnapshotId,
 		 MyTmGxact->gxid);
 
@@ -2458,6 +2461,7 @@ GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext)
 	{
 		if (snapshot->haveDistribSnapshot)
 			globalxmin = DistributedLog_AdvanceOldestXmin(globalxmin,
+														  ds->distribTransactionTimeStamp,
 														  ds->xminAllDistributedSnapshots);
 		else if (!gp_maintenance_mode)
 			globalxmin = DistributedLog_GetOldestXmin(globalxmin);
@@ -3150,7 +3154,7 @@ UpdateSerializableCommandId(CommandId curcid)
 		if (SharedLocalSnapshotSlot->distributedXid != QEDtxContextInfo.distributedXid)
 		{
 			ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-					(errmsg("[Distributed Snapshot #%u] *Can't Update Serializable Command Id* QDxid = "UINT64_FORMAT" (gxid = "UINT64_FORMAT", '%s')",
+					(errmsg("[Distributed Snapshot #%u] *Can't Update Serializable Command Id* QDxid = %u (gxid = %u, '%s')",
 							QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 							SharedLocalSnapshotSlot->distributedXid,
 							getDistributedTransactionId(),
@@ -3160,9 +3164,7 @@ UpdateSerializableCommandId(CommandId curcid)
 		}
 
 		ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-				(errmsg("[Distributed Snapshot #%u] *Update Serializable Command "
-						"Id* segment currcid = %d, TransactionSnapshot currcid "
-						"= %d, Shared currcid = %d (gxid = "UINT64_FORMAT", '%s')",
+				(errmsg("[Distributed Snapshot #%u] *Update Serializable Command Id* segment currcid = %d, TransactionSnapshot currcid = %d, Shared currcid = %d (gxid = %u, '%s')",
 						QEDtxContextInfo.distributedSnapshot.distribSnapshotId,
 						QEDtxContextInfo.curcid,
 						curcid,
@@ -4869,9 +4871,9 @@ ListAllGxid(void)
 
 	for (index = 0; index < arrayP->numProcs; index++)
 	{
-		volatile TMGXACT *tmGxact = &allTmGxact[arrayP->pgprocnos[index]];
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[index]];
 
-		gxid = tmGxact->gxid;
+		gxid = gxact->gxid;
 		if (gxid == InvalidDistributedTransactionId)
 			continue;
 		gxids = lappend_int(gxids, gxid);
@@ -4886,20 +4888,23 @@ ListAllGxid(void)
  * This function returns true if the gid is an ongoing dtx transaction.
  */
 bool
-IsDtxInProgress(DistributedTransactionId gxid)
+IsDtxInProgress(DistributedTransactionTimeStamp distribTimeStamp, DistributedTransactionId gxid)
 {
 	int i;
 	bool retval;
 	ProcArrayStruct *arrayP = procArray;
+
+	if (*shmDistribTimeStamp != distribTimeStamp)
+		return false;
 
 	retval = false;
 	LWLockAcquire(ProcArrayLock, LW_SHARED);
 
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
-		volatile TMGXACT *tmGxact = &allTmGxact[arrayP->pgprocnos[i]];
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
-		if (tmGxact->gxid == gxid)
+		if (gxact->gxid == gxid)
 		{
 			retval = true;
 			break;
@@ -4927,8 +4932,8 @@ GetPidByGxid(DistributedTransactionId gxid)
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
 		volatile PGPROC *proc = &allProcs[arrayP->pgprocnos[i]];
-		volatile TMGXACT *tmGxact = &allTmGxact[arrayP->pgprocnos[i]];
-		if (tmGxact->gxid == gxid)
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
+		if (gxact->gxid == gxid)
 		{
 			pid = proc->pid;
 			break;
@@ -4944,6 +4949,7 @@ DistributedTransactionId
 LocalXidGetDistributedXid(TransactionId xid)
 {
 	int index;
+	DistributedTransactionTimeStamp tstamp;
 	DistributedTransactionId gxid = InvalidDistributedTransactionId;
 	ProcArrayStruct *arrayP = procArray;
 
@@ -4953,10 +4959,10 @@ LocalXidGetDistributedXid(TransactionId xid)
 	{
 		int		 pgprocno = arrayP->pgprocnos[index];
 		volatile PGXACT *pgxact = &allPgXact[pgprocno];
-		volatile TMGXACT *tmGxact = &allTmGxact[pgprocno];
+		volatile TMGXACT *gxact = &allTmGxact[pgprocno];
 		if (xid == pgxact->xid)
 		{
-			gxid = tmGxact->gxid;
+			gxid = gxact->gxid;
 			break;
 		}
 	}
@@ -4965,7 +4971,9 @@ LocalXidGetDistributedXid(TransactionId xid)
 	/* The transaction has already committed on segment */
 	if (gxid == InvalidDistributedTransactionId)
 	{
-		DistributedLog_GetDistributedXid(xid, &gxid);
+		DistributedLog_GetDistributedXid(xid, &tstamp, &gxid);
+		AssertImply(gxid != InvalidDistributedTransactionId,
+					tstamp == MyTmGxact->distribTimeStamp);
 	}
 
 	return gxid;

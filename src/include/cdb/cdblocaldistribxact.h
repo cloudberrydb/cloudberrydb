@@ -35,8 +35,9 @@ typedef struct LocalDistribXactData
 	LocalDistribXactState		state;
 
 	/*
-	 * Distributed xid.
+	 * Distributed xid and the master's restart timestamp.
 	 */
+	DistributedTransactionTimeStamp	distribTimeStamp;
 	DistributedTransactionId 		distribXid;
 
 } LocalDistribXactData;

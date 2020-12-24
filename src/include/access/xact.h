@@ -236,7 +236,8 @@ typedef struct xl_xact_xinfo
 
 typedef struct xl_xact_distrib
 {
-	DistributedTransactionId distrib_xid;
+	TimestampTz distrib_timestamp;
+	TransactionId distrib_xid;
 } xl_xact_distrib;
 
 typedef struct xl_xact_dbinfo
@@ -353,6 +354,7 @@ typedef struct xl_xact_parsed_commit
 	XLogRecPtr	origin_lsn;
 	TimestampTz origin_timestamp;
 
+	DistributedTransactionTimeStamp distribTimeStamp;
 	DistributedTransactionId        distribXid;
 } xl_xact_parsed_commit;
 
@@ -388,7 +390,7 @@ typedef struct xl_xact_parsed_abort
  */
 typedef struct xl_xact_distributed_forget
 {
-	DistributedTransactionId gxid;
+	TMGXACT_LOG gxact_log;
 } xl_xact_distributed_forget;
 
 /* ----------------
@@ -473,7 +475,7 @@ extern void UnregisterXactCallbackOnce(XactCallback callback, void *arg);
 extern void RegisterSubXactCallback(SubXactCallback callback, void *arg);
 extern void UnregisterSubXactCallback(SubXactCallback callback, void *arg);
 
-extern void RecordDistributedForgetCommitted(DistributedTransactionId gxid);
+extern void RecordDistributedForgetCommitted(struct TMGXACT_LOG *gxact_log);
 
 extern int	xactGetCommittedChildren(TransactionId **ptr);
 
