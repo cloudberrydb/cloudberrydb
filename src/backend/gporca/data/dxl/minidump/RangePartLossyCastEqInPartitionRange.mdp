@@ -4,8 +4,8 @@
          This test is to make sure we do partition selection on lossy cast float::int predicate on partition column.
          The predicate in this test is inside the partition range.
 
-         create table foo(a float, b float) partition by range(b) (start(0) end(100) every(10));
-         explain select * from foo where b::int = 11;
+         create table bar(a float, b float) partition by range(b) (start(0) end(100) every(10));
+         explain select * from bar where b::int = 11;
 
                                             QUERY PLAN
 ---------------------------------------------------------------------------------------------------

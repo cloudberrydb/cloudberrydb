@@ -2,16 +2,16 @@
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <!--
 SQL:
-create table x ( i text, j text, k text, m text) distributed by (i) ;
-create table y ( i text, j text, k text, m text) distributed by (j)
+create table x10 ( i text, j text, k text, m text) distributed by (i) ;
+create table y10 ( i text, j text, k text, m text) distributed by (j)
 PARTITION BY RANGE(i)
 ( partition p0 end('a') exclusive, partition p1 start('a')  inclusive end('h') inclusive,
 partition p2 start('h') exclusive end('p') inclusive,partition p3 start('p') exclusive end('x'),
 default partition def);
-create INDEX y_idx on y (j);
+create INDEX y_idx on y10 (j);
 
 set optimizer_enable_indexjoin=on;
-select count(*) from x, y where (x.i > y.j AND x.j <= y.i);
+select count(*) from x10, y10 where (x10.i > y10.j AND x10.j <= y10.i);
 -->
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
