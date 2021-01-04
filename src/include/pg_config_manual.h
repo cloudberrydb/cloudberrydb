@@ -316,6 +316,12 @@
 /* #define WAL_DEBUG */
 
 /*
+ * Enable debugging print statements for B-tree related operations; see
+ * also log_btree_build_stats GUC var.
+ */
+/* #define BTREE_BUILD_STATS */
+
+/*
  * Enable tracing of resource consumption during sort operations;
  * see also the trace_sort GUC var.  For 8.1 this is enabled by default.
  */
@@ -325,6 +331,11 @@
  * Enable tracing of syncscan operations (see also the trace_syncscan GUC var).
  */
 /* #define TRACE_SYNCSCAN */
+
+/*
+ * Disable tuplesort_set_bound feature; see also optimize_bounded_sort GUC var.
+ */
+/* #define DEBUG_BOUNDED_SORT */
 
 /*
  * Other debug #defines (documentation, anyone?)
