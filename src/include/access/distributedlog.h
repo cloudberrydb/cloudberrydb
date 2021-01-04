@@ -42,9 +42,6 @@ typedef struct DistributedLogEntry
 
 } DistributedLogEntry;
 
-/* Number of SLRU buffers to use for the distributed log */
-#define NUM_DISTRIBUTEDLOG_BUFFERS	8
-
 extern void DistributedLog_SetCommittedTree(TransactionId xid, int nxids, TransactionId *xids,
 								DistributedTransactionTimeStamp	distribTimeStamp,
 								DistributedTransactionId distribXid,
@@ -62,6 +59,7 @@ extern TransactionId DistributedLog_AdvanceOldestXmin(TransactionId oldestInProg
 								 DistributedTransactionId oldestDistribXid);
 extern TransactionId DistributedLog_GetOldestXmin(TransactionId oldestLocalXmin);
 
+extern Size DistributedLog_ShmemBuffers(void);
 extern Size DistributedLog_ShmemSize(void);
 extern void DistributedLog_ShmemInit(void);
 extern void DistributedLog_BootStrap(void);

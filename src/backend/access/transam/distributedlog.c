@@ -627,6 +627,33 @@ DistributedLog_SharedShmemSize(void)
 }
 
 /*
+ * Number of shared Distributed Log buffers.
+ *
+ * On larger multi-processor systems, it is possible to have many distributed
+ * log page requests in flight at one time which could lead to disk access for
+ * distributed log page if the required page is not found in memory.  Testing
+ * revealed that we can get the best performance by having 128 distributed log
+ * buffers, more than that it doesn't improve performance.
+ *
+ * Unconditionally keeping the number of distributed log buffers to 128 did
+ * not seem like a good idea, because it would increase the minimum amount of
+ * shared memory required to start, which could be a problem for people
+ * running very small configurations.  The following formula seems to
+ * represent a reasonable compromise: people with very low values for
+ * shared_buffers will get fewer distributed log buffers as well, and everyone
+ * else will get 128.
+ *
+ * This logic is exactly same as used for CLOG buffers. Except the minimum
+ * used for CLOG buffers is 4 whereas we use 8 here, as that was the previous
+ * default and hence lets be conservative and not go below that number.
+ */
+Size
+DistributedLog_ShmemBuffers(void)
+{
+	return Min(128, Max(8, NBuffers / 512));
+}
+
+/*
  * Initialization of shared memory for the distributed log.
  */
 Size
@@ -640,7 +667,7 @@ DistributedLog_ShmemSize(void)
 	}
 	else
 	{
-		size = SimpleLruShmemSize(NUM_DISTRIBUTEDLOG_BUFFERS, 0);
+		size = SimpleLruShmemSize(DistributedLog_ShmemBuffers(), 0);
 		size += DistributedLog_SharedShmemSize();
 	}
 
@@ -657,7 +684,7 @@ DistributedLog_ShmemInit(void)
 
 	/* Set up SLRU for the distributed log. */
 	DistributedLogCtl->PagePrecedes = DistributedLog_PagePrecedes;
-	SimpleLruInit(DistributedLogCtl, "DistributedLogCtl", NUM_DISTRIBUTEDLOG_BUFFERS, 0,
+	SimpleLruInit(DistributedLogCtl, "DistributedLogCtl", DistributedLog_ShmemBuffers(), 0,
 				  DistributedLogControlLock, "pg_distributedlog",
 				  LWTRANCHE_DISTRIBUTEDLOG_BUFFERS);
 
