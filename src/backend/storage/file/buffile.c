@@ -1225,6 +1225,7 @@ static void
 BufFileStartCompression(BufFile *file)
 {
 	ResourceOwner oldowner;
+	size_t ret;
 
 	/*
 	 * When working with compressed files, we rely on libzstd's buffer,
@@ -1254,7 +1255,9 @@ BufFileStartCompression(BufFile *file)
 	file->zstd_context->cctx = ZSTD_createCStream();
 	if (!file->zstd_context->cctx)
 		elog(ERROR, "out of memory");
-	ZSTD_initCStream(file->zstd_context->cctx, BUFFILE_ZSTD_COMPRESSION_LEVEL);
+	ret = ZSTD_initCStream(file->zstd_context->cctx, BUFFILE_ZSTD_COMPRESSION_LEVEL);
+	if (ZSTD_isError(ret))
+		elog(ERROR, "failed to initialize zstd stream: %s", ZSTD_getErrorName(ret));
 
 	CurrentResourceOwner = oldowner;
 
