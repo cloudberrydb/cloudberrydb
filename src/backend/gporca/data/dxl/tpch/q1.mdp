@@ -157,6 +157,7 @@
         <dxl:Commutator Mdid="0.2374.1.0"/>
         <dxl:InverseOp Mdid="0.2349.1.0"/>
       </dxl:GPDBScalarOp>
+      <dxl:MDScalarComparison Mdid="4.1082.1.0;1114.1.0;3" Name="&lt;=" ComparisonType="LEq" LeftType="0.1082.1.0" RightType="0.1114.1.0" OperatorMdid="0.2346.1.0"/>
       <dxl:ColumnStatistics Mdid="1.17165.1.1.17" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17165.1.1.16" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.17165.1.1.1" Name="l_partkey" Width="4.000000">

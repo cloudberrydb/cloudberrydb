@@ -11208,8 +11208,8 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
                             <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
                               <dxl:ConstValue TypeMdid="0.23.1.0" Value="129"/>
                               <dxl:ConstValue TypeMdid="0.23.1.0" Value="270"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="423"/>
                               <dxl:ConstValue TypeMdid="0.23.1.0" Value="821"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="423"/>
                             </dxl:Array>
                           </dxl:ArrayComp>
                         </dxl:And>
