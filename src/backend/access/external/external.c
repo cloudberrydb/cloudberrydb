@@ -490,7 +490,7 @@ create_external_scan_uri_list(ExtTableEntry *ext, bool *ismasteronly)
 	else
 		uri = NULL;
 
-	/* get the ON clause information, and restrict 'ON MASTER' to custom
+	/* get the ON clause information, and restrict 'ON COORDINATOR' to custom
 	 * protocols only */
 	on_clause = (char *) strVal(linitial(ext->execlocations));
 	if ((strcmp(on_clause, "COORDINATOR_ONLY") == 0)
