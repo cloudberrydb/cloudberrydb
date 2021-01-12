@@ -1342,7 +1342,9 @@ BufFileEndCompression(BufFile *file)
 	file->zstd_context->dctx = ZSTD_createDStream();
 	if (!file->zstd_context->dctx)
 		elog(ERROR, "out of memory");
-	ZSTD_initDStream(file->zstd_context->dctx);
+	ret = ZSTD_initDStream(file->zstd_context->dctx);
+	if (ZSTD_isError(ret))
+		elog(ERROR, "failed to initialize zstd dstream: %s", ZSTD_getErrorName(ret));
 
 	file->compressed_buffer.src = palloc(BLCKSZ);
 	file->compressed_buffer.size = 0;
