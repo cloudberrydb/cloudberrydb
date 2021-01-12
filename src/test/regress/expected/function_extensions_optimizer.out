@@ -227,6 +227,52 @@ select * from srf_testtab, srf_on_coordinator() where srf_on_coordinator = srf_t
  foo -1 | foo -1
 (1 row)
 
+-- Repeat, with ON MASTER (this will be removed starting GPDB8 and forward)
+create function srf_on_master() returns setof text as $$
+begin
+  return next 'foo ' || current_setting('gp_contentid');
+  return next 'bar ' || current_setting('gp_contentid');
+end;
+$$ language plpgsql EXECUTE ON MASTER;
+-- A function with ON MASTER or ON ALL SEGMENTS is only allowed in the target list
+-- in the simple case with no FROM.
+select srf_on_master();
+ srf_on_master 
+---------------
+ foo -1
+ bar -1
+(2 rows)
+
+select srf_on_master() FROM srf_testtab;
+ERROR:  function with EXECUTE ON restrictions cannot be used in the SELECT list of a query with FROM
+-- In both these cases, the function should run on master and hence return
+-- ('foo -1'), ('bar -1')
+select * from srf_on_master();
+ srf_on_master 
+---------------
+ foo -1
+ bar -1
+(2 rows)
+
+select * from srf_testtab, srf_on_master();
+   t    | srf_on_master 
+--------+---------------
+ foo 0  | foo -1
+ foo 0  | bar -1
+ foo -1 | foo -1
+ foo -1 | bar -1
+ foo 1  | foo -1
+ foo 1  | bar -1
+(6 rows)
+
+-- Should run on master, even when used in a join. (With EXECUTE ON ANY,
+-- it would be pushed to segments.)
+select * from srf_testtab, srf_on_master() where srf_on_master = srf_testtab.t;
+   t    | srf_on_master 
+--------+---------------
+ foo -1 | foo -1
+(1 row)
+
 -- Repeat, with EXECUTE ON ALL SEGMENTS
 create function srf_on_all_segments () returns setof text as $$
 begin

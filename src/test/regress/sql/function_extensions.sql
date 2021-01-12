@@ -165,6 +165,28 @@ select * from srf_testtab, srf_on_coordinator();
 -- it would be pushed to segments.)
 select * from srf_testtab, srf_on_coordinator() where srf_on_coordinator = srf_testtab.t;
 
+-- Repeat, with ON MASTER (this will be removed starting GPDB8 and forward)
+create function srf_on_master() returns setof text as $$
+begin
+  return next 'foo ' || current_setting('gp_contentid');
+  return next 'bar ' || current_setting('gp_contentid');
+end;
+$$ language plpgsql EXECUTE ON MASTER;
+
+-- A function with ON MASTER or ON ALL SEGMENTS is only allowed in the target list
+-- in the simple case with no FROM.
+select srf_on_master();
+select srf_on_master() FROM srf_testtab;
+
+-- In both these cases, the function should run on master and hence return
+-- ('foo -1'), ('bar -1')
+select * from srf_on_master();
+select * from srf_testtab, srf_on_master();
+
+-- Should run on master, even when used in a join. (With EXECUTE ON ANY,
+-- it would be pushed to segments.)
+select * from srf_testtab, srf_on_master() where srf_on_master = srf_testtab.t;
+
 -- Repeat, with EXECUTE ON ALL SEGMENTS
 
 create function srf_on_all_segments () returns setof text as $$
