@@ -2634,7 +2634,7 @@ class gpload:
         self.log(self.LOG, sql)
         if not self.options.D:
             try:
-                self.rowsInserted = self.db.query(sql.encode('utf-8'))
+                self.rowsInserted = self.db.query(sql)
             except Exception as e:
                 # We need to be a bit careful about the error since it may contain non-unicode characters
                 strE = e.__str__().encode().decode('unicode-escape')
