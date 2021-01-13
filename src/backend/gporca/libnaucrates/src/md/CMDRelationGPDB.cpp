@@ -708,6 +708,10 @@ CMDRelationGPDB::Serialize(CXMLSerializer *xml_serializer) const
 
 	if (IsPartitioned())
 	{
+		// Fall back, instead of segfaulting when m_partition_oids is NULL
+		// (e.g in minidumps)
+		GPOS_RTL_ASSERT(NULL != m_partition_oids);
+
 		// serialize partition keys
 		CWStringDynamic *part_keys_str_array =
 			CDXLUtils::Serialize(m_mp, m_partition_cols_array);
@@ -810,9 +814,7 @@ CMDRelationGPDB::Serialize(CXMLSerializer *xml_serializer) const
 		GPOS_CHECK_ABORT;
 	}
 
-	// GPDB_12_MERGE_FIXME: Convert m_partition_oids check to an assert
-	// after md.xml is fixed
-	if (IsPartitioned() && m_partition_oids)
+	if (IsPartitioned())
 	{
 		SerializeMDIdList(xml_serializer, m_partition_oids,
 						  CDXLTokens::GetDXLTokenStr(EdxltokenPartitions),
