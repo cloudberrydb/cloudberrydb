@@ -6320,8 +6320,6 @@ make_subqueryscan(List *qptlist,
 	plan->qual = qpqual;
 	plan->lefttree = NULL;
 	plan->righttree = NULL;
-	plan->extParam = bms_copy(subplan->extParam);
-	plan->allParam = bms_copy(subplan->allParam);
 
 	/*
 	 * Note that, in most scan nodes, scanrelid refers to an entry in the rtable of the
@@ -7283,9 +7281,6 @@ make_motion(PlannerInfo *root, Plan *lefttree,
 
 	node->sendSorted = (numSortCols > 0);
 
-	plan->extParam = bms_copy(lefttree->extParam);
-	plan->allParam = bms_copy(lefttree->allParam);
-
 	return node;
 }
 
@@ -7387,14 +7382,6 @@ make_agg(List *tlist, List *qual,
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
 
-	/* GPDB_12_MERGE_FIXME: We had these in GPDB since forever, but now
-	 * the caller can pass lefttree == NULL. I assume this isn't really
-	 * needed and can be removed? */
-#if 0
-	plan->extParam = bms_copy(lefttree->extParam);
-	plan->allParam = bms_copy(lefttree->allParam);
-#endif
-
 	return node;
 }
 
@@ -7412,9 +7399,6 @@ make_tup_split(List *tlist, List *dqa_expr_lst, int numGroupCols,
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
-
-	plan->extParam = bms_copy(lefttree->extParam);
-	plan->allParam = bms_copy(lefttree->allParam);
 
 	return node;
 }
