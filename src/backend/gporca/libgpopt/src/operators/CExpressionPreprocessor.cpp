@@ -1573,8 +1573,6 @@ CExpressionPreprocessor::PexprScalarPredicates(
 			continue;
 		}
 
-		pcrsProcessed->Include(colref);
-
 		// do not add a NOT NULL predicate if column is not nullable or if it
 		// already has another predicate on it
 		if (CUtils::FScalarNotNull(pexprScalar) &&
@@ -1585,6 +1583,8 @@ CExpressionPreprocessor::PexprScalarPredicates(
 			continue;
 		}
 		pdrgpexpr->Append(pexprScalar);
+		// set the column `processed` after generate new predicate on this column.
+		pcrsProcessed->Include(colref);
 	}
 
 	if (0 == pdrgpexpr->Size())
