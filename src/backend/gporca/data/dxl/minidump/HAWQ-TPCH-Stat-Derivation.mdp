@@ -33,7 +33,7 @@ ORDER BY s_name;
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="103027,102120,103001,103014,103015,105000"/>
+      <dxl:TraceFlags Value="102001,102002,102003,102120,102144,103001,103014,103015,103027,103033,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:ColumnStatistics Mdid="1.11778196.1.1.3" Name="n_comment" Width="75.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
@@ -6362,7 +6362,7 @@ ORDER BY s_name;
         </dxl:LogicalJoin>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3938592">
+    <dxl:Plan Id="0" SpaceSize="1863552">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="24583535.993774" Rows="49.989277" Width="65"/>

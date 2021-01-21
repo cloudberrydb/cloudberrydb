@@ -1358,11 +1358,8 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin(CMemoryPool *mp,
 						PexprOuterJoinToInnerJoin(mp, (*pexprChild)[1]);
 					CExpression *pexprNewScalar =
 						PexprOuterJoinToInnerJoin(mp, (*pexprChild)[2]);
-					CExpression *pexprJoin =
-						CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
-							mp, pexprNewOuter, pexprNewInner, pexprNewScalar);
-					pexprChild = PexprCollapseJoins(mp, pexprJoin);
-					pexprJoin->Release();
+					pexprChild = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
+						mp, pexprNewOuter, pexprNewInner, pexprNewScalar);
 					fNewChild = true;
 				}
 			}

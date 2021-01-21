@@ -24,7 +24,7 @@ select * from P,X where P.a=X.a  and X.a not in (1,2);
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="103027,101013,102024,102025,102115,102116,102120,102128,103001,103014,103015,103026"/>
+      <dxl:TraceFlags Value="101013,102001,102002,102003,102024,102025,102115,102116,102120,102128,102144,103001,103014,103015,103026,103027,103033"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.36394823.1.1" Name="p" Rows="0.000000" EmptyRelation="true"/>

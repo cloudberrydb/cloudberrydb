@@ -33,7 +33,7 @@ where (cd.dyear = 2001 and s.tickets_cnt &gt; 3) or (cd.dmoy = 4 and s.tickets_c
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000" MaxStatsBuckets="100"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:TraceFlags Value="103027,102024,102025,102115,102116,102117,102119,102146"/>
+      <dxl:TraceFlags Value="102001,102002,102003,102024,102025,102115,102116,102117,102119,102144,103027,103033"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT">
@@ -454,7 +454,7 @@ where (cd.dyear = 2001 and s.tickets_cnt &gt; 3) or (cd.dmoy = 4 and s.tickets_c
         </dxl:LogicalJoin>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="8900">
+    <dxl:Plan Id="0" SpaceSize="7695">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1293.002852" Rows="1.000000" Width="64"/>

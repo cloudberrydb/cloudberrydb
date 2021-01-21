@@ -2,7 +2,7 @@
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:Stacktrace/>
-    <dxl:TraceFlags Value="103027,103001"/>
+    <dxl:TraceFlags Value="102001,102002,102003,102144,103001,103027,103033"/>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBFunc Mdid="0.188485.1.0" Name="gp_partition_propagation" ReturnsSet="false" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.2278.1.0"/>

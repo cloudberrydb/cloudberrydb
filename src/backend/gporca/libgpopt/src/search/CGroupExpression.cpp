@@ -1103,14 +1103,7 @@ CGroupExpression::ContainsCircularDependencies()
 
 	GPOS_ASSERT(m_ecirculardependency == CGroupExpression::ecdDefault);
 
-	// if exploration is completed, then the group expression does not have
-	// any circular dependency
-	if (Pgroup()->FExplored())
-	{
-		return false;
-	}
-
-	// we are still in exploration phase, check if there are any circular dependencies
+	// check if there are any circular dependencies
 	CGroupArray *child_groups = Pdrgpgroup();
 	for (ULONG ul = 0; ul < child_groups->Size(); ul++)
 	{
