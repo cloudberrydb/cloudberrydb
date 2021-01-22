@@ -103,7 +103,7 @@ select * from check_env;
  LC_TIME=C
  LOGNAME=@curusername@
  MAIL=/var/mail/@curusername@
- MASTER_DATA_DIRECTORY=//Users/@curusername@/greenplum-master/gpseg-1
+ COORDINATOR_DATA_DIRECTORY=//Users/@curusername@/greenplum-master/gpseg-1
  OPENSSL_CONF=/Users/@curusername@/greenplum-db-devel/etc/openssl.cnf
  P4CONFIG=.p4config
  PATH=/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/opt/gcc-4.4.2/bin:/Users/@curusername@/Workdir/mybin:/Users/@curusername@/greenplum-perfmon-web-4.0.1.0/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/usr/bin:/bin:/usr/sbin:/sbin

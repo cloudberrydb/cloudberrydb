@@ -128,9 +128,9 @@ Feature: gppkg tests
         Given the database is running
         And the user runs "gppkg -r sample"
         And a gphome copy is created at /tmp/gppkg_migrate on all hosts
-        When a user runs "MASTER_DATA_DIRECTORY=$MASTER_DATA_DIRECTORY gppkg -r sample" with gphome "/tmp/gppkg_migrate"
+        When a user runs "COORDINATOR_DATA_DIRECTORY=$COORDINATOR_DATA_DIRECTORY gppkg -r sample" with gphome "/tmp/gppkg_migrate"
         And "sample" gppkg files do not exist on any hosts
-        When a user runs "MASTER_DATA_DIRECTORY=$MASTER_DATA_DIRECTORY gppkg --install $(pwd)/test/behave/mgmt_utils/steps/data/sample.gppkg" with gphome "/tmp/gppkg_migrate"
+        When a user runs "COORDINATOR_DATA_DIRECTORY=$COORDINATOR_DATA_DIRECTORY gppkg --install $(pwd)/test/behave/mgmt_utils/steps/data/sample.gppkg" with gphome "/tmp/gppkg_migrate"
         Then gppkg should return a return code of 0
         And "sample" gppkg files do not exist on any hosts
         And the user runs "gpstop -a && gpstart -a -m"

@@ -48,7 +48,7 @@ class GpConfig(GpTestCase):
         self.cursor = FakeCursor()
 
         self.os_env = dict(USER="my_user")
-        self.os_env["MASTER_DATA_DIRECTORY"] = self.temp_dir
+        self.os_env["COORDINATOR_DATA_DIRECTORY"] = self.temp_dir
         self.os_env["GPHOME"] = self.temp_dir
         self.gparray = self._create_gparray_with_2_primary_2_mirrors()
 
@@ -117,7 +117,7 @@ class GpConfig(GpTestCase):
 
     def test_option_show_without_coordinator_data_dir_will_succeed(self):
         sys.argv = ["gpconfig", "--show", "statement_mem"]
-        del self.os_env["MASTER_DATA_DIRECTORY"]
+        del self.os_env["COORDINATOR_DATA_DIRECTORY"]
         self.subject.parseargs()
 
     @patch('sys.stdout', new_callable=StringIO)
@@ -162,10 +162,10 @@ class GpConfig(GpTestCase):
 
     def test_option_file_without_coordinator_data_dir_will_raise(self):
         sys.argv = ["gpconfig", "--file", "--show", "statement_mem"]
-        del self.os_env["MASTER_DATA_DIRECTORY"]
-        with self.assertRaisesRegex(Exception, "--file option requires that MASTER_DATA_DIRECTORY be set"):
+        del self.os_env["COORDINATOR_DATA_DIRECTORY"]
+        with self.assertRaisesRegex(Exception, "--file option requires that COORDINATOR_DATA_DIRECTORY be set"):
             self.subject.parseargs()
-        self.subject.LOGGER.error.assert_called_once_with("--file option requires that MASTER_DATA_DIRECTORY be set")
+        self.subject.LOGGER.error.assert_called_once_with("--file option requires that COORDINATOR_DATA_DIRECTORY be set")
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_option_f_will_report_presence_of_setting(self, mock_stdout):

@@ -3,6 +3,7 @@ import subprocess
 
 from behave import given, when, then
 
+from gppylib.commands.gp import get_coordinatordatadir
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray
 
@@ -45,7 +46,7 @@ def impl(context, segment):
 
     # Fail over to standby/mirrors.
     if segment == 'standby':
-        coordinator_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
+        coordinator_data_dir = get_coordinatordatadir()
         context.standby_port = os.environ.get('PGPORT')
         context.standby_data_dir = coordinator_data_dir
         context.new_standby_data_dir = '%s_1' % coordinator_data_dir
@@ -81,7 +82,7 @@ def impl(context, segment):
          When the user runs command "gpinitstandby -a -s mdw-1 -S {datadir}" from standby coordinator
          Then gpinitstandby should return a return code of 0
          """.format(datadir=context.new_standby_data_dir))
-        os.environ['MASTER_DATA_DIRECTORY'] = context.new_standby_data_dir
+        os.environ['COORDINATOR_DATA_DIRECTORY'] = context.new_standby_data_dir
         # NOTE: this must be set before gpactivatestandby is called
         if orig_PGHOST is None:
             del os.environ['PGHOST']

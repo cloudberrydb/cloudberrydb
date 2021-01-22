@@ -1148,10 +1148,14 @@ def get_gphome():
 
 
 ######
+# Support both COORDINATOR_DATA_DIRECTORY and MASTER_DATA_DIRECTORY for backwards compatibility.
+# If both are set, the former is used and the latter is ignored.
 def get_coordinatordatadir():
-    coordinator_datadir = os.environ.get('MASTER_DATA_DIRECTORY')
+    coordinator_datadir = os.environ.get('COORDINATOR_DATA_DIRECTORY')
     if not coordinator_datadir:
-        raise GpError("Environment Variable MASTER_DATA_DIRECTORY not set!")
+        coordinator_datadir = os.environ.get('MASTER_DATA_DIRECTORY')
+    if not coordinator_datadir:
+        raise GpError("Environment Variable COORDINATOR_DATA_DIRECTORY not set!")
     return coordinator_datadir
 
 ######

@@ -11,10 +11,10 @@ DATACHECKSUMS=1
 # Data Directories
 # ======================================================================
 
-if [ -z "${MASTER_DATADIR}" ]; then
+if [ -z "${COORDINATOR_DATADIR}" ]; then
   DATADIRS=${DATADIRS:-`pwd`/datadirs}
 else
-  DATADIRS="${MASTER_DATADIR}/datadirs"
+  DATADIRS="${COORDINATOR_DATADIR}/datadirs"
 fi
 
 QDDIR=$DATADIRS/qddir
@@ -51,7 +51,7 @@ checkDemoConfig(){
         echo ""
         echo -n " Port ${COORDINATOR_DEMO_PORT} appears to be in use. " 
         echo " This port is needed by the Coordinator Database instance. "
-        echo ">>> Edit Makefile to correct the port number (MASTER_PORT). <<<" 
+        echo ">>> Edit Makefile to correct the port number (COORDINATOR_PORT). <<<" 
         echo -n " Check to see if the port is free by using : "
         echo " 'netstat -an | grep ${COORDINATOR_DEMO_PORT}'"
         echo " If the port is not used please make sure files ${PORT_FILE}* are deleted"
@@ -114,7 +114,7 @@ cleanDemo(){
     ## Attempt to bring down using GPDB cluster instance using gpstop
     ##
 
-    (export MASTER_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1;
+    (export COORDINATOR_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1;
      source ${GPHOME}/greenplum_path.sh;
      gpstop -ai)
 
@@ -192,12 +192,12 @@ cat <<-EOF
 	  a cluster installation with coordinator and `expr 2 \* ${NUM_PRIMARY_MIRROR_PAIRS}` segment instances
 	  (${NUM_PRIMARY_MIRROR_PAIRS} primary & ${NUM_PRIMARY_MIRROR_PAIRS} mirror).
 
-	    GPHOME ................. : ${GPHOME}
-	    MASTER_DATA_DIRECTORY .. : ${QDDIR}/${SEG_PREFIX}-1
+	    GPHOME ................... : ${GPHOME}
+	    COORDINATOR_DATA_DIRECTORY : ${QDDIR}/${SEG_PREFIX}-1
 
-	    MASTER PORT (PGPORT) ... : ${COORDINATOR_DEMO_PORT}
-	    STANDBY PORT ........... : ${STANDBY_DEMO_PORT}
-	    SEGMENT PORTS .......... : ${DEMO_SEG_PORTS_LIST}
+	    COORDINATOR PORT (PGPORT). : ${COORDINATOR_DEMO_PORT}
+	    STANDBY PORT ............. : ${STANDBY_DEMO_PORT}
+	    SEGMENT PORTS ............ : ${DEMO_SEG_PORTS_LIST}
 
 	  NOTE(s):
 
@@ -274,7 +274,7 @@ cat >> $CLUSTER_CONFIG <<-EOF
 	# This file must exist in the same directory that you execute gpinitsystem in
 	MACHINE_LIST_FILE=`pwd`/hostfile
 	
-	# This names the data directories for the Segment Instances and the Entry Postcoordinator
+	# This names the data directories for the Segment Instances and the Entry Postmaster
 	SEG_PREFIX=$SEG_PREFIX
 	
 	# This is the port at which to contact the resulting Greenplum database, e.g.
@@ -286,12 +286,12 @@ cat >> $CLUSTER_CONFIG <<-EOF
 	declare -a DATA_DIRECTORY=(${PRIMARY_DIRS_LIST})
 	
 	# Name of host on which to setup the QD
-	MASTER_HOSTNAME=$LOCALHOST
+	COORDINATOR_HOSTNAME=$LOCALHOST
 	
 	# Name of directory on that host in which to setup the QD
-	MASTER_DIRECTORY=$QDDIR
+	COORDINATOR_DIRECTORY=$QDDIR
 	
-	MASTER_PORT=${COORDINATOR_DEMO_PORT}
+	COORDINATOR_PORT=${COORDINATOR_DEMO_PORT}
 	
 	# Shell to use to execute commands on all hosts
 	TRUSTED_SHELL="`pwd`/lalshell"
@@ -457,6 +457,7 @@ cat > gpdemo-env.sh <<-EOF
 	## ======================================================================
 
 	export PGPORT=${COORDINATOR_DEMO_PORT}
+	export COORDINATOR_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1
 	export MASTER_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1
 EOF
 

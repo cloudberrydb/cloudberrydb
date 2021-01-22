@@ -24,6 +24,7 @@ from gppylib.utils import checkNotNone, checkIsInt
 from gppylib    import gplog
 from gppylib.db import dbconn
 from gppylib.gpversion import GpVersion, MAIN_VERSION
+from gppylib.commands.gp import get_coordinatordatadir
 from gppylib.commands.unix import *
 import os
 
@@ -1810,7 +1811,7 @@ def get_gparray_from_config():
     from gppylib.system import configurationInterface
     from gppylib.system import configurationImplGpdb
     from gppylib.system.environment import GpMasterEnvironment
-    coordinator_data_dir = os.environ['MASTER_DATA_DIRECTORY']
+    coordinator_data_dir = get_coordinatordatadir()
     gpEnv = GpMasterEnvironment(coordinator_data_dir, False)
     configurationInterface.registerConfigurationProvider(
         configurationImplGpdb.GpConfigurationProviderUsingGpdbCatalog())

@@ -48,7 +48,7 @@ class GpRecoversegTestCase(GpTestCase):
         self.db_singleton = Mock()
 
         self.os_env = dict(USER="my_user")
-        self.os_env["MASTER_DATA_DIRECTORY"] = self.temp_dir
+        self.os_env["COORDINATOR_DATA_DIRECTORY"] = self.temp_dir
         self.os_env["GPHOME"] = self.temp_dir
         self.gparray = self._create_gparray_with_2_primary_2_mirrors()
 

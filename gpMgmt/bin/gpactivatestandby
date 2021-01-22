@@ -104,11 +104,11 @@ def parseargs():
 
 
     if not options.coordinator_data_dir:
-        logger.info('Option -d or --master-data-directory not set. Checking environment variable MASTER_DATA_DIRECTORY')
-        env_coordinator_data_dir = os.getenv('MASTER_DATA_DIRECTORY', None)
-        # check for environment variable MASTER_DATA_DIRECTORY
+        logger.info('Option -d or --master-data-directory not set. Checking environment variable COORDINATOR_DATA_DIRECTORY')
+        env_coordinator_data_dir = gp.get_coordinatordatadir()
+        # check for environment variable COORDINATOR_DATA_DIRECTORY
         if not env_coordinator_data_dir:
-            logger.fatal('Both -d parameter and MASTER_DATA_DIRECTORY environment variable are not set.')
+            logger.fatal('Both -d parameter and COORDINATOR_DATA_DIRECTORY environment variable are not set.')
             logger.fatal('Required option coordinator data directory is missing.')
             parser.exit(2, None)
         options.coordinator_data_dir = env_coordinator_data_dir
@@ -151,7 +151,7 @@ def print_results(array, hostname, options):
     logger.info('the change of coordinator hostname.')
     logger.info('Do not re-start the failed coordinator while the fail-over coordinator is')
     logger.info('operational, this could result in database corruption!')
-    logger.info('MASTER_DATA_DIRECTORY is now %s if' % options.coordinator_data_dir)
+    logger.info('COORDINATOR_DATA_DIRECTORY is now %s if' % options.coordinator_data_dir)
     logger.info('this has changed as a result of the standby coordinator activation, remember')
     logger.info('to change this in any startup scripts etc, that may be configured')
     logger.info('to set this value.')

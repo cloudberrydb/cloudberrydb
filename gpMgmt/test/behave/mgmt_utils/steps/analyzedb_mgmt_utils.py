@@ -2,6 +2,7 @@ import re
 import os
 import shutil
 from gppylib.db import dbconn
+from gppylib.commands.gp import get_coordinatordatadir
 from contextlib import closing
 from test.behave_utils.utils import check_schema_exists, check_table_exists, drop_table_if_exists
 from behave import given, when, then
@@ -331,7 +332,7 @@ def get_latest_analyze_dir(dbname):
 
 
 def get_analyze_dir(dbname):
-    coordinator_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
+    coordinator_data_dir = get_coordinatordatadir()
     analyze_dir = os.path.join(coordinator_data_dir, 'db_analyze', dbname)
     return analyze_dir
 

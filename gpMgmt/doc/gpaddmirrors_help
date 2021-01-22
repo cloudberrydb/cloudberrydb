@@ -112,7 +112,7 @@ OPTIONS
 -d <coordinator_data_directory>
 
  The coordinator data directory. If not specified, the value set for 
- $MASTER_DATA_DIRECTORY will be used.
+ $COORDINATOR_DATA_DIRECTORY will be used.
 
 
 -i <mirror_config_file>

@@ -73,7 +73,7 @@ Continue only if you are certain that the standby is not acting as the coordinat
                 <plentry>
                     <pt>-d <varname>coordinator_data_directory</varname></pt>
                     <pd>Optional. The coordinator host data directory. If not specified, the value set
-                        for <codeph>$MASTER_DATA_DIRECTORY</codeph> will be used.</pd>
+                        for <codeph>$COORDINATOR_DATA_DIRECTORY</codeph> will be used.</pd>
                 </plentry>
                 <plentry>
                     <pt>-l <varname>logfile_directory</varname></pt>

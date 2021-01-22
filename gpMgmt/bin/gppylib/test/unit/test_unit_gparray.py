@@ -158,7 +158,7 @@ class GpArrayTestCase(GpTestCase):
     @patch('gppylib.system.configurationInterface.getConfigurationProvider')
     @patch('gppylib.system.environment.GpMasterEnvironment', return_value=Mock(), autospec=True)
     def test_get_gparray_from_config(self, gpMasterEnvironmentMock, getConfigProviderFunctionMock):
-        os.environ['MASTER_DATA_DIRECTORY'] = "MY_TEST_DIR"
+        os.environ['COORDINATOR_DATA_DIRECTORY'] = "MY_TEST_DIR"
         configProviderMock = Mock(spec=GpConfigurationProvider)
         getConfigProviderFunctionMock.return_value = configProviderMock
         configProviderMock.initializeProvider.return_value = configProviderMock

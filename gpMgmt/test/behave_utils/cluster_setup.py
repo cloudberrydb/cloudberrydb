@@ -3,13 +3,14 @@ import os
 import socket
 import inspect
 from gppylib.commands.base import Command
+from gppylib.commands.gp import get_coordinatordatadir
 
 class GpDeleteSystem(Command):
     """This is a wrapper for gpdeletesystem."""
-    def __init__(self, mdd=None):
-        if not mdd:
-            mdd = os.getenv('MASTER_DATA_DIRECTORY')
-        cmd_str = "export MASTER_DATA_DIRECTORY=%s; echo -e \"y\\ny\\n\" | gpdeletesystem -d %s" % (mdd, mdd)
+    def __init__(self, cdd=None):
+        if not cdd:
+            cdd = get_coordinatordatadir()
+        cmd_str = "export COORDINATOR_DATA_DIRECTORY=%s; echo -e \"y\\ny\\n\" | gpdeletesystem -d %s" % (cdd, cdd)
         Command.__init__(self, 'run gpdeletesystem', cmd_str)
 
     def run(self, validate=True):
@@ -66,7 +67,7 @@ class TestCluster:
         env_file = os.path.join(self.base_dir, 'gpdb-env.sh')
         with open(env_file, 'w') as f:
             f.write('#!/usr/bin/env bash\n')
-            f.write('export MASTER_DATA_DIRECTORY=%s\n' % os.path.join(self.coordinator_dir,'gpseg-1'))
+            f.write('export COORDINATOR_DATA_DIRECTORY=%s\n' % os.path.join(self.coordinator_dir,'gpseg-1'))
             f.write('export PGPORT=%s\n' % self.coordinator_port)
             f.flush()
 
@@ -106,7 +107,7 @@ class TestCluster:
         assert os.path.exists(self.hosts_file)
 
         # run gpinitsystem
-        clean_env = 'unset MASTER_DATA_DIRECTORY; unset PGPORT;'
+        clean_env = 'unset COORDINATOR_DATA_DIRECTORY; unset PGPORT;'
         segment_mirroring_option = '--mirror-mode=spread' if mirroring_configuration == 'spread' else ''
         gpinitsystem_cmd = clean_env + 'gpinitsystem -a -c  %s %s' % (self.init_file, segment_mirroring_option)
         res = run_shell_command(gpinitsystem_cmd, 'run gpinitsystem', verbose=True)

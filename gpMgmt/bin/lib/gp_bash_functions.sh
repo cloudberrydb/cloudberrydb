@@ -618,29 +618,29 @@ CHK_DIR () {
 
 GET_COORDINATOR_PORT () {
 		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-		MASTER_DATA_DIRECTORY=$1
-		if [ x"" == x"$MASTER_DATA_DIRECTORY" ];then
-			ERROR_EXIT "[FATAL]:-MASTER_DATA_DIRECTORY variable not set";fi
-		if [ ! -d $MASTER_DATA_DIRECTORY ]; then
-				ERROR_EXIT "[FATAL]:-No $MASTER_DATA_DIRECTORY directory"
+		COORDINATOR_DATA_DIRECTORY=$1
+		if [ x"" == x"$COORDINATOR_DATA_DIRECTORY" ];then
+			ERROR_EXIT "[FATAL]:-COORDINATOR_DATA_DIRECTORY variable not set";fi
+		if [ ! -d $COORDINATOR_DATA_DIRECTORY ]; then
+				ERROR_EXIT "[FATAL]:-No $COORDINATOR_DATA_DIRECTORY directory"
 		fi
-		if [ -r $MASTER_DATA_DIRECTORY/$PG_CONF ];then
-			MASTER_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $MASTER_DATA_DIRECTORY/$PG_CONF | $AWK '$1=="port" {print $2}' | $TAIL -1`
+		if [ -r $COORDINATOR_DATA_DIRECTORY/$PG_CONF ];then
+			MASTER_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $COORDINATOR_DATA_DIRECTORY/$PG_CONF | $AWK '$1=="port" {print $2}' | $TAIL -1`
 			if [ x"" == x"$MASTER_PORT" ] ; then
                 #look for include files
-                for INC_FILE in `$AWK '/^[ ]*include /{print $2}' $MASTER_DATA_DIRECTORY/$PG_CONF | $TR -d "'\""` ; do
+                for INC_FILE in `$AWK '/^[ ]*include /{print $2}' $COORDINATOR_DATA_DIRECTORY/$PG_CONF | $TR -d "'\""` ; do
                     if [[ $INC_FILE == /* ]] ; then
                         GET_COORDINATOR_PORT_RECUR "$INC_FILE" 1
                     else
-                        GET_COORDINATOR_PORT_RECUR "$MASTER_DATA_DIRECTORY/$INC_FILE" 1
+                        GET_COORDINATOR_PORT_RECUR "$COORDINATOR_DATA_DIRECTORY/$INC_FILE" 1
                     fi
                 done
                 if [ x"" == x"$MASTER_PORT" ] ; then
-			        ERROR_EXIT "[FATAL]:-Failed to obtain coordinator port number from $MASTER_DATA_DIRECTORY/$PG_CONF"
+			        ERROR_EXIT "[FATAL]:-Failed to obtain coordinator port number from $COORDINATOR_DATA_DIRECTORY/$PG_CONF"
                 fi
 			fi
 		else
-			ERROR_EXIT "[FATAL]:-Do not have read access to $MASTER_DATA_DIRECTORY/$PG_CONF"
+			ERROR_EXIT "[FATAL]:-Do not have read access to $COORDINATOR_DATA_DIRECTORY/$PG_CONF"
 		fi
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -657,7 +657,7 @@ GET_COORDINATOR_PORT_RECUR () {
                 if [[ $INC_FILE == /* ]] ; then
                     GET_COORDINATOR_PORT_RECUR "$INC_FILE" $CURR_DEPTH
                 else
-                    GET_COORDINATOR_PORT_RECUR "$MASTER_DATA_DIRECTORY/$INC_FILE" $CURR_DEPTH
+                    GET_COORDINATOR_PORT_RECUR "$COORDINATOR_DATA_DIRECTORY/$INC_FILE" $CURR_DEPTH
                 fi
                 if [ x"" != x"$MASTER_PORT" ] ; then
                     break

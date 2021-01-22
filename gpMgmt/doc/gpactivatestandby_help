@@ -94,7 +94,7 @@ OPTIONS
  activating. 
 
  If this option is not specified, gpactivatestandby uses the value 
- specified by the environment variable MASTER_DATA_DIRECTORY of the 
+ specified by the environment variable COORDINATOR_DATA_DIRECTORY of the 
  coordinator host you are activating. 
 
  If a directory cannot be determined, the utility returns an error. 

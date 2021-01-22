@@ -101,7 +101,7 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                 <plentry>
                     <pt>-d <varname>coordinator_data_directory</varname></pt>
                     <pd>The coordinator data directory. If not specified, the value set for
-                            <codeph>$MASTER_DATA_DIRECTORY</codeph> will be used.</pd>
+                            <codeph>$COORDINATOR_DATA_DIRECTORY</codeph> will be used.</pd>
                 </plentry>
                 <plentry>
                     <pt>-i <varname>mirror_config_file</varname></pt>

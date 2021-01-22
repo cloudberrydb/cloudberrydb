@@ -50,7 +50,7 @@ OPTIONS
 -d <coordinator_data_directory>
 
   Optional. The coordinator host data directory. If not specified, 
-  the value set for $MASTER_DATA_DIRECTORY will be used.
+  the value set for $COORDINATOR_DATA_DIRECTORY will be used.
 
 
 -l <logfile_directory>

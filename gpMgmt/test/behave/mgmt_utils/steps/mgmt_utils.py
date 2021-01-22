@@ -35,9 +35,9 @@ from gppylib.commands.base import Command, REMOTE
 from gppylib import pgconf
 
 
-coordinator_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
+coordinator_data_dir = gp.get_coordinatordatadir()
 if coordinator_data_dir is None:
-    raise Exception('Please set MASTER_DATA_DIRECTORY in environment')
+    raise Exception('Please set COORDINATOR_DATA_DIRECTORY in environment')
 
 def show_all_installed(gphome):
     x = platform.linux_distribution()
@@ -141,7 +141,7 @@ def impl(context, checksum_toggle):
 def impl(context, num_primaries):
     os.environ['PGPORT'] = '15432'
     demoDir = os.path.abspath("%s/../gpAux/gpdemo" % os.getcwd())
-    os.environ['MASTER_DATA_DIRECTORY'] = "%s/datadirs/qddir/demoDataDir-1" % demoDir
+    os.environ['COORDINATOR_DATA_DIRECTORY'] = "%s/datadirs/qddir/demoDataDir-1" % demoDir
 
     create_local_demo_cluster(context, with_mirrors='false', with_standby='false', num_primaries=num_primaries)
 
@@ -415,7 +415,7 @@ def impl(context, command, hostname):
                        command,
                        hostname,
                        os.getenv("GPHOME") + '/greenplum_path.sh',
-                       'export MASTER_DATA_DIRECTORY=%s' % coordinator_data_dir)
+                       'export COORDINATOR_DATA_DIRECTORY=%s' % coordinator_data_dir)
     if has_exception(context):
         raise context.exception
 
@@ -623,7 +623,7 @@ def impl(context, filepath):
                            cmd,
                            context.standby_hostname,
                            os.getenv("GPHOME") + '/greenplum_path.sh',
-                           'export MASTER_DATA_DIRECTORY=%s' % context.standby_data_dir,
+                           'export COORDINATOR_DATA_DIRECTORY=%s' % context.standby_data_dir,
                            validateAfter=True)
     except:
         pass
@@ -758,7 +758,7 @@ def impl(context, coordinator, standby):
                        cmd,
                        context.coordinator_hostname,
                        os.getenv("GPHOME") + '/greenplum_path.sh',
-                       'export MASTER_DATA_DIRECTORY=%s' % context.standby_data_dir)
+                       'export COORDINATOR_DATA_DIRECTORY=%s' % context.standby_data_dir)
 
     context.stdout_position = 0
     context.coordinator_port = os.environ.get("PGPORT")
@@ -798,7 +798,7 @@ def impl(context, command):
                        cmd,
                        context.standby_hostname,
                        os.getenv("GPHOME") + '/greenplum_path.sh',
-                       'export MASTER_DATA_DIRECTORY=%s' % context.standby_data_dir,
+                       'export COORDINATOR_DATA_DIRECTORY=%s' % context.standby_data_dir,
                        validateAfter=False)
 
 @when('the coordinator goes down')
@@ -873,7 +873,7 @@ def impl(context):
                        cmd,
                        context.standby_hostname,
                        os.getenv("GPHOME") + '/greenplum_path.sh',
-                       'export MASTER_DATA_DIRECTORY=%s' % context.standby_data_dir)
+                       'export COORDINATOR_DATA_DIRECTORY=%s' % context.standby_data_dir)
 
 
 def _process_exists(pid, host):
@@ -2041,7 +2041,7 @@ def step_impl(context, abbreviated_timezone):
 
 @then('the startup timezone is saved')
 def step_impl(context):
-    logfile = "%s/log/startup.log" % os.getenv("MASTER_DATA_DIRECTORY")
+    logfile = "%s/log/startup.log" % gp.get_coordinatordatadir()
     timezone = ""
     with open(logfile) as l:
         first_line = l.readline()
@@ -2087,7 +2087,7 @@ def _create_cluster(context, coordinator_host, segment_host_list, hba_hostnames=
 
     global coordinator_data_dir
     coordinator_data_dir = os.path.join(context.working_directory, 'data/coordinator/gpseg-1')
-    os.environ['MASTER_DATA_DIRECTORY'] = coordinator_data_dir
+    os.environ['COORDINATOR_DATA_DIRECTORY'] = coordinator_data_dir
 
     try:
         conn = dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False)
@@ -2559,12 +2559,12 @@ def step_impl(context, options):
 
 @given('ensure the standby directory does not exist')
 def impl(context):
-    run_command(context, 'rm -rf $MASTER_DATA_DIRECTORY/newstandby')
+    run_command(context, 'rm -rf $COORDINATOR_DATA_DIRECTORY/newstandby')
     run_command(context, 'rm -rf /tmp/gpinitsystemtest && mkdir /tmp/gpinitsystemtest')
 
 @when('initialize a cluster with standby using "{config_file}"')
 def impl(context, config_file):
-    run_gpcommand(context, 'gpinitsystem -a -I %s -l /tmp/gpinitsystemtest -s localhost -P 21100 -S $MASTER_DATA_DIRECTORY/newstandby -h ../gpAux/gpdemo/hostfile' % config_file)
+    run_gpcommand(context, 'gpinitsystem -a -I %s -l /tmp/gpinitsystemtest -s localhost -P 21100 -S $COORDINATOR_DATA_DIRECTORY/newstandby -h ../gpAux/gpdemo/hostfile' % config_file)
     check_return_code(context, 0)
 
 @when('initialize a cluster using "{config_file}"')
@@ -2591,7 +2591,7 @@ def step_impl(context):
 
         ## check postgresql.conf
         remote_postgresql_conf = "%s/%s" % (datadir, 'postgresql.conf')
-        local_conf_copy = os.path.join(os.getenv("MASTER_DATA_DIRECTORY"), "%s.%s" % ('postgresql.conf', hostname))
+        local_conf_copy = os.path.join(gp.get_coordinatordatadir(), "%s.%s" % ('postgresql.conf', hostname))
         cmd = Command(name="Copy remote conf to local to diff",
                     cmdStr='scp %s:%s %s' % (hostname, remote_postgresql_conf, local_conf_copy))
         cmd.run(validateAfter=True)

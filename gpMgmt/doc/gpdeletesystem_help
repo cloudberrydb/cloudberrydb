@@ -39,9 +39,9 @@ OPTIONS
 -d <coordinator_data_directory>
 
 Used to specify coordinator host data directory. When this parameter is specified 
-it overrides the value of environment variable MASTER_DATA_DIRECTORY. If not
+it overrides the value of environment variable COORDINATOR_DATA_DIRECTORY. If not
 specified, coordinator data directory is read from environment variable 
-MASTER_DATA_DIRECTORY.
+COORDINATOR_DATA_DIRECTORY.
 
 
 -B <parallel_processes>

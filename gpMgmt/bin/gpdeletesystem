@@ -94,11 +94,11 @@ def parseargs():
 
     # check we got the -d option
     if not options.coordinator_data_dir:
-        logger.info('Option -d or --master-data-directory not set. Checking environment variable MASTER_DATA_DIRECTORY')
-        env_coordinator_data_dir = os.getenv('MASTER_DATA_DIRECTORY', None)
-        # check for environment variable MASTER_DATA_DIRECTORY
+        logger.info('Option -d or --master-data-directory not set. Checking environment variable COORDINATOR_DATA_DIRECTORY')
+        env_coordinator_data_dir = gp.get_coordinatordatadir()
+        # check for environment variable COORDINATOR_DATA_DIRECTORY
         if not env_coordinator_data_dir:
-            logger.fatal('Both -d parameter and MASTER_DATA_DIRECTORY environment variable are not set.')
+            logger.fatal('Both -d parameter and COORDINATOR_DATA_DIRECTORY environment variable are not set.')
             logger.fatal('Required option coordinator data directory is missing.')
             parser.exit(2, None)
         options.coordinator_data_dir = env_coordinator_data_dir

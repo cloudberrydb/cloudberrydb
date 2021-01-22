@@ -49,7 +49,7 @@
         <plentry>
           <pt>-d <varname>coordinator_data_directory</varname></pt>
           <pd>Optional. The coordinator data directory. If not specified, the value set for
-              <codeph>$MASTER_DATA_DIRECTORY</codeph> will be used.</pd>
+              <codeph>$COORDINATOR_DATA_DIRECTORY</codeph> will be used.</pd>
         </plentry>
         <plentry>
           <pt>-e (show segments with mirror status issues)</pt>

@@ -58,7 +58,7 @@ OPTIONS
 -d <coordinator_data_directory>
 
   Optional. The coordinator data directory. If not specified, the 
-  value set for $MASTER_DATA_DIRECTORY will be used.
+  value set for $COORDINATOR_DATA_DIRECTORY will be used.
 
 
 -e (show segments with mirror status issues)

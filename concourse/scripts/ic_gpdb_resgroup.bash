@@ -53,7 +53,7 @@ run_resgroup_test() {
     ssh $gpdb_master_alias bash -ex <<EOF
         source /usr/local/greenplum-db-devel/greenplum_path.sh
         export PGPORT=5432
-        export MASTER_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
+        export COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
         export LDFLAGS="-L\${GPHOME}/lib"
         export CPPFLAGS="-I\${GPHOME}/include"
 
@@ -125,7 +125,7 @@ run_binary_swap_test() {
     ssh $gpdb_master_alias bash -ex <<EOF
         source /usr/local/greenplum-db-devel/greenplum_path.sh
         export PGPORT=5432
-        export MASTER_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
+        export COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
         export BINARY_SWAP_VARIANT=_resgroup
 
         cd /home/gpadmin

@@ -24,7 +24,7 @@ class GpStart(GpTestCase):
         self.subject.logger = Mock(
             spec=['log', 'warn', 'info', 'debug', 'error', 'warning', 'fatal', 'warning_to_file_only'])
 
-        self.os_environ = dict(MASTER_DATA_DIRECTORY='/tmp/mdd', GPHOME='/tmp/gphome', GP_MGMT_PROCESS_COUNT=1,
+        self.os_environ = dict(COORDINATOR_DATA_DIRECTORY='/tmp/cdd', GPHOME='/tmp/gphome', GP_MGMT_PROCESS_COUNT=1,
                                LANGUAGE=None)
         self.gparray = self._createGpArrayWith2Primary2Mirrors()
         self.segments_by_content_id = GpArray.getSegmentsByContentId(self.gparray.getSegDbList())

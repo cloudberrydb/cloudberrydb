@@ -72,7 +72,7 @@
       <p>Greenplum Database must be running to use the <codeph>gpbackup_manager</codeph>
         utility.</p>
       <p>Backup history is saved on the Greenplum Database coordinator host in the file
-          <codeph>$MASTER_DATA_DIRECTORY/gpbackup_history.yaml</codeph>. If no backups have been
+          <codeph>$COORDINATOR_DATA_DIRECTORY/gpbackup_history.yaml</codeph>. If no backups have been
         created yet, or if the backup history has been deleted, <codeph>gpbackup_manager</codeph>
         commands that depend on the file will display an error message and exit. If the backup
         history contains invalid YAML syntax, a yaml error message is displayed.</p>

@@ -788,8 +788,8 @@ class GpRecoverSegmentProgram:
     def mainOptions():
         """
         The dictionary this method returns instructs the simple_main framework
-        to check for a gprecoverseg.lock file under MASTER_DATA_DIRECTORY to
-        prevent the customer from trying to run more than one instance of
+        to check for a gprecoverseg.lock file under COORDINATOR_DATA_DIRECTORY
+        to prevent the customer from trying to run more than one instance of
         gprecoverseg at the same time.
         """
         return {'pidlockpath': 'gprecoverseg.lock', 'parentpidvar': 'GPRECOVERPID'}

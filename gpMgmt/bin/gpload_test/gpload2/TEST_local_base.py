@@ -12,6 +12,8 @@ import re
 #import yaml
 import pytest
 
+from gppylib.commands.gp import get_coordinatordatadir
+
 try:
     import subprocess32 as subprocess
 except:
@@ -32,7 +34,7 @@ except Exception as e:
     sys.exit(2)
 
 def get_port_from_conf():
-    file = os.environ.get('MASTER_DATA_DIRECTORY')+'/postgresql.conf'
+    file = get_coordinatordatadir()+'/postgresql.conf'
     if os.path.isfile(file):
         with open(file) as f:
             for line in f.xreadlines():
@@ -84,13 +86,13 @@ def run(cmd):
 
 def getPortCoordinatorOnly(host = 'localhost',coordinator_value = None,
                       user = os.environ.get('USER'),gphome = os.environ['GPHOME'],
-                      mdd=os.environ['MASTER_DATA_DIRECTORY'],port = os.environ['PGPORT']):
+                      cdd=get_coordinatordatadir(),port = os.environ['PGPORT']):
 
     coordinator_pattern = r"Context:\s*-1\s*Value:\s*\d+"
     command = "gpconfig -s %s" % ( "port" )
 
-    cmd = "source %s/greenplum_path.sh; export MASTER_DATA_DIRECTORY=%s; export PGPORT=%s; %s" \
-           % (gphome, mdd, port, command)
+    cmd = "source %s/greenplum_path.sh; export COORDINATOR_DATA_DIRECTORY=%s; export PGPORT=%s; %s" \
+           % (gphome, cdd, port, command)
 
     (ok,out) = run(cmd)
     if not ok:

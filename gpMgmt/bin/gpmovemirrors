@@ -69,7 +69,7 @@ def parseargs():
                       help="input expansion configuration file.", metavar="FILE")
     parser.add_option('-d', '--master-data-directory', dest='coordinator_data_directory',
                       help='The coordinator data directory for the system. If this option is not specified, \
-                            the value is obtained from the $MASTER_DATA_DIRECTORY environment variable.')
+                            the value is obtained from the $COORDINATOR_DATA_DIRECTORY environment variable.')
     parser.add_option('-B', '--batch-size', dest='batch_size', type='int', default=16, metavar="<batch_size>",
                       help='Expansion configuration batch size. Valid values are 1-%d' % MAX_BATCH_SIZE)
     parser.add_option('-v', '--verbose', dest="verbose", action='store_true',

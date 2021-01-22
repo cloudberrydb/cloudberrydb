@@ -1,4 +1,5 @@
 from os import path
+from gppylib.commands.gp import get_coordinatordatadir
 
 from behave import given, when, then
 from test.behave_utils.utils import *
@@ -77,9 +78,9 @@ def add_mirrors(context, options):
 
 
 def make_data_directory_called(data_directory_name):
-    mdd_parent_parent = os.path.realpath(
-        os.getenv("MASTER_DATA_DIRECTORY") + "../../../")
-    mirror_data_dir = os.path.join(mdd_parent_parent, data_directory_name)
+    cdd_parent_parent = os.path.realpath(
+        get_coordinatordatadir()+ "../../../")
+    mirror_data_dir = os.path.join(cdd_parent_parent, data_directory_name)
     if not os.path.exists(mirror_data_dir):
         os.mkdir(mirror_data_dir)
     return mirror_data_dir
@@ -162,13 +163,13 @@ def impl(context, options=" "):
 @given('gpaddmirrors adds mirrors with temporary data dir')
 def impl(context):
     context.mirror_config = _generate_input_config()
-    mdd = os.getenv('MASTER_DATA_DIRECTORY', "")
-    del os.environ['MASTER_DATA_DIRECTORY']
+    cdd = get_coordinatordatadir()
+    del os.environ['COORDINATOR_DATA_DIRECTORY']
     try:
-        cmd = Command('gpaddmirrors ', 'gpaddmirrors -a -i %s -d %s' % (context.mirror_config, mdd))
+        cmd = Command('gpaddmirrors ', 'gpaddmirrors -a -i %s -d %s' % (context.mirror_config, cdd))
         cmd.run(validateAfter=True)
     finally:
-        os.environ['MASTER_DATA_DIRECTORY'] = mdd
+        os.environ['COORDINATOR_DATA_DIRECTORY'] = cdd
 
 
 @given('gpaddmirrors adds mirrors in spread configuration')

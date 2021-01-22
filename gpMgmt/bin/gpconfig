@@ -96,8 +96,8 @@ def validate_mutual_options(options):
         log_and_raise("'--file' option must accompany '--show' option")
     if options.file and options.file_compare and options.show:
         log_and_raise("'--file' option and '--file-compare' option cannot be used together")
-    if options.file and "MASTER_DATA_DIRECTORY" not in os.environ:
-        log_and_raise("--file option requires that MASTER_DATA_DIRECTORY be set")
+    if options.file and not get_coordinatordatadir():
+        log_and_raise("--file option requires that COORDINATOR_DATA_DIRECTORY be set")
     if options.remove and (options.value is not None or options.primaryvalue is not None or options.mirrorvalue is not None or options.coordinatorvalue is not None):
         log_and_raise("remove action does not take a value, primary value, mirror value or coordinator value parameter")
     if options.change and options.remove:

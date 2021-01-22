@@ -103,7 +103,7 @@
             specified directory. You must specify <varname>directory</varname> as an absolute path
             (not relative). If you do not supply this option, metadata files are created on the
             Greenplum Database coordinator host in the
-              <filepath>$MASTER_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath>
+              <filepath>$COORDINATOR_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath>
             directory. Segment hosts create CSV data files in the
               <filepath>&lt;seg_dir>/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath> directory. When you
             specify a custom backup directory, files are copied to these paths in subdirectories of

@@ -124,7 +124,7 @@ class PIDLockFile:
 class SimpleMainLock:
     """
     Tools like gprecoverseg prohibit running multiple instances at the same time
-    via a simple lock file created in the MASTER_DATA_DIRECTORY.  This class takes
+    via a simple lock file created in the COORDINATOR_DATA_DIRECTORY.  This class takes
     care of the work to manage this lock as appropriate based on the mainOptions
     specified.
 
@@ -261,7 +261,7 @@ def simple_main(createOptionParserFn, createCommandFn, mainOptions=None):
 def simple_main_internal(createOptionParserFn, createCommandFn, mainOptions):
     """
     If caller specifies 'pidlockpath' in mainOptions then we manage the
-    specified pid file within the MASTER_DATA_DIRECTORY before proceeding
+    specified pid file within the COORDINATOR_DATA_DIRECTORY before proceeding
     to execute the specified program and we clean up the pid file when
     we're done.
     """
@@ -406,7 +406,7 @@ def addStandardLoggingAndHelpOptions(parser, includeNonInteractiveOption, includ
     return addTo
 
 
-def addMasterDirectoryOptionForSingleClusterProgram(addTo):
+def addCoordinatorDirectoryOptionForSingleClusterProgram(addTo):
     """
     Add the -d coordinator directory option to the specified parser object
     which is intended to provide the value of the coordinator data directory.
@@ -418,5 +418,5 @@ def addMasterDirectoryOptionForSingleClusterProgram(addTo):
                      dest="coordinatorDataDirectory",
                      metavar="<coordinator data directory>",
                      help="Optional. The coordinator host data directory. If not specified, the value set" \
-                          "for $MASTER_DATA_DIRECTORY will be used.")
+                          "for $COORDINATOR_DATA_DIRECTORY will be used.")
 

@@ -8,7 +8,7 @@
 
 <b>gplogfilter</b> <b>--version</b></codeblock></section><section id="section3"><title>Description</title><p>The <codeph>gplogfilter</codeph> utility can be used to search through a Greenplum Database log file for entries matching the specified criteria. If an input
         file is not supplied, then <codeph>gplogfilter</codeph> will use the
-          <codeph>$MASTER_DATA_DIRECTORY</codeph> environment variable to locate the Greenplum coordinator log file in the standard logging location. To read
+          <codeph>$COORDINATOR_DATA_DIRECTORY</codeph> environment variable to locate the Greenplum coordinator log file in the standard logging location. To read
         from standard input, use a dash (<codeph>-</codeph>) as the input file name. Input files may
         be compressed using <codeph>gzip</codeph>. In an input file, a log entry is identified by
         its timestamp in <codeph>YYYY-MM-DD [hh:mm[:ss]]</codeph> format.</p><p>You can also use <codeph>gplogfilter</codeph> to search through all segment log files at once by
@@ -51,7 +51,7 @@ of <codeph>STDOUT</codeph>. </pd></plentry><plentry><pt>-z 0-9 | --zip=0-9</pt><
 name ending in <codeph>.gz</codeph>, the output file will be compressed
 by default using maximum compression.</pd></plentry><plentry><pt>-a | --append</pt><pd>If the output file already exists, appends to the file instead of
 overwriting it.</pd></plentry></parml></sectiondiv><sectiondiv id="section8"><b>Input Options</b><parml><plentry><pt>input_file</pt><pd>The name of the input log file(s) to search through. If an input file is not supplied,
-                <codeph>gplogfilter</codeph> will use the <codeph>$MASTER_DATA_DIRECTORY</codeph>
+                <codeph>gplogfilter</codeph> will use the <codeph>$COORDINATOR_DATA_DIRECTORY</codeph>
               environment variable to locate the Greenplum Database coordinator log file.
               To read from standard input, use a dash (<codeph>-</codeph>) as the input file
               name.</pd></plentry><plentry><pt>-u | --unzip</pt><pd>Uncompress the input file using <codeph>gunzip</codeph>. If the input

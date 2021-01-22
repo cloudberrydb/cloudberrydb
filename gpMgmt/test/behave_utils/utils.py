@@ -16,7 +16,7 @@ import pg
 from contextlib import closing
 from datetime import datetime
 from gppylib.commands.base import Command, ExecutionError, REMOTE
-from gppylib.commands.gp import chk_local_db_running
+from gppylib.commands.gp import chk_local_db_running, get_coordinatordatadir
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray, MODE_SYNCHRONIZED
 
@@ -24,9 +24,9 @@ from gppylib.gparray import GpArray, MODE_SYNCHRONIZED
 PARTITION_START_DATE = '2010-01-01'
 PARTITION_END_DATE = '2013-01-01'
 
-coordinator_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
+coordinator_data_dir = get_coordinatordatadir()
 if coordinator_data_dir is None:
-    raise Exception('MASTER_DATA_DIRECTORY is not set')
+    raise Exception('COORDINATOR_DATA_DIRECTORY is not set')
 
 
 # query_sql returns a cursor object, so the caller is responsible for closing
@@ -101,9 +101,9 @@ def run_cmd(command):
     return (result.rc, result.stdout, result.stderr)
 
 
-def run_command_remote(context, command, host, source_file, export_mdd, validateAfter=True):
+def run_command_remote(context, command, host, source_file, export_cdd, validateAfter=True):
     cmd = Command(name='run command %s' % command,
-                  cmdStr='gpssh -h %s -e \'source %s; %s; %s\'' % (host, source_file, export_mdd, command))
+                  cmdStr='gpssh -h %s -e \'source %s; %s; %s\'' % (host, source_file, export_cdd, command))
     cmd.run(validateAfter=validateAfter)
     result = cmd.get_results()
     context.ret_code = result.rc
@@ -183,7 +183,7 @@ def check_database_is_running(context):
 
     pgport = int(os.environ['PGPORT'])
 
-    running_status = chk_local_db_running(os.environ.get('MASTER_DATA_DIRECTORY'), pgport)
+    running_status = chk_local_db_running(get_coordinatordatadir(), pgport)
     gpdb_running = running_status[0] and running_status[1] and running_status[2] and running_status[3]
 
     return gpdb_running

@@ -49,10 +49,10 @@ class GpAddMirrorsTest(GpTestCase):
         self.coordinator.heap_checksum = 1
         self.mock_heap_checksum.return_value.check_segment_consistency.return_value = (
             [self.primary0], [], self.coordinator.heap_checksum)
-        self.mdd = os.getenv("MASTER_DATA_DIRECTORY")
-        if not self.mdd:
-            self.mdd = "/Users/pivotal/workspace/gpdb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1"
-            os.environ["MASTER_DATA_DIRECTORY"] = self.mdd
+        self.cdd = os.getenv("COORDINATOR_DATA_DIRECTORY")
+        if not self.cdd:
+            self.cdd = "/Users/pivotal/workspace/gpdb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1"
+            os.environ["COORDINATOR_DATA_DIRECTORY"] = self.cdd
 
         self.parser = GpAddMirrorsProgram.createParser()
 
@@ -95,7 +95,7 @@ class GpAddMirrorsTest(GpTestCase):
         self.assertEqual(cm.exception.code, 0)
 
     def test_generated_file_contains_default_port_offsets(self):
-        datadir_config = _write_datadir_config(self.mdd)
+        datadir_config = _write_datadir_config(self.cdd)
         mirror_config_output_file = "/tmp/test_gpaddmirrors.config"
         sys.argv = ['gpaddmirrors', '-o', mirror_config_output_file, '-m', datadir_config]
         self.config_provider_mock.loadSystemConfig.return_value = GpArray([self.coordinator, self.primary0, self.primary1])
@@ -109,7 +109,7 @@ class GpAddMirrorsTest(GpTestCase):
         self.assertIn("41000", result[0])
 
     def test_generated_file_contains_port_offsets(self):
-        datadir_config = _write_datadir_config(self.mdd)
+        datadir_config = _write_datadir_config(self.cdd)
         mirror_config_output_file = "/tmp/test_gpaddmirrors.config"
         sys.argv = ['gpaddmirrors', '-p', '5000', '-o', mirror_config_output_file, '-m', datadir_config]
         options, _ = self.parser.parse_args()
@@ -146,9 +146,9 @@ class GpAddMirrorsTest(GpTestCase):
         return GpArray([self.coordinator, self.primary0, self.primary1, mirror0, mirror1])
 
 
-def _write_datadir_config(mdd):
-    mdd_parent_parent = os.path.realpath(mdd + "../../../")
-    mirror_data_dir = os.path.join(mdd_parent_parent, 'mirror')
+def _write_datadir_config(cdd):
+    cdd_parent_parent = os.path.realpath(cdd + "../../../")
+    mirror_data_dir = os.path.join(cdd_parent_parent, 'mirror')
     if not os.path.exists(mirror_data_dir):
         os.mkdir(mirror_data_dir)
     datadir_config = '/tmp/gpaddmirrors_datadir_config'

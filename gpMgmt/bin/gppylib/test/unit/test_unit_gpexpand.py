@@ -54,8 +54,8 @@ class GpExpand(GpTestCase):
         self.input_mock = self.get_mock_from_apply_patch("input")
         self.getConfigProviderFunctionMock = self.get_mock_from_apply_patch("getConfigurationProvider")
         self.gpMasterEnvironmentMock = self.get_mock_from_apply_patch("GpMasterEnvironment")
-        self.previous_coordinator_data_directory = os.getenv('MASTER_DATA_DIRECTORY', '')
-        os.environ["MASTER_DATA_DIRECTORY"] = '/tmp/dirdoesnotexist'
+        self.previous_coordinator_data_directory = os.getenv('COORDINATOR_DATA_DIRECTORY', '')
+        os.environ["COORDINATOR_DATA_DIRECTORY"] = '/tmp/dirdoesnotexist'
         configProviderMock = Mock(spec=GpConfigurationProvider)
         self.getConfigProviderFunctionMock.return_value = configProviderMock
         configProviderMock.initializeProvider.return_value = configProviderMock
@@ -67,7 +67,7 @@ class GpExpand(GpTestCase):
         self.mock_heap_checksum.return_value.check_segment_consistency.return_value = ([2], [], 1)
 
     def tearDown(self):
-        os.environ['MASTER_DATA_DIRECTORY'] = self.previous_coordinator_data_directory
+        os.environ['COORDINATOR_DATA_DIRECTORY'] = self.previous_coordinator_data_directory
         sys.argv = self.old_sys_argv
         super(GpExpand, self).tearDown()
 

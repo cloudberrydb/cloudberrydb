@@ -117,10 +117,10 @@ Feature: gpinitsystem tests
         And all the segments are running
         And the segments are synchronized
         And the standby is not initialized
-        And the user runs command "rm -rf $MASTER_DATA_DIRECTORY/newstandby"
+        And the user runs command "rm -rf $COORDINATOR_DATA_DIRECTORY/newstandby"
         And the user runs command "rm -rf /tmp/gpinitsystemtest && mkdir /tmp/gpinitsystemtest"
         And the cluster config is generated with data_checksums "1"
-        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -l /tmp/gpinitsystemtest -s localhost -P 21100 -S $MASTER_DATA_DIRECTORY/newstandby -h ../gpAux/gpdemo/hostfile"
+        When the user runs "gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -l /tmp/gpinitsystemtest -s localhost -P 21100 -S $COORDINATOR_DATA_DIRECTORY/newstandby -h ../gpAux/gpdemo/hostfile"
         Then gpinitsystem should return a return code of 0
         And gpinitsystem should print "Log file scan check passed" to stdout
         And sql "select * from gp_toolkit.__gp_user_namespaces" is executed in "postgres" db

@@ -82,8 +82,8 @@
                         activating.</pd>
                     <pd>If this option is not specified, <codeph>gpactivatestandby</codeph> uses the
                         value of the 
-                            <codeph>MASTER_DATA_DIRECTORY</codeph> environment variable setting on the coordinator host you are
-                        activating. If this option is specified, it overrides any setting of <codeph>MASTER_DATA_DIRECTORY</codeph>. </pd>
+                            <codeph>COORDINATOR_DATA_DIRECTORY</codeph> environment variable setting on the coordinator host you are
+                        activating. If this option is specified, it overrides any setting of <codeph>COORDINATOR_DATA_DIRECTORY</codeph>. </pd>
                     <pd>If a directory cannot be determined, the utility returns an error. </pd>
                 </plentry>
                 <plentry>

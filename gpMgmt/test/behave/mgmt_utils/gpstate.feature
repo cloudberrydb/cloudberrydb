@@ -426,7 +426,7 @@ Feature: gpstate tests
              | Cluster Expansion State = Replicating Meta Data |
              |   Some database tools and functionality         |
              |   are disabled during this process              |
-        Given the user runs command "rm $MASTER_DATA_DIRECTORY/gpexpand.status"
+        Given the user runs command "rm $COORDINATOR_DATA_DIRECTORY/gpexpand.status"
          When the user runs "gpstate -x"
          Then gpstate output looks like
              | Cluster Expansion State = Data Distribution - Paused |
