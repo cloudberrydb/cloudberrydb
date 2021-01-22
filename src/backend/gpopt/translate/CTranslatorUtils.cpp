@@ -1182,6 +1182,7 @@ CTranslatorUtils::CreateGroupingSetsForRollup(CMemoryPool *mp,
 			mp, gs_current->content, num_cols, group_col_pos, group_cols,
 			false /* use_group_clause */);
 		current_result->Union(bset);
+		bset->Release();
 		col_attnos_arr->Append(GPOS_NEW(mp) CBitSet(mp, *current_result));
 	}
 	// add an empty set
