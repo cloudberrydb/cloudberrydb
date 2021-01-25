@@ -1805,17 +1805,4 @@ def get_session_ids(coordinator_port):
     finally:
         conn.close()
 
-
-def get_gparray_from_config():
-    # imports below, when moved to the top, seem to cause an import error in a unit test because of dependency issue
-    from gppylib.system import configurationInterface
-    from gppylib.system import configurationImplGpdb
-    from gppylib.system.environment import GpMasterEnvironment
-    coordinator_data_dir = get_coordinatordatadir()
-    gpEnv = GpMasterEnvironment(coordinator_data_dir, False)
-    configurationInterface.registerConfigurationProvider(
-        configurationImplGpdb.GpConfigurationProviderUsingGpdbCatalog())
-    confProvider = configurationInterface.getConfigurationProvider().initializeProvider(gpEnv.getMasterPort())
-    return confProvider.loadSystemConfig(useUtilityMode=True)
-
 # === EOF ====
