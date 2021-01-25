@@ -4587,13 +4587,28 @@ pgstat_send_qd_tabstats(void)
 	{
 		PgStatTabRecordFromQE		record;
 		PgStat_TableStatus		   *tabstat = trans->parent;
+		GpPolicy *gppolicy = GpPolicyFetch(tabstat->t_id);
 
-		/*
-		 * No need to send catalog table's pgstat to QD since if the catalog
-		 * table get updated on QE, QD should have the same update.
-		 */
-		if (tabstat->t_id < FirstNormalObjectId)
-			continue;
+		switch (gppolicy->ptype)
+		{
+			case POLICYTYPE_ENTRY:
+				/*
+				 * No need to send catalog table's pgstat to QD since if the catalog
+				 * table get updated on QE, QD should have the same update.
+				 */
+				continue;
+			case POLICYTYPE_REPLICATED:
+				/*
+				 * gppolicy->numsegments has the same value on all segments even when we are doing expand.
+				 */
+				if (GpIdentity.segindex != tabstat->t_id % gppolicy->numsegments)
+					continue;
+				break;
+			case POLICYTYPE_PARTITIONED:
+				break;
+			default:
+				elog(ERROR, "unrecognized policy type %d", gppolicy->ptype);
+		}
 
 		record.table_stat.tuples_inserted = trans->tuples_inserted;
 		record.table_stat.tuples_updated = trans->tuples_updated;
