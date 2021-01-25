@@ -9,7 +9,7 @@ from gppylib.utils import toNonNoneString, checkNotNone
 
 logger = gplog.get_default_logger()
 
-class GpMasterEnvironment:
+class GpCoordinatorEnvironment:
     """
 
     Encapsulates information about the environment in which the script is running AND about the
@@ -20,10 +20,10 @@ class GpMasterEnvironment:
 
     """
 
-    def __init__(self, coordinatorDataDir, readFromMasterCatalog, timeout=None, retries=None, verbose=True):
+    def __init__(self, coordinatorDataDir, readFromCoordinatorCatalog, timeout=None, retries=None, verbose=True):
         """
         coordinatorDataDir: if None then we try to find it from the system environment
-        readFromMasterCatalog: if True then we will connect to the coordinator in utility mode and fetch some more
+        readFromCoordinatorCatalog: if True then we will connect to the coordinator in utility mode and fetch some more
                                data from there (like collation settings)
 
         """
@@ -45,7 +45,7 @@ class GpMasterEnvironment:
             logger.info("local Greenplum Version: '%s'" % self.__gpVersion)
 
         # read collation settings from coordinator
-        if readFromMasterCatalog:
+        if readFromCoordinatorCatalog:
             dbUrl = dbconn.DbURL(port=self.__coordinatorPort, dbname='template1', timeout=timeout, retries=retries)
             conn = dbconn.connect(dbUrl, utility=True)
 
@@ -61,6 +61,6 @@ class GpMasterEnvironment:
     def getGpVersion(self): return self.__gpVersion
     def getPgVersion(self): return self.__pgVersion
 
-    def getMasterDataDir(self): return self.__coordinatorDataDir
-    def getMasterMaxConnections(self) : return self.__coordinatorMaxConnections
-    def getMasterPort(self) : return self.__coordinatorPort
+    def getCoordinatorDataDir(self): return self.__coordinatorDataDir
+    def getCoordinatorMaxConnections(self) : return self.__coordinatorMaxConnections
+    def getCoordinatorPort(self) : return self.__coordinatorPort

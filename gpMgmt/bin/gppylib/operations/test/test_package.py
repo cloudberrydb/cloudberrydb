@@ -54,7 +54,7 @@ def get_host_list():
     for seg in segs:
         if seg.isSegmentStandby(current_role=True):
             standby_host = seg.getSegmentHostName()
-        elif not seg.isSegmentMaster(current_role=True):
+        elif not seg.isSegmentCoordinator(current_role=True):
             segment_host_list.append(seg.getSegmentHostName())
 
     # Deduplicate the hosts so that we

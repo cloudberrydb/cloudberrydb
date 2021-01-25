@@ -6,7 +6,7 @@ from mock import *
 from .gp_unittest import *
 from gppylib.programs.clsAddMirrors import GpAddMirrorsProgram, ProgramArgumentValidationException
 from gparray import Segment, GpArray
-from gppylib.system.environment import GpMasterEnvironment
+from gppylib.system.environment import GpCoordinatorEnvironment
 from gppylib.system.configurationInterface import GpConfigurationProvider
 
 
@@ -25,7 +25,7 @@ class GpAddMirrorsTest(GpTestCase):
             patch('gppylib.programs.clsAddMirrors.base.WorkerPool'),
             patch('gppylib.programs.clsAddMirrors.logger', return_value=Mock(spec=['log', 'info', 'debug', 'error'])),
             patch('gppylib.programs.clsAddMirrors.log_to_file_only', return_value=Mock()),
-            patch('gppylib.programs.clsAddMirrors.GpMasterEnvironment', return_value=Mock(), spec=GpMasterEnvironment),
+            patch('gppylib.programs.clsAddMirrors.GpCoordinatorEnvironment', return_value=Mock(), spec=GpCoordinatorEnvironment),
             patch('gppylib.system.faultProberInterface.getFaultProber'),
             patch('gppylib.programs.clsAddMirrors.configInterface.getConfigurationProvider', return_value=Mock()),
             patch('gppylib.programs.clsAddMirrors.heapchecksum.HeapChecksum'),
@@ -34,9 +34,9 @@ class GpAddMirrorsTest(GpTestCase):
         ])
         self.input_mock = self.get_mock_from_apply_patch("input")
         self.mock_logger = self.get_mock_from_apply_patch('logger')
-        self.gpMasterEnvironmentMock = self.get_mock_from_apply_patch("GpMasterEnvironment")
-        self.gpMasterEnvironmentMock.return_value.getMasterPort.return_value = 123456
-        self.gpMasterEnvironmentMock.return_value.getMasterDataDir.return_value = "/data/coordinator/gpseg-1"
+        self.gpCoordinatorEnvironmentMock = self.get_mock_from_apply_patch("GpCoordinatorEnvironment")
+        self.gpCoordinatorEnvironmentMock.return_value.getCoordinatorPort.return_value = 123456
+        self.gpCoordinatorEnvironmentMock.return_value.getCoordinatorDataDir.return_value = "/data/coordinator/gpseg-1"
         self.getConfigProviderFunctionMock = self.get_mock_from_apply_patch('getConfigurationProvider')
         self.config_provider_mock = Mock(spec=GpConfigurationProvider)
         self.getConfigProviderFunctionMock.return_value = self.config_provider_mock

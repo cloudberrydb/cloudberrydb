@@ -22,7 +22,7 @@ from gppylib.operations.buildMirrorSegments import *
 from gppylib.operations.update_pg_hba_conf import config_primaries_for_replication
 from gppylib.programs import programIoUtils
 from gppylib.system import configurationInterface as configInterface
-from gppylib.system.environment import GpMasterEnvironment
+from gppylib.system.environment import GpCoordinatorEnvironment
 from gppylib.parseutils import line_reader, check_values, canonicalize_address
 from gppylib.utils import writeLinesToFile, readAllLinesFromFile, TableLogger, \
     PathNormalizationException, normalizeAndValidateInputPath
@@ -397,7 +397,7 @@ class GpAddMirrorsProgram:
         else:
             toBuild = calc.getGroupMirrors()
 
-        gpPrefix = gp_utils.get_gp_prefix(gpEnv.getMasterDataDir())
+        gpPrefix = gp_utils.get_gp_prefix(gpEnv.getCoordinatorDataDir())
         if not gpPrefix:
             gpPrefix = 'gp'
 
@@ -423,8 +423,8 @@ class GpAddMirrorsProgram:
     def __displayAddMirrors(self, gpEnv, mirrorBuilder, gpArray):
         logger.info('Greenplum Add Mirrors Parameters')
         logger.info('---------------------------------------------------------')
-        logger.info('Greenplum coordinator data directory          = %s' % gpEnv.getMasterDataDir())
-        logger.info('Greenplum coordinator port                    = %d' % gpEnv.getMasterPort())
+        logger.info('Greenplum coordinator data directory          = %s' % gpEnv.getCoordinatorDataDir())
+        logger.info('Greenplum coordinator port                    = %d' % gpEnv.getCoordinatorPort())
         logger.info('Parallel batch limit                     = %d' % self.__options.parallelDegree)
 
         total = len(mirrorBuilder.getMirrorsToBuild())
@@ -502,10 +502,10 @@ class GpAddMirrorsProgram:
                 "Invalid parallelDegree provided with -B argument: %d" % self.__options.parallelDegree)
 
         self.__pool = base.WorkerPool(self.__options.parallelDegree)
-        gpEnv = GpMasterEnvironment(self.__options.coordinatorDataDirectory, True)
+        gpEnv = GpCoordinatorEnvironment(self.__options.coordinatorDataDirectory, True)
 
-        faultProberInterface.getFaultProber().initializeProber(gpEnv.getMasterPort())
-        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getMasterPort())
+        faultProberInterface.getFaultProber().initializeProber(gpEnv.getCoordinatorPort())
+        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getCoordinatorPort())
         gpArray = confProvider.loadSystemConfig(useUtilityMode=False)
 
         # check that heap_checksums is consistent across cluster, fail immediately if not
@@ -566,7 +566,7 @@ class GpAddMirrorsProgram:
 
         addTo = OptionGroup(parser, "Connection Options")
         parser.add_option_group(addTo)
-        addMasterDirectoryOptionForSingleClusterProgram(addTo)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(addTo)
 
         addTo = OptionGroup(parser, "Mirroring Options")
         parser.add_option_group(addTo)

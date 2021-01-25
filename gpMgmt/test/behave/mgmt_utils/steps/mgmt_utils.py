@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from os import path
 
 from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR
-from gppylib.commands.gp import SegmentStart, GpStandbyStart, MasterStop
+from gppylib.commands.gp import SegmentStart, GpStandbyStart, CoordinatorStop
 from gppylib.commands import gp
 from gppylib.commands.unix import findCmdInPath, Scp
 from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
@@ -300,7 +300,7 @@ def impl(context, dbname, HOST, PORT, USER):
 
 def get_segment_hostlist():
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    segment_hostlist = sorted(gparray.get_hostlist(includeMaster=False))
+    segment_hostlist = sorted(gparray.get_hostlist(includeCoordinator=False))
     if not segment_hostlist:
         raise Exception('segment_hostlist was empty')
     return segment_hostlist
@@ -804,18 +804,18 @@ def impl(context, command):
 @when('the coordinator goes down')
 @then('the coordinator goes down')
 def impl(context):
-    coordinator = MasterStop("Stopping Coordinator", coordinator_data_dir, mode='immediate')
+    coordinator = CoordinatorStop("Stopping Coordinator", coordinator_data_dir, mode='immediate')
     coordinator.run()
 
 @when('the standby coordinator goes down')
 def impl(context):
-    coordinator = MasterStop("Stopping Coordinator Standby", context.standby_data_dir, mode='immediate', ctxt=REMOTE,
+    coordinator = CoordinatorStop("Stopping Coordinator Standby", context.standby_data_dir, mode='immediate', ctxt=REMOTE,
                         remoteHost=context.standby_hostname)
     coordinator.run(validateAfter=True)
 
 @when('the coordinator goes down on "{host}"')
 def impl(context, host):
-    coordinator = MasterStop("Stopping Coordinator Standby", coordinator_data_dir, mode='immediate', ctxt=REMOTE,
+    coordinator = CoordinatorStop("Stopping Coordinator Standby", coordinator_data_dir, mode='immediate', ctxt=REMOTE,
                         remoteHost=host)
     coordinator.run(validateAfter=True)
 
@@ -832,7 +832,7 @@ def impl(context):
 
     context.execute_steps('''Then the user runs command "%s" from standby coordinator''' % cmd)
 
-    coordinator = MasterStop("Stopping current coordinator", context.standby_data_dir, mode='immediate', ctxt=REMOTE,
+    coordinator = CoordinatorStop("Stopping current coordinator", context.standby_data_dir, mode='immediate', ctxt=REMOTE,
                         remoteHost=context.standby_hostname)
     coordinator.run()
 
@@ -1663,7 +1663,7 @@ def impl(context, query, dbname):
     segments = gparray.getDbList()
     for seg in segments:
         host = seg.getSegmentHostName()
-        if seg.isSegmentPrimary() or seg.isSegmentMaster():
+        if seg.isSegmentPrimary() or seg.isSegmentCoordinator():
             port = seg.getSegmentPort()
             psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_role=utility\' psql -h %s -p %s -c \"%s\"; " % (
             dbname, host, port, query)
@@ -1680,7 +1680,7 @@ def impl(context, file, dbname):
     segments = gparray.getDbList()
     for seg in segments:
         host = seg.getSegmentHostName()
-        if seg.isSegmentPrimary() or seg.isSegmentMaster():
+        if seg.isSegmentPrimary() or seg.isSegmentCoordinator():
             port = seg.getSegmentPort()
             psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_role=utility\' psql -h %s -p %s -c \"%s\"; " % (
             dbname, host, port, query)

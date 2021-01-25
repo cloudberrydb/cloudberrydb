@@ -194,7 +194,7 @@ def impl(context):
     # Map content IDs to hostnames for every mirror, for both the saved GpArray
     # and the current one.
     for (array, hostMap) in [(context.gparray, old_content_to_host), (gparray, curr_content_to_host)]:
-        for host in array.get_hostlist(includeMaster=False):
+        for host in array.get_hostlist(includeCoordinator=False):
             for mirror in array.get_list_of_mirror_segments_on_host(host):
                 hostMap[mirror.getSegmentContentId()] = host
 
@@ -243,7 +243,7 @@ def impl(context, mirror_config):
         raise Exception('"%s" is not a valid mirror configuration for this step; options are "group" and "spread".')
 
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    host_list = gparray.get_hostlist(includeMaster=False)
+    host_list = gparray.get_hostlist(includeCoordinator=False)
 
     primary_to_mirror_host_map = {}
     primary_content_map = {}

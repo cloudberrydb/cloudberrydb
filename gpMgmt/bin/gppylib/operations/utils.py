@@ -95,9 +95,9 @@ class SerialOperation(Operation):
     def __str__(self):
         return "Serial(%d)" % len(self.operations)
 
-class MasterOperation(Operation):
+class CoordinatorOperation(Operation):
     def __init__(self, operation):
-        super(MasterOperation, self).__init__()
+        super(CoordinatorOperation, self).__init__()
         self.operation = operation
     
     def execute(self):

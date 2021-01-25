@@ -137,7 +137,7 @@ class CmdArgs(list):
 class PgCtlBackendOptions(CmdArgs):
     """
     List of options suitable for use with the -o option of pg_ctl.
-    Used by MasterStart, SegmentStart to format the backend options
+    Used by CoordinatorStart, SegmentStart to format the backend options
     string passed via pg_ctl -o
 
     Examples
@@ -186,9 +186,9 @@ class PgCtlBackendOptions(CmdArgs):
 
     def set_special(self, special):
         """
-        @param special: special mode (none, 'upgrade', 'maintenance', 'convertMasterDataDirToSegment')
+        @param special: special mode (none, 'upgrade', 'maintenance', 'convertCoordinatorDataDirToSegment')
         """
-        opt = {None:None, 'upgrade':'-U', 'maintenance':'-m', 'convertMasterDataDirToSegment':'-M'}[special]
+        opt = {None:None, 'upgrade':'-U', 'maintenance':'-m', 'convertCoordinatorDataDirToSegment':'-M'}[special]
         if opt: self.append(opt)
         return self
 
@@ -211,7 +211,7 @@ class PgCtlBackendOptions(CmdArgs):
 
 class PgCtlStartArgs(CmdArgs):
     """
-    Used by MasterStart, SegmentStart to format the pg_ctl command
+    Used by CoordinatorStart, SegmentStart to format the pg_ctl command
     to start a backend postmaster.
 
     Examples
@@ -253,7 +253,7 @@ class PgCtlStartArgs(CmdArgs):
 
 class PgCtlStopArgs(CmdArgs):
     """
-    Used by MasterStop, SegmentStop to format the pg_ctl command
+    Used by CoordinatorStop, SegmentStop to format the pg_ctl command
     to stop a backend postmaster
 
     >>> str(PgCtlStopArgs("/data1/coordinator/gpseg-1", "smart", True, 600))
@@ -277,7 +277,7 @@ class PgCtlStopArgs(CmdArgs):
         self.append("stop")
 
 
-class MasterStart(Command):
+class CoordinatorStart(Command):
     def __init__(self, name, dataDir, port, era,
                  wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
                  max_connections=1, utilityMode=False, ctxt=LOCAL, remoteHost=None,
@@ -300,7 +300,7 @@ class MasterStart(Command):
 
         # build pg_ctl command
         c = PgCtlStartArgs(dataDir, b, era, wrapper, wrapper_args, wait, timeout)
-        logger.info("MasterStart pg_ctl cmd is %s", c);
+        logger.info("CoordinatorStart pg_ctl cmd is %s", c);
         self.cmdStr = str(c)
 
         Command.__init__(self, name, self.cmdStr, ctxt, remoteHost)
@@ -309,13 +309,13 @@ class MasterStart(Command):
     def local(name, dataDir, port, era,
               wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
               max_connections=1, utilityMode=False):
-        cmd=MasterStart(name, dataDir, port, era,
+        cmd=CoordinatorStart(name, dataDir, port, era,
                         wrapper, wrapper_args, specialMode, restrictedMode, timeout,
                         max_connections, utilityMode)
         cmd.run(validateAfter=True)
 
 #-----------------------------------------------
-class MasterStop(Command):
+class CoordinatorStop(Command):
     def __init__(self,name,dataDir,mode='smart',timeout=SEGMENT_STOP_TIMEOUT_DEFAULT, ctxt=LOCAL,remoteHost=None):
         self.dataDir = dataDir
         self.cmdStr = str( PgCtlStopArgs(dataDir, mode, True, timeout) )
@@ -323,7 +323,7 @@ class MasterStop(Command):
 
     @staticmethod
     def local(name,dataDir):
-        cmd=MasterStop(name,dataDir)
+        cmd=CoordinatorStop(name,dataDir)
         cmd.run(validateAfter=True)
 
 #-----------------------------------------------
@@ -686,7 +686,7 @@ class GpSegStopCmd(Command):
 
 
 #-----------------------------------------------
-class GpStandbyStart(MasterStart, object):
+class GpStandbyStart(CoordinatorStart, object):
     """
     Start up the coordinator standby.  The options to postgres in standby
     are almost same as primary coordinator, with a few exceptions.

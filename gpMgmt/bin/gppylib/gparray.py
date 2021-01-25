@@ -24,7 +24,6 @@ from gppylib.utils import checkNotNone, checkIsInt
 from gppylib    import gplog
 from gppylib.db import dbconn
 from gppylib.gpversion import GpVersion, MAIN_VERSION
-from gppylib.commands.gp import get_coordinatordatadir
 from gppylib.commands.unix import *
 import os
 
@@ -252,7 +251,7 @@ class Segment:
     def isSegmentQD(self):
         return self.content < 0
 
-    def isSegmentMaster(self, current_role=False):
+    def isSegmentCoordinator(self, current_role=False):
         role = self.role if current_role else self.preferred_role
         return self.content < 0 and role == ROLE_PRIMARY
 
@@ -792,7 +791,7 @@ class GpArray:
         for segdb in segments:
 
             # Handle QD nodes
-            if segdb.isSegmentMaster(True):
+            if segdb.isSegmentCoordinator(True):
                 if self.coordinator != None:
                     logger.error("multiple coordinator dbs defined")
                     raise Exception("GpArray - multiple coordinator dbs defined")
@@ -901,7 +900,7 @@ class GpArray:
             for host in gpdbByHost:
                 gpdbList = gpdbByHost[host]
                 for gpdb in gpdbList:
-                    if gpdb.isSegmentMaster() == True:
+                    if gpdb.isSegmentCoordinator() == True:
                         continue
                     address = gpdb.getSegmentAddress()
                     if address == host:
@@ -1187,9 +1186,9 @@ class GpArray:
         return dbs
 
     # --------------------------------------------------------------------
-    def get_hostlist(self, includeMaster=True):
+    def get_hostlist(self, includeCoordinator=True):
         hosts=[]
-        if includeMaster:
+        if includeCoordinator:
             hosts.append(self.coordinator.hostname)
             if self.standbyCoordinator is not None:
                 hosts.append(self.standbyCoordinator.hostname)

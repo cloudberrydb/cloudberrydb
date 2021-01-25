@@ -19,7 +19,7 @@ from gppylib.gpparseopts import OptParser, OptChecker
 from gppylib.operations.startSegments import *
 from gppylib.operations.buildMirrorSegments import *
 from gppylib.system import configurationInterface as configInterface
-from gppylib.system.environment import GpMasterEnvironment
+from gppylib.system.environment import GpCoordinatorEnvironment
 from gppylib.utils import TableLogger
 
 logger = gplog.get_default_logger()
@@ -512,8 +512,8 @@ class GpSystemStateProgram:
                         numPostmasterProcessesMissing += 1
 
             numSegments = len(segs)
-            numValidAtMaster = len([seg for seg in segs if seg.isSegmentUp()])
-            numFailuresAtMaster = len([seg for seg in segs if seg.isSegmentDown()])
+            numValidAtCoordinator = len([seg for seg in segs if seg.isSegmentUp()])
+            numFailuresAtCoordinator = len([seg for seg in segs if seg.isSegmentDown()])
             numPostmasterPidFilesFound = numSegments - numPostmasterPidFilesMissing
             numLockFilesFound = numSegments - numLockFilesMissing
             numPostmasterPidsFound = numSegments - numPostmasterPidsMissing
@@ -521,9 +521,9 @@ class GpSystemStateProgram:
 
             # print stuff
             tabLog.info(["Total %s segments" % whichType.lower(), "= %d" % numSegments])
-            tabLog.info(["Total %s segment valid (at coordinator)" % whichType.lower(), "= %d" % numValidAtMaster])
-            tabLog.infoOrWarn(numFailuresAtMaster > 0,
-                      ["Total %s segment failures (at coordinator)" % whichType.lower(), "= %d" % numFailuresAtMaster])
+            tabLog.info(["Total %s segment valid (at coordinator)" % whichType.lower(), "= %d" % numValidAtCoordinator])
+            tabLog.infoOrWarn(numFailuresAtCoordinator > 0,
+                      ["Total %s segment failures (at coordinator)" % whichType.lower(), "= %d" % numFailuresAtCoordinator])
 
             tabLog.infoOrWarn(numPostmasterPidFilesMissing > 0,
                       ["Total number of postmaster.pid files missing", "= %d" % numPostmasterPidFilesMissing])
@@ -583,7 +583,7 @@ class GpSystemStateProgram:
         """
         Prints out the current status of the cluster.
 
-        @param gpEnv the GpMasterEnvironment object
+        @param gpEnv the GpCoordinatorEnvironment object
         @param gpArray the array to display
 
         returns the exit code
@@ -711,7 +711,7 @@ class GpSystemStateProgram:
         """
         Print out the current status of the cluster (not including coordinator+standby) as a pipe separate list
 
-        @param gpEnv the GpMasterEnvironment object
+        @param gpEnv the GpCoordinatorEnvironment object
         @param gpArray the array to display
 
         returns the exit code
@@ -808,7 +808,7 @@ class GpSystemStateProgram:
 
     def __printSampleExternalTableSqlForSegmentStatus(self, gpEnv):
         scriptName = "%s/gpstate --segmentStatusPipeSeparatedForTableUse -q -d %s" % \
-                        (sys.path[0], gpEnv.getMasterDataDir()) # todo: ideally, would escape here
+                        (sys.path[0], gpEnv.getCoordinatorDataDir()) # todo: ideally, would escape here
         columns = ["%s %s" % (f.getColumnName(), f.getColumnType()) for f in self.__getSegmentStatusColumns()]
 
         sql = "\nDROP EXTERNAL TABLE IF EXISTS gpstate_segment_status;\n\n\nCREATE EXTERNAL WEB TABLE gpstate_segment_status\n" \
@@ -832,7 +832,7 @@ class GpSystemStateProgram:
         """
         Prints out the current status of the cluster.
 
-        @param gpEnv the GpMasterEnvironment object
+        @param gpEnv the GpCoordinatorEnvironment object
         @param gpArray the array to display
 
         returns the exit code
@@ -845,7 +845,7 @@ class GpSystemStateProgram:
         #
         coordinator = gpArray.coordinator
 
-        dbUrl = dbconn.DbURL(port=gpEnv.getMasterPort(), dbname='template1' )
+        dbUrl = dbconn.DbURL(port=gpEnv.getCoordinatorPort(), dbname='template1' )
         conn = dbconn.connect(dbUrl, utility=True)
         initDbVersion = dbconn.queryRow(conn, "select productversion from gp_version_at_initdb limit 1;")[0]
         pgVersion = dbconn.queryRow(conn, "show server_version;")[0]
@@ -866,8 +866,8 @@ class GpSystemStateProgram:
         #
         # print output about coordinator
         #
-        (statusFetchWarning, outputFromMasterCmd) = hostNameToResults[coordinator.getSegmentHostName()]
-        coordinatorData = outputFromMasterCmd[coordinator.getSegmentDbId()] if statusFetchWarning is None else None
+        (statusFetchWarning, outputFromCoordinatorCmd) = hostNameToResults[coordinator.getSegmentHostName()]
+        coordinatorData = outputFromCoordinatorCmd[coordinator.getSegmentDbId()] if statusFetchWarning is None else None
         data = self.__buildGpStateData(gpArray, hostNameToResults)
 
         logger.info( "----------------------------------------------------" )
@@ -1210,7 +1210,7 @@ class GpSystemStateProgram:
 
     def __showPortInfo(self, gpEnv, gpArray):
 
-        logger.info("-Coordinator segment instance  %s  port = %d" % (gpEnv.getMasterDataDir(), gpEnv.getMasterPort()))
+        logger.info("-Coordinator segment instance  %s  port = %d" % (gpEnv.getCoordinatorDataDir(), gpEnv.getCoordinatorPort()))
         logger.info("-Segment instance port assignments")
         logger.info("----------------------------------")
 
@@ -1277,7 +1277,7 @@ class GpSystemStateProgram:
         logger.info("-pg_stat_replication" )
         logger.info("-------------------------------------------------------------" )
 
-        dbUrl = dbconn.DbURL(port=gpEnv.getMasterPort(), dbname='template1')
+        dbUrl = dbconn.DbURL(port=gpEnv.getCoordinatorPort(), dbname='template1')
         conn = dbconn.connect(dbUrl, utility=True)
         sql = "SELECT state, sync_state, sent_lsn, flush_lsn, replay_lsn FROM pg_stat_replication"
         cur = dbconn.query(conn, sql)
@@ -1308,11 +1308,11 @@ class GpSystemStateProgram:
         exitCode = 0
 
         logger.info("Loading version information")
-        segmentsAndMaster = [seg for seg in gpArray.getDbList()]
-        upSegmentsAndMaster = [seg for seg in segmentsAndMaster if seg.isSegmentUp()]
+        segmentsAndCoordinator = [seg for seg in gpArray.getDbList()]
+        upSegmentsAndCoordinator = [seg for seg in segmentsAndCoordinator if seg.isSegmentUp()]
 
         # fetch from hosts
-        segmentsByHost = GpArray.getSegmentsByHostName(upSegmentsAndMaster)
+        segmentsByHost = GpArray.getSegmentsByHostName(upSegmentsAndCoordinator)
         for hostName, segments in segmentsByHost.items():
             cmd = gp.GpGetSegmentStatusValues("get segment version status", segments,
                                [gp.SEGMENT_STATUS__GET_VERSION],
@@ -1340,7 +1340,7 @@ class GpSystemStateProgram:
         # print the list of all segments and warnings about trouble
         tabLog = TableLogger().setWarnWithArrows(True)
         tabLog.info(["Host","Datadir", "Port", "Version", ""])
-        for seg in segmentsAndMaster:
+        for seg in segmentsAndCoordinator:
             line = self.__appendSegmentTripletToArray(seg, [])
             version = dbIdToVersion.get(seg.getSegmentDbId())
             if version is None:
@@ -1354,7 +1354,7 @@ class GpSystemStateProgram:
         if len(uniqueVersions) > 1:
             logger.warn("Versions for some segments do not match.  Review table above for details.")
 
-        hadFailures = len(dbIdToVersion) != len(segmentsAndMaster)
+        hadFailures = len(dbIdToVersion) != len(segmentsAndCoordinator)
         if hadFailures:
             logger.warn("Unable to retrieve version data from all segments.  Review table above for details.")
 
@@ -1389,8 +1389,8 @@ class GpSystemStateProgram:
         self.__pool = base.WorkerPool(self.__options.parallelDegree)
 
         # load config
-        gpEnv = GpMasterEnvironment(self.__options.coordinatorDataDirectory, True, self.__options.timeout, self.__options.retries)
-        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getMasterPort())
+        gpEnv = GpCoordinatorEnvironment(self.__options.coordinatorDataDirectory, True, self.__options.timeout, self.__options.retries)
+        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getCoordinatorPort())
         gpArray = confProvider.loadSystemConfig(useUtilityMode=True)
 
         # do it!
@@ -1442,7 +1442,7 @@ class GpSystemStateProgram:
 
         addTo = OptionGroup(parser, "Connection Options")
         parser.add_option_group(addTo)
-        addMasterDirectoryOptionForSingleClusterProgram(addTo)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(addTo)
 
         addTo = OptionGroup(parser, "Output Options")
         parser.add_option_group(addTo)

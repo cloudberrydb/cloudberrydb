@@ -423,7 +423,7 @@ class GpStop:
 
             # NOTE: _stop_coordinator_smart() can change self.mode
             if self.mode != 'smart':
-                cmd = gp.MasterStop("stopping coordinator", self.coordinator_datadir, mode=self.mode, timeout=self.timeout)
+                cmd = gp.CoordinatorStop("stopping coordinator", self.coordinator_datadir, mode=self.mode, timeout=self.timeout)
                 cmd.run(validateAfter=True)
         except:
             # Didn't stop in timeout or pg_ctl failed.  So try kill
@@ -799,7 +799,7 @@ class GpStop:
 
         addTo = OptionGroup(parser, 'Connection options')
         parser.add_option_group(addTo)
-        addMasterDirectoryOptionForSingleClusterProgram(addTo)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(addTo)
 
         addTo = OptionGroup(parser, 'Instance shutdown options: ')
         parser.add_option_group(addTo)

@@ -14,7 +14,7 @@ try:
     from gppylib.gparray import GpArray
     from gppylib.gpversion import GpVersion
     from gppylib.gpparseopts import OptParser, OptChecker
-    from gppylib.mainUtils import addMasterDirectoryOptionForSingleClusterProgram, addStandardLoggingAndHelpOptions, ExceptionNoStackTraceNeeded
+    from gppylib.mainUtils import addCoordinatorDirectoryOptionForSingleClusterProgram, addStandardLoggingAndHelpOptions, ExceptionNoStackTraceNeeded
     from gppylib.operations.package import MigratePackages, InstallPackage, UninstallPackage, QueryPackage, BuildGppkg, UpdatePackage, CleanGppkg, Gppkg, GPPKG_EXTENSION, GPPKG_ARCHIVE_PATH
     from gppylib.userinput import ask_yesno
     from gppylib.operations.unix import ListFilesByPattern
@@ -100,7 +100,7 @@ class GpPkgProgram:
         add_to = OptionGroup(parser, 'General Options')
         parser.add_option_group(add_to)
 
-        addMasterDirectoryOptionForSingleClusterProgram(add_to)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(add_to)
 
         # TODO: AK: Eventually, these options may need to be flexible enough to accept multiple packages
         # in one invocation. If so, the structure of this parser may need to change.
@@ -148,7 +148,7 @@ class GpPkgProgram:
         segs = gparr.getDbList()
 
         for seg in segs:
-            if seg.isSegmentMaster(current_role = True):
+            if seg.isSegmentCoordinator(current_role = True):
                 coordinator_host = seg.getSegmentHostName()
             elif seg.isSegmentStandby(current_role = True):
                 standby_host = seg.getSegmentHostName()

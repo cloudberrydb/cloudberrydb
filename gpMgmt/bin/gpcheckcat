@@ -1121,7 +1121,7 @@ def checkACL():
 def checkTableACL(cat):
     catname = cat.getTableName()
     pkey = cat.getPrimaryKey()
-    coordinator = cat.isMasterOnly()
+    coordinator = cat.isCoordinatorOnly()
     isShared = cat.isShared()
     acl = cat.getTableAcl()
 
@@ -1263,7 +1263,7 @@ def _checkAllTablesForMissingEntries():
 def checkTableMissingEntry(cat):
     catname = cat.getTableName()
     pkey = cat.getPrimaryKey()
-    coordinator = cat.isMasterOnly()
+    coordinator = cat.isCoordinatorOnly()
     isShared = cat.isShared()
     coltypes = cat.getTableColtypes()
 
@@ -1508,7 +1508,7 @@ def checkInconsistentEntry():
 def checkTableInconsistentEntry(cat):
     catname = cat.getTableName()
     pkey = cat.getPrimaryKey()
-    coordinator = cat.isMasterOnly()
+    coordinator = cat.isCoordinatorOnly()
     isShared = cat.isShared()
     columns = cat.getTableColumns(with_acl=False)
     coltypes = cat.getTableColtypes()
@@ -1662,7 +1662,7 @@ def checkDuplicateEntry():
 def checkTableDuplicateEntry(cat):
     catname = cat.getTableName()
     pkey = cat.getPrimaryKey()
-    coordinator = cat.isMasterOnly()
+    coordinator = cat.isCoordinatorOnly()
     isShared = cat.isShared()
     columns = cat.getTableColumns(with_acl=False)
     coltypes = cat.getTableColtypes()
@@ -2369,7 +2369,7 @@ def filterSpuriousFailures(catname, colnames, results):
         # comparisons between coordinator and segments.
         legitFailures = []
         coordinatorOnlyOids = list(map(lambda cat: cat._oid,
-                             filter(lambda cat: cat.isMasterOnly(),
+                             filter(lambda cat: cat.isCoordinatorOnly(),
                                     GV.catalog.getCatalogTables())))
         for row in results:
             legit = True

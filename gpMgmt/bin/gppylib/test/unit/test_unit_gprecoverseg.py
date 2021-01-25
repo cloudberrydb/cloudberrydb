@@ -137,7 +137,7 @@ class GpRecoversegTestCase(GpTestCase):
         self.mock_get_segments_checksum_settings.return_value = ([self.mirror0], [])
         self.return_one = True
         self.mock_get_mirrors_to_build.side_effect = self._get_test_mirrors
-        self.assertTrue(self.gparray.coordinator.isSegmentMaster(True))
+        self.assertTrue(self.gparray.coordinator.isSegmentCoordinator(True))
 
         with self.assertRaisesRegex(Exception, "Heap checksum setting differences reported on segments"):
             self.subject.run()
@@ -153,7 +153,7 @@ class GpRecoversegTestCase(GpTestCase):
         self.mock_get_segments_checksum_settings.return_value = ([], [])
         self.mock_get_mirrors_to_build.side_effect = self._get_test_mirrors
         self.return_one = True
-        self.assertTrue(self.gparray.coordinator.isSegmentMaster(True))
+        self.assertTrue(self.gparray.coordinator.isSegmentCoordinator(True))
         with self.assertRaisesRegex(Exception, "No segments responded to ssh query for heap checksum validation."):
             self.subject.run()
 

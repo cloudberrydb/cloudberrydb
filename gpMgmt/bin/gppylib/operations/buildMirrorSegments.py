@@ -747,7 +747,7 @@ class GpMirrorListToBuild:
         # is only needed when moving mirrors that are up and
         # needed to be stopped, an uncommon operation.
 
-        dburl = dbconn.DbURL(port=gpEnv.getMasterPort(), dbname='template1')
+        dburl = dbconn.DbURL(port=gpEnv.getCoordinatorPort(), dbname='template1')
 
         time_elapsed = 0
         seg_up_count = 0
@@ -813,7 +813,7 @@ class GpMirrorListToBuild:
     def __createStartSegmentsOp(self, gpEnv):
         return startSegments.StartSegmentsOperation(self.__pool, self.__quiet,
                                                     gpEnv.getGpVersion(),
-                                                    gpEnv.getGpHome(), gpEnv.getMasterDataDir()
+                                                    gpEnv.getGpHome(), gpEnv.getCoordinatorDataDir()
                                                     )
 
     def __updateGpIdFile(self, gpEnv, gpArray, segments):
@@ -841,7 +841,7 @@ class GpMirrorListToBuild:
     def __startAll(self, gpEnv, gpArray, segments):
 
         # the newly started segments should belong to the current era
-        era = read_era(gpEnv.getMasterDataDir(), logger=self.__logger)
+        era = read_era(gpEnv.getCoordinatorDataDir(), logger=self.__logger)
 
         segmentStartResult = self.__createStartSegmentsOp(gpEnv).startSegments(gpArray, segments,
                                                                                startSegments.START_AS_MIRRORLESS,

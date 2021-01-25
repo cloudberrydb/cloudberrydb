@@ -50,7 +50,7 @@ class GpStart(GpTestCase):
             patch('gpstart.log_to_file_only'),
             patch("gpstart.StartSegmentsOperation"),
             patch("gpstart.base.WorkerPool"),
-            patch("gpstart.gp.MasterStart.local"),
+            patch("gpstart.gp.CoordinatorStart.local"),
             patch("gpstart.pg.DbStatus.local"),
             patch("gpstart.TableLogger"),
         ])

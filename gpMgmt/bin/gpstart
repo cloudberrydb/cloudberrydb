@@ -106,14 +106,14 @@ class GpStart:
             # Disable Ctrl-C
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-            self._startMaster()
+            self._startCoordinator()
             logger.info("Coordinator Started...")
 
             if self.coordinatoronly:
                 return 0
 
             num_workers = min(len(self.gparray.get_hostlist()), self.parallel)
-            hosts = set(self.gparray.get_hostlist(includeMaster=False))
+            hosts = set(self.gparray.get_hostlist(includeCoordinator=False))
             # We check for unreachable segment hosts first thing, because if a host is down but its segments
             # are marked up, later checks can return invalid or misleading results and the cluster may not
             # start in a good state.
@@ -327,7 +327,7 @@ class GpStart:
             logger.info("Clearing Coordinator instance pid file")
             os.remove("%s/postmaster.pid" % self.coordinator_datadir)
 
-        self._startMaster()
+        self._startCoordinator()
 
         logger.info("Commencing forced instance shutdown")
 
@@ -397,10 +397,10 @@ class GpStart:
         return "%-" + str(host_len) + "s  %-" + str(dir_len) + "s  %-" + str(port_len) + "s  %s"
 
     ######
-    def _startMaster(self):
+    def _startCoordinator(self):
         logger.info("Starting Coordinator instance in admin mode")
 
-        cmd = gp.MasterStart('coordinator in utility mode', self.coordinator_datadir,
+        cmd = gp.CoordinatorStart('coordinator in utility mode', self.coordinator_datadir,
                              self.port, self.era,
                              wrapper=self.wrapper, wrapper_args=self.wrapper_args,
                              specialMode=self.specialMode, timeout=self.timeout, utilityMode=True
@@ -678,7 +678,7 @@ class GpStart:
         self.gparray.coordinator.hostname, self.coordinator_datadir, restrict_txt))
 
         # attempt to start coordinator
-        gp.MasterStart.local("Starting Coordinator instance",
+        gp.CoordinatorStart.local("Starting Coordinator instance",
                              self.coordinator_datadir, self.port, self.era,
                              wrapper=self.wrapper, wrapper_args=self.wrapper_args,
                              specialMode=self.specialMode, restrictedMode=self.restricted, timeout=self.timeout,
@@ -750,7 +750,7 @@ class GpStart:
 
         addTo = OptionGroup(parser, 'Connection options')
         parser.add_option_group(addTo)
-        addMasterDirectoryOptionForSingleClusterProgram(addTo)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(addTo)
 
         addTo = OptionGroup(parser, 'Database startup options: ')
         parser.add_option_group(addTo)

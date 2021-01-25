@@ -192,7 +192,7 @@ class ComputeCatalogUpdate:
             #     (in which case we want to call removeMirror and addMirror so we mark
             #      the primary as full-resyncing)
             #
-            if seg.isSegmentMaster(current_role=True) or seg.isSegmentStandby(current_role=True):
+            if seg.isSegmentCoordinator(current_role=True) or seg.isSegmentStandby(current_role=True):
 
                 #
                 # Assertion here -- user should not be allowed to change coordinator/standby info.

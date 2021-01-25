@@ -167,7 +167,7 @@ class GPCatalog():
 
         # Which tables are "coordinator only" is not derivable from the catalog
         # so we have to set this manually.
-        self._markMasterOnlyTables()
+        self._markCoordinatorOnlyTables()
 
         # We derived primary keys for most of the catalogs based on un
         # unique indexes, but we have to manually set a few stranglers
@@ -193,7 +193,7 @@ class GPCatalog():
         """
         return self._dbConnection.query(qry)
 
-    def _markMasterOnlyTables(self):
+    def _markCoordinatorOnlyTables(self):
         """
         We mark two types of catalog tables as "coordinator only"
           - True "coordinator only" tables
@@ -208,11 +208,11 @@ class GPCatalog():
         """
         for name in COORDINATOR_ONLY_TABLES:
             if name in self._tables:
-                self._tables[name]._setMasterOnly()
+                self._tables[name]._setCoordinatorOnly()
 
         for name in SEGMENT_LOCAL_TABLES:
             if name in self._tables:
-                self._tables[name]._setMasterOnly()
+                self._tables[name]._setCoordinatorOnly()
 
     def _setPrimaryKeys(self):
         """
@@ -353,7 +353,7 @@ class GPCatalog():
         as "coordinator only" or have a primary key
         """
         for relname in sorted(self._tables):
-            if self._tables[relname].isMasterOnly():
+            if self._tables[relname].isCoordinatorOnly():
                 continue
             if self._tables[relname].getPrimaryKey() == []:
                 logger.warn("GPCatalogTable: unable to derive primary key for %s"
@@ -369,7 +369,7 @@ class GPCatalogTable():
     # Accessor functions
     #   - getTableName()     - Returns the table name (string)
     #   - tableHasOids()     - Returns if the table has oids (boolean)
-    #   - isMasterOnly()     - Returns if the table is "coordinator only" (boolean)
+    #   - isCoordinatorOnly()     - Returns if the table is "coordinator only" (boolean)
     #   - isShared()         - Returns if the table is shared (boolean)
     #   - getTableAcl()      - Returns name of the acl column (string|None)
     #   - getPrimaryKey()    - Returns the primary key (list)
@@ -386,7 +386,7 @@ class GPCatalogTable():
     def tableHasConsistentOids(self):
         return (self._has_oid and 'oid' not in self._excluding)
 
-    def isMasterOnly(self):
+    def isCoordinatorOnly(self):
         return self._coordinator
 
     def isShared(self):
@@ -536,7 +536,7 @@ class GPCatalogTable():
     def __cmp__(self, other):
         return cmp(other, self._name)
 
-    def _setMasterOnly(self, value=True):
+    def _setCoordinatorOnly(self, value=True):
         self._coordinator = value
 
     def _setOid(self, oid):

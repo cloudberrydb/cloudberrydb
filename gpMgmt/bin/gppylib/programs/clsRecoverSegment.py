@@ -35,7 +35,7 @@ from gppylib.operations.rebalanceSegments import GpSegmentRebalanceOperation
 from gppylib.operations.update_pg_hba_conf import config_primaries_for_replication
 from gppylib.programs import programIoUtils
 from gppylib.system import configurationInterface as configInterface
-from gppylib.system.environment import GpMasterEnvironment
+from gppylib.system.environment import GpCoordinatorEnvironment
 from gppylib.parseutils import line_reader, check_values, canonicalize_address
 from gppylib.utils import writeLinesToFile, normalizeAndValidateInputPath, TableLogger
 from gppylib.operations.utils import ParallelOperation
@@ -544,7 +544,7 @@ class GpRecoverSegmentProgram:
                 "Invalid parallelDegree provided with -B argument: %d" % self.__options.parallelDegree)
 
         self.__pool = WorkerPool(self.__options.parallelDegree)
-        gpEnv = GpMasterEnvironment(self.__options.coordinatorDataDirectory, True)
+        gpEnv = GpCoordinatorEnvironment(self.__options.coordinatorDataDirectory, True)
 
         # verify "where to recover" options
         optionCnt = 0
@@ -557,14 +557,14 @@ class GpRecoverSegmentProgram:
         if optionCnt > 1:
             raise ProgramArgumentValidationException("Only one of -i, -p, and -r may be specified")
 
-        faultProberInterface.getFaultProber().initializeProber(gpEnv.getMasterPort())
+        faultProberInterface.getFaultProber().initializeProber(gpEnv.getCoordinatorPort())
 
-        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getMasterPort())
+        confProvider = configInterface.getConfigurationProvider().initializeProvider(gpEnv.getCoordinatorPort())
 
         gpArray = confProvider.loadSystemConfig(useUtilityMode=False)
 
         num_workers = min(len(gpArray.get_hostlist()), self.__options.parallelDegree)
-        hosts = set(gpArray.get_hostlist(includeMaster=False))
+        hosts = set(gpArray.get_hostlist(includeCoordinator=False))
         unreachable_hosts = get_unreachable_segment_hosts(hosts, num_workers)
         for i, segmentPair in enumerate(gpArray.segmentPairs):
             if segmentPair.primaryDB.getSegmentHostName() in unreachable_hosts:
@@ -665,7 +665,7 @@ class GpRecoverSegmentProgram:
             if not mirrorBuilder.buildMirrors("recover", gpEnv, gpArray):
                 sys.exit(1)
 
-            self.trigger_fts_probe(port=gpEnv.getMasterPort())
+            self.trigger_fts_probe(port=gpEnv.getCoordinatorPort())
 
             self.logger.info("******************************************************************")
             self.logger.info("Updating segments for streaming is completed.")
@@ -739,7 +739,7 @@ class GpRecoverSegmentProgram:
 
         addTo = OptionGroup(parser, "Connection Options")
         parser.add_option_group(addTo)
-        addMasterDirectoryOptionForSingleClusterProgram(addTo)
+        addCoordinatorDirectoryOptionForSingleClusterProgram(addTo)
 
         addTo = OptionGroup(parser, "Recovery Source Options")
         parser.add_option_group(addTo)

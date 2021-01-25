@@ -8,7 +8,7 @@ from gppylib.db.dbconn import DbURL
 from gppylib.db import catalog
 from gppylib.gplog import *
 from gppylib.system.configurationInterface import GpConfigurationProvider
-from gppylib.system.environment import GpMasterEnvironment
+from gppylib.system.environment import GpCoordinatorEnvironment
 import io
 import sys
 
@@ -45,7 +45,7 @@ class GpExpand(GpTestCase):
             patch('gpexpand.get_local_db_mode', return_value='NORMAL'),
             patch('gpexpand.dbconn.DbURL', return_value=Mock(), spec=DbURL),
             patch('gpexpand.dbconn.connect', return_value=Mock()),
-            patch('gpexpand.GpMasterEnvironment', return_value=Mock(), spec=GpMasterEnvironment),
+            patch('gpexpand.GpCoordinatorEnvironment', return_value=Mock(), spec=GpCoordinatorEnvironment),
             patch('gpexpand.configurationInterface.getConfigurationProvider'),
             patch('os.path.exists', return_value=Mock()),
             patch('gpexpand.get_default_logger', return_value=self.subject.logger),
@@ -53,13 +53,13 @@ class GpExpand(GpTestCase):
         ])
         self.input_mock = self.get_mock_from_apply_patch("input")
         self.getConfigProviderFunctionMock = self.get_mock_from_apply_patch("getConfigurationProvider")
-        self.gpMasterEnvironmentMock = self.get_mock_from_apply_patch("GpMasterEnvironment")
+        self.gpCoordinatorEnvironmentMock = self.get_mock_from_apply_patch("GpCoordinatorEnvironment")
         self.previous_coordinator_data_directory = os.getenv('COORDINATOR_DATA_DIRECTORY', '')
         os.environ["COORDINATOR_DATA_DIRECTORY"] = '/tmp/dirdoesnotexist'
         configProviderMock = Mock(spec=GpConfigurationProvider)
         self.getConfigProviderFunctionMock.return_value = configProviderMock
         configProviderMock.initializeProvider.return_value = configProviderMock
-        self.gpMasterEnvironmentMock.return_value.getMasterPort.return_value = 123456
+        self.gpCoordinatorEnvironmentMock.return_value.getCoordinatorPort.return_value = 123456
         self.mock_heap_checksum = self.get_mock_from_apply_patch('HeapChecksum')
         self.mock_heap_checksum.return_value.get_coordinator_value.return_value = 1
         self.mock_heap_checksum.return_value.get_segments_checksum_settings.return_value = ([1], [1])
