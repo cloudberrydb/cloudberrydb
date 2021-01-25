@@ -321,14 +321,14 @@ DATA_DIRECTORY
   declare -a DATA_DIRECTORY=(/data1/primary /data1/primary /data1/primary /data2/primary /data2/primary /data2/primary)
 
 
-MASTER_HOSTNAME
+COORDINATOR_HOSTNAME
 
  Required. The host name of the coordinator instance. This host name must 
  exactly match the configured host name of the machine (run the hostname 
  command to determine the correct hostname).
 
 
-MASTER_DIRECTORY
+COORDINATOR_DIRECTORY
 
  Required. This specifies the location where the data directory will 
  be created on the coordinator host. You must make sure that the user who runs 
@@ -336,7 +336,7 @@ MASTER_DIRECTORY
  to this directory.
 
 
-MASTER_PORT
+COORDINATOR_PORT
 
  Required. The port number for the coordinator instance. This is the port 
  number that users and client connections will use when accessing the 

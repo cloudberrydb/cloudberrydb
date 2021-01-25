@@ -75,8 +75,8 @@ class TestCluster:
         transforms = {'%PORT_BASE%': self.port_base,
                       '%COORDINATOR_HOST%': self.hosts[0], # First item in self.hosts
                       '%HOSTFILE%': self.hosts_file,
-                      '%MASTER_PORT%': self.coordinator_port,
-                      '%MASTER_DATA_DIR%': self.coordinator_dir,
+                      '%COORDINATOR_PORT%': self.coordinator_port,
+                      '%COORDINATOR_DATA_DIR%': self.coordinator_dir,
                       '%DATA_DIR%': (self.primary_dir + ' ') * self.number_of_segments,
                       '%HBA_HOSTNAMES%': self.hba_hostnames
                       }

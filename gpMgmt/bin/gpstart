@@ -212,7 +212,7 @@ class GpStart:
         dir_catversion = gp.GpCatVersionDirectory.local('local GP directory catalog version check', self.coordinator_datadir)
 
         if bin_catversion != dir_catversion:
-            logger.info("MASTER_DIRECTORY Catalog Version: '%s'" % dir_catversion)
+            logger.info("COORDINATOR_DIRECTORY Catalog Version: '%s'" % dir_catversion)
             logger.info("Catalog Version of coordinator directory incompatible with binaries")
             raise ExceptionNoStackTraceNeeded("Catalog Versions are incompatible")
 

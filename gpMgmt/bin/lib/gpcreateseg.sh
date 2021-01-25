@@ -204,11 +204,11 @@ CREATE_QES_PRIMARY () {
     else # use hostnames in pg_hba.conf
         # add localhost
         $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host     all          all         localhost      trust >> ${GP_DIR}/$PG_HBA"
-        $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host	all	all	${MASTER_HOSTNAME}	trust >> ${GP_DIR}/$PG_HBA"
+        $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host	all	all	${COORDINATOR_HOSTNAME}	trust >> ${GP_DIR}/$PG_HBA"
         if [ x"" != x"$MIRROR_HOSTADDRESS" ]; then
           $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host     all          $USER_NAME         $MIRROR_HOSTADDRESS      trust >> ${GP_DIR}/$PG_HBA"
         fi
-        PARA_EXIT $? "Update $PG_HBA for coordinator IP address ${MASTER_HOSTNAME}"
+        PARA_EXIT $? "Update $PG_HBA for coordinator IP address ${COORDINATOR_HOSTNAME}"
         if [ x"" != x"$STANDBY_HOSTNAME" ];then
             LOG_MSG "[INFO][$INST_COUNT]:-Processing Standby coordinator IP address for segment instances"
             $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host	all	all	${STANDBY_HOSTNAME}	trust >> ${GP_DIR}/$PG_HBA"
@@ -283,7 +283,7 @@ done
 
 # gpcreateseg.sh is called for creating primary and mirror segments.
 # Below is an example for invocation to create a primary
-# MASTER_HOSTNAME=bhuvi.local HBA_HOSTNAMES=0 /usr/local/gpdb/bin/lib/gpcreateseg.sh -p clusterConfigPostgresAddonsFile 65324 1
+# COORDINATOR_HOSTNAME=bhuvi.local HBA_HOSTNAMES=0 /usr/local/gpdb/bin/lib/gpcreateseg.sh -p clusterConfigPostgresAddonsFile 65324 1
 # IS_PRIMARY host1.local~45432~/tmp/demoDataDir0~2~0 host2.local~45433~/tmp/demoDataDir0~3~0 0
 # /tmp/gpAdminLogs/gpinitsystem_20190903.log on  10.64.249.254~192.168.1.72~::1~fe80::1%lo0 10.64.249.252~192.168.1.73~::1~fe81::1%lo1 &
 # PARALLEL_COUNT 1 4

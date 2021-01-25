@@ -62,7 +62,7 @@ declare -a DATA_DIRECTORY=(/gpdata1 /gpdata2)
 
 # The OS-configured hostname of the Greenplum Database coordinator instance.
 
-MASTER_HOSTNAME=hostname_of_machine
+COORDINATOR_HOSTNAME=hostname_of_machine
 
 
 # The location where the data directory will be created on the  
@@ -72,14 +72,14 @@ MASTER_HOSTNAME=hostname_of_machine
 # create this directory on the coordinator host before running 
 # gpinitsystem and chown it to the appropriate user.
 
-MASTER_DIRECTORY=/gpmaster
+COORDINATOR_DIRECTORY=/gpmaster
 
 
 # The port number for the coordinator instance. This is the port number 
 # that users and client connections will use when accessing the 
 # Greenplum Database system.
 
-MASTER_PORT=5432
+COORDINATOR_PORT=5432
 
 
 # The shell the gpinitsystem script uses to execute 

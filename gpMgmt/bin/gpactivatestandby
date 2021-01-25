@@ -155,7 +155,7 @@ def print_results(array, hostname, options):
     logger.info('this has changed as a result of the standby coordinator activation, remember')
     logger.info('to change this in any startup scripts etc, that may be configured')
     logger.info('to set this value.')
-    logger.info('MASTER_PORT is now %d, if this has changed, you' % array.coordinator.getSegmentPort())
+    logger.info('COORDINATOR_PORT is now %d, if this has changed, you' % array.coordinator.getSegmentPort())
     logger.info('may need to make additional configuration changes to allow access')
     logger.info('to the Greenplum instance.')
     logger.info('Refer to the Administrator Guide for instructions on how to re-activate')

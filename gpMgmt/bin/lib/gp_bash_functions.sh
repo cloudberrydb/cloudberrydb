@@ -252,7 +252,7 @@ ERROR_EXIT () {
 				if [ -s $BACKOUT_FILE ]; then
 						LOG_MSG "[WARN]:-Script has left Greenplum Database in an incomplete state"
 						LOG_MSG "[WARN]:-Run command bash $BACKOUT_FILE to remove these changes"
-						BACKOUT_COMMAND "if [ x$MASTER_HOSTNAME != x\`$HOSTNAME\` ];then $ECHO \"[FATAL]:-Not on original coordinator host $MASTER_HOSTNAME, backout script exiting!\";exit 1;fi"
+						BACKOUT_COMMAND "if [ x$COORDINATOR_HOSTNAME != x\`$HOSTNAME\` ];then $ECHO \"[FATAL]:-Not on original coordinator host $COORDINATOR_HOSTNAME, backout script exiting!\";exit 1;fi"
 						$ECHO "$RM -f $BACKOUT_FILE" >> $BACKOUT_FILE
 				fi
 		fi
@@ -625,8 +625,8 @@ GET_COORDINATOR_PORT () {
 				ERROR_EXIT "[FATAL]:-No $COORDINATOR_DATA_DIRECTORY directory"
 		fi
 		if [ -r $COORDINATOR_DATA_DIRECTORY/$PG_CONF ];then
-			MASTER_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $COORDINATOR_DATA_DIRECTORY/$PG_CONF | $AWK '$1=="port" {print $2}' | $TAIL -1`
-			if [ x"" == x"$MASTER_PORT" ] ; then
+			COORDINATOR_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $COORDINATOR_DATA_DIRECTORY/$PG_CONF | $AWK '$1=="port" {print $2}' | $TAIL -1`
+			if [ x"" == x"$COORDINATOR_PORT" ] ; then
                 #look for include files
                 for INC_FILE in `$AWK '/^[ ]*include /{print $2}' $COORDINATOR_DATA_DIRECTORY/$PG_CONF | $TR -d "'\""` ; do
                     if [[ $INC_FILE == /* ]] ; then
@@ -635,7 +635,7 @@ GET_COORDINATOR_PORT () {
                         GET_COORDINATOR_PORT_RECUR "$COORDINATOR_DATA_DIRECTORY/$INC_FILE" 1
                     fi
                 done
-                if [ x"" == x"$MASTER_PORT" ] ; then
+                if [ x"" == x"$COORDINATOR_PORT" ] ; then
 			        ERROR_EXIT "[FATAL]:-Failed to obtain coordinator port number from $COORDINATOR_DATA_DIRECTORY/$PG_CONF"
                 fi
 			fi
@@ -649,8 +649,8 @@ GET_COORDINATOR_PORT_RECUR () {
     INCLUDED_FILE=$1
     RECUR=$2
     if [ $RECUR -le 10 ] ; then
-        MASTER_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $INCLUDED_FILE | $AWK '$1=="port" {print $2}' | $TAIL -1`
-        if [ x"" == x"$MASTER_PORT" ] ; then
+        COORDINATOR_PORT=`$AWK 'split($0,a,"#")>0 && split(a[1],b,"=")>1 {print b[1] " " b[2]}' $INCLUDED_FILE | $AWK '$1=="port" {print $2}' | $TAIL -1`
+        if [ x"" == x"$COORDINATOR_PORT" ] ; then
             #look for include files
             let CURR_DEPTH=$RECUR+1
             for INC_FILE in `$AWK '/^[ ]*include /{print $2}' $INC_FILE | $TR -d "'\""` ; do
@@ -659,7 +659,7 @@ GET_COORDINATOR_PORT_RECUR () {
                 else
                     GET_COORDINATOR_PORT_RECUR "$COORDINATOR_DATA_DIRECTORY/$INC_FILE" $CURR_DEPTH
                 fi
-                if [ x"" != x"$MASTER_PORT" ] ; then
+                if [ x"" != x"$COORDINATOR_PORT" ] ; then
                     break
                 fi
             done
@@ -720,7 +720,7 @@ BUILD_COORDINATOR_PG_HBA_FILE () {
             done
         else
             $ECHO "host     all         $USER_NAME         localhost    trust" >> ${GP_DIR}/$PG_HBA
-            $ECHO "host     all         $USER_NAME         $MASTER_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
+            $ECHO "host     all         $USER_NAME         $COORDINATOR_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
         fi
 
 
@@ -730,7 +730,7 @@ BUILD_COORDINATOR_PG_HBA_FILE () {
         $ECHO "host     replication $USER_NAME         samehost       trust" >> ${GP_DIR}/$PG_HBA
         if [ $HBA_HOSTNAMES -eq 0 ];then
             local COORDINATOR_IP_ADDRESS_NO_LOOPBACK=($("$GPHOME"/libexec/ifaddrs --no-loopback))
-            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$MASTER_HOSTNAME" ];then
+            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$COORDINATOR_HOSTNAME" ];then
                 local STANDBY_IP_ADDRESS_NO_LOOPBACK=($($TRUSTED_SHELL $STANDBY_HOSTNAME "$GPHOME"/libexec/ifaddrs --no-loopback))
             fi
             for ADDR in "${COORDINATOR_IP_ADDRESS_NO_LOOPBACK[@]}" "${STANDBY_IP_ADDRESS_NO_LOOPBACK[@]}"
@@ -739,8 +739,8 @@ BUILD_COORDINATOR_PG_HBA_FILE () {
                 $ECHO "host     replication $USER_NAME         $CIDRADDR       trust" >> ${GP_DIR}/$PG_HBA
             done
         else
-            $ECHO "host     replication $USER_NAME         $MASTER_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
-            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$MASTER_HOSTNAME" ];then
+            $ECHO "host     replication $USER_NAME         $COORDINATOR_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
+            if [ x"" != x"$STANDBY_HOSTNAME" ] && [ "$STANDBY_HOSTNAME" != "$COORDINATOR_HOSTNAME" ];then
                 $ECHO "host     replication $USER_NAME         $STANDBY_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
             fi
         fi
@@ -1119,7 +1119,7 @@ SET_GP_USER_PW () {
     local alter_statement="alter user :\"username\" password :'password';"
 
     $PSQL --variable=ON_ERROR_STOP=1 \
-      -p $MASTER_PORT \
+      -p $COORDINATOR_PORT \
       -d "$DEFAULTDB" \
       --variable=username="$USER_NAME" \
       --variable=password="$GP_PASSWD" <<< "$alter_statement" >> $LOG_FILE 2>&1

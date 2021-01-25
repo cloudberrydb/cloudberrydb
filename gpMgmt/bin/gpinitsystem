@@ -237,7 +237,8 @@ CHK_PARAMS () {
 		    LOG_MSG "[INFO]:-Completed $CLUSTER_CONFIG dump to logfile"
 		    # Source the cluster configuration file
 		    LOG_MSG "[INFO]:-Reading Greenplum configuration file $CLUSTER_CONFIG" 1
-		    . $CLUSTER_CONFIG
+			. $CLUSTER_CONFIG
+		    ASSIGN_COORDINATOR_VARS
 		    
 		    if [ x"" != x"$QD_PRIMARY_ARRAY" ] ; then
 			    ERROR_EXIT "[FATAL]:-Cannot specify QD_PRIMARY_ARRAY in '-c <config file>'.  Only valid with '-I <input file>'"
@@ -329,30 +330,21 @@ CHK_PARAMS () {
 		fi
 		export ARRAY_NAME
 
-		if [ x"" = x"$MASTER_HOSTNAME" ]; then
-			ERROR_EXIT "[FATAL]:MASTER_HOSTNAME variable not set"
-		fi
-
 		# Make sure that this script is running on the QD host
-		if [ $MASTER_HOSTNAME != `$HOSTNAME` ]; then
-			LOG_MSG "[WARN]:-Coordinator hostname $MASTER_HOSTNAME does not match hostname output" 1
-			LOG_MSG "[INFO]:-Checking to see if $MASTER_HOSTNAME can be resolved on this host" 1
-			$TRUSTED_SHELL $MASTER_HOSTNAME "$TOUCH $TMP_HOSTNAME_FILE"
+		if [ $COORDINATOR_HOSTNAME != `$HOSTNAME` ]; then
+			LOG_MSG "[WARN]:-Coordinator hostname $COORDINATOR_HOSTNAME does not match hostname output" 1
+			LOG_MSG "[INFO]:-Checking to see if $COORDINATOR_HOSTNAME can be resolved on this host" 1
+			$TRUSTED_SHELL $COORDINATOR_HOSTNAME "$TOUCH $TMP_HOSTNAME_FILE"
 			if [ -f $TMP_HOSTNAME_FILE ];then
-				LOG_MSG "[INFO]:-Can resolve $MASTER_HOSTNAME to this host" 1
+				LOG_MSG "[INFO]:-Can resolve $COORDINATOR_HOSTNAME to this host" 1
 				$RM -f $TMP_HOSTNAME_FILE
 			else
-				$TRUSTED_SHELL $MASTER_HOSTNAME "$RM -f $TMP_HOSTNAME_FILE"
-				LOG_MSG "[FATAL]:-Coordinator hostname in configuration file is ${MASTER_HOSTNAME}" 1
+				$TRUSTED_SHELL $COORDINATOR_HOSTNAME "$RM -f $TMP_HOSTNAME_FILE"
+				LOG_MSG "[FATAL]:-Coordinator hostname in configuration file is ${COORDINATOR_HOSTNAME}" 1
 				LOG_MSG "[FATAL]:-Operating system command returns `$HOSTNAME`" 1
-				LOG_MSG "[FATAL]:-Unable to resolve $MASTER_HOSTNAME on this host" 1
-				ERROR_EXIT "[FATAL]:-Coordinator hostname in gpinitsystem configuration file must be $MASTER_HOSTNAME"
+				LOG_MSG "[FATAL]:-Unable to resolve $COORDINATOR_HOSTNAME on this host" 1
+				ERROR_EXIT "[FATAL]:-Coordinator hostname in gpinitsystem configuration file must be $COORDINATOR_HOSTNAME"
 			fi
-		fi
-
-		# MASTER_PORT
-		if [ x"" = x"$MASTER_PORT" ]; then
-			ERROR_EXIT "[FATAL]:-MASTER_PORT variable not set"
 		fi
 
 		# DATA_DIRECTORY
@@ -361,12 +353,8 @@ CHK_PARAMS () {
 			ERROR_EXIT "[FATAL]:-Number of primary directories 0 (zero)"
 		fi
 
-		# MASTER_DIRECTORY
-		if [ x"" = x"$MASTER_DIRECTORY" ]; then
-			ERROR_EXIT "[FATAL]:-MASTER_DIRECTORY variable not set"
-		fi
 		# Check that we have write access to the proposed coordinator data directory
-		W_DIR=$MASTER_DIRECTORY
+		W_DIR=$COORDINATOR_DIRECTORY
 		LOG_MSG "[INFO]:-Checking write access to $W_DIR on coordinator host"
 		$TOUCH ${W_DIR}/tmp_file_test
 		RETVAL=$?
@@ -377,8 +365,8 @@ CHK_PARAMS () {
 			LOG_MSG "[INFO]:-Write test passed $W_DIR directory on coordinator host"
 		fi	
 		# Check that the coordinator segment directory does not exist
-		if [ -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 ];then
-			ERROR_EXIT "[FATAL]:-Coordinator host data directory ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 already exists"
+		if [ -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 ];then
+			ERROR_EXIT "[FATAL]:-Coordinator host data directory ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 already exists"
 		fi
 		# DATABASE_PREFIX
 		if [ x"" = x"$DATABASE_NAME" ]; then
@@ -463,7 +451,7 @@ CHK_PARAMS () {
 		COORDINATOR_IP_ADDRESS_ALL=(`$IPV4_ADDR_LIST_CMD | $GREP inet | $GREP -v 127.0.0 | $AWK '{print $2}' | $CUT -d'/' -f1`)
 		ERROR_CHK $? "obtain IP address of Coordinator host" 2
 		COORDINATOR_IPV6_LOCAL_ADDRESS_ALL=(`$IPV6_ADDR_LIST_CMD | $GREP inet6 | $AWK '{print $2}' | $CUT -d'/' -f1`)
-		COORDINATOR_IP_ADDRESS=(`$ECHO ${COORDINATOR_IP_ADDRESS_ALL[@]} ${MASTER_IPV6_LOCAL_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
+		COORDINATOR_IP_ADDRESS=(`$ECHO ${COORDINATOR_IP_ADDRESS_ALL[@]} ${COORDINATOR_IPV6_LOCAL_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
 		LOG_MSG "[INFO]:-Coordinator IP address array = ${COORDINATOR_IP_ADDRESS[@]}"
 		if [ x"" != x"$STANDBY_HOSTNAME" ];then
 			STANDBY_IP_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IPV4_ADDR_LIST_CMD |$GREP inet|$GREP -v \"127.0.0\"|$AWK '{print \\$2}'|$CUT -d'/' -f1" 2>>$LOG_FILE`) 
@@ -565,6 +553,7 @@ CHK_MULTI_HOME () {
 		M_HOST_ARRAY=(${M_HOST_ARRAY[@]} `$ECHO ${T_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${S_HOST}$"|$TR '\n' ' '`)
 	done
 	. $CLUSTER_CONFIG
+	ASSIGN_COORDINATOR_VARS
 	NUM_DATADIR=${#DATA_DIRECTORY[@]}
 	if [ `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$AWK -F"~" '{print $2}'|$SORT -u|$WC -l` -ne $MCOUNT ];then
 		LOG_MSG "[INFO]:-Configuring build for multi-home array" 1
@@ -793,9 +782,9 @@ CHK_QES () {
         CHK_LOCALE_KNOWN $STANDBY_HOSTNAME
         CHK_OPEN_FILES $GP_HOSTADDRESS
         # Check standby host directory
-        CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
+        CHK_DIR $COORDINATOR_DIRECTORY $STANDBY_HOSTNAME
         if [ $EXISTS -ne 0 ];then
-            ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist"
+            ERROR_EXIT "[FATAL]:-Standby host directory $COORDINATOR_DIRECTORY, does not exist"
         fi
     fi
 
@@ -871,9 +860,9 @@ CHK_QES_FROM_INPUTFILE () {
 		CHK_LOCALE_KNOWN $STANDBY_HOSTNAME
 		CHK_OPEN_FILES $GP_HOSTADDRESS
 		#Check standby host directory
-		CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
+		CHK_DIR $COORDINATOR_DIRECTORY $STANDBY_HOSTNAME
 		if [ $EXISTS -ne 0 ];then
-			ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist"
+			ERROR_EXIT "[FATAL]:-Standby host directory $COORDINATOR_DIRECTORY, does not exist"
 		fi
 	fi
 	
@@ -898,9 +887,9 @@ CREATE_QE_ARRAY () {
 	#Set up initial variables
 	. $CLUSTER_CONFIG
 	if [ x"" != x"$REQ_LOCALE_SETTING" ];then LOCALE_SETTING=$REQ_LOCALE_SETTING;fi
-	if [ `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -c "~${MASTER_HOSTNAME}\$"` -gt 0 ]; then
-		COORDINATOR_LIST=(`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${MASTER_HOSTNAME}\$"`)
-		M_HOST_ARRAY=(${COORDINATOR_LIST[@]} `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -v "~${MASTER_HOSTNAME}\$"`)
+	if [ `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -c "~${COORDINATOR_HOSTNAME}\$"` -gt 0 ]; then
+		COORDINATOR_LIST=(`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${COORDINATOR_HOSTNAME}\$"`)
+		M_HOST_ARRAY=(${COORDINATOR_LIST[@]} `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -v "~${COORDINATOR_HOSTNAME}\$"`)
 	fi
 	if [ $MIRRORING -eq 1 ] && [ $MIRROR_TYPE -eq 0 ];then
 		# Move first host to other end of the array
@@ -914,8 +903,8 @@ CREATE_QE_ARRAY () {
 	LAST_HOST=X
 	SEG_DIR_VECTOR=0
 	MIR_COUNT=-1
-	COORDINATOR_HOST=$MASTER_HOSTNAME
-	QD_PRIMARY_ARRAY=${COORDINATOR_HOST}~${MASTER_HOSTNAME}~${MASTER_PORT}~${MASTER_DIRECTORY}/${SEG_PREFIX}${CONTENT_COUNT}~${DBID_COUNT}~${CONTENT_COUNT}~0
+	COORDINATOR_HOST=$COORDINATOR_HOSTNAME
+	QD_PRIMARY_ARRAY=${COORDINATOR_HOST}~${COORDINATOR_HOSTNAME}~${COORDINATOR_PORT}~${COORDINATOR_DIRECTORY}/${SEG_PREFIX}${CONTENT_COUNT}~${DBID_COUNT}~${CONTENT_COUNT}~0
 	((DBID_COUNT=$DBID_COUNT+1));((CONTENT_COUNT=$CONTENT_COUNT+1))
 	for QE_PAIR in ${M_HOST_ARRAY[@]}
 	do
@@ -1005,10 +994,10 @@ DISPLAY_CONFIG () {
 			MACHINE_LIST_FILE=$MACHINE_LIST_FILE_ALT
 		    fi
 
-		    if [ `$CAT ${MACHINE_LIST_FILE}| $GREP -c "${MASTER_HOSTNAME}\$"` -eq 0 ]; then
+		    if [ `$CAT ${MACHINE_LIST_FILE}| $GREP -c "${COORDINATOR_HOSTNAME}\$"` -eq 0 ]; then
 			declare -a MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE`)
 		    else
-			declare -a MACHINE_LIST=($MASTER_HOSTNAME `$CAT $MACHINE_LIST_FILE|$GREP -v "${MASTER_HOSTNAME}\$"`)
+			declare -a MACHINE_LIST=($COORDINATOR_HOSTNAME `$CAT $MACHINE_LIST_FILE|$GREP -v "${COORDINATOR_HOSTNAME}\$"`)
 		    fi
 		fi
 		((NUM_QES=${#MACHINE_LIST[*]}))
@@ -1026,7 +1015,7 @@ DISPLAY_CONFIG () {
 		LOG_MSG "[INFO]:---------------------------------------" 1
 		LOG_MSG "[INFO]:-Coordinator instance name  = $ARRAY_NAME" 1
 		LOG_MSG "[INFO]:-Coordinator hostname       = $GP_HOSTADDRESS" 1
-		LOG_MSG "[INFO]:-Coordinator port           = $MASTER_PORT" 1
+		LOG_MSG "[INFO]:-Coordinator port           = $COORDINATOR_PORT" 1
 		LOG_MSG "[INFO]:-Coordinator instance dir   = $GP_DIR" 1
 		LOG_MSG "[INFO]:-Coordinator LOCALE         = $LOCALE_SETTING" 1
 		LOG_MSG "[INFO]:-Greenplum segment prefix   = $SEG_PREFIX" 1
@@ -1199,7 +1188,7 @@ CREATE_QD_DB () {
 		LOG_MSG "[INFO]:-Setting the Coordinator port to $GP_PORT"
 		SED_PG_CONF ${GP_DIR}/$PG_CONF "$PORT_TXT" port=$GP_PORT 0
 		ERROR_CHK $? "set Coordinator port=$GP_PORT in $PG_CONF" 2
-		LOG_MSG "[INFO]:-Completed setting the Coordinator port to $MASTER_PORT"
+		LOG_MSG "[INFO]:-Completed setting the Coordinator port to $COORDINATOR_PORT"
 		LOG_MSG "[INFO]:-Setting the Coordinator listen addresses to '*'"
 		SED_PG_CONF ${GP_DIR}/$PG_CONF "$LISTEN_ADR_TXT" listen_addresses=\'*\' 0
 		ERROR_CHK $? "set Coordinator listen addresses to '*' in $PG_CONF" 2
@@ -1261,7 +1250,7 @@ CREATE_QD_DB () {
 
 UPDATE_GPCONFIG () {
 		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-		MASTER_PORT=$1
+		COORDINATOR_PORT=$1
 		U_DBID=$2
 		U_CONTENT=$3
 		U_HOSTNAME=$4
@@ -1271,11 +1260,11 @@ UPDATE_GPCONFIG () {
 		U_ROLE=$8
 
 		U_DB=$DEFAULTDB
-		CHK_COUNT=`env PGOPTIONS="-c gp_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -X -A -t -c "SELECT count(*) FROM $GP_CONFIG_TBL WHERE content=${U_CONTENT} AND preferred_role='${U_ROLE}';" 2>>${LOG_FILE}` >> $LOG_FILE 2>&1
+		CHK_COUNT=`env PGOPTIONS="-c gp_role=utility" $PSQL -p $COORDINATOR_PORT -d "$U_DB" -X -A -t -c "SELECT count(*) FROM $GP_CONFIG_TBL WHERE content=${U_CONTENT} AND preferred_role='${U_ROLE}';" 2>>${LOG_FILE}` >> $LOG_FILE 2>&1
 		ERROR_CHK $? "obtain psql count Coordinator $GP_CONFIG_TBL" 2
 		if [ $CHK_COUNT -eq 0 ]; then
 				LOG_MSG "[INFO]:-Adding $U_CONTENT on $U_HOSTNAME, path $U_DIR to Coordinator gp_segment_configuration"
-				env PGOPTIONS="-c gp_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "SELECT pg_catalog.gp_add_segment(${U_DBID}::int2, ${U_CONTENT}::int2, '${U_ROLE}', '${U_ROLE}', 's', 'u', ${U_PORT}, '${U_HOSTNAME}', '${U_ADDRESS}', '${U_DIR}');" >> $LOG_FILE 2>&1
+				env PGOPTIONS="-c gp_role=utility" $PSQL -p $COORDINATOR_PORT -d "$U_DB" -c "SELECT pg_catalog.gp_add_segment(${U_DBID}::int2, ${U_CONTENT}::int2, '${U_ROLE}', '${U_ROLE}', 's', 'u', ${U_PORT}, '${U_HOSTNAME}', '${U_ADDRESS}', '${U_DIR}');" >> $LOG_FILE 2>&1
 				ERROR_CHK $? "add $U_CONTENT on $U_HOSTNAME in dir $U_DIR to Coordinator gp_segment_configuration" 2
 		else
 				LOG_MSG "[INFO]:-Content $U_CONTENT already exists in gp_segment_configuration system table"
@@ -1299,7 +1288,7 @@ LOAD_QE_SYSTEM_DATA () {
 				if [ $RETVAL -ne 0 ]; then
 					ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration."
 				fi
-				UPDATE_GPCONFIG $MASTER_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p
+				UPDATE_GPCONFIG $COORDINATOR_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p
 				LOG_MSG "[INFO]:-Successfully added segment $GP_HOSTADDRESS to Coordinator system tables"
 		done
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -1367,7 +1356,7 @@ CREATE_SEGMENT () {
 			# SEGMENT_INFO: ~ separated value, ex: host1~port1~data_dir~dbid1~contentid
 			# PAIR_SEGMENT_INFO: corresponding pair, ex: host2~port2~data_dir~dbid2~contentid
 			# INST_COUNT: Number of parallel script count
-			MASTER_HOSTNAME=${MASTER_HOSTNAME} HBA_HOSTNAMES=${HBA_HOSTNAMES} $GPCREATESEG $FLAG $$ $PREFERRED_ROLE $SEGMENT_INFO "${PAIR_SEGMENT_INFO}" $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
+			COORDINATOR_HOSTNAME=${COORDINATOR_HOSTNAME} HBA_HOSTNAMES=${HBA_HOSTNAMES} $GPCREATESEG $FLAG $$ $PREFERRED_ROLE $SEGMENT_INFO "${PAIR_SEGMENT_INFO}" $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
 `$ECHO ${COORDINATOR_IP_ADDRESS[@]}|$TR ' ' '~'` \
 `$ECHO ${STANDBY_IP_ADDRESS[@]}|$TR ' ' '~'` &
 			PARALLEL_COUNT $BATCH_LIMIT $BATCH_DEFAULT
@@ -1386,7 +1375,7 @@ REGISTER_MIRRORS () {
 		for I in "${QE_MIRROR_ARRAY_SORTED_ON_CONTENT_ID[@]}"
 		do
 			SET_VAR $I
-			dbid=`env PGOPTIONS="-c gp_role=utility" $PSQL -p $MASTER_PORT -d "${DEFAULTDB}" -X -A -t -c "select pg_catalog.gp_add_segment_mirror(${GP_CONTENT}::int2, '${GP_HOSTNAME}', '${GP_HOSTADDRESS}', ${GP_PORT}, '${GP_DIR}');" 2>>${LOG_FILE}` >> $LOG_FILE 2>&1
+			dbid=`env PGOPTIONS="-c gp_role=utility" $PSQL -p $COORDINATOR_PORT -d "${DEFAULTDB}" -X -A -t -c "select pg_catalog.gp_add_segment_mirror(${GP_CONTENT}::int2, '${GP_HOSTNAME}', '${GP_HOSTADDRESS}', ${GP_PORT}, '${GP_DIR}');" 2>>${LOG_FILE}` >> $LOG_FILE 2>&1
 			ERROR_CHK $? "failed to register mirror for contentid=${GP_CONTENT}" 2
 			MIRRORS_UPDATED_DBID=(${MIRRORS_UPDATED_DBID[@]} ${GP_HOSTNAME}~${GP_HOSTADDRESS}~${GP_PORT}~${GP_DIR}~${dbid}~${GP_CONTENT})
 		done
@@ -1400,7 +1389,7 @@ STOP_QD_PRODUCTION () {
     LOG_MSG "[INFO]:-Restarting the Greenplum instance in production mode" 1
     if [ -f $GPSTOP ]; then
         GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
-        export COORDINATOR_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+        export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1
         $GPSTOP -a -l $LOG_DIR -m -d $COORDINATOR_DATA_DIRECTORY $GPSTOP_OPTS
         RETVAL=$?
         if [ $RETVAL -eq 0 ]; then
@@ -1431,7 +1420,7 @@ CREATE_STANDBY_QD () {
 		if [ $HBA_HOSTNAMES -eq 1 ]; then
 		    INIT_STANDBY_ARGS+=" --hba-hostnames"
 		fi
-		export COORDINATOR_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
+		export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
 		STANDBY_RET_CODE=$?
 		if [ $STANDBY_RET_CODE -eq 0 ]; then
 			LOG_MSG "[INFO]:-Successfully completed standby coordinator initialization" 1
@@ -1440,7 +1429,7 @@ CREATE_STANDBY_QD () {
 		fi
 		BACKOUT_COMMAND "$TRUSTED_SHELL ${STANDBY_HOSTNAME} \"$RM -Rf ${QD_DIR}\""
 		BACKOUT_COMMAND "$ECHO \"Removing standby directory ${QD_DIR} on $STANDBY_HOSTNAME\""
-		BACKOUT_COMMAND "$TRUSTED_SHELL $STANDBY_HOSTNAME \"if [ -d $GP_DIR ]; then ${EXPORT_LIB_PATH};export PGPORT=${MASTER_PORT}; $PG_CTL -w -D ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 -o \"-i -p ${MASTER_PORT}\" -m immediate  stop; fi\""
+		BACKOUT_COMMAND "$TRUSTED_SHELL $STANDBY_HOSTNAME \"if [ -d $GP_DIR ]; then ${EXPORT_LIB_PATH};export PGPORT=${COORDINATOR_PORT}; $PG_CTL -w -D ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 -o \"-i -p ${COORDINATOR_PORT}\" -m immediate  stop; fi\""
 		BACKOUT_COMMAND "$ECHO \"Stopping standby instance on $STANDBY_HOSTNAME\""
 	fi 
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
@@ -1450,7 +1439,7 @@ START_QD_PRODUCTION () {
     LOG_MSG "[INFO]:-Start Function $FUNCNAME"
     if [ -f $GPSTART ]; then
 	GPSTART_OPTS=$(OUTPUT_LEVEL_OPTS)
-	export COORDINATOR_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+	export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1
 	$GPSTART -a -l $LOG_DIR -d $COORDINATOR_DATA_DIRECTORY $GPSTART_OPTS
 
         if [ $? -eq 0 ];then
@@ -1468,7 +1457,7 @@ START_QD_PRODUCTION () {
             LOG_MSG "[WARN]:" 1
             if [ -f $GPSTOP ]; then
 		GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
-                export COORDINATOR_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+                export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1
                 $GPSTOP -a -l $LOG_DIR -i -d $COORDINATOR_DATA_DIRECTORY $GPSTOP_OPTS
 
                 RETVAL=$?
@@ -1589,6 +1578,33 @@ DUMP_OUTPUT_CONFIG () {
 
 }
 
+ASSIGN_COORDINATOR_VARS() {
+	# Use COORDINATOR_* variables by default, fall back to MASTER_* variables if necessary
+	if [ x"" = x"$COORDINATOR_HOSTNAME" ]; then
+		if [ x"" = x"$MASTER_HOSTNAME" ]; then
+			ERROR_EXIT "[FATAL]:COORDINATOR_HOSTNAME variable not set"
+		else
+			export COORDINATOR_HOSTNAME=$MASTER_HOSTNAME
+		fi
+	fi
+
+	if [ x"" = x"$COORDINATOR_PORT" ]; then
+		if [ x"" = x"$MASTER_PORT" ]; then
+			ERROR_EXIT "[FATAL]:COORDINATOR_PORT variable not set"
+		else
+			export COORDINATOR_PORT=$MASTER_PORT
+		fi
+	fi
+
+	if [ x"" = x"$COORDINATOR_DIRECTORY" ]; then
+		if [ x"" = x"$MASTER_DIRECTORY" ]; then
+			ERROR_EXIT "[FATAL]:COORDINATOR_DIRECTORY variable not set"
+		else
+			export COORDINATOR_DIRECTORY=$MASTER_DIRECTORY
+		fi
+	fi
+}
+
 READ_INPUT_CONFIG () {
    # Check that we have a non-zero configuration file
     CHK_FILE $INPUT_CONFIG
@@ -1600,16 +1616,16 @@ READ_INPUT_CONFIG () {
     unset PORT_BASE SEG_PREFIX DATA_DIRECTORY
 
     # Validation
-    if [ x"" != x"${MASTER_PORT}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration. Cannot specify MASTER_PORT and QD_PRIMARY_ARRAY"
+    if [ x"" != x"${COORDINATOR_PORT}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration. Cannot specify COORDINATOR_PORT and QD_PRIMARY_ARRAY"
     fi
 
-    if [ x"" != x"${MASTER_HOSTNAME}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_HOSTNAME and QD_PRIMARY_ARRAY"
+    if [ x"" != x"${COORDINATOR_HOSTNAME}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify COORDINATOR_HOSTNAME and QD_PRIMARY_ARRAY"
     fi
 
-    if [ x"" != x"${MASTER_DIRECTORY}" ] ; then
-        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_DIRECTORY and QD_PRIMARY_ARRAY"
+    if [ x"" != x"${COORDINATOR_DIRECTORY}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify COORDINATOR_DIRECTORY and QD_PRIMARY_ARRAY"
     fi
 
     # Make sure it is not a dos file with CTRL M at end of each line
@@ -1623,9 +1639,9 @@ READ_INPUT_CONFIG () {
 
     . $INPUT_CONFIG
     SET_VAR $QD_PRIMARY_ARRAY
-    MASTER_HOSTNAME=$GP_HOSTADDRESS
-    MASTER_DIRECTORY=`$DIRNAME $GP_DIR`
-    MASTER_PORT=$GP_PORT
+    COORDINATOR_HOSTNAME=$GP_HOSTADDRESS
+    COORDINATOR_DIRECTORY=`$DIRNAME $GP_DIR`
+    COORDINATOR_PORT=$GP_PORT
     SEG_PREFIX=`$BASENAME $GP_DIR -1`
 
     MACHINE_LIST=()
@@ -1658,8 +1674,8 @@ READ_INPUT_CONFIG () {
     fi
 
     MACHINE_LIST=(`$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $SORT -u | $TR '\n' ' '`)
-    if [ `$ECHO ${MACHINE_LIST[@]}| $TR ' ' '\n' | $GREP -c "${MASTER_HOSTNAME}\$"` -gt 0 ]; then
-        MACHINE_LIST=($MASTER_HOSTNAME `$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $GREP -v "${MASTER_HOSTNAME}\$" | $TR '\n' ' '`)
+    if [ `$ECHO ${MACHINE_LIST[@]}| $TR ' ' '\n' | $GREP -c "${COORDINATOR_HOSTNAME}\$"` -gt 0 ]; then
+        MACHINE_LIST=($COORDINATOR_HOSTNAME `$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $GREP -v "${COORDINATOR_HOSTNAME}\$" | $TR '\n' ' '`)
     fi
 
     QE_PRIMARY_ARRAY=(${PRIMARY_ARRAY[@]})
@@ -1719,15 +1735,15 @@ CHK_QE_ARRAY_PORT_RANGES () {
     # now look for range conflicts
     #
 
-    if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_PORT $MAX_PORT; then
-	ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with PORT_BASE."
+    if CHK_OVERLAP $COORDINATOR_PORT $COORDINATOR_PORT $MIN_PORT $MAX_PORT; then
+	ERROR_EXIT "[FATAL]:-COORDINATOR_PORT overlaps with PORT_BASE."
     fi
     
     # Mirror configuration
     if [ $MIRROR_PORT_BASE ]; then
 	
-	if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
-	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with MIRROR_PORT_BASE."
+	if CHK_OVERLAP $COORDINATOR_PORT $COORDINATOR_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
+	    ERROR_EXIT "[FATAL]:-COORDINATOR_PORT overlaps with MIRROR_PORT_BASE."
 	fi
 	
 	if CHK_OVERLAP $MIN_PORT $MAX_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
@@ -1744,7 +1760,7 @@ CHK_QE_ARRAY_PORT_RANGES () {
 
 SET_DCA_CONFIG_SETTINGS () {
 	LOG_MSG "[INFO]:-Setting DCA specific configuration values..." 1
-	local coordinator_data_directory="${MASTER_DIRECTORY}/${SEG_PREFIX}-1"
+	local coordinator_data_directory="${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1"
 
 	LOG_MSG "[INFO]:-COORDINATOR_DATA_DIRECTORY=$coordinator_data_directory $GPCONFIG -c $DCA_RESQUEUE_PRIORITY_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_VAL -m $DCA_COORDINATOR_RESQUEUE_PRIORITY_VAL" 1
 	COORDINATOR_DATA_DIRECTORY=$coordinator_data_directory $GPCONFIG -c $DCA_RESQUEUE_PRIORITY_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_VAL -m $DCA_COORDINATOR_RESQUEUE_PRIORITY_VAL
@@ -1945,10 +1961,10 @@ LOG_MSG "[INFO]:-------------------------------------------------------" 1
 LOG_MSG "[INFO]:-To complete the environment configuration, please " 1
 LOG_MSG "[INFO]:-update $USER_NAME .bashrc file with the following" 1
 LOG_MSG "[INFO]:-1. Ensure that the greenplum_path.sh file is sourced" 1
-LOG_MSG "[INFO]:-2. Add \"export COORDINATOR_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1\"" 1
+LOG_MSG "[INFO]:-2. Add \"export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1\"" 1
 LOG_MSG "[INFO]:-   to access the Greenplum scripts for this instance:" 1
-LOG_MSG "[INFO]:-   or, use -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 option for the Greenplum scripts" 1
-LOG_MSG "[INFO]:-   Example gpstate -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1" 1
+LOG_MSG "[INFO]:-   or, use -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 option for the Greenplum scripts" 1
+LOG_MSG "[INFO]:-   Example gpstate -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1" 1
 LOG_MSG "[INFO]:-Script log file = $LOG_FILE" 1
 LOG_MSG "[INFO]:-To remove instance, run gpdeletesystem utility" 1
 
