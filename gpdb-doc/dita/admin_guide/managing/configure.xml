@@ -1099,6 +1099,9 @@
                   <codeph>gp_interconnect_setup_timeout</codeph>
                 </p>
                 <p>
+                  <codeph>gp_interconnect_transmit_timeout</codeph>
+                </p>
+                <p>
                   <codeph>gp_interconnect_type</codeph>
                 </p>
                 <p>
