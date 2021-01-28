@@ -384,6 +384,8 @@ AOCSCompact(Relation aorel,
 										  insertDesc,
 										  fsinfo,
 										  appendOnlyMetaDataSnapshot);
+
+			insertDesc->skipModCountIncrement = true;
 			aocs_insert_finish(insertDesc);
 		}
 		else

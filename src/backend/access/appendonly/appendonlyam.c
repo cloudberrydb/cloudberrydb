@@ -534,7 +534,7 @@ CloseWritableFileSeg(AppendOnlyInsertDesc aoInsertDesc)
 					  fileLen_uncompressed,
 					  aoInsertDesc->insertCount,
 					  aoInsertDesc->varblockCount,
-					  1,
+					  (aoInsertDesc->skipModCountIncrement ? 0 : 1),
 					  AOSEG_STATE_USECURRENT);
 
 	pfree(aoInsertDesc->fsInfo);

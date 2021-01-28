@@ -23,10 +23,10 @@ SELECT segno, modcount FROM gp_ao_or_aocs_seg('ao');
  segno | modcount 
 -------+----------
  1     | 2        
- 2     | 1        
+ 2     | 0        
  1     | 1        
  1     | 2        
- 2     | 1        
+ 2     | 0        
 (5 rows)
 SELECT sum(tupcount) FROM gp_ao_or_aocs_seg('ao') where state = 1;
  sum 
