@@ -120,26 +120,7 @@ matrix:
                   sources: *common_sources
                   packages: *common_packages
 
-        - name: check-format
-          stage: lint
-          os: linux
-          dist: focal
-          addons:
-            apt:
-              packages:
-                - clang-format-10
-                - parallel
-          before_install: ~
-          install: ~
-          before_script: ~
-          after_script: ~
-          script:
-            - env CLANG_FORMAT=clang-format-10 src/tools/fmt gen
-            - git diff --exit-code
-            - env CLANG_FORMAT=clang-format-10 src/tools/fmt chk
-
         - name: clang-tidy
-          stage: lint
           os: linux
           dist: focal
           addons:
@@ -162,6 +143,24 @@ matrix:
             - CLANG_TIDY=clang-tidy-11 src/tools/tidy chk build.debug
             - CXX=clang++-11 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -Hsrc/backend/gporca -Bbuild.relwithdebinfo
             - CLANG_TIDY=clang-tidy-11 src/tools/tidy chk build.relwithdebinfo
+
+        - name: check-format
+          stage: lint
+          os: linux
+          dist: focal
+          addons:
+            apt:
+              packages:
+                - clang-format-10
+                - parallel
+          before_install: ~
+          install: ~
+          before_script: ~
+          after_script: ~
+          script:
+            - env CLANG_FORMAT=clang-format-10 src/tools/fmt gen
+            - git diff --exit-code
+            - env CLANG_FORMAT=clang-format-10 src/tools/fmt chk
 
 stages:
   - lint
