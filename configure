@@ -3434,7 +3434,9 @@ $as_echo "#define FAULT_INJECTOR 1" >>confdefs.h
 
 else
   enable_debug_extensions=yes
+
 $as_echo "#define FAULT_INJECTOR 1" >>confdefs.h
+
 fi
 
 
