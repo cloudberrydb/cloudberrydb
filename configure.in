@@ -640,19 +640,11 @@ fi
 
 # supply -g if --enable-debug
 if test "$enable_debug" = yes && test "$ac_cv_prog_cc_g" = yes; then
-  if test "$GCC" = yes; then
-    CFLAGS="$CFLAGS -g -ggdb"
-  else
-    CFLAGS="$CFLAGS -g"
-  fi
+  CFLAGS="$CFLAGS -g"
 fi
 
 if test "$enable_debug" = yes && test "$ac_cv_prog_cxx_g" = yes; then
-  if test "$GCC" = yes; then
-    CXXFLAGS="$CXXFLAGS -g3 -ggdb"
-  else
-    CXXFLAGS="$CXXFLAGS -g3"
-  fi
+  CXXFLAGS="$CXXFLAGS -g"
 fi
 
 # enable code coverage if --enable-coverage
