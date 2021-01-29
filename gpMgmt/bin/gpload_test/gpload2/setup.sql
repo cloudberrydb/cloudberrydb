@@ -31,3 +31,4 @@ CREATE TABLE test.csvtable (
             DISTRIBUTED BY (year);
 create table testSpecialChar("Field1" bigint, "Field#2" text) distributed by ("Field1");
 CREATE TABLE  chinese表 ( 列1 text, "列#2" int, lie3 timestamp, 列four decimal ) DISTRIBUTED BY ("列#2");
+CREATE TABLE texttable2(s1 text, s2 text) DISTRIBUTED BY (s1);
