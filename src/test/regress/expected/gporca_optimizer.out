@@ -13527,3 +13527,164 @@ reset optimizer_enable_hashjoin;
 reset optimizer_enable_groupagg;
 reset optimizer_trace_fallback;
 reset enable_sort;
+-- simple check for btree indexes on AO tables
+create table t_ao_btree(a int, b int)
+  with (appendonly=true, orientation=row)
+  distributed by(a);
+create table tpart_ao_btree(a int, b int)
+  with (appendonly=true, orientation=row)
+  distributed by(a)
+  partition by range(b) (start(0) end(50000)      with(appendonly=true, orientation=row),
+                         start(50000) end(100000) with(appendonly=true, orientation=row));
+create table tpart_dim(a int, b int)
+  distributed by(a);
+insert into t_ao_btree select i, i%100000 from generate_series(1,100000) i;
+insert into tpart_ao_btree select i, i%100000 from generate_series(1,100000) i;
+insert into tpart_dim select i, i from generate_series(1,100) i;
+create index tpart_ao_btree_ix on tpart_ao_btree using btree(a,b);
+create index t_ao_btree_ix on t_ao_btree using btree(a,b);
+analyze t_ao_btree;
+analyze tpart_ao_btree;
+analyze tpart_dim;
+set optimizer_trace_fallback to on;
+set optimizer_enable_hashjoin to off;
+-- this should use a bitmap scan on the btree index
+select * from t_ao_btree where a = 3 and b = 3;
+ a | b 
+---+---
+ 3 | 3
+(1 row)
+
+select * from tpart_ao_btree where a = 3 and b = 3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Partitioned table with heterogeneous storage types
+ a | b 
+---+---
+ 3 | 3
+(1 row)
+
+explain (costs off) select * from tpart_dim d join t_ao_btree f on d.a=f.a where d.b=1;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Nested Loop
+         Join Filter: true
+         ->  Seq Scan on tpart_dim
+               Filter: (b = 1)
+         ->  Bitmap Heap Scan on t_ao_btree
+               Recheck Cond: (a = tpart_dim.a)
+               ->  Bitmap Index Scan on t_ao_btree_ix
+                     Index Cond: (a = tpart_dim.a)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(10 rows)
+
+explain (costs off) select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Partitioned table with heterogeneous storage types
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Hash Join
+         Hash Cond: (f.a = d.a)
+         ->  Append
+               ->  Seq Scan on tpart_ao_btree_1_prt_1 f
+               ->  Seq Scan on tpart_ao_btree_1_prt_2 f_1
+         ->  Hash
+               ->  Seq Scan on tpart_dim d
+                     Filter: (b = 1)
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+-- negative test, make sure we don't use a btree scan on an AO table
+select disable_xform('CXformSelect2BitmapBoolOp');
+             disable_xform             
+---------------------------------------
+ CXformSelect2BitmapBoolOp is disabled
+(1 row)
+
+select disable_xform('CXformSelect2DynamicBitmapBoolOp');
+                disable_xform                 
+----------------------------------------------
+ CXformSelect2DynamicBitmapBoolOp is disabled
+(1 row)
+
+select disable_xform('CXformJoin2BitmapIndexGetApply');
+               disable_xform                
+--------------------------------------------
+ CXformJoin2BitmapIndexGetApply is disabled
+(1 row)
+
+select disable_xform('CXformInnerJoin2NLJoin');
+           disable_xform            
+------------------------------------
+ CXformInnerJoin2NLJoin is disabled
+(1 row)
+
+-- Make sure we don't allow a regular (btree) index scan or index join for an AO table
+-- We disabled hash join, and bitmap index joins, NLJs, so this should leave ORCA no other choices
+-- expect a sequential scan, not an index scan, from these two queries
+explain (costs off) select * from t_ao_btree where a = 3 and b = 3;
+                QUERY PLAN                
+------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   ->  Seq Scan on t_ao_btree
+         Filter: ((a = 3) AND (b = 3))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(4 rows)
+
+explain (costs off) select * from tpart_ao_btree where a = 3 and b = 3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Partitioned table with heterogeneous storage types
+                   QUERY PLAN                   
+------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   ->  Bitmap Heap Scan on tpart_ao_btree_1_prt_1
+         Recheck Cond: ((a = 3) AND (b = 3))
+         ->  Bitmap Index Scan on tpart_ao_btree_1_prt_1_a_b_idx
+               Index Cond: ((a = 3) AND (b = 3))
+ Optimizer: Postgres query optimizer
+(6 rows)
+
+-- expect a fallback for all four of these queries
+select * from tpart_dim d join t_ao_btree f on d.a=f.a where d.b=1;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  No plan has been computed for required properties
+ a | b | a | b 
+---+---+---+---
+ 1 | 1 | 1 | 1
+(1 row)
+
+select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Partitioned table with heterogeneous storage types
+ a | b | a | b 
+---+---+---+---
+ 1 | 1 | 1 | 1
+(1 row)
+
+select enable_xform('CXformSelect2BitmapBoolOp');
+             enable_xform             
+--------------------------------------
+ CXformSelect2BitmapBoolOp is enabled
+(1 row)
+
+select enable_xform('CXformSelect2DynamicBitmapBoolOp');
+                enable_xform                 
+---------------------------------------------
+ CXformSelect2DynamicBitmapBoolOp is enabled
+(1 row)
+
+select enable_xform('CXformJoin2BitmapIndexGetApply');
+               enable_xform                
+-------------------------------------------
+ CXformJoin2BitmapIndexGetApply is enabled
+(1 row)
+
+select enable_xform('CXformInnerJoin2NLJoin');
+           enable_xform            
+-----------------------------------
+ CXformInnerJoin2NLJoin is enabled
+(1 row)
+
+reset optimizer_enable_hashjoin;
+reset optimizer_trace_fallback;

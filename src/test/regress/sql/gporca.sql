@@ -2894,6 +2894,60 @@ reset optimizer_enable_groupagg;
 reset optimizer_trace_fallback;
 reset enable_sort;
 
+-- simple check for btree indexes on AO tables
+create table t_ao_btree(a int, b int)
+  with (appendonly=true, orientation=row)
+  distributed by(a);
+create table tpart_ao_btree(a int, b int)
+  with (appendonly=true, orientation=row)
+  distributed by(a)
+  partition by range(b) (start(0) end(50000)      with(appendonly=true, orientation=row),
+                         start(50000) end(100000) with(appendonly=true, orientation=row));
+create table tpart_dim(a int, b int)
+  distributed by(a);
+
+insert into t_ao_btree select i, i%100000 from generate_series(1,100000) i;
+insert into tpart_ao_btree select i, i%100000 from generate_series(1,100000) i;
+insert into tpart_dim select i, i from generate_series(1,100) i;
+
+create index tpart_ao_btree_ix on tpart_ao_btree using btree(a,b);
+create index t_ao_btree_ix on t_ao_btree using btree(a,b);
+
+analyze t_ao_btree;
+analyze tpart_ao_btree;
+analyze tpart_dim;
+
+set optimizer_trace_fallback to on;
+set optimizer_enable_hashjoin to off;
+
+-- this should use a bitmap scan on the btree index
+select * from t_ao_btree where a = 3 and b = 3;
+select * from tpart_ao_btree where a = 3 and b = 3;
+explain (costs off) select * from tpart_dim d join t_ao_btree f on d.a=f.a where d.b=1;
+explain (costs off) select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
+
+-- negative test, make sure we don't use a btree scan on an AO table
+select disable_xform('CXformSelect2BitmapBoolOp');
+select disable_xform('CXformSelect2DynamicBitmapBoolOp');
+select disable_xform('CXformJoin2BitmapIndexGetApply');
+select disable_xform('CXformInnerJoin2NLJoin');
+
+-- Make sure we don't allow a regular (btree) index scan or index join for an AO table
+-- We disabled hash join, and bitmap index joins, NLJs, so this should leave ORCA no other choices
+-- expect a sequential scan, not an index scan, from these two queries
+explain (costs off) select * from t_ao_btree where a = 3 and b = 3;
+explain (costs off) select * from tpart_ao_btree where a = 3 and b = 3;
+-- expect a fallback for all four of these queries
+select * from tpart_dim d join t_ao_btree f on d.a=f.a where d.b=1;
+select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
+
+select enable_xform('CXformSelect2BitmapBoolOp');
+select enable_xform('CXformSelect2DynamicBitmapBoolOp');
+select enable_xform('CXformJoin2BitmapIndexGetApply');
+select enable_xform('CXformInnerJoin2NLJoin');
+reset optimizer_enable_hashjoin;
+reset optimizer_trace_fallback;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore
