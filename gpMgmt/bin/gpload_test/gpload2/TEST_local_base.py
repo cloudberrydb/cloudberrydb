@@ -415,14 +415,17 @@ def get_table_name():
     except Exception as e:
         errorMessage = str(e)
         print ('could not connect to database: ' + errorMessage)
-    queryString = """SELECT relname
-                     from pg_class
-                     WHERE relname
-                     like 'ext_gpload_reusable%'
-                     OR relname
-                     like 'staging_gpload_reusable%';"""
+    queryString = """SELECT sch.table_schema, cls.relname
+                     FROM pg_class AS cls, information_schema.tables AS sch
+                     WHERE
+                     (cls.relname LIKE 'ext_gpload_reusable%'
+                     OR
+                     relname LIKE 'staging_gpload_reusable%')
+                     AND cls.relname=sch.table_name;"""
     resultList = db.query(queryString.encode('utf-8')).getresult()
+    print(resultList)
     return resultList
+
 
 def drop_tables():
     '''drop external and staging tables'''
@@ -437,14 +440,15 @@ def drop_tables():
 
     tableList = get_table_name()
     for i in tableList:
-        name = i[0]
+        schema = i[0]
+        name = i[1]
         match = re.search('ext_gpload',name)
         if match:
-            queryString = "DROP EXTERNAL TABLE %s;" % name
+            queryString = f'DROP EXTERNAL TABLE "{schema}"."{name}";'
             db.query(queryString.encode('utf-8'))
 
         else:
-            queryString = "DROP TABLE %s;" % name
+            queryString = f'DROP TABLE "{schema}"."{name}";'
             db.query(queryString.encode('utf-8'))
 
 class PSQLError(Exception):
@@ -544,6 +548,24 @@ def prepare_before_test(num,cmd='',times=2):
         def wrapped_function(*args, **kwargs):
             write_test_file(num,cmd,times)
             retval= func(*args, **kwargs)
+            doTest(num)
+            return retval
+        return wrapped_function
+    return prepare_decorator
+
+
+def prepare_before_test_2(num):
+    """ Similar to the prepare_before_test function, but this won't write to
+        the test sql file. This gives more freedom to the test case to handle
+        the test sql file.
+    """
+    def prepare_decorator(func):
+        @wraps(func)
+        def wrapped_function(*args, **kwargs):
+            # Clear the file
+            f = open(mkpath('query%d.sql' % num), 'w')
+            f.close()
+            retval = func(*args, **kwargs)
             doTest(num)
             return retval
         return wrapped_function
