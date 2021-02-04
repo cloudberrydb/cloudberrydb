@@ -6842,7 +6842,14 @@
       <p>When GPORCA is enabled (the default), this parameter controls the cost
         model that GPORCA chooses for bitmap scans used with bitmap indexes or
         with btree indexes on AO tables.</p>
-      <p>The <codeph>experimental</codeph> cost model is more likely to choose
+      <ul>
+        <li><codeph>legacy</codeph> - preserves the calibrated cost model used by GPORCA
+          in Greenplum Database releases 6.13 and earlier</li>
+        <li><codeph>calibrated</codeph> - improves cost estimates for indexes</li>
+        <li><codeph>experimental</codeph> - reserved for future experimental cost models;
+           currently equivalent to the <codeph>calibrated</codeph> model</li>
+      </ul>
+      <p>The default cost model, <codeph>calibrated</codeph>, is more likely to choose
         a faster bitmap index with nested loop joins instead of hash joins.</p>
       <table id="optimizer_cost_model_table">
         <tgroup cols="3">
