@@ -194,6 +194,13 @@
         </tgroup>
       </table>
     </body>
+    <topic id="topic_elb_4ss_n4b" otherprops="pivotal">
+      <title>Tanzu Greenplum on DCA Systems</title>
+      <body>
+        <p>Tanzu Greenplum version 6.9 and later is supported on Dell EMC DCA systems with software
+          version 4.2.0.0 and later.</p>
+      </body>
+    </topic>
   </topic>
   <topic id="topic_pnz_5zd_xs">
     <title>Storage</title>
