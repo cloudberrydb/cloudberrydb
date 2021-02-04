@@ -107,7 +107,6 @@
             <topicref href="guc-list.xml#gp_external_enable_filter_pushdown"/>
             <topicref href="guc-list.xml#gp_fts_probe_interval"/>
             <topicref href="guc-list.xml#gp_fts_probe_retries"/>
-            <topicref href="guc-list.xml#gp_fts_probe_threadcount"/>
             <topicref href="guc-list.xml#gp_fts_probe_timeout"/>
             <topicref href="guc-list.xml#gp_fts_replication_attempt_count"/>
             <topicref href="guc-list.xml#gp_global_deadlock_detector_period"/>

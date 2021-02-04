@@ -1146,13 +1146,10 @@
                 <p>
                   <codeph>gp_set_read_only</codeph>
                 </p>
-                <p>
-                  <codeph>gp_fts_probe_interval</codeph>
-                </p>
               </stentry>
               <stentry>
                 <p>
-                  <codeph>gp_fts_probe_threadcount</codeph>
+                  <codeph>gp_fts_probe_interval</codeph>
                 </p>
               </stentry>
             </strow>
