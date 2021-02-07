@@ -639,8 +639,8 @@
             <li><xref href="#writable_external_table_bufsize" type="section"
                 >writable_external_table_bufsize</xref>
             </li>
-            <li><xref href="#write_to_gpfdist_timeout" type="section"
-                >write_to_gpfdist_timeout</xref>
+            <li><xref href="#gpfdist_retry_timeout" type="section"
+                >gpfdist_retry_timeout</xref>
             </li>
             <li>
               <xref href="#xid_stop_limit"/>
@@ -9596,11 +9596,11 @@ statement_mem = rg_perseg_mem / max_expected_concurrent_queries</codeblock></li>
       </table>
     </body>
   </topic>
-  <topic id="write_to_gpfdist_timeout">
-    <title>write_to_gpfdist_timeout</title>
+  <topic id="gpfdist_retry_timeout">
+    <title>gpfdist_retry_timeout</title>
     <body>
       <p>Controls the time (in seconds) that Greenplum Database waits before returning an error when
-        Greenplum Database is attempting to write to a <codeph><xref
+        Greenplum Database is attempting to connect or write to a <codeph><xref
             href="../../utility_guide/ref/gpfdist.xml"/></codeph> server and
           <codeph>gpfdist</codeph> does not respond. The default value is 300 (5 minutes). A value
         of 0 disables the timeout.</p>

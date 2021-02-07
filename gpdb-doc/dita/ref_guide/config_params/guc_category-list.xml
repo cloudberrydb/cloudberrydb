@@ -1212,8 +1212,8 @@
             </p><p>
               <xref href="guc-list.xml#writable_external_table_bufsize" type="section"
                 >writable_external_table_bufsize</xref></p><xref
-              href="guc-list.xml#write_to_gpfdist_timeout" type="section"
-              >write_to_gpfdist_timeout</xref><p><xref href="guc-list.xml#verify_gpfdists_cert"
+              href="guc-list.xml#gpfdist_retry_timeout" type="section"
+              >gpfdist_retry_timeout</xref><p><xref href="guc-list.xml#verify_gpfdists_cert"
                 >verify_gpfdists_cert</xref></p></stentry>
         </strow>
       </simpletable>
