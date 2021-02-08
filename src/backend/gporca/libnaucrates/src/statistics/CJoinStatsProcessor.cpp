@@ -473,9 +473,12 @@ CJoinStatsProcessor::CalcJoinCardinality(
 {
 	GPOS_ASSERT(nullptr != stats_config);
 	GPOS_ASSERT(nullptr != join_conds_scale_factors);
+	CDouble limit_for_result_scale_factor(
+		std::max(left_num_rows.Get(), right_num_rows.Get()));
 
 	CDouble scale_factor = CScaleFactorUtils::CumulativeJoinScaleFactor(
-		mp, stats_config, join_conds_scale_factors);
+		mp, stats_config, join_conds_scale_factors,
+		limit_for_result_scale_factor);
 	CDouble cartesian_product_num_rows = left_num_rows * right_num_rows;
 
 	if (IStatistics::EsjtLeftAntiSemiJoin == join_type ||

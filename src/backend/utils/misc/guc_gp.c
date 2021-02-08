@@ -4058,12 +4058,12 @@ struct config_real ConfigureNamesReal_gp[] =
 
 	{
 		{"optimizer_damping_factor_join", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("join predicate damping factor in optimizer, 1.0 means no damping"),
+			gettext_noop("join predicate damping factor in optimizer, 1.0 means no damping, 0.0 means square root method"),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_damping_factor_join,
-		0.01, 0.0, 1.0,
+		0.0, 0.0, 1.0,
 		NULL, NULL, NULL
 	},
 	{

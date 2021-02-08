@@ -200,7 +200,8 @@ CScaleFactorUtils::CalcCumulativeScaleFactorSqrtAlg(
 CDouble
 CScaleFactorUtils::CumulativeJoinScaleFactor(
 	CMemoryPool *mp, const CStatisticsConfig *stats_config,
-	SJoinConditionArray *join_conds_scale_factors)
+	SJoinConditionArray *join_conds_scale_factors,
+	CDouble limit_for_result_scale_factor)
 {
 	GPOS_ASSERT(nullptr != stats_config);
 	GPOS_ASSERT(nullptr != join_conds_scale_factors);
@@ -240,6 +241,8 @@ CScaleFactorUtils::CumulativeJoinScaleFactor(
 	//    is not correlated with any other predicate. This assumption comes from the idea that distribution
 	//    cols are ideally unique for each record to gain the best possible performance. This is a best
 	//    guess since we do not have a way to support correlated columns at this time.
+	//
+
 	CDouble cumulative_scale_factor(1.0);
 	if (stats_config->DDampingFactorJoin() > 0)
 	{
@@ -267,6 +270,22 @@ CScaleFactorUtils::CumulativeJoinScaleFactor(
 		cumulative_scale_factor =
 			CScaleFactorUtils::CalcCumulativeScaleFactorSqrtAlg(
 				scale_factor_hashmap, independent_join_preds);
+
+		// Limit the scale factor, usually to the cardinality of the larger of the
+		// joined tables. This causes the resulting join cardinality to be at least
+		// the size of the smaller table. The reason for this is that we want to
+		// assume a referential integrity constraint between the two joined tables,
+		// so a row in one table will match with at least one row in the other
+		// table. This makes multi-predicate joins more similar to single
+		// predicates, where we make the same assumption. This assumption is
+		// baked in the formula itself: When we divide the cartesian product
+		// by the max of the NDVs that means that every one of these NDVs will
+		// have a match in the other table. Another way to look at it is that
+		// 'cumulative_scale_factor' represents the NDV of the combined equi-join
+		// columns (ignore non-equi joins for a moment). We know that this NDV
+		// cannot exceed the cardinality of the larger of the tables.
+		cumulative_scale_factor = std::min(cumulative_scale_factor.Get(),
+										   limit_for_result_scale_factor.Get());
 
 		independent_join_preds->Release();
 		scale_factor_hashmap->Release();

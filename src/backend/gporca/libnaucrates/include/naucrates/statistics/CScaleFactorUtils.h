@@ -100,7 +100,8 @@ public:
 	// calculate the cumulative join scaling factor
 	static CDouble CumulativeJoinScaleFactor(
 		CMemoryPool *mp, const CStatisticsConfig *stats_config,
-		SJoinConditionArray *join_conds_scale_factors);
+		SJoinConditionArray *join_conds_scale_factors,
+		CDouble limit_for_result_scale_factor);
 
 	// return scaling factor of the join predicate after apply damping
 	static CDouble DampedJoinScaleFactor(const CStatisticsConfig *stats_config,

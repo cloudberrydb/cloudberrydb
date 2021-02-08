@@ -35,7 +35,7 @@ pivotal=# explain select a, c from r, s where a in (select c from r) order by a,
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
-      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000" MaxStatsBuckets="100"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.000000" DampingFactorGroupBy="0.750000" MaxStatsBuckets="100"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="3100" Rank="3101"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
@@ -576,7 +576,7 @@ pivotal=# explain select a, c from r, s where a in (select c from r) order by a,
             </dxl:ProjList>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1724.004858" Rows="19.999995" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="1724.004858" Rows="20.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="a">
@@ -595,7 +595,7 @@ pivotal=# explain select a, c from r, s where a in (select c from r) order by a,
               <dxl:LimitOffset/>
               <dxl:HashJoin JoinType="Inner">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="1724.004030" Rows="19.999995" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="1724.004030" Rows="20.000000" Width="8"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="a">
