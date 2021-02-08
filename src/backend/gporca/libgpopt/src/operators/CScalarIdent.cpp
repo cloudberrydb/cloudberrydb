@@ -188,6 +188,7 @@ CScalarIdent::FAllowedFuncScId(CExpression *pexpr)
 	GPOS_ASSERT(nullptr != pexpr);
 
 	if (COperator::EopScalarFunc == pexpr->Pop()->Eopid() &&
+		pexpr->Arity() > 0 &&
 		COperator::EopScalarIdent == (*pexpr)[0]->Pop()->Eopid())
 	{
 		CScalarFunc *func = CScalarFunc::PopConvert(pexpr->Pop());
