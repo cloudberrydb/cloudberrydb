@@ -71,22 +71,6 @@ private:
 		EicIncluded
 	};
 
-	typedef CLogical *(*PDynamicIndexOpConstructor)(
-		CMemoryPool *mp, const IMDIndex *pmdindex, CTableDescriptor *ptabdesc,
-		ULONG ulOriginOpId, CName *pname, ULONG ulPartIndex,
-		CColRefArray *pdrgpcrOutput, CColRef2dArray *pdrgpdrgpcrPart);
-
-	typedef CLogical *(*PStaticIndexOpConstructor)(
-		CMemoryPool *mp, const IMDIndex *pmdindex, CTableDescriptor *ptabdesc,
-		ULONG ulOriginOpId, CName *pname, CColRefArray *pdrgpcrOutput);
-
-	typedef CExpression *(PRewrittenIndexPath)(CMemoryPool *mp,
-											   CExpression *pexprIndexCond,
-											   CExpression *pexprResidualCond,
-											   const IMDIndex *pmdindex,
-											   CTableDescriptor *ptabdesc,
-											   COperator *popLogical);
-
 	// private copy ctor
 	CXformUtils(const CXformUtils &);
 
@@ -209,14 +193,12 @@ private:
 
 	// construct an expression representing a new access path using the given functors for
 	// operator constructors and rewritten access path
-	static CExpression *PexprBuildIndexPlan(
+	static CExpression *PexprBuildBtreeIndexPlan(
 		CMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexprGet,
 		ULONG ulOriginOpId, CExpressionArray *pdrgpexprConds,
 		CColRefSet *pcrsReqd, CColRefSet *pcrsScalarExpr,
 		CColRefSet *outer_refs, const IMDIndex *pmdindex,
-		const IMDRelation *pmdrel, CPartConstraint *ppcForPartialIndexes,
-		IMDIndex::EmdindexType emdindtype, PDynamicIndexOpConstructor pdiopc,
-		PStaticIndexOpConstructor psiopc, PRewrittenIndexPath prip);
+		const IMDRelation *pmdrel, CPartConstraint *ppcForPartialIndexes);
 
 	// create a dynamic operator for a btree index plan
 	static CLogical *
@@ -528,11 +510,9 @@ public:
 						 const IMDIndex *pmdindex, const IMDRelation *pmdrel,
 						 CPartConstraint *ppcartcnstrIndex)
 	{
-		return PexprBuildIndexPlan(
+		return PexprBuildBtreeIndexPlan(
 			mp, md_accessor, pexprGet, ulOriginOpId, pdrgpexprConds, pcrsReqd,
-			pcrsScalarExpr, outer_refs, pmdindex, pmdrel, ppcartcnstrIndex,
-			IMDIndex::EmdindBtree, PopDynamicBtreeIndexOpConstructor,
-			PopStaticBtreeIndexOpConstructor, PexprRewrittenBtreeIndexPath);
+			pcrsScalarExpr, outer_refs, pmdindex, pmdrel, ppcartcnstrIndex);
 	}
 
 	// helper for creating bitmap bool op expressions

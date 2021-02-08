@@ -2435,88 +2435,80 @@ CDXLOperatorFactory::GetDatumVal(CDXLMemoryManager *dxl_memory_manager,
 	BOOL is_const_null = ExtractConvertAttrValueToBool(
 		dxl_memory_manager, attrs, EdxltokenIsNull, target_elem, true, false);
 
-	SDXLDatumFactoryElem translators_mapping[] = {
-		// native support
-		{CMDIdGPDB::m_mdid_int2.Oid(), &CDXLOperatorFactory::GetDatumInt2},
-		{CMDIdGPDB::m_mdid_int4.Oid(), &CDXLOperatorFactory::GetDatumInt4},
-		{CMDIdGPDB::m_mdid_int8.Oid(), &CDXLOperatorFactory::GetDatumInt8},
-		{CMDIdGPDB::m_mdid_bool.Oid(), &CDXLOperatorFactory::GetDatumBool},
-		{CMDIdGPDB::m_mdid_oid.Oid(), &CDXLOperatorFactory::GetDatumOid},
-		// types with long int mapping
-		{CMDIdGPDB::m_mdid_bpchar.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		{CMDIdGPDB::m_mdid_varchar.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		{CMDIdGPDB::m_mdid_text.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		{CMDIdGPDB::m_mdid_cash.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		{CMDIdGPDB::m_mdid_uuid.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		// non-integer numeric types
-		{CMDIdGPDB::m_mdid_numeric.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_float4.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_float8.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		// network-related types
-		{CMDIdGPDB::m_mdid_inet.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_cidr.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_macaddr.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		// time-related types
-		{CMDIdGPDB::m_mdid_date.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsLintMappable},
-		{CMDIdGPDB::m_mdid_time.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_timeTz.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_timestamp.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_timestampTz.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_abs_time.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_relative_time.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_interval.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable},
-		{CMDIdGPDB::m_mdid_time_interval.Oid(),
-		 &CDXLOperatorFactory::GetDatumStatsDoubleMappable}};
-
-	const ULONG translators_mapping_len = GPOS_ARRAY_SIZE(translators_mapping);
-	// find translator for the datum type
-	PfPdxldatum *func = nullptr;
-	for (ULONG ul = 0; ul < translators_mapping_len; ul++)
+	switch (gpdb_mdid->Oid())
 	{
-		SDXLDatumFactoryElem elem = translators_mapping[ul];
-		if (gpdb_mdid->Oid() == elem.oid)
+		default:
 		{
-			func = elem.pf;
-			break;
+			const XMLCh *attr_val_xml =
+				attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenLintValue));
+			if (attr_val_xml)
+			{
+				return GetDatumStatsLintMappable(dxl_memory_manager, attrs,
+												 target_elem, mdid,
+												 is_const_null);
+			}
+			// generate a datum of generic type
+			return GetDatumGeneric(dxl_memory_manager, attrs, target_elem, mdid,
+								   is_const_null);
 		}
-	}
-
-	if (nullptr == func)
-	{
-		const XMLCh *attr_val_xml =
-			attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenLintValue));
-		if (attr_val_xml)
+		// native support
+		case GPDB_INT2:
+		{
+			return GetDatumInt2(dxl_memory_manager, attrs, target_elem, mdid,
+								is_const_null);
+		}
+		case GPDB_INT4:
+		{
+			return GetDatumInt4(dxl_memory_manager, attrs, target_elem, mdid,
+								is_const_null);
+		}
+		case GPDB_INT8:
+		{
+			return GetDatumInt8(dxl_memory_manager, attrs, target_elem, mdid,
+								is_const_null);
+		}
+		case GPDB_BOOL:
+		{
+			return GetDatumBool(dxl_memory_manager, attrs, target_elem, mdid,
+								is_const_null);
+		}
+		case GPDB_OID:
+		{
+			return GetDatumOid(dxl_memory_manager, attrs, target_elem, mdid,
+							   is_const_null);
+		}
+		// types with long int mapping
+		case GPDB_CHAR:
+		case GPDB_VARCHAR:
+		case GPDB_TEXT:
+		case GPDB_CASH:
+		case GPDB_UUID:
+		case GPDB_DATE:
 		{
 			return GetDatumStatsLintMappable(dxl_memory_manager, attrs,
 											 target_elem, mdid, is_const_null);
 		}
-		// generate a datum of generic type
-		return GetDatumGeneric(dxl_memory_manager, attrs, target_elem, mdid,
-							   is_const_null);
-	}
-	else
-	{
-		return (*func)(dxl_memory_manager, attrs, target_elem, mdid,
-					   is_const_null);
+		// non-integer numeric types
+		case GPDB_NUMERIC:
+		case GPDB_FLOAT4:
+		case GPDB_FLOAT8:
+		// network-related types
+		case GPDB_INET:
+		case GPDB_CIDR:
+		case GPDB_MACADDR:
+		// time-related types
+		case GPDB_TIME:
+		case GPDB_TIMETZ:
+		case GPDB_TIMESTAMP:
+		case GPDB_TIMESTAMPTZ:
+		case GPDB_ABSTIME:
+		case GPDB_RELTIME:
+		case GPDB_INTERVAL:
+		case GPDB_TIMEINTERVAL:
+		{
+			return GetDatumStatsDoubleMappable(
+				dxl_memory_manager, attrs, target_elem, mdid, is_const_null);
+		}
 	}
 }
 

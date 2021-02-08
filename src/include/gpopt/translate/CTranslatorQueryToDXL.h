@@ -63,22 +63,11 @@ class CTranslatorQueryToDXL
 {
 	friend class CTranslatorScalarToDXL;
 
-	// shorthand for functions for translating DXL nodes to GPDB expressions
-	typedef CDXLNode *(CTranslatorQueryToDXL::*DXLNodeToLogicalFunc)(
-		const RangeTblEntry *rte, ULONG rti, ULONG current_query_level);
-
 	// mapping RTEKind to WCHARs
 	struct SRTENameElem
 	{
 		RTEKind m_rtekind;
 		const WCHAR *m_rte_name;
-	};
-
-	// pair of RTEKind and its translators
-	struct SRTETranslator
-	{
-		RTEKind m_rtekind;
-		DXLNodeToLogicalFunc dxlnode_to_logical_funct;
 	};
 
 	// mapping CmdType to WCHARs
@@ -280,7 +269,7 @@ private:
 	);
 
 	// throws an exception when RTE kind not yet supported
-	void UnsupportedRTEKind(RTEKind rtekind) const;
+	[[noreturn]] void UnsupportedRTEKind(RTEKind rtekind) const;
 
 	// translate an entry of the from clause (this can either be FromExpr or JoinExpr)
 	CDXLNode *TranslateFromClauseToDXL(Node *node);

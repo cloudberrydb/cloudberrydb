@@ -69,20 +69,6 @@ typedef CHashMapIter<ULONG, CExpressionArray, gpos::HashValue<ULONG>,
 //---------------------------------------------------------------------------
 class CTranslatorDXLToExpr
 {
-	// shorthand for functions for translating DXL operator nodes into expression trees
-	typedef CExpression *(CTranslatorDXLToExpr::*PfPexpr)(
-		const CDXLNode *dxlnode);
-
-	// pair of DXL operator type and the corresponding translator
-	struct STranslatorMapping
-	{
-		// type
-		Edxlopid edxlopid;
-
-		// translator function pointer
-		PfPexpr pf;
-	};
-
 private:
 	// memory pool
 	CMemoryPool *m_mp;
@@ -109,9 +95,6 @@ private:
 
 	// id of CTE that we are currently processing (gpos::ulong_max for main query)
 	ULONG m_ulCTEId;
-
-	// DXL operator translators indexed by the operator id
-	PfPexpr m_rgpfTranslators[EdxlopSentinel];
 
 	// a copy of the pointer to column factory, obtained at construction time
 	CColumnFactory *m_pcf;
@@ -231,7 +214,7 @@ private:
 		const CDXLNode *pdxlnSubqueryAny);
 
 	// translate a DXL scalar into an expr scalar
-	CExpression *PexprScalar(const CDXLNode *pdxlnCond);
+	CExpression *PexprScalar(const CDXLNode *dxlnode);
 
 	// translate a DXL scalar if stmt into a scalar if
 	CExpression *PexprScalarIf(const CDXLNode *pdxlnIf);
@@ -349,9 +332,6 @@ private:
 	void AddDistributionColumns(CTableDescriptor *ptabdesc,
 								const IMDRelation *pmdrel,
 								IntToUlongMap *phmiulAttnoColMapping);
-
-	// initialize index of operator translators
-	void InitTranslators();
 
 	// main translation routine for DXL tree -> Expr tree
 	CExpression *Pexpr(const CDXLNode *dxlnode,

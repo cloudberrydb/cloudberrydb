@@ -95,7 +95,6 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt(
 {
 	m_translator_dxl_to_scalar = GPOS_NEW(m_mp)
 		CTranslatorDXLToScalar(m_mp, m_md_accessor, m_num_of_segments);
-	InitTranslators();
 }
 
 //---------------------------------------------------------------------------
@@ -109,100 +108,6 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt(
 CTranslatorDXLToPlStmt::~CTranslatorDXLToPlStmt()
 {
 	GPOS_DELETE(m_translator_dxl_to_scalar);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::InitTranslators
-//
-//	@doc:
-//		Initialize index of translators
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorDXLToPlStmt::InitTranslators()
-{
-	for (ULONG idx = 0;
-		 idx < GPOS_ARRAY_SIZE(m_dxlop_translator_func_mapping_array); idx++)
-	{
-		m_dxlop_translator_func_mapping_array[idx] = nullptr;
-	}
-
-	// array mapping operator type to translator function
-	static const STranslatorMapping dxlop_translator_func_mapping_array[] = {
-		{EdxlopPhysicalTableScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLTblScan},
-		{EdxlopPhysicalExternalScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLTblScan},
-		{EdxlopPhysicalIndexScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLIndexScan},
-		{EdxlopPhysicalIndexOnlyScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLIndexOnlyScan},
-		{EdxlopPhysicalHashJoin,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLHashJoin},
-		{EdxlopPhysicalNLJoin,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLNLJoin},
-		{EdxlopPhysicalMergeJoin,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLMergeJoin},
-		{EdxlopPhysicalMotionGather,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-		{EdxlopPhysicalMotionBroadcast,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-		{EdxlopPhysicalMotionRedistribute,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion},
-		{EdxlopPhysicalMotionRandom,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion},
-		{EdxlopPhysicalMotionRoutedDistribute,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-		{EdxlopPhysicalLimit,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLLimit},
-		{EdxlopPhysicalAgg, &gpopt::CTranslatorDXLToPlStmt::TranslateDXLAgg},
-		{EdxlopPhysicalWindow,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLWindow},
-		{EdxlopPhysicalSort, &gpopt::CTranslatorDXLToPlStmt::TranslateDXLSort},
-		{EdxlopPhysicalSubqueryScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLSubQueryScan},
-		{EdxlopPhysicalResult,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLResult},
-		{EdxlopPhysicalAppend,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLAppend},
-		{EdxlopPhysicalMaterialize,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLMaterialize},
-		{EdxlopPhysicalSequence,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLSequence},
-		{EdxlopPhysicalDynamicTableScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLDynTblScan},
-		/* {EdxlopPhysicalDynamicIndexScan,		&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan}, */
-		{EdxlopPhysicalTVF, &gpopt::CTranslatorDXLToPlStmt::TranslateDXLTvf},
-		{EdxlopPhysicalDML, &gpopt::CTranslatorDXLToPlStmt::TranslateDXLDml},
-		{EdxlopPhysicalSplit,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLSplit},
-		// GPDB_12_MERGE_FIXME: stop generating AssertOp from ORCA
-		//			{EdxlopPhysicalAssert,					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLAssert},
-		{EdxlopPhysicalCTEProducer,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan},
-		{EdxlopPhysicalCTEConsumer,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLCTEConsumerToSharedScan},
-		{EdxlopPhysicalBitmapTableScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan},
-		{EdxlopPhysicalDynamicBitmapTableScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan},
-		{EdxlopPhysicalCTAS, &gpopt::CTranslatorDXLToPlStmt::TranslateDXLCtas},
-		{EdxlopPhysicalPartitionSelector,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLPartSelector},
-		{EdxlopPhysicalValuesScan,
-		 &gpopt::CTranslatorDXLToPlStmt::TranslateDXLValueScan},
-	};
-
-	const ULONG num_of_translators =
-		GPOS_ARRAY_SIZE(dxlop_translator_func_mapping_array);
-
-	for (ULONG idx = 0; idx < num_of_translators; idx++)
-	{
-		STranslatorMapping elem = dxlop_translator_func_mapping_array[idx];
-		m_dxlop_translator_func_mapping_array[elem.dxl_op_id] =
-			elem.dxlnode_to_logical_funct;
-	}
 }
 
 //---------------------------------------------------------------------------
@@ -359,23 +264,195 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan(
 	GPOS_ASSERT(nullptr != dxlnode);
 	GPOS_ASSERT(nullptr != ctxt_translation_prev_siblings);
 
-	CDXLOperator *dxlop = dxlnode->GetOperator();
-	ULONG ulOpId = (ULONG) dxlop->GetDXLOperator();
+	Plan *plan;
 
-	PfPplan dxlnode_to_logical_funct =
-		m_dxlop_translator_func_mapping_array[ulOpId];
+	const CDXLOperator *dxlop = dxlnode->GetOperator();
+	gpdxl::Edxlopid ulOpId = dxlop->GetDXLOperator();
 
-	if (nullptr == dxlnode_to_logical_funct)
+	switch (ulOpId)
+	{
+		default:
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
+					   dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
+		}
+		case EdxlopPhysicalTableScan:
+		case EdxlopPhysicalExternalScan:
+		{
+			plan = TranslateDXLTblScan(dxlnode, output_context,
+									   ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalIndexScan:
+		{
+			plan = TranslateDXLIndexScan(dxlnode, output_context,
+										 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalIndexOnlyScan:
+		{
+			plan = TranslateDXLIndexOnlyScan(dxlnode, output_context,
+											 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalHashJoin:
+		{
+			plan = TranslateDXLHashJoin(dxlnode, output_context,
+										ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalNLJoin:
+		{
+			plan = TranslateDXLNLJoin(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalMergeJoin:
+		{
+			plan = TranslateDXLMergeJoin(dxlnode, output_context,
+										 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalMotionGather:
+		case EdxlopPhysicalMotionBroadcast:
+		case EdxlopPhysicalMotionRoutedDistribute:
+		{
+			plan = TranslateDXLMotion(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalMotionRedistribute:
+		case EdxlopPhysicalMotionRandom:
+		{
+			plan = TranslateDXLDuplicateSensitiveMotion(
+				dxlnode, output_context, ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalLimit:
+		{
+			plan = TranslateDXLLimit(dxlnode, output_context,
+									 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalAgg:
+		{
+			plan = TranslateDXLAgg(dxlnode, output_context,
+								   ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalWindow:
+		{
+			plan = TranslateDXLWindow(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalSort:
+		{
+			plan = TranslateDXLSort(dxlnode, output_context,
+									ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalSubqueryScan:
+		{
+			plan = TranslateDXLSubQueryScan(dxlnode, output_context,
+											ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalResult:
+		{
+			plan = TranslateDXLResult(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalAppend:
+		{
+			plan = TranslateDXLAppend(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalMaterialize:
+		{
+			plan = TranslateDXLMaterialize(dxlnode, output_context,
+										   ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalSequence:
+		{
+			plan = TranslateDXLSequence(dxlnode, output_context,
+										ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalDynamicTableScan:
+		{
+			plan = TranslateDXLDynTblScan(dxlnode, output_context,
+										  ctxt_translation_prev_siblings);
+			break;
+		}
+		/* case EdxlopPhysicalDynamicIndexScan: { plan = TranslateDXLDynIdxScan(dxlnode, output_context, ctxt_translation_prev_siblings); break;} */
+		case EdxlopPhysicalTVF:
+		{
+			plan = TranslateDXLTvf(dxlnode, output_context,
+								   ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalDML:
+		{
+			plan = TranslateDXLDml(dxlnode, output_context,
+								   ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalSplit:
+		{
+			plan = TranslateDXLSplit(dxlnode, output_context,
+									 ctxt_translation_prev_siblings);
+			break;
+		}
+		// GPDB_12_MERGE_FIXME: stop generating AssertOp from ORCA
+		//			case EdxlopPhysicalAssert: { plan = TranslateDXLAssert(dxlnode, output_context, ctxt_translation_prev_siblings); break;}
+		case EdxlopPhysicalCTEProducer:
+		{
+			plan = TranslateDXLCTEProducerToSharedScan(
+				dxlnode, output_context, ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalCTEConsumer:
+		{
+			plan = TranslateDXLCTEConsumerToSharedScan(
+				dxlnode, output_context, ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalBitmapTableScan:
+		case EdxlopPhysicalDynamicBitmapTableScan:
+		{
+			plan = TranslateDXLBitmapTblScan(dxlnode, output_context,
+											 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalCTAS:
+		{
+			plan = TranslateDXLCtas(dxlnode, output_context,
+									ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalPartitionSelector:
+		{
+			plan = TranslateDXLPartSelector(dxlnode, output_context,
+											ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalValuesScan:
+		{
+			plan = TranslateDXLValueScan(dxlnode, output_context,
+										 ctxt_translation_prev_siblings);
+			break;
+		}
+	}
+
+	if (nullptr == plan)
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
 				   dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
 	}
-
-	Plan *const plan = (this->*dxlnode_to_logical_funct)(
-		dxlnode, output_context, ctxt_translation_prev_siblings);
-	if (nullptr == plan)
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
-				   dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
 	return plan;
 }
 

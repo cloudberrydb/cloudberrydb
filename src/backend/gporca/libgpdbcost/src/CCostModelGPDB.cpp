@@ -39,73 +39,6 @@ using namespace gpos;
 using namespace gpdbcost;
 
 
-// initialization of cost functions
-const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
-	{COperator::EopPhysicalTableScan, CostScan},
-	{COperator::EopPhysicalDynamicTableScan, CostScan},
-	{COperator::EopPhysicalExternalScan, CostScan},
-
-	{COperator::EopPhysicalFilter, CostFilter},
-
-	{COperator::EopPhysicalIndexOnlyScan, CostIndexOnlyScan},
-	{COperator::EopPhysicalIndexScan, CostIndexScan},
-	{COperator::EopPhysicalDynamicIndexScan, CostIndexScan},
-	{COperator::EopPhysicalBitmapTableScan, CostBitmapTableScan},
-	{COperator::EopPhysicalDynamicBitmapTableScan, CostBitmapTableScan},
-
-	{COperator::EopPhysicalSequenceProject, CostSequenceProject},
-
-	{COperator::EopPhysicalCTEProducer, CostCTEProducer},
-	{COperator::EopPhysicalCTEConsumer, CostCTEConsumer},
-	{COperator::EopPhysicalConstTableGet, CostConstTableGet},
-	{COperator::EopPhysicalDML, CostDML},
-
-	{COperator::EopPhysicalHashAgg, CostHashAgg},
-	{COperator::EopPhysicalHashAggDeduplicate, CostHashAgg},
-	{COperator::EopPhysicalScalarAgg, CostScalarAgg},
-	{COperator::EopPhysicalStreamAgg, CostStreamAgg},
-	{COperator::EopPhysicalStreamAggDeduplicate, CostStreamAgg},
-
-	{COperator::EopPhysicalSequence, CostSequence},
-
-	{COperator::EopPhysicalSort, CostSort},
-
-	{COperator::EopPhysicalTVF, CostTVF},
-
-	{COperator::EopPhysicalSerialUnionAll, CostUnionAll},
-	{COperator::EopPhysicalParallelUnionAll, CostUnionAll},
-
-	{COperator::EopPhysicalInnerHashJoin, CostHashJoin},
-	{COperator::EopPhysicalLeftSemiHashJoin, CostHashJoin},
-	{COperator::EopPhysicalLeftAntiSemiHashJoin, CostHashJoin},
-	{COperator::EopPhysicalLeftAntiSemiHashJoinNotIn, CostHashJoin},
-	{COperator::EopPhysicalLeftOuterHashJoin, CostHashJoin},
-	{COperator::EopPhysicalRightOuterHashJoin, CostHashJoin},
-
-	{COperator::EopPhysicalInnerIndexNLJoin, CostIndexNLJoin},
-	{COperator::EopPhysicalLeftOuterIndexNLJoin, CostIndexNLJoin},
-
-	{COperator::EopPhysicalMotionGather, CostMotion},
-	{COperator::EopPhysicalMotionBroadcast, CostMotion},
-	{COperator::EopPhysicalMotionHashDistribute, CostMotion},
-	{COperator::EopPhysicalMotionRandom, CostMotion},
-	{COperator::EopPhysicalMotionRoutedDistribute, CostMotion},
-
-	{COperator::EopPhysicalInnerNLJoin, CostNLJoin},
-	{COperator::EopPhysicalLeftSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalLeftAntiSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalLeftAntiSemiNLJoinNotIn, CostNLJoin},
-	{COperator::EopPhysicalLeftOuterNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedInnerNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedLeftOuterNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedLeftSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedInLeftSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin},
-
-	{COperator::EopPhysicalFullMergeJoin, CostMergeJoin},
-};
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CCostModelGPDB::CCostModelGPDB
@@ -2013,20 +1946,147 @@ CCostModelGPDB::Cost(
 		return CostUnary(m_mp, exprhdl, pci, m_cost_model_params);
 	}
 
-	FnCost *pfnc = nullptr;
-	const ULONG size = GPOS_ARRAY_SIZE(m_rgcm);
-
-	// find the cost function corresponding to the given operator
-	for (ULONG ul = 0; pfnc == nullptr && ul < size; ul++)
+	switch (op_id)
 	{
-		if (op_id == m_rgcm[ul].m_eopid)
+		default:
 		{
-			pfnc = m_rgcm[ul].m_pfnc;
+			// FIXME: macro this?
+			__builtin_unreachable();
+		}
+		case COperator::EopPhysicalTableScan:
+		case COperator::EopPhysicalDynamicTableScan:
+		case COperator::EopPhysicalExternalScan:
+		{
+			return CostScan(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalFilter:
+		{
+			return CostFilter(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalIndexOnlyScan:
+		{
+			return CostIndexOnlyScan(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalIndexScan:
+		case COperator::EopPhysicalDynamicIndexScan:
+		{
+			return CostIndexScan(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalBitmapTableScan:
+		case COperator::EopPhysicalDynamicBitmapTableScan:
+		{
+			return CostBitmapTableScan(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalSequenceProject:
+		{
+			return CostSequenceProject(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalCTEProducer:
+		{
+			return CostCTEProducer(m_mp, exprhdl, this, pci);
+		}
+		case COperator::EopPhysicalCTEConsumer:
+		{
+			return CostCTEConsumer(m_mp, exprhdl, this, pci);
+		}
+		case COperator::EopPhysicalConstTableGet:
+		{
+			return CostConstTableGet(m_mp, exprhdl, this, pci);
+		}
+		case COperator::EopPhysicalDML:
+		{
+			return CostDML(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalHashAgg:
+		case COperator::EopPhysicalHashAggDeduplicate:
+		{
+			return CostHashAgg(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalScalarAgg:
+		{
+			return CostScalarAgg(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalStreamAgg:
+		case COperator::EopPhysicalStreamAggDeduplicate:
+		{
+			return CostStreamAgg(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalSequence:
+		{
+			return CostSequence(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalSort:
+		{
+			return CostSort(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalTVF:
+		{
+			return CostTVF(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalSerialUnionAll:
+		case COperator::EopPhysicalParallelUnionAll:
+		{
+			return CostUnionAll(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalInnerHashJoin:
+		case COperator::EopPhysicalLeftSemiHashJoin:
+		case COperator::EopPhysicalLeftAntiSemiHashJoin:
+		case COperator::EopPhysicalLeftAntiSemiHashJoinNotIn:
+		case COperator::EopPhysicalLeftOuterHashJoin:
+		case COperator::EopPhysicalRightOuterHashJoin:
+		{
+			return CostHashJoin(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalInnerIndexNLJoin:
+		case COperator::EopPhysicalLeftOuterIndexNLJoin:
+		{
+			return CostIndexNLJoin(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalMotionGather:
+		case COperator::EopPhysicalMotionBroadcast:
+		case COperator::EopPhysicalMotionHashDistribute:
+		case COperator::EopPhysicalMotionRandom:
+		case COperator::EopPhysicalMotionRoutedDistribute:
+		{
+			return CostMotion(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalInnerNLJoin:
+		case COperator::EopPhysicalLeftSemiNLJoin:
+		case COperator::EopPhysicalLeftAntiSemiNLJoin:
+		case COperator::EopPhysicalLeftAntiSemiNLJoinNotIn:
+		case COperator::EopPhysicalLeftOuterNLJoin:
+		case COperator::EopPhysicalCorrelatedInnerNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftOuterNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedInLeftSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin:
+		{
+			return CostNLJoin(m_mp, exprhdl, this, pci);
+		}
+
+		case COperator::EopPhysicalFullMergeJoin:
+		{
+			return CostMergeJoin(m_mp, exprhdl, this, pci);
 		}
 	}
-	GPOS_ASSERT(nullptr != pfnc);
-
-	return pfnc(m_mp, exprhdl, this, pci);
 }
 
 // EOF

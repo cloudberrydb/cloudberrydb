@@ -72,28 +72,7 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 class CTranslatorDXLToScalar
 {
-	// shorthand for functions for translating DXL nodes to GPDB expressions
-	typedef Expr *(CTranslatorDXLToScalar::*expr_func_ptr)(
-		const CDXLNode *dxlnode, CMappingColIdVar *colid_var);
-
 private:
-	// pair of DXL op id and translator function
-	struct STranslatorElem
-	{
-		Edxlopid eopid;
-		expr_func_ptr translate_func;
-	};
-
-	// shorthand for functions for translating DXL nodes to GPDB expressions
-	typedef Const *(CTranslatorDXLToScalar::*const_func_ptr)(CDXLDatum *);
-
-	// pair of DXL datum type and translator function
-	struct SDatumTranslatorElem
-	{
-		CDXLDatum::EdxldatumType edxldt;
-		const_func_ptr translate_func;
-	};
-
 	CMemoryPool *m_mp;
 
 	// meta data accessor

@@ -66,40 +66,6 @@ typedef CHashMap<CColRef, CDXLNode, CColRef::HashValue, CColRef::Equals,
 class CTranslatorExprToDXL
 {
 private:
-	// shorthand for functions for translating scalar expressions
-	typedef CDXLNode *(CTranslatorExprToDXL::*PfPdxlnScalar)(
-		CExpression *pexpr);
-
-	// shorthand for functions for translating physical expressions
-	typedef CDXLNode *(CTranslatorExprToDXL::*PfPdxlnPhysical)(
-		CExpression *pexpr, CColRefArray *colref_array,
-		CDistributionSpecArray *
-			pdrgpdsBaseTables,	// output: array of base table hash distributions
-		ULONG
-			*pulNonGatherMotions,  // output: number of non-Gather motion nodes
-		BOOL *pfDML				   // output: is this a DML operation
-	);
-
-	// pair of scalar operator type and the corresponding translator
-	struct SScTranslatorMapping
-	{
-		// type
-		COperator::EOperatorId op_id;
-
-		// translator function pointer
-		PfPdxlnScalar pf;
-	};
-
-	// pair of physical operator type and the corresponding translator
-	struct SPhTranslatorMapping
-	{
-		// type
-		COperator::EOperatorId op_id;
-
-		// translator function pointer
-		PfPdxlnPhysical pf;
-	};
-
 	// memory pool
 	CMemoryPool *m_mp;
 
@@ -128,20 +94,8 @@ private:
 	// id of master node
 	INT m_iMasterId;
 
-	// scalar expression translators indexed by the operator id
-	PfPdxlnScalar m_rgpfScalarTranslators[COperator::EopSentinel];
-
-	// physical expression translators indexed by the operator id
-	PfPdxlnPhysical m_rgpfPhysicalTranslators[COperator::EopSentinel];
-
 	// private copy ctor
 	CTranslatorExprToDXL(const CTranslatorExprToDXL &);
-
-	// initialize index of scalar translators
-	void InitScalarTranslators();
-
-	// initialize index of physical translators
-	void InitPhysicalTranslators();
 
 	EdxlBoolExprType Edxlbooltype(
 		const CScalarBoolOp::EBoolOperator eboolop) const;

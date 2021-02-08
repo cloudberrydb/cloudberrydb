@@ -240,55 +240,20 @@ CDXLNode *
 CTranslatorScalarToDXL::TranslateScalarToDXL(
 	const Expr *expr, const CMappingVarColId *var_colid_mapping)
 {
-	static const STranslatorElem translators[] = {
-		{T_Var, &CTranslatorScalarToDXL::TranslateVarToDXL},
-		{T_OpExpr, &CTranslatorScalarToDXL::TranslateOpExprToDXL},
-		{T_ScalarArrayOpExpr,
-		 &CTranslatorScalarToDXL::TranslateScalarArrayOpExprToDXL},
-		{T_DistinctExpr, &CTranslatorScalarToDXL::TranslateDistinctExprToDXL},
-		{T_Const, &CTranslatorScalarToDXL::TranslateConstToDXL},
-		{T_BoolExpr, &CTranslatorScalarToDXL::TranslateBoolExprToDXL},
-		{T_BooleanTest, &CTranslatorScalarToDXL::TranslateBooleanTestToDXL},
-		{T_CaseExpr, &CTranslatorScalarToDXL::TranslateCaseExprToDXL},
-		{T_CaseTestExpr, &CTranslatorScalarToDXL::TranslateCaseTestExprToDXL},
-		{T_CoalesceExpr, &CTranslatorScalarToDXL::TranslateCoalesceExprToDXL},
-		{T_MinMaxExpr, &CTranslatorScalarToDXL::TranslateMinMaxExprToDXL},
-		{T_FuncExpr, &CTranslatorScalarToDXL::TranslateFuncExprToDXL},
-		{T_Aggref, &CTranslatorScalarToDXL::TranslateAggrefToDXL},
-		{T_WindowFunc, &CTranslatorScalarToDXL::TranslateWindowFuncToDXL},
-		{T_NullTest, &CTranslatorScalarToDXL::TranslateNullTestToDXL},
-		{T_NullIfExpr, &CTranslatorScalarToDXL::TranslateNullIfExprToDXL},
-		{T_RelabelType, &CTranslatorScalarToDXL::TranslateRelabelTypeToDXL},
-		{T_CoerceToDomain,
-		 &CTranslatorScalarToDXL::TranslateCoerceToDomainToDXL},
-		{T_CoerceViaIO, &CTranslatorScalarToDXL::TranslateCoerceViaIOToDXL},
-		{T_ArrayCoerceExpr,
-		 &CTranslatorScalarToDXL::TranslateArrayCoerceExprToDXL},
-		{T_SubLink, &CTranslatorScalarToDXL::TranslateSubLinkToDXL},
-		{T_ArrayExpr, &CTranslatorScalarToDXL::TranslateArrayExprToDXL},
-		{T_SubscriptingRef, &CTranslatorScalarToDXL::TranslateArrayRefToDXL},
-	};
-
-	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
 	NodeTag tag = expr->type;
-
-	// find translator for the expression type
-	ExprToDXLFn func_ptr = nullptr;
-	for (ULONG ul = 0; ul < num_translators; ul++)
+	switch (tag)
 	{
-		STranslatorElem elem = translators[ul];
-		if (tag == elem.tag)
+		default:
 		{
-			func_ptr = elem.func_ptr;
-			break;
+			// This expression is not supported. Check for a few common cases, to
+			// give a better message.
+			CHAR *str = (CHAR *) gpdb::NodeToString(const_cast<Expr *>(expr));
+			CWStringDynamic *wcstr =
+				CDXLUtils::CreateDynamicStringFromCharArray(m_mp, str);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+					   wcstr->GetBuffer());
 		}
-	}
-
-	if (nullptr == func_ptr)
-	{
-		// This expression is not supported. Check for a few common cases, to
-		// give a better message.
-		if (tag == T_Param)
+		case T_Param:
 		{
 			// Note: The choose_custom_plan() function in plancache.c
 			// knows that GPORCA doesn't support Params. If you lift this
@@ -296,19 +261,122 @@ CTranslatorScalarToDXL::TranslateScalarToDXL(
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
 					   GPOS_WSZ_LIT("Query Parameter"));
 		}
-		else
+		case T_Var:
 		{
-			CHAR *str = (CHAR *) gpdb::NodeToString(const_cast<Expr *>(expr));
-			CWStringDynamic *wcstr =
-				CDXLUtils::CreateDynamicStringFromCharArray(m_mp, str);
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
-					   wcstr->GetBuffer());
+			return CTranslatorScalarToDXL::TranslateVarToDXL(expr,
+															 var_colid_mapping);
+		}
+		case T_OpExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateOpExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_ScalarArrayOpExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateScalarArrayOpExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_DistinctExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateDistinctExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_Const:
+		{
+			return CTranslatorScalarToDXL::TranslateConstToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_BoolExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateBoolExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_BooleanTest:
+		{
+			return CTranslatorScalarToDXL::TranslateBooleanTestToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_CaseExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateCaseExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_CaseTestExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateCaseTestExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_CoalesceExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateCoalesceExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_MinMaxExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateMinMaxExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_FuncExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateFuncExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_Aggref:
+		{
+			return CTranslatorScalarToDXL::TranslateAggrefToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_WindowFunc:
+		{
+			return CTranslatorScalarToDXL::TranslateWindowFuncToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_NullTest:
+		{
+			return CTranslatorScalarToDXL::TranslateNullTestToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_NullIfExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateNullIfExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_RelabelType:
+		{
+			return CTranslatorScalarToDXL::TranslateRelabelTypeToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_CoerceToDomain:
+		{
+			return CTranslatorScalarToDXL::TranslateCoerceToDomainToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_CoerceViaIO:
+		{
+			return CTranslatorScalarToDXL::TranslateCoerceViaIOToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_ArrayCoerceExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateArrayCoerceExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_SubLink:
+		{
+			return CTranslatorScalarToDXL::TranslateSubLinkToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_ArrayExpr:
+		{
+			return CTranslatorScalarToDXL::TranslateArrayExprToDXL(
+				expr, var_colid_mapping);
+		}
+		case T_SubscriptingRef:
+		{
+			return CTranslatorScalarToDXL::TranslateArrayRefToDXL(
+				expr, var_colid_mapping);
 		}
 	}
-
-	CDXLNode *return_node = (this->*func_ptr)(expr, var_colid_mapping);
-
-	return return_node;
 }
 
 //---------------------------------------------------------------------------
@@ -1965,36 +2033,39 @@ CTranslatorScalarToDXL::TranslateDatumToDXL(CMemoryPool *mp,
 											INT type_modifier, BOOL is_null,
 											ULONG len, Datum datum)
 {
-	static const SDXLDatumTranslatorElem translators[] = {
-		{IMDType::EtiInt2, &CTranslatorScalarToDXL::TranslateInt2DatumToDXL},
-		{IMDType::EtiInt4, &CTranslatorScalarToDXL::TranslateInt4DatumToDXL},
-		{IMDType::EtiInt8, &CTranslatorScalarToDXL::TranslateInt8DatumToDXL},
-		{IMDType::EtiBool, &CTranslatorScalarToDXL::TranslateBoolDatumToDXL},
-		{IMDType::EtiOid, &CTranslatorScalarToDXL::TranslateOidDatumToDXL},
-	};
-
-	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
-	// find translator for the datum type
-	DxlDatumFromDatum *func_ptr = nullptr;
-	for (ULONG ul = 0; ul < num_translators; ul++)
+	switch (md_type->GetDatumType())
 	{
-		SDXLDatumTranslatorElem elem = translators[ul];
-		if (md_type->GetDatumType() == elem.type_info)
+		default:
 		{
-			func_ptr = elem.func_ptr;
-			break;
+			// generate a datum of generic type
+			return TranslateGenericDatumToDXL(mp, md_type, type_modifier,
+											  is_null, len, datum);
 		}
-	}
-
-	if (nullptr == func_ptr)
-	{
-		// generate a datum of generic type
-		return TranslateGenericDatumToDXL(mp, md_type, type_modifier, is_null,
-										  len, datum);
-	}
-	else
-	{
-		return (*func_ptr)(mp, md_type, is_null, len, datum);
+		case IMDType::EtiInt2:
+		{
+			return CTranslatorScalarToDXL::TranslateInt2DatumToDXL(
+				mp, md_type, is_null, len, datum);
+		}
+		case IMDType::EtiInt4:
+		{
+			return CTranslatorScalarToDXL::TranslateInt4DatumToDXL(
+				mp, md_type, is_null, len, datum);
+		}
+		case IMDType::EtiInt8:
+		{
+			return CTranslatorScalarToDXL::TranslateInt8DatumToDXL(
+				mp, md_type, is_null, len, datum);
+		}
+		case IMDType::EtiBool:
+		{
+			return CTranslatorScalarToDXL::TranslateBoolDatumToDXL(
+				mp, md_type, is_null, len, datum);
+		}
+		case IMDType::EtiOid:
+		{
+			return CTranslatorScalarToDXL::TranslateOidDatumToDXL(
+				mp, md_type, is_null, len, datum);
+		}
 	}
 }
 

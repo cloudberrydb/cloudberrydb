@@ -79,9 +79,6 @@ CTranslatorExprToDXL::CTranslatorExprToDXL(CMemoryPool *mp,
 	GPOS_ASSERT(nullptr != md_accessor);
 	GPOS_ASSERT_IMP(nullptr != pdrgpiSegments, (0 < pdrgpiSegments->Size()));
 
-	InitScalarTranslators();
-	InitPhysicalTranslators();
-
 	// initialize hash map
 	m_phmcrdxln = GPOS_NEW(m_mp) ColRefToDXLNodeMap(m_mp);
 
@@ -109,223 +106,6 @@ CTranslatorExprToDXL::~CTranslatorExprToDXL()
 	m_phmcrdxln->Release();
 	m_phmcrdxlnIndexLookup->Release();
 	CRefCount::SafeRelease(m_pdpplan);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorExprToDXL::InitScalarTranslators
-//
-//	@doc:
-//		Initialize index of scalar translators
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorExprToDXL::InitScalarTranslators()
-{
-	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(m_rgpfScalarTranslators); ul++)
-	{
-		m_rgpfScalarTranslators[ul] = nullptr;
-	}
-
-	// array mapping operator type to translator function
-	SScTranslatorMapping rgScalarTranslators[] = {
-		{COperator::EopScalarIdent, &gpopt::CTranslatorExprToDXL::PdxlnScId},
-		{COperator::EopScalarCmp, &gpopt::CTranslatorExprToDXL::PdxlnScCmp},
-		{COperator::EopScalarIsDistinctFrom,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScDistinctCmp},
-		{COperator::EopScalarOp, &gpopt::CTranslatorExprToDXL::PdxlnScOp},
-		{COperator::EopScalarBoolOp,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScBoolExpr},
-		{COperator::EopScalarConst, &gpopt::CTranslatorExprToDXL::PdxlnScConst},
-		{COperator::EopScalarFunc,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScFuncExpr},
-		{COperator::EopScalarWindowFunc,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScWindowFuncExpr},
-		{COperator::EopScalarAggFunc,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScAggref},
-		{COperator::EopScalarNullIf,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScNullIf},
-		{COperator::EopScalarNullTest,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScNullTest},
-		{COperator::EopScalarBooleanTest,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScBooleanTest},
-		{COperator::EopScalarIf, &gpopt::CTranslatorExprToDXL::PdxlnScIfStmt},
-		{COperator::EopScalarSwitch,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScSwitch},
-		{COperator::EopScalarSwitchCase,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScSwitchCase},
-		{COperator::EopScalarCaseTest,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScCaseTest},
-		{COperator::EopScalarCoalesce,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScCoalesce},
-		{COperator::EopScalarMinMax,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScMinMax},
-		{COperator::EopScalarCast, &gpopt::CTranslatorExprToDXL::PdxlnScCast},
-		{COperator::EopScalarCoerceToDomain,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScCoerceToDomain},
-		{COperator::EopScalarCoerceViaIO,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScCoerceViaIO},
-		{COperator::EopScalarArrayCoerceExpr,
-		 &gpopt::CTranslatorExprToDXL::PdxlnScArrayCoerceExpr},
-		{COperator::EopScalarArray, &gpopt::CTranslatorExprToDXL::PdxlnArray},
-		{COperator::EopScalarArrayCmp,
-		 &gpopt::CTranslatorExprToDXL::PdxlnArrayCmp},
-		{COperator::EopScalarArrayRef,
-		 &gpopt::CTranslatorExprToDXL::PdxlnArrayRef},
-		{COperator::EopScalarArrayRefIndexList,
-		 &gpopt::CTranslatorExprToDXL::PdxlnArrayRefIndexList},
-		{COperator::EopScalarAssertConstraintList,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAssertPredicate},
-		{COperator::EopScalarAssertConstraint,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAssertConstraint},
-		{COperator::EopScalarDMLAction,
-		 &gpopt::CTranslatorExprToDXL::PdxlnDMLAction},
-		{COperator::EopScalarBitmapIndexProbe,
-		 &gpopt::CTranslatorExprToDXL::PdxlnBitmapIndexProbe},
-		{COperator::EopScalarBitmapBoolOp,
-		 &gpopt::CTranslatorExprToDXL::PdxlnBitmapBoolOp},
-	};
-
-	const ULONG translators_mapping_len = GPOS_ARRAY_SIZE(rgScalarTranslators);
-	for (ULONG ul = 0; ul < translators_mapping_len; ul++)
-	{
-		SScTranslatorMapping elem = rgScalarTranslators[ul];
-		m_rgpfScalarTranslators[elem.op_id] = elem.pf;
-	}
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorExprToDXL::InitPhysicalTranslators
-//
-//	@doc:
-//		Initialize index of physical translators
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorExprToDXL::InitPhysicalTranslators()
-{
-	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(m_rgpfPhysicalTranslators); ul++)
-	{
-		m_rgpfPhysicalTranslators[ul] = nullptr;
-	}
-
-	// array mapping operator type to translator function
-	SPhTranslatorMapping rgPhysicalTranslators[] = {
-		{COperator::EopPhysicalFilter,
-		 &gpopt::CTranslatorExprToDXL::PdxlnResult},
-		{COperator::EopPhysicalIndexScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnIndexScan},
-		{COperator::EopPhysicalIndexOnlyScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnIndexOnlyScan},
-		{COperator::EopPhysicalBitmapTableScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnBitmapTableScan},
-		{COperator::EopPhysicalComputeScalar,
-		 &gpopt::CTranslatorExprToDXL::PdxlnComputeScalar},
-		{COperator::EopPhysicalScalarAgg,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAggregate},
-		{COperator::EopPhysicalHashAgg,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAggregate},
-		{COperator::EopPhysicalStreamAgg,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAggregate},
-		{COperator::EopPhysicalHashAggDeduplicate,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAggregateDedup},
-		{COperator::EopPhysicalStreamAggDeduplicate,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAggregateDedup},
-		{COperator::EopPhysicalSort, &gpopt::CTranslatorExprToDXL::PdxlnSort},
-		{COperator::EopPhysicalLimit, &gpopt::CTranslatorExprToDXL::PdxlnLimit},
-		{COperator::EopPhysicalSequenceProject,
-		 &gpopt::CTranslatorExprToDXL::PdxlnWindow},
-		{COperator::EopPhysicalInnerNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalInnerIndexNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalLeftOuterIndexNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalCorrelatedInnerNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalLeftOuterNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalCorrelatedLeftOuterNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalCorrelatedLeftSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalCorrelatedInLeftSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalLeftSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalLeftAntiSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalLeftAntiSemiNLJoinNotIn,
-		 &gpopt::CTranslatorExprToDXL::PdxlnNLJoin},
-		{COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCorrelatedNLJoin},
-		{COperator::EopPhysicalInnerHashJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalLeftOuterHashJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalLeftSemiHashJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalLeftAntiSemiHashJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalLeftAntiSemiHashJoinNotIn,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalRightOuterHashJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnHashJoin},
-		{COperator::EopPhysicalMotionGather,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMotion},
-		{COperator::EopPhysicalMotionBroadcast,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMotion},
-		{COperator::EopPhysicalMotionHashDistribute,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMotion},
-		{COperator::EopPhysicalMotionRoutedDistribute,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMotion},
-		{COperator::EopPhysicalMotionRandom,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMotion},
-		{COperator::EopPhysicalSpool,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMaterialize},
-		{COperator::EopPhysicalSequence,
-		 &gpopt::CTranslatorExprToDXL::PdxlnSequence},
-		{COperator::EopPhysicalDynamicTableScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnDynamicTableScan},
-		{COperator::EopPhysicalDynamicBitmapTableScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan},
-		{COperator::EopPhysicalDynamicIndexScan,
-		 &gpopt::CTranslatorExprToDXL::PdxlnDynamicIndexScan},
-		{COperator::EopPhysicalPartitionSelector,
-		 &gpopt::CTranslatorExprToDXL::PdxlnPartitionSelector},
-		{COperator::EopPhysicalPartitionSelectorDML,
-		 &gpopt::CTranslatorExprToDXL::PdxlnPartitionSelectorDML},
-		{COperator::EopPhysicalConstTableGet,
-		 &gpopt::CTranslatorExprToDXL::PdxlnResultFromConstTableGet},
-		{COperator::EopPhysicalTVF, &gpopt::CTranslatorExprToDXL::PdxlnTVF},
-		{COperator::EopPhysicalSerialUnionAll,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAppend},
-		{COperator::EopPhysicalParallelUnionAll,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAppend},
-		{COperator::EopPhysicalDML, &gpopt::CTranslatorExprToDXL::PdxlnDML},
-		{COperator::EopPhysicalSplit, &gpopt::CTranslatorExprToDXL::PdxlnSplit},
-		{COperator::EopPhysicalRowTrigger,
-		 &gpopt::CTranslatorExprToDXL::PdxlnRowTrigger},
-		{COperator::EopPhysicalAssert,
-		 &gpopt::CTranslatorExprToDXL::PdxlnAssert},
-		{COperator::EopPhysicalCTEProducer,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCTEProducer},
-		{COperator::EopPhysicalCTEConsumer,
-		 &gpopt::CTranslatorExprToDXL::PdxlnCTEConsumer},
-		{COperator::EopPhysicalFullMergeJoin,
-		 &gpopt::CTranslatorExprToDXL::PdxlnMergeJoin},
-	};
-
-	const ULONG translators_mapping_len =
-		GPOS_ARRAY_SIZE(rgPhysicalTranslators);
-	for (ULONG ul = 0; ul < translators_mapping_len; ul++)
-	{
-		SPhTranslatorMapping elem = rgPhysicalTranslators[ul];
-		m_rgpfPhysicalTranslators[elem.op_id] = elem.pf;
-	}
 }
 
 //---------------------------------------------------------------------------
@@ -435,20 +215,199 @@ CTranslatorExprToDXL::CreateDXLNode(CExpression *pexpr,
 
 		return dxlnode;
 	}
-	PfPdxlnPhysical pf = m_rgpfPhysicalTranslators[ulOpId];
-	if (nullptr == pf)
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   pexpr->Pop()->SzId());
-	}
-
 	// add a result node on top to project out columns not needed any further,
 	// for instance, if the grouping /order by /partition/ distribution columns
 	// are no longer needed
 	CDXLNode *pdxlnNew = nullptr;
 
-	CDXLNode *dxlnode = (this->*pf)(pexpr, colref_array, pdrgpdsBaseTables,
-									pulNonGatherMotions, pfDML);
+	CDXLNode *dxlnode = nullptr;
+	switch (pexpr->Pop()->Eopid())
+	{
+		case COperator::EopPhysicalFilter:
+			dxlnode = CTranslatorExprToDXL::PdxlnResult(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalIndexScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnIndexScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalIndexOnlyScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnIndexOnlyScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalBitmapTableScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnBitmapTableScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalComputeScalar:
+			dxlnode = CTranslatorExprToDXL::PdxlnComputeScalar(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalScalarAgg:
+		case COperator::EopPhysicalHashAgg:
+		case COperator::EopPhysicalStreamAgg:
+			dxlnode = CTranslatorExprToDXL::PdxlnAggregate(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalHashAggDeduplicate:
+		case COperator::EopPhysicalStreamAggDeduplicate:
+			dxlnode = CTranslatorExprToDXL::PdxlnAggregateDedup(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSort:
+			dxlnode = CTranslatorExprToDXL::PdxlnSort(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalLimit:
+			dxlnode = CTranslatorExprToDXL::PdxlnLimit(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSequenceProject:
+			dxlnode = CTranslatorExprToDXL::PdxlnWindow(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalInnerNLJoin:
+		case COperator::EopPhysicalInnerIndexNLJoin:
+		case COperator::EopPhysicalLeftOuterIndexNLJoin:
+		case COperator::EopPhysicalLeftOuterNLJoin:
+		case COperator::EopPhysicalLeftSemiNLJoin:
+		case COperator::EopPhysicalLeftAntiSemiNLJoin:
+		case COperator::EopPhysicalLeftAntiSemiNLJoinNotIn:
+			dxlnode = CTranslatorExprToDXL::PdxlnNLJoin(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalCorrelatedInnerNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftOuterNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedInLeftSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin:
+		case COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin:
+			dxlnode = CTranslatorExprToDXL::PdxlnCorrelatedNLJoin(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalInnerHashJoin:
+		case COperator::EopPhysicalLeftOuterHashJoin:
+		case COperator::EopPhysicalLeftSemiHashJoin:
+		case COperator::EopPhysicalLeftAntiSemiHashJoin:
+		case COperator::EopPhysicalLeftAntiSemiHashJoinNotIn:
+		case COperator::EopPhysicalRightOuterHashJoin:
+			dxlnode = CTranslatorExprToDXL::PdxlnHashJoin(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalMotionGather:
+		case COperator::EopPhysicalMotionBroadcast:
+		case COperator::EopPhysicalMotionHashDistribute:
+		case COperator::EopPhysicalMotionRoutedDistribute:
+		case COperator::EopPhysicalMotionRandom:
+			dxlnode = CTranslatorExprToDXL::PdxlnMotion(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSpool:
+			dxlnode = CTranslatorExprToDXL::PdxlnMaterialize(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSequence:
+			dxlnode = CTranslatorExprToDXL::PdxlnSequence(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalDynamicTableScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnDynamicTableScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalDynamicBitmapTableScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnDynamicBitmapTableScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalDynamicIndexScan:
+			dxlnode = CTranslatorExprToDXL::PdxlnDynamicIndexScan(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalPartitionSelector:
+			dxlnode = CTranslatorExprToDXL::PdxlnPartitionSelector(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalPartitionSelectorDML:
+			dxlnode = CTranslatorExprToDXL::PdxlnPartitionSelectorDML(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalConstTableGet:
+			dxlnode = CTranslatorExprToDXL::PdxlnResultFromConstTableGet(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalTVF:
+			dxlnode = CTranslatorExprToDXL::PdxlnTVF(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSerialUnionAll:
+		case COperator::EopPhysicalParallelUnionAll:
+			dxlnode = CTranslatorExprToDXL::PdxlnAppend(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalDML:
+			dxlnode = CTranslatorExprToDXL::PdxlnDML(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalSplit:
+			dxlnode = CTranslatorExprToDXL::PdxlnSplit(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalRowTrigger:
+			dxlnode = CTranslatorExprToDXL::PdxlnRowTrigger(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalAssert:
+			dxlnode = CTranslatorExprToDXL::PdxlnAssert(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalCTEProducer:
+			dxlnode = CTranslatorExprToDXL::PdxlnCTEProducer(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalCTEConsumer:
+			dxlnode = CTranslatorExprToDXL::PdxlnCTEConsumer(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		case COperator::EopPhysicalFullMergeJoin:
+			dxlnode = CTranslatorExprToDXL::PdxlnMergeJoin(
+				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
+				pfDML);
+			break;
+		default:
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+					   pexpr->Pop()->SzId());
+			return nullptr;
+	}
+
 
 	if (!fRemap ||
 		EdxlopPhysicalDML == dxlnode->GetOperator()->GetDXLOperator())
@@ -496,16 +455,75 @@ CTranslatorExprToDXL::PdxlnScalar(CExpression *pexpr)
 {
 	GPOS_ASSERT(nullptr != pexpr);
 
-	ULONG ulOpId = (ULONG) pexpr->Pop()->Eopid();
-	PfPdxlnScalar pf = m_rgpfScalarTranslators[ulOpId];
-
-	if (nullptr == pf)
+	switch (pexpr->Pop()->Eopid())
 	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   pexpr->Pop()->SzId());
+		case COperator::EopScalarIdent:
+			return CTranslatorExprToDXL::PdxlnScId(pexpr);
+		case COperator::EopScalarCmp:
+			return CTranslatorExprToDXL::PdxlnScCmp(pexpr);
+		case COperator::EopScalarIsDistinctFrom:
+			return CTranslatorExprToDXL::PdxlnScDistinctCmp(pexpr);
+		case COperator::EopScalarOp:
+			return CTranslatorExprToDXL::PdxlnScOp(pexpr);
+		case COperator::EopScalarBoolOp:
+			return CTranslatorExprToDXL::PdxlnScBoolExpr(pexpr);
+		case COperator::EopScalarConst:
+			return CTranslatorExprToDXL::PdxlnScConst(pexpr);
+		case COperator::EopScalarFunc:
+			return CTranslatorExprToDXL::PdxlnScFuncExpr(pexpr);
+		case COperator::EopScalarWindowFunc:
+			return CTranslatorExprToDXL::PdxlnScWindowFuncExpr(pexpr);
+		case COperator::EopScalarAggFunc:
+			return CTranslatorExprToDXL::PdxlnScAggref(pexpr);
+		case COperator::EopScalarNullIf:
+			return CTranslatorExprToDXL::PdxlnScNullIf(pexpr);
+		case COperator::EopScalarNullTest:
+			return CTranslatorExprToDXL::PdxlnScNullTest(pexpr);
+		case COperator::EopScalarBooleanTest:
+			return CTranslatorExprToDXL::PdxlnScBooleanTest(pexpr);
+		case COperator::EopScalarIf:
+			return CTranslatorExprToDXL::PdxlnScIfStmt(pexpr);
+		case COperator::EopScalarSwitch:
+			return CTranslatorExprToDXL::PdxlnScSwitch(pexpr);
+		case COperator::EopScalarSwitchCase:
+			return CTranslatorExprToDXL::PdxlnScSwitchCase(pexpr);
+		case COperator::EopScalarCaseTest:
+			return CTranslatorExprToDXL::PdxlnScCaseTest(pexpr);
+		case COperator::EopScalarCoalesce:
+			return CTranslatorExprToDXL::PdxlnScCoalesce(pexpr);
+		case COperator::EopScalarMinMax:
+			return CTranslatorExprToDXL::PdxlnScMinMax(pexpr);
+		case COperator::EopScalarCast:
+			return CTranslatorExprToDXL::PdxlnScCast(pexpr);
+		case COperator::EopScalarCoerceToDomain:
+			return CTranslatorExprToDXL::PdxlnScCoerceToDomain(pexpr);
+		case COperator::EopScalarCoerceViaIO:
+			return CTranslatorExprToDXL::PdxlnScCoerceViaIO(pexpr);
+		case COperator::EopScalarArrayCoerceExpr:
+			return CTranslatorExprToDXL::PdxlnScArrayCoerceExpr(pexpr);
+		case COperator::EopScalarArray:
+			return CTranslatorExprToDXL::PdxlnArray(pexpr);
+		case COperator::EopScalarArrayCmp:
+			return CTranslatorExprToDXL::PdxlnArrayCmp(pexpr);
+		case COperator::EopScalarArrayRef:
+			return CTranslatorExprToDXL::PdxlnArrayRef(pexpr);
+		case COperator::EopScalarArrayRefIndexList:
+			return CTranslatorExprToDXL::PdxlnArrayRefIndexList(pexpr);
+		case COperator::EopScalarAssertConstraintList:
+			return CTranslatorExprToDXL::PdxlnAssertPredicate(pexpr);
+		case COperator::EopScalarAssertConstraint:
+			return CTranslatorExprToDXL::PdxlnAssertConstraint(pexpr);
+		case COperator::EopScalarDMLAction:
+			return CTranslatorExprToDXL::PdxlnDMLAction(pexpr);
+		case COperator::EopScalarBitmapIndexProbe:
+			return CTranslatorExprToDXL::PdxlnBitmapIndexProbe(pexpr);
+		case COperator::EopScalarBitmapBoolOp:
+			return CTranslatorExprToDXL::PdxlnBitmapBoolOp(pexpr);
+		default:
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+					   pexpr->Pop()->SzId());
+			return nullptr;
 	}
-
-	return (this->*pf)(pexpr);
 }
 
 //---------------------------------------------------------------------------

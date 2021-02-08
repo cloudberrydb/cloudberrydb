@@ -65,10 +65,6 @@ XERCES_CPP_NAMESPACE_USE
 class CDXLMemoryManager;
 class CDXLDatum;
 
-// shorthand for functions for translating a DXL datum
-typedef CDXLDatum *(PfPdxldatum)(CDXLMemoryManager *, const Attributes &,
-								 Edxltoken, IMDId *, BOOL);
-
 //---------------------------------------------------------------------------
 //	@class:
 //		CDXLOperatorFactory
@@ -92,13 +88,6 @@ private:
 							  ULONG *length);
 
 public:
-	// pair of oid for datums and the factory function
-	struct SDXLDatumFactoryElem
-	{
-		OID oid;
-		PfPdxldatum *pf;
-	};
-
 	static CDXLDatum *GetDatumOid(CDXLMemoryManager *dxl_memory_manager,
 								  const Attributes &attrs,
 								  Edxltoken target_elem, IMDId *mdid,

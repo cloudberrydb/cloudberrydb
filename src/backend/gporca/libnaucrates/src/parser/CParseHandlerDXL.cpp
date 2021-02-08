@@ -433,57 +433,45 @@ CParseHandlerDXL::endDocument()
 		EDxlParseHandlerType parse_handler_type =
 			parse_handler_base->GetParseHandlerType();
 
-		// find parse handler for the current type
-		ParseHandler parse_handler_func = FindParseHandler(parse_handler_type);
-
-		if (nullptr != parse_handler_func)
+		switch (parse_handler_type)
 		{
-			(this->*parse_handler_func)(parse_handler_base);
+			case EdxlphTraceFlags:
+				CParseHandlerDXL::ExtractTraceFlags(parse_handler_base);
+				break;
+			case EdxlphOptConfig:
+				CParseHandlerDXL::ExtractOptimizerConfig(parse_handler_base);
+				break;
+			case EdxlphPlan:
+				CParseHandlerDXL::ExtractDXLPlan(parse_handler_base);
+				break;
+			case EdxlphMetadata:
+				CParseHandlerDXL::ExtractMetadataObjects(parse_handler_base);
+				break;
+			case EdxlphStatistics:
+				CParseHandlerDXL::ExtractStats(parse_handler_base);
+				break;
+			case EdxlphQuery:
+				CParseHandlerDXL::ExtractDXLQuery(parse_handler_base);
+				break;
+			case EdxlphMetadataRequest:
+				CParseHandlerDXL::ExtractMDRequest(parse_handler_base);
+				break;
+			case EdxlphSearchStrategy:
+				CParseHandlerDXL::ExtractSearchStrategy(parse_handler_base);
+				break;
+			case EdxlphCostParams:
+				CParseHandlerDXL::ExtractCostParams(parse_handler_base);
+				break;
+			case EdxlphScalarExpr:
+				CParseHandlerDXL::ExtractScalarExpr(parse_handler_base);
+				break;
+			default:
+				// do nothing
+				break;
 		}
 	}
 
 	m_parse_handler_mgr->DeactivateHandler();
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerDXL::FindParseHandler
-//
-//	@doc:
-//		Find the parse handler function for the given type
-//
-//---------------------------------------------------------------------------
-ParseHandler
-CParseHandlerDXL::FindParseHandler(EDxlParseHandlerType parse_handler_type)
-{
-	SParseElem parse_element_type_func_map[] = {
-		{EdxlphTraceFlags, &CParseHandlerDXL::ExtractTraceFlags},
-		{EdxlphOptConfig, &CParseHandlerDXL::ExtractOptimizerConfig},
-		{EdxlphPlan, &CParseHandlerDXL::ExtractDXLPlan},
-		{EdxlphMetadata, &CParseHandlerDXL::ExtractMetadataObjects},
-		{EdxlphStatistics, &CParseHandlerDXL::ExtractStats},
-		{EdxlphQuery, &CParseHandlerDXL::ExtractDXLQuery},
-		{EdxlphMetadataRequest, &CParseHandlerDXL::ExtractMDRequest},
-		{EdxlphSearchStrategy, &CParseHandlerDXL::ExtractSearchStrategy},
-		{EdxlphCostParams, &CParseHandlerDXL::ExtractCostParams},
-		{EdxlphScalarExpr, &CParseHandlerDXL::ExtractScalarExpr},
-	};
-
-	const ULONG num_of_parse_handler =
-		GPOS_ARRAY_SIZE(parse_element_type_func_map);
-	ParseHandler parse_handler_func = nullptr;
-	for (ULONG idx = 0; idx < num_of_parse_handler; idx++)
-	{
-		SParseElem elem = parse_element_type_func_map[idx];
-		if (parse_handler_type == elem.parse_handler_type)
-		{
-			parse_handler_func = elem.parse_handler_func;
-			break;
-		}
-	}
-
-	return parse_handler_func;
 }
 
 //---------------------------------------------------------------------------

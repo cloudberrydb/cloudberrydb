@@ -2782,14 +2782,12 @@ CXformUtils::FProcessGPDBAntiSemiHashJoin(
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformUtils::PexprBuildIndexPlan(
+CXformUtils::PexprBuildBtreeIndexPlan(
 	CMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexprGet,
 	ULONG ulOriginOpId, CExpressionArray *pdrgpexprConds, CColRefSet *pcrsReqd,
 	CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs,
 	const IMDIndex *pmdindex, const IMDRelation *pmdrel,
-	CPartConstraint *ppartcnstrIndex, IMDIndex::EmdindexType emdindtype,
-	PDynamicIndexOpConstructor pdiopc, PStaticIndexOpConstructor psiopc,
-	PRewrittenIndexPath prip)
+	CPartConstraint *ppartcnstrIndex)
 {
 	GPOS_ASSERT(nullptr != pexprGet);
 	GPOS_ASSERT(nullptr != pdrgpexprConds);
@@ -2852,7 +2850,7 @@ CXformUtils::PexprBuildIndexPlan(
 	}
 
 	if (!FIndexApplicable(mp, pmdindex, pmdrel, pdrgpcrOutput, pcrsReqd,
-						  pcrsScalarExpr, emdindtype))
+						  pcrsScalarExpr, IMDIndex::EmdindBtree))
 	{
 		GPOS_DELETE(alias);
 		CRefCount::SafeRelease(ppartcnstrIndex);
@@ -2916,15 +2914,16 @@ CXformUtils::PexprBuildIndexPlan(
 	if (fDynamicGet)
 	{
 		pdrgpdrgpcrPart->AddRef();
-		popLogicalGet = (*pdiopc)(mp, pmdindex, ptabdesc, ulOriginOpId,
-								  GPOS_NEW(mp) CName(mp, CName(alias)),
-								  ulPartIndex, pdrgpcrOutput, pdrgpdrgpcrPart);
+		popLogicalGet = PopDynamicBtreeIndexOpConstructor(
+			mp, pmdindex, ptabdesc, ulOriginOpId,
+			GPOS_NEW(mp) CName(mp, CName(alias)), ulPartIndex, pdrgpcrOutput,
+			pdrgpdrgpcrPart);
 	}
 	else
 	{
-		popLogicalGet =
-			(*psiopc)(mp, pmdindex, ptabdesc, ulOriginOpId,
-					  GPOS_NEW(mp) CName(mp, CName(alias)), pdrgpcrOutput);
+		popLogicalGet = PopStaticBtreeIndexOpConstructor(
+			mp, pmdindex, ptabdesc, ulOriginOpId,
+			GPOS_NEW(mp) CName(mp, CName(alias)), pdrgpcrOutput);
 	}
 
 	// clean up
@@ -2939,8 +2938,8 @@ CXformUtils::PexprBuildIndexPlan(
 	CExpression *pexprResidualCond =
 		CPredicateUtils::PexprConjunction(mp, pdrgpexprResidual);
 
-	return (*prip)(mp, pexprIndexCond, pexprResidualCond, pmdindex, ptabdesc,
-				   popLogicalGet);
+	return PexprRewrittenBtreeIndexPath(mp, pexprIndexCond, pexprResidualCond,
+										pmdindex, ptabdesc, popLogicalGet);
 }
 
 //---------------------------------------------------------------------------

@@ -80,95 +80,131 @@ Expr *
 CTranslatorDXLToScalar::TranslateDXLToScalar(const CDXLNode *dxlnode,
 											 CMappingColIdVar *colid_var)
 {
-	static const STranslatorElem translators[] = {
-		{EdxlopScalarIdent,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarIdentToScalar},
-		{EdxlopScalarCmp,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCmpToScalar},
-		{EdxlopScalarDistinct,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarDistinctToScalar},
-		{EdxlopScalarOpExpr,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarOpExprToScalar},
-		{EdxlopScalarArrayComp,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarArrayCompToScalar},
-		{EdxlopScalarCoalesce,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCoalesceToScalar},
-		{EdxlopScalarMinMax,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarMinMaxToScalar},
-		{EdxlopScalarConstValue,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarConstToScalar},
-		{EdxlopScalarBoolExpr,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarBoolExprToScalar},
-		{EdxlopScalarBooleanTest,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarBooleanTestToScalar},
-		{EdxlopScalarNullTest,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarNullTestToScalar},
-		{EdxlopScalarNullIf,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarNullIfToScalar},
-		{EdxlopScalarIfStmt,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarIfStmtToScalar},
-		{EdxlopScalarSwitch,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarSwitchToScalar},
-		{EdxlopScalarCaseTest,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCaseTestToScalar},
-		{EdxlopScalarFuncExpr,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarFuncExprToScalar},
-		{EdxlopScalarAggref,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar},
-		{EdxlopScalarWindowRef,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarWindowRefToScalar},
-		{EdxlopScalarCast,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCastToScalar},
-		{EdxlopScalarCoerceToDomain,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCoerceToDomainToScalar},
-		{EdxlopScalarCoerceViaIO,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarCoerceViaIOToScalar},
-		{EdxlopScalarArrayCoerceExpr,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarArrayCoerceExprToScalar},
-		{EdxlopScalarSubPlan,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar},
-		{EdxlopScalarArray,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarArrayToScalar},
-		{EdxlopScalarArrayRef,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarArrayRefToScalar},
-		{EdxlopScalarDMLAction,
-		 &CTranslatorDXLToScalar::TranslateDXLScalarDMLActionToScalar},
+	GPOS_ASSERT(nullptr != dxlnode);
+	Edxlopid eopid = dxlnode->GetOperator()->GetDXLOperator();
+	switch (eopid)
+	{
+		default:
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
+					   dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
+		}
+		case EdxlopScalarIdent:
+		{
+			return TranslateDXLScalarIdentToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCmp:
+		{
+			return TranslateDXLScalarCmpToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarDistinct:
+		{
+			return TranslateDXLScalarDistinctToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarOpExpr:
+		{
+			return TranslateDXLScalarOpExprToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarArrayComp:
+		{
+			return TranslateDXLScalarArrayCompToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCoalesce:
+		{
+			return TranslateDXLScalarCoalesceToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarMinMax:
+		{
+			return TranslateDXLScalarMinMaxToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarConstValue:
+		{
+			return TranslateDXLScalarConstToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarBoolExpr:
+		{
+			return TranslateDXLScalarBoolExprToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarBooleanTest:
+		{
+			return TranslateDXLScalarBooleanTestToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarNullTest:
+		{
+			return TranslateDXLScalarNullTestToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarNullIf:
+		{
+			return TranslateDXLScalarNullIfToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarIfStmt:
+		{
+			return TranslateDXLScalarIfStmtToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarSwitch:
+		{
+			return TranslateDXLScalarSwitchToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCaseTest:
+		{
+			return TranslateDXLScalarCaseTestToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarFuncExpr:
+		{
+			return TranslateDXLScalarFuncExprToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarAggref:
+		{
+			return TranslateDXLScalarAggrefToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarWindowRef:
+		{
+			return TranslateDXLScalarWindowRefToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCast:
+		{
+			return TranslateDXLScalarCastToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCoerceToDomain:
+		{
+			return TranslateDXLScalarCoerceToDomainToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarCoerceViaIO:
+		{
+			return TranslateDXLScalarCoerceViaIOToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarArrayCoerceExpr:
+		{
+			return TranslateDXLScalarArrayCoerceExprToScalar(dxlnode,
+															 colid_var);
+		}
+		case EdxlopScalarSubPlan:
+		{
+			return TranslateDXLScalarSubplanToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarArray:
+		{
+			return TranslateDXLScalarArrayToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarArrayRef:
+		{
+			return TranslateDXLScalarArrayRefToScalar(dxlnode, colid_var);
+		}
+		case EdxlopScalarDMLAction:
+		{
+			return TranslateDXLScalarDMLActionToScalar(dxlnode, colid_var);
+		}
 #if 0
 		// GPDB_12_MERGE_FIXME: These were removed from the server with the v12 merge
 		// of upstream partitioning. Need something to replace? Need to rip out from GPORCA?
-		{EdxlopScalarPartDefault, &CTranslatorDXLToScalar::TranslateDXLScalarPartDefaultToScalar},
-		{EdxlopScalarPartBound, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundToScalar},
-		{EdxlopScalarPartBoundInclusion, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundInclusionToScalar},
-		{EdxlopScalarPartBoundOpen, &CTranslatorDXLToScalar::TranslateDXLScalarPartBoundOpenToScalar},
-		{EdxlopScalarPartListValues, &CTranslatorDXLToScalar::TranslateDXLScalarPartListValuesToScalar},
-		{EdxlopScalarPartListNullTest, &CTranslatorDXLToScalar::TranslateDXLScalarPartListNullTestToScalar},
+		case EdxlopScalarPartDefault: { return TranslateDXLScalarPartDefaultToScalar(dxlnode, colid_var); }
+		case EdxlopScalarPartBound: { return TranslateDXLScalarPartBoundToScalar(dxlnode, colid_var); }
+		case EdxlopScalarPartBoundInclusion: { return TranslateDXLScalarPartBoundInclusionToScalar(dxlnode, colid_var); }
+		case EdxlopScalarPartBoundOpen: { return TranslateDXLScalarPartBoundOpenToScalar(dxlnode, colid_var); }
+		case EdxlopScalarPartListValues: { return TranslateDXLScalarPartListValuesToScalar(dxlnode, colid_var); }
+		case EdxlopScalarPartListNullTest: { return TranslateDXLScalarPartListNullTestToScalar(dxlnode, colid_var); }
 #endif
-	};
-
-	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
-
-	GPOS_ASSERT(nullptr != dxlnode);
-	Edxlopid eopid = dxlnode->GetOperator()->GetDXLOperator();
-
-	// find translator for the node type
-	expr_func_ptr translate_func = nullptr;
-	for (ULONG ul = 0; ul < num_translators; ul++)
-	{
-		STranslatorElem elem = translators[ul];
-		if (eopid == elem.eopid)
-		{
-			translate_func = elem.translate_func;
-			break;
-		}
 	}
-
-	if (nullptr == translate_func)
-	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
-				   dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
-	}
-
-	return (this->*translate_func)(dxlnode, colid_var);
 }
 
 //---------------------------------------------------------------------------
@@ -1541,47 +1577,43 @@ Expr *
 CTranslatorDXLToScalar::TranslateDXLDatumToScalar(CDXLDatum *datum_dxl)
 {
 	GPOS_ASSERT(nullptr != datum_dxl);
-	static const SDatumTranslatorElem translators[] = {
-		{CDXLDatum::EdxldatumInt2,
-		 &CTranslatorDXLToScalar::ConvertDXLDatumToConstInt2},
-		{CDXLDatum::EdxldatumInt4,
-		 &CTranslatorDXLToScalar::ConvertDXLDatumToConstInt4},
-		{CDXLDatum::EdxldatumInt8,
-		 &CTranslatorDXLToScalar::ConvertDXLDatumToConstInt8},
-		{CDXLDatum::EdxldatumBool,
-		 &CTranslatorDXLToScalar::ConvertDXLDatumToConstBool},
-		{CDXLDatum::EdxldatumOid,
-		 &CTranslatorDXLToScalar::ConvertDXLDatumToConstOid},
-		{CDXLDatum::EdxldatumGeneric,
-		 &CTranslatorDXLToScalar::TranslateDXLDatumGenericToScalar},
-		{CDXLDatum::EdxldatumStatsDoubleMappable,
-		 &CTranslatorDXLToScalar::TranslateDXLDatumGenericToScalar},
-		{CDXLDatum::EdxldatumStatsLintMappable,
-		 &CTranslatorDXLToScalar::TranslateDXLDatumGenericToScalar}};
 
-	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
 	CDXLDatum::EdxldatumType edxldatumtype = datum_dxl->GetDatumType();
-
-	// find translator for the node type
-	const_func_ptr translate_func = nullptr;
-	for (ULONG i = 0; i < num_translators; i++)
+	switch (edxldatumtype)
 	{
-		SDatumTranslatorElem elem = translators[i];
-		if (edxldatumtype == elem.edxldt)
+		default:
 		{
-			translate_func = elem.translate_func;
-			break;
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
+					   CDXLTokens::GetDXLTokenStr(EdxltokenScalarConstValue)
+						   ->GetBuffer());
+		}
+		case CDXLDatum::EdxldatumInt2:
+		{
+			return (Expr *) ConvertDXLDatumToConstInt2(datum_dxl);
+		}
+		case CDXLDatum::EdxldatumInt4:
+		{
+			return (Expr *) ConvertDXLDatumToConstInt4(datum_dxl);
+		}
+		case CDXLDatum::EdxldatumInt8:
+		{
+			return (Expr *) ConvertDXLDatumToConstInt8(datum_dxl);
+		}
+		case CDXLDatum::EdxldatumBool:
+		{
+			return (Expr *) ConvertDXLDatumToConstBool(datum_dxl);
+		}
+		case CDXLDatum::EdxldatumOid:
+		{
+			return (Expr *) ConvertDXLDatumToConstOid(datum_dxl);
+		}
+		case CDXLDatum::EdxldatumGeneric:
+		case CDXLDatum::EdxldatumStatsDoubleMappable:
+		case CDXLDatum::EdxldatumStatsLintMappable:
+		{
+			return (Expr *) TranslateDXLDatumGenericToScalar(datum_dxl);
 		}
 	}
-
-	if (nullptr == translate_func)
-	{
-		GPOS_RAISE(
-			gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion,
-			CDXLTokens::GetDXLTokenStr(EdxltokenScalarConstValue)->GetBuffer());
-	}
-
-	return (Expr *) (this->*translate_func)(datum_dxl);
 }
 
 //---------------------------------------------------------------------------

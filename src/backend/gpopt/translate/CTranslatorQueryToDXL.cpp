@@ -3003,37 +3003,37 @@ CTranslatorQueryToDXL::TranslateFromClauseToDXL(Node *node)
 					   GPOS_WSZ_LIT("LATERAL"));
 		}
 
-		static const SRTETranslator dxlop_translator_func_mapping_array[] = {
-			{RTE_RELATION, &CTranslatorQueryToDXL::TranslateRTEToDXLLogicalGet},
-			{RTE_VALUES, &CTranslatorQueryToDXL::TranslateValueScanRTEToDXL},
-			{RTE_CTE, &CTranslatorQueryToDXL::TranslateCTEToDXL},
-			{RTE_SUBQUERY, &CTranslatorQueryToDXL::TranslateDerivedTablesToDXL},
-			{RTE_FUNCTION, &CTranslatorQueryToDXL::TranslateTVFToDXL},
-		};
-
-		const ULONG num_of_translators =
-			GPOS_ARRAY_SIZE(dxlop_translator_func_mapping_array);
-
-		// find translator for the rtekind
-		DXLNodeToLogicalFunc dxlnode_to_logical_funct = nullptr;
-		for (ULONG ul = 0; ul < num_of_translators; ul++)
+		switch (rte->rtekind)
 		{
-			SRTETranslator elem = dxlop_translator_func_mapping_array[ul];
-			if (rte->rtekind == elem.m_rtekind)
+			default:
 			{
-				dxlnode_to_logical_funct = elem.dxlnode_to_logical_funct;
-				break;
+				UnsupportedRTEKind(rte->rtekind);
+
+				return nullptr;
+			}
+			case RTE_RELATION:
+			{
+				return TranslateRTEToDXLLogicalGet(rte, rt_index,
+												   m_query_level);
+			}
+			case RTE_VALUES:
+			{
+				return TranslateValueScanRTEToDXL(rte, rt_index, m_query_level);
+			}
+			case RTE_CTE:
+			{
+				return TranslateCTEToDXL(rte, rt_index, m_query_level);
+			}
+			case RTE_SUBQUERY:
+			{
+				return TranslateDerivedTablesToDXL(rte, rt_index,
+												   m_query_level);
+			}
+			case RTE_FUNCTION:
+			{
+				return TranslateTVFToDXL(rte, rt_index, m_query_level);
 			}
 		}
-
-		if (nullptr == dxlnode_to_logical_funct)
-		{
-			UnsupportedRTEKind(rte->rtekind);
-
-			return nullptr;
-		}
-
-		return (this->*dxlnode_to_logical_funct)(rte, rt_index, m_query_level);
 	}
 
 	if (IsA(node, JoinExpr))
@@ -3065,25 +3065,29 @@ CTranslatorQueryToDXL::UnsupportedRTEKind(RTEKind rtekind) const
 				  RTE_FUNCTION == rtekind || RTE_SUBQUERY == rtekind ||
 				  RTE_VALUES == rtekind));
 
-	static const SRTENameElem rte_name_map[] = {
-		{RTE_JOIN, GPOS_WSZ_LIT("RangeTableEntry of type Join")},
-		{RTE_VOID, GPOS_WSZ_LIT("RangeTableEntry of type Void")},
-		{RTE_TABLEFUNCTION,
-		 GPOS_WSZ_LIT("RangeTableEntry of type Table Function")}};
-
-	const ULONG length = GPOS_ARRAY_SIZE(rte_name_map);
-	for (ULONG ul = 0; ul < length; ul++)
+	switch (rtekind)
 	{
-		SRTENameElem mapelem = rte_name_map[ul];
-
-		if (mapelem.m_rtekind == rtekind)
+		default:
+		{
+			GPOS_ASSERT(!"Unrecognized RTE kind");
+			__builtin_unreachable();
+		}
+		case RTE_JOIN:
 		{
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-					   mapelem.m_rte_name);
+					   GPOS_WSZ_LIT("RangeTableEntry of type Join"));
+		}
+		case RTE_VOID:
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+					   GPOS_WSZ_LIT("RangeTableEntry of type Void"));
+		}
+		case RTE_TABLEFUNCTION:
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+					   GPOS_WSZ_LIT("RangeTableEntry of type Table Function"));
 		}
 	}
-
-	GPOS_ASSERT(!"Unrecognized RTE kind");
 }
 
 //---------------------------------------------------------------------------

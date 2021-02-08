@@ -39,28 +39,6 @@ using namespace gpmd;
 class CCostModelGPDB : public ICostModel
 {
 private:
-	// definition of operator processor
-	typedef CCost(FnCost)(CMemoryPool *, CExpressionHandle &,
-						  const CCostModelGPDB *, const SCostingInfo *);
-
-	//---------------------------------------------------------------------------
-	//	@struct:
-	//		SCostMapping
-	//
-	//	@doc:
-	//		Mapping of operator to a cost function
-	//
-	//---------------------------------------------------------------------------
-	struct SCostMapping
-	{
-		// physical operator id
-		COperator::EOperatorId m_eopid;
-
-		// pointer to cost function
-		FnCost *m_pfnc;
-
-	};	// struct SCostMapping
-
 	// memory pool
 	CMemoryPool *m_mp;
 
@@ -69,9 +47,6 @@ private:
 
 	// cost model parameters
 	CCostModelParamsGPDB *m_cost_model_params;
-
-	// array of mappings
-	static const SCostMapping m_rgcm[];
 
 	// return cost of processing the given number of rows
 	static CCost CostTupleProcessing(DOUBLE rows, DOUBLE width,

@@ -31,36 +31,6 @@
 using namespace gpopt;
 
 
-// initialization of push through handler
-const CNormalizer::SPushThru CNormalizer::m_rgpt[] = {
-	{COperator::EopLogicalSelect, PushThruSelect},
-	{COperator::EopLogicalProject, PushThruUnaryWithScalarChild},
-	{COperator::EopLogicalSequenceProject, PushThruSeqPrj},
-	{COperator::EopLogicalGbAgg, PushThruUnaryWithScalarChild},
-	{COperator::EopLogicalCTEAnchor, PushThruUnaryWithoutScalarChild},
-	{COperator::EopLogicalUnion, PushThruSetOp},
-	{COperator::EopLogicalUnionAll, PushThruSetOp},
-	{COperator::EopLogicalIntersect, PushThruSetOp},
-	{COperator::EopLogicalIntersectAll, PushThruSetOp},
-	{COperator::EopLogicalDifference, PushThruSetOp},
-	{COperator::EopLogicalDifferenceAll, PushThruSetOp},
-	{COperator::EopLogicalInnerJoin, PushThruJoin},
-	{COperator::EopLogicalNAryJoin, PushThruJoin},
-	{COperator::EopLogicalInnerApply, PushThruJoin},
-	{COperator::EopLogicalInnerCorrelatedApply, PushThruJoin},
-	{COperator::EopLogicalLeftOuterJoin, PushThruJoin},
-	{COperator::EopLogicalLeftOuterApply, PushThruJoin},
-	{COperator::EopLogicalLeftOuterCorrelatedApply, PushThruJoin},
-	{COperator::EopLogicalLeftSemiApply, PushThruJoin},
-	{COperator::EopLogicalLeftSemiApplyIn, PushThruJoin},
-	{COperator::EopLogicalLeftSemiCorrelatedApplyIn, PushThruJoin},
-	{COperator::EopLogicalLeftAntiSemiApply, PushThruJoin},
-	{COperator::EopLogicalLeftAntiSemiApplyNotIn, PushThruJoin},
-	{COperator::EopLogicalLeftAntiSemiCorrelatedApplyNotIn, PushThruJoin},
-	{COperator::EopLogicalLeftSemiJoin, PushThruJoin},
-};
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CNormalizer::FPushThruOuterChild
@@ -1070,32 +1040,68 @@ CNormalizer::PushThru(CMemoryPool *mp, CExpression *pexprLogical,
 		return;
 	}
 
-	FnPushThru *pfnpt = nullptr;
-	COperator::EOperatorId op_id = pexprLogical->Pop()->Eopid();
-	const ULONG size = GPOS_ARRAY_SIZE(m_rgpt);
 	// find the push thru function corresponding to the given operator
-	for (ULONG ul = 0; pfnpt == nullptr && ul < size; ul++)
+	switch (pexprLogical->Pop()->Eopid())
 	{
-		if (op_id == m_rgpt[ul].m_eopid)
+		case COperator::EopLogicalSelect:
+			PushThruSelect(mp, pexprLogical, pexprConj, ppexprResult);
+			break;
+
+		case COperator::EopLogicalProject:
+		case COperator::EopLogicalGbAgg:
+			PushThruUnaryWithScalarChild(mp, pexprLogical, pexprConj,
+										 ppexprResult);
+			break;
+
+		case COperator::EopLogicalSequenceProject:
+			PushThruSeqPrj(mp, pexprLogical, pexprConj, ppexprResult);
+			break;
+
+		case COperator::EopLogicalCTEAnchor:
+			PushThruUnaryWithoutScalarChild(mp, pexprLogical, pexprConj,
+											ppexprResult);
+			break;
+
+		case COperator::EopLogicalUnion:
+		case COperator::EopLogicalUnionAll:
+		case COperator::EopLogicalIntersect:
+		case COperator::EopLogicalIntersectAll:
+		case COperator::EopLogicalDifference:
+		case COperator::EopLogicalDifferenceAll:
+			PushThruSetOp(mp, pexprLogical, pexprConj, ppexprResult);
+			break;
+
+		case COperator::EopLogicalInnerJoin:
+		case COperator::EopLogicalNAryJoin:
+		case COperator::EopLogicalInnerApply:
+		case COperator::EopLogicalInnerCorrelatedApply:
+		case COperator::EopLogicalLeftOuterJoin:
+		case COperator::EopLogicalLeftOuterApply:
+		case COperator::EopLogicalLeftOuterCorrelatedApply:
+		case COperator::EopLogicalLeftSemiApply:
+		case COperator::EopLogicalLeftSemiApplyIn:
+		case COperator::EopLogicalLeftSemiCorrelatedApplyIn:
+		case COperator::EopLogicalLeftAntiSemiApply:
+		case COperator::EopLogicalLeftAntiSemiApplyNotIn:
+		case COperator::EopLogicalLeftAntiSemiCorrelatedApplyNotIn:
+		case COperator::EopLogicalLeftSemiJoin:
+			PushThruJoin(mp, pexprLogical, pexprConj, ppexprResult);
+			break;
+
+		default:
 		{
-			pfnpt = m_rgpt[ul].m_pfnpt;
+			// can't push predicates through, start a new normalization path
+			CExpression *pexprNormalized =
+				PexprRecursiveNormalize(mp, pexprLogical);
+			*ppexprResult = pexprNormalized;
+			if (!FChild(pexprLogical, pexprConj))
+			{
+				// add select node on top of the result for the given predicate
+				pexprConj->AddRef();
+				*ppexprResult =
+					CUtils::PexprSafeSelect(mp, pexprNormalized, pexprConj);
+			}
 		}
-	}
-
-	if (nullptr != pfnpt)
-	{
-		pfnpt(mp, pexprLogical, pexprConj, ppexprResult);
-		return;
-	}
-
-	// can't push predicates through, start a new normalization path
-	CExpression *pexprNormalized = PexprRecursiveNormalize(mp, pexprLogical);
-	*ppexprResult = pexprNormalized;
-	if (!FChild(pexprLogical, pexprConj))
-	{
-		// add select node on top of the result for the given predicate
-		pexprConj->AddRef();
-		*ppexprResult = CUtils::PexprSafeSelect(mp, pexprNormalized, pexprConj);
 	}
 }
 

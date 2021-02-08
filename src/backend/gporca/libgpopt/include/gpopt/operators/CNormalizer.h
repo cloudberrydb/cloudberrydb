@@ -31,32 +31,6 @@ using namespace gpos;
 class CNormalizer
 {
 private:
-	// definition of push through function
-	typedef void(FnPushThru)(CMemoryPool *mp, CExpression *pexprLogical,
-							 CExpression *pexprConj,
-							 CExpression **ppexprResult);
-
-	//---------------------------------------------------------------------------
-	//	@struct:
-	//		SPushThru
-	//
-	//	@doc:
-	//		Mapping of a logical operator to a push through function
-	//
-	//---------------------------------------------------------------------------
-	struct SPushThru
-	{
-		// logical operator id
-		COperator::EOperatorId m_eopid;
-
-		// pointer to push through function
-		FnPushThru *m_pfnpt;
-
-	};	// struct SPushThru
-
-	// array of mappings
-	static const SPushThru m_rgpt[];
-
 	//  return true if second expression is a child of first expression
 	static BOOL FChild(CExpression *pexpr, CExpression *pexprChild);
 

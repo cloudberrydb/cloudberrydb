@@ -27,11 +27,6 @@ using namespace gpmd;
 
 XERCES_CPP_NAMESPACE_USE
 
-// shorthand for functions for translating GPDB expressions into DXL nodes
-typedef void (CParseHandlerDXL::*ParseHandler)(
-	CParseHandlerBase *parse_handler_base);
-
-
 //---------------------------------------------------------------------------
 //	@class:
 //		CParseHandlerDXL
@@ -44,13 +39,6 @@ typedef void (CParseHandlerDXL::*ParseHandler)(
 class CParseHandlerDXL : public CParseHandlerBase
 {
 private:
-	// pair of parse handler type and parse handler function
-	struct SParseElem
-	{
-		EDxlParseHandlerType parse_handler_type;  // parse handler type
-		ParseHandler parse_handler_func;  // pointer to corresponding function
-	};
-
 	// traceflags
 	CBitSet *m_trace_flags_bitset;
 
@@ -113,9 +101,6 @@ private:
 		const XMLCh *const element_local_name,	// local part of element's name
 		const XMLCh *const element_qname		// element's qname
 		) override;
-
-	// find the parse handler function for the given type
-	ParseHandler FindParseHandler(EDxlParseHandlerType parse_handler_type);
 
 	// extract traceflags
 	void ExtractTraceFlags(CParseHandlerBase *parse_handler_base);

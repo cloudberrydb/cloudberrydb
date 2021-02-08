@@ -83,14 +83,6 @@ CTranslatorDXLToExpr::CTranslatorDXLToExpr(CMemoryPool *mp,
 	// initialize hash tables
 	m_phmululCTE = GPOS_NEW(m_mp) UlongToUlongMap(m_mp);
 
-	const ULONG size = GPOS_ARRAY_SIZE(m_rgpfTranslators);
-	for (ULONG ul = 0; ul < size; ul++)
-	{
-		m_rgpfTranslators[ul] = nullptr;
-	}
-
-	InitTranslators();
-
 	if (fInitColumnFactory)
 	{
 		// get column factory from optimizer context object
@@ -114,97 +106,6 @@ CTranslatorDXLToExpr::~CTranslatorDXLToExpr()
 	m_phmululCTE->Release();
 	CRefCount::SafeRelease(m_pdrgpulOutputColRefs);
 	CRefCount::SafeRelease(m_pdrgpmdname);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToExpr::InitTranslators
-//
-//	@doc:
-//		Initialize index of scalar translators
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorDXLToExpr::InitTranslators()
-{
-	// array mapping operator type to translator function
-	STranslatorMapping translators_mapping[] = {
-		{EdxlopLogicalGet, &gpopt::CTranslatorDXLToExpr::PexprLogicalGet},
-		{EdxlopLogicalExternalGet,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalGet},
-		{EdxlopLogicalTVF, &gpopt::CTranslatorDXLToExpr::PexprLogicalTVF},
-		{EdxlopLogicalSelect, &gpopt::CTranslatorDXLToExpr::PexprLogicalSelect},
-		{EdxlopLogicalProject,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalProject},
-		{EdxlopLogicalCTEAnchor,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalCTEAnchor},
-		{EdxlopLogicalCTEProducer,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalCTEProducer},
-		{EdxlopLogicalCTEConsumer,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalCTEConsumer},
-		{EdxlopLogicalGrpBy, &gpopt::CTranslatorDXLToExpr::PexprLogicalGroupBy},
-		{EdxlopLogicalLimit, &gpopt::CTranslatorDXLToExpr::PexprLogicalLimit},
-		{EdxlopLogicalJoin, &gpopt::CTranslatorDXLToExpr::PexprLogicalJoin},
-		{EdxlopLogicalConstTable,
-		 &gpopt::CTranslatorDXLToExpr::PexprLogicalConstTableGet},
-		{EdxlopLogicalSetOp, &gpopt::CTranslatorDXLToExpr::PexprLogicalSetOp},
-		{EdxlopLogicalWindow, &gpopt::CTranslatorDXLToExpr::PexprLogicalSeqPr},
-		{EdxlopLogicalInsert, &gpopt::CTranslatorDXLToExpr::PexprLogicalInsert},
-		{EdxlopLogicalDelete, &gpopt::CTranslatorDXLToExpr::PexprLogicalDelete},
-		{EdxlopLogicalUpdate, &gpopt::CTranslatorDXLToExpr::PexprLogicalUpdate},
-		{EdxlopLogicalCTAS, &gpopt::CTranslatorDXLToExpr::PexprLogicalCTAS},
-		{EdxlopScalarIdent, &gpopt::CTranslatorDXLToExpr::PexprScalarIdent},
-		{EdxlopScalarCmp, &gpopt::CTranslatorDXLToExpr::PexprScalarCmp},
-		{EdxlopScalarOpExpr, &gpopt::CTranslatorDXLToExpr::PexprScalarOp},
-		{EdxlopScalarDistinct,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarIsDistinctFrom},
-		{EdxlopScalarConstValue,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarConst},
-		{EdxlopScalarBoolExpr, &gpopt::CTranslatorDXLToExpr::PexprScalarBoolOp},
-		{EdxlopScalarFuncExpr, &gpopt::CTranslatorDXLToExpr::PexprScalarFunc},
-		{EdxlopScalarMinMax, &gpopt::CTranslatorDXLToExpr::PexprScalarMinMax},
-		{EdxlopScalarAggref, &gpopt::CTranslatorDXLToExpr::PexprAggFunc},
-		{EdxlopScalarWindowRef, &gpopt::CTranslatorDXLToExpr::PexprWindowFunc},
-		{EdxlopScalarNullTest,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarNullTest},
-		{EdxlopScalarNullIf, &gpopt::CTranslatorDXLToExpr::PexprScalarNullIf},
-		{EdxlopScalarBooleanTest,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarBooleanTest},
-		{EdxlopScalarIfStmt, &gpopt::CTranslatorDXLToExpr::PexprScalarIf},
-		{EdxlopScalarSwitch, &gpopt::CTranslatorDXLToExpr::PexprScalarSwitch},
-		{EdxlopScalarSwitchCase,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarSwitchCase},
-		{EdxlopScalarCaseTest,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarCaseTest},
-		{EdxlopScalarCoalesce,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarCoalesce},
-		{EdxlopScalarArrayCoerceExpr,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr},
-		{EdxlopScalarCast, &gpopt::CTranslatorDXLToExpr::PexprScalarCast},
-		{EdxlopScalarCoerceToDomain,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarCoerceToDomain},
-		{EdxlopScalarCoerceViaIO,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarCoerceViaIO},
-		{EdxlopScalarSubquery,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarSubquery},
-		{EdxlopScalarSubqueryAny,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarSubqueryQuantified},
-		{EdxlopScalarSubqueryAll,
-		 &gpopt::CTranslatorDXLToExpr::PexprScalarSubqueryQuantified},
-		{EdxlopScalarArray, &gpopt::CTranslatorDXLToExpr::PexprArray},
-		{EdxlopScalarArrayComp, &gpopt::CTranslatorDXLToExpr::PexprArrayCmp},
-		{EdxlopScalarArrayRef, &gpopt::CTranslatorDXLToExpr::PexprArrayRef},
-		{EdxlopScalarArrayRefIndexList,
-		 &gpopt::CTranslatorDXLToExpr::PexprArrayRefIndexList},
-	};
-
-	const ULONG translators_mapping_len = GPOS_ARRAY_SIZE(translators_mapping);
-
-	for (ULONG ul = 0; ul < translators_mapping_len; ul++)
-	{
-		STranslatorMapping elem = translators_mapping[ul];
-		m_rgpfTranslators[elem.edxlopid] = elem.pf;
-	}
 }
 
 //---------------------------------------------------------------------------
@@ -435,17 +336,50 @@ CTranslatorDXLToExpr::PexprLogical(const CDXLNode *dxlnode)
 				dxlnode->GetOperator()->GetDXLOperatorType());
 	CDXLOperator *dxl_op = dxlnode->GetOperator();
 
-	ULONG ulOpId = (ULONG) dxl_op->GetDXLOperator();
-	PfPexpr pf = m_rgpfTranslators[ulOpId];
-
-	if (nullptr == pf)
+	switch (dxl_op->GetDXLOperator())
 	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   dxl_op->GetOpNameStr()->GetBuffer());
+		case EdxlopLogicalGet:
+		case EdxlopLogicalExternalGet:
+			return CTranslatorDXLToExpr::PexprLogicalGet(dxlnode);
+		case EdxlopLogicalTVF:
+			return CTranslatorDXLToExpr::PexprLogicalTVF(dxlnode);
+		case EdxlopLogicalSelect:
+			return CTranslatorDXLToExpr::PexprLogicalSelect(dxlnode);
+		case EdxlopLogicalProject:
+			return CTranslatorDXLToExpr::PexprLogicalProject(dxlnode);
+		case EdxlopLogicalCTEAnchor:
+			return CTranslatorDXLToExpr::PexprLogicalCTEAnchor(dxlnode);
+		case EdxlopLogicalCTEProducer:
+			return CTranslatorDXLToExpr::PexprLogicalCTEProducer(dxlnode);
+		case EdxlopLogicalCTEConsumer:
+			return CTranslatorDXLToExpr::PexprLogicalCTEConsumer(dxlnode);
+		case EdxlopLogicalGrpBy:
+			return CTranslatorDXLToExpr::PexprLogicalGroupBy(dxlnode);
+		case EdxlopLogicalLimit:
+			return CTranslatorDXLToExpr::PexprLogicalLimit(dxlnode);
+		case EdxlopLogicalJoin:
+			return CTranslatorDXLToExpr::PexprLogicalJoin(dxlnode);
+		case EdxlopLogicalConstTable:
+			return CTranslatorDXLToExpr::PexprLogicalConstTableGet(dxlnode);
+		case EdxlopLogicalSetOp:
+			return CTranslatorDXLToExpr::PexprLogicalSetOp(dxlnode);
+		case EdxlopLogicalWindow:
+			return CTranslatorDXLToExpr::PexprLogicalSeqPr(dxlnode);
+		case EdxlopLogicalInsert:
+			return CTranslatorDXLToExpr::PexprLogicalInsert(dxlnode);
+		case EdxlopLogicalDelete:
+			return CTranslatorDXLToExpr::PexprLogicalDelete(dxlnode);
+		case EdxlopLogicalUpdate:
+			return CTranslatorDXLToExpr::PexprLogicalUpdate(dxlnode);
+		case EdxlopLogicalCTAS:
+			return CTranslatorDXLToExpr::PexprLogicalCTAS(dxlnode);
+		default:
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+					   dxl_op->GetOpNameStr()->GetBuffer());
+			return nullptr;
 	}
-
-	return (this->*pf)(dxlnode);
 }
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -2534,28 +2468,85 @@ CTranslatorDXLToExpr::PexprScalarSubqueryQuantified(
 //
 //---------------------------------------------------------------------------
 CExpression *
-CTranslatorDXLToExpr::PexprScalar(const CDXLNode *pdxlnOp)
+CTranslatorDXLToExpr::PexprScalar(const CDXLNode *dxlnode)
 {
-	GPOS_ASSERT(nullptr != pdxlnOp);
-	CDXLOperator *dxl_op = pdxlnOp->GetOperator();
+	GPOS_ASSERT(nullptr != dxlnode);
+	GPOS_ASSERT(EdxloptypeScalar ==
+				dxlnode->GetOperator()->GetDXLOperatorType());
+	CDXLOperator *dxl_op = dxlnode->GetOperator();
 	ULONG ulOpId = (ULONG) dxl_op->GetDXLOperator();
 
 	if (EdxlopScalarSubqueryExists == ulOpId ||
 		EdxlopScalarSubqueryNotExists == ulOpId)
 	{
 		return PexprScalarSubqueryExistential(
-			pdxlnOp->GetOperator()->GetDXLOperator(), (*pdxlnOp)[0]);
+			dxlnode->GetOperator()->GetDXLOperator(), (*dxlnode)[0]);
 	}
 
-	PfPexpr pf = m_rgpfTranslators[ulOpId];
-
-	if (nullptr == pf)
+	switch (dxl_op->GetDXLOperator())
 	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   dxl_op->GetOpNameStr()->GetBuffer());
+		case EdxlopScalarIdent:
+			return CTranslatorDXLToExpr::PexprScalarIdent(dxlnode);
+		case EdxlopScalarCmp:
+			return CTranslatorDXLToExpr::PexprScalarCmp(dxlnode);
+		case EdxlopScalarOpExpr:
+			return CTranslatorDXLToExpr::PexprScalarOp(dxlnode);
+		case EdxlopScalarDistinct:
+			return CTranslatorDXLToExpr::PexprScalarIsDistinctFrom(dxlnode);
+		case EdxlopScalarConstValue:
+			return CTranslatorDXLToExpr::PexprScalarConst(dxlnode);
+		case EdxlopScalarBoolExpr:
+			return CTranslatorDXLToExpr::PexprScalarBoolOp(dxlnode);
+		case EdxlopScalarFuncExpr:
+			return CTranslatorDXLToExpr::PexprScalarFunc(dxlnode);
+		case EdxlopScalarMinMax:
+			return CTranslatorDXLToExpr::PexprScalarMinMax(dxlnode);
+		case EdxlopScalarAggref:
+			return CTranslatorDXLToExpr::PexprAggFunc(dxlnode);
+		case EdxlopScalarWindowRef:
+			return CTranslatorDXLToExpr::PexprWindowFunc(dxlnode);
+		case EdxlopScalarNullTest:
+			return CTranslatorDXLToExpr::PexprScalarNullTest(dxlnode);
+		case EdxlopScalarNullIf:
+			return CTranslatorDXLToExpr::PexprScalarNullIf(dxlnode);
+		case EdxlopScalarBooleanTest:
+			return CTranslatorDXLToExpr::PexprScalarBooleanTest(dxlnode);
+		case EdxlopScalarIfStmt:
+			return CTranslatorDXLToExpr::PexprScalarIf(dxlnode);
+		case EdxlopScalarSwitch:
+			return CTranslatorDXLToExpr::PexprScalarSwitch(dxlnode);
+		case EdxlopScalarSwitchCase:
+			return CTranslatorDXLToExpr::PexprScalarSwitchCase(dxlnode);
+		case EdxlopScalarCaseTest:
+			return CTranslatorDXLToExpr::PexprScalarCaseTest(dxlnode);
+		case EdxlopScalarCoalesce:
+			return CTranslatorDXLToExpr::PexprScalarCoalesce(dxlnode);
+		case EdxlopScalarArrayCoerceExpr:
+			return CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr(dxlnode);
+		case EdxlopScalarCast:
+			return CTranslatorDXLToExpr::PexprScalarCast(dxlnode);
+		case EdxlopScalarCoerceToDomain:
+			return CTranslatorDXLToExpr::PexprScalarCoerceToDomain(dxlnode);
+		case EdxlopScalarCoerceViaIO:
+			return CTranslatorDXLToExpr::PexprScalarCoerceViaIO(dxlnode);
+		case EdxlopScalarSubquery:
+			return CTranslatorDXLToExpr::PexprScalarSubquery(dxlnode);
+		case EdxlopScalarSubqueryAny:
+		case EdxlopScalarSubqueryAll:
+			return CTranslatorDXLToExpr::PexprScalarSubqueryQuantified(dxlnode);
+		case EdxlopScalarArray:
+			return CTranslatorDXLToExpr::PexprArray(dxlnode);
+		case EdxlopScalarArrayComp:
+			return CTranslatorDXLToExpr::PexprArrayCmp(dxlnode);
+		case EdxlopScalarArrayRef:
+			return CTranslatorDXLToExpr::PexprArrayRef(dxlnode);
+		case EdxlopScalarArrayRefIndexList:
+			return CTranslatorDXLToExpr::PexprArrayRefIndexList(dxlnode);
+		default:
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+					   dxl_op->GetOpNameStr()->GetBuffer());
+			return nullptr;
 	}
-
-	return (this->*pf)(pdxlnOp);
 }
 
 //---------------------------------------------------------------------------

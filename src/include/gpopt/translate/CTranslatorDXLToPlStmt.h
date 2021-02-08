@@ -86,22 +86,7 @@ class CDXLDirectDispatchInfo;
 //---------------------------------------------------------------------------
 class CTranslatorDXLToPlStmt
 {
-	// shorthand for functions for translating DXL operator nodes into planner trees
-	typedef Plan *(CTranslatorDXLToPlStmt::*PfPplan)(
-		const CDXLNode *dxlnode, CDXLTranslateContext *output_context,
-		CDXLTranslationContextArray *ctxt_translation_prev_siblings);
-
 private:
-	// pair of DXL operator type and the corresponding translator
-	struct STranslatorMapping
-	{
-		// type
-		Edxlopid dxl_op_id;
-
-		// translator function pointer
-		PfPplan dxlnode_to_logical_funct;
-	};
-
 	// context for fixing index var attno
 	struct SContextIndexVarAttno
 	{
@@ -126,9 +111,6 @@ private:
 
 	// meta data accessor
 	CMDAccessor *m_md_accessor;
-
-	// DXL operator translators indexed by the operator id
-	PfPplan m_dxlop_translator_func_mapping_array[EdxlopSentinel];
 
 	CContextDXLToPlStmt *m_dxl_to_plstmt_context;
 
@@ -182,9 +164,6 @@ public:
 	static JoinType GetGPDBJoinTypeFromDXLJoinType(EdxlJoinType join_type);
 
 private:
-	// initialize index of operator translators
-	void InitTranslators();
-
 	// Set the bitmapset of a plan to the list of param_ids defined by the plan
 	void SetParamIds(Plan *);
 
