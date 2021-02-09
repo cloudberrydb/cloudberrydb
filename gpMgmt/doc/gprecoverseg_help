@@ -91,10 +91,7 @@ The recovery process marks the segment as up again in the Greenplum
 Database system catalog, and then initiates the resyncronization 
 process to bring the transactional state of the segment 
 up-to-date with the latest changes. The system is online 
-and available during resyncronization. To check the status 
-of the resyncronization process run:
-
-gpstate -m
+and available during resyncronization.
 
 If you do not have mirroring enabled or if you have both a 
 primary and its mirror down, you must take manual steps to 

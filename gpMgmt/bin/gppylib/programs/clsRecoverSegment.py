@@ -656,11 +656,9 @@ class GpRecoverSegmentProgram:
 
             self.trigger_fts_probe(port=gpEnv.getCoordinatorPort())
 
-            self.logger.info("******************************************************************")
-            self.logger.info("Updating segments for streaming is completed.")
-            self.logger.info("For segments updated successfully, streaming will continue in the background.")
-            self.logger.info("Use  gpstate -s  to check the streaming progress.")
-            self.logger.info("******************************************************************")
+            self.logger.info("********************************")
+            self.logger.info("Segments successfully recovered.")
+            self.logger.info("********************************")
 
         sys.exit(0)
 
