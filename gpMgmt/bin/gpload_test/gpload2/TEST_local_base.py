@@ -255,7 +255,7 @@ def write_config_file(version='1.0.0.1', database='reuse_gptest', user=os.enviro
     if preload:
         f.write("\n   PRELOAD:" )
         if truncate:
-            f.write("\n    - TRUNCSTE: "+str(truncate))
+            f.write("\n    - TRUNCATE: "+str(truncate))
         if reuse_tables:
             f.write("\n    - REUSE_TABLES: "+str(reuse_tables))
         if fast_match:

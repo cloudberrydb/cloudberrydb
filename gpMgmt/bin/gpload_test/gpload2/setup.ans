@@ -21,6 +21,8 @@ DROP TABLE IF EXISTS testSpecialChar;
 DROP TABLE
 DROP TABLE IF EXISTS chinese表;
 DROP TABLE
+DROP TABLE IF EXISTS testtruncate;
+DROP TABLE
 reset client_min_messages;
 RESET
 CREATE TABLE texttable (
@@ -47,5 +49,12 @@ CREATE TABLE  chinese表 ( 列1 text, "列#2" int, lie3 timestamp, 列four decim
 CREATE TABLE
 CREATE TABLE texttable2(s1 text, s2 text) DISTRIBUTED BY (s1);
 CREATE TABLE
+CREATE TABLE testtruncate (
+            s1 text, s2 text, s3 text, dt timestamp,
+            n1 smallint, n2 integer, n3 bigint, n4 decimal,
+            n5 numeric, n6 real, n7 double precision) DISTRIBUTED BY (n1);
+CREATE TABLE
+INSERT INTO testtruncate VALUES('ttt','ttgt','shpits', '2011-06-01 12:30:30',16,732,834567,45.67,789.123,7.12345,156.456178);
+INSERT 0 1
 CREATE TABLE prices (itemnumber integer, price decimal ) DISTRIBUTED BY (itemnumber)
 CREATE TABLE
