@@ -2286,7 +2286,8 @@ CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
 		return lint_value;
 	}
 
-	if (mdid->Equals(&CMDIdGPDB::m_mdid_cash))
+	if (mdid->Equals(&CMDIdGPDB::m_mdid_cash) ||
+		mdid->Equals(&CMDIdGPDB::m_mdid_date))
 	{
 		// cash is a pass-by-ref type
 		Datum datumConstVal = (Datum) 0;

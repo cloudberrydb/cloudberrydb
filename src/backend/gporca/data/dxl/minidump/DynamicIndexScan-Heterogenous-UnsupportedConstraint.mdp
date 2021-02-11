@@ -171,11 +171,11 @@
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
               <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="HxEAAA==" DoubleValue="378691200000000"/>
+              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="HxEAAA==" LintValue="4383"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
               <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="1BEAAA==" DoubleValue="394329600000000"/>
+              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="1BEAAA==" LintValue="4564"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -349,7 +349,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
           <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-          <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" DoubleValue="381456000000000"/>
+          <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" LintValue="4415"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.318877.1.1" TableName="test_orders_2">
@@ -408,7 +408,7 @@
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+              <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" LintValue="4415"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
@@ -422,7 +422,7 @@
             <dxl:PrintableFilter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
                 <dxl:Ident ColId="1" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" LintValue="4415"/>
               </dxl:Comparison>
             </dxl:PrintableFilter>
           </dxl:PartitionSelector>
@@ -444,7 +444,7 @@
             <dxl:Filter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
                 <dxl:Ident ColId="1" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" Value="PxEAAA==" LintValue="4415"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.318877.1.1" TableName="test_orders_2">
