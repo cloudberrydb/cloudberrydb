@@ -4166,7 +4166,7 @@ CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags(
 // Create Equivalence Class based on the breakpoints
 CColRefSetArray *
 CTestUtils::createEquivalenceClasses(CMemoryPool *mp, CColRefSet *pcrs,
-									 INT setBoundary[])
+									 const INT setBoundary[])
 {
 	INT i = 0;
 	ULONG bpIndex = 0;
