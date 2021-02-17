@@ -214,18 +214,13 @@
           <dxl:Opfamily Mdid="0.12738.1.0"/>
           <dxl:Opfamily Mdid="0.12738.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="4" ColName="part_d" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="4" ColName="part_d" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.33184001.1.0"/>
+          <dxl:Partition Mdid="0.33184002.1.0"/>
+          <dxl:Partition Mdid="0.33184003.1.0"/>
+          <dxl:Partition Mdid="0.33184004.1.0"/>
+          <dxl:Partition Mdid="0.33184005.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.33173.1.0.1" Name="f" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.333000" DistinctValues="1.000000">
@@ -766,7 +761,7 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.33184.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.33184001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -826,7 +821,7 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.33184.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.33184002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -886,7 +881,7 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.33184.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.33184003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -946,7 +941,7 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.33184.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.33184004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -1006,7 +1001,7 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.33184.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.33184005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>

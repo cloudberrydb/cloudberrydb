@@ -257,7 +257,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -311,7 +311,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -365,7 +365,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -419,7 +419,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -473,7 +473,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -527,7 +527,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640006.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -674,7 +674,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -728,7 +728,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -782,7 +782,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -836,7 +836,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -890,7 +890,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -944,7 +944,7 @@ where a=1 and b>0;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.2155640.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2155640006.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -1016,18 +1016,22 @@ where a=1 and b>0;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="100"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.2155640001.1.0"/>
+          <dxl:Partition Mdid="0.2155640002.1.0"/>
+          <dxl:Partition Mdid="0.2155640003.1.0"/>
+          <dxl:Partition Mdid="0.2155640004.1.0"/>
+          <dxl:Partition Mdid="0.2155640005.1.0"/>
+          <dxl:Partition Mdid="0.2155640006.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.2155640001.1.0"/>
+          <dxl:Partition Mdid="0.2155640002.1.0"/>
+          <dxl:Partition Mdid="0.2155640003.1.0"/>
+          <dxl:Partition Mdid="0.2155640004.1.0"/>
+          <dxl:Partition Mdid="0.2155640005.1.0"/>
+          <dxl:Partition Mdid="0.2155640006.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
     </dxl:Metadata>
     <dxl:Query>

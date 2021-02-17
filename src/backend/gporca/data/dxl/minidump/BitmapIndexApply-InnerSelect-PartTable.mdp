@@ -276,7 +276,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -333,7 +333,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -390,7 +390,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -494,7 +494,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -551,7 +551,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -608,7 +608,7 @@ select * from x, y where x.i > y.j and y.k = 10;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.53062705.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.53062705003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -666,18 +666,16 @@ select * from x, y where x.i > y.j and y.k = 10;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.3027.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="15"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.53062705001.1.0"/>
+          <dxl:Partition Mdid="0.53062705002.1.0"/>
+          <dxl:Partition Mdid="0.53062705003.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.53062705001.1.0"/>
+          <dxl:Partition Mdid="0.53062705002.1.0"/>
+          <dxl:Partition Mdid="0.53062705003.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.53062514.1.1.5" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.53062514.1.1.4" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

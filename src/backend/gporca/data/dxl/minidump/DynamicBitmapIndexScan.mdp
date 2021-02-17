@@ -350,7 +350,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17270001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -395,7 +395,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17270002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -440,7 +440,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17270003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -485,7 +485,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17270004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -530,7 +530,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17270005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -602,18 +602,13 @@ see sql/DynamicBitmapIndexScan.sql
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.3032.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.17270001.1.0"/>
+          <dxl:Partition Mdid="0.17270002.1.0"/>
+          <dxl:Partition Mdid="0.17270003.1.0"/>
+          <dxl:Partition Mdid="0.17270004.1.0"/>
+          <dxl:Partition Mdid="0.17270005.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.17408.1.1.7" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="3.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.17408.1.1.6" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>

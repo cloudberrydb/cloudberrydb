@@ -225,7 +225,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -279,7 +279,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -333,7 +333,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -387,7 +387,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -441,7 +441,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -541,7 +541,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -595,7 +595,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -649,7 +649,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -703,7 +703,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490004.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -757,7 +757,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.1695490.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1695490005.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -787,18 +787,20 @@ explain select i, count(j) from pt2  where k=5 group by i;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.1695490001.1.0"/>
+          <dxl:Partition Mdid="0.1695490002.1.0"/>
+          <dxl:Partition Mdid="0.1695490003.1.0"/>
+          <dxl:Partition Mdid="0.1695490004.1.0"/>
+          <dxl:Partition Mdid="0.1695490005.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.1695490001.1.0"/>
+          <dxl:Partition Mdid="0.1695490002.1.0"/>
+          <dxl:Partition Mdid="0.1695490003.1.0"/>
+          <dxl:Partition Mdid="0.1695490004.1.0"/>
+          <dxl:Partition Mdid="0.1695490005.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.1695223.1.1.7" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1695223.1.1.6" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

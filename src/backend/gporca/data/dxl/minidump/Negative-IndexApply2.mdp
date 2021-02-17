@@ -146,30 +146,14 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:Or>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-              </dxl:Comparison>
-            </dxl:And>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="11"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="100"/>
-              </dxl:Comparison>
-            </dxl:And>
-          </dxl:Or>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.41880949001.1.0"/>
+          <dxl:Partition Mdid="0.41880949002.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.41880949001.1.0"/>
+          <dxl:Partition Mdid="0.41880949002.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:RelationStatistics Mdid="2.41880825.1.1" Name="tt_p" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.41880825.1.0" Name="tt_p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="7,8,2" PartitionColumns="0" PartitionTypes="r" NumberLeafPartitions="2">
@@ -243,7 +227,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41880949001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -294,7 +278,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41880949002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -385,7 +369,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41880949001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -436,7 +420,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41880949002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -464,30 +448,14 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:Or>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
-              </dxl:Comparison>
-            </dxl:And>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="11"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" Value="100"/>
-              </dxl:Comparison>
-            </dxl:And>
-          </dxl:Or>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.41881111001.1.0"/>
+          <dxl:Partition Mdid="0.41881111002.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.41881111001.1.0"/>
+          <dxl:Partition Mdid="0.41881111002.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:RelationStatistics Mdid="2.41880987.1.1" Name="z_p" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.41880987.1.0" Name="z_p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,9,3" PartitionColumns="0" PartitionTypes="r" NumberLeafPartitions="2">
@@ -567,7 +535,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41881111001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -621,7 +589,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41881111002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -718,7 +686,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41881111001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -772,7 +740,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.41881111002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>

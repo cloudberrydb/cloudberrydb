@@ -228,8 +228,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991001.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -289,8 +289,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991002.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -350,8 +350,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991003.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -462,8 +462,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991001.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -523,8 +523,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991002.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -584,8 +584,8 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.32989991.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.32990010.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.32989991003.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.32990010003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -702,18 +702,16 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:Opfamily Mdid="0.1978.1.0"/>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.32989991001.1.0"/>
+          <dxl:Partition Mdid="0.32989991002.1.0"/>
+          <dxl:Partition Mdid="0.32989991003.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.32989991001.1.0"/>
+          <dxl:Partition Mdid="0.32989991002.1.0"/>
+          <dxl:Partition Mdid="0.32989991003.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:ColumnStatistics Mdid="1.32989847.1.1.11" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.32989847.1.1.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -723,18 +721,16 @@ WHERE tt.event_ts >= tq.ets AND
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.32990010001.1.0"/>
+          <dxl:Partition Mdid="0.32990010002.1.0"/>
+          <dxl:Partition Mdid="0.32990010003.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.32990010001.1.0"/>
+          <dxl:Partition Mdid="0.32990010002.1.0"/>
+          <dxl:Partition Mdid="0.32990010003.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0"/>
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.7" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

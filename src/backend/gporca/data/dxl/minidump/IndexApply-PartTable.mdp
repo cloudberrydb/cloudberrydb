@@ -144,7 +144,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -204,7 +204,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -264,7 +264,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -375,7 +375,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -435,7 +435,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -495,7 +495,7 @@ ORDER BY 1 asc ;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16166830003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -1213,18 +1213,16 @@ ORDER BY 1 asc ;
           <dxl:Opfamily Mdid="0.1980.1.0"/>
           <dxl:Opfamily Mdid="0.1980.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1757.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.1700.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1754.1.0">
-              <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.1700.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1700.1.0" Value="AAAACgEAAABaAA==" DoubleValue="900000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.16166830001.1.0"/>
+          <dxl:Partition Mdid="0.16166830002.1.0"/>
+          <dxl:Partition Mdid="0.16166830003.1.0"/>
+        </dxl:Partitions>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.16166830001.1.0"/>
+          <dxl:Partition Mdid="0.16166830002.1.0"/>
+          <dxl:Partition Mdid="0.16166830003.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:GPDBScalarOp Mdid="0.691.1.0" Name="/" ComparisonType="Other" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.20.1.0"/>

@@ -198,9 +198,10 @@ explain select t1.a from t1, foo_prt t2, t3 where (t1.b = t2.a) and t2.a = t3.b;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1976.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="0" Unbounded="false">
-          <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.24641001.1.0"/>
+          <dxl:Partition Mdid="0.24641002.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:RelationStatistics Mdid="2.22470.1.0" Name="t1" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.22470.1.0" Name="t1" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,2" NumberLeafPartitions="0">
@@ -284,8 +285,8 @@ explain select t1.a from t1, foo_prt t2, t3 where (t1.b = t2.a) and t2.a = t3.b;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.24641.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.24655.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.24641001.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.24655001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -321,8 +322,8 @@ explain select t1.a from t1, foo_prt t2, t3 where (t1.b = t2.a) and t2.a = t3.b;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.24641.1.0" IsPartial="true"/>
-          <dxl:IndexInfo Mdid="0.24655.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.24641002.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.24655002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -352,18 +353,10 @@ explain select t1.a from t1, foo_prt t2, t3 where (t1.b = t2.a) and t2.a = t3.b;
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1976.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.24655001.1.0"/>
+          <dxl:Partition Mdid="0.24655002.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:MDCast Mdid="3.23.1.0;23.1.0" Name="int4" BinaryCoercible="true" SourceTypeId="0.23.1.0" DestinationTypeId="0.23.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
       <dxl:ColumnStatistics Mdid="1.22473.1.0.3" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

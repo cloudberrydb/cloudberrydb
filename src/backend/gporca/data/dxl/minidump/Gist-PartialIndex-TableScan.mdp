@@ -166,7 +166,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=44)
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.573613.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.573613001.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -208,7 +208,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=44)
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.573613.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.573613002.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -250,7 +250,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=44)
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.573613.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.573613003.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
@@ -334,9 +334,11 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=44)
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.2593.1.0"/>
         </dxl:Opfamilies>
-        <dxl:PartConstraint DefaultPartition="0" Unbounded="false">
-          <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
-        </dxl:PartConstraint>
+        <dxl:Partitions>
+          <dxl:Partition Mdid="0.573613001.1.0"/>
+          <dxl:Partition Mdid="0.573613002.1.0"/>
+          <dxl:Partition Mdid="0.573613003.1.0"/>
+        </dxl:Partitions>
       </dxl:Index>
       <dxl:GPDBScalarOp Mdid="0.497.1.0" Name="&lt;@" ComparisonType="Other" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.603.1.0"/>
