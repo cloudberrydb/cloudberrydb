@@ -104,7 +104,7 @@ TypeModifierColumn TypeModifierCast TypeModifierConst TypeModifierDoubleMappable
 CIndexScanTest:
 BTreeIndex-Against-InList BTreeIndex-Against-InListLarge BTreeIndex-Against-ScalarSubquery
 IndexScan-AOTable IndexScan-DroppedColumns IndexScan-BoolTrue IndexScan-BoolFalse
-IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols NewBtreeIndexScanCost
+IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols
 IndexScan-ORPredsNonPart IndexScan-ORPredsAOPart IndexScan-AndedIn;
 
 CBitmapScanTest:
@@ -118,11 +118,11 @@ IndexApply1-CalibratedCostModel IndexApply2 IndexApply3 IndexApply4
 IndexApply-IndexCondDisjointWithHashedDistr IndexApply-IndexCondIntersectWithHashedDistr
 IndexApply-IndexCondMatchHashedDistr IndexApply-IndexCondSubsetOfHashedDistr
 IndexApply-IndexCondSupersetOfHashedDistr IndexApply-IndexOnMasterOnlyTable
-IndexApply-PartTable IndexApply-Heterogeneous-NoDTS IndexApply-Heterogeneous-DTS
-IndexApply-No-Motion-Below-Join IndexApply-Redistribute-Const-Table IndexApply-PartResolverExpand
+IndexApply-PartTable IndexApply-Heterogeneous-NoDTS
+IndexApply-No-Motion-Below-Join IndexApply-Redistribute-Const-Table
 IndexApply-InnerSelect-Basic IndexApply-InnerSelect-PartTable IndexApply-PartKey-Is-IndexKey
 IndexApply-InnerSelect-Heterogeneous-DTS IndexApply-Heterogeneous-BothSidesPartitioned
-IndexApply-InnerSelect-PartTable2 IndexApply-ForPartialIndex CastedScalarIf-On-Index-Key
+IndexApply-InnerSelect-PartTable2 CastedScalarIf-On-Index-Key
 IndexApply-MultiDistKey-WithComplexPreds IndexApply-MultiDistKeys-Bitmap
 IndexApply-MultiDistKeys-Bitmap-WithComplexPreds
 IndexApply-MultiDistKeys-IncompletePDS-3-DistCols
@@ -134,11 +134,11 @@ CDynamicIndexScanTest:
 DynamicIndexScan-Homogenous DynamicIndexScan-BoolTrue DynamicIndexScan-BoolFalse
 DynamicIndexScan-Heterogenous-NoDTS DynamicIndexScan-Heterogenous-Union
 DynamicIndexScan-Heterogenous-Overlapping DynamicIndexScan-Heterogenous
-DynamicIndexScan-DefaultPartition DynamicIndexScan-DefaultPartition-2 DynamicIndexGetDroppedCols
+DynamicIndexScan-DefaultPartition DynamicIndexScan-DefaultPartition-2
 DynamicIndexScan-Homogenous-UnsupportedConstraint DynamicIndexScan-Heterogenous-UnsupportedConstraint
-DynamicIndexScan-Heterogenous-UnsupportedPredicate DynamicIndexScan-Heterogenous-PartSelectEquality
+DynamicIndexScan-Heterogenous-PartSelectEquality
 DynamicIndexScan-Heterogenous-PartSelectRange DynamicIndexScan-OpenEndedPartitions
-DynamicIndexScan-Relabel DynamicIndexScan-DroppedColumns DynamicIndexGet-OuterRefs;
+DynamicIndexScan-Relabel DynamicIndexScan-DroppedCols DynamicIndexGet-OuterRefs;
 
 CIndexScanOnLeafTest:
 IndexOnLeaf-AddNewPartitionToRootTableContainingHeterogenousIndex

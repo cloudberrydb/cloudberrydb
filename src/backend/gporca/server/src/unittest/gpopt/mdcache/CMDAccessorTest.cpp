@@ -75,7 +75,6 @@ CMDAccessorTest::EresUnittest()
 								 gpdxl::ExmiMDCacheEntryNotFound),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_Indexes),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_CheckConstraint),
-		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_IndexPartConstraint),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_Cast),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_ScCmp)};
 
@@ -508,78 +507,6 @@ CMDAccessorTest::EresUnittest_CheckConstraint()
 		pmdCheckConstraint->GetCheckConstraintExpr(mp, &mda, colref_array);
 
 #ifdef GPOS_DEBUG
-	pexpr->DbgPrint();
-	os << std::endl;
-#endif	// GPOS_DEBUG
-
-	// clean up
-	pexpr->Release();
-	colref_array->Release();
-	rel_mdid->Release();
-
-	return GPOS_OK;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessorTest::EresUnittest_IndexPartConstraint
-//
-//	@doc:
-//		Test fetching part constraints for indexes on partitioned tables
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMDAccessorTest::EresUnittest_IndexPartConstraint()
-{
-	CAutoMemoryPool amp;
-	CMemoryPool *mp = amp.Pmp();
-
-	CAutoTrace at(mp);
-
-	// Setup an MD cache with a file-based provider
-	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
-	pmdp->AddRef();
-	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
-
-	// install opt context in TLS
-	CAutoOptCtxt aoc(mp, &mda, nullptr, /* pceeval */
-					 CTestUtils::GetCostModel(mp));
-	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
-
-	// lookup a relation in the MD cache
-	CMDIdGPDB *rel_mdid = GPOS_NEW(mp) CMDIdGPDB(GPOPT_TEST_REL_OID22);
-
-	const IMDRelation *pmdrel = mda.RetrieveRel(rel_mdid);
-	GPOS_ASSERT(0 < pmdrel->IndexCount());
-
-	// create the array of column reference for the table columns
-	// for the DXL to Expr translation
-	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
-	const ULONG num_cols = pmdrel->ColumnCount() - pmdrel->SystemColumnsCount();
-	for (ULONG ul = 0; ul < num_cols; ul++)
-	{
-		const IMDColumn *pmdcol = pmdrel->GetMdCol(ul);
-		const IMDType *pmdtype = mda.RetrieveType(pmdcol->MdidType());
-		CColRef *colref =
-			col_factory->PcrCreate(pmdtype, pmdcol->TypeModifier());
-		colref_array->Append(colref);
-	}
-
-	// get one of its indexes
-	GPOS_ASSERT(0 < pmdrel->IndexCount());
-	IMDId *pmdidIndex = pmdrel->IndexMDidAt(0);
-	const IMDIndex *pmdindex = mda.RetrieveIndex(pmdidIndex);
-
-	// extract and then print the part constraint expression
-	IMDPartConstraint *mdpart_constraint = pmdindex->MDPartConstraint();
-	GPOS_ASSERT(nullptr != mdpart_constraint);
-
-	CExpression *pexpr =
-		mdpart_constraint->GetPartConstraintExpr(mp, &mda, colref_array);
-
-#ifdef GPOS_DEBUG
-	IOstream &os(at.Os());
-
 	pexpr->DbgPrint();
 	os << std::endl;
 #endif	// GPOS_DEBUG
