@@ -141,11 +141,6 @@ CreateExecutorState(void)
 	estate = makeNode(EState);
 
 	/*
-	 * Initialize dynamicTableScanInfo.
-	 */
-	estate->dynamicTableScanInfo = palloc0(sizeof(DynamicTableScanInfo));
-
-	/*
 	 * Initialize all fields of the Executor State structure
 	 */
 	estate->es_direction = ForwardScanDirection;
@@ -264,7 +259,6 @@ FreeExecutorState(EState *estate)
 	}
 
 	estate->dispatcherState = NULL;
-	estate->dynamicTableScanInfo = NULL;
 
 	/* release JIT context, if allocated */
 	if (estate->es_jit)

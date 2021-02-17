@@ -89,8 +89,6 @@ CParseHandlerFactory::Init(CMemoryPool *mp)
 		{EdxltokenPhysicalAggregate, &CreateAggParseHandler},
 		{EdxltokenPhysicalTableScan, &CreateTableScanParseHandler},
 		{EdxltokenPhysicalBitmapTableScan, &CreateBitmapTableScanParseHandler},
-		{EdxltokenPhysicalDynamicBitmapTableScan,
-		 &CreateDynBitmapTableScanParseHandler},
 		{EdxltokenPhysicalExternalScan, &CreateExternalScanParseHandler},
 		{EdxltokenPhysicalHashJoin, &CreateHashJoinParseHandler},
 		{EdxltokenPhysicalNLJoin, &CreateNLJoinParseHandler},
@@ -108,8 +106,6 @@ CParseHandlerFactory::Init(CMemoryPool *mp)
 		{EdxltokenPhysicalSort, &CreateSortParseHandler},
 		{EdxltokenPhysicalAppend, &CreateAppendParseHandler},
 		{EdxltokenPhysicalMaterialize, &CreateMaterializeParseHandler},
-		{EdxltokenPhysicalDynamicTableScan, &CreateDTSParseHandler},
-		{EdxltokenPhysicalDynamicIndexScan, &CreateDynamicIdxScanParseHandler},
 		{EdxltokenPhysicalPartitionSelector,
 		 &CreatePartitionSelectorParseHandler},
 		{EdxltokenPhysicalSequence, &CreateSequenceParseHandler},
@@ -696,16 +692,6 @@ CParseHandlerFactory::CreateBitmapTableScanParseHandler(
 		mp, parse_handler_mgr, parse_handler_root);
 }
 
-// creates a parse handler for parsing a dynamic bitmap table scan
-CParseHandlerBase *
-CParseHandlerFactory::CreateDynBitmapTableScanParseHandler(
-	CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
-	CParseHandlerBase *parse_handler_root)
-{
-	return GPOS_NEW(mp) CParseHandlerPhysicalDynamicBitmapTableScan(
-		mp, parse_handler_mgr, parse_handler_root);
-}
-
 // creates a parse handler for parsing an external scan
 CParseHandlerBase *
 CParseHandlerFactory::CreateExternalScanParseHandler(
@@ -794,26 +780,6 @@ CParseHandlerFactory::CreateMaterializeParseHandler(
 {
 	return GPOS_NEW(mp)
 		CParseHandlerMaterialize(mp, parse_handler_mgr, parse_handler_root);
-}
-
-// creates a parse handler for parsing a dynamic table scan operator
-CParseHandlerBase *
-CParseHandlerFactory::CreateDTSParseHandler(
-	CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
-	CParseHandlerBase *parse_handler_root)
-{
-	return GPOS_NEW(mp) CParseHandlerDynamicTableScan(mp, parse_handler_mgr,
-													  parse_handler_root);
-}
-
-// creates a parse handler for parsing a dynamic index scan operator
-CParseHandlerBase *
-CParseHandlerFactory::CreateDynamicIdxScanParseHandler(
-	CMemoryPool *mp, CParseHandlerManager *parse_handler_mgr,
-	CParseHandlerBase *parse_handler_root)
-{
-	return GPOS_NEW(mp) CParseHandlerDynamicIndexScan(mp, parse_handler_mgr,
-													  parse_handler_root);
 }
 
 // creates a parse handler for parsing a partition selector operator

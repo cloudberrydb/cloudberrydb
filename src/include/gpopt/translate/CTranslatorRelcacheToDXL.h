@@ -48,7 +48,6 @@ extern "C" {
 struct RelationData;
 typedef struct RelationData *Relation;
 struct LogicalIndexes;
-struct LogicalIndexInfo;
 
 namespace gpdxl
 {

@@ -3939,12 +3939,8 @@ UlIndexFilter(Edxlopid edxlopid)
 		case EdxlopPhysicalExternalScan:
 			return EdxltsIndexFilter;
 		case EdxlopPhysicalBitmapTableScan:
-		case EdxlopPhysicalDynamicBitmapTableScan:
 			return EdxlbsIndexFilter;
-		case EdxlopPhysicalDynamicTableScan:
-			return EdxldtsIndexFilter;
 		case EdxlopPhysicalIndexScan:
-		case EdxlopPhysicalDynamicIndexScan:
 			return EdxlisIndexFilter;
 		case EdxlopPhysicalResult:
 			return EdxlresultIndexFilter;
@@ -3984,10 +3980,7 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter(
 		case EdxlopPhysicalTableScan:
 		case EdxlopPhysicalExternalScan:
 		case EdxlopPhysicalBitmapTableScan:
-		case EdxlopPhysicalDynamicTableScan:
 		case EdxlopPhysicalIndexScan:
-		case EdxlopPhysicalDynamicIndexScan:
-		case EdxlopPhysicalDynamicBitmapTableScan:
 		case EdxlopPhysicalResult:
 		{
 			// if the scalar join condition is a constant TRUE, just translate the child, no need to create an AND expression
