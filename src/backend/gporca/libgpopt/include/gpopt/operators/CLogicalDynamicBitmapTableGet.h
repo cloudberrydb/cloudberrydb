@@ -52,7 +52,8 @@ public:
 								  const CName *pnameTableAlias,
 								  ULONG ulPartIndex,
 								  CColRefArray *pdrgpcrOutput,
-								  CColRef2dArray *pdrgpdrgpcrPart);
+								  CColRef2dArray *pdrgpdrgpcrPart,
+								  IMdIdArray *partition_mdids);
 
 	explicit CLogicalDynamicBitmapTableGet(CMemoryPool *mp);
 

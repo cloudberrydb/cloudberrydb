@@ -49,6 +49,13 @@ private:
 	// partition keys
 	CColRef2dArray *m_pdrgpdrgpcrPart;
 
+	// child partitions
+	IMdIdArray *m_partition_mdids;
+
+	// Map of Root colref -> col index in child tabledesc
+	// per child partition in m_partition_mdid
+	ColRefToUlongMapArray *m_root_col_mapping_per_part = nullptr;
+
 public:
 	CPhysicalDynamicScan(const CPhysicalDynamicScan &) = delete;
 
@@ -56,7 +63,9 @@ public:
 	CPhysicalDynamicScan(CMemoryPool *mp, CTableDescriptor *ptabdesc,
 						 ULONG ulOriginOpId, const CName *pnameAlias,
 						 ULONG scan_id, CColRefArray *pdrgpcrOutput,
-						 CColRef2dArray *pdrgpdrgpcrParts);
+						 CColRef2dArray *pdrgpdrgpcrParts,
+						 IMdIdArray *partition_mdids,
+						 ColRefToUlongMapArray *root_col_mapping_per_part);
 
 	// dtor
 	~CPhysicalDynamicScan() override;
@@ -97,6 +106,18 @@ public:
 	FDynamicScan() const override
 	{
 		return true;
+	}
+
+	IMdIdArray *
+	GetPartitionMdids() const
+	{
+		return m_partition_mdids;
+	}
+
+	ColRefToUlongMapArray *
+	GetRootColMappingPerPart() const
+	{
+		return m_root_col_mapping_per_part;
 	}
 
 	// debug print

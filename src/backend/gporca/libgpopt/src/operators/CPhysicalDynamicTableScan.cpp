@@ -39,9 +39,8 @@ CPhysicalDynamicTableScan::CPhysicalDynamicTableScan(
 	CColRef2dArray *pdrgpdrgpcrParts, IMdIdArray *partition_mdids,
 	ColRefToUlongMapArray *root_col_mapping_per_part)
 	: CPhysicalDynamicScan(mp, ptabdesc, ulOriginOpId, pnameAlias, scan_id,
-						   pdrgpcrOutput, pdrgpdrgpcrParts),
-	  m_partition_mdids(partition_mdids),
-	  m_root_col_mapping_per_part(root_col_mapping_per_part)
+						   pdrgpcrOutput, pdrgpdrgpcrParts, partition_mdids,
+						   root_col_mapping_per_part)
 {
 }
 

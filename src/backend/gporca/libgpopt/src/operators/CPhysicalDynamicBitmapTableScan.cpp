@@ -40,9 +40,11 @@ using namespace gpos;
 CPhysicalDynamicBitmapTableScan::CPhysicalDynamicBitmapTableScan(
 	CMemoryPool *mp, CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
 	const CName *pnameAlias, ULONG scan_id, CColRefArray *pdrgpcrOutput,
-	CColRef2dArray *pdrgpdrgpcrParts)
+	CColRef2dArray *pdrgpdrgpcrParts, IMdIdArray *partition_mdids,
+	ColRefToUlongMapArray *root_col_mapping_per_part)
 	: CPhysicalDynamicScan(mp, ptabdesc, ulOriginOpId, pnameAlias, scan_id,
-						   pdrgpcrOutput, pdrgpdrgpcrParts)
+						   pdrgpcrOutput, pdrgpdrgpcrParts, partition_mdids,
+						   root_col_mapping_per_part)
 {
 }
 

@@ -60,7 +60,52 @@ CXformDynamicIndexGet2DynamicIndexScan::Transform(
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	// GPDB_12_MERGE_FIXME: Implement support for partitioned indexes
+	CLogicalDynamicIndexGet *popIndexGet =
+		CLogicalDynamicIndexGet::PopConvert(pexpr->Pop());
+	CMemoryPool *mp = pxfctxt->Pmp();
+
+	// create/extract components for alternative
+	CName *pname = GPOS_NEW(mp) CName(mp, popIndexGet->Name());
+	GPOS_ASSERT(pname != nullptr);
+
+	// extract components
+	CExpression *pexprIndexCond = (*pexpr)[0];
+	if (pexprIndexCond->DeriveHasSubquery())
+	{
+		return;
+	}
+	pexprIndexCond->AddRef();
+
+	CTableDescriptor *ptabdesc = popIndexGet->Ptabdesc();
+	ptabdesc->AddRef();
+
+	CIndexDescriptor *pindexdesc = popIndexGet->Pindexdesc();
+	pindexdesc->AddRef();
+
+	CColRefArray *pdrgpcrOutput = popIndexGet->PdrgpcrOutput();
+	GPOS_ASSERT(nullptr != pdrgpcrOutput);
+	pdrgpcrOutput->AddRef();
+
+	CColRef2dArray *pdrgpdrgpcrPart = popIndexGet->PdrgpdrgpcrPart();
+	pdrgpdrgpcrPart->AddRef();
+
+	COrderSpec *pos = popIndexGet->Pos();
+	pos->AddRef();
+
+	popIndexGet->GetPartitionMdids()->AddRef();
+	popIndexGet->GetRootColMappingPerPart()->AddRef();
+
+	// create alternative expression
+	CExpression *pexprAlt = GPOS_NEW(mp)
+		CExpression(mp,
+					GPOS_NEW(mp) CPhysicalDynamicIndexScan(
+						mp, pindexdesc, ptabdesc, pexpr->Pop()->UlOpId(), pname,
+						pdrgpcrOutput, popIndexGet->ScanId(), pdrgpdrgpcrPart,
+						pos, popIndexGet->GetPartitionMdids(),
+						popIndexGet->GetRootColMappingPerPart()),
+					pexprIndexCond);
+	// add alternative to transformation result
+	pxfres->Add(pexprAlt);
 }
 
 

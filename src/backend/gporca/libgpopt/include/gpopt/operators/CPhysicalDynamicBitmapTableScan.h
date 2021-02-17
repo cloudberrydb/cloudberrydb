@@ -45,10 +45,11 @@ public:
 		delete;
 
 	// ctor
-	CPhysicalDynamicBitmapTableScan(CMemoryPool *mp, CTableDescriptor *ptabdesc,
-									ULONG ulOriginOpId, const CName *pnameAlias,
-									ULONG scan_id, CColRefArray *pdrgpcrOutput,
-									CColRef2dArray *pdrgpdrgpcrParts);
+	CPhysicalDynamicBitmapTableScan(
+		CMemoryPool *mp, CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
+		const CName *pnameAlias, ULONG scan_id, CColRefArray *pdrgpcrOutput,
+		CColRef2dArray *pdrgpdrgpcrParts, IMdIdArray *partition_mdids,
+		ColRefToUlongMapArray *root_col_mapping_per_part);
 
 	// ident accessors
 	EOperatorId

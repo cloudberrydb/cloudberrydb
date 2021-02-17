@@ -2633,6 +2633,7 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 	CWStringConst *alias = nullptr;
 	ULONG ulPartIndex = gpos::ulong_max;
 	CColRef2dArray *pdrgpdrgpcrPart = nullptr;
+	IMdIdArray *partition_mdids = nullptr;
 	BOOL fPartialIndex = pmdrel->IsPartialIndex(pmdindex->MDId());
 
 	if (fPartialIndex)
@@ -2663,6 +2664,7 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 		alias = GPOS_NEW(mp)
 			CWStringConst(mp, popDynamicGet->Name().Pstr()->GetBuffer());
 		pdrgpdrgpcrPart = popDynamicGet->PdrgpdrgpcrPart();
+		partition_mdids = popDynamicGet->GetPartitionMdids();
 	}
 	else
 	{
@@ -2738,10 +2740,11 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 	if (fDynamicGet)
 	{
 		pdrgpdrgpcrPart->AddRef();
+		partition_mdids->AddRef();
 		popLogicalGet = PopDynamicBtreeIndexOpConstructor(
 			mp, pmdindex, ptabdesc, ulOriginOpId,
 			GPOS_NEW(mp) CName(mp, CName(alias)), ulPartIndex, pdrgpcrOutput,
-			pdrgpdrgpcrPart);
+			pdrgpdrgpcrPart, partition_mdids);
 	}
 	else
 	{
@@ -3610,9 +3613,10 @@ CXformUtils::PexprBitmapTableGet(CMemoryPool *mp, CLogical *popGet,
 			CLogicalDynamicGet *popDynamicGet =
 				CLogicalDynamicGet::PopConvert(popGet);
 			popDynamicGet->PdrgpdrgpcrPart()->AddRef();
+			popDynamicGet->GetPartitionMdids()->AddRef();
 			popBitmapTableGet = GPOS_NEW(mp) CLogicalDynamicBitmapTableGet(
 				mp, ptabdesc, ulOriginOpId, pname, popDynamicGet->ScanId(),
-				pdrgpcrOutput, popDynamicGet->PdrgpdrgpcrPart());
+				pdrgpcrOutput, popDynamicGet->PdrgpdrgpcrPart(), NULL);
 		}
 		else
 		{

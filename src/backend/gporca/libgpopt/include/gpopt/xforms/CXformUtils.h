@@ -192,11 +192,12 @@ private:
 									  ULONG ulOriginOpId, CName *pname,
 									  ULONG ulPartIndex,
 									  CColRefArray *pdrgpcrOutput,
-									  CColRef2dArray *pdrgpdrgpcrPart)
+									  CColRef2dArray *pdrgpdrgpcrPart,
+									  IMdIdArray *partition_mdids)
 	{
 		return GPOS_NEW(mp) CLogicalDynamicIndexGet(
 			mp, pmdindex, ptabdesc, ulOriginOpId, pname, ulPartIndex,
-			pdrgpcrOutput, pdrgpdrgpcrPart);
+			pdrgpcrOutput, pdrgpdrgpcrPart, partition_mdids);
 	}
 
 	//	create a static operator for a btree index plan

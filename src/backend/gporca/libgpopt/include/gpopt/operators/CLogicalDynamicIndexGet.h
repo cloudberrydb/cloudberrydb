@@ -55,7 +55,8 @@ public:
 							CTableDescriptor *ptabdesc, ULONG ulOriginOpId,
 							const CName *pnameAlias, ULONG ulPartIndex,
 							CColRefArray *pdrgpcrOutput,
-							CColRef2dArray *pdrgpdrgpcrPart);
+							CColRef2dArray *pdrgpdrgpcrPart,
+							IMdIdArray *partition_mdids);
 
 	// dtor
 	~CLogicalDynamicIndexGet() override;

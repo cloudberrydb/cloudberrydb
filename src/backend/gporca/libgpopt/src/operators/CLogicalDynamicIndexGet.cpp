@@ -55,9 +55,10 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet(CMemoryPool *mp)
 CLogicalDynamicIndexGet::CLogicalDynamicIndexGet(
 	CMemoryPool *mp, const IMDIndex *pmdindex, CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId, const CName *pnameAlias, ULONG part_idx_id,
-	CColRefArray *pdrgpcrOutput, CColRef2dArray *pdrgpdrgpcrPart)
+	CColRefArray *pdrgpcrOutput, CColRef2dArray *pdrgpdrgpcrPart,
+	IMdIdArray *partition_mdids)
 	: CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, part_idx_id,
-							 pdrgpcrOutput, pdrgpdrgpcrPart),
+							 pdrgpcrOutput, pdrgpdrgpcrPart, partition_mdids),
 	  m_pindexdesc(nullptr),
 	  m_ulOriginOpId(ulOriginOpId)
 {
@@ -163,10 +164,11 @@ CLogicalDynamicIndexGet::PopCopyWithRemappedColumns(
 		mp, m_pdrgpdrgpcrPart, colref_mapping, must_exist);
 
 	m_ptabdesc->AddRef();
+	m_partition_mdids->AddRef();
 
 	return GPOS_NEW(mp) CLogicalDynamicIndexGet(
 		mp, pmdindex, m_ptabdesc, m_ulOriginOpId, pnameAlias, m_scan_id,
-		pdrgpcrOutput, pdrgpdrgpcrPart);
+		pdrgpcrOutput, pdrgpdrgpcrPart, m_partition_mdids);
 }
 
 //---------------------------------------------------------------------------
