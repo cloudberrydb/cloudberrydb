@@ -14,9 +14,8 @@ namespace gpopt
 {
 CPhysicalParallelUnionAll::CPhysicalParallelUnionAll(
 	CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-	CColRef2dArray *pdrgpdrgpcrInput, ULONG ulScanIdPartialIndex)
-	: CPhysicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput,
-						ulScanIdPartialIndex),
+	CColRef2dArray *pdrgpdrgpcrInput)
+	: CPhysicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput),
 	  m_pdrgpds(GPOS_NEW(mp) CStrictHashedDistributions(mp, pdrgpcrOutput,
 														pdrgpdrgpcrInput))
 {

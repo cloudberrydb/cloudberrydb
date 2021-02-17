@@ -242,9 +242,6 @@ public:
 	// retrieve the id of the metadata cache index at the given position
 	IMDId *IndexMDidAt(ULONG pos) const override;
 
-	// check if index is partial given its mdid
-	BOOL IsPartialIndex(IMDId *mdid) const override;
-
 	// retrieve the id of the metadata cache trigger at the given position
 	IMDId *TriggerMDidAt(ULONG pos) const override;
 

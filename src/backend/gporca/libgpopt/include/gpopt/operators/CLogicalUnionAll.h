@@ -28,11 +28,6 @@ namespace gpopt
 //---------------------------------------------------------------------------
 class CLogicalUnionAll : public CLogicalUnion
 {
-private:
-	// if this union is needed for partial indexes then store the scan
-	// id, otherwise this will be gpos::ulong_max
-	ULONG m_ulScanIdPartialIndex;
-
 public:
 	CLogicalUnionAll(const CLogicalUnionAll &) = delete;
 
@@ -40,8 +35,7 @@ public:
 	explicit CLogicalUnionAll(CMemoryPool *mp);
 
 	CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-					 CColRef2dArray *pdrgpdrgpcrInput,
-					 ULONG ulScanIdPartialIndex = gpos::ulong_max);
+					 CColRef2dArray *pdrgpdrgpcrInput);
 
 	// dtor
 	~CLogicalUnionAll() override;
@@ -58,21 +52,6 @@ public:
 	SzId() const override
 	{
 		return "CLogicalUnionAll";
-	}
-
-	// if this union is needed for partial indexes then return the scan
-	// id, otherwise return gpos::ulong_max
-	ULONG
-	UlScanIdPartialIndex() const
-	{
-		return m_ulScanIdPartialIndex;
-	}
-
-	// is this unionall needed for a partial index
-	BOOL
-	IsPartialIndex() const
-	{
-		return (gpos::ulong_max > m_ulScanIdPartialIndex);
 	}
 
 	// sensitivity to order of inputs

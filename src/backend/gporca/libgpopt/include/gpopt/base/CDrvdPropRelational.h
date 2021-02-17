@@ -66,7 +66,6 @@ class CDrvdPropRelational : public CDrvdProp
 		EdptPpc,
 		EdptPfp,
 		EdptJoinDepth,
-		EdptFHasPartialIndexes,
 		EdptTableDescriptor,
 		EdptSentinel
 	};
@@ -109,10 +108,6 @@ private:
 
 	// function properties
 	CFunctionProp *m_pfp;
-
-	// true if all logical operators in the group are of type CLogicalDynamicGet,
-	// and the dynamic get has partial indexes
-	BOOL m_fHasPartialIndexes;
 
 	CTableDescriptor *m_table_descriptor;
 
@@ -171,9 +166,6 @@ protected:
 
 	// function properties
 	CFunctionProp *DeriveFunctionProperties(CExpressionHandle &);
-
-	// has partial indexes
-	BOOL DeriveHasPartialIndexes(CExpressionHandle &);
 
 	CTableDescriptor *DeriveTableDescriptor(CExpressionHandle &);
 
@@ -235,9 +227,6 @@ public:
 
 	// function properties
 	CFunctionProp *GetFunctionProperties() const;
-
-	// has partial indexes
-	BOOL HasPartialIndexes() const;
 
 	CTableDescriptor *GetTableDescriptor() const;
 

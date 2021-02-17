@@ -318,9 +318,6 @@ public:
 	CPartInfo *DerivePartitionInfo();
 	CPartInfo *DerivePartitionInfo(ULONG child_index);
 
-	BOOL DeriveHasPartialIndexes();
-	BOOL DeriveHasPartialIndexes(ULONG child_index);
-
 	CTableDescriptor *DeriveTableDescriptor();
 	CTableDescriptor *DeriveTableDescriptor(ULONG child_index);
 

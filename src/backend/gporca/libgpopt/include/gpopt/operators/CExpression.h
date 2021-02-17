@@ -303,7 +303,6 @@ public:
 	CFunctionProp *DeriveFunctionProperties();
 	CFunctionalDependencyArray *DeriveFunctionalDependencies();
 	CPartInfo *DerivePartitionInfo();
-	BOOL DeriveHasPartialIndexes();
 	CTableDescriptor *DeriveTableDescriptor();
 
 	// Scalar property accessors - derived as needed

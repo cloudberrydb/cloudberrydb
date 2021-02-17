@@ -3732,47 +3732,6 @@ CUtils::PcrsExtractColumns(CMemoryPool *mp, const CExpressionArray *pdrgpexpr)
 	return pcrs;
 }
 
-// Create a hashmap of constraints corresponding to a bool const on the given partkeys
-// true - unbounded intervals with nulls
-// false - empty intervals with no nulls
-UlongToConstraintMap *
-CUtils::PhmulcnstrBoolConstOnPartKeys(CMemoryPool *mp,
-									  CColRef2dArray *pdrgpdrgpcrPartKey,
-									  BOOL value)
-{
-	GPOS_ASSERT(nullptr != pdrgpdrgpcrPartKey);
-	UlongToConstraintMap *phmulcnstr = GPOS_NEW(mp) UlongToConstraintMap(mp);
-
-	const ULONG ulLevels = pdrgpdrgpcrPartKey->Size();
-	for (ULONG ul = 0; ul < ulLevels; ul++)
-	{
-		CColRef *pcrPartKey = PcrExtractPartKey(pdrgpdrgpcrPartKey, ul);
-		CConstraint *pcnstr = nullptr;
-		if (value)
-		{
-			// unbounded constraint
-			pcnstr = CConstraintInterval::PciUnbounded(mp, pcrPartKey,
-													   true /*is_null*/);
-		}
-		else
-		{
-			// empty constraint (contradiction)
-			pcnstr = GPOS_NEW(mp) CConstraintInterval(
-				mp, pcrPartKey, GPOS_NEW(mp) CRangeArray(mp),
-				false /*is_null*/);
-		}
-
-		if (nullptr != pcnstr)
-		{
-			BOOL result GPOS_ASSERTS_ONLY =
-				phmulcnstr->Insert(GPOS_NEW(mp) ULONG(ul), pcnstr);
-			GPOS_ASSERT(result);
-		}
-	}
-
-	return phmulcnstr;
-}
-
 // returns a new bitset of the given length, where all the bits are set
 CBitSet *
 CUtils::PbsAllSet(CMemoryPool *mp, ULONG size)
@@ -3801,77 +3760,6 @@ CUtils::Pbs(CMemoryPool *mp, ULongPtrArray *pdrgpul)
 	}
 
 	return pbs;
-}
-
-// extract part constraint from metadata
-CPartConstraint *
-CUtils::PpartcnstrFromMDPartCnstr(CMemoryPool *mp, CMDAccessor *md_accessor,
-								  CColRef2dArray *pdrgpdrgpcrPartKey,
-								  const IMDPartConstraint *mdpart_constraint,
-								  CColRefArray *pdrgpcrOutput,
-								  BOOL fDummyConstraint)
-{
-	if (fDummyConstraint)
-	{
-		return GPOS_NEW(mp) CPartConstraint(true /*fUninterpreted*/);
-	}
-
-	GPOS_ASSERT(nullptr != pdrgpdrgpcrPartKey);
-
-	const ULONG ulLevels = pdrgpdrgpcrPartKey->Size();
-
-	CExpression *pexprPartCnstr = mdpart_constraint->GetPartConstraintExpr(
-		mp, md_accessor, pdrgpcrOutput);
-
-	UlongToConstraintMap *phmulcnstr = nullptr;
-	if (CUtils::FScalarConstTrue(pexprPartCnstr))
-	{
-		phmulcnstr = PhmulcnstrBoolConstOnPartKeys(mp, pdrgpdrgpcrPartKey,
-												   true /*value*/);
-	}
-	else if (CUtils::FScalarConstFalse(pexprPartCnstr))
-	{
-		// contradiction
-		phmulcnstr = PhmulcnstrBoolConstOnPartKeys(mp, pdrgpdrgpcrPartKey,
-												   false /*value*/);
-	}
-	else
-	{
-		CColRefSetArray *pdrgpcrs = nullptr;
-		CConstraint *pcnstr =
-			CConstraint::PcnstrFromScalarExpr(mp, pexprPartCnstr, &pdrgpcrs);
-		CRefCount::SafeRelease(pdrgpcrs);
-
-		phmulcnstr = GPOS_NEW(mp) UlongToConstraintMap(mp);
-		for (ULONG ul = 0; ul < ulLevels && nullptr != pcnstr; ul++)
-		{
-			CColRef *pcrPartKey = PcrExtractPartKey(pdrgpdrgpcrPartKey, ul);
-			CConstraint *pcnstrLevel = pcnstr->Pcnstr(mp, pcrPartKey);
-			if (nullptr == pcnstrLevel)
-			{
-				pcnstrLevel = CConstraintInterval::PciUnbounded(
-					mp, pcrPartKey, true /*is_null*/);
-			}
-
-			if (nullptr != pcnstrLevel)
-			{
-				BOOL result GPOS_ASSERTS_ONLY =
-					phmulcnstr->Insert(GPOS_NEW(mp) ULONG(ul), pcnstrLevel);
-				GPOS_ASSERT(result);
-			}
-		}
-		CRefCount::SafeRelease(pcnstr);
-	}
-
-	pexprPartCnstr->Release();
-
-	CBitSet *pbsDefaultParts =
-		Pbs(mp, mdpart_constraint->GetDefaultPartsArray());
-	pdrgpdrgpcrPartKey->AddRef();
-
-	return GPOS_NEW(mp) CPartConstraint(
-		mp, phmulcnstr, pbsDefaultParts,
-		mdpart_constraint->IsConstraintUnbounded(), pdrgpdrgpcrPartKey);
 }
 
 // Helper to create a dummy constant table expression;

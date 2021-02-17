@@ -29,8 +29,7 @@ public:
 
 	// ctor
 	CPhysicalSerialUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-							CColRef2dArray *pdrgpdrgpcrInput,
-							ULONG ulScanIdPartialIndex);
+							CColRef2dArray *pdrgpdrgpcrInput);
 
 	// dtor
 	~CPhysicalSerialUnionAll() override;

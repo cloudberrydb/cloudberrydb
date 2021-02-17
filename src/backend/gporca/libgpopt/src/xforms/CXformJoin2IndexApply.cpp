@@ -321,33 +321,4 @@ CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives(
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformJoin2IndexApply::PexprConstructUnionAll
-//
-//	@doc:
-//		Create a union-all with the given children. Takes ownership of all
-//		arguments.
-//
-//---------------------------------------------------------------------------
-CExpression *
-CXformJoin2IndexApply::PexprConstructUnionAll(CMemoryPool *mp,
-											  CColRefArray *pdrgpcrLeftSchema,
-											  CColRefArray *pdrgpcrRightSchema,
-											  CExpression *pexprLeftChild,
-											  CExpression *pexprRightChild,
-											  ULONG scan_id) const
-{
-	CColRef2dArray *pdrgpdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
-	pdrgpdrgpcrInput->Append(pdrgpcrLeftSchema);
-	pdrgpdrgpcrInput->Append(pdrgpcrRightSchema);
-	pdrgpcrLeftSchema->AddRef();
-
-	return GPOS_NEW(mp) CExpression(
-		mp,
-		GPOS_NEW(mp)
-			CLogicalUnionAll(mp, pdrgpcrLeftSchema, pdrgpdrgpcrInput, scan_id),
-		pexprLeftChild, pexprRightChild);
-}
-
 // EOF

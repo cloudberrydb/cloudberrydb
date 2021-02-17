@@ -19,8 +19,7 @@ private:
 
 public:
 	CPhysicalParallelUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-							  CColRef2dArray *pdrgpdrgpcrInput,
-							  ULONG ulScanIdPartialIndex);
+							  CColRef2dArray *pdrgpdrgpcrInput);
 
 	EOperatorId Eopid() const override;
 

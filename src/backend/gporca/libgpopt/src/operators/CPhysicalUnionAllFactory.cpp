@@ -37,15 +37,13 @@ CPhysicalUnionAllFactory::PopPhysicalUnionAll(CMemoryPool *mp, BOOL fParallel)
 
 	if (fParallel)
 	{
-		return GPOS_NEW(mp) CPhysicalParallelUnionAll(
-			mp, pdrgpcrOutput, pdrgpdrgpcrInput,
-			m_popLogicalUnionAll->UlScanIdPartialIndex());
+		return GPOS_NEW(mp)
+			CPhysicalParallelUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput);
 	}
 	else
 	{
-		return GPOS_NEW(mp) CPhysicalSerialUnionAll(
-			mp, pdrgpcrOutput, pdrgpdrgpcrInput,
-			m_popLogicalUnionAll->UlScanIdPartialIndex());
+		return GPOS_NEW(mp)
+			CPhysicalSerialUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput);
 	}
 }
 

@@ -42,9 +42,8 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSerialUnionAll::CPhysicalSerialUnionAll(
 	CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-	CColRef2dArray *pdrgpdrgpcrInput, ULONG ulScanIdPartialIndex)
-	: CPhysicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput,
-						ulScanIdPartialIndex)
+	CColRef2dArray *pdrgpdrgpcrInput)
+	: CPhysicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput)
 {
 	// UnionAll creates two distribution requests to enforce distribution of its children:
 	// (1) (Hashed, Hashed): used to pass hashed distribution (requested from above)

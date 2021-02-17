@@ -27,8 +27,7 @@ using namespace gpopt;
 //		Ctor - for pattern
 //
 //---------------------------------------------------------------------------
-CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp)
-	: CLogicalUnion(mp), m_ulScanIdPartialIndex(0)
+CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp) : CLogicalUnion(mp)
 {
 	m_fPattern = true;
 }
@@ -42,10 +41,8 @@ CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp)
 //
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
-								   CColRef2dArray *pdrgpdrgpcrInput,
-								   ULONG ulScanIdPartialIndex)
-	: CLogicalUnion(mp, pdrgpcrOutput, pdrgpdrgpcrInput),
-	  m_ulScanIdPartialIndex(ulScanIdPartialIndex)
+								   CColRef2dArray *pdrgpdrgpcrInput)
+	: CLogicalUnion(mp, pdrgpcrOutput, pdrgpdrgpcrInput)
 {
 }
 
@@ -100,8 +97,7 @@ CLogicalUnionAll::PopCopyWithRemappedColumns(CMemoryPool *mp,
 	CColRef2dArray *pdrgpdrgpcrInput = CUtils::PdrgpdrgpcrRemap(
 		mp, m_pdrgpdrgpcrInput, colref_mapping, must_exist);
 
-	return GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput,
-										 m_ulScanIdPartialIndex);
+	return GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput);
 }
 
 //---------------------------------------------------------------------------

@@ -49,7 +49,6 @@ CTableDescriptor::CTableDescriptor(
 	  m_pdrgpulPart(nullptr),
 	  m_pdrgpbsKeys(nullptr),
 	  m_execute_as_user_id(ulExecuteAsUser),
-	  m_fHasPartialIndexes(FDescriptorWithPartialIndexes()),
 	  m_lockmode(lockmode)
 {
 	GPOS_ASSERT(nullptr != mp);
@@ -325,34 +324,5 @@ CTableDescriptor::PartitionCount() const
 	return ulPartitions;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CTableDescriptor::FDescriptorWithPartialIndexes
-//
-//	@doc:
-//		Returns true if this given table descriptor has partial indexes
-//
-//---------------------------------------------------------------------------
-BOOL
-CTableDescriptor::FDescriptorWithPartialIndexes()
-{
-	const ULONG ulIndices = IndexCount();
-	if (0 == ulIndices)
-	{
-		return false;
-	}
-
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	const IMDRelation *pmdrel = md_accessor->RetrieveRel(m_mdid);
-	for (ULONG ul = 0; ul < ulIndices; ul++)
-	{
-		if (pmdrel->IsPartialIndex(pmdrel->IndexMDidAt(ul)))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
 
 // EOF

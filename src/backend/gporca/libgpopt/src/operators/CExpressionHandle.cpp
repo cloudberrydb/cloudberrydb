@@ -1946,28 +1946,6 @@ CExpressionHandle::DerivePartitionInfo()
 	return GetRelationalProperties()->GetPartitionInfo();
 }
 
-BOOL
-CExpressionHandle::DeriveHasPartialIndexes(ULONG child_index)
-{
-	if (nullptr != Pexpr())
-	{
-		return (*Pexpr())[child_index]->DeriveHasPartialIndexes();
-	}
-
-	return GetRelationalProperties(child_index)->HasPartialIndexes();
-}
-
-BOOL
-CExpressionHandle::DeriveHasPartialIndexes()
-{
-	if (nullptr != Pexpr())
-	{
-		return Pexpr()->DeriveHasPartialIndexes();
-	}
-
-	return GetRelationalProperties()->HasPartialIndexes();
-}
-
 CTableDescriptor *
 CExpressionHandle::DeriveTableDescriptor()
 {

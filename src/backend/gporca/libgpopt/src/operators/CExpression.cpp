@@ -1530,14 +1530,6 @@ CExpression::DerivePartitionInfo()
 	return m_pdprel->DerivePartitionInfo(exprhdl);
 }
 
-BOOL
-CExpression::DeriveHasPartialIndexes()
-{
-	CExpressionHandle exprhdl(m_mp);
-	exprhdl.Attach(this);
-	return m_pdprel->DeriveHasPartialIndexes(exprhdl);
-}
-
 CTableDescriptor *
 CExpression::DeriveTableDescriptor()
 {

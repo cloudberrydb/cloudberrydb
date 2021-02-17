@@ -172,9 +172,6 @@ public:
 	// retrieve the id of the metadata cache index at the given position
 	virtual IMDId *IndexMDidAt(ULONG pos) const = 0;
 
-	// check if index is partial given its mdid
-	virtual BOOL IsPartialIndex(IMDId *mdid) const;
-
 	// retrieve the id of the metadata cache trigger at the given position
 	virtual IMDId *TriggerMDidAt(ULONG pos) const = 0;
 

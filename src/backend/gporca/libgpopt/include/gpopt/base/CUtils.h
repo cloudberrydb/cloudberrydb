@@ -869,19 +869,6 @@ public:
 	// return a new bitset, setting the bits in the given array
 	static CBitSet *Pbs(CMemoryPool *mp, ULongPtrArray *pdrgpul);
 
-	// create a hashmap of constraints corresponding to a bool const on the given partkeys
-	static UlongToConstraintMap *PhmulcnstrBoolConstOnPartKeys(
-		CMemoryPool *mp, CColRef2dArray *pdrgpdrgpcrPartKey, BOOL value);
-
-	// extract part constraint from metadata
-	// if 'mdpart_constraint' is not NULL and 'fDummyConstraint' is true, then the partition constraint
-	// will be marked as `dummy' and the constraint expression will not be computed
-	static CPartConstraint *PpartcnstrFromMDPartCnstr(
-		CMemoryPool *mp, CMDAccessor *md_accessor,
-		CColRef2dArray *pdrgpdrgpcrPartKey,
-		const IMDPartConstraint *mdpart_constraint, CColRefArray *pdrgpcrOutput,
-		BOOL fDummyConstraint = false);
-
 	// helper to create a dummy constant table expression
 	static CExpression *PexprLogicalCTGDummy(CMemoryPool *mp);
 

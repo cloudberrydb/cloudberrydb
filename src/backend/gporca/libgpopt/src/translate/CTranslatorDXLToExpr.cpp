@@ -533,16 +533,6 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 
 		// get the output column references from the dynamic get
 		colref_array = popDynamicGet->PdrgpcrOutput();
-
-#if 0
-		// if there are no indices, we only generate a dummy partition constraint because
-		// the constraint might be expensive to compute and it is not needed
-		BOOL fDummyConstraint = 0 == pmdrel->IndexCount();
-		CPartConstraint *ppartcnstr = CUtils::PpartcnstrFromMDPartCnstr(
-			m_mp, m_pmda, popDynamicGet->PdrgpdrgpcrPart(),
-			pmdrel->MDPartConstraint(), colref_array, fDummyConstraint);
-		popDynamicGet->SetPartConstraint(ppartcnstr);
-#endif
 	}
 	else
 	{

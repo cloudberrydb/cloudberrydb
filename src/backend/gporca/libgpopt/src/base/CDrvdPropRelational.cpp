@@ -130,8 +130,6 @@ CDrvdPropRelational::Derive(CMemoryPool *,	//mp,
 	DerivePartitionInfo(exprhdl);
 	GPOS_ASSERT(nullptr != m_ppartinfo);
 
-	DeriveHasPartialIndexes(exprhdl);
-
 	DeriveTableDescriptor(exprhdl);
 
 	m_is_complete = true;
@@ -328,10 +326,6 @@ CDrvdPropRelational::OsPrint(IOstream &os) const
 
 	os << ", Part Info: [" << *GetPartitionInfo() << "]";
 
-	if (HasPartialIndexes())
-	{
-		os << ", Has Partial Indexes";
-	}
 	return os;
 }
 
@@ -589,39 +583,6 @@ CDrvdPropRelational::DeriveFunctionProperties(CExpressionHandle &exprhdl)
 	}
 
 	return m_pfp;
-}
-
-// has partial indexes
-BOOL
-CDrvdPropRelational::HasPartialIndexes() const
-{
-	GPOS_RTL_ASSERT(IsComplete());
-	return m_fHasPartialIndexes;
-}
-
-BOOL
-CDrvdPropRelational::DeriveHasPartialIndexes(CExpressionHandle &exprhdl)
-{
-	if (!m_is_prop_derived->ExchangeSet(EdptFHasPartialIndexes))
-	{
-		CLogical *popLogical = CLogical::PopConvert(exprhdl.Pop());
-		COperator::EOperatorId op_id = popLogical->Eopid();
-
-
-		// determine if it is a dynamic get (with or without a select above it) with partial indexes
-		if (COperator::EopLogicalDynamicGet == op_id)
-		{
-			m_fHasPartialIndexes = CLogicalDynamicGet::PopConvert(popLogical)
-									   ->Ptabdesc()
-									   ->HasPartialIndexes();
-		}
-		else if (COperator::EopLogicalSelect == op_id)
-		{
-			m_fHasPartialIndexes = exprhdl.DeriveHasPartialIndexes(0);
-		}
-	}
-
-	return m_fHasPartialIndexes;
 }
 
 // table descriptor

@@ -62,14 +62,6 @@ private:
 						   CColRefSet **ppcrsOuterRefs,
 						   CColRefSet **ppcrsReqd) const;
 
-	// create a union-all with the given children
-	CExpression *PexprConstructUnionAll(CMemoryPool *mp,
-										CColRefArray *pdrgpcrLeftSchema,
-										CColRefArray *pdrgpcrRightSchema,
-										CExpression *pexprLeftChild,
-										CExpression *pexprRightChild,
-										ULONG scan_id) const;
-
 protected:
 	// is the logical join that is being transformed an outer join?
 	BOOL m_fOuterJoin;

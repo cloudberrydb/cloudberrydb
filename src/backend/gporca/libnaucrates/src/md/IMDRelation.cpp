@@ -109,13 +109,4 @@ IMDRelation::ColumnsToStr(CMemoryPool *mp, ULongPtrArray *colid_array)
 
 	return str;
 }
-
-// check if index is partial given its mdid
-BOOL
-IMDRelation::IsPartialIndex(IMDId *	 // mdid
-) const
-{
-	return false;
-}
-
 // EOF

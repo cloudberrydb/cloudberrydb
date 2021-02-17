@@ -572,27 +572,6 @@ CMDRelationGPDB::IndexMDidAt(ULONG pos) const
 	return (*m_mdindex_info_array)[pos]->MDId();
 }
 
-// check if index is partial given its mdid
-BOOL
-CMDRelationGPDB::IsPartialIndex(IMDId *mdid) const
-{
-	const ULONG indexes = IndexCount();
-
-	for (ULONG ul = 0; ul < indexes; ++ul)
-	{
-		if (CMDIdGPDB::MDIdCompare(IndexMDidAt(ul), mdid))
-		{
-			return (*m_mdindex_info_array)[ul]->IsPartial();
-		}
-	}
-
-	// Not found
-	GPOS_RAISE(ExmaMD, ExmiMDCacheEntryNotFound, mdid->GetBuffer());
-
-	return false;
-}
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDRelationGPDB::TriggerMDidAt

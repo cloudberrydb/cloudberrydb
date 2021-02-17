@@ -261,9 +261,6 @@ private:
 	// check if index is supported
 	static BOOL IsIndexSupported(Relation index_rel);
 
-	// retrieve index info list of partitioned table
-	static List *RetrievePartTableIndexInfo(Relation rel);
-
 	// compute the array of included columns
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
 											  const IMDRelation *md_rel);
@@ -295,32 +292,6 @@ private:
 	// return the index info list defined on the given relation
 	static CMDIndexInfoArray *RetrieveRelIndexInfo(CMemoryPool *mp,
 												   Relation rel);
-
-	// return index info list of indexes defined on a partitoned table
-	static CMDIndexInfoArray *RetrieveRelIndexInfoForPartTable(
-		CMemoryPool *mp, Relation root_rel);
-
-	// return index info list of indexes defined on regular, external tables or leaf partitions
-	static CMDIndexInfoArray *RetrieveRelIndexInfoForNonPartTable(
-		CMemoryPool *mp, Relation rel);
-
-	// retrieve an index over a partitioned table from the relcache
-	static IMDIndex *RetrievePartTableIndex(CMemoryPool *mp,
-											CMDAccessor *md_accessor,
-											IMDId *mdid_index,
-											const IMDRelation *md_rel,
-											LogicalIndexes *logical_indexes);
-
-	// lookup an index given its id from the logical indexes structure
-	static LogicalIndexInfo *LookupLogicalIndexById(
-		LogicalIndexes *logical_indexes, OID oid);
-
-	// construct an MD cache index object given its logical index representation
-	static IMDIndex *RetrievePartTableIndex(CMemoryPool *mp,
-											CMDAccessor *md_accessor,
-											LogicalIndexInfo *index_info,
-											IMDId *mdid_index,
-											const IMDRelation *md_rel);
 
 	// return the check constraints defined on the relation with the given oid
 	static IMdIdArray *RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid);
