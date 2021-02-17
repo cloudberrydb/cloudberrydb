@@ -1416,22 +1416,39 @@ CTranslatorExprToDXLUtils::PdxlnIdent(CMemoryPool *mp,
 		return dxlnode;
 	}
 
-	if (nullptr != phmcrdxlnIndexLookup)
-	{
-		CDXLNode *pdxlnIdent = phmcrdxlnIndexLookup->Find(colref);
-		if (nullptr != pdxlnIdent)
-		{
-			pdxlnIdent->AddRef();
-			return pdxlnIdent;
-		}
-	}
-
+	// Check if partition mapping exists (which implies that it is a partitioned
+	// table)
 	ULONG colid = colref->Id();
 	if (nullptr != phmcrulPartColId)
 	{
+		// if colref doesn't exist in partition mapping, then this scalar ident
+		// is an outer ref, and we must look it up in the index outer-ref mapping
 		ULONG *pul = phmcrulPartColId->Find(colref);
+		if (nullptr == pul)
+		{
+			CDXLNode *pdxlnIdent = phmcrdxlnIndexLookup->Find(colref);
+			GPOS_ASSERT(nullptr != pdxlnIdent);
+			pdxlnIdent->AddRef();
+			return pdxlnIdent;
+		}
+		// the colref does exist in the partition mapping, it is therefore NOT
+		// an outer ref, and we should create a dxl node
 		GPOS_ASSERT(nullptr != pul);
 		colid = *pul;
+	}
+	else
+	{
+		// scalar ident is not part of partition table, can look up in index
+		// directly in index outer-ref mapping
+		if (nullptr != phmcrdxlnIndexLookup)
+		{
+			CDXLNode *pdxlnIdent = phmcrdxlnIndexLookup->Find(colref);
+			if (nullptr != pdxlnIdent)
+			{
+				pdxlnIdent->AddRef();
+				return pdxlnIdent;
+			}
+		}
 	}
 
 	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, colref->Name().Pstr());

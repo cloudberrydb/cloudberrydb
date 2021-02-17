@@ -94,8 +94,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
 	CExpression *pexprInner, CExpression *pexprScalar,
 	CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 	CExpression *endOfNodesToInsertAboveIndexGet,
-	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
-	CXformResult *pxfres, IMDIndex::EmdindexType emdtype) const
+	CTableDescriptor *ptabdescInner, CXformResult *pxfres,
+	IMDIndex::EmdindexType emdtype) const
 {
 	GPOS_ASSERT(nullptr != pexprOuter);
 	GPOS_ASSERT(nullptr != pexprInner);
@@ -123,8 +123,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
 		CreateHomogeneousBtreeIndexApplyAlternatives(
 			mp, joinOp, pexprOuter, pexprInner, pexprScalar, origJoinPred,
 			nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
-			ptabdescInner, popDynamicGet, pcrsScalarExpr, outer_refs, pcrsReqd,
-			ulIndices, pxfres);
+			ptabdescInner, pcrsScalarExpr, outer_refs, pcrsReqd, ulIndices,
+			pxfres);
 	}
 	else
 	{
@@ -154,9 +154,9 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives(
 	CExpression *pexprInner, CExpression *pexprScalar,
 	CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 	CExpression *endOfNodesToInsertAboveIndexGet,
-	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
-	CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs, CColRefSet *pcrsReqd,
-	ULONG ulIndices, CXformResult *pxfres) const
+	CTableDescriptor *ptabdescInner, CColRefSet *pcrsScalarExpr,
+	CColRefSet *outer_refs, CColRefSet *pcrsReqd, ULONG ulIndices,
+	CXformResult *pxfres) const
 {
 	// array of expressions in the scalar expression
 	CExpressionArray *pdrgpexpr =
@@ -172,19 +172,11 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives(
 		IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
 		const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
 
-		CPartConstraint *ppartcnstrIndex = nullptr;
-		if (nullptr != popDynamicGet)
-		{
-			ppartcnstrIndex = CUtils::PpartcnstrFromMDPartCnstr(
-				mp, COptCtxt::PoctxtFromTLS()->Pmda(),
-				popDynamicGet->PdrgpdrgpcrPart(), pmdindex->MDPartConstraint(),
-				popDynamicGet->PdrgpcrOutput());
-		}
 		CreateAlternativesForBtreeIndex(
 			mp, joinOp, pexprOuter, pexprInner, origJoinPred,
 			nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
 			md_accessor, pdrgpexpr, pcrsScalarExpr, outer_refs, pcrsReqd,
-			pmdrel, pmdindex, ppartcnstrIndex, pxfres);
+			pmdrel, pmdindex, pxfres);
 	}
 
 	//clean-up
@@ -208,13 +200,11 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex(
 	CExpression *endOfNodesToInsertAboveIndexGet, CMDAccessor *md_accessor,
 	CExpressionArray *pdrgpexprConjuncts, CColRefSet *pcrsScalarExpr,
 	CColRefSet *outer_refs, CColRefSet *pcrsReqd, const IMDRelation *pmdrel,
-	const IMDIndex *pmdindex, CPartConstraint *ppartcnstrIndex,
-	CXformResult *pxfres) const
+	const IMDIndex *pmdindex, CXformResult *pxfres) const
 {
 	CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet(
 		mp, md_accessor, pexprInner, joinOp->UlOpId(), pdrgpexprConjuncts,
-		pcrsReqd, pcrsScalarExpr, outer_refs, pmdindex, pmdrel,
-		ppartcnstrIndex);
+		pcrsReqd, pcrsScalarExpr, outer_refs, pmdindex, pmdrel);
 	if (nullptr != pexprLogicalIndexGet)
 	{
 		// second child has residual predicates, create an apply of outer and inner

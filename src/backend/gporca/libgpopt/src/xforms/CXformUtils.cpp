@@ -2126,11 +2126,7 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 		(emdindtype == IMDIndex::EmdindBitmap &&
 		 IMDIndex::EmdindGin == pmdindex->IndexType()))
 	{
-		if (pmdrel->IsPartialIndex(pmdindex->MDId()))
-		{
-			// partial indexes not supported for GiST
-			return false;
-		}
+		// continue
 	}
 	else if (emdindtype == IMDIndex::EmdindBitmap &&
 			 pmdindex->IndexType() == IMDIndex::EmdindBtree &&
@@ -2610,8 +2606,7 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 	CMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexprGet,
 	ULONG ulOriginOpId, CExpressionArray *pdrgpexprConds, CColRefSet *pcrsReqd,
 	CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs,
-	const IMDIndex *pmdindex, const IMDRelation *pmdrel,
-	CPartConstraint *ppartcnstrIndex)
+	const IMDIndex *pmdindex, const IMDRelation *pmdrel)
 {
 	GPOS_ASSERT(nullptr != pexprGet);
 	GPOS_ASSERT(nullptr != pdrgpexprConds);
@@ -2625,7 +2620,6 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 				CLogical::EopLogicalDynamicGet == op_id);
 
 	BOOL fDynamicGet = (COperator::EopLogicalDynamicGet == op_id);
-	GPOS_ASSERT_IMP(!fDynamicGet, nullptr == ppartcnstrIndex);
 
 	CTableDescriptor *ptabdesc = pexprGet->DeriveTableDescriptor();
 	GPOS_ASSERT(nullptr != ptabdesc);
@@ -2634,21 +2628,10 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 	ULONG ulPartIndex = gpos::ulong_max;
 	CColRef2dArray *pdrgpdrgpcrPart = nullptr;
 	IMdIdArray *partition_mdids = nullptr;
-	BOOL fPartialIndex = pmdrel->IsPartialIndex(pmdindex->MDId());
-
-	if (fPartialIndex)
-	{
-		CRefCount::SafeRelease(ppartcnstrIndex);
-
-		// partial indexes are not allowed
-		return nullptr;
-	}
 
 	if (ptabdesc->RetrieveRelStorageType() != IMDRelation::ErelstorageHeap &&
 		pmdindex->IndexType() == IMDIndex::EmdindGist)
 	{
-		CRefCount::SafeRelease(ppartcnstrIndex);
-
 		// Non-heap tables not supported for GiST
 		return nullptr;
 	}
@@ -2679,7 +2662,6 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 						  pcrsScalarExpr, IMDIndex::EmdindBtree))
 	{
 		GPOS_DELETE(alias);
-		CRefCount::SafeRelease(ppartcnstrIndex);
 
 		return nullptr;
 	}
@@ -2710,7 +2692,6 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 		pdrgppcrIndexCols->Release();
 		pdrgpexprResidual->Release();
 		pdrgpexprIndex->Release();
-		CRefCount::SafeRelease(ppartcnstrIndex);
 		outer_refs_in_index_get->Release();
 
 		return nullptr;
@@ -2757,8 +2738,6 @@ CXformUtils::PexprBuildBtreeIndexPlan(
 	GPOS_DELETE(alias);
 	pdrgppcrIndexCols->Release();
 	outer_refs_in_index_get->Release();
-	// GPDB_12_MERGE_FIXME: ppartcnstrIndex is unused in this method
-	CRefCount::SafeRelease(ppartcnstrIndex);
 
 	CExpression *pexprIndexCond =
 		CPredicateUtils::PexprConjunction(mp, pdrgpexprIndex);

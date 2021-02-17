@@ -29,9 +29,9 @@ private:
 		CExpression *pexprInner, CExpression *pexprScalar,
 		CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 		CExpression *endOfNodesToInsertAboveIndexGet,
-		CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
-		CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs,
-		CColRefSet *pcrsReqd, ULONG ulIndices, CXformResult *pxfres) const;
+		CTableDescriptor *ptabdescInner, CColRefSet *pcrsScalarExpr,
+		CColRefSet *outer_refs, CColRefSet *pcrsReqd, ULONG ulIndices,
+		CXformResult *pxfres) const;
 
 	// helper to add IndexApply expression to given xform results container
 	// for homogeneous b-tree indexes
@@ -42,8 +42,7 @@ private:
 		CExpression *endOfNodesToInsertAboveIndexGet, CMDAccessor *md_accessor,
 		CExpressionArray *pdrgpexprConjuncts, CColRefSet *pcrsScalarExpr,
 		CColRefSet *outer_refs, CColRefSet *pcrsReqd, const IMDRelation *pmdrel,
-		const IMDIndex *pmdindex, CPartConstraint *ppartcnstrIndex,
-		CXformResult *pxfres) const;
+		const IMDIndex *pmdindex, CXformResult *pxfres) const;
 
 	// helper to add IndexApply expression to given xform results container
 	// for homogeneous bitmap indexes
@@ -82,8 +81,8 @@ protected:
 		CExpression *pexprInner, CExpression *pexprScalar,
 		CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 		CExpression *endOfNodesToInsertAboveIndexGet,
-		CTableDescriptor *PtabdescInner, CLogicalDynamicGet *popDynamicGet,
-		CXformResult *pxfres, gpmd::IMDIndex::EmdindexType emdtype) const;
+		CTableDescriptor *PtabdescInner, CXformResult *pxfres,
+		gpmd::IMDIndex::EmdindexType emdtype) const;
 
 public:
 	CXformJoin2IndexApply(const CXformJoin2IndexApply &) = delete;

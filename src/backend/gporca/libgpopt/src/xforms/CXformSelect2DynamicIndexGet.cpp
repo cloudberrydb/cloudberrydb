@@ -127,8 +127,7 @@ CXformSelect2DynamicIndexGet::Transform(CXformContext *pxfctxt,
 		// 	popDynamicGet->PdrgpcrOutput());
 		CExpression *pexprDynamicIndexGet = CXformUtils::PexprLogicalIndexGet(
 			mp, md_accessor, pexprRelational, pexpr->Pop()->UlOpId(), pdrgpexpr,
-			pcrsReqd, pcrsScalarExpr, nullptr /*outer_refs*/, pmdindex, pmdrel,
-			nullptr);
+			pcrsReqd, pcrsScalarExpr, nullptr /*outer_refs*/, pmdindex, pmdrel);
 		if (nullptr != pexprDynamicIndexGet)
 		{
 			// create a redundant SELECT on top of DynamicIndexGet to be able to use predicate in partition elimination

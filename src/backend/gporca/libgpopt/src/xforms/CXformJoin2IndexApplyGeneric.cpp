@@ -338,7 +338,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CreateHomogeneousIndexApplyAlternatives(
 		mp, pexpr->Pop(), pexprOuter, pexprGet, pexprAllPredicates, pexprScalar,
 		nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
-		ptabdescInner, popDynamicGet, pxfres,
+		ptabdescInner, pxfres,
 		(m_generateBitmapPlans ? IMDIndex::EmdindBitmap
 							   : IMDIndex::EmdindBtree));
 
