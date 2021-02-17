@@ -106,7 +106,7 @@ CParseHandlerMDRelation::StartElement(const XMLCh *const element_uri,
 		XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartitions),
 								 element_local_name))
 	{
-		// parse handler for external_partitions
+		// parse handler for child_partitions
 		m_child_partitions_parse_handler =
 			CParseHandlerFactory::GetParseHandler(
 				m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList),

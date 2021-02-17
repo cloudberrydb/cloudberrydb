@@ -545,6 +545,8 @@ Node *MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(), void *context,
 
 bool RelIsPartitioned(Oid relid);
 
+bool IndexIsPartitioned(Oid relid);
+
 // check whether table with the given oid is a regular table and not part of a partitioned table
 bool RelPartIsNone(Oid relid);
 
@@ -748,6 +750,8 @@ void *GPDBMemoryContextAlloc(MemoryContext context, Size size);
 MemoryContext GPDBAllocSetContextCreate();
 
 void GPDBMemoryContextDelete(MemoryContext context);
+
+List *GetRelChildIndexes(Oid reloid);
 
 void GPDBLockRelationOid(Oid reloid, int lockmode);
 

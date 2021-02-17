@@ -673,8 +673,16 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexScan(
 	Index index =
 		gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(
-		physical_idx_scan_dxlop->GetDXLTableDescr()->MDId());
+	const CDXLTableDescr *dxl_table_descr =
+		physical_idx_scan_dxlop->GetDXLTableDescr();
+	const IMDRelation *md_rel =
+		m_md_accessor->RetrieveRel(dxl_table_descr->MDId());
+
+	// Lock any table we are to scan, since it may not have been properly locked
+	// by the parser (e.g in case of generated scans for partitioned tables)
+	CMDIdGPDB *mdid = CMDIdGPDB::CastMdid(md_rel->MDId());
+	GPOS_RTL_ASSERT(dxl_table_descr->LockMode() != -1);
+	gpdb::GPDBLockRelationOid(mdid->Oid(), dxl_table_descr->LockMode());
 
 	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(
 		physical_idx_scan_dxlop->GetDXLTableDescr(), index,
@@ -693,6 +701,9 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexScan(
 	Oid index_oid = mdid_index->Oid();
 
 	GPOS_ASSERT(InvalidOid != index_oid);
+	// Lock any index we are to scan, since it may not have been properly locked
+	// by the parser (e.g in case of generated scans for partitioned indexes)
+	gpdb::GPDBLockRelationOid(index_oid, dxl_table_descr->LockMode());
 	index_scan->indexid = index_oid;
 
 	Plan *plan = &(index_scan->scan.plan);

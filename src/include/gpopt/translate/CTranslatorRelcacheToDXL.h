@@ -355,6 +355,8 @@ private:
 		CMDName *md_colname, OID att_type, AttrNumber attrnum,
 		CDXLBucketArray *dxl_stats_bucket_array, CDouble rows);
 
+	static IMdIdArray *RetrieveIndexPartitions(CMemoryPool *mp, OID rel_oid);
+
 public:
 	// retrieve a metadata object from the relcache
 	static IMDCacheObject *RetrieveObject(CMemoryPool *mp,

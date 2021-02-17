@@ -32,6 +32,7 @@
 #include "catalog/pg_collation.h"
 extern "C" {
 #include "access/external.h"
+#include "catalog/pg_inherits.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/optimizer.h"
@@ -2823,6 +2824,33 @@ gpdb::RelIsPartitioned(Oid relid)
 		return relation_is_partitioned(relid);
 	}
 	GP_WRAP_END;
+}
+
+bool
+gpdb::IndexIsPartitioned(Oid relid)
+{
+	GP_WRAP_START;
+	{
+		return index_is_partitioned(relid);
+	}
+	GP_WRAP_END;
+}
+
+List *
+gpdb::GetRelChildIndexes(Oid reloid)
+{
+	List *partoids = NIL;
+	GP_WRAP_START;
+	{
+		if (InvalidOid == reloid)
+		{
+			return NIL;
+		}
+		partoids = find_inheritance_children(reloid, NoLock);
+	}
+	GP_WRAP_END;
+
+	return partoids;
 }
 
 void

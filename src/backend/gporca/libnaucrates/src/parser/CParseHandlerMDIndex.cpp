@@ -44,7 +44,8 @@ CParseHandlerMDIndex::CParseHandlerMDIndex(
 	  m_included_cols_array(nullptr),
 	  m_part_constraint(nullptr),
 	  m_level_with_default_part_array(nullptr),
-	  m_part_constraint_unbounded(false)
+	  m_part_constraint_unbounded(false),
+	  m_child_indexes_parse_handler(nullptr)
 {
 }
 
@@ -57,9 +58,9 @@ CParseHandlerMDIndex::CParseHandlerMDIndex(
 //
 //---------------------------------------------------------------------------
 void
-CParseHandlerMDIndex::StartElement(const XMLCh *const,	// element_uri,
+CParseHandlerMDIndex::StartElement(const XMLCh *const element_uri,
 								   const XMLCh *const element_local_name,
-								   const XMLCh *const,	// element_qname,
+								   const XMLCh *const element_qname,
 								   const Attributes &attrs)
 {
 	if (0 == XMLString::compareString(
@@ -96,6 +97,23 @@ CParseHandlerMDIndex::StartElement(const XMLCh *const,	// element_uri,
 				m_parse_handler_mgr, this);
 		m_parse_handler_mgr->ActivateParseHandler(pphPartConstraint);
 		this->Append(pphPartConstraint);
+		return;
+	}
+
+	if (0 ==
+		XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartitions),
+								 element_local_name))
+	{
+		// parse handler for child indexes of a partitioned index
+		m_child_indexes_parse_handler = CParseHandlerFactory::GetParseHandler(
+			m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList),
+			m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(
+			m_child_indexes_parse_handler);
+		this->Append(m_child_indexes_parse_handler);
+		m_child_indexes_parse_handler->startElement(
+			element_uri, element_local_name, element_qname, attrs);
+
 		return;
 	}
 
@@ -158,8 +176,9 @@ CParseHandlerMDIndex::StartElement(const XMLCh *const,	// element_uri,
 		CParseHandlerFactory::GetParseHandler(
 			m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList),
 			m_parse_handler_mgr, this);
-	this->Append(opfamilies_list_parse_handler);
 	m_parse_handler_mgr->ActivateParseHandler(opfamilies_list_parse_handler);
+
+	this->Append(opfamilies_list_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -206,10 +225,21 @@ CParseHandlerMDIndex::EndElement(const XMLCh *const,  // element_uri,
 	IMdIdArray *mdid_opfamilies_array = pphMdidOpfamilies->GetMdIdArray();
 	mdid_opfamilies_array->AddRef();
 
+	BOOL is_partitioned = false;
+	IMdIdArray *child_indexes = nullptr;
+	if (nullptr != m_child_indexes_parse_handler)
+	{
+		is_partitioned = true;
+		child_indexes = dynamic_cast<CParseHandlerMetadataIdList *>(
+							m_child_indexes_parse_handler)
+							->GetMdIdArray();
+		child_indexes->AddRef();
+	}
+
 	m_imd_obj = GPOS_NEW(m_mp) CMDIndexGPDB(
-		m_mp, m_mdid, m_mdname, m_clustered, m_index_type, m_mdid_item_type,
-		m_index_key_cols_array, m_included_cols_array, mdid_opfamilies_array,
-		m_part_constraint);
+		m_mp, m_mdid, m_mdname, m_clustered, is_partitioned, m_index_type,
+		m_mdid_item_type, m_index_key_cols_array, m_included_cols_array,
+		mdid_opfamilies_array, m_part_constraint, child_indexes);
 
 	// deactivate handler
 	m_parse_handler_mgr->DeactivateHandler();

@@ -21,6 +21,7 @@
 #include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/operators/ops.h"
 #include "naucrates/dxl/operators/CDXLColRef.h"
+#include "naucrates/dxl/operators/CDXLIndexDescr.h"
 #include "naucrates/dxl/operators/CDXLPhysicalAgg.h"
 #include "naucrates/dxl/operators/CDXLPhysicalDML.h"
 #include "naucrates/dxl/operators/CDXLPhysicalMotion.h"
@@ -335,6 +336,12 @@ private:
 	CTableDescriptor *MakeTableDescForPart(const IMDRelation *part,
 										   CTableDescriptor *root_table_desc);
 
+	// Construct a dxl index descriptor for a child partition
+	CDXLIndexDescr *PdxlnIndexDescForPart(CMemoryPool *m_mp,
+										  MdidHashSet *child_index_mdids_set,
+										  const IMDRelation *part,
+										  const CWStringConst *index_name);
+
 	// translate a dynamic bitmap table scan
 	CDXLNode *PdxlnDynamicBitmapTableScan(
 		CExpression *pexprDynamicBitmapTableScan, CColRefArray *colref_array,
@@ -606,10 +613,10 @@ private:
 		const CColRefArray *colref_array);
 
 	// translate a filter expr on the root for a child partition
-	CDXLNode *PdxlnFilterForChildPart(const ColRefToUlongMap *root_col_mapping,
-									  const CColRefArray *part_colrefs,
-									  const CColRefArray *root_colrefs,
-									  CExpression *pred);
+	CDXLNode *PdxlnCondForChildPart(const ColRefToUlongMap *root_col_mapping,
+									const CColRefArray *part_colrefs,
+									const CColRefArray *root_colrefs,
+									CExpression *pred);
 
 	// translate a project list expression into a DXL proj list node
 	// according to the order specified in the dynamic array

@@ -978,6 +978,7 @@ CTranslatorRelcacheToDXL::RetrieveIndex(CMemoryPool *mp,
 	IMDIndex::EmdindexType index_type = IMDIndex::EmdindSentinel;
 	IMDId *mdid_item_type = nullptr;
 	bool index_clustered = false;
+	bool index_partitioned = false;
 	ULongPtrArray *index_key_cols_array = nullptr;
 	ULONG *attno_mapping = nullptr;
 
@@ -1067,11 +1068,23 @@ CTranslatorRelcacheToDXL::RetrieveIndex(CMemoryPool *mp,
 	mdid_index->AddRef();
 	IMdIdArray *op_families_mdids = RetrieveIndexOpFamilies(mp, mdid_index);
 
+	// get child indexes
+	IMdIdArray *child_index_oids = nullptr;
+	if (gpdb::IndexIsPartitioned(index_oid))
+	{
+		index_partitioned = true;
+		child_index_oids = RetrieveIndexPartitions(mp, index_oid);
+	}
+	else
+	{
+		child_index_oids = GPOS_NEW(mp) IMdIdArray(mp);
+	}
+
 	CMDIndexGPDB *index = GPOS_NEW(mp) CMDIndexGPDB(
-		mp, mdid_index, mdname, index_clustered, index_type, mdid_item_type,
-		index_key_cols_array, included_cols, op_families_mdids,
-		nullptr	 // mdpart_constraint
-	);
+		mp, mdid_index, mdname, index_clustered, index_partitioned, index_type,
+		mdid_item_type, index_key_cols_array, included_cols, op_families_mdids,
+		nullptr,  // mdpart_constraint
+		child_index_oids);
 
 	GPOS_DELETE_ARRAY(attno_mapping);
 	return index;
@@ -3369,6 +3382,22 @@ CTranslatorRelcacheToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 	}
 
 	return input_col_mdids;
+}
+
+IMdIdArray *
+CTranslatorRelcacheToDXL::RetrieveIndexPartitions(CMemoryPool *mp, OID rel_oid)
+{
+	IMdIdArray *partition_oids = GPOS_NEW(mp) IMdIdArray(mp);
+
+	List *partition_oid_list = gpdb::GetRelChildIndexes(rel_oid);
+	ListCell *lc;
+	foreach (lc, partition_oid_list)
+	{
+		OID oid = lfirst_oid(lc);
+		partition_oids->Append(GPOS_NEW(mp) CMDIdGPDB(oid));
+	}
+
+	return partition_oids;
 }
 
 // EOF

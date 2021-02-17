@@ -49,6 +49,9 @@ private:
 	// is the index clustered
 	BOOL m_clustered;
 
+	// is the index partitioned
+	BOOL m_partitioned;
+
 	// index type
 	EmdindexType m_index_type;
 
@@ -65,21 +68,28 @@ private:
 	IMdIdArray *m_mdid_opfamilies_array;
 
 	// partition constraint
+	// GPDB_12_MERGE_FIXME: This field is no longer needed,
+	// we should get rid of it.
 	IMDPartConstraint *m_mdpart_constraint;
 
 	// DXL for object
 	const CWStringDynamic *m_dxl_str;
+
+	// Child index oids
+	IMdIdArray *m_child_index_oids;
 
 public:
 	CMDIndexGPDB(const CMDIndexGPDB &) = delete;
 
 	// ctor
 	CMDIndexGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
-				 BOOL is_clustered, EmdindexType index_type,
-				 IMDId *mdid_item_type, ULongPtrArray *index_key_cols_array,
+				 BOOL is_clustered, BOOL is_partitioned,
+				 EmdindexType index_type, IMDId *mdid_item_type,
+				 ULongPtrArray *index_key_cols_array,
 				 ULongPtrArray *included_cols_array,
 				 IMdIdArray *mdid_opfamilies_array,
-				 IMDPartConstraint *mdpart_constraint);
+				 IMDPartConstraint *mdpart_constraint,
+				 IMdIdArray *child_index_oids);
 
 	// dtor
 	~CMDIndexGPDB() override;
@@ -92,6 +102,9 @@ public:
 
 	// is the index clustered
 	BOOL IsClustered() const override;
+
+	// is the index partitioned
+	BOOL IsPartitioned() const override;
 
 	// index type
 	EmdindexType IndexType() const override;
@@ -134,6 +147,9 @@ public:
 	// at the specified position
 	BOOL IsCompatible(const IMDScalarOp *md_scalar_op,
 					  ULONG key_pos) const override;
+
+	// child index oids
+	IMdIdArray *ChildIndexMdids() const override;
 
 #ifdef GPOS_DEBUG
 	// debug print of the MD index

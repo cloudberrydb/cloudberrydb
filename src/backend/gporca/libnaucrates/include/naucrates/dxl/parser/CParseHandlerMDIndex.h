@@ -68,6 +68,9 @@ private:
 	// is constraint unbounded
 	BOOL m_part_constraint_unbounded;
 
+	// child index oids parse handler
+	CParseHandlerBase *m_child_indexes_parse_handler;
+
 	// process the start of an element
 	void StartElement(
 		const XMLCh *const element_uri,			// URI of element's namespace
