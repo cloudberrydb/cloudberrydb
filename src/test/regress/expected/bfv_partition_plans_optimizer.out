@@ -474,7 +474,7 @@ set optimizer_enable_dynamictablescan = off;
 select count_operator('select * from mpp24151_t, mpp24151_pt where tid = ptid and pt1 = E''hello0'';','->  Partition Selector');
  count_operator 
 ----------------
-              1
+              0
 (1 row)
 
 select * from mpp24151_t, mpp24151_pt where tid = ptid and pt1 = 'hello0';

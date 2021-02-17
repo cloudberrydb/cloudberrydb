@@ -13673,8 +13673,8 @@ explain (costs off) select * from t_ao_btree where a = 3 and b = 3;
 explain (costs off) select * from tpart_ao_btree where a = 3 and b = 3;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: Partitioned table with heterogeneous storage types
-                   QUERY PLAN                   
-------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
    ->  Bitmap Heap Scan on tpart_ao_btree_1_prt_1
          Recheck Cond: ((a = 3) AND (b = 3))
@@ -13810,22 +13810,32 @@ default partition def);
 create INDEX y_idx on y (j);
 set optimizer_enable_indexjoin=on;
 explain (costs off) select count(*) from x, y where (x.i > y.j AND x.j <= y.i);
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Nested Loop
-               Join Filter: ((x.i > y_1_prt_p0.j) AND (x.j <= y_1_prt_p0.i))
+               Join Filter: true
                ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      ->  Seq Scan on x
                ->  Append
-                     ->  Seq Scan on y_1_prt_p0
-                     ->  Seq Scan on y_1_prt_p1
-                     ->  Seq Scan on y_1_prt_p2
-                     ->  Seq Scan on y_1_prt_p3
-                     ->  Seq Scan on y_1_prt_def
+                     ->  Index Scan using y_1_prt_p0_j_idx on y_1_prt_p0
+                           Index Cond: (j < x.i)
+                           Filter: ((j < x.i) AND (x.j <= i))
+                     ->  Index Scan using y_1_prt_p1_j_idx on y_1_prt_p1
+                           Index Cond: (j < x.i)
+                           Filter: ((j < x.i) AND (x.j <= i))
+                     ->  Index Scan using y_1_prt_p2_j_idx on y_1_prt_p2
+                           Index Cond: (j < x.i)
+                           Filter: ((j < x.i) AND (x.j <= i))
+                     ->  Index Scan using y_1_prt_p3_j_idx on y_1_prt_p3
+                           Index Cond: (j < x.i)
+                           Filter: ((j < x.i) AND (x.j <= i))
+                     ->  Index Scan using y_1_prt_def_j_idx on y_1_prt_def
+                           Index Cond: (j < x.i)
+                           Filter: ((j < x.i) AND (x.j <= i))
  Optimizer: Pivotal Optimizer (GPORCA)
-(13 rows)
+(23 rows)
 
 reset optimizer_enable_indexjoin;
 -- InferPredicatesBCC-vcpart-txt.mdp
