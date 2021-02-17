@@ -64,7 +64,40 @@ CXformImplementDynamicBitmapTableGet::Transform(
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	// GPDB_12_MERGE_FIXME: Implement support for partitioned indexes
+	CMemoryPool *mp = pxfctxt->Pmp();
+	CLogicalDynamicBitmapTableGet *popLogical =
+		CLogicalDynamicBitmapTableGet::PopConvert(pexpr->Pop());
+
+	CTableDescriptor *ptabdesc = popLogical->Ptabdesc();
+	ptabdesc->AddRef();
+
+	CName *pname = GPOS_NEW(mp) CName(mp, popLogical->Name());
+
+	CColRefArray *pdrgpcrOutput = popLogical->PdrgpcrOutput();
+
+	GPOS_ASSERT(nullptr != pdrgpcrOutput);
+	pdrgpcrOutput->AddRef();
+
+	CColRef2dArray *pdrgpdrgpcrPart = popLogical->PdrgpdrgpcrPart();
+	pdrgpdrgpcrPart->AddRef();
+
+	popLogical->GetPartitionMdids()->AddRef();
+	popLogical->GetRootColMappingPerPart()->AddRef();
+
+	CPhysicalDynamicBitmapTableScan *popPhysical =
+		GPOS_NEW(mp) CPhysicalDynamicBitmapTableScan(
+			mp, ptabdesc, pexpr->Pop()->UlOpId(), pname, popLogical->ScanId(),
+			pdrgpcrOutput, pdrgpdrgpcrPart, popLogical->GetPartitionMdids(),
+			popLogical->GetRootColMappingPerPart());
+
+	CExpression *pexprCondition = (*pexpr)[0];
+	CExpression *pexprIndexPath = (*pexpr)[1];
+	pexprCondition->AddRef();
+	pexprIndexPath->AddRef();
+
+	CExpression *pexprPhysical = GPOS_NEW(mp)
+		CExpression(mp, popPhysical, pexprCondition, pexprIndexPath);
+	pxfres->Add(pexprPhysical);
 }
 
 // EOF

@@ -5667,6 +5667,12 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan(
 
 	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(table_descr->MDId());
 
+	// Lock any table we are to scan, since it may not have been properly locked
+	// by the parser (e.g in case of generated scans for partitioned tables)
+	CMDIdGPDB *mdid = CMDIdGPDB::CastMdid(md_rel->MDId());
+	GPOS_RTL_ASSERT(table_descr->LockMode() != -1);
+	gpdb::GPDBLockRelationOid(mdid->Oid(), table_descr->LockMode());
+
 	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(
 		table_descr, index, &base_table_context);
 	GPOS_ASSERT(nullptr != rte);
@@ -5871,6 +5877,9 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe(
 		sc_bitmap_idx_probe_dxlop->GetDXLIndexDescr()->MDId());
 	const IMDIndex *index = m_md_accessor->RetrieveIndex(mdid_index);
 	Oid index_oid = mdid_index->Oid();
+	// Lock any index we are to scan, since it may not have been properly locked
+	// by the parser (e.g in case of generated scans for partitioned indexes)
+	gpdb::GPDBLockRelationOid(index_oid, table_descr->LockMode());
 
 	GPOS_ASSERT(InvalidOid != index_oid);
 	bitmap_idx_scan->indexid = index_oid;
