@@ -481,7 +481,7 @@ CHK_PARAMS () {
 		# Note: This check is performed on the coordinator only.  There is an assumption
 		# being made that the locales available on the coordinator are available on the
 		# segment hosts.
-		LOCALE_SETTING=$REQ_LOCALE_SETTING
+		LOCALE_SETTING=$(USE_FIRST_SET_ARG $REQ_LOCALE_SETTING $LC_ALL)
 		if [ x"" != x"$LOCALE_SETTING" ]; then
 			IN_ARRAY $LOCALE_SETTING "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -489,7 +489,7 @@ CHK_PARAMS () {
 			fi
 		fi
 
-		LCCOLLATE=$(USE_FIRST_SET_ARG $LCCOLLATE $LOCALE_SETTING)
+		LCCOLLATE=$(USE_FIRST_SET_ARG $LCCOLLATE $LC_COLLATE $LOCALE_SETTING)
 		if [ x"" != x"$LCCOLLATE" ]; then
 			IN_ARRAY $LCCOLLATE "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -497,7 +497,7 @@ CHK_PARAMS () {
 			fi	
 		fi
 
-		LCCTYPE=$(USE_FIRST_SET_ARG $LCCTYPE $LOCALE_SETTING)
+		LCCTYPE=$(USE_FIRST_SET_ARG $LCCTYPE $LC_CTYPE $LOCALE_SETTING)
 		if [ x"" != x"$LCCTYPE" ]; then
 			IN_ARRAY $LCCTYPE "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -505,7 +505,7 @@ CHK_PARAMS () {
 			fi
 		fi
 
-		LCMESSAGES=$(USE_FIRST_SET_ARG $LCMESSAGES $LOCALE_SETTING)
+		LCMESSAGES=$(USE_FIRST_SET_ARG $LCMESSAGES $LC_MESSAGES $LOCALE_SETTING)
 		if [ x"" != x"$LCMESSAGES" ]; then
 			IN_ARRAY $LCMESSAGES "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -513,7 +513,7 @@ CHK_PARAMS () {
 			fi
 		fi
 		
-		LCMONETARY=$(USE_FIRST_SET_ARG $LCMONETARY $LOCALE_SETTING)
+		LCMONETARY=$(USE_FIRST_SET_ARG $LCMONETARY $LC_MONETARY $LOCALE_SETTING)
 		if [ x"" != x"$LCMONETARY" ]; then
 			IN_ARRAY $LCMONETARY "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -521,7 +521,7 @@ CHK_PARAMS () {
 			fi
 		fi
 		
-		LCNUMERIC=$(USE_FIRST_SET_ARG $LCNUMERIC $LOCALE_SETTING)
+		LCNUMERIC=$(USE_FIRST_SET_ARG $LCNUMERIC $LC_NUMERIC $LOCALE_SETTING)
 		if [ x"" != x"$LCNUMERIC" ]; then
 			IN_ARRAY $LCNUMERIC "`locale -a`"
 			if [ $? -eq 0 ]; then
@@ -529,7 +529,7 @@ CHK_PARAMS () {
 			fi
 		fi
 		
-		LCTIME=$(USE_FIRST_SET_ARG $LCTIME $LOCALE_SETTING)
+		LCTIME=$(USE_FIRST_SET_ARG $LCTIME $LC_TIME $LOCALE_SETTING)
 		if [ x"" != x"$LCTIME" ]; then
 			IN_ARRAY $LCTIME "`locale -a`"
 			if [ $? -eq 0 ]; then
