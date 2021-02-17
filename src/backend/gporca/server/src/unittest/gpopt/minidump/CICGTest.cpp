@@ -45,8 +45,7 @@ const CHAR *rgszFileNames[] = {
 	"../data/dxl/minidump/InsertIntoNonNullAfterDroppingColumn.mdp",
 	"../data/dxl/minidump/OptimizerConfigWithSegmentsForCosting.mdp",
 	"../data/dxl/minidump/QueryMismatchedDistribution.mdp",
-	// GPDB_12_MERGE_FIXME: Re-enable once IndexScans on partitioned tables is supported
-	// "../data/dxl/minidump/QueryMismatchedDistribution-DynamicIndexScan.mdp",
+	"../data/dxl/minidump/QueryMismatchedDistribution-DynamicIndexScan.mdp",
 	"../data/dxl/minidump/3WayJoinOnMultiDistributionColumnsTables.mdp",
 	"../data/dxl/minidump/3WayJoinOnMultiDistributionColumnsTablesNoMotion.mdp",
 	"../data/dxl/minidump/4WayJoinInferredPredsRemovedWith2Motion.mdp",
@@ -125,8 +124,7 @@ CICGTest::EresUnittest()
 	CUnittest rgut[] = {
 		// keep test for testing partially supported operators/xforms
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunUnsupportedMinidumpTests),
-		// GPDB_12_MERGE_FIXME: Re-enable once IndexScans on partitioned tables is supported
-		// GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_NegativeIndexApplyTests),
+		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_NegativeIndexApplyTests),
 
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunMinidumpTests),
 		GPOS_UNITTEST_FUNC(

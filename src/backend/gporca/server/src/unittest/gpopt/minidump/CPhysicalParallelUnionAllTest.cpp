@@ -25,8 +25,7 @@ static const CHAR *rgszFileNames[] = {
 	"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelAppend-Insert.mdp",
 	"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelAppend-ConstTable.mdp",
 	"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithNotEqualNumOfDistrColumns.mdp",
-	// GPDB_12_MERGE_FIXME: Re-enable once IndexScans on partitioned tables is supported
-	// "../data/dxl/minidump/CPhysicalParallelUnionAllTest/FallBackToSerialAppend.mdp",
+	"../data/dxl/minidump/CPhysicalParallelUnionAllTest/FallBackToSerialAppend.mdp",
 	"../data/dxl/minidump/CPhysicalParallelUnionAllTest/RandomDistributedChildrenUnhashableColumns.mdp",
 };
 

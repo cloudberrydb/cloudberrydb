@@ -37,15 +37,6 @@ function(add_orca_test TEST_NAME)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
-# GPDB_12_MERGE_FIXME: re-add the following tests once IndexScans on partitioned tables is supported
-# CLeftOuterIndexApplyTest
-# CIndexScanTest
-# CBitmapScanTest
-# CIndexApplyTest
-# CDynamicIndexScanTest
-# CGistIndexTest
-# CGinIndexTest
-
 # GPDB_12_MERGE_FIXME: re-add the following tests once DPE is supported
 # CPartTblDPETest
 
@@ -98,8 +89,56 @@ LikePredStatsNotComparable PredStatsNotComparable ExtractPredicateFromDisj Colla
 IDF-NotNullConstant IDF-NullConstant INDF-NotNullConstant INDF-NullConstant NullConstant-INDF-Col
 Join-INDF Join-INDF-NoBroadcast TimeTypeStatsNotComparable Join-INDF-Nulls-Not-Collocated;
 
+CLeftOuterIndexApplyTest:
+IndexApply-LeftOuter-NLJoin LOJ-IndexApply-MultiIndexes LOJ-IndexApply-Negative-NonEqual-Predicate
+LOJ-IndexApply-DistKey-Multiple-Predicates LOJ-IndexApply-MasterOnly-Table LOJ-IndexApply-NonDistKey
+LOJ-IndexApply-CompsiteKey-Equiv LOJ-IndexApply-CompsiteKey-NoMotion LOJ-IndexApply-MultiDistKeys-IndexKeys
+LOJ-IndexApply-WithComplexPredicates LOJ-IndexApply-MultiDistKeys-WithComplexPreds
+LOJ-IndexApply-MultiDistKey-MultiIndexKey-NoExtraFilter LOJ-IndexApply-MultiDistKey-MultiIndexKey
+LOJ-IndexApply-MultiDistKeys-Bitmap LOJ-IndexApply-MultiDistKeys-Bitmap-WithComplexPreds
+LOJ-DynBitmapIndex LOJ-DynBitmapIndexWithSelect LOJ-DynBtreeIndex LOJ-DynBtreeIndexWithSelect;
+
 CTypeModifierTest:
 TypeModifierColumn TypeModifierCast TypeModifierConst TypeModifierDoubleMappableConst TypeModifierArrayRef;
+
+CIndexScanTest:
+BTreeIndex-Against-InList BTreeIndex-Against-InListLarge BTreeIndex-Against-ScalarSubquery
+IndexScan-AOTable IndexScan-DroppedColumns IndexScan-BoolTrue IndexScan-BoolFalse
+IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols NewBtreeIndexScanCost
+IndexScan-ORPredsNonPart IndexScan-ORPredsAOPart IndexScan-AndedIn;
+
+CBitmapScanTest:
+IndexedNLJBitmap BitmapIndex-ChooseHashJoin BitmapTableScan-AO-Btree-PickOnlyHighNDV
+BitmapIndex-Against-InList BitmapTableScan-AO-Btree-PickIndexWithNoGap
+BitmapTableScan-ComplexConjDisj BitmapTableScan-ConjDisjWithOuterRefs;
+
+CIndexApplyTest:
+IndexNLJ-IndexGet-OuterRef IndexApply_NestLoopWithNestParamTrue IndexApply1
+IndexApply1-CalibratedCostModel IndexApply2 IndexApply3 IndexApply4
+IndexApply-IndexCondDisjointWithHashedDistr IndexApply-IndexCondIntersectWithHashedDistr
+IndexApply-IndexCondMatchHashedDistr IndexApply-IndexCondSubsetOfHashedDistr
+IndexApply-IndexCondSupersetOfHashedDistr IndexApply-IndexOnMasterOnlyTable
+IndexApply-PartTable IndexApply-Heterogeneous-NoDTS IndexApply-Heterogeneous-DTS
+IndexApply-No-Motion-Below-Join IndexApply-Redistribute-Const-Table IndexApply-PartResolverExpand
+IndexApply-InnerSelect-Basic IndexApply-InnerSelect-PartTable IndexApply-PartKey-Is-IndexKey
+IndexApply-InnerSelect-Heterogeneous-DTS IndexApply-Heterogeneous-BothSidesPartitioned
+IndexApply-InnerSelect-PartTable2 IndexApply-ForPartialIndex CastedScalarIf-On-Index-Key
+IndexApply-MultiDistKey-WithComplexPreds IndexApply-MultiDistKeys-Bitmap
+IndexApply-MultiDistKeys-Bitmap-WithComplexPreds
+IndexApply-MultiDistKeys-IncompletePDS-3-DistCols
+BitmapIndexNLJWithProject BitmapIndexNLOJWithProject
+BitmapIndexNLJWithProjectNoFilt BtreeIndexNLJWithProjectNoPart
+BitmapIndexNLOJWithProjectNonPart BtreeIndexNLOJWithProject;
+
+CDynamicIndexScanTest:
+DynamicIndexScan-Homogenous DynamicIndexScan-BoolTrue DynamicIndexScan-BoolFalse
+DynamicIndexScan-Heterogenous-NoDTS DynamicIndexScan-Heterogenous-Union
+DynamicIndexScan-Heterogenous-Overlapping DynamicIndexScan-Heterogenous
+DynamicIndexScan-DefaultPartition DynamicIndexScan-DefaultPartition-2 DynamicIndexGetDroppedCols
+DynamicIndexScan-Homogenous-UnsupportedConstraint DynamicIndexScan-Heterogenous-UnsupportedConstraint
+DynamicIndexScan-Heterogenous-UnsupportedPredicate DynamicIndexScan-Heterogenous-PartSelectEquality
+DynamicIndexScan-Heterogenous-PartSelectRange DynamicIndexScan-OpenEndedPartitions
+DynamicIndexScan-Relabel DynamicIndexScan-DroppedColumns DynamicIndexGet-OuterRefs;
 
 CIndexScanOnLeafTest:
 IndexOnLeaf-AddNewPartitionToRootTableContainingHeterogenousIndex
@@ -250,6 +289,14 @@ AddRedistributeBeforeInsert-1 AddRedistributeBeforeInsert-2 AddRedistributeBefor
 AddRedistributeBeforeInsert-4 AddRedistributeBeforeInsert-5 DontAddRedistributeBeforeInsert-1
 DontAddRedistributeBeforeInsert-2;
 
+CGistIndexTest:
+Gist-AOCOTable-NonLossy-BitmapIndexPlan Gist-NonPart-Lossy-BitmapIndexPlan Gist-NonPart-Lossy-IndexPlan
+Gist-PartTable-Lossy-IndexPlan Gist-PartTable-NonLossy-BitmapIndexPlan Gist-PartialIndex-TableScan
+Gist-NestedLoopJoin-Lossy-IndexPlan Gist-NestedLoopJoin-Postgis-IndexPlan Gist-OrderBy-BitmapPlan Gist-OrderBy-IndexPlan;
+
+CGinIndexTest:
+GinIndex GinIndexPathOpfamily GinIndexSearchModeAll;
+
 CReplicatedTableTest:
 ReplicatedTableSelect ReplicatedTableInsert ReplicatedTable-CTAS
 ReplicatedHashJoinReplicated ReplicatedJoinHashDistributedTable
@@ -390,7 +437,7 @@ add_orca_test(CSubqueryTest)
 add_orca_test(CCollapseProjectTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
-# add_orca_test(CBitmapTest)
+add_orca_test(CBitmapTest)
 add_orca_test(CCTETest)
 add_orca_test(CEscapeMechanismTest)
 add_orca_test(CPhysicalParallelUnionAllTest)
