@@ -73,8 +73,6 @@ create_aocs_vpinfo(int nvp)
  */
 typedef struct AOCSFileSegInfo
 {
-	TupleVisibilitySummary tupleVisibilitySummary;
-
 	int32		segno;
 
 	/*

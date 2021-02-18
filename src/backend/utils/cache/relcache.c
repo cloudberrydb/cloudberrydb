@@ -100,7 +100,6 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"        /* Gp_role */
 #include "cdb/cdbsreh.h"
-#include "utils/visibility_summary.h"
 
 
 #define RELCACHE_INIT_FILEMAGIC		0x773266	/* version ID value */

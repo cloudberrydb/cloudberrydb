@@ -1839,17 +1839,6 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_status_per_segment TO public;
 
 CREATE FUNCTION gp_toolkit.__gp_aoseg_history(regclass)
 RETURNS TABLE(segment_id integer,
-    gp_tid tid,
-    gp_xmin integer,
-    gp_xmin_status text,
-    gp_xmin_commit_distrib_id text,
-    gp_xmax integer,
-    gp_xmax_status text,
-    gp_xmax_commit_distrib_id text,
-    gp_command_id integer,
-    gp_infomask text,
-    gp_update_tid tid,
-    gp_visibility text,
     segno integer,
     tupcount bigint,
     eof bigint,
@@ -1863,7 +1852,6 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_aoseg_history(regclass) TO public;
 
 CREATE FUNCTION gp_toolkit.__gp_aocsseg(regclass)
 RETURNS TABLE(segment_id integer,
-    gp_tid tid,
     segno integer,
     column_num smallint,
     physical_segno integer,
@@ -1879,17 +1867,6 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_aocsseg(regclass) TO public;
 
 CREATE FUNCTION gp_toolkit.__gp_aocsseg_history(regclass)
 RETURNS TABLE(segment_id integer,
-    gp_tid tid,
-    gp_xmin integer,
-    gp_xmin_status text,
-    gp_xmin_distrib_id text,
-    gp_xmax integer,
-    gp_xmax_status text,
-    gp_xmax_distrib_id text,
-    gp_command_id integer,
-    gp_infomask text,
-    gp_update_tid tid,
-    gp_visibility text,
     segno integer,
     column_num smallint,
     physical_segno integer,

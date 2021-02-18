@@ -59,7 +59,6 @@
 #include "access/heapam.h"
 #include "catalog/pg_type.h"
 #include "utils/builtins.h"
-#include "utils/visibility_summary.h"
 
 
 static AOCSFileSegInfo **GetAllAOCSFileSegInfo_pg_aocsseg_rel(
@@ -362,10 +361,6 @@ GetAllAOCSFileSegInfo_pg_aocsseg_rel(int numOfColumns,
 		aocs_seginfo = (AOCSFileSegInfo *) palloc0(aocsfileseginfo_size(nvp));
 
 		allseg[cur_seg] = aocs_seginfo;
-
-		GetTupleVisibilitySummary(
-								  tup,
-								  &aocs_seginfo->tupleVisibilitySummary);
 
 		heap_deform_tuple(tup, RelationGetDescr(pg_aocsseg_rel), d, null);
 
@@ -1168,28 +1163,26 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
 		/* build tupdesc for result tuples */
-		tupdesc = CreateTemplateTupleDesc(11);
+		tupdesc = CreateTemplateTupleDesc(10);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "segment_id",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "gp_tid",
-						   TIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "segno",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "segno",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "column_num",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "column_num",
 						   INT2OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "physical_segno",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "physical_segno",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "tupcount",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "tupcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "eof",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "eof",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "eof_uncompressed",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "eof_uncompressed",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "modcount",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "modcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "formatversion",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "formatversion",
 						   INT2OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 11, "state",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "state",
 						   INT2OID, -1, 0);
 
 		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
@@ -1248,8 +1241,8 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 	 */
 	while (true)
 	{
-		Datum		values[11];
-		bool		nulls[11];
+		Datum		values[10];
+		bool		nulls[10];
 		HeapTuple	tuple;
 		Datum		result;
 		struct AOCSFileSegInfo *aocsSegfile;
@@ -1302,16 +1295,15 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 		}
 
 		values[0] = Int32GetDatum(GpIdentity.segindex);
-		values[1] = ItemPointerGetDatum(&aocsSegfile->tupleVisibilitySummary.tid);
-		values[2] = Int32GetDatum(aocsSegfile->segno);
-		values[3] = Int16GetDatum(context->columnNum);
-		values[4] = Int32GetDatum(context->columnNum * AOTupleId_MultiplierSegmentFileNum + aocsSegfile->segno);
-		values[5] = Int64GetDatum(aocsSegfile->total_tupcount);
-		values[6] = Int64GetDatum(eof);
-		values[7] = Int64GetDatum(eof_uncompressed);
-		values[8] = Int64GetDatum(aocsSegfile->modcount);
-		values[9] = Int16GetDatum(aocsSegfile->formatversion);
-		values[10] = Int16GetDatum(aocsSegfile->state);
+		values[1] = Int32GetDatum(aocsSegfile->segno);
+		values[2] = Int16GetDatum(context->columnNum);
+		values[3] = Int32GetDatum(context->columnNum * AOTupleId_MultiplierSegmentFileNum + aocsSegfile->segno);
+		values[4] = Int64GetDatum(aocsSegfile->total_tupcount);
+		values[5] = Int64GetDatum(eof);
+		values[6] = Int64GetDatum(eof_uncompressed);
+		values[7] = Int64GetDatum(aocsSegfile->modcount);
+		values[8] = Int16GetDatum(aocsSegfile->formatversion);
+		values[9] = Int16GetDatum(aocsSegfile->state);
 
 		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
 		result = HeapTupleGetDatum(tuple);
@@ -1381,48 +1373,26 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
 		/* build tupdesc for result tuples */
-		tupdesc = CreateTemplateTupleDesc(21);
+		tupdesc = CreateTemplateTupleDesc(10);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "segment_id",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "gp_tid",
-						   TIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "gp_xmin",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "segno",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "gp_xmin_status",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "gp_xmin_distrib_id",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "gp_xmax",
-						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "gp_xmax_status",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "gp_xmax_distrib_id",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "gp_command_id",
-						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "gp_infomask",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 11, "gp_update_tid",
-						   TIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 12, "gp_visibility",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 13, "segno",
-						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 14, "column_num",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "column_num",
 						   INT2OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 15, "physical_segno",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "physical_segno",
 						   INT4OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 16, "tupcount",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "tupcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 17, "eof",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "eof",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 18, "eof_uncompressed",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "eof_uncompressed",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 19, "modcount",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "modcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 20, "formatversion",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "formatversion",
 						   INT2OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 21, "state",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "state",
 						   INT2OID, -1, 0);
 
 		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
@@ -1484,8 +1454,8 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 	 */
 	while (true)
 	{
-		Datum		values[21];
-		bool		nulls[21];
+		Datum		values[10];
+		bool		nulls[10];
 		HeapTuple	tuple;
 		Datum		result;
 		struct AOCSFileSegInfo *aocsSegfile;
@@ -1538,19 +1508,15 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 		}
 
 		values[0] = Int32GetDatum(GpIdentity.segindex);
-		GetTupleVisibilitySummaryDatums(&values[1],
-										&nulls[1],
-										&aocsSegfile->tupleVisibilitySummary);
-
-		values[12] = Int32GetDatum(aocsSegfile->segno);
-		values[13] = Int16GetDatum(context->columnNum);
-		values[14] = Int32GetDatum(context->columnNum * AOTupleId_MultiplierSegmentFileNum + aocsSegfile->segno);
-		values[15] = Int64GetDatum(aocsSegfile->total_tupcount);
-		values[16] = Int64GetDatum(eof);
-		values[17] = Int64GetDatum(eof_uncompressed);
-		values[18] = Int64GetDatum(aocsSegfile->modcount);
-		values[19] = Int16GetDatum(aocsSegfile->formatversion);
-		values[20] = Int16GetDatum(aocsSegfile->state);
+		values[1] = Int32GetDatum(aocsSegfile->segno);
+		values[2] = Int16GetDatum(context->columnNum);
+		values[3] = Int32GetDatum(context->columnNum * AOTupleId_MultiplierSegmentFileNum + aocsSegfile->segno);
+		values[4] = Int64GetDatum(aocsSegfile->total_tupcount);
+		values[5] = Int64GetDatum(eof);
+		values[6] = Int64GetDatum(eof_uncompressed);
+		values[7] = Int64GetDatum(aocsSegfile->modcount);
+		values[8] = Int16GetDatum(aocsSegfile->formatversion);
+		values[9] = Int16GetDatum(aocsSegfile->state);
 
 		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
 		result = HeapTupleGetDatum(tuple);
