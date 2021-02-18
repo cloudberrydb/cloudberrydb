@@ -296,13 +296,13 @@ class GPCatalog():
         # -------------
         
         # pg_class:
-        #   - relfilenode should generally be consistent, but may not be (jira?)
+        #   - relfilenode is not consistent across nodes
         #   - relpages/reltuples/relfrozenxid/relminmxid are all vacumm/analyze related
-        #   - relhasindex/relhaspkey are only cleared when vacuum completes
+        #   - relhasindex/relhasrules/relhastriggers are only cleared when vacuum completes
         #   - relowner has its own checks:
         #       => may want to separate out "owner" columns like acl and oid
         self._tables['pg_class']._setKnownDifferences(
-            "relfilenode relpages reltuples relhasindex relhaspkey relowner relfrozenxid relminmxid relallvisible")
+            "relowner relfilenode relpages reltuples relallvisible relhasindex relhasrules relhastriggers relfrozenxid relminmxid")
 
         # pg_type: typowner has its own checks:
         #       => may want to separate out "owner" columns like acl and oid
