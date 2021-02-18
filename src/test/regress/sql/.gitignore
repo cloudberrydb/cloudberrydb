@@ -14,8 +14,8 @@
 /aocs.sql
 /appendonly.sql
 /auth_constraint.sql
-/autovacuum-template0.sql
 /autovacuum-template0-segment.sql
+/autovacuum.sql
 /bb_memory_quota.sql
 /bb_mpph.sql
 /collect_tabstat.sql

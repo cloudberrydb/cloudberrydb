@@ -269,7 +269,7 @@ test: oid_wraparound
 # hence it should be run in isolation.
 test: fts_recovery_in_progress
 test: mirror_replay
-test: autovacuum-template0
+test: autovacuum
 test: autovacuum-template0-segment
 
 # gpexpand introduce the partial tables, check them if they can run correctly

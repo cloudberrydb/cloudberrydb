@@ -1717,9 +1717,11 @@ AutoVacWorkerMain(int argc, char *argv[])
 		ereport(LOG,
 				(errmsg("autovacuum: processing database \"%s\"", dbname)));
 
+#ifdef FAULT_INJECTOR
 		FaultInjector_InjectFaultIfSet(
 			"auto_vac_worker_before_do_autovacuum", DDLNotSpecified,
 			dbname, "");
+#endif
 
 		if (PostAuthDelay)
 			pg_usleep(PostAuthDelay * 1000000L);

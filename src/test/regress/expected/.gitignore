@@ -14,7 +14,7 @@
 /aocs.out
 /appendonly.out
 /auth_constraint.out
-/autovacuum-template0.out
+/autovacuum.out
 /autovacuum-template0-segment.out
 /bb_memory_quota.out
 /bb_mpph.out

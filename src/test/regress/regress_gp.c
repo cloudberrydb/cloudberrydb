@@ -1948,7 +1948,7 @@ find_plan(char *ident, EPlan ** eplan, int *nplans)
 /*
  * test_consume_xids(int4), for rapidly consuming XIDs, to test wraparound.
  *
- * Used by the 'autovacuum-template0' test.
+ * Used by the 'autovacuum' test.
  */
 PG_FUNCTION_INFO_V1(test_consume_xids);
 Datum
