@@ -72,6 +72,7 @@
 #include "access/tableam.h"
 #include "access/transam.h"
 #include "access/xact.h"
+#include "catalog/catalog.h"
 #include "catalog/dependency.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_database.h"
@@ -1219,17 +1220,10 @@ do_start_worker(void)
 		avw_dbase  *tmp = lfirst(cell);
 		dlist_iter	iter;
 
-		/* Check to see if this one is at risk of wraparound
-		 *
-		 * GPDB enable auto-analyze on master, and currently only template0
-		 * need to deal with the xid wrap around. So ignore other dbs for
-		 * the wraparound check.
-		 */
-		if (!tmp->adw_allowconn &&
-			TransactionIdPrecedes(tmp->adw_frozenxid, xidForceLimit))
+		/* Check to see if this one is at risk of wraparound */
+		if (TransactionIdPrecedes(tmp->adw_frozenxid, xidForceLimit))
 		{
 			if (avdb == NULL ||
-				avdb->adw_allowconn ||  /* GPDB: only do anti-wraparound for !datallowconn databases */
 				TransactionIdPrecedes(tmp->adw_frozenxid,
 									  avdb->adw_frozenxid))
 				avdb = tmp;
@@ -1238,11 +1232,9 @@ do_start_worker(void)
 		}
 		else if (for_xid_wrap)
 			continue;			/* ignore not-at-risk DBs */
-		else if (!tmp->adw_allowconn &&
-				 MultiXactIdPrecedes(tmp->adw_minmulti, multiForceLimit))
+		else if (MultiXactIdPrecedes(tmp->adw_minmulti, multiForceLimit))
 		{
 			if (avdb == NULL ||
-				avdb->adw_allowconn ||  /* GPDB: only do anti-wraparound for !datallowconn databases */
 				MultiXactIdPrecedes(tmp->adw_minmulti, avdb->adw_minmulti))
 				avdb = tmp;
 			for_multi_wrap = true;
@@ -1942,19 +1934,6 @@ get_database_list(void)
 		 * not called in a potentially long-lived context.
 		 */
 		oldcxt = MemoryContextSwitchTo(resultcxt);
-
-		/*
-		 * In GPDB, autovacuum is currently disabled, except for the
-		 * anti-wraparound vacuum of template0 (and any other databases
-		 * with !datallowconn). The administrator is expected to do all
-		 * VACUUMing manually, except for template0, which you cannot
-		 * VACUUM manually because you cannot connect to it.
-		 * 
-		 * If autovacuum on the master is enabled, it means that we also want to do 
-		 * autoanalyze work for databases whose datallowconn is true.
-		 */
-		if (!(IS_QUERY_DISPATCHER() && AutoVacuumingActive()) && pgdatabase->datallowconn)
-			continue;
 
 		avdb = (avw_dbase *) palloc(sizeof(avw_dbase));
 
@@ -3178,11 +3157,6 @@ relation_needs_vacanalyze(Oid relid,
 	/* Only wish to trigger auto-analyze from coordinator */
 	if (Gp_role != GP_ROLE_DISPATCH)
 		*doanalyze = false;
-	else
-	{
-		*dovacuum = false;
-		*wraparound = false;
-	}
 
 	/*
 	 * There are a lot of things to do to enable auto-ANALYZE for partition tables,
@@ -3193,6 +3167,18 @@ relation_needs_vacanalyze(Oid relid,
 	{
 		if (get_rel_relkind(relid) == RELKIND_PARTITIONED_TABLE)
 			*doanalyze = false;
+	}
+
+	/*
+	 * GPDB: Autovacuum VACUUM is only enabled for catalog tables. In this
+	 * case we include tables in information_schema namespace.  (But ignore if
+	 * at risk of wrap around and proceed to vacuum)
+	 */
+	if (*dovacuum && !IsSystemClass(relid, classForm) &&
+		strcmp(get_namespace_name(classForm->relnamespace), "information_schema") != 0 &&
+		!force_vacuum)
+	{
+		*dovacuum = false;
 	}
 }
 
@@ -3314,14 +3300,6 @@ bool
 AutoVacuumingActive(void)
 {
 	if (!autovacuum_start_daemon || !pgstat_track_counts)
-		return false;
-
-	/*
-	 * GPDB: only wish to spawn autovacuum launcher process on
-	 * Co-ordinator. Hence, return false for segments. This code is present to
-	 * make "autovacuum" GUC no-op for segments.
-	 */
-	if (!IS_QUERY_DISPATCHER())
 		return false;
 	return true;
 }
