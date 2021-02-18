@@ -211,8 +211,6 @@ typedef struct autovac_table
  * wi_dboid		OID of the database this worker is supposed to work on
  * wi_tableoid	OID of the table currently being vacuumed, if any
  * wi_sharedrel flag indicating whether table is marked relisshared
- * wi_for_analyze true means that we should do only analyze for wi_dboid.
- *                false means that we should do only vacuum for wi_dboid.
  * wi_proc		pointer to PGPROC of the running worker, NULL if not started
  * wi_launchtime Time at which this worker was launched
  * wi_cost_*	Vacuum cost-based delay parameters current in this worker
@@ -231,7 +229,6 @@ typedef struct WorkerInfoData
 	TimestampTz wi_launchtime;
 	bool		wi_dobalance;
 	bool		wi_sharedrel;
-	bool		wi_for_analyze;  /* GPDB only */
 	double		wi_cost_delay;
 	int			wi_cost_limit;
 	int			wi_cost_limit_base;
@@ -1321,7 +1318,6 @@ do_start_worker(void)
 
 		worker = dlist_container(WorkerInfoData, wi_links, wptr);
 		worker->wi_dboid = avdb->adw_datid;
-		worker->wi_for_analyze = avdb->adw_allowconn;
 		worker->wi_proc = NULL;
 		worker->wi_launchtime = GetCurrentTimestamp();
 
@@ -1538,24 +1534,14 @@ AutoVacWorkerMain(int argc, char *argv[])
 {
 	sigjmp_buf	local_sigjmp_buf;
 	Oid			dbid;
-	bool		for_analyze = false;
-	GpRoleValue	orig_role;
 
 	am_autovacuum_worker = true;
 
 	/* MPP-4990: Autovacuum always runs as utility-mode */
-	Gp_role = GP_ROLE_UTILITY;
-	if (IS_QUERY_DISPATCHER() && AutoVacuumingActive())
-	{
-		/*
-		 * Gp_role for the current autovacuum worker should be determined by wi_for_analyze. 
-		 * But we don't know the value of wi_for_analyze now, so we set Gp_role to 
-		 * GP_ROLE_DISPATCH first. Gp_role will switch to GP_ROLE_UTILITY as needed 
-		 * after we get the wi_for_analyze.
-		 */
+	if (IS_QUERY_DISPATCHER())
 		Gp_role = GP_ROLE_DISPATCH;
-	}
-	orig_role = Gp_role;
+	else
+		Gp_role = GP_ROLE_UTILITY;
 
 	/* Identify myself via ps */
 	init_ps_display(pgstat_get_backend_desc(B_AUTOVAC_WORKER), "", "", "");
@@ -1611,7 +1597,6 @@ AutoVacWorkerMain(int argc, char *argv[])
 	 */
 	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
 	{
-		Gp_role = orig_role;
 		/* Prevents interrupts while cleaning up */
 		HOLD_INTERRUPTS();
 
@@ -1687,7 +1672,6 @@ AutoVacWorkerMain(int argc, char *argv[])
 	{
 		MyWorkerInfo = AutoVacuumShmem->av_startingWorker;
 		dbid = MyWorkerInfo->wi_dboid;
-		for_analyze = MyWorkerInfo->wi_for_analyze;
 		MyWorkerInfo->wi_proc = MyProc;
 
 		/* insert into the running list */
@@ -1752,15 +1736,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 		recentXid = ReadNewTransactionId();
 		recentMulti = ReadNextMultiXactId();
 
-		AssertImply(!IS_QUERY_DISPATCHER(), for_analyze == false);
-		AssertImply(for_analyze, IS_QUERY_DISPATCHER());
-		if (!for_analyze && orig_role == GP_ROLE_DISPATCH)
-			Gp_role = GP_ROLE_UTILITY;
-
 		do_autovacuum();
-
-		if (!for_analyze && orig_role == GP_ROLE_DISPATCH)
-			Gp_role = orig_role;
 	}
 
 	/*
@@ -1803,7 +1779,6 @@ FreeWorkerInfo(int code, Datum arg)
 		MyWorkerInfo->wi_proc = NULL;
 		MyWorkerInfo->wi_launchtime = 0;
 		MyWorkerInfo->wi_dobalance = false;
-		MyWorkerInfo->wi_for_analyze = false;
 		MyWorkerInfo->wi_cost_delay = 0;
 		MyWorkerInfo->wi_cost_limit = 0;
 		MyWorkerInfo->wi_cost_limit_base = 0;
@@ -3088,14 +3063,12 @@ relation_needs_vacanalyze(Oid relid,
 	int			multixact_freeze_max_age;
 	TransactionId xidForceLimit;
 	MultiXactId multiForceLimit;
-	bool		for_analyze;
 
 	/*
 	 * We don't need to hold AutovacuumLock here, since it should be read-only in the worker itself
 	 * once the MyWorkerInfo gets set, all the workers only care about its own value.
 	 */
 	Assert(MyWorkerInfo);
-	for_analyze = MyWorkerInfo->wi_for_analyze;
 
 	AssertArg(classForm != NULL);
 	AssertArg(OidIsValid(relid));
@@ -3202,11 +3175,8 @@ relation_needs_vacanalyze(Oid relid,
 	if (relid == StatisticRelationId)
 		*doanalyze = false;
 
-	/*
-	 * The Gp_role will be GP_ROLE_UTILITY when for_analyze is false, and do ANALYZE
-	 * in utility mode is useless, so just disable analyze here.
-	 */
-	if (!for_analyze)
+	/* Only wish to trigger auto-analyze from coordinator */
+	if (Gp_role != GP_ROLE_DISPATCH)
 		*doanalyze = false;
 	else
 	{
@@ -3221,7 +3191,6 @@ relation_needs_vacanalyze(Oid relid,
 	 */
 	if (*doanalyze)
 	{
-		Assert(for_analyze && Gp_role == GP_ROLE_DISPATCH);
 		if (get_rel_relkind(relid) == RELKIND_PARTITIONED_TABLE)
 			*doanalyze = false;
 	}

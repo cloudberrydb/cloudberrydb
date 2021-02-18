@@ -2457,7 +2457,12 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		vacuum_rel(aovisimap_relid, NULL, params, true);
 	params->options = orig_option;
 
+	/*
+	 * Don't dispatch auto-vacuum. Each segment performs auto-vacuum as per
+	 * its own need.
+	 */
 	if (Gp_role == GP_ROLE_DISPATCH && !recursing &&
+		!IsAutoVacuumWorkerProcess() &&
 		(!is_appendoptimized || ao_vacuum_phase))
 	{
 		VacuumStatsContext stats_context;
