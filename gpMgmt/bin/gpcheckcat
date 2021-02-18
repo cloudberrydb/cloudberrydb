@@ -1280,7 +1280,7 @@ def checkTableMissingEntry(cat):
 
     # Skip catalogs without primary key
     if len(pkey) == 0:
-        logger.warn("[WARN] Skipped missing/extra entry check for %s" % catname)
+        logger.warning("[WARN] Skipped missing/extra entry check for %s" % catname)
         return
 
     castedPkey = cat.getPrimaryKey()
@@ -1526,7 +1526,7 @@ def checkTableInconsistentEntry(cat):
 
     # Skip catalogs without primary key
     if pkey == []:
-        logger.warn("[WARN] Skipped cross consistency check for %s" %
+        logger.warning("[WARN] Skipped cross consistency check for %s" %
                     catname)
         return
 
@@ -1680,7 +1680,7 @@ def checkTableDuplicateEntry(cat):
 
     # Skip catalogs without primary key
     if pkey == []:
-        logger.warn("[WARN] Skipped duplicate check for %s" %
+        logger.warning("[WARN] Skipped duplicate check for %s" %
                     catname)
         return
 
@@ -2079,7 +2079,7 @@ def runAllChecks():
         print_repair_issues(repair_dir_path)
 
     if GV.retcode >= ERROR_NOREPAIR:
-        logger.warn('[WARN]: unable to generate repairs for some issues')
+        logger.warning('[WARN]: unable to generate repairs for some issues')
     logger.info("Check complete")
 
 
