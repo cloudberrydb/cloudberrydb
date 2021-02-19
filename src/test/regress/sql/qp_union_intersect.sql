@@ -272,7 +272,7 @@ set optimizer=off;
 SELECT COUNT(*) FROM (SELECT dml_union_r.* FROM dml_union_r INTERSECT (SELECT dml_union_r.* FROM dml_union_r UNION ALL SELECT dml_union_s.* FROM dml_union_s) EXCEPT SELECT dml_union_s.* FROM dml_union_s)foo;
 INSERT INTO dml_union_r SELECT dml_union_r.* FROM dml_union_r INTERSECT (SELECT dml_union_r.* FROM dml_union_r UNION ALL SELECT dml_union_s.* FROM dml_union_s) EXCEPT SELECT dml_union_s.* FROM dml_union_s;
 SELECT COUNT(*) FROM dml_union_r;
-set optimizer=on;
+reset optimizer;
 rollback;
 
 -- @description union_test30: INSERT NON ATOMICS with union/intersect/except

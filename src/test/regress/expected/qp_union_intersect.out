@@ -667,7 +667,7 @@ SELECT COUNT(*) FROM dml_union_r;
    221
 (1 row)
 
-set optimizer=on;
+reset optimizer;
 rollback;
 -- @description union_test30: INSERT NON ATOMICS with union/intersect/except
 begin;
