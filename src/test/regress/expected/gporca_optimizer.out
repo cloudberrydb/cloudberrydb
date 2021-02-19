@@ -13633,6 +13633,7 @@ DETAIL:  Feature not supported: Partitioned table with heterogeneous storage typ
 (10 rows)
 
 -- negative test, make sure we don't use a btree scan on an AO table
+-- start_ignore
 select disable_xform('CXformSelect2BitmapBoolOp');
              disable_xform             
 ---------------------------------------
@@ -13656,7 +13657,7 @@ select disable_xform('CXformInnerJoin2NLJoin');
 ------------------------------------
  CXformInnerJoin2NLJoin is disabled
 (1 row)
-
+-- end_ignore
 -- Make sure we don't allow a regular (btree) index scan or index join for an AO table
 -- We disabled hash join, and bitmap index joins, NLJs, so this should leave ORCA no other choices
 -- expect a sequential scan, not an index scan, from these two queries
@@ -13699,6 +13700,7 @@ DETAIL:  Feature not supported: Partitioned table with heterogeneous storage typ
  1 | 1 | 1 | 1
 (1 row)
 
+-- start_ignore
 select enable_xform('CXformSelect2BitmapBoolOp');
              enable_xform             
 --------------------------------------
@@ -13722,7 +13724,7 @@ select enable_xform('CXformInnerJoin2NLJoin');
 -----------------------------------
  CXformInnerJoin2NLJoin is enabled
 (1 row)
-
+-- end_ignore
 reset optimizer_enable_hashjoin;
 reset optimizer_trace_fallback;
 -- Tests converted from MDPs that use tables partitioned on text columns and similar types,

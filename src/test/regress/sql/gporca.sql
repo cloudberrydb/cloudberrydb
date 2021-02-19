@@ -2942,10 +2942,12 @@ explain (costs off) select * from tpart_dim d join t_ao_btree f on d.a=f.a where
 explain (costs off) select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
 
 -- negative test, make sure we don't use a btree scan on an AO table
+-- start_ignore
 select disable_xform('CXformSelect2BitmapBoolOp');
 select disable_xform('CXformSelect2DynamicBitmapBoolOp');
 select disable_xform('CXformJoin2BitmapIndexGetApply');
 select disable_xform('CXformInnerJoin2NLJoin');
+-- end_ignore
 
 -- Make sure we don't allow a regular (btree) index scan or index join for an AO table
 -- We disabled hash join, and bitmap index joins, NLJs, so this should leave ORCA no other choices
@@ -2956,10 +2958,12 @@ explain (costs off) select * from tpart_ao_btree where a = 3 and b = 3;
 select * from tpart_dim d join t_ao_btree f on d.a=f.a where d.b=1;
 select * from tpart_dim d join tpart_ao_btree f on d.a=f.a where d.b=1;
 
+-- start_ignore
 select enable_xform('CXformSelect2BitmapBoolOp');
 select enable_xform('CXformSelect2DynamicBitmapBoolOp');
 select enable_xform('CXformJoin2BitmapIndexGetApply');
 select enable_xform('CXformInnerJoin2NLJoin');
+-- end_ignore
 reset optimizer_enable_hashjoin;
 reset optimizer_trace_fallback;
 
