@@ -71,9 +71,6 @@ private:
 		EicIncluded
 	};
 
-	// private copy ctor
-	CXformUtils(const CXformUtils &);
-
 	// create a logical assert for the not nullable columns of the given table
 	// on top of the given child expression
 	static CExpression *PexprAssertNotNull(CMemoryPool *mp,
@@ -86,18 +83,6 @@ private:
 													CExpression *pexprChild,
 													CTableDescriptor *ptabdesc,
 													CColRefArray *colref_array);
-
-	// add a min(col) project element to the given expression list for
-	// each column in the given column array
-	static void AddMinAggs(CMemoryPool *mp, CMDAccessor *md_accessor,
-						   CColumnFactory *col_factory,
-						   CColRefArray *colref_array,
-						   ColRefToColRefMap *phmcrcr,
-						   CExpressionArray *pdrgpexpr,
-						   CColRefArray **ppdrgpcrNew);
-
-	// check if all columns support MIN aggregate
-	static BOOL FSupportsMinAgg(CColRefArray *colref_array);
 
 	// helper for extracting foreign key
 	static CColRefSet *PcrsFKey(CMemoryPool *mp, CExpressionArray *pdrgpexpr,
@@ -239,16 +224,6 @@ private:
 			pexprResidualCond);
 	}
 
-	// returns true iff the given expression is a Not operator whose child is a
-	// scalar identifier
-	static BOOL FNotIdent(CExpression *pexpr);
-
-	// creates a condition of the form col = value, where col is the given column
-	static CExpression *PexprEqualityOnBoolColumn(CMemoryPool *mp,
-												  CMDAccessor *md_accessor,
-												  BOOL fNegated,
-												  CColRef *colref);
-
 	// construct a bitmap index path expression for the given predicate
 	// out of the children of the given expression
 	static CExpression *PexprBitmapLookupWithPredicateBreakDown(
@@ -263,11 +238,6 @@ private:
 	static void ComputeBitmapTableScanResidualPredicate(
 		CMemoryPool *mp, BOOL fConjunction, CExpression *pexprOriginalPred,
 		CExpression **ppexprResidual, CExpressionArray *pdrgpexprResidualNew);
-
-	// compute a disjunction of two part constraints
-	static CPartConstraint *PpartcnstrDisjunction(
-		CMemoryPool *mp, CPartConstraint *ppartcnstrOld,
-		CPartConstraint *ppartcnstrNew);
 
 	// construct a bitmap index path expression for the given predicate coming
 	// from a condition without outer references
@@ -286,6 +256,8 @@ private:
 	static INT ICmpPrjElemsArr(const void *pvFst, const void *pvSnd);
 
 public:
+	CXformUtils(const CXformUtils &) = delete;
+
 	// helper function for implementation xforms on binary operators
 	// with predicates (e.g. joins)
 	template <class T>
@@ -411,13 +383,6 @@ public:
 											   CExpression *pexprChild,
 											   CTableDescriptor *ptabdesc,
 											   CColRefArray *colref_array);
-
-	// create a logical assert for checking cardinality of update values
-	static CExpression *PexprAssertUpdateCardinality(CMemoryPool *mp,
-													 CExpression *pexprDMLChild,
-													 CExpression *pexprDML,
-													 CColRef *pcrCtid,
-													 CColRef *pcrSegmentId);
 
 	// return true if stats derivation is needed for this xform
 	static BOOL FDeriveStatsBeforeXform(CXform *pxform);
@@ -568,16 +533,6 @@ public:
 	// over bitmap bool op
 	static CExpression *PexprSelect2BitmapBoolOp(CMemoryPool *mp,
 												 CExpression *pexpr);
-
-	// compute the newly covered part constraint based on the old covered part
-	// constraint and the given part constraint
-	static CPartConstraint *PpartcnstrUpdateCovered(
-		CMemoryPool *mp, CMDAccessor *md_accessor,
-		CExpressionArray *pdrgpexprScalar, CPartConstraint *ppartcnstrCovered,
-		CPartConstraint *ppartcnstr, CColRefArray *pdrgpcrOutput,
-		CExpressionArray *pdrgpexprIndex, CExpressionArray *pdrgpexprResidual,
-		const IMDRelation *pmdrel, const IMDIndex *pmdindex,
-		CColRefSet *pcrsAcceptedOuterRefs);
 
 	// remap the expression from the old columns to the new ones
 	static CExpression *PexprRemapColumns(CMemoryPool *mp,
