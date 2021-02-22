@@ -94,7 +94,7 @@ private:
 	// add column as a new equivalence class, if it is not already in one of the
 	// existing equivalence classes
 	static void AddColumnToEquivClasses(CMemoryPool *mp, const CColRef *colref,
-										CColRefSetArray **ppdrgpcrs);
+										CColRefSetArray *pdrgpcrs);
 
 	// create constraint from scalar comparison
 	static CConstraint *PcnstrFromScalarCmp(CMemoryPool *mp, CExpression *pexpr,

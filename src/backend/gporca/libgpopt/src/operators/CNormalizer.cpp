@@ -1274,7 +1274,7 @@ CNormalizer::PexprPullUpAndCombineProjects(
 		{
 			// this child is a project - see if any project elements can be pulled up
 			CExpression *pexprNewChild = PexprPullUpProjectElements(
-				mp, pexprChild, pcrsUsed, pcrsOutput, &pdrgpexprPrElPullUp);
+				mp, pexprChild, pcrsUsed, pcrsOutput, pdrgpexprPrElPullUp);
 
 			pexprChild->Release();
 			pexprChild = pexprNewChild;
@@ -1353,15 +1353,14 @@ CExpression *
 CNormalizer::PexprPullUpProjectElements(
 	CMemoryPool *mp, CExpression *pexpr, CColRefSet *pcrsUsed,
 	CColRefSet *pcrsOutput,
-	CExpressionArray *
-		*ppdrgpexprPrElPullUp  // output: the pulled-up project elements
+	CExpressionArray
+		*pdrgpexprPrElPullUp  // output: the pulled-up project elements
 )
 {
 	GPOS_ASSERT(nullptr != pexpr);
 	GPOS_ASSERT(COperator::EopLogicalProject == pexpr->Pop()->Eopid());
 	GPOS_ASSERT(nullptr != pcrsUsed);
-	GPOS_ASSERT(nullptr != ppdrgpexprPrElPullUp);
-	GPOS_ASSERT(nullptr != *ppdrgpexprPrElPullUp);
+	GPOS_ASSERT(nullptr != pdrgpexprPrElPullUp);
 
 	if (2 != pexpr->Arity())
 	{
@@ -1392,7 +1391,7 @@ CNormalizer::PexprPullUpProjectElements(
 			pcrsOutput->ContainsAll(pcrsUsedByProjElem) &&
 			!pexprPrEl->DeriveHasNonScalarFunction())
 		{
-			(*ppdrgpexprPrElPullUp)->Append(pexprPrEl);
+			pdrgpexprPrElPullUp->Append(pexprPrEl);
 		}
 		else
 		{

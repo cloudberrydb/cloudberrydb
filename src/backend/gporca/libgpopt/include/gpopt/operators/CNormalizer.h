@@ -136,7 +136,7 @@ private:
 	// exist in the given used columns set
 	static CExpression *PexprPullUpProjectElements(
 		CMemoryPool *mp, CExpression *pexpr, CColRefSet *pcrsUsed,
-		CColRefSet *pcrsOutput, CExpressionArray **ppdrgpexprPrElPullUp);
+		CColRefSet *pcrsOutput, CExpressionArray *pdrgpexprPrElPullUp);
 
 #ifdef GPOS_DEBUG
 	// check if the columns used by the operator are a subset of its input columns
