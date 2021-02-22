@@ -517,20 +517,23 @@ CMDAccessor::GetImdObj(IMDId *mdid)
 			{
 				timerFetch.Restart();
 			}
-			CAutoP<CWStringBase> a_pstr;
-			a_pstr = pmdp->GetMDObjDXLStr(m_mp, this, mdid);
 
-			GPOS_ASSERT(nullptr != a_pstr.Value());
+			// Any object to be inserted into the MD cache must be allocated in the
+			// different memory pool, so that it is not destroyed at the end of the
+			// query. Since the mdid passed to GetMDObj() may be saved in the object,
+			// make a copy of it here in the right memory pool.
+			// An exception is made for CTAS (see below).
 			CMemoryPool *mp = m_mp;
-
+			IMDId *mdidCopy = mdid;
 			if (IMDId::EmdidGPDBCtas != mdid->MdidType())
 			{
 				// create the accessor memory pool
 				mp = a_pmdcacc->Pmp();
+				mdidCopy = mdid->Copy(mp);
+				GPOS_ASSERT(mdidCopy->Equals(mdid));
 			}
 
-			pmdobjNew = gpdxl::CDXLUtils::ParseDXLToIMDIdCacheObj(
-				mp, a_pstr.Value(), nullptr /* XSD path */);
+			pmdobjNew = pmdp->GetMDObj(mp, this, mdidCopy);
 			GPOS_ASSERT(nullptr != pmdobjNew);
 
 			if (fPrintOptStats)

@@ -161,6 +161,9 @@ public:
 	}
 
 	virtual gpos::IOstream &OsPrint(gpos::IOstream &os) const = 0;
+
+	// make a copy in the given memory pool
+	virtual IMDId *Copy(CMemoryPool *mp) const = 0;
 };
 
 // common structures over metadata id elements

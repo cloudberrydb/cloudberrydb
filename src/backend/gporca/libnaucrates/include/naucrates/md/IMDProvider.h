@@ -50,6 +50,10 @@ public:
 										 CMDAccessor *md_accessor,
 										 IMDId *mdid) const = 0;
 
+	// return the requested metadata object
+	virtual IMDCacheObject *GetMDObj(CMemoryPool *mp, CMDAccessor *md_accessor,
+									 IMDId *mdid) const = 0;
+
 	// return the mdid for the specified system id and type
 	virtual IMDId *MDId(CMemoryPool *mp, CSystemId sysid,
 						IMDType::ETypeInfo type_info) const = 0;

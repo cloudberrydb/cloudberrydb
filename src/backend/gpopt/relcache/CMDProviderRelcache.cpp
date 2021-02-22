@@ -66,4 +66,16 @@ CMDProviderRelcache::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 	return str;
 }
 
+// return the requested metadata object
+IMDCacheObject *
+CMDProviderRelcache::GetMDObj(CMemoryPool *mp, CMDAccessor *md_accessor,
+							  IMDId *mdid) const
+{
+	IMDCacheObject *md_obj =
+		CTranslatorRelcacheToDXL::RetrieveObject(mp, md_accessor, mdid);
+	GPOS_ASSERT(nullptr != md_obj);
+
+	return md_obj;
+}
+
 // EOF

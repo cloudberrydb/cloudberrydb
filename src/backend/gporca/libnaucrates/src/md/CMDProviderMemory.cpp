@@ -225,4 +225,21 @@ CMDProviderMemory::MDId(CMemoryPool *mp, CSystemId sysid,
 	return GetGPDBTypeMdid(mp, sysid, type_info);
 }
 
+// return the requested metadata object
+IMDCacheObject *
+CMDProviderMemory::GetMDObj(CMemoryPool *mp, CMDAccessor *md_accessor,
+							IMDId *mdid) const
+{
+	CAutoP<CWStringBase> a_pstr;
+	a_pstr = GetMDObjDXLStr(mp, md_accessor, mdid);
+
+	GPOS_ASSERT(nullptr != a_pstr.Value());
+
+	IMDCacheObject *pmdobjNew = gpdxl::CDXLUtils::ParseDXLToIMDIdCacheObj(
+		mp, a_pstr.Value(), nullptr /* XSD path */);
+	GPOS_ASSERT(nullptr != pmdobjNew);
+
+	return pmdobjNew;
+}
+
 // EOF

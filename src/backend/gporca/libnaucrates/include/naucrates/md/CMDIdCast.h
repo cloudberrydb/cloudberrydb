@@ -126,6 +126,15 @@ public:
 
 		return dynamic_cast<CMDIdCast *>(mdid);
 	}
+
+	// make a copy in the given memory pool
+	IMDId *
+	Copy(CMemoryPool *mp) const override
+	{
+		CMDIdGPDB *mdid_src = CMDIdGPDB::CastMdid(m_mdid_src->Copy(mp));
+		CMDIdGPDB *mdid_dest = CMDIdGPDB::CastMdid(m_mdid_dest->Copy(mp));
+		return GPOS_NEW(mp) CMDIdCast(mdid_src, mdid_dest);
+	}
 };
 }  // namespace gpmd
 

@@ -61,6 +61,10 @@ public:
 	CWStringBase *GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 								 IMDId *md_id) const override;
 
+	// return the requested metadata object
+	IMDCacheObject *GetMDObj(CMemoryPool *mp, CMDAccessor *md_accessor,
+							 IMDId *mdid) const override;
+
 	// return the mdid for the requested type
 	IMDId *
 	MDId(CMemoryPool *mp, CSystemId sysid,

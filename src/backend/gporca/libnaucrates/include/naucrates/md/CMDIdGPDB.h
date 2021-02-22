@@ -141,6 +141,12 @@ public:
 		return dynamic_cast<CMDIdGPDB *>(mdid);
 	}
 
+	IMDId *
+	Copy(CMemoryPool *mp) const override
+	{
+		return GPOS_NEW(mp) CMDIdGPDB(*this);
+	}
+
 	// invalid mdid
 	static CMDIdGPDB m_mdid_invalid_key;
 
