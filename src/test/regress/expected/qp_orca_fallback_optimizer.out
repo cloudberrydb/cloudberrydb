@@ -128,7 +128,7 @@ PARTITION BY range(b)
 (START(0) END(4) EVERY(2));
 INSERT INTO homer VALUES (1,0,40),(2,1,43),(3,2,41),(4,3,44);
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: PartitionSelector not supported
+DETAIL:  Feature not supported: Multi-level partitioned tables
 SELECT * FROM ONLY homer;
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  Feature not supported: ONLY in the FROM clause

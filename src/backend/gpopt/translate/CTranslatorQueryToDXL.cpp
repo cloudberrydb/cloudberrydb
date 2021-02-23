@@ -3169,14 +3169,6 @@ CTranslatorQueryToDXL::TranslateRTEToDXLLogicalGet(const RangeTblEntry *rte,
 		IMDId *part_mdid = (*partition_mdids)[ul];
 		const IMDRelation *partrel = m_md_accessor->RetrieveRel(part_mdid);
 
-		if (partrel->IsPartitioned())
-		{
-			// Multi-level partitioned tables are unsupported - fall back
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-					   GPOS_WSZ_LIT("Multi-level partitioned tables"));
-		}
-
-
 		if (partrel->RetrieveRelStorageType() != rel_storage_type)
 		{
 			if (rel_storage_type == IMDRelation::ErelstorageSentinel)

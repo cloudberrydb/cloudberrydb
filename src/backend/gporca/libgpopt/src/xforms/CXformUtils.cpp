@@ -1339,7 +1339,7 @@ CXformUtils::PexprLogicalDMLOverProject(CMemoryPool *mp,
 	CColRef *pcrAction = nullptr;
 	CColRef *pcrOid = nullptr;
 
-	if (ptabdesc->IsPartitioned())
+	if (ptabdesc->IsPartitioned() && CLogicalDML::EdmlDelete == edmlop)
 	{
 		// generate a PartitionSelector node which generates OIDs, then add a project
 		// on top of that to add the action column

@@ -302,39 +302,11 @@ CTranslatorRelcacheToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
 void
 CTranslatorRelcacheToDXL::CheckUnsupportedRelation(OID rel_oid)
 {
-#if 0
-	if (gpdb::RelPartIsInterior(rel_oid))
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Query on intermediate partition"));
-	}
-#endif
-
-#if 0
-	List *part_keys = gpdb::GetPartitionAttrs(rel_oid);
-	ULONG num_of_levels = gpdb::ListLength(part_keys);
-	ULONG num_of_levels = 0;
-#endif
-
 	if (!gpdb::RelIsPartitioned(rel_oid) && gpdb::HasSubclassSlow(rel_oid))
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
 				   GPOS_WSZ_LIT("Inherited tables"));
 	}
-
-#if 0
-	if (1 < num_of_levels)
-	{
-		if (!optimizer_multilevel_partitioning)
-		{
-			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Multi-level partitioned tables"));
-		}
-
-		if (!gpdb::IsMultilevelPartitionUniform(rel_oid))
-		{
-			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Multi-level partitioned tables with non-uniform partitioning structure"));
-		}
-	}
-#endif
 }
 
 //---------------------------------------------------------------------------
@@ -422,9 +394,6 @@ CTranslatorRelcacheToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 		distr_op_families = RetrieveRelDistributionOpFamilies(mp, gp_policy);
 	}
 
-#if 0
-	convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel.get());
-#endif
 	convert_hash_to_random = false;
 
 	// collect relation indexes
@@ -449,6 +418,12 @@ CTranslatorRelcacheToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 		{
 			Oid oid = rel->rd_partdesc->oids[i];
 			partition_oids->Append(GPOS_NEW(mp) CMDIdGPDB(oid));
+			if (gpdb::RelIsPartitioned(oid))
+			{
+				// Multi-level partitioned tables are unsupported - fall back
+				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
+			}
 		}
 	}
 

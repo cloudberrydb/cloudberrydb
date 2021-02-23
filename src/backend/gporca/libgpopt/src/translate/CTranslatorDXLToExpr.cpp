@@ -602,12 +602,6 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 					GPOS_WSZ_LIT(
 						"Partitioned table with heterogeneous storage types"));
 			}
-			if (partrel->IsPartitioned())
-			{
-				// Multi-level partitioned tables are unsupported - fall back
-				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
-						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
-			}
 		}
 
 		// generate a part index id

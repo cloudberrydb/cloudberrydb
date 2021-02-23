@@ -4080,7 +4080,7 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	// GPDB_12_MERGE_FIXME: Make this an parameter in TranslateDXLTblDescrToRangeTblEntry
 	rte->rellockmode = RowExclusiveLock;
 	rte->requiredPerms |= acl_mode;
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_dxl_to_plstmt_context->AddRTE(rte, true);
 
 	CDXLNode *project_list_dxlnode = (*dml_dxlnode)[0];
 	CDXLNode *child_dxlnode = (*dml_dxlnode)[1];
@@ -4151,6 +4151,7 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	dml->nominalRelation = index;
 	dml->resultRelations = ListMake1Int(index);
 	dml->resultRelIndex = list_length(m_result_rel_list) - 1;
+	dml->rootRelation = md_rel->IsPartitioned() ? index : 0;
 	dml->plans = ListMake1(child_plan);
 
 	dml->fdwPrivLists = ListMake1(NIL);

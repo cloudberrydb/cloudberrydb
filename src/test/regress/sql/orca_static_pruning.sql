@@ -139,3 +139,13 @@ SELECT * FROM foo JOIN bar on foo.a = bar.a AND foo.b = 11;
 RESET enable_hashjoin;
 RESET enable_mergejoin;
 RESET enable_nestloop;
+
+CREATE TABLE rp_insert (a int, b int) PARTITION BY RANGE (b);
+CREATE TABLE rp_insert_part_1 PARTITION OF rp_insert FOR VALUES FROM (0) TO (3);
+CREATE TABLE rp_insert_part_2 PARTITION OF rp_insert FOR VALUES FROM (3) TO (6);
+-- The INSERT plans should no longer contain Partition Selector DMLs.
+EXPLAIN (COSTS OFF, VERBOSE) INSERT INTO rp_insert VALUES (1, 1), (3, 3);
+INSERT INTO rp_insert VALUES (1, 1), (3, 3);
+EXPLAIN (COSTS OFF, VERBOSE) INSERT INTO rp_insert SELECT * FROM rp_insert;
+INSERT INTO rp_insert SELECT * FROM rp_insert;
+SELECT * FROM rp_insert;
