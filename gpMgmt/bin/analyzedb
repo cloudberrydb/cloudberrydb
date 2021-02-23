@@ -264,6 +264,7 @@ class AnalyzeDb(Operation):
         self.verbose = options.verbose
         self.clean_last = options.clean_last
         self.clean_all = options.clean_all
+        self.orca_rootstats = options.orca_rootstats
         self.gen_profile_only = options.gen_profile_only
         self.analyze_gucs = ANALYZE_GUCS
 
@@ -404,7 +405,10 @@ class AnalyzeDb(Operation):
             # and its corresponding columns to be analyzed
             # key: name of the root partition whose stats needs to be refreshed
             # value: a set of column names to be analyzed, or '-1' meaning all columns of that table
-            root_partition_col_dict = self._get_root_partition_col_dict(candidates, input_col_dict)
+            # this can be suppressed with a flag if ORCA is not used
+            # (performance improvement when there are many partitions and columns)
+            if self.orca_rootstats:
+                root_partition_col_dict = self._get_root_partition_col_dict(candidates, input_col_dict)
 
             ordered_candidates = self._get_ordered_candidates(candidates, root_partition_col_dict)
             target_list = []
@@ -1283,6 +1287,8 @@ def create_parser():
                       help="List the tables to be analyzed without actually running analyze (dry run).")
     parser.add_option('-p', type='int', dest='parallel_level', default=5, metavar="<parallel level>",
                       help="Parallel level, i.e. the number of tables to be analyzed in parallel. Valid numbers are between 1 and 10. Default value is 5.")
+    parser.add_option('--skip_orca_root_stats', action='store_false', dest='orca_rootstats', default=True,
+                      help="Suppress generation of root partition stats for ORCA.")
     parser.add_option('--gen_profile_only', action='store_true', dest='gen_profile_only', default=False,
                       help="Create cached state files to indicate specified table or all tables have been analyzed.")
     parser.add_option('--full', action='store_true', dest='full_analyze', default=False,
@@ -1365,7 +1371,10 @@ class AnalyzeWorker(Worker):
                     self.pool.markTaskDone()
                     self.cmd = None
                 else:
-                    self.logger.info("[%s] started  %s" % (self.name, self.cmd.name))
+                    # run the command
+                    # get rid of the gucs for displaying in the log
+                    cmd_display = re.sub(r'set .*;\s*', '', self.cmd.name)
+                    self.logger.info("[%s] started  %s" % (self.name, cmd_display))
                     start_time = time.time()
                     self.cmd.run()
                     end_time = time.time()
@@ -1373,7 +1382,7 @@ class AnalyzeWorker(Worker):
                     if len(stderr) > 0:  # emit stderr if there is any
                         self.logger.warning('\n'.join(stderr))
                     if self.cmd.was_successful():
-                        self.logger.info("[%s] finished %s. Elapsed time: %d seconds." % (self.name, self.cmd.name,
+                        self.logger.info("[%s] finished %s. Elapsed time: %d seconds." % (self.name, cmd_display,
                                                                                           int(end_time - start_time)))
                     self.pool.addFinishedWorkItem(self.cmd)
                     self.cmd = None
