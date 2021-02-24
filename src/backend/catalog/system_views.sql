@@ -1630,6 +1630,25 @@ AS
    SELECT pg_catalog.gp_execution_segment() as gp_segment_id, * FROM pg_catalog.pg_tablespace_location($1)'
 LANGUAGE SQL EXECUTE ON COORDINATOR;
 
+-- pg_switch_wal wrapper functions to switch WAL segment files on Greenplum cluster-wide
+CREATE FUNCTION gp_switch_wal_on_all_segments (OUT gp_segment_id int, OUT pg_switch_wal pg_lsn)
+AS 'SELECT pg_catalog.gp_execution_segment() as gp_segment_id, * FROM pg_catalog.pg_switch_wal()'
+LANGUAGE SQL EXECUTE ON ALL SEGMENTS;
+
+CREATE FUNCTION gp_switch_wal (OUT gp_segment_id int, OUT pg_switch_wal pg_lsn)
+RETURNS SETOF RECORD
+AS
+  'SELECT * FROM pg_catalog.gp_switch_wal_on_all_segments()
+   UNION ALL
+   SELECT pg_catalog.gp_execution_segment() as gp_segment_id, * FROM pg_catalog.pg_switch_wal()'
+LANGUAGE SQL EXECUTE ON COORDINATOR;
+
+COMMENT ON FUNCTION pg_catalog.gp_switch_wal_on_all_segments() IS 'Switch WAL segment files on all primary segments';
+COMMENT ON FUNCTION pg_catalog.gp_switch_wal() IS 'Switch WAL segment files on all segments';
+
+REVOKE EXECUTE ON FUNCTION gp_switch_wal_on_all_segments() FROM public;
+REVOKE EXECUTE ON FUNCTION gp_switch_wal() FROM public;
+
 CREATE OR REPLACE FUNCTION
   parse_ident(str text, strict boolean DEFAULT true)
 RETURNS text[]
