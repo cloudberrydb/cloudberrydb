@@ -2857,6 +2857,7 @@ CTestUtils::EresTranslate(CMemoryPool *mp, const CHAR *szQueryFileName,
 		true /*serialize_header_footer*/, true /*indentation*/);
 
 	GPOS_TRACE(str.GetBuffer());
+	str.Reset();
 	GPOS_RESULT eres = GPOS_OK;
 	if (nullptr != szPlanFileName)
 	{
@@ -2868,6 +2869,8 @@ CTestUtils::EresTranslate(CMemoryPool *mp, const CHAR *szQueryFileName,
 
 		eres = EresCompare(oss, &strTranslatedPlan, &strExpectedPlan,
 						   fIgnoreMismatch);
+		GPOS_TRACE(str.GetBuffer());
+		str.Reset();
 		GPOS_DELETE_ARRAY(szExpectedPlan);
 	}
 
@@ -2900,7 +2903,7 @@ CTestUtils::EresCompare(IOstream &os, CWStringDynamic *pstrActual,
 		os << pstrActual->GetBuffer() << std::endl;
 
 		os << "Expected: " << std::endl;
-		os << pstrExpected->GetBuffer() << std::endl;
+		os << pstrExpected->GetBuffer();
 
 		if (fIgnoreMismatch)
 		{
@@ -2910,7 +2913,7 @@ CTestUtils::EresCompare(IOstream &os, CWStringDynamic *pstrActual,
 	}
 	else
 	{
-		os << "Output matches expected DXL document" << std::endl;
+		os << "Output matches expected DXL document";
 		return GPOS_OK;
 	}
 }

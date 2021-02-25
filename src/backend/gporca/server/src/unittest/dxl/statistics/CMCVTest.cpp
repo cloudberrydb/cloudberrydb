@@ -138,6 +138,7 @@ CMCVTest::EresUnittest_SortInt4MCVs()
 		CTestUtils::EresCompare(oss, pstrOutput, &dstrExpected,
 								false  // mismatch will not be ignored
 		);
+	GPOS_TRACE(str.GetBuffer());
 
 	// cleanup
 	GPOS_DELETE(pstrOutput);
@@ -260,6 +261,7 @@ CMCVTest::EresUnittest_MergeHistMCV()
 			CTestUtils::EresCompare(oss, pstrOutput, &dstrExpected,
 									false  // mismatch will not be ignored
 			);
+		GPOS_TRACE(str.GetBuffer());
 
 		// cleanup
 		GPOS_DELETE_ARRAY(szDXLInputMCV);

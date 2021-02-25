@@ -1096,7 +1096,9 @@ CFilterCardinalityTest::EresUnittest_CStatisticsCompare(
 		mp, md_accessor, pdrgpstatBefore, true /*serialize_header_footer*/,
 		true /*indentation*/
 	);
-	GPOS_TRACE(pstrInput->GetBuffer());
+	oss << pstrInput->GetBuffer();
+	GPOS_TRACE(str.GetBuffer());
+	str.Reset();
 	GPOS_DELETE(pstrInput);
 
 	oss << "Serializing Output Statistics Objects (After Filter)" << std::endl;
@@ -1104,7 +1106,9 @@ CFilterCardinalityTest::EresUnittest_CStatisticsCompare(
 		mp, md_accessor, pdrgpstatOutput, true /*serialize_header_footer*/,
 		true /*indentation*/
 	);
-	GPOS_TRACE(pstrOutput->GetBuffer());
+	oss << pstrOutput->GetBuffer();
+	GPOS_TRACE(str.GetBuffer());
+	str.Reset();
 
 	CWStringDynamic dstrExpected(mp);
 	dstrExpected.AppendFormat(GPOS_WSZ_LIT("%s"), szDXLOutput);
@@ -1112,6 +1116,8 @@ CFilterCardinalityTest::EresUnittest_CStatisticsCompare(
 	GPOS_RESULT eres = CTestUtils::EresCompare(
 		oss, pstrOutput, &dstrExpected, false /* ignore mismatch */
 	);
+	GPOS_TRACE(str.GetBuffer());
+	str.Reset();
 
 	if (fApplyTwice && GPOS_OK == eres)
 	{
@@ -1132,6 +1138,8 @@ CFilterCardinalityTest::EresUnittest_CStatisticsCompare(
 		eres = CTestUtils::EresCompare(
 			oss, pstrOutput2, &dstrExpected, false /* ignore mismatch */
 		);
+		GPOS_TRACE(str.GetBuffer());
+		str.Reset();
 
 		pdrgpstatOutput2->Release();
 		GPOS_DELETE(pstrOutput2);
