@@ -1925,8 +1925,17 @@ groupAcquireSlot(ResGroupInfo *pGroupInfo, bool isMoveQuery)
 		}
 	}
 
-	/* add into group wait queue */
-	groupWaitQueuePush(group, MyProc);
+	/*
+	 * Add into group wait queue (if not waiting yet).
+	 *
+	 * Need to handle a special case, when MyProc was interrupted
+	 * by SIGTERM while waiting for resource group slot.
+	 * Some callbacks - RemoveTempRelationsCallback for example -
+	 * open new transactions on proc exit. It can cause a double
+	 * add of MyProc to the waiting queue (and its corruption).
+	 */
+	if (!procIsWaiting(MyProc))
+		groupWaitQueuePush(group, MyProc);
 
 	if (!group->lockedForDrop)
 		group->totalQueued++;
