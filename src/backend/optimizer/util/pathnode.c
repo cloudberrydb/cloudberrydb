@@ -65,8 +65,8 @@ typedef enum
 #define STD_FUZZ_FACTOR 1.01
 
 static List *translate_sub_tlist(List *tlist, int relid);
-static int	append_total_cost_compare(const void *a, const void *b, void *arg);
-static int	append_startup_cost_compare(const void *a, const void *b, void *arg);
+static int	append_total_cost_compare(const void *a, const void *b);
+static int	append_startup_cost_compare(const void *a, const void *b);
 static List *reparameterize_pathlist_by_child(PlannerInfo *root,
 											  List *pathlist,
 											  RelOptInfo *child_rel);
@@ -1366,9 +1366,9 @@ create_append_path(PlannerInfo *root,
 		 */
 		Assert(pathkeys == NIL);
 
-		subpaths = list_qsort(subpaths, append_total_cost_compare, NULL);
+		subpaths = list_qsort(subpaths, append_total_cost_compare);
 		partial_subpaths = list_qsort(partial_subpaths,
-									  append_startup_cost_compare, NULL);
+									  append_startup_cost_compare);
 	}
 	pathnode->first_partial_path = list_length(subpaths);
 	pathnode->subpaths = list_concat(subpaths, partial_subpaths);
@@ -1432,7 +1432,7 @@ create_append_path(PlannerInfo *root,
  * (This is to avoid getting unpredictable results from qsort.)
  */
 static int
-append_total_cost_compare(const void *a, const void *b, void *arg)
+append_total_cost_compare(const void *a, const void *b)
 {
 	Path	   *path1 = (Path *) lfirst(*(ListCell **) a);
 	Path	   *path2 = (Path *) lfirst(*(ListCell **) b);
@@ -1453,7 +1453,7 @@ append_total_cost_compare(const void *a, const void *b, void *arg)
  * (This is to avoid getting unpredictable results from qsort.)
  */
 static int
-append_startup_cost_compare(const void *a, const void *b, void *arg)
+append_startup_cost_compare(const void *a, const void *b)
 {
 	Path	   *path1 = (Path *) lfirst(*(ListCell **) a);
 	Path	   *path2 = (Path *) lfirst(*(ListCell **) b);

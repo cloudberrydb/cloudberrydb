@@ -65,7 +65,7 @@ static List *ic_proxy_unknown_addrs = NIL;
 static ICProxyAddr *ic_proxy_my_addr = NULL;
 
 static int
-ic_proxy_addr_compare_dbid(const void *a, const void *b, void *arg)
+ic_proxy_addr_compare_dbid(const void *a, const void *b)
 {
 	const ICProxyAddr *addr1 = a;
 	const ICProxyAddr *addr2 = b;
@@ -304,7 +304,7 @@ ic_proxy_reload_addresses(uv_loop_t *loop)
 
 	/* sort the new addrs so it's easy to diff */
 	ic_proxy_unknown_addrs = list_qsort(ic_proxy_unknown_addrs,
-										ic_proxy_addr_compare_dbid, NULL);
+										ic_proxy_addr_compare_dbid);
 
 	/* the last thing is to classify the addrs */
 	ic_proxy_classify_addresses(ic_proxy_prev_addrs /* oldaddrs */,
