@@ -1927,15 +1927,9 @@ groupAcquireSlot(ResGroupInfo *pGroupInfo, bool isMoveQuery)
 
 	/*
 	 * Add into group wait queue (if not waiting yet).
-	 *
-	 * Need to handle a special case, when MyProc was interrupted
-	 * by SIGTERM while waiting for resource group slot.
-	 * Some callbacks - RemoveTempRelationsCallback for example -
-	 * open new transactions on proc exit. It can cause a double
-	 * add of MyProc to the waiting queue (and its corruption).
 	 */
-	if (!procIsWaiting(MyProc))
-		groupWaitQueuePush(group, MyProc);
+	Assert(!proc_exit_inprogress);
+	groupWaitQueuePush(group, MyProc);
 
 	if (!group->lockedForDrop)
 		group->totalQueued++;
@@ -2560,9 +2554,20 @@ DeserializeResGroupInfo(struct ResGroupCaps *capsOut,
 bool
 ShouldAssignResGroupOnMaster(void)
 {
+	/*
+	 * Bypass resource group when it's waiting for a resource group slot. e.g.
+	 * MyProc was interrupted by SIGTERM while waiting for resource group slot.
+	 * Some callbacks - RemoveTempRelationsCallback for example - open new
+	 * transactions on proc exit. It can cause a double add of MyProc to the
+	 * waiting queue (and its corruption).
+	 *
+	 * Also bypass resource group when it's exiting.
+	 */
 	return IsResGroupActivated() &&
 		IsNormalProcessingMode() &&
-		Gp_role == GP_ROLE_DISPATCH;
+		Gp_role == GP_ROLE_DISPATCH &&
+		!proc_exit_inprogress &&
+		!procIsWaiting(MyProc);
 }
 
 /*

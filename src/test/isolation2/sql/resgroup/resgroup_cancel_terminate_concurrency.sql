@@ -130,14 +130,11 @@ CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 1&:SELECT 1;
 SELECT * FROM rg_concurrency_view;
 -- Upon receiving the terminate request, session 1 should start a new transaction to cleanup temp table.
--- Note, that session 1 has already been waiting for resource group slot, so its new transaction also
--- waits for the slot (until session 2 commits). We check that session 1 should not add its proc to the
--- wait queue again. Such double addition of the same proc to the wait queue leads to the queue corruption
--- (was found to occur previously).
+-- Note, that session 1 has already been waiting for resource group slot, its new transaction will bypass
+-- resource group since it's exiting.
 SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE wait_event_type='ResourceGroup' AND rsgname='rg_concurrency_test';
-2:COMMIT;
-2<:
 1<:
+2:COMMIT;
 SELECT * FROM rg_concurrency_view;
 1q:
 2q:
