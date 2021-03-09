@@ -5457,7 +5457,7 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
             <dxl:PropagationExpression>
               <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:PropagationExpression>
-            <dxl:PrintableFilter>
+            <dxl:PartFilterExpr>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
                   <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
@@ -5468,7 +5468,7 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
                   <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
                 </dxl:Comparison>
               </dxl:And>
-            </dxl:PrintableFilter>
+            </dxl:PartFilterExpr>
             <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="1182.695646" Rows="29624.133333" Width="544"/>

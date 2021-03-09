@@ -135,6 +135,9 @@ private:
 	// FXIME: this uses NEW/DELETE, should we use palloc/pfree/memory pool?
 	std::vector<List *> m_static_prune_results;
 
+	UlongToUlongMap *m_part_selector_to_param_map;
+
+
 public:
 	// ctor/dtor
 	CContextDXLToPlStmt(CMemoryPool *mp, CIdGenerator *plan_id_counter,
@@ -251,6 +254,10 @@ public:
 
 	List *GetStaticPruneResult(ULONG scanId);
 	void SetStaticPruneResult(ULONG scanId, List *static_prune_result);
+
+	ULONG GetParamIdForSelector(OID oid_type, const ULONG selectorId);
+
+	Index FindRTE(Oid reloid);
 };
 
 }  // namespace gpdxl

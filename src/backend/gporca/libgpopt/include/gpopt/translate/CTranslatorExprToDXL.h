@@ -169,12 +169,6 @@ private:
 								   CExpression *pexprScalar,
 								   CDXLPhysicalProperties *dxl_properties);
 
-	// translate a partition selector into DXL while inlining the given condition in the child
-	CDXLNode *PdxlnPartitionSelectorWithInlinedCondition(
-		CExpression *pexprFilter, CColRefArray *colref_array,
-		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-		BOOL *pfDML);
-
 	// create a DXL result node from an optimizer filter node
 	CDXLNode *PdxlnResultFromFilter(CExpression *pexprFilter,
 									CColRefArray *colref_array,
@@ -391,85 +385,6 @@ private:
 									 CColRefArray *colref_array,
 									 CDistributionSpecArray *pdrgpdsBaseTables,
 									 ULONG *pulNonGatherMotions, BOOL *pfDML);
-
-	// translate a partition selector
-	CDXLNode *PdxlnPartitionSelector(CExpression *pexpr,
-									 CColRefArray *colref_array,
-									 CDistributionSpecArray *pdrgpdsBaseTables,
-									 ULONG *pulNonGatherMotions, BOOL *pfDML,
-									 CExpression *pexprScalarCond,
-									 CDXLPhysicalProperties *dxl_properties);
-
-	// translate an expansion-based partition selector with a scalar condition to inline
-	CDXLNode *PdxlnPartitionSelectorExpand(
-		CExpression *pexpr, CColRefArray *colref_array,
-		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-		BOOL *pfDML, CExpression *pexprScalarCond,
-		CDXLPhysicalProperties *dxl_properties);
-
-	// translate partition filter list
-	CDXLNode *PdxlnPartFilterList(CExpression *pexpr, BOOL fEqFilters);
-
-	// check whether the given partition selector only has equality filters
-	// or no filters on all partitioning levels. return false if it has
-	// non-equality filters.
-	BOOL FEqPartFiltersAllLevels(CExpression *pexpr, BOOL fCheckGeneralFilters);
-
-	// translate partition selector filters
-	void TranslatePartitionFilters(CExpression *pexprPartSelector,
-								   BOOL fPassThrough,
-								   CDXLNode **ppdxlnEqFilters,
-								   CDXLNode **ppdxlnFilters,
-								   CDXLNode **ppdxlnResidual);
-
-	// construct the level filter lists for partition selector
-	void ConstructLevelFilters4PartitionSelector(CExpression *pexprPartSelector,
-												 CDXLNode **ppdxlnEqFilters,
-												 CDXLNode **ppdxlnFilters);
-
-	// translate a general predicate on a part key and update the various
-	// comparison type flags accordingly
-	CDXLNode *PdxlnPredOnPartKey(CExpression *pexprPred, CColRef *pcrPartKey,
-								 IMDId *pmdidTypePartKey, ULONG ulPartLevel,
-								 BOOL fRangePart, BOOL *pfLTComparison,
-								 BOOL *pfGTComparison, BOOL *pfEQComparison);
-
-	// translate a conjunctive or disjunctive predicate on a part key and update the various
-	// comparison type flags accordingly
-	CDXLNode *PdxlnConjDisjOnPartKey(CExpression *pexprPred,
-									 CColRef *pcrPartKey,
-									 IMDId *pmdidTypePartKey, ULONG ulPartLevel,
-									 BOOL fRangePart, BOOL *pfLTComparison,
-									 BOOL *pfGTComparison,
-									 BOOL *pfEQComparison);
-
-	// translate a scalar comparison on a part key and update the various
-	// comparison type flags accordingly
-	CDXLNode *PdxlnScCmpPartKey(CExpression *pexprScCmp, CColRef *pcrPartKey,
-								IMDId *pmdidTypePartKey, ULONG ulPartLevel,
-								BOOL fRangePart, BOOL *pfLTComparison,
-								BOOL *pfGTComparison, BOOL *pfEQComparison);
-
-	// translate a scalar null test on a part key
-	CDXLNode *PdxlnScNullTestPartKey(IMDId *pmdidTypePartKey, ULONG ulPartLevel,
-									 BOOL fRangePart, BOOL is_null);
-
-	// translate the child of a partition selector expression, pushing the given
-	// scalar predicate if available
-	CDXLNode *PdxlnPartitionSelectorChild(
-		CExpression *pexprChild, CExpression *pexprScalarCond,
-		CDXLPhysicalProperties *dxl_properties, CColRefArray *colref_array,
-		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-		BOOL *pfDML);
-
-	CDXLNode *PdxlArrayExprOnPartKey(CExpression *pexprPred,
-									 CColRef *pcrPartKey,
-									 IMDId *pmdidTypePartKey, ULONG ulPartLevel,
-									 BOOL fRangePart,
-									 BOOL *pfLTComparison,	// input/output
-									 BOOL *pfGTComparison,	// input/output
-									 BOOL *pfEQComparison	// input/output
-	);
 
 	// translate a DML operator
 	CDXLNode *PdxlnDML(CExpression *pexpr, CColRefArray *colref_array,
@@ -751,6 +666,8 @@ private:
 	// check if result node imposes a motion hazard
 	BOOL FNeedsMaterializeUnderResult(CDXLNode *proj_list_dxlnode,
 									  CDXLNode *child_dxlnode);
+
+	void AddPartForScanId(ULONG scanid, ULONG index);
 
 	// helper to find subplan type from a correlated left outer join expression
 	static EdxlSubPlanType EdxlsubplantypeCorrelatedLOJ(

@@ -2339,7 +2339,7 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
             <dxl:PropagationExpression>
               <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:PropagationExpression>
-            <dxl:PrintableFilter>
+            <dxl:PartFilterExpr>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
@@ -2350,7 +2350,7 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                   <dxl:ConstValue TypeMdid="0.23.1.0" Value="2003"/>
                 </dxl:Comparison>
               </dxl:And>
-            </dxl:PrintableFilter>
+            </dxl:PartFilterExpr>
           </dxl:PartitionSelector>
           <dxl:DynamicBitmapTableScan PartIndexId="1">
             <dxl:Properties>

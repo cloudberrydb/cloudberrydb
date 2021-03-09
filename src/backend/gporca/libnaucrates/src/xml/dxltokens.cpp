@@ -140,8 +140,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenDirectDispatchKeyValue, GPOS_WSZ_LIT("KeyValue")},
 
 		{EdxltokenPhysicalPartitionSelector, GPOS_WSZ_LIT("PartitionSelector")},
-		{EdxltokenPhysicalPartitionSelectorLevels,
-		 GPOS_WSZ_LIT("PartitionLevels")},
+		{EdxltokenPhysicalPartitionSelectorId, GPOS_WSZ_LIT("SelectorId")},
 		{EdxltokenPhysicalPartitionSelectorScanId, GPOS_WSZ_LIT("ScanId")},
 		{EdxltokenPhysicalSplit, GPOS_WSZ_LIT("Split")},
 		{EdxltokenPhysicalRowTrigger, GPOS_WSZ_LIT("RowTrigger")},
@@ -260,8 +259,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenScalarPartListValues, GPOS_WSZ_LIT("PartListValues")},
 		{EdxltokenScalarPartListNullTest, GPOS_WSZ_LIT("PartListNullTest")},
 		{EdxltokenScalarResidualFilter, GPOS_WSZ_LIT("ResidualFilter")},
-		{EdxltokenScalarPropagationExpr, GPOS_WSZ_LIT("PropagationExpression")},
-		{EdxltokenScalarPrintableFilter, GPOS_WSZ_LIT("PrintableFilter")},
+		{EdxltokenScalarPartFilterExpr, GPOS_WSZ_LIT("PartFilterExpr")},
 
 		{EdxltokenScalarSubPlanParamList, GPOS_WSZ_LIT("ParamList")},
 		{EdxltokenScalarSubPlanParam, GPOS_WSZ_LIT("Param")},
@@ -421,6 +419,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 
 		{EdxltokenAppendIsTarget, GPOS_WSZ_LIT("IsTarget")},
 		{EdxltokenAppendIsZapped, GPOS_WSZ_LIT("IsZapped")},
+		{EdxltokenSelectorIds, GPOS_WSZ_LIT("SelectorIds")},
 
 		{EdxltokenOpNo, GPOS_WSZ_LIT("OperatorMdid")},
 		{EdxltokenOpName, GPOS_WSZ_LIT("OperatorName")},

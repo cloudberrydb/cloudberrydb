@@ -169,6 +169,10 @@ public:
 	CRewindabilitySpec *PrsDerive(CMemoryPool *mp,
 								  CExpressionHandle &exprhdl) const override;
 
+	// derive partition propagation
+	CPartitionPropagationSpec *PppsDerive(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
+
 	// derive cte map
 	CCTEMap *PcmDerive(CMemoryPool *mp,
 					   CExpressionHandle &exprhdl) const override;

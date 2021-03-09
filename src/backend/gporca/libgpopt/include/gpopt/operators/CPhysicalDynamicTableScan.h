@@ -71,6 +71,9 @@ public:
 		return dynamic_cast<CPhysicalDynamicTableScan *>(pop);
 	}
 
+	CPartitionPropagationSpec *PppsDerive(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
+
 };	// class CPhysicalDynamicTableScan
 
 }  // namespace gpopt

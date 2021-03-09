@@ -1046,13 +1046,11 @@ DELETE 10
 1: select * from show_locks_lockmodes;
  locktype | mode             | granted | relation                            
 ----------+------------------+---------+-------------------------------------
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
  relation | ExclusiveLock    | t       | t_lockmods_part_tbl_upd_del         
-(6 rows)
+(4 rows)
 1: ROLLBACK;
 ROLLBACK
 
@@ -1087,13 +1085,11 @@ UPDATE 1
 1: select * from show_locks_lockmodes;
  locktype | mode             | granted | relation                            
 ----------+------------------+---------+-------------------------------------
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
  relation | ExclusiveLock    | t       | t_lockmods_part_tbl_upd_del         
-(6 rows)
+(4 rows)
 1: ROLLBACK;
 ROLLBACK
 1q: ... <quitting>
@@ -2140,13 +2136,11 @@ DELETE 10
 1: select * from show_locks_lockmodes;
  locktype | mode             | granted | relation                            
 ----------+------------------+---------+-------------------------------------
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del         
-(6 rows)
+(4 rows)
 1: ROLLBACK;
 ROLLBACK
 1q: ... <quitting>
@@ -2159,13 +2153,11 @@ UPDATE 1
 1: select * from show_locks_lockmodes;
  locktype | mode             | granted | relation                            
 ----------+------------------+---------+-------------------------------------
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
  relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
  relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del         
-(6 rows)
+(4 rows)
 1: ROLLBACK;
 ROLLBACK
 1q: ... <quitting>

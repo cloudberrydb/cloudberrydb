@@ -957,4 +957,64 @@ CPhysical::Ped(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	;
 }
 
+CPartitionPropagationSpec *
+CPhysical::PppsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
+						CPartitionPropagationSpec *pppsRequired,
+						ULONG child_index, CDrvdPropArray *, ULONG) const
+{
+	// pass through consumer<x> requests to the appropriate child.
+	// do not pass through any propagator<x> requests
+	CPartitionPropagationSpec *pps_result =
+		GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+
+	CBitSet *allowed_scan_ids = GPOS_NEW(mp) CBitSet(mp);
+	CPartInfo *part_info = exprhdl.DerivePartitionInfo(child_index);
+	for (ULONG ul = 0; ul < part_info->UlConsumers(); ++ul)
+	{
+		ULONG scan_id = part_info->ScanId(ul);
+		allowed_scan_ids->ExchangeSet(scan_id);
+	}
+
+	pps_result->InsertAllowedConsumers(pppsRequired, allowed_scan_ids);
+	allowed_scan_ids->Release();
+
+	return pps_result;
+}
+
+CEnfdProp::EPropEnforcingType
+CPhysical::EpetPartitionPropagation(
+	CExpressionHandle &exprhdl, const CEnfdPartitionPropagation *pps_reqd) const
+{
+	GPOS_ASSERT(nullptr != pps_reqd);
+
+	CPartitionPropagationSpec *pps_drvd =
+		CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Ppps();
+	if (pps_reqd->FCompatible(pps_drvd))
+	{
+		// all requests are resolved
+		return CEnfdProp::EpetUnnecessary;
+	}
+
+	return CEnfdProp::EpetRequired;
+}
+
+CPartitionPropagationSpec *
+CPhysical::PppsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const
+{
+	CPartitionPropagationSpec *pps_result =
+		GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+
+	for (ULONG ul = 0; ul < exprhdl.Arity(); ++ul)
+	{
+		if (exprhdl.FScalarChild(ul))
+		{
+			continue;
+		}
+		CPartitionPropagationSpec *pps = exprhdl.Pdpplan(ul)->Ppps();
+		pps_result->InsertAll(pps);
+	}
+
+	return pps_result;
+}
+
 // EOF

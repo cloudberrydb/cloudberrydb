@@ -25,6 +25,7 @@
 #include "gpopt/operators/CExpressionUtils.h"
 #include "gpopt/operators/CLogicalDynamicIndexGet.h"
 #include "gpopt/operators/CLogicalIndexGet.h"
+#include "gpopt/operators/CPhysicalDynamicScan.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "naucrates/base/IDatumInt2.h"
@@ -1037,33 +1038,50 @@ CStatisticsUtils::DatumNull(const CColRef *colref)
 //
 //---------------------------------------------------------------------------
 IStatistics *
-CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
-											CExpressionHandle &expr_handle,
-											ULONG part_idx_id GPOS_UNUSED)
+CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp,
+											CExpressionHandle &exprhdl,
+											ULONG scan_id,
+											CPartitionPropagationSpec *pps_reqd)
 {
 	// extract part table base stats from passed handle
-	IStatistics *base_table_stats = expr_handle.Pstats();
+	IStatistics *base_table_stats = exprhdl.Pstats();
 	GPOS_ASSERT(nullptr != base_table_stats);
 
-	// GPDB_12_MERGE_FIXME: Re-enable this when DPE is re-implemented
-	if (true || !GPOS_FTRACE(EopttraceDeriveStatsForDPE))
+	if (!GPOS_FTRACE(EopttraceDeriveStatsForDPE))
 	{
-		// if stats derivation with dynamic partition elimitaion is disabled, we return base stats
+		// return base stats if stats derivation with dynamic partition
+		// elimination is disabled
 		base_table_stats->AddRef();
 		return base_table_stats;
 	}
 
-#if 0
-	if (!part_filter_map->FContainsScanId(part_idx_id) ||
-		NULL == part_filter_map->Pstats(part_idx_id))
+	const CBitSet *selector_ids = pps_reqd->SelectorIds(scan_id);
+	if (!pps_reqd->Contains(scan_id) || selector_ids->Size() == 0)
 	{
-		// no corresponding entry is found in map, return base stats
+		// no corresponding partition selector is present, return base stats
 		base_table_stats->AddRef();
 		return base_table_stats;
 	}
 
-	IStatistics *part_selector_stats = part_filter_map->Pstats(part_idx_id);
-	CExpression *scalar_expr = part_filter_map->Pexpr(part_idx_id);
+	GPOS_ASSERT(pps_reqd->SelectorIds(scan_id)->Size() > 0);
+
+	// each Dynamic Scan may have multiple associated PartitionSelectors;
+	// for now just use the first one in the list (similar to 6X, which used
+	// the PartitionSelector on the top-most Join node)
+	// GPDB_12_MERGE_FIXME: combine stats from all associated PartitionSelectors
+	const SPartSelectorInfoEntry *part_selector_info = nullptr;
+	{
+		CBitSetIter it(*selector_ids);
+		it.Advance();
+		ULONG selector_id = it.Bit();
+
+		part_selector_info =
+			COptCtxt::PoctxtFromTLS()->GetPartSelectorInfo(selector_id);
+		GPOS_ASSERT(part_selector_info != nullptr);
+	}
+
+	IStatistics *part_selector_stats = part_selector_info->m_stats;
+	CExpression *scalar_expr = part_selector_info->m_filter_expr;
 
 	CColRefSetArray *output_colrefs = GPOS_NEW(mp) CColRefSetArray(mp);
 	output_colrefs->Append(base_table_stats->GetColRefSet(mp));
@@ -1078,7 +1096,7 @@ CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
 	CColRefSet *outer_refs = GPOS_NEW(mp) CColRefSet(mp);
 
 	// extract all the conjuncts
-	CStatsPred *unsupported_pred_stats = NULL;
+	CStatsPred *unsupported_pred_stats = nullptr;
 	CStatsPredJoinArray *join_preds_stats =
 		CStatsPredUtils::ExtractJoinStatsFromJoinPredArray(
 			mp, scalar_expr, output_colrefs, outer_refs,
@@ -1088,7 +1106,7 @@ CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
 	IStatistics *left_semi_join_stats = base_table_stats->CalcLSJoinStats(
 		mp, part_selector_stats, join_preds_stats);
 
-	if (NULL != unsupported_pred_stats)
+	if (nullptr != unsupported_pred_stats)
 	{
 		// apply the unsupported join filters as a filter on top of the join results.
 		// TODO,  June 13 2014 we currently only cap NDVs for filters
@@ -1107,8 +1125,6 @@ CStatisticsUtils::DeriveStatsForDynamicScan(CMemoryPool *mp GPOS_UNUSED,
 	join_preds_stats->Release();
 
 	return left_semi_join_stats;
-#endif
-	return nullptr;
 }
 
 //---------------------------------------------------------------------------

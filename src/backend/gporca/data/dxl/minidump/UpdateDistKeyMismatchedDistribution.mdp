@@ -635,9 +635,9 @@
           <dxl:PropagationExpression>
             <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true"/>
           </dxl:PropagationExpression>
-          <dxl:PrintableFilter>
+          <dxl:PartFilterExpr>
             <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
-          </dxl:PrintableFilter>
+          </dxl:PartFilterExpr>
           <dxl:RedistributeMotion InputSegments="0,1,2,3" OutputSegments="0,1,2,3">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="1324057.786515" Rows="2.000000" Width="26"/>

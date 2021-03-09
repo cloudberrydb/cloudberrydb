@@ -6100,10 +6100,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="1" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17347476.1.1" TableName="mr_star1_cashflows_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="2" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="9" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="12" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="13" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="18" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="19" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="28" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="30" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="31" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="2" Alias="businessdate">
                             <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -6320,10 +6334,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="2" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17355788.1.1" TableName="mr_star1_decorrelation_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="35" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="42" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="45" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="46" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="51" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="52" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="61" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="62" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="63" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="64" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="35" Alias="businessdate">
                             <dxl:Ident ColId="35" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -6540,10 +6568,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="3" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17364111.1.1" TableName="mr_star1_deltas_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="68" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="75" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="78" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="79" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="84" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="85" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="94" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="95" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="96" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="97" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="68" Alias="businessdate">
                             <dxl:Ident ColId="68" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -6760,10 +6802,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="4" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17384494.1.1" TableName="mr_star1_fxdeltas_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="101" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="108" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="111" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="112" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="117" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="118" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="127" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="128" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="129" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="130" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="101" Alias="businessdate">
                             <dxl:Ident ColId="101" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -6980,10 +7036,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="5" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17392806.1.1" TableName="mr_star1_gammas_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="134" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="141" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="144" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="145" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="150" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="151" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="160" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="161" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="162" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="163" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="134" Alias="businessdate">
                             <dxl:Ident ColId="134" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -7200,10 +7270,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="6" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17413178.1.1" TableName="mr_star1_kappa_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="167" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="174" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="177" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="178" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="183" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="184" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="193" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="194" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="195" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="196" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="167" Alias="businessdate">
                             <dxl:Ident ColId="167" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -7420,10 +7504,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="7" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17421490.1.1" TableName="mr_star1_netexposure_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="200" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="207" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="210" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="211" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="216" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="217" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="226" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="227" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="228" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="229" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="200" Alias="businessdate">
                             <dxl:Ident ColId="200" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -7640,10 +7738,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="8" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17429813.1.1" TableName="mr_star1_position_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="233" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="240" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="243" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="244" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="249" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="250" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="259" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="260" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="261" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="262" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="233" Alias="businessdate">
                             <dxl:Ident ColId="233" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -7860,10 +7972,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="9" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17438125.1.1" TableName="mr_star1_seasonality_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="266" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="273" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="276" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="277" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="282" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="283" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="292" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="293" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="294" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="295" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="266" Alias="businessdate">
                             <dxl:Ident ColId="266" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -8080,10 +8206,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="10" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17446437.1.1" TableName="mr_star1_skew_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="299" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="306" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="309" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="310" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="315" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="316" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="325" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="326" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="327" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="328" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="299" Alias="businessdate">
                             <dxl:Ident ColId="299" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -8300,10 +8440,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="11" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17454760.1.1" TableName="mr_star1_theta_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="332" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="339" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="342" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="343" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="348" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="349" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="358" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="359" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="360" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="361" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="332" Alias="businessdate">
                             <dxl:Ident ColId="332" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -8520,10 +8674,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="12" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17463072.1.1" TableName="mr_star1_voldrip_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="365" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="372" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="375" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="376" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="381" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="382" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="391" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="392" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="393" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="394" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="365" Alias="businessdate">
                             <dxl:Ident ColId="365" ColName="businessdate" TypeMdid="0.1082.1.0"/>
@@ -8740,10 +8908,24 @@
                       </dxl:SortingColumnList>
                       <dxl:LimitCount/>
                       <dxl:LimitOffset/>
-                      <dxl:Append IsTarget="false" IsZapped="false">
+                      <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="13" SelectorIds="">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="431.000239" Rows="1.000000" Width="28"/>
                         </dxl:Properties>
+                        <dxl:TableDescriptor Mdid="0.17471384.1.1" TableName="mr_star1_volofvol_col_part" ExecuteAsUser="10">
+                          <dxl:Columns>
+                            <dxl:Column ColId="398" Attno="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
+                            <dxl:Column ColId="405" Attno="10" ColName="contractid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="408" Attno="13" ColName="measurename" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="409" Attno="14" ColName="value" TypeMdid="0.701.1.0"/>
+                            <dxl:Column ColId="414" Attno="19" ColName="axis1" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="415" Attno="20" ColName="axis2" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                            <dxl:Column ColId="424" Attno="29" ColName="bookname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                            <dxl:Column ColId="425" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="426" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="427" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="398" Alias="businessdate">
                             <dxl:Ident ColId="398" ColName="businessdate" TypeMdid="0.1082.1.0"/>

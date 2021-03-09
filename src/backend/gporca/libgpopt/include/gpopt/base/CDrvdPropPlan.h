@@ -26,6 +26,7 @@ class CDistributionSpec;
 class CExpressionHandle;
 class COrderSpec;
 class CRewindabilitySpec;
+class CPartitionPropagationSpec;
 class CReqdPropPlan;
 class CCTEMap;
 
@@ -52,6 +53,9 @@ private:
 
 	// derived rewindability
 	CRewindabilitySpec *m_prs{nullptr};
+
+	// derived partition propagation spec
+	CPartitionPropagationSpec *m_ppps{nullptr};
 
 	// derived cte map
 	CCTEMap *m_pcm{nullptr};
@@ -102,6 +106,12 @@ public:
 	Prs() const
 	{
 		return m_prs;
+	}
+
+	CPartitionPropagationSpec *
+	Ppps() const
+	{
+		return m_ppps;
 	}
 
 	// cte map

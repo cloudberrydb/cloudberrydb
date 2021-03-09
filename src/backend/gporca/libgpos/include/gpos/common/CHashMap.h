@@ -38,6 +38,7 @@ class CHashMapIter;
 template <class K, class T, ULONG (*HashFn)(const K *),
 		  BOOL (*EqFn)(const K *, const K *), void (*DestroyKFn)(K *),
 		  void (*DestroyTFn)(T *)>
+
 class CHashMap : public CRefCount
 {
 	// fwd declaration
@@ -294,6 +295,9 @@ public:
 
 };	// class CHashMap
 
+typedef CHashMap<ULONG, ULONG, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				 CleanupDelete<ULONG>, CleanupDelete<ULONG> >
+	UlongToUlongMap;
 }  // namespace gpos
 
 #endif	// !GPOS_CHashMap_H

@@ -2322,7 +2322,7 @@ gpdb::HasUpdateTriggers(Oid relid)
 
 // get index op family properties
 void
-gpdb::IndexOpProperties(Oid opno, Oid opfamily, int *strategy, Oid *subtype)
+gpdb::IndexOpProperties(Oid opno, Oid opfamily, int *strategy, Oid *righttype)
 {
 	GP_WRAP_START;
 	{
@@ -2333,7 +2333,7 @@ gpdb::IndexOpProperties(Oid opno, Oid opfamily, int *strategy, Oid *subtype)
 		Oid lefttype;
 
 		get_op_opfamily_properties(opno, opfamily, false, strategy, &lefttype,
-								   subtype);
+								   righttype);
 		return;
 	}
 	GP_WRAP_END;

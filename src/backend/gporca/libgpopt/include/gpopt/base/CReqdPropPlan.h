@@ -57,6 +57,9 @@ private:
 	// required rewindability
 	CEnfdRewindability *m_per{nullptr};
 
+	// required partition propagation
+	CEnfdPartitionPropagation *m_pepp{nullptr};
+
 	// required ctes
 	CCTEReq *m_pcter{nullptr};
 
@@ -68,7 +71,8 @@ public:
 
 	// ctor
 	CReqdPropPlan(CColRefSet *pcrs, CEnfdOrder *peo, CEnfdDistribution *ped,
-				  CEnfdRewindability *per, CCTEReq *pcter);
+				  CEnfdRewindability *per, CEnfdPartitionPropagation *pepp,
+				  CCTEReq *pcter);
 
 	// dtor
 	~CReqdPropPlan() override;
@@ -122,6 +126,13 @@ public:
 	Per() const
 	{
 		return m_per;
+	}
+
+	// required partition propagation accessor
+	CEnfdPartitionPropagation *
+	Pepp() const
+	{
+		return m_pepp;
 	}
 
 	// required cte accessor

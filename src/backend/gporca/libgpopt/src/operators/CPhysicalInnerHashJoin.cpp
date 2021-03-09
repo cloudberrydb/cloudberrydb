@@ -16,6 +16,8 @@
 #include "gpopt/base/CDistributionSpecHashed.h"
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CExpressionHandle.h"
+#include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/operators/CScalarCmp.h"
 
 using namespace gpopt;
 
@@ -94,7 +96,7 @@ CPhysicalInnerHashJoin::PdshashedCreateMatching(
 //
 //	@doc:
 //		Derive hash join distribution from hashed children;
-//		return NULL if derivation failed
+//		return nullptr if derivation failed
 //
 //---------------------------------------------------------------------------
 CDistributionSpec *
@@ -173,7 +175,7 @@ CPhysicalInnerHashJoin::PdsDeriveFromReplicatedOuter(
 //
 //	@doc:
 //		Derive hash join distribution from a hashed outer child;
-//		return NULL if derivation failed
+//		return nullptr if derivation failed
 //
 //---------------------------------------------------------------------------
 CDistributionSpec *
@@ -256,5 +258,126 @@ CPhysicalInnerHashJoin::PdsDerive(CMemoryPool *mp,
 	return pdsOuter;
 }
 
+CExpression *
+PexprJoinPredOnPartKeys(CMemoryPool *mp, CExpression *pexprScalar,
+						CPartKeysArray *pdrgppartkeys,
+						CColRefSet *pcrsAllowedRefs)
+{
+	GPOS_ASSERT(nullptr != pcrsAllowedRefs);
+
+	CExpression *pexprPred = nullptr;
+	for (ULONG ulKey = 0; nullptr == pexprPred && ulKey < pdrgppartkeys->Size();
+		 ulKey++)
+	{
+		// get partition key
+		CColRef2dArray *pdrgpdrgpcrPartKeys =
+			(*pdrgppartkeys)[ulKey]->Pdrgpdrgpcr();
+
+		// try to generate a request with dynamic partition selection
+		pexprPred = CPredicateUtils::PexprExtractPredicatesOnPartKeys(
+			mp, pexprScalar, pdrgpdrgpcrPartKeys, pcrsAllowedRefs,
+			true  // fUseConstraints
+		);
+	}
+
+	return pexprPred;
+}
+
+CPartitionPropagationSpec *
+CPhysicalInnerHashJoin::PppsRequired(CMemoryPool *mp,
+									 CExpressionHandle &exprhdl,
+									 CPartitionPropagationSpec *pppsRequired,
+									 ULONG child_index,
+									 CDrvdPropArray *pdrgpdpCtxt,
+									 ULONG ulOptReq) const
+{
+	GPOS_ASSERT(nullptr != pppsRequired);
+	GPOS_ASSERT(nullptr != pdrgpdpCtxt);
+
+	CExpression *pexprScalar = exprhdl.PexprScalarExactChild(2 /*child_index*/);
+
+	// CColRefSet *pcrsOutputOuter = exprhdl.DeriveOutputColumns(0);
+	CColRefSet *pcrsOutputInner = exprhdl.DeriveOutputColumns(1);
+
+	// CPartInfo *part_info_outer = exprhdl.DerivePartitionInfo(0);
+	// CPartInfo *part_info_inner = exprhdl.DerivePartitionInfo(1);
+
+	CPartitionPropagationSpec *pps_result;
+	if (ulOptReq == 0)
+	{
+		// DPE: create a new request
+		pps_result = GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+		CPartInfo *part_info_outer = exprhdl.DerivePartitionInfo(0);
+		for (ULONG ul = 0; ul < part_info_outer->UlConsumers(); ++ul)
+		{
+			ULONG scan_id = part_info_outer->ScanId(ul);
+			IMDId *rel_mdid = part_info_outer->GetRelMdId(ul);
+			CPartKeysArray *part_keys_array =
+				part_info_outer->Pdrgppartkeys(ul);
+
+			CExpression *pexprCmp =
+				PexprJoinPredOnPartKeys(mp, pexprScalar, part_keys_array,
+										pcrsOutputInner /* pcrsAllowedRefs*/);
+			if (pexprCmp == nullptr)
+			{
+				continue;
+			}
+
+			if (child_index == 0)
+			{
+				CPartitionPropagationSpec *pps_inner =
+					CDrvdPropPlan::Pdpplan((*pdrgpdpCtxt)[0])->Ppps();
+
+				CBitSet *selector_ids =
+					GPOS_NEW(mp) CBitSet(mp, *pps_inner->SelectorIds(scan_id));
+				pps_result->Insert(scan_id,
+								   CPartitionPropagationSpec::EpptConsumer,
+								   rel_mdid, selector_ids, nullptr /* expr */);
+				selector_ids->Release();
+			}
+			else
+			{
+				GPOS_ASSERT(child_index == 1);
+				pps_result->Insert(scan_id,
+								   CPartitionPropagationSpec::EpptPropagator,
+								   rel_mdid, nullptr, pexprCmp);
+			}
+			pexprCmp->Release();
+		}
+
+		CBitSet *allowed_scan_ids = GPOS_NEW(mp) CBitSet(mp);
+		CPartInfo *part_info = exprhdl.DerivePartitionInfo(child_index);
+		for (ULONG ul = 0; ul < part_info->UlConsumers(); ++ul)
+		{
+			ULONG scan_id = part_info->ScanId(ul);
+			allowed_scan_ids->ExchangeSet(scan_id);
+		}
+
+		pps_result->InsertAllowedConsumers(pppsRequired, allowed_scan_ids);
+		allowed_scan_ids->Release();
+	}
+	else
+	{
+		// No DPE: pass through requests
+		pps_result = CPhysical::PppsRequired(
+			mp, exprhdl, pppsRequired, child_index, pdrgpdpCtxt, ulOptReq);
+	}
+	return pps_result;
+}
+
+CPartitionPropagationSpec *
+CPhysicalInnerHashJoin::PppsDerive(CMemoryPool *mp,
+								   CExpressionHandle &exprhdl) const
+{
+	CPartitionPropagationSpec *pps_outer = exprhdl.Pdpplan(0)->Ppps();
+	CPartitionPropagationSpec *pps_inner = exprhdl.Pdpplan(1)->Ppps();
+
+	CPartitionPropagationSpec *pps_result =
+		GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+	pps_result->InsertAll(pps_outer);
+	pps_result->InsertAllResolve(pps_inner);
+
+	return pps_result;
+}
 
 // EOF

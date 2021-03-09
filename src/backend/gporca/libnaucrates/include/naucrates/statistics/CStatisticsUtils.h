@@ -216,7 +216,8 @@ public:
 
 	// derive statistics of dynamic scan based on part-selector stats in the given map
 	static IStatistics *DeriveStatsForDynamicScan(
-		CMemoryPool *mp, CExpressionHandle &expr_handle, ULONG part_idx_id);
+		CMemoryPool *mp, CExpressionHandle &exprhdl, ULONG scan_id,
+		CPartitionPropagationSpec *pps_reqd);
 
 	// derive statistics of (dynamic) index-get
 	static IStatistics *DeriveStatsForIndexGet(

@@ -1,6 +1,8 @@
 -- start_matchsubs
 -- m/^LOG.*PartitionSelector/
 -- s/^LOG.*PartitionSelector/PartitionSelector/
+-- m/^LOG.*Feature not supported/
+-- s/^LOG.*Feature not supported/Feature not supported/
 -- end_matchsubs
 -- start_ignore
 DROP DATABASE IF EXISTS incrementalanalyze;

@@ -1318,7 +1318,7 @@ Select * from X where X.a < ANY (select a from P);
     <dxl:Plan Id="0" SpaceSize="23">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="3660.735788" Rows="11000.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="3660.723138" Rows="11000.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -1329,7 +1329,7 @@ Select * from X where X.a < ANY (select a from P);
         <dxl:SortingColumnList/>
         <dxl:TableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="3660.538228" Rows="11000.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="3660.525578" Rows="11000.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -1347,7 +1347,7 @@ Select * from X where X.a < ANY (select a from P);
               <dxl:ParamList/>
               <dxl:Materialize Eager="false">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.761971" Rows="12649.974700" Width="4"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.749321" Rows="12649.974700" Width="4"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="8" Alias="a">
@@ -1357,7 +1357,7 @@ Select * from X where X.a < ANY (select a from P);
                 <dxl:Filter/>
                 <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.736671" Rows="12649.974700" Width="4"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.724021" Rows="12649.974700" Width="4"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="8" Alias="a">
@@ -1366,56 +1366,85 @@ Select * from X where X.a < ANY (select a from P);
                   </dxl:ProjList>
                   <dxl:Filter/>
                   <dxl:SortingColumnList/>
-                  <dxl:Sequence>
+                  <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="1" SelectorIds="">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
                     </dxl:Properties>
+                    <dxl:TableDescriptor Mdid="0.35837767.1.1" TableName="p">
+                      <dxl:Columns>
+                        <dxl:Column ColId="8" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="10" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="11" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="8" Alias="a">
                         <dxl:Ident ColId="8" ColName="a" TypeMdid="0.23.1.0"/>
                       </dxl:ProjElem>
                     </dxl:ProjList>
-                    <dxl:PartitionSelector RelationMdid="0.35837767.1.1" PartitionLevels="1" ScanId="1">
-                      <dxl:Properties>
-                        <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-                      </dxl:Properties>
-                      <dxl:ProjList/>
-                      <dxl:PartEqFilters>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
-                      </dxl:PartEqFilters>
-                      <dxl:PartFilters>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
-                      </dxl:PartFilters>
-                      <dxl:ResidualFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
-                      </dxl:ResidualFilter>
-                      <dxl:PropagationExpression>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
-                      </dxl:PropagationExpression>
-                      <dxl:PrintableFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
-                      </dxl:PrintableFilter>
-                    </dxl:PartitionSelector>
-                    <dxl:DynamicTableScan PartIndexId="1">
+                    <dxl:Filter/>
+                    <dxl:TableScan>
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="8" Alias="a">
-                          <dxl:Ident ColId="8" ColName="a" TypeMdid="0.23.1.0"/>
+                        <dxl:ProjElem ColId="17" Alias="a">
+                          <dxl:Ident ColId="17" ColName="a" TypeMdid="0.23.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
-                      <dxl:TableDescriptor Mdid="0.35837767.1.1" TableName="p">
+                      <dxl:TableDescriptor Mdid="0.1478028633.1.1" TableName="p_prt_1">
                         <dxl:Columns>
-                          <dxl:Column ColId="8" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-                          <dxl:Column ColId="10" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                          <dxl:Column ColId="11" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                          <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="17" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="18" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="19" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+                          <dxl:Column ColId="20" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="21" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
                         </dxl:Columns>
                       </dxl:TableDescriptor>
-                    </dxl:DynamicTableScan>
-                  </dxl:Sequence>
+                    </dxl:TableScan>
+                    <dxl:TableScan>
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="22" Alias="a">
+                          <dxl:Ident ColId="22" ColName="a" TypeMdid="0.23.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter/>
+                      <dxl:TableDescriptor Mdid="0.1478028634.1.1" TableName="p_prt_2">
+                        <dxl:Columns>
+                          <dxl:Column ColId="22" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="23" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+                          <dxl:Column ColId="25" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="26" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+                        </dxl:Columns>
+                      </dxl:TableDescriptor>
+                    </dxl:TableScan>
+                    <dxl:TableScan>
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="27" Alias="a">
+                          <dxl:Ident ColId="27" ColName="a" TypeMdid="0.23.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter/>
+                      <dxl:TableDescriptor Mdid="0.1478028635.1.1" TableName="p_prt_3">
+                        <dxl:Columns>
+                          <dxl:Column ColId="27" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="28" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="29" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+                          <dxl:Column ColId="30" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+                          <dxl:Column ColId="31" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+                        </dxl:Columns>
+                      </dxl:TableDescriptor>
+                    </dxl:TableScan>
+                  </dxl:Append>
                 </dxl:BroadcastMotion>
               </dxl:Materialize>
             </dxl:SubPlan>

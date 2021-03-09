@@ -108,7 +108,7 @@ enum Edxltoken
 	EdxltokenPhysicalTVF,
 	EdxltokenPhysicalWindow,
 	EdxltokenPhysicalPartitionSelector,
-	EdxltokenPhysicalPartitionSelectorLevels,
+	EdxltokenPhysicalPartitionSelectorId,
 	EdxltokenPhysicalPartitionSelectorScanId,
 	EdxltokenPhysicalValuesScan,
 
@@ -218,8 +218,7 @@ enum Edxltoken
 	EdxltokenScalarPartListValues,
 	EdxltokenScalarPartListNullTest,
 	EdxltokenScalarResidualFilter,
-	EdxltokenScalarPropagationExpr,
-	EdxltokenScalarPrintableFilter,
+	EdxltokenScalarPartFilterExpr,
 	EdxltokenScalarBitmapIndexProbe,
 	EdxltokenScalarValuesList,
 
@@ -371,6 +370,7 @@ enum Edxltoken
 
 	EdxltokenAppendIsTarget,
 	EdxltokenAppendIsZapped,
+	EdxltokenSelectorIds,
 
 	EdxltokenOpNo,
 	EdxltokenOpName,

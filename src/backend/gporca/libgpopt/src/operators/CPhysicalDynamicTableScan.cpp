@@ -69,13 +69,26 @@ CPhysicalDynamicTableScan::Matches(COperator *pop) const
 IStatistics *
 CPhysicalDynamicTableScan::PstatsDerive(CMemoryPool *mp,
 										CExpressionHandle &exprhdl,
-										CReqdPropPlan *prpplan GPOS_UNUSED,
+										CReqdPropPlan *prpplan,
 										IStatisticsArray *	// stats_ctxt
 ) const
 {
 	GPOS_ASSERT(nullptr != prpplan);
 
-	return CStatisticsUtils::DeriveStatsForDynamicScan(mp, exprhdl, ScanId());
+	return CStatisticsUtils::DeriveStatsForDynamicScan(
+		mp, exprhdl, ScanId(), prpplan->Pepp()->PppsRequired());
+}
+
+
+CPartitionPropagationSpec *
+CPhysicalDynamicTableScan::PppsDerive(CMemoryPool *mp,
+									  CExpressionHandle &) const
+{
+	CPartitionPropagationSpec *pps = GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+	pps->Insert(ScanId(), CPartitionPropagationSpec::EpptConsumer,
+				Ptabdesc()->MDId(), nullptr, nullptr);
+
+	return pps;
 }
 
 // EOF

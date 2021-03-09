@@ -3655,9 +3655,9 @@ explain (analyze, costs off, summary off, timing off) execute mt_q1(25);
 ------------------------------------------------------------------------
  Result (actual rows=1 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=1 loops=1)
-         Merge Key: b
+         Merge Key: ma_test_p3.b
          ->  Sort (actual rows=1 loops=1)
-               Sort Key: b
+               Sort Key: ma_test_p3.b
                Sort Method:  quicksort  Memory: 150kB
                ->  Append (actual rows=1 loops=1)
                      ->  Seq Scan on ma_test_p3 (actual rows=1 loops=1)

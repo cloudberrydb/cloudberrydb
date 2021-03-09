@@ -447,7 +447,7 @@ select * from pt, t where pt.j = t.t1 and pt.k = t.t2;
             <dxl:PropagationExpression>
               <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:PropagationExpression>
-            <dxl:PrintableFilter>
+            <dxl:PartFilterExpr>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
@@ -458,7 +458,7 @@ select * from pt, t where pt.j = t.t1 and pt.k = t.t2;
                   <dxl:Ident ColId="6" ColName="t1" TypeMdid="0.23.1.0"/>
                 </dxl:Comparison>
               </dxl:And>
-            </dxl:PrintableFilter>
+            </dxl:PartFilterExpr>
             <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.000446" Rows="2.000000" Width="8"/>

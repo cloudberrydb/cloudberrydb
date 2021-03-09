@@ -37,10 +37,13 @@ private:
 	IMDId *m_rel_mdid;
 
 	// number of partitioning levels
-	ULONG m_num_of_part_levels;
+	ULONG m_selector_id;
 
 	// scan id
 	ULONG m_scan_id;
+
+	// partitions
+	ULongPtrArray *m_partitions;
 
 	// process the start of an element
 	void StartElement(
@@ -65,6 +68,8 @@ public:
 	CParseHandlerPartitionSelector(CMemoryPool *mp,
 								   CParseHandlerManager *parse_handler_mgr,
 								   CParseHandlerBase *parse_handler_root);
+
+	~CParseHandlerPartitionSelector() override;
 };
 }  // namespace gpdxl
 

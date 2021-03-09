@@ -67,10 +67,10 @@ CScalarIsDistinctFrom::Matches(COperator *pop) const
 
 // get commuted scalar IDF operator
 CScalarCmp *
-CScalarIsDistinctFrom::PopCommutedOp(CMemoryPool *mp, COperator *pop)
+CScalarIsDistinctFrom::PopCommutedOp(CMemoryPool *mp)
 {
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	IMDId *mdid = PmdidCommuteOp(md_accessor, pop);
+	IMDId *mdid = PmdidCommuteOp(md_accessor, this);
 	if (nullptr != mdid && mdid->IsValid())
 	{
 		return GPOS_NEW(mp)

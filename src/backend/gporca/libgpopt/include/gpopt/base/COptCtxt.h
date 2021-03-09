@@ -18,11 +18,17 @@
 #include "gpopt/base/CCTEInfo.h"
 #include "gpopt/base/CColumnFactory.h"
 #include "gpopt/base/IComparator.h"
+#include "gpopt/base/SPartSelectorInfo.h"
 #include "gpopt/mdcache/CMDAccessor.h"
 
 namespace gpopt
 {
 using namespace gpos;
+
+// hash maps ULONG -> array of ULONGs
+typedef CHashMap<ULONG, CBitSet, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				 CleanupDelete<ULONG>, CleanupRelease<CBitSet> >
+	UlongToBitSetMap;
 
 // forward declarations
 class CColRefSet;
@@ -97,6 +103,25 @@ private:
 
 	// does this plan have a direct dispatchable filter
 	CExpressionArray *m_direct_dispatchable_filters;
+
+	// mappings of dynamic scan -> partition indexes (after static elimination)
+	// this is mainetained here to avoid dependencies on optimization order
+	// between dynamic scans/partition selectors and remove the assumption
+	// of one being optimized before the other. Instead, we populate the
+	// partitions during optimization of the dynamic scans, and populate
+	// the partitions for the corresponding partition selector in
+	// ExprToDXL. We could possibly do this in DXLToPlstmt, but we would be
+	// making an assumption about the order the scan vs partition selector
+	// is translated, and would also need information from the append's
+	// child dxl nodes.
+	UlongToBitSetMap *m_scanid_to_part_map;
+
+	// unique id per partition selector in the memo
+	ULONG m_selector_id_counter;
+
+	// detailed info (filter expr, stats etc) per partition selector
+	// (required by CDynamicPhysicalScan for recomputing statistics for DPE)
+	SPartSelectorInfo *m_part_selector_info;
 
 public:
 	COptCtxt(COptCtxt &) = delete;
@@ -250,12 +275,30 @@ public:
 		return m_auPartId++;
 	}
 
+	ULONG
+	NextPartSelectorId()
+	{
+		return m_selector_id_counter++;
+	}
+
 	// required system columns
 	CColRefArray *
 	PdrgpcrSystemCols() const
 	{
 		return m_pdrgpcrSystemCols;
 	}
+
+	void AddPartForScanId(ULONG scanid, ULONG index);
+
+	CBitSet *
+	GetPartitionsForScanId(ULONG scanid)
+	{
+		return m_scanid_to_part_map->Find(&scanid);
+	}
+
+	BOOL AddPartSelectorInfo(ULONG selector_id, SPartSelectorInfoEntry *entry);
+
+	const SPartSelectorInfoEntry *GetPartSelectorInfo(ULONG selector_id) const;
 
 	// set required system columns
 	void

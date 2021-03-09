@@ -40,6 +40,7 @@ public:
 		EpstOrder,
 		EpstDistribution,
 		EpstRewindability,
+		EpstPartPropagation,
 
 		EpstSentinel
 	};

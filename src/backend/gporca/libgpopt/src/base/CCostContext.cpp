@@ -138,18 +138,16 @@ CCostContext::FNeedsNewStats() const
 		return false;
 	}
 
-#if 0
-	if (!m_pdpplan->Ppim()->FContainsUnresolved())
+	if (!m_poc->Prpp()->Pepp()->PppsRequired()->ContainsAnyConsumers())
 	{
 		// All partition selectors have been resolved at this level.
 		// No need to use DPE stats for the common ancestor join and
 		// nodes above it, that aren't affected by the partition selector.
 		return false;
 	}
-#endif
-	// GPDB_12_MERGE_FIXME: Re-enable this when DPE is re-implemented
+
 	if (GPOS_FTRACE(EopttraceDeriveStatsForDPE) && CUtils::FPhysicalScan(pop) &&
-		CPhysicalScan::PopConvert(pop)->FDynamicScan() && false)
+		CPhysicalScan::PopConvert(pop)->FDynamicScan())
 	{
 		// context is attached to a dynamic scan that went through
 		// partition elimination in another part of the plan

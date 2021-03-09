@@ -10,8 +10,6 @@
 -- m/Batches: \d+/
 -- s/Batches: \d+/Batches: ###/
 -- end_matchsubs
--- GPDB_12_MERGE_FIXME: Enable after ORCA supports DPE
-set optimizer to off;
 drop schema if exists dpe_single cascade;
 NOTICE:  schema "dpe_single" does not exist, skipping
 create schema dpe_single;
@@ -72,26 +70,28 @@ analyze t1;
 -- Simple positive cases
 --
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
-   ->  Hash Join (actual rows=8 loops=1)
-         Hash Cond: (pt_1_prt_2.ptid = t.tid)
-         ->  Append (actual rows=8 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (never executed)
-               ->  Seq Scan on pt_1_prt_5 (never executed)
-               ->  Seq Scan on pt_1_prt_6 (never executed)
-               ->  Seq Scan on pt_1_prt_junk_data (never executed)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(17 rows)
+   ->  Nested Loop (actual rows=8 loops=1)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+         ->  Append (actual rows=4 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where tid = ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -117,26 +117,28 @@ select * from t, pt where tid = ptid;
 (18 rows)
 
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid + 1 = ptid;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
-   ->  Hash Join (actual rows=8 loops=1)
-         Hash Cond: (pt_1_prt_2.ptid = (t.tid + 1))
-         ->  Append (actual rows=8 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pt_1_prt_2 (never executed)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_5 (never executed)
-               ->  Seq Scan on pt_1_prt_6 (never executed)
-               ->  Seq Scan on pt_1_prt_junk_data (never executed)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(17 rows)
+   ->  Nested Loop (actual rows=8 loops=1)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+         ->  Append (actual rows=4 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (never executed)
+                     Index Cond: (ptid = (t.tid + 1))
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid = (t.tid + 1))
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=2 loops=2)
+                     Index Cond: (ptid = (t.tid + 1))
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (ptid = (t.tid + 1))
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (ptid = (t.tid + 1))
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (ptid = (t.tid + 1))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where tid + 1 = ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -162,27 +164,29 @@ select * from t, pt where tid + 1 = ptid;
 (18 rows)
 
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid and t1 = 'hello' || tid;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
-   ->  Hash Join (actual rows=8 loops=1)
-         Hash Cond: (pt_1_prt_2.ptid = t.tid)
-         ->  Append (actual rows=8 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (never executed)
-               ->  Seq Scan on pt_1_prt_5 (never executed)
-               ->  Seq Scan on pt_1_prt_6 (never executed)
-               ->  Seq Scan on pt_1_prt_junk_data (never executed)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
-                                 Filter: (t1 = ('hello'::text || (tid)::text))
- Optimizer: Postgres query optimizer
-(18 rows)
+   ->  Nested Loop (actual rows=8 loops=1)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+                     Filter: (t1 = ('hello'::text || (tid)::text))
+         ->  Append (actual rows=4 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(20 rows)
 
 select * from t, pt where tid = ptid and t1 = 'hello' || tid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -208,26 +212,34 @@ select * from t, pt where tid = ptid and t1 = 'hello' || tid;
 (18 rows)
 
 explain (costs off, timing off, summary off, analyze) select * from t, pt where t1 = pt1 and ptid = tid;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=2 loops=1)
-   ->  Hash Join (actual rows=2 loops=1)
-         Hash Cond: ((pt_1_prt_2.pt1 = t.t1) AND (pt_1_prt_2.ptid = t.tid))
-         ->  Append (actual rows=8 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (never executed)
-               ->  Seq Scan on pt_1_prt_5 (never executed)
-               ->  Seq Scan on pt_1_prt_6 (never executed)
-               ->  Seq Scan on pt_1_prt_junk_data (never executed)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(17 rows)
+   ->  Nested Loop (actual rows=2 loops=1)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+         ->  Append (actual rows=1 loops=2)
+               ->  Index Scan using pt_1_prt_2_pt1_idx on pt_1_prt_2 (actual rows=0 loops=2)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+               ->  Index Scan using pt_1_prt_3_pt1_idx on pt_1_prt_3 (actual rows=0 loops=2)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+               ->  Index Scan using pt_1_prt_4_pt1_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+               ->  Index Scan using pt_1_prt_5_pt1_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+               ->  Index Scan using pt_1_prt_6_pt1_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+               ->  Index Scan using pt_1_prt_junk_data_pt1_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (pt1 = t.t1)
+                     Filter: ((pt1 = t.t1) AND (ptid = t.tid))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(25 rows)
 
 select * from t, pt where t1 = pt1 and ptid = tid;
  dist | tid |   t1   | t2  | dist |  pt1   |  pt2  |    pt3    | ptid 
@@ -240,10 +252,10 @@ select * from t, pt where t1 = pt1 and ptid = tid;
 -- in and exists clauses
 --
 explain (costs off, timing off, summary off, analyze) select * from pt where ptid in (select tid from t where t1 = 'hello' || tid);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
-   ->  Hash Semi Join (actual rows=8 loops=1)
+   ->  Hash Join (actual rows=8 loops=1)
          Hash Cond: (pt_1_prt_2.ptid = t.tid)
          ->  Append (actual rows=8 loops=1)
                Partition Selectors: $0
@@ -254,13 +266,20 @@ explain (costs off, timing off, summary off, analyze) select * from pt where pti
                ->  Seq Scan on pt_1_prt_6 (never executed)
                ->  Seq Scan on pt_1_prt_junk_data (never executed)
          ->  Hash (actual rows=2 loops=1)
-               Buckets: 524288  Batches: 1  Memory Usage: 4097kB
+               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
                ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
                      ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
-                                 Filter: (t1 = ('hello'::text || (tid)::text))
- Optimizer: Postgres query optimizer
-(18 rows)
+                           ->  GroupAggregate (actual rows=2 loops=1)
+                                 Group Key: t.tid
+                                 ->  Sort (actual rows=2 loops=1)
+                                       Sort Key: t.tid
+                                       Sort Method:  quicksort  Memory: 150kB
+                                       ->  Redistribute Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
+                                             Hash Key: t.tid
+                                             ->  Seq Scan on t (actual rows=2 loops=1)
+                                                   Filter: (t1 = ('hello'::text || (tid)::text))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(25 rows)
 
 select * from pt where ptid in (select tid from t where t1 = 'hello' || tid);
  dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -289,10 +308,10 @@ select * from pt where ptid in (select tid from t where t1 = 'hello' || tid);
 -- Known_opt_diff: MPP-21320
 -- end_ignore
 explain (costs off, timing off, summary off, analyze) select * from pt where exists (select 1 from t where tid = ptid and t1 = 'hello' || tid);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
-   ->  Hash Semi Join (actual rows=8 loops=1)
+   ->  Hash Join (actual rows=8 loops=1)
          Hash Cond: (pt_1_prt_2.ptid = t.tid)
          ->  Append (actual rows=8 loops=1)
                Partition Selectors: $0
@@ -303,13 +322,20 @@ explain (costs off, timing off, summary off, analyze) select * from pt where exi
                ->  Seq Scan on pt_1_prt_6 (never executed)
                ->  Seq Scan on pt_1_prt_junk_data (never executed)
          ->  Hash (actual rows=2 loops=1)
-               Buckets: 524288  Batches: 1  Memory Usage: 4097kB
+               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
                ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
                      ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
-                                 Filter: (t1 = ('hello'::text || (tid)::text))
- Optimizer: Postgres query optimizer
-(18 rows)
+                           ->  GroupAggregate (actual rows=2 loops=1)
+                                 Group Key: t.tid
+                                 ->  Sort (actual rows=2 loops=1)
+                                       Sort Key: t.tid
+                                       Sort Method:  quicksort  Memory: 150kB
+                                       ->  Redistribute Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
+                                             Hash Key: t.tid
+                                             ->  Seq Scan on t (actual rows=2 loops=1)
+                                                   Filter: (t1 = ('hello'::text || (tid)::text))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(25 rows)
 
 select * from pt where exists (select 1 from t where tid = ptid and t1 = 'hello' || tid);
  dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -338,28 +364,30 @@ select * from pt where exists (select 1 from t where tid = ptid and t1 = 'hello'
 -- group-by on top
 --
 explain (costs off, timing off, summary off, analyze) select count(*) from t, pt where tid = ptid;
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=1)
          ->  Partial Aggregate (actual rows=1 loops=1)
-               ->  Hash Join (actual rows=8 loops=1)
-                     Hash Cond: (pt_1_prt_2.ptid = t.tid)
-                     ->  Append (actual rows=8 loops=1)
-                           Partition Selectors: $0
-                           ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-                           ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                           ->  Seq Scan on pt_1_prt_4 (never executed)
-                           ->  Seq Scan on pt_1_prt_5 (never executed)
-                           ->  Seq Scan on pt_1_prt_6 (never executed)
-                           ->  Seq Scan on pt_1_prt_junk_data (never executed)
-                     ->  Hash (actual rows=2 loops=1)
-                           Buckets: 524288  Batches: 1  Memory Usage: 4097kB
-                           ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                                 ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                                       ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(19 rows)
+               ->  Nested Loop (actual rows=8 loops=1)
+                     Join Filter: true
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+                           ->  Seq Scan on t (actual rows=2 loops=1)
+                     ->  Append (actual rows=4 loops=2)
+                           ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                                 Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(21 rows)
 
 select count(*) from t, pt where tid = ptid;
  count 
@@ -371,8 +399,8 @@ select count(*) from t, pt where tid = ptid;
 -- window function on top
 --
 explain (costs off, timing off, summary off, analyze) select *, rank() over (order by ptid,pt1) from t, pt where tid = ptid;
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
  WindowAgg (actual rows=18 loops=1)
    Order By: pt_1_prt_2.ptid, pt_1_prt_2.pt1
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
@@ -380,23 +408,25 @@ explain (costs off, timing off, summary off, analyze) select *, rank() over (ord
          ->  Sort (actual rows=8 loops=1)
                Sort Key: pt_1_prt_2.ptid, pt_1_prt_2.pt1
                Sort Method:  quicksort  Memory: 152kB
-               ->  Hash Join (actual rows=8 loops=1)
-                     Hash Cond: (pt_1_prt_2.ptid = t.tid)
-                     ->  Append (actual rows=8 loops=1)
-                           Partition Selectors: $0
-                           ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-                           ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                           ->  Seq Scan on pt_1_prt_4 (never executed)
-                           ->  Seq Scan on pt_1_prt_5 (never executed)
-                           ->  Seq Scan on pt_1_prt_6 (never executed)
-                           ->  Seq Scan on pt_1_prt_junk_data (never executed)
-                     ->  Hash (actual rows=2 loops=1)
-                           Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-                           ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                                 ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                                       ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(23 rows)
+               ->  Nested Loop (actual rows=8 loops=1)
+                     Join Filter: true
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+                           ->  Seq Scan on t (actual rows=2 loops=1)
+                     ->  Append (actual rows=4 loops=2)
+                           ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                                 Index Cond: (ptid = t.tid)
+                           ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                                 Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(25 rows)
 
 select *, rank() over (order by ptid,pt1) from t, pt where tid = ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid | rank 
@@ -427,42 +457,46 @@ select *, rank() over (order by ptid,pt1) from t, pt where tid = ptid;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid
 	  union all
 	  select * from t, pt where tid + 2 = ptid;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=36 loops=1)
    ->  Append (actual rows=14 loops=1)
-         ->  Hash Join (actual rows=8 loops=1)
-               Hash Cond: (pt_1_prt_2.ptid = t.tid)
-               ->  Append (actual rows=8 loops=1)
-                     Partition Selectors: $0
-                     ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 (never executed)
-                     ->  Seq Scan on pt_1_prt_5 (never executed)
-                     ->  Seq Scan on pt_1_prt_6 (never executed)
-                     ->  Seq Scan on pt_1_prt_junk_data (never executed)
-               ->  Hash (actual rows=2 loops=1)
-                     Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-                     ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                           ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                                 ->  Seq Scan on t (actual rows=2 loops=1)
-         ->  Hash Join (actual rows=7 loops=1)
-               Hash Cond: (pt_1_prt_2_1.ptid = (t_1.tid + 2))
-               ->  Append (actual rows=7 loops=1)
-                     Partition Selectors: $1
-                     ->  Seq Scan on pt_1_prt_2 pt_1_prt_2_1 (never executed)
-                     ->  Seq Scan on pt_1_prt_3 pt_1_prt_3_1 (never executed)
-                     ->  Seq Scan on pt_1_prt_4 pt_1_prt_4_1 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_5 pt_1_prt_5_1 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_6 pt_1_prt_6_1 (never executed)
-                     ->  Seq Scan on pt_1_prt_junk_data pt_1_prt_junk_data_1 (never executed)
-               ->  Hash (actual rows=2 loops=1)
-                     Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-                     ->  Partition Selector (selector id: $1) (actual rows=2 loops=1)
-                           ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
-                                 ->  Seq Scan on t t_1 (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(33 rows)
+         ->  Nested Loop (actual rows=8 loops=1)
+               Join Filter: true
+               ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+                     ->  Seq Scan on t (actual rows=2 loops=1)
+               ->  Append (actual rows=4 loops=2)
+                     ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                           Index Cond: (ptid = t.tid)
+                     ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                           Index Cond: (ptid = t.tid)
+                     ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                           Index Cond: (ptid = t.tid)
+                     ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                           Index Cond: (ptid = t.tid)
+                     ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                           Index Cond: (ptid = t.tid)
+                     ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                           Index Cond: (ptid = t.tid)
+         ->  Nested Loop (actual rows=7 loops=1)
+               Join Filter: true
+               ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
+                     ->  Seq Scan on t t_1 (actual rows=2 loops=1)
+               ->  Append (actual rows=4 loops=2)
+                     ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 pt_1_prt_2_1 (never executed)
+                           Index Cond: (ptid = (t_1.tid + 2))
+                     ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 pt_1_prt_3_1 (never executed)
+                           Index Cond: (ptid = (t_1.tid + 2))
+                     ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 pt_1_prt_4_1 (actual rows=2 loops=2)
+                           Index Cond: (ptid = (t_1.tid + 2))
+                     ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 pt_1_prt_5_1 (actual rows=2 loops=2)
+                           Index Cond: (ptid = (t_1.tid + 2))
+                     ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 pt_1_prt_6_1 (never executed)
+                           Index Cond: (ptid = (t_1.tid + 2))
+                     ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data pt_1_prt_junk_data_1 (never executed)
+                           Index Cond: (ptid = (t_1.tid + 2))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(37 rows)
 
 select * from t, pt where tid = ptid
 	  union all
@@ -515,46 +549,48 @@ explain (costs off, timing off, summary off, analyze) select count(*) from
 	  union all
 	  select * from t, pt where tid + 2 = ptid
 	  ) foo;
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=1)
          ->  Partial Aggregate (actual rows=1 loops=1)
                ->  Append (actual rows=14 loops=1)
-                     ->  Subquery Scan on "*SELECT* 1" (actual rows=8 loops=1)
-                           ->  Hash Join (actual rows=8 loops=1)
-                                 Hash Cond: (pt_1_prt_2.ptid = t.tid)
-                                 ->  Append (actual rows=8 loops=1)
-                                       Partition Selectors: $0
-                                       ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-                                       ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                                       ->  Seq Scan on pt_1_prt_4 (never executed)
-                                       ->  Seq Scan on pt_1_prt_5 (never executed)
-                                       ->  Seq Scan on pt_1_prt_6 (never executed)
-                                       ->  Seq Scan on pt_1_prt_junk_data (never executed)
-                                 ->  Hash (actual rows=2 loops=1)
-                                       Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-                                       ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                                             ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                                                   ->  Seq Scan on t (actual rows=2 loops=1)
-                     ->  Subquery Scan on "*SELECT* 2" (actual rows=7 loops=1)
-                           ->  Hash Join (actual rows=7 loops=1)
-                                 Hash Cond: (pt_1_prt_2_1.ptid = (t_1.tid + 2))
-                                 ->  Append (actual rows=7 loops=1)
-                                       Partition Selectors: $1
-                                       ->  Seq Scan on pt_1_prt_2 pt_1_prt_2_1 (never executed)
-                                       ->  Seq Scan on pt_1_prt_3 pt_1_prt_3_1 (never executed)
-                                       ->  Seq Scan on pt_1_prt_4 pt_1_prt_4_1 (actual rows=5 loops=1)
-                                       ->  Seq Scan on pt_1_prt_5 pt_1_prt_5_1 (actual rows=5 loops=1)
-                                       ->  Seq Scan on pt_1_prt_6 pt_1_prt_6_1 (never executed)
-                                       ->  Seq Scan on pt_1_prt_junk_data pt_1_prt_junk_data_1 (never executed)
-                                 ->  Hash (actual rows=2 loops=1)
-                                       Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-                                       ->  Partition Selector (selector id: $1) (actual rows=2 loops=1)
-                                             ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
-                                                   ->  Seq Scan on t t_1 (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(37 rows)
+                     ->  Nested Loop (actual rows=8 loops=1)
+                           Join Filter: true
+                           ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+                                 ->  Seq Scan on t (actual rows=2 loops=1)
+                           ->  Append (actual rows=4 loops=2)
+                                 ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                                       Index Cond: (ptid = t.tid)
+                                 ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                                       Index Cond: (ptid = t.tid)
+                                 ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                                       Index Cond: (ptid = t.tid)
+                                 ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                                       Index Cond: (ptid = t.tid)
+                                 ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                                       Index Cond: (ptid = t.tid)
+                                 ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                                       Index Cond: (ptid = t.tid)
+                     ->  Nested Loop (actual rows=7 loops=1)
+                           Join Filter: true
+                           ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
+                                 ->  Seq Scan on t t_1 (actual rows=2 loops=1)
+                           ->  Append (actual rows=4 loops=2)
+                                 ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 pt_1_prt_2_1 (never executed)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+                                 ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 pt_1_prt_3_1 (never executed)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+                                 ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 pt_1_prt_4_1 (actual rows=2 loops=2)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+                                 ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 pt_1_prt_5_1 (actual rows=2 loops=2)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+                                 ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 pt_1_prt_6_1 (never executed)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+                                 ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data pt_1_prt_junk_data_1 (never executed)
+                                       Index Cond: (ptid = (t_1.tid + 2))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(39 rows)
 
 select count(*) from
 	( select * from t, pt where tid = ptid
@@ -573,26 +609,28 @@ set enable_hashjoin=off;
 set enable_nestloop=on;
 set enable_mergejoin=off;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
    ->  Nested Loop (actual rows=8 loops=1)
-         Join Filter: (t.tid = pt_1_prt_2.ptid)
-         Rows Removed by Join Filter: 8
-         ->  Append (actual rows=8 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (never executed)
-               ->  Seq Scan on pt_1_prt_5 (never executed)
-               ->  Seq Scan on pt_1_prt_6 (never executed)
-               ->  Seq Scan on pt_1_prt_junk_data (never executed)
-         ->  Materialize (actual rows=2 loops=9)
-               ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                           ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(17 rows)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+         ->  Append (actual rows=4 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where tid = ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -631,13 +669,13 @@ set enable_hashjoin=off;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid and pt1 = 'hello0';
                                                  QUERY PLAN                                                 
 ------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3) (actual rows=1 loops=1)
-   ->  Nested Loop (actual rows=1 loops=1)
-         Join Filter: (t.tid = pt_1_prt_2.ptid)
-         Rows Removed by Join Filter: 1
-         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-               ->  Seq Scan on t (actual rows=2 loops=1)
-         ->  Materialize (actual rows=1 loops=2)
+ Hash Join (actual rows=1 loops=1)
+   Hash Cond: (t.tid = pt_1_prt_2.ptid)
+   ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=2 loops=1)
+         ->  Seq Scan on t (actual rows=2 loops=1)
+   ->  Hash (actual rows=1 loops=1)
+         Buckets: 262144  Batches: 1  Memory Usage: 2049kB
+         ->  Gather Motion 3:1  (slice2; segments: 3) (actual rows=1 loops=1)
                ->  Append (actual rows=1 loops=1)
                      ->  Index Scan using pt_1_prt_2_pt1_idx on pt_1_prt_2 (actual rows=1 loops=1)
                            Index Cond: (pt1 = 'hello0'::text)
@@ -651,7 +689,7 @@ explain (costs off, timing off, summary off, analyze) select * from t, pt where 
                            Index Cond: (pt1 = 'hello0'::text)
                      ->  Index Scan using pt_1_prt_junk_data_pt1_idx on pt_1_prt_junk_data (never executed)
                            Index Cond: (pt1 = 'hello0'::text)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (21 rows)
 
 select * from t, pt where tid = ptid and pt1 = 'hello0';
@@ -668,24 +706,28 @@ set enable_indexscan=on;
 set enable_seqscan=off;
 set enable_hashjoin=off;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid = ptid;
-                                                     QUERY PLAN                                                     
---------------------------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
    ->  Nested Loop (actual rows=8 loops=1)
-         Join Filter: (t.tid = pt_1_prt_2.ptid)
-         Rows Removed by Join Filter: 30
+         Join Filter: true
          ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
                ->  Seq Scan on t (actual rows=2 loops=1)
-         ->  Materialize (actual rows=20 loops=2)
-               ->  Append (actual rows=20 loops=1)
-                     ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=5 loops=1)
-                     ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=3 loops=1)
-                     ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=5 loops=1)
-                     ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (actual rows=5 loops=1)
-                     ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (actual rows=4 loops=1)
-                     ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (actual rows=3 loops=1)
- Optimizer: Postgres query optimizer
-(15 rows)
+         ->  Append (actual rows=4 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (ptid = t.tid)
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (ptid = t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where tid = ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -718,24 +760,28 @@ set enable_seqscan=on;
 set enable_hashjoin=on;
 set enable_nestloop=off;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where t1 = pt1;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=2 loops=1)
-   ->  Hash Join (actual rows=2 loops=1)
-         Hash Cond: (pt_1_prt_2.pt1 = t.t1)
-         ->  Append (actual rows=20 loops=1)
-               ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-               ->  Seq Scan on pt_1_prt_4 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_5 (actual rows=5 loops=1)
-               ->  Seq Scan on pt_1_prt_6 (actual rows=4 loops=1)
-               ->  Seq Scan on pt_1_prt_junk_data (actual rows=3 loops=1)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                     ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(15 rows)
+   ->  Nested Loop (actual rows=2 loops=1)
+         Join Filter: true
+         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+         ->  Append (actual rows=1 loops=2)
+               ->  Index Scan using pt_1_prt_2_pt1_idx on pt_1_prt_2 (actual rows=0 loops=2)
+                     Index Cond: (pt1 = t.t1)
+               ->  Index Scan using pt_1_prt_3_pt1_idx on pt_1_prt_3 (actual rows=0 loops=2)
+                     Index Cond: (pt1 = t.t1)
+               ->  Index Scan using pt_1_prt_4_pt1_idx on pt_1_prt_4 (never executed)
+                     Index Cond: (pt1 = t.t1)
+               ->  Index Scan using pt_1_prt_5_pt1_idx on pt_1_prt_5 (never executed)
+                     Index Cond: (pt1 = t.t1)
+               ->  Index Scan using pt_1_prt_6_pt1_idx on pt_1_prt_6 (never executed)
+                     Index Cond: (pt1 = t.t1)
+               ->  Index Scan using pt_1_prt_junk_data_pt1_idx on pt_1_prt_junk_data (never executed)
+                     Index Cond: (pt1 = t.t1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where t1 = pt1;
  dist | tid |   t1   | t2  | dist |  pt1   |  pt2  |    pt3    | ptid 
@@ -745,24 +791,28 @@ select * from t, pt where t1 = pt1;
 (2 rows)
 
 explain (costs off, timing off, summary off, analyze) select * from t, pt where tid < ptid;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=81 loops=1)
    ->  Nested Loop (actual rows=31 loops=1)
-         Join Filter: (t.tid < pt_1_prt_2.ptid)
-         Rows Removed by Join Filter: 9
+         Join Filter: true
          ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
                ->  Seq Scan on t (actual rows=2 loops=1)
-         ->  Materialize (actual rows=20 loops=2)
-               ->  Append (actual rows=20 loops=1)
-                     ->  Seq Scan on pt_1_prt_2 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_5 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_6 (actual rows=4 loops=1)
-                     ->  Seq Scan on pt_1_prt_junk_data (actual rows=3 loops=1)
- Optimizer: Postgres query optimizer
-(15 rows)
+         ->  Append (actual rows=16 loops=2)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (never executed)
+                     Index Cond: (ptid > t.tid)
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                     Index Cond: (ptid > t.tid)
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=5 loops=2)
+                     Index Cond: (ptid > t.tid)
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (actual rows=5 loops=2)
+                     Index Cond: (ptid > t.tid)
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (actual rows=4 loops=2)
+                     Index Cond: (ptid > t.tid)
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (actual rows=3 loops=2)
+                     Index Cond: (ptid > t.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
 
 select * from t, pt where tid < ptid;
  dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -859,32 +909,34 @@ reset enable_nestloop;
 --
 -- one of the joined tables can be used for partition elimination, the other can not
 explain (costs off, timing off, summary off, analyze) select * from t, t1, pt where t1.t2 = t.t2 and t1.tid = ptid;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3) (actual rows=36 loops=1)
-   ->  Hash Join (actual rows=16 loops=1)
-         Hash Cond: (t1.t2 = t.t2)
-         ->  Hash Join (actual rows=8 loops=1)
-               Hash Cond: (pt_1_prt_2.ptid = t1.tid)
-               ->  Append (actual rows=8 loops=1)
-                     Partition Selectors: $0
-                     ->  Seq Scan on pt_1_prt_2 (never executed)
-                     ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 (actual rows=5 loops=1)
-                     ->  Seq Scan on pt_1_prt_5 (never executed)
-                     ->  Seq Scan on pt_1_prt_6 (never executed)
-                     ->  Seq Scan on pt_1_prt_junk_data (never executed)
-               ->  Hash (actual rows=2 loops=1)
-                     Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-                     ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
-                           ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
-                                 ->  Seq Scan on t1 (actual rows=1 loops=1)
-         ->  Hash (actual rows=2 loops=1)
-               Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-               ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=2 loops=1)
-                     ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
-(23 rows)
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Hash Join (actual rows=36 loops=1)
+   Hash Cond: (t1.t2 = t.t2)
+   ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=18 loops=1)
+         ->  Nested Loop (actual rows=8 loops=1)
+               Join Filter: true
+               ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+                     ->  Seq Scan on t1 (actual rows=1 loops=1)
+               ->  Append (actual rows=4 loops=2)
+                     ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                     ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=2 loops=2)
+                           Index Cond: (ptid = t1.tid)
+                     ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=2 loops=2)
+                           Index Cond: (ptid = t1.tid)
+                     ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                     ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                     ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                           Index Cond: (ptid = t1.tid)
+   ->  Hash (actual rows=2 loops=1)
+         Buckets: 262144  Batches: 1  Memory Usage: 2049kB
+         ->  Gather Motion 3:1  (slice3; segments: 3) (actual rows=2 loops=1)
+               ->  Seq Scan on t (actual rows=2 loops=1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(25 rows)
 
 select * from t, t1, pt where t1.t2 = t.t2 and t1.tid = ptid;
  dist | tid |   t1   | t2  | dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -936,33 +988,37 @@ insert into t1 select i, -100, 'dummy' from generate_series(1,10) i;
 analyze t;
 analyze t1;
 explain (costs off, timing off, summary off, analyze) select * from t, t1, pt where t1.tid = ptid and t.tid = ptid;
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=9 loops=1)
-   ->  Hash Join (actual rows=3 loops=1)
-         Hash Cond: (pt_1_prt_2.ptid = t1.tid)
-         ->  Hash Join (actual rows=3 loops=1)
-               Hash Cond: (pt_1_prt_2.ptid = t.tid)
-               ->  Append (actual rows=6 loops=1)
-                     Partition Selectors: $0, $1
-                     ->  Seq Scan on pt_1_prt_2 (never executed)
-                     ->  Seq Scan on pt_1_prt_3 (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 (never executed)
-                     ->  Seq Scan on pt_1_prt_5 (never executed)
-                     ->  Seq Scan on pt_1_prt_6 (never executed)
-                     ->  Seq Scan on pt_1_prt_junk_data (actual rows=3 loops=1)
-               ->  Hash (actual rows=12 loops=1)
-                     Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-                     ->  Partition Selector (selector id: $0) (actual rows=12 loops=1)
-                           ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=12 loops=1)
-                                 ->  Seq Scan on t (actual rows=5 loops=1)
-         ->  Hash (actual rows=12 loops=1)
-               Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-               ->  Partition Selector (selector id: $1) (actual rows=12 loops=1)
-                     ->  Broadcast Motion 3:3  (slice3; segments: 3) (actual rows=12 loops=1)
-                           ->  Seq Scan on t1 (actual rows=6 loops=1)
- Optimizer: Postgres query optimizer
-(24 rows)
+   ->  Hash Join (actual rows=9 loops=1)
+         Hash Cond: (t.tid = pt_1_prt_2.ptid)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=1)
+               Hash Key: t.tid
+               ->  Seq Scan on t (actual rows=5 loops=1)
+         ->  Hash (actual rows=9 loops=1)
+               Buckets: 262144  Batches: 1  Memory Usage: 2049kB
+               ->  Redistribute Motion 3:3  (slice3; segments: 3) (actual rows=9 loops=1)
+                     Hash Key: pt_1_prt_2.ptid
+                     ->  Nested Loop (actual rows=8 loops=1)
+                           Join Filter: true
+                           ->  Broadcast Motion 3:3  (slice4; segments: 3) (actual rows=12 loops=1)
+                                 ->  Seq Scan on t1 (actual rows=6 loops=1)
+                           ->  Append (actual rows=1 loops=12)
+                                 ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (never executed)
+                                       Index Cond: (ptid = t1.tid)
+                                 ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=0 loops=12)
+                                       Index Cond: (ptid = t1.tid)
+                                 ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=0 loops=12)
+                                       Index Cond: (ptid = t1.tid)
+                                 ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                                       Index Cond: (ptid = t1.tid)
+                                 ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                                       Index Cond: (ptid = t1.tid)
+                                 ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                                       Index Cond: (ptid = t1.tid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(28 rows)
 
 select * from t, t1, pt where t1.tid = ptid and t.tid = ptid;
  dist | tid |   t1   | t2  | dist | tid |   t1   | t2  | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -987,41 +1043,58 @@ begin;
 set local from_collapse_limit = 1;
 set local join_collapse_limit = 1;
 explain (costs off, timing off, summary off, analyze) select * from t1 inner join (select pt1.*, pt2.ptid as ptid2 from pt as pt1, pt as pt2 WHERE pt1.ptid <= pt2.ptid and pt1.dist = pt2.dist ) as ptx ON t1.dist = ptx.dist and t1.tid = ptx.ptid and t1.tid = ptx.ptid2;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=2 loops=1)
-   ->  Hash Join (actual rows=1 loops=1)
-         Hash Cond: ((pt1.dist = t1.dist) AND (pt1.ptid = t1.tid))
-         Join Filter: ((t1.tid <= pt2.ptid) AND (pt1.ptid <= t1.tid))
-         ->  Hash Join (actual rows=3 loops=1)
-               Hash Cond: ((pt1.dist = pt2.dist) AND (pt1.ptid = pt2.ptid))
-               Join Filter: (pt1.ptid <= pt2.ptid)
-               ->  Append (actual rows=3 loops=1)
-                     Partition Selectors: $0, $1
-                     ->  Seq Scan on pt_1_prt_2 pt1 (never executed)
-                     ->  Seq Scan on pt_1_prt_3 pt1_1 (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 pt1_2 (actual rows=2 loops=1)
-                     ->  Seq Scan on pt_1_prt_5 pt1_3 (never executed)
-                     ->  Seq Scan on pt_1_prt_6 pt1_4 (never executed)
-                     ->  Seq Scan on pt_1_prt_junk_data pt1_5 (never executed)
-               ->  Hash (actual rows=14 loops=1)
-                     Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-                     ->  Partition Selector (selector id: $0) (actual rows=14 loops=1)
-                           ->  Append (actual rows=14 loops=1)
-                                 Partition Selectors: $2
-                                 ->  Seq Scan on pt_1_prt_2 pt2 (never executed)
-                                 ->  Seq Scan on pt_1_prt_3 pt2_1 (actual rows=3 loops=1)
-                                 ->  Seq Scan on pt_1_prt_4 pt2_2 (actual rows=5 loops=1)
-                                 ->  Seq Scan on pt_1_prt_5 pt2_3 (actual rows=5 loops=1)
-                                 ->  Seq Scan on pt_1_prt_6 pt2_4 (actual rows=4 loops=1)
-                                 ->  Seq Scan on pt_1_prt_junk_data pt2_5 (actual rows=3 loops=1)
-         ->  Hash (actual rows=1 loops=1)
-               Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-               ->  Partition Selector (selector id: $2) (actual rows=1 loops=1)
-                     ->  Partition Selector (selector id: $1) (actual rows=1 loops=1)
-                           ->  Seq Scan on t1 (actual rows=1 loops=1)
- Optimizer: Postgres query optimizer
-(32 rows)
+   ->  Nested Loop (actual rows=1 loops=1)
+         Join Filter: true
+         ->  Nested Loop (actual rows=1 loops=1)
+               Join Filter: true
+               ->  Seq Scan on t1 (actual rows=1 loops=1)
+               ->  Append (actual rows=1 loops=1)
+                     ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+                     ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 (actual rows=1 loops=1)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+                           Rows Removed by Filter: 2
+                     ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 (actual rows=1 loops=1)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+                           Rows Removed by Filter: 1
+                     ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+                     ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 (never executed)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+                     ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data (never executed)
+                           Index Cond: (ptid = t1.tid)
+                           Filter: ((ptid = t1.tid) AND (t1.dist = dist))
+         ->  Append (actual rows=1 loops=1)
+               ->  Index Scan using pt_1_prt_2_ptid_idx on pt_1_prt_2 pt_1_prt_2_1 (never executed)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+               ->  Index Scan using pt_1_prt_3_ptid_idx on pt_1_prt_3 pt_1_prt_3_1 (actual rows=1 loops=1)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+                     Rows Removed by Filter: 2
+               ->  Index Scan using pt_1_prt_4_ptid_idx on pt_1_prt_4 pt_1_prt_4_1 (actual rows=1 loops=1)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+                     Rows Removed by Filter: 1
+               ->  Index Scan using pt_1_prt_5_ptid_idx on pt_1_prt_5 pt_1_prt_5_1 (never executed)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+               ->  Index Scan using pt_1_prt_6_ptid_idx on pt_1_prt_6 pt_1_prt_6_1 (never executed)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+               ->  Index Scan using pt_1_prt_junk_data_ptid_idx on pt_1_prt_junk_data pt_1_prt_junk_data_1 (never executed)
+                     Index Cond: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid))
+                     Filter: ((ptid <= pt_1_prt_2.ptid) AND (ptid = pt_1_prt_2.ptid) AND (dist = pt_1_prt_2.dist))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(49 rows)
 
 rollback;
 --
@@ -1029,8 +1102,8 @@ rollback;
 -- not projection capable.
 --
 explain (costs off, timing off, summary off, analyze) select * from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0' order by pt1.dist;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=9 loops=1)
    Merge Key: pt1_1_prt_2.dist
    ->  Sort (actual rows=5 loops=1)
@@ -1051,21 +1124,20 @@ explain (costs off, timing off, summary off, analyze) select * from pt, pt1 wher
                      ->  Partition Selector (selector id: $0) (actual rows=1 loops=1)
                            ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=1 loops=1)
                                  ->  Append (actual rows=1 loops=1)
-                                       ->  Seq Scan on pt_1_prt_2 (actual rows=1 loops=1)
-                                             Filter: (pt1 = 'hello0'::text)
-                                             Rows Removed by Filter: 4
-                                       ->  Seq Scan on pt_1_prt_3 (never executed)
-                                             Filter: (pt1 = 'hello0'::text)
-                                       ->  Seq Scan on pt_1_prt_4 (never executed)
-                                             Filter: (pt1 = 'hello0'::text)
-                                       ->  Seq Scan on pt_1_prt_5 (never executed)
-                                             Filter: (pt1 = 'hello0'::text)
-                                       ->  Seq Scan on pt_1_prt_6 (never executed)
-                                             Filter: (pt1 = 'hello0'::text)
-                                       ->  Seq Scan on pt_1_prt_junk_data (never executed)
-                                             Filter: (pt1 = 'hello0'::text)
- Optimizer: Postgres query optimizer
-(34 rows)
+                                       ->  Index Scan using pt_1_prt_2_pt1_idx on pt_1_prt_2 (actual rows=1 loops=1)
+                                             Index Cond: (pt1 = 'hello0'::text)
+                                       ->  Index Scan using pt_1_prt_3_pt1_idx on pt_1_prt_3 (never executed)
+                                             Index Cond: (pt1 = 'hello0'::text)
+                                       ->  Index Scan using pt_1_prt_4_pt1_idx on pt_1_prt_4 (never executed)
+                                             Index Cond: (pt1 = 'hello0'::text)
+                                       ->  Index Scan using pt_1_prt_5_pt1_idx on pt_1_prt_5 (never executed)
+                                             Index Cond: (pt1 = 'hello0'::text)
+                                       ->  Index Scan using pt_1_prt_6_pt1_idx on pt_1_prt_6 (never executed)
+                                             Index Cond: (pt1 = 'hello0'::text)
+                                       ->  Index Scan using pt_1_prt_junk_data_pt1_idx on pt_1_prt_junk_data (never executed)
+                                             Index Cond: (pt1 = 'hello0'::text)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(33 rows)
 
 select * from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0' order by pt1.dist;
  dist |  pt1   |  pt2  |    pt3    | ptid | dist |   pt1   |  pt2  |    pt3    | ptid 
@@ -1082,8 +1154,8 @@ select * from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0' order by pt
 (9 rows)
 
 explain (costs off, timing off, summary off, analyze) select count(*) from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0';
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=1)
          ->  Partial Aggregate (actual rows=1 loops=1)
@@ -1101,21 +1173,21 @@ explain (costs off, timing off, summary off, analyze) select count(*) from pt, p
                            Buckets: 524288  Batches: 1  Memory Usage: 4097kB
                            ->  Partition Selector (selector id: $0) (actual rows=1 loops=1)
                                  ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=1 loops=1)
-                                       ->  Append (actual rows=1 loops=1)
-                                             ->  Seq Scan on pt_1_prt_2 (actual rows=1 loops=1)
-                                                   Filter: (pt1 = 'hello0'::text)
-                                                   Rows Removed by Filter: 4
-                                             ->  Seq Scan on pt_1_prt_3 (never executed)
-                                                   Filter: (pt1 = 'hello0'::text)
-                                             ->  Seq Scan on pt_1_prt_4 (never executed)
-                                                   Filter: (pt1 = 'hello0'::text)
-                                             ->  Seq Scan on pt_1_prt_5 (never executed)
-                                                   Filter: (pt1 = 'hello0'::text)
-                                             ->  Seq Scan on pt_1_prt_6 (never executed)
-                                                   Filter: (pt1 = 'hello0'::text)
-                                             ->  Seq Scan on pt_1_prt_junk_data (never executed)
-                                                   Filter: (pt1 = 'hello0'::text)
- Optimizer: Postgres query optimizer
+                                       ->  Result (actual rows=1 loops=1)
+                                             ->  Append (actual rows=1 loops=1)
+                                                   ->  Index Scan using pt_1_prt_2_pt1_idx on pt_1_prt_2 (actual rows=1 loops=1)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+                                                   ->  Index Scan using pt_1_prt_3_pt1_idx on pt_1_prt_3 (never executed)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+                                                   ->  Index Scan using pt_1_prt_4_pt1_idx on pt_1_prt_4 (never executed)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+                                                   ->  Index Scan using pt_1_prt_5_pt1_idx on pt_1_prt_5 (never executed)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+                                                   ->  Index Scan using pt_1_prt_6_pt1_idx on pt_1_prt_6 (never executed)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+                                                   ->  Index Scan using pt_1_prt_junk_data_pt1_idx on pt_1_prt_junk_data (never executed)
+                                                         Index Cond: (pt1 = 'hello0'::text)
+ Optimizer: Pivotal Optimizer (GPORCA)
 (32 rows)
 
 select count(*) from pt, pt1 where pt.ptid = pt1.ptid and pt.pt1 = 'hello0';
@@ -1142,23 +1214,26 @@ set enable_hashjoin=off;
 set enable_seqscan=on;
 set enable_nestloop=on;
 explain (costs off, timing off, summary off, analyze) select * from t, pt where a = b;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=5 loops=1)
-   ->  Nested Loop (actual rows=3 loops=1)
-         Join Filter: (t.a = pt_1_prt_1.b)
-         Rows Removed by Join Filter: 12
-         ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=5 loops=1)
+   ->  Hash Join (actual rows=3 loops=1)
+         Hash Cond: (t.a = pt_1_prt_1.b)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=3 loops=1)
+               Hash Key: t.a
                ->  Seq Scan on t (actual rows=3 loops=1)
-         ->  Materialize (actual rows=3 loops=5)
-               ->  Append (actual rows=3 loops=1)
-                     ->  Seq Scan on pt_1_prt_1 (actual rows=1 loops=1)
-                     ->  Seq Scan on pt_1_prt_2 (actual rows=1 loops=1)
-                     ->  Seq Scan on pt_1_prt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on pt_1_prt_4 (actual rows=1 loops=1)
-                     ->  Seq Scan on pt_1_prt_5 (actual rows=1 loops=1)
- Optimizer: Postgres query optimizer
-(14 rows)
+         ->  Hash (actual rows=3 loops=1)
+               Buckets: 524288  Batches: 1  Memory Usage: 4097kB
+               ->  Redistribute Motion 3:3  (slice3; segments: 3) (actual rows=3 loops=1)
+                     Hash Key: pt_1_prt_1.b
+                     ->  Append (actual rows=3 loops=1)
+                           ->  Seq Scan on pt_1_prt_1 (actual rows=1 loops=1)
+                           ->  Seq Scan on pt_1_prt_2 (actual rows=1 loops=1)
+                           ->  Seq Scan on pt_1_prt_3 (actual rows=1 loops=1)
+                           ->  Seq Scan on pt_1_prt_4 (actual rows=1 loops=1)
+                           ->  Seq Scan on pt_1_prt_5 (actual rows=1 loops=1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(17 rows)
 
 select * from t, pt where a = b;
  id | a | id | b 
@@ -1199,8 +1274,8 @@ explain (costs off, timing off, summary off, analyze) select * from t, pt where 
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Nested Loop (never executed)
-         Join Filter: (t.a = pt_1_prt_1.b)
+   ->  Hash Join (never executed)
+         Hash Cond: (pt_1_prt_1.b = t.a)
          ->  Append (never executed)
                Partition Selectors: $0
                ->  Seq Scan on pt_1_prt_1 (never executed)
@@ -1208,11 +1283,12 @@ explain (costs off, timing off, summary off, analyze) select * from t, pt where 
                ->  Seq Scan on pt_1_prt_3 (never executed)
                ->  Seq Scan on pt_1_prt_4 (never executed)
                ->  Seq Scan on pt_1_prt_5 (never executed)
-         ->  Materialize (actual rows=1 loops=1)
+         ->  Hash (actual rows=4 loops=1)
+               Buckets: 524288  Batches: 1  Memory Usage: 4097kB
                ->  Partition Selector (selector id: $0) (actual rows=4 loops=1)
                      ->  Seq Scan on t (actual rows=4 loops=1)
- Optimizer: Postgres query optimizer
-(14 rows)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(15 rows)
 
 select * from t, pt where a = b;
  a | b 
@@ -2489,7 +2565,7 @@ explain (costs off, timing off, summary off, analyze) select * from dim inner jo
                      Hash Key: dim.i
                      ->  Seq Scan on dim (actual rows=1 loops=1)
  Optimizer: Postgres query optimizer
-(20 rows)
+(13 rows)
 
 set gp_dynamic_partition_pruning = off;
 select * from dim inner join malp on (dim.i = malp.i);
@@ -2544,24 +2620,26 @@ explain (costs off, timing off, summary off, analyze) select * from apart as a, 
 ---------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=5 loops=1)
    ->  Hash Join (actual rows=3 loops=1)
-         Hash Cond: (a.id = c.id)
+         Hash Cond: (apart_1_prt_1.id = c.id)
          ->  Hash Join (actual rows=3 loops=1)
-               Hash Cond: (a.t = b.t)
-               ->  Append (actual rows=340 loops=1)
-                     ->  Seq Scan on apart_1_prt_1 a (actual rows=70 loops=1)
-                     ->  Seq Scan on apart_1_prt_2 a_1 (actual rows=68 loops=1)
-                     ->  Seq Scan on apart_1_prt_3 a_2 (actual rows=72 loops=1)
-                     ->  Seq Scan on apart_1_prt_4 a_3 (actual rows=76 loops=1)
-                     ->  Seq Scan on apart_1_prt_5 a_4 (actual rows=70 loops=1)
+               Hash Cond: (apart_1_prt_1.t = b.t)
+               ->  Append (actual rows=70 loops=1)
+                     Partition Selectors: $0
+                     ->  Seq Scan on apart_1_prt_1 (actual rows=70 loops=1)
+                     ->  Seq Scan on apart_1_prt_2 (never executed)
+                     ->  Seq Scan on apart_1_prt_3 (never executed)
+                     ->  Seq Scan on apart_1_prt_4 (never executed)
+                     ->  Seq Scan on apart_1_prt_5 (never executed)
                ->  Hash (actual rows=5 loops=1)
                      Buckets: 262144  Batches: 1  Memory Usage: 2049kB
                      ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=5 loops=1)
                            ->  Seq Scan on b (actual rows=3 loops=1)
          ->  Hash (actual rows=8 loops=1)
                Buckets: 262144  Batches: 1  Memory Usage: 2049kB
-               ->  Seq Scan on c (actual rows=8 loops=1)
- Optimizer: Postgres query optimizer
-(19 rows)
+               ->  Partition Selector (selector id: $0) (actual rows=8 loops=1)
+                     ->  Seq Scan on c (actual rows=8 loops=1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(21 rows)
 
 select * from apart as a, b, c where a.t = b.t and a.id = c.id;
  id | t | id | t | id | t 
@@ -2579,16 +2657,16 @@ explain (costs off, timing off, summary off, analyze) select * from apart as a, 
 ---------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=5 loops=1)
    ->  Hash Join (actual rows=3 loops=1)
-         Hash Cond: (a.id = c.id)
+         Hash Cond: (apart_1_prt_1.id = c.id)
          ->  Hash Join (actual rows=3 loops=1)
-               Hash Cond: (a.t = b.t)
+               Hash Cond: (apart_1_prt_1.t = b.t)
                ->  Append (actual rows=70 loops=1)
                      Partition Selectors: $0
-                     ->  Seq Scan on apart_1_prt_1 a (actual rows=70 loops=1)
-                     ->  Seq Scan on apart_1_prt_2 a_1 (never executed)
-                     ->  Seq Scan on apart_1_prt_3 a_2 (never executed)
-                     ->  Seq Scan on apart_1_prt_4 a_3 (never executed)
-                     ->  Seq Scan on apart_1_prt_5 a_4 (never executed)
+                     ->  Seq Scan on apart_1_prt_1 (actual rows=70 loops=1)
+                     ->  Seq Scan on apart_1_prt_2 (never executed)
+                     ->  Seq Scan on apart_1_prt_3 (never executed)
+                     ->  Seq Scan on apart_1_prt_4 (never executed)
+                     ->  Seq Scan on apart_1_prt_5 (never executed)
                ->  Hash (actual rows=5 loops=1)
                      Buckets: 262144  Batches: 1  Memory Usage: 2049kB
                      ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=5 loops=1)
@@ -2597,7 +2675,7 @@ explain (costs off, timing off, summary off, analyze) select * from apart as a, 
                Buckets: 262144  Batches: 1  Memory Usage: 2049kB
                ->  Partition Selector (selector id: $0) (actual rows=8 loops=1)
                      ->  Seq Scan on c (actual rows=8 loops=1)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (21 rows)
 
 select * from apart as a, b, c where a.t = b.t and a.id = c.id;
@@ -2632,33 +2710,29 @@ analyze jpat;
 -- Known_opt_diff: MPP-21323
 -- end_ignore
 explain (costs off, timing off, summary off, analyze) select * from (select count(*) over (order by a rows between 1 preceding and 1 following), a, b from jpat)jpat inner join pat using(b);
-                                                 QUERY PLAN                                                 
-------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3) (actual rows=1 loops=1)
-   ->  Hash Join (actual rows=1 loops=1)
-         Hash Cond: (pat_1_prt_2.b = jpat.b)
-         ->  Append (actual rows=1 loops=1)
-               Partition Selectors: $0
-               ->  Seq Scan on pat_1_prt_2 (never executed)
-               ->  Seq Scan on pat_1_prt_3 (actual rows=1 loops=1)
-               ->  Seq Scan on pat_1_prt_4 (never executed)
-               ->  Seq Scan on pat_1_prt_5 (never executed)
-               ->  Seq Scan on pat_1_prt_other (never executed)
-         ->  Hash (actual rows=1 loops=1)
-               Buckets: 131072  Batches: 1  Memory Usage: 1025kB
-               ->  Partition Selector (selector id: $0) (actual rows=1 loops=1)
-                     ->  Broadcast Motion 1:3  (slice2; segments: 1) (actual rows=1 loops=1)
-                           ->  Subquery Scan on jpat (actual rows=1 loops=1)
-                                 ->  WindowAgg (actual rows=1 loops=1)
-                                       Order By: jpat_1.a
-                                       ->  Gather Motion 3:1  (slice3; segments: 3) (actual rows=1 loops=1)
-                                             Merge Key: jpat_1.a
-                                             ->  Sort (actual rows=1 loops=1)
-                                                   Sort Key: jpat_1.a
-                                                   Sort Method:  quicksort  Memory: 150kB
-                                                   ->  Seq Scan on jpat jpat_1 (actual rows=1 loops=1)
- Optimizer: Postgres query optimizer
-(24 rows)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Hash Join (actual rows=1 loops=1)
+   Hash Cond: (jpat.b = pat_1_prt_2.b)
+   ->  WindowAgg (actual rows=1 loops=1)
+         Order By: jpat.a
+         ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=1 loops=1)
+               Merge Key: jpat.a
+               ->  Sort (actual rows=1 loops=1)
+                     Sort Key: jpat.a
+                     Sort Method:  quicksort  Memory: 150kB
+                     ->  Seq Scan on jpat (actual rows=1 loops=1)
+   ->  Hash (actual rows=10 loops=1)
+         Buckets: 131072  Batches: 1  Memory Usage: 1025kB
+         ->  Gather Motion 3:1  (slice2; segments: 3) (actual rows=10 loops=1)
+               ->  Append (actual rows=5 loops=1)
+                     ->  Seq Scan on pat_1_prt_2 (never executed)
+                     ->  Seq Scan on pat_1_prt_3 (actual rows=1 loops=1)
+                     ->  Seq Scan on pat_1_prt_4 (actual rows=1 loops=1)
+                     ->  Seq Scan on pat_1_prt_5 (actual rows=1 loops=1)
+                     ->  Seq Scan on pat_1_prt_other (actual rows=4 loops=1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(20 rows)
 
 select * from (select count(*) over (order by a rows between 1 preceding and 1 following), a, b from jpat)jpat inner join pat using(b);
      b      | count | a | a 
@@ -2834,7 +2908,7 @@ select * from pt, t where t.dist = pt.dist and t.tid < pt.ptid;
                Buckets: 524288  Batches: 1  Memory Usage: 4097kB
                ->  Partition Selector (selector id: $0) (actual rows=2 loops=1)
                      ->  Seq Scan on t (actual rows=2 loops=1)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (18 rows)
 
 --
@@ -2869,29 +2943,27 @@ set enable_seqscan=off;
 -- force_explain
 explain (analyze, timing off, summary off)
 select * from pt, t where t.dist = pt.dist and t.tid = pt.ptid order by t.tid, t.sk;
-                                                                QUERY PLAN                                                                 
--------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=14.20..14.35 rows=7 width=24) (actual rows=5 loops=1)
-   Merge Key: pt1.ptid, t.sk
-   ->  Sort  (cost=14.20..14.21 rows=3 width=24) (actual rows=2 loops=1)
-         Sort Key: pt1.ptid, t.sk
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.10 rows=98 width=24) (actual rows=5 loops=1)
+   Merge Key: t.tid, t.sk
+   ->  Sort  (cost=0.00..862.09 rows=33 width=24) (actual rows=2 loops=1)
+         Sort Key: t.tid, t.sk
          Sort Method:  quicksort  Memory: 150kB
-         ->  Merge Join  (cost=8.08..14.10 rows=3 width=24) (actual rows=2 loops=1)
-               Merge Cond: (pt1.ptid = t.tid)
-               Join Filter: (pt1.dist = t.dist)
-               ->  Merge Append  (cost=0.85..456.04 rows=36 width=12) (actual rows=3 loops=1)
-                     Sort Key: pt1.ptid
-                     ->  Index Scan using pt1_ptid_sk_idx on pt1  (cost=0.12..8.14 rows=1 width=12) (actual rows=1 loops=1)
-                     ->  Index Scan using pt2_ptid_sk_idx on pt2  (cost=0.12..8.14 rows=1 width=12) (actual rows=1 loops=1)
-                     ->  Index Scan using pt3_ptid_sk_idx on pt3  (cost=0.12..8.14 rows=1 width=12) (never executed)
-                     ->  Index Scan using pt4_ptid_sk_idx on pt4  (cost=0.12..8.14 rows=1 width=12) (never executed)
-                     ->  Index Scan using pt5_ptid_sk_idx on pt5  (cost=0.12..8.14 rows=1 width=12) (actual rows=1 loops=1)
-                     ->  Index Scan using ptdefault_ptid_sk_idx on ptdefault  (cost=0.14..413.33 rows=35 width=12) (actual rows=2 loops=1)
-               ->  Sort  (cost=7.22..7.47 rows=33 width=12) (actual rows=19 loops=2)
-                     Sort Key: t.tid
-                     Sort Method:  quicksort  Memory: 158kB
-                     ->  Partition Selector (selector id: $0)  (cost=0.00..3.98 rows=33 width=12) (actual rows=37 loops=1)
-                           ->  Seq Scan on t  (cost=0.00..3.98 rows=33 width=12) (actual rows=37 loops=1)
- Optimizer: Postgres query optimizer
-(22 rows)
+         ->  Hash Join  (cost=0.00..862.05 rows=33 width=24) (actual rows=2 loops=1)
+               Hash Cond: ((pt1.dist = t.dist) AND (pt1.ptid = t.tid))
+               ->  Append  (cost=0.00..431.00 rows=33 width=12) (actual rows=36 loops=1)
+                     Partition Selectors: $0
+                     ->  Seq Scan on pt1  (cost=0.00..431.00 rows=33 width=12) (actual rows=1 loops=1)
+                     ->  Seq Scan on pt2  (cost=0.00..431.00 rows=33 width=12) (actual rows=1 loops=1)
+                     ->  Seq Scan on pt3  (cost=0.00..431.00 rows=33 width=12) (never executed)
+                     ->  Seq Scan on pt4  (cost=0.00..431.00 rows=33 width=12) (never executed)
+                     ->  Seq Scan on pt5  (cost=0.00..431.00 rows=33 width=12) (actual rows=1 loops=1)
+                     ->  Seq Scan on ptdefault  (cost=0.00..431.00 rows=33 width=12) (actual rows=35 loops=1)
+               ->  Hash  (cost=431.00..431.00 rows=33 width=12) (actual rows=37 loops=1)
+                     Buckets: 262144  Batches: 1  Memory Usage: 2050kB
+                     ->  Partition Selector (selector id: $0)  (cost=0.00..431.00 rows=33 width=12) (actual rows=37 loops=1)
+                           ->  Seq Scan on t  (cost=0.00..431.00 rows=33 width=12) (actual rows=37 loops=1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(20 rows)
 

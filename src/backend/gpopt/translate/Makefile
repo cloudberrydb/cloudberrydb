@@ -13,6 +13,7 @@ include $(top_srcdir)/src/backend/gpopt/gpopt.mk
 
 OBJS =  CMappingColIdVar.o \
 		CMappingVarColId.o \
+		CPartPruneStepsBuilder.o \
 		CMappingElementColIdParamId.o \
 		CMappingColIdVarPlStmt.o \
 		CDXLTranslateContextBaseTable.o \

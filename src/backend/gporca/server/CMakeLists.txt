@@ -37,9 +37,6 @@ function(add_orca_test TEST_NAME)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
-# GPDB_12_MERGE_FIXME: re-add the following tests once DPE is supported
-# CPartTblDPETest
-
 # GPDB_12_MERGE_FIXME: casts on part column no longer supported!
 # CPartTableLossyCastTest
 
@@ -139,7 +136,7 @@ DynamicIndexScan-DefaultPartition DynamicIndexScan-DefaultPartition-2
 DynamicIndexScan-Homogenous-UnsupportedConstraint DynamicIndexScan-Heterogenous-UnsupportedConstraint
 DynamicIndexScan-Heterogenous-PartSelectEquality
 DynamicIndexScan-Heterogenous-PartSelectRange DynamicIndexScan-OpenEndedPartitions
-DynamicIndexScan-Relabel DynamicIndexScan-DroppedCols DynamicIndexGet-OuterRefs;
+DynamicIndexScan-Relabel DynamicIndexScan-DroppedCols;
 
 CIndexScanOnLeafTest:
 IndexOnLeaf-AddNewPartitionToRootTableContainingHeterogenousIndex
@@ -212,6 +209,14 @@ CPartTbl6Test:
 PartTbl-PredicateWithCast PartTbl-IDFList PartTbl-IDFNull
 PartTbl-PredicateWithCast PartTbl-EqPredicateWithCastRange
 PartTbl-PredicateWithCastList PartTbl-IDFWithCast;
+
+CPartTblDPETest:
+PartTbl-AvoidRangePred-DPE PartTbl-DPE-Correlated-NLOuter
+PartTbl-DPE PartTbl-DPE-GroupBy PartTbl-DPE-Limit
+DPE-with-unsupported-pred DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
+NLJ-Broadcast-DPE-Outer-Child PartTbl-MultiWayJoinWithDPE PartTbl-MultiWayJoinWithDPE-2
+PartTbl-LeftOuterHashJoin-DPE-IsNull PartTbl-LeftOuterNLJoin-DPE-IsNull
+PartTbl-List-DPE-Int-Predicates;
 
 CSetop1Test:
 ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll

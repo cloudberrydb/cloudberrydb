@@ -4317,12 +4317,12 @@
                   <dxl:PropagationExpression>
                     <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:PropagationExpression>
-                  <dxl:PrintableFilter>
+                  <dxl:PartFilterExpr>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.2060.1.0">
                       <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
                       <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
                     </dxl:Comparison>
-                  </dxl:PrintableFilter>
+                  </dxl:PartFilterExpr>
                   <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="2652.414887" Rows="7354444.712200" Width="17"/>

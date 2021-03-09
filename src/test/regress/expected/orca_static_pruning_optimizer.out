@@ -19,13 +19,14 @@ EXPLAIN (COSTS OFF, VERBOSE)
                    QUERY PLAN                    
 -------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: a, b, c
+   Output: rp2.a, rp2.b, rp2.c
    ->  Append
          ->  Seq Scan on orca_static_pruning.rp2
-               Output: a, b, c
+               Output: rp2.a, rp2.b, rp2.c
                Filter: (rp2.b > 4200)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+ Settings: optimizer=on
+(8 rows)
 
 :qry ;
   a   |  b   | c 
@@ -40,16 +41,17 @@ WHERE b = 4201
 $query$ AS qry \gset
 EXPLAIN (COSTS OFF, VERBOSE)
 :qry ;
-                       QUERY PLAN                       
---------------------------------------------------------
+                   QUERY PLAN                    
+-------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: a, b, c
+   Output: rp2.a, rp2.b, rp2.c
    ->  Append
          ->  Seq Scan on orca_static_pruning.rp2
-               Output: a, b, c
+               Output: rp2.a, rp2.b, rp2.c
                Filter: (rp2.b = 4201)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+ Settings: optimizer=on
+(8 rows)
 
 :qry ;
   a   |  b   | c 
@@ -67,13 +69,14 @@ EXPLAIN (COSTS OFF, VERBOSE)
                            QUERY PLAN                           
 ----------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: a, b, c
+   Output: rp2.a, rp2.b, rp2.c
    ->  Append
          ->  Seq Scan on orca_static_pruning.rp2
-               Output: a, b, c
+               Output: rp2.a, rp2.b, rp2.c
                Filter: (rp2.b = ANY ('{4201,4200}'::integer[]))
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+ Settings: optimizer=on
+(8 rows)
 
 :qry ;
   a   |  b   | c 
@@ -101,13 +104,14 @@ EXPLAIN (COSTS OFF, VERBOSE)
                    QUERY PLAN                    
 -------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: a, b
+   Output: lp2.a, lp2.b
    ->  Append
          ->  Seq Scan on orca_static_pruning.lp2
-               Output: a, b
+               Output: lp2.a, lp2.b
                Filter: (lp2.b > 42)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+ Settings: optimizer=on
+(8 rows)
 
 :qry ;
  a | b 
@@ -121,16 +125,17 @@ WHERE b = 42
 $query$ AS qry \gset
 EXPLAIN (COSTS OFF, VERBOSE)
 :qry ;
-                       QUERY PLAN                       
---------------------------------------------------------
+                   QUERY PLAN                    
+-------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: a, b
+   Output: lp2.a, lp2.b
    ->  Append
          ->  Seq Scan on orca_static_pruning.lp2
-               Output: a, b
+               Output: lp2.a, lp2.b
                Filter: (lp2.b = 42)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+ Settings: optimizer=on
+(8 rows)
 
 :qry ;
  a  | b  

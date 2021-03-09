@@ -16,6 +16,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CDynamicPtrArray.h"
+#include "gpos/common/CHashMap.h"
 #include "gpos/common/CHashSet.h"
 #include "gpos/common/CHashSetIter.h"
 #include "gpos/common/DbgPrintMixin.h"
@@ -179,6 +180,7 @@ typedef CHashSet<IMDId, IMDId::MDIdHash, IMDId::MDIdCompare,
 typedef CHashSetIter<IMDId, IMDId::MDIdHash, IMDId::MDIdCompare,
 					 CleanupRelease<IMDId> >
 	MdidHashSetIter;
+
 }  // namespace gpmd
 
 FORCE_GENERATE_DBGSTR(gpmd::IMDId);

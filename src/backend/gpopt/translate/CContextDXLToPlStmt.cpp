@@ -58,10 +58,12 @@ CContextDXLToPlStmt::CContextDXLToPlStmt(
 	  m_slices_list(nullptr),
 	  m_result_relation_index(0),
 	  m_into_clause(nullptr),
-	  m_distribution_policy(nullptr)
+	  m_distribution_policy(nullptr),
+	  m_part_selector_to_param_map(nullptr)
 {
 	m_cte_consumer_info = GPOS_NEW(m_mp) HMUlCTEConsumerInfo(m_mp);
 	m_num_partition_selectors_array = GPOS_NEW(m_mp) ULongPtrArray(m_mp);
+	m_part_selector_to_param_map = GPOS_NEW(m_mp) UlongToUlongMap(m_mp);
 }
 
 //---------------------------------------------------------------------------
@@ -76,6 +78,7 @@ CContextDXLToPlStmt::~CContextDXLToPlStmt()
 {
 	m_cte_consumer_info->Release();
 	m_num_partition_selectors_array->Release();
+	m_part_selector_to_param_map->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -533,4 +536,33 @@ CContextDXLToPlStmt::SetStaticPruneResult(ULONG scanId,
 	m_static_prune_results[scanId - 1] = static_prune_result;
 }
 
+ULONG
+CContextDXLToPlStmt::GetParamIdForSelector(OID oid_type, ULONG selectorId)
+{
+	ULONG *param_id = m_part_selector_to_param_map->Find(&selectorId);
+	if (nullptr == param_id)
+	{
+		param_id = GPOS_NEW(m_mp) ULONG(GetNextParamId(oid_type));
+		ULONG *selector_id = GPOS_NEW(m_mp) ULONG(selectorId);
+		m_part_selector_to_param_map->Insert(selector_id, param_id);
+	}
+	return *param_id;
+}
+
+Index
+CContextDXLToPlStmt::FindRTE(Oid reloid)
+{
+	ListCell *lc;
+	int idx = 0;
+
+	ForEachWithCount(lc, m_rtable_entries_list, idx)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+		if (rte->relid == reloid)
+		{
+			return idx + 1;
+		}
+	}
+	return -1;
+}
 // EOF

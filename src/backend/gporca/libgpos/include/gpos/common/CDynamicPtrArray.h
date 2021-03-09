@@ -298,11 +298,11 @@ public:
 #ifdef GPOS_DEBUG
 	// check if array is sorted
 	BOOL
-	IsSorted() const
+	IsSorted(CompareFn compare_func = PtrCmp) const
 	{
 		for (ULONG i = 1; i < m_size; i++)
 		{
-			if ((ULONG_PTR)(m_elems[i - 1]) > (ULONG_PTR)(m_elems[i]))
+			if (compare_func(&m_elems[i - 1], &m_elems[i]) > 0)
 			{
 				return false;
 			}

@@ -11616,12 +11616,13 @@ SELECT * FROM ds_part, non_part2 WHERE ds_part.c = non_part2.e AND non_part2.f =
 explain SELECT * FROM ds_part, non_part2 WHERE ds_part.c = non_part2.e AND non_part2.f = 10 AND a IN ( SELECT b + 1 FROM non_part1);
                                                      QUERY PLAN                                                     
 --------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1324515.77 rows=2 width=20)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1324515.77 rows=1 width=20)
    ->  Hash Join  (cost=0.00..1324515.77 rows=1 width=20)
          Hash Cond: (ds_part_1_prt_2.c = non_part2.e)
          ->  Result  (cost=0.00..1324084.70 rows=334 width=12)
                Filter: (SubPlan 1)
                ->  Append  (cost=0.00..1324084.70 rows=334 width=12)
+                     Partition Selectors: $0
                      ->  Seq Scan on ds_part_1_prt_2  (cost=0.00..1324084.70 rows=334 width=12)
                            Filter: (a = (b + 1))
                      ->  Seq Scan on ds_part_1_prt_3  (cost=0.00..1324084.70 rows=334 width=12)
@@ -11641,12 +11642,13 @@ explain SELECT * FROM ds_part, non_part2 WHERE ds_part.c = non_part2.e AND non_p
                                    ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                                          ->  Limit  (cost=0.00..431.00 rows=1 width=4)
                                                ->  Seq Scan on non_part1  (cost=0.00..431.00 rows=34 width=4)
-         ->  Hash  (cost=431.00..431.00 rows=2 width=8)
-               ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=2 width=8)
-                     ->  Seq Scan on non_part2  (cost=0.00..431.00 rows=1 width=8)
-                           Filter: (f = 10)
+         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
+               ->  Partition Selector (selector id: $0)  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Seq Scan on non_part2  (cost=0.00..431.00 rows=1 width=8)
+                                 Filter: (f = 10)
  Optimizer: Pivotal Optimizer (GPORCA)
-(30 rows)
+(32 rows)
 
 SELECT *, a IN ( SELECT b + 1 FROM non_part1) FROM ds_part, non_part2 WHERE ds_part.c = non_part2.e AND non_part2.f = 10 AND a IN ( SELECT b FROM non_part1);
  a  | b  | c  | e  | f  | ?column? 
@@ -12030,30 +12032,29 @@ analyze part2_1_prt_2;
 -- the plan should contain a 2 stage limit. If we incorrectly estimate that the
 -- relation is empty, we would end up choosing a single stage limit. 
 explain select * from part1, part2 where part1.b = part2.b limit 5;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Limit  (cost=0.00..862.11 rows=5 width=16)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.11 rows=5 width=16)
-         ->  Limit  (cost=0.00..862.11 rows=2 width=16)
-               ->  Hash Join  (cost=0.00..862.11 rows=334 width=16)
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.00..862.14 rows=5 width=16)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.13 rows=5 width=16)
+         ->  Limit  (cost=0.00..862.13 rows=2 width=16)
+               ->  Hash Join  (cost=0.00..862.13 rows=334 width=16)
                      Hash Cond: (part1_1_prt_1.b = part2_1_prt_1.b)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.02 rows=334 width=8)
-                           Hash Key: part1_1_prt_1.b
-                           ->  Append  (cost=0.00..431.01 rows=334 width=8)
-                                 ->  Seq Scan on part1_1_prt_1  (cost=0.00..431.01 rows=334 width=8)
-                                 ->  Seq Scan on part1_1_prt_2  (cost=0.00..431.01 rows=334 width=8)
-                                 ->  Seq Scan on part1_1_prt_3  (cost=0.00..431.01 rows=334 width=8)
-                                 ->  Seq Scan on part1_1_prt_4  (cost=0.00..431.01 rows=334 width=8)
-                     ->  Hash  (cost=431.00..431.00 rows=34 width=8)
-                           ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=34 width=8)
-                                 Hash Key: part2_1_prt_1.b
-                                 ->  Append  (cost=0.00..431.00 rows=34 width=8)
-                                       ->  Seq Scan on part2_1_prt_1  (cost=0.00..431.00 rows=34 width=8)
-                                       ->  Seq Scan on part2_1_prt_2  (cost=0.00..431.00 rows=34 width=8)
-                                       ->  Seq Scan on part2_1_prt_3  (cost=0.00..431.00 rows=34 width=8)
-                                       ->  Seq Scan on part2_1_prt_4  (cost=0.00..431.00 rows=34 width=8)
+                     ->  Append  (cost=0.00..431.01 rows=334 width=8)
+                           Partition Selectors: $0
+                           ->  Seq Scan on part1_1_prt_1  (cost=0.00..431.01 rows=334 width=8)
+                           ->  Seq Scan on part1_1_prt_2  (cost=0.00..431.01 rows=334 width=8)
+                           ->  Seq Scan on part1_1_prt_3  (cost=0.00..431.01 rows=334 width=8)
+                           ->  Seq Scan on part1_1_prt_4  (cost=0.00..431.01 rows=334 width=8)
+                     ->  Hash  (cost=431.02..431.02 rows=100 width=8)
+                           ->  Partition Selector (selector id: $0)  (cost=0.00..431.02 rows=100 width=8)
+                                 ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.02 rows=100 width=8)
+                                       ->  Append  (cost=0.00..431.00 rows=34 width=8)
+                                             ->  Seq Scan on part2_1_prt_1  (cost=0.00..431.00 rows=34 width=8)
+                                             ->  Seq Scan on part2_1_prt_2  (cost=0.00..431.00 rows=34 width=8)
+                                             ->  Seq Scan on part2_1_prt_3  (cost=0.00..431.00 rows=34 width=8)
+                                             ->  Seq Scan on part2_1_prt_4  (cost=0.00..431.00 rows=34 width=8)
  Optimizer: Pivotal Optimizer (GPORCA)
-(21 rows)
+(20 rows)
 
 -- test opfamily handling in ORCA
 CREATE FUNCTION abseq(int, int) RETURNS BOOL AS
@@ -13709,16 +13710,17 @@ explain (costs off) select * from infer_part_vc inner join infer_txt on (infer_p
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: ((infer_part_vc_1_prt_boys.gender)::text = infer_txt.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
-               Hash Key: infer_part_vc_1_prt_boys.gender
-               ->  Append
-                     ->  Seq Scan on infer_part_vc_1_prt_boys
-                           Filter: ((gender)::text = 'M'::text)
+         ->  Append
+               Partition Selectors: $0
+               ->  Seq Scan on infer_part_vc_1_prt_boys
+                     Filter: ((gender)::text = 'M'::text)
          ->  Hash
-               ->  Seq Scan on infer_txt
-                     Filter: (a = 'M'::text)
+               ->  Partition Selector (selector id: $0)
+                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                           ->  Seq Scan on infer_txt
+                                 Filter: (a = 'M'::text)
  Optimizer: Pivotal Optimizer (GPORCA)
-(12 rows)
+(13 rows)
 
 -- NewBtreeIndexScanCost.mdp
 -- from comment

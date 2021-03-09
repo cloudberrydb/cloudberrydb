@@ -725,13 +725,13 @@ analyze p;
 select count_operator('select * from (select * from p1 union all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 except all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
@@ -743,43 +743,43 @@ select count_operator('select * from (select * from p1 except all select * from 
 select count_operator('select * from (select * from p1 except select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 intersect all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p2 union all select * from p3) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              6
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p2 union all select * from p) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p union all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p2 intersect all select * from p3) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              6
 (1 row)
 
 select count_operator('select * from (select * from p1 union select * from p intersect all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
-              0
+              4
 (1 row)
 
 -- CLEANUP
@@ -987,7 +987,7 @@ select * from ds_4 a1,ds_4 a2 where a1.month_id = a2.month_id and a1.month_id > 
 select count_operator('select * from ds_4 a1,ds_4 a2 where a1.month_id = a2.month_id and a1.month_id > E''200800'';','Partition Selector');
  count_operator 
 ----------------
-              0
+              2
 (1 row)
 
 -- CLEANUP
@@ -1243,9 +1243,9 @@ explain select * from r_part where a = 1 order by a,b; -- should eliminate parti
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=8)
-   Merge Key: a, b
+   Merge Key: r_part_1_prt_1.a, r_part_1_prt_1.b
    ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-         Sort Key: a, b
+         Sort Key: r_part_1_prt_1.a, r_part_1_prt_1.b
          ->  Append  (cost=0.00..431.00 rows=1 width=8)
                ->  Seq Scan on r_part_1_prt_1  (cost=0.00..431.00 rows=1 width=8)
                      Filter: (a = 1)
@@ -1257,9 +1257,9 @@ explain execute f1(1); -- should eliminate partitions
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=8)
-   Merge Key: a, b
+   Merge Key: r_part_1_prt_1.a, r_part_1_prt_1.b
    ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-         Sort Key: a, b
+         Sort Key: r_part_1_prt_1.a, r_part_1_prt_1.b
          ->  Append  (cost=0.00..431.00 rows=1 width=8)
                ->  Seq Scan on r_part_1_prt_1  (cost=0.00..431.00 rows=1 width=8)
                      Filter: (a = 1)
@@ -1271,14 +1271,14 @@ explain execute f2(2); -- should eliminate partitions
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=8)
-   Merge Key: a, b
+   Merge Key: r_part_1_prt_2.a, r_part_1_prt_2.b
    ->  Sort  (cost=0.00..431.00 rows=1 width=8)
-         Sort Key: a, b
+         Sort Key: r_part_1_prt_2.a, r_part_1_prt_2.b
          ->  Append  (cost=0.00..431.00 rows=1 width=8)
                ->  Seq Scan on r_part_1_prt_2  (cost=0.00..431.00 rows=1 width=8)
                      Filter: (a = 2)
  Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+(8 rows)
 
 -- Test partition elimination on CO tables
 insert into r_co values (1,1), (2,2), (3,3);

@@ -512,7 +512,7 @@
                   <dxl:PropagationExpression>
                     <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:PropagationExpression>
-                  <dxl:PrintableFilter>
+                  <dxl:PartFilterExpr>
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1097.1.0">
                         <dxl:Ident ColId="13" ColName="date" TypeMdid="0.1082.1.0"/>
@@ -523,7 +523,7 @@
                         <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
                       </dxl:Comparison>
                     </dxl:And>
-                  </dxl:PrintableFilter>
+                  </dxl:PartFilterExpr>
                 </dxl:PartitionSelector>
                 <dxl:DynamicTableScan PartIndexId="1">
                   <dxl:Properties>

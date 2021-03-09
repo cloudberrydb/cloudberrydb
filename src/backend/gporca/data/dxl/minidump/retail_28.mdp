@@ -4492,7 +4492,7 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
                         <dxl:PropagationExpression>
                           <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                         </dxl:PropagationExpression>
-                        <dxl:PrintableFilter>
+                        <dxl:PartFilterExpr>
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
                               <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
@@ -4503,7 +4503,7 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
                               <dxl:ConstValue TypeMdid="0.1082.1.0" Value="+Q4AAA==" LintValue="3833"/>
                             </dxl:Comparison>
                           </dxl:And>
-                        </dxl:PrintableFilter>
+                        </dxl:PartFilterExpr>
                       </dxl:PartitionSelector>
                       <dxl:DynamicTableScan PartIndexId="1">
                         <dxl:Properties>

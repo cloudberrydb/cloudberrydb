@@ -1143,41 +1143,6 @@ CTranslatorExprToDXLUtils::PdxlnValuesScan(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorExprToDXLUtils::PdxlnPartitionSelector
-//
-//	@doc:
-//		Construct a partition selector node
-//
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorExprToDXLUtils::PdxlnPartitionSelector(
-	CMemoryPool *mp, IMDId *mdid, ULONG ulPartLevels, ULONG scan_id,
-	CDXLPhysicalProperties *dxl_properties, CDXLNode *pdxlnPrL,
-	CDXLNode *pdxlnEqFilters, CDXLNode *pdxlnFilters, CDXLNode *pdxlnResidual,
-	CDXLNode *pdxlnPropagation, CDXLNode *pdxlnPrintable,
-	CDXLNode *child_dxlnode)
-{
-	CDXLNode *pdxlnSelector =
-		GPOS_NEW(mp) CDXLNode(mp, GPOS_NEW(mp) CDXLPhysicalPartitionSelector(
-									  mp, mdid, ulPartLevels, scan_id));
-
-	pdxlnSelector->SetProperties(dxl_properties);
-	pdxlnSelector->AddChild(pdxlnPrL);
-	pdxlnSelector->AddChild(pdxlnEqFilters);
-	pdxlnSelector->AddChild(pdxlnFilters);
-	pdxlnSelector->AddChild(pdxlnResidual);
-	pdxlnSelector->AddChild(pdxlnPropagation);
-	pdxlnSelector->AddChild(pdxlnPrintable);
-	if (nullptr != child_dxlnode)
-	{
-		pdxlnSelector->AddChild(child_dxlnode);
-	}
-
-	return pdxlnSelector;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorExprToDXLUtils::PdxlnCombineBoolean
 //
 //	@doc:

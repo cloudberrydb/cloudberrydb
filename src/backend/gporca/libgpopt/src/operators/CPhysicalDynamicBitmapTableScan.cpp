@@ -72,13 +72,13 @@ CPhysicalDynamicBitmapTableScan::Matches(COperator *pop) const
 //---------------------------------------------------------------------------
 IStatistics *
 CPhysicalDynamicBitmapTableScan::PstatsDerive(
-	CMemoryPool *mp, CExpressionHandle &exprhdl,
-	CReqdPropPlan *prpplan GPOS_UNUSED, IStatisticsArray *stats_ctxt) const
+	CMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpplan,
+	IStatisticsArray *stats_ctxt) const
 {
 	GPOS_ASSERT(nullptr != prpplan);
 
-	IStatistics *pstatsBaseTable =
-		CStatisticsUtils::DeriveStatsForDynamicScan(mp, exprhdl, ScanId());
+	IStatistics *pstatsBaseTable = CStatisticsUtils::DeriveStatsForDynamicScan(
+		mp, exprhdl, ScanId(), prpplan->Pepp()->PppsRequired());
 
 	CExpression *pexprCondChild =
 		exprhdl.PexprScalarRepChild(0 /*ulChidIndex*/);

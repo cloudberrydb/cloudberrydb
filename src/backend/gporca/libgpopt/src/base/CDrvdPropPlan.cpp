@@ -32,9 +32,7 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CDrvdPropPlan::CDrvdPropPlan()
-
-	= default;
+CDrvdPropPlan::CDrvdPropPlan() = default;
 
 
 //---------------------------------------------------------------------------
@@ -50,6 +48,7 @@ CDrvdPropPlan::~CDrvdPropPlan()
 	CRefCount::SafeRelease(m_pos);
 	CRefCount::SafeRelease(m_pds);
 	CRefCount::SafeRelease(m_prs);
+	CRefCount::SafeRelease(m_ppps);
 	CRefCount::SafeRelease(m_pcm);
 }
 
@@ -97,6 +96,7 @@ CDrvdPropPlan::Derive(CMemoryPool *mp, CExpressionHandle &exprhdl,
 		m_pos = popPhysical->PosDerive(mp, exprhdl);
 		m_pds = popPhysical->PdsDerive(mp, exprhdl);
 		m_prs = popPhysical->PrsDerive(mp, exprhdl);
+		m_ppps = popPhysical->PppsDerive(mp, exprhdl);
 
 		GPOS_ASSERT(CDistributionSpec::EdtAny != m_pds->Edt() &&
 					"CDistributionAny is a require-only, cannot be derived");
@@ -132,11 +132,14 @@ CDrvdPropPlan::CopyCTEProducerPlanProps(CMemoryPool *mp, CDrvdPropCtxt *pdpctxt,
 														   true /*must_exist*/);
 		m_pds = pdpplan->Pds()->PdsCopyWithRemappedColumns(mp, colref_mapping,
 														   true /*must_exist*/);
-
 		// rewindability and partition filter map do not need column remapping,
 		// we add-ref producer's properties directly
 		pdpplan->Prs()->AddRef();
 		m_prs = pdpplan->Prs();
+
+		// no need to copy the part index map. return an empty one. This is to
+		// distinguish between a CTE consumer and the inlined expression
+		m_ppps = GPOS_NEW(mp) CPartitionPropagationSpec(mp);
 
 		GPOS_ASSERT(CDistributionSpec::EdtAny != m_pds->Edt() &&
 					"CDistributionAny is a require-only, cannot be derived");
@@ -164,6 +167,7 @@ CDrvdPropPlan::FSatisfies(const CReqdPropPlan *prpp) const
 	return m_pos->FSatisfies(prpp->Peo()->PosRequired()) &&
 		   m_pds->FSatisfies(prpp->Ped()->PdsRequired()) &&
 		   m_prs->FSatisfies(prpp->Per()->PrsRequired()) &&
+		   m_ppps->FSatisfies(prpp->Pepp()->PppsRequired()) &&
 		   m_pcm->FSatisfies(prpp->Pcter());
 }
 
@@ -198,7 +202,7 @@ ULONG
 CDrvdPropPlan::Equals(const CDrvdPropPlan *pdpplan) const
 {
 	return m_pos->Matches(pdpplan->Pos()) && m_pds->Equals(pdpplan->Pds()) &&
-		   m_prs->Matches(pdpplan->Prs()) &&
+		   m_prs->Matches(pdpplan->Prs()) && m_ppps->Equals(pdpplan->Ppps()) &&
 		   m_pcm->Equals(pdpplan->GetCostModel());
 }
 
@@ -215,7 +219,7 @@ CDrvdPropPlan::OsPrint(IOstream &os) const
 {
 	os << "Drvd Plan Props ("
 	   << "ORD: " << (*m_pos) << ", DIST: " << (*m_pds)
-	   << ", REWIND: " << (*m_prs) << ")"
+	   << ", REWIND: " << (*m_prs) << ", PART PROP:" << (*m_ppps) << ")"
 	   << ", CTE Map: [" << *m_pcm << "]";
 
 	return os;

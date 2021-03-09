@@ -212,14 +212,6 @@ public:
 										 CDXLNode *second_child_dxlnode,
 										 EdxlBoolExprType boolexptype);
 
-	// construct a partition selector node
-	static CDXLNode *PdxlnPartitionSelector(
-		CMemoryPool *mp, IMDId *mdid, ULONG ulPartLevels, ULONG scan_id,
-		CDXLPhysicalProperties *dxl_properties, CDXLNode *pdxlnPrL,
-		CDXLNode *pdxlnEqFilters, CDXLNode *pdxlnFilters,
-		CDXLNode *pdxlnResidual, CDXLNode *pdxlnPropagation,
-		CDXLNode *pdxlnPrintable, CDXLNode *child_dxlnode = nullptr);
-
 	// create a DXL result node
 	static CDXLNode *PdxlnResult(CMemoryPool *mp,
 								 CDXLPhysicalProperties *dxl_properties,

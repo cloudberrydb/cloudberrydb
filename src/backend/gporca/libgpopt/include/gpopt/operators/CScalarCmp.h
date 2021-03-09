@@ -135,7 +135,7 @@ public:
 	}
 
 	// get commuted scalar comparision operator
-	virtual CScalarCmp *PopCommutedOp(CMemoryPool *mp, COperator *pop);
+	virtual CScalarCmp *PopCommutedOp(CMemoryPool *mp);
 
 	// get the string representation of a metadata object
 	static CWStringConst *Pstr(CMemoryPool *mp, CMDAccessor *md_accessor,

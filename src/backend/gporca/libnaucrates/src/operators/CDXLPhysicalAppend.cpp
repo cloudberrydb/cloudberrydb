@@ -9,9 +9,11 @@
 //		Implementation of DXL physical Append operator
 //---------------------------------------------------------------------------
 
-
 #include "naucrates/dxl/operators/CDXLPhysicalAppend.h"
 
+#include "gpos/common/CBitSetIter.h"
+
+#include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/xml/CXMLSerializer.h"
 
@@ -32,6 +34,24 @@ CDXLPhysicalAppend::CDXLPhysicalAppend(CMemoryPool *mp, BOOL fIsTarget,
 {
 }
 
+CDXLPhysicalAppend::CDXLPhysicalAppend(CMemoryPool *mp, BOOL fIsTarget,
+									   BOOL fIsZapped, ULONG scan_id,
+									   CDXLTableDescr *dxl_table_desc,
+									   ULongPtrArray *selector_ids)
+	: CDXLPhysical(mp),
+	  m_used_in_upd_del(fIsTarget),
+	  m_is_zapped(fIsZapped),
+	  m_scan_id(scan_id),
+	  m_dxl_table_descr(dxl_table_desc),
+	  m_selector_ids(selector_ids)
+{
+}
+
+CDXLPhysicalAppend::~CDXLPhysicalAppend()
+{
+	CRefCount::SafeRelease(m_dxl_table_descr);
+	CRefCount::SafeRelease(m_selector_ids);
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -112,8 +132,27 @@ CDXLPhysicalAppend::SerializeToDXL(CXMLSerializer *xml_serializer,
 	xml_serializer->AddAttribute(
 		CDXLTokens::GetDXLTokenStr(EdxltokenAppendIsZapped), m_is_zapped);
 
+	if (m_scan_id != gpos::ulong_max)
+	{
+		xml_serializer->AddAttribute(
+			CDXLTokens::GetDXLTokenStr(EdxltokenPartIndexId), m_scan_id);
+
+		CWStringDynamic *serialized_selector_ids =
+			CDXLUtils::Serialize(m_mp, m_selector_ids);
+		xml_serializer->AddAttribute(
+			CDXLTokens::GetDXLTokenStr(EdxltokenSelectorIds),
+			serialized_selector_ids);
+		GPOS_DELETE(serialized_selector_ids);
+	}
 	// serialize properties
 	dxlnode->SerializePropertiesToDXL(xml_serializer);
+
+	if (m_dxl_table_descr != nullptr)
+	{
+		GPOS_ASSERT(m_scan_id != gpos::ulong_max);
+		m_dxl_table_descr->SerializeToDXL(xml_serializer);
+	}
+
 
 	// serialize children
 	dxlnode->SerializeChildrenToDXL(xml_serializer);

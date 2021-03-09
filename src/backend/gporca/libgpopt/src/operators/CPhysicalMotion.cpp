@@ -176,6 +176,16 @@ CPhysicalMotion::PrsRequired(CMemoryPool *mp,
 										   CRewindabilitySpec::EmhtNoMotion);
 }
 
+CPartitionPropagationSpec *
+CPhysicalMotion::PppsRequired(CMemoryPool *mp, CExpressionHandle &,
+							  CPartitionPropagationSpec *, ULONG,
+							  CDrvdPropArray *, ULONG) const
+{
+	// A motion is a hard barrier for partition propagation since it executes in a
+	// different slice; and thus it cannot require this property from its child
+	return GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CPhysicalMotion::PcteRequired
@@ -236,6 +246,13 @@ CPhysicalMotion::PrsDerive(CMemoryPool *mp,
 	// A motion does not preserve rewindability and is also not rescannable.
 	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone,
 										   CRewindabilitySpec::EmhtMotion);
+}
+
+CPartitionPropagationSpec *
+CPhysicalMotion::PppsDerive(CMemoryPool *mp, CExpressionHandle &) const
+{
+	// A Motion cannot pass propagation spec
+	return GPOS_NEW(mp) CPartitionPropagationSpec(mp);
 }
 
 

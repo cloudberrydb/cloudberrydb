@@ -294,6 +294,13 @@ CPhysicalTVF::PrsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const
 										   CRewindabilitySpec::EmhtNoMotion);
 }
 
+// derive partition propagation
+CPartitionPropagationSpec *
+CPhysicalTVF::PppsDerive(CMemoryPool *mp, CExpressionHandle &) const
+{
+	return GPOS_NEW(mp) CPartitionPropagationSpec(mp);
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CPhysicalTVF::PcmDerive

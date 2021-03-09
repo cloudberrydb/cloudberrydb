@@ -292,6 +292,11 @@ CDXLUtils::Serialize(CMemoryPool *mp,
 {
 	CAutoP<CWStringDynamic> string_var(GPOS_NEW(mp) CWStringDynamic(mp));
 
+	if (nullptr == dynamic_ptr_array)
+	{
+		return string_var.Reset();
+	}
+
 	ULONG length = dynamic_ptr_array->Size();
 	for (ULONG ul = 0; ul < length; ul++)
 	{

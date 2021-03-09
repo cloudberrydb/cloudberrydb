@@ -30,70 +30,26 @@ namespace gpopt
 //---------------------------------------------------------------------------
 class CPhysicalPartitionSelector : public CPhysical
 {
-protected:
+private:
 	// Scan id
 	ULONG m_scan_id;
+
+	// Unique id per Partition Selector created
+	ULONG m_selector_id;
 
 	// mdid of partitioned table
 	IMDId *m_mdid;
 
-	// partition keys
-	CColRef2dArray *m_pdrgpdrgpcr;
-
-	// part constraint map
-	UlongToPartConstraintMap *m_ppartcnstrmap;
-
-	// relation part constraint
-	CPartConstraint *m_part_constraint;
-
-	// expressions used in equality filters; for a filter of the form
-	// pk1 = expr, we only store the expr
-	UlongToExprMap *m_phmulexprEqPredicates;
-
-	// expressions used in general predicates; we store the whole predicate
-	// in this case (e.g. pk1 > 50)
-	UlongToExprMap *m_phmulexprPredicates;
-
-	// residual partition selection expression that cannot be split to
-	// individual levels (e.g. pk1 < 5 OR pk2 = 6)
-	CExpression *m_pexprResidual;
-
-	// combined partition selection predicate
-	CExpression *m_pexprCombinedPredicate;
-
-	// ctor
-	CPhysicalPartitionSelector(CMemoryPool *mp, IMDId *mdid,
-							   UlongToExprMap *phmulexprEqPredicates);
-
-	// return a single combined partition selection predicate
-	CExpression *PexprCombinedPartPred(CMemoryPool *mp) const;
-
-	// check whether two expression maps match
-	static BOOL FMatchExprMaps(UlongToExprMap *phmulexprFst,
-							   UlongToExprMap *phmulexprSnd);
-
-private:
-	// check whether part constraint maps match
-	BOOL FMatchPartCnstr(UlongToPartConstraintMap *ppartcnstrmap) const;
-
-	// check whether this operator has a partition selection filter
-	BOOL FHasFilter() const;
-
-	// check whether first part constraint map is contained in the second one
-	static BOOL FSubsetPartCnstr(UlongToPartConstraintMap *ppartcnstrmapFst,
-								 UlongToPartConstraintMap *ppartcnstrmapSnd);
+	// partition selection predicate
+	CExpression *m_filter_expr;
 
 public:
 	CPhysicalPartitionSelector(const CPhysicalPartitionSelector &) = delete;
 
 	// ctor
-	CPhysicalPartitionSelector(CMemoryPool *mp, ULONG scan_id, IMDId *mdid,
-							   CColRef2dArray *pdrgpdrgpcr,
-							   UlongToPartConstraintMap *ppartcnstrmap,
-							   CPartConstraint *ppartcnstr,
-							   UlongToExprMap *phmulexprEqPredicates,
-							   UlongToExprMap *phmulexprPredicates,
-							   CExpression *pexprResidual);
+	CPhysicalPartitionSelector(CMemoryPool *mp, ULONG scan_id,
+							   ULONG selector_id, IMDId *mdid,
+							   CExpression *pexprScalar);
 
 	// dtor
 	~CPhysicalPartitionSelector() override;
@@ -119,6 +75,12 @@ public:
 		return m_scan_id;
 	}
 
+	ULONG
+	SelectorId() const
+	{
+		return m_selector_id;
+	}
+
 	// partitioned table mdid
 	IMDId *
 	MDId() const
@@ -126,37 +88,11 @@ public:
 		return m_mdid;
 	}
 
-	// partition keys
-	CColRef2dArray *
-	Pdrgpdrgpcr() const
-	{
-		return m_pdrgpdrgpcr;
-	}
-
-	// number of partitioning levels
-	virtual ULONG UlPartLevels() const;
-
-	// return a combined printable version of the partition selection predicate
+	// return the partition selection predicate
 	CExpression *
-	PexprCombinedPred() const
+	FilterExpr() const
 	{
-		return m_pexprCombinedPredicate;
-	}
-
-	// return the equality filter expression for the given level
-	CExpression *PexprEqFilter(ULONG ulPartLevel) const;
-
-	// return the filter expression for the given level
-	CExpression *PexprFilter(ULONG ulPartLevel) const;
-
-	// return the partition selection predicate for the given level
-	CExpression *PexprPartPred(CMemoryPool *mp, ULONG ulPartLevel) const;
-
-	// return the residual predicate
-	CExpression *
-	PexprResidualPred() const
-	{
-		return m_pexprResidual;
+		return m_filter_expr;
 	}
 
 	// match function
@@ -209,6 +145,11 @@ public:
 									CDrvdPropArray *pdrgpdpCtxt,
 									ULONG ulOptReq) const override;
 
+	CPartitionPropagationSpec *PppsRequired(
+		CMemoryPool *mp, CExpressionHandle &exprhdl,
+		CPartitionPropagationSpec *prsRequired, ULONG child_index,
+		CDrvdPropArray *pdrgpdpCtxt, ULONG ulOptReq) const override;
+
 	// check if required columns are included in output columns
 	BOOL FProvidesReqdCols(CExpressionHandle &exprhdl, CColRefSet *pcrsRequired,
 						   ULONG ulOptReq) const override;
@@ -228,6 +169,9 @@ public:
 	// derive rewindability
 	CRewindabilitySpec *PrsDerive(CMemoryPool *mp,
 								  CExpressionHandle &exprhdl) const override;
+
+	CPartitionPropagationSpec *PppsDerive(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const override;
 
 	//-------------------------------------------------------------------------------------
 	// Enforced Properties

@@ -4637,10 +4637,37 @@
                       <dxl:Ident ColId="31" ColName="l_partkey" TypeMdid="0.23.1.0"/>
                     </dxl:HashExpr>
                   </dxl:HashExprList>
-                  <dxl:Append IsTarget="false" IsZapped="false">
+                  <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="1" SelectorIds="">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="71396.512218" Rows="1536050048.000000" Width="138"/>
                     </dxl:Properties>
+                    <dxl:TableDescriptor Mdid="0.93299.1.1" TableName="lineitem">
+                      <dxl:Columns>
+                        <dxl:Column ColId="30" Attno="1" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="31" Attno="2" ColName="l_partkey" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="32" Attno="3" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="33" Attno="4" ColName="l_linenumber" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="34" Attno="5" ColName="l_quantity" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="35" Attno="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="36" Attno="7" ColName="l_discount" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="37" Attno="8" ColName="l_tax" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="38" Attno="9" ColName="l_returnflag" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="39" Attno="10" ColName="l_linestatus" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="40" Attno="11" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="41" Attno="12" ColName="l_commitdate" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="42" Attno="13" ColName="l_receiptdate" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="43" Attno="14" ColName="l_shipinstruct" TypeMdid="0.1042.1.0" ColWidth="25"/>
+                        <dxl:Column ColId="44" Attno="15" ColName="l_shipmode" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                        <dxl:Column ColId="45" Attno="16" ColName="l_comment" TypeMdid="0.1043.1.0" ColWidth="44"/>
+                        <dxl:Column ColId="46" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="47" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="48" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="49" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="50" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="51" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="52" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="30" Alias="l_orderkey">
                         <dxl:Ident ColId="30" ColName="l_orderkey" TypeMdid="0.23.1.0"/>

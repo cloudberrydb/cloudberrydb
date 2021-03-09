@@ -5495,10 +5495,25 @@
               </dxl:Comparison>
             </dxl:Or>
           </dxl:JoinFilter>
-          <dxl:Append IsTarget="false" IsZapped="false">
+          <dxl:Append IsTarget="false" IsZapped="false" PartIndexId="1" SelectorIds="">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="433.846277" Rows="60175.000000" Width="14"/>
             </dxl:Properties>
+            <dxl:TableDescriptor Mdid="0.740207.1.1" TableName="i_plineitem">
+              <dxl:Columns>
+                <dxl:Column ColId="0" Attno="1" ColName="l_id" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="1" Attno="2" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="13" Attno="14" ColName="l_receiptdate" TypeMdid="0.1082.1.0"/>
+                <dxl:Column ColId="15" Attno="16" ColName="l_shipmode" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                <dxl:Column ColId="17" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                <dxl:Column ColId="18" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="19" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="20" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="21" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="22" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Column ColId="23" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
             <dxl:ProjList>
               <dxl:ProjElem ColId="13" Alias="l_receiptdate">
                 <dxl:Ident ColId="13" ColName="l_receiptdate" TypeMdid="0.1082.1.0"/>

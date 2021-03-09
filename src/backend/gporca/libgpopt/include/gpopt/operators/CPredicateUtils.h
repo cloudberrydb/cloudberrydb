@@ -340,6 +340,12 @@ public:
 	static CExpression *PexprDisjunction(CMemoryPool *mp,
 										 CExpressionArray *Pdrgpexpr);
 
+	static CExpression *ValidatePartPruningExpr(CMemoryPool *mp,
+												CExpression *expr,
+												CColRef *pcrPartKey,
+												CColRefSet *pcrsAllowedRefs,
+												BOOL allow_not_equals_preds);
+
 	// find a predicate that can be used for partition pruning with the given part key
 	static CExpression *PexprPartPruningPredicate(
 		CMemoryPool *mp, const CExpressionArray *pdrgpexpr, CColRef *pcrPartKey,

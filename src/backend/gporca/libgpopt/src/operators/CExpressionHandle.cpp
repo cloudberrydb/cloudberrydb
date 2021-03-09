@@ -516,19 +516,18 @@ CExpressionHandle::DeriveCostContextStats()
 		return;
 	}
 
-#if 0
 	CEnfdPartitionPropagation *pepp = m_pcc->Poc()->Prpp()->Pepp();
 	COperator *pop = Pop();
 	if (CUtils::FPhysicalScan(pop) &&
 		CPhysicalScan::PopConvert(pop)->FDynamicScan() &&
-		!pepp->PpfmDerived()->IsEmpty())
+		pepp->PppsRequired()->ContainsAnyConsumers())
 	{
 		// derive stats on dynamic table scan using stats of part selector
 		CPhysicalScan *popScan = CPhysicalScan::PopConvert(m_pgexpr->Pop());
 		IStatistics *pstatsDS = popScan->PstatsDerive(
 			m_mp, *this, m_pcc->Poc()->Prpp(), m_pcc->Poc()->Pdrgpstat());
 
-		if (NULL == m_pstats || m_pstats->Rows() > pstatsDS->Rows())
+		if (nullptr == m_pstats || m_pstats->Rows() > pstatsDS->Rows())
 		{
 			// Replace the group stats with our newly derived DPE stats
 			CRefCount::SafeRelease(m_pstats);
@@ -544,7 +543,6 @@ CExpressionHandle::DeriveCostContextStats()
 
 		return;
 	}
-#endif
 
 	// release current stats since we will derive new stats
 	CRefCount::SafeRelease(m_pstats);

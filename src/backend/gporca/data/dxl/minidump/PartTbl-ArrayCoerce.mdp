@@ -309,7 +309,7 @@ select * from pt where gender in ( 'F', 'FM');
             <dxl:PropagationExpression>
               <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:PropagationExpression>
-            <dxl:PrintableFilter>
+            <dxl:PartFilterExpr>
               <dxl:Or>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
@@ -328,7 +328,7 @@ select * from pt where gender in ( 'F', 'FM');
                   </dxl:Cast>
                 </dxl:Comparison>
               </dxl:Or>
-            </dxl:PrintableFilter>
+            </dxl:PartFilterExpr>
           </dxl:PartitionSelector>
           <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
