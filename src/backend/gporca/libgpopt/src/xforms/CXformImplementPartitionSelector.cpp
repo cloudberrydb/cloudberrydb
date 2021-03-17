@@ -15,7 +15,6 @@
 
 #include "gpopt/operators/CLogicalPartitionSelector.h"
 #include "gpopt/operators/CPatternLeaf.h"
-#include "gpopt/operators/CPhysicalPartitionSelectorDML.h"
 
 using namespace gpopt;
 
@@ -49,7 +48,7 @@ CXformImplementPartitionSelector::CXformImplementPartitionSelector(
 //---------------------------------------------------------------------------
 void
 CXformImplementPartitionSelector::Transform(CXformContext *pxfctxt,
-											CXformResult *pxfres,
+											CXformResult *pxfres GPOS_UNUSED,
 											CExpression *pexpr) const
 {
 	GPOS_ASSERT(nullptr != pxfctxt);
@@ -81,17 +80,6 @@ CXformImplementPartitionSelector::Transform(CXformContext *pxfctxt,
 			phmulexprFilter->Insert(GPOS_NEW(mp) ULONG(ul), pexprFilter);
 		GPOS_ASSERT(fInserted);
 	}
-
-	// assemble physical operator
-	CPhysicalPartitionSelectorDML *popPhysicalPartitionSelector =
-		GPOS_NEW(mp) CPhysicalPartitionSelectorDML(mp, mdid, phmulexprFilter,
-												   popSelector->PcrOid());
-
-	CExpression *pexprPartitionSelector = GPOS_NEW(mp)
-		CExpression(mp, popPhysicalPartitionSelector, pexprRelational);
-
-	// add alternative to results
-	pxfres->Add(pexprPartitionSelector);
 }
 
 // EOF

@@ -400,12 +400,6 @@ private:
 									 CExpression *pexprScalarCond,
 									 CDXLPhysicalProperties *dxl_properties);
 
-	// translate a DML partition selector
-	CDXLNode *PdxlnPartitionSelectorDML(
-		CExpression *pexpr, CColRefArray *pdrgpc,
-		CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-		BOOL *pfDMLr);
-
 	// translate an expansion-based partition selector with a scalar condition to inline
 	CDXLNode *PdxlnPartitionSelectorExpand(
 		CExpression *pexpr, CColRefArray *colref_array,

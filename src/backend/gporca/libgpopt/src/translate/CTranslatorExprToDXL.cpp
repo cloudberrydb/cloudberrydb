@@ -53,7 +53,6 @@
 #include "gpopt/operators/CPhysicalMotionRoutedDistribute.h"
 #include "gpopt/operators/CPhysicalNLJoin.h"
 #include "gpopt/operators/CPhysicalPartitionSelector.h"
-#include "gpopt/operators/CPhysicalPartitionSelectorDML.h"
 #include "gpopt/operators/CPhysicalRowTrigger.h"
 #include "gpopt/operators/CPhysicalScalarAgg.h"
 #include "gpopt/operators/CPhysicalSequenceProject.h"
@@ -471,11 +470,6 @@ CTranslatorExprToDXL::CreateDXLNode(CExpression *pexpr,
 			break;
 		case COperator::EopPhysicalPartitionSelector:
 			dxlnode = CTranslatorExprToDXL::PdxlnPartitionSelector(
-				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
-				pfDML);
-			break;
-		case COperator::EopPhysicalPartitionSelectorDML:
-			dxlnode = CTranslatorExprToDXL::PdxlnPartitionSelectorDML(
 				pexpr, colref_array, pdrgpdsBaseTables, pulNonGatherMotions,
 				pfDML);
 			break;
@@ -4958,76 +4952,6 @@ CTranslatorExprToDXL::PdxlnPartitionSelector(
 	// GPDB_12_MERGE_FIXME: Support generating Partition Selector
 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature,
 			   GPOS_WSZ_LIT("Partition Selector with filter not supported"));
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorExprToDXL::PdxlnPartitionSelectorDML
-//
-//	@doc:
-//		Translate a DML partition selector into DXL
-//
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorExprToDXL::PdxlnPartitionSelectorDML(
-	CExpression *pexpr, CColRefArray *colref_array,
-	CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions,
-	BOOL *pfDML)
-{
-	GPOS_ASSERT(nullptr != pexpr);
-	GPOS_ASSERT(1 == pexpr->Arity());
-
-	CExpression *pexprChild = (*pexpr)[0];
-	CPhysicalPartitionSelectorDML *popSelector =
-		CPhysicalPartitionSelectorDML::PopConvert(pexpr->Pop());
-
-	// translate child
-	CDXLNode *child_dxlnode = CreateDXLNode(
-		pexprChild, colref_array, pdrgpdsBaseTables, pulNonGatherMotions, pfDML,
-		false /*fRemap*/, false /*fRoot*/);
-
-	// construct project list
-	IMDId *mdid = popSelector->MDId();
-	GPOS_ASSERT(1 <= child_dxlnode->Arity());
-	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector(
-		m_mp, m_pmda, m_pcf, m_phmcrdxln,
-		true,  //fUseChildProjList
-		(*child_dxlnode)[0], popSelector->PcrOid(), popSelector->UlPartLevels(),
-		CUtils::FGeneratePartOid(mdid));
-
-	// translate filters
-	CDXLNode *pdxlnEqFilters = nullptr;
-	CDXLNode *pdxlnFilters = nullptr;
-	CDXLNode *pdxlnResidual = nullptr;
-	TranslatePartitionFilters(pexpr, true /*fPassThrough*/, &pdxlnEqFilters,
-							  &pdxlnFilters, &pdxlnResidual);
-
-	// since there is no propagation for DML, we create a const null expression
-	const IMDTypeInt4 *pmdtypeint4 = m_pmda->PtMDType<IMDTypeInt4>();
-	CDXLDatum *pdxldatumNull = pmdtypeint4->GetDXLDatumNull(m_mp);
-	CDXLNode *pdxlnPropagation = GPOS_NEW(m_mp) CDXLNode(
-		m_mp, GPOS_NEW(m_mp) CDXLScalarConstValue(m_mp, pdxldatumNull));
-
-	// true printable filter
-	CDXLNode *pdxlnPrintable =
-		CTranslatorExprToDXLUtils::PdxlnBoolConst(m_mp, m_pmda, true /*value*/);
-
-	// construct PartitionSelector node
-	IMDId *rel_mdid = popSelector->MDId();
-	rel_mdid->AddRef();
-
-	CDXLNode *pdxlnSelector = CTranslatorExprToDXLUtils::PdxlnPartitionSelector(
-		m_mp, rel_mdid, popSelector->UlPartLevels(),
-		0,	// scan_id
-		GetProperties(pexpr), pdxlnPrL, pdxlnEqFilters, pdxlnFilters,
-		pdxlnResidual, pdxlnPropagation, pdxlnPrintable, child_dxlnode);
-
-#ifdef GPOS_DEBUG
-	pdxlnSelector->GetOperator()->AssertValid(pdxlnSelector,
-											  false /* validate_children */);
-#endif
-
-	return pdxlnSelector;
 }
 
 //---------------------------------------------------------------------------

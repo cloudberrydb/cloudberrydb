@@ -264,8 +264,7 @@ public:
 	PopConvert(COperator *pop)
 	{
 		GPOS_ASSERT(nullptr != pop);
-		GPOS_ASSERT(EopPhysicalPartitionSelector == pop->Eopid() ||
-					EopPhysicalPartitionSelectorDML == pop->Eopid());
+		GPOS_ASSERT(EopPhysicalPartitionSelector == pop->Eopid());
 
 		return dynamic_cast<CPhysicalPartitionSelector *>(pop);
 	}

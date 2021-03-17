@@ -242,7 +242,6 @@ public:
 		EopPhysicalComputeScalar,
 		EopPhysicalSpool,
 		EopPhysicalPartitionSelector,
-		EopPhysicalPartitionSelectorDML,
 
 		EopPhysicalConstTableGet,
 

@@ -123,7 +123,6 @@ OBJS        = CExpression.o \
               CPhysicalNLJoin.o \
               CPhysicalParallelUnionAll.o \
               CPhysicalPartitionSelector.o \
-              CPhysicalPartitionSelectorDML.o \
               CPhysicalRightOuterHashJoin.o \
               CPhysicalRowTrigger.o \
               CPhysicalScalarAgg.o \
