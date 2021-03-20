@@ -53,6 +53,7 @@ public:
 		ErelstorageAppendOnlyParquet,
 		ErelstorageExternal,
 		ErelstorageVirtual,
+		ErelstorageMixedPartitioned,
 		ErelstorageSentinel
 	};
 
