@@ -50,9 +50,7 @@ public:
 		ErelstorageHeap,
 		ErelstorageAppendOnlyCols,
 		ErelstorageAppendOnlyRows,
-		ErelstorageAppendOnlyParquet,
 		ErelstorageExternal,
-		ErelstorageVirtual,
 		ErelstorageMixedPartitioned,
 		ErelstorageSentinel
 	};

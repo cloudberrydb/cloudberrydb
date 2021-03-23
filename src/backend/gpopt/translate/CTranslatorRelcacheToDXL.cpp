@@ -2432,12 +2432,6 @@ CTranslatorRelcacheToDXL::RetrieveRelStorageType(Relation rel)
 		case AO_ROW_TABLE_AM_OID:
 			rel_storage_type = IMDRelation::ErelstorageAppendOnlyRows;
 			break;
-// GPDB_12_MERGE_FIXME: why did ORCA even care about relstorage = 'v'??? DEAD CODE!
-#if NOT_USED
-		case RELSTORAGE_VIRTUAL:
-			rel_storage_type = IMDRelation::ErelstorageVirtual;
-			break;
-#endif
 		case 0:
 
 			if (rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)

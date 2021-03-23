@@ -1023,11 +1023,9 @@ CTranslatorQueryToDXL::GetDXLCtasOptionArray(
 	ListCell *lc = nullptr;
 	BOOL is_ao_table = false;
 	BOOL is_AOCO = false;
-	BOOL is_parquet = false;
 
 	CWStringConst str_append_only(GPOS_WSZ_LIT("appendonly"));
 	CWStringConst str_orientation(GPOS_WSZ_LIT("orientation"));
-	CWStringConst str_orientation_parquet(GPOS_WSZ_LIT("parquet"));
 	CWStringConst str_orientation_column(GPOS_WSZ_LIT("column"));
 
 	ForEach(lc, options)
@@ -1058,15 +1056,7 @@ CTranslatorQueryToDXL::GetDXLCtasOptionArray(
 			if (name_str->Equals(&str_orientation) &&
 				value_str->Equals(&str_orientation_column))
 			{
-				GPOS_ASSERT(!is_parquet);
 				is_AOCO = true;
-			}
-
-			if (name_str->Equals(&str_orientation) &&
-				value_str->Equals(&str_orientation_parquet))
-			{
-				GPOS_ASSERT(!is_AOCO);
-				is_parquet = true;
 			}
 		}
 
@@ -1088,10 +1078,6 @@ CTranslatorQueryToDXL::GetDXLCtasOptionArray(
 	else if (is_ao_table)
 	{
 		*storage_type = IMDRelation::ErelstorageAppendOnlyRows;
-	}
-	else if (is_parquet)
-	{
-		*storage_type = IMDRelation::ErelstorageAppendOnlyParquet;
 	}
 
 	return ctas_storage_options;
