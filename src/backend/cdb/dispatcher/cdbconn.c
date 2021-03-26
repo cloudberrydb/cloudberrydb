@@ -114,6 +114,8 @@ cdbconn_termSegmentDescriptor(SegmentDatabaseDescriptor *segdbDesc)
 		pfree(segdbDesc->whoami);
 		segdbDesc->whoami = NULL;
 	}
+
+	pfree(segdbDesc);
 }								/* cdbconn_termSegmentDescriptor */
 
 /*
