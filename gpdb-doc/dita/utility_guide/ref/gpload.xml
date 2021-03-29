@@ -758,8 +758,7 @@
                                             <pd>Optional. Specifies a Boolean condition (similar to
                                                 what you would declare in a <codeph>WHERE</codeph>
                                                 clause) that must be met in order for a row in the
-                                                target table to be updated (or inserted in the case
-                                                of a <codeph>MERGE</codeph>).</pd>
+                                                target table to be updated.</pd>
                                         </plentry>
                                         <plentry>
                                             <pt id="cfmapping">MAPPING</pt>
