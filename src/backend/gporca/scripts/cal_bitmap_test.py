@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Optimizer calibration test for bitmap indexes
+# Optimizer calibration test for bitmap and brin indexes, also btree on AO tables
 #
 # This program runs a set of queries, varying several parameters:
 #
@@ -46,6 +46,7 @@ TABLE_NAME_PATTERN = r"cal_txtest"
 NDV_TABLE_NAME_PATTERN = r"cal_ndvtest"
 BFV_TABLE_NAME_PATTERN = r"cal_bfvtest"
 WIDE_TABLE_NAME_PATTERN = r"cal_widetest"
+BRIN_TABLE_NAME_PATTERN = r"cal_brintest"
 
 TABLE_SCAN = "table_scan"
 TABLE_SCAN_PATTERN = r"Seq Scan"
@@ -132,6 +133,23 @@ CREATE TABLE cal_ndvtest (id int, val int)
 DISTRIBUTED BY (id);
 """
 
+_create_brin_table = """
+CREATE TABLE cal_brintest(id int,
+                          clust_10 int,
+                          clust_100 int,
+                          clust_1000 int,
+                          clust_10000 int,
+                          clust_uniq int,
+                          rand_10 int,
+                          rand_100 int,
+                          rand_1000 int,
+                          rand_10000 int,
+                          rand_uniq int,
+                          txt text)
+%s
+DISTRIBUTED BY (id);
+"""
+
 _with_appendonly = """
 WITH (appendonly=true)
 """
@@ -169,6 +187,26 @@ SELECT f_id,
        f_id%10000 + 1,
        repeat('a', 960)
 FROM cal_temp_ids
+order by f_rand;
+"""
+
+# use a row_number() function to create column values that are strongly correlated
+# to the physical order of the rows on disk
+_insert_into_brin_table = """
+INSERT INTO cal_brintest
+SELECT ordered_id,
+       ceil(ordered_id*(10.0/{rows})),
+       ceil(ordered_id*(100.0/{rows})),
+       ceil(ordered_id*(1000.0/{rows})),
+       ceil(ordered_id*(10000.0/{rows})),
+       ordered_id,
+       f_id%10 + 1,
+       f_id%100 + 1,
+       f_id%1000 + 1,
+       f_id%10000 + 1,
+       f_id,
+       repeat('a', 956)
+FROM (select row_number() over(order by f_rand) as ordered_id, f_id, f_rand from cal_temp_ids) src
 order by f_rand;
 """
 
@@ -223,8 +261,16 @@ CREATE INDEX cal_ndvtest_btree ON cal_ndvtest USING btree(val);
 """,
                              ]
 
+_create_brin_index_arr = ["""
+CREATE INDEX cal_brintest_brin ON cal_brintest USING brin(
+id, clust_10, clust_100, clust_1000, clust_10000, clust_uniq, rand_10, rand_100, rand_1000, rand_10000, rand_uniq, txt)
+WITH(pages_per_range=4);
+""",
+                         ]
+
 _analyze_table = """
 ANALYZE cal_txtest;
+ANALYZE cal_brintest;
 """
 
 _allow_system_mods = """
@@ -262,22 +308,32 @@ UPDATE pg_statistic
 WHERE starelid = '%s'::regclass AND staattnum = %i;
 """
 
-# columns to fix, in the format (table name, column name, attnum, ndv, num rows)
+# columns to fix, in the format (table name, column name, attnum, ndv, num rows, correlation)
 # use -1 as the NDV for unique columns and use -1 for the variable number of rows in the fact table
 _stats_cols_to_fix = [
-    ('cal_txtest', 'id',           1,    -1,    -1),
-    ('cal_txtest', 'btreeunique',  2,    -1,    -1),
-    ('cal_txtest', 'btree10',      3,    10,    -1),
-    ('cal_txtest', 'btree100',     4,   100,    -1),
-    ('cal_txtest', 'btree1000',    5,  1000,    -1),
-    ('cal_txtest', 'btree10000',   6, 10000,    -1),
-    ('cal_txtest', 'bitmap10',     7,    10,    -1),
-    ('cal_txtest', 'bitmap100',    8,   100,    -1),
-    ('cal_txtest', 'bitmap1000',   9,  1000,    -1),
-    ('cal_txtest', 'bitmap10000', 10, 10000,    -1),
-    ('cal_dim',    'dim_id',       1,    -1, glob_dim_table_rows),
-    ('cal_dim',    'dim_id2',      2,    -1, glob_dim_table_rows)
-]
+    ('cal_txtest',  'id',           1,    -1,    -1,    0.0),
+    ('cal_txtest',  'btreeunique',  2,    -1,    -1,    0.0),
+    ('cal_txtest',  'btree10',      3,    10,    -1,    0.0),
+    ('cal_txtest',  'btree100',     4,   100,    -1,    0.0),
+    ('cal_txtest',  'btree1000',    5,  1000,    -1,    0.0),
+    ('cal_txtest',  'btree10000',   6, 10000,    -1,    0.0),
+    ('cal_txtest',  'bitmap10',     7,    10,    -1,    0.0),
+    ('cal_txtest',  'bitmap100',    8,   100,    -1,    0.0),
+    ('cal_txtest',  'bitmap1000',   9,  1000,    -1,    0.0),
+    ('cal_txtest',  'bitmap10000', 10, 10000,    -1,    0.0),
+    ('cal_dim',     'dim_id',       1,    -1, glob_dim_table_rows,    0.0),
+    ('cal_dim',     'dim_id2',      2,    -1, glob_dim_table_rows,    0.0),
+    ('cal_brintest','id',           1,    -1,    -1,    1.0),
+    ('cal_brintest','clust_10',     2,    10,    -1,    1.0),
+    ('cal_brintest','clust_100',    3,   100,    -1,    1.0),
+    ('cal_brintest','clust_1000',   4,  1000,    -1,    1.0),
+    ('cal_brintest','clust_10000',  5, 10000,    -1,    1.0),
+    ('cal_brintest','clust_uniq',   6,    -1,    -1,    1.0),
+    ('cal_brintest','rand_10',      7,    10,    -1,    0.0),
+    ('cal_brintest','rand_100',     8,   100,    -1,    0.0),
+    ('cal_brintest','rand_1000',    9,  1000,    -1,    0.0),
+    ('cal_brintest','rand_10000',  10, 10000,    -1,    0.0),
+    ('cal_brintest','rand_uniq',   11,    -1,    -1,    0.0)]
 
 # deal with command line arguments
 # -----------------------------------------------------------------------------
@@ -287,10 +343,10 @@ def parseargs():
 
     parser.add_argument("tests", metavar="TEST", choices=[[], "all", "none", "bitmap_scan_tests", "btree_ao_scan_tests",
                                                           "bitmap_ndv_scan_tests", "index_join_tests", "bfv_join_tests",
-                                                          "index_only_scan_tests"],
+                                                          "index_only_scan_tests", "brin_tests"],
                         nargs="*",
                         help="Run these tests (all, none, bitmap_scan_tests, btree_ao_scan_tests, bitmap_ndv_scan_tests, "
-                              "index_join_tests, bfv_join_tests, index_only_scan_tests), default is none")
+                              "index_join_tests, bfv_join_tests, index_only_scan_tests, brin_tests), default is none")
     parser.add_argument("--create", action="store_true",
                         help="Create the tables to use in the test")
     parser.add_argument("--execute", type=int, default="0",
@@ -469,7 +525,7 @@ def explain_index_scan(conn, sqlStr):
         for row in rows:
             log_output(row[0])
             if (re.search(TABLE_NAME_PATTERN, row[0]) or re.search(NDV_TABLE_NAME_PATTERN, row[0]) or
-                re.search(WIDE_TABLE_NAME_PATTERN, row[0])):
+                re.search(WIDE_TABLE_NAME_PATTERN, row[0]) or re.search(BRIN_TABLE_NAME_PATTERN, row[0])):
                 if re.search(bitmap_scan_pattern, row[0]):
                     scan_type = BITMAP_SCAN
                     cost = cost_from_explain_line(row[0])
@@ -482,9 +538,9 @@ def explain_index_scan(conn, sqlStr):
                 elif re.search(table_scan_pattern, row[0]):
                     scan_type = TABLE_SCAN
                     cost = cost_from_explain_line(row[0])
-                elif re.search(fallback_pattern, row[0]):
-                    log_output("*** ERROR: Fallback")
-                    scan_type = FALLBACK_PLAN
+            elif re.search(fallback_pattern, row[0]):
+                log_output("*** ERROR: Fallback")
+                scan_type = FALLBACK_PLAN
 
     except Exception as e:
         log_output("\n*** ERROR explaining query:\n%s;\nReason: %s" % ("explain " + sqlStr, e))
@@ -906,76 +962,22 @@ ANALYZE cal_ndvtest;
 
 # query statements
 
-_bitmap_select_10_pct = """
-SELECT count(*) %s
+_bitmap_select = """
+SELECT count(*) {sel}
 FROM cal_txtest
-WHERE bitmap10 BETWEEN 0 AND %d;
+WHERE {col} BETWEEN 0 AND {par};
 """
 
-_bitmap_select_1_pct = """
-SELECT count(*) %s
+_bitmap_select_multi = """
+SELECT count(*) {sel}
 FROM cal_txtest
-WHERE bitmap100 BETWEEN 0 AND %d;
-"""
-
-_bitmap_select_pt1_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE bitmap1000 BETWEEN 0 AND %d;
-"""
-
-_bitmap_select_pt01_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE bitmap10000 BETWEEN 0 AND %d;
-"""
-
-_bitmap_select_pt01_pct_multi = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE bitmap10000 = 0 OR bitmap10000 BETWEEN 2 AND %d+1;
-"""
-
-_btree_select_unique = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btreeunique BETWEEN 0 AND %d;
-"""
-
-_btree_select_10_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btree10 BETWEEN 0 AND %d;
-"""
-
-_btree_select_1_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btree100 BETWEEN 0 AND %d;
-"""
-
-_btree_select_pt1_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btree1000 BETWEEN 0 AND %d;
-"""
-
-_btree_select_pt01_pct = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btree10000 BETWEEN 0 AND %d;
-"""
-
-_btree_select_pt01_pct_multi = """
-SELECT count(*) %s
-FROM cal_txtest
-WHERE btree10000 = 0 OR btree10000 BETWEEN 2 AND %d+1;
+WHERE {col} = 0 OR {col} BETWEEN 2 AND {par}+1;
 """
 
 _btree_select_unique_in = """
-SELECT count(*) %s
+SELECT count(*) {sel}
 FROM cal_txtest
-WHERE btreeunique IN ( %s );
+WHERE {col} IN ( {inlist} );
 """
 
 _bitmap_index_join = """
@@ -1002,6 +1004,18 @@ FROM cal_ndvtest
 WHERE val <= 1000000;
 """
 
+_brin_select_range = """
+SELECT count(*) {sel}
+FROM cal_brintest
+WHERE {col} BETWEEN 0 AND {par};
+"""
+
+_brin_select_multi = """
+SELECT count(*) {sel}
+FROM cal_brintest
+WHERE {col} = 0 OR {col} BETWEEN 2 AND {par}+1;
+"""
+
 
 # Parameterize methods for the test queries above
 # -----------------------------------------------------------------------------
@@ -1009,78 +1023,78 @@ WHERE val <= 1000000;
 
 # bitmap index scan with 0...100 % of values, for parameter values 0...10, in 10 % increments
 def parameterize_bitmap_index_10_narrow(paramValue):
-    return _bitmap_select_10_pct % ("", paramValue)
+    return _bitmap_select.format(sel="", col="bitmap10", par=paramValue)
 
 
 def parameterize_bitmap_index_10_wide(paramValue):
-    return _bitmap_select_10_pct % (", max(txt)", paramValue)
+    return _bitmap_select.format(sel=", max(txt)", col="bitmap10", par=paramValue)
 
 
 # bitmap index scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments
 def parameterize_bitmap_index_10000_narrow(paramValue):
-    return _bitmap_select_pt01_pct % ("", paramValue)
+    return _bitmap_select.format(sel="", col="bitmap10000", par=paramValue)
 
 
 def parameterize_bitmap_index_10000_wide(paramValue):
-    return _bitmap_select_pt01_pct % (", max(txt)", paramValue)
+    return _bitmap_select.format(sel=", max(txt)", col="bitmap10000", par=paramValue)
 
 
 # bitmap index scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments, multiple ranges
 def parameterize_bitmap_index_10000_multi_narrow(paramValue):
-    return _bitmap_select_pt01_pct_multi % ("", paramValue)
+    return _bitmap_select_multi.format(sel="", col="bitmap10000", par=paramValue)
 
 
 def parameterize_bitmap_index_10000_multi_wide(paramValue):
-    return _bitmap_select_pt01_pct_multi % (", max(txt)", paramValue)
+    return _bitmap_select_multi.format(sel=", max(txt)", col="bitmap10000", par=paramValue)
 
 
 # bitmap index scan on AO btree index with 0...100 % of values, for parameter values 0...10, in 10 % increments
 def parameterize_btree_index_unique_narrow(paramValue):
-    return _btree_select_unique % ("", paramValue)
+    return _bitmap_select.format(sel="", col="btreeunique", par=paramValue)
 
 
 def parameterize_btree_index_unique_wide(paramValue):
-    return _btree_select_unique % (", max(txt)", paramValue)
+    return _bitmap_select.format(sel=", max(txt)", col="btreeunique", par=paramValue)
 
 
 def parameterize_btree_index_100_narrow(paramValue):
-    return _btree_select_1_pct % ("", paramValue)
+    return _bitmap_select.format(sel="", col="btree100", par=paramValue)
 
 
 def parameterize_btree_index_100_wide(paramValue):
-    return _btree_select_1_pct % (", max(txt)", paramValue)
+    return _bitmap_select.format(sel=", max(txt)", col="btree100", par=paramValue)
 
 
 # bitmap index scan on AO btree index with 0...100 % of values, for parameter values 0...10,000, in .01 % increments
 def parameterize_btree_index_10000_narrow(paramValue):
-    return _btree_select_pt01_pct % ("", paramValue)
+    return _bitmap_select.format(sel="", col="btree10000", par=paramValue)
 
 
 def parameterize_btree_index_10000_wide(paramValue):
-    return _btree_select_pt01_pct % (", max(txt)", paramValue)
+    return _bitmap_select.format(sel=", max(txt)", col="btree10000", par=paramValue)
 
 
 # bitmap index scan on AO btree index with 0...100 % of values, for parameter values 0...10,000, in .01 % increments, multiple ranges
 def parameterize_btree_index_10000_multi_narrow(paramValue):
-    return _btree_select_pt01_pct_multi % ("", paramValue)
+    return _bitmap_select_multi.format(sel="", col="btree10000", par=paramValue)
 
 
 def parameterize_btree_index_10000_multi_wide(paramValue):
-    return _btree_select_pt01_pct_multi % (", max(txt)", paramValue)
+    return _bitmap_select_multi.format(sel=", max(txt)", col="btree10000", par=paramValue)
 
 
 def parameterize_btree_unique_in_narrow(paramValue):
     inlist = "0"
     for p in range(1, paramValue+1):
         inlist += ", " + str(5*p)
-    return _btree_select_unique_in % ("", inlist)
+    return _btree_select_unique_in.format(sel="", col="btreeunique", inlist=inlist)
 
 
 def parameterize_btree_unique_in_wide(paramValue):
     inlist = "0"
     for p in range(1, paramValue+1):
         inlist += ", " + str(5*p)
-    return _btree_select_unique_in % (", max(txt)", inlist)
+    return _btree_select_unique_in.format(sel=", max(txt)", col="btreeunique", inlist=inlist)
 
 
 # index join with 0...100 % of fact values, for parameter values 0...10,000, in .01 % increments
@@ -1114,6 +1128,59 @@ def parameterize_bitmap_join_bfv(paramValue):
 
 def parameterize_bitmap_index_ndv(paramValue):
     return _bitmap_index_ndv
+
+# BRIN clustered scan with 0...100 % of values, for parameter values 0...10, in 10 % increments
+def parameterize_brin_index_10c_narrow(paramValue):
+    return _brin_select_range.format(sel="", col="clust_10", par=paramValue)
+
+
+def parameterize_brin_index_10c_wide(paramValue):
+    return _brin_select_range.format(sel=", max(txt)", col="clust_10", par=paramValue)
+
+
+# BRIN clustered scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments
+def parameterize_brin_index_10000c_narrow(paramValue):
+    return _brin_select_range.format(sel="", col="clust_10000", par=paramValue)
+
+
+def parameterize_brin_index_10000c_wide(paramValue):
+    return _brin_select_range.format(sel=", max(txt)", col="clust_10000", par=paramValue)
+
+
+# BRIN clustered scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments, multiple ranges
+def parameterize_brin_index_10000c_multi_narrow(paramValue):
+    return _brin_select_multi.format(sel="", col="clust_10000", par=paramValue)
+
+
+def parameterize_brin_index_10000c_multi_wide(paramValue):
+    return _brin_select_multi.format(sel=", max(txt)", col="clust_10000", par=paramValue)
+
+
+# BRIN random scan with 0...100 % of values, for parameter values 0...10, in 10 % increments
+def parameterize_brin_index_10r_narrow(paramValue):
+    return _brin_select_range.format(sel="", col="rand_10", par=paramValue)
+
+
+def parameterize_brin_index_10r_wide(paramValue):
+    return _brin_select_range.format(sel=", max(txt)", col="rand_10", par=paramValue)
+
+
+# BRIN random scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments
+def parameterize_brin_index_10000r_narrow(paramValue):
+    return _brin_select_range.format(sel="", col="rand_10000", par=paramValue)
+
+
+def parameterize_brin_index_10000r_wide(paramValue):
+    return _brin_select_range.format(sel=", max(txt)", col="rand_10000", par=paramValue)
+
+
+# BRIN random scan with 0...100 % of values, for parameter values 0...10,000, in .01 % increments, multiple ranges
+def parameterize_brin_index_10000r_multi_narrow(paramValue):
+    return _brin_select_multi.format(sel="", col="rand_10000", par=paramValue)
+
+
+def parameterize_brin_index_10000r_multi_wide(paramValue):
+    return _brin_select_multi.format(sel=", max(txt)", col="rand_10000", par=paramValue)
 
 
 def noSetupRequired(paramValue):
@@ -1187,6 +1254,16 @@ def run_one_index_scan_test(conn, testTitle, paramValueLow, paramValueHigh, setu
     force_methods = [force_index_scan, force_index_only_scan]
     explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, setup, parameterizeMethod,
                                                    explain_index_scan, reset_index_test, plan_ids, force_methods,
+                                                   execute_n_times)
+    print_results(testTitle, explainDict, execDict, errors, plan_ids, execute_n_times)
+
+def run_one_brin_scan_test(conn, testTitle, paramValueLow, paramValueHigh, setup, parameterizeMethod,
+                             execute_n_times):
+    log_output("Running BRIN scan test " + testTitle)
+    plan_ids = [BITMAP_SCAN, TABLE_SCAN]
+    force_methods = [force_bitmap_scan, force_table_scan]
+    explainDict, execDict, errors = find_crossover(conn, paramValueLow, paramValueHigh, setup, parameterizeMethod,
+                                                   explain_bitmap_index, reset_index_test, plan_ids, force_methods,
                                                    execute_n_times)
     print_results(testTitle, explainDict, execDict, errors, plan_ids, execute_n_times)
 
@@ -1413,6 +1490,105 @@ def run_bfv_join_tests(conn, execute_n_times):
                              execute_n_times)
 
 
+def run_brin_tests(conn, execute_n_times):
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; NDV=10; selectivity_pct=10*parameter_value; count(*)",
+                           0,
+                           10,
+                           noSetupRequired,
+                           parameterize_brin_index_10c_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; NDV=10; selectivity_pct=10*parameter_value; max(txt)",
+                           0,
+                           6,
+                           noSetupRequired,
+                           parameterize_brin_index_10c_wide,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; NDV=10000; selectivity_pct=0.01*parameter_value; count(*)",
+                           0,
+                           600,
+                           noSetupRequired,
+                           parameterize_brin_index_10000c_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; NDV=10000; selectivity_pct=0.01*parameter_value; max(txt)",
+                           0,
+                           300,
+                           noSetupRequired,
+                           parameterize_brin_index_10000c_wide,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; multi-range; NDV=10000; selectivity_pct=0.01*parameter_value; count(*)",
+                           0,
+                           600,
+                           noSetupRequired,
+                           parameterize_brin_index_10000c_multi_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN clustered Scan Test; multi-range; NDV=10000; selectivity_pct=0.01*parameter_value; max(txt)",
+                           0,
+                           300,
+                           noSetupRequired,
+                           parameterize_brin_index_10000c_multi_wide,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; NDV=10; selectivity_pct=10*parameter_value; count(*)",
+                           0,
+                           10,
+                           noSetupRequired,
+                           parameterize_brin_index_10r_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; NDV=10; selectivity_pct=10*parameter_value; max(txt)",
+                           0,
+                           6,
+                           noSetupRequired,
+                           parameterize_brin_index_10r_wide,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; NDV=10000; selectivity_pct=0.01*parameter_value; count(*)",
+                           0,
+                           600,
+                           noSetupRequired,
+                           parameterize_brin_index_10000r_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; NDV=10000; selectivity_pct=0.01*parameter_value; max(txt)",
+                           0,
+                           300,
+                           noSetupRequired,
+                           parameterize_brin_index_10000r_wide,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; multi-range; NDV=10000; selectivity_pct=0.01*parameter_value; count(*)",
+                           0,
+                           600,
+                           noSetupRequired,
+                           parameterize_brin_index_10000r_multi_narrow,
+                           execute_n_times)
+
+    run_one_brin_scan_test(conn,
+                           "BRIN random Scan Test; multi-range; NDV=10000; selectivity_pct=0.01*parameter_value; max(txt)",
+                           0,
+                           300,
+                           noSetupRequired,
+                           parameterize_brin_index_10000r_multi_wide,
+                           execute_n_times)
+
+
 # common parts of all test suites, create tables, run tests, drop objects
 # -----------------------------------------------------------------------------
 
@@ -1427,22 +1603,30 @@ def createDB(conn, use_ao, num_rows):
     create_cal_table_stmt = _create_cal_table % create_options
     create_bfv_table = _create_bfv_table % create_options
     create_ndv_table = _create_ndv_table % create_options
+    create_brin_table = _create_brin_table % create_options
     insert_into_temp_stmt = _insert_into_temp % num_rows
     insert_into_other_stmt = _insert_into_other_tables % (1, glob_dim_table_rows)
+    insert_into_brin_table = _insert_into_brin_table.format(rows=num_rows)
 
     execute_sql(conn, _drop_tables)
     execute_sql(conn, create_cal_table_stmt)
     execute_sql(conn, create_bfv_table)
     execute_sql(conn, create_ndv_table)
+    execute_sql(conn, create_brin_table)
     execute_sql_arr(conn, _create_other_tables)
     commit_db(conn)
     execute_and_commit_sql(conn, insert_into_temp_stmt)
     execute_and_commit_sql(conn, _insert_into_table)
+    commit_db(conn)
+    execute_and_commit_sql(conn, insert_into_brin_table)
     execute_and_commit_sql(conn, insert_into_other_stmt)
+    commit_db(conn)
     execute_sql_arr(conn, _create_index_arr)
     execute_sql_arr(conn, _create_bfv_index_arr)
     execute_sql_arr(conn, _create_ndv_index_arr)
+    commit_db(conn)
     execute_sql_arr(conn, _create_btree_indexes_arr)
+    execute_sql_arr(conn, _create_brin_index_arr)
     execute_sql(conn, _analyze_table)
     commit_db(conn)
 
@@ -1455,16 +1639,13 @@ def dropDB(conn):
 # For NDVs of 100 or less, list all of them
 # For NDVs of more than 100, generate a histogram with 100 buckets
 # Set the correlation to 0 for all columns, since the data was shuffled randomly
-def smoothStatisticsForOneCol(conn, table_name, attnum, row_count, ndv):
+def smoothStatisticsForOneCol(conn, table_name, attnum, row_count, ndv, corr):
     # calculate stadistinct value and ndv, if specified as -1
     if ndv == -1:
         stadistinct = -1
         ndv = row_count
     else:
         stadistinct = ndv
-
-    # correlation to physical row ordering is 0 for all columns
-    corr = 0.0
 
     # stakind: 1 is a list of most common values and frequencies, 2 is a histogram with range buckets
     stakind = 1
@@ -1499,10 +1680,10 @@ def smoothStatistics(conn, num_fact_table_rows):
         execute_sql(conn, _allow_system_mods_v5)
     for tup in _stats_cols_to_fix:
         # note that col_name is just for human readability
-        (table_name, col_name, attnum, ndv, table_rows) = tup
+        (table_name, col_name, attnum, ndv, table_rows, corr) = tup
         if table_rows == -1:
             table_rows = num_fact_table_rows
-        smoothStatisticsForOneCol(conn, table_name, attnum, table_rows, ndv)
+        smoothStatisticsForOneCol(conn, table_name, attnum, table_rows, ndv, corr)
         if prev_table_name != table_name:
             prev_table_name = table_name
             execute_sql(conn, _update_pg_class % (table_rows, table_name))
@@ -1520,7 +1701,10 @@ def inspectExistingTables(conn):
         glob_rowcount = row[0]
         log_output("Row count of existing fact table is %d" % glob_rowcount)
 
-    sqlStr = "SELECT lower(unnest(reloptions)) from pg_class where relname = 'cal_txtest'"
+    if glob_gpdb_major_version < 7:
+        sqlStr = "SELECT lower(unnest(reloptions)) from pg_class where relname = 'cal_txtest'"
+    else:
+        sqlStr = "SELECT case when relam=3434 then 'appendonly' else 'appendonly,column' end from pg_class where relname = 'cal_txtest' and relam in (3434,3435)"
     curs = dbconn.query(conn, sqlStr)
 
     rows = curs.fetchall()
@@ -1574,6 +1758,8 @@ def main():
             run_index_join_tests(conn, args.execute)
         elif test_unit == "bfv_join_tests":
             run_bfv_join_tests(conn, args.execute)
+        elif test_unit == "brin_tests":
+            run_brin_tests(conn, args.execute)
         elif test_unit == "none":
             print("Skipping tests")
 

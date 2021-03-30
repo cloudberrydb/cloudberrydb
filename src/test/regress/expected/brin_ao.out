@@ -1,4 +1,3 @@
-set optimizer to off;
 CREATE TABLE brintest_ao (byteacol bytea,
 	charcol "char",
 	namecol name,
@@ -291,10 +290,20 @@ DECLARE
 	cond text;
 	count int;
 	mismatch bool;
+	is_orca bool;
 	plan_ok bool;
+	is_planner_plan bool;
 	plan_line text;
 BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_ao, unnest(op) WITH ORDINALITY AS oper LOOP
+	-- determine whether we are using ORCA or planner
+	is_orca := false;
+	FOR r IN EXECUTE 'show optimizer' LOOP
+		IF r.optimizer = 'on' THEN
+			is_orca := true;
+		END IF;
+	END LOOP;
+
+	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_ao, unnest(op) WITH ORDINALITY AS oper order by colname, typ LOOP
 		mismatch := false;
 
 		-- prepare the condition
@@ -308,15 +317,24 @@ BEGIN
 		CREATE TEMP TABLE brin_result (cid tid) distributed by (cid);
 		SET enable_seqscan = 0;
 		SET enable_bitmapscan = 1;
+		SET optimizer_enable_tablescan = 0;
+		SET optimizer_enable_bitmapscan = 1;
 
 		plan_ok := false;
+		is_planner_plan := false;
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT ctid FROM brintest_ao WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Bitmap Heap Scan on brintest_ao%' THEN
 				plan_ok := true;
 			END IF;
+			IF plan_line LIKE '%Postgres query optimizer%' THEN
+				is_planner_plan := true;
+			END IF;
 		END LOOP;
 		IF NOT plan_ok THEN
 			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+		END IF;
+		IF is_orca AND is_planner_plan THEN
+			RAISE WARNING 'ORCA did not produce a bitmap indexscan plan for %', r;
 		END IF;
 
 		EXECUTE format($y$INSERT INTO brin_result SELECT ctid FROM brintest_ao WHERE %s $y$, cond);
@@ -325,6 +343,8 @@ BEGIN
 		CREATE TEMP TABLE brin_result_ss (cid tid) distributed by (cid);
 		SET enable_seqscan = 1;
 		SET enable_bitmapscan = 0;
+		SET optimizer_enable_tablescan = 1;
+		SET optimizer_enable_bitmapscan = 0;
 
 		plan_ok := false;
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT ctid FROM brintest_ao WHERE %s $y$, cond) LOOP
@@ -355,12 +375,16 @@ BEGIN
 			RAISE WARNING 'something not right in %: count %', r, count;
 			SET enable_seqscan = 1;
 			SET enable_bitmapscan = 0;
+			SET optimizer_enable_tablescan = 1;
+			SET optimizer_enable_bitmapscan = 0;
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_ao WHERE ' || cond LOOP
 				RAISE NOTICE 'seqscan: %', r2;
 			END LOOP;
 
 			SET enable_seqscan = 0;
 			SET enable_bitmapscan = 1;
+			SET optimizer_enable_tablescan = 0;
+			SET optimizer_enable_bitmapscan = 1;
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_ao WHERE ' || cond LOOP
 				RAISE NOTICE 'bitmapscan: %', r2;
 			END LOOP;
@@ -376,6 +400,16 @@ BEGIN
 	END LOOP;
 END;
 $x$;
+-- Note: ORCA does not support all of the above operators:
+--       - standard comparison operators on inet and cidr columns
+--         because ORCA does not look at the second occurrence of a column in an index,
+--         even if it uses a different operator class
+--       - IS NULL and IS NOT NULL operators, because ORCA supports only binary operators
+--       - namecol predicates, falls back because of the use of a non-default collation
+RESET enable_seqscan;
+RESET enable_bitmapscan;
+RESET optimizer_enable_tablescan;
+RESET optimizer_enable_bitmapscan;
 INSERT INTO brintest_ao SELECT
 	repeat(stringu1, 42)::bytea,
 	substr(stringu1, 1, 1)::"char",
@@ -438,4 +472,3 @@ SELECT brin_summarize_new_values('brinaoidx'); -- ok, no change expected
                          0
 (1 row)
 
-reset optimizer;

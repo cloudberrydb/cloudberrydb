@@ -1131,28 +1131,28 @@ CPredicateUtils::FIdentCompareConstIgnoreCast(CExpression *pexpr,
 	CExpression *pexprLeft = (*pexpr)[0];
 	CExpression *pexprRight = (*pexpr)[1];
 
-	// col IDF const
+	// col <op> const
 	if (COperator::EopScalarIdent == pexprLeft->Pop()->Eopid() &&
 		COperator::EopScalarConst == pexprRight->Pop()->Eopid())
 	{
 		return true;
 	}
 
-	// cast(col) IDF const
+	// cast(col) <op> const
 	if (CScalarIdent::FCastedScId(pexprLeft) &&
 		COperator::EopScalarConst == pexprRight->Pop()->Eopid())
 	{
 		return true;
 	}
 
-	// col IDF cast(constant)
+	// col <op> cast(constant)
 	if (COperator::EopScalarIdent == pexprLeft->Pop()->Eopid() &&
 		CScalarConst::FCastedConst(pexprRight))
 	{
 		return true;
 	}
 
-	// cast(col) IDF cast(constant)
+	// cast(col) <op> cast(constant)
 	if (CScalarIdent::FCastedScId(pexprLeft) &&
 		CScalarConst::FCastedConst(pexprRight))
 	{
@@ -1934,15 +1934,16 @@ CPredicateUtils::PexprIndexLookup(CMemoryPool *mp, CMDAccessor *md_accessor,
 			CScalarArrayCmp::PopConvert(pexprScalar->Pop())->MdIdOp());
 	}
 
-	BOOL gin_or_gist_index = (pmdindex->IndexType() == IMDIndex::EmdindGist ||
-							  pmdindex->IndexType() == IMDIndex::EmdindGin);
+	BOOL gin_or_gist_or_brin = (pmdindex->IndexType() == IMDIndex::EmdindGist ||
+								pmdindex->IndexType() == IMDIndex::EmdindGin ||
+								pmdindex->IndexType() == IMDIndex::EmdindBrin);
 
 	if (cmptype == IMDType::EcmptNEq || cmptype == IMDType::EcmptIDF ||
 		(cmptype == IMDType::EcmptOther &&
-		 !gin_or_gist_index) ||	 // only GiST indexes with a comparison type other are ok
-		(gin_or_gist_index &&
+		 !gin_or_gist_or_brin) ||  // only GIN/GiST/BRIN indexes with a comparison type other are ok
+		(gin_or_gist_or_brin &&
 		 pexprScalar->Arity() <
-			 2))  // we do not support index expressions for GiST indexes
+			 2))  // we do not support unary index expressions for GIN/GiST/BRIN indexes
 	{
 		return nullptr;
 	}

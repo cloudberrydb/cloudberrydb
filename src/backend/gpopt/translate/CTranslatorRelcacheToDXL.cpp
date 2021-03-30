@@ -874,20 +874,27 @@ CTranslatorRelcacheToDXL::RetrieveIndex(CMemoryPool *mp,
 	CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(rel_oid);
 
 	md_rel = md_accessor->RetrieveRel(mdid_rel);
-
-	index_type = IMDIndex::EmdindBtree;
 	mdid_item_type = GPOS_NEW(mp) CMDIdGPDB(GPDB_ANY);
-	if (GIN_AM_OID == index_rel->rd_rel->relam)
+	switch (index_rel->rd_rel->relam)
 	{
-		index_type = IMDIndex::EmdindGin;
-	}
-	else if (GIST_AM_OID == index_rel->rd_rel->relam)
-	{
-		index_type = IMDIndex::EmdindGist;
-	}
-	else if (BITMAP_AM_OID == index_rel->rd_rel->relam)
-	{
-		index_type = IMDIndex::EmdindBitmap;
+		case BTREE_AM_OID:
+			index_type = IMDIndex::EmdindBtree;
+			break;
+		case BITMAP_AM_OID:
+			index_type = IMDIndex::EmdindBitmap;
+			break;
+		case BRIN_AM_OID:
+			index_type = IMDIndex::EmdindBrin;
+			break;
+		case GIN_AM_OID:
+			index_type = IMDIndex::EmdindGin;
+			break;
+		case GIST_AM_OID:
+			index_type = IMDIndex::EmdindGist;
+			break;
+		default:
+			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+					   GPOS_WSZ_LIT("Index access method"));
 	}
 
 	// get the index name
@@ -2736,7 +2743,8 @@ CTranslatorRelcacheToDXL::IsIndexSupported(Relation index_rel)
 		   (BTREE_AM_OID == index_rel->rd_rel->relam ||
 			BITMAP_AM_OID == index_rel->rd_rel->relam ||
 			GIST_AM_OID == index_rel->rd_rel->relam ||
-			GIN_AM_OID == index_rel->rd_rel->relam);
+			GIN_AM_OID == index_rel->rd_rel->relam ||
+			BRIN_AM_OID == index_rel->rd_rel->relam);
 }
 
 //---------------------------------------------------------------------------

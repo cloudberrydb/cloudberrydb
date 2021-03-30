@@ -3605,6 +3605,11 @@ CDXLOperatorFactory::ParseIndexType(const Attributes &attrs)
 	{
 		return IMDIndex::EmdindGin;
 	}
+	else if (0 == XMLString::compareString(
+					  xml_val, CDXLTokens::XmlstrToken(EdxltokenIndexTypeBrin)))
+	{
+		return IMDIndex::EmdindBrin;
+	}
 
 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLInvalidAttributeValue,
 			   CDXLTokens::GetDXLTokenStr(EdxltokenIndexType)->GetBuffer(),

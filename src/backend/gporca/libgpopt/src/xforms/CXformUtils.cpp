@@ -2122,9 +2122,10 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 {
 	// GiST can match with either Btree or Bitmap indexes
 	if (pmdindex->IndexType() == IMDIndex::EmdindGist ||
-		// GIN can only match with Bitmap Indexes
+		// GIN and BRIN can only match with Bitmap Indexes
 		(emdindtype == IMDIndex::EmdindBitmap &&
-		 IMDIndex::EmdindGin == pmdindex->IndexType()))
+		 (IMDIndex::EmdindGin == pmdindex->IndexType() ||
+		  IMDIndex::EmdindBrin == pmdindex->IndexType())))
 	{
 		// continue
 	}
@@ -3107,9 +3108,12 @@ CXformUtils::PexprBitmapSelectBestIndex(
 				mp, pdrgpcrOutput, pmdindex, pmdrel);
 
 			// make sure the first key of index is included in the scalar predicate
+			// (except for BRIN, which are symmetrical)
+			// FIXME: Consider removing the first column check for GIN as well
 			const CColRef *pcrFirstIndexKey = (*indexColumns)[0];
 
-			if (!pcrsScalar->FMember(pcrFirstIndexKey))
+			if (!pcrsScalar->FMember(pcrFirstIndexKey) &&
+				pmdindex->IndexType() != IMDIndex::EmdindBrin)
 			{
 				indexColumns->Release();
 				pdrgpexprIndex->Release();

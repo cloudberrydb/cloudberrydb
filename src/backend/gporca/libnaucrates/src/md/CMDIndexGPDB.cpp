@@ -62,7 +62,8 @@ CMDIndexGPDB::CMDIndexGPDB(CMemoryPool *mp, IMDId *mdid, CMDName *mdname,
 					IMDIndex::EmdindBitmap == index_type ||
 						IMDIndex::EmdindBtree == index_type ||
 						IMDIndex::EmdindGist == index_type ||
-						IMDIndex::EmdindGin == index_type);
+						IMDIndex::EmdindGin == index_type ||
+						IMDIndex::EmdindBrin == index_type);
 	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == index_type,
 					nullptr != mdid_item_type && mdid_item_type->IsValid());
 	GPOS_ASSERT(nullptr != mdid_opfamilies_array);

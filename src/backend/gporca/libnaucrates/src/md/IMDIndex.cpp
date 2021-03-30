@@ -39,6 +39,8 @@ IMDIndex::GetDXLStr(EmdindexType index_type)
 			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexTypeGist);
 		case EmdindGin:
 			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexTypeGin);
+		case EmdindBrin:
+			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexTypeBrin);
 		default:
 			GPOS_ASSERT(!"Unrecognized index type");
 			return nullptr;

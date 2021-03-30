@@ -1,5 +1,3 @@
-set optimizer to off;
-
 CREATE TABLE brintest (byteacol bytea,
 	charcol "char",
 	namecol name,
@@ -299,10 +297,20 @@ DECLARE
 	idx_ctids tid[];
 	ss_ctids tid[];
 	count int;
+	is_orca bool;
 	plan_ok bool;
+	is_planner_plan bool;
 	plan_line text;
 BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers, unnest(op) WITH ORDINALITY AS oper LOOP
+	-- determine whether we are using ORCA or planner
+	is_orca := false;
+	FOR r IN EXECUTE 'show optimizer' LOOP
+		IF r.optimizer = 'on' THEN
+			is_orca := true;
+		END IF;
+	END LOOP;
+
+	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers, unnest(op) WITH ORDINALITY AS oper order by colname, typ LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
@@ -311,18 +319,27 @@ BEGIN
 			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
 		END IF;
 
-		-- run the query using the brin index
+		-- run the query using the brin index (set gucs to force the index for both planner and ORCA)
 		SET enable_seqscan = 0;
 		SET enable_bitmapscan = 1;
+		SET optimizer_enable_tablescan = 0;
+		SET optimizer_enable_bitmapscan = 1;
 
 		plan_ok := false;
+		is_planner_plan := false;
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Bitmap Heap Scan on brintest%' THEN
 				plan_ok := true;
 			END IF;
+			IF plan_line LIKE '%Postgres query optimizer%' THEN
+				is_planner_plan := true;
+			END IF;
 		END LOOP;
 		IF NOT plan_ok THEN
 			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+		END IF;
+		IF is_orca AND is_planner_plan THEN
+			RAISE WARNING 'ORCA did not produce a bitmap indexscan plan for %', r;
 		END IF;
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest WHERE %s $y$, cond)
@@ -331,6 +348,8 @@ BEGIN
 		-- run the query using a seqscan
 		SET enable_seqscan = 1;
 		SET enable_bitmapscan = 0;
+		SET optimizer_enable_tablescan = 1;
+		SET optimizer_enable_bitmapscan = 0;
 
 		plan_ok := false;
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest WHERE %s $y$, cond) LOOP
@@ -355,12 +374,16 @@ BEGIN
 			RAISE WARNING 'something not right in %: count %', r, count;
 			SET enable_seqscan = 1;
 			SET enable_bitmapscan = 0;
+			SET optimizer_enable_tablescan = 1;
+			SET optimizer_enable_bitmapscan = 0;
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest WHERE ' || cond LOOP
 				RAISE NOTICE 'seqscan: %', r2;
 			END LOOP;
 
 			SET enable_seqscan = 0;
 			SET enable_bitmapscan = 1;
+			SET optimizer_enable_tablescan = 0;
+			SET optimizer_enable_bitmapscan = 1;
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest WHERE ' || cond LOOP
 				RAISE NOTICE 'bitmapscan: %', r2;
 			END LOOP;
@@ -371,9 +394,17 @@ BEGIN
 	END LOOP;
 END;
 $x$;
+-- Note: ORCA does not support all of the above operators:
+--       - standard comparison operators on inet and cidr columns
+--         because ORCA does not look at the second occurrence of a column in an index,
+--         even if it uses a different operator class
+--       - IS NULL and IS NOT NULL operators, because ORCA supports only binary operators
+--       - namecol predicates, falls back because of the use of a non-default collation
 
 RESET enable_seqscan;
 RESET enable_bitmapscan;
+RESET optimizer_enable_tablescan;
+RESET optimizer_enable_bitmapscan;
 
 INSERT INTO brintest SELECT
 	repeat(stringu1, 42)::bytea,
@@ -414,7 +445,7 @@ UPDATE brintest SET textcol = '' WHERE textcol IS NOT NULL;
 -- Tests for brin_summarize_new_values
 SELECT brin_summarize_new_values('brintest'); -- error, not an index
 SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected
+SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected (except for ORCA, which uses split updates)
 
 -- Tests for brin_desummarize_range
 SELECT brin_desummarize_range('brinidx', -1); -- error, invalid range
@@ -466,6 +497,5 @@ VACUUM ANALYZE brin_test;
 -- Ensure brin index is used when columns are perfectly correlated
 EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE a = 1;
 -- Ensure brin index is not used when values are not correlated
+-- (does not yet work for ORCA)
 EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE b = 1;
-
-reset optimizer;

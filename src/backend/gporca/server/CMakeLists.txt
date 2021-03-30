@@ -110,7 +110,8 @@ IndexScan-ORPredsNonPart IndexScan-ORPredsAOPart IndexScan-AndedIn;
 CBitmapScanTest:
 IndexedNLJBitmap BitmapIndex-ChooseHashJoin BitmapTableScan-AO-Btree-PickOnlyHighNDV
 BitmapIndex-Against-InList BitmapTableScan-AO-Btree-PickIndexWithNoGap
-BitmapTableScan-ComplexConjDisj BitmapTableScan-ConjDisjWithOuterRefs;
+BitmapTableScan-ComplexConjDisj BitmapTableScan-ConjDisjWithOuterRefs
+BRINScan-Or;
 
 CIndexApplyTest:
 IndexNLJ-IndexGet-OuterRef IndexApply_NestLoopWithNestParamTrue IndexApply1
