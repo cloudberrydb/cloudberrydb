@@ -113,10 +113,11 @@ MIRROR_PORT_BASE = 7000</codeblock></p>See the <xref
           <xref format="dita" href="../install_guide/prep_os.xml#topic3__sysctl_file" scope="peer"
             ><codeph>sysctl.conf </codeph></xref> file parameters in the <cite>Greenplum Database
           Installation Guide</cite> for further details.</p>
-      <codeblock>kernel.shmmax = 500000000
+      <codeblock>kernel.shmmax = 810810728448
 kernel.shmmni = 4096
-kernel.shmall = 4000000000</codeblock>
+kernel.shmall = 197951838</codeblock>
     </section>
+    <p>See <xref href="../install_guide/prep_os.xml#topic3/shared_memory_pages" format="dita">Setting the Greenplum Recommended OS Parameters</xref> for more details.</p>
     <section id="host_segs">
       <title>Number of Segments per Host</title>
       <p>Determining the number of segments to execute on each segment host has immense impact on
