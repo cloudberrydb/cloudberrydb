@@ -2640,6 +2640,16 @@ every (interval '1 day'));
 insert into sales select i, i%100, i%1000, timestamp '2010-01-01 00:00:00' + i * interval '1 day' from generate_series(1,20) i;
 select * from sales where sales_ts::date != '2010-01-05' order by sales_ts;
 
+-- validate lossy cast logic can handle BCCs
+drop table if exists part_tbl_varchar;
+CREATE TABLE part_tbl_varchar(a varchar(15) NOT NULL, b varchar(8) NOT NULL)
+DISTRIBUTED BY (a)
+PARTITION BY RANGE(b) (start('v1') end('v5'), start('v5') end('v9'), default partition def);
+
+insert into part_tbl_varchar values ('v3','v3'), ('v5','v5');
+
+select * from part_tbl_varchar where b between 'v3' and 'v4';
+
 -- test n-ary inner and left joins with outer references
 drop table if exists tcorr1, tcorr2;
 
