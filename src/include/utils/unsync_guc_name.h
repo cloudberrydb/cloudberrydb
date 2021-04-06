@@ -230,6 +230,7 @@
 		"gp_resource_group_bypass",
 		"gp_resource_group_cpu_limit",
 		"gp_resource_group_cpu_priority",
+		"gp_resource_group_cpu_ceiling_enforcement",
 		"gp_resource_group_memory_limit",
 		"gp_resource_group_queuing_timeout",
 		"gp_resource_manager",

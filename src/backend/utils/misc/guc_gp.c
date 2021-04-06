@@ -219,6 +219,7 @@ int			gp_resource_group_cpu_priority;
 double		gp_resource_group_cpu_limit;
 double		gp_resource_group_memory_limit;
 bool		gp_resource_group_bypass;
+bool		gp_resource_group_cpu_ceiling_enforcement;
 
 /* Metrics collector debug GUC */
 bool		vmem_process_interrupt = false;
@@ -2723,6 +2724,15 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&gp_resource_group_bypass,
 		false,
 		check_gp_resource_group_bypass, NULL, NULL
+	},
+
+	{
+		{"gp_resource_group_cpu_ceiling_enforcement", PGC_POSTMASTER, RESOURCES,
+			gettext_noop("If the value is true, ceiling enforcement of CPU usage will be enabled"),
+			NULL
+		},
+		&gp_resource_group_cpu_ceiling_enforcement,
+		false, NULL, NULL
 	},
 
 	{
