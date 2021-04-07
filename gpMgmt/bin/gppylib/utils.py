@@ -510,7 +510,7 @@ def Escape(query_str):
 
 def escapeArrayElement(query_str):
     # also escape backslashes and double quotes, in addition to the doubling of single quotes
-    return pgdb.escape_string(query_str.encode('utf-8')).decode().replace('\\','\\\\').replace('"','\\"')
+    return pgdb.escape_string(query_str).replace('\\','\\\\').replace('"','\\"')
 
 
 # Transform Python list to Postgres array literal (of the form: '{...}')
