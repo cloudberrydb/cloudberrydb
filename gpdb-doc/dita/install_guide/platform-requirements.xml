@@ -6,8 +6,6 @@
   <shortdesc>This topic describes the <ph otherprops="pivotal">Tanzu Greenplum</ph><ph otherprops="oss-only">Greenplum Database 6</ph>
     platform and operating system software requirements.</shortdesc>
   <body>
-    <note type="important">VMware Suppsort does <b>not</b> provide support for open source versions
-      of Greenplum Database. Only Tanzu Greenplum is supported by VMware Support.</note>
     <p>
       <ul id="ul_kt5_ggk_1hb">
         <li><xref href="#topic13" format="dita"/><ul id="ul_fqv_pgk_1hb">
@@ -387,7 +385,7 @@
               <row class="- topic/row ">
                 <entry colname="col1" class="- topic/entry "><xref href="../analytics/madlib.xml"
                     format="dita" scope="peer">MADlib Machine Learning</xref></entry>
-                <entry colname="col3" class="- topic/entry ">1.17, 1.16</entry>
+                <entry colname="col3" class="- topic/entry ">1.18, 1.17, 1.16</entry>
                 <entry>Support matrix at <xref
                     href="https://cwiki.apache.org/confluence/display/MADLIB/FAQ#FAQ-Q1-2WhatdatabaseplatformsdoesMADlibsupportandwhatistheupgradematrix?"
                     format="html" scope="external">MADlib FAQ</xref>.</entry>
@@ -424,7 +422,7 @@
                 >Accessing External Data with PXF</xref> in the <cite>Greenplum Database
                 Administrator Guide</cite> for PXF configuration and usage
               information.<!--Also check OSS information in Hadoop section--></li>
-            <li>Greenplum Streaming Server v1.5.2 - The Tanzu Greenplum Streaming Server is an ETL
+            <li>Greenplum Streaming Server v1.5.3 - The Tanzu Greenplum Streaming Server is an ETL
               tool that provides high speed, parallel data transfer from Informatica, Kafka, Apache
               NiFi and custom client data sources to a Tanzu Greenplum cluster. Refer to the <xref
                 href="https://greenplum.docs.pivotal.io/streaming-server/1-5/intro.html"
