@@ -363,17 +363,31 @@
               multiplied by 100, and</li>
             <li>The <codeph>gp_resource_group_cpu_limit</codeph> value.</li>
           </ul></p>
-        <p>CPU resource assignment for resource groups configured with a
-            <codeph>CPU_RATE_LIMIT</codeph> is elastic in that Greenplum Database may allocate the
-          CPU resources of an idle resource group to a busier one(s). In such situations, CPU
-          resources are re-allocated to the previously idle resource group when that resource group
-          next becomes active. If multiple resource groups are busy, they are allocated the CPU
-          resources of any idle resource groups based on the ratio of their
-            <codeph>CPU_RATE_LIMIT</codeph>s. For example, a resource group created with a
-            <codeph>CPU_RATE_LIMIT</codeph> of 40 will be allocated twice as much extra CPU resource
-          as a resource group that you create with a <codeph>CPU_RATE_LIMIT</codeph> of 20.</p>
         <p>When you configure <codeph>CPU_RATE_LIMIT</codeph> for a resource group, Greenplum
           Database disables <codeph>CPUSET</codeph> for the group and sets the value to -1.</p>
+        <p>There are two different ways of assigning CPU resources by percentage, determined by the
+          value of the configuration parameter
+            <codeph>gp_resource_group_cpu_ceiling_enforcement</codeph>:</p>
+        <section>
+          <title>Elastic mode</title>
+          <p>This mode is active when <codeph>gp_resource_group_cpu_ceiling_enforcement</codeph> is
+            set to <codeph>false</codeph> (default). It is elastic in that Greenplum Database may
+            allocate the CPU resources of an idle resource group to a busier one(s). In such
+            situations, CPU resources are re-allocated to the previously idle resource group when
+            that resource group next becomes active. If multiple resource groups are busy, they are
+            allocated the CPU resources of any idle resource groups based on the ratio of their
+              <codeph>CPU_RATE_LIMIT</codeph>s. For example, a resource group created with a
+              <codeph>CPU_RATE_LIMIT</codeph> of 40 will be allocated twice as much extra CPU
+            resource as a resource group that you create with a <codeph>CPU_RATE_LIMIT</codeph> of
+            20.</p>
+        </section>
+        <section>
+          <title>Ceiling Enforcement mode</title>
+          <p>This mode is active when <codeph>gp_resource_group_cpu_ceiling_enforcement</codeph> is
+            set to <codeph>true</codeph>. The resource group is enforced to not use more CPU
+            resources than the defined value <codeph>CPU_RATE_LIMIT</codeph>, avoiding the use of
+            the CPU burst feature.</p>
+        </section>
       </body>
     </topic>
   </topic>

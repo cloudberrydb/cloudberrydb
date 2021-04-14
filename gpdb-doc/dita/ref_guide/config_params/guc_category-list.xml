@@ -1140,6 +1140,9 @@
             <xref href="guc-list.xml#gp_resource_group_bypass" type="section"
               >gp_resource_group_bypass</xref>
             <p>
+              <xref href="guc-list.xml#gp_resource_group_cpu_ceiling_enforcement" type="section"
+                >gp_resource_group_cpu_ceiling_enforcement</xref>
+            </p><p>
               <xref href="guc-list.xml#gp_resource_group_cpu_limit" type="section"
                 >gp_resource_group_cpu_limit</xref>
             </p><p>
