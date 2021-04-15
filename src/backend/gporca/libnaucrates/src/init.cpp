@@ -60,8 +60,6 @@ InitDXL()
 	GPOS_ASSERT(nullptr != pmpXerces);
 	GPOS_ASSERT(nullptr != pmpDXL);
 
-	m_ulpInitDXL++;
-
 	// setup own memory manager
 	dxl_memory_manager = GPOS_NEW(pmpXerces) CDXLMemoryManager(pmpXerces);
 
@@ -78,6 +76,8 @@ InitDXL()
 
 	// initialize parse handler mappings
 	CParseHandlerFactory::Init(pmpDXL);
+
+	m_ulpInitDXL++;
 }
 
 
