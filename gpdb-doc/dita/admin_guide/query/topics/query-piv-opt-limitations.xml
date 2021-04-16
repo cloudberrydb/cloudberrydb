@@ -46,7 +46,11 @@
             </ul></li>
           <li>Aggregate functions that take set operators as input arguments.</li>
           <li>Multiple Distinct Qualified Aggregates, such as <codeph>SELECT count(DISTINCT a),
-              sum(DISTINCT b) FROM foo</codeph>.</li>
+              sum(DISTINCT b) FROM foo</codeph>, are not supported by default. They can be enabled
+            with the <codeph>optimizer_enable_multiple_distinct_aggs</codeph>
+            <xref
+              href="../../../ref_guide/config_params/guc-list.xml#optimizer_enable_multiple_distinct_aggs"
+              >Configuration Parameter</xref>.</li>
           <li><cmdname>percentile_*</cmdname> window functions (ordered-set aggregate functions).</li>
           <li>Inverse distribution functions.</li>
           <li>Queries that execute functions that are defined with the <codeph>ON MASTER</codeph> or
