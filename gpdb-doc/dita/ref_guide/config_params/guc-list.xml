@@ -8317,8 +8317,8 @@
           <i>pg_catalog</i>, is always searched, whether it is mentioned in the path or not. When
         objects are created without specifying a particular target schema, they will be placed in
         the first schema listed in the search path. The current effective value of the search path
-        can be examined via the SQL function <i>current_schemas()</i>. <i>current_schemas()</i>
-        shows how the requests appearing in <i>search_path</i> were resolved.</p>
+        can be examined via the SQL function <i>current_schema()</i>. <i>current_schema()</i> shows
+        how the requests appearing in <i>search_path</i> were resolved.</p>
       <table id="search_path_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
