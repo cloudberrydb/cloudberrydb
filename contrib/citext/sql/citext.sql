@@ -843,3 +843,6 @@ SELECT 'B'::citext ~<=~ 'a'::varchar AS t;  -- varchar wins.
 
 SELECT 'a'::citext ~>~  'B'::varchar AS t;  -- varchar wins.
 SELECT 'a'::citext ~>=~ 'B'::varchar AS t;  -- varchar wins.
+
+-- Test that has all opclasses
+select opcname,amname from pg_opclass opc,  pg_am am  where am.oid=opc.opcmethod and opcintype='citext'::regtype;
