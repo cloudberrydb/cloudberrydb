@@ -862,9 +862,6 @@ CTranslatorDXLToExpr::BuildSetOpChild(
 
 		BOOL fEqualTypes = IMDId::MDIdCompare(pmdidSource, mdid_dest);
 		BOOL fFirstChild = (0 == child_index);
-		BOOL fUnionOrUnionAll =
-			((EdxlsetopUnionAll == dxl_op->GetSetOpType()) ||
-			 (EdxlsetopUnion == dxl_op->GetSetOpType()));
 
 		if (!pcrsChildOutput->FMember(colref))
 		{
@@ -900,10 +897,8 @@ CTranslatorDXLToExpr::BuildSetOpChild(
 		{
 			// no cast function needed, add the colref to the array of input colrefs
 			(*ppdrgpcrChild)->Append(const_cast<CColRef *>(colref));
-			continue;
 		}
-
-		if (fUnionOrUnionAll || fFirstChild)
+		else
 		{
 			// add the colref to the hash map between DXL ColId and colref as they can used above the setop
 			CColRef *new_colref = PcrCreate(colref, pmdtype, type_modifier,
@@ -914,10 +909,6 @@ CTranslatorDXLToExpr::BuildSetOpChild(
 			CExpression *pexprChildProjElem =
 				PexprCastPrjElem(pmdidSource, mdid_dest, colref, new_colref);
 			(*ppdrgpexprChildProjElems)->Append(pexprChildProjElem);
-		}
-		else
-		{
-			(*ppdrgpcrChild)->Append(const_cast<CColRef *>(colref));
 		}
 	}
 }

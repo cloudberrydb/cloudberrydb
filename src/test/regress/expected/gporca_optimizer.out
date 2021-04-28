@@ -13974,4 +13974,49 @@ select * from no_part;
 ---+---
 (0 rows)
 
+-- test casting with setops
+with v(year) as (
+    select 2019::float8 + dx from (VALUES (-1), (0), (0), (1), (1)) t(dx)
+  except
+    select 2019::int)
+select * from v where year > 1;
+ year 
+------
+ 2018
+ 2020
+(2 rows)
+
+with v(year) as (
+    select 2019::float8 + dx from (VALUES (-1), (0), (0), (1), (1)) t(dx)
+  except all
+    select 2019::int)
+select * from v where year > 1;
+ year 
+------
+ 2018
+ 2019
+ 2020
+ 2020
+(4 rows)
+
+with v(year) as (
+    select 2019::float8 + dx from (VALUES (-1), (0), (0), (1), (1)) t(dx)
+  intersect
+    select 2019::int)
+select * from v where year > 1;
+ year 
+------
+ 2019
+(1 row)
+
+with v(year) as (
+    select 2019::float8 + dx from (VALUES (-1), (0), (0), (1), (1)) t(dx)
+  intersect all
+    select 2019::int)
+select * from v where year > 1;
+ year 
+------
+ 2019
+(1 row)
+
 reset optimizer_trace_fallback;
