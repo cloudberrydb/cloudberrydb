@@ -645,7 +645,8 @@ class GpRecoverSegmentProgram:
             if new_hosts:
                 self.syncPackages(new_hosts)
 
-            config_primaries_for_replication(gpArray, self.__options.hba_hostnames)
+            contentsToUpdate = [seg.getLiveSegment().getSegmentContentId() for seg in mirrorBuilder.getMirrorsToBuild()]
+            config_primaries_for_replication(gpArray, self.__options.hba_hostnames, contentsToUpdate)
             if not mirrorBuilder.buildMirrors("recover", gpEnv, gpArray):
                 sys.exit(1)
 
