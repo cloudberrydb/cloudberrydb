@@ -4876,3 +4876,4 @@ SELECT * FROM test_part_integrity;
  2 | 3
 (4 rows)
 
+DROP TABLE test_part_integrity;
