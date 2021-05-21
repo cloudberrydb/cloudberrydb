@@ -22,7 +22,6 @@ Feature: Tests for gpmovemirrors
         When the user runs gpmovemirrors with additional args "--invalid-option"
         Then gpmovemirrors should return a return code of 2
 
-    @wip
     Scenario: gpmovemirrors can change the location of mirrors within a single host
         Given a standard local demo cluster is created
         And a gpmovemirrors directory under '/tmp/gpmovemirrors' with mode '0700' is created
