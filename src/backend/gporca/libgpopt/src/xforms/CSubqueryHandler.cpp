@@ -1619,7 +1619,6 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 
 	BOOL fSuccess = true;
 	BOOL fUseCorrelated = false;
-	CExpression *pexprInnerSelect = nullptr;
 	CExpression *pexprPredicate = nullptr;
 	CExpression *pexprInner = (*pexprSubquery)[0];
 	COperator::EOperatorId eopidSubq = pexprSubquery->Pop()->Eopid();
@@ -1655,13 +1654,11 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 		}
 	}
 
-	CExpression *pexprInversePred =
-		CXformUtils::PexprInversePred(mp, pexprSubquery);
 	// generate a select with the inverse predicate as the selection predicate
 	// TODO: Handle the case where pexprInversePred == NULL
+	CExpression *pexprInversePred =
+		CXformUtils::PexprInversePred(mp, pexprSubquery);
 	pexprPredicate = pexprInversePred;
-	pexprInnerSelect =
-		CUtils::PexprLogicalSelect(mp, pexprInner, pexprPredicate);
 
 	if (EsqctxtValue == esqctxt)
 	{
@@ -1680,11 +1677,8 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 				fUseCorrelated = true;
 		}
 
-		CExpression *pexprNewInnerSelect = PexprInnerSelect(
+		CExpression *pexprInnerSelect = PexprInnerSelect(
 			mp, colref, pexprInner, pexprPredicate, &fUseNotNullOptimization);
-
-		pexprInnerSelect->Release();
-		pexprInnerSelect = pexprNewInnerSelect;
 
 		if (!fUseCorrelated)
 		{
@@ -1700,6 +1694,10 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 				mp, pexprOuter, pexprSubquery, esqctxt, ppexprNewOuter,
 				ppexprResidualScalar);
 		}
+
+		// cleanup
+		pexprInner->Release();
+		pexprPredicate->Release();
 	}
 	else
 	{
@@ -1708,7 +1706,7 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 		*ppexprResidualScalar = CUtils::PexprScalarConstBool(mp, true);
 		*ppexprNewOuter =
 			CUtils::PexprLogicalApply<CLogicalLeftAntiSemiApplyNotIn>(
-				mp, pexprOuter, pexprInnerSelect, colref, eopidSubq);
+				mp, pexprOuter, pexprInner, colref, eopidSubq, pexprPredicate);
 	}
 
 	return fSuccess;

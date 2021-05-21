@@ -3233,6 +3233,13 @@ select * from v where year > 1;
 
 reset optimizer_trace_fallback;
 
+create table sqall_t1(a int) distributed by (a);
+insert into sqall_t1 values (1), (2), (3);
+set optimizer_join_order='query';
+select * from sqall_t1 where a not in (
+	    select b.a from sqall_t1 a left join sqall_t1 b on false);
+reset optimizer_join_order;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore
