@@ -525,7 +525,7 @@ class GpMirrorListToBuild:
                                                               remoteHost=targetHostname)
 
         removeCmd = base.Command("remove file",
-                                 "[ ! -f {0}.success ] || rm -f {0}.success {0}".format(pipes.quote(progressFile)),
+                                 "[ ! -f {0}.success ] || rm -f {0}.success ${0}".format(pipes.quote(progressFile)),
                                  ctxt=base.REMOTE,
                                  remoteHost=targetHostname)
 
