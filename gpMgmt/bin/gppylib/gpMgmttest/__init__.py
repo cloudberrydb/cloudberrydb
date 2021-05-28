@@ -13,13 +13,19 @@ class GpMgmtTextTestResult(unittest.TextTestResult):
         self.startTime = 0
 
     def getDescription(self, test):
-        case_name, full_name = test.__str__().split()
+        test_descr = test.__str__().split()
+        case_name = test_descr[0]
+        full_name = test_descr[1]
+        subtest_name = test_descr[2] if len(test_descr) > 2 else ''
         suite_name, class_name = full_name.strip('()').rsplit('.',1)
         if self.verbosity > 1:
             if test.shortDescription():
-                return 'Test Suite Name|%s|Test Case Name|%s|Test Details|%s' % (suite_name, case_name, test.shortDescription())
+                msg = 'Test Suite Name|%s|Test Case Name|%s|Test Details|%s' % (suite_name, case_name, test.shortDescription())
             else:
-                return 'Test Suite Name|%s|Test Case Name|%s|Test Details|' % (suite_name, case_name)
+                msg = 'Test Suite Name|%s|Test Case Name|%s|Test Details|' % (suite_name, case_name)
+            if subtest_name:
+                msg = "{0}Sub Test Name|{1}".format(msg, subtest_name)
+            return msg
 
     def startTest(self, test):
         super(GpMgmtTextTestResult, self).startTest(test)
