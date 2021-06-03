@@ -1660,6 +1660,8 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 	// generate a select with the inverse predicate as the selection predicate
 	// TODO: Handle the case where pexprInversePred == NULL
 	pexprPredicate = pexprInversePred;
+	pexprInnerSelect =
+		CUtils::PexprLogicalSelect(mp, pexprInner, pexprPredicate);
 
 	if (EsqctxtValue == esqctxt)
 	{
@@ -1678,8 +1680,11 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 				fUseCorrelated = true;
 		}
 
-		pexprInnerSelect = PexprInnerSelect(
+		CExpression *pexprNewInnerSelect = PexprInnerSelect(
 			mp, colref, pexprInner, pexprPredicate, &fUseNotNullOptimization);
+
+		pexprInnerSelect->Release();
+		pexprInnerSelect = pexprNewInnerSelect;
 
 		if (!fUseCorrelated)
 		{
@@ -1695,35 +1700,10 @@ CSubqueryHandler::FRemoveAllSubquery(CExpression *pexprOuter,
 				mp, pexprOuter, pexprSubquery, esqctxt, ppexprNewOuter,
 				ppexprResidualScalar);
 		}
-		pexprInner->Release();
-		pexprPredicate->Release();
 	}
 	else
 	{
 		GPOS_ASSERT(EsqctxtFilter == esqctxt);
-
-		// check that inner row in filter is nullable
-		CColRefSet *pcrsNotNullInner = GPOS_NEW(mp) CColRefSet(mp);
-		pcrsNotNullInner->Include(pexprInner->DeriveNotNullColumns());
-		CColRefSet *pcrsUsedInner = GPOS_NEW(mp) CColRefSet(mp);
-		pcrsUsedInner->Include(colref);
-		pcrsUsedInner->Intersection(pexprPredicate->DeriveUsedColumns());
-		pcrsNotNullInner->Intersection(pcrsUsedInner);
-		BOOL fInnerUsesNullableCol =
-			pcrsNotNullInner->Size() != pcrsUsedInner->Size();
-		pcrsNotNullInner->Release();
-		pcrsUsedInner->Release();
-
-		if (fInnerUsesNullableCol)
-		{
-			pexprInnerSelect = CUtils::PexprLogicalSelect(
-				mp, pexprInner, CUtils::PexprIsNotFalse(mp, pexprPredicate));
-		}
-		else
-		{
-			pexprInnerSelect =
-				CUtils::PexprLogicalSelect(mp, pexprInner, pexprPredicate);
-		}
 
 		*ppexprResidualScalar = CUtils::PexprScalarConstBool(mp, true);
 		*ppexprNewOuter =
