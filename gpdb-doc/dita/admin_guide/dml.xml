@@ -326,8 +326,8 @@
               deleted, or locked a target row, the <codeph>REPEATABLE READ</codeph> transaction
               waits for the concurrent transaction to commit or roll back the change. If the
               concurrent transaction commits the change, the <codeph>REPEATABLE READ</codeph>
-              transaction rolls back. If the concurrent transaction rolls back its change,
-                the<codeph>REPEATABLE READ</codeph> transaction can commit its changes. </li>
+              transaction rolls back. If the concurrent transaction rolls back its change, the
+                <codeph>REPEATABLE READ</codeph> transaction can commit its changes. </li>
           </ul>
         </section>
         <p id="ix141505">The default transaction isolation level in Greenplum Database is
