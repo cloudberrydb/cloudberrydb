@@ -301,6 +301,8 @@ Pv2MikPS2fKOAg1R3LpMa8zDEtl4w3vckPQNrQNnYuUtfj6ZoCxv
 =XZ8J
 -----END PGP PUBLIC KEY BLOCK-----
 </codeblock></li>
+        <li>Enable the <codeph>pgcrypto</codeph>
+          extension:<codeblock>CREATE EXTENSION pgcrypto;</codeblock></li>
         <li>Create a table called <codeph>userssn</codeph> and insert some sensitive data, social
           security numbers for Bob and Alice, in this example. Paste the public.key contents after
           "dearmor(".
@@ -324,7 +326,7 @@ HMUc55H0g2qQAY0BpnJHgOOQ45Q6pk3G2/7Dbek5WJ6K1wUrFy51sNlGWE8pvgEx
 /UUZB+dYqCwtvX0nnBu1KNCmk2AkEcFK3YoliCxomdOxhFOv9AKjjojDyC65KJci
 Pv2MikPS2fKOAg1R3LpMa8zDEtl4w3vckPQNrQNnYuUtfj6ZoCxv
 =XZ8J
------END PGP PUBLIC KEY BLOCK-----' AS pubkey) AS keys;
+-----END PGP PUBLIC KEY BLOCK-----') AS pubkey) AS keys;
 </codeblock></li>
         <li>Verify that the <codeph>ssn</codeph> column is
           encrypted.<codeblock>test_db=# select * from userssn;
