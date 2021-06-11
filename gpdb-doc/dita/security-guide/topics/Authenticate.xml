@@ -518,12 +518,12 @@ Hostssl testdb all 192.168.0.0/16 cert map=gpuser
 </codeblock></p></li>
           </ul></p>
       </section>
-      <section id="openssl_config">
+      <section>
         <title>OpenSSL Configuration</title>
-        <p>Greenplum Database reads the OpenSSL configuration file specified in
-            <codeph>$GP_HOME/etc/openssl.cnf</codeph> by default. You can make changes to the
-          default configuration for OpenSSL by modifying or updating this file and restarting the
-          server.</p>
+        <p>You can make changes to the OpenSSL configuration by updating the
+            <codeph>openssl.cnf</codeph> file under your OpenSSL installation directory, or the file
+          referenced by <codeph>$OPENSSL_CONF</codeph>, if present, and then restarting the
+          Greenplum Database server.</p>
       </section>
       <section id="create_a_cert">
         <title>Creating a Self-Signed Certificate</title>
