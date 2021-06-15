@@ -3246,6 +3246,25 @@ select * from sqall_t1 where a not in (
 	    select b.a from sqall_t1 a left join sqall_t1 b on false);
 reset optimizer_join_order;
 
+create table tt_varchar(
+	data character varying
+) distributed by (data);
+insert into tt_varchar values('test');
+create table tt_int(
+	id integer
+) distributed by (id);
+insert into tt_int values(1);
+
+set optimizer_enforce_subplans = 1;
+-- test collation in subplan testexpr
+select data from tt_varchar where data > any(select id::text from tt_int);
+-- test implicit coerce via io
+CREATE CAST (integer AS text) WITH INOUT AS IMPLICIT;
+select data from tt_varchar where data > any(select id from tt_int);
+
+DROP CAST (integer AS text);
+reset optimizer_enforce_subplans;
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore

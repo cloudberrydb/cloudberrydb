@@ -27,6 +27,7 @@
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLScalarArrayRefIndexList.h"
 #include "naucrates/dxl/operators/CDXLScalarCast.h"
+#include "naucrates/dxl/operators/CDXLScalarCoerceViaIO.h"
 
 // fwd declarations
 namespace gpopt
@@ -207,8 +208,10 @@ private:
 	static Const *ConvertDXLDatumToConstInt8(CDXLDatum *datum_dxl);
 	static Const *ConvertDXLDatumToConstBool(CDXLDatum *datum_dxl);
 	Const *TranslateDXLDatumGenericToScalar(CDXLDatum *datum_dxl);
-	Expr *TranslateRelabelTypeOrFuncExprFromDXL(
-		const CDXLScalarCast *scalar_cast, Expr *pexprChild);
+	Expr *TranslateDXLScalarCastWithChildExpr(const CDXLScalarCast *scalar_cast,
+											  Expr *child_expr);
+	Expr *TranslateDXLScalarCoerceViaIOWithChildExpr(
+		const CDXLScalarCoerceViaIO *dxl_coerce_via_io, Expr *child_expr);
 
 public:
 	CTranslatorDXLToScalar(const CTranslatorDXLToScalar &) = delete;

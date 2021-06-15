@@ -14043,3 +14043,29 @@ select * from sqall_t1 where a not in (
 (0 rows)
 
 reset optimizer_join_order;
+create table tt_varchar(
+	data character varying
+) distributed by (data);
+insert into tt_varchar values('test');
+create table tt_int(
+	id integer
+) distributed by (id);
+insert into tt_int values(1);
+set optimizer_enforce_subplans = 1;
+-- test collation in subplan testexpr
+select data from tt_varchar where data > any(select id::text from tt_int);
+ data 
+------
+ test
+(1 row)
+
+-- test implicit coerce via io
+CREATE CAST (integer AS text) WITH INOUT AS IMPLICIT;
+select data from tt_varchar where data > any(select id from tt_int);
+ data 
+------
+ test
+(1 row)
+
+DROP CAST (integer AS text);
+reset optimizer_enforce_subplans;
