@@ -1960,6 +1960,8 @@ jobs:
         file: gpdb_src/concourse/tasks/verify_gpdb_versions.yml
       - task: tar_git_repo
         file: gpdb_src/concourse/tasks/tar_git_repo.yml
+        params:
+          RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
   - in_parallel:
       steps:
       - put: bin_gpdb_centos7_rc
