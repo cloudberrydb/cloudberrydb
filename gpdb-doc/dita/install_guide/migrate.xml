@@ -93,6 +93,11 @@
             href="../admin_guide/workload_mgmt_resgroups.xml" format="dita" scope="peer">Using
             Resource Groups</xref> for information about enabling and configuring resource
           groups.</li>
+        <li>Filespaces are removed in Greenplum 6. When creating a tablespace, note that different
+          tablespace locations for a primary-mirror pair is no longer supported in Greenplum 6. See
+            <xref href="../admin_guide/ddl/ddl-tablespace.xml" format="dita" scope="peer">Creating
+            and Managing Tablespaces</xref> for information about creating and configuring
+          tablespaces. </li>
       </ul>
     </body>
   </topic>

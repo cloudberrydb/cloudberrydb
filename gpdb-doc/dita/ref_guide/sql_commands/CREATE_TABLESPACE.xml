@@ -88,6 +88,11 @@
         segment database IDs and host system file locations for the tablespace with OID
           <codeph>16385</codeph>.<codeblock>SELECT * FROM gp_tablespace_location(16385) </codeblock></p>
     </section>
+    <note>Greenplum Database does not support different tablespace locations for a primary-mirror
+      pair with the same content ID. It is only possible to configure different locations for
+      different content IDs. Do not modify symbolic links under the <codeph>pg_tblspc</codeph>
+      directory so that primary-mirror pairs point to different file locations; this will lead to
+      erroneous behavior.</note>
     <section id="section6">
       <title>Examples</title>
       <p>Create a new tablespace and specify the file system location for the master and all segment
