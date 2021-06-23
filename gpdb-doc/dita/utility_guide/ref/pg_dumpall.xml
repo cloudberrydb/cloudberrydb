@@ -329,7 +329,7 @@
                 will refer to <codeph>pg_dump</codeph>. </p>
             <p>Once restored, it is wise to run <codeph>ANALYZE</codeph> on each database so the
                 query planner has useful statistics. You can also run <codeph>vacuumdb -a
-                    -z</codeph> to analyze all databases. </p>
+                    -z</codeph> to vacuum and analyze all databases. </p>
             <p><codeph>pg_dumpall</codeph> requires all needed tablespace directories to
                 exist before the restore; otherwise, database creation will fail for
                 databases in non-default locations.</p>
