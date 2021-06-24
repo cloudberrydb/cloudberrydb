@@ -338,7 +338,7 @@ root     29622 29566  0 12:50 pts/16   00:00:00 grep 15673</codeblock>
     <body>
       <p>A good partitioning strategy reduces the amount of data to be scanned by reading only the
         partitions needed to satisfy a query. </p>
-      <p>Each partition is a separate physical file or set of tiles (in the case of column-oriented
+      <p>Each partition is a separate physical file or set of files (in the case of column-oriented
         tables) on <i>every</i> segment. Just as reading a complete row in a wide columnar table
         requires more time than reading the same row from a heap table, <i>reading all partitions in
           a partitioned table requires more time than reading the same data from a non-partitioned

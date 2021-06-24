@@ -97,7 +97,7 @@
               to MB to set the value of the configuration parameter. </li>
           </ul></li>
         <li>In a scenario where a large number of workfiles are generated calculate the
-            <codeph>gp_vmem</codeph> factor with this formulat to account for the
+            <codeph>gp_vmem</codeph> factor with this formula to account for the
           workfiles:<codeblock>gp_vmem = ((SWAP + RAM) – (7.5GB + 0.05 * RAM - (300KB *
       <varname>total_#_workfiles</varname>))) / 1.7</codeblock>
         </li>
