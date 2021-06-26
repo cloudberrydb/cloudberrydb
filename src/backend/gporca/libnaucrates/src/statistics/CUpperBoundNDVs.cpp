@@ -108,7 +108,7 @@ CUpperBoundNDVs::OsPrint(IOstream &os) const
 {
 	os << "{" << std::endl;
 	m_column_refset->OsPrint(os);
-	os << " Upper Bound of NDVs" << UpperBoundNDVs() << std::endl;
+	os << " Upper Bound of NDVs " << UpperBoundNDVs() << std::endl;
 	os << "}" << std::endl;
 
 	return os;
