@@ -41,11 +41,9 @@ int tests_total;
 
 /* Test definitions */
 static bool execworkfile_buffile_test(void);
-static bool fd_tests(void);
 static bool buffile_size_test(void);
 static bool buffile_large_file_test(void);
 static bool logicaltape_test(void);
-static bool fd_large_file_test(void);
 static bool execworkfile_create_one_MB_file(void);
 static bool workfile_fill_sharedcache(void);
 static bool workfile_create_and_set_cleanup(void);
@@ -76,11 +74,9 @@ typedef struct test_def
 static test_def test_defns[] = {
 		{"execworkfile_buffile_test", execworkfile_buffile_test},
 		{"atomic_test", atomic_test},
-		{"fd_tests", fd_tests},
 		{"buffile_size_test", buffile_size_test},
 		{"buffile_large_file_test", buffile_large_file_test},
 		{"logicaltape_test", logicaltape_test},
-		{"fd_large_file_test",fd_large_file_test},
 		{"execworkfile_create_one_MB_file",execworkfile_create_one_MB_file},
 		{"workfile_fill_sharedcache", workfile_fill_sharedcache},
 		{"workfile_create_and_set_cleanup", workfile_create_and_set_cleanup},
@@ -307,63 +303,6 @@ execworkfile_buffile_test(void)
 	elog(ERROR, "broken test");
 	return 0;
 #endif
-}
-
-/*
- * Unit test for testing the fd.c FileDiskSize and other new capabilities
- */
-static bool
-fd_tests(void)
-{
-	unit_test_reset();
-	elog(LOG, "Running test: fd_tests");
-
-	elog(LOG, "Running sub-test: Creating fd file");
-
-	File testFd = OpenNamedTemporaryFile("test_fd.dat",
-			true /* create */,
-			false /* delOnClose */,
-			true /* closeAtEOXact */);
-
-	unit_test_result(testFd > 0);
-
-	elog(LOG, "Running sub-test: Reading size of open empty file");
-	int64 fd_size = FileDiskSize(testFd);
-	unit_test_result(fd_size == 0L);
-
-	elog(LOG, "Running sub-test: Closing file");
-	FileClose(testFd);
-	unit_test_result(true);
-
-	elog(LOG, "Running sub-test: Opening existing empty file and reading size");
-	testFd = OpenNamedTemporaryFile("test_fd.dat",
-			false /* create */,
-			false /* delOnClose */,
-			true /* closeAtEOXact */);
-
-	fd_size = FileDiskSize(testFd);
-	unit_test_result(fd_size == 0L);
-
-	elog(LOG, "Running sub-test: Writing to existing open file, sync and read size");
-	int nchars = 10000;
-	StringInfo text = create_text_stringinfo(nchars);
-	int len_to_write = 5000;
-	Assert(len_to_write <= text->len);
-
-	FileWrite(testFd, text->data, len_to_write, 0, 0);
-	FileSync(testFd, 0);
-
-	fd_size = FileDiskSize(testFd);
-	unit_test_result(fd_size == len_to_write);
-
-	elog(LOG, "Running sub-test: Closing file");
-	FileClose(testFd);
-	unit_test_result(true);
-
-	pfree(text->data);
-	pfree(text);
-
-	return unit_test_summary();
 }
 
 /*
@@ -686,59 +625,6 @@ logicaltape_test(void)
 	elog(ERROR, "broken test");
 	return 0;
 #endif
-}
-
-/*
- * Unit test for testing large fd file.
- * This unit test verifies that the file's size on disk is as expected.
- */
-static bool
-fd_large_file_test(void)
-{
-	off_t		offset;
-
-	unit_test_reset();
-	elog(LOG, "Running test: fd_large_file_test");
-
-	elog(LOG, "Running sub-test: Creating fd file");
-
-	/* Create file name */
-	char *file_name = "test_large_fd.dat";
-
-	File testFd = OpenNamedTemporaryFile(file_name,
-			true /* create */,
-			true /* delOnClose */,
-			true /* closeAtEOXact */);
-
-	unit_test_result(testFd > 0);
-
-	elog(LOG, "Running sub-test: Writing to existing open file, sync and read size");
-	int nchars = 100000;
-	/* 4.5 GBs */
-	int total_entries = 48319;
-
-	StringInfo text = create_text_stringinfo(nchars);
-
-	offset = 0;
-	for (int i = 0; i < total_entries; i++)
-	{
-		int len = strlen(text->data);
-		FileWrite(testFd, text->data, len, offset, 0);
-		offset += len;
-		FileSync(testFd, 0);
-	}
-
-	pfree(text->data);
-	pfree(text);
-
-	int64 fd_size = FileDiskSize(testFd);
-	unit_test_result(fd_size == (int64) nchars * sizeof(char) * (int64) total_entries);
-
-	elog(LOG, "Running sub-test: Closing file");
-	FileClose(testFd);
-	unit_test_result(true);
-
-	return unit_test_summary();
 }
 
 /*

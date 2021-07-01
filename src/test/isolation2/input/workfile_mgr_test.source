@@ -40,8 +40,6 @@ LANGUAGE C VOLATILE EXECUTE ON ALL SEGMENTS;
 1: CREATE TABLESPACE work_file_test_ts LOCATION '@testtablespace@/workfile_mgr';
 
 1: select gp_workfile_mgr_test('atomic_test', 0);
-1: select gp_workfile_mgr_test('fd_tests', 0);
-1: select gp_workfile_mgr_test('fd_large_file_test', 0);
 
 -- test will fail when the workset exceeds gp_workfile_max_entries, the workset will be released at the end of transaction.
 1: select gp_workfile_mgr_test('workfile_fill_sharedcache', 0);

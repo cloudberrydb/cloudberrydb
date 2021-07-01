@@ -1423,67 +1423,6 @@ PathNameOpenFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
 }
 
 /*
- * Open a temporary file that will (optionally) disappear when we close it.
- *
- * 'fileName' identify a new or existing temporary file which other processes
- * also could open and share.
- *
- * If 'create' is true, a new file is created.  If successful, a valid vfd
- * index (>0) is returned; otherwise an error is thrown.
- *
- * If 'create' is false, an existing file is opened.  If successful, a valid
- * vfd index (>0) is returned.  If the file does not exist or cannot be
- * opened, an invalid vfd index (<= 0) is returned.
- *
- * If 'delOnClose' is true, then the file is removed when you call
- * FileClose(); or when the process exits; or (unless 'interXact' is
- * true) when the transaction ends.
- *
- * If 'interXact' is false, the vfd is closed automatically at end of
- * transaction unless you have called FileClose() to close it before then.
- * If 'interXact' is true, the vfd state is not changed at end of
- * transaction.
- *
- * In most cases, you don't want temporary files to outlive the transaction
- * that created them, so you should specify 'true' for 'delOnClose' and
- * 'false' for 'interXact'.
- *
- * This is used for inter-process communication, where one process creates
- * a file, and another process reads it.
- *
- * NOTE: this ignores `temp_tablespaces`, and always creates the file
- * in the main data directory's pg_temp dir. Otherwise it would be hard
- * for the reader process to find the file created by the writer process.
- */
-File
-OpenNamedTemporaryFile(const char *fileName,
-					   bool create,
-					   bool delOnClose,
-					   bool interXact)
-{
-	File		file;
-
-	/* Create in the default tablespace. */
-	file = OpenTemporaryFileInTablespace(MyDatabaseTableSpace ?
-										 MyDatabaseTableSpace :
-										 DEFAULTTABLESPACE_OID,
-										 true, /* rejectError */
-										 fileName,
-										 false, /* makenameunique */
-										 create);
-
-	/* Mark it for deletion at close */
-	if (delOnClose)
-		VfdCache[file].fdstate |= FD_DELETE_AT_CLOSE;
-
-	/* Register it with the current resource owner */
-	if (!interXact)
-		RegisterTemporaryFile(file);
-
-	return file;
-}
-
-/*
  * Create directory 'directory'.  If necessary, create 'basedir', which must
  * be the directory above it.  This is designed for creating the top-level
  * temporary directory on demand before creating a directory underneath it.
