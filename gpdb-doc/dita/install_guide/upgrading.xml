@@ -75,7 +75,7 @@
             <codeph>gpadmin</codeph> user's home directory on each coordinator, standby, and segment
           host.</li>
         <li class="- topic/li "><i>If you used <codeph>yum</codeph> or <codeph>apt</codeph> to
-            install Greenplum Database to the default location</i>, execute these commands on each
+            install Greenplum Database to the default location</i>, run these commands on each
           host to upgrade to the new software release. <p>For RHEL/CentOS
             systems:<codeblock>$ sudo yum upgrade ./greenplum-db-&lt;version>-&lt;platform>.rpm</codeblock></p><p>For
             Ubuntu
@@ -86,7 +86,7 @@
               <codeph>/usr/local/greenplum-db</codeph> to point to the new installation
             directory.</p></li>
         <li><i>If you used <codeph>rpm</codeph> to install Greenplum Database to a non-default
-            location on RHEL/CentOS systems</i>, execute <codeph>rpm</codeph> on each host to
+            location on RHEL/CentOS systems</i>, run <codeph>rpm</codeph> on each host to
           upgrade to the new software release and specify the same custom installation directory
           with the <codeph>--prefix</codeph> option. For
             example:<codeblock>$ sudo rpm -U ./greenplum-db-&lt;version>-&lt;platform>.rpm --prefix=&lt;directory></codeblock><p>The

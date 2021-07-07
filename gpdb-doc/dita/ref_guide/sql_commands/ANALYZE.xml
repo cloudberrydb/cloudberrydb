@@ -37,7 +37,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition</varname> [ (<var
             has been exchanged with another table. For more information about updating partitioned
             table statistics, see <xref href="#topic1/section5" format="dita">Notes</xref>.</li>
         </ul></p>
-      <note type="important">If you intend to execute queries on partitioned tables with GPORCA
+      <note type="important">If you intend to run queries on partitioned tables with GPORCA
         enabled (the default), then you must collect statistics on the root partition of the
         partitioned table with the <codeph>ANALYZE</codeph> or <codeph>ANALYZE
           ROOTPARTITION</codeph> command. For information about collecting statistics on partitioned
@@ -111,7 +111,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition</varname> [ (<var
           <pd>Enables display of progress messages. Enables display of progress messages. When
             specified, <codeph>ANALYZE</codeph> emits this information <ul id="ul_phq_1n2_jr">
               <li>The table that is being processed.</li>
-              <li>The query that is executed to generate the sample table.</li>
+              <li>The query that is run to generate the sample table.</li>
               <li>The column for which statistics is being computed.</li>
               <li>The queries that are issued to collect the different statistics for a single
                 column.</li>

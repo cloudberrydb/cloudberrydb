@@ -33,7 +33,7 @@
                 and access permissions that apply to databases as a whole.</p>
             <p>Since <codeph>pg_dumpall</codeph> reads tables from all databases you will most
                 likely have to connect as a database superuser in order to produce a complete dump.
-                Also you will need superuser privileges to execute the saved script in order to be
+                Also you will need superuser privileges to run the saved script in order to be
                 allowed to add users and groups, and to create databases.</p>
             <p>The SQL script will be written to the standard output. Use the
               <codeph>[-f | --file]</codeph> option or shell operators

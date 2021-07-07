@@ -233,7 +233,8 @@
             TABLE...AS</codeph> operation, then rename and drop the original table.</li>
         <li>Frequently run <codeph>VACUUM</codeph> on the system catalogs to avoid catalog bloat and
           the need to run <codeph>VACUUM FULL</codeph> on catalog tables. </li>
-        <li>Never kill <codeph>VACUUM</codeph> on catalog tables.</li>
+        <li>Never issue a <codeph>kill</codeph> command against <codeph>VACUUM</codeph> on catalog
+          tables.</li>
       </ul>
       <p>See <xref href="bloat.xml#topic_gft_h11_bp"/>.</p>
     </section>

@@ -374,7 +374,7 @@ MIRROR_PORT_BASE = 7000</codeblock>
                 <plentry>
                     <pt>TRUSTED_SHELL</pt>
                     <pd><b>Required.</b> The shell the <codeph>gpinitsystem</codeph> utility uses to
-                        execute commands on remote hosts. Allowed values are <codeph>ssh</codeph>.
+                        run commands on remote hosts. Allowed values are <codeph>ssh</codeph>.
                         You must set up your trusted host environment before running the
                             <codeph>gpinitsystem</codeph> utility (you can use
                             <codeph>gpssh-exkeys</codeph> to do this).</pd>

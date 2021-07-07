@@ -224,7 +224,7 @@ FROM (SELECT count(*) c, gp_segment_id FROM facts GROUP BY 2) AS a;</codeblock>
         <p>Processing skew results when a disproportionate amount of data flows to, and is processed
           by, one or a few segments. It is often the culprit behind Greenplum Database performance
           and stability issues. It can happen with operations such join, sort, aggregation, and
-          various OLAP operations. Processing skew happens in flight while a query is executing and
+          various OLAP operations. Processing skew happens in flight while a query is running and
           is not as easy to detect as data skew, which is caused by uneven data distribution due to
           the wrong choice of distribution keys. Data skew is present at the table level, so it can
           be easily detected and avoided by choosing optimal distribution keys. </p>
@@ -264,7 +264,7 @@ Segment node[sdw7] 1767310099 bytes (1.64594 GB)
 Segment node[sdw8] 1765105802 bytes (1.64388 GB)
 Total 14856967207 bytes (13.8366 GB)</codeblock></p><p>If
               there is a <i>significant and sustained</i> difference in disk usage, then the queries
-              being executed should be investigated for possible skew (the example output above does
+              being run should be investigated for possible skew (the example output above does
               not reveal significant skew). In monitoring systems, there will always be some skew,
               but often it is <i>transient</i> and will be <i>short in duration</i>. </p></li>
           <li>If significant and sustained skew appears, the next task is to identify the offending

@@ -89,7 +89,7 @@ SELinuxstatus: disabled</codeblock></li>
               <codeph>iptables</codeph>:<codeblock># /sbin/chkconfig --list iptables</codeblock><p>If
                 <codeph>iptables</codeph> is disabled, the command output
             is:</p><codeblock>iptables 0:off 1:off 2:off 3:off 4:off 5:off 6:off</codeblock></li>
-          <li>If necessary, execute this command as root to disable
+          <li>If necessary, run this command as root to disable
               <codeph>iptables</codeph>:<codeblock>/sbin/chkconfig iptables off</codeblock><p>You
               will need to reboot your system after applying the change.</p></li>
           <li>For systems with <codeph>firewalld</codeph>, check the status of
@@ -99,7 +99,7 @@ SELinuxstatus: disabled</codeblock></li>
             is:</p><codeblock>* firewalld.service - firewalld - dynamic firewall daemon
    Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
    Active: inactive (dead)</codeblock></li>
-          <li>If necessary, execute these commands as root to disable
+          <li>If necessary, run these commands as root to disable
             <codeph>firewalld</codeph>:<codeblock># systemctl stop firewalld.service
 # systemctl disable firewalld.service</codeblock></li>
         </ol></p>
@@ -290,7 +290,7 @@ vm.dirty_ratio = 10</codeblock></p>
         limits by reading the values from the <codeph>limits.conf</codeph> file and then from the
         override file. For information about PAM and user limits, see the documentation on PAM and
           <codeph>pam_limits</codeph>.</p>
-      <p>Execute the <codeph>ulimit -u</codeph> command on each segment host to display the maximum
+      <p>Run the <codeph>ulimit -u</codeph> command on each segment host to display the maximum
         number of processes that are available to each user. Validate that the return value is
         131072.</p>
     </section>
@@ -391,7 +391,7 @@ vm.dirty_ratio = 10</codeblock></p>
         utility <codeph>grubby</codeph>. This command adds the parameter when run as
         root.<codeblock># grubby --update-kernel=ALL --args="transparent_hugepage=never"</codeblock></p>
       <p>After adding the parameter, reboot the system.</p>
-      <p>For Ubuntu systems, install the <codeph>hugepages</codeph> package and execute this command
+      <p>For Ubuntu systems, install the <codeph>hugepages</codeph> package and run this command
         as root:<codeblock># hugeadm --thp-never</codeblock></p>
       <p>This <cmdname>cat</cmdname> command checks the state of THP. The output indicates that THP
         is

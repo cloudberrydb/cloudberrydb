@@ -333,7 +333,7 @@ SELECT '20190905 140000'::timestamp ;</codeblock></p></li>
         <li>To use the new Greenplum 6 default hash operator classes, use the command <codeph>ALTER
             TABLE &lt;table> SET DISTRIBUTED BY (&lt;key>)</codeph> to redistribute tables restored
           from Greenplum 4.3 or 5 backups. The <codeph>gp_use_legacy_hashops</codeph> parameter must
-          be set to <codeph>off</codeph> when your execute the command. See <xref
+          be set to <codeph>off</codeph> when you run the command. See <xref
             href="#redistribute" format="dita"/> for more information about hash operator classes.
         </li>
       </ul>
