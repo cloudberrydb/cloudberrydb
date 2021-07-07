@@ -1052,7 +1052,7 @@ lo_import 152801</codeblock>
                 is specified it must be either <codeph>on</codeph> or <codeph>off</codeph> which
                 will enable or disable display of a locale-specific character to separate groups of
                 digits to the left of the decimal marker. If <varname>value</varname> is omitted the
-                command toggles between regular and locale-specific numberic output. </li>
+                command toggles between regular and locale-specific numeric output. </li>
               <li id="kb147128"><b><codeph>pager</codeph></b> – Controls the use of a pager for
                 query and <codeph>psql</codeph> help output. If the environment variable
                   <codeph>PAGER</codeph> is set, the output is piped to the specified program.

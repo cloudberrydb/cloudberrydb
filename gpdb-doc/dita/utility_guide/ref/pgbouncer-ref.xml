@@ -1313,7 +1313,7 @@ DETAIL:
         <topic id="LISTS">
           <title>LISTS</title>
           <body>
-            <p>Shows the following PgBouncer statistcs in two columns: the item label and value.</p>
+            <p>Shows the following PgBouncer statistics in two columns: the item label and value.</p>
             <table frame="all" id="table_sqj_2dl_gs">
               <title>Count of PgBouncer Items</title>
               <tgroup cols="2">

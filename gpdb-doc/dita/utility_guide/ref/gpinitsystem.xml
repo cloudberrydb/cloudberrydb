@@ -560,7 +560,7 @@ cdw~cdw.local~7001~/data/mirror1/gpseg0~3~0
                 defines the Greenplum Database cluster) using <codeph>QD_PRIMARY_ARRAY</codeph> and
                     <codeph>PRIMARY_ARRAY</codeph> parameters:</p>
             <codeblock>$ gpinitsystem -I cluster_init.config</codeblock>
-            <p>The following example uses a host system configured with mulitple NICs. If host
+            <p>The following example uses a host system configured with multiple NICs. If host
                 systems are configured with multiple NICs, you can initialize a Greenplum Database
                 system to use each NIC as a Greenplum host system. You must ensure that the host
                 systems are configured with sufficient resources to support all the segment

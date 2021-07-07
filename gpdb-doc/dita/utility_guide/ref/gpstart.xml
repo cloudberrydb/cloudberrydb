@@ -36,7 +36,7 @@
                     format="dita" scope="peer">Enabling High Availability and Data Consistency
                     Features</xref> in the <cite>Greenplum Database Administrator Guide</cite>.</p>
             <note>Before you can start a Greenplum Database system, you must have initialized the
-                system using <codeph>gpinitsystem</codeph>. Enabling or disabing heap checksums is
+                system using <codeph>gpinitsystem</codeph>. Enabling or disabling heap checksums is
                 set when you initialize the system and cannot be changed after
                 initialization.</note>
             <p>If the Greenplum Database system is configured with a standby coordinator, and
