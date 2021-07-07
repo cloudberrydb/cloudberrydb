@@ -1,6 +1,7 @@
 # test if gxid is valid or not on the cluster before running the tests
 test: check_gxid
 
+test: checkpoint_dtx_info
 test: autovacuum-analyze
 test: lockmodes
 test: pg_rewind_fail_missing_xlog
