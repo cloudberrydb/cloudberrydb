@@ -447,12 +447,12 @@
             <li>Greenplum Informatica Connector v1.0.5 - The Tanzu Greenplum Connector for
               Informatica supports high speed data transfer from an Informatica PowerCenter cluster
               to a Tanzu Greenplum cluster for batch and streaming ETL operations.</li>
-            <li>Progress DataDirect JDBC Drivers v5.1.4.000223 - The Progress DataDirect JDBC
-              drivers are compliant with the Type 4 architecture, but provide advanced features that
-              define them as Type 5 drivers.</li>
-            <li>Progress DataDirect ODBC Drivers v7.1.6 (07.16.0301) - The Progress DataDirect ODBC
-              drivers enable third party applications to connect via a common interface to the
-              Tanzu Greenplum system.</li>
+            <li>Progress DataDirect JDBC Drivers v5.1.4+275, v6.0.0+181 - The Progress DataDirect
+              JDBC drivers are compliant with the Type 4 architecture, but provide advanced features
+              that define them as Type 5 drivers.</li>
+            <li>Progress DataDirect ODBC Drivers v7.1.6+7.16.389 - The Progress DataDirect ODBC
+              drivers enable third party applications to connect via a common interface to the Tanzu
+              Greenplum system.</li>
             <li>R2B X-LOG v5.x and v6.x - Real-time data replication solution that achieves
               high-speed database replication through the use of Redo Log Capturing method.</li>
             <!--            <li>Gemfire-Greenplum Connector - The Pivotal Gemfire-Greenplum Connector supports the
