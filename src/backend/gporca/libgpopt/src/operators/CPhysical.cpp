@@ -11,8 +11,6 @@
 
 #include "gpopt/operators/CPhysical.h"
 
-#include <cwchar>
-
 #include "gpos/base.h"
 
 #include "gpopt/base/CCTEMap.h"
@@ -251,7 +249,7 @@ CPhysical::CReqdColsRequest::Equals(const CReqdColsRequest *prcrFst,
 //---------------------------------------------------------------------------
 CDistributionSpec *
 CPhysical::PdsCompute(CMemoryPool *mp, const CTableDescriptor *ptabdesc,
-					  CColRefArray *pdrgpcrOutput, CColRef *pcr_segment_id)
+					  CColRefArray *pdrgpcrOutput)
 {
 	CDistributionSpec *pds = nullptr;
 
@@ -263,24 +261,8 @@ CPhysical::PdsCompute(CMemoryPool *mp, const CTableDescriptor *ptabdesc,
 			break;
 
 		case IMDRelation::EreldistrRandom:
-		{
-            // We calculate gp_segment_id directly through ptabdesc by
-            // finding the column Attno that matches the string in question
-			if (pcr_segment_id == nullptr)
-			{
-				for (ULONG i = 0; i < pdrgpcrOutput->Size(); i++)
-				{
-					if (wcscmp((*pdrgpcrOutput)[i]->Name().Pstr()->GetBuffer(),
-							   L"gp_segment_id") == 0)
-					{
-						pcr_segment_id = (*pdrgpcrOutput)[i];
-					}
-				}
-			}
-
-			pds = GPOS_NEW(mp) CDistributionSpecRandom(pcr_segment_id);
+			pds = GPOS_NEW(mp) CDistributionSpecRandom();
 			break;
-		}
 
 		case IMDRelation::EreldistrHash:
 		{
