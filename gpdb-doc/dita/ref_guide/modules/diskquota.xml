@@ -83,7 +83,7 @@ $ gpstop -ar</codeblock></li>
         <p>The following example sets a 250GB quota for the <codeph>acct</codeph> schema:</p>
         <codeblock>$ SELECT diskquota.set_schema_quota('acct', '250GB');</codeblock>
         <p>This example sets a 500MB quota for the <codeph>nickd</codeph> role:</p>
-        <codeblock>$ SELECT diskquota.set_role_quota(nickd, '500MB');</codeblock>
+        <codeblock>$ SELECT diskquota.set_role_quota('nickd', '500MB');</codeblock>
         <p>To change a quota, call the <codeph>diskquota.set_schema_quota()</codeph> or
             <codeph>diskquota.set_role_quota()</codeph> function again with the new quota value.</p>
         <p>To remove a quota, set the quota value to <codeph>'-1'</codeph>.</p>
