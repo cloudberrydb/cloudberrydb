@@ -1088,9 +1088,9 @@ where <varname>action</varname> is one of:
                         <p>Rename an existing table:</p>
                         <codeblock>ALTER TABLE distributors RENAME TO suppliers;</codeblock>
                         <p>Add a not-null constraint to a column:</p>
-                        <p>To rename an existing constraint:</p>
-                        <codeblock>ALTER TABLE distributors RENAME CONSTRAINT zipchk TO zip_check;</codeblock>
                         <codeblock>ALTER TABLE distributors ALTER COLUMN street SET NOT NULL;</codeblock>
+                        <p>Rename an existing constraint:</p>
+                        <codeblock>ALTER TABLE distributors RENAME CONSTRAINT zipchk TO zip_check;</codeblock>
                         <p>Add a check constraint to a table and all of its children:</p>
                         <codeblock>ALTER TABLE distributors ADD CONSTRAINT zipchk CHECK 
 (char_length(zipcode) = 5);</codeblock>
