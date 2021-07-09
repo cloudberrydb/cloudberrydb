@@ -341,8 +341,8 @@ pg_restore -d newdb db.dump</codeblock>
 ;     Format: CUSTOM
 ;     Integer: 4 bytes
 ;     Offset: 8 bytes
-;     Dumped from database version: 8.3.5
-;     Dumped by pg_dump version: 8.3.8
+;     Dumped from database version: 9.4.24
+;     Dumped by pg_dump version: 9.4.24
 ;
 ; Selected TOC Entries:
 ;
