@@ -116,7 +116,8 @@ $ gpstop -ar</codeblock></li>
         (in seconds) the table sizes are recalculated. The smaller the <codeph>naptime</codeph>
         value, the less delay in detecting changes in disk usage. This example sets the
           <codeph>naptime</codeph> to ten seconds.
-        <codeblock>$ gpconfig -c diskquota.naptime -v 10</codeblock></section>
+        <codeblock>$ gpconfig -c diskquota.naptime -v 10
+$ gpstop -ar</codeblock></section>
       <section>
         <title>Configuring diskquota Shared Memory</title>
         <p>The <codeph>diskquota</codeph> module uses shared memory to save the denylist and to save
@@ -136,7 +137,7 @@ $ gpstop -ar</codeblock></li>
           This example changes the active table shared memory to
           2MiB:<codeblock>$ gpconfig -c diskquota.max_active_tables -v '2MiB'</codeblock></p>
         <p>Shared memory is allocated when Greenplum Database starts up, so a server restart is
-          required after you change the value of the  <codeph>diskquota.max_active_tables</codeph>
+          required after you change the value of the <codeph>diskquota.max_active_tables</codeph>
           parameter.</p>
       </section>
     </body>
