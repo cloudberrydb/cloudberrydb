@@ -161,6 +161,7 @@ _copyQueryDispatchDesc(const QueryDispatchDesc *from)
 	COPY_NODE_FIELD(oidAssignments);
 	COPY_NODE_FIELD(cursorPositions);
 	COPY_SCALAR_FIELD(useChangedAOOpts);
+	COPY_SCALAR_FIELD(secContext);
 	COPY_NODE_FIELD(paramInfo);
 
 	return newnode;
