@@ -706,42 +706,47 @@ void DisconnectAndDestroyUnusedQEs(void)
 /*
  * Drop any temporary tables associated with the current session and
  * use a new session id since we have effectively reset the session.
- *
- * Call this procedure outside of a transaction.
  */
 void
-CheckForResetSession(void)
+GpDropTempTables(void)
 {
 	int			oldSessionId = 0;
 	int			newSessionId = 0;
 	Oid			dropTempNamespaceOid;
 
-	if (!NeedResetSession)
+	/* No need to reset session or drop temp tables */
+	if (!NeedResetSession && OldTempNamespace == InvalidOid)
 		return;
 
 	/* Do the session id change early. */
-
-	/* If we have gangs, we can't change our session ID. */
-	Assert(!cdbcomponent_qesExist());
-
-	oldSessionId = gp_session_id;
-	ProcNewMppSessionId(&newSessionId);
-
-	gp_session_id = newSessionId;
-	gp_command_count = 0;
-	pgstat_report_sessionid(newSessionId);
-
-	/* Update the slotid for our singleton reader. */
-	if (SharedLocalSnapshotSlot != NULL)
+	if (NeedResetSession)
 	{
-		LWLockAcquire(SharedLocalSnapshotSlot->slotLock, LW_EXCLUSIVE);
-		SharedLocalSnapshotSlot->slotid = gp_session_id;
-		LWLockRelease(SharedLocalSnapshotSlot->slotLock);
+		/* If we have gangs, we can't change our session ID. */
+		Assert(!cdbcomponent_qesExist());
+
+		oldSessionId = gp_session_id;
+		ProcNewMppSessionId(&newSessionId);
+
+		gp_session_id = newSessionId;
+		gp_command_count = 0;
+		pgstat_report_sessionid(newSessionId);
+
+		/* Update the slotid for our singleton reader. */
+		if (SharedLocalSnapshotSlot != NULL)
+		{
+			LWLockAcquire(SharedLocalSnapshotSlot->slotLock, LW_EXCLUSIVE);
+			SharedLocalSnapshotSlot->slotid = gp_session_id;
+			LWLockRelease(SharedLocalSnapshotSlot->slotLock);
+		}
+
+		elog(LOG, "The previous session was reset because its gang was disconnected (session id = %d). "
+			 "The new session id = %d", oldSessionId, newSessionId);
 	}
 
-	elog(LOG, "The previous session was reset because its gang was disconnected (session id = %d). "
-		 "The new session id = %d", oldSessionId, newSessionId);
-
+	/*
+	 * When it's in transaction block, need to bump the session id, e.g. retry COMMIT PREPARED,
+	 * but defer drop temp table to the main loop in PostgresMain().
+	 */
 	if (IsTransactionOrTransactionBlock())
 	{
 		NeedResetSession = false;
@@ -871,5 +876,5 @@ void
 ResetAllGangs(void)
 {
 	DisconnectAndDestroyAllGangs(true);
-	CheckForResetSession();
+	GpDropTempTables();
 }
