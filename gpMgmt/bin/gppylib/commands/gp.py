@@ -69,13 +69,13 @@ def get_postmaster_pid_locally(datadir):
         return -1
 
 def getPostmasterPID(hostname, datadir):
-    cmdStr="ps -ef | grep 'postgres -D %s' | grep -v grep" % (datadir)
+    cmdStr="echo 'START_CMD_OUTPUT';ps -ef | grep 'postgres -D %s' | grep -v grep" % (datadir)
     name="get postmaster pid"
     cmd=Command(name,cmdStr,ctxt=REMOTE,remoteHost=hostname)
     try:
         cmd.run(validateAfter=True)
         sout=cmd.get_results().stdout.lstrip(' ')
-        return int(sout.split()[1])
+        return int(sout.split('START_CMD_OUTPUT')[1].split()[1])
     except:
         return -1
 
@@ -1618,7 +1618,7 @@ class GpRecoverSeg(Command):
 class IfAddrs:
     @staticmethod
     def list_addrs(hostname=None, include_loopback=False):
-        cmd = ['%s/libexec/ifaddrs' % GPHOME]
+        cmd = ["echo 'START_CMD_OUTPUT'; %s/libexec/ifaddrs" % GPHOME]
         if not include_loopback:
             cmd.append('--no-loopback')
         if hostname:
@@ -1628,7 +1628,7 @@ class IfAddrs:
             args = cmd
 
         result = subprocess.check_output(args).decode()
-        return result.splitlines()
+        return result.split('START_CMD_OUTPUT')[1].strip().splitlines()
 
 if __name__ == '__main__':
 

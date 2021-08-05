@@ -488,17 +488,17 @@ class RemoveGlob(Command):
 class FileDirExists(Command):
     def __init__(self, name, directory, ctxt=LOCAL, remoteHost=None):
         self.directory = directory
-        cmdStr = """python3  -c "import os; print(os.path.exists('%s'))" """ % directory
+        cmdStr = "[ -d '%s' ]" % directory
         Command.__init__(self, name, cmdStr, ctxt, remoteHost)
 
     @staticmethod
     def remote(name, remote_host, directory):
         cmd = FileDirExists(name, directory, ctxt=REMOTE, remoteHost=remote_host)
-        cmd.run(validateAfter=True)
+        cmd.run(validateAfter=False)
         return cmd.filedir_exists()
 
     def filedir_exists(self):
-        return self.results.stdout.strip().upper() == 'TRUE'
+        return (not self.results.rc)
 
 
 # -------------scp------------------
