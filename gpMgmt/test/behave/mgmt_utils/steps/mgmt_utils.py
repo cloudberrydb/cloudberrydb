@@ -1125,7 +1125,7 @@ def impl(context, dbname):
     sql = context.text
     execute_sql(dbname, sql)
 
-
+@given('sql "{sql}" is executed in "{dbname}" db')
 @when('sql "{sql}" is executed in "{dbname}" db')
 @then('sql "{sql}" is executed in "{dbname}" db')
 def impl(context, sql, dbname):
