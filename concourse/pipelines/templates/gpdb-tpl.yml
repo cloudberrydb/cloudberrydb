@@ -11,7 +11,7 @@
                       {'name': 'gpinitsystem',
                        'use_concourse_cluster': false},
                       {'name': 'gpstate',
-                       'use_concourse_cluster': false},
+                       'use_concourse_cluster': true},
                       {'name': 'replication_slots',
                        'use_concourse_cluster': false},
                       {'name': 'gpactivatestandby',
