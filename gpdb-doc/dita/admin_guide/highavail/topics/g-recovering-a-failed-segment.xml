@@ -25,8 +25,8 @@
         <title>Segment Failure Troubleshooting Matrix</title>
         <image otherprops="op-print" href="../../graphics/recovermatrix.png" placement="break"
           width="460" id="image_cdg_nfp_35"/>
-        <image otherprops="op-help" href="../../graphics/recovermatrix.png" placement="break"
-          width="680" id="image_cdg_nfp_34"/>
+        <image href="../../graphics/recovermatrix.png" placement="break" width="680"
+          id="image_cdg_nfp_34"/>
 
       </fig></p>
   </body>

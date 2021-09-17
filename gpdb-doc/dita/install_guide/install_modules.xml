@@ -20,7 +20,7 @@
         Database will notify you of these dependencies when you attempt to drop the module
         extension.</note>
       <p>You can register the following modules in this manner:</p>
-      <simpletable frame="all" relcolwidth="1.0* 1.0* 1.0*" otherprops="op-help">
+      <simpletable frame="all" relcolwidth="1.0* 1.0* 1.0*">
         <strow>
           <stentry>
             <ul id="ul_tc3_nlx_wp">
