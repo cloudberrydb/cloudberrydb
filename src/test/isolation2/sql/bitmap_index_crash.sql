@@ -21,6 +21,7 @@
 
 -- this insert's WAL we wish to replay
 1:insert into bm select generate_series(1, 5000);
+1U:select pg_relation_size(oid)/current_setting('block_size')::bigint from pg_class where relname = 'bm_a_idx';
 
 -- set small shared_buffers to make sure META_PAGE of bitmap index evicts out
 1U: ALTER SYSTEM set shared_buffers to 20;
