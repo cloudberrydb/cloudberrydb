@@ -1312,6 +1312,10 @@
                 <xref href="guc-list.xml#escape_string_warning" type="section"
                   >escape_string_warning</xref>
               </p>
+              <p>
+                <xref href="guc-list.xml#quote_all_identifiers" type="section"
+                  >quote_all_identifiers</xref>
+              </p>
             </stentry>
             <stentry>
               <p><xref href="guc-list.xml#regex_flavor" type="section">regex_flavor</xref>

@@ -509,6 +509,9 @@
               <xref href="#port"/>
             </li>
             <li>
+              <xref href="#quote_all_identifiers"/>
+            </li>
+            <li>
               <xref href="#random_page_cost"/>
             </li>
             <li>
@@ -8096,6 +8099,36 @@
               <entry colname="col1">any valid port number</entry>
               <entry colname="col2">5432</entry>
               <entry colname="col3">local<p>system</p><p>restart</p></entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </body>
+  </topic>
+  <topic id="quote_all_identifiers">
+    <title>quote_all_identifiers</title>
+    <body>
+      <p>Ensures that all identifiers are quoted, even if they are not keywords, when the database
+        generates SQL. See also the <codeph>--quote-all-identifiers</codeph> option of <codeph><xref
+            href="../../utility_guide/ref/pg_dump.xml"/></codeph> and <codeph><xref
+            href="../../utility_guide/ref/pg_dumpall.xml"/></codeph>.</p>
+      <table id="table_umd_ds4_brb">
+        <tgroup cols="3">
+          <colspec colnum="1" colname="col1" colwidth="1*"/>
+          <colspec colnum="2" colname="col2" colwidth="1*"/>
+          <colspec colnum="3" colname="col3" colwidth="1*"/>
+          <thead>
+            <row>
+              <entry colname="col1">Value Range</entry>
+              <entry colname="col2">Default</entry>
+              <entry colname="col3">Set Classifications</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry colname="col1">Boolean</entry>
+              <entry colname="col2">false</entry>
+              <entry colname="col3">local<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>

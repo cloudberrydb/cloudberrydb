@@ -252,6 +252,7 @@
             <topicref href="guc-list.xml#pljava_release_lingering_savepoints"/>
             <topicref href="guc-list.xml#pljava_vmoptions"/>
             <topicref href="guc-list.xml#port"/>
+            <topicref href="guc-list.xml#quote_all_identifiers"/>
             <topicref href="guc-list.xml#random_page_cost"/>
             <topicref href="guc-list.xml#readable_external_table_timeout"/>
             <topicref href="guc-list.xml#repl_catchup_within_range"/>
