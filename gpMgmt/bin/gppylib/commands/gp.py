@@ -57,6 +57,8 @@ MAX_COORDINATOR_NUM_WORKERS=64
 # recovery is active.
 RECOVERY_REWIND_APPNAME = '__gprecoverseg_pg_rewind__'
 
+PGDATABASE_FOR_COMMON_USE= 'postgres'
+
 def get_postmaster_pid_locally(datadir):
     cmdStr = "ps -ef | grep 'postgres -D %s' | grep -v grep" % (datadir)
     name = "get postmaster"
@@ -514,8 +516,6 @@ class GpGetStatusUsingTransitionArgs(CmdArgs):
         @param status_request
         """
         CmdArgs.__init__(self, [
-            "env",
-            "pgdatabase=%s" % os.getenv('PGDATABASE'),
             "$GPHOME/sbin/gpgetstatususingtransition.py",
             "-s", str(status_request)
         ])
