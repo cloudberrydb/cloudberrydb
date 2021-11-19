@@ -2022,7 +2022,7 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">integer</entry>
+              <entry colname="col1">integer (-15 to 3)</entry>
               <entry colname="col2">0</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
