@@ -1606,7 +1606,7 @@
             <row>
               <entry colname="col1">a list of absolute directory paths separated by colons</entry>
               <entry colname="col2">$libdir</entry>
-              <entry colname="col3">local<p>system</p><p>restart</p></entry>
+              <entry colname="col3">local<p>system</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
