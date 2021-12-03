@@ -34,6 +34,8 @@
             <topicref href="ref/gplogfilter.xml"/>
             <topicref href="ref/gpmapreduce.xml"/>
             <topicref href="ref/gpmapreduce-yaml.xml"/>
+            <topicref href="ref/gpmemreport.xml"/>
+            <topicref href="ref/gpmemwatcher.xml"/>
             <topicref href="ref/gpmovemirrors.xml"/>
             <topicref href="ref/gpmt.xml" otherprops="pivotal"/>
 <!-- hidden until testing is complete -msk
