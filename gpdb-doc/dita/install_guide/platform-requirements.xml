@@ -483,7 +483,7 @@
     <title id="pm357649">Hadoop Distributions</title>
     <body>
       <p>Greenplum Database provides access to HDFS with the
-        <xref href="https://greenplum.docs.pivotal.io/pxf/latest/overview_pxf.html"
+        <xref href="https://greenplum.docs.pivotal.io/pxf/latest/using/overview_pxf.html"
                   format="html" scope="external">Greenplum Platform Extension Framework
           (PXF)</xref>.</p>
       <p>PXF can use Cloudera, Hortonworks Data Platform, MapR, and generic Apache Hadoop
