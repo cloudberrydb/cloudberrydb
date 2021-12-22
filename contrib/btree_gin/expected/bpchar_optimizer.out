@@ -65,7 +65,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i<'abc' ORDER BY i;
                Recheck Cond: (i < 'abc'::bpchar)
                ->  Bitmap Index Scan on idx_bpchar
                      Index Cond: (i < 'abc'::bpchar)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i<='abc' ORDER BY i;
@@ -79,19 +79,22 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i<='abc' ORDER BY i;
                Recheck Cond: (i <= 'abc'::bpchar)
                ->  Bitmap Index Scan on idx_bpchar
                      Index Cond: (i <= 'abc'::bpchar)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i='abc' ORDER BY i;
-                  QUERY PLAN                   
------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
-   ->  Bitmap Heap Scan on test_bpchar
-         Recheck Cond: (i = 'abc'::bpchar)
-         ->  Bitmap Index Scan on idx_bpchar
-               Index Cond: (i = 'abc'::bpchar)
- Optimizer: Postgres query optimizer
-(6 rows)
+   Merge Key: i
+   ->  Sort
+         Sort Key: i
+         ->  Bitmap Heap Scan on test_bpchar
+               Recheck Cond: (i = 'abc'::bpchar)
+               ->  Bitmap Index Scan on idx_bpchar
+                     Index Cond: (i = 'abc'::bpchar)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i>='abc' ORDER BY i;
                       QUERY PLAN                      
@@ -104,7 +107,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i>='abc' ORDER BY i;
                Recheck Cond: (i >= 'abc'::bpchar)
                ->  Bitmap Index Scan on idx_bpchar
                      Index Cond: (i >= 'abc'::bpchar)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i>'abc' ORDER BY i;
@@ -118,6 +121,6 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_bpchar WHERE i>'abc' ORDER BY i;
                Recheck Cond: (i > 'abc'::bpchar)
                ->  Bitmap Index Scan on idx_bpchar
                      Index Cond: (i > 'abc'::bpchar)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 

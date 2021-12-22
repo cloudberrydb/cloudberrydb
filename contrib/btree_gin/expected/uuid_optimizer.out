@@ -60,7 +60,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i<'ce41c936-6acb-4feb-8c91-852
                Recheck Cond: (i < 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
                ->  Bitmap Index Scan on idx_uuid
                      Index Cond: (i < 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i<='ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid ORDER BY i;
@@ -74,19 +74,22 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i<='ce41c936-6acb-4feb-8c91-85
                Recheck Cond: (i <= 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
                ->  Bitmap Index Scan on idx_uuid
                      Index Cond: (i <= 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i='ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid ORDER BY i;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
-   ->  Bitmap Heap Scan on test_uuid
-         Recheck Cond: (i = 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
-         ->  Bitmap Index Scan on idx_uuid
-               Index Cond: (i = 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
- Optimizer: Postgres query optimizer
-(6 rows)
+   Merge Key: i
+   ->  Sort
+         Sort Key: i
+         ->  Bitmap Heap Scan on test_uuid
+               Recheck Cond: (i = 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
+               ->  Bitmap Index Scan on idx_uuid
+                     Index Cond: (i = 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i>='ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid ORDER BY i;
                                      QUERY PLAN                                      
@@ -99,7 +102,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i>='ce41c936-6acb-4feb-8c91-85
                Recheck Cond: (i >= 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
                ->  Bitmap Index Scan on idx_uuid
                      Index Cond: (i >= 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i>'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid ORDER BY i;
@@ -113,6 +116,6 @@ EXPLAIN (COSTS OFF) SELECT * FROM test_uuid WHERE i>'ce41c936-6acb-4feb-8c91-852
                Recheck Cond: (i > 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
                ->  Bitmap Index Scan on idx_uuid
                      Index Cond: (i > 'ce41c936-6acb-4feb-8c91-852a673e5a5c'::uuid)
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
