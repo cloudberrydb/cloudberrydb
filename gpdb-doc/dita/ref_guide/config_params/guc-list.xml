@@ -2786,7 +2786,7 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">on/off</entry>
+              <entry colname="col1">Boolean</entry>
               <entry colname="col2">on</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
@@ -4177,7 +4177,7 @@
             <row>
               <entry colname="col1">integer</entry>
               <entry colname="col2">0</entry>
-              <entry colname="col3">master<p>superuser</p><p>session</p></entry>
+              <entry colname="col3">master<p>superuser</p><p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
@@ -4370,7 +4370,7 @@
             <row>
               <entry colname="col1">auto, eager_free</entry>
               <entry colname="col2">eager_free</entry>
-              <entry colname="col3">local<p>system</p><p>superuser</p><p>restart/reload</p></entry>
+              <entry colname="col3">local<p>system</p><p>superuser</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
@@ -4417,7 +4417,7 @@
             <row>
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">false</entry>
-              <entry colname="col3">session</entry>
+              <entry colname="col3">local<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
@@ -4556,7 +4556,7 @@
             <row>
               <entry colname="col1">0 - <codeph>INT_MAX</codeph> millisecs</entry>
               <entry colname="col2">0 millisecs</entry>
-              <entry colname="col3">master<p>system</p><p>session</p><p>reload</p></entry>
+              <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
@@ -4814,7 +4814,7 @@
             <row>
               <entry colname="col1">Any valid time expression (number and unit)</entry>
               <entry colname="col2">3min</entry>
-              <entry colname="col3">local<p>system</p><p>reload</p></entry>
+              <entry colname="col3">local<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
