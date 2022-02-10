@@ -785,7 +785,18 @@ AcceptInvalidationMessages(void)
 	 * recursive reloads it's unlikely you'll learn more.
 	 *----------
 	 */
-#ifdef DISCARD_CACHES_ENABLED
+#if defined(CLOBBER_CACHE_ALWAYS)
+	{
+		static bool in_recursion = false;
+
+		if (!in_recursion)
+		{
+			in_recursion = true;
+			InvalidateSystemCachesExtended(true);
+			in_recursion = false;
+		}
+	}
+#elif defined(CLOBBER_CACHE_RECURSIVELY)
 	{
 		static int	recursion_depth = 0;
 
