@@ -700,9 +700,10 @@ fetch_remote_table_info(char *nspname, char *relname,
 	WalRcvExecResult *res;
 	StringInfoData cmd;
 	TupleTableSlot *slot;
-	Oid			tableRow[] = {OIDOID, CHAROID, CHAROID};
-	Oid			attrRow[] = {TEXTOID, OIDOID, BOOLOID};
+	Oid			tableRow[3] = {OIDOID, CHAROID, CHAROID};
+	Oid			attrRow[4] = {TEXTOID, OIDOID, INT4OID, BOOLOID};
 	bool		isnull;
+	char		relkind;
 	int			natt;
 
 	lrel->nspname = nspname;
@@ -738,8 +739,19 @@ fetch_remote_table_info(char *nspname, char *relname,
 	Assert(!isnull);
 	lrel->replident = DatumGetChar(slot_getattr(slot, 2, &isnull));
 	Assert(!isnull);
-	lrel->relkind = DatumGetChar(slot_getattr(slot, 3, &isnull));
+	relkind = DatumGetChar(slot_getattr(slot, 3, &isnull));
 	Assert(!isnull);
+
+	/*
+	 * Newer PG versions allow things that aren't plain tables to appear in
+	 * publications.  We don't handle that in this version, but try to provide
+	 * a useful error message.
+	 */
+	if (relkind != RELKIND_RELATION)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("logical replication source relation \"%s.%s\" is not a table",
+						nspname, relname)));
 
 	ExecDropSingleTupleTableSlot(slot);
 	walrcv_clear_result(res);
