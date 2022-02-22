@@ -1099,6 +1099,9 @@ typedef struct ShareInputScan
 
 	/* Number of consumer slices participating, not including the producer. */
 	int			nconsumers;
+
+	/* Discard the scan output? True for ORCA CTE producer, false otherwise. */
+	bool        discard_output;
 } ShareInputScan;
 
 /* ----------------
