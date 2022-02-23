@@ -144,6 +144,7 @@ test: uao/select_while_vacuum_serializable2_row
 test: uao/selectinsert_while_vacuum_row
 test: uao/selectinsertupdate_while_vacuum_row
 test: uao/selectupdate_while_vacuum_row
+test: uao/snapshot_index_corruption_row
 test: uao/update_while_vacuum_row
 test: uao/vacuum_self_serializable_row
 test: uao/vacuum_self_serializable2_row
@@ -200,6 +201,7 @@ test: uao/select_while_vacuum_serializable2_column
 test: uao/selectinsert_while_vacuum_column
 test: uao/selectinsertupdate_while_vacuum_column
 test: uao/selectupdate_while_vacuum_column
+test: uao/snapshot_index_corruption_column
 test: uao/update_while_vacuum_column
 test: uao/vacuum_self_serializable_column
 test: uao/vacuum_self_serializable2_column

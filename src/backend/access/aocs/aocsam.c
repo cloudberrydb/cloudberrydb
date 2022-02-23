@@ -507,13 +507,15 @@ aocs_beginscan(Relation relation,
 	RelationIncrementReferenceCount(relation);
 
 	/*
-	 * the append-only meta data should never be fetched with
+	 * The append-only meta data should never be fetched with
 	 * SnapshotAny as bogus results are returned.
+	 * We use SnapshotSelf for metadata, as regular MVCC snapshot can hide newly
+	 * globally inserted tuples from global index build process.
 	 */
 	if (snapshot != SnapshotAny)
 		aocsMetaDataSnapshot = snapshot;
 	else
-		aocsMetaDataSnapshot = GetTransactionSnapshot();
+		aocsMetaDataSnapshot = SnapshotSelf;
 
 	seginfo = GetAllAOCSFileSegInfo(relation, aocsMetaDataSnapshot, &total_seg, NULL);
 	return aocs_beginscan_internal(relation,

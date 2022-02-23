@@ -1638,10 +1638,12 @@ appendonly_beginscan(Relation relation,
 	if (appendOnlyMetaDataSnapshot == SnapshotAny)
 	{
 		/*
-		 * the append-only meta data should never be fetched with
+		 * The append-only meta data should never be fetched with
 		 * SnapshotAny as bogus results are returned.
+		 * We use SnapshotSelf for metadata, as regular MVCC snapshot can hide
+		 * newly globally inserted tuples from global index build process.
 		 */
-		appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+		appendOnlyMetaDataSnapshot = SnapshotSelf;
 	}
 
 	/*
