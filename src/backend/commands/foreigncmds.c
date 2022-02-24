@@ -191,7 +191,6 @@ transformGenericOptions(Oid catalogId,
 	if (catalogId != UserMappingRelationId)
 	{
 		SeparateOutMppExecute(&resultOptions);
-		SeparateOutNumSegments(&resultOptions);
 	}
 
 	if (OidIsValid(fdwvalidator))
