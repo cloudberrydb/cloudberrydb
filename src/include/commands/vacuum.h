@@ -387,14 +387,6 @@ extern void lazy_vacuum_rel_heap(Relation onerel,
 							VacuumParams *params, BufferAccessStrategy bstrategy);
 
 /* in commands/vacuum_ao.c */
-
-extern void ao_vacuum_rel_pre_cleanup(Relation onerel, int options, VacuumParams *params,
-									  BufferAccessStrategy bstrategy);
-extern void ao_vacuum_rel_compact(Relation onerel, int options, VacuumParams *params,
-								  BufferAccessStrategy bstrategy);
-extern void ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
-									   BufferAccessStrategy bstrategy);
-
 extern void ao_vacuum_rel(Relation rel, VacuumParams *params, BufferAccessStrategy bstrategy);
 
 extern bool std_typanalyze(VacAttrStats *stats);

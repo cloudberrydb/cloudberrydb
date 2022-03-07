@@ -46,14 +46,13 @@ VACUUM
 1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@amname@_vacuum_cleanup2'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and (relname like '%' || 'ao_@amname@_vacuum_cleanup2'::regclass::oid || '%') and gp_segment_id = 0;
  age | regexp_replace     
 -----+--------------------
- 2   | pg_<seg>_<oid>     
- 2   | pg_aovisimap_<oid> 
+ 1   | pg_<seg>_<oid>     
+ 1   | pg_aovisimap_<oid> 
 (2 rows)
 2: end;
 END
 
--- Check that drop phase is skipped, but still the cleanup phase is performed
--- when there are concurrent serializable transactions
+-- Check that drop phase is not skipped, when there are concurrent serializable transactions.
 1: create table ao_@amname@_vacuum_cleanup3(a int, b int) using @amname@;
 CREATE
 1: insert into ao_@amname@_vacuum_cleanup3 select i, i from generate_series(1, 100) i;
@@ -78,9 +77,9 @@ DELETE 100
 
 -- Wait till compaction phase is completed and only then start the serializable
 -- transaction to ensure that only drop phase runs after the serializable
--- transaction started. Because the transaction is holding a lock on the table,
--- the drop phase cannot upgrade to AccessExclusiveLock and so recycling the
--- segfiles is skipped.
+-- transaction started. For the new VACUUM strategy, because no need to upgrade
+-- to AccessExclusiveLock for drop phase, and the transaction would not access
+-- AWAITING_DROP segfiles, dropping the dead segfiles could proceed accordingly.
 2: select gp_wait_until_triggered_fault('vacuum_relation_open_relation_during_drop_phase', 1, 1);
  gp_wait_until_triggered_fault 
 -------------------------------
@@ -107,8 +106,10 @@ VACUUM
  2   | pg_aovisimap_<oid> 
 (2 rows)
 
--- Validate that the drop phase was skipped. segfile 1 should be in state 2
--- (AWAITING_DROP)
+-- Validate that the drop phase wasn't skipped in the new VACUUM strategy,
+-- segfile 1 should be in state 1 (AWAITING_DEFAULT). This is because
+-- no need to acquire AccessExclusiveLock at dead segments recycling hence
+-- the cleanup routine could be performed as is.
 -- This result is related to data distribution.
 -- Current hash algorithm is jump-consistent-hash.
 1: SELECT * FROM gp_ao_or_aocs_seg('ao_@amname@_vacuum_cleanup3');

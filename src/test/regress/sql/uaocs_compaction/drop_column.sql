@@ -10,7 +10,13 @@ SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_drop';
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_drop_index';
 VACUUM uaocs_drop;
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_drop';
+-- New strategy of VACUUM AO/CO was introduced by PR #13255 for performance enhancement.
+-- Index dead tuples will not always be cleaned up completely after VACUUM, resulting
+-- index stats pg_class->reltuples will not always be accurate. So ignore the stats check
+-- for reltuples to coordinate with the new behavior.
+-- start_ignore
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_drop_index';
+-- end_ignore
 ALTER TABLE uaocs_drop DROP COLUMN c;
 SELECT * FROM uaocs_drop;
 INSERT INTO uaocs_drop VALUES (42, 42);
