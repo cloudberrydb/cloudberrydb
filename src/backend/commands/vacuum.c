@@ -2558,27 +2558,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 			LockRelation(rel, ShareLock);
 	}
 
-	/*
-	 * Do the actual work --- either FULL or "lazy" vacuum
-	 */
-	if (ao_vacuum_phase == VACOPT_AO_PRE_CLEANUP_PHASE)
-	{
-		ao_vacuum_rel_pre_cleanup(rel, params->options, params, vac_strategy);
-	}
-	else if (ao_vacuum_phase == VACOPT_AO_COMPACT_PHASE)
-	{
-		ao_vacuum_rel_compact(rel, params->options, params, vac_strategy);
-	}
-	else if (ao_vacuum_phase == VACOPT_AO_POST_CLEANUP_PHASE)
-	{
-		ao_vacuum_rel_post_cleanup(rel, params->options, params, vac_strategy);
-	}
-	else if (is_appendoptimized)
-	{
-		/* Do nothing here, we will launch the stages later */
-		Assert(ao_vacuum_phase == 0);
-	}
-	else if ((params->options & VACOPT_FULL))
+	if (!is_appendoptimized && (params->options & VACOPT_FULL))
 	{
 		ClusterParams cluster_params = {0};
 
@@ -2592,8 +2572,8 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		/* VACUUM FULL is now a variant of CLUSTER; see cluster.c */
 		cluster_rel(relid, InvalidOid, &cluster_params);
 	}
-	else
-		table_relation_vacuum(rel, params, vac_strategy);
+	else /* Heap vacuum or AO/CO vacuum in specific phase */
+		table_relation_vacuum(onerel, params, vac_strategy);
 
 	/* Roll back any GUC changes executed by index functions */
 	AtEOXact_GUC(false, save_nestlevel);
@@ -2611,10 +2591,13 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	PopActiveSnapshot();
 	CommitTransactionCommand();
 
+	/* entrance of Append-Optimized table vacuum */
 	if (is_appendoptimized && ao_vacuum_phase == 0)
 	{
-		int orig_options = params->options;	
+		int orig_options = params->options;
+
 		/* orchestrate the AO vacuum phases */
+
 		/*
 		 * Do cleanup first, to reclaim as much space as possible that
 		 * was left behind from previous VACUUMs. This runs under local
@@ -2627,7 +2610,8 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		params->options = orig_options | VACOPT_AO_COMPACT_PHASE;
 		vacuum_rel(relid, this_rangevar, params, false);
 
-		/* Do a final round of cleanup. Hopefully, this can drop the segments
+		/* 
+		 * Do a final round of cleanup. Hopefully, this can drop the segments
 		 * that were compacted in the previous phase.
 		 */
 		params->options = orig_options | VACOPT_AO_POST_CLEANUP_PHASE;

@@ -151,6 +151,7 @@ test: uao/vacuum_self_function_row
 test: uao/vacuum_while_insert_row
 test: uao/vacuum_while_vacuum_row
 test: uao/vacuum_cleanup_row
+test: uao/vacuum_index_stats_row
 test: uao/bitmapindex_rescan_row
 test: uao/limit_indexscan_inits_row
 test: uao/create_index_allows_readonly_row
@@ -207,6 +208,7 @@ test: uao/vacuum_self_function_column
 test: uao/vacuum_while_insert_column
 test: uao/vacuum_while_vacuum_column
 test: uao/vacuum_cleanup_column
+test: uao/vacuum_index_stats_column
 test: uao/bitmapindex_rescan_column
 test: uao/limit_indexscan_inits_column
 test: uao/create_index_allows_readonly_column
