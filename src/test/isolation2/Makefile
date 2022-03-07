@@ -56,7 +56,7 @@ pg_isolation2_regress$(X): isolation2_main.o pg_regress.o submake-libpq submake-
 clean distclean:
 	rm -f pg_isolation2_regress$(X) $(OBJS) isolation2_main.o
 	rm -f isolation2_regress.so
-	rm -f pg_regress.o
+	rm -f pg_regress.o test_parallel_retrieve_cursor_extended_query test_parallel_retrieve_cursor_extended_query_error
 	rm -f gpstringsubs.pl gpdiff.pl atmsort.pm explain.pm
 	rm -f data
 	rm -rf $(pg_regress_clean_files)
