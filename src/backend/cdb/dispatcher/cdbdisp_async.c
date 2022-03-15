@@ -410,15 +410,6 @@ cdbdisp_checkDispatchResult_async(struct CdbDispatcherState *ds,
 		pParms->waitMode = waitMode;
 
 	checkDispatchResult(ds, DISPATCH_WAIT_UNTIL_FINISH);
-
-	/*
-	 * It looks like everything went fine, make sure we don't miss a user
-	 * cancellation?
-	 *
-	 * The waitMode argument is NONE when we are doing "normal work".
-	 */
-	if (waitMode == DISPATCH_WAIT_NONE || waitMode == DISPATCH_WAIT_FINISH)
-		CHECK_FOR_INTERRUPTS();
 }
 
 /*
@@ -472,7 +463,7 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 	uint8 ftsVersion = 0;
 #endif
 	int64		diff_us;
-	bool		cancelRequested = false;
+	bool        cancelRequested = false;
 
 	db_count = pParms->dispatchCount;
 	fds = (struct pollfd *) palloc(db_count * sizeof(struct pollfd));
@@ -497,6 +488,11 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 		if (proc_exit_inprogress)
 			break;
 
+		/*
+		 * Current loop might last for the long time so check on interrupts.
+		 * If error will be thrown then ordinarily cancel all activities on
+		 * segments and re-throw this error at the end of current function.
+		 */
 		PG_TRY();
 		{
 			CHECK_FOR_INTERRUPTS();
@@ -508,9 +504,10 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 		PG_END_TRY();
 
 		/*
-		 * escalate waitMode to cancel if: - user cancel request has occurred, 
-		 * - or an error has been reported by any QE, - in case the caller wants
-		 * cancelOnError
+		 * escalate waitMode to cancel if:
+		 * - user cancel request has occurred,
+		 * - or an error has been reported by any QE,
+		 * - in case the caller wants cancelOnError
 		 */
 		if ((cancelRequested || meleeResults->errcode) && meleeResults->cancelOnError)
 			pParms->waitMode = DISPATCH_WAIT_CANCEL;
