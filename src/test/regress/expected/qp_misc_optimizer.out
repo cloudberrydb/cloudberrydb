@@ -1,6 +1,6 @@
 -- start_ignore
 --
--- Cloudberry Database database dump
+-- Greenplum Database database dump
 --
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = off;
@@ -438,7 +438,7 @@ COPY tversion (rnum, c1, cver, cnnull, ccnull) FROM stdin;
 ALTER TABLE ONLY tclob
     ADD CONSTRAINT clobpk PRIMARY KEY (rnum);
 --
--- Cloudberry Database database dump complete
+-- Greenplum Database database dump complete
 --
 -- end_ignore
 -- END OF SETUP
@@ -739,6 +739,8 @@ select rnum, c1, sum( (select 1 from tversion) ) from tjoin1 group by rnum, c1
 group by
 f1,f2,f3
 ) Q ) P;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  DXL-to-PlStmt Translation: Assert not supported
      test_name_part     | pass_ind 
 ------------------------+----------
  SubqueryInAggregate_p1 |        1
@@ -746,7 +748,7 @@ f1,f2,f3
 
 -- SubqueryInCase_p1
 -- test expected to fail until function supported in GPDB
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryInCase_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -849,7 +851,7 @@ f1,f2,f3
 
 -- SubqueryPredicateNotIn_p1
 -- test expected to fail until function supported in GPDB
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryPredicateNotIn_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -924,7 +926,7 @@ f1,f2,f3
 
 -- SubqueryQuantifiedPredicateEmpty_p1
 -- test expected to fail until GPDB support this function
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateEmpty_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -944,7 +946,7 @@ f1,f2,f3
 
 -- SubqueryQuantifiedPredicateLarge_p1
 -- test expected to fail until GPDB supports this function
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateLarge_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -2733,7 +2735,7 @@ f1
 
 -- SubqueryQuantifiedPredicateNull_gp_p1
 -- test expected to fail until GPDB support function
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateNull_gp_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1, count(*) c  from (
@@ -2750,7 +2752,7 @@ f1
 
 -- SubqueryQuantifiedPredicateSmall_gp_p1
 -- test expected to fail until GPDB supports function
--- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateSmall_gp_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1, count(*) c  from (
@@ -11867,6 +11869,8 @@ select tjoin1.c1,tjoin2.c2 from tjoin1 left outer join tjoin2 on tjoin1.c1=tjoin
 group by
 f1,f2
 ) Q ) P;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  No plan has been computed for required properties
           test_name_part           | pass_ind 
 -----------------------------------+----------
  JoinCoreOnConditionSetFunction_p1 |        1
@@ -12862,6 +12866,8 @@ select sum( distinct c1 ), count( distinct c2 ) from tset1
 group by
 f1,f2
 ) Q ) P;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
      test_name_part     | pass_ind 
 ------------------------+----------
  MultipleSumDistinct_p1 |        1
@@ -14792,6 +14798,8 @@ select rnum, c1, c2 from tjoin1 where (c1,'BB') in (select c1, c2 from tjoin2 wh
 group by
 f1,f2,f3
 ) Q ) P;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Non-Scalar Subquery
  test_name_part | pass_ind 
 ----------------+----------
  RowSubquery_p1 |        1
@@ -14810,6 +14818,8 @@ select * from tset1 where (c1,c2) in (select c1,c2 from tset2)
 group by
 f1,f2,f3
 ) Q ) P;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Non-Scalar Subquery
      test_name_part     | pass_ind 
 ------------------------+----------
  RowValueConstructor_p1 |        1
@@ -17070,7 +17080,6 @@ f1,f2
  SelectThaiColumnLower_p1 |        1
 (1 row)
 
-set max_parallel_workers_per_gather=0;
 -- SelectThaiColumnOrderByLocal_p1
 select 'SelectThaiColumnOrderByLocal_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
@@ -17159,7 +17168,6 @@ f1,f2
  SelectThaiColumnOrderByLocal_p1 |        1
 (1 row)
 
-reset max_parallel_workers_per_gather;
 -- SelectThaiColumnWhere_p1
 select 'SelectThaiColumnWhere_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
@@ -20496,6 +20504,8 @@ WITH cte_coll AS
 SELECT *
 FROM   cte_coll
 WHERE  tkn_arr <> '{nullout}' ;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Unexpected target list entries in ProjectSet node
  tkn_arr 
 ---------
 (0 rows)
