@@ -321,4 +321,7 @@ test: am_encoding
 # tests of directory table
 test: directory_table
 
+# test if motion sockets are created with the gp_segment_configuration.address
+test: motion_socket
+
 # end of tests
