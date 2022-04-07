@@ -90,9 +90,9 @@ initialize_custom_rmgrs(void)
 const RmgrDescData *
 GetRmgrDesc(RmgrId rmid)
 {
-	Assert(RMID_IS_VALID(rmid));
+	Assert(RmgrIdIsValid(rmid));
 
-	if (RMID_IS_BUILTIN(rmid))
+	if (RmgrIdIsBuiltin(rmid))
 		return &RmgrDescTable[rmid];
 	else
 	{
