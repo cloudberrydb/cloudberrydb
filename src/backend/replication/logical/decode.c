@@ -92,7 +92,7 @@ LogicalDecodingProcessRecord(LogicalDecodingContext *ctx, XLogReaderState *recor
 {
 	XLogRecordBuffer buf;
 	TransactionId txid;
-	RmgrId rmid;
+	RmgrData rmgr;
 
 	buf.origptr = ctx->reader->ReadRecPtr;
 	buf.endptr = ctx->reader->EndRecPtr;
@@ -113,10 +113,10 @@ LogicalDecodingProcessRecord(LogicalDecodingContext *ctx, XLogReaderState *recor
 								 buf.origptr);
 	}
 
-	rmid = XLogRecGetRmid(record);
+	rmgr = GetRmgr(XLogRecGetRmid(record));
 
-	if (RmgrTable[rmid].rm_decode != NULL)
-		RmgrTable[rmid].rm_decode(ctx, &buf);
+	if (rmgr.rm_decode != NULL)
+		rmgr.rm_decode(ctx, &buf);
 	else
 	{
 		/* just deal with xid, and done */
