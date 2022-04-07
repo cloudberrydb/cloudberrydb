@@ -287,6 +287,13 @@ extern Datum HeapTupleHeaderGetDatum(HeapTupleHeader tuple);
  */
 
 /* from funcapi.c */
+
+/* flag bits for InitMaterializedSRF() */
+#define MAT_SRF_USE_EXPECTED_DESC	0x01	/* use expectedDesc as tupdesc. */
+#define MAT_SRF_BLESS				0x02	/* "Bless" a tuple descriptor with
+											 * BlessTupleDesc(). */
+extern void InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags);
+
 extern FuncCallContext *init_MultiFuncCall(PG_FUNCTION_ARGS);
 extern FuncCallContext *per_MultiFuncCall(PG_FUNCTION_ARGS);
 extern void end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext *funcctx);

@@ -1250,6 +1250,12 @@ PostmasterMain(int argc, char *argv[])
 	InitializeMaxBackends();
 
 	/*
+	 * Now that modules have been loaded, we can process any custom resource
+	 * managers specified in the wal_consistency_checking GUC.
+	 */
+	InitializeWalConsistencyChecking();
+
+	/*
 	 * Set up shared memory and semaphores.
 	 */
 	reset_shared();

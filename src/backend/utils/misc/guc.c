@@ -252,6 +252,11 @@ static double defunct_double = 0;
 static ConfigVariable *ProcessConfigFileInternal(GucContext context,
 												 bool applySettings, int elevel);
 
+/*
+ * Track whether there were any deferred checks for custom resource managers
+ * specified in wal_consistency_checking.
+ */
+static bool check_wal_consistency_checking_deferred = false;
 
 /*
  * Options for enum values defined in this module.
@@ -5843,6 +5848,36 @@ InitializeGUCOptions(void)
 	 * environment variables.  Process those settings.
 	 */
 	InitializeGUCOptionsFromEnvironment();
+}
+
+/*
+ * If any custom resource managers were specified in the
+ * wal_consistency_checking GUC, processing was deferred. Now that
+ * shared_preload_libraries have been loaded, process wal_consistency_checking
+ * again.
+ */
+void
+InitializeWalConsistencyChecking(void)
+{
+	Assert(process_shared_preload_libraries_done);
+
+	if (check_wal_consistency_checking_deferred)
+	{
+		struct config_generic *guc;
+
+		guc = find_option("wal_consistency_checking", false, false, ERROR);
+
+		check_wal_consistency_checking_deferred = false;
+
+		set_config_option("wal_consistency_checking",
+						  wal_consistency_checking_string,
+						  PGC_POSTMASTER, guc->source,
+						  GUC_ACTION_SET, true, ERROR, false);
+
+		/* checking should not be deferred again */
+		Assert(!check_wal_consistency_checking_deferred);
+	}
+
 }
 
 /*
@@ -12084,13 +12119,13 @@ check_wal_consistency_checking(char **newval, void **extra, GucSource source)
 	{
 		char	   *tok = (char *) lfirst(l);
 		bool		found = false;
-		RmgrId		rmid;
+		int			rmid;
 
 		/* Check for 'all'. */
 		if (pg_strcasecmp(tok, "all") == 0)
 		{
 			for (rmid = 0; rmid <= RM_MAX_ID; rmid++)
-				if (RmgrTable[rmid].rm_mask != NULL)
+				if (RmgrIdExists(rmid) && GetRmgr(rmid).rm_mask != NULL)
 					newwalconsistency[rmid] = true;
 			found = true;
 		}
@@ -12102,8 +12137,8 @@ check_wal_consistency_checking(char **newval, void **extra, GucSource source)
 			 */
 			for (rmid = 0; rmid <= RM_MAX_ID; rmid++)
 			{
-				if (pg_strcasecmp(tok, RmgrTable[rmid].rm_name) == 0 &&
-					RmgrTable[rmid].rm_mask != NULL)
+				if (RmgrIdExists(rmid) && GetRmgr(rmid).rm_mask != NULL &&
+					pg_strcasecmp(tok, GetRmgr(rmid).rm_name) == 0)
 				{
 					newwalconsistency[rmid] = true;
 					found = true;
@@ -12114,10 +12149,21 @@ check_wal_consistency_checking(char **newval, void **extra, GucSource source)
 		/* If a valid resource manager is found, check for the next one. */
 		if (!found)
 		{
-			GUC_check_errdetail("Unrecognized key word: \"%s\".", tok);
-			pfree(rawstring);
-			list_free(elemlist);
-			return false;
+			/*
+			 * Perhaps it's a custom resource manager. If so, defer checking
+			 * until InitializeWalConsistencyChecking().
+			 */
+			if (!process_shared_preload_libraries_done)
+			{
+				check_wal_consistency_checking_deferred = true;
+			}
+			else
+			{
+				GUC_check_errdetail("Unrecognized key word: \"%s\".", tok);
+				pfree(rawstring);
+				list_free(elemlist);
+				return false;
+			}
 		}
 	}
 
@@ -12133,7 +12179,20 @@ check_wal_consistency_checking(char **newval, void **extra, GucSource source)
 static void
 assign_wal_consistency_checking(const char *newval, void *extra)
 {
-	wal_consistency_checking = (bool *) extra;
+	/*
+	 * If some checks were deferred, it's possible that the checks will fail
+	 * later during InitializeWalConsistencyChecking(). But in that case, the
+	 * postmaster will exit anyway, so it's safe to proceed with the
+	 * assignment.
+	 *
+	 * Any built-in resource managers specified are assigned immediately,
+	 * which affects WAL created before shared_preload_libraries are
+	 * processed. Any custom resource managers specified won't be assigned
+	 * until after shared_preload_libraries are processed, but that's OK
+	 * because WAL for a custom resource manager can't be written before the
+	 * module is loaded anyway.
+	 */
+	wal_consistency_checking = extra;
 }
 
 static bool

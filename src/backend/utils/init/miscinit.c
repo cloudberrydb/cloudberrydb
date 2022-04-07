@@ -1705,6 +1705,7 @@ char	   *local_preload_libraries_string = NULL;
 
 /* Flag telling that we are loading shared_preload_libraries */
 bool		process_shared_preload_libraries_in_progress = false;
+bool		process_shared_preload_libraries_done = false;
 
 /*
  * load the shared libraries listed in 'libraries'
@@ -1780,6 +1781,7 @@ process_shared_preload_libraries(void)
 #endif
 
 	process_shared_preload_libraries_in_progress = false;
+	process_shared_preload_libraries_done = true;
 }
 
 /*
