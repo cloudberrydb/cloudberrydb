@@ -624,6 +624,8 @@ extern int  gp_predicate_pushdown_sample_rows;
 
 extern bool gp_log_endpoints;
 
+extern bool gp_allow_date_field_width_5digits;
+
 typedef enum
 {
 	INDEX_CHECK_NONE,
