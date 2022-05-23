@@ -9,15 +9,19 @@
 -- Let FTS detect/declare failure sooner 
 -- start_ignore
 alter system set gp_fts_probe_interval to 10;
+-- Because after RESET, it still takes a little while for the primary
+-- to restart, and potentially makes FTS think it's in "recovery not
+-- in progress" stage and promote the mirror, we would need the FTS
+-- to make that decision a bit less frequently.
+alter system set gp_fts_probe_retries to 15;
 select pg_reload_conf();
 -- end_ignore
 
--- Let the background writer sleep 27 seconds to delay the resetting.
--- This number is selected because there's a slight chance that FTS senses 
--- "recovery not in progress" after its 5-second retry window and promote 
--- the mirror. So just put the end of the sleep perid away from the end 
--- of the retry windows.
-select gp_inject_fault('fault_in_background_writer_quickdie', 'sleep', '', '', '', 1, 1, 27, dbid) 
+-- Let the background writer sleep 17 seconds to delay the resetting.
+-- This number is selected to be larger than the 15-second retry window
+-- which makes a meaningful test, meanwhile reduce the chance that FTS sees
+-- a "recovery not in progress" primary as much as possible.
+select gp_inject_fault('fault_in_background_writer_quickdie', 'sleep', '', '', '', 1, 1, 17, dbid) 
 from gp_segment_configuration where role = 'p' and content = 0;
 
 -- Do not let the postmaster send SIGKILL to the bgwriter
@@ -54,6 +58,7 @@ select pg_sleep(30);
 -- start_ignore
 -- restore parameters
 alter system reset gp_fts_probe_interval;
+alter system reset gp_fts_probe_retries;
 select pg_reload_conf();
 -- end_ignore
 
