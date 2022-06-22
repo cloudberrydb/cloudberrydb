@@ -23,31 +23,35 @@ create index bfv_tab1_idx1 on bfv_tab1 using btree(unique1);
 -- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from bfv_tab1, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE bfv_tab1.unique1 = v.i and bfv_tab1.stringu1 = v.j;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.06..279.08 rows=14 width=280)
-   ->  Hash Join  (cost=0.06..278.81 rows=5 width=280)
-         Hash Cond: ((bfv_tab1.unique1 = "*VALUES*".column1) AND (bfv_tab1.stringu1 = ("*VALUES*".column2)::text))
-         ->  Seq Scan on bfv_tab1  (cost=0.00..219.00 rows=3967 width=244)
-         ->  Hash  (cost=0.03..0.03 rows=1 width=36)
-               ->  Values Scan on "*VALUES*"  (cost=0.00..0.03 rows=1 width=36)
- Optimizer: Postgres query optimizer
-(7 rows)
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..12.00 rows=1 width=256)
+   ->  Nested Loop  (cost=0.00..12.00 rows=1 width=256)
+         Join Filter: true
+         ->  Result  (cost=0.00..0.00 rows=1 width=12)
+               ->  Values Scan on "Values"  (cost=0.00..0.00 rows=1 width=12)
+         ->  Index Scan using bfv_tab1_idx1 on bfv_tab1  (cost=0.00..12.00 rows=1 width=244)
+               Index Cond: (unique1 = "Values".column1)
+               Filter: (stringu1 = "Values".column2)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
 
 set gp_enable_relsize_collection=on;
 -- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from bfv_tab1, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE bfv_tab1.unique1 = v.i and bfv_tab1.stringu1 = v.j;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.01..0.15 rows=4 width=280)
-   ->  Hash Join  (cost=0.01..0.09 rows=2 width=280)
-         Hash Cond: (("*VALUES*".column1 = bfv_tab1.unique1) AND (("*VALUES*".column2)::text = bfv_tab1.stringu1))
-         ->  Values Scan on "*VALUES*"  (cost=0.00..0.03 rows=1 width=36)
-         ->  Hash  (cost=0.00..0.00 rows=1 width=244)
-               ->  Seq Scan on bfv_tab1  (cost=0.00..0.00 rows=1 width=244)
- Optimizer: Postgres query optimizer
-(7 rows)
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..12.00 rows=1 width=256)
+   ->  Nested Loop  (cost=0.00..12.00 rows=1 width=256)
+         Join Filter: true
+         ->  Result  (cost=0.00..0.00 rows=1 width=12)
+               ->  Values Scan on "Values"  (cost=0.00..0.00 rows=1 width=12)
+         ->  Index Scan using bfv_tab1_idx1 on bfv_tab1  (cost=0.00..12.00 rows=1 width=244)
+               Index Cond: (unique1 = "Values".column1)
+               Filter: (stringu1 = "Values".column2)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
 
 -- Test that we do not choose to perform an index scan if indisvalid=false.
 create table bfv_tab1_with_invalid_index (like bfv_tab1 including indexes);
