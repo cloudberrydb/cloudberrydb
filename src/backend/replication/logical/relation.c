@@ -313,6 +313,13 @@ logicalrep_rel_open(LogicalRepRelId remoteid, LOCKMODE lockmode)
 		int			i;
 		Bitmapset  *missingatts;
 
+		/* Release the no-longer-useful attrmap, if any. */
+		if (entry->attrmap)
+		{
+			pfree(entry->attrmap);
+			entry->attrmap = NULL;
+		}
+
 		/* Try to find and lock the relation by name. */
 		relid = RangeVarGetRelid(makeRangeVar(remoterel->nspname,
 											  remoterel->relname, -1),
