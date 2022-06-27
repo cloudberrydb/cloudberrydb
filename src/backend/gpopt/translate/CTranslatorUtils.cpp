@@ -2504,7 +2504,9 @@ CTranslatorUtils::IsCompositeConst(CMemoryPool *mp, CMDAccessor *md_accessor,
 								   const RangeTblFunction *rtfunc)
 {
 	if (!IsA(rtfunc->funcexpr, Const))
+	{
 		return false;
+	}
 
 	Const *constExpr = (Const *) rtfunc->funcexpr;
 
