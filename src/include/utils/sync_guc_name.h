@@ -134,7 +134,6 @@
 		"pljava_release_lingering_savepoints",
 		"pljava_statement_cache_size",
 		"pljava_vmoptions",
-		"replacement_sort_tuples",
 		"row_security",
 		"search_path",
 		"statement_mem",
