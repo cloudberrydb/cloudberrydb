@@ -182,10 +182,7 @@ ao_vacuum_rel_pre_cleanup(Relation onerel, VacuumParams *params, BufferAccessStr
 					relname)));
 
 	/* 
-	 * Truncate AWAITING_DROP segments that are no longer visible to anyone
-	 * to 0 bytes. We cannot actually remove them yet, because there might
-	 * still be index entries pointing to them. We cannot recycle the segments
-	 * until the indexes have been vacuumed.
+	 * Recycle AWAITING_DROP segments that are no longer visible to anyone.
 	 *
 	 * This is optional. We'll drop old AWAITING_DROP segments in the
 	 * post-cleanup phase, too, but doing this first helps to reclaim some
@@ -528,7 +525,7 @@ vacuum_appendonly_index(Relation indexRelation,
 						BufferAccessStrategy bstrategy)
 {
 	IndexBulkDeleteResult *stats;
-	IndexVacuumInfo ivinfo;
+	IndexVacuumInfo ivinfo = {0};
 	PGRUsage	ru0;
 
 	Assert(RelationIsValid(indexRelation));
@@ -686,12 +683,18 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
  *	scan_index() -- scan one index relation to update pg_class statistics.
  *
  * We use this when we have no deletions to do.
+ * 
+ * We used to pass an argument num_tuples with value of table->reltuples to
+ * ivinfo.num_heap_tuples, now with the new VACUUM strategy, we removed it
+ * since we cannot get table->reltuples in the calling context.
+ * Therefore, ivinfo.num_heap_tuples is not an accurate value, so we need
+ * to set estimated_count to true.
  */
 void
 scan_index(Relation indrel, Relation aorel, int elevel, BufferAccessStrategy vac_strategy)
 {
 	IndexBulkDeleteResult *stats;
-	IndexVacuumInfo ivinfo;
+	IndexVacuumInfo ivinfo = {0};
 	PGRUsage	ru0;
 
 	pg_rusage_init(&ru0);

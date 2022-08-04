@@ -15,10 +15,6 @@ SELECT COUNT(*) FROM uaocs_full_stats;
 VACUUM FULL uaocs_full_stats;
 SELECT COUNT(*) FROM uaocs_full_stats;
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_full_stats';
--- New strategy of VACUUM AO/CO was introduced by PR #13255 for performance enhancement.
--- Index dead tuples will not always be cleaned up completely after VACUUM, resulting
--- index stats pg_class->reltuples will not always be accurate. So ignore the stats check
--- for reltuples to coordinate with the new behavior.
--- start_ignore
+-- Compaction is always triggered in VACUUM FULL, expecting
+-- reltuples of both table and index are equal.
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uaocs_full_stats_index';
--- end_ignore

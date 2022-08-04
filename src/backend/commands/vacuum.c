@@ -2666,18 +2666,12 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 * "analyze" will not get done on the toast table.  This is good, because
 	 * the toaster always uses hardcoded index access and statistics are
 	 * totally unimportant for toast relations.
+	 * 
+	 * Note, for GPDB, set recursing to true for auxilary tables to avoid
+	 * being dispatched vacuum separately.
 	 */
 	if (toast_relid != InvalidOid)
-		vacuum_rel(toast_relid, NULL, params, false);
-
-	/*
-	 * If an AO/CO table is empty on a segment,
-	 *
-	 * Similar to toast, a VacuumStmt object for each AO auxiliary relation is
-	 * constructed and dispatched separately by the QD, when vacuuming the
-	 * base AO relation.  A backend executing dispatched VacuumStmt
-	 * (GP_ROLE_EXECUTE), therefore, should not execute this block of code.
-	 */
+		vacuum_rel(toast_relid, NULL, params, true);
 
 	/* do the same for an AO segments table, if any */
 	if (aoseg_relid != InvalidOid)
