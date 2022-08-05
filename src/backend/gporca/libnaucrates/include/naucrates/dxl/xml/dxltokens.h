@@ -364,6 +364,7 @@ enum Edxltoken
 	EdxltokenTupleOidColId,
 	EdxltokenUpdatePreservesOids,
 	EdxltokenInputSorted,
+	EdxltokenSplitUpdate,
 
 	EdxltokenInputSegments,
 	EdxltokenOutputSegments,
