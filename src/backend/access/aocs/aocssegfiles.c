@@ -88,10 +88,6 @@ InsertInitialAOCSFileSegInfo(Relation prel, int32 segno, int32 nvp, Oid segrelid
 
 	segrel = heap_open(segrelid, RowExclusiveLock);
 
-	InsertFastSequenceEntry(segrelid,
-							(int64) segno,
-							0);
-
 	values[Anum_pg_aocs_segno - 1] = Int32GetDatum(segno);
 	values[Anum_pg_aocs_vpinfo - 1] = PointerGetDatum(vpinfo);
 	values[Anum_pg_aocs_tupcount - 1] = Int64GetDatum(0);

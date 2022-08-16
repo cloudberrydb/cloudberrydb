@@ -409,29 +409,6 @@ open_next_scan_seg(AOCSScanDesc scan)
 				 */
 				if (scan->blockDirectory)
 				{
-					/*
-					 * if building the block directory, we need to make sure
-					 * the sequence starts higher than our highest tuple's
-					 * rownum.  In the case of upgraded blocks, the highest
-					 * tuple will have tupCount as its row num for non-upgrade
-					 * cases, which use the sequence, it will be enough to
-					 * start off the end of the sequence; note that this is
-					 * not ideal -- if we are at least curSegInfo->tupcount +
-					 * 1 then we don't even need to update the sequence value
-					 */
-					int64		firstSequence;
-					Oid         segrelid;
-					GetAppendOnlyEntryAuxOids(RelationGetRelid(scan->rs_base.rs_rd),
-                                              scan->appendOnlyMetaDataSnapshot,
-                                              &segrelid, NULL, NULL,
-                                              NULL, NULL);
-
-					firstSequence =
-						GetFastSequences(segrelid,
-										 curSegInfo->segno,
-										 curSegInfo->total_tupcount + 1,
-										 NUM_FAST_SEQUENCES);
-
 					AppendOnlyBlockDirectory_Init_forInsert(scan->blockDirectory,
 															scan->appendOnlyMetaDataSnapshot,
 															(FileSegInfo *) curSegInfo,
@@ -440,10 +417,6 @@ open_next_scan_seg(AOCSScanDesc scan)
 															curSegInfo->segno,
 															scan->columnScanInfo.relationTupleDesc->natts,
 															true);
-
-					InsertFastSequenceEntry(segrelid,
-											curSegInfo->segno,
-											firstSequence);
 				}
 
 				open_all_datumstreamread_segfiles(scan->rs_base.rs_rd,

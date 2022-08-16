@@ -305,27 +305,6 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 			/* Initialize the block directory for inserts if needed. */
 			if (scan->blockDirectory)
 			{
-				Oid segrelid;
-
-				GetAppendOnlyEntryAuxOids(reln->rd_id, NULL,
-						&segrelid, NULL, NULL, NULL, NULL);
-
-				/*
-				 * if building the block directory, we need to make sure the
-				 * sequence starts higher than our highest tuple's rownum.  In
-				 * the case of upgraded blocks, the highest tuple will have
-				 * tupCount as its row num for non-upgrade cases, which use
-				 * the sequence, it will be enough to start off the end of the
-				 * sequence; note that this is not ideal -- if we are at least
-				 * curSegInfo->tupcount + 1 then we don't even need to update
-				 * the sequence value.
-				 */
-				int64		firstSequence =
-				GetFastSequences(segrelid,
-								 segno,
-								 fsinfo->total_tupcount + 1,
-								 NUM_FAST_SEQUENCES);
-
 				AppendOnlyBlockDirectory_Init_forInsert(scan->blockDirectory,
 														scan->appendOnlyMetaDataSnapshot,
 														fsinfo,
@@ -334,10 +313,6 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 														segno,	/* segno */
 														1,	/* columnGroupNo */
 														false);
-
-				InsertFastSequenceEntry(segrelid,
-										segno,
-										firstSequence);
 			}
 
 			finished_all_files = false;
