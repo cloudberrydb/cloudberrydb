@@ -110,10 +110,6 @@ InsertInitialSegnoEntry(Relation parentrel, int segno)
 
 	GetAppendOnlyEntryAuxOids(parentrel->rd_id, NULL, &segrelid, NULL, NULL, NULL, NULL);
 
-	InsertFastSequenceEntry(segrelid,
-							(int64) segno,
-							0);
-
 	pg_aoseg_rel = heap_open(segrelid, RowExclusiveLock);
 
 	pg_aoseg_dsc = RelationGetDescr(pg_aoseg_rel);
