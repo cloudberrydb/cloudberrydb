@@ -229,14 +229,13 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	TupleDesc	tupDesc;
 	TupleTableSlot *slot;
 	int			compact_segno;
-	int64		movedTupleCount = 0;
 	ResultRelInfo *resultRelInfo;
 	MemTupleBinding *mt_bind;
 	EState	   *estate;
-	AOTupleId  *aoTupleId;
-	ItemPointerData otid;
 	int64		tupleCount = 0;
 	int64		tuplePerPage = INT_MAX;
+	ItemPointerData otid;
+	AOTupleId  *aoTupleId;
 
 	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
 	Assert(RelationIsAoCols(aorel));
@@ -294,21 +293,19 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	{
 		CHECK_FOR_INTERRUPTS();
 
+		/*
+ 		 * AppendOnlyVisimap_IsVisible() has already been called in aocs_getnext().
+		 */
+		Assert(AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap,
+										   (AOTupleId *) &slot->tts_tid));
+
 		aoTupleId = (AOTupleId *) &slot->tts_tid;
 		otid = slot->tts_tid;
-		if (AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap, aoTupleId))
-		{
-			AOCSMoveTuple(slot,
-						  insertDesc,
-						  resultRelInfo,
-						  estate);
-			movedTupleCount++;
-		}
-		else
-		{
-			/* Tuple is invisible and needs to be dropped */
-			AppendOnlyThrowAwayTuple(aorel, slot, mt_bind);
-		}
+
+		AOCSMoveTuple(slot,
+					  insertDesc,
+					  resultRelInfo,
+					  estate);
 
 		if (aocs_compaction_delete_hook)
 			(*aocs_compaction_delete_hook) (aorel, &otid);
@@ -340,7 +337,7 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	elogif(Debug_appendonly_print_compaction, LOG,
 		   "Finished compaction: "
 		   "AO segfile %d, relation %s, moved tuple count " INT64_FORMAT,
-		   compact_segno, relname, movedTupleCount);
+		   compact_segno, relname, tupleCount);
 
 	AppendOnlyVisimap_Finish(&visiMap, NoLock);
 
