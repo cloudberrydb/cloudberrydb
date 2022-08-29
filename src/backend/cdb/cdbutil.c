@@ -99,6 +99,8 @@ static HTAB *hostPrimaryCountHashTableInit(void);
 
 static int nextQEIdentifer(CdbComponentDatabases *cdbs);
 
+Datum gp_get_suboverflowed_backends(PG_FUNCTION_ARGS);
+
 static HTAB *segment_ip_cache_htab = NULL;
 
 int numsegmentsFromQD = -1;
@@ -1948,6 +1950,33 @@ AvoidCorefileGeneration()
 			 save_errno);
 	}
 #endif
+}
+
+PG_FUNCTION_INFO_V1(gp_get_suboverflowed_backends);
+/*
+ * Find the backends where subtransaction overflowed.
+ */
+Datum
+gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
+{
+	int 			i;
+	ArrayBuildState *astate = NULL;
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+	for (i = 0; i < ProcGlobal->allProcCount; i++)
+	{
+		if (ProcGlobal->allPgXact[i].overflowed)
+			astate = accumArrayResult(astate,
+									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
+									  false, INT4OID, CurrentMemoryContext);
+	}
+	LWLockRelease(ProcArrayLock);
+
+	if (astate)
+		PG_RETURN_DATUM(makeArrayResult(astate,
+											CurrentMemoryContext));
+	else
+		PG_RETURN_NULL();
 }
 
 #else 
@@ -4137,6 +4166,33 @@ AvoidCorefileGeneration()
 			 save_errno);
 	}
 #endif
+}
+
+PG_FUNCTION_INFO_V1(gp_get_suboverflowed_backends);
+/*
+ * Find the backends where subtransaction overflowed.
+ */
+Datum
+gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
+{
+	int 			i;
+	ArrayBuildState *astate = NULL;
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+	for (i = 0; i < ProcGlobal->allProcCount; i++)
+	{
+		if (ProcGlobal->allPgXact[i].overflowed)
+			astate = accumArrayResult(astate,
+									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
+									  false, INT4OID, CurrentMemoryContext);
+	}
+	LWLockRelease(ProcArrayLock);
+
+	if (astate)
+		PG_RETURN_DATUM(makeArrayResult(astate,
+											CurrentMemoryContext));
+	else
+		PG_RETURN_NULL();
 }
 
 #endif /* USE_INTERNAL_FTS */
