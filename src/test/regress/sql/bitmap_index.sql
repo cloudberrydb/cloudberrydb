@@ -391,3 +391,15 @@ SET enable_bitmapscan = OFF;
 explain (analyze, verbose) select * from test_bmsparse where type > 500;
 
 DROP TABLE test_bmsparse;
+
+-- test bitmap index scan when using NULL array-condition as index key
+create table foo(a int);
+create index foo_i on foo using bitmap(a);
+explain (verbose on, costs off) select * from foo where a = any(null::int[]);
+select * from foo where a = any(null::int[]);
+
+insert into foo values(1);
+select * from foo where a = 1 and a = any(null::int[]);
+select * from foo where a = 1 or a = any(null::int[]);
+
+drop table foo;
