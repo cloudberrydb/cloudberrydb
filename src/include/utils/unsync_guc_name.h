@@ -326,8 +326,6 @@
 		"lc_collate",
 		"lc_ctype",
 		"lc_messages",
-		"lc_monetary",
-		"lc_time",
 		"listen_addresses",
 		"local_preload_libraries",
 		"lock_timeout",
