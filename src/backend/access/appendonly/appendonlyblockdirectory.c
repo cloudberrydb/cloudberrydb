@@ -910,14 +910,7 @@ extract_minipage(AppendOnlyBlockDirectory *blockDirectory,
 {
 	Datum	   *values = blockDirectory->values;
 	bool	   *nulls = blockDirectory->nulls;
-	MinipagePerColumnGroup *minipageInfo =
-	&blockDirectory->minipages[columnGroupNo];
-	FileSegInfo *fsInfo = blockDirectory->currentSegmentFileInfo;
-	int64		eof;
-	int			start,
-				end,
-				mid = 0;
-	bool		found = false;
+	MinipagePerColumnGroup *minipageInfo = &blockDirectory->minipages[columnGroupNo];
 
 	heap_deform_tuple(tuple, tupleDesc, values, nulls);
 
@@ -932,42 +925,6 @@ extract_minipage(AppendOnlyBlockDirectory *blockDirectory,
 					  nulls[Anum_pg_aoblkdir_minipage - 1]);
 
 	ItemPointerCopy(&tuple->t_self, &minipageInfo->tupleTid);
-
-	/*
-	 * When crashes during inserts, or cancellation during inserts, there are
-	 * out-of-date minipage entries in the block directory. We reset those
-	 * entries here.
-	 */
-	Assert(fsInfo != NULL);
-	if (!blockDirectory->isAOCol)
-		eof = fsInfo->eof;
-	else
-		eof = ((AOCSFileSegInfo *) fsInfo)->vpinfo.entry[columnGroupNo].eof;
-
-	start = 0;
-	end = minipageInfo->numMinipageEntries - 1;
-	while (start <= end)
-	{
-		mid = (end - start + 1) / 2 + start;
-		if (minipageInfo->minipage->entry[mid].fileOffset > eof)
-			end = mid - 1;
-		else if (minipageInfo->minipage->entry[mid].fileOffset < eof)
-			start = mid + 1;
-		else
-		{
-			found = true;
-			break;
-		}
-	}
-
-	minipageInfo->numMinipageEntries = 0;
-	if (found)
-		minipageInfo->numMinipageEntries = mid;
-	else if (start > 0)
-	{
-		minipageInfo->numMinipageEntries = start;
-		Assert(minipageInfo->minipage->entry[start - 1].fileOffset < eof);
-	}
 }
 
 /*
