@@ -61,6 +61,7 @@ typedef struct AppendOnlyDMLState
 	AppendOnlyInsertDesc	insertDesc;
 	dlist_head				head; // Head of multiple segment files insertion list.
 	AppendOnlyDeleteDesc	deleteDesc;
+	AppendOnlyUniqueCheckDesc uniqueCheckDesc;
 } AppendOnlyDMLState;
 
 
@@ -160,6 +161,7 @@ enter_dml_state(const Oid relationOid)
 
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+	state->uniqueCheckDesc = NULL;
 	dlist_init(&state->head);
 
 	Assert(!found);
@@ -268,6 +270,15 @@ appendonly_dml_finish(Relation relation, CmdType operation)
 		appendonly_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
 	}
+
+	if (state->uniqueCheckDesc)
+	{
+		AppendOnlyBlockDirectory_End_forSearch(state->uniqueCheckDesc->blockDirectory);
+		pfree(state->uniqueCheckDesc->blockDirectory);
+		state->uniqueCheckDesc->blockDirectory = NULL;
+		pfree(state->uniqueCheckDesc);
+		state->uniqueCheckDesc = NULL;
+	}
 }
 
 /*
@@ -300,8 +311,29 @@ get_insert_descriptor(const Relation relation)
 	{
 		List	*segments = NIL;
 		MemoryContext oldcxt;
+		AppendOnlyInsertDesc insertDesc;
 
 		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
+		insertDesc = appendonly_insert_init(relation,
+											ChooseSegnoForWrite(relation),
+											num_rows);
+		/*
+		 * If we have a unique index, insert a placeholder block directory row
+		 * to entertain uniqueness checks from concurrent inserts. See
+		 * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
+		 */
+		if (relationHasUniqueIndex(relation))
+		{
+			int64 firstRowNum = insertDesc->lastSequence + 1;
+			BufferedAppend *bufferedAppend = &insertDesc->storageWrite.bufferedAppend;
+			int64 fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
+
+			AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
+													   firstRowNum,
+													   fileOffset,
+													   0);
+		}
+		state->insertDesc = insertDesc;
 		state->insertDesc = appendonly_insert_init(relation,
 												   ChooseSegnoForWrite(relation));
 
@@ -376,6 +408,28 @@ get_delete_descriptor(const Relation relation, bool forUpdate)
 	return state->deleteDesc;
 }
 
+static AppendOnlyUniqueCheckDesc
+get_or_create_unique_check_desc(Relation relation, Snapshot snapshot)
+{
+	AppendOnlyDMLState *state = find_dml_state(RelationGetRelid(relation));
+
+	if (!state->uniqueCheckDesc)
+	{
+		MemoryContext oldcxt;
+		AppendOnlyUniqueCheckDesc uniqueCheckDesc;
+
+		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
+		uniqueCheckDesc = palloc0(sizeof(AppendOnlyUniqueCheckDescData));
+		uniqueCheckDesc->blockDirectory = palloc0(sizeof(AppendOnlyBlockDirectory));
+		AppendOnlyBlockDirectory_Init_forSearch(uniqueCheckDesc->blockDirectory,
+												snapshot, NULL, -1, relation,
+												1, false, NULL);
+		state->uniqueCheckDesc = uniqueCheckDesc;
+		MemoryContextSwitchTo(oldcxt);
+	}
+
+	return state->uniqueCheckDesc;
+}
 
 /* ------------------------------------------------------------------------
  * Slot related callbacks for appendonly AM
@@ -547,7 +601,87 @@ appendonly_index_fetch_tuple(struct IndexFetchTableData *scan,
 
 	appendonly_fetch(aoscan->aofetch, (AOTupleId *) tid, slot);
 
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/* Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff there is another tuple for the tid, so that we can prompt
+	 * the caller to call index_fetch_tuple() again for the same tid.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (call_again)
+		*call_again = false;
+
 	return !TupIsNull(slot);
+}
+
+/*
+ * Check if a visible tuple exists given the tid and a snapshot. This is
+ * currently used to determine uniqueness checks.
+ *
+ * We determine existence simply by checking if a *visible* block directory
+ * entry covers the given tid.
+ *
+ * There is no need to fetch the tuple (we actually can't reliably do so as
+ * we might encounter a placeholder row in the block directory)
+ */
+static bool
+appendonly_index_fetch_tuple_exists(Relation rel,
+									ItemPointer tid,
+									Snapshot snapshot,
+									bool *all_dead)
+{
+	AppendOnlyUniqueCheckDesc 	uniqueCheckDesc;
+	AppendOnlyBlockDirectory 	*blockDirectory;
+	AOTupleId 					*aoTupleId = (AOTupleId *) tid;
+
+#ifdef USE_ASSERT_CHECKING
+	int			segmentFileNum = AOTupleIdGet_segmentFileNum(aoTupleId);
+	int64		rowNum = AOTupleIdGet_rowNum(aoTupleId);
+
+	Assert(segmentFileNum != InvalidFileSegNumber);
+	Assert(rowNum != InvalidAORowNum);
+	/*
+	 * Since this can only be called in the context of a unique index check, the
+	 * snapshots that are supplied can only be non-MVCC snapshots: SELF and DIRTY.
+	 */
+	Assert(snapshot->snapshot_type == SNAPSHOT_SELF ||
+		   snapshot->snapshot_type == SNAPSHOT_DIRTY);
+#endif
+
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/*
+	 * FIXME: for when we want CREATE UNIQUE INDEX CONCURRENTLY to work
+	 * Unique constraint violation checks with SNAPSHOT_SELF are currently
+	 * required to support CREATE UNIQUE INDEX CONCURRENTLY. Currently, the
+	 * sole placeholder row inserted at first insert might not be visible to
+	 * the snapshot, if it was already updated by its actual first row. So,
+	 * we would need to flush a placeholder row at the beginning of each new
+	 * in-memory minipage. Currently, CREATE INDEX CONCURRENTLY isn't
+	 * supported, so we assume such a check satisfies SNAPSHOT_SELF.
+	 */
+	if (snapshot->snapshot_type == SNAPSHOT_SELF)
+		return true;
+
+	uniqueCheckDesc = get_or_create_unique_check_desc(rel, snapshot);
+	blockDirectory = uniqueCheckDesc->blockDirectory;
+	return AppendOnlyBlockDirectory_CoversTuple(blockDirectory, aoTupleId);
 }
 
 
@@ -2110,6 +2244,7 @@ static const TableAmRoutine ao_row_methods = {
 	.index_fetch_reset = appendonly_index_fetch_reset,
 	.index_fetch_end = appendonly_index_fetch_end,
 	.index_fetch_tuple = appendonly_index_fetch_tuple,
+	.index_fetch_tuple_exists = appendonly_index_fetch_tuple_exists,
 
 	.tuple_insert = appendonly_tuple_insert,
 	.tuple_insert_speculative = appendonly_tuple_insert_speculative,

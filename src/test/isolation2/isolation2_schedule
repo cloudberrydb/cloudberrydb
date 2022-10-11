@@ -89,7 +89,8 @@ test: distributedlog-bug
 test: invalidated_toast_index
 test: distributed_snapshot
 test: gp_collation
-test: ao_upgrade ao_blkdir
+test: ao_upgrade
+test: ao_blkdir
 test: bitmap_index_concurrent
 test: bitmap_index_crash
 test: bitmap_update_words_backup_block
@@ -291,3 +292,7 @@ test: check_gxid
 # test if GUC is synchronized from the QD to QEs.
 test: sync_guc
 
+
+# Tests for unique indexes on AO/CO tables (uses fault injector)
+test: ao_unique_index
+test: aocs_unique_index
