@@ -207,6 +207,8 @@ CreateExecutorState(void)
 	estate->useMppParallelMode = false;
 	estate->eliminateAliens = false;
 
+	estate->gp_bypass_unique_check = false;
+
 	/*
 	 * Return the executor state structure
 	 */
