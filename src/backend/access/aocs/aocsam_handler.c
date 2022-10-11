@@ -90,6 +90,7 @@ typedef struct AOCODMLState
 	AOCSInsertDesc	insertDesc;
 	dlist_head		head; // Head of multiple segment files insertion list.
 	AOCSDeleteDesc	deleteDesc;
+	AOCSUniqueCheckDesc uniqueCheckDesc;
 } AOCODMLState;
 
 static void reset_state_cb(void *arg);
@@ -189,6 +190,7 @@ enter_dml_state(const Oid relationOid)
 
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+	state->uniqueCheckDesc = NULL;
 	dlist_init(&state->head);
 
 	Assert(!found);
@@ -298,6 +300,15 @@ aoco_dml_finish(Relation relation, CmdType operation)
 		state->insertDesc = NULL;
 	}
 
+	if (state->uniqueCheckDesc)
+	{
+		AppendOnlyBlockDirectory_End_forSearch(state->uniqueCheckDesc->blockDirectory);
+		pfree(state->uniqueCheckDesc->blockDirectory);
+		state->uniqueCheckDesc->blockDirectory = NULL;
+		pfree(state->uniqueCheckDesc);
+		state->uniqueCheckDesc = NULL;
+	}
+
 }
 
 /*
@@ -315,8 +326,50 @@ get_insert_descriptor(const Relation relation)
 	{
 		List	*segments = NIL;
 		MemoryContext oldcxt;
+		AOCSInsertDesc insertDesc;
 
 		oldcxt = MemoryContextSwitchTo(aocoLocal.stateCxt);
+		insertDesc = aocs_insert_init(relation,
+									  ChooseSegnoForWrite(relation),
+									  num_rows);
+		/*
+		 * If we have a unique index, insert a placeholder block directory row to
+		 * entertain uniqueness checks from concurrent inserts. See
+		 * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
+		 *
+		 * Note: For AOCO tables, we need to only insert a placeholder block
+		 * directory row for the 1st non-dropped column. This is because
+		 * during a uniqueness check, only the first non-dropped column's block
+		 * directory entry is consulted. (See AppendOnlyBlockDirectory_CoversTuple())
+		 */
+		if (relationHasUniqueIndex(relation))
+		{
+			int 				firstNonDroppedColumn = -1;
+			int64 				firstRowNum;
+			DatumStreamWrite 	*dsw;
+			BufferedAppend 		*bufferedAppend;
+			int64 				fileOffset;
+
+			for(int i = 0; i < relation->rd_att->natts; i++)
+			{
+				if (!relation->rd_att->attrs[i].attisdropped) {
+					firstNonDroppedColumn = i;
+					break;
+				}
+			}
+			Assert(firstNonDroppedColumn != -1);
+
+			dsw = insertDesc->ds[firstNonDroppedColumn];
+			firstRowNum = dsw->blockFirstRowNum;
+			bufferedAppend = &dsw->ao_write.bufferedAppend;
+			fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
+
+			AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
+													   firstRowNum,
+													   fileOffset,
+													   firstNonDroppedColumn);
+		}
+		state->insertDesc = insertDesc;
 		state->insertDesc = aocs_insert_init(relation,
 											 ChooseSegnoForWrite(relation));
 		dlist_init(&state->head);
@@ -390,6 +443,29 @@ get_delete_descriptor(const Relation relation, bool forUpdate)
 	}
 
 	return state->deleteDesc;
+}
+
+static AOCSUniqueCheckDesc
+get_or_create_unique_check_desc(Relation relation, Snapshot snapshot)
+{
+	AOCODMLState *state = find_dml_state(RelationGetRelid(relation));
+
+	if (!state->uniqueCheckDesc)
+	{
+		MemoryContext oldcxt;
+		AOCSUniqueCheckDesc uniqueCheckDesc;
+
+		oldcxt = MemoryContextSwitchTo(aocoLocal.stateCxt);
+		uniqueCheckDesc = palloc0(sizeof(AOCSUniqueCheckDescData));
+		uniqueCheckDesc->blockDirectory = palloc0(sizeof(AppendOnlyBlockDirectory));
+		AppendOnlyBlockDirectory_Init_forSearch(uniqueCheckDesc->blockDirectory,
+												snapshot, NULL, -1, relation,
+												relation->rd_att->natts, false, NULL);
+		state->uniqueCheckDesc = uniqueCheckDesc;
+		MemoryContextSwitchTo(oldcxt);
+	}
+
+	return state->uniqueCheckDesc;
 }
 
 /*
@@ -745,10 +821,90 @@ aoco_index_fetch_tuple(struct IndexFetchTableData *scan,
 	if (aocs_fetch(aocoscan->aocofetch, (AOTupleId *) tid, slot))
 	{
 		ExecStoreVirtualTuple(slot);
-		return true;
+		found = true;
 	}
 
-	return false;
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/* Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff there is another tuple for the tid, so that we can prompt
+	 * the caller to call index_fetch_tuple() again for the same tid.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (call_again)
+		*call_again = false;
+
+	return found;
+}
+
+/*
+ * Check if a visible tuple exists given the tid and a snapshot. This is
+ * currently used to determine uniqueness checks.
+ *
+ * We determine existence simply by checking if a *visible* block directory
+ * entry covers the given tid.
+ *
+ * There is no need to fetch the tuple (we actually can't reliably do so as
+ * we might encounter a placeholder row in the block directory)
+ */
+static bool
+aoco_index_fetch_tuple_exists(Relation rel,
+							  ItemPointer tid,
+							  Snapshot snapshot,
+							  bool *all_dead)
+{
+	AOCSUniqueCheckDesc 		uniqueCheckDesc;
+	AppendOnlyBlockDirectory 	*blockDirectory;
+	AOTupleId 					*aoTupleId = (AOTupleId *) tid;
+
+#ifdef USE_ASSERT_CHECKING
+	int			segmentFileNum = AOTupleIdGet_segmentFileNum(aoTupleId);
+	int64		rowNum = AOTupleIdGet_rowNum(aoTupleId);
+
+	Assert(segmentFileNum != InvalidFileSegNumber);
+	Assert(rowNum != InvalidAORowNum);
+	/*
+	 * Since this can only be called in the context of a unique index check, the
+	 * snapshots that are supplied can only be non-MVCC snapshots: SELF and DIRTY.
+	 */
+	Assert(snapshot->snapshot_type == SNAPSHOT_SELF ||
+		   snapshot->snapshot_type == SNAPSHOT_DIRTY);
+#endif
+
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/*
+	 * FIXME: for when we want CREATE UNIQUE INDEX CONCURRENTLY to work
+	 * Unique constraint violation checks with SNAPSHOT_SELF are currently
+	 * required to support CREATE UNIQUE INDEX CONCURRENTLY. Currently, the
+	 * sole placeholder row inserted at first insert might not be visible to
+	 * the snapshot, if it was already updated by its actual first row. So,
+	 * we would need to flush a placeholder row at the beginning of each new
+	 * in-memory minipage. Currently, CREATE INDEX CONCURRENTLY isn't
+	 * supported, so we assume such a check satisfies SNAPSHOT_SELF.
+	 */
+	if (snapshot->snapshot_type == SNAPSHOT_SELF)
+		return true;
+
+	uniqueCheckDesc = get_or_create_unique_check_desc(rel, snapshot);
+	blockDirectory = uniqueCheckDesc->blockDirectory;
+	return AppendOnlyBlockDirectory_CoversTuple(blockDirectory, aoTupleId);
 }
 
 static void
@@ -1964,6 +2120,7 @@ static TableAmRoutine ao_column_methods = {
 	.index_fetch_reset = aoco_index_fetch_reset,
 	.index_fetch_end = aoco_index_fetch_end,
 	.index_fetch_tuple = aoco_index_fetch_tuple,
+	.index_fetch_tuple_exists = aoco_index_fetch_tuple_exists,
 
 	.tuple_insert = aoco_tuple_insert,
 	.tuple_insert_speculative = aoco_tuple_insert_speculative,

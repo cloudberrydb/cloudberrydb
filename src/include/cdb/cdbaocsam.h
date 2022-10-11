@@ -261,6 +261,13 @@ typedef AOCSFetchDescData *AOCSFetchDesc;
 typedef struct AOCSUpdateDescData *AOCSUpdateDesc;
 typedef struct AOCSDeleteDescData *AOCSDeleteDesc;
 
+typedef struct AOCSUniqueCheckDescData
+{
+	AppendOnlyBlockDirectory *blockDirectory;
+} AOCSUniqueCheckDescData;
+
+typedef struct AOCSUniqueCheckDescData *AOCSUniqueCheckDesc;
+
 /*
  * Descriptor for fetches from table via an index.
  */
