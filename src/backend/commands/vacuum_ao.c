@@ -497,7 +497,7 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
 		else
 		{
 			for (i = 0; i < nindexes; i++)
-			{
+			{	
 				vacuum_appendonly_index(Irel[i],
 										aoRelation,
 										dead_segs,
@@ -685,10 +685,10 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
  * We use this when we have no deletions to do.
  * 
  * We used to pass an argument num_tuples with value of table->reltuples to
- * ivinfo.num_heap_tuples, now with the new VACUUM strategy, we removed it
- * since we cannot get table->reltuples in the calling context.
- * Therefore, ivinfo.num_heap_tuples is not an accurate value, so we need
- * to set estimated_count to true.
+ * ivinfo.num_heap_tuples, now with the new VACUUM strategy,  we cannot get
+ * exact table->reltuples in the calling context. We able to use existing
+ * value from pg_class for table. Therefore, ivinfo.num_heap_tuples is not an
+ * accurate value, so we need to set estimated_count to true.
  */
 void
 scan_index(Relation indrel, Relation aorel, int elevel, BufferAccessStrategy vac_strategy)
