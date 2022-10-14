@@ -258,6 +258,16 @@ typedef struct VPgClassStats
 	BlockNumber relallvisible;
 } VPgClassStats;
 
+typedef struct VPgClassStatsCombo
+{
+	Oid			relid;
+	BlockNumber rel_pages;
+	double		rel_tuples;
+	BlockNumber relallvisible;
+
+	int			count; /* expect to equal to the number of dispatched segments */
+} VPgClassStatsCombo;
+
 /*
  * Parameters customizing behavior of VACUUM and ANALYZE.
  *
@@ -386,6 +396,7 @@ extern void analyze_rel(Oid relid, RangeVar *relation,
 extern void lazy_vacuum_rel_heap(Relation onerel,
 							VacuumParams *params, BufferAccessStrategy bstrategy);
 extern void scan_index(Relation indrel, Relation aorel, int elevel, BufferAccessStrategy bstrategy);
+
 /* in commands/vacuum_ao.c */
 extern void ao_vacuum_rel(Relation rel, VacuumParams *params, BufferAccessStrategy bstrategy);
 
@@ -406,5 +417,7 @@ extern int acquire_inherited_sample_rows(Relation onerel, int elevel,
 /* in commands/analyzefuncs.c */
 extern Datum gp_acquire_sample_rows(PG_FUNCTION_ARGS);
 extern Oid gp_acquire_sample_rows_col_type(Oid typid);
+
+extern bool gp_vacuum_needs_update_stats(void);
 
 #endif							/* VACUUM_H */
