@@ -28,21 +28,21 @@ Where Things Go
 
 List of Management Scripts Written in Bash
 ------------------------------------------
-bin/gpinitsystem        -  Creates a new Cloudberry Database
+bin/gpinitsystem        -  Creates a new Greenplum Database
 bin/gpload              -  Sets env variables and calls gpload.py
 
 
 List of Management Scripts Written in Python (no libraries)
 -----------------------------------------------------------
-bin/gpload.py           -  Loads data into a Cloudberry Database
+bin/gpload.py           -  Loads data into a Greenplum Database
 
 
 List of Management Scripts Written in Python (gpmlib - old libraries)
 ---------------------------------------------------------------------
 bin/gpaddmirrors        -  Adds mirrors to an array (needs rewrite)
 bin/gprecoverseg        -  Recovers a failed segment (needs rewrite)
-bin/gpcheckperf         -  Checks the hardware for Cloudberry Database
-bin/gpscp               -  Copies files to many hosts
+bin/gpcheckperf         -  Checks the hardware for Greenplum Database
+bin/gpsync              -  Copies files to many hosts
 bin/gpssh               -  Remote shell to many hosts
 bin/gpssh-exkeys        -  Exchange ssh keys between many hosts
 
@@ -51,12 +51,12 @@ List of Management Scripts Written in Python (gppylib - current libraries)
 --------------------------------------------------------------------------
 bin/gpactivatestandby   -  Activates the Standby Coordinator
 bin/gpconfig_helper     -  Edits postgresql.conf file for all segments
-bin/gpdeletesystem      -  Deletes a Cloudberry Database
-bin/gpexpand            -  Adds additional segments to a Cloudberry Database
+bin/gpdeletesystem      -  Deletes a Greenplum Database
+bin/gpexpand            -  Adds additional segments to a Greenplum Database
 bin/gpinitstandby       -  Initializes standby coordinator
 bin/gplogfilter         -  Filters log files
-bin/gpstart             -  Start a Cloudberry Database
-bin/gpstop              -  Stop a Cloudberry Database
+bin/gpstart             -  Start a Greenplum Database
+bin/gpstop              -  Stop a Greenplum Database
 
 sbin/gpconfig_helper.py -  Helper script for gpconfig
 sbin/gpsegcopy          -  Helper script for gpexpand
@@ -76,10 +76,10 @@ gparray.py
    +-  SegmentPair - Configuration information for a single content id
    |     \-  Contains multiple Segment objects
    |
-   +-  GpArray   - Configuration information for a Cloudberry Database
+   +-  GpArray   - Configuration information for a Greenplum Database
          \-  Contains multiple SegmentPair objects
 
-gplog.py         - Utility functions to assist in Cloudberry standard logging
+gplog.py         - Utility functions to assist in Greenplum standard logging
 
 gpparseopts.py   - Wrapper around optparse library to aid in locating help files
 
@@ -143,9 +143,9 @@ db/dbconn.py       - Connections to the database
   |
   +- Should have a wrapper class around a pygresql connection object!
 
-util/gp_utils.py     - Cloudberry related utility functions that are not Commands
-util/ssh_session.py  - SSH and SCP related utility functions brought in from gpmlib.py/gplib.py
-                       that are used by gpssh, gpscp and gpssh-exkeys
+util/gp_utils.py     - Greenplum related utility functions that are not Commands
+util/ssh_session.py  - SSH and RSYNC related utility functions brought in from gpmlib.py/gplib.py
+                       that are used by gpssh, gpsync and gpssh-exkeys
 
 
 ## Testing Management Scripts (unit tests)
@@ -175,7 +175,7 @@ tests that do not require a running cluster.
 
 ## Testing Management Scripts (behave tests)
 
-Behave tests require a running Cloudberry cluster, and additional python libraries for testing, available to gpadmin.
+Behave tests require a running Greenplum cluster, and additional python libraries for testing, available to gpadmin.
 
 Thus, you can install these additional python libraries using any of the following methods:
 
