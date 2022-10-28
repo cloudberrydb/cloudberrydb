@@ -13,26 +13,18 @@ SUBDIRS += ifaddrs
 $(recurse)
 
 PROGRAMS= analyzedb gpactivatestandby gpaddmirrors gpcheckcat gpcheckperf \
-	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpshrink gpinitstandby \
+	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpinitstandby \
 	gpinitsystem gpload gpload.py gplogfilter gpmovemirrors \
-	gppkg gprecoverseg gpreload gpscp gpsd gpssh gpssh-exkeys gpstart \
-	gpstate gpstop minirepro gpmemwatcher gpmemreport gpdemo gpdirtableload
-
-GPDEMO_LIBS = gpdemo-defaults.sh lalshell generate_certs.sh demo_cluster.sh \
-				probe_config.sh README
+	gppkg gprecoverseg gpreload gpsync gpsd gpssh gpssh-exkeys gpstart \
+	gpstate gpstop minirepro gpmemwatcher gpmemreport
 
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(bindir)/lib'
-	$(MKDIR_P) '$(DESTDIR)$(bindir)/lib/gpdemo'
 
 installprograms: installdirs
 	for file in $(PROGRAMS); do \
 		$(INSTALL_SCRIPT) $$file '$(DESTDIR)$(bindir)/'$$file ; \
 		$(PERL) $(top_builddir)/putversion '$(DESTDIR)$(bindir)/'$$file ; \
-	done
-	# install dependencies of gpdemo
-	for file in $(GPDEMO_LIBS); do \
-		$(INSTALL_SCRIPT) $(top_builddir)/gpAux/gpdemo/$$file '$(DESTDIR)$(bindir)/lib/gpdemo/'$$file ; \
 	done
 	# Symlink gpcheckcat from bin to bin/lib to maintain backward compatibility
 	if [ ! -L $(DESTDIR)$(bindir)/lib/gpcheckcat  ]; then \
@@ -43,9 +35,6 @@ installprograms: installdirs
 uninstall:
 	for file in $(PROGRAMS); do \
 		rm -f '$(DESTDIR)$(bindir)/'$$file ; \
-	done
-	for file in $(GPDEMO_LIBS); do \
-		rm -f '$(DESTDIR)$(bindir)/lib/gpdemo/'$$file ; \
 	done
 	rm -f '$(DESTDIR)$(bindir)/gpload.bat'
 
@@ -115,7 +104,7 @@ pyyaml:
 	@echo "--- pyyaml"
 	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PYYAML_DIR).tar.gz
 	cd $(PYLIB_SRC_EXT)/$(PYYAML_DIR)/ && env -u CC python3 setup.py build
-	cp -r $(PYLIB_SRC_EXT)/$(PYYAML_DIR)/build/lib*-3*/* $(PYLIB_DIR)
+	cp -r $(PYLIB_SRC_EXT)/$(PYYAML_DIR)/build/lib*-3.*/* $(PYLIB_DIR)
 
 #
 # PYLINT
@@ -194,7 +183,7 @@ clean distclean:
 	rm -rf *.pyc
 	rm -f analyzedbc gpactivatestandbyc gpaddmirrorsc gpcheckcatc \
 		  gpcheckperfc gpcheckresgroupimplc gpchecksubnetcfgc gpconfigc \
-		  gpdeletesystemc gpexpandc gpshrinkc gpinitstandbyc gplogfilterc gpmovemirrorsc \
-		  gppkgc gprecoversegc gpreloadc gpscpc gpsdc gpssh-exkeysc gpsshc \
+		  gpdeletesystemc gpexpandc gpinitstandbyc gplogfilterc gpmovemirrorsc \
+		  gppkgc gprecoversegc gpreloadc gpscpc gpsyncc gpsdc gpssh-exkeysc gpsshc \
 		  gpstartc gpstatec gpstopc minireproc
 	rm -f gpconfig_modules/gucs_disallowed_in_file.txt
