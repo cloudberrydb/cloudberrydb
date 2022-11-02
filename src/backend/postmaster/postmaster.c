@@ -159,6 +159,8 @@
 #include "cdb/cdbendpoint.h"
 #include "cdb/ic_proxy_bgworker.h"
 #include "utils/metrics_utils.h"
+#include "utils/resource_manager.h"
+#include "utils/resgroup-ops.h"
 
 /*
  * This is set in backends that are handling a GPDB specific message (FTS or
@@ -1586,6 +1588,10 @@ PostmasterMain(int argc, char *argv[])
 	 * Postgres processes running in this directory, so this should be safe.
 	 */
 	RemovePgTempFiles();
+
+	/* If enabled, init cgroup */
+	if (IsResGroupEnabled())
+		ResGroupOps_Init();
 
 	/*
 	 * Initialize stats collection subsystem (this does NOT start the
