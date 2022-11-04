@@ -264,6 +264,7 @@ typedef struct AOCSDeleteDescData *AOCSDeleteDesc;
 typedef struct AOCSUniqueCheckDescData
 {
 	AppendOnlyBlockDirectory *blockDirectory;
+	AppendOnlyVisimap 		 *visimap;
 } AOCSUniqueCheckDescData;
 
 typedef struct AOCSUniqueCheckDescData *AOCSUniqueCheckDesc;

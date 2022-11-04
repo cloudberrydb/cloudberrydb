@@ -373,6 +373,7 @@ typedef struct AppendOnlyDeleteDescData *AppendOnlyDeleteDesc;
 typedef struct AppendOnlyUniqueCheckDescData
 {
 	AppendOnlyBlockDirectory *blockDirectory;
+	AppendOnlyVisimap 		 *visimap;
 } AppendOnlyUniqueCheckDescData;
 
 typedef struct AppendOnlyUniqueCheckDescData *AppendOnlyUniqueCheckDesc;
