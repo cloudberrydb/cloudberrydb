@@ -335,4 +335,7 @@ test: bfv_meta_track
 # tests of ao/aoco seg file count for parallel plan
 test: ao_segfile
 
+# test CREATE UNIQUE INDEX on AO/CO tables.
+test: uao_dml/ao_unique_index_build_row uao_dml/ao_unique_index_build_column
+
 # end of tests
