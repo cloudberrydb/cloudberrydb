@@ -170,6 +170,7 @@ static MemoryContext anl_context = NULL;
 static BufferAccessStrategy vac_strategy;
 
 Bitmapset	**acquire_func_colLargeRowIndexes;
+double		 *acquire_func_colLargeRowLength;
 
 
 static void do_analyze_rel(Relation onerel,
@@ -495,6 +496,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 	int			save_nestlevel;
 
 	Bitmapset **colLargeRowIndexes;
+	double     *colLargeRowLength;
 	bool		sample_needed;
 
 	int64		AnalyzePageHit = VacuumPageHit;
@@ -721,6 +723,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 	 * Maintain information if the row of a column exceeds WIDTH_THRESHOLD
 	 */
 	colLargeRowIndexes = (Bitmapset **) palloc0(sizeof(Bitmapset *) * onerel->rd_att->natts);
+	colLargeRowLength = (double *)palloc0(sizeof(double) * onerel->rd_att->natts);
 
 	if ((params->options & VACOPT_FULLSCAN) != 0)
 	{
@@ -742,10 +745,18 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 		/*
 		 * Acquire the sample rows
 		 *
-		 * colLargeRowindexes is passed out-of-band, in a global variable,
+		 * colLargeRowIndexes is passed out-of-band, in a global variable,
 		 * to avoid changing the function signature from upstream's.
+		 *
+		 * The same as colLargeRowIndexes. colLargeRowLength stores total
+		 * length of too wide rows in the sample for every attribute of
+		 * the target relation. ANALYZE ignores too wide columns during
+		 * analysis(See comments of WIDTH_THRESHOLD), the stawidth can be
+		 * far smaller than the real average width for varlena datums which
+		 * are larger than WIDTH_THRESHOLD but stored uncompressed.
 		 */
 		acquire_func_colLargeRowIndexes = colLargeRowIndexes;
+		acquire_func_colLargeRowLength = colLargeRowLength;
 		pgstat_progress_update_param(PROGRESS_ANALYZE_PHASE,
 									 inh ? PROGRESS_ANALYZE_PHASE_ACQUIRE_SAMPLE_ROWS_INH :
 									 PROGRESS_ANALYZE_PHASE_ACQUIRE_SAMPLE_ROWS);
@@ -758,6 +769,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 									  rows, targrows,
 									  &totalrows, &totaldeadrows);
 		acquire_func_colLargeRowIndexes = NULL;
+		acquire_func_colLargeRowLength = NULL;
 		if (ctx)
 			MemoryContextSwitchTo(anl_context);
 	}
@@ -892,6 +904,12 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 			get_attribute_options(onerel->rd_id, stats->attr->attnum);
 
 			stats->tupDesc = onerel->rd_att;
+			/*
+			 * get total length and number of too wide rows in the sample,
+			 * in case get wrong stawidth.
+			 */
+			stats->totalwidelength = colLargeRowLength[stats->attr->attnum - 1];
+			stats->widerow_num = numrows - validRowsLength;
 
 			if (validRowsLength > 0)
 			{
@@ -944,7 +962,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 				// that every item was >= WIDTH_THRESHOLD in width.
 				stats->stats_valid = true;
 				stats->stanullfrac = 0.0;
-				stats->stawidth = WIDTH_THRESHOLD;
+				stats->stawidth = stats->totalwidelength/numrows;
 				stats->stadistinct = 0.0;		/* "unknown" */
 			}
 			stats->rows = rows; // Reset to original rows
@@ -2420,6 +2438,154 @@ acquire_index_number_of_blocks(Relation indexrel, Relation tablerel)
 }
 
 /*
+ * parse_record_to_string
+ *
+ * CDB: a copy of record_in, but only parse the record string
+ * into separate strs for each column.
+ */
+static void
+parse_record_to_string(char *string, TupleDesc tupdesc, char** values, bool *nulls)
+{
+	char	*ptr;
+	int	ncolumns;
+	int	i;
+	bool	needComma;
+	StringInfoData	buf;
+
+	Assert(string != NULL);
+	Assert(values != NULL);
+	Assert(nulls != NULL);
+	
+	ncolumns = tupdesc->natts;
+	needComma = false;
+
+	/*
+	 * Scan the string.  We use "buf" to accumulate the de-quoted data for
+	 * each column, which is then fed to the appropriate input converter.
+	 */
+	ptr = string;
+
+	/* Allow leading whitespace */
+	while (*ptr && isspace((unsigned char) *ptr))
+		ptr++;
+	if (*ptr++ != '(')
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+				 errmsg("malformed record literal: \"%s\"", string),
+				 errdetail("Missing left parenthesis.")));
+	}
+
+	initStringInfo(&buf);
+
+	for (i = 0; i < ncolumns; i++)
+	{
+		/* Ignore dropped columns in datatype, but fill with nulls */
+		if (TupleDescAttr(tupdesc, i)->attisdropped)
+		{
+			values[i] = NULL;
+			nulls[i] = true;
+			continue;
+		}
+
+		if (needComma)
+		{
+			/* Skip comma that separates prior field from this one */
+			if (*ptr == ',')
+				ptr++;
+			else
+			{
+				/* *ptr must be ')' */
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+						 errmsg("malformed record literal: \"%s\"", string),
+						 errdetail("Too few columns.")));
+			}
+		}
+
+		/* Check for null: completely empty input means null */
+		if (*ptr == ',' || *ptr == ')')
+		{
+			values[i] = NULL;
+			nulls[i] = true;
+		}
+		else
+		{
+			/* Extract string for this column */
+			bool		inquote = false;
+
+			resetStringInfo(&buf);
+			while (inquote || !(*ptr == ',' || *ptr == ')'))
+			{
+				char		ch = *ptr++;
+
+				if (ch == '\0')
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+							 errmsg("malformed record literal: \"%s\"",
+									string),
+							 errdetail("Unexpected end of input.")));
+				}
+				if (ch == '\\')
+				{
+					if (*ptr == '\0')
+					{
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+								 errmsg("malformed record literal: \"%s\"",
+										string),
+								 errdetail("Unexpected end of input.")));
+					}
+					appendStringInfoChar(&buf, *ptr++);
+				}
+				else if (ch == '"')
+				{
+					if (!inquote)
+						inquote = true;
+					else if (*ptr == '"')
+					{
+						/* doubled quote within quote sequence */
+						appendStringInfoChar(&buf, *ptr++);
+					}
+					else
+						inquote = false;
+				}
+				else
+					appendStringInfoChar(&buf, ch);
+			}
+
+			values[i] = palloc(strlen(buf.data) + 1);
+			memcpy(values[i], buf.data, strlen(buf.data) + 1);
+			nulls[i] = false;
+		}
+
+		/*
+		 * Prep for next column
+		 */
+		needComma = true;
+	}
+
+	if (*ptr++ != ')')
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+				 errmsg("malformed record literal: \"%s\"", string),
+				 errdetail("Too many columns.")));
+	}
+	/* Allow trailing whitespace */
+	while (*ptr && isspace((unsigned char) *ptr))
+		ptr++;
+	if (*ptr)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+				 errmsg("malformed record literal: \"%s\"", string),
+				 errdetail("Junk after right parenthesis.")));
+	}
+}
+
+/*
  * Build a querydesc for a sql, set "dest" to portal->holdStore
  */
 static QueryDesc *build_querydesc(Portal portal, char *sql)
@@ -2493,6 +2659,7 @@ process_sample_rows(Portal portal,
 	 * global variable to avoid changing the AcquireSampleRowsFunc prototype.
 	 */
 	Bitmapset **colLargeRowIndexes = acquire_func_colLargeRowIndexes;
+	double     *colLargeRowLength = acquire_func_colLargeRowLength;
 	TupleDesc	relDesc = RelationGetDescr(onerel);
 	TupleDesc	funcTupleDesc;
 	TupleDesc	sampleTupleDesc;
@@ -2538,7 +2705,7 @@ process_sample_rows(Portal portal,
 	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 1, "", FLOAT8OID, -1, 0);
 	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 2, "", FLOAT8OID, -1, 0);
 	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 3, "", FLOAT8ARRAYOID, -1, 0);
-
+	
 	for (i = 0; i < relDesc->natts; i++)
 	{
 		Form_pg_attribute attr = TupleDescAttr(relDesc, i);
@@ -2669,7 +2836,6 @@ process_sample_rows(Portal portal,
 					deconstruct_array(arrayVal, FLOAT8OID, 8, true, 'd',
 								&largelength, &nulls, &numelems);
 
-					index = 0;
 					for (i = 0; i < relDesc->natts; i++)
 					{
 						Form_pg_attribute attr = TupleDescAttr(relDesc, i);
@@ -2677,9 +2843,11 @@ process_sample_rows(Portal portal,
 						if (attr->attisdropped)
 							continue;
 
-						if (toolarge[index] == '1')
+						if (largelength[i] != (Datum) 0)
+						{
 							colLargeRowIndexes[i] = bms_add_member(colLargeRowIndexes[i], sampleTuples);
-						index++;
+							colLargeRowLength[i] += DatumGetFloat8(largelength[i]);
+						}
 					}
 				}
 
@@ -3421,7 +3589,7 @@ compute_distinct_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 
@@ -3603,7 +3771,7 @@ compute_distinct_stats(VacAttrStatsP stats,
 			stats->stawidth = 0;	/* "unknown" */
 		else
 			stats->stawidth = stats->attrtype->typlen;
-		stats->stadistinct = 0.0;	/* "unknown" */
+		stats->stadistinct = 0.0;		/* "unknown" */
 	}
 
 	/* We don't need to bother cleaning up any of our temporary palloc's */
@@ -3814,7 +3982,7 @@ compute_scalar_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 
@@ -4167,7 +4335,7 @@ compute_scalar_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 		/* Assume all too-wide values are distinct, so it's a unique column */
