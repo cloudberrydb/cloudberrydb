@@ -1666,8 +1666,16 @@ select sum(case when b in (select b from temp_b where t.a>c) then 1 else 0 end),
 (1 row)
 
 select sum(case when b in (select b from temp_b where EXISTS (select sum(d) from temp_c where t.a > d)) then 1 else 0 end),sum(case when not( b in (select b from temp_b where t.a>c)) then 1 else 0 end) from temp_a t;
-ERROR:  correlated subquery with skip-level correlations is not supported
+ sum | sum 
+-----+-----
+   4 |   6
+(1 row)
+
 select sum(case when b in (select b from temp_b where EXISTS (select sum(d) from temp_c where t.a > d or t.a > temp_b.c)) then 1 else 0 end),sum(case when not( b in (select b from temp_b, temp_c where t.a>temp_b.c or t.a > temp_c.d)) then 1 else 0 end) from temp_a t;
-ERROR:  correlated subquery with skip-level correlations is not supported
+ sum | sum 
+-----+-----
+   4 |   6
+(1 row)
+
 set client_min_messages='warning';
 drop schema qp_subquery cascade;
