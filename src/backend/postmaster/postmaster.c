@@ -159,8 +159,8 @@
 #include "cdb/cdbendpoint.h"
 #include "cdb/ic_proxy_bgworker.h"
 #include "utils/metrics_utils.h"
+#include "utils/resgroup.h"
 #include "utils/resource_manager.h"
-#include "utils/resgroup-ops.h"
 
 /*
  * This is set in backends that are handling a GPDB specific message (FTS or
@@ -1591,7 +1591,7 @@ PostmasterMain(int argc, char *argv[])
 
 	/* If enabled, init cgroup */
 	if (IsResGroupEnabled())
-		ResGroupOps_Init();
+		initCgroup();
 
 	/*
 	 * Initialize stats collection subsystem (this does NOT start the
