@@ -77,9 +77,6 @@
 #include "utils/cgroup-ops-v1.h"
 #include "utils/cgroup-ops-dummy.h"
 
-extern CGroupOpsRoutine *cgroupOpsRoutine;
-extern CGroupSystemInfo *cgroupSystemInfo;
-
 #define InvalidSlotId	(-1)
 #define RESGROUP_MAX_SLOTS	(MaxConnections)
 
@@ -275,6 +272,9 @@ struct ResGroupControl
 bool gp_resource_group_enable_cgroup_memory = false;
 bool gp_resource_group_enable_cgroup_swap = false;
 bool gp_resource_group_enable_cgroup_cpuset = false;
+
+CGroupOpsRoutine *cgroupOpsRoutine = NULL;
+CGroupSystemInfo *cgroupSystemInfo = NULL;
 
 /* hooks */
 resgroup_assign_hook_type resgroup_assign_hook = NULL;
