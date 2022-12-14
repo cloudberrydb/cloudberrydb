@@ -1,5 +1,9 @@
 -- Distributed snapshot tests
 
+create or replace function test_consume_xids(int4) returns void
+as '@abs_srcdir@/../regress/regress.so', 'test_consume_xids'
+language C;
+
 -- Scenario1: Test to validate GetSnapshotData()'s computation of globalXmin using
 -- distributed snapshot. It mainly uses a old read-only transaction to help
 -- create situation where globalXmin can be lower than distributed oldestXmin
@@ -296,3 +300,53 @@ insert into t_alter_snapshot_test values (1, 1);
 
 select * from t_alter_snapshot_test;
 drop table t_alter_snapshot_test;
+
+----------------------------------------
+-- Test for fixes
+----------------------------------------
+-- Case 1. Test that when we advanced DLOG's oldestXmin to the
+-- latestCompletedXid + 1, and that it is the first xid of the
+-- next segment, we would truncate all DLOG segments (all txs
+-- have completed and no longer needed). And in that case, we
+-- should still be able to advance properly after restart.
+create table distributed_snapshot_fix1(a int);
+
+-- On a primary, burn xids until the next xid is the first one of a segment,
+-- which has 4096 (ENTRIES_PER_PAGE) * 32 (SLRU_PAGES_PER_SEGMENT) = 131072 xids.
+-- Details about how we consume it:
+-- 1. Using test_consume_xids to consume what's needed - 2;
+-- 2. The current transaction consumes 1 xid;
+-- 3. Use another transaction to consume 1 more. This is to mark the last 
+--      one completed so that after restart we can start from that.
+1U: begin;
+1U: select test_consume_xids((131070 - (cur % 131072))::int) from txid_current() cur;
+1U: end;
+1U: insert into distributed_snapshot_fix1 values(1);
+1Uq:
+1q:
+
+-- Restart server, so that DistributedLogCtl->shared->latest_page_number is
+-- initialized to be the one that the next xid is on. When that happens, and
+-- when we do DistributedLog_AdvanceOldestXmin() again in the next query, we
+-- would successfully truncate the current working segment.
+select pg_ctl(datadir, 'restart') from gp_segment_configuration where role = 'p' and content = 1;
+
+-- Do a SELECT. This assigns distributed snapshot but it won't assign new xid. 
+-- Since we'll advance to the next future xid which is the first xid of the next segment, 
+-- this will get all DLOG segments truncated. 
+1: select * from distributed_snapshot_fix1;
+
+-- Checking the DLOG segments we have right now, which is none. 
+1U: select count(*) from gp_distributed_log;
+
+1Uq:
+1q:
+
+-- Restart server again. Previously DistributedLogShared->oldestXmin is initialized to 
+-- latestCompletedXid.
+select pg_ctl(datadir, 'restart') from gp_segment_configuration where role = 'p' and content = 1;
+
+-- Do a SELECT. Previously this would complain about missing segment file because we've 
+-- truncated the segment that latestCompletedXid is on. Now we don't, because we will
+-- be advancing from latestCompletedXid + 1.
+1: select * from distributed_snapshot_fix1;
