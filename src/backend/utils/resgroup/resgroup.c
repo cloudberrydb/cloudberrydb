@@ -139,8 +139,8 @@ struct ResGroupData
 
 	volatile int	nRunning;			/* number of running trans */
 	volatile int	nRunningBypassed;	/* number of running trans in bypass mode */
-	int				totalExecuted;		/* total number of executed trans */
-	int				totalQueued;		/* total number of queued trans	*/
+	int64			totalExecuted;		/* total number of executed trans */
+	int64			totalQueued;		/* total number of queued trans	*/
 	int64			totalQueuedTimeMs;	/* total queue time, in milliseconds */
 	PROC_QUEUE		waitProcs;			/* list of PGPROC objects waiting on this group */
 
