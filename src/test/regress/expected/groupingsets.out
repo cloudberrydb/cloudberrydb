@@ -2102,78 +2102,76 @@ set enable_sort = true;
 set enable_hashagg = false;
 set jit_above_cost = 0;
 explain (costs off)
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10);
                           QUERY PLAN
---------------------------------------------------------------
- Finalize GroupAggregate
-   Group Key: g1000, g100, g10, (GROUPINGSET_ID())
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: g1000, g100, g10, (GROUPINGSET_ID())
-         ->  Sort
-               Sort Key: g1000, g100, g10, (GROUPINGSET_ID())
-               ->  Partial GroupAggregate
-                     Group Key: g1000, g100, g10
-                     Group Key: g1000, g100
-                     Group Key: g1000
-                     Group Key: ()
-                     Sort Key: g100, g10
-                       Group Key: g100, g10
-                       Group Key: g100
-                     Sort Key: g10, g1000
-                       Group Key: g10, g1000
-                       Group Key: g10
-                     ->  Sort
-                           Sort Key: g1000, g100, g10
-                           ->  Seq Scan on gs_data_1
+---------------------------------------------------------------
+ GroupAggregate
+   Group Key: ((g.g % 1000)), ((g.g % 100)), ((g.g % 10))
+   Group Key: ((g.g % 1000)), ((g.g % 100))
+   Group Key: ((g.g % 1000))
+   Group Key: ()
+   Sort Key: ((g.g % 100)), ((g.g % 10))
+     Group Key: ((g.g % 100)), ((g.g % 10))
+     Group Key: ((g.g % 100))
+   Sort Key: ((g.g % 10)), ((g.g % 1000))
+     Group Key: ((g.g % 10)), ((g.g % 1000))
+     Group Key: ((g.g % 10))
+   ->  Sort
+         Sort Key: ((g.g % 1000)), ((g.g % 100)), ((g.g % 10))
+         ->  Function Scan on generate_series g
  Optimizer: Postgres query optimizer
-(21 rows)
+(15 rows)
 
 create table gs_group_1 as
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10) distributed by (g1000);
 -- Produce results with hash aggregation.
 set enable_hashagg = true;
 set enable_sort = false;
 explain (costs off)
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10);
                           QUERY PLAN
---------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Finalize HashAggregate
-         Group Key: g1000, g100, g10, (GROUPINGSET_ID())
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
-               Hash Key: g1000, g100, g10, (GROUPINGSET_ID())
-               ->  Partial MixedAggregate
-                     Hash Key: g1000, g100, g10
-                     Hash Key: g1000, g100
-                     Hash Key: g1000
-                     Hash Key: g100, g10
-                     Hash Key: g100
-                     Hash Key: g10, g1000
-                     Hash Key: g10
-                     Group Key: ()
-                     ->  Seq Scan on gs_data_1
+---------------------------------------------------------------
+ GroupAggregate
+   Group Key: ((g.g % 1000)), ((g.g % 100)), ((g.g % 10))
+   Group Key: ((g.g % 1000)), ((g.g % 100))
+   Group Key: ((g.g % 1000))
+   Group Key: ()
+   Sort Key: ((g.g % 100)), ((g.g % 10))
+     Group Key: ((g.g % 100)), ((g.g % 10))
+     Group Key: ((g.g % 100))
+   Sort Key: ((g.g % 10)), ((g.g % 1000))
+     Group Key: ((g.g % 10)), ((g.g % 1000))
+     Group Key: ((g.g % 10))
+   ->  Sort
+         Sort Key: ((g.g % 1000)), ((g.g % 100)), ((g.g % 10))
+         ->  Function Scan on generate_series g
  Optimizer: Postgres query optimizer
-(16 rows)
+(15 rows)
 
 create table gs_hash_1 as
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10) distributed by (g1000);
+set jit_above_cost to default;
 set enable_sort = true;
 set work_mem to default;
 WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
--- GPDB_12_MERGE_FIXME: the following comparison query has an ORCA plan that
--- relies on "IS NOT DISTINCT FROM" Hash Join, a variant that we likely have
--- lost during the merge with upstream Postgres 12. Disable ORCA for this query
-SET optimizer TO off;
--- Compare results
+-- Compare results of ORCA plan that relies on "IS NOT DISTINCT FROM" HASH Join
 (select * from gs_hash_1 except select * from gs_group_1)
   union all
 (select * from gs_group_1 except select * from gs_hash_1);
- g100 | g10 | sum | count | max 
-------+-----+-----+-------+-----
+ g1000 | g100 | g10 | sum | count | max 
+-------+------+-----+-----+-------+-----
 (0 rows)
 
 RESET optimizer;

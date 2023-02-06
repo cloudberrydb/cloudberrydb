@@ -593,12 +593,17 @@ set enable_hashagg = false;
 set jit_above_cost = 0;
 
 explain (costs off)
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10);
 
 create table gs_group_1 as
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10) distributed by (g1000);
+
 
 -- Produce results with hash aggregation.
 
@@ -606,21 +611,23 @@ set enable_hashagg = true;
 set enable_sort = false;
 
 explain (costs off)
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10);
 
 create table gs_hash_1 as
-select g100, g10, sum(g::numeric), count(*), max(g::text)
-from gs_data_1 group by cube (g1000, g100,g10);
+select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
+  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,199999) g) s
+group by cube (g1000,g100,g10) distributed by (g1000);
+
+set jit_above_cost to default;
+
 set enable_sort = true;
 set work_mem to default;
 
--- GPDB_12_MERGE_FIXME: the following comparison query has an ORCA plan that
--- relies on "IS NOT DISTINCT FROM" Hash Join, a variant that we likely have
--- lost during the merge with upstream Postgres 12. Disable ORCA for this query
-SET optimizer TO off;
-
--- Compare results
+-- Compare results of ORCA plan that relies on "IS NOT DISTINCT FROM" HASH Join
 
 (select * from gs_hash_1 except select * from gs_group_1)
   union all
