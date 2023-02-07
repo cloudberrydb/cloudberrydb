@@ -61,6 +61,7 @@
 #include "rewrite/rewriteManip.h"
 #include "storage/smgr.h"
 #include "tcop/tcopprot.h"
+#include "tcop/utility.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/regproc.h"
@@ -502,7 +503,10 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 
 		/* MPP-14001: Running auto_stats */
 		if (Gp_role == GP_ROLE_DISPATCH)
-			auto_stats(cmdType, relationOid, queryDesc->es_processed, false /* inFunction */);
+		{
+			bool inFunction = already_under_executor_run() || utility_nested();
+			auto_stats(cmdType, relationOid, queryDesc->es_processed, inFunction);
+		}
 	}
 
 	if (is_matview)
