@@ -719,4 +719,8 @@ extern ResultRelInfo *ExecLookupResultRelByOid(ModifyTableState *node,
 											   bool missing_ok,
 											   bool update_cache);
 
+extern void
+change_varattnos_of_a_varno(Node *node, const AttrNumber *newattno, Index varno);
+
+extern bool already_under_executor_run(void);
 #endif							/* EXECUTOR_H  */
