@@ -18304,7 +18304,9 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, 
 		ExecutorFinish(queryDesc);
 		ExecutorEnd(queryDesc);
 
-		auto_stats(cmdType, relationOid, queryDesc->es_processed, false);
+		
+		auto_stats(cmdType, relationOid, queryDesc->es_processed,
+				   already_under_executor_run() || utility_nested());
 
 		FreeQueryDesc(queryDesc);
 
@@ -18836,8 +18838,10 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			ExecutorEnd(queryDesc);
 
 			if (Gp_role == GP_ROLE_DISPATCH)
-				auto_stats(cmdType, relationOid, queryDesc->es_processed,
-								false);
+			{
+				bool inFunction = already_under_executor_run() || utility_nested();
+				auto_stats(cmdType, relationOid, queryDesc->es_processed, inFunction);
+			}
 
 			FreeQueryDesc(queryDesc);
 
