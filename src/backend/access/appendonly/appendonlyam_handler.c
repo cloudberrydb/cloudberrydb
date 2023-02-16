@@ -1002,7 +1002,7 @@ appendonly_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 					{
 						int64 firstSequence;
 						Oid segrelid;
-						GetAppendOnlyEntryAuxOids(insertDesc->aoi_rel->rd_id, NULL, &segrelid, NULL, NULL, NULL, NULL);
+						GetAppendOnlyEntryAuxOids(insertDesc->aoi_rel, &segrelid, NULL, NULL, NULL, NULL);
 						firstSequence = GetFastSequences(segrelid, insertDesc->cur_segno, insertDesc->lastSequence + 1, NUM_FAST_SEQUENCES);
 						Assert(firstSequence == insertDesc->lastSequence + 1);
 						insertDesc->numSequences = NUM_FAST_SEQUENCES;
@@ -1191,8 +1191,6 @@ appendonly_relation_set_new_filenode(Relation rel,
 static void
 appendonly_relation_nontransactional_truncate(Relation rel)
 {
-	Oid ao_base_relid = RelationGetRelid(rel);
-
 	Oid			aoseg_relid = InvalidOid;
 	Oid			aoblkdir_relid = InvalidOid;
 	Oid			aovisimap_relid = InvalidOid;
@@ -1200,7 +1198,7 @@ appendonly_relation_nontransactional_truncate(Relation rel)
 	ao_truncate_one_rel(rel);
 
 	/* Also truncate the aux tables */
-	GetAppendOnlyEntryAuxOids(ao_base_relid, NULL,
+	GetAppendOnlyEntryAuxOids(rel,
 							  &aoseg_relid,
 							  &aoblkdir_relid, NULL,
 							  &aovisimap_relid, NULL);
@@ -1628,7 +1626,7 @@ appendonly_index_build_range_scan(Relation heapRelation,
 	Oid blkdirrelid;
 	Oid blkidxrelid;
 
-	GetAppendOnlyEntryAuxOids(RelationGetRelid(aoscan->aos_rd), NULL, NULL,
+	GetAppendOnlyEntryAuxOids(aoscan->aos_rd, NULL,
 							  &blkdirrelid, &blkidxrelid, NULL, NULL);
 	/*
 	 * Note that block directory is created during creation of the first
@@ -2055,7 +2053,7 @@ appendonly_relation_size(Relation rel, ForkNumber forkNumber)
 
 	result = 0;
 
-	GetAppendOnlyEntryAuxOids(rel->rd_id, NULL, &segrelid, NULL,
+	GetAppendOnlyEntryAuxOids(rel, &segrelid, NULL,
 			NULL, NULL, NULL);
 
 	if (segrelid == InvalidOid)

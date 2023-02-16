@@ -1571,7 +1571,7 @@ appendonly_beginrangescan_internal(Relation relation,
 		Oid			visimaprelid;
 		Oid			visimapidxid;
 
-		GetAppendOnlyEntryAuxOids(relation->rd_id, NULL,
+		GetAppendOnlyEntryAuxOids(relation,
 								  NULL, NULL, NULL, &visimaprelid, &visimapidxid);
 
 		AppendOnlyVisimap_Init(&scan->visibilityMap,
@@ -2139,7 +2139,7 @@ appendonly_fetch_init(Relation relation,
 	FormData_pg_appendonly			aoFormData;
 	int								segno;
 
-	GetAppendOnlyEntry(relation->rd_id, &aoFormData);
+	GetAppendOnlyEntry(relation, &aoFormData);
 
 	/*
 	 * increment relation ref count while scanning relation
@@ -2543,7 +2543,7 @@ appendonly_delete_init(Relation rel)
 	Oid visimaprelid;
 	Oid visimapidxid;
 
-	GetAppendOnlyEntryAuxOids(rel->rd_id, NULL, NULL, NULL, NULL, &visimaprelid, &visimapidxid);
+	GetAppendOnlyEntryAuxOids(rel, NULL, NULL, NULL, &visimaprelid, &visimapidxid);
 
 	AppendOnlyDeleteDesc aoDeleteDesc = palloc0(sizeof(AppendOnlyDeleteDescData));
 
@@ -2818,7 +2818,7 @@ appendonly_insert_init(Relation rel, int segno)
 	 */
 	Assert(aoInsertDesc->fsInfo->segno == segno);
 
-	GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel->rd_id, NULL, &segrelid,
+	GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel, &aoInsertDesc->segrelid,
 			NULL, NULL, NULL, NULL);
 
 	firstSequence =
@@ -3056,7 +3056,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 		int64		firstSequence;
 		Oid segrelid;
 
-		GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel->rd_id, NULL,
+		GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel,
 				&segrelid, NULL, NULL, NULL, NULL);
 
 		firstSequence =
