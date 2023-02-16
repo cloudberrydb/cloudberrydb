@@ -1326,7 +1326,6 @@ heap_truncate_one_relid(Oid relid)
 static void
 aoco_relation_nontransactional_truncate(Relation rel)
 {
-	Oid			ao_base_relid = RelationGetRelid(rel);
 	Oid			aoseg_relid = InvalidOid;
 	Oid			aoblkdir_relid = InvalidOid;
 	Oid			aovisimap_relid = InvalidOid;
@@ -1334,7 +1333,7 @@ aoco_relation_nontransactional_truncate(Relation rel)
 	ao_truncate_one_rel(rel);
 
 	/* Also truncate the aux tables */
-	GetAppendOnlyEntryAuxOids(ao_base_relid, NULL,
+	GetAppendOnlyEntryAuxOids(rel,
 	                          &aoseg_relid,
 	                          &aoblkdir_relid, NULL,
 	                          &aovisimap_relid, NULL);
@@ -1743,8 +1742,8 @@ aoco_index_build_range_scan(Relation heapRelation,
 	Oid blkdirrelid;
 	Oid blkidxrelid;
 
-	GetAppendOnlyEntryAuxOids(RelationGetRelid(aocoscan->rs_base.rs_rd), NULL, NULL,
-	                          &blkdirrelid, &blkidxrelid, NULL, NULL);
+	GetAppendOnlyEntryAuxOids(heapRelation, NULL,
+							  &blkdirrelid, &blkidxrelid, NULL, NULL);
 	/*
 	 * Note that block directory is created during creation of the first
 	 * index.  If it is found empty, it means the block directory was created

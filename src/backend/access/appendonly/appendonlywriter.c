@@ -141,7 +141,7 @@ LockSegnoForWrite(Relation rel, int segno)
 	LockDatabaseObject(rel->rd_node.dbNode, (Oid)rel->rd_node.relNode, 0, ExclusiveLock);
 
 	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
-	GetAppendOnlyEntryAuxOids(rel->rd_id, appendOnlyMetaDataSnapshot,
+	GetAppendOnlyEntryAuxOids(rel,
 							  &segrelid, NULL, NULL, NULL, NULL);
 	/*
 	 * Now pick a segment that is not in use, and is not over the allowed
@@ -432,7 +432,7 @@ choose_segno_internal(Relation rel, List *avoid_segnos, choose_segno_mode mode)
 		LogDistributedSnapshotInfo(snapshot, "Used snapshot: ");
 	}
 
-	GetAppendOnlyEntryAuxOids(rel->rd_id, NULL,
+	GetAppendOnlyEntryAuxOids(rel,
 							  &segrelid, NULL, NULL, NULL, NULL);
 
 	/*
@@ -635,7 +635,7 @@ choose_new_segfile(Relation rel, bool *used, List *avoid_segnos)
 			Snapshot appendOnlyMetaDataSnapshot;
 
 			appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
-			GetAppendOnlyEntryAuxOids(rel->rd_id, appendOnlyMetaDataSnapshot,
+			GetAppendOnlyEntryAuxOids(rel,
 									  &segrelid, NULL, NULL, NULL, NULL);
 			UnregisterSnapshot(appendOnlyMetaDataSnapshot);
 
