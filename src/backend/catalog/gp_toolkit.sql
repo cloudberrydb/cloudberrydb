@@ -1711,10 +1711,12 @@ CREATE VIEW gp_toolkit.gp_resgroup_config AS
          , T2.value    AS cpu_hard_quota_limit
          , T3.value    AS cpu_soft_priority
          , T4.value    AS cpuset
+         , T5.value    AS memory_limit
     FROM pg_resgroup G
          JOIN pg_resgroupcapability T1 ON G.oid = T1.resgroupid AND T1.reslimittype = 1
          JOIN pg_resgroupcapability T2 ON G.oid = T2.resgroupid AND T2.reslimittype = 2
          JOIN pg_resgroupcapability T3 ON G.oid = T3.resgroupid AND T3.reslimittype = 3
+         JOIN pg_resgroupcapability T5 ON G.oid = T5.resgroupid AND T5.reslimittype = 5
          LEFT JOIN pg_resgroupcapability T4 ON G.oid = T4.resgroupid AND T4.reslimittype = 4
     ;
 
