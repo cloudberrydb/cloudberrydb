@@ -130,7 +130,7 @@ typedef struct AppendOnlyExecutorReadBlock
 
 	MemTupleBinding *mt_bind;
 	/*
-	 * When reading a segfile that's using version < AORelationVersion_PG83,
+	 * When reading a segfile that's using version < AOSegfileFormatVersion_GP5,
 	 * that is, was created before GPDB 5.0 and upgraded with pg_upgrade, we need
 	 * to convert numeric attributes on the fly to new format. numericAtts
 	 * is an array of attribute numbers (0-based), of all numeric columns (including
