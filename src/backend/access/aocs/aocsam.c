@@ -1351,10 +1351,10 @@ scanToFetchValue(AOCSFetchDesc aocsFetchDesc,
 			/*
 			 * We fell into a hole inside the resolved block directory entry
 			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
-			 * This should not be happening for versions >= PG12. Scream
+			 * This should not be happening for versions >= GP7. Scream
 			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
 			 */
-			ereportif(datumStream->ao_read.formatVersion >= AORelationVersion_PG12,
+			ereportif(aocsFetchDesc->relation->rd_appendonly->version >= AORelationVersion_GP7,
 					  ERROR,
 					  (errcode(ERRCODE_INTERNAL_ERROR),
 					   errmsg("datum with row number %ld and col no %d not found in block directory entry range", rowNum, colno),
@@ -2117,7 +2117,7 @@ aocs_addcol_newsegfile(AOCSAddColumnDesc desc,
 		int			version;
 
 		/* Always write in the latest format */
-		version = AORelationVersion_GetLatest();
+		version = AOSegfileFormatVersion_GetLatest();
 
 		FormatAOSegmentFileName(basepath, seginfo->segno, colno,
 								&fileSegNo, fn);

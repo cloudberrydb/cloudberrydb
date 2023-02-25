@@ -973,7 +973,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 	AOTupleId  *aoTupleId = (AOTupleId *) &fake_ctid;
 	int			formatVersion = executorReadBlock->storageRead->formatVersion;
 
-	AORelationVersion_CheckValid(formatVersion);
+	AOSegfileFormatVersion_CheckValid(formatVersion);
 
 	AOTupleIdInit(aoTupleId, executorReadBlock->segmentFileNum, rowNum);
 
@@ -1942,7 +1942,6 @@ fetchFromCurrentBlock(AppendOnlyFetchDesc aoFetchDesc,
 	bool							fetched;
 	AOFetchBlockMetadata 			*currentBlock = &aoFetchDesc->currentBlock;
 	AppendOnlyExecutorReadBlock 	*executorReadBlock = &aoFetchDesc->executorReadBlock;
-	AppendOnlyStorageRead			*storageRead = &aoFetchDesc->storageRead;
 	AppendOnlyBlockDirectoryEntry 	*entry = &currentBlock->blockDirectoryEntry;
 
 	if (!currentBlock->gotContents)
@@ -1967,10 +1966,10 @@ fetchFromCurrentBlock(AppendOnlyFetchDesc aoFetchDesc,
 			/*
 			 * We fell into a hole inside the resolved block directory entry
 			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
-			 * This should not be happening for versions >= PG12. Scream
+			 * This should not be happening for versions >= GP7. Scream
 			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
 			 */
-			ereportif(storageRead->formatVersion >= AORelationVersion_PG12,
+			ereportif(aoFetchDesc->relation->rd_appendonly->version >= AORelationVersion_GP7,
 					  ERROR,
 					  (errcode(ERRCODE_INTERNAL_ERROR),
 						  errmsg("tuple with row number %ld not found in block directory entry range", rowNum),
