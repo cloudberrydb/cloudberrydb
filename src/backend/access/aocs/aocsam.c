@@ -120,7 +120,7 @@ open_all_datumstreamread_segfiles(AOCSScanDesc scan, AOCSFileSegInfo *segInfo)
 
 		open_datumstreamread_segfile(basepath, rel->rd_node, segInfo, ds[attno], attno);
 		datumstreamread_block(ds[attno], blockDirectory, attno);
-
+		
 		AOCSScanDesc_UpdateTotalBytesRead(scan, attno);
 	}
 
