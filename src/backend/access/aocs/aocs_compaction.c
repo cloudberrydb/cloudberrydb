@@ -39,6 +39,8 @@
 #include "utils/snapmgr.h"
 #include "utils/guc.h"
 #include "miscadmin.h"
+#include "commands/progress.h"
+#include "pgstat.h"
 
 /* 
  * Hook for plugins to get control after move or throw away tuple in 
@@ -60,7 +62,7 @@ aocs_compaction_delete_hook_type aocs_compaction_delete_hook = NULL;
  * segments, including any empty ones we've left behind.
  */
 void
-AOCSCompaction_DropSegmentFile(Relation aorel, int segno)
+AOCSCompaction_DropSegmentFile(Relation aorel, int segno, AOVacuumRelStats *vacrelstats)
 {
 	int			col;
 
@@ -83,7 +85,7 @@ AOCSCompaction_DropSegmentFile(Relation aorel, int segno)
 		fd = OpenAOSegmentFile(aorel, filenamepath, 0);
 		if (fd >= 0)
 		{
-			TruncateAOSegmentFile(fd, aorel, pseudoSegNo, 0);
+			TruncateAOSegmentFile(fd, aorel, pseudoSegNo, 0, vacrelstats);
 			CloseAOSegmentFile(fd);
 		}
 		else
@@ -109,7 +111,7 @@ AOCSCompaction_DropSegmentFile(Relation aorel, int segno)
  * transactions.
  */
 void
-AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
+AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo, AOVacuumRelStats *vacrelstats)
 {
 	const char *relname = RelationGetRelationName(aorel);
 	int			j;
@@ -146,7 +148,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
 		fd = OpenAOSegmentFile(aorel, filenamepath, segeof);
 		if (fd >= 0)
 		{
-			TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof);
+			TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof, vacrelstats);
 			CloseAOSegmentFile(fd);
 
 			elogif(Debug_appendonly_print_compaction, LOG,
@@ -221,7 +223,8 @@ static bool
 AOCSSegmentFileFullCompaction(Relation aorel,
 							  AOCSInsertDesc insertDesc,
 							  AOCSFileSegInfo *fsinfo,
-							  Snapshot snapshot)
+							  Snapshot snapshot,
+							  AOVacuumRelStats *vacrelstats)
 {
 	const char *relname;
 	AppendOnlyVisimap visiMap;
@@ -236,6 +239,10 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	int64		tuplePerPage = INT_MAX;
 	ItemPointerData otid;
 	AOTupleId  *aoTupleId;
+	int64		curr_num_dead_tuples = 0;
+	int64		prev_num_dead_tuples = 0;
+	int64		curr_heap_blks_scanned = 0;
+	int64		prev_heap_blks_scanned = 0;
 
 	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
 	Assert(RelationIsAoCols(aorel));
@@ -318,7 +325,28 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 		{
 			vacuum_delay_point();
 		}
+
+		/*
+		 * Report that we are now scanning and compacting segment files.
+		 */
+		curr_num_dead_tuples = scanDesc->cur_seg_row + 1 - tupleCount;
+		if (curr_num_dead_tuples > prev_num_dead_tuples)
+		{
+			pgstat_progress_update_param(PROGRESS_VACUUM_NUM_DEAD_TUPLES,
+										 vacrelstats->num_dead_tuples + curr_num_dead_tuples);
+			prev_num_dead_tuples = curr_num_dead_tuples;
+		}
+
+		curr_heap_blks_scanned = RelationGuessNumberOfBlocksFromSize(scanDesc->totalBytesRead);
+		if (curr_heap_blks_scanned > prev_heap_blks_scanned)
+		{
+			pgstat_progress_update_param(PROGRESS_VACUUM_HEAP_BLKS_SCANNED,
+										 curr_heap_blks_scanned);
+			prev_heap_blks_scanned = curr_heap_blks_scanned;
+		}
 	}
+	/* Accumulate total number dead tuples */
+	vacrelstats->num_dead_tuples += scanDesc->cur_seg_row - tupleCount;
 
 	MarkAOCSFileSegInfoAwaitingDrop(aorel, compact_segno);
 
@@ -358,7 +386,7 @@ AOCSSegmentFileFullCompaction(Relation aorel,
  * The compaction segment file should be locked for this transaction in
  * the appendonlywriter.c code.
  *
- * On exit, *insert_segno will be set to the the segment that was used as the
+ * On exit, *insert_segno will be set to the segment that was used as the
  * insertion target. The segfiles listed in 'avoid_segnos' will not be used
  * for insertion.
  *
@@ -370,7 +398,8 @@ AOCSCompact(Relation aorel,
 			int compaction_segno,
 			int *insert_segno,
 			bool isFull,
-			List *avoid_segnos)
+			List *avoid_segnos,
+			AOVacuumRelStats *vacrelstats)
 {
 	const char *relname;
 	AOCSInsertDesc insertDesc = NULL;
@@ -404,7 +433,8 @@ AOCSCompact(Relation aorel,
 			AOCSSegmentFileFullCompaction(aorel,
 										  insertDesc,
 										  fsinfo,
-										  appendOnlyMetaDataSnapshot);
+										  appendOnlyMetaDataSnapshot,
+										  vacrelstats);
 
 			insertDesc->skipModCountIncrement = true;
 			aocs_insert_finish(insertDesc, NULL);
