@@ -52,3 +52,13 @@ Feature: Tests for gpcheckperf
     And   gpcheckperf should print "single host only - abandon netperf test" to stdout
     And gpcheckperf should not print "TypeError:" to stdout
 
+  Scenario: gpcheckperf runs with -S option and prints a warning message
+    Given the database is running
+    When  the user runs "gpcheckperf -h localhost -r d -d /tmp -S 1GB"
+    Then  gpcheckperf should return a return code of 0
+    And   gpcheckperf should print "\[Warning] Using 1073741824 bytes for disk performance test. This might take some time" to stdout
+
+  Scenario: gpcheckperf errors out when invalid value is passed to the -S option
+    Given the database is running
+    When  the user runs "gpcheckperf -h localhost -r d -d /tmp -S abc"
+    Then  gpcheckperf should return a return code of 1
