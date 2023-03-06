@@ -133,26 +133,27 @@ def getPlatform():
 
 
 def getMemory():
-    if getPlatform() == 'linux':
-        ok, out = run("sh -c 'cat /proc/meminfo | grep MemTotal'")
-        if not ok:
-            return 0
+    platform = getPlatform()
+
+    if platform == 'linux':
+        rc, out = run("sh -c 'cat /proc/meminfo | grep MemTotal'")
+        if rc != 0:
+            return None
         word_list = out.strip().split(' ')
         val = int(word_list[len(word_list) - 2])
         factor = word_list[len(word_list) - 1]
         if factor == 'kB':
-            return val * 1024
-        return 0
+            return val * 1024 if val else None
 
-    if getPlatform() == 'darwin':
-        ok, out = run("/usr/sbin/sysctl hw.physmem")
-        if not ok:
-            return 0
+    if platform == 'darwin':
+        rc, out = run("/usr/sbin/sysctl hw.physmem")
+        if rc != 0:
+            return None
         word_list = out.strip().split(' ')
         val = int(word_list[1])
-        return val
+        return val if val else None
 
-    return 0
+    return None
 
 
 def parseMemorySize(line):
@@ -261,7 +262,12 @@ def parseCommandLine():
         usage('Error: maximum size for -B parameter is 1MB')
 
     if GV.opt['-S'] == 0:
-        GV.opt['-S'] = 2 * getMemory() / len(GV.opt['-d'])
+        system_mem_size = getMemory()
+        if system_mem_size is not None:
+            GV.opt['-S'] = 2 * system_mem_size / len(GV.opt['-d'])
+        else:
+            sys.exit('[Error] could not get system memory size. Instead, you can use the -S option to provide the file size value')
+
     else:
         GV.opt['-S'] /= len(GV.opt['-d'])
 
@@ -947,50 +953,55 @@ def printResult(title, result):
     print('')
 
 
-try:
-    parseCommandLine()
-    runSetup()
-    diskWriteResult = diskReadResult = streamResult = netResult = None
-    tornDown = False
+def main():
     try:
-        if GV.opt['-r'].find('d') >= 0:
-            multidd = copyExecOver('multidd')
-            diskWriteResult = runDiskWriteTest(multidd)
-            diskReadResult = runDiskReadTest(multidd)
+        parseCommandLine()
+        runSetup()
+        diskWriteResult = diskReadResult = streamResult = netResult = None
+        tornDown = False
+        try:
+            if GV.opt['-r'].find('d') >= 0:
+                print('[Warning] Using %d bytes for disk performance test. This might take some time' % (GV.opt['-S'] * len(GV.opt['-d'])))
+                multidd = copyExecOver('multidd')
+                diskWriteResult = runDiskWriteTest(multidd)
+                diskReadResult = runDiskReadTest(multidd)
 
-        if GV.opt['-r'].find('s') >= 0:
-            streamResult = runStreamTest()
+            if GV.opt['-r'].find('s') >= 0:
+                streamResult = runStreamTest()
 
-        if GV.opt['--net'] == 'netperf':
-            netResult = runNetPerfTest()
-        elif GV.opt['--net'] == 'parallel':
-            netResult = runNetPerfTestParallel()
-        elif GV.opt['--net'] == 'matrix':
-            netResult, seglist = runNetPerfTestMatrix()
+            if GV.opt['--net'] == 'netperf':
+                netResult = runNetPerfTest()
+            elif GV.opt['--net'] == 'parallel':
+                netResult = runNetPerfTestParallel()
+            elif GV.opt['--net'] == 'matrix':
+                netResult, seglist = runNetPerfTestMatrix()
 
-        runTeardown()
+            runTeardown()
 
-    finally:
-        print('')
-        print('====================')
-        print('==  RESULT %s' % datetime.datetime.now().isoformat())
-        print('====================')
+        finally:
+            print('')
+            print('====================')
+            print('==  RESULT %s' % datetime.datetime.now().isoformat())
+            print('====================')
 
-        if diskWriteResult:
-            printResult('disk write', diskWriteResult)
+            if diskWriteResult:
+                printResult('disk write', diskWriteResult)
 
-        if diskReadResult:
-            printResult('disk read', diskReadResult)
+            if diskReadResult:
+                printResult('disk read', diskReadResult)
 
-        if streamResult:
-            printResult('stream', streamResult)
+            if streamResult:
+                printResult('stream', streamResult)
 
-        if netResult and GV.opt['--net'] == 'matrix':
-            printMatrixResult(netResult, seglist)
-        elif netResult and GV.opt['--net']:
-            printNetResult(netResult)
+            if netResult and GV.opt['--net'] == 'matrix':
+                printMatrixResult(netResult, seglist)
+            elif netResult and GV.opt['--net']:
+                printNetResult(netResult)
 
-        runTeardown()
+            runTeardown()
 
-except KeyboardInterrupt:
-    print('[Abort] Keyboard Interrupt ...')
+    except KeyboardInterrupt:
+        print('[Abort] Keyboard Interrupt ...')
+
+if __name__ == '__main__':
+     main()
