@@ -219,7 +219,7 @@ degradation in the worst case) in setting up and tearing down scan descriptors
 for AO/CO tables, we avoid the scanbegin..fetch..scanend construct in
 table_index_fetch_tuple_check().
 
-So, a new tableam API index_fetch_tuple_exists() is used, which is implemented
+So, a new tableam API index_unique_check() is used, which is implemented
 only for AO/CO tables. Here, we fetch a UniqueCheckDesc, which stores all the
 in-memory state to help us perform a unique index check. This descriptor is
 attached to the DMLState structs. Currently, the descriptor holds only a block
