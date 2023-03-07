@@ -458,8 +458,8 @@ typedef struct TableAmRoutine
 									  TupleTableSlot *slot,
 									  bool *call_again, bool *all_dead);
 
-	/* See table_index_fetch_tuple_exists() for details */
-	bool		(*index_fetch_tuple_exists) (Relation rel,
+	/* See table_index_unique_check() for details */
+	bool		(*index_unique_check) (Relation rel,
 											 ItemPointer tid,
 											 Snapshot snapshot,
 											 bool *all_dead);
@@ -1340,12 +1340,12 @@ extern bool table_index_fetch_tuple_check(Relation rel,
  * This has to have an identical signature to table_index_fetch_tuple_check().
  */
 static inline bool
-table_index_fetch_tuple_exists(Relation rel,
+table_index_unique_check(Relation rel,
 							   ItemPointer tid,
 							   Snapshot snapshot,
 							   bool *all_dead)
 {
-	return rel->rd_tableam->index_fetch_tuple_exists(rel, tid, snapshot,
+	return rel->rd_tableam->index_unique_check(rel, tid, snapshot,
 														   all_dead);
 }
 

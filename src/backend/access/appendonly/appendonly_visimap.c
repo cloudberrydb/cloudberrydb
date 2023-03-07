@@ -872,7 +872,7 @@ AppendOnlyVisimapDelete_Finish(
  * uniqueness checks.
  *
  * Note: we defer setting up the appendOnlyMetaDataSnapshot for the visibility
- * map to the index_fetch_tuple_exists() table AM call. This is because
+ * map to the index_unique_check() table AM call. This is because
  * snapshots used for unique index lookups are special and don't follow the
  * usual allocation or registration mechanism. They may be stack-allocated and a
  * new snapshot object may be passed to every unique index check (this happens
