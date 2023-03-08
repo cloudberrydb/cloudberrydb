@@ -11796,7 +11796,7 @@
    prosrc => 'pg_resgroup_move_query' },
 
 { oid => 6065, descr => 'statistics: information about resource groups in key-value style',
-   proexeclocation => 'c',
+   proexeclocation => 'i',
    proname => 'pg_resgroup_get_status_kv', prorows => '1000', proisstrict => 'f', proretset => 't', provolatile => 'v', proparallel => 'r', prorettype => 'record', proargtypes => 'text', proallargtypes => 'text,oid,text,text', proargmodes => '{i,o,o,o}', proargnames => '{prop_in,rsgid,prop,value}', prosrc => 'pg_resgroup_get_status_kv' },
 
 { oid => 6066, descr => 'statistics: information about resource groups',
