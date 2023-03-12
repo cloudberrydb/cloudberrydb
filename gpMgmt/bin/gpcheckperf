@@ -346,14 +346,14 @@ def runSetup():
         print('--------------------')
     okCount = 0
     try:
-        # check python reachable
+        # Verify python3 is accessible
         if GV.opt['-v']:
-            print('[Info] verify python interpreter exists')
-        (ok, out) = gpssh('python -c print')
+            print('[Info] verify python3 interpreter exists')
+        (ok, out) = gpssh('python3 -c print')
         if not ok:
             if not GV.opt['-v']:
                 print(out)
-            sys.exit("[Error] unable to find python interpreter on some hosts\n"
+            sys.exit("[Error] unable to find python3 interpreter on some hosts\n"
                      + "        verify PATH variables on the hosts")
 
             # mkdir cperf
