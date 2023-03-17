@@ -37,6 +37,9 @@
 { oid => '7012', oid_symbol => 'PG_BITMAPINDEX_NAMESPACE',
   descr => 'Reserved schema for internal relations of bitmap indexes',
   nspname => 'pg_bitmapindex', nspacl => '_null_' },
+{ oid => '7094', oid_symbol => 'PG_EXTAUX_NAMESPACE',
+  descr => 'Reserved schema for internal relations for extensions',
+  nspname => 'pg_ext_aux', nspacl => '_null_' },
 
 # prototypes for functions in pg_namespace.c
 

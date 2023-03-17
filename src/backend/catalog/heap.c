@@ -1663,8 +1663,9 @@ heap_create_with_catalog(const char *relname,
 		  relkind == RELKIND_PARTITIONED_INDEX ||
 		  relkind == RELKIND_AOSEGMENTS ||
 		  relkind == RELKIND_AOBLOCKDIR ||
-		  relkind == RELKIND_AOVISIMAP) &&
-		relnamespace != PG_BITMAPINDEX_NAMESPACE)
+		  relkind == RELKIND_AOVISIMAP ||
+		  relnamespace == PG_BITMAPINDEX_NAMESPACE ||
+		  relnamespace == PG_EXTAUX_NAMESPACE))
 	{
 		/* OK, so pre-assign a type OID for the array type */
 		Oid			new_array_oid;
@@ -1934,6 +1935,7 @@ heap_create_with_catalog(const char *relname,
 			case PG_TOAST_NAMESPACE:
 			case PG_BITMAPINDEX_NAMESPACE:
 			case PG_AOSEGMENT_NAMESPACE:
+			case PG_EXTAUX_NAMESPACE:
 				doIt = false;
 				break;
 			default:

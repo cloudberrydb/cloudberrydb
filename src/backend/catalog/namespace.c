@@ -3060,6 +3060,12 @@ CheckSetNamespace(Oid oldNspOid, Oid nspOid)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot move objects into or out of AO SEGMENT schema")));
+
+	/* same for EXT AUX schema */
+	if (nspOid == PG_EXTAUX_NAMESPACE || oldNspOid == PG_EXTAUX_NAMESPACE)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot move objects into or out of namespace pg_ext_aux")));
 }
 
 /*

@@ -3324,6 +3324,7 @@ vacuumStatement_IsTemporary(Relation onerel)
 		case PG_TOAST_NAMESPACE:
 		case PG_BITMAPINDEX_NAMESPACE:
 		case PG_AOSEGMENT_NAMESPACE:
+		case PG_EXTAUX_NAMESPACE:
 			bTemp = true;
 			break;
 		default:
