@@ -20,6 +20,7 @@
 #include "fmgr.h"
 #include "access/tupdesc.h"
 #include "access/xlog.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
@@ -515,6 +516,23 @@ typedef struct ViewOptions
  */
 #define RelationIsAppendOptimized(relation) \
 	AMHandlerIsAO((relation)->rd_amhandler)
+
+/*
+ * CAUTION: this macro is a violation of the absraction that table AM and
+ * index AM interfaces provide.  Use of this macro is discouraged.  If
+ * table/index AM API falls short for your use case, consider enhancing the
+ * interface.
+ *
+ * RelationIsNonblockRelation looks replacable by `!RelationIsHeap`, but
+ * they have different meanings. RelationIsNonblockRelation expand the
+ * relation type to run the code path like AO/CO. `!RelationIsHeap`
+ * emphasizes NOT heap relation.
+ *
+ * RelationIsNonblockRelation
+ *      True iff relation(table) should run the code path as AO/CO
+ */
+#define RelationIsNonblockRelation(relation) \
+	((relation)->rd_tableam && (relation)->rd_rel->relam != HEAP_TABLE_AM_OID)
 
 /*
  * RelationIsBitmapIndex
