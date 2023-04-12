@@ -144,6 +144,7 @@
 		"enable_partition_pruning",
 		"enable_partitionwise_aggregate",
 		"enable_partitionwise_join",
+		"enable_password_profile",
 		"enable_seqscan",
 		"enable_sort",
 		"enable_tidscan",

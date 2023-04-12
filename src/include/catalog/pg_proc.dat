@@ -12476,5 +12476,7 @@
 { oid => 7077, descr => 'Update gp_segment_configuration mode and status by dbid', proname => 'gp_update_segment_configuration_mode_status',
    proisstrict => 'f', provolatile => 'v', proparallel => 'r', prorettype => 'int2', proargtypes => 'int4 char char', prosrc => 'gp_update_segment_configuration_mode_status'},
 
+{ oid => 7060, descr => 'get user account status',
+   proname => 'get_role_status', prorettype => 'cstring', proargtypes => 'cstring', prosrc => 'get_role_status' },
 ]
 

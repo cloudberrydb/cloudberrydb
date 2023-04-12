@@ -2247,6 +2247,16 @@ readNodeBinary(void)
 				return_value = _readAlterRoleSetStmt();
 				break;
 
+			case T_CreateProfileStmt:
+				return_value = _readCreateProfileStmt();
+				break;
+			case T_AlterProfileStmt:
+				return_value = _readAlterProfileStmt();
+				break;
+			case T_DropProfileStmt:
+				return_value = _readDropProfileStmt();
+				break;
+
 			case T_AlterObjectDependsStmt:
 				return_value = _readAlterObjectDependsStmt();
 				break;

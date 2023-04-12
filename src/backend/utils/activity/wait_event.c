@@ -279,6 +279,9 @@ pgstat_get_wait_activity(WaitEventActivity w)
 		case WAIT_EVENT_GLOBAL_DEADLOCK_DETECTOR_MAIN:
 			event_name = "GlobalDeadLockDetectorMain";
 			break;
+		case WAIT_EVENT_LOGIN_MONITOR_LAUNCHER_MAIN:
+			event_name = "LoginMonitorLauncherMain";
+			break;
 			/* no default case, so that compiler will warn */
 	}
 
@@ -487,6 +490,9 @@ pgstat_get_wait_ipc(WaitEventIPC w)
 			break;
 		case WAIT_EVENT_SHAREINPUT_SCAN:
 			event_name = "ShareInputScan";
+			break;
+		case WAIT_EVENT_LOGINMONITOR_FINISH:
+			event_name = "LoginMonitorFinish";
 			break;
 		case WAIT_EVENT_DTX_RECOVERY:
 			event_name = "DtxRecovery";

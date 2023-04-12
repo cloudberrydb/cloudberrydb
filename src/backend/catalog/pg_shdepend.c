@@ -38,6 +38,7 @@
 #include "catalog/pg_operator.h"
 #include "catalog/pg_opfamily.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_shdepend.h"
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
@@ -1209,6 +1210,16 @@ shdepLockAndCheckObject(Oid classId, Oid objectId)
 				break;
 			}
 
+		case ProfileRelationId:
+			{
+				if (!SearchSysCacheExists1(PROFILEID, ObjectIdGetDatum(objectId)))
+					ereport(ERROR,
+						(errcode(ERRCODE_UNDEFINED_OBJECT),
+						 errmsg("profile %u was concurrently dropped",
+							       objectId)));
+				break;
+			}
+
 
 		default:
 			elog(ERROR, "unrecognized shared classId: %u", classId);
@@ -1261,6 +1272,8 @@ storeObjectDescription(StringInfo descs,
 				appendStringInfo(descs, _("target of %s"), objdesc);
 			else if (deptype == SHARED_DEPENDENCY_TABLESPACE)
 				appendStringInfo(descs, _("tablespace for %s"), objdesc);
+			else if (deptype == SHARED_DEPENDENCY_PROFILE)
+				appendStringInfo(descs, _("profile of %s"), objdesc);
 			else
 				elog(ERROR, "unrecognized dependency type: %d",
 					 (int) deptype);
@@ -1680,6 +1693,53 @@ shdepReassignOwned(List *roleids, Oid newrole)
 
 		systable_endscan(scan);
 	}
+
+	table_close(sdepRel, RowExclusiveLock);
+}
+
+/*
+ * recordProfileDependency
+ *
+ * A convenient wrapper of recordSharedDependencyOn -- register the specified
+ * roles of attached to profile.
+ */
+void
+recordProfileDependency(Oid roleId, Oid profileId)
+{
+	ObjectAddress myself,
+				referenced;
+
+	myself.classId = AuthIdRelationId;
+	myself.objectId = roleId;
+	myself.objectSubId = 0;
+
+	referenced.classId = ProfileRelationId;
+	referenced.objectId = profileId;
+	referenced.objectSubId = 0;
+
+	recordSharedDependencyOn(&myself, &referenced, SHARED_DEPENDENCY_PROFILE);
+}
+
+/*
+ * changeProfileDependency
+ *
+ * Update the shared dependencies to account for the new profile.
+ *
+ * Note: we don't need an objsubid argument because only whole objects
+ * have owners.
+ */
+void
+changeProfileDependency(Oid roleId, Oid newprofileId)
+{
+	Relation	sdepRel;
+
+	sdepRel = table_open(SharedDependRelationId, RowExclusiveLock);
+
+	/* Adjust the SHARED_DEPENDENCY_PROFILE entry */
+	shdepChangeDep(sdepRel,
+				AuthIdRelationId, roleId, 0,
+		       		ProfileRelationId, newprofileId,
+				SHARED_DEPENDENCY_PROFILE);
 
 	table_close(sdepRel, RowExclusiveLock);
 }

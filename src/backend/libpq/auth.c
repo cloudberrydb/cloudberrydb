@@ -45,11 +45,14 @@
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "catalog/indexing.h"
+#include "catalog/objectaccess.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_auth_time_constraint.h"
+#include "catalog/pg_profile.h"
 #include "cdb/cdbendpoint.h"
 #include "cdb/cdbvars.h"
 #include "pgtime.h"
+#include "postmaster/loginmonitor.h"
 #include "postmaster/postmaster.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -286,6 +289,12 @@ auth_failed(Port *port, int status, char *logdetail)
 	const char *errstr;
 	char	   *cdetail;
 	int			errcode_return = ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION;
+	Relation		pg_authid_rel;
+	TupleDesc		pg_authid_dsc;
+	HeapTuple		auth_tuple;
+	Form_pg_authid		authform;
+	bool 			account_status_isnull;
+	int16 			account_status;
 
 	/*
 	 * If we failed due to EOF from client, just quit; there's no point in
@@ -363,6 +372,32 @@ auth_failed(Port *port, int status, char *logdetail)
 		logdetail = psprintf("%s\n%s", logdetail, cdetail);
 	else
 		logdetail = cdetail;
+
+	/* Send signal to login monitor */
+	pg_authid_rel = table_open(AuthIdRelationId, AccessShareLock);
+	pg_authid_dsc = RelationGetDescr(pg_authid_rel);
+
+	auth_tuple = SearchSysCache1(AUTHNAME,
+				     CStringGetDatum(port->user_name));
+
+	if (!HeapTupleIsValid(auth_tuple))
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("user \"%s\" does not exist",
+				       port->user_name)));
+	}
+
+	/* Send signal only when user is not a super user and
+	 * user is enable to use profile.
+	 */
+	authform = (Form_pg_authid) GETSTRUCT(auth_tuple);
+	account_status = DatumGetInt16(SysCacheGetAttr(AUTHNAME, auth_tuple,
+						Anum_pg_authid_rolaccountstatus, &account_status_isnull));
+	if (enable_password_profile && !authform->rolsuper && authform->rolenableprofile &&
+		(account_status != ROLE_ACCOUNT_STATUS_LOCKED ||
+		 account_status != ROLE_ACCOUNT_STATUS_LOCKED_TIMED))
+		SendLoginFailedSignal(port->user_name);
 
 	ereport(FATAL,
 			(errcode(errcode_return),

@@ -1,0 +1,28 @@
+#----------------------------------------------------------------------
+#
+# pg_profile.dat
+#    Initial contents of the pg_profile system catalog.
+#
+# Copyright (c) 2023, Cloudberry Database, HashData Technology Limited.
+#
+# src/include/catalog/pg_profile.dat
+#
+#----------------------------------------------------------------------
+
+[
+
+# The C code typically refers to these roles using the #define symbols,
+# so make sure every entry has an oid_symbol value.
+
+# The bootstrap superuser is named POSTGRES according to this data and
+# according to BKI_DEFAULT entries in other catalogs.  However, initdb
+# will replace that at database initialization time.
+
+{ oid => '10140', oid_symbol => 'DEFAULT_PROFILE',
+  descr => 'default profile',
+  prfname => 'pg_default', prffailedloginattempts => '-2', prfpasswordlocktime => '-2',
+  prfpasswordlifetime => '-2', prfpasswordgracetime => '-2', prfpasswordreusetime => '-2',
+  prfpasswordreusemax => '-2', prfpasswordallowhashed => '1', prfpasswordverifyfuncdb => '_null_',
+  prfpasswordverifyfunc => '_null_' }
+
+]

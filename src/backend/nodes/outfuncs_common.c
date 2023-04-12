@@ -837,6 +837,15 @@ _outCreateRoleStmt(StringInfo str, const CreateRoleStmt *node)
 }
 
 static void
+_outCreateProfileStmt(StringInfo str, const CreateProfileStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEPROFILESTMT");
+
+	WRITE_STRING_FIELD(profile_name);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
 _outDenyLoginInterval(StringInfo str, const DenyLoginInterval *node)
 {
 	WRITE_NODE_TYPE("DENYLOGININTERVAL");
@@ -860,6 +869,15 @@ _outDropRoleStmt(StringInfo str, const DropRoleStmt *node)
 	WRITE_NODE_TYPE("DROPROLESTMT");
 
 	WRITE_NODE_FIELD(roles);
+	WRITE_BOOL_FIELD(missing_ok);
+}
+
+static	void
+_outDropProfileStmt(StringInfo str, const DropProfileStmt *node)
+{
+	WRITE_NODE_TYPE("DROPPROFILESTMT");
+
+	WRITE_NODE_FIELD(profiles);
 	WRITE_BOOL_FIELD(missing_ok);
 }
 
@@ -903,6 +921,15 @@ _outAlterRoleStmt(StringInfo str, const AlterRoleStmt *node)
 	WRITE_NODE_FIELD(role);
 	WRITE_NODE_FIELD(options);
 	WRITE_INT_FIELD(action);
+}
+
+static	void
+_outAlterProfileStmt(StringInfo str, const AlterProfileStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERPROFILESTMT");
+
+	WRITE_STRING_FIELD(profile_name);
+	WRITE_NODE_FIELD(options);
 }
 
 static  void

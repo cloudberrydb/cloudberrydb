@@ -166,6 +166,7 @@ int			VacuumCostPageMiss = 2;
 int			VacuumCostPageDirty = 20;
 int			VacuumCostLimit = 200;
 double		VacuumCostDelay = 0;
+int 			login_monitor_max_processes = 2; /* login monitor launcher and 1 worker */
 
 int64		VacuumPageHit = 0;
 int64		VacuumPageMiss = 0;

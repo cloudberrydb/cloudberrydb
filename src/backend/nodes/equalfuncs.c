@@ -2287,6 +2287,15 @@ _equalCreateRoleStmt(const CreateRoleStmt *a, const CreateRoleStmt *b)
 }
 
 static bool
+_equalCreateProfileStmt(const CreateProfileStmt *a, const CreateProfileStmt *b)
+{
+	COMPARE_STRING_FIELD(profile_name);
+	COMPARE_NODE_FIELD(options);
+
+	return true;
+}
+
+static bool
 _equalDenyLoginInterval(const DenyLoginInterval *a, const DenyLoginInterval *b)
 {
 	COMPARE_NODE_FIELD(start);
@@ -2325,9 +2334,27 @@ _equalAlterRoleSetStmt(const AlterRoleSetStmt *a, const AlterRoleSetStmt *b)
 }
 
 static bool
+_equalAlterProfileStmt(const AlterProfileStmt *a, const AlterProfileStmt *b)
+{
+	COMPARE_STRING_FIELD(profile_name);
+	COMPARE_NODE_FIELD(options);
+
+	return true;
+}
+
+static bool
 _equalDropRoleStmt(const DropRoleStmt *a, const DropRoleStmt *b)
 {
 	COMPARE_NODE_FIELD(roles);
+	COMPARE_SCALAR_FIELD(missing_ok);
+
+	return true;
+}
+
+static bool
+_equalDropProfileStmt(const DropProfileStmt *a, const DropProfileStmt *b)
+{
+	COMPARE_NODE_FIELD(profiles);
 	COMPARE_SCALAR_FIELD(missing_ok);
 
 	return true;
@@ -3947,6 +3974,15 @@ equal(const void *a, const void *b)
 			break;
 		case T_DropRoleStmt:
 			retval = _equalDropRoleStmt(a, b);
+			break;
+		case T_CreateProfileStmt:
+			retval = _equalCreateProfileStmt(a, b);
+			break;
+		case T_AlterProfileStmt:
+			retval = _equalAlterProfileStmt(a, b);
+			break;
+		case T_DropProfileStmt:
+			retval = _equalDropProfileStmt(a, b);
 			break;
 		case T_LockStmt:
 			retval = _equalLockStmt(a, b);

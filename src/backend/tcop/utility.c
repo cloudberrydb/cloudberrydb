@@ -79,6 +79,7 @@
 
 #include "access/table.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/pg_profile.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbendpoint.h"
 #include "cdb/cdbvars.h"
@@ -232,13 +233,16 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_ViewStmt:
 		/* fallthrough */
 		/* GPDB specific commands */
+		case T_AlterProfileStmt:
 		case T_AlterQueueStmt:
 		case T_AlterResourceGroupStmt:
+		case T_CreateProfileStmt:
 		case T_CreateQueueStmt:
 		case T_CreateResourceGroupStmt:
 		case T_CreateTaskStmt:
 		case T_AlterTaskStmt:
 		case T_DropTaskStmt:
+		case T_DropProfileStmt:
 		case T_DropQueueStmt:
 		case T_DropResourceGroupStmt:
 		case T_DropWarehouseStmt:
@@ -1102,6 +1106,18 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 		case T_DropRoleStmt:
 			/* no event triggers for global objects */
 			DropRole((DropRoleStmt *) parsetree);
+			break;
+
+		case T_CreateProfileStmt:
+			CreateProfile(pstate, (CreateProfileStmt *) parsetree);
+			break;
+
+		case T_AlterProfileStmt:
+			AlterProfile((AlterProfileStmt *) parsetree);
+			break;
+
+		case T_DropProfileStmt:
+			DropProfile((DropProfileStmt *) parsetree);
 			break;
 
 		case T_ReassignOwnedStmt:
@@ -2744,6 +2760,9 @@ AlterObjectTypeCommandTag(ObjectType objtype)
 		case OBJECT_ROLE:
 			tag = CMDTAG_ALTER_ROLE;
 			break;
+		case OBJECT_PROFILE:
+			tag = CMDTAG_ALTER_PROFILE;
+			break;
 		case OBJECT_ROUTINE:
 			tag = CMDTAG_ALTER_ROUTINE;
 			break;
@@ -3491,6 +3510,18 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_DROP_ROLE;
 			break;
 
+		case T_CreateProfileStmt:
+			tag = CMDTAG_CREATE_PROFILE;
+			break;
+
+		case T_AlterProfileStmt:
+			tag = CMDTAG_ALTER_PROFILE;
+			break;
+
+		case T_DropProfileStmt:
+			tag = CMDTAG_DROP_PROFILE;
+			break;
+
 		case T_DropOwnedStmt:
 			tag = CMDTAG_DROP_OWNED;
 			break;
@@ -4120,6 +4151,18 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_DropRoleStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_CreateProfileStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_AlterProfileStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_DropProfileStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

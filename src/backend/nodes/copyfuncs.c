@@ -5155,6 +5155,17 @@ _copyCreateRoleStmt(const CreateRoleStmt *from)
 	return newnode;
 }
 
+static CreateProfileStmt *
+_copyCreateProfileStmt(const CreateProfileStmt *from)
+{
+	CreateProfileStmt *newnode = makeNode(CreateProfileStmt);
+
+	COPY_STRING_FIELD(profile_name);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
 static DenyLoginInterval *
 _copyDenyLoginInterval(const DenyLoginInterval *from)
 {
@@ -5189,6 +5200,17 @@ _copyAlterRoleStmt(const AlterRoleStmt *from)
 	return newnode;
 }
 
+static AlterProfileStmt *
+_copyAlterProfileStmt(const AlterProfileStmt *from)
+{
+	AlterProfileStmt *newnode = makeNode(AlterProfileStmt);
+
+	COPY_STRING_FIELD(profile_name);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
 static AlterRoleSetStmt *
 _copyAlterRoleSetStmt(const AlterRoleSetStmt *from)
 {
@@ -5207,6 +5229,17 @@ _copyDropRoleStmt(const DropRoleStmt *from)
 	DropRoleStmt *newnode = makeNode(DropRoleStmt);
 
 	COPY_NODE_FIELD(roles);
+	COPY_SCALAR_FIELD(missing_ok);
+
+	return newnode;
+}
+
+static DropProfileStmt *
+_copyDropProfileStmt(const DropProfileStmt *from)
+{
+	DropProfileStmt *newnode = makeNode(DropProfileStmt);
+
+	COPY_NODE_FIELD(profiles);
 	COPY_SCALAR_FIELD(missing_ok);
 
 	return newnode;
@@ -6752,6 +6785,15 @@ copyObjectImpl(const void *from)
 			break;
 		case T_DropRoleStmt:
 			retval = _copyDropRoleStmt(from);
+			break;
+		case T_CreateProfileStmt:
+			retval = _copyCreateProfileStmt(from);
+			break;
+		case T_AlterProfileStmt:
+			retval = _copyAlterProfileStmt(from);
+			break;
+		case T_DropProfileStmt:
+			retval = _copyDropProfileStmt(from);
 			break;
 		case T_LockStmt:
 			retval = _copyLockStmt(from);

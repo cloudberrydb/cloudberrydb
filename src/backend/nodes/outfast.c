@@ -1341,6 +1341,17 @@ _outNode(StringInfo str, void *obj)
 			case T_AlterRoleSetStmt:
 				_outAlterRoleSetStmt(str, obj);
 				break;
+
+			case T_CreateProfileStmt:
+				_outCreateProfileStmt(str, obj);
+				break;
+			case T_AlterProfileStmt:
+				_outAlterProfileStmt(str, obj);
+				break;
+			case T_DropProfileStmt:
+				_outDropProfileStmt(str, obj);
+				break;
+
 			case T_AlterSystemStmt:
 				_outAlterSystemStmt(str, obj);
 				break;

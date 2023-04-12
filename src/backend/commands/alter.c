@@ -33,6 +33,7 @@
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_opfamily.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
@@ -378,6 +379,9 @@ ExecRenameStmt_internal(RenameStmt *stmt)
 
 		case OBJECT_POLICY:
 			return rename_policy(stmt);
+
+		case OBJECT_PROFILE:
+			return rename_profile(stmt->subname, stmt->newname);
 
 		case OBJECT_DOMAIN:
 		case OBJECT_TYPE:
@@ -726,6 +730,8 @@ AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
 		case OCLASS_TRANSFORM:
 		case OCLASS_EXTPROTOCOL:
 		case OCLASS_TASK:
+		case OCLASS_PROFILE:
+		case OCLASS_PASSWORDHISTORY:
 			/* ignore object types that don't have schema-qualified names */
 			break;
 

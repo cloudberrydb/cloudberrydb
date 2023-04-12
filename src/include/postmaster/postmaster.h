@@ -32,6 +32,7 @@ extern bool enable_bonjour;
 extern char *bonjour_name;
 extern bool restart_after_crash;
 extern bool remove_temp_files_after_crash;
+extern bool enable_password_profile;
 
 extern int	terminal_fd;
 

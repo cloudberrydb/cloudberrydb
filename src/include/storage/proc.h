@@ -414,6 +414,8 @@ typedef struct PROC_HDR
 	PGPROC	   *freeProcs;
 	/* Head of list of autovacuum's free PGPROC structures */
 	PGPROC	   *autovacFreeProcs;
+	/* Head of list of login monitor free PGPROC structures */
+	PGPROC     *lmFreeProcs;
 	/* Head of list of bgworker free PGPROC structures */
 	PGPROC	   *bgworkerFreeProcs;
 	/* Head of list of walsender free PGPROC structures */

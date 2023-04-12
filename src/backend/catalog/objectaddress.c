@@ -47,6 +47,8 @@
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_opfamily.h"
+#include "catalog/pg_password_history.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_policy.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_publication.h"
@@ -377,6 +379,20 @@ static const ObjectPropertyType ObjectProperty[] =
 		Anum_pg_opfamily_opfowner,
 		InvalidAttrNumber,
 		OBJECT_OPFAMILY,
+		true
+	},
+	{
+		"profile",
+		ProfileRelationId,
+		ProfileOidIndexId,
+		PROFILEID,
+		PROFILENAME,
+		Anum_pg_profile_oid,
+		Anum_pg_profile_prfname,
+		InvalidAttrNumber,
+		InvalidAttrNumber,
+		InvalidAttrNumber,
+		OBJECT_PROFILE,
 		true
 	},
 	{
@@ -879,6 +895,10 @@ static const struct object_type_map
 	/* OCLASS_STATISTIC_EXT */
 	{
 		"statistics object", OBJECT_STATISTIC_EXT
+	},
+	/* OCLASS_PROFILE */
+	{
+		"profile", OBJECT_PROFILE
 	}
 };
 
@@ -1052,6 +1072,7 @@ get_object_address(ObjectType objtype, Node *object,
 			case OBJECT_SUBSCRIPTION:
 			case OBJECT_RESQUEUE:
 			case OBJECT_RESGROUP:
+			case OBJECT_PROFILE:
 				address = get_object_address_unqualified(objtype,
 														 (Value *) object, missing_ok);
 				break;
@@ -1369,6 +1390,11 @@ get_object_address_unqualified(ObjectType objtype,
 		case OBJECT_RESGROUP:
 			address.classId = ResGroupRelationId;
 			address.objectId = get_resgroup_oid(name, missing_ok);
+			address.objectSubId = 0;
+			break;
+		case OBJECT_PROFILE:
+			address.classId = ProfileRelationId;
+			address.objectId = get_profile_oid(name, missing_ok);
 			address.objectSubId = 0;
 			break;
 		default:
@@ -2341,6 +2367,7 @@ pg_get_object_address(PG_FUNCTION_ARGS)
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_RESGROUP:
 		case OBJECT_RESQUEUE:
+		case OBJECT_PROFILE:
 			if (list_length(name) != 1)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -2640,6 +2667,13 @@ check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
 			if (!pg_statistics_object_ownercheck(address.objectId, roleid))
 				aclcheck_error(ACLCHECK_NOT_OWNER, objtype,
 							   NameListToString(castNode(List, object)));
+			break;
+		case OBJECT_PROFILE:
+			/* We treat these object types as being owned by superusers */
+			if (!superuser_arg(roleid))
+				ereport(ERROR,
+						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+						 errmsg("must be superuser")));
 			break;
 		default:
 			elog(ERROR, "unrecognized object type: %d",
@@ -4026,6 +4060,25 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 				appendStringInfo(&buffer, _("task %s"), taskname);
 				break;
 			}
+
+		case OCLASS_PROFILE:
+			{
+				char	*profilename = ProfileGetNameByOid(object->objectId,
+												missing_ok);
+
+				if (profilename)
+					appendStringInfo(&buffer, _("profile %s"), profilename);
+				break;
+			}
+		case OCLASS_PASSWORDHISTORY:
+			{
+				char	*username = GetUserNameFromId(object->objectId,
+									     		missing_ok);
+
+				if (username)
+					appendStringInfo(&buffer, _("history password for role %s"), username);
+				break;
+			}
 	}
 
 	/* an empty buffer is equivalent to no object found */
@@ -4587,6 +4640,14 @@ getObjectTypeDescription(const ObjectAddress *object, bool missing_ok)
 
 		case OCLASS_TASK:
 			appendStringInfoString(&buffer, "task");
+			break;
+
+		case OCLASS_PROFILE:
+			appendStringInfoString(&buffer, "profile");
+			break;
+
+		case OCLASS_PASSWORDHISTORY:
+			appendStringInfoString(&buffer, "password_history");
 			break;
 
 			/*
@@ -5897,6 +5958,35 @@ getObjectIdentityParts(const ObjectAddress *object,
 				}
 			}
 			break;
+		
+		case OCLASS_PROFILE:
+			{
+				char	*prfname;
+
+				prfname = ProfileGetNameByOid(object->objectId, missing_ok);
+				if (!prfname)
+					break;
+				if (objname)
+					*objname = list_make1(prfname);
+				appendStringInfoString(&buffer,
+					       	quote_identifier(prfname));
+				break;
+			}
+
+		case OCLASS_PASSWORDHISTORY:
+			{
+				char	*username;
+
+				username = GetUserNameFromId(object->objectId, missing_ok);
+				if (!username)
+					break;
+				if (objname)
+					*objname = list_make1(username);
+				appendStringInfo(&buffer,
+					       	"history password for role %s: ", quote_identifier(username));
+
+				break;
+			}
 
 			/*
 			 * There's intentionally no default: case here; we want the

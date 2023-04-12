@@ -4688,6 +4688,11 @@ describeRoles(const char *pattern, bool verbose, bool showSystem)
 			appendPQExpBufferStr(&buf, "\n, r.rolbypassrls");
 		}
 
+		if (isGPDB7000OrLater())
+		{
+			appendPQExpBufferStr(&buf, "\n, r.rolenableprofile");
+		}
+
 		appendPQExpBufferStr(&buf, "\nFROM pg_catalog.pg_roles r\n");
 
 		if (!showSystem && !pattern)
@@ -4776,6 +4781,10 @@ describeRoles(const char *pattern, bool verbose, bool showSystem)
 		if (pset.sversion >= 90500)
 			if (strcmp(PQgetvalue(res, i, (verbose ? 11 : 10)), "t") == 0)
 				add_role_attribute(&buf, _("Bypass RLS"));
+
+		if (isGPDB7000OrLater())
+			if (strcmp(PQgetvalue(res, i, (verbose ? 15 : 14)), "t") == 0)
+				add_role_attribute(&buf, _("Enable Profile"));
 
 		conns = atoi(PQgetvalue(res, i, 6));
 		if (conns >= 0)
