@@ -318,10 +318,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		RetrieveStmt CreateTaskStmt AlterTaskStmt DropTaskStmt
 
 /* GPDB-specific commands */
-%type <node>	AlterQueueStmt AlterResourceGroupStmt
+%type <node>	AlterProfileStmt AlterQueueStmt AlterResourceGroupStmt
 		CreateExternalStmt
-		CreateQueueStmt CreateResourceGroupStmt
-		DropQueueStmt DropResourceGroupStmt
+		CreateProfileStmt CreateQueueStmt CreateResourceGroupStmt
+		DropProfileStmt DropQueueStmt DropResourceGroupStmt
 		ExtTypedesc OptSingleRowErrorHandling ExtSingleRowErrorHandling
 
 %type <node>    deny_login_role deny_interval deny_point deny_day_specifier
@@ -373,8 +373,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 %type <ival>	opt_nowait_or_skip
 
 %type <list>	OptRoleList AlterOptRoleList
+%type <list>    OptProfileList
 %type <defelt>	CreateOptRoleElem AlterOptRoleElem
 %type <defelt>	AlterOnlyOptRoleElem
+%type <defelt>  OptProfileElem
 
 %type <str>		opt_type
 %type <str>		foreign_server_version opt_foreign_server_version
@@ -831,7 +833,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 /* GPDB-added keywords, in alphabetical order */
 %token <keyword>
-	ACTIVE
+	ACCOUNT ACTIVE
 
 	CONTAINS COORDINATOR CPUSET CPU_RATE_LIMIT
 
@@ -841,7 +843,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 	ERRORS EVERY EXCHANGE EXPAND
 
-	FIELDS FILL FORMAT
+	FAILED_LOGIN_ATTEMPTS FIELDS FILL FORMAT
 
 	FULLSCAN
 
@@ -859,7 +861,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 	ORDERED OVERCOMMIT
 
-	PARTITIONS PERCENT PERSISTENTLY PROTOCOL
+	PARTITIONS PASSWORD_LOCK_TIME PASSWORD_REUSE_MAX PERCENT PERSISTENTLY PROFILE PROTOCOL
 
 	QUEUE
 
@@ -871,6 +873,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	TASK SCHEDULE
 
 	THRESHOLD
+
+	UNLOCK_P
 
 	VALIDATION
 
@@ -1191,6 +1195,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc UNCOMMITTED
 			%nonassoc UNENCRYPTED
 			%nonassoc UNLISTEN
+			%nonassoc UNLOCK_P
 			%nonassoc UNTIL
 			%nonassoc UPDATE
 			%nonassoc VACUUM
@@ -1386,6 +1391,7 @@ stmt:
 			| AlterTaskStmt
 			| AlterTypeStmt
 			| AlterPolicyStmt
+			| AlterProfileStmt
 			| AlterQueueStmt
 			| AlterResourceGroupStmt
 			| AlterSeqStmt
@@ -1429,6 +1435,7 @@ stmt:
 			| CreateWarehouseStmt
 			| AlterOpFamilyStmt
 			| CreatePolicyStmt
+			| CreateProfileStmt
 			| CreatePLangStmt
 			| CreateQueueStmt
 			| CreateResourceGroupStmt
@@ -1456,6 +1463,7 @@ stmt:
 			| DropOpClassStmt
 			| DropOpFamilyStmt
 			| DropOwnedStmt
+			| DropProfileStmt
 			| DropQueueStmt
 			| DropResourceGroupStmt
 			| DropStmt
@@ -1853,6 +1861,26 @@ AlterOptRoleElem:
 				{
 					$$ = makeDefElem("deny", (Node *) $1, @1);
 				}
+			| PROFILE name
+			    {
+			        $$ = makeDefElem("profile", (Node *)makeString($2), @1);
+			    }
+			| ACCOUNT LOCK_P
+			    {
+			        $$ = makeDefElem("accountislock", (Node *) makeInteger(true), @1);
+			    }
+			| ACCOUNT UNLOCK_P
+			    {
+			        $$ = makeDefElem("accountislock", (Node*) makeInteger(false), @1);
+			    }
+			| ENABLE_P PROFILE
+                	    {
+                    		$$ = makeDefElem("enableProfile", (Node *) makeInteger(true), @1);
+                	    }
+			| DISABLE_P PROFILE
+                	    {
+                    		$$ = makeDefElem("enableProfile", (Node *) makeInteger(false), @1);
+                	    }
 			| IDENT
 				{
 					/*
@@ -2110,6 +2138,99 @@ DropRoleStmt:
 					$$ = (Node *)n;
 				}
 			;
+
+
+/*****************************************************************************
+ *
+ * Create a new Postgres DBMS Profile
+ *
+ *****************************************************************************/
+
+CreateProfileStmt:
+            CREATE PROFILE name
+                {
+                    CreateProfileStmt *n = makeNode(CreateProfileStmt);
+                    n->profile_name = $3;
+                    $$ = (Node *)n;
+                }
+		| CREATE PROFILE name LIMIT OptProfileList
+		{
+			CreateProfileStmt *n = makeNode(CreateProfileStmt);
+			n->profile_name = $3;
+			n->options = $5;
+			$$ = (Node *)n;
+		}
+		;
+
+/*
+ * Options for CREATE PROFILE and ALTER PROFILE.
+ */
+OptProfileList:
+            OptProfileList OptProfileElem           { $$ = lappend($1, $2); }
+            | /* EMPTY */                           { $$ = NIL; }
+        ;
+
+OptProfileElem:
+            FAILED_LOGIN_ATTEMPTS SignedIconst
+                {
+                    $$ = makeDefElem("failed_login_attempts",
+                                     (Node *)makeInteger($2), @1);
+                }
+            | PASSWORD_LOCK_TIME SignedIconst
+                {
+                    $$ = makeDefElem("password_lock_time",
+                                     (Node *)makeInteger($2), @1);
+                }
+            | PASSWORD_REUSE_MAX SignedIconst
+                {
+                    $$ = makeDefElem("password_reuse_max",
+                                     (Node *)makeInteger($2), @1);
+                }
+        ;
+
+
+/*****************************************************************************
+ *
+ * Alter a postgresql DBMS profile
+ *
+ *****************************************************************************/
+
+AlterProfileStmt:
+            ALTER PROFILE name LIMIT OptProfileList
+                {
+                    AlterProfileStmt *n = makeNode(AlterProfileStmt);
+                    n->profile_name = $3;
+                    n->options = $5;
+                    $$ = (Node *)n;
+                }
+        ;
+
+
+/*****************************************************************************
+ *
+ * Drop a postgresql DBMS profile
+ *
+ * XXX Ideally this would have CASCADE/RESTRICT options, but a profile
+ * might be attached by users in multiple databases, using CASCADE will drop
+ * users meanwhile which is unreasonable.  So we always behave as RESTRICT.
+ *****************************************************************************/
+
+DropProfileStmt:
+            DROP PROFILE name_list
+                {
+                    DropProfileStmt *n = makeNode(DropProfileStmt);
+                    n->profiles = $3;
+                    n->missing_ok = false;
+                    $$ = (Node *)n;
+                }
+            | DROP PROFILE IF_P EXISTS name_list
+                {
+                    DropProfileStmt *n = makeNode(DropProfileStmt);
+                    n->profiles = $5;
+                    n->missing_ok = true;
+                    $$ = (Node *)n;
+                }
+        ;
 
 
 /*****************************************************************************
@@ -8969,6 +9090,7 @@ object_type_name:
 			drop_type_name							{ $$ = $1; }
 			| DATABASE								{ $$ = OBJECT_DATABASE; }
 			| ROLE									{ $$ = OBJECT_ROLE; }
+			| PROFILE								{ $$ = OBJECT_PROFILE; }
 			| SUBSCRIPTION							{ $$ = OBJECT_SUBSCRIPTION; }
 			| TABLESPACE							{ $$ = OBJECT_TABLESPACE; }
 			| RESOURCE QUEUE						{ $$ = OBJECT_RESQUEUE; }
@@ -11698,6 +11820,15 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
+            | ALTER PROFILE name RENAME TO name
+                {
+                    RenameStmt *n = makeNode(RenameStmt);
+                    n->renameType = OBJECT_PROFILE;
+                    n->subname = $3;
+                    n->newname = $6;
+                    n->missing_ok = false;
+                    $$ = (Node *)n;
+                }
 		;
 
 opt_column: COLUMN
@@ -18501,6 +18632,7 @@ unreserved_keyword:
 			  ABORT_P
 			| ABSOLUTE_P
 			| ACCESS
+			| ACCOUNT
 			| ACTION
 			| ACTIVE
 			| ADD_P
@@ -18601,6 +18733,7 @@ unreserved_keyword:
 			| EXPRESSION
 			| EXTENSION
 			| EXTERNAL
+			| FAILED_LOGIN_ATTEMPTS
 			| FAMILY
 			| FIELDS
 			| FILL
@@ -18717,6 +18850,8 @@ unreserved_keyword:
 			| PARTITIONS
 			| PASSING
 			| PASSWORD
+			| PASSWORD_LOCK_TIME
+			| PASSWORD_REUSE_MAX
 			| PERCENT
 			| PERSISTENTLY
 			| PLANS
@@ -18729,6 +18864,7 @@ unreserved_keyword:
 			| PROCEDURAL
 			| PROCEDURE
 			| PROCEDURES
+			| PROFILE
 			| PROGRAM
 			| PROTOCOL
 			| PUBLICATION
@@ -18831,6 +18967,7 @@ unreserved_keyword:
 			| UNENCRYPTED
 			| UNKNOWN
 			| UNLISTEN
+			| UNLOCK_P
 			| UNLOGGED
 			| UNTIL
 			| UPDATE
@@ -19378,6 +19515,7 @@ bare_label_keyword:
 			  ABORT_P
 			| ABSOLUTE_P
 			| ACCESS
+			| ACCOUNT
 			| ACTION
 			| ACTIVE
 			| ADD_P
@@ -19522,6 +19660,7 @@ bare_label_keyword:
 			| EXTENSION
 			| EXTERNAL
 			| EXTRACT
+			| FAILED_LOGIN_ATTEMPTS
 			| FALSE_P
 			| FAMILY
 			| FIELDS
@@ -19675,6 +19814,8 @@ bare_label_keyword:
 			| PARTITIONS
 			| PASSING
 			| PASSWORD
+			| PASSWORD_LOCK_TIME
+			| PASSWORD_REUSE_MAX
 			| PERCENT
 			| PERSISTENTLY
 			| PLACING
@@ -19692,6 +19833,7 @@ bare_label_keyword:
 			| PROCEDURAL
 			| PROCEDURE
 			| PROCEDURES
+			| PROFILE
 			| PROGRAM
 			| PROTOCOL
 			| PUBLICATION
@@ -19816,6 +19958,7 @@ bare_label_keyword:
 			| UNIQUE
 			| UNKNOWN
 			| UNLISTEN
+			| UNLOCK_P
 			| UNLOGGED
 			| UNTIL
 			| UPDATE

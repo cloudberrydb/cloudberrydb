@@ -51,6 +51,8 @@
 #include "catalog/pg_operator.h"
 #include "catalog/pg_opfamily.h"
 #include "catalog/pg_partitioned_table.h"
+#include "catalog/pg_password_history.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_publication.h"
 #include "catalog/pg_publication_rel.h"
@@ -637,6 +639,28 @@ static const struct cachedesc cacheinfo[] = {
 			0
 		},
 		32
+	},
+	{ProfileRelationId,		/* PROFILEID */
+		ProfileOidIndexId,
+		1,
+		{
+			Anum_pg_profile_oid,
+			0,
+			0,
+			0
+		},
+		8
+	},
+	{ProfileRelationId,		/* PROFILENAME */
+		ProfilePrfnameIndexId,
+		1,
+		{
+			Anum_pg_profile_prfname,
+			0,
+			0,
+			0
+		},
+		8
 	},
 	{ProcedureRelationId,		/* PROCNAMEARGSNSP */
 		ProcedureNameArgsNspIndexId,

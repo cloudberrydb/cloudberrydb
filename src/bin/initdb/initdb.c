@@ -282,6 +282,7 @@ static void setup_privileges(FILE *cmdfd);
 static void set_info_version(void);
 static void setup_schema(FILE *cmdfd);
 static void setup_cdb_schema(FILE *cmdfd);
+static void setup_password_history(FILE *cmdfd);
 static void load_plpgsql(FILE *cmdfd);
 static void vacuum_db(FILE *cmdfd);
 static void make_template0(FILE *cmdfd);
@@ -1679,6 +1680,8 @@ setup_depend(FILE *cmdfd)
 		"INSERT INTO pg_depend SELECT 0,0,0, tableoid,oid,0, 'p' "
 		" FROM pg_foreign_server;\n\n",
 		"INSERT INTO pg_shdepend SELECT 0,0,0,0, tableoid,oid, 'p' "
+		" FROM pg_profile;\n\n",
+		"INSERT INTO pg_shdepend SELECT 0,0,0,0, tableoid,oid, 'p' "
 		" FROM pg_resgroup;\n\n",
 		"INSERT INTO pg_shdepend SELECT 0,0,0,0, tableoid,oid, 'p' "
 		" FROM pg_resourcetype;\n\n",
@@ -1972,6 +1975,26 @@ setup_schema(FILE *cmdfd)
 				  "  sub_feature_name, is_supported, comments) "
 				  " FROM E'%s';\n\n",
 				  escape_quotes(features_file));
+}
+
+/*
+ * set up the password history table
+ */
+static void
+setup_password_history(FILE *cmdfd)
+{
+	const char *const *line;
+	static const char *const pg_password_history_setup[] = {
+		/*
+		 * The password history table shouldn't be readable except through views, to
+		 * ensure passwords are not publicly visible.
+		 */
+		"REVOKE ALL ON pg_password_history FROM public;\n\n",
+		NULL
+	};
+
+	for (line = pg_password_history_setup; *line != NULL; line++)
+		PG_CMD_PUTS(*line);
 }
 
 static int
@@ -3207,6 +3230,8 @@ initialize_data_directory(void)
 #endif
 
 	setup_run_file(cmdfd, dictionary_file);
+
+	setup_password_history(cmdfd);
 
 	setup_privileges(cmdfd);
 

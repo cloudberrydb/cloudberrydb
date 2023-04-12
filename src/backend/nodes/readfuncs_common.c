@@ -389,6 +389,17 @@ _readAlterRoleStmt(void)
 	READ_DONE();
 }
 
+static AlterProfileStmt *
+_readAlterProfileStmt(void)
+{
+	READ_LOCALS(AlterProfileStmt);
+
+	READ_STRING_FIELD(profile_name);
+	READ_NODE_FIELD(options);
+
+	READ_DONE();
+}
+
 static AlterSeqStmt *
 _readAlterSeqStmt(void)
 {
@@ -870,6 +881,17 @@ _readCreateRoleStmt(void)
 	READ_DONE();
 }
 
+static CreateProfileStmt *
+_readCreateProfileStmt(void)
+{
+	READ_LOCALS(CreateProfileStmt);
+
+	READ_STRING_FIELD(profile_name);
+	READ_NODE_FIELD(options);
+
+	READ_DONE();
+}
+
 static CreateSchemaStmt *
 _readCreateSchemaStmt(void)
 {
@@ -1026,6 +1048,17 @@ _readDropRoleStmt(void)
 	READ_LOCALS(DropRoleStmt);
 
 	READ_NODE_FIELD(roles);
+	READ_BOOL_FIELD(missing_ok);
+
+	READ_DONE();
+}
+
+static DropProfileStmt *
+_readDropProfileStmt(void)
+{
+	READ_LOCALS(DropProfileStmt);
+
+	READ_NODE_FIELD(profiles);
 	READ_BOOL_FIELD(missing_ok);
 
 	READ_DONE();

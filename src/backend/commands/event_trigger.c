@@ -940,6 +940,7 @@ EventTriggerSupportsObjectType(ObjectType obtype)
 		case OBJECT_DATABASE:
 		case OBJECT_TABLESPACE:
 		case OBJECT_ROLE:
+		case OBJECT_PROFILE:
 			/* no support for global objects */
 			return false;
 		case OBJECT_EVENT_TRIGGER:
@@ -1021,6 +1022,8 @@ EventTriggerSupportsObjectClass(ObjectClass objclass)
 		case OCLASS_DATABASE:
 		case OCLASS_TBLSPACE:
 		case OCLASS_ROLE:
+		case OCLASS_PROFILE:
+		case OCLASS_PASSWORDHISTORY:
 			/* no support for global objects */
 			return false;
 		case OCLASS_EVENT_TRIGGER:
@@ -2156,6 +2159,7 @@ stringify_grant_objtype(ObjectType objtype)
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_RESQUEUE:
 		case OBJECT_RESGROUP:
+		case OBJECT_PROFILE:
 			elog(ERROR, "unsupported object type: %d", (int) objtype);
 	}
 
@@ -2241,6 +2245,7 @@ stringify_adefprivs_objtype(ObjectType objtype)
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_RESQUEUE:
 		case OBJECT_RESGROUP:
+		case OBJECT_PROFILE:
 			elog(ERROR, "unsupported object type: %d", (int) objtype);
 	}
 

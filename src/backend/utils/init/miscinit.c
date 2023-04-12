@@ -38,6 +38,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/loginmonitor.h"
 #include "postmaster/fts.h"
 #include "postmaster/interrupt.h"
 #include "postmaster/postmaster.h"
@@ -286,6 +287,12 @@ GetBackendTypeDesc(BackendType backendType)
 			break;
 		case B_LOGGER:
 			backendDesc = "logger";
+			break;
+		case B_LOGIN_MONITOR:
+			backendDesc = "login monitor";
+			break;
+		case B_LOGIN_MONITOR_WORKER:
+			backendDesc = "login monitor worker";
 			break;
 	}
 
@@ -820,9 +827,10 @@ InitializeSessionUserIdStandalone(void)
 {
 	/*
 	 * This function should only be called in single-user mode, in autovacuum
-	 * workers, and in background workers.
+	 * workers, login monitor, and in background workers.
 	 */
 	AssertState(!IsUnderPostmaster || IsAutoVacuumWorkerProcess() || IsBackgroundWorker
+		    		|| IsAnyLoginMonitorProcess()
 				|| am_startup
 				|| (am_faulthandler && am_mirror)
 				|| (am_ftshandler && am_mirror));

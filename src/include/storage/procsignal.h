@@ -47,6 +47,8 @@ typedef enum
 	PROCSIG_QUERY_FINISH,		/* query finish */
 	PROCSIG_RESOURCE_GROUP_MOVE_QUERY,	/* move query to a new resource group */
 
+	PROCSIG_FAILED_LOGIN,		/* failed login */
+
 	NUM_PROCSIGNALS				/* Must be last! */
 } ProcSignalReason;
 

@@ -67,6 +67,8 @@
 #include "catalog/pg_resqueuecapability.h"
 #include "catalog/pg_resgroup.h"
 #include "catalog/pg_resgroupcapability.h"
+#include "catalog/pg_profile.h"
+#include "catalog/pg_password_history.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_stat_last_operation.h"
 #include "catalog/pg_stat_last_shoperation.h"
@@ -419,7 +421,10 @@ IsSharedRelation(Oid relationId)
 #ifdef USE_INTERNAL_FTS
 		relationId == GpSegmentConfigRelationId ||
 #endif
-		relationId == AuthTimeConstraintRelationId)
+		relationId == AuthTimeConstraintRelationId ||
+
+		relationId == ProfileRelationId ||
+		relationId == PasswordHistoryRelationId)
 		return true;
 
 	/* These are their indexes */
@@ -463,7 +468,13 @@ IsSharedRelation(Oid relationId)
 		relationId == GpSegmentConfigContentPreferred_roleWarehouseIndexId ||
 		relationId == GpSegmentConfigDbidWarehouseIndexId ||
 #endif
-		relationId == AuthTimeConstraintAuthIdIndexId)
+		relationId == AuthTimeConstraintAuthIdIndexId ||
+		relationId == AuthIdRolProfileIndexId ||
+		relationId == ProfilePrfnameIndexId ||
+		relationId == ProfileOidIndexId ||
+		relationId == ProfileVerifyFunctionIndexId ||
+		relationId == PasswordHistoryRolePasswordIndexId ||
+		relationId == PasswordHistoryRolePasswordsetatIndexId)
 	{
 		return true;
 	}
@@ -484,7 +495,9 @@ IsSharedRelation(Oid relationId)
 		relationId == PgSubscriptionToastTable ||
 		relationId == PgSubscriptionToastIndex ||
 		relationId == PgTablespaceToastTable ||
-		relationId == PgTablespaceToastIndex)
+		relationId == PgTablespaceToastIndex ||
+		relationId == PgPasswordHistoryToastTable ||
+		relationId == PgPasswordHistoryToastIndex)
 		return true;
 #ifdef USE_INTERNAL_FTS
 	/* GPDB added toast tables and their indexes */

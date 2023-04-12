@@ -94,6 +94,8 @@
 #include "commands/tablespace.h"
 #include "cdb/cdbvars.h"
 #include "commands/extprotocolcmds.h"
+#include "catalog/pg_profile.h"
+#include "catalog/pg_password_history.h"
 #include "commands/tablecmds.h"
 
 
@@ -198,6 +200,8 @@ static const Oid object_classes[] = {
 	TransformRelationId,		/* OCLASS_TRANSFORM */
 
 	/* GPDB additions */
+	ProfileRelationId,		/* OCLASS_PROFILE */
+	PasswordHistoryRelationId,	/* OCLASS_PASSWORDHISTORY */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
 	TaskRelationId				/* OCLASS_TASK */
 };
@@ -1573,6 +1577,8 @@ doDeletion(const ObjectAddress *object, int flags)
 		case OCLASS_DATABASE:
 		case OCLASS_TBLSPACE:
 		case OCLASS_SUBSCRIPTION:
+		case OCLASS_PROFILE:
+		case OCLASS_PASSWORDHISTORY:
 			elog(ERROR, "global objects cannot be deleted by doDeletion");
 			break;
 
@@ -2930,6 +2936,12 @@ getObjectClass(const ObjectAddress *object)
 		case ExtprotocolRelationId:
 			Assert(object->objectSubId == 0);
 			return OCLASS_EXTPROTOCOL;
+
+		case ProfileRelationId:
+			return OCLASS_PROFILE;
+
+		case PasswordHistoryRelationId:
+			return OCLASS_PASSWORDHISTORY;
 
 		case PolicyRelationId:
 			return OCLASS_POLICY;

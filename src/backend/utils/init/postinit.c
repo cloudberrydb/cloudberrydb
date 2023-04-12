@@ -30,13 +30,16 @@
 #include "access/xlog.h"
 #include "catalog/catalog.h"
 #include "catalog/namespace.h"
+#include "catalog/objectaccess.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_db_role_setting.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/indexing.h"
 #include "catalog/storage_tablespace.h"
+#include "catalog/pg_profile.h"
 #include "commands/tablespace.h"
+#include "datatype/timestamp.h"
 
 #include "libpq/auth.h"
 #include "libpq/hba.h"
@@ -49,6 +52,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/loginmonitor.h"
 #include "postmaster/fts.h"
 #include "postmaster/postmaster.h"
 #include "replication/walsender.h"
@@ -388,9 +392,10 @@ CheckMyDatabase(const char *name, bool am_superuser, bool override_allow_connect
 	 * a way to recover from disabling all access to all databases, for
 	 * example "UPDATE pg_database SET datallowconn = false;".
 	 *
-	 * We do not enforce them for autovacuum worker processes either.
+	 * We do not enforce them for autovacuum worker and login monitor processes
+	 * either.
 	 */
-	if (IsUnderPostmaster && !IsAutoVacuumWorkerProcess())
+	if (IsUnderPostmaster && !IsAutoVacuumWorkerProcess() && !IsLoginMonitorWorkerProcess())
 	{
 		/*
 		 * Check that the database is currently allowing connections.
@@ -572,9 +577,9 @@ InitializeMaxBackends(void)
 {
 	Assert(MaxBackends == 0);
 
-	/* the extra unit accounts for the autovacuum launcher */
+	/* the extra unit accounts for the autovacuum launcher and login monitor */
 	MaxBackends = MaxConnections + autovacuum_max_workers + 1 +
-		max_worker_processes + max_wal_senders;
+		login_monitor_max_processes /* Login Monitor */ + max_worker_processes + max_wal_senders;
 
 	/* internal error because the values were all checked previously */
 	if (MaxBackends > MAX_BACKENDS)
@@ -787,8 +792,8 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	 */
 	before_shmem_exit(ShutdownPostgres, 0);
 
-	/* The autovacuum launcher is done here */
-	if (IsAutoVacuumLauncherProcess())
+	/* The autovacuum launcher and login monitor launcher is done here */
+	if (IsAutoVacuumLauncherProcess() || IsLoginMonitorLauncherProcess())
 	{
 		/* report this backend in the PgBackendStatus array */
 		pgstat_bestart();
@@ -833,10 +838,11 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	 * Perform client authentication if necessary, then figure out our
 	 * postgres user ID, and see if we are a superuser.
 	 *
-	 * In standalone mode and in autovacuum worker processes, we use a fixed
-	 * ID, otherwise we figure it out from the authenticated user name.
+	 * In standalone mode, login monitor and in autovacuum worker processes,
+	 * we use a fixed ID, otherwise we figure it out from the authenticated
+	 * user name.
 	 */
-	if (bootstrap || IsAutoVacuumWorkerProcess())
+	if (bootstrap || IsAutoVacuumWorkerProcess() || IsLoginMonitorWorkerProcess())
 	{
 		InitializeSessionUserIdStandalone();
 		am_superuser = true;
@@ -1205,7 +1211,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	 * process_startup_options parses the GUC.
 	 */
 	if (gp_maintenance_mode && Gp_role == GP_ROLE_DISPATCH &&
-		!(am_superuser && gp_maintenance_conn))
+		!(am_superuser && gp_maintenance_conn) && !IsLoginMonitorWorkerProcess())
 		ereport(FATAL,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("maintenance mode: connected by superuser only")));
@@ -1252,7 +1258,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
      * This is SKIPPED when the database is in bootstrap mode or 
      * Is not UnderPostmaster.
      */
-    if (!bootstrap && IsUnderPostmaster)
+    if (!bootstrap && IsUnderPostmaster && !IsLoginMonitorWorkerProcess())
     {
 		cdb_setup();
 		on_proc_exit( cdb_cleanup, 0 );
@@ -1291,9 +1297,183 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	}
 
 	/*
-	 * Initialize resource manager.
+	 * Initialize resource manager. Login Monitor doesn't need to do.
 	 */
-	InitResManager();
+	if (!IsLoginMonitorWorkerProcess())
+		InitResManager();
+
+	if (enable_password_profile &&
+		!(bootstrap || IsBackgroundWorker || IsLoginMonitorWorkerProcess() ||
+		IsAutoVacuumWorkerProcess() ||
+		am_mirror || !IsUnderPostmaster))
+	{
+		Datum		new_record[Natts_pg_authid];
+		bool		new_record_nulls[Natts_pg_authid];
+		bool		new_record_repl[Natts_pg_authid];
+		Relation	pg_authid_rel;
+		Relation	pg_profile_rel;
+		TupleDesc	pg_authid_dsc;
+		HeapTuple	auth_tuple;
+		HeapTuple	profile_tuple;
+		HeapTuple	new_tuple;
+		Form_pg_authid	authidform;
+		Form_pg_profile	profileform;
+		bool		role_enable_profile;
+		bool		account_status_isnull;
+		bool		role_lock_date_isnull;
+		bool		profile_isnull;
+		bool		failed_attempts_isnull;
+		int16_t		account_status;
+		TimestampTz	role_lock_date;
+		int32		prf_password_lock_time;
+		int32		failed_login_attempts;
+		int32		prf_failed_login_attempts;
+		TimestampTz	password_lock_time_usec;
+		Oid		profileid;
+
+		/*
+		 * Check whether the account is locked and update related catalog.
+		 */
+		pg_authid_rel = table_open(AuthIdRelationId, AccessShareLock);
+		pg_authid_dsc = RelationGetDescr(pg_authid_rel);
+
+		auth_tuple = SearchSysCache1(AUTHNAME, CStringGetDatum(username));
+
+		if (!HeapTupleIsValid(auth_tuple))
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("user \"%s\" does not exist", username)));
+
+		authidform = (Form_pg_authid) GETSTRUCT(auth_tuple);
+		role_enable_profile = authidform->rolenableprofile;
+
+		/*
+		 * Only when role is enable to use profile, we should process that when login successful.
+		 */
+		if (role_enable_profile)
+		{
+			account_status = SysCacheGetAttr(AUTHNAME, auth_tuple,
+							 		Anum_pg_authid_rolaccountstatus, &account_status_isnull);
+			Assert(!account_status_isnull);
+
+			role_lock_date = SysCacheGetAttr(AUTHNAME, auth_tuple,
+							 		Anum_pg_authid_rollockdate, &role_lock_date_isnull);
+
+			profileid = SysCacheGetAttr(AUTHNAME, auth_tuple,
+						    			Anum_pg_authid_rolprofile, &profile_isnull);
+			Assert(!profile_isnull);
+
+			failed_login_attempts = SysCacheGetAttr(AUTHNAME, auth_tuple,
+					   				Anum_pg_authid_rolfailedlogins, &failed_attempts_isnull);
+			Assert(!failed_attempts_isnull);
+
+			/*
+			 * If last login is successful, we don't need to update catalog table.
+			 */
+			if (!(failed_login_attempts == 0 && account_status == ROLE_ACCOUNT_STATUS_OPEN))
+			{
+				/*
+				 * In here, to avoid updating table concurrently which will cause
+				 * connection failed when connect to database concurrently, we use
+				 * self exclusive lock ShareUpdateExclusiveLock.
+				 */
+				pg_authid_rel = table_open(AuthIdRelationId, ShareUpdateExclusiveLock);
+				pg_profile_rel = table_open(ProfileRelationId, AccessShareLock);
+				profile_tuple = SearchSysCache1(PROFILEID, ObjectIdGetDatum(profileid));
+
+				/*
+				 * Build an updated tuple, perusing the information just obtained
+				 */
+				MemSet(new_record, 0, sizeof(new_record));
+				MemSet(new_record_nulls, true, sizeof(new_record_nulls));
+				MemSet(new_record_repl, false, sizeof(new_record_repl));
+
+				if (!HeapTupleIsValid(profile_tuple))
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_OBJECT),
+							 errmsg("profile \"%d\" does not exist", profileid)));
+				profileform = (Form_pg_profile) GETSTRUCT(profile_tuple);
+
+				/*
+				 * Transform password_lock_time and failed_login_attempts to
+				 * normal value if it's PROFILE_DEFAULT or PROFILE_UNLIMITED.
+				 */
+				prf_password_lock_time = tranformProfileValueToNormal(profileform->prfpasswordlocktime,
+										  	Anum_pg_profile_prfpasswordlocktime);
+				prf_failed_login_attempts = tranformProfileValueToNormal(profileform->prffailedloginattempts,
+										 	Anum_pg_profile_prffailedloginattempts);
+
+				/*
+				 * Transform lock time format from days to milliseconds
+				 */
+				password_lock_time_usec = prf_password_lock_time * USECS_PER_HOUR;
+
+				if ((account_status == ROLE_ACCOUNT_STATUS_OPEN &&
+					failed_login_attempts < prf_failed_login_attempts) ||
+					(!role_lock_date_isnull && account_status == ROLE_ACCOUNT_STATUS_LOCKED_TIMED &&
+					role_lock_date + password_lock_time_usec < GetCurrentTimestamp()))
+				{
+					/* update pg_authid.rolfailedlogins to 0 */
+					new_record[Anum_pg_authid_rolfailedlogins - 1] = Int32GetDatum(0);
+					new_record_nulls[Anum_pg_authid_rolfailedlogins - 1] = false;
+					new_record_repl[Anum_pg_authid_rolfailedlogins - 1] = true;
+
+
+					if (account_status == ROLE_ACCOUNT_STATUS_LOCKED_TIMED)
+					{
+						/* update pg_authid.rolaccountstatus to 'OPEN' */
+						new_record[Anum_pg_authid_rolaccountstatus - 1] =
+							Int32GetDatum(ROLE_ACCOUNT_STATUS_OPEN);
+						new_record_nulls[Anum_pg_authid_rolaccountstatus - 1] = false;
+						new_record_repl[Anum_pg_authid_rolaccountstatus - 1] = true;
+					}
+
+					new_tuple = heap_modify_tuple(auth_tuple, pg_authid_dsc, new_record,
+								      new_record_nulls, new_record_repl);
+					CatalogTupleUpdate(pg_authid_rel, &auth_tuple->t_self, new_tuple);
+
+					InvokeObjectPostAlterHook(AuthIdRelationId, profileid, 0);
+				}
+				else if (account_status == ROLE_ACCOUNT_STATUS_OPEN ||
+					account_status == ROLE_ACCOUNT_STATUS_LOCKED_TIMED)
+				{
+					/* Update pg_authid.rolaccountstatus to ROLE_ACCOUNT_STATUS_LOCKED.
+					 * This will occur when ALTER PROFILE change failed_login_attempts.
+					 */
+					if (account_status == ROLE_ACCOUNT_STATUS_OPEN)
+					{
+						new_record[Anum_pg_authid_rolaccountstatus - 1] =
+							Int32GetDatum(ROLE_ACCOUNT_STATUS_LOCKED);
+						new_record_nulls[Anum_pg_authid_rolaccountstatus - 1] =
+							false;
+						new_record_repl[Anum_pg_authid_rolaccountstatus - 1] =
+							true;
+
+						new_tuple = heap_modify_tuple(auth_tuple, pg_authid_dsc, new_record,
+									      new_record_nulls, new_record_repl);
+						CatalogTupleUpdate(pg_authid_rel, &auth_tuple->t_self, new_tuple);
+
+						InvokeObjectPostAlterHook(AuthIdRelationId, profileid, 0);
+					}
+
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
+							 errmsg("Can't login in role \"%s\", the account is locking.",
+							       username)));
+				}
+
+				table_close(pg_profile_rel, NoLock);
+				table_close(pg_authid_rel, NoLock);
+				ReleaseSysCache(profile_tuple);
+			}
+		}
+
+		table_close(pg_authid_rel, NoLock);
+		ReleaseSysCache(auth_tuple);
+
+		CommitTransactionCommand();
+		return;
+	}
 
 	/* close the transaction we started above */
 	if (!bootstrap)

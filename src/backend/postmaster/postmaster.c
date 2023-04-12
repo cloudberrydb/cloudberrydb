@@ -130,6 +130,7 @@
 #include "postmaster/syslogger.h"
 #include "postmaster/backoff.h"
 #include "postmaster/bgworker.h"
+#include "postmaster/loginmonitor.h"
 #include "replication/logicallauncher.h"
 #include "replication/walsender.h"
 #include "storage/fd.h"
@@ -278,6 +279,7 @@ bool		enable_bonjour = false;
 char	   *bonjour_name;
 bool		restart_after_crash = true;
 bool		remove_temp_files_after_crash = true;
+bool		enable_password_profile = true;
 
 /* Hook for plugins to start background workers */
 start_bgworkers_hook_type start_bgworkers_hook = NULL;
@@ -295,7 +297,8 @@ static pid_t StartupPID = 0,
 			AutoVacPID = 0,
 			PgArchPID = 0,
 			PgStatPID = 0,
-			SysLoggerPID = 0;
+			SysLoggerPID = 0,
+			LoginMonitorPID = 0;
 
 /* Startup process's status */
 typedef enum
@@ -541,6 +544,7 @@ static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
 static bool do_start_bgworker(RegisteredBgWorker *rw);
 static pid_t StartChildProcess(AuxProcType type);
 static void StartAutovacuumWorker(void);
+static void StartLMWorker(void);
 static void MaybeStartWalReceiver(void);
 static void InitPostmasterDeathWatchHandle(void);
 
@@ -2089,6 +2093,9 @@ ServerLoop(void)
 		if (PgArchPID == 0 && PgArchStartupAllowed())
 			PgArchPID = StartArchiver();
 
+		if (enable_password_profile && LoginMonitorPID == 0 && pmState == PM_RUN)
+			LoginMonitorPID = StartLoginMonitorLauncher();
+
 		/* If we need to signal the autovacuum launcher, do so now */
 		if (avlauncher_needs_signal)
 		{
@@ -3192,6 +3199,8 @@ SIGHUP_handler(SIGNAL_ARGS)
 			signal_child(SysLoggerPID, SIGHUP);
 		if (PgStatPID != 0)
 			signal_child(PgStatPID, SIGHUP);
+		if (enable_password_profile && LoginMonitorPID != 0)
+			signal_child(LoginMonitorPID, SIGHUP);
 
 		/* Reload authentication config files too */
 		if (!load_hba())
@@ -3522,6 +3531,8 @@ reaper(SIGNAL_ARGS)
 				PgArchPID = StartArchiver();
 			if (PgStatPID == 0)
 				PgStatPID = pgstat_start();
+			if (enable_password_profile && LoginMonitorPID == 0)
+				LoginMonitorPID = StartLoginMonitorLauncher();
 
 			/* workers may be scheduled to start now */
 			maybe_start_bgworkers();
@@ -3665,6 +3676,21 @@ reaper(SIGNAL_ARGS)
 			if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
 				HandleChildCrash(pid, exitstatus,
 								 _("autovacuum launcher process"));
+			continue;
+		}
+
+		/*
+		 * Was it the login monitor?  If exit status is zero (normal) or one
+		 * (FATAL exit), we assume everything is all right just like normal
+		 * backends and just try to restart a new one. Any other exit condition
+		 * is treated as a crash.
+		 */
+		if (enable_password_profile && pid == LoginMonitorPID)
+		{
+			LoginMonitorPID = 0;
+			if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
+				HandleChildCrash(pid, exitstatus,
+		     						 _("login monitor process"));
 			continue;
 		}
 
@@ -4138,6 +4164,21 @@ HandleChildCrash(int pid, int exitstatus, const char *procname)
 		signal_child(AutoVacPID, (SendStop ? SIGSTOP : SIGQUIT));
 	}
 
+	/* Take care of the login monitor too */
+	if (enable_password_profile)
+	{
+		if (pid == LoginMonitorPID)
+			LoginMonitorPID = 0;
+		else if (LoginMonitorPID != 0 && take_action)
+		{
+			ereport(DEBUG2,
+				(errmsg_internal("sending %s to process %d",
+						 (SendStop ? "SIGSTOP" : "SIGQUIT"),
+						 (int) LoginMonitorPID)));
+			signal_child(LoginMonitorPID, (SendStop ? SIGSTOP : SIGQUIT));
+		}
+	}
+
 	/* Take care of the archiver too */
 	if (pid == PgArchPID)
 		PgArchPID = 0;
@@ -4313,6 +4354,9 @@ PostmasterStateMachine(void)
 			signal_child(StartupPID, SIGTERM);
 		if (WalReceiverPID != 0)
 			signal_child(WalReceiverPID, SIGTERM);
+		/* stop login monitor */
+		if (enable_password_profile && LoginMonitorPID != 0)
+			signal_child(LoginMonitorPID, SIGTERM);
 		/* checkpointer, archiver, stats, and syslogger may continue for now */
 
 		/* Now transition to PM_WAIT_BACKENDS state to wait for them to die */
@@ -4343,7 +4387,8 @@ PostmasterStateMachine(void)
 			(CheckpointerPID == 0 ||
 			 (!FatalError && Shutdown < ImmediateShutdown)) &&
 			WalWriterPID == 0 &&
-			AutoVacPID == 0)
+			AutoVacPID == 0 &&
+			LoginMonitorPID == 0)
 		{
 			if (Shutdown >= ImmediateShutdown || FatalError)
 			{
@@ -4437,6 +4482,7 @@ PostmasterStateMachine(void)
 			Assert(CheckpointerPID == 0);
 			Assert(WalWriterPID == 0);
 			Assert(AutoVacPID == 0);
+			Assert(LoginMonitorPID == 0);
 			/* syslogger is not considered here */
 			pmState = PM_NO_CHILDREN;
 		}
@@ -4658,6 +4704,8 @@ TerminateChildren(int signal)
 		signal_child(PgArchPID, signal);
 	if (PgStatPID != 0)
 		signal_child(PgStatPID, signal);
+	if (enable_password_profile && LoginMonitorPID != 0)
+		signal_child(LoginMonitorPID, signal);
 }
 
 /*
@@ -5820,6 +5868,13 @@ sigusr1_handler(SIGNAL_ARGS)
 		StartAutovacuumWorker();
 	}
 
+	if (CheckPostmasterSignal(PMSIGNAL_START_LOGIN_MONITOR_WORKER) &&
+		Shutdown <= SmartShutdown && pmState < PM_STOP_BACKENDS)
+	{
+		/* The login monitor wants us to start a worker process. */
+		StartLMWorker();
+	}
+
 	if (CheckPostmasterSignal(PMSIGNAL_START_WALRECEIVER))
 	{
 		/* Startup Process wants us to start the walreceiver process. */
@@ -5862,6 +5917,16 @@ sigusr1_handler(SIGNAL_ARGS)
 	if (CheckPostmasterSignal(PMSIGNAL_ADVANCE_STATE_MACHINE))
 	{
 		PostmasterStateMachine();
+	}
+
+	/*
+	 * Postmaster send signal to login monitor, notifying login monitor to
+	 * process failed login.
+	 */
+	if (LoginMonitorPID != 0 &&
+		pmState == PM_RUN && CheckPostmasterSignal(PMSIGNAL_FAILED_LOGIN))
+	{
+		SendProcSignal(LoginMonitorPID, PROCSIG_FAILED_LOGIN, InvalidBackendId);
 	}
 
 	if (StartupPID != 0 &&
@@ -6175,6 +6240,91 @@ StartAutovacuumWorker(void)
 }
 
 /*
+ * StartLMWorker
+ * 		Start a login monitor worker process.
+ *
+ * Like StartAutovacuumWorker, this function is here. As login monitor
+ * worker process is used like normal process, we set backend_type to
+ * NORMAL.
+ */
+static void
+StartLMWorker(void)
+{
+	Backend 	*bn;
+
+	/*
+	 * If not in condition to run a process, don't try, but handle it like a
+	 * fork failure.  This does not normally happen, since the signal is only
+	 * supposed to be sent by login monitor launcher when it's OK to do it,
+	 * but we have to check to avoid race-condition problems during DB state
+	 * changes.
+	 */
+	if (canAcceptConnections(BACKEND_TYPE_NORMAL) == CAC_OK)
+	{
+		/*
+		 * Compute the cancel key that will be assigned to this session. We
+		 * probably don't need cancel keys for autovac workers, but we'd
+		 * better have something random in the field to prevent unfriendly
+		 * people from sending cancels to them。
+		 */
+		if (!RandomCancelKey(&MyCancelKey))
+		{
+			ereport(LOG,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+					errmsg("could not generate random cancel key")));
+			return;
+		}
+
+		bn = (Backend *) malloc(sizeof(Backend));
+		if (bn)
+		{
+			bn->cancel_key = MyCancelKey;
+
+			/* Login monitor workers are not dead_end and need a child slot */
+			bn->dead_end = false;
+			bn->child_slot = MyPMChildSlot = AssignPostmasterChildSlot();
+			bn->bgworker_notify = false;
+
+			bn->pid = StartLoginMonitorWorker();
+			if (bn->pid > 0)
+			{
+				bn->bkend_type = BACKEND_TYPE_NORMAL;
+				dlist_push_head(&BackendList, &bn->elem);
+#ifdef EXEC_BACKEND
+				ShmemBackendArrayAdd(bn);
+#endif
+
+				/* all OK */
+				return;
+			}
+
+			/*
+			 * fork failed, fall through to report -- actual error message was
+			 * logged by StartLoginMonitorWorker
+			 */
+			(void) ReleasePostmasterChildSlot(bn->child_slot);
+			free(bn);
+		}
+		else
+			ereport(LOG,
+					(errcode(ERRCODE_OUT_OF_MEMORY),
+					 errmsg("out of memory")));
+	}
+
+	/*
+	 * Notify failure to the launcher by latch, if it's running.  (If it's not,
+	 * we might not even be connected to shared memory, so don't try to call
+	 * LoginMonitorWorkerFailed.) Note that we also need to notify it so that
+	 * it responds to the condition, but we don't do that here, instead waiting
+	 * for ServerLoop to do it.
+	 */
+	if (LoginMonitorPID != 0)
+	{
+		LoginMonitorWorkerFailed();
+	}
+}
+
+/*
  * MaybeStartWalReceiver
  *		Start the WAL receiver process, if not running and our state allows.
  *
@@ -6258,7 +6408,7 @@ int
 MaxLivePostmasterChildren(void)
 {
 	return 2 * (MaxConnections + autovacuum_max_workers + 1 +
-				max_wal_senders + max_worker_processes);
+				login_monitor_max_processes /* Login Monitor */ + max_wal_senders + max_worker_processes);
 }
 
 /*

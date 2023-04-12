@@ -46,6 +46,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/loginmonitor.h"
 #include "replication/slot.h"
 #include "replication/syncrep.h"
 #include "replication/walsender.h"
@@ -203,6 +204,7 @@ InitProcGlobal(void)
 	ProcGlobal->spins_per_delay = DEFAULT_SPINS_PER_DELAY;
 	ProcGlobal->freeProcs = NULL;
 	ProcGlobal->autovacFreeProcs = NULL;
+	ProcGlobal->lmFreeProcs = NULL;
 	ProcGlobal->bgworkerFreeProcs = NULL;
 	ProcGlobal->walsenderFreeProcs = NULL;
 	ProcGlobal->startupProc = NULL;
@@ -291,7 +293,14 @@ InitProcGlobal(void)
 			ProcGlobal->autovacFreeProcs = &procs[i];
 			procs[i].procgloballist = &ProcGlobal->autovacFreeProcs;
 		}
-		else if (i < MaxConnections + autovacuum_max_workers + 1 + max_worker_processes)
+		else if (i < MaxConnections + autovacuum_max_workers + 1 + login_monitor_max_processes)
+		{
+			/* PGPROC for login monitor, add to lmFreeProcs list */
+			procs[i].links.next = (SHM_QUEUE *) ProcGlobal->lmFreeProcs;
+			ProcGlobal->lmFreeProcs = &procs[i];
+			procs[i].procgloballist = &ProcGlobal->lmFreeProcs;
+		}
+		else if (i < MaxConnections + autovacuum_max_workers + 1 + login_monitor_max_processes + max_worker_processes)
 		{
 			/* PGPROC for bgworker, add to bgworkerFreeProcs list */
 			procs[i].links.next = (SHM_QUEUE *) ProcGlobal->bgworkerFreeProcs;
@@ -371,6 +380,8 @@ InitProcess(void)
 	/* Decide which list should supply our PGPROC. */
 	if (IsAnyAutoVacuumProcess())
 		procgloballist = &ProcGlobal->autovacFreeProcs;
+	else if (IsAnyLoginMonitorProcess())
+		procgloballist = &ProcGlobal->lmFreeProcs;
 	else if (IsBackgroundWorker)
 		procgloballist = &ProcGlobal->bgworkerFreeProcs;
 	else if (am_walsender)
@@ -444,11 +455,13 @@ InitProcess(void)
 	 * cleaning up.  (XXX autovac launcher currently doesn't participate in
 	 * this; it probably should.)
 	 *
+	 * Like autovac launcher, login monitor doesn't participate in this.
+	 *
 	 * Ideally, we should create functions similar to IsAutoVacuumLauncherProcess()
 	 * for ftsProber, etc who call InitProcess().
 	 * But MyPMChildSlot helps to get away with it.
 	 */
-	if (IsUnderPostmaster && !IsAutoVacuumLauncherProcess()
+	if (IsUnderPostmaster && !(IsAutoVacuumLauncherProcess() || IsLoginMonitorLauncherProcess())
 		&& MyPMChildSlot > 0)
 		MarkPostmasterChildActive();
 
@@ -1155,9 +1168,9 @@ ProcKill(int code, Datum arg)
 	/*
 	 * This process is no longer present in shared memory in any meaningful
 	 * way, so tell the postmaster we've cleaned up acceptably well. (XXX
-	 * autovac launcher should be included here someday)
+	 * autovac launcher and login monitor should be included here someday)
 	 */
-	if (IsUnderPostmaster && !IsAutoVacuumLauncherProcess()
+	if (IsUnderPostmaster && !IsAutoVacuumLauncherProcess() && !IsLoginMonitorLauncherProcess()
 		&& MyPMChildSlot > 0)
 		MarkPostmasterChildInactive();
 

@@ -73,6 +73,10 @@ typedef enum DependencyType
  * storage don't need this: they are protected by the existence of a physical
  * file in the tablespace.)
  *
+ * (f) a SHARED_DEPENDENCY_PROFILE entry means that the referenced object
+ * is a profile mentioned in a role object. The referenced object must be
+ * a pg_profile entry.
+ *
  * SHARED_DEPENDENCY_INVALID is a value used as a parameter in internal
  * routines, and is not valid in the catalog itself.
  */
@@ -83,6 +87,7 @@ typedef enum SharedDependencyType
 	SHARED_DEPENDENCY_ACL = 'a',
 	SHARED_DEPENDENCY_POLICY = 'r',
 	SHARED_DEPENDENCY_TABLESPACE = 't',
+	SHARED_DEPENDENCY_PROFILE = 'f',
 	SHARED_DEPENDENCY_INVALID = 0
 } SharedDependencyType;
 
@@ -135,6 +140,8 @@ typedef enum ObjectClass
 	OCLASS_TRANSFORM,			/* pg_transform */
 
 	/* GPDB additions */
+	OCLASS_PROFILE,                         /* pg_profile */
+        OCLASS_PASSWORDHISTORY,                 /* pg_password_history */
 	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
 	OCLASS_TASK					/* pg_task */
 } ObjectClass;
@@ -277,5 +284,9 @@ extern void shdepReassignOwned(List *relids, Oid newrole);
 extern void checkDependencies(const ObjectAddresses *objects,
 							  const char *msg,
 							  const char *hint);
+
+extern void recordProfileDependency(Oid roleId, Oid profileId);
+
+extern void changeProfileDependency(Oid roleId, Oid profileId);
 
 #endif							/* DEPENDENCY_H */

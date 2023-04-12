@@ -1931,6 +1931,7 @@ typedef enum ObjectType
 	OBJECT_OPERATOR,
 	OBJECT_OPFAMILY,
 	OBJECT_POLICY,
+	OBJECT_PROFILE,
 	OBJECT_PROCEDURE,
 	OBJECT_PUBLICATION,
 	OBJECT_PUBLICATION_REL,
@@ -3129,6 +3130,27 @@ typedef struct DropRoleStmt
 	List	   *roles;			/* List of roles to remove */
 	bool		missing_ok;		/* skip error if a role is missing? */
 } DropRoleStmt;
+
+typedef struct CreateProfileStmt
+{
+	NodeTag		type;
+	char		*profile_name;		/* profile name */
+	List		*options;		/* List of DefElem nodes */
+} CreateProfileStmt;
+
+typedef struct AlterProfileStmt
+{
+    	NodeTag		type;
+    	char		*profile_name;		/* profile name */
+    	List		*options;		/* List of DefElem nodes */
+} AlterProfileStmt;
+
+typedef struct DropProfileStmt
+{
+    	NodeTag		type;
+    	List 		*profiles;		/* List of profile name to remove */
+    	bool		missing_ok;		/* skip error if a profile is missing? */
+} DropProfileStmt;
 
 typedef struct DenyLoginPoint
 {

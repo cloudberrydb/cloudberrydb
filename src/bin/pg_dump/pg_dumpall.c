@@ -43,6 +43,8 @@ static void dumpRoleConstraints(PGconn *conn);
 static void dropRoles(PGconn *conn);
 static void dumpRoles(PGconn *conn);
 static void dumpRoleMembership(PGconn *conn);
+static void dumpProfiles(PGconn *conn);
+static void dumpPasswordHistory(PGconn *conn);
 static void dropTablespaces(PGconn *conn);
 static void dumpTablespaces(PGconn *conn);
 static void dropDBs(PGconn *conn);
@@ -96,8 +98,12 @@ static int	load_via_partition_root = 0;
 static int	on_conflict_do_nothing = 0;
 
 static char role_catalog[10];
+static char profile_catalog[12];
+static char password_history_catalog[20];
 #define PG_AUTHID "pg_authid"
 #define PG_ROLES  "pg_roles "
+#define PG_PROFILES "pg_profile"
+#define PG_PASSWORD_HISTORY "pg_password_history"
 
 static FILE *OPF;
 static char *filename = NULL;
@@ -457,6 +463,9 @@ main(int argc, char *argv[])
 	else
 		sprintf(role_catalog, "%s", PG_AUTHID);
 
+	sprintf(profile_catalog, "%s", PG_PROFILES);
+	sprintf(password_history_catalog, "%s", PG_PASSWORD_HISTORY);
+
 	/* Add long options to the pg_dump argument list */
 	if (binary_upgrade)
 		appendPQExpBufferStr(pgdumpopts, " --binary-upgrade");
@@ -652,6 +661,9 @@ main(int argc, char *argv[])
 			if (resource_groups)
 				dumpResGroups(conn);
 
+			/* Dump role profile */
+			dumpProfiles(conn);
+
 			/* Dump roles (users) */
 			dumpRoles(conn);
 
@@ -660,6 +672,9 @@ main(int argc, char *argv[])
 
 			/* Dump role constraints */
 			dumpRoleConstraints(conn);
+
+			/* Dump role password history */
+			dumpPasswordHistory(conn);
 		}
 
 		/* Dump tablespaces */
@@ -1182,6 +1197,13 @@ dumpRoles(PGconn *conn)
 				i_rolvaliduntil,
 				i_rolreplication,
 				i_rolbypassrls,
+				i_rolenableprofile,
+				i_rolprofile,
+				i_rolaccountstatus,
+				i_rolfailedlogins,
+				i_rolpasswordsetat,
+				i_rollockdate,
+				i_rolpasswordexpire,
 				i_rolcomment,
 				i_rolqueuename = -1,	/* keep compiler quiet */
 				i_rolgroupname = -1,	/* keep compiler quiet */
@@ -1210,7 +1232,24 @@ dumpRoles(PGconn *conn)
 	 */
 
 	/* note: rolconfig is dumped later */
-	if (server_version >= 90600)
+	if (server_version >= 140000)
+	{
+		printfPQExpBuffer(buf,
+						  "SELECT %s.oid, rolname, rolsuper, rolinherit, "
+				  		  "rolcreaterole, rolcreatedb, "
+				  		  "rolcanlogin, rolconnlimit, rolpassword, "
+				  		  "rolvaliduntil, rolreplication, rolbypassrls, "
+				  		  "rolenableprofile, prfname, rolaccountstatus, rolfailedlogins, "
+				  		  "rolpasswordsetat, rollockdate, rolpasswordexpire, "
+				  		  "pg_catalog.shobj_description(%s.oid, '%s') as rolcomment, "
+				  		  "rolname = current_user AS is_current_user "
+				  		  " %s %s %s %s"
+				  		  "FROM %s, %s "
+				  		  "WHERE rolname !~ '^pg_' and %s.rolprofile = %s.oid "
+				  		  "ORDER BY 2", role_catalog, role_catalog, role_catalog, resq_col, resgroup_col, extauth_col,
+								  hdfs_col, role_catalog, profile_catalog, role_catalog, profile_catalog);
+	}
+	else if (server_version >= 90600)
 		printfPQExpBuffer(buf,
 						  "SELECT oid, rolname, rolsuper, rolinherit, "
 						  "rolcreaterole, rolcreatedb, "
@@ -1317,6 +1356,13 @@ dumpRoles(PGconn *conn)
 	i_rolvaliduntil = PQfnumber(res, "rolvaliduntil");
 	i_rolreplication = PQfnumber(res, "rolreplication");
 	i_rolbypassrls = PQfnumber(res, "rolbypassrls");
+	i_rolprofile = PQfnumber(res, "prfname");
+	i_rolenableprofile = PQfnumber(res, "rolenableprofile");
+	i_rolaccountstatus = PQfnumber(res, "rolaccountstatus");
+	i_rolfailedlogins = PQfnumber(res, "rolfailedlogins");
+	i_rolpasswordsetat = PQfnumber(res, "rolpasswordsetat");
+	i_rollockdate = PQfnumber(res, "rollockdate");
+	i_rolpasswordexpire = PQfnumber(res, "rolpasswordexpire");
 	i_rolcomment = PQfnumber(res, "rolcomment");
 	i_is_current_user = PQfnumber(res, "is_current_user");
 
@@ -1418,13 +1464,6 @@ dumpRoles(PGconn *conn)
 			appendPQExpBuffer(buf, " CONNECTION LIMIT %s",
 							  PQgetvalue(res, i, i_rolconnlimit));
 
-
-		if (!PQgetisnull(res, i, i_rolpassword) && !no_role_passwords)
-		{
-			appendPQExpBufferStr(buf, " PASSWORD ");
-			appendStringLiteralConn(buf, PQgetvalue(res, i, i_rolpassword), conn);
-		}
-
 		if (!PQgetisnull(res, i, i_rolvaliduntil))
 			appendPQExpBuffer(buf, " VALID UNTIL '%s'",
 							  PQgetvalue(res, i, i_rolvaliduntil));
@@ -1483,6 +1522,48 @@ dumpRoles(PGconn *conn)
 			buildShSecLabels(conn, "pg_authid", auth_oid,
 							 "ROLE", rolename,
 							 buf);
+
+		appendPQExpBuffer(buf, "ALTER ROLE %s WITH ", fmtId(rolename));
+		appendPQExpBuffer(buf, "PROFILE %s; \n", fmtId(PQgetvalue(res, i, i_rolprofile)));
+
+		appendPQExpBuffer(buf, "SET allow_system_table_mods = true;\n");
+
+		appendPQExpBuffer(buf, "UPDATE pg_authid SET "
+				       "rolenableprofile = \'%s\', "
+				       "rolaccountstatus = %s, "
+				       "rolfailedlogins = %s",
+				  	PQgetvalue(res, i, i_rolenableprofile),
+				  	PQgetvalue(res, i, i_rolaccountstatus),
+				  	PQgetvalue(res, i, i_rolfailedlogins));
+
+		if (!PQgetisnull(res, i, i_rolpassword) && !no_role_passwords)
+		{
+			appendPQExpBuffer(buf, ", rolpassword = \'%s\'",
+					     			PQgetvalue(res, i, i_rolpassword));
+		}
+
+		if (!PQgetisnull(res, i, i_rolpasswordsetat))
+		{
+			appendPQExpBuffer(buf, ", rolpasswordsetat = \'%s\'",
+		     						PQgetvalue(res, i, i_rolpasswordsetat));
+		}
+
+		if (!PQgetisnull(res, i, i_rollockdate))
+		{
+			appendPQExpBuffer(buf, ", rollockdate = \'%s\'",
+		     						PQgetvalue(res, i, i_rollockdate));
+		}
+
+		if (!PQgetisnull(res, i, i_rolpasswordexpire))
+		{
+			appendPQExpBuffer(buf, ", rolpasswordexpire = \'%s\'",
+		     						PQgetvalue(res, i, i_rolpasswordexpire));
+		}
+
+		appendPQExpBuffer(buf, " WHERE oid = %s; \n",
+		    						PQgetvalue(res, i, i_oid));
+
+		appendPQExpBuffer(buf, "RESET allow_system_table_mods;\n");
 
 		fprintf(OPF, "%s", buf->data);
 	}
@@ -1904,6 +1985,271 @@ dumpUserConfig(PGconn *conn, const char *username)
 			break;
 		}
 	}
+
+	destroyPQExpBuffer(buf);
+}
+
+/*
+ * Dump profiles
+ */
+static void
+dumpProfiles(PGconn *conn)
+{
+	PQExpBuffer buf = createPQExpBuffer();
+	PGresult *res;
+	int 			i_oid,
+				i_prfname,
+				i_prffailedloginattempts,
+				i_prfpasswordlocktime,
+				i_prfpasswordlifetime,
+				i_prfpasswordgracetime,
+				i_prfpasswordreusetime,
+				i_prfpasswordreusemax,
+				i_prfpasswordallowhashed,
+				i_prfpasswordverifyfuncdb,
+				i_prfpasswordverifyfunc,
+				i_prfcomment;
+	int 			i;
+
+	if (server_version < 90600)
+		return;
+
+	printfPQExpBuffer(buf,
+		   			"SELECT oid, prfname, prffailedloginattempts, "
+					"prfpasswordlocktime, prfpasswordlifetime, prfpasswordgracetime, "
+     					"prfpasswordreusetime, prfpasswordreusemax, prfpasswordallowhashed, "
+	  				"prfpasswordverifyfuncdb, prfpasswordverifyfunc, "
+					"pg_catalog.shobj_description(oid, '%s') as prfcomment "
+       					"FROM %s "
+	 				"ORDER BY 2", profile_catalog, profile_catalog);
+
+	res = executeQuery(conn, buf->data);
+
+	i_oid = PQfnumber(res, "oid");
+	i_prfname = PQfnumber(res, "prfname");
+	i_prffailedloginattempts = PQfnumber(res, "prffailedloginattempts");
+	i_prfpasswordlocktime = PQfnumber(res, "prfpasswordlocktime");
+	i_prfpasswordlifetime = PQfnumber(res, "prfpasswordlifetime");
+	i_prfpasswordgracetime = PQfnumber(res, "prfpasswordgracetime");
+	i_prfpasswordreusetime = PQfnumber(res, "prfpasswordreusetime");
+	i_prfpasswordreusemax = PQfnumber(res, "prfpasswordreusemax");
+	i_prfpasswordallowhashed = PQfnumber(res, "prfpasswordallowhashed");
+	i_prfpasswordverifyfuncdb = PQfnumber(res, "prfpasswordverifyfuncdb");
+	i_prfpasswordverifyfunc = PQfnumber(res, "prfpasswordverifyfunc");
+	i_prfcomment = PQfnumber(res, "prfcomment");
+
+	if (PQntuples(res) > 0)
+		fprintf(OPF, "--\n-- Profiles\n--\n\n");
+
+	for (i = 0; i < PQntuples(res); i++)
+	{
+		const char *prfname;
+		Oid 		profile_oid;
+
+		profile_oid = atooid(PQgetvalue(res, i, i_oid));
+		prfname = PQgetvalue(res, i, i_prfname);
+
+		resetPQExpBuffer(buf);
+
+		/*
+		 * We dump CREATE PROFILE followed by ALTER PROFILE to ensure that the
+		 * profile acquire the right properties even if it already exists(ie,
+		 * it won't hurt for the CREATE to fail). Notice, for default profife,
+		 * we don't need to CREATE PROFILE while ALTER PROFILE is still needed.
+		 */
+		if (profile_oid != 10140 && !binary_upgrade)
+			appendPQExpBuffer(buf, "CREATE PROFILE %s;\n", fmtId(prfname));
+		appendPQExpBuffer(buf, "ALTER PROFILE %s LIMIT", fmtId(prfname));
+
+		if (profile_oid != 10140)
+		{
+			if (strcmp(PQgetvalue(res, i, i_prffailedloginattempts), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " FAILED_LOGIN_ATTEMPTS %s",
+						  	PQgetvalue(res, i, i_prffailedloginattempts));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordlocktime), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_LOCK_TIME %s",
+						  	PQgetvalue(res, i, i_prfpasswordlocktime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordlifetime), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_LIFE_TIME %s",
+					  		PQgetvalue(res, i, i_prfpasswordlifetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordgracetime), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_GRACE_TIME %s",
+		  					PQgetvalue(res, i, i_prfpasswordgracetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordreusetime), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_REUSE_TIME %s",
+		  					PQgetvalue(res, i, i_prfpasswordreusetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordreusemax), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_REUSE_MAX %s",
+		      					PQgetvalue(res, i, i_prfpasswordreusemax));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordallowhashed), "-1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_ALLOW_HASHED %s",
+		      					PQgetvalue(res, i, i_prfpasswordallowhashed));
+			}
+
+			if (!PQgetisnull(res, i, i_prfpasswordverifyfuncdb))
+			{
+				appendPQExpBuffer(buf, " PASSWORD_VERIFY_FUNCDB %s",
+		      					PQgetvalue(res, i, i_prfpasswordverifyfuncdb));
+			}
+
+			if (!PQgetisnull(res, i, i_prfpasswordverifyfunc))
+			{
+				appendPQExpBuffer(buf, " PASSWORD_VERIFY_FUNC %s",
+		      					PQgetvalue(res, i, i_prfpasswordverifyfunc));
+			}
+		}
+		else
+		{
+			if (strcmp(PQgetvalue(res, i, i_prffailedloginattempts), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " FAILED_LOGIN_ATTEMPTS %s",
+						  PQgetvalue(res, i, i_prffailedloginattempts));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordlocktime), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_LOCK_TIME %s",
+						  PQgetvalue(res, i, i_prfpasswordlocktime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordlifetime), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_LIFE_TIME %s",
+						  PQgetvalue(res, i, i_prfpasswordlifetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordgracetime), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_GRACE_TIME %s",
+						  PQgetvalue(res, i, i_prfpasswordgracetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordreusetime), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_REUSE_TIME %s",
+						  PQgetvalue(res, i, i_prfpasswordreusetime));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordreusemax), "-2") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_REUSE_MAX %s",
+						  PQgetvalue(res, i, i_prfpasswordreusemax));
+			}
+
+			if (strcmp(PQgetvalue(res, i, i_prfpasswordallowhashed), "1") != 0)
+			{
+				appendPQExpBuffer(buf, " PASSWORD_ALLOW_HASHED %s",
+						  PQgetvalue(res, i, i_prfpasswordallowhashed));
+			}
+
+			if (!PQgetisnull(res, i, i_prfpasswordverifyfuncdb))
+			{
+				appendPQExpBuffer(buf, " PASSWORD_VERIFY_FUNCDB %s",
+						  PQgetvalue(res, i, i_prfpasswordverifyfuncdb));
+			}
+
+			if (!PQgetisnull(res, i, i_prfpasswordverifyfunc))
+			{
+				appendPQExpBuffer(buf, " PASSWORD_VERIFY_FUNC %s",
+						  PQgetvalue(res, i, i_prfpasswordverifyfunc));
+			}
+		}
+
+		appendPQExpBufferStr(buf, ";\n");
+
+		if (!no_comments && !PQgetisnull(res, i, i_prfcomment))
+		{
+			appendPQExpBuffer(buf, "COMMENT ON PROFILE %s IS ", fmtId(prfname));
+			appendStringLiteralConn(buf, PQgetvalue(res, i, i_prfcomment), conn);
+			appendPQExpBufferStr(buf, ";\n");
+		}
+
+		fprintf(OPF, "%s", buf->data);;
+	}
+
+	PQclear(res);
+
+	fprintf(OPF, "\n\n");
+
+	destroyPQExpBuffer(buf);
+}
+
+/*
+ * Dump role password history
+ */
+static void
+dumpPasswordHistory(PGconn *conn)
+{
+	PQExpBuffer buf = createPQExpBuffer();
+	PGresult *res;
+	int			i_passhistroleid,
+				i_passhistpasswordsetat,
+				i_passhistpassword;
+	int			i;
+
+	if (server_version < 90600)
+		return;
+
+	printfPQExpBuffer(buf,
+		   			"SELECT passhistroleid, passhistpasswordsetat, passhistpassword "
+					"FROM %s "
+     					"ORDER BY 1, 2; \n", password_history_catalog);
+
+	res = executeQuery(conn, buf->data);
+
+	i_passhistroleid = PQfnumber(res, "passhistroleid");
+	i_passhistpasswordsetat = PQfnumber(res, "passhistpasswordsetat");
+	i_passhistpassword = PQfnumber(res, "passhistpassword");
+
+	resetPQExpBuffer(buf);
+
+	if (PQntuples(res) > 0)
+	{
+		fprintf(OPF, "--\n-- Password Histories\n--\n\n");
+		fprintf(OPF, "SET allow_system_table_mods = true;\n");
+	}
+
+
+	for (i = 0; i < PQntuples(res); i++)
+	{
+		appendPQExpBuffer(buf, "INSERT INTO pg_catalog.pg_password_history VALUES( "
+					"%s, \'%s\', \'%s\');\n",
+					PQgetvalue(res, i, i_passhistroleid),
+					PQgetvalue(res, i, i_passhistpasswordsetat),
+					PQgetvalue(res, i, i_passhistpassword));
+
+
+		fprintf(OPF, "%s", buf->data);
+
+		resetPQExpBuffer(buf);
+	}
+
+	appendPQExpBuffer(buf, "RESET allow_system_table_mods;\n");
+
+	fprintf(OPF, "%s", buf->data);
+
+	PQclear(res);
+
+	fprintf(OPF, "\n\n");
 
 	destroyPQExpBuffer(buf);
 }

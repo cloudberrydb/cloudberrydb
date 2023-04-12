@@ -58,7 +58,9 @@
 #include "catalog/pg_database.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
+#include "catalog/pg_password_history.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_publication.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_shseclabel.h"
@@ -128,6 +130,8 @@ static const FormData_pg_attribute Desc_pg_authid[Natts_pg_authid] = {Schema_pg_
 static const FormData_pg_attribute Desc_pg_auth_members[Natts_pg_auth_members] = {Schema_pg_auth_members};
 static const FormData_pg_attribute Desc_pg_auth_time_constraint_members[Natts_pg_auth_time_constraint] = {Schema_pg_auth_time_constraint};
 static const FormData_pg_attribute Desc_pg_index[Natts_pg_index] = {Schema_pg_index};
+static const FormData_pg_attribute Desc_pg_password_history[Natts_pg_password_history] = {Schema_pg_password_history};
+static const FormData_pg_attribute Desc_pg_profile[Natts_pg_profile] = {Schema_pg_profile};
 static const FormData_pg_attribute Desc_pg_shseclabel[Natts_pg_shseclabel] = {Schema_pg_shseclabel};
 static const FormData_pg_attribute Desc_pg_subscription[Natts_pg_subscription] = {Schema_pg_subscription};
 
@@ -4096,6 +4100,10 @@ RelationCacheInitializePhase2(void)
 				  Natts_pg_database, Desc_pg_database);
 		formrdesc("pg_authid", AuthIdRelation_Rowtype_Id, true,
 				  Natts_pg_authid, Desc_pg_authid);
+		formrdesc("pg_password_history", PasswordHistoryRelation_Rowtype_Id, true,
+	    			  Natts_pg_password_history, Desc_pg_password_history);
+		formrdesc("pg_profile", ProfileRelation_Rowtype_Id, true,
+	    			  Natts_pg_profile, Desc_pg_profile);
 		formrdesc("pg_auth_members", AuthMemRelation_Rowtype_Id, true,
 				  Natts_pg_auth_members, Desc_pg_auth_members);
 		formrdesc("pg_shseclabel", SharedSecLabelRelation_Rowtype_Id, true,
@@ -4105,7 +4113,7 @@ RelationCacheInitializePhase2(void)
 		formrdesc("pg_auth_time_constraint", AuthTimeConstraint_Rowtype_Id, true,
 				  Natts_pg_auth_time_constraint, Desc_pg_auth_time_constraint_members);
 
-#define NUM_CRITICAL_SHARED_RELS	6	/* fix if you change list above */
+#define NUM_CRITICAL_SHARED_RELS	8	/* fix if you change list above */
 	}
 
 	MemoryContextSwitchTo(oldcxt);
@@ -4249,6 +4257,12 @@ RelationCacheInitializePhase3(void)
 							AuthIdRelationId);
 		load_critical_index(AuthIdOidIndexId,
 							AuthIdRelationId);
+		load_critical_index(ProfilePrfnameIndexId,
+		      					ProfileRelationId);
+		load_critical_index(ProfileOidIndexId,
+				    			ProfileRelationId);
+		load_critical_index(ProfileVerifyFunctionIndexId,
+				    			ProfileRelationId);
 		load_critical_index(AuthMemMemRoleIndexId,
 							AuthMemRelationId);
 		load_critical_index(SharedSecLabelObjectIndexId,
@@ -4256,7 +4270,7 @@ RelationCacheInitializePhase3(void)
 		load_critical_index(AuthTimeConstraintAuthIdIndexId,
 							AuthTimeConstraintRelationId);
 
-#define NUM_CRITICAL_SHARED_INDEXES 7	/* fix if you change list above */
+#define NUM_CRITICAL_SHARED_INDEXES 10	/* fix if you change list above */
 
 		criticalSharedRelcachesBuilt = true;
 	}

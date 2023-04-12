@@ -57,6 +57,8 @@ extern Oid GetNewOidForExtension(Relation relation, Oid indexId, AttrNumber oidc
 								 char *extname);
 extern Oid GetNewOidForExtprotocol(Relation relation, Oid indexId, AttrNumber oidcolumn,
 								   char *ptcname);
+extern Oid GetNewOidForProfile(Relation relation, Oid indexId, AttrNumber oidcolumn,
+			       						char *prfname);
 extern Oid GetNewOidForForeignDataWrapper(Relation relation, Oid indexId, AttrNumber oidcolumn,
 										  char *fdwname);
 extern Oid GetNewOidForForeignServer(Relation relation, Oid indexId, AttrNumber oidcolumn,

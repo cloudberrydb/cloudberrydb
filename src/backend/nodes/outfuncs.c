@@ -3276,6 +3276,10 @@ _outQuery(StringInfo str, const Query *node)
 			case T_AlterRoleSetStmt:
 			case T_DropRoleStmt:
 
+			case T_CreateProfileStmt:
+			case T_AlterProfileStmt:
+			case T_DropProfileStmt:
+
 			case T_CreateSchemaStmt:
 			case T_CreatePLangStmt:
 			case T_AlterOwnerStmt:
@@ -4756,6 +4760,16 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_AlterRoleSetStmt:
 				_outAlterRoleSetStmt(str, obj);
+				break;
+
+			case T_CreateProfileStmt:
+				_outCreateProfileStmt(str, obj);
+				break;
+			case T_AlterProfileStmt:
+				_outAlterProfileStmt(str, obj);
+				break;
+			case T_DropProfileStmt:
+				_outDropProfileStmt(str, obj);
 				break;
 
 			case T_AlterSystemStmt:

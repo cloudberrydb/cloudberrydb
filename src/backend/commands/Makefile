@@ -63,7 +63,8 @@ OBJS = \
 	user.o \
 	vacuum.o \
 	variable.o \
-	view.o
+	view.o \
+	pg_profile.o
 
 OBJS += analyzefuncs.o analyzeutils.o extprotocolcmds.o exttablecmds.o queue.o
 OBJS += resgroupcmds.o tablecmds_gp.o vacuum_ao.o taskcmds.o

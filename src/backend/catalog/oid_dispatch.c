@@ -104,6 +104,7 @@
 #include "catalog/pg_operator.h"
 #include "catalog/pg_opfamily.h"
 #include "catalog/pg_policy.h"
+#include "catalog/pg_profile.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_publication.h"
 #include "catalog/pg_publication_rel.h"
@@ -724,6 +725,22 @@ GetNewOidForExtprotocol(Relation relation, Oid indexId, AttrNumber oidcolumn,
 	memset(&key, 0, sizeof(OidAssignment));
 	key.type = T_OidAssignment;
 	key.objname = ptcname;
+	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
+}
+
+Oid
+GetNewOidForProfile(Relation relation, Oid indexId, AttrNumber oidcolumn,
+			       			char *prfname)
+{
+	OidAssignment  key;
+
+	Assert(RelationGetRelid(relation) == ProfileRelationId);
+	Assert(indexId == ProfileOidIndexId);
+	Assert(oidcolumn == Anum_pg_profile_oid);
+
+	memset(&key, 0, sizeof(OidAssignment));
+	key.type = T_OidAssignment;
+	key.objname = prfname;
 	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
 }
 
