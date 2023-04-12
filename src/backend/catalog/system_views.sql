@@ -26,8 +26,14 @@ CREATE VIEW pg_roles AS
         rolcanlogin,
         rolreplication,
         rolconnlimit,
+        rolenableprofile,
+        pg_profile.prfname AS rolprofile,
+        rolaccountstatus,
+        rolfailedlogins,
         '********'::text as rolpassword,
         rolvaliduntil,
+        rollockdate,
+        rolpasswordexpire,
         rolbypassrls,
         setconfig as rolconfig,
         rolresqueue,
@@ -36,8 +42,9 @@ CREATE VIEW pg_roles AS
         rolcreaterexthttp,
         rolcreatewextgpfd,
         rolresgroup
-    FROM pg_authid LEFT JOIN pg_db_role_setting s
-    ON (pg_authid.oid = setrole AND setdatabase = 0);
+    FROM pg_profile, pg_authid LEFT JOIN pg_db_role_setting s
+    ON (pg_authid.oid = setrole AND setdatabase = 0)
+    WHERE pg_profile.oid = pg_authid.rolprofile;
 
 CREATE VIEW pg_shadow AS
     SELECT

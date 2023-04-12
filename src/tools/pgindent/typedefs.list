@@ -80,6 +80,7 @@ AlterOpFamilyStmt
 AlterOperatorStmt
 AlterOwnerStmt
 AlterPolicyStmt
+AlterProfileStmt
 AlterPublicationStmt
 AlterRoleSetStmt
 AlterRoleStmt
@@ -472,6 +473,7 @@ CreateOpClassStmt
 CreateOpFamilyStmt
 CreatePLangStmt
 CreatePolicyStmt
+CreateProfileStmt
 CreatePublicationStmt
 CreateRangeStmt
 CreateReplicationSlotCmd
@@ -566,6 +568,7 @@ DomainConstraintType
 DomainIOData
 DropBehavior
 DropOwnedStmt
+DropProfileStmt
 DropReplicationSlotCmd
 DropRoleStmt
 DropStmt

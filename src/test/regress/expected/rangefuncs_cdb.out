@@ -23,10 +23,11 @@ SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%' and name != 'ena
  enable_partition_pruning       | on
  enable_partitionwise_aggregate | off
  enable_partitionwise_join      | off
+ enable_password_profile        | on
  enable_seqscan                 | on
  enable_sort                    | on
  enable_tidscan                 | on
-(21 rows)
+(22 rows)
 
 -- start_ignore
 create schema rangefuncs_cdb;

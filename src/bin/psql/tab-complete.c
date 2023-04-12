@@ -960,6 +960,10 @@ static const SchemaQuery Query_for_list_of_collations = {
 "   FROM pg_catalog.pg_extension "\
 "  WHERE substring(pg_catalog.quote_ident(extname),1,%d)='%s'"
 
+#define Query_for_list_of_profiles \
+"SELECT pg_catalog.quote_ident(profilename) FROM pg_catalog.pg_profile "\
+" WHERE substring(pg_catalog.quote_ident(profilename),1,%d)='%s'"
+
 #define Query_for_list_of_available_extensions \
 " SELECT pg_catalog.quote_ident(name) "\
 "   FROM pg_catalog.pg_available_extensions "\
@@ -1112,6 +1116,7 @@ static const pgsql_thing_t words_after_create[] = {
 	{"PARSER", Query_for_list_of_ts_parsers, NULL, NULL, THING_NO_SHOW},
 	{"POLICY", NULL, NULL, NULL},
 	{"PROCEDURE", NULL, NULL, Query_for_list_of_procedures},
+	{"PROFILE", Query_for_list_of_profiles},
 	{"PUBLICATION", NULL, Query_for_list_of_publications},
 	{"RESOURCE", NULL},
 	{"ROLE", Query_for_list_of_roles},
@@ -1669,6 +1674,12 @@ psql_completion(const char *text, int start, int end)
 	/* ALTER AGGREGATE,FUNCTION,PROCEDURE,ROUTINE <name> */
 	else if (Matches("ALTER", "AGGREGATE|FUNCTION|PROCEDURE|ROUTINE", MatchAny))
 		COMPLETE_WITH("(");
+	/* ALTER PROFILE <name> */
+	else if (Matches("ALTER", "PROFILE", MatchAny))
+		COMPLETE_WITH("LIMIT", "RENAME TO");
+	/* ALTER PROFILE <name> LIMIT */
+	else if (HeadMatches("ALTER", "PROFILE", MatchAny) && TailMatches("LIMIT"))
+		COMPLETE_WITH("FAILED_LOGIN_ATTEMPTS", "PASSWORD_REUSE_MAX", "PASSWORD_LOCK_TIME");
 	/* ALTER AGGREGATE <name> (...) */
 	else if (Matches("ALTER", "AGGREGATE", MatchAny, MatchAny))
 	{
@@ -1875,7 +1886,8 @@ psql_completion(const char *text, int start, int end)
 					  "NOCREATEDB", "NOCREATEROLE", "NOINHERIT",
 					  "NOLOGIN", "NOREPLICATION", "NOSUPERUSER", "PASSWORD",
 					  "RENAME TO", "REPLICATION", "RESET", "SET", "SUPERUSER",
-					  "VALID UNTIL", "WITH");
+					  "VALID UNTIL", "WITH", "PROFILE", "ENABLE PROFILE",
+					  "DISABLE PROFILE", "ACCOUNT");
 
 	/* ALTER USER,ROLE <name> WITH */
 	else if (Matches("ALTER", "USER|ROLE", MatchAny, "WITH"))
@@ -1885,8 +1897,11 @@ psql_completion(const char *text, int start, int end)
 					  "NOCREATEDB", "NOCREATEROLE", "NOINHERIT",
 					  "NOLOGIN", "NOREPLICATION", "NOSUPERUSER", "PASSWORD",
 					  "RENAME TO", "REPLICATION", "RESET", "SET", "SUPERUSER",
-					  "VALID UNTIL");
+					  "VALID UNTIL", "PROFILE", "ENABLE PROFILE",
+					  "DISABLE PROFILE", "ACCOUNT");
 
+	else if (Matches("ALTER", "USER|ROLE", MatchAny) && TailMatches("ACCOUNT"))
+		COMPLETE_WITH("LOCK", "UNLOCK");
 	/* ALTER DEFAULT PRIVILEGES */
 	else if (Matches("ALTER", "DEFAULT", "PRIVILEGES"))
 		COMPLETE_WITH("FOR ROLE", "IN SCHEMA");
@@ -2402,7 +2417,7 @@ psql_completion(const char *text, int start, int end)
 					  "SCHEMA", "SEQUENCE", "STATISTICS", "SUBSCRIPTION",
 					  "TABLE", "TYPE", "VIEW", "MATERIALIZED VIEW",
 					  "COLUMN", "AGGREGATE", "FUNCTION",
-					  "PROCEDURE", "ROUTINE",
+					  "PROCEDURE", "PROFILE", "ROUTINE",
 					  "OPERATOR", "TRIGGER", "CONSTRAINT", "DOMAIN",
 					  "LARGE OBJECT", "TABLESPACE", "TEXT SEARCH", "ROLE");
 	else if (Matches("COMMENT", "ON", "ACCESS", "METHOD"))
@@ -2992,7 +3007,8 @@ psql_completion(const char *text, int start, int end)
 					  "NOCREATEDB", "NOCREATEROLE", "NOINHERIT",
 					  "NOLOGIN", "NOREPLICATION", "NOSUPERUSER", "PASSWORD",
 					  "REPLICATION", "ROLE", "SUPERUSER", "SYSID",
-					  "VALID UNTIL", "WITH");
+					  "VALID UNTIL", "WITH", "PROFILE", "ENABLE PROFILE",
+					  "DISABLE PROFILE", "ACCOUNT");
 
 /* CREATE ROLE,USER,GROUP <name> WITH */
 	else if (Matches("CREATE", "ROLE|GROUP|USER", MatchAny, "WITH"))
@@ -3003,7 +3019,8 @@ psql_completion(const char *text, int start, int end)
 					  "NOCREATEDB", "NOCREATEROLE", "NOINHERIT",
 					  "NOLOGIN", "NOREPLICATION", "NOSUPERUSER", "PASSWORD",
 					  "REPLICATION", "ROLE", "SUPERUSER", "SYSID",
-					  "VALID UNTIL");
+					  "VALID UNTIL", "PROFILE", "ENABLE PROFILE",
+					  "DISABLE PROFILE", "ACCOUNT");
 
 	/* complete CREATE ROLE,USER,GROUP <name> IN with ROLE,GROUP */
 	else if (Matches("CREATE", "ROLE|USER|GROUP", MatchAny, "IN"))
@@ -3017,6 +3034,13 @@ psql_completion(const char *text, int start, int end)
 
 		COMPLETE_WITH_LIST(list_CREATERESOURCEGROUP);
 	 }
+
+	/* CREATE PROFILE <name> LIMIT */
+	else if (Matches("CREATE", "PROFILE", MatchAny))
+		COMPLETE_WITH("LIMIT");
+	else if (Matches("CREATE", "PROFILE", MatchAny, "LIMIT"))
+		COMPLETE_WITH("FAILED_LOGIN_ATTEMPTS", "PASSWORD_REUSE_MAX", "PASSWORD_LOCK_TIME");
+
 	/* CREATE/DROP RESOURCE GROUP */
 	else if (TailMatches("CREATE|DROP", "RESOURCE", "GROUP"))
 		COMPLETE_WITH_QUERY(Query_for_list_of_resgroups);

@@ -59,6 +59,7 @@ SecLabelSupportsObjectType(ObjectType objtype)
 		case OBJECT_TABLESPACE:
 		case OBJECT_TYPE:
 		case OBJECT_VIEW:
+		case OBJECT_PROFILE:
 			return true;
 
 		case OBJECT_ACCESS_METHOD:

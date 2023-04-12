@@ -3124,6 +3124,8 @@ parseNodeString(void)
 		return_value = _readAlterSystemStmt();
 	else if (MATCHX("ALTERROLESTMT"))
 		return_value = _readAlterRoleStmt();
+	else if (MATCHX("ALTERPROFILESTMT"))
+		return_value = _readAlterProfileStmt();
 	else if (MATCHX("ALTERSEQSTMT"))
 		return_value = _readAlterSeqStmt();
 	else if (MATCHX("ALTERTABLECMD"))
@@ -3192,6 +3194,8 @@ parseNodeString(void)
 		return_value = _readCreatePolicyStmt();
 	else if (MATCHX("CREATEROLESTMT"))
 		return_value = _readCreateRoleStmt();
+	else if (MATCHX("CREATEPROFILESTMT"))
+		return_value = _readCreateProfileStmt();
 	else if (MATCHX("CREATESCHEMASTMT"))
 		return_value = _readCreateSchemaStmt();
 	else if (MATCHX("CREATESEQSTMT"))
@@ -3212,6 +3216,8 @@ parseNodeString(void)
 		return_value = _readDropdbStmt();
 	else if (MATCHX("DROPROLESTMT"))
 		return_value = _readDropRoleStmt();
+	else if (MATCHX("DROPPROFILESTMT"))
+		return_value = _readDropProfileStmt();
 	else if (MATCHX("DROPSTMT"))
 		return_value = _readDropStmt();
 	else if (MATCHX("DISTRIBUTIONKEYELEM"))

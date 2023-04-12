@@ -72,10 +72,5 @@ lib*.pc
 /CMakeLists.txt
 /compile_commands.json
 /tmp_install/
-<<<<<<< HEAD
 /.cache/
 /install/
-=======
-/install/
-/.cache/
->>>>>>> 77c11b4beab (update .gitignore.)

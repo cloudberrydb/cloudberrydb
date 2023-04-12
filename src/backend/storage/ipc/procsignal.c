@@ -22,6 +22,7 @@
 #include "commands/async.h"
 #include "miscadmin.h"
 #include "pgstat.h"
+#include "postmaster/loginmonitor.h"
 #include "replication/walsender.h"
 #include "storage/condition_variable.h"
 #include "storage/ipc.h"
@@ -704,6 +705,9 @@ procsignal_sigusr1_handler(SIGNAL_ARGS)
 	if (CheckProcSignal(PROCSIG_RESOURCE_GROUP_MOVE_QUERY))
 		HandleMoveResourceGroup();
 
+	if (CheckProcSignal(PROCSIG_FAILED_LOGIN))
+		HandleLoginFailed();
+	
 	SetLatch(MyLatch);
 
 	errno = save_errno;

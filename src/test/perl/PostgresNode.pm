@@ -2085,6 +2085,163 @@ sub _pgbench_make_files
 	return @file_opts;
 }
 
+# Test SQL in specific role
+sub role_psql
+{
+	my ($self, $role, $dbname, $sql, %params) = @_;
+
+	local %ENV = $self->_get_env();
+
+	my $stdout            = $params{stdout};
+	my $stderr            = $params{stderr};
+	my $replication       = $params{replication};
+	my $timeout           = undef;
+	my $timeout_exception = 'psql timed out';
+
+
+	local $ENV{PGOPTIONS} = '-c gp_role=utility';
+
+	# Build the connection string.
+	my $psql_connstr;
+	if (defined $params{connstr})
+	{
+		$psql_connstr = $params{connstr};
+	}
+	else
+	{
+		$psql_connstr = $self->connstr($dbname);
+	}
+	$psql_connstr .= defined $replication ? " replication=$replication" : "";
+
+	my @psql_params = (
+		$self->installed_command('psql'),
+		'-XAtq', '-U', $role, '-d', $psql_connstr, '-f', '-');
+
+
+	# If the caller wants an array and hasn't passed stdout/stderr
+	# references, allocate temporary ones to capture them so we
+	# can return them. Otherwise we won't redirect them at all.
+	if (wantarray)
+	{
+		if (!defined($stdout))
+		{
+			my $temp_stdout = "";
+			$stdout = \$temp_stdout;
+		}
+		if (!defined($stderr))
+		{
+			my $temp_stderr = "";
+			$stderr = \$temp_stderr;
+		}
+	}
+
+	$params{on_error_stop} = 1 unless defined $params{on_error_stop};
+	$params{on_error_die}  = 0 unless defined $params{on_error_die};
+
+	push @psql_params, '-v', 'ON_ERROR_STOP=1' if $params{on_error_stop};
+	push @psql_params, @{ $params{extra_params} }
+	  if defined $params{extra_params};
+
+	$timeout =
+	  IPC::Run::timeout($params{timeout}, exception => $timeout_exception)
+	  if (defined($params{timeout}));
+
+	${ $params{timed_out} } = 0 if defined $params{timed_out};
+
+	# IPC::Run would otherwise append to existing contents:
+	$$stdout = "" if ref($stdout);
+	$$stderr = "" if ref($stderr);
+
+	my $ret;
+
+	# Run psql and capture any possible exceptions.  If the exception is
+	# because of a timeout and the caller requested to handle that, just return
+	# and set the flag.  Otherwise, and for any other exception, rethrow.
+	#
+	# For background, see
+	# https://metacpan.org/pod/release/ETHER/Try-Tiny-0.24/lib/Try/Tiny.pm
+	do
+	{
+		local $@;
+		eval {
+			my @ipcrun_opts = (\@psql_params, '<', \$sql);
+			push @ipcrun_opts, '>',  $stdout if defined $stdout;
+			push @ipcrun_opts, '2>', $stderr if defined $stderr;
+			push @ipcrun_opts, $timeout if defined $timeout;
+
+			IPC::Run::run @ipcrun_opts;
+			$ret = $?;
+		};
+		my $exc_save = $@;
+		if ($exc_save)
+		{
+
+			# IPC::Run::run threw an exception. re-throw unless it's a
+			# timeout, which we'll handle by testing is_expired
+			die $exc_save
+			  if (blessed($exc_save)
+				|| $exc_save !~ /^\Q$timeout_exception\E/);
+
+			$ret = undef;
+
+			die "Got timeout exception '$exc_save' but timer not expired?!"
+			  unless $timeout->is_expired;
+
+			if (defined($params{timed_out}))
+			{
+				${ $params{timed_out} } = 1;
+			}
+			else
+			{
+				die "psql timed out: stderr: '$$stderr'\n"
+				  . "while running '@psql_params'";
+			}
+		}
+	};
+
+	if (defined $$stdout)
+	{
+		chomp $$stdout;
+	}
+
+	if (defined $$stderr)
+	{
+		chomp $$stderr;
+	}
+
+	# See http://perldoc.perl.org/perlvar.html#%24CHILD_ERROR
+	# We don't use IPC::Run::Simple to limit dependencies.
+	#
+	# We always die on signal.
+	my $core = $ret & 128 ? " (core dumped)" : "";
+	die "psql exited with signal "
+	  . ($ret & 127)
+	  . "$core: '$$stderr' while running '@psql_params'"
+	  if $ret & 127;
+	$ret = $ret >> 8;
+
+	if ($ret && $params{on_error_die})
+	{
+		die "psql error: stderr: '$$stderr'\nwhile running '@psql_params'"
+		  if $ret == 1;
+		die "connection error: '$$stderr'\nwhile running '@psql_params'"
+		  if $ret == 2;
+		die
+		  "error running SQL: '$$stderr'\nwhile running '@psql_params' with sql '$sql'"
+		  if $ret == 3;
+		die "psql returns $ret: '$$stderr'\nwhile running '@psql_params'";
+	}
+
+	if (wantarray)
+	{
+		return ($ret, $$stdout, $$stderr);
+	}
+	else
+	{
+		return $ret;
+	}
+}
+
 =pod
 
 =item $node->pgbench($opts, $stat, $out, $err, $name, $files, @args)

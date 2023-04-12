@@ -28,12 +28,15 @@
 #include "catalog/pg_authid.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_db_role_setting.h"
+#include "catalog/pg_password_history.h"
+#include "catalog/pg_profile.h"
 #include "commands/comment.h"
 #include "commands/dbcommands.h"
 #include "commands/seclabel.h"
 #include "commands/user.h"
 #include "libpq/crypt.h"
 #include "miscadmin.h"
+#include "postmaster/postmaster.h"
 #include "storage/lmgr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -112,6 +115,8 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 	ListCell   *item;
 	ListCell   *option;
 	char	   *password = NULL;	/* user password */
+	char	   *profilename = NULL;	/* profile name the role be attached */
+	Oid		profileId = DefaultProfileOID;	/* default profile oid */
 	bool		issuper = false;	/* Make the user a superuser? */
 	bool		inherit = true; /* Auto inherit privileges? */
 	bool		createrole = false; /* Can this user create roles? */
@@ -133,6 +138,10 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 	bool		validUntil_null;
 	char	   *resqueue = NULL;		/* resource queue for this role */
 	char	   *resgroup = NULL;		/* resource group for this role */
+	bool		account_is_lock = false;	/* whether the account will be locked/unlocked */
+	bool 		enable_profile = false;		/* whether user can use password profile */
+	int16		account_status = ROLE_ACCOUNT_STATUS_OPEN; /* default accountstatus is 'OPEN' */
+	TimestampTz 		now = 0;		/* current timestamp with time zone */
 	List	   *addintervals = NIL;	/* list of time intervals for which login should be denied */
 	DefElem    *dpassword = NULL;
 	DefElem    *dresqueue = NULL;
@@ -149,6 +158,11 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 	DefElem    *dadminmembers = NULL;
 	DefElem    *dvalidUntil = NULL;
 	DefElem    *dbypassRLS = NULL;
+	DefElem    *dprofile = NULL;
+	DefElem    *daccountIsLock = NULL;
+	DefElem    *denableProfile = NULL;
+
+	now = GetCurrentTimestamp();
 
 	/* The defaults can vary depending on the original statement type */
 	switch (stmt->stmt_type)
@@ -333,6 +347,31 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 						 parser_errposition(pstate, defel->location)));
 			dbypassRLS = defel;
 		}
+
+		else if (strcmp(defel->defname, "profile") == 0)
+		{
+			if (dprofile)
+				ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("conflicting or redundant options")));
+			dprofile = defel;
+		}
+		else if (strcmp(defel->defname, "accountislock") == 0)
+		{
+			if (daccountIsLock)
+				ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("conflicting or redundant options")));
+			daccountIsLock = defel;
+		}
+		else if (strcmp(defel->defname, "enableProfile") == 0)
+		{
+			if (denableProfile)
+				ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("conflicting or redundant options")));
+			denableProfile = defel;
+		}
 		else
 			elog(ERROR, "option \"%s\" not recognized",
 				 defel->defname);
@@ -374,6 +413,55 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 		resgroup = strVal(linitial((List *) dresgroup->arg));
 	if (dbypassRLS)
 		bypassrls = intVal(dbypassRLS->arg) != 0;
+	if (dprofile)
+		profilename = strVal(dprofile->arg);
+	if (daccountIsLock)
+		account_is_lock = intVal(daccountIsLock->arg) != 0;
+	if (denableProfile)
+		enable_profile = intVal(denableProfile->arg) != 0;
+
+	/*
+	 * Only the super user has the privileges of profile.
+	 */
+	if (dprofile)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't CREATE USER ... PROFILE for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 	 errmsg("must be superuser to create role attached to profile")));
+	}
+
+	if (daccountIsLock)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't CREATE USER ... ACCOUNT LOCK/UNLOCK for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 	 errmsg("must be superuser to create role account lock/unlock")));
+	}
+
+	if (denableProfile)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't CREATE USER ... ENABLE/DISABLE PROFILE for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 	 errmsg("must be superuser to create role enable/disable profile")));
+	}
+
 
 	/* Check some permissions first */
 	if (issuper)
@@ -479,6 +567,14 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 	new_record[Anum_pg_authid_rolcanlogin - 1] = BoolGetDatum(canlogin);
 	new_record[Anum_pg_authid_rolreplication - 1] = BoolGetDatum(isreplication);
 	new_record[Anum_pg_authid_rolconnlimit - 1] = Int32GetDatum(connlimit);
+	new_record[Anum_pg_authid_rolenableprofile - 1] = BoolGetDatum(enable_profile);
+
+	new_record[Anum_pg_authid_rolprofile - 1] = ObjectIdGetDatum(profileId);
+	new_record[Anum_pg_authid_rolaccountstatus - 1] = Int16GetDatum(account_status);
+	new_record[Anum_pg_authid_rolfailedlogins - 1] = Int32GetDatum(0);
+	new_record_nulls[Anum_pg_authid_rolpasswordsetat - 1] = true;
+	new_record_nulls[Anum_pg_authid_rollockdate - 1] = true;
+	new_record_nulls[Anum_pg_authid_rolpasswordexpire - 1] = true;
 
 	/* Set the CREATE EXTERNAL TABLE permissions for this role */
 	if (exttabcreate || exttabnocreate)
@@ -520,6 +616,10 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 										   password);
 			new_record[Anum_pg_authid_rolpassword - 1] =
 				CStringGetTextDatum(shadow_pass);
+			new_record[Anum_pg_authid_rolpasswordsetat - 1] =
+				Int64GetDatum(now);
+			new_record_nulls[Anum_pg_authid_rolpasswordsetat - 1] =
+				false;
 		}
 	}
 	else
@@ -630,6 +730,60 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 	}
 
 	new_record[Anum_pg_authid_oid - 1] = ObjectIdGetDatum(roleid);
+
+	/*
+	 * Change accountstatus and lockdate if lock account
+	 */
+	if (account_is_lock)
+	{
+		new_record[Anum_pg_authid_rolaccountstatus - 1] =
+			Int16GetDatum(ROLE_ACCOUNT_STATUS_LOCKED);
+		new_record[Anum_pg_authid_rollockdate - 1] =
+			Int64GetDatum(now);
+		new_record_nulls[Anum_pg_authid_rollockdate - 1] =
+			false;
+	}
+
+	if (enable_profile)
+	{
+		new_record[Anum_pg_authid_rolenableprofile - 1] =
+			BoolGetDatum(enable_profile);
+	}
+
+	if (profilename)
+	{
+		/* Scan the pg_profile relation to be certain the profile exists. */
+		Relation	pg_profile_rel;
+		TupleDesc	pg_profile_dsc;
+		HeapTuple	tuple;
+		Form_pg_profile	profileform;
+		Oid		profileid;
+
+		pg_profile_rel = table_open(ProfileRelationId, AccessShareLock);
+		pg_profile_dsc = RelationGetDescr(pg_profile_rel);
+
+		tuple = SearchSysCache1(PROFILENAME, CStringGetDatum(profilename));
+		if (!HeapTupleIsValid(tuple))
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("profile \"%s\" does not exist", profilename)));
+
+		profileform = (Form_pg_profile) GETSTRUCT(tuple);
+		profileid = profileform->oid;
+
+		new_record[Anum_pg_authid_rolprofile - 1] =
+			ObjectIdGetDatum(profileid);
+		new_record_nulls[Anum_pg_authid_rolprofile - 1] =
+			false;
+
+		ReleaseSysCache(tuple);
+		table_close(pg_profile_rel, NoLock);
+
+		/*
+		 * Add profile dependency
+		 */
+		recordProfileDependency(roleid, profileid);
+	}
 
 	tuple = heap_form_tuple(pg_authid_dsc, new_record, new_record_nulls);
 
@@ -747,9 +901,15 @@ AlterRole(AlterRoleStmt *stmt)
 	HeapTuple	tuple,
 				new_tuple;
 	Form_pg_authid authform;
+	Relation	pg_profile_rel;
+	TupleDesc	pg_profile_dsc;
+	Form_pg_profile	profileform;
+	Oid		profileid;
+	HeapTuple	profile_tuple;
 	ListCell   *option;
 	char	   *rolename = NULL;
 	char	   *password = NULL;	/* user password */
+	char	   *profilename = NULL;	/* profile name the role be attached */
 	int			issuper = -1;	/* Make the user a superuser? */
 	int			inherit = -1;	/* Auto inherit privileges? */
 	int			createrole = -1;	/* Can this user create roles? */
@@ -757,6 +917,7 @@ AlterRole(AlterRoleStmt *stmt)
 	int			canlogin = -1;	/* Can this user login? */
 	int			isreplication = -1; /* Is this a replication role? */
 	int			connlimit = -1; /* maximum connections allowed */
+	bool			enable_profile = false;	/* whether user can use password profile */
 	char	   *resqueue = NULL;	/* resource queue for this role */
 	char	   *resgroup = NULL;	/* resource group for this role */
 	List	   *exttabcreate = NIL;	/* external table create privileges being added  */
@@ -766,6 +927,8 @@ AlterRole(AlterRoleStmt *stmt)
 	Datum		validUntil_datum;	/* same, as timestamptz Datum */
 	bool		validUntil_null;
 	int			bypassrls = -1;
+	int			account_is_lock = -1;	/* whether the account will be locked/unlocked */
+	TimestampTz		now = 0;		/* current timestamp with time zone */
 	DefElem    *dpassword = NULL;
 	DefElem    *dresqueue = NULL;
 	DefElem    *dresgroup = NULL;
@@ -779,6 +942,9 @@ AlterRole(AlterRoleStmt *stmt)
 	DefElem    *drolemembers = NULL;
 	DefElem    *dvalidUntil = NULL;
 	DefElem    *dbypassRLS = NULL;
+	DefElem    *dprofile = NULL;
+	DefElem    *daccountIsLock = NULL;
+	DefElem    *denableProfile = NULL;
 	Oid			roleid;
 	bool		bWas_super = false;	/* Was the user a superuser? */
 	int			numopts = 0;
@@ -808,6 +974,8 @@ AlterRole(AlterRoleStmt *stmt)
 
 	check_rolespec_name(stmt->role,
 						"Cannot alter reserved roles.");
+
+	now = GetCurrentTimestamp();
 
 	/* Extract options from the statement node tree */
 	foreach(option, stmt->options)
@@ -968,6 +1136,30 @@ AlterRole(AlterRoleStmt *stmt)
 						 errmsg("conflicting or redundant options")));
 			dbypassRLS = defel;
 		}
+		else if (strcmp(defel->defname, "profile") == 0)
+		{
+			if (dprofile)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("conflicting or redundant options")));
+			dprofile = defel;
+		}
+		else if (strcmp(defel->defname, "accountislock") == 0)
+		{
+			if (daccountIsLock)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("conflicting or redundant options")));
+			daccountIsLock = defel;
+		}
+		else if (strcmp(defel->defname, "enableProfile") == 0)
+		{
+			if (denableProfile)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("conflicting or redundant options")));
+			denableProfile = defel;
+		}
 		else
 			elog(ERROR, "option \"%s\" not recognized",
 				 defel->defname);
@@ -1005,6 +1197,54 @@ AlterRole(AlterRoleStmt *stmt)
 		resgroup = strVal(linitial((List *) dresgroup->arg));
 	if (dbypassRLS)
 		bypassrls = intVal(dbypassRLS->arg);
+	if (dprofile)
+		profilename = strVal(dprofile->arg);
+	if (daccountIsLock)
+		account_is_lock = intVal(daccountIsLock->arg);
+	if (denableProfile)
+		enable_profile = intVal(denableProfile->arg) != 0;
+
+	/*
+	 * Only the super user has the privileges of profile.
+	 */
+	if (dprofile)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't ALTER USER ... PROFILE for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+					 errmsg("must be superuser to alter role attached to profile")));
+	}
+
+	if (daccountIsLock)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't ALTER USER ... ACCOUNT LOCK/UNLOCK for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+					 errmsg("must be superuser to alter role account lock/unlock")));
+	}
+
+	if (denableProfile)
+	{
+		if (!enable_password_profile)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
+					 errmsg("can't ALTER USER ... ENABLE/DISABLE PROFILE for enable_password_profile is not open")));
+
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+					 errmsg("must be superuser to alter role enable/disable profile")));
+	}
 
 	/*
 	 * Scan the pg_authid relation to be certain the user exists.
@@ -1171,11 +1411,85 @@ AlterRole(AlterRoleStmt *stmt)
 		new_record_repl[Anum_pg_authid_rolconnlimit - 1] = true;
 	}
 
+	if (denableProfile)
+	{
+		new_record[Anum_pg_authid_rolenableprofile - 1] = BoolGetDatum(enable_profile);
+		new_record_repl[Anum_pg_authid_rolenableprofile - 1] = true;
+	}
+
+	/*
+	 * Change accountstatus and lockdate when superuser alter user to lock/unlock
+	 */
+	if (account_is_lock >= 0)
+	{
+		if (account_is_lock == 0)
+		{
+			new_record[Anum_pg_authid_rolaccountstatus - 1] =
+				Int16GetDatum(ROLE_ACCOUNT_STATUS_OPEN);
+			new_record_repl[Anum_pg_authid_rolaccountstatus - 1] = true;
+
+			new_record[Anum_pg_authid_rolfailedlogins - 1] =
+				Int32GetDatum(0);
+			new_record_repl[Anum_pg_authid_rolfailedlogins - 1] = true;
+
+			new_record_nulls[Anum_pg_authid_rollockdate - 1] = true;
+			new_record_repl[Anum_pg_authid_rollockdate - 1] = true;
+		}
+		else
+		{
+			new_record[Anum_pg_authid_rolaccountstatus - 1] =
+				Int16GetDatum(ROLE_ACCOUNT_STATUS_LOCKED);
+			new_record_repl[Anum_pg_authid_rolaccountstatus - 1] = true;
+
+			new_record[Anum_pg_authid_rollockdate - 1] = Int64GetDatum(now);
+			new_record_repl[Anum_pg_authid_rollockdate - 1] = true;
+		}
+	}
+
 	/* password */
 	if (password)
 	{
 		char	   *shadow_pass;
 		char	   *logdetail;
+		Datum	   datum;
+		bool	   isnull;
+		bool	   setat_isnull;
+		TimestampTz	password_set_at = 0;
+		int32		profile_reuse_max = 0;
+		SysScanDesc	password_history_scan;
+		HeapTuple	profiletuple;
+
+		pg_profile_rel = table_open(ProfileRelationId, AccessShareLock);
+		pg_profile_dsc = RelationGetDescr(pg_profile_rel);
+
+		datum = SysCacheGetAttr(AUTHNAME, tuple,
+							Anum_pg_authid_rolprofile, &isnull);
+		Assert(!isnull);
+
+		profileid = DatumGetObjectId(datum);
+		profiletuple = SearchSysCache1(PROFILEID, ObjectIdGetDatum(profileid));
+		if (!HeapTupleIsValid(profiletuple))
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("profile \"%d\" does not exist", profileid)));
+
+		/* Get PASSWORD_REUSE_MAX from profile tuple and transform it to normal value */
+		profileform = (Form_pg_profile) GETSTRUCT(profiletuple);
+		profile_reuse_max = tranformProfileValueToNormal(profileform->prfpasswordreusemax,
+						   Anum_pg_profile_prfpasswordreusemax);
+
+		ReleaseSysCache(profiletuple);
+
+		if (profile_reuse_max == 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PASSWORD),
+					 errmsg("can't alter user password for profile's password_reuse_max is zero.")));
+
+		/*
+		 * Get shadow password from pg_authid
+		 */
+		datum = SysCacheGetAttr(AUTHNAME, tuple,
+							Anum_pg_authid_rolpassword, &isnull);
 
 		/* Like in CREATE USER, don't allow an empty password. */
 		if (password[0] == '\0' ||
@@ -1193,7 +1507,107 @@ AlterRole(AlterRoleStmt *stmt)
 			new_record[Anum_pg_authid_rolpassword - 1] =
 				CStringGetTextDatum(shadow_pass);
 		}
+
+		/*
+		 * Disallow to use recently passwords which controlled by
+		 * profile's PASSWORD_REUSE_MAX.
+		 */
+		if (!isnull)
+		{
+			Relation	pg_password_history_rel;
+			Relation	pg_password_history_passwordsetat_idx;
+			TupleDesc	pg_password_history_dsc;
+			char		*history_shadow_pass = NULL;
+			Datum		password_history_record[Natts_pg_password_history];
+			bool		password_nulls[Natts_pg_password_history];
+			TimestampTz	history_password_set_at = 0;
+			HeapTuple	password_history_tuple;
+			ScanKeyData	skey;
+			int		i;
+
+			pg_password_history_rel = table_open(PasswordHistoryRelationId, RowExclusiveLock);
+			pg_password_history_passwordsetat_idx = index_open(PasswordHistoryRolePasswordsetatIndexId, RowExclusiveLock);
+			pg_password_history_dsc = RelationGetDescr(pg_password_history_rel);
+
+			MemSet(password_history_record, 0, sizeof(password_history_record));
+			MemSet(password_nulls, false, sizeof(password_nulls));
+
+			history_shadow_pass = TextDatumGetCString(datum);
+
+			datum = SysCacheGetAttr(AUTHNAME, tuple,
+							Anum_pg_authid_rolpasswordsetat, &setat_isnull);
+			Assert(!setat_isnull);
+			history_password_set_at = DatumGetInt64(datum);
+
+			/*
+			 * When current password is not null in pg_authid, we need to record
+			 * it into pg_password_history table every time.
+			 */
+			password_history_record[Anum_pg_password_history_passhistroleid - 1] =
+				ObjectIdGetDatum(roleid);
+			password_history_record[Anum_pg_password_history_passhistpasswordsetat - 1] =
+				Int64GetDatum(history_password_set_at);
+			password_history_record[Anum_pg_password_history_passhistpassword - 1] =
+				CStringGetTextDatum(history_shadow_pass);
+
+			/* Form the insert tuple */
+			password_history_tuple = heap_form_tuple(pg_password_history_dsc,
+								 	password_history_record, password_nulls);
+
+			 /* Insert new record into the pg_password_history table */
+			CatalogTupleInsert(pg_password_history_rel, password_history_tuple);
+
+			/* Advance command counter so we can see new record */
+			CommandCounterIncrement();
+
+			/* form a scan key */
+			ScanKeyInit(&skey,
+				    Anum_pg_password_history_passhistroleid,
+				    BTEqualStrategyNumber, F_OIDEQ,
+				    ObjectIdGetDatum(roleid));
+
+			/*
+			 * Get only recently PASSWORD_REUSE_MAX tuples.
+			 */
+			password_history_scan = systable_beginscan_ordered(pg_password_history_rel,
+									   pg_password_history_passwordsetat_idx,
+									   NULL, 1, &skey);
+			for (i = 0; i < profile_reuse_max; i++)
+			{
+				password_history_tuple = systable_getnext_ordered(password_history_scan, BackwardScanDirection);
+
+				if (!HeapTupleIsValid(password_history_tuple))
+					break;
+
+				datum = heap_getattr(password_history_tuple, Anum_pg_password_history_passhistpassword,
+						     pg_password_history_dsc, &isnull);
+				Assert(!isnull);
+				history_shadow_pass = text_to_cstring(DatumGetTextP(datum));
+
+				/*
+				 * Use password verify function to check whether password
+				 * has been recorded in pg_password_history.
+				 */
+				if (plain_crypt_verify(rolename, history_shadow_pass, password, &logdetail) == STATUS_OK)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_PASSWORD),
+							 errmsg("The new password should not be the same with latest %d history password",
+							       profile_reuse_max)));
+			}
+
+			systable_endscan_ordered(password_history_scan);
+
+			index_close(pg_password_history_passwordsetat_idx, NoLock);
+			table_close(pg_password_history_rel, NoLock);
+		}
+
+		password_set_at = now;
+		new_record[Anum_pg_authid_rolpasswordsetat - 1] =
+			Int64GetDatum(password_set_at);
+		new_record_repl[Anum_pg_authid_rolpasswordsetat - 1] = true;
 		new_record_repl[Anum_pg_authid_rolpassword - 1] = true;
+
+		table_close(pg_profile_rel, NoLock);
 	}
 
 	/* unset password */
@@ -1207,6 +1621,32 @@ AlterRole(AlterRoleStmt *stmt)
 	new_record[Anum_pg_authid_rolvaliduntil - 1] = validUntil_datum;
 	new_record_nulls[Anum_pg_authid_rolvaliduntil - 1] = validUntil_null;
 	new_record_repl[Anum_pg_authid_rolvaliduntil - 1] = true;
+
+	/* profile name */
+	if (profilename)
+	{
+		/* Scan the pg_profile relation to be certain the profile exists. */
+		pg_profile_rel = table_open(ProfileRelationId, RowExclusiveLock);
+		pg_profile_dsc = RelationGetDescr(pg_profile_rel);
+
+		profile_tuple = SearchSysCache1(PROFILENAME, CStringGetDatum(profilename));
+		if (!HeapTupleIsValid(profile_tuple))
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("profile \"%s\" does not exist", profilename)));
+
+		profileform = (Form_pg_profile) GETSTRUCT(profile_tuple);
+		profileid = profileform->oid;
+
+		new_record[Anum_pg_authid_rolprofile - 1] = PointerGetDatum(profileid);
+		new_record_repl[Anum_pg_authid_rolprofile - 1] = true;
+
+		ReleaseSysCache(profile_tuple);
+		table_close(pg_profile_rel, NoLock);
+
+		/* set up dependencies for the new role */
+		changeProfileDependency(roleid, profileid);
+	}
 
 	/* Set the CREATE EXTERNAL TABLE permissions for this role, if specified in ALTER */
 	if (exttabcreate || exttabnocreate)
@@ -1514,7 +1954,8 @@ void
 DropRole(DropRoleStmt *stmt)
 {
 	Relation	pg_authid_rel,
-				pg_auth_members_rel;
+				pg_auth_members_rel,
+				pg_password_history_rel;
 	ListCell   *item;
 
 	if (!have_createrole_privilege())
@@ -1528,6 +1969,7 @@ DropRole(DropRoleStmt *stmt)
 	 */
 	pg_authid_rel = table_open(AuthIdRelationId, RowExclusiveLock);
 	pg_auth_members_rel = table_open(AuthMemRelationId, RowExclusiveLock);
+	pg_password_history_rel = table_open(PasswordHistoryRelationId, RowExclusiveLock);
 
 	foreach(item, stmt->roles)
 	{
@@ -1656,6 +2098,29 @@ DropRole(DropRoleStmt *stmt)
 		systable_endscan(sscan);
 
 		/*
+		 * Remove all role history passwords from pg_password_history.
+		 */
+		ScanKeyInit(&scankey,
+			    Anum_pg_password_history_passhistroleid,
+			    BTEqualStrategyNumber, F_OIDEQ,
+			    ObjectIdGetDatum(roleid));
+
+		sscan = systable_beginscan(pg_password_history_rel, PasswordHistoryRolePasswordIndexId,
+					   true, NULL, 1, &scankey);
+
+		while (HeapTupleIsValid(tmp_tuple = systable_getnext(sscan)))
+		{
+			CatalogTupleDelete(pg_password_history_rel, &tmp_tuple->t_self);
+		}
+
+		systable_endscan(sscan);
+
+		/*
+		 * Delete shared dependency references related to this role object.
+		 */
+		deleteSharedDependencyRecordsFor(AuthIdRelationId, roleid, 0);
+
+		/*
 		 * Remove any time constraints on this role.
 		 */
 		DelRoleDenials(role, roleid, NIL);
@@ -1690,6 +2155,7 @@ DropRole(DropRoleStmt *stmt)
 	/*
 	 * Now we can clean up; but keep locks until commit.
 	 */
+	table_close(pg_password_history_rel, NoLock);
 	table_close(pg_auth_members_rel, NoLock);
 	table_close(pg_authid_rel, NoLock);
 

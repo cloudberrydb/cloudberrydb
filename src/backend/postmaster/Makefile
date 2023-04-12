@@ -25,7 +25,8 @@ OBJS = \
 	postmaster.o \
 	startup.o \
 	syslogger.o \
-	walwriter.o
+	walwriter.o \
+	loginmonitor.o
 
 OBJS += backoff.o autostats.o
 

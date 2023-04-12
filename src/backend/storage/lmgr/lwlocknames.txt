@@ -71,3 +71,5 @@ DistributedLogControlLock			61
 CdbConfigCacheLock				    62
 KmgrFileLock					    63
 GpParallelDSMHashLock               64
+LoginFailedControlLock				65
+LoginFailedSharedMemoryLock			66

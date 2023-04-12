@@ -1,0 +1,78 @@
+/*-------------------------------------------------------------------------
+ *
+ * pg_profile.h
+ *	  definition of the "profile" system catalog (pg_profile)
+ *
+ *
+ * Copyright (c) 2023, Cloudberry Database, HashData Technology Limited.
+ *
+ * src/include/catalog/pg_profile.h
+ *
+ * NOTES
+ *	  The Catalog.pm module reads this file and derives schema
+ *	  information.
+ *
+ *-------------------------------------------------------------------------
+ */
+#ifndef PG_PROFILE_H
+#define PG_PROFILE_H
+
+#include "catalog/genbki.h"
+#include "catalog/pg_profile_d.h"
+#include "parser/parse_node.h"
+
+/* ----------------
+ *		pg_profile definition.  cpp turns this into
+ *		typedef struct FormData_pg_profile
+ * ----------------
+ */
+CATALOG(pg_profile,10135,ProfileRelationId) BKI_SHARED_RELATION BKI_ROWTYPE_OID(10136,ProfileRelation_Rowtype_Id) BKI_SCHEMA_MACRO
+{
+	Oid		oid BKI_FORCE_NOT_NULL;		/* oid */
+	NameData	prfname BKI_FORCE_NOT_NULL;	/* name of profile */
+	int32		prffailedloginattempts BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the number of failed login attempts */
+	int32		prfpasswordlocktime BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the locking period */
+	int32		prfpasswordlifetime BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the number of days that the current password is valid and usable */
+	int32		prfpasswordgracetime BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the number of days an old password can still be used */
+	int32		prfpasswordreusetime BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the number of days a user must wait before reusing a password */
+	int32		prfpasswordreusemax BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* the number of password changes that must occur before a password can be reused */
+	int32		prfpasswordallowhashed BKI_DEFAULT(-1) BKI_FORCE_NOT_NULL;	/* whether an hash encrypted password is allowed to be used or not */
+	Oid		prfpasswordverifyfuncdb BKI_FORCE_NULL;	/* verify function for database when login */
+	Oid		prfpasswordverifyfunc BKI_FORCE_NULL;	/* verify function when login */
+} FormData_pg_profile;
+
+/* ----------------
+ *		Form_pg_profile corresponds to a pointer to a tuple with
+ *		the format of pg_profile relation.
+ * ----------------
+ */
+typedef FormData_pg_profile *Form_pg_profile;
+
+DECLARE_UNIQUE_INDEX(profile_name_index, 10137, on pg_profile using btree(prfname name_ops));
+#define ProfilePrfnameIndexId	10137
+DECLARE_UNIQUE_INDEX(profile_oid_index, 10138, on pg_profile using btree(oid oid_ops));
+#define ProfileOidIndexId	10138
+DECLARE_INDEX(profile_password_verify_function_index, 10139, on pg_profile using btree(prfpasswordverifyfuncdb oid_ops, prfpasswordverifyfunc oid_ops));
+#define ProfileVerifyFunctionIndexId	10139
+
+#define DefaultProfileOID	10140
+
+#define PROFILE_UNLIMITED	-2
+#define PROFILE_DEFAULT		-1
+#define PROFILE_MAX_VALID	9999
+
+extern char *
+ProfileGetNameByOid(Oid profileOid, bool noerr);
+extern Oid
+get_profile_oid(const char *prfname, bool missing_ok);
+extern ObjectAddress
+rename_profile(char *oldname, char *newname);
+extern Oid
+CreateProfile(ParseState *pstate, CreateProfileStmt *stmt);
+extern Oid
+AlterProfile(AlterProfileStmt *stmt);
+extern void
+DropProfile(DropProfileStmt *stmt);
+extern int32
+tranformProfileValueToNormal(int32 profile_val, int attoff);
+#endif							/* PG_PROFILE_H */

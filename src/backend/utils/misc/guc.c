@@ -46,6 +46,7 @@
 #include "access/xlog_internal.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_profile.h"
 #include "catalog/storage.h"
 #include "commands/async.h"
 #include "commands/prepare.h"
@@ -74,6 +75,7 @@
 #include "postmaster/bgworker_internals.h"
 #include "postmaster/bgwriter.h"
 #include "postmaster/fts.h"
+#include "postmaster/loginmonitor.h"
 #include "postmaster/postmaster.h"
 #include "postmaster/syslogger.h"
 #include "postmaster/walwriter.h"
@@ -1271,6 +1273,16 @@ static struct config_bool ConfigureNamesBool[] =
 			NULL
 		},
 		&SSLPreferServerCiphers,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"enable_password_profile", PGC_POSTMASTER, CONN_AUTH_SETTINGS,
+		 gettext_noop("Use profile for password authentication security."),
+		 NULL
+		},
+		&enable_password_profile,
 		true,
 		NULL, NULL, NULL
 	},
@@ -12457,7 +12469,7 @@ show_tcp_user_timeout(void)
 static bool
 check_maxconnections(int *newval, void **extra, GucSource source)
 {
-	if (*newval + autovacuum_max_workers + 1 +
+	if (*newval + autovacuum_max_workers + 1 + login_monitor_max_processes /* Login Monitor */ +
 		max_worker_processes + max_wal_senders > MAX_BACKENDS)
 		return false;
 	return true;
@@ -12475,7 +12487,7 @@ check_autovacuum_max_workers(int *newval, void **extra, GucSource source)
 static bool
 check_max_wal_senders(int *newval, void **extra, GucSource source)
 {
-	if (MaxConnections + autovacuum_max_workers + 1 +
+	if (MaxConnections + autovacuum_max_workers + 1 + login_monitor_max_processes /* Login Monitor */ +
 		max_worker_processes + *newval > MAX_BACKENDS)
 		return false;
 	return true;
@@ -12507,7 +12519,7 @@ check_autovacuum_work_mem(int *newval, void **extra, GucSource source)
 static bool
 check_max_worker_processes(int *newval, void **extra, GucSource source)
 {
-	if (MaxConnections + autovacuum_max_workers + 1 +
+	if (MaxConnections + autovacuum_max_workers + 1 + login_monitor_max_processes /* Login Monitor */ +
 		*newval + max_wal_senders > MAX_BACKENDS)
 		return false;
 

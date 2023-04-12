@@ -1568,6 +1568,12 @@ def checkTableInconsistentEntry(cat):
     if catname == "pg_authid":
         columns.remove("rolpassword")
         castcols.remove("rolpassword")
+        columns.remove("rolpasswordsetat")
+        castcols.remove("rolpasswordsetat")
+        columns.remove("rollockdate")
+        castcols.remove("rollockdate")
+        columns.remove("rolpasswordexpire")
+        castcols.remove("rolpasswordexpire")
 
     if cat.tableHasConsistentOids():
         qry = inconsistentEntryQuery(GV.max_content, catname, ['oid'], columns, castcols)
@@ -2277,6 +2283,7 @@ TableMainColumn['pg_proc_callback'] = ['profnoid', 'pg_proc']
 TableMainColumn['pg_statistic_ext_data'] = ['stxoid', 'pg_statistic_ext']
 TableMainColumn['pg_type_encoding'] = ['typid', 'pg_type']
 TableMainColumn['pg_window'] = ['winfnoid', 'pg_proc']
+TableMainColumn['pg_password_history'] = ['passhistroleid', 'pg_authid']
 
 # Table with OID (special case), these OIDs are known to be inconsistent
 TableMainColumn['pg_attrdef'] = ['adrelid', 'pg_class']
@@ -2915,7 +2922,7 @@ class GPObject:
 
         # Report missing issues
         if len(self.missingIssues):
-            omitlist = ['pg_attribute', 'pg_attribute_encoding', 'pg_type', 'pg_appendonly', 'pg_index']
+            omitlist = ['pg_attribute', 'pg_attribute_encoding', 'pg_type', 'pg_appendonly', 'pg_index', 'pg_password_history']
             if 'pg_class' in self.missingIssues:
                 myprint('    Name of test which found this issue: missing_extraneous_pg_class')
                 for name in omitlist:

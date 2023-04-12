@@ -22,6 +22,8 @@ DECLARE_INDEX(pg_authid_rolresqueue_index, 6029, on pg_authid using btree(rolres
 #define AuthIdRolResQueueIndexId	6029
 DECLARE_INDEX(pg_authid_rolresgroup_index, 6440, on pg_authid using btree(rolresgroup oid_ops));
 #define AuthIdRolResGroupIndexId	6440
+DECLARE_INDEX(pg_authid_rolprofile_index, 6441, on pg_authid using btree(rolprofile oid_ops));
+#define AuthIdRolProfileIndexId		6441
 DECLARE_INDEX(pg_auth_time_constraint_authid_index, 6449, on pg_auth_time_constraint using btree(authid oid_ops));
 #define AuthTimeConstraintAuthIdIndexId	6449
 
