@@ -6887,7 +6887,6 @@ void
 heap_freeze_tuple_wal_logged(Relation rel, HeapTuple tup)
 {
 	xl_heap_freeze_tuple 	frozen = {0};
-	XLogRecPtr      	recptr;
 	Buffer 			buffer;
 	Page 			page;
 	HeapTupleHeader		htup;
@@ -6921,9 +6920,14 @@ heap_freeze_tuple_wal_logged(Relation rel, HeapTuple tup)
 	heap_execute_freeze_tuple(htup, &frozen);
 
 	/* WAL logging */
-	recptr = log_heap_freeze(rel, buffer, InvalidTransactionId /* cutoff_xid */,
-								&frozen, 1 /*ntuples*/);
-	PageSetLSN(page, recptr);
+	if (RelationNeedsWAL(rel))
+	{
+		XLogRecPtr      	recptr;
+
+		recptr = log_heap_freeze(rel, buffer, InvalidTransactionId /* cutoff_xid */,
+									&frozen, 1 /*ntuples*/);
+		PageSetLSN(page, recptr);
+	}
 
 	END_CRIT_SECTION();
 
