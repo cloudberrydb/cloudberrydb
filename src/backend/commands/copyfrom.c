@@ -1093,6 +1093,8 @@ CopyFrom(CopyFromState cstate)
 		appendonly_dml_init(resultRelInfo->ri_RelationDesc, CMD_INSERT);
 	else if (RelationIsAoCols(resultRelInfo->ri_RelationDesc))
 		aoco_dml_init(resultRelInfo->ri_RelationDesc, CMD_INSERT);
+	else if (ext_dml_init_hook)
+		ext_dml_init_hook(resultRelInfo->ri_RelationDesc, CMD_INSERT);
 
 	for (;;)
 	{
@@ -1533,6 +1535,8 @@ CopyFrom(CopyFromState cstate)
 		appendonly_dml_finish(resultRelInfo->ri_RelationDesc, CMD_INSERT);
 	else if (RelationIsAoCols(resultRelInfo->ri_RelationDesc))
 		aoco_dml_finish(resultRelInfo->ri_RelationDesc, CMD_INSERT);
+	else if (ext_dml_finish_hook)
+		ext_dml_finish_hook(resultRelInfo->ri_RelationDesc, CMD_INSERT);
 
 	MemoryContextSwitchTo(oldcontext);
 

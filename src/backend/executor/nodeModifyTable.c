@@ -63,6 +63,8 @@
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
 
+ext_dml_func_hook_type ext_dml_init_hook   = NULL;
+ext_dml_func_hook_type ext_dml_finish_hook = NULL;
 
 typedef struct MTTargetRelLookup
 {
@@ -3069,6 +3071,8 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 			appendonly_dml_init(resultRelInfo->ri_RelationDesc, operation);
 		else if (RelationIsAoCols(resultRelInfo->ri_RelationDesc))
 			aoco_dml_init(resultRelInfo->ri_RelationDesc, operation);
+		else if (ext_dml_init_hook)
+			ext_dml_init_hook(resultRelInfo->ri_RelationDesc, operation);
 
 		resultRelInfo++;
 		i++;
@@ -3527,6 +3531,8 @@ ExecEndModifyTable(ModifyTableState *node)
 								  node->operation);
 		else if (RelationIsAoCols(resultRelInfo->ri_RelationDesc))
 			aoco_dml_finish(resultRelInfo->ri_RelationDesc, node->operation);
+		else if (ext_dml_finish_hook)
+			ext_dml_finish_hook(resultRelInfo->ri_RelationDesc, node->operation);
 
 		/*
 		 * Cleanup the initialized batch slots. This only matters for FDWs
