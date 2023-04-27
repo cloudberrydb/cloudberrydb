@@ -503,3 +503,89 @@ SELECT relpages, reltuples FROM pg_class WHERE relname = 'ana_c2';
 SELECT * FROM pg_stats WHERE tablename = 'ana_parent';
 SELECT * FROM pg_stats WHERE tablename = 'ana_c1';
 SELECT * FROM pg_stats WHERE tablename = 'ana_c2';
+
+-- test correlation of the table
+-- test1: there is no data
+drop table analyze_test;
+create table analyze_test(tc1 int,tc2 int);
+analyze analyze_test;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_test';
+
+-- test2: there is only 1 tuple in the table
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int);
+insert into analyze_table values(1,1);
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+-- test3: there are 2 tuples in the table but on different segemnts
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int);
+insert into analyze_table values(1,1);
+insert into analyze_table values(2,0);
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+-- test4: some columns have no value
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int);
+insert into analyze_table(tc2) values(1);
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int);
+insert into analyze_table(tc2) values(1);
+insert into analyze_table values(2,0);
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+-- test5: some columns are dropped for a table
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int,tc3 int);
+insert into analyze_table values(1,1,1);
+alter table analyze_table drop column tc2;
+insert into analyze_table(tc1) values(1);
+insert into analyze_table values(2,0);
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+-- test6: randomly table
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int) distributed randomly;
+insert into analyze_table select i,i from generate_series(1,100) i;
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+alter table analyze_table drop column tc1;
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+
+-- test7: inherit table
+drop table analyze_parent cascade;
+create table analyze_parent (tc1 int,tc2 int);
+create table analyze_child(tc3 int,tc4 int)inherits (analyze_parent);
+insert into analyze_parent values(5,5);
+insert into analyze_child values (4,4,4,4);
+insert into analyze_parent select * from analyze_parent;
+analyze analyze_parent;
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_parent';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_child';
+
+-- test8: partition table test
+CREATE TABLE partition_table (
+    tc1 int,
+    tc2 int
+)
+PARTITION BY RANGE (tc2)
+(
+    start (1) end (100) every(20)
+);
+
+insert into partition_table select i,i from generate_series(1,99) i;
+analyze partition_table;
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_1';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_2';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_3';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_4';
+SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_5';

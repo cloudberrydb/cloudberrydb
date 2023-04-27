@@ -187,6 +187,7 @@ static int acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 										  double *totalrows, double *totaldeadrows);
 static BlockNumber acquire_index_number_of_blocks(Relation indexrel, Relation tablerel);
 
+static void gp_acquire_correlations_dispatcher(Oid relOid, bool inh, float4 *correlations, bool *correlationsIsNull);
 static int	compare_rows(const void *a, const void *b);
 static void update_attstats(Oid relid, bool inh,
 							int natts, VacAttrStats **vacattrstats);
@@ -820,6 +821,30 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 											"Analyze Column",
 											ALLOCSET_DEFAULT_SIZES);
 		old_context = MemoryContextSwitchTo(col_context);
+
+		/*
+		 * Get correlations from segments.
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH && GpPolicyIsPartitioned(onerel->rd_cdbpolicy))
+		{
+			/*
+			 * in gp_acquire_correlations_dispatcher we get correlations and correlationsIsNull
+			 * for all columns even if stats is requested for subset of columns.
+			 * It's more simpler to implement this way.
+			 */
+			float4 *correlations = (float4 *)palloc0(sizeof(float4) * onerel->rd_att->natts);
+			bool *correlationsIsNull = (bool *)palloc0(sizeof(bool) * onerel->rd_att->natts);
+			gp_acquire_correlations_dispatcher(onerel->rd_rel->oid, inh, correlations, correlationsIsNull);
+			for (i = 0; i < attr_cnt; i++)
+			{
+				VacAttrStats *stats = vacattrstats[i];
+				stats->partitiontbl_qd = true;
+				stats->corrnull = correlationsIsNull[stats->attr->attnum - 1];
+				stats->corrval = correlations[stats->attr->attnum - 1];
+			}
+			pfree(correlations);
+			pfree(correlationsIsNull);
+		}
 
 		for (i = 0; i < attr_cnt; i++)
 		{
@@ -1535,6 +1560,10 @@ examine_attribute(Relation onerel, int attnum, Node *index_expr, int elevel)
 										   PointerGetDatum(stats)));
 	else
 		ok = std_typanalyze(stats);
+
+	stats->corrnull = true;
+	stats->corrval = 0;
+	stats->partitiontbl_qd = false;
 
 	if (!ok || stats->compute_stats == NULL || stats->minrows <= 0)
 	{
@@ -4092,38 +4121,52 @@ compute_scalar_stats(VacAttrStatsP stats,
 		{
 			MemoryContext old_context;
 			float4	   *corrs;
-			double		corr_xsum,
-						corr_x2sum;
-
 			/* Must copy the target values into anl_context */
 			old_context = MemoryContextSwitchTo(stats->anl_context);
 			corrs = (float4 *) palloc(sizeof(float4));
 			MemoryContextSwitchTo(old_context);
+			if (stats->partitiontbl_qd )
+			{
+				if (!stats->corrnull)
+				{
+					corrs[0] = stats->corrval;
+					stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
+					stats->staop[slot_idx] = mystats->ltopr;
+					stats->stacoll[slot_idx] = stats->attrcollid;
+					stats->stanumbers[slot_idx] = corrs;
+					stats->numnumbers[slot_idx] = 1;
+					slot_idx++;
+				}
+			}
+			else /* this is on QE */
+			{
+				double		corr_xsum,
+							corr_x2sum;
 
-			/*----------
-			 * Since we know the x and y value sets are both
-			 *		0, 1, ..., values_cnt-1
-			 * we have sum(x) = sum(y) =
-			 *		(values_cnt-1)*values_cnt / 2
-			 * and sum(x^2) = sum(y^2) =
-			 *		(values_cnt-1)*values_cnt*(2*values_cnt-1) / 6.
-			 *----------
-			 */
-			corr_xsum = ((double) (values_cnt - 1)) *
-				((double) values_cnt) / 2.0;
-			corr_x2sum = ((double) (values_cnt - 1)) *
-				((double) values_cnt) * (double) (2 * values_cnt - 1) / 6.0;
+				/*----------
+				 * Since we know the x and y value sets are both
+				 *		0, 1, ..., values_cnt-1
+				 * we have sum(x) = sum(y) =
+				 *		(values_cnt-1)*values_cnt / 2
+				 * and sum(x^2) = sum(y^2) =
+				 *		(values_cnt-1)*values_cnt*(2*values_cnt-1) / 6.
+				 *----------
+				 */
+				corr_xsum = ((double) (values_cnt - 1)) *
+					((double) values_cnt) / 2.0;
+				corr_x2sum = ((double) (values_cnt - 1)) *
+					((double) values_cnt) * (double) (2 * values_cnt - 1) / 6.0;
+				/* And the correlation coefficient reduces to */
+				corrs[0] = (values_cnt * corr_xysum - corr_xsum * corr_xsum) /
+					(values_cnt * corr_x2sum - corr_xsum * corr_xsum);
 
-			/* And the correlation coefficient reduces to */
-			corrs[0] = (values_cnt * corr_xysum - corr_xsum * corr_xsum) /
-				(values_cnt * corr_x2sum - corr_xsum * corr_xsum);
-
-			stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
-			stats->staop[slot_idx] = mystats->ltopr;
-			stats->stacoll[slot_idx] = stats->attrcollid;
-			stats->stanumbers[slot_idx] = corrs;
-			stats->numnumbers[slot_idx] = 1;
-			slot_idx++;
+				stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
+				stats->staop[slot_idx] = mystats->ltopr;
+				stats->stacoll[slot_idx] = stats->attrcollid;
+				stats->stanumbers[slot_idx] = corrs;
+				stats->numnumbers[slot_idx] = 1;
+				slot_idx++;
+			}
 		}
 	}
 	else if (nonnull_cnt > 0)
@@ -4841,4 +4884,342 @@ analyze_mcv_list(int *mcv_counts,
 		}
 	}
 	return num_mcv;
+}
+
+/*
+ * calculate correlations use the weighted mean algorithm.
+ *
+ * the formula for calculating the weighted mean is:
+ * sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
+ * i is from 0 to N. N is the number of segments.
+ */
+static void
+calculate_correlation_use_weighted_mean(CdbPgResults *cdb_pgresults,
+												Relation onerel,
+												TupleDesc tupleDesc,
+												float4 *correlations,
+												bool *correlationsIsNull,
+												int live_natts)
+{
+	TupleDesc relDesc = RelationGetDescr(onerel);
+	int		attNum = relDesc->natts;
+	int		segmentNum = cdb_pgresults->numResults;
+
+	/*
+	 * totalRowsOnSeg, correlationOnSeg and correlationIsNullOnSeg are One-Dimensional arrays
+	 * to store infos of the following results.
+	 *
+	 *     |    seg0  |  seg1  |  seg2
+	 * --------------------------------
+	 * att0｜   0*3+0 |  0*3+1 |  0*3+2
+	 * att1｜   1*3+0 |  1*3+1 |  1*3+2
+	 * att2｜   2*3+0 |  2*3+1 |  2*3+2
+	 *
+	 * We can use attno * segmentNum + segno as index to access the
+	 * info of column attno on segment segno.
+	 * index from attno * segmentNum to attno * segmentNum + segmentNum -1 store infos
+	 * of column attno.
+	 */
+	int 	*totalRowsOnSeg = (int *)palloc0(sizeof(int) * segmentNum * attNum);
+	float4  *correlationOnSeg = (float4 *)palloc0(sizeof(float4) * segmentNum * attNum);
+	bool	*correlationIsNullOnSeg = (bool *)palloc0(sizeof(bool) * segmentNum * attNum);
+	int		*totalRows = (int *)palloc0(sizeof(int) * attNum);
+	char **funcRetValues = (char **) palloc0(tupleDesc->natts * sizeof(char *));
+	bool *funcRetNulls = (bool *) palloc(tupleDesc->natts * sizeof(bool));
+
+	for (int segno = 0; segno < segmentNum; segno++)
+	{
+		int			rows;
+		float4		correlationValue;
+		int			attno;
+		struct pg_result *pgresult = cdb_pgresults->pg_results[segno];
+		int			index;
+
+		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							PQresultStatus(pgresult))));
+		}
+		/*
+		 * gp_acquire_correlations returns a result for each alive columns.
+		 */
+		rows = PQntuples(pgresult);
+		if (rows != live_natts || PQnfields(pgresult) != 1)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							rows, PQnfields(pgresult))));
+		}
+		for (int j = 0; j < rows; j++)
+		{
+			char *rowStr = PQgetvalue(pgresult, j, 0);
+			if (rowStr == NULL)
+				elog(ERROR, "got NULL pointer from return value of gp_acquire_correlations");
+
+			parse_record_to_string(rowStr, tupleDesc, funcRetValues, funcRetNulls);
+
+			/* get the first column: attno, and it is not NULL */
+			attno = DatumGetInt32(DirectFunctionCall1(int4in,
+										CStringGetDatum(funcRetValues[0])));
+			index = attno * segmentNum + segno;
+			correlationIsNullOnSeg[index] = true;
+			/* get the second column: correlation, and it maybe NULl */
+			if (!funcRetNulls[1])
+			{
+				correlationValue = DatumGetFloat4(DirectFunctionCall1(float4in,
+										CStringGetDatum(funcRetValues[1])));
+				correlationsIsNull[attno] = false;
+
+				correlationOnSeg[index] = correlationValue;
+				correlationIsNullOnSeg[index] = false;
+			}
+			/* get the third column: totalrow on segment i, this is not NULL.
+			 * if correlation for this column is NULL, the totalrow is 0.
+			 */
+			totalRowsOnSeg[index] = DatumGetInt32(DirectFunctionCall1(int4in,
+								CStringGetDatum(funcRetValues[2])));
+			totalRows[attno] += totalRowsOnSeg[index];
+		}
+	}
+
+	/*
+	 * Calculate overall correlation from correlation on each segments
+	 * we use weighted average algorithm to calculate correlation to
+	 * better handle skewed data between segments.
+	 */
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+
+		if (relatt->attisdropped)
+			continue;
+		float4 weight;
+		for (int segno = 0; segno < segmentNum; segno++)
+		{
+			int index = attno * segmentNum + segno;
+			if (!correlationIsNullOnSeg[index])
+			{
+				weight = (float4)totalRowsOnSeg[index] / totalRows[attno];
+				correlations[attno] += correlationOnSeg[index] * weight;
+			}
+		}
+	}
+
+	pfree(totalRowsOnSeg);
+	pfree(correlationOnSeg);
+	pfree(correlationIsNullOnSeg);
+	pfree(totalRows);
+	for (int i = 0; i < tupleDesc->natts; i++)
+	{
+		if (funcRetValues[i])
+			pfree(funcRetValues[i]);
+	}
+	pfree(funcRetValues);
+	pfree(funcRetNulls);
+}
+
+/*
+ * calculate correlations use the mean algorithm.
+ *
+ * In some situations, we may not be able to obtain reltuples of a table,
+ * such as none-leaf part of partitioned table or the parent table of the
+ * inherited table. So we can not use the weighted mean algorithm.
+ *
+ * the formula for calculating the mean is:
+ * sum(correlationOnSeg) / count(corrNotNullSeg)
+ */
+static void
+calculate_correlation_use_mean(CdbPgResults *cdb_pgresults,
+										Relation onerel,
+										TupleDesc tupleDesc,
+										float4 *correlations,
+										bool *correlationsIsNull,
+										int live_natts)
+{
+	TupleDesc relDesc = RelationGetDescr(onerel);
+	int		attNum = relDesc->natts;
+	int		segmentNum = cdb_pgresults->numResults;
+	/*
+	 * corrNotNullSegNum[attno] stores the number of segments for which
+	 * the correlation of column attno is not null.
+	 */
+	int 	*corrNotNullSegNum = (int *)palloc0(sizeof(int) * attNum);
+	char **funcRetValues = (char **) palloc0(tupleDesc->natts * sizeof(char *));
+	bool *funcRetNulls = (bool *) palloc(tupleDesc->natts * sizeof(bool));
+
+	for (int segno = 0; segno < segmentNum; segno++)
+	{
+		int			ntuples;
+		float4		correlationValue;
+		int			attno;
+		struct pg_result *pgresult = cdb_pgresults->pg_results[segno];
+
+		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							PQresultStatus(pgresult))));
+		}
+		/*
+		 * gp_acquire_correlations returns a result for each alive columns.
+		 */
+		ntuples = PQntuples(pgresult);
+		if (ntuples != live_natts || PQnfields(pgresult) != 1)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							ntuples, PQnfields(pgresult))));
+		}
+		for (int j = 0; j < ntuples; j++)
+		{
+			char *rowStr = PQgetvalue(pgresult, j, 0);
+			if (rowStr == NULL)
+				elog(ERROR, "got NULL pointer from return value of gp_acquire_correlations");
+
+			parse_record_to_string(rowStr, tupleDesc, funcRetValues, funcRetNulls);
+			/* get the first column: attno, and it is not NULL */
+			attno = DatumGetInt32(DirectFunctionCall1(int4in,
+										CStringGetDatum(funcRetValues[0])));
+			/* get the second column: correlation, and it maybe NULl */
+			if (!funcRetNulls[1])
+			{
+				correlationValue = DatumGetFloat4(DirectFunctionCall1(float4in,
+										CStringGetDatum(funcRetValues[1])));
+				correlationsIsNull[attno] = false;
+				correlations[attno] += correlationValue;
+				corrNotNullSegNum[attno]++;
+			}
+		}
+	}
+
+	/*
+	 * Calculate overall correlation from correlation on each segments
+	 * we use the mean algorithm to calculate correlation.
+	 */
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+
+		if (relatt->attisdropped)
+			continue;
+		if (!correlationsIsNull[attno])
+		{
+			correlations[attno] = correlations[attno] / corrNotNullSegNum[attno];
+		}
+	}
+
+	pfree(corrNotNullSegNum);
+	for (int i = 0; i < tupleDesc->natts; i++)
+	{
+		if (funcRetValues[i])
+			pfree(funcRetValues[i]);
+	}
+	pfree(funcRetValues);
+	pfree(funcRetNulls);
+}
+
+/*
+ * We cannot use the same method as PostgreSQL does to calculate the
+ * correlation in QD. When we collect data from segments to QD, this
+ * will change the physical order of the data. such as in segment 1,
+ * the data is 1,3,5,7,9. And in segment 2, the data is 2,4,6,8,10.
+ * In each segment the data is ordered, and correlation is 1 in each segment.
+ * But after we collect the data to QD, it may be 1,3,5,2,4,7,9,6,8,10.
+ * And the correlation is 0.3 or something else and it is not stable.
+ * And this will increase the cost of index scan which is shouldn't be done.
+ *
+ * So get correlations from segments and summarize them.
+ */
+static void
+gp_acquire_correlations_dispatcher(Oid relOid, bool inh, float4 *correlations, bool *correlationsIsNull)
+{
+	CdbPgResults cdb_pgresults = {NULL, 0};
+	char       *sql;
+	Relation onerel;
+	int attNum;
+	int live_natts;
+	TupleDesc relDesc;
+	/*
+	 * For child table of inherited tables and leaf table of partitioned table,
+	 * We use the weighted mean average to calculate the correlation collected
+	 * from the segments.
+	 * the formula for calculating the weighted mean is:
+	 * sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
+	 * i is from 0 to N. N is the number of segments.
+	 *
+	 * However, since reltuples of none-leaf part of partitioned table and the
+	 * parent table of the inherited table is 0, we can only use the average
+	 * to calculate correlation.
+	 */
+	bool useWeightedMean = !inh;
+	sql = psprintf("select pg_catalog.gp_acquire_correlations(%d, '%s');", relOid, inh ? "t" : "f");
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+	onerel = table_open(relOid, AccessShareLock);
+	relDesc = RelationGetDescr(onerel);
+	attNum = relDesc->natts;
+
+	/* dispatch sql to segments  */
+	CdbDispatchCommand(sql, DF_WITH_SNAPSHOT, &cdb_pgresults);
+
+	/* Count the number of non-dropped cols */
+	live_natts = 0;
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+		correlationsIsNull[attno] = true;
+
+		if (relatt->attisdropped)
+			continue;
+		live_natts++;
+	}
+
+	/* construct tupleDesc for RECORD results of gp_acquire_correlations */
+	TupleDesc tupleDesc = CreateTemplateTupleDesc(3);
+	TupleDescInitEntry(tupleDesc,
+						1,
+						"attnum",
+						INT4OID,
+						-1,
+						0);
+	TupleDescInitEntry(tupleDesc,
+						2,
+						"correlation",
+						FLOAT4OID,
+						-1,
+						0);
+	TupleDescInitEntry(tupleDesc,
+						3,
+						"totalrows",
+						INT4OID,
+						-1,
+						0);
+
+	/* For RECORD results, make sure a typmod has been assigned */
+	Assert(tupleDesc->tdtypeid == RECORDOID && tupleDesc->tdtypmod < 0);
+	assign_record_type_typmod(tupleDesc);
+
+	/* calculate correlations by cdb_pgresults */
+	if (useWeightedMean)
+		calculate_correlation_use_weighted_mean(&cdb_pgresults,
+												onerel,
+												tupleDesc,
+												correlations,
+												correlationsIsNull,
+												live_natts);
+	else
+		calculate_correlation_use_mean(&cdb_pgresults,
+										onerel,
+										tupleDesc,
+										correlations,
+										correlationsIsNull,
+										live_natts);
+
+	cdbdisp_clearCdbPgResults(&cdb_pgresults);
+	table_close(onerel, AccessShareLock);
 }
