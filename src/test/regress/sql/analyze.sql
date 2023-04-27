@@ -599,13 +599,11 @@ insert into test_max_float8 values(1.7976931348623157e+308);
 analyze test_max_float8;
 drop table test_max_float8;
 reset extra_float_digits;
-
 -- test analyze when table has large column
 create table ttt_large_column(tc1 int,tc2 char(1500),tc3 char(1500));
 insert into ttt_large_column select i,repeat('wwweereeer',150),repeat('ssddbbbbbb',150) from generate_series(1,5) i;
 analyze ttt_large_column;
 drop table ttt_large_column;
-
 --test analyze replicated table
 create table analyze_replicated(tc1 int,tc2 int) distributed replicated;
 insert into analyze_replicated select i, i from generate_series(1,1000) i;
