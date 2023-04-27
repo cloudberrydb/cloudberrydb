@@ -328,22 +328,20 @@ analyze t1;
 set local force_parallel_mode = 1;
 set local enable_seqscan = off;
 explain(locus, costs off) select c2 from t1;
-                 QUERY PLAN                 
---------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 6:1  (slice1; segments: 6)
    Locus: Entry
-   ->  Parallel Bitmap Heap Scan on t1
+   ->  Parallel Index Only Scan using t1_c2_idx on t1
          Locus: HashedWorkers
          Parallel Workers: 2
-         ->  Bitmap Index Scan on t1_c2_idx
-               Locus: Hashed
  Optimizer: Postgres query optimizer
-(8 rows)
+(6 rows)
 
 -- results check
 explain(locus, costs off) select count(c2) from t1;
-                       QUERY PLAN                       
---------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Finalize Aggregate
    Locus: Entry
    ->  Gather Motion 6:1  (slice1; segments: 6)
@@ -351,13 +349,11 @@ explain(locus, costs off) select count(c2) from t1;
          ->  Partial Aggregate
                Locus: HashedWorkers
                Parallel Workers: 2
-               ->  Parallel Bitmap Heap Scan on t1
+               ->  Parallel Index Only Scan using t1_c2_idx on t1
                      Locus: HashedWorkers
                      Parallel Workers: 2
-                     ->  Bitmap Index Scan on t1_c2_idx
-                           Locus: Hashed
  Optimizer: Postgres query optimizer
-(13 rows)
+(11 rows)
 
 select count(c2) from t1;
   count   
@@ -367,20 +363,18 @@ select count(c2) from t1;
 
 set local enable_parallel = off;
 explain(locus, costs off) select count(c2) from t1;
-                       QUERY PLAN                       
---------------------------------------------------------
+                       QUERY PLAN                        
+---------------------------------------------------------
  Finalize Aggregate
    Locus: Entry
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Locus: Entry
          ->  Partial Aggregate
                Locus: Hashed
-               ->  Bitmap Heap Scan on t1
+               ->  Index Only Scan using t1_c2_idx on t1
                      Locus: Hashed
-                     ->  Bitmap Index Scan on t1_c2_idx
-                           Locus: Hashed
  Optimizer: Postgres query optimizer
-(11 rows)
+(9 rows)
 
 select count(c2) from t1;
   count   
