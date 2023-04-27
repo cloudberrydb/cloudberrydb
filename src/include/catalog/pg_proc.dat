@@ -11814,7 +11814,7 @@
 { oid => 6464, descr => 'get backends of overflowed subtransaction',
    proname => 'gp_get_suboverflowed_backends', provolatile => 'v', prorettype => '_int4', proargtypes => '', prosrc => 'gp_get_suboverflowed_backends' },
 
-{ oid => 6040, descr => 'get gp all segments pg_snapshot',
+{ oid => 6041, descr => 'get gp all segments pg_snapshot',
    proname => 'gp_current_snapshot', proisstrict => 'f',
    proretset => 't', provolatile => 'v', proparallel => 'r',
    prorettype => 'record', proargtypes => '',
@@ -11993,6 +11993,8 @@
 # Analyze related
 { oid => 6038, descr => 'Collect a random sample of rows from table',
    proname => 'gp_acquire_sample_rows', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => 'oid int4 bool', prosrc => 'gp_acquire_sample_rows', proexeclocation => 's' },
+{ oid => 6040, descr => 'Collect correlations from segments',
+   proname => 'gp_acquire_correlations', prorows => '10', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => 'oid bool', prosrc => 'gp_acquire_correlations', proexeclocation => 's' },
 
 # Backoff related
 { oid => 7016, descr => 'change weight of all the backends for a given session id',

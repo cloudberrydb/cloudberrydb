@@ -34,7 +34,7 @@ WHERE p1.prolang = 0 OR p1.prorettype = 0 OR
        proparallel NOT IN ('s', 'r', 'u');
  oid  |           proname            
 ------+------------------------------
- 6040 | gp_current_snapshot
+ 6041 | gp_current_snapshot
  7097 | gp_get_segment_configuration
 (2 rows)
 

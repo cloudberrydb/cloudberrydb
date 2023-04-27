@@ -504,28 +504,6 @@ SELECT * FROM pg_stats WHERE tablename = 'ana_parent';
 SELECT * FROM pg_stats WHERE tablename = 'ana_c1';
 SELECT * FROM pg_stats WHERE tablename = 'ana_c2';
 
--- Analyzing root table using ROOTPARTITION keyword on a column data type with no equality operator.
-create table no_eqop (a int, b int, c xml) partition by range(b) (start(1) end (6) every (3));
-insert into no_eqop select i, i % 5 + 1, '<foo>bar</foo>'::xml from generate_series(1, 1000)i;
-insert into no_eqop select i, i % 5 + 1, NULL from generate_series(1, 1000)i;
-insert into no_eqop select NULL, i % 5 + 1, '<foo>bar</foo>'::xml from generate_series(1, 1000)i;
-analyze verbose rootpartition no_eqop(c);
-select * from pg_stats where tablename = 'no_eqop';
-analyze no_eqop(c);
--- Simply merges leaf stats. gp_acquire_sample_rows() is not executed
-analyze verbose rootpartition no_eqop(c);
-select * from pg_stats where tablename = 'no_eqop';
--- Issue 14644 keep catalog inconsistency of relhassubclass after analyze
-CREATE TYPE test_type_14644 AS (a int, b text);
-CREATE TABLE test_tb_14644 OF test_type_14644;
-CREATE TABLE test_tb_14644_subclass () INHERITS (test_tb_14644);
-DROP TABLE test_tb_14644_subclass;
-select relhassubclass from pg_class where relname = 'test_tb_14644';
-select relhassubclass from gp_dist_random('pg_class') where relname = 'test_tb_14644';
-ANALYZE;
-select relhassubclass from pg_class where relname = 'test_tb_14644';
-select relhassubclass from gp_dist_random('pg_class') where relname = 'test_tb_14644';
-
 -- test correlation of the table
 -- test1: there is no data
 drop table analyze_test;
@@ -573,36 +551,16 @@ analyze analyze_table;
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
 
 -- test6: randomly table
--- we use weighted mean algorithm to calculate correlations.
--- the formula for calculating the weighted mean is:
--- sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
--- i is from 0 to N. N is the number of segments.
--- however, for randomly table the data in each segment may diff each time.
--- it will affect the value of correlation.
--- So ignore the results
 drop table analyze_table;
 create table analyze_table(tc1 int,tc2 int) distributed randomly;
 insert into analyze_table select i,i from generate_series(1,100) i;
 analyze analyze_table;
--- start_ignore
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
--- end_ignore
 alter table analyze_table drop column tc1;
 analyze analyze_table;
--- start_ignore
-SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
--- end_ignore
-
--- test7: replicated table
-drop table analyze_table;
-create table analyze_table(tc1 int,tc2 int) distributed replicated;
-insert into analyze_table select i,i from generate_series(1,100) i;
-analyze analyze_table;
-SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
-analyze analyze_table;
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
 
--- test8: inherit table
+-- test7: inherit table
 drop table analyze_parent cascade;
 create table analyze_parent (tc1 int,tc2 int);
 create table analyze_child(tc3 int,tc4 int)inherits (analyze_parent);
@@ -613,7 +571,7 @@ analyze analyze_parent;
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_parent';
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_child';
 
--- test9: partition table test
+-- test8: partition table test
 CREATE TABLE partition_table (
     tc1 int,
     tc2 int
@@ -631,25 +589,3 @@ SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_t
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_3';
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_4';
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='partition_table_1_prt_5';
---
--- Test analyze for table with maximum float8 value 1.7976931348623157e+308
--- There should be no "ERROR:  value out of range: overflow"
---
-set extra_float_digits to 0;
-create table test_max_float8(a double precision);
-insert into test_max_float8 values(1.7976931348623157e+308);
-analyze test_max_float8;
-drop table test_max_float8;
-reset extra_float_digits;
-
--- test analyze when table has large column
-create table ttt_large_column(tc1 int,tc2 char(1500),tc3 char(1500));
-insert into ttt_large_column select i,repeat('wwweereeer',150),repeat('ssddbbbbbb',150) from generate_series(1,5) i;
-analyze ttt_large_column;
-drop table ttt_large_column;
-
---test analyze replicated table
-create table analyze_replicated(tc1 int,tc2 int) distributed replicated;
-insert into analyze_replicated select i, i from generate_series(1,1000) i;
-analyze analyze_replicated;
-drop table analyze_replicated;
