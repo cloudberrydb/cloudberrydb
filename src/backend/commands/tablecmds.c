@@ -120,6 +120,7 @@
 #include "utils/metrics_utils.h"
 #include "utils/partcache.h"
 #include "utils/relcache.h"
+#include "utils/resgroup.h"
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -18292,6 +18293,11 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, 
 		queryDesc->ddesc = makeNode(QueryDispatchDesc);
 		queryDesc->ddesc->useChangedAOOpts = false;
 
+		if (ShouldUnassignResGroup())
+		{
+			bool inFunction = already_under_executor_run() || utility_nested();
+			ShouldBypassQuery(queryDesc->plannedstmt, inFunction);
+		}
 		queryDesc->plannedstmt->query_mem =
 				ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
@@ -18824,6 +18830,11 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			if (query_info_collect_hook)
 				(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
+			if (ShouldUnassignResGroup())
+			{
+				bool inFunction = already_under_executor_run() || utility_nested();
+				ShouldBypassQuery(queryDesc->plannedstmt, inFunction);
+			}
 			queryDesc->plannedstmt->query_mem =
 				ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 

@@ -70,6 +70,7 @@ typedef struct ResGroupCaps
 	ResGroupCap		cpuHardQuotaLimit;
 	ResGroupCap		cpuSoftPriority;
 	ResGroupCap		memory_limit;
+	volatile ResGroupCap	min_cost;
 	char			cpuset[MaxCpuSetLength];
 } ResGroupCaps;
 
