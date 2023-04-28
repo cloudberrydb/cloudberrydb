@@ -1,8 +1,8 @@
 -- test memory limit
 -- start_ignore
+DROP TABLE IF EXISTS t_memory_limit;
 DROP ROLE IF EXISTS role_memory_test;
 DROP RESOURCE GROUP rg_memory_test;
-DROP TABLE t_memory_limit;
 -- end_ignore
 
 -- create a pl function to show the memory used by a process
@@ -47,6 +47,10 @@ CREATE ROLE role_memory_test RESOURCE GROUP rg_memory_test;
 -- set gp_resgroup_memory_query_fixed_mem to 200MB
 1: SET gp_resgroup_memory_query_fixed_mem to 204800;
 1: SELECT func_memory_test('SELECT * FROM t_memory_limit');
+
+-- pure-catalog query will be unassigned and bypassed and use statement_mem as query mem.
+1: EXPLAIN ANALYZE SELECT * FROM pg_class WHERE relname = 't_memory_limit';
+
 1: RESET ROLE;
 -- clean
 DROP FUNCTION func_memory_test(text);
