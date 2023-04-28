@@ -21,7 +21,9 @@
 #include "libpq-fe.h"
 #include "access/genam.h"
 #include "access/table.h"
+#include "access/xact.h"
 #include "tcop/tcopprot.h"
+#include "catalog/catalog.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_resgroup.h"
 #include "catalog/pg_resgroupcapability.h"
@@ -3362,6 +3364,89 @@ ResGroupGetGroupIdBySessionId(int sessionId)
 	LWLockRelease(SessionStateLock);
 
 	return groupId;
+}
+
+/*
+ * traverse the flattened rangetable entries.
+ * It's hard to see whether the query contains UDF, traverse the whole plan
+ * is expensive, so it will be ignored even if there can have non-catalog
+ * query inside the UDF.
+ */
+static bool
+PurecatalogQuery(PlannedStmt* stmt)
+{
+	ListCell *rtable;
+
+	if (stmt->numSlices != 1)
+		return false;
+
+	foreach(rtable, stmt->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *)lfirst(rtable);
+
+		if (rte->rtekind != RTE_RELATION)
+			continue;
+		else
+		{
+			if (rte->relkind == RELKIND_MATVIEW)
+				return false;
+			else if (rte->relkind == RELKIND_VIEW)
+				continue;
+			else
+			{
+				if(!IsCatalogRelationOid(rte->relid))
+					return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+/*
+ * To decide whether we should bypass the query. If it's a pure-catalog query,
+ * unassign the query from resource group and bypass the query.
+ */
+void
+ShouldBypassQuery(PlannedStmt* stmt, bool inFunc)
+{
+	if (Gp_role != GP_ROLE_DISPATCH || bypassedGroup)
+		return;
+
+	/*
+	 * Don't need to consider the sql commands inside the UDF, they will also
+	 * be bypassed or use the same resgroup as the outer query.
+	 */
+	if (!IsInTransactionBlock(!inFunc))
+	{
+		List *rte_list = stmt->rtable;
+		bool haveRtable = true;
+		if (list_length(rte_list) == 1 && (lfirst_node(RangeTblEntry, rte_list->head)->rtekind == RTE_RESULT))
+			haveRtable = false;
+
+		/*
+		 * For some special case, like 'select UDF', don't bypass the query.
+		 *
+		 * when gp_resource_group_bypass_catalog_query is on, pure-catalog queries
+		 * will be unassigned from the resource group.
+		 */
+		if (haveRtable && PurecatalogQuery(stmt))
+		{
+			ResGroupInfo		groupInfo;
+
+			UnassignResGroup(true);
+			do {
+				decideResGroup(&groupInfo);
+			} while (!groupIncBypassedRef(&groupInfo));
+			bypassedGroup = groupInfo.group;
+			bypassedGroup->totalExecuted++;
+			pgstat_report_resgroup(bypassedGroup->groupId);
+			bypassedSlot.group = groupInfo.group;
+			bypassedSlot.groupId = groupInfo.groupId;
+			cgroupOpsRoutine->attachcgroup(bypassedGroup->groupId, MyProcPid,
+									   bypassedGroup->caps.cpuHardQuotaLimit == CPU_HARD_QUOTA_LIMIT_DISABLED);
+		}
+	}
 }
 
 /*
