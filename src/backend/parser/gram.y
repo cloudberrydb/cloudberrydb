@@ -791,7 +791,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOCUS LOGGED
 
 	MAPPING MATCH MATERIALIZED MAXVALUE MEMORY_LIMIT
-	METHOD MINUTE_P MINVALUE MODE MONTH_P MOVE
+	METHOD MINUTE_P MINVALUE MIN_COST MODE MONTH_P MOVE
 
 	NAME_P NAMES NATIONAL NATURAL NCHAR NEW NEXT NFC NFD NFKC NFKD NO NONE
 	NORMALIZE NORMALIZED
@@ -1098,6 +1098,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc MATCH
 			%nonassoc MAXVALUE
 			%nonassoc MEMORY_LIMIT
+			%nonassoc MIN_COST
 			%nonassoc MINUTE_P
 			%nonassoc MINVALUE
 			%nonassoc MISSING
@@ -1752,6 +1753,10 @@ OptResourceGroupElem:
 			| MEMORY_LIMIT SignedIconst
 				{
 					$$ = makeDefElem("memory_limit", (Node *) makeInteger($2), @1);
+				}
+			| MIN_COST SignedIconst
+				{
+					$$ = makeDefElem("min_cost", (Node *) makeInteger($2), @1);
 				}
 		;
 
@@ -19457,6 +19462,7 @@ unreserved_keyword:
 			| METHOD
 			| MINUTE_P
 			| MINVALUE
+			| MIN_COST
 			| MISSING
 			| MODE
 			| MODIFIES
@@ -19957,6 +19963,7 @@ PartitionIdentKeyword: ABORT_P
 			| LOG_P
 			| OUTER_P
 			| VERBOSE
+			| MIN_COST
 			;
 
 /* Column identifier --- keywords that can be column, table, etc names.
@@ -20415,6 +20422,7 @@ bare_label_keyword:
 			| MEMORY_LIMIT
 			| METHOD
 			| MINVALUE
+			| MIN_COST
 			| MISSING
 			| MODE
 			| MODIFIES
