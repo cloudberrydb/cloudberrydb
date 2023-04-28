@@ -67,6 +67,7 @@
 #include "utils/regproc.h"
 #include "utils/fmgroids.h"
 #include "utils/rel.h"
+#include "utils/resgroup.h"
 #include "utils/rls.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -469,6 +470,11 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 	}
 	else
 	{
+		if (ShouldUnassignResGroup())
+		{
+			bool inFunction = already_under_executor_run() || utility_nested();
+			ShouldBypassQuery(queryDesc->plannedstmt, inFunction);
+		}
 		queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 		/* call ExecutorStart to prepare the plan for execution */

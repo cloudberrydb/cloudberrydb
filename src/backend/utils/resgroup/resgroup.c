@@ -1443,6 +1443,8 @@ SerializeResGroupInfo(StringInfo str)
 	appendBinaryStringInfo(str, (char *) &itmp, sizeof(int32));
 	itmp = htonl(caps->memory_limit);
 	appendBinaryStringInfo(str, (char *) &itmp, sizeof(int32));
+	itmp = htonl(caps->min_cost);
+	appendBinaryStringInfo(str, (char *) &itmp, sizeof(int32));
 
 	cpuset_len = strlen(caps->cpuset);
 	itmp = htonl(cpuset_len);
@@ -1481,7 +1483,8 @@ DeserializeResGroupInfo(struct ResGroupCaps *capsOut,
 	capsOut->cpuSoftPriority = ntohl(itmp);
 	memcpy(&itmp, ptr, sizeof(int32)); ptr += sizeof(int32);
 	capsOut->memory_limit = ntohl(itmp);
-
+	memcpy(&itmp, ptr, sizeof(int32)); ptr += sizeof(int32);
+	capsOut->min_cost = ntohl(itmp);
 
 	memcpy(&itmp, ptr, sizeof(int32)); ptr += sizeof(int32);
 	cpuset_len = ntohl(itmp);
@@ -3421,6 +3424,10 @@ ShouldBypassQuery(PlannedStmt* stmt, bool inFunc)
 	{
 		List *rte_list = stmt->rtable;
 		bool haveRtable = true;
+		ResGroupCaps            *caps = &self->group->caps;
+		double planCost = stmt->planTree->total_cost;
+		int    min_cost = (int)pg_atomic_read_u32((pg_atomic_uint32 *)&caps->min_cost);
+
 		if (list_length(rte_list) == 1 && (lfirst_node(RangeTblEntry, rte_list->head)->rtekind == RTE_RESULT))
 			haveRtable = false;
 
@@ -3429,8 +3436,10 @@ ShouldBypassQuery(PlannedStmt* stmt, bool inFunc)
 		 *
 		 * when gp_resource_group_bypass_catalog_query is on, pure-catalog queries
 		 * will be unassigned from the resource group.
+		 * for quries with cost under the min_cost limit, unassign it from resource
+		 * group too.
 		 */
-		if (haveRtable && PurecatalogQuery(stmt))
+		if (haveRtable && (planCost < min_cost || PurecatalogQuery(stmt)))
 		{
 			ResGroupInfo		groupInfo;
 
