@@ -167,6 +167,7 @@ extern void ResGroupDropFinish(const ResourceGroupCallbackContext *callbackCtx,
 extern void ResGroupCreateOnAbort(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupAlterOnCommit(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
+extern void ShouldBypassQuery(PlannedStmt* stmt, bool inFunc);
 extern uint64 ResourceGroupGetQueryMemoryLimit(void);
 
 /*
