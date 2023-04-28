@@ -1,11 +1,8 @@
 -- test memory limit
 -- start_ignore
 DROP ROLE IF EXISTS role_memory_test;
-DROP
 DROP RESOURCE GROUP rg_memory_test;
-ERROR:  resource group "rg_memory_test" does not exist
 DROP TABLE t_memory_limit;
-ERROR:  table "t_memory_limit" does not exist
 -- end_ignore
 
 -- create a pl function to show the memory used by a process
@@ -57,6 +54,20 @@ SET
 ------------------
  204800kB         
 (1 row)
+
+-- pure-catalog query will be unassigned and bypassed and use statement_mem as query mem.
+1: EXPLAIN ANALYZE SELECT * FROM pg_class WHERE relname = 't_memory_limit';
+ QUERY PLAN                                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using pg_class_relname_nsp_index on pg_class  (cost=0.15..8.17 rows=1 width=265) (actual time=0.006..0.007 rows=1 loops=1) 
+   Index Cond: (relname = 't_memory_limit'::name)                                                                                      
+ Optimizer: Postgres query optimizer                                                                                                   
+ Planning Time: 2.538 ms                                                                                                               
+   (slice0)    Executor memory: 41K bytes.                                                                                             
+ Memory used:  128000kB                                                                                                                
+ Execution Time: 0.270 ms                                                                                                              
+(7 rows)
+
 1: RESET ROLE;
 RESET
 -- clean
