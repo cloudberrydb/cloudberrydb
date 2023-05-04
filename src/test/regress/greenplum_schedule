@@ -44,7 +44,6 @@ test: createdb
 test: gp_aggregates gp_aggregates_costs gp_metadata variadic_parameters default_parameters function_extensions spi gp_xml shared_scan update_gp triggers_gp returning_gp resource_queue_with_rule gp_types gp_index cluster_gp combocid_gp gp_sort gp_prepared_xacts gp_backend_info
 test: spi_processed64bit
 test: gp_tablespace_with_faults
-test: gp_check_files
 # below test(s) inject faults so each of them need to be in a separate group
 test: gp_tablespace
 
@@ -339,5 +338,8 @@ test: ao_segfile
 
 # test CREATE UNIQUE INDEX on AO/CO tables.
 test: uao_dml/ao_unique_index_build_row uao_dml/ao_unique_index_build_column
+
+# run this at the end of the schedule for more chance to catch abnormalities
+test: gp_check_files
 
 # end of tests
