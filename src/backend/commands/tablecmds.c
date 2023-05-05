@@ -825,7 +825,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		amHandlerOid = get_table_am_handler_oid(accessMethod, false);
 	}
 
-
 	/*
 	 * Parse and validate reloptions, if any.
 	 */
@@ -871,8 +870,13 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		case RELKIND_PARTITIONED_TABLE:
 			(void) partitioned_table_reloptions(reloptions, true);
 			break;
+		case RELKIND_RELATION:
+		case RELKIND_MATVIEW:
+		case RELKIND_TOASTVALUE:
+			(void) table_reloptions_am(accessMethodId, reloptions, relkind, true);
+			break;
 		default:
-			(void) heap_reloptions(relkind, reloptions, true);
+			break;
 	}
 
 	if (stmt->ofTypename)
@@ -15683,10 +15687,7 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
-			if (RelationIsAppendOptimized(rel))
-				(void) default_reloptions(newOptions, true, RELOPT_KIND_APPENDOPTIMIZED);
-			else
-				(void) heap_reloptions(rel->rd_rel->relkind, newOptions, true);
+			(void) table_reloptions(rel->rd_tableam->amoptions, newOptions, rel->rd_rel->relkind, true);
 			break;
 		case RELKIND_PARTITIONED_TABLE:
 			(void) partitioned_table_reloptions(newOptions, true);
@@ -15696,7 +15697,7 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 			break;
 		case RELKIND_INDEX:
 		case RELKIND_PARTITIONED_INDEX:
-			(void) index_reloptions(rel->rd_indam->amoptions, newOptions, true);
+			(void) index_reloptions(rel->rd_indam->amoptions, newOptions, rel->rd_rel->relkind, true);
 			break;
 		default:
 			ereport(ERROR,
@@ -15798,7 +15799,7 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 										 defList, "toast", validnsps, false,
 										 operation == AT_ResetRelOptions);
 
-		(void) heap_reloptions(RELKIND_TOASTVALUE, newOptions, true);
+		(void) table_reloptions(toastrel->rd_tableam->amoptions, newOptions, RELKIND_TOASTVALUE, true);
 
 		memset(repl_val, 0, sizeof(repl_val));
 		memset(repl_null, false, sizeof(repl_null));

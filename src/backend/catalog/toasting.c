@@ -15,6 +15,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "access/reloptions.h"
 #include "access/toast_compression.h"
 #include "access/xact.h"
 #include "catalog/binary_upgrade.h"
@@ -151,6 +152,11 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 	int16		coloptions[2];
 	ObjectAddress baseobject,
 				toastobject;
+
+	Assert(rel->rd_tableam || rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE);
+	if (rel->rd_tableam && table_relation_needs_toast_table(rel))
+		(void) table_reloptions_am(table_relation_toast_am(rel), reloptions,
+									RELKIND_TOASTVALUE, true);
 
 	/*
 	 * Is it already toasted?

@@ -883,6 +883,11 @@ typedef struct TableAmRoutine
 										   struct SampleScanState *scanstate,
 										   TupleTableSlot *slot);
 
+	/*
+	 * This callback is used to parse reloptions for relation/matview/toast.
+	 */
+	bytea       *(*amoptions)(Datum reloptions, char relkind, bool validate);
+
 } TableAmRoutine;
 
 
@@ -2189,6 +2194,7 @@ extern void table_block_relation_estimate_size(Relation rel,
  */
 
 extern const TableAmRoutine *GetTableAmRoutine(Oid amhandler);
+extern const TableAmRoutine *GetTableAmRoutineByAmId(Oid amoid);
 extern const TableAmRoutine *GetHeapamTableAmRoutine(void);
 extern bool check_default_table_access_method(char **newval, void **extra,
 											  GucSource source);

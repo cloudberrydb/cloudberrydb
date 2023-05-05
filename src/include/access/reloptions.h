@@ -259,17 +259,23 @@ extern void *build_local_reloptions(local_relopts *relopts, Datum options,
 
 extern bytea *default_reloptions(Datum reloptions, bool validate,
 								 relopt_kind kind);
-extern bytea *heap_reloptions(char relkind, Datum reloptions, bool validate);
+
+extern bytea *table_reloptions(amoptions_function amoptions, Datum reloptions,
+								  char relkind, bool validate);
+extern bytea *table_reloptions_am(Oid accessMethodId, Datum reloptions,
+								  char relkind, bool validate);
 extern bytea *view_reloptions(Datum reloptions, bool validate);
 extern bytea *partitioned_table_reloptions(Datum reloptions, bool validate);
 extern bytea *index_reloptions(amoptions_function amoptions, Datum reloptions,
-							   bool validate);
+							   char relkind, bool validate);
 extern bytea *attribute_reloptions(Datum reloptions, bool validate);
 extern bytea *tablespace_reloptions(Datum reloptions, bool validate);
 extern LOCKMODE AlterTableGetRelOptionsLockLevel(List *defList);
 
 
 /* in reloptions_gp.c */
+extern bytea *ao_amoptions(Datum reloptions, char relkind,
+									bool validate);
 extern Datum transformAOStdRdOptions(StdRdOptions *opts, Datum withOpts);
 
 extern void validateAppendOnlyRelOptions(int blocksize, int writesize,

@@ -492,11 +492,10 @@ RelationParseRelOptions(Relation relation, HeapTuple tuple)
 	{
 		case RELKIND_RELATION:
 		case RELKIND_TOASTVALUE:
-		case RELKIND_AOSEGMENTS:
-		case RELKIND_AOBLOCKDIR:
-		case RELKIND_AOVISIMAP:
-		case RELKIND_VIEW:
 		case RELKIND_MATVIEW:
+			amoptsfn = relation->rd_tableam->amoptions;
+			break;
+		case RELKIND_VIEW:
 		case RELKIND_PARTITIONED_TABLE:
 			amoptsfn = NULL;
 			break;
@@ -504,6 +503,10 @@ RelationParseRelOptions(Relation relation, HeapTuple tuple)
 		case RELKIND_PARTITIONED_INDEX:
 			amoptsfn = relation->rd_indam->amoptions;
 			break;
+		/* Can AO aux tables have reloptions? */
+		case RELKIND_AOSEGMENTS:
+		case RELKIND_AOBLOCKDIR:
+		case RELKIND_AOVISIMAP:
 		default:
 			return;
 	}
