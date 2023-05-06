@@ -53,41 +53,8 @@ typedef struct WorkFileUsagePerQuery
 
 } WorkFileUsagePerQuery;
 
-typedef struct workfile_set
-{
-	/* Session id for the query creating the workfile set */
-	int			session_id;
-
-	/* Command count for the query creating the workfile set */
-	int			command_count;
-
-	/* Number of files in set */
-	uint32		num_files;
-
-	/* Size in bytes of the files in this workfile set */
-	int64		total_bytes;
-
-	/* Prefix of files in the workfile set */
-	char		prefix[WORKFILE_PREFIX_LEN];
-
-	/* Type of operator creating the workfile set */
-	char		operator[NAMEDATALEN];
-
-	/* Slice in which the spilling operator was */
-	int			slice_id;
-
-	WorkFileUsagePerQuery *perquery;
-
-	dlist_node	node;
-
-	bool		active;
-
-	/* If the workfile is pinned, don't free it unless call workfile_mgr_close_set */
-	bool		pinned;
-
-	/* Used to track workfile_set created in current process */
-	dlist_node	local_node;
-} workfile_set;
+struct workfile_set;
+typedef struct workfile_set workfile_set;
 
 /* Workfile Set operations */
 
@@ -105,5 +72,6 @@ extern void workfile_mgr_close_set(workfile_set *work_set);
 extern Datum gp_workfile_mgr_cache_entries_internal(PG_FUNCTION_ARGS);
 extern workfile_set *workfile_mgr_cache_entries_get_copy(int* num_actives);
 extern uint64 WorkfileSegspace_GetSize(void);
+extern bool workfile_is_active(workfile_set *workfile);
 
 #endif /* __WORKFILE_MGR_H__ */

@@ -145,7 +145,7 @@ gp_workfile_mgr_create_workset(PG_FUNCTION_ARGS)
 	BufFile *buffile;
 
 	workfile_set *work_set = workfile_mgr_create_set(worksetName, NULL, holdPin);
-	Assert(work_set->active);
+	Assert(workfile_is_active(work_set));
 
 	if (!emptySet)
 	{
@@ -674,7 +674,7 @@ workfile_create_and_set_cleanup(void)
 	elog(LOG, "Running sub-test: Closing Workset");
 	workfile_mgr_close_set(work_set);
 
-	unit_test_result(!work_set->active);
+	unit_test_result(!workfile_is_active(work_set));
 
 	return unit_test_summary();
 }
@@ -719,7 +719,7 @@ workfile_made_in_temp_tablespace(void)
 
 	BufFileClose(bufFile);
 
-	unit_test_result(!work_set->active);
+	unit_test_result(!workfile_is_active(work_set));
 
 	return unit_test_summary();
 }
@@ -776,7 +776,7 @@ workfile_create_and_individual_cleanup(void)
 	unit_test_result(success);
 
 	/* the workfile_set should be freed since all it's files are closed */
-	unit_test_result(!work_set->active);
+	unit_test_result(!workfile_is_active(work_set));
 
 	return unit_test_summary();
 }
@@ -834,12 +834,12 @@ workfile_create_and_individual_cleanup_with_pinned_workfile_set(void)
 	unit_test_result(success);
 
 	/* the workfile_set should not be freed since it gets pinned */
-	unit_test_result(work_set->active);
+	unit_test_result(workfile_is_active(work_set));
 
 	/* free the workfile_set */
 	workfile_mgr_close_set(work_set);
 
-	unit_test_result(!work_set->active);
+	unit_test_result(!workfile_is_active(work_set));
 
 	return unit_test_summary();
 }
