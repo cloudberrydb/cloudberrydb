@@ -100,6 +100,42 @@ int			gp_workfile_max_entries = 8192;
 
 typedef struct workfile_set WorkFileSetSharedEntry;
 
+struct workfile_set
+{
+	/* Session id for the query creating the workfile set */
+	int			session_id;
+
+	/* Command count for the query creating the workfile set */
+	int			command_count;
+
+	/* Number of files in set */
+	uint32		num_files;
+
+	/* Size in bytes of the files in this workfile set */
+	int64		total_bytes;
+
+	/* Prefix of files in the workfile set */
+	char		prefix[WORKFILE_PREFIX_LEN];
+
+	/* Type of operator creating the workfile set */
+	char		operator[NAMEDATALEN];
+
+	/* Slice in which the spilling operator was */
+	int			slice_id;
+
+	WorkFileUsagePerQuery *perquery;
+
+	dlist_node	node;
+
+	bool		active;
+
+	/* If the workfile is pinned, don't free it unless call workfile_mgr_close_set */
+	bool		pinned;
+
+	/* Used to track workfile_set created in current process */
+	dlist_node	local_node;
+};
+
 /*
  * Protected by WorkFileManagerLock (except for sizes, which use atomics)
  */
@@ -940,4 +976,13 @@ WorkfileSegspace_GetSize(void)
 	LWLockRelease(WorkFileManagerLock);
 
 	return result;
+}
+
+/*
+ * Get Workfile Active Attribute.
+ */
+bool
+workfile_is_active(workfile_set *workfile)
+{
+	return workfile ? workfile->active : false;
 }
