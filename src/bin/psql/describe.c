@@ -4983,7 +4983,6 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 					  " WHEN " CppAsString2(RELKIND_MATVIEW) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_INDEX) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_SEQUENCE) " THEN '%s'"
-					  " WHEN 's' THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_TOASTVALUE) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_FOREIGN_TABLE) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_PARTITIONED_TABLE) " THEN '%s'"
@@ -4997,7 +4996,6 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 					  gettext_noop("materialized view"),
 					  gettext_noop("index"),
 					  gettext_noop("sequence"),
-					  gettext_noop("special"),
 					  gettext_noop("TOAST table"),
 					  gettext_noop("foreign table"),
 					  gettext_noop("partitioned table"),
@@ -5012,10 +5010,10 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 		if (isGPDB7000OrLater())
 		{
 			appendPQExpBuffer(&buf, ", CASE c.relam");
-			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", HEAP_TABLE_AM_OID, gettext_noop("heap"));
 			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", AO_ROW_TABLE_AM_OID, gettext_noop("append only"));
 			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", AO_COLUMN_TABLE_AM_OID, gettext_noop("append only columnar"));
-			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", BTREE_AM_OID, gettext_noop("btree"));
+			appendPQExpBuffer(&buf, " ELSE (SELECT amname FROM pg_am WHERE pg_am.oid=c.relam)");
+
 			appendPQExpBuffer(&buf, " END as \"%s\"\n", gettext_noop("Storage"));
 		}
 		else

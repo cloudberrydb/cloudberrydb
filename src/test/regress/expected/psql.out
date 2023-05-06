@@ -2866,21 +2866,21 @@ Access method: heap
 
 -- AM is displayed for tables, indexes and materialized views.
 \d+
-                                                                List of relations
-     Schema      |        Name        |       Type        |        Owner         | Storage | Persistence | Access method |  Size   | Description 
------------------+--------------------+-------------------+----------------------+---------+-------------+---------------+---------+-------------
- tableam_display | mat_view_heap_psql | materialized view | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
- tableam_display | tbl_heap           | table             | regress_display_role | heap    | permanent   | heap          | 0 bytes | 
- tableam_display | tbl_heap_psql      | table             | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
- tableam_display | view_heap_psql     | view              | regress_display_role |         | permanent   |               | 0 bytes | 
+                                                                 List of relations
+     Schema      |        Name        |       Type        |        Owner         |  Storage  | Persistence | Access method |  Size   | Description 
+-----------------+--------------------+-------------------+----------------------+-----------+-------------+---------------+---------+-------------
+ tableam_display | mat_view_heap_psql | materialized view | regress_display_role | heap_psql | permanent   | heap_psql     | 0 bytes | 
+ tableam_display | tbl_heap           | table             | regress_display_role | heap      | permanent   | heap          | 0 bytes | 
+ tableam_display | tbl_heap_psql      | table             | regress_display_role | heap_psql | permanent   | heap_psql     | 0 bytes | 
+ tableam_display | view_heap_psql     | view              | regress_display_role |           | permanent   |               | 0 bytes | 
 (4 rows)
 
 \dt+
-                                                       List of relations
-     Schema      |     Name      | Type  |        Owner         | Storage | Persistence | Access method |  Size   | Description 
------------------+---------------+-------+----------------------+---------+-------------+---------------+---------+-------------
- tableam_display | tbl_heap      | table | regress_display_role | heap    | permanent   | heap          | 0 bytes | 
- tableam_display | tbl_heap_psql | table | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
+                                                        List of relations
+     Schema      |     Name      | Type  |        Owner         |  Storage  | Persistence | Access method |  Size   | Description 
+-----------------+---------------+-------+----------------------+-----------+-------------+---------------+---------+-------------
+ tableam_display | tbl_heap      | table | regress_display_role | heap      | permanent   | heap          | 0 bytes | 
+ tableam_display | tbl_heap_psql | table | regress_display_role | heap_psql | permanent   | heap_psql     | 0 bytes | 
 (2 rows)
 
 \dm+
@@ -2900,13 +2900,13 @@ Access method: heap
 
 \set HIDE_TABLEAM on
 \d+
-                                                        List of relations
-     Schema      |        Name        |       Type        |        Owner         | Storage | Persistence |  Size   | Description 
------------------+--------------------+-------------------+----------------------+---------+-------------+---------+-------------
- tableam_display | mat_view_heap_psql | materialized view | regress_display_role |         | permanent   | 0 bytes | 
- tableam_display | tbl_heap           | table             | regress_display_role | heap    | permanent   | 0 bytes | 
- tableam_display | tbl_heap_psql      | table             | regress_display_role |         | permanent   | 0 bytes | 
- tableam_display | view_heap_psql     | view              | regress_display_role |         | permanent   | 0 bytes | 
+                                                         List of relations
+     Schema      |        Name        |       Type        |        Owner         |  Storage  | Persistence |  Size   | Description 
+-----------------+--------------------+-------------------+----------------------+-----------+-------------+---------+-------------
+ tableam_display | mat_view_heap_psql | materialized view | regress_display_role | heap_psql | permanent   | 0 bytes | 
+ tableam_display | tbl_heap           | table             | regress_display_role | heap      | permanent   | 0 bytes | 
+ tableam_display | tbl_heap_psql      | table             | regress_display_role | heap_psql | permanent   | 0 bytes | 
+ tableam_display | view_heap_psql     | view              | regress_display_role |           | permanent   | 0 bytes | 
 (4 rows)
 
 RESET ROLE;
