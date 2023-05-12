@@ -228,6 +228,7 @@ int			gp_resource_group_cpu_priority;
 double		gp_resource_group_cpu_limit;
 bool		gp_resource_group_bypass;
 bool		gp_resource_group_bypass_catalog_query;
+bool		gp_resource_group_bypass_direct_dispatch;
 
 /* Metrics collector debug GUC */
 bool		vmem_process_interrupt = false;
@@ -2844,6 +2845,15 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL
 		},
 		&gp_resource_group_bypass_catalog_query,
+		true, NULL, NULL
+	},
+
+	{
+		{"gp_resource_group_bypass_direct_dispatch", PGC_USERSET, RESOURCES,
+			gettext_noop("Bypass direct dispatch plan."),
+			NULL
+		},
+		&gp_resource_group_bypass_direct_dispatch,
 		true, NULL, NULL
 	},
 
