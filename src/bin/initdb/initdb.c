@@ -2036,7 +2036,15 @@ setup_cdb_schema(FILE *cmdfd)
 		int			namelen = strlen(file->d_name);
 
 		if (namelen > 4 &&
-			strcmp(".sql", file->d_name + namelen - 4) == 0)
+			strcmp(".sql", file->d_name + namelen - 4) == 0 &&
+			/*
+			 * Since 7X, we do not load gp_toolkit.sql anymore but will run
+			 * CREATE EXTENSION gp_toolkit to do the same thing. But existing
+			 * installation could still have gp_toolkit.sql until e.g. uninstallation
+			 * or a major version upgrade. Ignore that file in any cases.
+			 * XXX: should be no longer needed after 8X.
+			 */
+			(namelen < 14 || strcmp("gp_toolkit.sql", file->d_name) != 0))
 		{
 			scriptnames = pg_realloc(scriptnames,
 									 sizeof(char *) * (nscripts + 1));
@@ -2108,6 +2116,15 @@ static void
 load_plpgsql(FILE *cmdfd)
 {
 	PG_CMD_PUTS("CREATE EXTENSION plpgsql;\n\n");
+}
+
+/*
+ * GPDB: load external table support
+ */
+static void
+load_exttable(FILE *cmdfd)
+{
+	PG_CMD_PUTS("CREATE EXTENSION gp_exttable_fdw;\n\n");
 }
 
 /*
@@ -3238,6 +3255,8 @@ initialize_data_directory(void)
 	setup_schema(cmdfd);
 
 	load_plpgsql(cmdfd);
+
+	load_exttable(cmdfd);
 
 	/* sets up the Cloudberry Database admin schema */
 	setup_cdb_schema(cmdfd);
