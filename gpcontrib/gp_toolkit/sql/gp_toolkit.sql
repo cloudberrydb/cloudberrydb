@@ -1,4 +1,5 @@
 -- Tests for the functions and views in gp_toolkit
+-- gp_resource_manager=none need to be set for this test to run as expected.
 
 -- Create an empty database to test in, because some of the gp_toolkit views
 -- are really slow, when there are a lot of objects in the database.
@@ -329,11 +330,11 @@ select sosdnsp,
 from gp_toolkit.gp_size_of_schema_disk where sosdnsp='tktest' order by 1;
 
 -- gp_size_of_database
--- We assume the regression database is between 30 MB and 5GB in size
+-- We assume the contrib_regression database is between 30 MB and 5GB in size
 select sodddatname,
        sodddatsize > 30000000 as "db size over 30MB",
        sodddatsize < 5000000000 as "db size below 5 GB"
-from gp_toolkit.gp_size_of_database where sodddatname='regression';
+from gp_toolkit.gp_size_of_database where sodddatname='contrib_regression';
 
 -- This also depends on the number of segments
 select count(*) > 0 from gp_toolkit.__gp_number_of_segments;
@@ -368,18 +369,6 @@ select * from gp_toolkit.gp_resq_activity where resqrole = 'toolkit_user1';
 -- Should be empty unless there is failure in the segment, it's a view from gp_pgdatabase
 select * from gp_toolkit.gp_pgdatabase_invalid;
 
--- Test that the statistics on resource queue usage are properly updated and
--- reflected in the pg_stat_resqueues view
-set stats_queue_level=on;
-create resource queue q with (active_statements = 10);
-create user resqueuetest with resource queue q;
-set role resqueuetest;
-select 1;
-select n_queries_exec from pg_stat_resqueues where queuename = 'q';
-reset role;
-drop role resqueuetest;
-drop resource queue q;
-
 -- GP Readable Data Table
 
 -- Check that the tables created above are present in gp_toolkit.__gp_user_data_tables_readable
@@ -397,7 +386,7 @@ from gp_toolkit.__gp_user_data_tables_readable where autrelname like 'toolkit%';
 
 reset session authorization;
 
-\c regression
+\c contrib_regression
 drop database toolkit_testdb;
 drop role toolkit_user1;
 drop role toolkit_admin;

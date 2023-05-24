@@ -363,14 +363,21 @@ IsExtAuxNamespace(Oid namespaceId)
  *		schema and tablespace names.  With 9.6, this is also true
  *		for roles.
  *
- *      As of Cloudberry 4.0 we also reserve the prefix gp_
+ *		Counterpart of IsReservedName but checks GPDB reserved name(s).
+ * 		As of GP 4.0 we reserve the prefix gp_ for schema and
+ * 		tablespace names. We do not reserve it for role names to avoid 
+ * 		impact to pre-7.0 users and also because the reason to reserve
+ * 		pg_ for role names does not apply to pg_ (see #15259). 
+ *
+ *		As of 7.0 we do not reserve 'gp_toolkit' because it has been made
+ * 		an extension which can be created or dropped by the user.
  */
 bool
 IsReservedName(const char *name)
 {
 	/* ugly coding for speed */
 	return ((name[0] == 'p' && name[1] == 'g' && name[2] == '_') ||
-			(name[0] == 'g' && name[1] == 'p' && name[2] == '_'));
+			((name[0] == 'g' && name[1] == 'p' && name[2] == '_') && (strlen(name) < 10 || strcmp("gp_toolkit", name) != 0)));
 }
 
 /*
